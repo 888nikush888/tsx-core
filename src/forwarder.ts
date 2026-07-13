@@ -711,8 +711,8 @@ async function stopForwarding() {
   if (client) {
     try {
       await client.close();
-    } catch {
-      /* ignore close error */
+    } catch (error: any) {
+      addLog(`[WARN] TDLib client close failed while stopping routing: ${error.message}`);
     }
     client = null;
   }
@@ -795,19 +795,32 @@ async function startForwardingNonInteractive(config) {
     await resumePersistedTasks(config);
     await loadAndResumeMediaGroupBuffer(config);
 
-    // Keep running indefinitely (the process will exit via global SIGINT/SIGTERM handlers)
-    await new Promise(() => {});
-
-  } catch (error) {
+  } catch (error: any) {
     state.connectionState = 'error';
     addLog(`[FATAL] Fehler beim Starten des Forwardings: ${error.message}`);
+    state.isRunning = false;
+    state.startupTime = null;
+    state.resolvedSourceChatIds.clear();
+    targetChatId = null;
+    forwardQueue.pause();
+    forwardQueue.clear();
+    forwardQueue.abortRunning('Non-interactive startup failed.');
+    const drained = await forwardQueue.waitForIdle(getShutdownGraceMs());
+    if (!drained) addLog('[CRITICAL] Queue did not drain after non-interactive startup failure.');
     if (client) {
       try {
         await client.close();
-      } catch {
-        /* ignore close error */
+      } catch (closeError: any) {
+        addLog(`[WARN] TDLib client close failed after startup error: ${closeError.message}`);
       }
       client = null;
+    }
+    if (drained) {
+      try {
+        await fsPromises.unlink('./session_data/.routing_active');
+      } catch (lockError: any) {
+        if (lockError.code !== 'ENOENT') addLog(`[WARN] Routing lock cleanup failed after startup error: ${lockError.message}`);
+      }
     }
     throw error;
   }
@@ -894,8 +907,8 @@ async function startForwarding(config) {
     if (client) {
       try {
         await client.close();
-      } catch {
-        /* ignore close error */
+      } catch (closeError: any) {
+        addLog(`[WARN] TDLib client close failed after interactive startup error: ${closeError.message}`);
       }
       client = null;
     }
