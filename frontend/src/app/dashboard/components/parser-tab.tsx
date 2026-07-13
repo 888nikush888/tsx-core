@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,7 +18,7 @@ export function ParserTab({ config, setConfig, openRouterApiKeyConfigured }: any
   const [isLoadingTemplates, setIsLoadingTemplates] = useState<boolean>(true)
   const [isSavingTemplate, setIsSavingTemplate] = useState<boolean>(false)
 
-  const fetchTemplates = async (preferredName?: string) => {
+  const fetchTemplates = useCallback(async (preferredName = "default") => {
     try {
       setIsLoadingTemplates(true)
       const res = await apiFetch(`${API_BASE}/api/templates`)
@@ -26,7 +26,7 @@ export function ParserTab({ config, setConfig, openRouterApiKeyConfigured }: any
       const data = await res.json()
       if (data.templates) {
         setTemplates(data.templates)
-        const requestedName = preferredName || selectedTemplateName
+        const requestedName = preferredName
         const activeName = data.templates[requestedName] !== undefined ? requestedName : "default"
         setSelectedTemplateName(activeName)
         setActiveContent(data.templates[activeName] || "")
@@ -36,11 +36,11 @@ export function ParserTab({ config, setConfig, openRouterApiKeyConfigured }: any
     } finally {
       setIsLoadingTemplates(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    fetchTemplates()
-  }, [])
+    void fetchTemplates()
+  }, [fetchTemplates])
 
   // Sync editor content when selected template changes
   useEffect(() => {

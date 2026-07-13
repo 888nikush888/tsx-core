@@ -1,51 +1,55 @@
-import { spawnSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const checker = path.join(
-  root,
-  'node_modules',
-  'license-checker-rseidelsohn',
-  'bin',
-  'license-checker-rseidelsohn.js'
-);
+const policies = [
+  {
+    name: 'backend',
+    lockfile: path.join(root, 'package-lock.json'),
+    allowed: new Set([
+      '0BSD',
+      'Apache-2.0',
+      'BlueOak-1.0.0',
+      'BSD-3-Clause',
+      'ISC',
+      'MIT',
+      '(MIT OR WTFPL)',
+      '(BSD-2-Clause OR MIT OR Apache-2.0)',
+    ]),
+  },
+  {
+    name: 'frontend',
+    lockfile: path.join(root, 'frontend', 'package-lock.json'),
+    allowed: new Set(['0BSD', 'Apache-2.0', 'BSD-3-Clause', 'ISC', 'MIT', 'MIT AND ISC']),
+  },
+];
 
-function verify(name, start, allowedLicenses, excludedPackages = '') {
-  const args = [
-    checker,
-    '--production',
-    '--start',
-    start,
-    '--onlyAllow',
-    allowedLicenses,
-    '--json',
-  ];
-  if (excludedPackages) args.push('--excludePackages', excludedPackages);
-  const result = spawnSync(process.execPath, args, {
-    cwd: root,
-    encoding: 'utf8',
-    maxBuffer: 20 * 1024 * 1024,
-    shell: false,
-    windowsHide: true,
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    process.stderr.write(result.stderr || result.stdout || `${name} license check failed.\n`);
-    process.exit(result.status || 1);
-  }
-  const packages = JSON.parse(result.stdout);
-  console.log(`${name} production license gate passed (${Object.keys(packages).length} packages).`);
+function packageName(lockPath) {
+  return lockPath.slice(lockPath.lastIndexOf('node_modules/') + 'node_modules/'.length);
 }
 
-verify(
-  'backend',
-  root,
-  'MIT;ISC;BlueOak-1.0.0;Apache-2.0;0BSD;BSD-3-Clause;(MIT OR WTFPL);(BSD-2-Clause OR MIT OR Apache-2.0)'
-);
-verify(
-  'frontend',
-  path.join(root, 'frontend'),
-  'MIT;ISC;Apache-2.0;BSD-3-Clause;MPL-2.0;0BSD;MIT AND ISC',
-  'frontend@0.0.0'
-);
+for (const policy of policies) {
+  const lock = JSON.parse(await readFile(policy.lockfile, 'utf8'));
+  if (lock.lockfileVersion !== 3 || !lock.packages) {
+    throw new Error(`${policy.name} requires an npm lockfileVersion 3 package map.`);
+  }
+  const productionPackages = Object.entries(lock.packages).filter(
+    ([lockPath, metadata]) => lockPath.includes('node_modules/') && !metadata.dev && !metadata.link
+  );
+  const violations = productionPackages.flatMap(([lockPath, metadata]) => {
+    if (!metadata.license) return [`${packageName(lockPath)} has no declared license`];
+    if (!policy.allowed.has(metadata.license)) {
+      return [`${packageName(lockPath)} uses disallowed license ${metadata.license}`];
+    }
+    return [];
+  });
+  if (violations.length > 0) {
+    for (const violation of violations) console.error(`${policy.name}: ${violation}`);
+    process.exitCode = 1;
+  } else {
+    console.log(
+      `${policy.name} production license gate passed (${productionPackages.length} locked artifacts).`
+    );
+  }
+}

@@ -21,6 +21,7 @@ const allTests = [
   'test_supply_chain.js',
   'test_architecture.js',
   'test_risk_acceptances.js',
+  'test_frontend_quality.js',
 ];
 
 const requestedTests = process.argv.slice(2);

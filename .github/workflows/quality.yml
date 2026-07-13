@@ -46,8 +46,10 @@ jobs:
       - name: Static and type gates
         run: |
           npm run lint
+          npm run lint:frontend
           npm run typecheck
           npm run quality:architecture
+          npm run quality:frontend
           npm run quality:risk-acceptances
       - name: Test and per-file coverage gate
         run: npm run test:coverage

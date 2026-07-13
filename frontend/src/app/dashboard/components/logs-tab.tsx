@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useCallback, useEffect, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Terminal, RefreshCw, Pause, Play, Trash2, Copy, Check } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -15,7 +15,7 @@ export function LogsTab({ config }: any) {
   const [copied, setCopied] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     if (isPaused) return;
     try {
       const res = await apiFetch(`${API_BASE}/api/logs`)
@@ -24,13 +24,13 @@ export function LogsTab({ config }: any) {
     } catch (e) {
       console.error("Failed to fetch logs", e)
     }
-  }
+  }, [isPaused])
 
   useEffect(() => {
-    fetchLogs()
+    void fetchLogs()
     const interval = setInterval(fetchLogs, 3000)
     return () => clearInterval(interval)
-  }, [isPaused])
+  }, [fetchLogs])
 
   useEffect(() => {
     if (bottomRef.current && !isPaused) {
@@ -62,7 +62,7 @@ export function LogsTab({ config }: any) {
     }
 
     // Match optional timestamp e.g. [13:22:25] and optional level e.g. [INFO]
-    const regex = /^(\[\d{2}:\d{2}:\d{2}\])?\s*(\[[A-Z\s\-]+\])?(.*)$/i
+    const regex = /^(\[\d{2}:\d{2}:\d{2}\])?\s*(\[[A-Z\s-]+\])?(.*)$/i
     const match = displayLine.match(regex)
     
     if (match) {
