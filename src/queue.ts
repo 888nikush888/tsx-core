@@ -14,6 +14,8 @@ export class ConcurrencyQueue {
   public running: number;
   public queue: QueueItem[];
   public paused: boolean;
+  private readonly activeControllers = new Set<AbortController>();
+  private readonly idleWaiters = new Set<() => void>();
 
   constructor(maxConcurrency = 2, timeoutMs = 60000) {
     this.maxConcurrency = maxConcurrency;
@@ -61,6 +63,33 @@ export class ConcurrencyQueue {
     }
   }
 
+  public abortRunning(reason = 'Queue task aborted.'): void {
+    for (const controller of this.activeControllers) {
+      controller.abort(new Error(reason));
+    }
+  }
+
+  public waitForIdle(timeoutMs = 30_000): Promise<boolean> {
+    if (this.running === 0) return Promise.resolve(true);
+    if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 0) {
+      return Promise.reject(new Error('Queue drain timeout must be a non-negative safe integer.'));
+    }
+    return new Promise<boolean>(resolve => {
+      let settled = false;
+      const finish = (drained: boolean) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        this.idleWaiters.delete(onIdle);
+        resolve(drained);
+      };
+      const onIdle = () => finish(true);
+      const timer = setTimeout(() => finish(false), timeoutMs);
+      this.idleWaiters.add(onIdle);
+      if (this.running === 0) onIdle();
+    });
+  }
+
   /**
    * Applies queue limits without dropping queued work. When concurrency is raised,
    * newly available workers begin processing immediately.
@@ -94,6 +123,7 @@ export class ConcurrencyQueue {
     this.running++;
 
     const controller = new AbortController();
+    this.activeControllers.add(controller);
     const signal = controller.signal;
 
     let callerSettled = false;
@@ -112,7 +142,12 @@ export class ConcurrencyQueue {
 
     const releaseSlot = () => {
       if (timeoutId) clearTimeout(timeoutId);
+      this.activeControllers.delete(controller);
       this.running--;
+      if (this.running === 0) {
+        for (const waiter of this.idleWaiters) waiter();
+        this.idleWaiters.clear();
+      }
       this.next();
     };
 

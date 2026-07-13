@@ -12,6 +12,7 @@ import { isDuplicateSignal, normalizeSignalXml } from './dupe_blocker.js';
 import {
   acknowledgeOutboxTask,
   claimOutboxTask,
+  closeDb,
   completeOutboxTask,
   enqueueOutboxTask,
   failOutboxTask,
@@ -40,6 +41,7 @@ import { startWebServer, stopWebServer } from './web_server.js';
 import { parseSignalToXml, type AiLimits, type ParsedSignal } from './signal_parser.js';
 import { MetricsTracker } from './metrics_tracker.js';
 import { TelegramDeliveryTracker } from './delivery_tracker.js';
+import { checkCrashLoopFiles } from './crash_guard.js';
 import {
   C_RESET, C_GREEN, C_DARK_GREEN, C_RED,
   clearConsole, pressAnyKey, addLog, clearLogHistory,
@@ -76,46 +78,11 @@ const DEFAULT_PARSER_TIMEOUT_MS = 60000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function checkCrashLoop() {
-  const CRASH_COUNTER_FILE = path.join(__dirname, '../session_data/.crash_counter');
   try {
-    const lockExists = await fsPromises.stat('./session_data/.routing_active').then(() => true).catch(() => false);
-    if (!lockExists) {
-      await fsPromises.mkdir('./session_data', { recursive: true });
-      await fsPromises.writeFile(CRASH_COUNTER_FILE, JSON.stringify({ count: 0, lastCrash: 0 }), 'utf-8');
-      return;
-    }
-    
-    let counter = { count: 0, lastCrash: 0 };
-    try {
-      const raw = await fsPromises.readFile(CRASH_COUNTER_FILE, 'utf-8');
-      counter = JSON.parse(raw);
-    } catch (e) {
-      if (e.code !== 'ENOENT') {
-        console.warn(`[WARN] Fehler beim Lesen der Crash-Counter Datei: ${e.message}`);
-      }
-    }
-    
-    const now = Date.now();
-    if (now - counter.lastCrash < 5 * 60 * 1000) {
-      counter.count++;
-    } else {
-      counter.count = 1;
-    }
-    counter.lastCrash = now;
-    
-    await fsPromises.mkdir('./session_data', { recursive: true });
-    await fsPromises.writeFile(CRASH_COUNTER_FILE, JSON.stringify(counter), 'utf-8');
-    
-    if (counter.count >= 3) {
-      console.error(`\n[FATAL] Crash-Loop erkannt (${counter.count} Crashes in unter 5 Minuten).`);
-      console.error(`Please check logs/ folder to identify the issue before restarting.`);
-      try { await fsPromises.unlink('./session_data/.routing_active'); } catch (e) {
-        if (e.code !== 'ENOENT') console.warn(`[WARN] Konnte .routing_active nicht löschen: ${e.message}`);
-      }
-      process.exit(1);
-    }
+    await checkCrashLoopFiles(path.join(__dirname, '../session_data'));
   } catch (err) {
-    console.warn(`[WARN] Unerwarteter Fehler im Crash-Loop-Checker: ${err.message}`);
+    console.error(`[FATAL] Crash-Loop-Schutz blockiert den Start: ${err.message}`);
+    throw err;
   }
 }
 
@@ -730,14 +697,14 @@ async function stopForwarding() {
   state.connectionState = 'disconnected';
   state.startupTime = null;
   state.resolvedSourceChatIds.clear();
-  clearLogHistory();
+  forwardQueue.pause();
   forwardQueue.clear();
-  
-  try {
-    await fsPromises.unlink('./session_data/.routing_active');
-  } catch {
-    /* ignore lockfile removal failure */
+  forwardQueue.abortRunning('Routing stopped by operator.');
+  const drained = await forwardQueue.waitForIdle(getShutdownGraceMs());
+  if (!drained) {
+    addLog('[CRITICAL] Laufende Queue-Tasks konnten nicht innerhalb der Shutdown-Frist beendet werden.');
   }
+
   if (client) {
     try {
       await client.close();
@@ -746,10 +713,19 @@ async function stopForwarding() {
     }
     client = null;
   }
+  if (!drained) {
+    throw new Error('Forward queue did not drain; restart the process before routing again.');
+  }
+  try {
+    await fsPromises.unlink('./session_data/.routing_active');
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') throw error;
+  }
   addLog("[SUCCESS] Weiterleitung gestoppt!");
 }
 
 async function startForwardingNonInteractive(config) {
+  if (forwardQueue.running > 0) throw new Error('Cannot start routing while previous queue tasks are still running.');
   applyQueueSettings(config);
   
   const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
@@ -757,7 +733,7 @@ async function startForwardingNonInteractive(config) {
   
   if (!apiId || !/^[a-f0-9]{32}$/i.test(apiHash || '') || config.sourceChannels.length === 0 || !isValidTargetChannel(config.targetChannel)) {
     addLog("[ERROR] Konfiguration unvollständig! Bitte apiId, TELEGRAM_API_HASH, sourceChannels und targetChannel prüfen.");
-    process.exit(1);
+    throw new Error('Non-interactive routing configuration is incomplete.');
   }
 
   try {
@@ -812,6 +788,7 @@ async function startForwardingNonInteractive(config) {
       addLog(`[WARN] Konnte Lockfile nicht erstellen: ${e.message}`);
     }
 
+    forwardQueue.resume();
     await resumePersistedTasks(config);
     await loadAndResumeMediaGroupBuffer(config);
 
@@ -821,11 +798,6 @@ async function startForwardingNonInteractive(config) {
   } catch (error) {
     state.connectionState = 'error';
     addLog(`[FATAL] Fehler beim Starten des Forwardings: ${error.message}`);
-    try {
-      await fsPromises.unlink('./session_data/.routing_active');
-    } catch {
-      /* ignore lockfile removal failure */
-    }
     if (client) {
       try {
         await client.close();
@@ -834,11 +806,12 @@ async function startForwardingNonInteractive(config) {
       }
       client = null;
     }
-    process.exit(1);
+    throw error;
   }
 }
 
 async function startForwarding(config) {
+  if (forwardQueue.running > 0) throw new Error('Cannot start routing while previous queue tasks are still running.');
   applyQueueSettings(config);
   const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
   const apiHash = process.env.TELEGRAM_API_HASH;
@@ -886,6 +859,7 @@ async function startForwarding(config) {
       addLog(`[WARN] Konnte Lockfile nicht erstellen: ${e.message}`);
     }
 
+    forwardQueue.resume();
     await resumePersistedTasks(config);
     await loadAndResumeMediaGroupBuffer(config);
     await runLiveLogScreen(
@@ -914,12 +888,6 @@ async function startForwarding(config) {
   } catch (error) {
     state.connectionState = 'error';
     console.error(`\n${C_RED}Startfehler:${C_RESET}`, error.message);
-    // Remove lockfile on startup errors to avoid boot crash loop
-    try {
-      await fsPromises.unlink('./session_data/.routing_active');
-    } catch {
-      /* ignore lockfile removal failure */
-    }
     if (client) {
       try {
         await client.close();
@@ -928,7 +896,18 @@ async function startForwarding(config) {
       }
       client = null;
     }
+    forwardQueue.pause();
     forwardQueue.clear();
+    forwardQueue.abortRunning('Interactive startup failed.');
+    const drained = await forwardQueue.waitForIdle(getShutdownGraceMs());
+    if (!drained) addLog('[CRITICAL] Queue did not drain after interactive startup failure.');
+    if (drained) {
+      try {
+        await fsPromises.unlink('./session_data/.routing_active');
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') addLog(`[WARN] Routing-Lock konnte nicht entfernt werden: ${error.message}`);
+      }
+    }
     console.log(`\n${C_GREEN}Beliebige Taste drücken...${C_RESET}`); await pressAnyKey();
   }
   return 'main';
@@ -936,52 +915,76 @@ async function startForwarding(config) {
 
 async function restartApp() {
   clearConsole(); console.log(`${C_GREEN}Initialisiere Neustart des Mainframes...${C_RESET}`);
-  if (client) {
-    try {
-      await client.close();
-    } catch {
-      /* ignore close error */
-    }
-    client = null;
-  }
-  state.isRunning = false; state.connectionState = 'disconnected'; state.startupTime = null; state.resolvedSourceChatIds.clear(); clearLogHistory();
+  await stopForwarding();
+  clearLogHistory();
   await new Promise(r => setTimeout(r, 800)); await playStartupAnimation(); return 'main';
 }
 
-const shutdown = async () => {
-  addLog("[INFO] System-Shutdown eingeleitet...");
-  if (metricsTracker) {
+function getShutdownGraceMs(): number {
+  const configured = Number(process.env.SHUTDOWN_GRACE_MS || 30_000);
+  return Number.isSafeInteger(configured) && configured >= 1_000 && configured <= 120_000 ? configured : 30_000;
+}
+
+let shutdownPromise: Promise<void> | null = null;
+
+function shutdown(exitCode = 0): Promise<void> {
+  if (shutdownPromise) return shutdownPromise;
+  shutdownPromise = (async () => {
+    addLog("[INFO] System-Shutdown eingeleitet...");
+    state.isRunning = false;
+    state.connectionState = 'disconnected';
+    forwardQueue.pause();
+    forwardQueue.clear();
+    forwardQueue.abortRunning('Process shutdown.');
+    deliveryTracker?.close('Process shutdown.');
+    const drained = await forwardQueue.waitForIdle(getShutdownGraceMs());
+    if (!drained) {
+      addLog('[CRITICAL] Shutdown-Frist abgelaufen; nicht abgeschlossene Tasks werden beim Neustart reconciled.');
+    }
+    if (metricsTracker) {
+      try {
+        metricsTracker.stop();
+      } catch {
+        /* ignore stop error */
+      }
+    }
     try {
-      metricsTracker.stop();
+      await stopMetricsServer();
     } catch {
-      /* ignore stop error */
+      /* ignore metrics server close error */
     }
-  }
-  try {
-    await stopMetricsServer();
-  } catch {
-    /* ignore metrics server close error */
-  }
-  try {
-    await stopWebServer();
-  } catch {
-    /* ignore web server close error */
-  }
-  try {
-    await fsPromises.unlink('./session_data/.routing_active');
-  } catch {
-    /* ignore lockfile removal failure */
-  }
-  if (client) {
-    try { 
-      await client.close(); 
-    } catch (err) {
-      console.warn(`[WARN] Fehler beim Schließen des TDLib Clients: ${err.message}`);
+    try {
+      await stopWebServer();
+    } catch {
+      /* ignore web server close error */
     }
-  }
-  process.exit(0);
-};
-process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
+    if (client) {
+      try {
+        await client.close();
+      } catch (err: any) {
+        console.warn(`[WARN] Fehler beim Schließen des TDLib Clients: ${err.message}`);
+      }
+      client = null;
+    }
+    try {
+      await closeDb();
+    } catch (error: any) {
+      console.warn(`[WARN] Fehler beim Schließen der SQLite-Datenbank: ${error.message}`);
+    }
+    if (drained) {
+      try {
+        await fsPromises.unlink('./session_data/.routing_active');
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') console.warn(`[WARN] Routing-Lock konnte nicht entfernt werden: ${error.message}`);
+      }
+    }
+    process.exitCode = exitCode;
+  })();
+  return shutdownPromise;
+}
+
+process.on('SIGINT', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
+process.on('SIGTERM', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
 
 async function run() {
   loadEnv(); let config = readConfigSync();
@@ -1114,13 +1117,10 @@ async function run() {
     else if (menu === 'restart') { menu = await restartApp(); config = readConfigSync(); }
   }
   clearConsole(); console.log(`${C_GREEN}Beende Programm...${C_RESET}`);
-  if (client) {
-    try {
-      await client.close();
-    } catch {
-      /* ignore close error */
-    }
-  }
-  process.exit(0);
+  await shutdown(0);
 }
-run().catch(err => { console.error("Kritischer Fehler:", err.message); process.exit(1); });
+run().catch(async err => {
+  console.error("Kritischer Fehler:", err.message);
+  await shutdown(1);
+  process.exit(process.exitCode || 1);
+});

@@ -215,6 +215,28 @@ async function runTests() {
   assert.strictEqual(configurableQueue.maxConcurrency, 2);
   console.log("   -> OK");
 
+  // 8. Graceful shutdown primitives retain physical-work truth
+  console.log("8. Testing queue abort and drain timeout...");
+  const drainQueue = new ConcurrencyQueue(1, 0);
+  let abortObserved = false;
+  const active = drainQueue.add(async signal => {
+    signal.addEventListener('abort', () => { abortObserved = true; }, { once: true });
+    await new Promise(resolve => setTimeout(resolve, 80));
+    return 'settled';
+  });
+  const pending = drainQueue.add(async () => 'must-not-run');
+  await new Promise(resolve => setTimeout(resolve, 10));
+  drainQueue.pause();
+  drainQueue.clear();
+  await assert.rejects(pending, /Queue was cleared/);
+  drainQueue.abortRunning('process shutdown');
+  assert.strictEqual(abortObserved, true);
+  assert.strictEqual(await drainQueue.waitForIdle(10), false, 'Drain must report its deadline honestly');
+  assert.strictEqual(await drainQueue.waitForIdle(200), true);
+  assert.strictEqual(await active, 'settled');
+  assert.strictEqual(drainQueue.running, 0);
+  console.log("   -> OK");
+
   console.log("\nALL CONCURRENCY QUEUE UNIT TESTS PASSED!");
 }
 
