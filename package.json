@@ -1,0 +1,42 @@
+{
+  "name": "telegram-tdlib-forwarder",
+  "version": "1.0.0",
+  "description": "Telegram Channel Forwarder using TDLib",
+  "type": "module",
+  "main": "dist/forwarder.js",
+  "scripts": {
+    "build": "tsc && npm run build --prefix frontend",
+    "start": "node dist/forwarder.js",
+    "dev": "tsx src/forwarder.ts",
+    "test:js": "tsx tests/test_modules.js && tsx tests/test_queue.js && tsx tests/test_filters.js && tsx tests/test_dupe_blocker.js && tsx tests/test_integration.js && tsx tests/test_signal_parser.js",
+    "test": "npm run test:js",
+    "lint": "eslint src/ --quiet"
+  },
+  "keywords": [
+    "telegram",
+    "tdlib",
+    "forwarder",
+    "bot"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "openai": "^6.46.0",
+    "prebuilt-tdlib": "^0.1008064.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^6.0.1",
+    "tdl": "^8.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.1",
+    "cross-env": "^10.1.0",
+    "eslint": "^10.6.0",
+    "eslint-plugin-jest": "^29.15.4",
+    "globals": "^17.7.0",
+    "jest": "^30.4.2",
+    "prettier": "^3.9.4",
+    "tsx": "^4.23.0",
+    "typescript": "^6.0.3"
+  }
+}

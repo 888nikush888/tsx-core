@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  forwarder:
+    build: .
+    container_name: tg-forwarder
+    restart: unless-stopped
+    volumes:
+      - ./session_data:/app/session_data
+      - ./signals:/app/signals
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+      - "9100:9100"

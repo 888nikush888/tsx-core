@@ -1,0 +1,60 @@
+import { findDuplicateSignal } from './db.js';
+
+/**
+ * Normalizes XML signal content for comparison.
+ * Strips whitespace between tags, removes XML declaration,
+ * and collapses whitespace to produce a canonical string.
+ */
+export function normalizeSignalXml(xmlString: string): string {
+  if (!xmlString || typeof xmlString !== 'string') return '';
+  const normalized = xmlString
+    // Remove XML declaration
+    .replace(/<\?xml[^?]*\?>\s*/gi, '')
+    // Remove leading/trailing whitespace
+    .trim()
+    // Collapse all whitespace between tags to nothing
+    .replace(/>\s+</g, '><')
+    // Remove leading/trailing whitespace within tags (between > and text, text and <)
+    .replace(/>\s+/g, '>')
+    .replace(/\s+</g, '<')
+    // Normalize internal whitespace in text content
+    .replace(/\s+/g, ' ')
+    .trim();
+  return normalized;
+}
+
+/**
+ * Checks whether a signal is a duplicate of any existing signal in the database.
+ */
+export async function isDuplicateSignal(
+  xmlString: string,
+  signalsDir: string, // Kept for signature compatibility
+  cooldownHours: number
+): Promise<{ isDupe: boolean; reason: string; matchFile?: string }> {
+  if (!xmlString || typeof xmlString !== 'string') {
+    return { isDupe: false, reason: 'Leerer Signal-Inhalt' };
+  }
+
+  const normalizedNew = normalizeSignalXml(xmlString);
+  if (!normalizedNew) {
+    return { isDupe: false, reason: 'Signal konnte nicht normalisiert werden' };
+  }
+
+  const match = await findDuplicateSignal(normalizedNew, cooldownHours);
+  if (match && match.isDupe) {
+    if (cooldownHours === 0) {
+      return {
+        isDupe: true,
+        reason: `Identisches Signal gefunden: ${match.matchFile} (Cooldown: permanent)`,
+        matchFile: match.matchFile
+      };
+    }
+    return {
+      isDupe: true,
+      reason: `Identisches Signal gefunden: ${match.matchFile} (vor ${match.ageHours}h, Cooldown: ${cooldownHours}h)`,
+      matchFile: match.matchFile
+    };
+  }
+
+  return { isDupe: false, reason: 'Kein Duplikat gefunden' };
+}

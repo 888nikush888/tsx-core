@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+config.json
+node_modules/
+dist/
+coverage/
+scratch/
+session_data/
+session_files/
+signals/
+logs/
+*.tsbuildinfo
+__pycache__/
+*.pyc

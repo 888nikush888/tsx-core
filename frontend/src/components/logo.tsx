@@ -1,0 +1,32 @@
+import * as React from "react"
+
+interface LogoProps extends React.SVGProps<SVGSVGElement> {
+  size?: number
+}
+
+export function Logo({ size = 24, className, ...props }: LogoProps) {
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 100 100" 
+      fill="currentColor" 
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      {...props}
+    >
+      {/* Top border */}
+      <path d="M0,0 h100 v10 h-100 z" />
+      {/* Bottom border (ends at x=75) */}
+      <path d="M0,90 h75 v10 h-75 z" />
+      {/* Right border */}
+      <path d="M90,0 h10 v100 h-10 z" />
+      {/* Inner L-shape (horizontal) */}
+      <path d="M0,40 h50 v15 h-50 z" />
+      {/* Inner L-shape (vertical) */}
+      <path d="M40,0 h10 v55 h-10 z" />
+      {/* Right-middle vertical stripe */}
+      <path d="M65,0 h10 v100 h-10 z" />
+    </svg>
+  )
+}

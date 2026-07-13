@@ -1,0 +1,33 @@
+{
+  "apiId": 0,
+  "apiHash": "YOUR_API_HASH_HERE",
+  "sourceChannels": [
+    "@quell_kanal_1",
+    "-1001234567890"
+  ],
+  "targetChannel": "@ziel_kanal",
+  "forwardOptions": {
+    "sendCopy": false,
+    "removeCaption": false
+  },
+  "filters": {
+    "allowedKeywords": [],
+    "blockedKeywords": [],
+    "allowedTypes": [],
+    "regexPatterns": []
+  },
+  "sourceFilters": {
+    "@quell_kanal_1": {
+      "regexPatterns": [
+        "(LONG|SHORT)",
+        "Entry:\\s*\\d"
+      ]
+    }
+  },
+  "xmlParsing": {
+    "enabled": true,
+    "saveToFile": true,
+    "forwardXmlToTarget": false,
+    "signalsDir": "./signals"
+  }
+}
