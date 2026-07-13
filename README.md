@@ -132,12 +132,19 @@ JSON_LOGGING=true
 
 # Definiert den Port des Prometheus-Metrikservers (Standard: 9100)
 METRICS_PORT=9100
+
+# Bindet Metriken standardmäßig nur an Loopback. Für einen isolierten
+# Container-Port explizit auf 0.0.0.0 setzen.
+METRICS_HOST=127.0.0.1
 ```
 
 ### Abrufen der Metriken
-* **Healthcheck**: `curl http://localhost:9100/healthz` -> `{"status":"ok", ...}`
+* **Liveness**: `curl http://localhost:9100/healthz` -> HTTP 200, solange der Prozess HTTP-Anfragen bedienen kann.
+* **Readiness**: `curl http://localhost:9100/readyz` -> HTTP 200 nur bei erreichbarer SQLite-Datenbank, aktiver Telegram-Verbindung, laufendem Routing und nicht pausierter Queue; andernfalls HTTP 503 mit Einzelchecks.
 * **Prometheus Scraping**: `curl http://localhost:9100/metrics`
-  * Liefert Metriken wie `tg_forwarder_total_forwarded` und `tg_forwarder_queue_running`.
+  * Liefert bestätigte Zustellungen, Queue- und Outbox-Zustände einschließlich `failed`/`unknown`, Telegram-Verbindungszustand, letzten bestätigten Zustellzeitpunkt, Tagesverbrauch/-reservierung der KI sowie echte Prozess-RAM-/Uptime-Werte.
+
+Die Dashboard-Historie zeigt ausschließlich gemessenen Durchsatz, Queue, CPU und RAM. Die frühere aus HTTP-Latenz und Zufall abgeleitete angebliche Internet-Bandbreite wurde entfernt, da sie keine belastbare Betriebsmetrik war. Alarmierung sollte mindestens auf `readyz != 200`, `tg_forwarder_outbox_tasks{status="unknown"} > 0`, `failed > 0`, wachsende Pending-Queues und einen ausbleibenden letzten Zustellzeitpunkt bei erwarteter Last reagieren.
 
 ---
 

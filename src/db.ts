@@ -153,6 +153,7 @@ export async function initDb(
       value INTEGER NOT NULL
     );
     INSERT OR IGNORE INTO forwarding_stats (key, value) VALUES ('total_forwarded_count', 0);
+    INSERT OR IGNORE INTO forwarding_stats (key, value) VALUES ('last_forwarded_at', 0);
   `);
 
   // Table for incoming messages and their routing status
@@ -200,12 +201,27 @@ export async function getTotalForwardedCount(): Promise<number> {
   return Number(row?.value || 0);
 }
 
-export async function incrementForwardedCount(amount = 1): Promise<void> {
+export async function getLastForwardedAt(): Promise<number | null> {
+  const row = await getDb().get<{ value: number }>(
+    `SELECT value FROM forwarding_stats WHERE key = 'last_forwarded_at'`
+  );
+  const value = Number(row?.value || 0);
+  return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+export async function incrementForwardedCount(amount = 1, forwardedAt = Date.now()): Promise<void> {
   const increment = Math.max(0, Math.floor(amount));
   if (increment === 0) return;
+  if (!Number.isSafeInteger(forwardedAt) || forwardedAt <= 0) throw new Error('forwardedAt must be a positive timestamp.');
   await getDb().run(
-    `UPDATE forwarding_stats SET value = value + ? WHERE key = 'total_forwarded_count'`,
-    [increment]
+    `UPDATE forwarding_stats
+     SET value = CASE
+       WHEN key = 'total_forwarded_count' THEN value + ?
+       WHEN key = 'last_forwarded_at' THEN MAX(value, ?)
+       ELSE value
+     END
+     WHERE key IN ('total_forwarded_count', 'last_forwarded_at')`,
+    [increment, forwardedAt]
   );
 }
 
@@ -292,6 +308,33 @@ export async function getAiUsage(usageDay: string): Promise<{ requestCount: numb
     usedTokens: Number(row?.used_tokens || 0),
     reservedTokens: Number(row?.reserved_tokens || 0)
   };
+}
+
+export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, number>> {
+  const counts: Record<OutboxStatus, number> = {
+    pending: 0,
+    preparing: 0,
+    sending: 0,
+    completed: 0,
+    failed: 0,
+    unknown: 0
+  };
+  const rows = await getDb().all<Array<{ status: OutboxStatus; count: number }>>(
+    `SELECT status, COUNT(*) AS count FROM pending_tasks GROUP BY status`
+  );
+  for (const row of rows) {
+    if (row.status in counts) counts[row.status] = Number(row.count || 0);
+  }
+  return counts;
+}
+
+export async function isDatabaseHealthy(): Promise<boolean> {
+  try {
+    const row = await getDb().get<{ ok: number }>('SELECT 1 AS ok');
+    return row?.ok === 1;
+  } catch {
+    return false;
+  }
 }
 
 export async function findDuplicateSignal(
@@ -601,7 +644,7 @@ export async function clearDb(): Promise<void> {
     DELETE FROM pending_tasks;
     DELETE FROM media_group_buffer;
     DELETE FROM incoming_messages;
-    UPDATE forwarding_stats SET value = 0 WHERE key = 'total_forwarded_count';
+    UPDATE forwarding_stats SET value = 0 WHERE key IN ('total_forwarded_count', 'last_forwarded_at');
   `);
   await database.exec('VACUUM;');
 }

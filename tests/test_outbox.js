@@ -13,9 +13,14 @@ import {
   failOutboxTask,
   getIncomingMessages,
   getAiUsage,
+  getLastForwardedAt,
   getMediaGroupBuffers,
+  getOutboxStatusCounts,
   getOutboxTask,
+  getTotalForwardedCount,
+  incrementForwardedCount,
   initDb,
+  isDatabaseHealthy,
   listOutboxTasks,
   markOutboxSending,
   recoverInterruptedOutboxTasks,
@@ -76,6 +81,11 @@ async function runTests() {
 
     await initDb(dbPath);
 
+    assert.strictEqual(await isDatabaseHealthy(), true);
+    await incrementForwardedCount(2, 1_700_000_000_000);
+    assert.strictEqual(await getTotalForwardedCount(), 2);
+    assert.strictEqual(await getLastForwardedAt(), 1_700_000_000_000);
+
     const legacyTask = await getOutboxTask('legacy-task');
     assert.strictEqual(legacyTask.status, 'pending', 'Legacy rows must migrate to pending');
     assert.strictEqual(legacyTask.attempts, 0);
@@ -119,6 +129,10 @@ async function runTests() {
 
     const unresolved = await listOutboxTasks(['failed', 'unknown']);
     assert.deepStrictEqual(unresolved.map(item => item.id), ['task-failed']);
+    const statusCounts = await getOutboxStatusCounts();
+    assert.strictEqual(statusCounts.failed, 1);
+    assert.strictEqual(statusCounts.unknown, 0);
+    assert.ok(statusCounts.completed >= 2);
 
     const incomingAfterMigration = await getIncomingMessages(100);
     assert.strictEqual(incomingAfterMigration.filter(message => message.chat_id === '-1001' && message.message_id === 7).length, 1, 'Migration must deduplicate inbox rows');

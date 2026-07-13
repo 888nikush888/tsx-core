@@ -16,10 +16,14 @@ import {
   enqueueOutboxTask,
   failOutboxTask,
   getMediaGroupBuffers,
+  getAiUsage,
+  getLastForwardedAt,
+  getOutboxStatusCounts,
   getOutboxTask,
   getTotalForwardedCount,
   incrementForwardedCount,
   initDb,
+  isDatabaseHealthy,
   listOutboxTasks,
   markOutboxSending,
   recoverInterruptedOutboxTasks,
@@ -309,14 +313,17 @@ const state = {
   resolvedSourceChatIds: new Set(),
   totalForwardedCount: 0,
   processedSinceRestart: 0,
+  lastSuccessfulForwardAt: null as number | null,
   startupTime: null as number | null
 };
 
 async function recordForwardedMessages(amount = 1) {
+  const forwardedAt = Date.now();
   state.totalForwardedCount += amount;
   state.processedSinceRestart += amount;
+  state.lastSuccessfulForwardAt = forwardedAt;
   try {
-    await incrementForwardedCount(amount);
+    await incrementForwardedCount(amount, forwardedAt);
   } catch (error: any) {
     addLog(`[WARN] Weiterleitungszähler konnte nicht gespeichert werden: ${error.message}`);
   }
@@ -727,12 +734,6 @@ async function stopForwarding() {
   forwardQueue.clear();
   
   try {
-    await stopMetricsServer();
-  } catch (e) {
-    addLog(`[WARN] Fehler beim Stoppen des Metrik-Servers: ${e.message}`);
-  }
-
-  try {
     await fsPromises.unlink('./session_data/.routing_active');
   } catch {
     /* ignore lockfile removal failure */
@@ -761,6 +762,7 @@ async function startForwardingNonInteractive(config) {
 
   try {
     addLog("[INFO] Verbinde mit Telegram Mainframe...");
+    state.connectionState = 'connecting';
     client = tdl.createClient({ apiId, apiHash, databaseDirectory: './session_data', filesDirectory: './session_files' });
     client.on('error', err => {
       state.connectionState = 'error';
@@ -813,20 +815,6 @@ async function startForwardingNonInteractive(config) {
     await resumePersistedTasks(config);
     await loadAndResumeMediaGroupBuffer(config);
 
-    // Start Prometheus metrics and healthcheck server in non-interactive/daemon mode
-    try {
-      startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
-        totalForwardedCountCallback: () => state.totalForwardedCount,
-        getQueueStateCallback: () => ({
-          running: forwardQueue.running,
-          queued: forwardQueue.queue.length,
-          maxConcurrency: forwardQueue.maxConcurrency
-        })
-      });
-    } catch (err: any) {
-      addLog(`[WARN] Konnte Metrik-Server nicht starten: ${err.message}`);
-    }
-
     // Keep running indefinitely (the process will exit via global SIGINT/SIGTERM handlers)
     await new Promise(() => {});
 
@@ -861,6 +849,7 @@ async function startForwarding(config) {
   clearConsole();
   console.log(`${C_DARK_GREEN}===================================================\n Verbinde mit Telegram Mainframe... Bitte warten.\n===================================================${C_RESET}`);
   try {
+    state.connectionState = 'connecting';
     client = tdl.createClient({ apiId, apiHash, databaseDirectory: './session_data', filesDirectory: './session_files' });
     client.on('error', err => {
       state.connectionState = 'error';
@@ -1000,6 +989,48 @@ async function run() {
   await initFileLogger();
   await initDb();
   state.totalForwardedCount = await getTotalForwardedCount();
+  state.lastSuccessfulForwardAt = await getLastForwardedAt();
+
+  startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
+    totalForwardedCountCallback: () => state.totalForwardedCount,
+    getQueueStateCallback: () => ({
+      running: forwardQueue.running,
+      queued: forwardQueue.queue.length,
+      maxConcurrency: forwardQueue.maxConcurrency
+    }),
+    getOperationalMetricsCallback: async () => {
+      const databaseHealthy = await isDatabaseHealthy();
+      const emptyOutbox = { pending: 0, preparing: 0, sending: 0, completed: 0, failed: 0, unknown: 0 };
+      if (!databaseHealthy) {
+        return {
+          databaseHealthy,
+          isRunning: state.isRunning,
+          connectionState: state.connectionState,
+          queuePaused: forwardQueue.paused,
+          outbox: emptyOutbox,
+          aiRequestsToday: 0,
+          aiUsedTokensToday: 0,
+          aiReservedTokensToday: 0,
+          lastForwardedAt: state.lastSuccessfulForwardAt
+        };
+      }
+      const [outbox, aiUsage] = await Promise.all([
+        getOutboxStatusCounts(),
+        getAiUsage(new Date().toISOString().slice(0, 10))
+      ]);
+      return {
+        databaseHealthy,
+        isRunning: state.isRunning,
+        connectionState: state.connectionState,
+        queuePaused: forwardQueue.paused,
+        outbox,
+        aiRequestsToday: aiUsage.requestCount,
+        aiUsedTokensToday: aiUsage.usedTokens,
+        aiReservedTokensToday: aiUsage.reservedTokens,
+        lastForwardedAt: state.lastSuccessfulForwardAt
+      };
+    }
+  });
 
   // Initialize and start Metrics Tracker
   try {

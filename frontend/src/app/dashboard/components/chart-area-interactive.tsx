@@ -33,8 +33,6 @@ export const description = "An interactive real-time performance chart"
 
 export interface MetricPoint {
   timestamp: string;
-  internetSpeed: number;
-  latency: number;
   processedCount: number;
   processedDelta: number;
   queueRunning: number;
@@ -44,14 +42,6 @@ export interface MetricPoint {
 }
 
 const chartConfig = {
-  internetSpeed: {
-    label: "Bandbreite (Mbps)",
-    color: "hsl(142.1 76.2% 36.3%)", // emerald green
-  },
-  latency: {
-    label: "Ping / Latenz (ms)",
-    color: "hsl(217.2 91.2% 59.8%)", // blue
-  },
   processedDelta: {
     label: "Weitergeleitet",
     color: "hsl(262.1 83.3% 57.8%)", // purple
@@ -71,7 +61,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function ChartAreaInteractive({ data = [] }: { data?: MetricPoint[] }) {
-  const [category, setCategory] = React.useState<'network' | 'activity' | 'system'>('network')
+  const [category, setCategory] = React.useState<'activity' | 'system'>('activity')
   const [timeWindow, setTimeWindow] = React.useState<'10m' | '5m' | '1m'>('10m')
 
   const filteredData = React.useMemo(() => {
@@ -87,8 +77,6 @@ export function ChartAreaInteractive({ data = [] }: { data?: MetricPoint[] }) {
 
   const getTitle = () => {
     switch (category) {
-      case 'network':
-        return 'Verbindungsleistung'
       case 'activity':
         return 'Routing-Aktivität'
       case 'system':
@@ -98,8 +86,6 @@ export function ChartAreaInteractive({ data = [] }: { data?: MetricPoint[] }) {
 
   const getDescription = () => {
     switch (category) {
-      case 'network':
-        return 'Live-Geschwindigkeit und Server-Antwortzeit'
       case 'activity':
         return 'Nachrichten-Weiterleitungen und Queue-Tasks'
       case 'system':
@@ -124,7 +110,6 @@ export function ChartAreaInteractive({ data = [] }: { data?: MetricPoint[] }) {
             variant="outline"
             className="flex items-center space-x-1 *:data-[slot=toggle-group-item]:!px-3"
           >
-            <ToggleGroupItem value="network">Netzwerk</ToggleGroupItem>
             <ToggleGroupItem value="activity">Aktivität</ToggleGroupItem>
             <ToggleGroupItem value="system">Ressourcen</ToggleGroupItem>
           </ToggleGroup>
@@ -158,30 +143,6 @@ export function ChartAreaInteractive({ data = [] }: { data?: MetricPoint[] }) {
         >
           <AreaChart data={filteredData}>
             <defs>
-              <linearGradient id="fillLatency" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-latency)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-latency)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id="fillSpeed" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-internetSpeed)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-internetSpeed)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
               <linearGradient id="fillProcessed" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
@@ -270,26 +231,6 @@ export function ChartAreaInteractive({ data = [] }: { data?: MetricPoint[] }) {
                 />
               }
             />
-            {category === 'network' && (
-              <>
-                <Area
-                  dataKey="latency"
-                  type="monotone"
-                  fill="url(#fillLatency)"
-                  stroke="var(--color-latency)"
-                  strokeWidth={2}
-                  name="latency"
-                />
-                <Area
-                  dataKey="internetSpeed"
-                  type="monotone"
-                  fill="url(#fillSpeed)"
-                  stroke="var(--color-internetSpeed)"
-                  strokeWidth={2}
-                  name="internetSpeed"
-                />
-              </>
-            )}
             {category === 'activity' && (
               <>
                 <Area
