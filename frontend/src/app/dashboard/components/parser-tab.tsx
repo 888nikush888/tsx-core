@@ -6,10 +6,11 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BrainCircuit, FolderOutput, Trash2, Plus, Save, FileCode } from "lucide-react"
+import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
 
-export function ParserTab({ config, setConfig, envConfig, setEnvConfig }: any) {
+export function ParserTab({ config, setConfig, openRouterApiKeyConfigured }: any) {
   const [templates, setTemplates] = useState<Record<string, string>>({ default: "" })
   const [selectedTemplateName, setSelectedTemplateName] = useState<string>("default")
   const [newTemplateName, setNewTemplateName] = useState<string>("")
@@ -20,7 +21,8 @@ export function ParserTab({ config, setConfig, envConfig, setEnvConfig }: any) {
   const fetchTemplates = async (preferredName?: string) => {
     try {
       setIsLoadingTemplates(true)
-      const res = await fetch(`${API_BASE}/api/templates`)
+      const res = await apiFetch(`${API_BASE}/api/templates`)
+      if (!res.ok) throw new Error(`Template request failed with ${res.status}`)
       const data = await res.json()
       if (data.templates) {
         setTemplates(data.templates)
@@ -58,7 +60,7 @@ export function ParserTab({ config, setConfig, envConfig, setEnvConfig }: any) {
   const handleSaveTemplate = async () => {
     setIsSavingTemplate(true)
     try {
-      const res = await fetch(`${API_BASE}/api/templates`, {
+      const res = await apiFetch(`${API_BASE}/api/templates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: selectedTemplateName, content: activeContent })
@@ -94,7 +96,7 @@ export function ParserTab({ config, setConfig, envConfig, setEnvConfig }: any) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/templates`, {
+      const res = await apiFetch(`${API_BASE}/api/templates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: cleanName, content: "" })
@@ -116,7 +118,7 @@ export function ParserTab({ config, setConfig, envConfig, setEnvConfig }: any) {
     if (!window.confirm(`Template „${nameToDelete}“ wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return
 
     try {
-      const res = await fetch(`${API_BASE}/api/templates?name=${encodeURIComponent(nameToDelete)}`, {
+      const res = await apiFetch(`${API_BASE}/api/templates?name=${encodeURIComponent(nameToDelete)}`, {
         method: "DELETE"
       })
       if (res.ok) {
@@ -170,15 +172,11 @@ export function ParserTab({ config, setConfig, envConfig, setEnvConfig }: any) {
 
           <div className="grid gap-4 md:grid-cols-2 pt-2">
             <div className="space-y-2">
-              <Label htmlFor="apiKey">OpenRouter API Key</Label>
-              <Input 
-                id="apiKey" 
-                type="password"
-                placeholder={envConfig?.openRouterApiKeyConfigured ? "•••••••••••••••• (Configured)" : "sk-or-v1-..."}
-                value={envConfig?.openRouterApiKey || ''} 
-                onChange={(e) => setEnvConfig?.({ ...envConfig, openRouterApiKey: e.target.value })} 
-              />
-              <p className="text-xs text-muted-foreground">Requires an OpenRouter API Key for AI inference.</p>
+              <Label>OpenRouter API Key</Label>
+              <div className="h-10 rounded-md border bg-muted/40 px-3 flex items-center text-sm">
+                {openRouterApiKeyConfigured ? 'Configured through server environment' : 'Not configured'}
+              </div>
+              <p className="text-xs text-muted-foreground">Environment-only secret; never returned to the browser.</p>
             </div>
 
             <div className="space-y-2">
@@ -200,8 +198,8 @@ export function ParserTab({ config, setConfig, envConfig, setEnvConfig }: any) {
               <Input 
                 id="primaryModel" 
                 placeholder="google/gemini-flash-1.5"
-                value={envConfig?.openRouterModel || ''} 
-                onChange={(e) => setEnvConfig?.({ ...envConfig, openRouterModel: e.target.value })} 
+                value={config.xmlParsing.primaryModel || ''}
+                onChange={(e) => handleXmlChange('primaryModel', e.target.value)}
               />
             </div>
 
@@ -210,8 +208,8 @@ export function ParserTab({ config, setConfig, envConfig, setEnvConfig }: any) {
               <Input 
                 id="fallbackModel" 
                 placeholder="anthropic/claude-3-haiku"
-                value={envConfig?.openRouterFallbackModel || ''} 
-                onChange={(e) => setEnvConfig?.({ ...envConfig, openRouterFallbackModel: e.target.value })} 
+                value={config.xmlParsing.fallbackModel || ''}
+                onChange={(e) => handleXmlChange('fallbackModel', e.target.value)}
               />
             </div>
           </div>

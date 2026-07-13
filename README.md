@@ -55,10 +55,10 @@ Das System wurde auf Enterprise-Niveau gehoben und nutzt moderne Best Practices:
 
 1. **Abhängigkeiten installieren**:
    ```bash
-   npm install
+   npm ci
    ```
 2. **Konfiguration einrichten**:
-   * Kopieren Sie `.env.example` zu `.env` und tragen Sie Ihren `OPENROUTER_API_KEY` sowie die Telegram `TELEGRAM_API_ID` und `TELEGRAM_API_HASH` ein (erhältlich unter [my.telegram.org](https://my.telegram.org)).
+   * Kopieren Sie `.env.example` zu `.env` und tragen Sie `OPENROUTER_API_KEY`, `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` sowie einen zufälligen `DASHBOARD_ADMIN_TOKEN` ein. Secrets werden ausschließlich über die Prozessumgebung gelesen und weder im Dashboard angezeigt noch in Backups exportiert.
    * Kopieren Sie `config.json.example` zu `config.json` und tragen Sie Ihre Quell- und Zielkanäle ein.
 3. **Im Entwicklungsmodus ausführen** (kompiliert on-the-fly):
    ```bash
@@ -69,6 +69,16 @@ Das System wurde auf Enterprise-Niveau gehoben und nutzt moderne Best Practices:
    npm run build
    npm start
    ```
+
+### Dashboard-Zugriff
+
+Der Control-Plane-Server bindet standardmäßig ausschließlich an `127.0.0.1`. Alle `/api/*`-Endpunkte verlangen einen Bearer-Token; `DASHBOARD_ADMIN_TOKEN` erlaubt Änderungen, der optionale `DASHBOARD_VIEWER_TOKEN` nur Lesezugriffe. Beide Tokens müssen mindestens 32 zufällige Zeichen lang sein, zum Beispiel erzeugt mit:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Das Dashboard fragt den Token beim Öffnen ab und hält ihn nur im Browser-`sessionStorage`. Für Remote-Zugriff bleibt `WEB_HOST=127.0.0.1`; ein TLS-Reverse-Proxy wird vorgeschaltet und dessen exakte Origin mit `DASHBOARD_ALLOWED_ORIGIN=https://forwarder.example.com` freigegeben. Die API darf nicht direkt unverschlüsselt im Netzwerk exponiert werden.
 
 ### Option B: Docker / Docker-Compose (Empfohlen für Server)
 

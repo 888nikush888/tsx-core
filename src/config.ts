@@ -8,7 +8,6 @@ export const configPath = path.join(__dirname, '../config.json');
 
 export interface Config {
   apiId: number;
-  apiHash: string;
   sourceChannels: string[];
   targetChannel: string;
   forwardOptions: {
@@ -31,6 +30,8 @@ export interface Config {
     forwardXmlToTarget: boolean;
     signalsDir: string;
     sourceTemplates: Record<string, string>;
+    primaryModel: string;
+    fallbackModel: string;
     timeout?: number;
   };
   dupeBlocker: {
@@ -41,7 +42,6 @@ export interface Config {
 
 export const DEFAULT_CONFIG: Config = {
   apiId: 0,
-  apiHash: "YOUR_API_HASH_HERE",
   sourceChannels: [],
   targetChannel: "",
   forwardOptions: {
@@ -63,7 +63,9 @@ export const DEFAULT_CONFIG: Config = {
     saveToFile: true,
     forwardXmlToTarget: false,
     signalsDir: './signals',
-    sourceTemplates: {}
+    sourceTemplates: {},
+    primaryModel: 'google/gemini-flash-1.5',
+    fallbackModel: 'anthropic/claude-3-haiku'
   },
   dupeBlocker: {
     enabled: false,
@@ -100,15 +102,7 @@ export function validateConfig(cfg: any): Config {
     }
   }
   
-  // apiHash validieren: muss 32-stelliger Hex-String sein (oder Platzhalter)
-  if (cfg.apiHash && cfg.apiHash !== 'YOUR_API_HASH_HERE') {
-    const trimmedHash = String(cfg.apiHash).trim();
-    if (!/^[a-f0-9]{32}$/i.test(trimmedHash)) {
-      console.warn(`[WARN] apiHash hat kein gültiges Format (32 hex chars erwartet). Aktuell: "${trimmedHash.slice(0, 40)}..."`);
-    } else {
-      cfg.apiHash = trimmedHash;
-    }
-  }
+  delete cfg.apiHash;
 
   if (!cfg.forwardOptions || typeof cfg.forwardOptions !== 'object') {
     cfg.forwardOptions = {};
@@ -124,6 +118,12 @@ export function validateConfig(cfg: any): Config {
     : DEFAULT_CONFIG.forwardOptions.queueTimeoutSeconds;
 
   if (cfg.xmlParsing) {
+    for (const key of ['primaryModel', 'fallbackModel'] as const) {
+      const value = String(cfg.xmlParsing[key] || '').trim();
+      cfg.xmlParsing[key] = /^[a-zA-Z0-9._:/-]{1,128}$/.test(value)
+        ? value
+        : DEFAULT_CONFIG.xmlParsing[key];
+    }
     // Validate xmlParsing.sourceTemplates: must be an object with string template mappings
     if (cfg.xmlParsing.sourceTemplates && typeof cfg.xmlParsing.sourceTemplates === 'object') {
       for (const [key, value] of Object.entries(cfg.xmlParsing.sourceTemplates)) {

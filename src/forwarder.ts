@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { readConfigSync, writeConfigSync, isValidTargetChannel } from './config.js';
-import { loadEnv, updateEnvValue } from './env.js';
+import { loadEnv } from './env.js';
 import { getMessageTextAndType, shouldForward } from './filters.js';
 import { ConcurrencyQueue } from './queue.js';
 import { isDuplicateSignal, normalizeSignalXml } from './dupe_blocker.js';
@@ -265,13 +265,19 @@ async function invokeWithRetry(tdClient, query, maxRetries = 3) {
   throw new Error(`Aktion nach ${maxRetries} Rate-Limit-Retries fehlgeschlagen.`);
 }
 
-async function parseSignalNative(text: string, timeoutMs: number, templateName: string | null = null, signal: any = null): Promise<string> {
+async function parseSignalNative(
+  text: string,
+  timeoutMs: number,
+  templateName: string | null = null,
+  models: { primaryModel?: string; fallbackModel?: string } = {},
+  signal: any = null
+): Promise<string> {
   if (signal?.aborted) throw new Error('Task aborted');
 
   let onAbort: (() => void) | undefined;
   let timeoutId: NodeJS.Timeout | undefined;
 
-  const parsePromise = parseSignalToXml(text, templateName || undefined);
+  const parsePromise = parseSignalToXml(text, templateName || undefined, models);
   
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
@@ -432,6 +438,10 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
       text,
       xmlParsing.timeout || DEFAULT_PARSER_TIMEOUT_MS,
       templateName,
+      {
+        primaryModel: xmlParsing.primaryModel,
+        fallbackModel: xmlParsing.fallbackModel
+      },
       signal
     );
     addLog(`[XML-Parser SUCCESS] Paket ${message.id} erfolgreich analysiert.`);
@@ -631,10 +641,10 @@ async function startForwardingNonInteractive(config) {
   applyQueueSettings(config);
   
   const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
-  const apiHash = process.env.TELEGRAM_API_HASH || config.apiHash;
+  const apiHash = process.env.TELEGRAM_API_HASH;
   
-  if (!apiId || !apiHash || apiHash === 'YOUR_API_HASH_HERE' || config.sourceChannels.length === 0 || !isValidTargetChannel(config.targetChannel)) {
-    addLog("[ERROR] Konfiguration unvollständig! Bitte apiId, apiHash, sourceChannels und targetChannel prüfen.");
+  if (!apiId || !/^[a-f0-9]{32}$/i.test(apiHash || '') || config.sourceChannels.length === 0 || !isValidTargetChannel(config.targetChannel)) {
+    addLog("[ERROR] Konfiguration unvollständig! Bitte apiId, TELEGRAM_API_HASH, sourceChannels und targetChannel prüfen.");
     process.exit(1);
   }
 
@@ -729,8 +739,8 @@ async function startForwardingNonInteractive(config) {
 async function startForwarding(config) {
   applyQueueSettings(config);
   const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
-  const apiHash = process.env.TELEGRAM_API_HASH || config.apiHash;
-  if (!apiId || !apiHash || apiHash === 'YOUR_API_HASH_HERE' || config.sourceChannels.length === 0 || !isValidTargetChannel(config.targetChannel)) {
+  const apiHash = process.env.TELEGRAM_API_HASH;
+  if (!apiId || !/^[a-f0-9]{32}$/i.test(apiHash || '') || config.sourceChannels.length === 0 || !isValidTargetChannel(config.targetChannel)) {
     console.log(`\n${C_RED}FEHLER: Konfiguration unvollständig!${C_RESET}\n${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
     await pressAnyKey(); return 'main';
   }
@@ -913,9 +923,6 @@ async function run() {
       applyRuntimeConfig: (updatedConfig) => {
         applyQueueSettings(updatedConfig);
       },
-      updateEnvValue: (key, value) => {
-        updateEnvValue(key, value);
-      },
       getMetricsHistory: () => {
         return metricsTracker ? metricsTracker.getHistory() : [];
       }
@@ -944,7 +951,7 @@ async function run() {
     // Lockfile existiert nicht, normal starten
   }
   while (menu !== 'exit') {
-    if (menu === 'main') menu = await runMenuSystem(config, writeConfigSync, updateEnvValue, state);
+    if (menu === 'main') menu = await runMenuSystem(config, writeConfigSync, state);
     else if (menu === 'start') menu = await startForwarding(config);
     else if (menu === 'restart') { menu = await restartApp(); config = readConfigSync(); }
   }

@@ -2,6 +2,7 @@ import http from 'http';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { randomUUID, timingSafeEqual } from 'crypto';
 import { writeConfigSync } from './config.js';
 import { addLog, getLogHistory } from './ui.js';
 import { getIncomingMessages, getProcessedSignals, clearDb, deleteIncomingMessage, deleteProcessedSignal } from './db.js';
@@ -16,26 +17,178 @@ interface WebServerState {
   stopForwarding: () => Promise<any>;
   reloadConfig: () => void;
   applyRuntimeConfig: (config: any) => void;
-  updateEnvValue: (key: string, value: string) => void;
   getMetricsHistory?: () => any[];
 }
 
 let server: http.Server | null = null;
 
-export function startWebServer(port: number, appState: WebServerState) {
-  server = http.createServer(async (req, res) => {
-    const url = req.url || '';
-    const method = req.method || 'GET';
+type DashboardRole = 'viewer' | 'admin';
 
-    // CORS Headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+class HttpError extends Error {
+  constructor(public readonly statusCode: number, message: string) {
+    super(message);
+  }
+}
+
+function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown): void {
+  res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(payload));
+}
+
+function safeTokenEquals(candidate: string, expected: string): boolean {
+  const candidateBuffer = Buffer.from(candidate);
+  const expectedBuffer = Buffer.from(expected);
+  return candidateBuffer.length === expectedBuffer.length && timingSafeEqual(candidateBuffer, expectedBuffer);
+}
+
+function configuredToken(name: 'DASHBOARD_ADMIN_TOKEN' | 'DASHBOARD_VIEWER_TOKEN'): string | null {
+  const value = process.env[name]?.trim() || '';
+  if (/^(replace_|change-?me|example|placeholder)/i.test(value)) return null;
+  return value.length >= 32 ? value : null;
+}
+
+function isAuthenticationConfigured(): boolean {
+  const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
+  const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
+  return !!adminToken && (!viewerToken || !safeTokenEquals(adminToken, viewerToken));
+}
+
+function authenticate(req: http.IncomingMessage): DashboardRole | null {
+  const authorization = req.headers.authorization || '';
+  const match = /^Bearer ([^\s]+)$/.exec(authorization);
+  if (!match) return null;
+  const token = match[1]!;
+  const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
+  if (adminToken && safeTokenEquals(token, adminToken)) return 'admin';
+  const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
+  if (viewerToken && safeTokenEquals(token, viewerToken)) return 'viewer';
+  return null;
+}
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  const configuredOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN?.trim();
+  if (configuredOrigin && origin === configuredOrigin) return true;
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === 'http:' && ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function setSecurityHeaders(res: http.ServerResponse, origin?: string): void {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+}
+
+async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): Promise<any> {
+  const declaredLength = Number(req.headers['content-length']);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw new HttpError(413, `Request body exceeds ${maxBytes} bytes.`);
+  }
+
+  const chunks: Buffer[] = [];
+  let receivedBytes = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    receivedBytes += buffer.length;
+    if (receivedBytes > maxBytes) {
+      throw new HttpError(413, `Request body exceeds ${maxBytes} bytes.`);
+    }
+    chunks.push(buffer);
+  }
+
+  if (chunks.length === 0) return {};
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    throw new HttpError(400, 'Request body is not valid JSON.');
+  }
+}
+
+function publicConfig(config: any): any {
+  const forbidden = new Set(['apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH', 'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN']);
+  return JSON.parse(JSON.stringify(config || {}, (key, value) => forbidden.has(key) ? undefined : value));
+}
+
+function containsSecretConfig(input: any): boolean {
+  if (!input || typeof input !== 'object') return false;
+  const forbidden = new Set(['apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH', 'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN']);
+  return Object.entries(input).some(([key, value]) => forbidden.has(key) || containsSecretConfig(value));
+}
+
+function requireMutationHeaders(req: http.IncomingMessage): void {
+  if (req.headers['x-requested-with'] !== 'forwarder-dashboard') {
+    throw new HttpError(400, 'Missing X-Requested-With header.');
+  }
+}
+
+export function startWebServer(
+  port: number,
+  appState: WebServerState,
+  host = process.env.WEB_HOST?.trim() || '127.0.0.1'
+): http.Server {
+  server = http.createServer(async (req, res) => {
+    const requestId = randomUUID();
+    res.setHeader('X-Request-Id', requestId);
+    const rawUrl = req.url || '/';
+    const parsedUrl = new URL(rawUrl, `http://${req.headers.host || 'localhost'}`);
+    const url = parsedUrl.pathname;
+    const method = req.method || 'GET';
+    const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
+    setSecurityHeaders(res, origin);
+
+    if (!isAllowedOrigin(origin)) {
+      sendJson(res, 403, { error: 'Origin is not allowed.', requestId });
+      return;
+    }
 
     if (method === 'OPTIONS') {
-      res.writeHead(200);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Requested-With, X-Destructive-Confirmation');
+      res.writeHead(204);
       res.end();
       return;
+    }
+
+    let role: DashboardRole | null = null;
+    if (url.startsWith('/api/')) {
+      if (!isAuthenticationConfigured()) {
+        sendJson(res, 503, { error: 'Dashboard authentication is not configured.', requestId });
+        return;
+      }
+      role = authenticate(req);
+      if (!role) {
+        res.setHeader('WWW-Authenticate', 'Bearer realm="forwarder-dashboard"');
+        sendJson(res, 401, { error: 'Valid dashboard bearer token required.', requestId });
+        return;
+      }
+      res.setHeader('X-Authenticated-Role', role);
+      if (method !== 'GET') {
+        res.once('finish', () => {
+          addLog(`[AUDIT] request_id=${requestId} actor_role=${role} method=${method} path=${url} status=${res.statusCode}`);
+        });
+      }
+      if (method !== 'GET' && role !== 'admin') {
+        sendJson(res, 403, { error: 'Administrator role required.', requestId });
+        return;
+      }
+      if (method !== 'GET') {
+        try {
+          requireMutationHeaders(req);
+        } catch (error) {
+          const httpError = error as HttpError;
+          sendJson(res, httpError.statusCode, { error: httpError.message, requestId });
+          return;
+        }
+      }
     }
 
     // GET /api/status
@@ -54,8 +207,8 @@ export function startWebServer(port: number, appState: WebServerState) {
           : null,
         queue,
         resolvedSources: Array.from(appState.state.resolvedSourceChatIds || []),
-        openRouterModel: process.env.OPENROUTER_MODEL || 'google/gemini-flash-1.5',
-        openRouterFallbackModel: process.env.OPENROUTER_FALLBACK_MODEL || 'anthropic/claude-3-haiku',
+        openRouterModel: process.env.OPENROUTER_MODEL || appState.config.xmlParsing?.primaryModel || 'google/gemini-flash-1.5',
+        openRouterFallbackModel: process.env.OPENROUTER_FALLBACK_MODEL || appState.config.xmlParsing?.fallbackModel || 'anthropic/claude-3-haiku',
         openRouterApiKeyConfigured: !!process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY !== 'your_openrouter_api_key_here',
         config: {
           sourceChannels: appState.config.sourceChannels,
@@ -106,8 +259,7 @@ export function startWebServer(port: number, appState: WebServerState) {
     }
 
     // DELETE /api/incoming-messages
-    if (url.startsWith('/api/incoming-messages') && method === 'DELETE') {
-      const parsedUrl = new URL(url, `http://${req.headers.host || 'localhost'}`);
+    if (url === '/api/incoming-messages' && method === 'DELETE') {
       const idStr = parsedUrl.searchParams.get('id');
       const id = idStr ? parseInt(idStr, 10) : NaN;
       if (isNaN(id)) {
@@ -127,8 +279,7 @@ export function startWebServer(port: number, appState: WebServerState) {
     }
 
     // DELETE /api/processed-signals
-    if (url.startsWith('/api/processed-signals') && method === 'DELETE') {
-      const parsedUrl = new URL(url, `http://${req.headers.host || 'localhost'}`);
+    if (url === '/api/processed-signals' && method === 'DELETE') {
       const id = parsedUrl.searchParams.get('id');
       if (!id) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -148,129 +299,91 @@ export function startWebServer(port: number, appState: WebServerState) {
 
     // POST /api/control
     if (url === '/api/control' && method === 'POST') {
-      let body = '';
-      req.on('data', chunk => { body += chunk; });
-      req.on('end', async () => {
-        try {
-          const payload = JSON.parse(body);
-          if (payload.action === 'start') {
-            if (appState.state.isRunning) {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'Routing is already active.' }));
-              return;
-            }
-            appState.startForwarding(appState.config).catch(err => {
-              addLog(`[ERROR] Fehler beim Web-Start: ${err.message}`);
-            });
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, message: 'Routing started.' }));
-          } else if (payload.action === 'stop') {
-            if (!appState.state.isRunning) {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'Routing is not active.' }));
-              return;
-            }
-            await appState.stopForwarding();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, message: 'Routing stopped.' }));
-          } else {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Invalid action.' }));
+      try {
+        const payload = await readJsonBody(req);
+        if (payload.action === 'start') {
+          if (appState.state.isRunning) {
+            sendJson(res, 409, { error: 'Routing is already active.', requestId });
+            return;
           }
-        } catch (err: any) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: err.message }));
+          appState.startForwarding(appState.config).catch(err => {
+            addLog(`[ERROR] request_id=${requestId} Web start failed: ${err.message}`);
+          });
+          sendJson(res, 202, { success: true, message: 'Routing start requested.', requestId });
+        } else if (payload.action === 'stop') {
+          if (!appState.state.isRunning) {
+            sendJson(res, 409, { error: 'Routing is not active.', requestId });
+            return;
+          }
+          await appState.stopForwarding();
+          sendJson(res, 200, { success: true, message: 'Routing stopped.', requestId });
+        } else {
+          sendJson(res, 400, { error: 'Invalid action.', requestId });
         }
-      });
+      } catch (err: any) {
+        const statusCode = err instanceof HttpError ? err.statusCode : 500;
+        sendJson(res, statusCode, { error: err.message, requestId });
+      }
       return;
     }
 
     // GET /api/config
     if (url === '/api/config' && method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(appState.config));
+      sendJson(res, 200, publicConfig(appState.config));
       return;
     }
 
     // POST /api/config
     if (url === '/api/config' && method === 'POST') {
-      let body = '';
-      req.on('data', chunk => { body += chunk; });
-      req.on('end', async () => {
-        try {
-          const newConfig = JSON.parse(body);
-          Object.assign(appState.config, newConfig);
-          writeConfigSync(appState.config);
-          appState.reloadConfig();
-          appState.applyRuntimeConfig(appState.config);
-          addLog('[INFO] Konfiguration über das Web-Dashboard aktualisiert.');
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'Configuration saved successfully.', queue: appState.getQueueState() }));
-        } catch (err: any) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid config JSON: ' + err.message }));
+      try {
+        const newConfig = await readJsonBody(req);
+        if (!newConfig || typeof newConfig !== 'object' || Array.isArray(newConfig)) {
+          throw new HttpError(400, 'Configuration must be a JSON object.');
         }
-      });
+        if (containsSecretConfig(newConfig)) {
+          throw new HttpError(400, 'Secrets are environment-only and cannot be saved through the dashboard.');
+        }
+        Object.assign(appState.config, newConfig);
+        delete appState.config.apiHash;
+        writeConfigSync(appState.config);
+        appState.reloadConfig();
+        appState.applyRuntimeConfig(appState.config);
+        addLog(`[INFO] request_id=${requestId} Dashboard configuration updated.`);
+        sendJson(res, 200, { success: true, message: 'Configuration saved successfully.', queue: appState.getQueueState(), requestId });
+      } catch (err: any) {
+        const statusCode = err instanceof HttpError ? err.statusCode : 400;
+        sendJson(res, statusCode, { error: err.message, requestId });
+      }
       return;
     }
 
-    // POST /api/env
+    // Secrets and environment variables are intentionally not web-editable.
     if (url === '/api/env' && method === 'POST') {
-      let body = '';
-      req.on('data', chunk => { body += chunk; });
-      req.on('end', async () => {
-        try {
-          const payload = JSON.parse(body);
-          if (payload.openRouterModel !== undefined) appState.updateEnvValue('OPENROUTER_MODEL', payload.openRouterModel);
-          if (payload.openRouterFallbackModel !== undefined) appState.updateEnvValue('OPENROUTER_FALLBACK_MODEL', payload.openRouterFallbackModel);
-          if (payload.openRouterApiKey !== undefined && payload.openRouterApiKey !== '') appState.updateEnvValue('OPENROUTER_API_KEY', payload.openRouterApiKey);
-          
-          addLog('[INFO] Environment variables updated via Web Dashboard.');
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'Environment variables saved successfully.' }));
-        } catch (err: any) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid env JSON: ' + err.message }));
-        }
-      });
+      sendJson(res, 405, { error: 'Environment variables are read-only at runtime.', requestId });
       return;
     }
 
     // POST /api/import
     if (url === '/api/import' && method === 'POST') {
-      let body = '';
-      req.on('data', chunk => { body += chunk; });
-      req.on('end', async () => {
-        try {
-          const bundle = JSON.parse(body);
-          if (!bundle.config || typeof bundle.config !== 'object') {
-            throw new Error('Import file does not contain a valid "config" section.');
-          }
-
-          // Merge config
-          Object.assign(appState.config, bundle.config);
-          writeConfigSync(appState.config);
-
-          // Apply ENV variables if present
-          if (bundle.env && typeof bundle.env === 'object') {
-            const ENV_KEYS_TO_EXPORT = ['OPENROUTER_API_KEY', 'OPENROUTER_MODEL', 'OPENROUTER_FALLBACK_MODEL', 'TELEGRAM_API_ID', 'TELEGRAM_API_HASH'];
-            for (const key of ENV_KEYS_TO_EXPORT) {
-              if (bundle.env[key] !== undefined) {
-                appState.updateEnvValue(key, String(bundle.env[key]));
-              }
-            }
-          }
-
-          appState.reloadConfig();
-          appState.applyRuntimeConfig(appState.config);
-          addLog('[INFO] System configuration imported successfully from Web Dashboard.');
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'Configuration imported successfully.' }));
-        } catch (err: any) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Import failed: ' + err.message }));
+      try {
+        const bundle = await readJsonBody(req);
+        if (!bundle.config || typeof bundle.config !== 'object' || Array.isArray(bundle.config)) {
+          throw new HttpError(400, 'Import file does not contain a valid "config" section.');
         }
-      });
+        if (bundle.env !== undefined || containsSecretConfig(bundle.config)) {
+          throw new HttpError(400, 'Imports may contain non-secret configuration only.');
+        }
+        Object.assign(appState.config, bundle.config);
+        delete appState.config.apiHash;
+        writeConfigSync(appState.config);
+        appState.reloadConfig();
+        appState.applyRuntimeConfig(appState.config);
+        addLog(`[INFO] request_id=${requestId} Dashboard configuration imported.`);
+        sendJson(res, 200, { success: true, message: 'Configuration imported successfully.', requestId });
+      } catch (err: any) {
+        const statusCode = err instanceof HttpError ? err.statusCode : 400;
+        sendJson(res, statusCode, { error: err.message, requestId });
+      }
       return;
     }
 
@@ -312,36 +425,29 @@ export function startWebServer(port: number, appState: WebServerState) {
 
     // POST /api/templates
     if (url === '/api/templates' && method === 'POST') {
-      let body = '';
-      req.on('data', chunk => { body += chunk; });
-      req.on('end', async () => {
-        try {
-          const payload = JSON.parse(body);
-          const { name, content } = payload;
-          if (!name || typeof name !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(name)) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Invalid template name.' }));
-            return;
-          }
-          
-          const templatesDir = path.join(__dirname, '../templates');
-          await fsPromises.mkdir(templatesDir, { recursive: true });
-          await fsPromises.writeFile(path.join(templatesDir, `${name}.txt`), content || '', 'utf-8');
-          
-          addLog(`[INFO] Template '${name}' saved successfully via Web Dashboard.`);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true }));
-        } catch (err: any) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: err.message }));
+      try {
+        const payload = await readJsonBody(req, 128 * 1024);
+        const { name, content } = payload;
+        if (!name || typeof name !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(name)) {
+          throw new HttpError(400, 'Invalid template name.');
         }
-      });
+        if (typeof content !== 'string' || Buffer.byteLength(content, 'utf8') > 96 * 1024) {
+          throw new HttpError(400, 'Template content must be a string no larger than 96 KiB.');
+        }
+        const templatesDir = path.join(__dirname, '../templates');
+        await fsPromises.mkdir(templatesDir, { recursive: true });
+        await fsPromises.writeFile(path.join(templatesDir, `${name}.txt`), content, 'utf-8');
+        addLog(`[INFO] request_id=${requestId} Template '${name}' saved.`);
+        sendJson(res, 200, { success: true, requestId });
+      } catch (err: any) {
+        const statusCode = err instanceof HttpError ? err.statusCode : 500;
+        sendJson(res, statusCode, { error: err.message, requestId });
+      }
       return;
     }
 
     // DELETE /api/templates
-    if (url.startsWith('/api/templates') && method === 'DELETE') {
-      const parsedUrl = new URL(url, `http://${req.headers.host || 'localhost'}`);
+    if (url === '/api/templates' && method === 'DELETE') {
       const name = parsedUrl.searchParams.get('name');
       if (!name || typeof name !== 'string' || name === 'default' || !/^[a-zA-Z0-9_-]+$/.test(name)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -374,8 +480,17 @@ export function startWebServer(port: number, appState: WebServerState) {
 
     // POST /api/factory-reset
     if (url === '/api/factory-reset' && method === 'POST') {
+      if (req.headers['x-destructive-confirmation'] !== 'factory-reset') {
+        sendJson(res, 412, { error: 'Explicit factory-reset confirmation header required.', requestId });
+        return;
+      }
+      if (appState.state.isRunning) {
+        sendJson(res, 409, { error: 'Stop routing before resetting configuration.', requestId });
+        return;
+      }
       try {
         const { DEFAULT_CONFIG } = await import('./config.js');
+        for (const key of Object.keys(appState.config)) delete appState.config[key];
         Object.assign(appState.config, JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
         writeConfigSync(appState.config);
         appState.reloadConfig();
@@ -392,6 +507,14 @@ export function startWebServer(port: number, appState: WebServerState) {
 
     // POST /api/clear-database
     if (url === '/api/clear-database' && method === 'POST') {
+      if (req.headers['x-destructive-confirmation'] !== 'clear-database') {
+        sendJson(res, 412, { error: 'Explicit clear-database confirmation header required.', requestId });
+        return;
+      }
+      if (appState.state.isRunning) {
+        sendJson(res, 409, { error: 'Stop routing before clearing the database.', requestId });
+        return;
+      }
       try {
         await clearDb();
         addLog('[INFO] SQLite-Datenbank über das Web-Dashboard geleert.');
@@ -404,11 +527,25 @@ export function startWebServer(port: number, appState: WebServerState) {
       return;
     }
 
+    if (url.startsWith('/api/')) {
+      sendJson(res, 404, { error: 'API endpoint not found.', requestId });
+      return;
+    }
+
     // Serve static files from frontend/dist
-    let filePath = url === '/' ? '/index.html' : url;
-    // Security check: prevent path traversal
-    const normalizedPath = path.normalize(filePath).replace(/^(\.\.[\/\\])+/, '');
-    const absolutePath = path.join(__dirname, '../frontend/dist', normalizedPath);
+    const staticRoot = path.resolve(__dirname, '../frontend/dist');
+    let decodedPath: string;
+    try {
+      decodedPath = decodeURIComponent(url === '/' ? 'index.html' : url.replace(/^\/+/, ''));
+    } catch {
+      sendJson(res, 400, { error: 'Invalid URL encoding.', requestId });
+      return;
+    }
+    const absolutePath = path.resolve(staticRoot, decodedPath);
+    if (absolutePath !== staticRoot && !absolutePath.startsWith(`${staticRoot}${path.sep}`)) {
+      sendJson(res, 403, { error: 'Invalid static file path.', requestId });
+      return;
+    }
 
     try {
       const stats = await fsPromises.stat(absolutePath);
@@ -453,9 +590,15 @@ export function startWebServer(port: number, appState: WebServerState) {
     }
   });
 
-  server.listen(port, () => {
-    console.log(`[INFO] Web Control Dashboard listening on http://localhost:${port}`);
+  server.requestTimeout = 15_000;
+  server.headersTimeout = 10_000;
+  server.keepAliveTimeout = 5_000;
+  server.listen(port, host, () => {
+    const address = server?.address();
+    const listeningPort = typeof address === 'object' && address ? address.port : port;
+    console.log(`[INFO] Web Control Dashboard listening on http://${host}:${listeningPort}`);
   });
+  return server;
 }
 
 export function stopWebServer(): Promise<void> {

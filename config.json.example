@@ -1,6 +1,5 @@
 {
   "apiId": 0,
-  "apiHash": "YOUR_API_HASH_HERE",
   "sourceChannels": [
     "@quell_kanal_1",
     "-1001234567890"
@@ -28,6 +27,8 @@
     "enabled": true,
     "saveToFile": true,
     "forwardXmlToTarget": false,
-    "signalsDir": "./signals"
+    "signalsDir": "./signals",
+    "primaryModel": "google/gemini-flash-1.5",
+    "fallbackModel": "anthropic/claude-3-haiku"
   }
 }

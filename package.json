@@ -8,7 +8,7 @@
     "build": "tsc && npm run build --prefix frontend",
     "start": "node dist/forwarder.js",
     "dev": "tsx src/forwarder.ts",
-    "test:js": "tsx tests/test_modules.js && tsx tests/test_queue.js && tsx tests/test_filters.js && tsx tests/test_dupe_blocker.js && tsx tests/test_integration.js && tsx tests/test_signal_parser.js",
+    "test:js": "tsx tests/test_modules.js && tsx tests/test_queue.js && tsx tests/test_filters.js && tsx tests/test_dupe_blocker.js && tsx tests/test_web_server.js && tsx tests/test_integration.js && tsx tests/test_signal_parser.js",
     "test": "npm run test:js",
     "lint": "eslint src/ --quiet"
   },

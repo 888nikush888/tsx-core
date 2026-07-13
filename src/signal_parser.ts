@@ -176,10 +176,14 @@ export function validateXmlStructure(xml: string, isDefaultTemplate = true): voi
   }
 }
 
-export async function parseSignalToXml(messageText: string, templateName?: string): Promise<string> {
+export async function parseSignalToXml(
+  messageText: string,
+  templateName?: string,
+  models?: { primaryModel?: string; fallbackModel?: string }
+): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const primaryModel = process.env.OPENROUTER_MODEL || "google/gemini-flash-1.5";
-  const fallbackModel = process.env.OPENROUTER_FALLBACK_MODEL || "anthropic/claude-3-haiku";
+  const primaryModel = process.env.OPENROUTER_MODEL || models?.primaryModel || "google/gemini-flash-1.5";
+  const fallbackModel = process.env.OPENROUTER_FALLBACK_MODEL || models?.fallbackModel || "anthropic/claude-3-haiku";
 
   if (!apiKey || apiKey.trim() === "your_openrouter_api_key_here" || apiKey.trim() === "") {
     throw new Error(

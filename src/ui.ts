@@ -285,8 +285,8 @@ export function drawMainMenuBuffered(config, state, spinnerFrame, resolvedSource
     : `${C_RED}[ STANDBY / INTERCEPT-OFF ]${C_RESET}`;
     
   const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
-  const apiHash = process.env.TELEGRAM_API_HASH || config.apiHash;
-  const apiStatus = (apiId !== 0 && apiHash && apiHash !== 'YOUR_API_HASH_HERE')
+  const apiHashConfigured = /^[a-f0-9]{32}$/i.test(process.env.TELEGRAM_API_HASH || '');
+  const apiStatus = (apiId !== 0 && apiHashConfigured)
     ? `${C_GREEN}RESOLVED (Knoten-ID: ${apiId})${C_RESET}`
     : `${C_RED}UNRESOLVED (Mainframe API-Credentials fehlen - Option [2])${C_RESET}`;
 
@@ -320,8 +320,8 @@ export function drawMainMenuBuffered(config, state, spinnerFrame, resolvedSource
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET} Quell-Knoten:    ${sourceStatus}\n`;
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET} Ziel-Knoten:     ${targetStatus}\n`;
   
-  const currentModel = process.env.OPENROUTER_MODEL || 'google/gemini-flash-1.5';
-  const fallbackModel = process.env.OPENROUTER_FALLBACK_MODEL || 'anthropic/claude-3-haiku';
+  const currentModel = config.xmlParsing?.primaryModel || 'google/gemini-flash-1.5';
+  const fallbackModel = config.xmlParsing?.fallbackModel || 'anthropic/claude-3-haiku';
   const xmlStatus = config.xmlParsing?.enabled
     ? `${C_GREEN}AKTIV${C_RESET} ${C_DARK_GREEN}(Primär: ${currentModel} | Fallback: ${fallbackModel})${C_RESET}`
     : `${C_RED}DEAKTIVIERT${C_RESET} ${C_DARK_GREEN}(Primär: ${currentModel} | Fallback: ${fallbackModel})${C_RESET}`;
@@ -340,7 +340,7 @@ export function drawMainMenuBuffered(config, state, spinnerFrame, resolvedSource
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET} Filter:          ${C_GREEN}${filterStatus}${C_RESET}\n`;
   output += `${C_BOLD}${C_DARK_GREEN}├─ CONSOLE AKTIONEN ────────────────────────────────────────────────${C_RESET}\n`;
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET}  ${C_BOLD}${C_BRIGHT_GREEN}[1]${C_RESET} ${state.isRunning ? `${C_RED}ROUTING TERMINIEREN (STOPP)${C_RESET}` : `${C_BRIGHT_GREEN}ROUTING INITIALISIEREN (START)${C_RESET}`}\n`;
-  output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET}  ${C_BOLD}${C_BRIGHT_GREEN}[2]${C_RESET} Mainframe API-Zugangsdaten (API-ID / API-Hash) editieren\n`;
+  output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET}  ${C_BOLD}${C_BRIGHT_GREEN}[2]${C_RESET} Mainframe API-ID konfigurieren / Secret-Status prüfen\n`;
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET}  ${C_BOLD}${C_BRIGHT_GREEN}[3]${C_RESET} Quell-Knoten verwalten (Hinzufügen / Entfernen)\n`;
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET}  ${C_BOLD}${C_BRIGHT_GREEN}[4]${C_RESET} Ziel-Knoten umleiten\n`;
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET}  ${C_BOLD}${C_BRIGHT_GREEN}[5]${C_RESET} Transceiver-Routing-Modus umschalten\n`;
@@ -392,9 +392,8 @@ async function configureApiCredentials(config, saveConfig) {
   console.log(`${C_BRIGHT_GREEN}           API-ZUGANGSDATEN BEARBEITEN             `);
   console.log(`${C_DARK_GREEN}===================================================`);
   const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
-  const apiHash = process.env.TELEGRAM_API_HASH || config.apiHash;
   console.log(`${C_GREEN}Aktuelle API-ID:   ${C_WHITE}${apiId}${C_RESET}`);
-  console.log(`${C_GREEN}Aktueller API-Hash: ${C_WHITE}${apiHash}${C_RESET}`);
+  console.log(`${C_GREEN}API-Hash:          ${C_WHITE}${process.env.TELEGRAM_API_HASH ? 'über TELEGRAM_API_HASH konfiguriert' : 'NICHT KONFIGURIERT'}${C_RESET}`);
   console.log(`${C_DARK_GREEN}===================================================`);
   
   const apiIdInput = await promptUser(`${C_GREEN}Neue API-ID eingeben (leer lassen um beizubehalten): ${C_WHITE}`);
@@ -407,18 +406,8 @@ async function configureApiCredentials(config, saveConfig) {
     }
   }
 
-  const apiHashInput = await promptUser(`${C_GREEN}Neuen API-Hash eingeben (leer lassen um beizubehalten): ${C_WHITE}`);
-  if (apiHashInput.trim() !== '') {
-    const trimmedHash = apiHashInput.trim();
-    if (/^[a-f0-9]{32}$/i.test(trimmedHash)) {
-      config.apiHash = trimmedHash;
-    } else {
-      drawMessageBox("EINGABE-FEHLER", "Ungültiger API-Hash\n(Muss exakt 32 hexadezimale Zeichen lang sein).");
-    }
-  }
-
   saveConfig(config);
-  console.log(`\n${C_BRIGHT_GREEN}Zugangsdaten gespeichert! Beliebige Taste drücken...${C_RESET}`);
+  console.log(`\n${C_BRIGHT_GREEN}API-ID gespeichert. Secrets werden ausschließlich über die Prozessumgebung gesetzt.${C_RESET}`);
   await pressAnyKey();
   return 'main';
 }
@@ -857,7 +846,7 @@ async function configureSourceRegexFilters(config, saveConfig) {
 }
 
 // XML Parsing Menu
-async function configureXmlParsing(config, saveConfig, updateEnvValue) {
+async function configureXmlParsing(config, saveConfig) {
   clearConsole();
   console.log(`${C_DARK_GREEN}===================================================`);
   console.log(`${C_BRIGHT_GREEN}            XML-SIGNAL-PARSER KONFIGURIEREN        `);
@@ -869,10 +858,10 @@ async function configureXmlParsing(config, saveConfig, updateEnvValue) {
   console.log(` ${C_GREEN}3. XML-Signale in Datei speichern`);
   console.log(`    Aktuell: ${config.xmlParsing?.saveToFile ? `${C_BRIGHT_GREEN}AKTIVIERT` : `${C_DARK_GREEN}DEAKTIVIERT`}${C_RESET}`);
   console.log(` ${C_GREEN}4. OpenRouter KI-Modell wechseln`);
-  console.log(`    Aktuell: ${C_WHITE}${process.env.OPENROUTER_MODEL || 'google/gemini-flash-1.5'}${C_RESET}`);
+  console.log(`    Aktuell: ${C_WHITE}${config.xmlParsing?.primaryModel || 'google/gemini-flash-1.5'}${C_RESET}`);
   console.log(` ${C_GREEN}5. Fallback KI-Modell wechseln`);
-  console.log(`    Aktuell: ${C_WHITE}${process.env.OPENROUTER_FALLBACK_MODEL || 'anthropic/claude-3-haiku'}${C_RESET}`);
-  console.log(` ${C_GREEN}6. OpenRouter API-Key bearbeiten`);
+  console.log(`    Aktuell: ${C_WHITE}${config.xmlParsing?.fallbackModel || 'anthropic/claude-3-haiku'}${C_RESET}`);
+  console.log(` ${C_GREEN}6. OpenRouter API-Key Status`);
   const hasApiKey = process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY.trim() !== '' && process.env.OPENROUTER_API_KEY !== 'your_openrouter_api_key_here';
   console.log(`    Status:  ${hasApiKey ? `${C_GREEN}KONFIGURIERT` : `${C_RED}NICHT KONFIGURIERT`}${C_RESET}`);
   console.log(` ${C_GREEN}7. Parser-Timeout ändern`);
@@ -903,7 +892,7 @@ async function configureXmlParsing(config, saveConfig, updateEnvValue) {
       console.log(`${C_DARK_GREEN}===================================================`);
       console.log(`${C_BRIGHT_GREEN}              KI-MODELL AUSWÄHLEN                  `);
       console.log(`${C_DARK_GREEN}===================================================`);
-      console.log("Aktuelles Primär-Modell: " + C_WHITE + (process.env.OPENROUTER_MODEL || 'google/gemini-flash-1.5') + C_RESET);
+      console.log("Aktuelles Primär-Modell: " + C_WHITE + (config.xmlParsing?.primaryModel || 'google/gemini-flash-1.5') + C_RESET);
       console.log(`${C_DARK_GREEN}---------------------------------------------------${C_RESET}`);
       console.log(` ${C_GREEN}Schnellauswahl:`);
       console.log(`   ${C_BOLD}${C_BRIGHT_GREEN}[1]${C_RESET} google/gemini-flash-1.5 ${C_DARK_GREEN}(Empfohlen)${C_RESET}`);
@@ -917,15 +906,23 @@ async function configureXmlParsing(config, saveConfig, updateEnvValue) {
       if (trimmedModel === '') {
         // Keep current model
       } else if (trimmedModel === '1') {
-        updateEnvValue('OPENROUTER_MODEL', 'google/gemini-flash-1.5');
+        config.xmlParsing.primaryModel = 'google/gemini-flash-1.5';
+        saveConfig(config);
         console.log(`\n${C_BRIGHT_GREEN}Modell geändert zu google/gemini-flash-1.5!${C_RESET}`);
         await pressAnyKey();
       } else if (trimmedModel === '2') {
-        updateEnvValue('OPENROUTER_MODEL', 'anthropic/claude-3-haiku');
+        config.xmlParsing.primaryModel = 'anthropic/claude-3-haiku';
+        saveConfig(config);
         console.log(`\n${C_BRIGHT_GREEN}Modell geändert zu anthropic/claude-3-haiku!${C_RESET}`);
         await pressAnyKey();
       } else {
-        updateEnvValue('OPENROUTER_MODEL', trimmedModel);
+        if (!/^[a-zA-Z0-9._:/-]{1,128}$/.test(trimmedModel)) {
+          console.log(`\n${C_RED}Ungültiger Modellname.${C_RESET}`);
+          await pressAnyKey();
+          return 'xmlParsing';
+        }
+        config.xmlParsing.primaryModel = trimmedModel;
+        saveConfig(config);
         console.log(`\n${C_BRIGHT_GREEN}Modell geändert zu ${trimmedModel}!${C_RESET}`);
         await pressAnyKey();
       }
@@ -936,7 +933,7 @@ async function configureXmlParsing(config, saveConfig, updateEnvValue) {
       console.log(`${C_DARK_GREEN}===================================================`);
       console.log(`${C_BRIGHT_GREEN}          FALLBACK KI-MODELL AUSWÄHLEN             `);
       console.log(`${C_DARK_GREEN}===================================================`);
-      console.log("Aktuelles Fallback-Modell: " + C_WHITE + (process.env.OPENROUTER_FALLBACK_MODEL || 'anthropic/claude-3-haiku') + C_RESET);
+      console.log("Aktuelles Fallback-Modell: " + C_WHITE + (config.xmlParsing?.fallbackModel || 'anthropic/claude-3-haiku') + C_RESET);
       console.log(`${C_DARK_GREEN}---------------------------------------------------${C_RESET}`);
       console.log(` ${C_GREEN}Schnellauswahl:`);
       console.log(`   ${C_BOLD}${C_BRIGHT_GREEN}[1]${C_RESET} google/gemini-flash-1.5`);
@@ -950,27 +947,32 @@ async function configureXmlParsing(config, saveConfig, updateEnvValue) {
       if (trimmedFallback === '') {
         // Keep current fallback model
       } else if (trimmedFallback === '1') {
-        updateEnvValue('OPENROUTER_FALLBACK_MODEL', 'google/gemini-flash-1.5');
+        config.xmlParsing.fallbackModel = 'google/gemini-flash-1.5';
+        saveConfig(config);
         console.log(`\n${C_BRIGHT_GREEN}Fallback-Modell geändert zu google/gemini-flash-1.5!${C_RESET}`);
         await pressAnyKey();
       } else if (trimmedFallback === '2') {
-        updateEnvValue('OPENROUTER_FALLBACK_MODEL', 'anthropic/claude-3-haiku');
+        config.xmlParsing.fallbackModel = 'anthropic/claude-3-haiku';
+        saveConfig(config);
         console.log(`\n${C_BRIGHT_GREEN}Fallback-Modell geändert zu anthropic/claude-3-haiku!${C_RESET}`);
         await pressAnyKey();
       } else {
-        updateEnvValue('OPENROUTER_FALLBACK_MODEL', trimmedFallback);
+        if (!/^[a-zA-Z0-9._:/-]{1,128}$/.test(trimmedFallback)) {
+          console.log(`\n${C_RED}Ungültiger Modellname.${C_RESET}`);
+          await pressAnyKey();
+          return 'xmlParsing';
+        }
+        config.xmlParsing.fallbackModel = trimmedFallback;
+        saveConfig(config);
         console.log(`\n${C_BRIGHT_GREEN}Fallback-Modell geändert zu ${trimmedFallback}!${C_RESET}`);
         await pressAnyKey();
       }
       return 'xmlParsing';
     }
     case '6': {
-      const newKey = await promptUser(`${C_GREEN}Gib deinen OpenRouter API-Key ein: ${C_WHITE}`);
-      if (newKey.trim() !== '') {
-        updateEnvValue('OPENROUTER_API_KEY', newKey.trim());
-        console.log(`\n${C_BRIGHT_GREEN}OpenRouter API-Key gespeichert!${C_RESET}`);
-        await pressAnyKey();
-      }
+      console.log(`\n${hasApiKey ? C_BRIGHT_GREEN + 'OPENROUTER_API_KEY ist über die Prozessumgebung konfiguriert.' : C_RED + 'OPENROUTER_API_KEY fehlt in der Prozessumgebung.'}${C_RESET}`);
+      console.log(`${C_GREEN}Secrets können nicht über die Anwendung geändert werden.${C_RESET}`);
+      await pressAnyKey();
       return 'xmlParsing';
     }
     case '7': {
@@ -1164,65 +1166,40 @@ async function configureDupeBlocker(config, saveConfig) {
 
 // --- Export / Import Configuration ---
 
-const ENV_KEYS_TO_EXPORT = [
-  'OPENROUTER_API_KEY',
-  'OPENROUTER_MODEL',
-  'OPENROUTER_FALLBACK_MODEL',
-  'TELEGRAM_API_ID',
-  'TELEGRAM_API_HASH'
-];
-
 /**
- * Builds a portable export bundle containing all configurable data.
- * Combines config.json values with .env environment variables.
+ * Builds a portable export bundle containing non-secret configuration only.
  */
 function buildExportBundle(config) {
   // Clone config without internal temp keys
   const cleanConfig = { ...config };
   delete cleanConfig._selectedSourceForRegex;
 
-  const envData = {};
-  for (const key of ENV_KEYS_TO_EXPORT) {
-    if (process.env[key] !== undefined && process.env[key] !== '') {
-      envData[key] = process.env[key];
-    }
-  }
-
   return {
-    _exportVersion: 1,
+    _exportVersion: 2,
     _exportedAt: new Date().toISOString(),
-    config: cleanConfig,
-    env: envData
+    config: cleanConfig
   };
 }
 
 /**
- * Applies an imported bundle: writes config.json and updates .env file + process.env.
+ * Applies an imported non-secret configuration bundle.
  * Returns the newly merged config object.
  */
-function applyImportBundle(bundle, saveConfig, updateEnvValue) {
-  // 1. Validate and merge config
+function applyImportBundle(bundle, saveConfig) {
+  if (bundle.env !== undefined) {
+    throw new Error('Import-Dateien dürfen keine Umgebungsvariablen oder Secrets enthalten.');
+  }
   const importedConfig = mergeConfigDefaults(bundle.config || {});
   saveConfig(importedConfig);
-
-  // 2. Apply env variables
-  if (bundle.env && typeof bundle.env === 'object') {
-    for (const key of ENV_KEYS_TO_EXPORT) {
-      if (bundle.env[key] !== undefined) {
-        updateEnvValue(key, String(bundle.env[key]));
-      }
-    }
-  }
-
   return importedConfig;
 }
 
-async function configureExportImport(config, saveConfig, updateEnvValue) {
+async function configureExportImport(config, saveConfig) {
   clearConsole();
   console.log(`${C_DARK_GREEN}===================================================`);
   console.log(`${C_BRIGHT_GREEN}        KONFIGURATION EXPORTIEREN / IMPORTIEREN     `);
   console.log(`${C_DARK_GREEN}===================================================`);
-  console.log(` ${C_GREEN}Exportiert alle Einstellungen (config.json + .env)`);
+  console.log(` ${C_GREEN}Exportiert die nicht-geheime config.json-Konfiguration`);
   console.log(` in eine einzige Datei, die auf einem anderen System`);
   console.log(` oder nach einem Reset importiert werden kann.`);
   console.log(`${C_DARK_GREEN}===================================================`);
@@ -1291,14 +1268,13 @@ async function configureExportImport(config, saveConfig, updateEnvValue) {
       console.log(`  ${C_GREEN}Dupe-Blocker:  ${C_WHITE}${bundle.config.dupeBlocker?.enabled ? `AKTIVIERT (Cooldown: ${bundle.config.dupeBlocker?.cooldownHours ?? 24}h)` : 'DEAKTIVIERT'}${C_RESET}`);
       console.log(`  ${C_GREEN}Concurrency:   ${C_WHITE}${bundle.config.forwardOptions?.maxConcurrency ?? 2} parallel${C_RESET}`);
       console.log(`  ${C_GREEN}Weiterleitung: ${C_WHITE}${bundle.config.forwardOptions?.forwardToTarget !== false ? 'AKTIVIERT' : 'DEAKTIVIERT (Nur lokal)'}${C_RESET}`);
-      const envKeys = bundle.env ? Object.keys(bundle.env) : [];
-      console.log(`  ${C_GREEN}Env-Variablen: ${C_WHITE}${envKeys.length > 0 ? envKeys.join(', ') : '[ Keine ]'}${C_RESET}`);
+      console.log(`  ${C_GREEN}Secrets:        ${C_WHITE}[ werden nie importiert ]${C_RESET}`);
       console.log(`${C_DARK_GREEN}───────────────────────────────────────────────────${C_RESET}`);
 
       const confirm = await promptUser(`\n${C_YELLOW}WARNUNG: Alle aktuellen Einstellungen werden überschrieben!${C_RESET}\n${C_GREEN}Fortfahren? (j/n): ${C_WHITE}`);
 
       if (confirm.trim().toLowerCase() === 'j' || confirm.trim().toLowerCase() === 'y') {
-        const newConfig = applyImportBundle(bundle, saveConfig, updateEnvValue);
+        const newConfig = applyImportBundle(bundle, saveConfig);
         console.log(`\n${C_BRIGHT_GREEN}Konfiguration erfolgreich importiert!${C_RESET}`);
         console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
         await pressAnyKey();
@@ -1321,7 +1297,7 @@ async function configureExportImport(config, saveConfig, updateEnvValue) {
 }
 
 // ── FACTORY RESET ────────────────────────────────────────────────────────────
-async function configureFactoryReset(config, saveConfig, updateEnvValue) {
+async function configureFactoryReset(config, saveConfig) {
   clearConsole();
   const confirmations = [
     'RESET',
@@ -1364,19 +1340,13 @@ async function configureFactoryReset(config, saveConfig, updateEnvValue) {
   Object.assign(config, JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
   await saveConfig(config);
 
-  // Wipe sensitive env keys
-  const envKeysToWipe = ['API_ID', 'API_HASH', 'OPENROUTER_API_KEY', 'GEMINI_API_KEY', 'BOT_TOKEN'];
-  for (const key of envKeysToWipe) {
-    try { await updateEnvValue(key, ''); } catch { /* ignore if key not present */ }
-  }
-
   console.log(`\n${C_BRIGHT_GREEN}  ✔ Werkseinstellungen erfolgreich wiederhergestellt.${C_RESET}`);
   console.log(`${C_GREEN}  Das System wird jetzt neu gestartet...${C_RESET}\n`);
   await pressAnyKey();
   return 'restart';
 }
 
-export async function runMenuSystem(config, saveConfig, updateEnvValue, state) {
+export async function runMenuSystem(config, saveConfig, state) {
   let currentMenu = 'main';
   while (currentMenu !== 'start' && currentMenu !== 'restart' && currentMenu !== 'exit') {
     if (currentMenu === 'main') {
@@ -1398,20 +1368,20 @@ export async function runMenuSystem(config, saveConfig, updateEnvValue, state) {
     } else if (currentMenu === 'sourceRegexFilters') {
       currentMenu = await configureSourceRegexFilters(config, saveConfig);
     } else if (currentMenu === 'xmlParsing') {
-      currentMenu = await configureXmlParsing(config, saveConfig, updateEnvValue);
+      currentMenu = await configureXmlParsing(config, saveConfig);
     } else if (currentMenu === 'sourceXmlTemplates') {
       currentMenu = await configureSourceXmlTemplates(config, saveConfig);
     } else if (currentMenu === 'dupeBlocker') {
       currentMenu = await configureDupeBlocker(config, saveConfig);
     } else if (currentMenu === 'exportImport') {
-      const result = await configureExportImport(config, saveConfig, updateEnvValue);
+      const result = await configureExportImport(config, saveConfig);
       if (result.reloadConfig) {
         // Nach Import: config-Objekt mit den neu geladenen Werten überschreiben
         Object.assign(config, result.newConfig);
       }
       currentMenu = result.nextMenu;
     } else if (currentMenu === 'factoryReset') {
-      currentMenu = await configureFactoryReset(config, saveConfig, updateEnvValue);
+      currentMenu = await configureFactoryReset(config, saveConfig);
     }
   }
   return currentMenu;

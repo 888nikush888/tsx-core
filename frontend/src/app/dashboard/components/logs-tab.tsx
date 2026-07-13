@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Terminal, RefreshCw, Pause, Play, Trash2, Copy, Check } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
 
@@ -17,7 +18,7 @@ export function LogsTab({ config }: any) {
   const fetchLogs = async () => {
     if (isPaused) return;
     try {
-      const res = await fetch(`${API_BASE}/api/logs`)
+      const res = await apiFetch(`${API_BASE}/api/logs`)
       const data = await res.json()
       setLogs(data.logs || [])
     } catch (e) {

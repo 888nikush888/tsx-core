@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { RefreshCw, AlertCircle, Inbox, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { apiFetch } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -42,7 +43,7 @@ export function MessagesTab() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${API_BASE}/api/incoming-messages`)
+      const response = await apiFetch(`${API_BASE}/api/incoming-messages`)
       if (!response.ok) throw new Error("Konnte Nachrichten nicht laden.")
       const data = await response.json()
       setMessages(data.messages || [])
@@ -152,7 +153,7 @@ export function MessagesTab() {
                             e.stopPropagation()
                             if (window.confirm("Diese Nachricht wirklich aus dem Verlauf löschen?")) {
                               try {
-                                const res = await fetch(`${API_BASE}/api/incoming-messages?id=${msg.id}`, { method: 'DELETE' })
+                                const res = await apiFetch(`${API_BASE}/api/incoming-messages?id=${msg.id}`, { method: 'DELETE' })
                                 if (res.ok) {
                                   fetchMessages()
                                 } else {

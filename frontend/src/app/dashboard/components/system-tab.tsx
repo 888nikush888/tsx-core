@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertTriangle, Download } from "lucide-react"
+import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
 
@@ -9,7 +10,11 @@ export function SystemTab({ config }: any) {
   const handleFactoryReset = async () => {
     if (window.confirm("ARE YOU SURE? This will permanently delete your configuration and restart the forwarder.")) {
       try {
-        await fetch(`${API_BASE}/api/factory-reset`, { method: "POST" })
+        const response = await apiFetch(`${API_BASE}/api/factory-reset`, {
+          method: "POST",
+          headers: { 'X-Destructive-Confirmation': 'factory-reset' }
+        })
+        if (!response.ok) throw new Error(`Factory reset failed with ${response.status}`)
         window.location.href = "/" // Reload the entire page to reflect reset
       } catch (e) {
         console.error("Factory reset failed", e)
@@ -20,7 +25,10 @@ export function SystemTab({ config }: any) {
   const handleClearDatabase = async () => {
     if (window.confirm("Bist du sicher? Dadurch werden alle abgefangenen Nachrichten, gesendeten Signale und Cache-Daten dauerhaft aus der Datenbank gelöscht. Dies kann nicht rückgängig gemacht werden!")) {
       try {
-        const res = await fetch(`${API_BASE}/api/clear-database`, { method: "POST" })
+        const res = await apiFetch(`${API_BASE}/api/clear-database`, {
+          method: "POST",
+          headers: { 'X-Destructive-Confirmation': 'clear-database' }
+        })
         if (res.ok) {
           alert("Datenbank erfolgreich geleert!")
           window.location.reload()
@@ -36,19 +44,10 @@ export function SystemTab({ config }: any) {
 
   const exportConfig = async () => {
     try {
-      // Fetch full env data to include in export bundle
-      const res = await fetch(`${API_BASE}/api/status`)
-      const statusData = await res.json()
-      
       const bundle = {
-        _exportVersion: 1,
+        _exportVersion: 2,
         _exportedAt: new Date().toISOString(),
-        config: config,
-        env: {
-          OPENROUTER_MODEL: statusData.openRouterModel,
-          OPENROUTER_FALLBACK_MODEL: statusData.openRouterFallbackModel
-          // Note: API keys are not exported from frontend for security, user can manually re-enter or we could provide an endpoint to fetch masked ones
-        }
+        config
       }
 
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bundle, null, 2))
@@ -79,7 +78,7 @@ export function SystemTab({ config }: any) {
         }
 
         if (window.confirm("WARNING: This will overwrite your current configuration. Continue?")) {
-          const res = await fetch(`${API_BASE}/api/import`, {
+          const res = await apiFetch(`${API_BASE}/api/import`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(bundle)

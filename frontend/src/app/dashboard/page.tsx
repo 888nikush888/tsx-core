@@ -14,6 +14,7 @@ import { LogsTab } from "./components/logs-tab"
 import { SystemTab } from "./components/system-tab"
 import { MessagesTab } from "./components/messages-tab"
 import { SignalsTab } from "./components/signals-tab"
+import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
 
@@ -30,19 +31,15 @@ export default function Page() {
   const [uptime, setUptime] = useState("0h 0m")
   const [queue, setQueue] = useState({ running: 0, queued: 0, maxConcurrency: 2, paused: false })
   const [config, setConfig] = useState<any>(null)
-  const [envConfig, setEnvConfig] = useState({
-    openRouterModel: '',
-    openRouterFallbackModel: '',
-    openRouterApiKey: '',
-    openRouterApiKeyConfigured: false
-  })
+  const [openRouterApiKeyConfigured, setOpenRouterApiKeyConfigured] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [metricsHistory, setMetricsHistory] = useState<any[]>([])
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/status`)
+        const response = await apiFetch(`${API_BASE}/api/status`)
+        if (!response.ok) throw new Error(`Status request failed with ${response.status}`)
         const data = await response.json()
         setIsRunning(data.isRunning)
         setConnectionState(data.connectionState)
@@ -70,7 +67,8 @@ export default function Page() {
 
     const fetchMetricsHistory = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/metrics-history`)
+        const response = await apiFetch(`${API_BASE}/api/metrics-history`)
+        if (!response.ok) throw new Error(`Metrics request failed with ${response.status}`)
         const data = await response.json()
         if (data && data.history) {
           setMetricsHistory(data.history)
@@ -80,28 +78,25 @@ export default function Page() {
       }
     }
 
-    const fetchConfigAndEnv = async () => {
+    const fetchConfig = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/config`)
+        const res = await apiFetch(`${API_BASE}/api/config`)
+        if (!res.ok) throw new Error(`Config request failed with ${res.status}`)
         const data = await res.json()
         setConfig(data)
 
-        const statusRes = await fetch(`${API_BASE}/api/status`)
+        const statusRes = await apiFetch(`${API_BASE}/api/status`)
+        if (!statusRes.ok) throw new Error(`Status request failed with ${statusRes.status}`)
         const statusData = await statusRes.json()
-        setEnvConfig(prev => ({
-          ...prev,
-          openRouterModel: statusData.openRouterModel || 'google/gemini-flash-1.5',
-          openRouterFallbackModel: statusData.openRouterFallbackModel || 'anthropic/claude-3-haiku',
-          openRouterApiKeyConfigured: statusData.openRouterApiKeyConfigured || false
-        }))
+        setOpenRouterApiKeyConfigured(statusData.openRouterApiKeyConfigured || false)
       } catch (e) {
-        console.error("Error fetching config/env:", e)
+        console.error("Error fetching config:", e)
       }
     }
 
     fetchStatus()
     fetchMetricsHistory()
-    fetchConfigAndEnv()
+    fetchConfig()
     
     const statusInterval = setInterval(fetchStatus, 3000)
     const metricsInterval = setInterval(fetchMetricsHistory, 5000)
@@ -128,7 +123,7 @@ export default function Page() {
     };
 
     try {
-      const configResponse = await fetch(`${API_BASE}/api/config`, {
+      const configResponse = await apiFetch(`${API_BASE}/api/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cleanedConfig)
@@ -139,19 +134,6 @@ export default function Page() {
       }
       if (configResult.queue) {
         setQueue(configResult.queue)
-      }
-
-      // Only POST env if there are keys to update
-      if (envConfig.openRouterModel || envConfig.openRouterFallbackModel || envConfig.openRouterApiKey) {
-        const envResponse = await fetch(`${API_BASE}/api/env`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(envConfig)
-        })
-        if (!envResponse.ok) {
-          const envResult = await envResponse.json()
-          throw new Error(envResult.error || "Environment settings could not be saved.")
-        }
       }
 
       // Sync state back with cleaned values
@@ -168,11 +150,15 @@ export default function Page() {
 
   const handleStartStop = async () => {
     try {
-      await fetch(`${API_BASE}/api/control`, { 
+      const response = await apiFetch(`${API_BASE}/api/control`, {
         method: "POST", 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ action: isRunning ? 'stop' : 'start' }) 
       })
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error || `Control request failed with ${response.status}`)
+      }
     } catch (error) {
       console.error("Failed to toggle forwarder", error)
     }
@@ -256,7 +242,7 @@ export default function Page() {
           {tab === "channels" && <ChannelsTab config={config} setConfig={setConfig} />}
           {tab === "options" && <OptionsTab config={config} setConfig={setConfig} />}
           {tab === "filters" && <FiltersTab config={config} setConfig={setConfig} />}
-          {tab === "parser" && <ParserTab config={config} setConfig={setConfig} envConfig={envConfig} setEnvConfig={setEnvConfig} />}
+          {tab === "parser" && <ParserTab config={config} setConfig={setConfig} openRouterApiKeyConfigured={openRouterApiKeyConfigured} />}
           {tab === "logs" && <LogsTab config={config} />}
           {tab === "system" && <SystemTab config={config} />}
           {tab === "messages" && <MessagesTab />}

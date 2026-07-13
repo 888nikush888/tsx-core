@@ -4,6 +4,7 @@ import * as React from "react"
 import { useState, useEffect } from "react"
 import { RefreshCw, FileCode, AlertCircle, Inbox, ChevronDown, ChevronRight, Copy, Check, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { apiFetch } from "@/lib/api"
 import {
   Card,
   CardContent,
@@ -42,7 +43,7 @@ export function SignalsTab({ config }: { config?: any }) {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${API_BASE}/api/processed-signals`)
+      const response = await apiFetch(`${API_BASE}/api/processed-signals`)
       if (!response.ok) throw new Error("Konnte Signale nicht laden.")
       const data = await response.json()
       setSignals(data.signals || [])
@@ -168,7 +169,7 @@ export function SignalsTab({ config }: { config?: any }) {
                               e.stopPropagation()
                               if (window.confirm("Dieses Signal wirklich aus der Datenbank löschen?")) {
                                 try {
-                                  const res = await fetch(`${API_BASE}/api/processed-signals?id=${sig.id}`, { method: 'DELETE' })
+                                  const res = await apiFetch(`${API_BASE}/api/processed-signals?id=${sig.id}`, { method: 'DELETE' })
                                   if (res.ok) {
                                     fetchSignals()
                                   } else {

@@ -17,7 +17,7 @@ export function ChannelsTab({ config, setConfig }: any) {
             <CardTitle>API Credentials</CardTitle>
           </div>
           <CardDescription>
-            Your Telegram API ID and Hash. You can obtain these from my.telegram.org.
+            The non-secret Telegram API ID is stored here. TELEGRAM_API_HASH must be supplied through the server environment.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
@@ -31,14 +31,9 @@ export function ChannelsTab({ config, setConfig }: any) {
               onChange={(e) => setConfig({ ...config, apiId: parseInt(e.target.value) || 0 })} 
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="apiHash">API Hash</Label>
-            <Input 
-              id="apiHash" 
-              placeholder="e.g. abc123def456..."
-              value={config.apiHash || ''} 
-              onChange={(e) => setConfig({ ...config, apiHash: e.target.value })} 
-            />
+          <div className="space-y-2 rounded-md border p-3 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">API Hash</span>
+            <p>Environment-only secret; it is never returned by or editable through the dashboard.</p>
           </div>
         </CardContent>
       </Card>
