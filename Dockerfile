@@ -1,6 +1,12 @@
 ARG NODE_IMAGE=node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
+ARG DEBIAN_SNAPSHOT=20260713T150000Z
 
-FROM ${NODE_IMAGE} AS builder
+FROM ${NODE_IMAGE} AS base
+ARG DEBIAN_SNAPSHOT
+RUN sed -ri "s|http://deb.debian.org/debian-security|http://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|g; s|http://deb.debian.org/debian|http://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
+    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot
+
+FROM base AS builder
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.json ./
 COPY frontend/package.json frontend/package-lock.json ./frontend/
@@ -10,7 +16,7 @@ COPY src/ ./src/
 COPY frontend/ ./frontend/
 RUN npm run build
 
-FROM ${NODE_IMAGE} AS production-dependencies
+FROM base AS production-dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN apt-get update \
@@ -20,7 +26,7 @@ RUN apt-get update \
     && npm rebuild sqlite3 --build-from-source \
     && npm cache clean --force
 
-FROM ${NODE_IMAGE} AS runner
+FROM base AS runner
 LABEL org.opencontainers.image.title="Telegram TDLib Forwarder" \
       org.opencontainers.image.source="local-workspace" \
       org.opencontainers.image.base.name="docker.io/library/node:20-bookworm-slim" \

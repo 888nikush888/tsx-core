@@ -38,9 +38,11 @@ const nodeImage = dockerfile.match(/^ARG NODE_IMAGE=([^\s]+)$/m)?.[1];
 assert.ok(nodeImage, 'Dockerfile must define NODE_IMAGE');
 assert.match(nodeImage, /@sha256:[a-f0-9]{64}$/, 'NODE_IMAGE must use a sha256 digest');
 assert.doesNotMatch(nodeImage, /:latest(?:@|$)/, 'NODE_IMAGE must not use latest');
-for (const image of baseImages) {
-  assert.equal(image, '${NODE_IMAGE}', `FROM must use the pinned NODE_IMAGE argument: ${image}`);
-}
+assert.equal(baseImages[0], '${NODE_IMAGE}', 'base stage must use the pinned NODE_IMAGE argument');
+assert.ok(baseImages.slice(1).every((image) => image === 'base'), 'all stages must inherit pinned base');
+assert.match(dockerfile, /^ARG DEBIAN_SNAPSHOT=\d{8}T\d{6}Z$/m);
+assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian\/\$\{DEBIAN_SNAPSHOT\}/);
+assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian-security\/\$\{DEBIAN_SNAPSHOT\}/);
 assert.match(dockerfile, /apt-get upgrade -y --no-install-recommends/);
 assert.match(dockerfile, /rm -rf \/usr\/local\/lib\/node_modules\/npm/);
 
