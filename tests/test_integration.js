@@ -11,8 +11,8 @@ const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 function parseSignalWithPython(text, customEnv = {}) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(__dirname, '../src/signal_parser.ts');
-    const py = spawn('npx', ['tsx', scriptPath, '--stdin'], {
-      shell: true,
+    const py = spawn(process.execPath, ['--import', 'tsx', scriptPath, '--stdin'], {
+      shell: false,
       env: { ...process.env, ...customEnv }
     });
 
@@ -47,7 +47,8 @@ function parseSignalWithPython(text, customEnv = {}) {
 function parseSignalWithMockPython(text) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(__dirname, 'mock_parser.js');
-    const py = spawn('node', [scriptPath], {
+    const py = spawn(process.execPath, [scriptPath], {
+      shell: false,
       env: { ...process.env, OPENROUTER_API_KEY: 'dummy_key' }
     });
 
@@ -125,7 +126,7 @@ async function runTests() {
   console.log("\nALL NODE.JS INTEGRATION VERIFICATION TESTS PASSED!");
 }
 
-runTests().catch(err => {
+await runTests().catch(err => {
   console.error("Integration verification failed with exception:", err);
   process.exit(1);
 });

@@ -3,7 +3,6 @@ import { getTdjson } from 'prebuilt-tdlib';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
 import { readConfigSync, writeConfigSync, isValidTargetChannel, mergeConfigDefaults } from './config.js';
 import { loadEnv } from './env.js';
 import { getMessageTextAndType, shouldForward } from './filters.js';
@@ -20,7 +19,6 @@ import {
   getAiUsage,
   getLastForwardedAt,
   getOutboxStatusCounts,
-  getOutboxTask,
   getTotalForwardedCount,
   incrementForwardedCount,
   initDb,

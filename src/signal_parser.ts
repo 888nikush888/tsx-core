@@ -186,7 +186,7 @@ async function loadPrompt(templateName?: string): Promise<{ prompt: string; temp
     if (!prompt.trim()) throw new Error('template is empty');
     return { prompt: prompt.trim() + SAFETY_PROMPT, templateName: normalized };
   } catch (error: any) {
-    throw new Error(`Signal template '${normalized}' cannot be loaded: ${error.message}`);
+    throw new Error(`Signal template '${normalized}' cannot be loaded: ${error.message}`, { cause: error });
   }
 }
 

@@ -167,7 +167,7 @@ async function runTests() {
   console.log("\nALL FILTERS UNIT TESTS PASSED!");
 }
 
-runTests().catch(err => {
+await runTests().catch(err => {
   console.error("Filters test execution failed:", err);
   process.exit(1);
 });

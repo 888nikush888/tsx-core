@@ -2,7 +2,19 @@ import assert from 'assert';
 import { TelegramDeliveryTracker } from '../src/delivery_tracker.js';
 
 async function runTests() {
+  assert.throws(() => new TelegramDeliveryTracker(0), /positive safe integer/);
+  assert.throws(() => new TelegramDeliveryTracker(1.5), /positive safe integer/);
   const tracker = new TelegramDeliveryTracker(50);
+
+  await assert.rejects(tracker.waitForResult({}), /no destination messages/);
+  await assert.rejects(
+    tracker.waitForResult({ messages: [{ sending_state: null }] }),
+    /message without an id/
+  );
+  await assert.rejects(
+    tracker.waitForResult({ id: 99, sending_state: { _: 'messageSendingStateFailed' } }),
+    /Telegram reported a failed sending state/
+  );
 
   assert.deepStrictEqual(
     await tracker.waitForResult({ messages: [{ id: 101, sending_state: null }, { id: 102 }] }),
@@ -37,6 +49,31 @@ async function runTests() {
   });
   await assert.rejects(failed, /peer unavailable/);
 
+  tracker.handleUpdate({
+    _: 'updateMessageSendFailed',
+    old_message_id: -206,
+    message: { sending_state: { error: { message: 'cached send failure' } } }
+  });
+  await assert.rejects(
+    tracker.waitForResult({ id: -206, sending_state: { _: 'messageSendingStatePending' } }),
+    /cached send failure/
+  );
+
+  const alreadyAborted = new AbortController();
+  alreadyAborted.abort();
+  await assert.rejects(
+    tracker.waitForResult({ id: -207, sending_state: { _: 'messageSendingStatePending' } }, alreadyAborted.signal),
+    /confirmation aborted/
+  );
+
+  const firstWaiter = tracker.waitForResult({ id: -208, sending_state: { _: 'messageSendingStatePending' } });
+  await assert.rejects(
+    tracker.waitForResult({ id: -208, sending_state: { _: 'messageSendingStatePending' } }),
+    /waiter already exists/
+  );
+  tracker.close('test close');
+  await assert.rejects(firstWaiter, /test close/);
+
   await assert.rejects(
     tracker.waitForResult({ id: -204, sending_state: { _: 'messageSendingStatePending' } }),
     /confirmation timed out after 50ms/
@@ -52,7 +89,7 @@ async function runTests() {
   console.log('ALL DELIVERY CONFIRMATION TESTS PASSED!');
 }
 
-runTests().catch(error => {
+await runTests().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

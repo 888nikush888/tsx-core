@@ -403,7 +403,7 @@ function parseJsonField(value: unknown, field: string, taskId: string): any {
   try {
     return JSON.parse(String(value));
   } catch (error: any) {
-    throw new Error(`Outbox task ${taskId} has invalid ${field}: ${error.message}`);
+    throw new Error(`Outbox task ${taskId} has invalid ${field}: ${error.message}`, { cause: error });
   }
 }
 

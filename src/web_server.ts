@@ -486,7 +486,8 @@ export function startWebServer(
         let defaultContent = '';
         try {
           defaultContent = await fsPromises.readFile(path.join(templatesDir, 'default.txt'), 'utf-8');
-        } catch {
+        } catch (error: any) {
+          addLog(`[WARN] Default template could not be read: ${error.message}`);
           defaultContent = '';
         }
         templates['default'] = defaultContent;
@@ -497,8 +498,8 @@ export function startWebServer(
             try {
               const content = await fsPromises.readFile(path.join(templatesDir, file), 'utf-8');
               templates[name] = content;
-            } catch (e) {
-              // ignore read errors
+            } catch (error: any) {
+              addLog(`[WARN] Template '${file}' could not be read: ${error.message}`);
             }
           }
         }

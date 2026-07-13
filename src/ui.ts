@@ -388,7 +388,7 @@ export function drawMainMenuBuffered(config, state, spinnerFrame, resolvedSource
 
 async function mainMenu(config, state) {
   clearConsole();
-  let spinnerFrame = 0;
+  const spinnerFrame = 0;
   drawMainMenuBuffered(config, state, spinnerFrame, state.resolvedSourceChatIds, state.totalForwardedCount);
 
   const choice = await readMenuKeypress(['1','2','3','4','5','6','7','8','9','d','e','r']);
@@ -1592,7 +1592,7 @@ export async function playStartupAnimation() {
       const progress = Math.min(1, frame / (totalFrames * 0.8));
 
       // Move drops and reveal characters
-      for (let drop of drops) {
+      for (const drop of drops) {
         drop.row += drop.speed;
         const currentRowInt = Math.floor(drop.row);
         

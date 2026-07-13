@@ -93,6 +93,21 @@ async function runTests() {
     console.log(`  ok - rejects ${name}`);
   });
 
+  for (const malformedXml of [
+    '',
+    '</signal>',
+    '<signal><action>LONG</action>',
+    '<signal>mixed<action>LONG</action></signal>',
+    `${STANDARD_LONG}${STANDARD_LONG}`,
+    standard({ action: 'BUY' }),
+    standard({ extra: '<leverage>2</leverage><leverage>3</leverage>' }),
+    standard().replace('<action>LONG</action>', '<action></action>'),
+    standard().replace('<action>LONG</action>', '<action id="1">LONG</action>'),
+    standard().replace('BTCUSDT', 'BTC&amp;USDT')
+  ]) {
+    assert.throws(() => validateSignalXml(malformedXml), SignalValidationError);
+  }
+
   const cryptoMarket = '<signal><action>SHORT</action><pair>HYPEUSDT</pair><entry_type>MARKET</entry_type><averaging>64.856</averaging><targets><target id="1">60.822</target></targets><stoploss>69.4</stoploss><risk_percent>1</risk_percent></signal>';
   const cryptoLimit = '<signal><action>LONG</action><pair>SOLUSDT</pair><entry_type>LIMIT</entry_type><entry_range><min>100</min><max>101</max></entry_range><targets><target id="1">105</target></targets><stoploss>98</stoploss></signal>';
   assert.strictEqual(validateSignalXml(cryptoMarket, 'cryptodanielvip').schema, 'cryptodanielvip');
@@ -260,7 +275,7 @@ async function runTests() {
   console.log('ALL STRICT SIGNAL PARSER TESTS PASSED!');
 }
 
-runTests().catch(error => {
+await runTests().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

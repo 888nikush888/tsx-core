@@ -204,7 +204,7 @@ async function runTests() {
   }
 }
 
-runTests().catch(err => {
+await runTests().catch(err => {
   console.error('Test-Fehler:', err);
   process.exit(1);
 });

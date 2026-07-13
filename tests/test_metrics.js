@@ -66,7 +66,10 @@ async function runTests() {
   });
   tracker.start();
   forwarded = 2;
-  await new Promise(resolve => setTimeout(resolve, 35));
+  const sampleDeadline = Date.now() + 1_000;
+  while (tracker.getHistory().length < 3 && Date.now() < sampleDeadline) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
   tracker.stop();
   const history = tracker.getHistory();
   assert.strictEqual(history.length, 3, 'History must enforce its configured memory bound');
@@ -77,7 +80,7 @@ async function runTests() {
   console.log('ALL HONEST OBSERVABILITY TESTS PASSED!');
 }
 
-runTests().catch(async error => {
+await runTests().catch(async error => {
   await stopMetricsServer().catch(() => {});
   console.error(error);
   process.exitCode = 1;

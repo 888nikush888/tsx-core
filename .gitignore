@@ -3,6 +3,9 @@
 !.env.example
 config.json
 node_modules/
+coverage/
+reports/
+.stryker-incremental.json
 dist/
 coverage/
 scratch/

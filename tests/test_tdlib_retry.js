@@ -1,6 +1,28 @@
 import assert from 'node:assert/strict';
 import { invokeWithFloodWaitRetry } from '../src/tdlib_retry.js';
 
+await assert.rejects(
+  invokeWithFloodWaitRetry({ async invoke() { return true; } }, {}, { maxAttempts: 0 }),
+  /maxAttempts must be between 1 and 10/
+);
+await assert.rejects(
+  invokeWithFloodWaitRetry({ async invoke() { return true; } }, {}, { maxFloodWaitSeconds: 3_601 }),
+  /maxFloodWaitSeconds must be between 0 and 3600/
+);
+
+const preAborted = new AbortController();
+preAborted.abort('cancelled');
+await assert.rejects(
+  invokeWithFloodWaitRetry({ async invoke() { throw new Error('must not run'); } }, {}, { signal: preAborted.signal }),
+  /TDLib operation aborted/
+);
+
+const providerError = new Error('permanent provider error');
+await assert.rejects(
+  invokeWithFloodWaitRetry({ async invoke() { throw providerError; } }, {}),
+  error => error === providerError
+);
+
 let attempts = 0;
 const logs = [];
 const result = await invokeWithFloodWaitRetry({

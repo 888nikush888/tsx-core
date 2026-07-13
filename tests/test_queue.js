@@ -240,7 +240,7 @@ async function runTests() {
   console.log("\nALL CONCURRENCY QUEUE UNIT TESTS PASSED!");
 }
 
-runTests().catch(err => {
+await runTests().catch(err => {
   console.error("ConcurrencyQueue test execution failed:", err);
   process.exit(1);
 });
