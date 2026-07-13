@@ -15,7 +15,9 @@ async function runTests() {
     aiRequestsToday: 3,
     aiUsedTokensToday: 120,
     aiReservedTokensToday: 40,
-    lastForwardedAt: 1_700_000_000_000
+    lastForwardedAt: 1_700_000_000_000,
+    backupHealthy: true,
+    backupLastSuccessAt: 1_700_000_100_000
   };
   const server = startMetricsServer(0, {
     totalForwardedCountCallback: () => 7,
@@ -48,6 +50,8 @@ async function runTests() {
   assert.match(metrics, /tg_forwarder_outbox_tasks\{status="unknown"\} 2/);
   assert.match(metrics, /tg_forwarder_ai_reserved_tokens_today 40/);
   assert.match(metrics, /tg_forwarder_last_confirmed_delivery_timestamp_seconds 1700000000/);
+  assert.match(metrics, /tg_forwarder_backup_healthy 1/);
+  assert.match(metrics, /tg_forwarder_backup_last_success_timestamp_seconds 1700000100/);
 
   response = await fetch(`${baseUrl}/metrics`, { method: 'POST' });
   assert.strictEqual(response.status, 405);

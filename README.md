@@ -97,6 +97,26 @@ Bei `SIGTERM`, `SIGINT`, Dashboard-Stopp oder interaktivem Neustart wird die Que
 
 Nach drei unerwarteten Abbrüchen innerhalb von fünf Minuten legt der Dienst `session_data/.crash_blocked` an und startet das Routing auch außerhalb des Zeitfensters nicht automatisch. Vor einer Freigabe müssen Operatoren die Ursache aus den Logs und Outbox-Zuständen klären und erst danach `.crash_blocked` sowie gegebenenfalls `.routing_active` entfernen. Das Löschen dieser Dateien ohne Ursachenklärung ist kein zulässiger Recovery-Schritt.
 
+### Backup und Restore (RPO 15 Minuten / RTO 60 Minuten)
+
+Beim Prozessstart und danach spätestens alle 15 Minuten erstellt der Dienst unter `BACKUP_DIR` ein atomar veröffentlichtes Backup-Artefakt. Es enthält einen konsistenten SQLite-Online-Backup-Snapshot, die nicht geheime Konfiguration und ein SHA-256-/Größenmanifest. Jedes Artefakt wird vor Veröffentlichung mit Checksummen, `PRAGMA integrity_check`, Pflicht-Tabellen und Secret-Feld-Prüfung verifiziert; ein fehlgeschlagenes Backup setzt Readiness und `tg_forwarder_backup_healthy` auf Fehler. Standardmäßig werden 672 Artefakte (sieben Tage bei 15 Minuten) aufbewahrt.
+
+Manuelle Prüfung und Wiederherstellung:
+
+```bash
+npm run backup:create
+npm run backup:verify -- ./backups/backup-<timestamp>-<id>
+
+# Dienst vollständig stoppen und failed/unknown Zustellungen dokumentieren.
+npm run backup:restore -- ./backups/backup-<timestamp>-<id>
+
+# Dienst starten, /readyz und Outbox prüfen, dann einen synthetischen End-to-End-Flow ausführen.
+```
+
+Restore verweigert die Ausführung, solange `.process_active` oder `.routing_active` im State-Verzeichnis existiert. Ein nach hartem Prozessabbruch veralteter Lock darf erst entfernt werden, nachdem auf Betriebssystemebene bestätigt wurde, dass kein Forwarder-Prozess mehr läuft und die Outbox reconciled ist. Bestehende DB und Konfiguration werden nicht gelöscht, sondern als `.pre-restore-*` für einen unmittelbaren Rollback erhalten.
+
+Die Backup-Artefakte enthalten Nachrichten-, Signal- und damit potenziell personenbezogene Daten. `BACKUP_DIR` muss auf ein zugriffsbeschränktes, verschlüsseltes und vom Primärhost unabhängiges Backup-Ziel repliziert werden; ein Verzeichnis auf derselben Platte erfüllt Disaster Recovery nicht. Der automatisierte Restore-Test belegt das Verfahren gegen isolierte Testdaten, ersetzt aber nicht den mindestens monatlichen Staging-Restore mit dokumentierter Dauer und Datenabgleich.
+
 ### Automatische KI-Signalverarbeitung
 
 Die Signalverarbeitung arbeitet ohne Human-in-the-loop. Ein Ergebnis darf jedoch nur automatisch weitergeleitet werden, wenn es exakt dem für die Quelle festgelegten Schema entspricht und alle Zahlen-, Wertebereichs-, Reihenfolge- und LONG/SHORT-Geometrieprüfungen besteht. Markdown, XML-Deklarationen, unbekannte Tags, nicht sequenzielle Targets, abgeschnittene Modellantworten und Text außerhalb des XML-Dokuments werden fail-closed abgewiesen; unbekannte oder nicht lesbare Template-Dateien fallen nicht still auf den Standardprompt zurück.

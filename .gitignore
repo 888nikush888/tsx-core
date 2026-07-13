@@ -10,6 +10,7 @@ session_data/
 session_files/
 signals/
 logs/
+backups/
 *.tsbuildinfo
 __pycache__/
 *.pyc

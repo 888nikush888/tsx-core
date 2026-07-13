@@ -42,6 +42,7 @@ import { parseSignalToXml, type AiLimits, type ParsedSignal } from './signal_par
 import { MetricsTracker } from './metrics_tracker.js';
 import { TelegramDeliveryTracker } from './delivery_tracker.js';
 import { checkCrashLoopFiles } from './crash_guard.js';
+import { BackupScheduler } from './backup.js';
 import {
   C_RESET, C_GREEN, C_DARK_GREEN, C_RED,
   clearConsole, pressAnyKey, addLog, clearLogHistory,
@@ -274,6 +275,8 @@ const mediaGroupBuffer = new Map();
 const ALBUM_DELAY_MS = 800;
 let client = null, targetChatId = null;
 let metricsTracker: MetricsTracker | null = null;
+let backupScheduler: BackupScheduler | null = null;
+let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
 const state = {
   isRunning: false,
   connectionState: 'disconnected',
@@ -941,6 +944,13 @@ function shutdown(exitCode = 0): Promise<void> {
     if (!drained) {
       addLog('[CRITICAL] Shutdown-Frist abgelaufen; nicht abgeschlossene Tasks werden beim Neustart reconciled.');
     }
+    if (backupScheduler) {
+      try {
+        await backupScheduler.stop();
+      } catch (error: any) {
+        console.warn(`[WARN] Laufendes Backup konnte nicht sauber beendet werden: ${error.message}`);
+      }
+    }
     if (metricsTracker) {
       try {
         metricsTracker.stop();
@@ -966,16 +976,27 @@ function shutdown(exitCode = 0): Promise<void> {
       }
       client = null;
     }
-    try {
-      await closeDb();
-    } catch (error: any) {
-      console.warn(`[WARN] Fehler beim Schließen der SQLite-Datenbank: ${error.message}`);
+    let databaseClosed = false;
+    if (drained) {
+      try {
+        await closeDb();
+        databaseClosed = true;
+      } catch (error: any) {
+        console.warn(`[WARN] Fehler beim Schließen der SQLite-Datenbank: ${error.message}`);
+      }
     }
     if (drained) {
       try {
         await fsPromises.unlink('./session_data/.routing_active');
       } catch (error: any) {
         if (error.code !== 'ENOENT') console.warn(`[WARN] Routing-Lock konnte nicht entfernt werden: ${error.message}`);
+      }
+    }
+    if (databaseClosed) {
+      try {
+        await fsPromises.unlink(processLockPath);
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') console.warn(`[WARN] Prozess-Lock konnte nicht entfernt werden: ${error.message}`);
       }
     }
     process.exitCode = exitCode;
@@ -991,8 +1012,30 @@ async function run() {
   initializeDeliveryTracker();
   await initFileLogger();
   await initDb();
+  const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
+  processLockPath = path.join(path.dirname(databasePath), '.process_active');
+  await fsPromises.mkdir(path.dirname(processLockPath), { recursive: true });
+  await fsPromises.writeFile(processLockPath, JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }), {
+    encoding: 'utf8', mode: 0o600
+  });
   state.totalForwardedCount = await getTotalForwardedCount();
   state.lastSuccessfulForwardAt = await getLastForwardedAt();
+  await checkCrashLoop();
+
+  const backupIntervalValue = Number(process.env.BACKUP_INTERVAL_MS || 15 * 60_000);
+  const backupIntervalMs = Number.isSafeInteger(backupIntervalValue) && backupIntervalValue >= 60_000 && backupIntervalValue <= 15 * 60_000
+    ? backupIntervalValue
+    : 15 * 60_000;
+  const retentionValue = Number(process.env.BACKUP_RETENTION_COUNT || 672);
+  const backupRetention = Number.isSafeInteger(retentionValue) && retentionValue >= 1 && retentionValue <= 10_000 ? retentionValue : 672;
+  backupScheduler = new BackupScheduler(
+    process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'),
+    () => configSnapshot(config),
+    backupIntervalMs,
+    backupRetention,
+    addLog
+  );
+  await backupScheduler.start();
 
   startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
     totalForwardedCountCallback: () => state.totalForwardedCount,
@@ -1005,6 +1048,7 @@ async function run() {
       const databaseHealthy = await isDatabaseHealthy();
       const emptyOutbox = { pending: 0, preparing: 0, sending: 0, completed: 0, failed: 0, unknown: 0 };
       if (!databaseHealthy) {
+        const backup = backupScheduler?.getStatus();
         return {
           databaseHealthy,
           isRunning: state.isRunning,
@@ -1014,13 +1058,16 @@ async function run() {
           aiRequestsToday: 0,
           aiUsedTokensToday: 0,
           aiReservedTokensToday: 0,
-          lastForwardedAt: state.lastSuccessfulForwardAt
+          lastForwardedAt: state.lastSuccessfulForwardAt,
+          backupHealthy: backup?.healthy || false,
+          backupLastSuccessAt: backup?.lastSuccessAt || null
         };
       }
       const [outbox, aiUsage] = await Promise.all([
         getOutboxStatusCounts(),
         getAiUsage(new Date().toISOString().slice(0, 10))
       ]);
+      const backup = backupScheduler?.getStatus();
       return {
         databaseHealthy,
         isRunning: state.isRunning,
@@ -1030,7 +1077,9 @@ async function run() {
         aiRequestsToday: aiUsage.requestCount,
         aiUsedTokensToday: aiUsage.usedTokens,
         aiReservedTokensToday: aiUsage.reservedTokens,
-        lastForwardedAt: state.lastSuccessfulForwardAt
+        lastForwardedAt: state.lastSuccessfulForwardAt,
+        backupHealthy: backup?.healthy || false,
+        backupLastSuccessAt: backup?.lastSuccessAt || null
       };
     }
   });
@@ -1091,8 +1140,6 @@ async function run() {
   } catch (err: any) {
     addLog(`[WARN] Web Dashboard konnte nicht gestartet werden: ${err.message}`);
   }
-
-  await checkCrashLoop();
 
   const isNonInteractive = process.env.NON_INTERACTIVE === 'true' || !process.stdout.isTTY;
 

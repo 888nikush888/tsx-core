@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
-import { mkdir } from 'fs/promises';
+import { mkdir, stat } from 'fs/promises';
 
 let db: Database | null = null;
 
@@ -184,6 +184,30 @@ export async function closeDb(): Promise<void> {
   if (!db) return;
   await db.close();
   db = null;
+}
+
+export async function backupDatabase(destinationPath: string): Promise<void> {
+  const resolvedDestination = path.resolve(destinationPath);
+  await mkdir(path.dirname(resolvedDestination), { recursive: true });
+  const destinationExists = await stat(resolvedDestination).then(() => true).catch((error: any) => {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  });
+  if (destinationExists) throw new Error(`Backup destination already exists: ${resolvedDestination}`);
+  const nativeDatabase: any = getDb().getDatabaseInstance();
+  const backup: any = await new Promise((resolve, reject) => {
+    const operation = nativeDatabase.backup(resolvedDestination, (error: Error | null) => {
+      if (error) reject(error);
+      else resolve(operation);
+    });
+  });
+  await new Promise<void>((resolve, reject) => {
+    backup.step(-1, (error: Error | null, completed: boolean) => {
+      if (error) reject(error);
+      else if (!completed || !backup.completed) reject(new Error('SQLite backup did not complete.'));
+      else resolve();
+    });
+  });
 }
 
 // Helper to make sure db is initialized

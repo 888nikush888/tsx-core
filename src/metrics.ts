@@ -11,6 +11,8 @@ export interface OperationalMetrics {
   aiUsedTokensToday: number;
   aiReservedTokensToday: number;
   lastForwardedAt: number | null;
+  backupHealthy: boolean;
+  backupLastSuccessAt: number | null;
 }
 
 interface MetricsState {
@@ -87,14 +89,16 @@ export function startMetricsServer(
       const ready = operational.databaseHealthy
         && operational.isRunning
         && operational.connectionState === 'connected'
-        && !operational.queuePaused;
+        && !operational.queuePaused
+        && operational.backupHealthy;
       sendJson(res, ready ? 200 : 503, {
         status: ready ? 'ready' : 'not_ready',
         checks: {
           database: operational.databaseHealthy,
           routing: operational.isRunning,
           connection: safeConnectionState(operational.connectionState),
-          queuePaused: operational.queuePaused
+          queuePaused: operational.queuePaused,
+          backup: operational.backupHealthy
         },
         unresolvedDeliveries: operational.outbox.failed + operational.outbox.unknown
       });
@@ -117,6 +121,8 @@ export function startMetricsServer(
         `tg_forwarder_connection_state{state="${current}"} ${current === connectionState ? 1 : 0}`
       ),
       ...metric('tg_forwarder_last_confirmed_delivery_timestamp_seconds', 'Unix time of the last confirmed delivery', 'gauge', operational.lastForwardedAt ? Math.floor(operational.lastForwardedAt / 1000) : 0),
+      ...metric('tg_forwarder_backup_healthy', 'Whether the latest scheduled backup succeeded within the RPO window', 'gauge', operational.backupHealthy ? 1 : 0),
+      ...metric('tg_forwarder_backup_last_success_timestamp_seconds', 'Unix time of the last verified backup', 'gauge', operational.backupLastSuccessAt ? Math.floor(operational.backupLastSuccessAt / 1000) : 0),
       ...metric('tg_forwarder_ai_requests_today', 'AI provider requests reserved today (UTC)', 'gauge', operational.aiRequestsToday),
       ...metric('tg_forwarder_ai_used_tokens_today', 'AI tokens accounted today (UTC)', 'gauge', operational.aiUsedTokensToday),
       ...metric('tg_forwarder_ai_reserved_tokens_today', 'AI tokens reserved by unfinished calls today (UTC)', 'gauge', operational.aiReservedTokensToday),
