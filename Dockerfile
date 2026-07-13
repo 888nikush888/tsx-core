@@ -36,7 +36,12 @@ COPY --from=builder --chown=node:node /app/frontend/dist ./frontend/dist
 COPY --chown=node:node templates/ ./templates/
 COPY --chown=node:node config.json.example ./config.json.example
 
-RUN mkdir -p /app/session_data /app/session_files /app/signals /app/logs /app/backups \
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx \
+    && mkdir -p /app/session_data /app/session_files /app/signals /app/logs /app/backups \
     && chown -R node:node /app/session_data /app/session_files /app/signals /app/logs /app/backups
 
 USER node

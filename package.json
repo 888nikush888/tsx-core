@@ -19,7 +19,9 @@
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"*.js\" --quiet",
     "lint:report": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"*.js\"",
     "typecheck": "tsc --noEmit",
-    "quality:duplicates": "jscpd src --min-lines 5 --min-tokens 50 --threshold 5 --reporters console,json --output reports/jscpd"
+    "quality:duplicates": "jscpd src --min-lines 5 --min-tokens 50 --threshold 5 --reporters console,json --output reports/jscpd",
+    "quality:licenses": "node scripts/check_licenses.js",
+    "quality:sbom": "node scripts/generate_sbom.js"
   },
   "keywords": [
     "telegram",
@@ -29,6 +31,9 @@
   ],
   "author": "",
   "license": "MIT",
+  "overrides": {
+    "qs": "6.15.3"
+  },
   "dependencies": {
     "openai": "^6.46.0",
     "prebuilt-tdlib": "^0.1008064.0",
@@ -47,6 +52,7 @@
     "globals": "^17.7.0",
     "jest": "^30.4.2",
     "jscpd": "^5.0.12",
+    "license-checker-rseidelsohn": "^4.4.2",
     "prettier": "^3.9.4",
     "tsx": "^4.23.0",
     "typescript": "^6.0.3",
