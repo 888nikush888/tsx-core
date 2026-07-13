@@ -29,6 +29,17 @@
     "forwardXmlToTarget": false,
     "signalsDir": "./signals",
     "primaryModel": "google/gemini-flash-1.5",
-    "fallbackModel": "anthropic/claude-3-haiku"
+    "fallbackModel": "anthropic/claude-3-haiku",
+    "timeout": 60000,
+    "aiLimits": {
+      "maxInputChars": 12000,
+      "maxOutputTokens": 1200,
+      "primaryAttempts": 2,
+      "fallbackAttempts": 1,
+      "dailyRequestLimit": 200,
+      "dailyTokenLimit": 250000,
+      "requestTimeoutMs": 30000,
+      "backoffMs": 500
+    }
   }
 }

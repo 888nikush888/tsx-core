@@ -25,6 +25,17 @@ export interface OutboxTask {
   result?: any;
 }
 
+export interface SignalProvenance {
+  templateName: string;
+  schemaName: string;
+  promptSha256: string;
+  model: string;
+  providerRequestId?: string;
+  promptTokens: number;
+  completionTokens: number;
+  parserVersion: string;
+}
+
 async function ensureColumn(database: Database, table: string, column: string, definition: string): Promise<void> {
   const columns = await database.all<Array<{ name: string }>>(`PRAGMA table_info(${table})`);
   if (!columns.some(existing => existing.name === column)) {
@@ -58,11 +69,27 @@ export async function initDb(
       message_id INTEGER,
       xml_content TEXT,
       normalized_content TEXT,
-      created_at INTEGER
+      created_at INTEGER,
+      template_name TEXT,
+      schema_name TEXT,
+      prompt_sha256 TEXT,
+      model TEXT,
+      provider_request_id TEXT,
+      prompt_tokens INTEGER,
+      completion_tokens INTEGER,
+      parser_version TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_signals_normalized ON signals(normalized_content);
     CREATE INDEX IF NOT EXISTS idx_signals_chat_created ON signals(chat_id, created_at);
   `);
+  await ensureColumn(db, 'signals', 'template_name', 'TEXT');
+  await ensureColumn(db, 'signals', 'schema_name', 'TEXT');
+  await ensureColumn(db, 'signals', 'prompt_sha256', 'TEXT');
+  await ensureColumn(db, 'signals', 'model', 'TEXT');
+  await ensureColumn(db, 'signals', 'provider_request_id', 'TEXT');
+  await ensureColumn(db, 'signals', 'prompt_tokens', 'INTEGER');
+  await ensureColumn(db, 'signals', 'completion_tokens', 'INTEGER');
+  await ensureColumn(db, 'signals', 'parser_version', 'TEXT');
 
   // Table for persistent forwarding queue
   await db.exec(`
@@ -82,6 +109,16 @@ export async function initDb(
       last_error TEXT,
       config_json TEXT,
       result_json TEXT
+    );
+  `);
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_usage_daily (
+      usage_day TEXT PRIMARY KEY,
+      request_count INTEGER NOT NULL DEFAULT 0,
+      used_tokens INTEGER NOT NULL DEFAULT 0,
+      reserved_tokens INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL
     );
   `);
   await ensureColumn(db, 'pending_tasks', 'status', "TEXT NOT NULL DEFAULT 'pending'");
@@ -173,13 +210,88 @@ export async function incrementForwardedCount(amount = 1): Promise<void> {
 }
 
 // Signals Deduplication API
-export async function saveSignal(id: string, chatId: string, messageId: number, xmlContent: string, normalizedContent: string): Promise<void> {
+export async function saveSignal(
+  id: string,
+  chatId: string,
+  messageId: number,
+  xmlContent: string,
+  normalizedContent: string,
+  provenance?: SignalProvenance
+): Promise<void> {
   const database = getDb();
   await database.run(
-    `INSERT OR REPLACE INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at) 
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, chatId, messageId, xmlContent, normalizedContent, Date.now()]
+    `INSERT OR REPLACE INTO signals (
+       id, chat_id, message_id, xml_content, normalized_content, created_at,
+       template_name, schema_name, prompt_sha256, model, provider_request_id,
+       prompt_tokens, completion_tokens, parser_version
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id, chatId, messageId, xmlContent, normalizedContent, Date.now(),
+      provenance?.templateName || null,
+      provenance?.schemaName || null,
+      provenance?.promptSha256 || null,
+      provenance?.model || null,
+      provenance?.providerRequestId || null,
+      provenance?.promptTokens ?? null,
+      provenance?.completionTokens ?? null,
+      provenance?.parserVersion || null
+    ]
   );
+}
+
+export async function reserveAiUsage(
+  usageDay: string,
+  tokenAllowance: number,
+  dailyRequestLimit: number,
+  dailyTokenLimit: number
+): Promise<boolean> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(usageDay)) throw new Error('usageDay must use YYYY-MM-DD.');
+  if (![tokenAllowance, dailyRequestLimit, dailyTokenLimit].every(value => Number.isSafeInteger(value) && value > 0)) {
+    throw new Error('AI usage limits must be positive safe integers.');
+  }
+  const database = getDb();
+  const now = Date.now();
+  await database.run(
+    `INSERT OR IGNORE INTO ai_usage_daily (usage_day, request_count, used_tokens, reserved_tokens, updated_at)
+     VALUES (?, 0, 0, 0, ?)`,
+    [usageDay, now]
+  );
+  const result = await database.run(
+    `UPDATE ai_usage_daily
+     SET request_count = request_count + 1,
+         reserved_tokens = reserved_tokens + ?,
+         updated_at = ?
+     WHERE usage_day = ?
+       AND request_count < ?
+       AND used_tokens + reserved_tokens + ? <= ?`,
+    [tokenAllowance, now, usageDay, dailyRequestLimit, tokenAllowance, dailyTokenLimit]
+  );
+  return Number(result.changes || 0) === 1;
+}
+
+export async function commitAiUsage(usageDay: string, tokenAllowance: number, actualTokens: number): Promise<void> {
+  const safeActual = Number.isSafeInteger(actualTokens) && actualTokens >= 0 ? actualTokens : tokenAllowance;
+  const result = await getDb().run(
+    `UPDATE ai_usage_daily
+     SET reserved_tokens = MAX(0, reserved_tokens - ?),
+         used_tokens = used_tokens + ?,
+         updated_at = ?
+     WHERE usage_day = ?`,
+    [tokenAllowance, safeActual, Date.now(), usageDay]
+  );
+  if (Number(result.changes || 0) !== 1) throw new Error(`No AI usage reservation exists for ${usageDay}.`);
+}
+
+export async function getAiUsage(usageDay: string): Promise<{ requestCount: number; usedTokens: number; reservedTokens: number }> {
+  const row = await getDb().get<any>(
+    `SELECT request_count, used_tokens, reserved_tokens FROM ai_usage_daily WHERE usage_day = ?`,
+    [usageDay]
+  );
+  return {
+    requestCount: Number(row?.request_count || 0),
+    usedTokens: Number(row?.used_tokens || 0),
+    reservedTokens: Number(row?.reserved_tokens || 0)
+  };
 }
 
 export async function findDuplicateSignal(

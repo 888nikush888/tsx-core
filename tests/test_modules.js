@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { isValidTargetChannel } from '../src/config.js';
+import { isValidTargetChannel, mergeConfigDefaults } from '../src/config.js';
 import { hasNestedQuantifiers, parseRegex } from '../src/filters.js';
 import { ConcurrencyQueue } from '../src/queue.js';
 import { maskPII } from '../src/ui.js';
@@ -16,6 +16,20 @@ async function runTests() {
   assert.strictEqual(isValidTargetChannel("@shrt"), false); // Under 5 chars username excluding @
   assert.strictEqual(isValidTargetChannel("not_an_id_or_username"), false);
   console.log("   -> OK");
+
+  const mergedConfig = mergeConfigDefaults({
+    apiId: 1,
+    xmlParsing: {
+      aiLimits: {
+        primaryAttempts: 99,
+        fallbackAttempts: 0,
+        dailyTokenLimit: '5000'
+      }
+    }
+  });
+  assert.strictEqual(mergedConfig.xmlParsing.aiLimits.primaryAttempts, 2, 'Out-of-range AI limits must reset to the safe default');
+  assert.strictEqual(mergedConfig.xmlParsing.aiLimits.fallbackAttempts, 0);
+  assert.strictEqual(mergedConfig.xmlParsing.aiLimits.dailyTokenLimit, 5000);
 
   // 2. ReDoS checking and regex parsing
   console.log("2. Testing ReDoS protection and regex parsing...");

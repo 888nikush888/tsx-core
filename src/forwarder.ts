@@ -30,10 +30,10 @@ import {
   saveSignal,
   updateIncomingMessageStatus
 } from './db.js';
-import type { OutboxTask } from './db.js';
+import type { OutboxTask, SignalProvenance } from './db.js';
 import { startMetricsServer, stopMetricsServer } from './metrics.js';
 import { startWebServer, stopWebServer } from './web_server.js';
-import { parseSignalToXml } from './signal_parser.js';
+import { parseSignalToXml, type AiLimits, type ParsedSignal } from './signal_parser.js';
 import { MetricsTracker } from './metrics_tracker.js';
 import { TelegramDeliveryTracker } from './delivery_tracker.js';
 import {
@@ -345,34 +345,32 @@ async function parseSignalNative(
   timeoutMs: number,
   templateName: string | null = null,
   models: { primaryModel?: string; fallbackModel?: string } = {},
-  signal: any = null
-): Promise<string> {
+  signal: AbortSignal | null = null,
+  limits?: Partial<AiLimits>
+): Promise<ParsedSignal> {
   if (signal?.aborted) throw new Error('Task aborted');
-
-  let onAbort: (() => void) | undefined;
-  let timeoutId: NodeJS.Timeout | undefined;
-
-  const parsePromise = parseSignalToXml(text, templateName || undefined, models);
-  
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error(`Parser Timeout (${timeoutMs || DEFAULT_PARSER_TIMEOUT_MS}ms)`));
-    }, timeoutMs || DEFAULT_PARSER_TIMEOUT_MS);
-  });
-
-  const abortPromise = signal ? new Promise<never>((_, reject) => {
-    onAbort = () => reject(new Error('Task aborted'));
-    signal.addEventListener('abort', onAbort);
-  }) : null;
-
-  const promises: Promise<any>[] = [parsePromise, timeoutPromise];
-  if (abortPromise) promises.push(abortPromise);
+  const effectiveTimeout = timeoutMs || DEFAULT_PARSER_TIMEOUT_MS;
+  const controller = new AbortController();
+  let timedOut = false;
+  const onAbort = () => controller.abort();
+  signal?.addEventListener('abort', onAbort, { once: true });
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, effectiveTimeout);
 
   try {
-    return await Promise.race(promises);
+    return await parseSignalToXml(text, templateName || undefined, models, {
+      signal: controller.signal,
+      limits
+    });
+  } catch (error: any) {
+    if (timedOut) throw new Error(`Parser Timeout (${effectiveTimeout}ms)`, { cause: error });
+    if (signal?.aborted) throw new Error('Task aborted', { cause: error });
+    throw error;
   } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-    if (signal && onAbort) signal.removeEventListener('abort', onAbort);
+    clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', onAbort);
   }
 }
 
@@ -473,7 +471,13 @@ async function forwardRawMessage(message, config, context: OutboxExecutionContex
   }
 }
 
-async function checkDuplicateAndSave(message, xmlString, xmlParsing, dupeBlocker) {
+async function checkDuplicateAndSave(
+  message,
+  xmlString,
+  xmlParsing,
+  dupeBlocker,
+  provenance?: SignalProvenance
+) {
   const signalId = `signal_${message.chat_id}_${message.id}`;
   if (dupeBlocker.enabled) {
     const baseDir = xmlParsing.signalsDir || './signals';
@@ -495,7 +499,7 @@ async function checkDuplicateAndSave(message, xmlString, xmlParsing, dupeBlocker
   }
 
   const normalizedNew = normalizeSignalXml(xmlString);
-  await saveSignal(signalId, String(message.chat_id), message.id, xmlString, normalizedNew);
+  await saveSignal(signalId, String(message.chat_id), message.id, xmlString, normalizedNew, provenance);
   
   return false;
 }
@@ -521,7 +525,7 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
     const sourceTemplates = xmlParsing.sourceTemplates || {};
     const templateName = sourceTemplates[sourceId];
     
-    const xmlString = await parseSignalNative(
+    const parsedSignal = await parseSignalNative(
       text,
       xmlParsing.timeout || DEFAULT_PARSER_TIMEOUT_MS,
       templateName,
@@ -529,15 +533,22 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
         primaryModel: xmlParsing.primaryModel,
         fallbackModel: xmlParsing.fallbackModel
       },
-      context.signal
+      context.signal,
+      xmlParsing.aiLimits
     );
     addLog(`[XML-Parser SUCCESS] Paket ${message.id} erfolgreich analysiert.`);
     
-    const isDupe = await checkDuplicateAndSave(message, xmlString, xmlParsing, dupeBlocker);
+    const isDupe = await checkDuplicateAndSave(
+      message,
+      parsedSignal.xml,
+      xmlParsing,
+      dupeBlocker,
+      parsedSignal.provenance
+    );
     if (isDupe) return { handled: true, result: { mode: 'duplicate-blocked' } };
     
     if (forwardXml) {
-      const result = await sendXmlMessage(xmlString, context);
+      const result = await sendXmlMessage(parsedSignal.xml, context);
       updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
         .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
       return { handled: true, result };

@@ -9,6 +9,7 @@
     "start": "node dist/forwarder.js",
     "dev": "tsx src/forwarder.ts",
     "test:js": "tsx tests/test_modules.js && tsx tests/test_queue.js && tsx tests/test_filters.js && tsx tests/test_dupe_blocker.js && tsx tests/test_outbox.js && tsx tests/test_delivery_tracker.js && tsx tests/test_web_server.js && tsx tests/test_integration.js && tsx tests/test_signal_parser.js",
+    "test:ai-eval": "tsx tests/evaluate_signal_golden_set.js",
     "test": "npm run test:js",
     "lint": "eslint src/ --quiet"
   },

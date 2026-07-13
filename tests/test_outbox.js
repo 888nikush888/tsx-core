@@ -12,6 +12,7 @@ import {
   enqueueOutboxTask,
   failOutboxTask,
   getIncomingMessages,
+  getAiUsage,
   getMediaGroupBuffers,
   getOutboxTask,
   initDb,
@@ -19,9 +20,12 @@ import {
   markOutboxSending,
   recoverInterruptedOutboxTasks,
   removeMediaGroupBuffer,
+  reserveAiUsage,
+  commitAiUsage,
   requeueOutboxTask,
   saveIncomingMessage,
-  saveMediaGroupBuffer
+  saveMediaGroupBuffer,
+  saveSignal
 } from '../src/db.js';
 
 function task(id, messageId) {
@@ -126,6 +130,51 @@ async function runTests() {
     assert.deepStrictEqual(buffers['group-1'].messages.map(message => message.id), [21, 22]);
     await removeMediaGroupBuffer('group-1');
     assert.strictEqual((await getMediaGroupBuffers())['group-1'], undefined);
+
+    const usageDay = '2030-01-02';
+    assert.strictEqual(await reserveAiUsage(usageDay, 600, 2, 1000), true);
+    assert.strictEqual(await reserveAiUsage(usageDay, 500, 2, 1000), false, 'Token reservations must fail closed at the daily limit');
+    await commitAiUsage(usageDay, 600, 450);
+    assert.deepStrictEqual(await getAiUsage(usageDay), {
+      requestCount: 1,
+      usedTokens: 450,
+      reservedTokens: 0
+    });
+    assert.strictEqual(await reserveAiUsage(usageDay, 500, 2, 1000), true);
+    assert.strictEqual(await reserveAiUsage(usageDay, 1, 2, 1000), false, 'Request count must fail closed at the daily limit');
+    await commitAiUsage(usageDay, 500, 500);
+    assert.deepStrictEqual(await getAiUsage(usageDay), {
+      requestCount: 2,
+      usedTokens: 950,
+      reservedTokens: 0
+    });
+
+    await saveSignal('provenance-signal', '-1001', 99, '<signal/>', '<signal/>', {
+      templateName: 'loma',
+      schemaName: 'loma',
+      promptSha256: 'a'.repeat(64),
+      model: 'test/model',
+      providerRequestId: 'req-99',
+      promptTokens: 12,
+      completionTokens: 34,
+      parserVersion: '2.0.0'
+    });
+    const inspectionDb = await open({ filename: dbPath, driver: sqlite3.Database });
+    const provenance = await inspectionDb.get(
+      'SELECT template_name, schema_name, prompt_sha256, model, provider_request_id, prompt_tokens, completion_tokens, parser_version FROM signals WHERE id = ?',
+      ['provenance-signal']
+    );
+    await inspectionDb.close();
+    assert.deepStrictEqual(provenance, {
+      template_name: 'loma',
+      schema_name: 'loma',
+      prompt_sha256: 'a'.repeat(64),
+      model: 'test/model',
+      provider_request_id: 'req-99',
+      prompt_tokens: 12,
+      completion_tokens: 34,
+      parser_version: '2.0.0'
+    });
 
     console.log('ALL DURABLE OUTBOX TESTS PASSED!');
   } finally {

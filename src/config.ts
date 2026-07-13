@@ -33,6 +33,16 @@ export interface Config {
     primaryModel: string;
     fallbackModel: string;
     timeout?: number;
+    aiLimits: {
+      maxInputChars: number;
+      maxOutputTokens: number;
+      primaryAttempts: number;
+      fallbackAttempts: number;
+      dailyRequestLimit: number;
+      dailyTokenLimit: number;
+      requestTimeoutMs: number;
+      backoffMs: number;
+    };
   };
   dupeBlocker: {
     enabled: boolean;
@@ -65,7 +75,17 @@ export const DEFAULT_CONFIG: Config = {
     signalsDir: './signals',
     sourceTemplates: {},
     primaryModel: 'google/gemini-flash-1.5',
-    fallbackModel: 'anthropic/claude-3-haiku'
+    fallbackModel: 'anthropic/claude-3-haiku',
+    aiLimits: {
+      maxInputChars: 12_000,
+      maxOutputTokens: 1_200,
+      primaryAttempts: 2,
+      fallbackAttempts: 1,
+      dailyRequestLimit: 200,
+      dailyTokenLimit: 250_000,
+      requestTimeoutMs: 30_000,
+      backoffMs: 500
+    }
   },
   dupeBlocker: {
     enabled: false,
@@ -135,6 +155,29 @@ export function validateConfig(cfg: any): Config {
     } else {
       cfg.xmlParsing.sourceTemplates = {};
     }
+
+    if (!cfg.xmlParsing.aiLimits || typeof cfg.xmlParsing.aiLimits !== 'object') {
+      cfg.xmlParsing.aiLimits = { ...DEFAULT_CONFIG.xmlParsing.aiLimits };
+    }
+    const aiLimitRanges: Record<keyof Config['xmlParsing']['aiLimits'], [number, number]> = {
+      maxInputChars: [100, 100_000],
+      maxOutputTokens: [128, 8_192],
+      primaryAttempts: [1, 3],
+      fallbackAttempts: [0, 2],
+      dailyRequestLimit: [1, 10_000],
+      dailyTokenLimit: [1_000, 100_000_000],
+      requestTimeoutMs: [1_000, 300_000],
+      backoffMs: [0, 10_000]
+    };
+    for (const [key, [minimum, maximum]] of Object.entries(aiLimitRanges) as Array<[
+      keyof Config['xmlParsing']['aiLimits'],
+      [number, number]
+    ]>) {
+      const value = Number(cfg.xmlParsing.aiLimits[key]);
+      cfg.xmlParsing.aiLimits[key] = Number.isSafeInteger(value) && value >= minimum && value <= maximum
+        ? value
+        : DEFAULT_CONFIG.xmlParsing.aiLimits[key];
+    }
   }
 
   // Validate sourceFilters: must be an object with valid regexPatterns arrays
@@ -196,6 +239,10 @@ export function mergeConfigDefaults(cfg: any): Config {
       sourceTemplates: {
         ...DEFAULT_CONFIG.xmlParsing?.sourceTemplates,
         ...cfg?.xmlParsing?.sourceTemplates
+      },
+      aiLimits: {
+        ...DEFAULT_CONFIG.xmlParsing.aiLimits,
+        ...cfg?.xmlParsing?.aiLimits
       }
     },
     dupeBlocker: {
