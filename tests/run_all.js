@@ -22,6 +22,7 @@ const allTests = [
   'test_architecture.js',
   'test_risk_acceptances.js',
   'test_frontend_quality.js',
+  'test_release_artifacts.js',
 ];
 
 const requestedTests = process.argv.slice(2);
