@@ -1,16 +1,54 @@
-version: '3.8'
-
 services:
   forwarder:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: telegram-tdlib-forwarder:local
     container_name: tg-forwarder
-    restart: unless-stopped
-    volumes:
-      - ./session_data:/app/session_data
-      - ./signals:/app/signals
-      - ./logs:/app/logs
+    init: true
+    restart: "on-failure:3"
+    stop_grace_period: 45s
     env_file:
       - .env
+    environment:
+      NON_INTERACTIVE: "true"
+      WEB_HOST: "0.0.0.0"
+      METRICS_HOST: "0.0.0.0"
+      PORT: "8080"
+      METRICS_PORT: "9100"
+      BACKUP_DIR: "/app/backups"
+    volumes:
+      - ./config.json:/app/config.json:rw
+      - ./session_data:/app/session_data:rw
+      - ./session_files:/app/session_files:rw
+      - ./signals:/app/signals:rw
+      - ./logs:/app/logs:rw
+      - ./backups:/app/backups:rw
     ports:
-      - "8080:8080"
-      - "9100:9100"
+      - "127.0.0.1:${HOST_WEB_PORT:-8080}:8080"
+      - "127.0.0.1:${HOST_METRICS_PORT:-9100}:9100"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: ${FORWARDER_MEMORY_LIMIT:-1g}
+    cpus: ${FORWARDER_CPU_LIMIT:-1.0}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:9100/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

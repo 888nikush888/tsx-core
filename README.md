@@ -129,20 +129,27 @@ Vor einem Modell-, Prompt- oder Template-Release muss mit Staging-Zugang `npm ru
 
 ### Option B: Docker / Docker-Compose (Empfohlen für Server)
 
-Der Container speichert Sitzungsdaten permanent auf dem Host-System im Ordner `./session_data`.
+Der Container läuft als unprivilegierter Benutzer mit schreibgeschütztem Root-Dateisystem, ohne Linux-Capabilities und mit CPU-, RAM-, PID- und Log-Grenzen. Dashboard und Metriken werden ausschließlich auf Host-Loopback veröffentlicht; externer Zugriff benötigt einen authentifizierenden TLS-Reverse-Proxy.
 
-1. Konfigurieren Sie `.env` und `config.json` auf Ihrem Host.
-2. Starten Sie den Docker-Container:
+1. Konfigurieren Sie `.env` und `config.json` auf dem Host. Legen Sie `session_data`, `session_files`, `signals`, `logs` und `backups` an und stellen Sie sicher, dass UID/GID `1000:1000` dort schreiben darf.
+2. Bauen Sie das gepinnte Image und führen Sie die einmalige TDLib-Erstanmeldung interaktiv aus:
    ```bash
-   docker-compose up -d --build
+   docker compose build
+   docker compose run --rm -e NON_INTERACTIVE=false forwarder node dist/forwarder.js
    ```
-3. **TDLib-Erstanmeldung**:
-   Da Telegram beim ersten Start eine Telefonnummer und einen Login-Code erfordert, müssen Sie sich einmalig interaktiv im Container anmelden:
+   Beenden Sie den interaktiven Lauf nach erfolgreicher Anmeldung sauber. Die Sitzung bleibt im eingebundenen `session_data`-Verzeichnis erhalten.
+3. Starten Sie anschließend den daemonisierten Dienst:
    ```bash
-   # Container interaktiv betreten und Erstanmeldung durchführen
-   docker attach tg-forwarder
+   docker compose up -d
    ```
-   Geben Sie Ihre Telefonnummer und den per Telegram erhaltenen Login-Code ein. Sobald Sie angemeldet sind, können Sie die Verbindung mit `Strg + P` gefolgt von `Strg + Q` trennen (der Container läuft im Hintergrund weiter).
+4. Prüfen Sie Liveness, Readiness und den Containerstatus:
+   ```bash
+   curl --fail http://127.0.0.1:${HOST_METRICS_PORT:-9100}/healthz
+   curl --fail http://127.0.0.1:${HOST_METRICS_PORT:-9100}/readyz
+   docker compose ps
+   ```
+
+Der Container-Restart ist auf drei Fehlversuche begrenzt, damit Konfigurations-, Authentifizierungs- oder Crash-Loops nicht unbegrenzt weiterlaufen. `./backups` ist nur die lokale Restore-Quelle und muss zusätzlich verschlüsselt und vom Primärhost unabhängig repliziert werden.
 
 ---
 
