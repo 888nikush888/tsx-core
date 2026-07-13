@@ -96,38 +96,39 @@ export class ConcurrencyQueue {
     const controller = new AbortController();
     const signal = controller.signal;
 
-    let completed = false;
+    let callerSettled = false;
     let timeoutId: NodeJS.Timeout | null = null;
+    const taskTimeoutMs = this.timeoutMs;
 
-    if (this.timeoutMs > 0) {
+    if (taskTimeoutMs > 0) {
       timeoutId = setTimeout(() => {
-        if (!completed) {
-          completed = true;
-          this.running--;
+        if (!callerSettled) {
+          callerSettled = true;
           controller.abort();
-          reject(new Error(`Task timed out after ${this.timeoutMs}ms`));
-          this.next();
+          reject(new Error(`Task timed out after ${taskTimeoutMs}ms`));
         }
-      }, this.timeoutMs);
+      }, taskTimeoutMs);
     }
 
-    Promise.resolve(taskFn(signal))
+    const releaseSlot = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      this.running--;
+      this.next();
+    };
+
+    Promise.resolve()
+      .then(() => taskFn(signal))
       .then((val) => {
-        if (!completed) {
-          completed = true;
-          if (timeoutId) clearTimeout(timeoutId);
+        releaseSlot();
+        if (!callerSettled) {
+          callerSettled = true;
           resolve(val);
-          this.running--;
-          this.next();
         }
-      })
-      .catch((err) => {
-        if (!completed) {
-          completed = true;
-          if (timeoutId) clearTimeout(timeoutId);
+      }, (err) => {
+        releaseSlot();
+        if (!callerSettled) {
+          callerSettled = true;
           reject(err);
-          this.running--;
-          this.next();
         }
       });
   }

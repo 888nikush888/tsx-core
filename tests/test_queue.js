@@ -84,41 +84,61 @@ async function runTests() {
   // Subsequent jobs should still run fine
   const res2 = await errorQueue.add(successfulJob);
   assert.strictEqual(res2, "success");
+
+  await assert.rejects(
+    errorQueue.add(() => { throw new Error('Synchronous job failure'); }),
+    /Synchronous job failure/
+  );
+  assert.strictEqual(errorQueue.running, 0, 'Synchronous failures must release their worker slot');
   console.log("   -> OK");
 
   // 4. Queue Task-Timeout test
   console.log("4. Testing queue task-timeout...");
-  const timeoutQueue = new ConcurrencyQueue(2, 50); // 50ms timeout
+  const timeoutQueue = new ConcurrencyQueue(1, 50); // 50ms timeout
   let jobStarted = false;
   let jobCompleted = false;
+  let fastJobStarted = false;
+  let activeTimedJobs = 0;
+  let maxActiveTimedJobs = 0;
 
   const slowJob = async () => {
     jobStarted = true;
+    activeTimedJobs++;
+    maxActiveTimedJobs = Math.max(maxActiveTimedJobs, activeTimedJobs);
     await new Promise(r => setTimeout(r, 150)); // 150ms > 50ms timeout
     jobCompleted = true;
+    activeTimedJobs--;
     return "done";
   };
 
-  const fastJob = async () => "fast";
+  const fastJob = async () => {
+    fastJobStarted = true;
+    activeTimedJobs++;
+    maxActiveTimedJobs = Math.max(maxActiveTimedJobs, activeTimedJobs);
+    activeTimedJobs--;
+    return "fast";
+  };
 
-  // The slow job should reject with a timeout error
+  const slowPromise = timeoutQueue.add(slowJob);
+  const fastPromise = timeoutQueue.add(fastJob);
+
+  // The slow job should reject for the caller, but retain its physical worker slot.
   await assert.rejects(
-    async () => {
-      await timeoutQueue.add(slowJob);
-    },
+    slowPromise,
     /Task timed out after 50ms/
   );
 
   assert.strictEqual(jobStarted, true, "Job should have started");
   assert.strictEqual(jobCompleted, false, "Job should not have completed yet at timeout rejection");
+  assert.strictEqual(fastJobStarted, false, 'Timed-out physical work must retain its concurrency slot');
+  assert.strictEqual(timeoutQueue.running, 1, 'Queue must count the timed-out task until it physically settles');
 
-  // The next job in the queue should execute fine after the timeout
-  const fastResult = await timeoutQueue.add(fastJob);
+  // The next job starts only after the timed-out task has physically settled.
+  const fastResult = await fastPromise;
   assert.strictEqual(fastResult, "fast", "Subsequent jobs should resolve correctly");
-
-  // Let's wait to ensure the slow job eventually finishes without double resolving or throwing
-  await new Promise(r => setTimeout(r, 150));
   assert.strictEqual(jobCompleted, true, "Slow job should eventually complete in the background");
+  assert.strictEqual(maxActiveTimedJobs, 1, 'Physical concurrency must remain within the configured limit');
+  assert.strictEqual(timeoutQueue.running, 0);
   console.log("   -> OK");
 
   // 5. Queue Pause/Resume test
