@@ -19,6 +19,10 @@ const spinnerChars = ['¥', 'Ұ', 'Y', '│', 'Y', 'Ұ'];
 // --- Persistent File Logger ---
 let logFileReady = false;
 let logFilePath = null;
+let logWriteFailureReported = false;
+
+type LogContextValue = string | number | boolean | null | undefined;
+export type LogContext = Record<string, LogContextValue>;
 
 /**
  * Strips ANSI escape codes from a string so log files contain clean plain text.
@@ -73,8 +77,8 @@ async function runLogRetentionCleanup(retentionDays = 14) {
         await fsPromises.unlink(filePath);
       }
     }
-  } catch {
-    // Ignore silent errors for retention
+  } catch (error: any) {
+    console.error(`[WARN] Log retention cleanup failed: ${error.message}`);
   }
 }
 
@@ -108,12 +112,43 @@ function writeToLogFile(line) {
   if (todayPath !== logFilePath) {
     logFilePath = todayPath;
   }
-  fsPromises.appendFile(logFilePath, line + '\n', 'utf-8').catch(() => {
-    // Silently ignore write errors to not disrupt the main application
+  fsPromises.appendFile(logFilePath, line + '\n', 'utf-8').then(() => {
+    logWriteFailureReported = false;
+  }).catch((error: any) => {
+    if (!logWriteFailureReported) {
+      logWriteFailureReported = true;
+      console.error(`[ERROR] Persistent log write failed: ${error.message}`);
+    }
   });
 }
 
-export function addLog(msg: string) {
+function sanitizeLogContext(context: LogContext): Record<string, string | number | boolean | null> {
+  const sanitized: Record<string, string | number | boolean | null> = {};
+  for (const [key, value] of Object.entries(context)) {
+    if (!/^[a-z][a-z0-9_]{0,63}$/i.test(key) || value === undefined) continue;
+    sanitized[key] = typeof value === 'string' ? maskPII(value).slice(0, 512) : value;
+  }
+  return sanitized;
+}
+
+export function buildStructuredLogEntry(isoTimestamp: string, message: string, context: LogContext = {}) {
+  const cleanMessage = stripAnsi(maskPII(message));
+  const tag = /^\[([^\]]+)\]/.exec(cleanMessage)?.[1]?.toUpperCase() || 'INFO';
+  let level = 'INFO';
+  if (tag.includes('CRITICAL')) level = 'CRITICAL';
+  else if (tag.includes('FATAL')) level = 'FATAL';
+  else if (tag.includes('ERROR') || tag.includes('FEHLER')) level = 'ERROR';
+  else if (tag.includes('WARN')) level = 'WARN';
+  else if (tag.includes('DEBUG')) level = 'DEBUG';
+  return {
+    timestamp: isoTimestamp,
+    level,
+    message: cleanMessage.replace(/^\[[^\]]+\]\s*/, ''),
+    ...sanitizeLogContext(context)
+  };
+}
+
+export function addLog(msg: string, context: LogContext = {}) {
   const now = new Date();
   const timestamp = now.toLocaleTimeString();
   const maskedMsg = maskPII(msg);
@@ -125,28 +160,21 @@ export function addLog(msg: string) {
   
   const isoTimestamp = now.toISOString();
   const cleanMsg = stripAnsi(maskedMsg);
+  const structuredEntry = buildStructuredLogEntry(isoTimestamp, cleanMsg, context);
 
   // Print to console in non-interactive/daemon mode
   if (process.env.NON_INTERACTIVE === 'true' || !process.stdout.isTTY) {
     if (process.env.JSON_LOGGING === 'true') {
-      let level = "INFO";
-      if (cleanMsg.startsWith("[ERROR]")) level = "ERROR";
-      else if (cleanMsg.startsWith("[WARN]")) level = "WARN";
-      else if (cleanMsg.startsWith("[FATAL]")) level = "FATAL";
-      else if (cleanMsg.startsWith("[DEBUG]")) level = "DEBUG";
-      
-      const cleanMsgNoLevel = cleanMsg.replace(/^\[(INFO|SUCCESS|WARN|ERROR|FATAL|DEBUG|TDLib Status|Forward|XML-Parser|DUPE-BLOCKER)\]\s*/i, '');
-      console.log(JSON.stringify({
-        timestamp: isoTimestamp,
-        level,
-        message: cleanMsgNoLevel
-      }));
+      console.log(JSON.stringify(structuredEntry));
     } else {
       console.log(stripAnsi(displayLine));
     }
   }
   // Write to persistent log file with full ISO timestamp and stripped ANSI codes
-  writeToLogFile(`[${isoTimestamp}] ${cleanMsg}`);
+  const persistentLine = process.env.JSON_LOGGING === 'true'
+    ? JSON.stringify(structuredEntry)
+    : `[${isoTimestamp}] ${cleanMsg}${Object.keys(context).length > 0 ? ` ${JSON.stringify(sanitizeLogContext(context))}` : ''}`;
+  writeToLogFile(persistentLine);
 }
 
 export function getLogHistory() {

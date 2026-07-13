@@ -196,14 +196,37 @@ function scheduleOutboxTask(
       signal,
       markSending: () => markOutboxSending(task.id)
     };
+    const startedAt = Date.now();
+    addLog(`[INFO] Outbox task ${task.id} claimed.`, {
+      correlation_id: task.id,
+      event: 'outbox_claimed',
+      attempt: task.attempts,
+      outcome: 'started'
+    });
     try {
       const result = executeLogic
         ? await executeLogic(context)
         : await executePersistedOutboxTask(task, effectiveConfig, context);
       await completeOutboxTask(task.id, result);
+      addLog(`[SUCCESS] Outbox task ${task.id} completed.`, {
+        correlation_id: task.id,
+        event: 'outbox_completed',
+        attempt: task.attempts,
+        outcome: 'completed',
+        latency_ms: Date.now() - startedAt
+      });
       return result;
     } catch (error: any) {
       const finalStatus = await failOutboxTask(task.id, error);
+      addLog(`[ERROR] Outbox task ${task.id} failed with status ${finalStatus}: ${error.message}`, {
+        correlation_id: task.id,
+        event: 'outbox_failed',
+        attempt: task.attempts,
+        outcome: finalStatus,
+        latency_ms: Date.now() - startedAt,
+        error_code: String(error?.code || error?.name || 'Error'),
+        retryable: finalStatus === 'failed'
+      });
       if (finalStatus === 'unknown') {
         addLog(`[CRITICAL] Outbox task ${task.id} has unknown delivery outcome; automatic retry blocked.`);
       }

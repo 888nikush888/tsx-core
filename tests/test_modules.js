@@ -2,7 +2,7 @@ import assert from 'assert';
 import { isValidTargetChannel, mergeConfigDefaults } from '../src/config.js';
 import { hasNestedQuantifiers, parseRegex } from '../src/filters.js';
 import { ConcurrencyQueue } from '../src/queue.js';
-import { maskPII } from '../src/ui.js';
+import { buildStructuredLogEntry, maskPII } from '../src/ui.js';
 
 async function runTests() {
   console.log("=== Running Modular Unit Tests ===");
@@ -91,6 +91,25 @@ async function runTests() {
   assert.strictEqual(maskedText.includes("[MASKED_PHONE]"), true, "Phone number masking placeholder not found");
   assert.strictEqual(maskedText.includes("[MASKED_EVM_ADDR]"), true, "EVM address masking placeholder not found");
   assert.strictEqual(maskedText.includes("[MASKED_BTC_ADDR]"), true, "BTC address masking placeholder not found");
+  console.log("   -> OK");
+
+  console.log("5. Testing structured operational log context...");
+  const entry = buildStructuredLogEntry(
+    '2026-07-13T12:00:00.000Z',
+    '[CRITICAL] Delivery outcome unknown',
+    {
+      correlation_id: 'single_-1001_42',
+      attempt: 2,
+      retryable: false,
+      unsafe_key: '+49 170 1234567'
+    }
+  );
+  assert.strictEqual(entry.level, 'CRITICAL');
+  assert.strictEqual(entry.message, 'Delivery outcome unknown');
+  assert.strictEqual(entry.correlation_id, 'single_-1001_42');
+  assert.strictEqual(entry.attempt, 2);
+  assert.strictEqual(entry.retryable, false);
+  assert.strictEqual(entry.unsafe_key.includes('+49'), false, 'Context PII not masked');
   console.log("   -> OK");
 
   console.log("\nALL MODULE UNIT TESTS PASSED!");
