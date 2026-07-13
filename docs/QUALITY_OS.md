@@ -48,6 +48,7 @@ Jeder zutreffende Faktor wird einmal addiert. Der Autor trägt Summe und Evidenz
 | Kritische per-file Branch Coverage ≥80 %          | Fail                          | Fail     | Fail                      |
 | Mutation Score kritischer Module ≥70 %            | Fail                          | Fail     | Fail                      |
 | Duplicate Ratio <5 %                              | Fail                          | Fail     | Fail                      |
+| Complexity-/Längen-Budget (kein Wachstum)         | Fail                          | Fail     | Fail                      |
 | Architekturregeln und Zyklen                      | Fail                          | Fail     | Fail                      |
 | Dependency-Audit ab Moderate                      | Fail                          | Fail     | Fail                      |
 | Lizenz-Allowlist                                  | Fail                          | Fail     | Fail                      |
@@ -63,6 +64,8 @@ Jeder zutreffende Faktor wird einmal addiert. Der Autor trägt Summe und Evidenz
 | Rollback- und Offline-Restore-Übung               | Bei betroffener Änderung      | Evidence | Fail                      |
 
 Der Workflow `.github/workflows/quality.yml` implementiert die lokal automatisierbaren Gates. Branch Protection, Staging-Zugang, Alarmziel, Off-host-Backup und Produktions-SLOs sind externe Kontrollen und müssen separat belegt werden.
+
+Die aktuell noch vorhandenen Alt-Hotspots sind in `quality-baseline.json` exakt geratcheted. `npm run quality:complexity` blockiert jede zusätzliche Warnung und jede höhere Worst-Case-Komplexität; auch eine Verbesserung blockiert so lange, bis das Budget im selben PR nach unten korrigiert wird. Das Budget darf nie erhöht werden, außer über einen gültigen zeitlich befristeten Risikoakzeptanz-Record.
 
 ## Gate-Ausnahmen
 

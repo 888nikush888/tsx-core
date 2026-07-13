@@ -49,6 +49,7 @@ jobs:
           npm run lint:frontend
           npm run typecheck
           npm run quality:architecture
+          npm run quality:complexity
           npm run quality:frontend
           npm run quality:release
           npm run quality:risk-acceptances

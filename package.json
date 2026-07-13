@@ -22,6 +22,7 @@
     "typecheck": "tsc --noEmit",
     "quality:duplicates": "jscpd src --min-lines 5 --min-tokens 50 --threshold 5 --reporters console,json --output reports/jscpd",
     "quality:architecture": "node scripts/check_architecture.js",
+    "quality:complexity": "node scripts/check_complexity_budget.js",
     "quality:frontend": "node scripts/check_frontend_reachability.js",
     "quality:release": "node scripts/check_release_artifacts.js",
     "quality:risk-acceptances": "node scripts/check_risk_acceptances.js",
