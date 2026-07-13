@@ -80,6 +80,19 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 Das Dashboard fragt den Token beim Öffnen ab und hält ihn nur im Browser-`sessionStorage`. Für Remote-Zugriff bleibt `WEB_HOST=127.0.0.1`; ein TLS-Reverse-Proxy wird vorgeschaltet und dessen exakte Origin mit `DASHBOARD_ALLOWED_ORIGIN=https://forwarder.example.com` freigegeben. Die API darf nicht direkt unverschlüsselt im Netzwerk exponiert werden.
 
+### Zustellgarantie und Recovery
+
+Jede eingehende Telegram-Nachricht wird über `(chat_id, message_id)` dedupliziert und vor der Verarbeitung als SQLite-Outbox-Task persistiert. Zustände laufen über `pending → preparing → sending → completed`; `completed` wird erst nach `updateMessageSendSucceeded` beziehungsweise einer bereits bestätigten TDLib-Antwort gesetzt. Nach einem Prozessabbruch werden Tasks aus `preparing` automatisch sicher fortgesetzt. Tasks aus `sending` wechseln dagegen auf `unknown`, weil ein automatischer Retry eine bereits zugestellte Nachricht duplizieren könnte.
+
+Ungeklärte Zustellungen sind authentifiziert abrufbar:
+
+```bash
+curl -H "Authorization: Bearer $DASHBOARD_TOKEN" \
+  "http://127.0.0.1:8080/api/outbox?status=failed,unknown"
+```
+
+Ein Retry ist eine explizite Risikoentscheidung und benötigt den Admin-Token sowie `X-Destructive-Confirmation: retry-unknown-delivery`. Wurde die Zustellung im Zielkanal nachweislich gefunden, kann der Task mit Begründung über `/api/outbox/acknowledge` und `X-Destructive-Confirmation: acknowledge-unknown-delivery` abgeschlossen werden. Beide Aktionen werden mit Request-ID, Rolle, Pfad und HTTP-Status im Audit-Log erfasst.
+
 ### Option B: Docker / Docker-Compose (Empfohlen für Server)
 
 Der Container speichert Sitzungsdaten permanent auf dem Host-System im Ordner `./session_data`.

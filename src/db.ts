@@ -5,6 +5,33 @@ import { mkdir } from 'fs/promises';
 
 let db: Database | null = null;
 
+export type OutboxStatus = 'pending' | 'preparing' | 'sending' | 'completed' | 'failed' | 'unknown';
+
+export interface OutboxTask {
+  id: string;
+  type: 'single' | 'mediaGroup';
+  chatId: string;
+  messageId?: number;
+  messageIds?: number[];
+  mediaGroupId?: string;
+  addedAt: number;
+  status: OutboxStatus;
+  attempts: number;
+  claimedAt?: number;
+  updatedAt: number;
+  completedAt?: number;
+  lastError?: string;
+  config?: any;
+  result?: any;
+}
+
+async function ensureColumn(database: Database, table: string, column: string, definition: string): Promise<void> {
+  const columns = await database.all<Array<{ name: string }>>(`PRAGMA table_info(${table})`);
+  if (!columns.some(existing => existing.name === column)) {
+    await database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
 export async function initDb(
   dbPath = process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db')
 ): Promise<void> {
@@ -16,6 +43,12 @@ export async function initDb(
     filename: dbPath,
     driver: sqlite3.Database
   });
+  await db.exec(`
+    PRAGMA journal_mode = WAL;
+    PRAGMA synchronous = FULL;
+    PRAGMA busy_timeout = 5000;
+    PRAGMA foreign_keys = ON;
+  `);
 
   // Table for duplicate signal checks
   await db.exec(`
@@ -40,8 +73,30 @@ export async function initDb(
       message_id INTEGER,
       message_ids TEXT,             -- JSON string array
       media_group_id TEXT,
-      added_at INTEGER
+      added_at INTEGER,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      claimed_at INTEGER,
+      updated_at INTEGER NOT NULL DEFAULT 0,
+      completed_at INTEGER,
+      last_error TEXT,
+      config_json TEXT,
+      result_json TEXT
     );
+  `);
+  await ensureColumn(db, 'pending_tasks', 'status', "TEXT NOT NULL DEFAULT 'pending'");
+  await ensureColumn(db, 'pending_tasks', 'attempts', 'INTEGER NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'pending_tasks', 'claimed_at', 'INTEGER');
+  await ensureColumn(db, 'pending_tasks', 'updated_at', 'INTEGER NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'pending_tasks', 'completed_at', 'INTEGER');
+  await ensureColumn(db, 'pending_tasks', 'last_error', 'TEXT');
+  await ensureColumn(db, 'pending_tasks', 'config_json', 'TEXT');
+  await ensureColumn(db, 'pending_tasks', 'result_json', 'TEXT');
+  await db.exec(`
+    UPDATE pending_tasks SET status = 'pending' WHERE status IS NULL OR status = '';
+    UPDATE pending_tasks SET attempts = 0 WHERE attempts IS NULL;
+    UPDATE pending_tasks SET updated_at = COALESCE(NULLIF(updated_at, 0), added_at, CAST(strftime('%s','now') AS INTEGER) * 1000);
+    CREATE INDEX IF NOT EXISTS idx_pending_tasks_status_added ON pending_tasks(status, added_at);
   `);
 
   // Table for media group buffering
@@ -77,6 +132,13 @@ export async function initDb(
     );
     CREATE INDEX IF NOT EXISTS idx_incoming_chat_msg ON incoming_messages(chat_id, message_id);
     CREATE INDEX IF NOT EXISTS idx_incoming_created ON incoming_messages(created_at);
+  `);
+  await db.exec(`
+    DELETE FROM incoming_messages
+    WHERE id NOT IN (
+      SELECT MIN(id) FROM incoming_messages GROUP BY chat_id, message_id
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_incoming_chat_message ON incoming_messages(chat_id, message_id);
   `);
 }
 
@@ -120,7 +182,11 @@ export async function saveSignal(id: string, chatId: string, messageId: number, 
   );
 }
 
-export async function findDuplicateSignal(normalizedContent: string, cooldownHours: number): Promise<{ isDupe: boolean; matchFile?: string; ageHours?: number } | null> {
+export async function findDuplicateSignal(
+  normalizedContent: string,
+  cooldownHours: number,
+  excludeSignalId?: string
+): Promise<{ isDupe: boolean; matchFile?: string; ageHours?: number } | null> {
   const database = getDb();
   const cooldownMs = cooldownHours * 60 * 60 * 1000;
   const now = Date.now();
@@ -129,9 +195,9 @@ export async function findDuplicateSignal(normalizedContent: string, cooldownHou
     const minTime = now - cooldownMs;
     const match = await database.get(
       `SELECT id, created_at FROM signals 
-       WHERE normalized_content = ? AND created_at >= ? 
+       WHERE normalized_content = ? AND created_at >= ? AND (? IS NULL OR id <> ?)
        ORDER BY created_at DESC LIMIT 1`,
-      [normalizedContent, minTime]
+      [normalizedContent, minTime, excludeSignalId || null, excludeSignalId || null]
     );
     if (match) {
       const ageMs = now - (match.created_at as number);
@@ -142,9 +208,9 @@ export async function findDuplicateSignal(normalizedContent: string, cooldownHou
     // cooldownHours === 0 means "always block" (infinite cooldown)
     const match = await database.get(
       `SELECT id FROM signals 
-       WHERE normalized_content = ? 
+       WHERE normalized_content = ? AND (? IS NULL OR id <> ?)
        ORDER BY created_at DESC LIMIT 1`,
-      [normalizedContent]
+      [normalizedContent, excludeSignalId || null, excludeSignalId || null]
     );
     if (match) {
       return { isDupe: true, matchFile: match.id };
@@ -153,49 +219,193 @@ export async function findDuplicateSignal(normalizedContent: string, cooldownHou
   return null;
 }
 
-// Pending Tasks Queue API
-export async function savePendingTask(task: {
+function parseJsonField(value: unknown, field: string, taskId: string): any {
+  if (value === null || value === undefined || value === '') return undefined;
+  try {
+    return JSON.parse(String(value));
+  } catch (error: any) {
+    throw new Error(`Outbox task ${taskId} has invalid ${field}: ${error.message}`);
+  }
+}
+
+function mapOutboxRow(row: any): OutboxTask {
+  return {
+    id: String(row.id),
+    type: row.type,
+    chatId: String(row.chat_id),
+    messageId: row.message_id === null ? undefined : Number(row.message_id),
+    messageIds: parseJsonField(row.message_ids, 'message_ids', row.id),
+    mediaGroupId: row.media_group_id || undefined,
+    addedAt: Number(row.added_at),
+    status: row.status,
+    attempts: Number(row.attempts || 0),
+    claimedAt: row.claimed_at === null ? undefined : Number(row.claimed_at),
+    updatedAt: Number(row.updated_at || row.added_at),
+    completedAt: row.completed_at === null ? undefined : Number(row.completed_at),
+    lastError: row.last_error || undefined,
+    config: parseJsonField(row.config_json, 'config_json', row.id),
+    result: parseJsonField(row.result_json, 'result_json', row.id)
+  };
+}
+
+// Durable inbox/outbox API
+export async function enqueueOutboxTask(task: {
   id: string;
-  type: string;
+  type: 'single' | 'mediaGroup';
   chatId: string;
   messageId?: number;
   messageIds?: number[];
   mediaGroupId?: string;
   addedAt: number;
-}): Promise<void> {
+  config?: any;
+}): Promise<boolean> {
+  if (!task.id || !['single', 'mediaGroup'].includes(task.type)) {
+    throw new Error('Outbox task id and type are required.');
+  }
+  if (task.type === 'single' && !Number.isSafeInteger(task.messageId)) {
+    throw new Error(`Single outbox task ${task.id} requires a safe messageId.`);
+  }
+  if (task.type === 'mediaGroup' && (!Array.isArray(task.messageIds) || task.messageIds.length === 0 || task.messageIds.some(id => !Number.isSafeInteger(id)))) {
+    throw new Error(`Media-group outbox task ${task.id} requires safe messageIds.`);
+  }
   const database = getDb();
-  await database.run(
-    `INSERT OR REPLACE INTO pending_tasks (id, type, chat_id, message_id, message_ids, media_group_id, added_at) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  const now = Date.now();
+  const result = await database.run(
+    `INSERT INTO pending_tasks (
+       id, type, chat_id, message_id, message_ids, media_group_id, added_at,
+       status, attempts, updated_at, config_json
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+     ON CONFLICT(id) DO NOTHING`,
     [
       task.id,
       task.type,
       task.chatId,
-      task.messageId || null,
+      task.messageId ?? null,
       task.messageIds ? JSON.stringify(task.messageIds) : null,
       task.mediaGroupId || null,
-      task.addedAt
+      task.addedAt,
+      now,
+      task.config === undefined ? null : JSON.stringify(task.config)
     ]
   );
+  return Number(result.changes || 0) === 1;
 }
 
-export async function removePendingTask(id: string): Promise<void> {
+export async function claimOutboxTask(id: string): Promise<OutboxTask | null> {
   const database = getDb();
-  await database.run(`DELETE FROM pending_tasks WHERE id = ?`, [id]);
+  const now = Date.now();
+  const row = await database.get(
+    `UPDATE pending_tasks
+     SET status = 'preparing', attempts = attempts + 1, claimed_at = ?, updated_at = ?,
+         last_error = NULL, completed_at = NULL, result_json = NULL
+     WHERE id = ? AND status IN ('pending', 'failed')
+     RETURNING *`,
+    [now, now, id]
+  );
+  return row ? mapOutboxRow(row) : null;
 }
 
-export async function getPendingTasks(): Promise<any[]> {
+export async function markOutboxSending(id: string): Promise<void> {
   const database = getDb();
-  const rows = await database.all(`SELECT * FROM pending_tasks ORDER BY added_at ASC`);
-  return rows.map(r => ({
-    id: r.id,
-    type: r.type,
-    chatId: r.chat_id,
-    messageId: r.message_id,
-    messageIds: r.message_ids ? JSON.parse(r.message_ids) : undefined,
-    mediaGroupId: r.media_group_id,
-    addedAt: r.added_at
-  }));
+  const result = await database.run(
+    `UPDATE pending_tasks SET status = 'sending', updated_at = ?
+     WHERE id = ? AND status IN ('preparing', 'sending')`,
+    [Date.now(), id]
+  );
+  if (Number(result.changes || 0) !== 1) {
+    throw new Error(`Outbox task ${id} is not in a sendable state.`);
+  }
+}
+
+export async function completeOutboxTask(id: string, result?: any): Promise<void> {
+  const database = getDb();
+  const now = Date.now();
+  const update = await database.run(
+    `UPDATE pending_tasks
+     SET status = 'completed', updated_at = ?, completed_at = ?, last_error = NULL, result_json = ?
+     WHERE id = ? AND status IN ('preparing', 'sending')`,
+    [now, now, result === undefined ? null : JSON.stringify(result), id]
+  );
+  if (Number(update.changes || 0) !== 1) {
+    throw new Error(`Outbox task ${id} cannot be completed from its current state.`);
+  }
+}
+
+export async function failOutboxTask(id: string, error: unknown): Promise<OutboxStatus> {
+  const database = getDb();
+  const message = (error instanceof Error ? error.message : String(error)).slice(0, 4000);
+  const row = await database.get<{ status: OutboxStatus }>(
+    `UPDATE pending_tasks
+     SET status = CASE WHEN status = 'sending' THEN 'unknown' ELSE 'failed' END,
+         updated_at = ?, last_error = ?, completed_at = NULL, result_json = NULL
+     WHERE id = ? AND status IN ('preparing', 'sending')
+     RETURNING status`,
+    [Date.now(), message, id]
+  );
+  if (!row) throw new Error(`Outbox task ${id} cannot be failed from its current state.`);
+  return row.status;
+}
+
+export async function recoverInterruptedOutboxTasks(): Promise<{ requeued: number; unknown: number }> {
+  const database = getDb();
+  const now = Date.now();
+  const requeued = await database.run(
+    `UPDATE pending_tasks
+     SET status = 'pending', updated_at = ?, claimed_at = NULL,
+         last_error = 'Process stopped while preparing; task safely requeued before provider send.'
+     WHERE status = 'preparing'`,
+    [now]
+  );
+  const unknown = await database.run(
+    `UPDATE pending_tasks
+     SET status = 'unknown', updated_at = ?,
+         last_error = 'Process stopped after provider send began; automatic retry blocked to prevent duplicates.'
+     WHERE status = 'sending'`,
+    [now]
+  );
+  return { requeued: Number(requeued.changes || 0), unknown: Number(unknown.changes || 0) };
+}
+
+export async function getOutboxTask(id: string): Promise<OutboxTask | null> {
+  const row = await getDb().get(`SELECT * FROM pending_tasks WHERE id = ?`, [id]);
+  return row ? mapOutboxRow(row) : null;
+}
+
+export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): Promise<OutboxTask[]> {
+  const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
+  let rows: any[];
+  if (statuses && statuses.length > 0) {
+    const placeholders = statuses.map(() => '?').join(', ');
+    rows = await getDb().all(
+      `SELECT * FROM pending_tasks WHERE status IN (${placeholders}) ORDER BY added_at ASC LIMIT ?`,
+      [...statuses, safeLimit]
+    );
+  } else {
+    rows = await getDb().all(`SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?`, [safeLimit]);
+  }
+  return rows.map(mapOutboxRow);
+}
+
+export async function requeueOutboxTask(id: string): Promise<boolean> {
+  const result = await getDb().run(
+    `UPDATE pending_tasks
+     SET status = 'pending', updated_at = ?, claimed_at = NULL, completed_at = NULL,
+         last_error = 'Explicit operator retry requested.', result_json = NULL
+     WHERE id = ? AND status IN ('failed', 'unknown')`,
+    [Date.now(), id]
+  );
+  return Number(result.changes || 0) === 1;
+}
+
+export async function acknowledgeOutboxTask(id: string, reason: string): Promise<boolean> {
+  const now = Date.now();
+  const result = await getDb().run(
+    `UPDATE pending_tasks
+     SET status = 'completed', updated_at = ?, completed_at = ?, last_error = NULL, result_json = ?
+     WHERE id = ? AND status = 'unknown'`,
+    [now, now, JSON.stringify({ acknowledged: true, reason: reason.slice(0, 500) }), id]
+  );
+  return Number(result.changes || 0) === 1;
 }
 
 // Media Group Buffer API
@@ -233,13 +443,15 @@ export async function saveIncomingMessage(
   text: string,
   type: string,
   status: string
-): Promise<void> {
+): Promise<boolean> {
   const database = getDb();
-  await database.run(
+  const result = await database.run(
     `INSERT INTO incoming_messages (chat_id, message_id, sender, text, type, status, created_at) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(chat_id, message_id) DO NOTHING`,
     [chatId, messageId, sender, text, type, status, Date.now()]
   );
+  return Number(result.changes || 0) === 1;
 }
 
 export async function updateIncomingMessageStatus(

@@ -18,6 +18,9 @@ interface WebServerState {
   reloadConfig: () => void;
   applyRuntimeConfig: (config: any) => void;
   getMetricsHistory?: () => any[];
+  getOutboxTasks?: (statuses?: string[]) => Promise<any[]>;
+  retryOutboxTask?: (id: string) => Promise<boolean>;
+  acknowledgeOutboxTask?: (id: string, reason: string) => Promise<boolean>;
 }
 
 let server: http.Server | null = null;
@@ -254,6 +257,87 @@ export function startWebServer(
       } catch (err: any) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
+      }
+      return;
+    }
+
+    // GET /api/outbox?status=failed,unknown
+    if (url === '/api/outbox' && method === 'GET') {
+      if (!appState.getOutboxTasks) {
+        sendJson(res, 503, { error: 'Outbox inspection is unavailable.', requestId });
+        return;
+      }
+      const allowedStatuses = new Set(['pending', 'preparing', 'sending', 'completed', 'failed', 'unknown']);
+      const requestedStatuses = (parsedUrl.searchParams.get('status') || '')
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean);
+      if (requestedStatuses.some(status => !allowedStatuses.has(status))) {
+        sendJson(res, 400, { error: 'Invalid outbox status filter.', requestId });
+        return;
+      }
+      try {
+        const tasks = await appState.getOutboxTasks(requestedStatuses.length > 0 ? requestedStatuses : undefined);
+        sendJson(res, 200, { tasks, requestId });
+      } catch (error: any) {
+        sendJson(res, 500, { error: error.message, requestId });
+      }
+      return;
+    }
+
+    if (url === '/api/outbox/retry' && method === 'POST') {
+      if (!appState.retryOutboxTask) {
+        sendJson(res, 503, { error: 'Outbox retry is unavailable.', requestId });
+        return;
+      }
+      if (req.headers['x-destructive-confirmation'] !== 'retry-unknown-delivery') {
+        sendJson(res, 412, { error: 'Explicit retry-unknown-delivery confirmation header required.', requestId });
+        return;
+      }
+      try {
+        const payload = await readJsonBody(req);
+        if (typeof payload.id !== 'string' || payload.id.length < 1 || payload.id.length > 256) {
+          throw new HttpError(400, 'A valid outbox task id is required.');
+        }
+        const retried = await appState.retryOutboxTask(payload.id);
+        if (!retried) {
+          sendJson(res, 409, { error: 'Only failed or unknown outbox tasks can be retried.', requestId });
+          return;
+        }
+        sendJson(res, 202, { success: true, requestId });
+      } catch (error: any) {
+        const statusCode = error instanceof HttpError ? error.statusCode : 500;
+        sendJson(res, statusCode, { error: error.message, requestId });
+      }
+      return;
+    }
+
+    if (url === '/api/outbox/acknowledge' && method === 'POST') {
+      if (!appState.acknowledgeOutboxTask) {
+        sendJson(res, 503, { error: 'Outbox reconciliation is unavailable.', requestId });
+        return;
+      }
+      if (req.headers['x-destructive-confirmation'] !== 'acknowledge-unknown-delivery') {
+        sendJson(res, 412, { error: 'Explicit acknowledge-unknown-delivery confirmation header required.', requestId });
+        return;
+      }
+      try {
+        const payload = await readJsonBody(req);
+        if (typeof payload.id !== 'string' || payload.id.length < 1 || payload.id.length > 256) {
+          throw new HttpError(400, 'A valid outbox task id is required.');
+        }
+        if (typeof payload.reason !== 'string' || payload.reason.trim().length < 10) {
+          throw new HttpError(400, 'A reconciliation reason of at least 10 characters is required.');
+        }
+        const acknowledged = await appState.acknowledgeOutboxTask(payload.id, payload.reason.trim());
+        if (!acknowledged) {
+          sendJson(res, 409, { error: 'Only unknown outbox tasks can be acknowledged.', requestId });
+          return;
+        }
+        sendJson(res, 200, { success: true, requestId });
+      } catch (error: any) {
+        const statusCode = error instanceof HttpError ? error.statusCode : 500;
+        sendJson(res, statusCode, { error: error.message, requestId });
       }
       return;
     }

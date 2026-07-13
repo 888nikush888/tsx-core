@@ -30,6 +30,8 @@ async function runTests() {
     delete process.env.WEB_HOST;
 
     let stopCalls = 0;
+    let retryCalls = 0;
+    let acknowledgeCalls = 0;
     const appState = {
       config: {
         apiId: 123,
@@ -55,7 +57,10 @@ async function runTests() {
       stopForwarding: async () => { stopCalls += 1; appState.state.isRunning = false; },
       reloadConfig: () => {},
       applyRuntimeConfig: () => {},
-      getMetricsHistory: () => []
+      getMetricsHistory: () => [],
+      getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
+      retryOutboxTask: async id => { retryCalls += 1; return id === 'unknown-task'; },
+      acknowledgeOutboxTask: async id => { acknowledgeCalls += 1; return id === 'unknown-task'; }
     };
 
     const server = startWebServer(0, appState);
@@ -85,6 +90,10 @@ async function runTests() {
     const publicConfig = await response.json();
     assert.strictEqual(publicConfig.apiHash, undefined, 'Telegram secret must be redacted');
     assert.strictEqual(publicConfig.nested.OPENROUTER_API_KEY, undefined, 'Nested secrets must be redacted');
+
+    response = await fetch(`${baseUrl}/api/outbox?status=unknown`, { headers: headers(VIEWER_TOKEN) });
+    assert.strictEqual(response.status, 200, 'Viewer must be able to inspect unresolved outbox work');
+    assert.strictEqual((await response.json()).tasks[0].status, 'unknown');
 
     response = await fetch(`${baseUrl}/api/control`, {
       method: 'POST',
@@ -128,6 +137,37 @@ async function runTests() {
       body: JSON.stringify({ OPENROUTER_API_KEY: 'attempted-secret-write' })
     });
     assert.strictEqual(response.status, 405, 'Environment variables must not be web-editable');
+
+    response = await fetch(`${baseUrl}/api/outbox/retry`, {
+      method: 'POST',
+      headers: headers(ADMIN_TOKEN, { 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' }),
+      body: JSON.stringify({ id: 'unknown-task' })
+    });
+    assert.strictEqual(response.status, 412, 'Unknown delivery retry must require explicit duplicate-risk confirmation');
+
+    response = await fetch(`${baseUrl}/api/outbox/retry`, {
+      method: 'POST',
+      headers: headers(ADMIN_TOKEN, {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'forwarder-dashboard',
+        'X-Destructive-Confirmation': 'retry-unknown-delivery'
+      }),
+      body: JSON.stringify({ id: 'unknown-task' })
+    });
+    assert.strictEqual(response.status, 202);
+    assert.strictEqual(retryCalls, 1);
+
+    response = await fetch(`${baseUrl}/api/outbox/acknowledge`, {
+      method: 'POST',
+      headers: headers(ADMIN_TOKEN, {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'forwarder-dashboard',
+        'X-Destructive-Confirmation': 'acknowledge-unknown-delivery'
+      }),
+      body: JSON.stringify({ id: 'unknown-task', reason: 'Verified in the target Telegram channel.' })
+    });
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(acknowledgeCalls, 1);
 
     response = await fetch(`${baseUrl}/api/status`, {
       headers: headers(ADMIN_TOKEN, { Origin: 'https://attacker.example' })

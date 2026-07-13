@@ -4,16 +4,38 @@ import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
-import { readConfigSync, writeConfigSync, isValidTargetChannel } from './config.js';
+import { readConfigSync, writeConfigSync, isValidTargetChannel, mergeConfigDefaults } from './config.js';
 import { loadEnv } from './env.js';
 import { getMessageTextAndType, shouldForward } from './filters.js';
 import { ConcurrencyQueue } from './queue.js';
 import { isDuplicateSignal, normalizeSignalXml } from './dupe_blocker.js';
-import { getTotalForwardedCount, incrementForwardedCount, initDb, saveSignal, saveIncomingMessage, updateIncomingMessageStatus } from './db.js';
+import {
+  acknowledgeOutboxTask,
+  claimOutboxTask,
+  completeOutboxTask,
+  enqueueOutboxTask,
+  failOutboxTask,
+  getMediaGroupBuffers,
+  getOutboxTask,
+  getTotalForwardedCount,
+  incrementForwardedCount,
+  initDb,
+  listOutboxTasks,
+  markOutboxSending,
+  recoverInterruptedOutboxTasks,
+  removeMediaGroupBuffer,
+  requeueOutboxTask,
+  saveIncomingMessage,
+  saveMediaGroupBuffer,
+  saveSignal,
+  updateIncomingMessageStatus
+} from './db.js';
+import type { OutboxTask } from './db.js';
 import { startMetricsServer, stopMetricsServer } from './metrics.js';
 import { startWebServer, stopWebServer } from './web_server.js';
 import { parseSignalToXml } from './signal_parser.js';
 import { MetricsTracker } from './metrics_tracker.js';
+import { TelegramDeliveryTracker } from './delivery_tracker.js';
 import {
   C_RESET, C_GREEN, C_DARK_GREEN, C_RED,
   clearConsole, pressAnyKey, addLog, clearLogHistory,
@@ -99,8 +121,27 @@ try { tdl.configure({ tdjson: getTdjson() }); } catch (error) {
 }
 
 const forwardQueue = new ConcurrencyQueue(2);
-const PERSIST_FILE = './session_data/queue_persist.json';
-let persistedTasks = [];
+const LEGACY_PERSIST_FILE = './session_data/queue_persist.json';
+const LEGACY_MEDIA_BUFFER_FILE = './session_data/media_group_buffer.json';
+
+interface OutboxExecutionContext {
+  signal: AbortSignal;
+  markSending: () => Promise<void>;
+}
+
+let deliveryTracker: TelegramDeliveryTracker | null = null;
+
+function initializeDeliveryTracker(): void {
+  const configured = Number(process.env.DELIVERY_CONFIRM_TIMEOUT_MS || 30_000);
+  const timeoutMs = Number.isSafeInteger(configured) && configured >= 1_000 && configured <= 300_000 ? configured : 30_000;
+  deliveryTracker?.close('Delivery tracker reinitialized.');
+  deliveryTracker = new TelegramDeliveryTracker(timeoutMs);
+}
+
+function requireDeliveryTracker(): TelegramDeliveryTracker {
+  if (!deliveryTracker) throw new Error('Delivery tracker is not initialized.');
+  return deliveryTracker;
+}
 
 function applyQueueSettings(config: any) {
   const maxConcurrency = config?.forwardOptions?.maxConcurrency ?? 2;
@@ -108,89 +149,102 @@ function applyQueueSettings(config: any) {
   forwardQueue.updateSettings(maxConcurrency, queueTimeoutSeconds * 1000);
 }
 
-async function savePersistedTasks() {
-  try {
-    await fsPromises.writeFile(PERSIST_FILE, JSON.stringify(persistedTasks, null, 2), 'utf-8');
-  } catch (err) {
-    addLog(`[WARN] Fehler beim Speichern der Persistenz-Queue: ${err.message}`);
-  }
+function configSnapshot(config: any): any {
+  const forbidden = new Set(['apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH', 'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN']);
+  return JSON.parse(JSON.stringify(config, (key, value) => forbidden.has(key) ? undefined : value));
 }
 
-async function loadPersistedTasks() {
+async function migrateLegacyPersistedTasks(config: any): Promise<void> {
   try {
-    const data = await fsPromises.readFile(PERSIST_FILE, 'utf-8');
-    persistedTasks = JSON.parse(data);
-    addLog(`[INFO] Persistenz-Queue geladen: ${persistedTasks.length} offene Tasks.`);
-  } catch (err) {
-    if (err.code !== 'ENOENT') {
-      console.warn(`[WARN] Fehler beim Laden der persistierten Tasks: ${err.message}`);
+    const data = await fsPromises.readFile(LEGACY_PERSIST_FILE, 'utf-8');
+    const tasks = JSON.parse(data);
+    if (!Array.isArray(tasks)) throw new Error('Legacy queue file must contain an array.');
+    for (const task of tasks) {
+      await enqueueOutboxTask({
+        id: String(task.id || ''),
+        type: task.type,
+        chatId: String(task.chatId || ''),
+        messageId: task.messageId,
+        messageIds: task.messageIds,
+        mediaGroupId: task.mediaGroupId,
+        addedAt: Number(task.addedAt) || Date.now(),
+        config: configSnapshot(config)
+      });
     }
-    persistedTasks = [];
+    await fsPromises.unlink(LEGACY_PERSIST_FILE);
+    addLog(`[INFO] ${tasks.length} legacy JSON outbox task(s) migrated to SQLite.`);
+  } catch (err: any) {
+    if (err.code === 'ENOENT') return;
+    throw new Error(`Legacy outbox migration failed: ${err.message}`, { cause: err });
   }
 }
 
-async function resumePersistedTasks(config) {
-  if (persistedTasks.length === 0) return;
-  addLog(`[INFO] Setze ${persistedTasks.length} unterbrochene(n) Task(s) fort...`);
-  
-  const tasksToRun = [...persistedTasks];
-  for (const task of tasksToRun) {
-    forwardQueue.add(async (signal) => {
-      try {
-        if (task.type === 'single') {
-          const message = await invokeWithRetry(client, {
-            _: 'getMessage',
-            chat_id: Number(task.chatId),
-            message_id: Number(task.messageId)
-          });
-          await forwardSingleMessage(message, config, signal);
-        } else if (task.type === 'mediaGroup') {
-          const messages = [];
-          for (const mId of task.messageIds) {
-            try {
-              const msg = await invokeWithRetry(client, {
-                _: 'getMessage',
-                chat_id: Number(task.chatId),
-                message_id: Number(mId)
-              });
-              messages.push(msg);
-            } catch (e) {
-              addLog(`[WARN] Konnte Nachricht ${mId} für Album ${task.mediaGroupId} nicht laden: ${e.message}`);
-            }
-          }
-          if (messages.length > 0) {
-            await forwardMediaGroup(task.mediaGroupId, config, {
-              messages,
-              fromChatId: Number(task.chatId)
-            }, signal);
-          }
-        }
-      } catch (err) {
-        addLog(`[ERROR] Wiederaufnahme-Fehler für Task ${task.id}: ${err.message}`);
-      } finally {
-        persistedTasks = persistedTasks.filter(t => t.id !== task.id);
-        await savePersistedTasks();
-      }
-    }).catch(err => {
-      addLog(`[ERROR] Wiederaufnahme-Fehler in Queue für Task ${task.id}: ${err.message}`);
+async function executePersistedOutboxTask(task: OutboxTask, config: any, context: OutboxExecutionContext): Promise<any> {
+  if (task.type === 'single') {
+    const message = await invokeWithRetry(client, {
+      _: 'getMessage',
+      chat_id: Number(task.chatId),
+      message_id: Number(task.messageId)
     });
+    if (!message || Number(message.id) !== Number(task.messageId)) {
+      throw new Error(`Could not reload source message ${task.chatId}/${task.messageId}.`);
+    }
+    return forwardSingleMessage(message, config, context);
   }
+
+  const messages = [];
+  for (const messageId of task.messageIds || []) {
+    const message = await invokeWithRetry(client, {
+      _: 'getMessage',
+      chat_id: Number(task.chatId),
+      message_id: Number(messageId)
+    });
+    if (!message || Number(message.id) !== Number(messageId)) {
+      throw new Error(`Could not reload album message ${task.chatId}/${messageId}.`);
+    }
+    messages.push(message);
+  }
+  if (messages.length !== task.messageIds?.length) {
+    throw new Error(`Album ${task.mediaGroupId} could not be reconstructed completely.`);
+  }
+  return forwardMediaGroup(task.mediaGroupId, config, { messages, fromChatId: Number(task.chatId) }, context);
 }
 
-async function enqueueTask(taskData, executeLogic, errorPrefix) {
-  persistedTasks.push(taskData);
-  await savePersistedTasks();
-
+function scheduleOutboxTask(
+  taskId: string,
+  fallbackConfig: any,
+  executeLogic?: (context: OutboxExecutionContext) => Promise<any>
+): void {
   forwardQueue.add(async (signal) => {
+    const task = await claimOutboxTask(taskId);
+    if (!task) return;
+    const effectiveConfig = task.config ? mergeConfigDefaults(task.config) : fallbackConfig;
+    const context: OutboxExecutionContext = {
+      signal,
+      markSending: () => markOutboxSending(task.id)
+    };
     try {
-      await executeLogic(signal);
-    } finally {
-      persistedTasks = persistedTasks.filter(t => t.id !== taskData.id);
-      await savePersistedTasks();
+      const result = executeLogic
+        ? await executeLogic(context)
+        : await executePersistedOutboxTask(task, effectiveConfig, context);
+      await completeOutboxTask(task.id, result);
+      return result;
+    } catch (error: any) {
+      const finalStatus = await failOutboxTask(task.id, error);
+      if (finalStatus === 'unknown') {
+        addLog(`[CRITICAL] Outbox task ${task.id} has unknown delivery outcome; automatic retry blocked.`);
+      }
+      throw error;
     }
   }).catch(err => {
-    addLog(`[ERROR] ${errorPrefix}: ${err.message}`);
+    addLog(`[ERROR] Outbox task ${taskId}: ${err.message}`);
   });
+}
+
+async function enqueueTask(taskData: any, config: any, executeLogic: (context: OutboxExecutionContext) => Promise<any>): Promise<void> {
+  const inserted = await enqueueOutboxTask({ ...taskData, config: configSnapshot(config) });
+  if (inserted) scheduleOutboxTask(taskData.id, config, executeLogic);
+  else addLog(`[INFO] Duplicate outbox task ${taskData.id} ignored.`);
 }
 
 async function enqueueSingleMessage(message, config) {
@@ -203,8 +257,8 @@ async function enqueueSingleMessage(message, config) {
   };
   await enqueueTask(
     task,
-    (signal) => forwardSingleMessage(message, config, signal),
-    `Fehler beim Weiterleiten von Einzelnachricht ${message.id}`
+    config,
+    (context) => forwardSingleMessage(message, config, context)
   );
 }
 
@@ -219,9 +273,30 @@ async function enqueueMediaGroup(gId, config, g) {
   };
   await enqueueTask(
     task,
-    (signal) => forwardMediaGroup(gId, config, g, signal),
-    `Album-Fehler ${gId}`
+    config,
+    (context) => forwardMediaGroup(gId, config, g, context)
   );
+}
+
+async function resumePersistedTasks(config: any): Promise<void> {
+  await migrateLegacyPersistedTasks(config);
+  const recovery = await recoverInterruptedOutboxTasks();
+  if (recovery.requeued > 0) addLog(`[WARN] Safely requeued ${recovery.requeued} task(s) interrupted before provider send.`);
+  if (recovery.unknown > 0) addLog(`[CRITICAL] ${recovery.unknown} task(s) stopped during provider send and require reconciliation.`);
+
+  const pendingTasks = await listOutboxTasks(['pending'], 1000);
+  const unresolvedTasks = await listOutboxTasks(['failed', 'unknown'], 1000);
+  if (unresolvedTasks.length > 0) {
+    addLog(`[ERROR] ${unresolvedTasks.length} failed/unknown outbox task(s) retained for operator recovery.`);
+  }
+  if (pendingTasks.length > 0) addLog(`[INFO] Resuming ${pendingTasks.length} durable outbox task(s).`);
+  for (const task of pendingTasks) scheduleOutboxTask(task.id, config);
+}
+
+async function retryPersistedTask(taskId: string, config: any): Promise<boolean> {
+  if (!await requeueOutboxTask(taskId)) return false;
+  scheduleOutboxTask(taskId, config);
+  return true;
 }
 
 const mediaGroupBuffer = new Map();
@@ -336,9 +411,14 @@ async function resolveChatId(identifier) {
   } catch (e) { throw new Error(`Kanal @${username} nicht gefunden (${e.message})`, { cause: e }); }
 }
 
-async function tryManualCopyFallback(message) {
+function isForwardRestrictedError(error: any): boolean {
+  const message = String(error?.message || error || '');
+  return /CHAT_FORWARDS_RESTRICTED|MESSAGE_COPY_FORBIDDEN|CONTENT_RESTRICTED/i.test(message);
+}
+
+async function tryManualCopyFallback(message, context: OutboxExecutionContext) {
   const content = message.content;
-  if (!content) return;
+  if (!content) throw new Error(`Message ${message.id} has no content for manual-copy fallback.`);
   
   let formattedText = null;
   if (content._ === 'messageText') {
@@ -349,51 +429,60 @@ async function tryManualCopyFallback(message) {
   
   if (formattedText && formattedText.text?.trim()) {
     addLog(`[Forward Fallback] Kanal geschützt. Versuche Text manuell zu kopieren und zu senden...`);
-    try {
-      await invokeWithRetry(client, {
-        _: 'sendMessage', chat_id: targetChatId,
-        input_message_content: {
-          _: 'inputMessageText',
-          text: formattedText,
-          clear_draft: true
-        }
-      });
-      addLog(`[SUCCESS] Paket ${message.id} manuell als Text kopiert und gesendet.`);
-      await recordForwardedMessages();
-    } catch (fallbackError) {
-      addLog(`[ERROR] Manueller Kopier-Fallback fehlgeschlagen: ${fallbackError.message}`);
-    }
+    if (context.signal.aborted) throw new Error('Task aborted before manual-copy fallback.');
+    const response = await invokeWithRetry(client, {
+      _: 'sendMessage', chat_id: targetChatId,
+      input_message_content: {
+        _: 'inputMessageText',
+        text: formattedText,
+        clear_draft: true
+      }
+    });
+    const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
+    addLog(`[SUCCESS] Paket ${message.id} manuell als Text kopiert und bestätigt.`);
+    await recordForwardedMessages();
+    return { mode: 'manual-copy', ...confirmation };
   }
+  throw new Error(`Message ${message.id} has no text that can be used for manual-copy fallback.`);
 }
 
-async function forwardRawMessage(message, config) {
+async function forwardRawMessage(message, config, context: OutboxExecutionContext) {
   addLog(`[Forward] Route Einzelpaket ${message.id} an Ziel-Knoten...`);
+  if (context.signal.aborted) throw new Error('Task aborted before Telegram send.');
+  await context.markSending();
   try {
-    await invokeWithRetry(client, {
+    const response = await invokeWithRetry(client, {
       _: 'forwardMessages', chat_id: targetChatId, from_chat_id: message.chat_id, message_ids: [message.id],
       options: { _: 'sendMessageOptions' }, as_album: false,
       send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
     });
-    addLog(`[SUCCESS] Paket ${message.id} erfolgreich übertragen.`);
+    const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
+    addLog(`[SUCCESS] Paket ${message.id} erfolgreich übertragen und bestätigt.`);
     await recordForwardedMessages();
-    updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed').catch(() => {});
-  } catch (error) {
+    updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
+      .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
+    return { mode: 'telegram-forward', ...confirmation };
+  } catch (error: any) {
     addLog(`[ERROR] Übertragungsfehler bei Paket ${message.id}: ${error.message}`);
-    updateIncomingMessageStatus(String(message.chat_id), message.id, 'failed').catch(() => {});
-    if (config.forwardOptions?.sendCopy) {
-      await tryManualCopyFallback(message);
+    updateIncomingMessageStatus(String(message.chat_id), message.id, 'failed')
+      .catch(statusError => addLog(`[WARN] Inbox failure status update failed for ${message.id}: ${statusError.message}`));
+    if (config.forwardOptions?.sendCopy && isForwardRestrictedError(error)) {
+      return tryManualCopyFallback(message, context);
     }
+    throw error;
   }
 }
 
 async function checkDuplicateAndSave(message, xmlString, xmlParsing, dupeBlocker) {
+  const signalId = `signal_${message.chat_id}_${message.id}`;
   if (dupeBlocker.enabled) {
     const baseDir = xmlParsing.signalsDir || './signals';
     const cooldown = dupeBlocker.cooldownHours !== undefined ? dupeBlocker.cooldownHours : 24;
-    const dupeResult = await isDuplicateSignal(xmlString, baseDir, cooldown);
+    const dupeResult = await isDuplicateSignal(xmlString, baseDir, cooldown, signalId);
     if (dupeResult.isDupe) {
       addLog(`[DUPE-BLOCKER] Paket ${message.id} blockiert: ${dupeResult.reason}`);
-      updateIncomingMessageStatus(String(message.chat_id), message.id, 'duplicate').catch(() => {});
+      updateIncomingMessageStatus(String(message.chat_id), message.id, 'duplicate')
+        .catch(error => addLog(`[WARN] Inbox duplicate status update failed for ${message.id}: ${error.message}`));
       return true;
     }
   }
@@ -405,28 +494,26 @@ async function checkDuplicateAndSave(message, xmlString, xmlParsing, dupeBlocker
     await fsPromises.writeFile(path.join(channelDir, `signal_${message.id}.xml`), xmlString, 'utf-8');
   }
 
-  // Save the successfully extracted signal into SQLite DB
-  try {
-    const normalizedNew = normalizeSignalXml(xmlString);
-    const sigId = `signal_${message.chat_id}_${message.id}`;
-    await saveSignal(sigId, String(message.chat_id), message.id, xmlString, normalizedNew);
-  } catch (dbErr: any) {
-    addLog(`[WARN] Signal konnte nicht in der DB gespeichert werden: ${dbErr.message}`);
-  }
+  const normalizedNew = normalizeSignalXml(xmlString);
+  await saveSignal(signalId, String(message.chat_id), message.id, xmlString, normalizedNew);
   
   return false;
 }
 
-async function sendXmlMessage(xmlString) {
+async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {
   addLog(`[Forward] Sende extrahiertes XML...`);
-  await invokeWithRetry(client, {
+  if (context.signal.aborted) throw new Error('Task aborted before XML send.');
+  await context.markSending();
+  const response = await invokeWithRetry(client, {
     _: 'sendMessage', chat_id: targetChatId,
     input_message_content: { _: 'inputMessageText', text: { _: 'formattedText', text: xmlString } }
   });
+  const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
   await recordForwardedMessages();
+  return { mode: 'xml-forward', ...confirmation };
 }
 
-async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldForwardToTelegram, signal = null) {
+async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldForwardToTelegram, context: OutboxExecutionContext) {
   addLog(`[XML-Parser] Analysiere Signal-Text für Paket ${message.id}...`);
   const forwardXml = shouldForwardToTelegram && xmlParsing.forwardXmlToTarget;
   try {
@@ -442,130 +529,145 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
         primaryModel: xmlParsing.primaryModel,
         fallbackModel: xmlParsing.fallbackModel
       },
-      signal
+      context.signal
     );
     addLog(`[XML-Parser SUCCESS] Paket ${message.id} erfolgreich analysiert.`);
     
     const isDupe = await checkDuplicateAndSave(message, xmlString, xmlParsing, dupeBlocker);
-    if (isDupe) return true;
+    if (isDupe) return { handled: true, result: { mode: 'duplicate-blocked' } };
     
     if (forwardXml) {
-      await sendXmlMessage(xmlString);
+      const result = await sendXmlMessage(xmlString, context);
+      updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
+        .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
+      return { handled: true, result };
     }
     
-    if (!shouldForwardToTelegram || forwardXml) {
-      updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed').catch(() => {});
-      return true;
+    if (!shouldForwardToTelegram) {
+      updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
+        .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
+      return { handled: true, result: { mode: 'local-signal-only' } };
     }
-  } catch (error) {
+  } catch (error: any) {
     addLog(`[XML-Parser ERROR] Paket ${message.id}: ${error.message}`);
-    updateIncomingMessageStatus(String(message.chat_id), message.id, 'failed').catch(() => {});
-    if (forwardXml) {
-      addLog(`[Forward] Überspringe Paket ${message.id} wegen Parser-Fehler (Raw-Fallback deaktiviert).`);
-      return true;
+    updateIncomingMessageStatus(String(message.chat_id), message.id, 'failed')
+      .catch(statusError => addLog(`[WARN] Inbox failure status update failed for ${message.id}: ${statusError.message}`));
+    if (forwardXml || !shouldForwardToTelegram) {
+      throw error;
     }
   }
-  return false;
+  return { handled: false };
 }
 
-async function forwardSingleMessage(message, config, signal = null) {
-  if (signal?.aborted) throw new Error('Task aborted');
+async function forwardSingleMessage(message, config, context: OutboxExecutionContext) {
+  if (context.signal.aborted) throw new Error('Task aborted');
   const { text } = getMessageTextAndType(message);
   const shouldForwardToTelegram = config.forwardOptions?.forwardToTarget ?? true;
 
   const xmlParsing = config.xmlParsing || {};
   const dupeBlocker = config.dupeBlocker || {};
 
-  let xmlProcessed = false;
+  let xmlResult = { handled: false } as { handled: boolean; result?: any };
   if (xmlParsing.enabled && text?.trim()) {
-    xmlProcessed = await processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldForwardToTelegram, signal);
+    xmlResult = await processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldForwardToTelegram, context);
   }
 
-  if (!xmlProcessed && shouldForwardToTelegram) {
-    await forwardRawMessage(message, config);
+  if (xmlResult.handled) return xmlResult.result;
+  if (shouldForwardToTelegram) {
+    return forwardRawMessage(message, config, context);
   }
+  throw new Error(`Message ${message.id} produced no configured side effect.`);
 }
 
-const BUFFER_PERSIST_FILE = './session_data/media_group_buffer.json';
-
-async function saveMediaGroupBuffer() {
+async function migrateLegacyMediaGroupBuffer(): Promise<void> {
   try {
-    const data = {};
-    for (const [gId, g] of mediaGroupBuffer.entries()) {
-      data[gId] = {
-        messages: g.messages,
-        fromChatId: g.fromChatId
-      };
+    const raw = await fsPromises.readFile(LEGACY_MEDIA_BUFFER_FILE, 'utf-8');
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Legacy media buffer must contain an object.');
     }
-    await fsPromises.writeFile(BUFFER_PERSIST_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (err) {
-    addLog(`[WARN] Fehler beim Speichern des Media-Group-Buffers: ${err.message}`);
+    for (const [groupId, group] of Object.entries<any>(data)) {
+      if (!group || !Array.isArray(group.messages) || group.messages.length === 0) {
+        throw new Error(`Legacy media group ${groupId} is invalid.`);
+      }
+      await saveMediaGroupBuffer(groupId, String(group.fromChatId), group.messages);
+    }
+    await fsPromises.unlink(LEGACY_MEDIA_BUFFER_FILE);
+    addLog(`[INFO] ${Object.keys(data).length} legacy media buffer group(s) migrated to SQLite.`);
+  } catch (err: any) {
+    if (err.code === 'ENOENT') return;
+    throw new Error(`Legacy media-buffer migration failed: ${err.message}`, { cause: err });
   }
 }
 
 async function loadAndResumeMediaGroupBuffer(config) {
-  try {
-    const raw = await fsPromises.readFile(BUFFER_PERSIST_FILE, 'utf-8');
-    const data = JSON.parse(raw);
-    const keys = Object.keys(data);
-    if (keys.length === 0) return;
-    addLog(`[INFO] Wiederherstellung von ${keys.length} unvollständigen Alben aus dem Festplatten-Buffer...`);
-    for (const gId of keys) {
-      const g = data[gId];
-      await enqueueMediaGroup(gId, config, g);
-    }
-    await fsPromises.writeFile(BUFFER_PERSIST_FILE, '{}', 'utf-8');
-  } catch {
-    // Datei existiert nicht oder ist ungültig - ignorieren
+  await migrateLegacyMediaGroupBuffer();
+  const data = await getMediaGroupBuffers();
+  const groupIds = Object.keys(data);
+  if (groupIds.length === 0) return;
+  addLog(`[INFO] Recovering ${groupIds.length} incomplete album(s) from SQLite.`);
+  for (const groupId of groupIds) {
+    await enqueueMediaGroup(groupId, config, data[groupId]);
+    await removeMediaGroupBuffer(groupId);
   }
 }
 
-function handleMediaGroupMessage(message, config) {
+async function handleMediaGroupMessage(message, config) {
   const gId = message.media_group_id;
   if (!mediaGroupBuffer.has(gId)) mediaGroupBuffer.set(gId, { messages: [], fromChatId: message.chat_id, timer: null });
   const g = mediaGroupBuffer.get(gId);
   if (g.timer) clearTimeout(g.timer);
   g.messages.push(message);
-  
-  saveMediaGroupBuffer().catch(() => {});
+  await saveMediaGroupBuffer(String(gId), String(g.fromChatId), g.messages);
 
   g.timer = setTimeout(() => {
-    // Race-Condition-Fix: Gruppe sofort aus der Map entfernen, bevor sie in die Queue geht,
-    // damit verspätete Nachrichten nicht der bereits getriggerten Gruppe hinzugefügt werden
-    mediaGroupBuffer.delete(gId);
-    saveMediaGroupBuffer().catch(() => {});
-    enqueueMediaGroup(gId, config, g).catch(err => addLog(`[ERROR] Album-Fehler: ${err.message}`));
+    void (async () => {
+      mediaGroupBuffer.delete(gId);
+      try {
+        await enqueueMediaGroup(gId, config, g);
+        await removeMediaGroupBuffer(String(gId));
+      } catch (err: any) {
+        addLog(`[ERROR] Album buffer promotion failed for ${gId}: ${err.message}`);
+      }
+    })();
   }, ALBUM_DELAY_MS);
 }
 
 
 // Gruppen-Objekt wird jetzt direkt als Parameter übergeben statt aus der Map gelesen
-async function forwardMediaGroup(gId, config, g, signal = null) {
-  if (signal?.aborted) throw new Error('Task aborted');
-  if (!g) return;
+async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext) {
+  if (context.signal.aborted) throw new Error('Task aborted');
+  if (!g || !Array.isArray(g.messages) || g.messages.length === 0) throw new Error(`Album ${gId} is empty.`);
   g.messages.sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
   const ids = g.messages.map(m => m.id);
   addLog(`[Forward] Route Album-Paketgruppe ${gId} (${ids.length} Teile) an Ziel-Knoten...`);
   try {
-    await invokeWithRetry(client, {
+    await context.markSending();
+    const response = await invokeWithRetry(client, {
       _: 'forwardMessages', chat_id: targetChatId, from_chat_id: g.fromChatId, message_ids: ids,
       options: { _: 'sendMessageOptions' }, as_album: true,
       send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
     });
-    addLog(`[SUCCESS] Album-Paketgruppe ${gId} erfolgreich übertragen.`);
+    const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
+    addLog(`[SUCCESS] Album-Paketgruppe ${gId} erfolgreich übertragen und bestätigt.`);
     await recordForwardedMessages(ids.length);
     for (const msg of g.messages) {
-      updateIncomingMessageStatus(String(msg.chat_id), msg.id, 'processed').catch(() => {});
+      updateIncomingMessageStatus(String(msg.chat_id), msg.id, 'processed')
+        .catch(error => addLog(`[WARN] Inbox status update failed for ${msg.id}: ${error.message}`));
     }
-  } catch (e: any) { 
-    addLog(`[ERROR] Album-Übertragungsfehler ${gId}: ${e.message}`);
+    return { mode: 'telegram-album', ...confirmation };
+  } catch (error: any) {
     for (const msg of g.messages) {
-      updateIncomingMessageStatus(String(msg.chat_id), msg.id, 'failed').catch(() => {});
+      updateIncomingMessageStatus(String(msg.chat_id), msg.id, 'failed')
+        .catch(statusError => addLog(`[WARN] Inbox failure status update failed for ${msg.id}: ${statusError.message}`));
     }
+    throw error;
   }
 }
 
-function handleUpdate(update, config) {
+async function handleUpdate(update, config) {
+  deliveryTracker?.handleUpdate(update);
+
   if (update._ === 'updateConnectionState') {
     const stateName = update.state?._ || 'unknown';
     addLog(`[TDLib Status] Verbindungszustand geändert: ${stateName}`);
@@ -576,31 +678,29 @@ function handleUpdate(update, config) {
     const chatIdStr = String(message.chat_id);
     if (state.resolvedSourceChatIds.has(chatIdStr)) {
       if (message.is_outgoing) return;
-      if (message.date < state.startupTime) {
-        return; // Ignoriere alte Nachrichten aus der Offline-Zeit
-      }
-      
+
       const { text, type } = getMessageTextAndType(message);
       const sender = config.sourceAliases?.[chatIdStr] || chatIdStr;
-      saveIncomingMessage(chatIdStr, message.id, sender, text || '', type, 'received')
-        .catch(err => addLog(`[WARN] Fehler beim Speichern der Eingangsnachricht: ${err.message}`));
+      const inserted = await saveIncomingMessage(chatIdStr, message.id, sender, text || '', type, 'received');
+      if (!inserted) {
+        addLog(`[INFO] Duplicate incoming message ${chatIdStr}/${message.id} ignored.`);
+        return;
+      }
 
       addLog(`[INFO] Neues Datenpaket ${message.id} an Quell-Knoten ${chatIdStr} abgefangen.`);
       if (!shouldForward(message, config.filters, addLog, chatIdStr, config)) {
-        updateIncomingMessageStatus(chatIdStr, message.id, 'filtered').catch(() => {});
+        await updateIncomingMessageStatus(chatIdStr, message.id, 'filtered');
         return;
       }
       if (message.media_group_id && message.media_group_id !== '0') {
         const shouldForwardToTelegram = config.forwardOptions?.forwardToTarget ?? true;
         if (shouldForwardToTelegram) {
-          handleMediaGroupMessage(message, config);
+          await handleMediaGroupMessage(message, config);
         } else {
           addLog(`[INFO] Album-Paketgruppe ${message.media_group_id} übersprungen (Weiterleitung deaktiviert).`);
         }
       } else {
-        enqueueSingleMessage(message, config).catch(err => {
-          addLog(`[ERROR] Unbehandelter Fehler: ${err.message}`);
-        });
+        await enqueueSingleMessage(message, config);
       }
     }
   }
@@ -683,7 +783,11 @@ async function startForwardingNonInteractive(config) {
     // Set startupTime to filter out offline messages
     state.startupTime = Math.floor(Date.now() / 1000);
     
-    client.on('update', update => handleUpdate(update, config));
+    client.on('update', update => {
+      void handleUpdate(update, config).catch(error => {
+        addLog(`[ERROR] Telegram update handling failed: ${error.message}`);
+      });
+    });
     state.isRunning = true; 
     addLog("[SUCCESS] Mainframe-Routing aktiv!");
     
@@ -695,7 +799,6 @@ async function startForwardingNonInteractive(config) {
       addLog(`[WARN] Konnte Lockfile nicht erstellen: ${e.message}`);
     }
 
-    await loadPersistedTasks();
     await resumePersistedTasks(config);
     await loadAndResumeMediaGroupBuffer(config);
 
@@ -767,7 +870,11 @@ async function startForwarding(config) {
     }
     targetChatId = await resolveChatId(config.targetChannel);
     addLog(`[SUCCESS] Ziel-Knoten geladen: ${config.targetChannel} -> ${targetChatId}`);
-    client.on('update', update => handleUpdate(update, config));
+    client.on('update', update => {
+      void handleUpdate(update, config).catch(error => {
+        addLog(`[ERROR] Telegram update handling failed: ${error.message}`);
+      });
+    });
     state.startupTime = Math.floor(Date.now() / 1000);
     state.isRunning = true; addLog("[SUCCESS] Mainframe-Routing active!");
     
@@ -779,7 +886,6 @@ async function startForwarding(config) {
       addLog(`[WARN] Konnte Lockfile nicht erstellen: ${e.message}`);
     }
 
-    await loadPersistedTasks();
     await resumePersistedTasks(config);
     await loadAndResumeMediaGroupBuffer(config);
     await runLiveLogScreen(
@@ -879,6 +985,7 @@ process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
 
 async function run() {
   loadEnv(); let config = readConfigSync();
+  initializeDeliveryTracker();
   await initFileLogger();
   await initDb();
   state.totalForwardedCount = await getTotalForwardedCount();
@@ -925,6 +1032,15 @@ async function run() {
       },
       getMetricsHistory: () => {
         return metricsTracker ? metricsTracker.getHistory() : [];
+      },
+      getOutboxTasks: async (statuses) => {
+        return listOutboxTasks(statuses as any, 1000);
+      },
+      retryOutboxTask: async (taskId) => {
+        return retryPersistedTask(taskId, config);
+      },
+      acknowledgeOutboxTask: async (taskId, reason) => {
+        return acknowledgeOutboxTask(taskId, reason);
       }
     });
   } catch (err: any) {

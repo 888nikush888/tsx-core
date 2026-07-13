@@ -155,6 +155,14 @@ async function runTests() {
     testPass('XML-Declaration-Toleranz: Duplikat trotz XML-Header');
   } catch (e) { testFail('XML-Declaration-Toleranz', e); }
 
+  try {
+    await db.exec(`DELETE FROM signals`);
+    await saveSignal('signal_channel1_1', 'channel1', 1, SAMPLE_SIGNAL_1, normalizeSignalXml(SAMPLE_SIGNAL_1));
+    const retryResult = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24, 'signal_channel1_1');
+    assert.strictEqual(retryResult.isDupe, false, 'A retry must not be blocked by its own previously persisted signal');
+    testPass('Crash-Retry ignoriert den eigenen Signal-Datensatz');
+  } catch (e) { testFail('Crash-Retry Self-Deduplication', e); }
+
   // Test: Cooldown abgelaufen — Signal wird erlaubt
   try {
     await db.exec(`DELETE FROM signals`);
