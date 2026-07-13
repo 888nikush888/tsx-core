@@ -427,15 +427,17 @@ export function startWebServer(
         if (containsSecretConfig(newConfig)) {
           throw new HttpError(400, 'Secrets are environment-only and cannot be saved through the dashboard.');
         }
-        Object.assign(appState.config, newConfig);
-        delete appState.config.apiHash;
-        writeConfigSync(appState.config);
+        const candidateConfig = structuredClone(appState.config);
+        Object.assign(candidateConfig, newConfig);
+        delete candidateConfig.apiHash;
+        writeConfigSync(candidateConfig);
+        Object.assign(appState.config, candidateConfig);
         appState.reloadConfig();
         appState.applyRuntimeConfig(appState.config);
         addLog(`[INFO] request_id=${requestId} Dashboard configuration updated.`);
         sendJson(res, 200, { success: true, message: 'Configuration saved successfully.', queue: appState.getQueueState(), requestId });
       } catch (err: any) {
-        const statusCode = err instanceof HttpError ? err.statusCode : 400;
+        const statusCode = err instanceof HttpError ? err.statusCode : 500;
         sendJson(res, statusCode, { error: err.message, requestId });
       }
       return;
@@ -457,15 +459,17 @@ export function startWebServer(
         if (bundle.env !== undefined || containsSecretConfig(bundle.config)) {
           throw new HttpError(400, 'Imports may contain non-secret configuration only.');
         }
-        Object.assign(appState.config, bundle.config);
-        delete appState.config.apiHash;
-        writeConfigSync(appState.config);
+        const candidateConfig = structuredClone(appState.config);
+        Object.assign(candidateConfig, bundle.config);
+        delete candidateConfig.apiHash;
+        writeConfigSync(candidateConfig);
+        Object.assign(appState.config, candidateConfig);
         appState.reloadConfig();
         appState.applyRuntimeConfig(appState.config);
         addLog(`[INFO] request_id=${requestId} Dashboard configuration imported.`);
         sendJson(res, 200, { success: true, message: 'Configuration imported successfully.', requestId });
       } catch (err: any) {
-        const statusCode = err instanceof HttpError ? err.statusCode : 400;
+        const statusCode = err instanceof HttpError ? err.statusCode : 500;
         sendJson(res, statusCode, { error: err.message, requestId });
       }
       return;
@@ -574,9 +578,10 @@ export function startWebServer(
       }
       try {
         const { DEFAULT_CONFIG } = await import('./config.js');
+        const candidateConfig = structuredClone(DEFAULT_CONFIG);
+        writeConfigSync(candidateConfig);
         for (const key of Object.keys(appState.config)) delete appState.config[key];
-        Object.assign(appState.config, JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
-        writeConfigSync(appState.config);
+        Object.assign(appState.config, candidateConfig);
         appState.reloadConfig();
         appState.applyRuntimeConfig(appState.config);
         addLog('[INFO] Konfiguration über das Web-Dashboard auf Werkseinstellungen zurückgesetzt.');

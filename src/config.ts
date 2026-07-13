@@ -6,6 +6,42 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const configPath = path.join(__dirname, '../config.json');
 
+function serializedConfig(cfg: Config): string {
+  const validated = validateConfig(structuredClone(cfg));
+  return `${JSON.stringify(validated, null, 2)}\n`;
+}
+
+function temporaryConfigPath(destination: string): string {
+  return path.join(
+    path.dirname(destination),
+    `.${path.basename(destination)}.${process.pid}.${Date.now()}.tmp`
+  );
+}
+
+function syncParentDirectorySync(destination: string): void {
+  let directory: number | undefined;
+  try {
+    directory = fs.openSync(path.dirname(destination), 'r');
+    fs.fsyncSync(directory);
+  } catch (error: any) {
+    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error;
+  } finally {
+    if (directory !== undefined) fs.closeSync(directory);
+  }
+}
+
+async function syncParentDirectory(destination: string): Promise<void> {
+  let directory: fsPromises.FileHandle | undefined;
+  try {
+    directory = await fsPromises.open(path.dirname(destination), 'r');
+    await directory.sync();
+  } catch (error: any) {
+    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error;
+  } finally {
+    await directory?.close();
+  }
+}
+
 export interface Config {
   apiId: number;
   sourceChannels: string[];
@@ -111,10 +147,10 @@ export function isValidTargetChannel(channel: unknown): boolean {
  * Validates and sanitizes config properties.
  */
 export function validateConfig(cfg: any): Config {
-  // apiId strikt validieren: muss eine positive, sichere Ganzzahl sein
+  // 0 means not configured yet; any configured apiId must be a safe positive integer.
   if (cfg.apiId !== undefined) {
-    const parsed = parseInt(cfg.apiId, 10);
-    if (isNaN(parsed) || !Number.isSafeInteger(parsed) || parsed <= 0) {
+    const parsed = Number(cfg.apiId);
+    if (!Number.isSafeInteger(parsed) || parsed < 0) {
       console.warn(`[WARN] Ungültige apiId "${cfg.apiId}" in config.json. Setze auf 0 zurück.`);
       cfg.apiId = 0;
     } else {
@@ -256,61 +292,79 @@ export function mergeConfigDefaults(cfg: any): Config {
 /**
  * Reads config synchronously.
  */
-export function readConfigSync(): Config {
-  if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), 'utf-8');
-    return DEFAULT_CONFIG;
-  }
+export function readConfigSync(destination = configPath): Config {
   try {
-    const raw = fs.readFileSync(configPath, 'utf-8');
+    const raw = fs.readFileSync(destination, 'utf-8');
     const parsed = JSON.parse(raw);
     return mergeConfigDefaults(parsed);
-  } catch {
-    console.error("Fehler beim Lesen der config.json. Erstelle neue Konfiguration...");
-    return mergeConfigDefaults({});
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') {
+      writeConfigSync(DEFAULT_CONFIG, destination);
+      return mergeConfigDefaults({});
+    }
+    throw new Error(`Failed to read configuration from ${destination}: ${error.message}`, { cause: error });
   }
 }
 
 /**
  * Reads config asynchronously.
  */
-export async function readConfig(): Promise<Config> {
+export async function readConfig(destination = configPath): Promise<Config> {
   try {
-    await fsPromises.access(configPath);
-  } catch {
-    await fsPromises.writeFile(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), 'utf-8');
-    return DEFAULT_CONFIG;
-  }
-  try {
-    const raw = await fsPromises.readFile(configPath, 'utf-8');
+    const raw = await fsPromises.readFile(destination, 'utf-8');
     const parsed = JSON.parse(raw);
     return mergeConfigDefaults(parsed);
-  } catch {
-    console.error("Fehler beim Lesen der config.json. Erstelle neue Konfiguration...");
-    return mergeConfigDefaults({});
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') {
+      await writeConfig(DEFAULT_CONFIG, destination);
+      return mergeConfigDefaults({});
+    }
+    throw new Error(`Failed to read configuration from ${destination}: ${error.message}`, { cause: error });
   }
 }
 
 /**
  * Writes config asynchronously.
  */
-export async function writeConfig(cfg: Config): Promise<void> {
+export async function writeConfig(cfg: Config, destination = configPath): Promise<void> {
+  const temporary = temporaryConfigPath(destination);
+  let handle: fsPromises.FileHandle | undefined;
   try {
-    const validated = validateConfig(cfg);
-    await fsPromises.writeFile(configPath, JSON.stringify(validated, null, 2), 'utf-8');
-  } catch (error: any) {
-    console.error("Fehler beim Speichern der config.json:", error.message);
+    handle = await fsPromises.open(temporary, 'wx', 0o600);
+    await handle.writeFile(serializedConfig(cfg), 'utf-8');
+    await handle.sync();
+    await handle.close();
+    handle = undefined;
+    await fsPromises.rename(temporary, destination);
+    await syncParentDirectory(destination);
+  } catch (error) {
+    await handle?.close().catch(() => undefined);
+    await fsPromises.unlink(temporary).catch(() => undefined);
+    throw error;
   }
 }
 
 /**
  * Writes config synchronously.
  */
-export function writeConfigSync(cfg: Config): void {
+export function writeConfigSync(cfg: Config, destination = configPath): void {
+  const temporary = temporaryConfigPath(destination);
+  let descriptor: number | undefined;
   try {
-    const validated = validateConfig(cfg);
-    fs.writeFileSync(configPath, JSON.stringify(validated, null, 2), 'utf-8');
-  } catch (error: any) {
-    console.error("Fehler beim Speichern der config.json:", error.message);
+    descriptor = fs.openSync(temporary, 'wx', 0o600);
+    fs.writeFileSync(descriptor, serializedConfig(cfg), 'utf-8');
+    fs.fsyncSync(descriptor);
+    fs.closeSync(descriptor);
+    descriptor = undefined;
+    fs.renameSync(temporary, destination);
+    syncParentDirectorySync(destination);
+  } catch (error) {
+    if (descriptor !== undefined) fs.closeSync(descriptor);
+    try {
+      fs.unlinkSync(temporary);
+    } catch (cleanupError: any) {
+      if (cleanupError?.code !== 'ENOENT') console.error(`Failed to remove temporary config ${temporary}: ${cleanupError.message}`);
+    }
+    throw error;
   }
 }
