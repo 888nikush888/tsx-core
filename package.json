@@ -8,7 +8,7 @@
     "build": "tsc && npm run build --prefix frontend",
     "start": "node dist/forwarder.js",
     "dev": "tsx src/forwarder.ts",
-    "test:js": "tsx tests/test_modules.js && tsx tests/test_queue.js && tsx tests/test_filters.js && tsx tests/test_config.js && tsx tests/test_dupe_blocker.js && tsx tests/test_outbox.js && tsx tests/test_delivery_tracker.js && tsx tests/test_crash_guard.js && tsx tests/test_backup.js && tsx tests/test_metrics.js && tsx tests/test_web_server.js && tsx tests/test_integration.js && tsx tests/test_signal_parser.js",
+    "test:js": "tsx tests/test_modules.js && tsx tests/test_queue.js && tsx tests/test_filters.js && tsx tests/test_config.js && tsx tests/test_tdlib_retry.js && tsx tests/test_dupe_blocker.js && tsx tests/test_outbox.js && tsx tests/test_delivery_tracker.js && tsx tests/test_crash_guard.js && tsx tests/test_backup.js && tsx tests/test_metrics.js && tsx tests/test_web_server.js && tsx tests/test_integration.js && tsx tests/test_signal_parser.js",
     "test:ai-eval": "tsx tests/evaluate_signal_golden_set.js",
     "backup:create": "tsx src/backup_cli.ts create",
     "backup:verify": "tsx src/backup_cli.ts verify",

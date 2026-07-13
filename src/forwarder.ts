@@ -43,6 +43,7 @@ import { MetricsTracker } from './metrics_tracker.js';
 import { TelegramDeliveryTracker } from './delivery_tracker.js';
 import { checkCrashLoopFiles } from './crash_guard.js';
 import { BackupScheduler } from './backup.js';
+import { invokeWithFloodWaitRetry } from './tdlib_retry.js';
 import {
   C_RESET, C_GREEN, C_DARK_GREEN, C_RED,
   clearConsole, pressAnyKey, addLog, clearLogHistory,
@@ -157,7 +158,7 @@ async function executePersistedOutboxTask(task: OutboxTask, config: any, context
       _: 'getMessage',
       chat_id: Number(task.chatId),
       message_id: Number(task.messageId)
-    });
+    }, context.signal);
     if (!message || Number(message.id) !== Number(task.messageId)) {
       throw new Error(`Could not reload source message ${task.chatId}/${task.messageId}.`);
     }
@@ -170,7 +171,7 @@ async function executePersistedOutboxTask(task: OutboxTask, config: any, context
       _: 'getMessage',
       chat_id: Number(task.chatId),
       message_id: Number(messageId)
-    });
+    }, context.signal);
     if (!message || Number(message.id) !== Number(messageId)) {
       throw new Error(`Could not reload album message ${task.chatId}/${messageId}.`);
     }
@@ -299,22 +300,13 @@ async function recordForwardedMessages(amount = 1) {
   }
 }
 
-async function invokeWithRetry(tdClient, query, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await tdClient.invoke(query);
-    } catch (e) {
-      if (e.message && e.message.includes('FLOOD_WAIT_')) {
-        const match = e.message.match(/FLOOD_WAIT_(\d+)/);
-        const waitSeconds = match ? parseInt(match[1], 10) : 2;
-        addLog(`[WARN] Telegram Rate Limit erreicht. Warte ${waitSeconds}s (Versuch ${i + 1}/${maxRetries})...`);
-        await new Promise(r => setTimeout(r, waitSeconds * 1000));
-      } else {
-        throw e;
-      }
-    }
-  }
-  throw new Error(`Aktion nach ${maxRetries} Rate-Limit-Retries fehlgeschlagen.`);
+async function invokeWithRetry(tdClient, query, signal: AbortSignal | null = null, maxAttempts = 3) {
+  return invokeWithFloodWaitRetry(tdClient, query, {
+    signal,
+    maxAttempts,
+    maxFloodWaitSeconds: 60,
+    logger: addLog
+  });
 }
 
 async function parseSignalNative(
@@ -412,7 +404,7 @@ async function tryManualCopyFallback(message, context: OutboxExecutionContext) {
         text: formattedText,
         clear_draft: true
       }
-    });
+    }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
     addLog(`[SUCCESS] Paket ${message.id} manuell als Text kopiert und bestätigt.`);
     await recordForwardedMessages();
@@ -430,7 +422,7 @@ async function forwardRawMessage(message, config, context: OutboxExecutionContex
       _: 'forwardMessages', chat_id: targetChatId, from_chat_id: message.chat_id, message_ids: [message.id],
       options: { _: 'sendMessageOptions' }, as_album: false,
       send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
-    });
+    }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
     addLog(`[SUCCESS] Paket ${message.id} erfolgreich übertragen und bestätigt.`);
     await recordForwardedMessages();
@@ -488,7 +480,7 @@ async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {
   const response = await invokeWithRetry(client, {
     _: 'sendMessage', chat_id: targetChatId,
     input_message_content: { _: 'inputMessageText', text: { _: 'formattedText', text: xmlString } }
-  });
+  }, context.signal);
   const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
   await recordForwardedMessages();
   return { mode: 'xml-forward', ...confirmation };
@@ -635,7 +627,7 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
       _: 'forwardMessages', chat_id: targetChatId, from_chat_id: g.fromChatId, message_ids: ids,
       options: { _: 'sendMessageOptions' }, as_album: true,
       send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
-    });
+    }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
     addLog(`[SUCCESS] Album-Paketgruppe ${gId} erfolgreich übertragen und bestätigt.`);
     await recordForwardedMessages(ids.length);
