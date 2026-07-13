@@ -1,11 +1,17 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
+import { mkdir } from 'fs/promises';
 
 let db: Database | null = null;
 
-export async function initDb(): Promise<void> {
-  const dbPath = path.join(process.cwd(), 'session_data', 'forwarder.db');
+export async function initDb(
+  dbPath = process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db')
+): Promise<void> {
+  if (db) {
+    throw new Error('Database is already initialized. Call closeDb() before reinitializing.');
+  }
+  await mkdir(path.dirname(dbPath), { recursive: true });
   db = await open({
     filename: dbPath,
     driver: sqlite3.Database
@@ -72,6 +78,12 @@ export async function initDb(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_incoming_chat_msg ON incoming_messages(chat_id, message_id);
     CREATE INDEX IF NOT EXISTS idx_incoming_created ON incoming_messages(created_at);
   `);
+}
+
+export async function closeDb(): Promise<void> {
+  if (!db) return;
+  await db.close();
+  db = null;
 }
 
 // Helper to make sure db is initialized

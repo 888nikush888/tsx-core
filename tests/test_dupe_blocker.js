@@ -1,9 +1,11 @@
 import assert from 'assert';
 import { normalizeSignalXml, isDuplicateSignal } from '../src/dupe_blocker.js';
-import { initDb, saveSignal } from '../src/db.js';
+import { closeDb, initDb, saveSignal } from '../src/db.js';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
+import os from 'os';
+import { mkdtemp, rm } from 'fs/promises';
 
 const SAMPLE_SIGNAL_1 = `<signal>
     <action>SHORT</action>
@@ -66,11 +68,11 @@ async function runTests() {
     failed++;
   }
 
-  // 1. Initialize DB first
-  await initDb();
-  
-  // Clear any existing signals in DB before starting tests
-  const dbPath = path.join(process.cwd(), 'session_data', 'forwarder.db');
+  // Always use an isolated database. This test must never mutate runtime data.
+  const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-dupe-test-'));
+  const dbPath = path.join(testDir, 'forwarder.db');
+  await initDb(dbPath);
+
   const db = await open({ filename: dbPath, driver: sqlite3.Database });
   await db.exec(`DELETE FROM signals`);
 
@@ -181,6 +183,8 @@ async function runTests() {
 
   // Cleanup DB connections
   await db.close();
+  await closeDb();
+  await rm(testDir, { recursive: true, force: true });
 
   // Summary
   console.log(`\n${'='.repeat(50)}`);
