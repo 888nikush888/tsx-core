@@ -20,6 +20,8 @@
     "lint:report": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"*.js\"",
     "typecheck": "tsc --noEmit",
     "quality:duplicates": "jscpd src --min-lines 5 --min-tokens 50 --threshold 5 --reporters console,json --output reports/jscpd",
+    "quality:architecture": "node scripts/check_architecture.js",
+    "quality:risk-acceptances": "node scripts/check_risk_acceptances.js",
     "quality:licenses": "node scripts/check_licenses.js",
     "quality:sbom": "node scripts/generate_sbom.js"
   },

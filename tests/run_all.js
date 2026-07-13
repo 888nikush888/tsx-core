@@ -19,6 +19,8 @@ const allTests = [
   'test_integration.js',
   'test_signal_parser.js',
   'test_supply_chain.js',
+  'test_architecture.js',
+  'test_risk_acceptances.js',
 ];
 
 const requestedTests = process.argv.slice(2);
