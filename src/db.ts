@@ -36,6 +36,18 @@ export interface SignalProvenance {
   parserVersion: string;
 }
 
+export interface OperationalRetentionResult {
+  completedOutbox: number;
+  incomingMessages: number;
+  signals: number;
+  aiUsageDays: number;
+}
+
+export interface DatabaseStorageStats {
+  allocatedBytes: number;
+  reusableBytes: number;
+}
+
 async function ensureColumn(database: Database, table: string, column: string, definition: string): Promise<void> {
   const columns = await database.all<Array<{ name: string }>>(`PRAGMA table_info(${table})`);
   if (!columns.some(existing => existing.name === column)) {
@@ -350,6 +362,96 @@ export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, numb
     if (row.status in counts) counts[row.status] = Number(row.count || 0);
   }
   return counts;
+}
+
+export async function getDatabaseStorageStats(): Promise<DatabaseStorageStats> {
+  const database = getDb();
+  const pageCount = await database.get<{ page_count: number }>('PRAGMA page_count');
+  const pageSize = await database.get<{ page_size: number }>('PRAGMA page_size');
+  const freeList = await database.get<{ freelist_count: number }>('PRAGMA freelist_count');
+  const size = Number(pageSize?.page_size || 0);
+  return {
+    allocatedBytes: Number(pageCount?.page_count || 0) * size,
+    reusableBytes: Number(freeList?.freelist_count || 0) * size
+  };
+}
+
+function retentionResult(changes: Array<number | undefined>): OperationalRetentionResult {
+  return {
+    incomingMessages: changes[0] || 0,
+    signals: changes[1] || 0,
+    completedOutbox: changes[2] || 0,
+    aiUsageDays: changes[3] || 0
+  };
+}
+
+export async function pruneOperationalData(
+  retentionDays: number,
+  batchSize: number,
+  now = Date.now()
+): Promise<OperationalRetentionResult> {
+  if (!Number.isSafeInteger(retentionDays) || retentionDays < 1 || retentionDays > 3_650) {
+    throw new Error('Operational data retention must be between 1 and 3650 days.');
+  }
+  if (!Number.isSafeInteger(batchSize) || batchSize < 100 || batchSize > 10_000) {
+    throw new Error('Operational data retention batch size must be between 100 and 10000.');
+  }
+  if (!Number.isSafeInteger(now) || now <= 0) throw new Error('Retention timestamp is invalid.');
+
+  const database = getDb();
+  const cutoff = now - retentionDays * 24 * 60 * 60 * 1000;
+  const cutoffDay = new Date(cutoff).toISOString().slice(0, 10);
+  await database.exec('BEGIN IMMEDIATE');
+  try {
+    const incoming = await database.run(
+      `DELETE FROM incoming_messages WHERE id IN (
+         SELECT id FROM incoming_messages
+         WHERE created_at < ? AND status IN ('processed', 'filtered')
+         ORDER BY created_at ASC LIMIT ?
+       )`,
+      [cutoff, batchSize]
+    );
+    const signals = await database.run(
+      `DELETE FROM signals WHERE rowid IN (
+         SELECT signal.rowid FROM signals AS signal
+         WHERE signal.created_at < ?
+           AND NOT EXISTS (
+             SELECT 1 FROM pending_tasks AS task
+             WHERE task.chat_id = signal.chat_id
+               AND task.message_id = signal.message_id
+               AND task.status IN ('pending', 'preparing', 'sending', 'failed', 'unknown')
+           )
+         ORDER BY signal.created_at ASC LIMIT ?
+       )`,
+      [cutoff, batchSize]
+    );
+    const completed = await database.run(
+      `DELETE FROM pending_tasks WHERE id IN (
+         SELECT id FROM pending_tasks
+         WHERE status = 'completed' AND completed_at IS NOT NULL AND completed_at < ?
+         ORDER BY completed_at ASC LIMIT ?
+       )`,
+      [cutoff, batchSize]
+    );
+    const aiUsage = await database.run(
+      `DELETE FROM ai_usage_daily WHERE usage_day IN (
+         SELECT usage_day FROM ai_usage_daily
+         WHERE usage_day < ? ORDER BY usage_day ASC LIMIT ?
+       )`,
+      [cutoffDay, batchSize]
+    );
+    await database.exec('COMMIT');
+    await database.exec('PRAGMA optimize');
+    return retentionResult([
+      incoming.changes,
+      signals.changes,
+      completed.changes,
+      aiUsage.changes
+    ]);
+  } catch (error) {
+    await database.exec('ROLLBACK').catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function isDatabaseHealthy(): Promise<boolean> {

@@ -13,6 +13,7 @@ flowchart LR
   Q --> TG
   DB[("SQLite State")] --- O
   B["Backup Scheduler"] --> DB
+  R["Bounded Retention"] --> DB
   W["Loopback Dashboard"] --> F
   M["Loopback Health/Metrics"] --> F
   RP["TLS Reverse Proxy"] --> W
@@ -28,7 +29,7 @@ Trust Boundaries liegen an Telegram/TDLib, der externen KI-API, allen HTTP-Anfra
 | Entry Points | `forwarder.ts`, `backup_cli.ts`                                                                                               | Lifecycle und Composition Root                  |
 | Core         | `queue.ts`, `filters.ts`, `signal_schema.ts`, `tdlib_retry.ts`, `delivery_tracker.ts`, `crash_guard.ts`, `metrics_tracker.ts` | deterministische Regeln und Zustandsmaschinen   |
 | State/Config | `db.ts`, `config.ts`, `env.ts`                                                                                                | persistente Verträge und Konfigurationsgrenzen  |
-| Adapter      | `signal_parser.ts`, `web_server.ts`, `metrics.ts`, `ui.ts`, `backup.ts`                                                       | externe Provider, HTTP, Operator und Filesystem |
+| Adapter      | `signal_parser.ts`, `web_server.ts`, `metrics.ts`, `ui.ts`, `backup.ts`, `retention.ts`                                       | externe Provider, HTTP, Operator und Filesystem |
 
 Erlaubte Richtung: `Entry Point → Adapter → Core/State`. Core importiert keine Adapter oder Entry Points. Kein Modul außerhalb des Composition Root importiert einen Entry Point. `db.ts` importiert kein internes Modul. Zirkuläre Imports sind verboten.
 
@@ -49,7 +50,7 @@ Telegram update
   -> Prozessabbruch in sending: unknown (manuelle Reconciliation, kein Auto-Retry)
 ```
 
-Konfiguration wird atomar via temporärer Datei, `fsync` und Rename geschrieben. Secrets kommen nur aus der Prozessumgebung. Backups enthalten SQLite plus bereinigte Konfiguration, werden gehasht und vor Veröffentlichung geprüft.
+Konfiguration wird atomar via temporärer Datei, `fsync` und Rename geschrieben. Secrets kommen nur aus der Prozessumgebung. Backups enthalten SQLite plus bereinigte Konfiguration, werden gehasht und vor Veröffentlichung geprüft. Die Retention bereinigt nur finale Daten in begrenzten Transaktionen; ungeklärte Zustellzustände sind von automatischer Löschung ausgeschlossen.
 
 ## Versionsregeln
 

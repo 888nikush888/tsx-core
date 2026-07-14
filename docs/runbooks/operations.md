@@ -16,8 +16,18 @@
 | Outbox `unknown > 0`                          | Kritisch  | Routing bei wachsendem Umfang stoppen; Zielkanal reconciliieren        |
 | Outbox `failed > 0` oder Pending-Alter >5 min | Hoch      | Fehlercode/Retrybarkeit prüfen                                         |
 | Backup-Alter >15 min oder `backup_healthy=0`  | Hoch      | Off-host-Schutz prüfen; Release stoppen                                |
+| `retention_healthy=0` oder Retention-Backlog  | Hoch      | Routing nicht freigeben; DB-Wachstum und Policy prüfen                  |
+| Freier Datenträger unter `DATA_MIN_FREE_BYTES`| Kritisch  | Routing stoppen; sicheren Speicher erweitern, nichts ungeprüft löschen  |
 | Crash-Block-Datei vorhanden                   | Kritisch  | keine Lock-Löschung vor Ursachenklärung                                |
 | AI-Budget erschöpft / Schemafehleranstieg     | Hoch      | automatische AI-Verarbeitung fail closed lassen; Versionen vergleichen |
+
+## Retention und Speicherdruck
+
+- `failed`, `unknown` und aktive Outbox-Zustände niemals zur Speichergewinnung löschen.
+- `tg_forwarder_database_allocated_bytes`, `tg_forwarder_database_reusable_bytes`, `tg_forwarder_disk_available_bytes` und `tg_forwarder_retention_backlog` gemeinsam bewerten.
+- Bei Backlog zunächst Ursache und Nachrichtenrate bestimmen; Batchgröße nur innerhalb der validierten Grenzen und nach Lasttest erhöhen.
+- Bei vollem Datenträger Routing sauber stoppen. Keine DB-, WAL- oder SHM-Datei manuell entfernen.
+- Änderungen der Retention müssen Data Owner, Backup-Aufbewahrung, Rechtsgrundlage und Restore-Tests gemeinsam berücksichtigen.
 
 ## Timeout oder Provider-Ausfall
 

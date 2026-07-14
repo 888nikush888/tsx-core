@@ -23,6 +23,7 @@ import {
   failOutboxTask,
   getMediaGroupBuffers,
   getAiUsage,
+  getDatabaseStorageStats,
   getLastForwardedAt,
   getOutboxStatusCounts,
   getTotalForwardedCount,
@@ -40,13 +41,14 @@ import {
   updateIncomingMessageStatus
 } from './db.js';
 import type { OutboxTask, SignalProvenance } from './db.js';
-import { startMetricsServer, stopMetricsServer } from './metrics.js';
+import { startMetricsServer, stopMetricsServer, type OperationalMetrics } from './metrics.js';
 import { startWebServer, stopWebServer } from './web_server.js';
 import { parseSignalToXml, type AiLimits, type ParsedSignal } from './signal_parser.js';
 import { MetricsTracker } from './metrics_tracker.js';
 import { TelegramDeliveryTracker } from './delivery_tracker.js';
 import { checkCrashLoopFiles } from './crash_guard.js';
 import { BackupScheduler } from './backup.js';
+import { OperationalDataRetention, retentionPolicyFromEnvironment } from './retention.js';
 import { invokeWithFloodWaitRetry } from './tdlib_retry.js';
 import {
   C_RESET, C_GREEN, C_DARK_GREEN, C_RED,
@@ -304,6 +306,7 @@ const ALBUM_DELAY_MS = 800;
 let client = null, targetChatId = null;
 let metricsTracker: MetricsTracker | null = null;
 let backupScheduler: BackupScheduler | null = null;
+let retentionScheduler: OperationalDataRetention | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
 const state = {
   isRunning: false,
@@ -325,6 +328,98 @@ async function recordForwardedMessages(amount = 1) {
   } catch (error: any) {
     addLog(`[WARN] Weiterleitungszähler konnte nicht gespeichert werden: ${error.message}`);
   }
+}
+
+async function availableDiskBytes(databasePath: string): Promise<number> {
+  const stats = await fsPromises.statfs(path.dirname(databasePath));
+  const available = Number(stats.bavail) * Number(stats.bsize);
+  if (!Number.isSafeInteger(available) || available < 0) {
+    throw new Error('Operational filesystem reported an invalid available byte count.');
+  }
+  return available;
+}
+
+function backupMetricSnapshot(): Pick<OperationalMetrics, 'backupHealthy' | 'backupLastSuccessAt'> {
+  const backup = backupScheduler?.getStatus();
+  if (!backup) return { backupHealthy: false, backupLastSuccessAt: null };
+  return {
+    backupHealthy: backup.healthy,
+    backupLastSuccessAt: backup.lastSuccessAt
+  };
+}
+
+function retentionMetricSnapshot(): Pick<OperationalMetrics,
+  | 'retentionHealthy'
+  | 'retentionLastSuccessAt'
+  | 'retentionDeletedTotal'
+  | 'retentionBacklog'
+  | 'databaseAllocatedBytes'
+  | 'databaseReusableBytes'
+> {
+  const retention = retentionScheduler?.getStatus();
+  if (!retention) {
+    return {
+      retentionHealthy: false,
+      retentionLastSuccessAt: null,
+      retentionDeletedTotal: 0,
+      retentionBacklog: false,
+      databaseAllocatedBytes: 0,
+      databaseReusableBytes: 0
+    };
+  }
+  return {
+    retentionHealthy: retention.healthy,
+    retentionLastSuccessAt: retention.lastSuccessAt,
+    retentionDeletedTotal: retention.deletedTotal,
+    retentionBacklog: retention.backlog,
+    databaseAllocatedBytes: retention.allocatedBytes,
+    databaseReusableBytes: retention.reusableBytes
+  };
+}
+
+async function collectOperationalMetrics(
+  databasePath: string,
+  minimumFreeBytes: number
+): Promise<OperationalMetrics> {
+  const databaseHealthy = await isDatabaseHealthy();
+  const diskAvailableBytes = await availableDiskBytes(databasePath);
+  const diskCapacityHealthy = diskAvailableBytes >= minimumFreeBytes;
+  const emptyOutbox = { pending: 0, preparing: 0, sending: 0, completed: 0, failed: 0, unknown: 0 };
+  const base = {
+    databaseHealthy,
+    isRunning: state.isRunning,
+    connectionState: state.connectionState,
+    queuePaused: forwardQueue.paused,
+    lastForwardedAt: state.lastSuccessfulForwardAt,
+    ...backupMetricSnapshot(),
+    ...retentionMetricSnapshot(),
+    diskAvailableBytes,
+    diskCapacityHealthy
+  };
+  if (!databaseHealthy) {
+    return {
+      ...base,
+      outbox: emptyOutbox,
+      aiRequestsToday: 0,
+      aiUsedTokensToday: 0,
+      aiReservedTokensToday: 0
+    };
+  }
+
+  const [outbox, aiUsage, storage] = await Promise.all([
+    getOutboxStatusCounts(),
+    getAiUsage(new Date().toISOString().slice(0, 10)),
+    getDatabaseStorageStats()
+  ]);
+  return {
+    ...base,
+    outbox,
+    aiRequestsToday: aiUsage.requestCount,
+    aiUsedTokensToday: aiUsage.usedTokens,
+    aiReservedTokensToday: aiUsage.reservedTokens,
+    databaseAllocatedBytes: storage.allocatedBytes,
+    databaseReusableBytes: storage.reusableBytes
+  };
 }
 
 async function invokeWithRetry(tdClient, query, signal: AbortSignal | null = null, maxAttempts = 3) {
@@ -995,6 +1090,13 @@ function shutdown(exitCode = 0): Promise<void> {
         console.warn(`[WARN] Laufendes Backup konnte nicht sauber beendet werden: ${error.message}`);
       }
     }
+    if (retentionScheduler) {
+      try {
+        await retentionScheduler.stop();
+      } catch (error: any) {
+        console.warn(`[WARN] Laufende Daten-Retention konnte nicht sauber beendet werden: ${error.message}`);
+      }
+    }
     if (metricsTracker) {
       try {
         metricsTracker.stop();
@@ -1066,6 +1168,10 @@ async function run() {
   state.lastSuccessfulForwardAt = await getLastForwardedAt();
   await checkCrashLoop();
 
+  const retentionPolicy = retentionPolicyFromEnvironment();
+  retentionScheduler = new OperationalDataRetention(retentionPolicy, addLog);
+  await retentionScheduler.start();
+
   const backupIntervalValue = Number(process.env.BACKUP_INTERVAL_MS || 15 * 60_000);
   const backupIntervalMs = Number.isSafeInteger(backupIntervalValue) && backupIntervalValue >= 60_000 && backupIntervalValue <= 15 * 60_000
     ? backupIntervalValue
@@ -1088,44 +1194,10 @@ async function run() {
       queued: forwardQueue.queue.length,
       maxConcurrency: forwardQueue.maxConcurrency
     }),
-    getOperationalMetricsCallback: async () => {
-      const databaseHealthy = await isDatabaseHealthy();
-      const emptyOutbox = { pending: 0, preparing: 0, sending: 0, completed: 0, failed: 0, unknown: 0 };
-      if (!databaseHealthy) {
-        const backup = backupScheduler?.getStatus();
-        return {
-          databaseHealthy,
-          isRunning: state.isRunning,
-          connectionState: state.connectionState,
-          queuePaused: forwardQueue.paused,
-          outbox: emptyOutbox,
-          aiRequestsToday: 0,
-          aiUsedTokensToday: 0,
-          aiReservedTokensToday: 0,
-          lastForwardedAt: state.lastSuccessfulForwardAt,
-          backupHealthy: backup?.healthy || false,
-          backupLastSuccessAt: backup?.lastSuccessAt || null
-        };
-      }
-      const [outbox, aiUsage] = await Promise.all([
-        getOutboxStatusCounts(),
-        getAiUsage(new Date().toISOString().slice(0, 10))
-      ]);
-      const backup = backupScheduler?.getStatus();
-      return {
-        databaseHealthy,
-        isRunning: state.isRunning,
-        connectionState: state.connectionState,
-        queuePaused: forwardQueue.paused,
-        outbox,
-        aiRequestsToday: aiUsage.requestCount,
-        aiUsedTokensToday: aiUsage.usedTokens,
-        aiReservedTokensToday: aiUsage.reservedTokens,
-        lastForwardedAt: state.lastSuccessfulForwardAt,
-        backupHealthy: backup?.healthy || false,
-        backupLastSuccessAt: backup?.lastSuccessAt || null
-      };
-    }
+    getOperationalMetricsCallback: () => collectOperationalMetrics(
+      databasePath,
+      retentionPolicy.minFreeBytes
+    )
   });
 
   // Initialize and start Metrics Tracker

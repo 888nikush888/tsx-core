@@ -117,6 +117,12 @@ Restore verweigert die Ausführung, solange `.process_active` oder `.routing_act
 
 Die Backup-Artefakte enthalten Nachrichten-, Signal- und damit potenziell personenbezogene Daten. `BACKUP_DIR` muss auf ein zugriffsbeschränktes, verschlüsseltes und vom Primärhost unabhängiges Backup-Ziel repliziert werden; ein Verzeichnis auf derselben Platte erfüllt Disaster Recovery nicht. Der automatisierte Restore-Test belegt das Verfahren gegen isolierte Testdaten, ersetzt aber nicht den mindestens monatlichen Staging-Restore mit dokumentierter Dauer und Datenabgleich.
 
+### Daten-Retention und Kapazität
+
+Operative Daten werden standardmäßig 90 Tage aufbewahrt. Die Retention löscht ausschließlich alte `completed`-Outbox-Einträge, final `processed`/`filtered` Inbox-Nachrichten, nicht mehr von ungeklärten Tasks referenzierte Signale und alte AI-Budgettage. `pending`, `preparing`, `sending`, `failed` und `unknown` werden nie automatisch entfernt. Die Arbeit läuft in begrenzten Batches; ein nicht abarbeitbarer Rückstand oder weniger als `DATA_MIN_FREE_BYTES` freier Speicher setzt Readiness auf Fehler.
+
+Konfiguration: `DATA_RETENTION_DAYS`, `DATA_RETENTION_INTERVAL_MS`, `DATA_RETENTION_BATCH_SIZE` und `DATA_MIN_FREE_BYTES`. Prometheus exportiert Retention-Zustand, gelöschte Zeilen, SQLite-Belegung, wiederverwendbare Seiten und freien Speicher. Eine Änderung der Aufbewahrungsfrist benötigt Data-Owner-Freigabe und muss mit der Off-host-Backup-Retention konsistent sein.
+
 ### Automatische KI-Signalverarbeitung
 
 Die Signalverarbeitung arbeitet ohne Human-in-the-loop. Ein Ergebnis darf jedoch nur automatisch weitergeleitet werden, wenn es exakt dem für die Quelle festgelegten Schema entspricht und alle Zahlen-, Wertebereichs-, Reihenfolge- und LONG/SHORT-Geometrieprüfungen besteht. Markdown, XML-Deklarationen, unbekannte Tags, nicht sequenzielle Targets, abgeschnittene Modellantworten und Text außerhalb des XML-Dokuments werden fail-closed abgewiesen; unbekannte oder nicht lesbare Template-Dateien fallen nicht still auf den Standardprompt zurück.

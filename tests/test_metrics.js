@@ -17,7 +17,15 @@ async function runTests() {
     aiReservedTokensToday: 40,
     lastForwardedAt: 1_700_000_000_000,
     backupHealthy: true,
-    backupLastSuccessAt: 1_700_000_100_000
+    backupLastSuccessAt: 1_700_000_100_000,
+    retentionHealthy: true,
+    retentionLastSuccessAt: 1_700_000_200_000,
+    retentionDeletedTotal: 12,
+    retentionBacklog: false,
+    databaseAllocatedBytes: 8192,
+    databaseReusableBytes: 4096,
+    diskAvailableBytes: 2_000_000_000,
+    diskCapacityHealthy: true
   };
   const server = startMetricsServer(0, {
     totalForwardedCountCallback: () => 7,
@@ -52,6 +60,14 @@ async function runTests() {
   assert.match(metrics, /tg_forwarder_last_confirmed_delivery_timestamp_seconds 1700000000/);
   assert.match(metrics, /tg_forwarder_backup_healthy 1/);
   assert.match(metrics, /tg_forwarder_backup_last_success_timestamp_seconds 1700000100/);
+  assert.match(metrics, /tg_forwarder_retention_healthy 1/);
+  assert.match(metrics, /tg_forwarder_retention_deleted_rows_total 12/);
+  assert.match(metrics, /tg_forwarder_database_allocated_bytes 8192/);
+  assert.match(metrics, /tg_forwarder_disk_capacity_healthy 1/);
+
+  operational = { ...operational, diskCapacityHealthy: false };
+  response = await fetch(`${baseUrl}/readyz`);
+  assert.strictEqual(response.status, 503, 'Low disk capacity must fail readiness');
 
   response = await fetch(`${baseUrl}/metrics`, { method: 'POST' });
   assert.strictEqual(response.status, 405);

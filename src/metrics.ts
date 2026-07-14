@@ -13,6 +13,14 @@ export interface OperationalMetrics {
   lastForwardedAt: number | null;
   backupHealthy: boolean;
   backupLastSuccessAt: number | null;
+  retentionHealthy: boolean;
+  retentionLastSuccessAt: number | null;
+  retentionDeletedTotal: number;
+  retentionBacklog: boolean;
+  databaseAllocatedBytes: number;
+  databaseReusableBytes: number;
+  diskAvailableBytes: number;
+  diskCapacityHealthy: boolean;
 }
 
 interface MetricsState {
@@ -44,6 +52,71 @@ function metric(name: string, help: string, type: 'counter' | 'gauge', value: nu
 function safeConnectionState(value: string): string {
   const normalized = String(value || 'unknown').toLowerCase();
   return ['connected', 'connecting', 'disconnected', 'error'].includes(normalized) ? normalized : 'unknown';
+}
+
+function isOperationallyReady(operational: OperationalMetrics): boolean {
+  return [
+    operational.databaseHealthy,
+    operational.isRunning,
+    operational.connectionState === 'connected',
+    !operational.queuePaused,
+    operational.backupHealthy,
+    operational.retentionHealthy,
+    operational.diskCapacityHealthy
+  ].every(Boolean);
+}
+
+function readinessChecks(operational: OperationalMetrics): Record<string, boolean | string> {
+  return {
+    database: operational.databaseHealthy,
+    routing: operational.isRunning,
+    connection: safeConnectionState(operational.connectionState),
+    queuePaused: operational.queuePaused,
+    backup: operational.backupHealthy,
+    retention: operational.retentionHealthy,
+    diskCapacity: operational.diskCapacityHealthy
+  };
+}
+
+function prometheusMetrics(operational: OperationalMetrics, state: MetricsState): string {
+  const queue = state.getQueueStateCallback();
+  const forwarded = state.totalForwardedCountCallback();
+  const connectionState = safeConnectionState(operational.connectionState);
+  const lines = [
+    ...metric('tg_forwarder_total_forwarded', 'Confirmed forwarded messages', 'counter', forwarded),
+    ...metric('tg_forwarder_queue_running', 'Tasks currently executing', 'gauge', queue.running),
+    ...metric('tg_forwarder_queue_queued', 'Tasks waiting for execution', 'gauge', queue.queued),
+    ...metric('tg_forwarder_queue_max_concurrency', 'Configured task concurrency', 'gauge', queue.maxConcurrency),
+    ...metric('tg_forwarder_routing_active', 'Whether routing is active', 'gauge', operational.isRunning ? 1 : 0),
+    ...metric('tg_forwarder_database_healthy', 'Whether SQLite responds to a health query', 'gauge', operational.databaseHealthy ? 1 : 0),
+    '# HELP tg_forwarder_connection_state Current Telegram connection state',
+    '# TYPE tg_forwarder_connection_state gauge',
+    ...['connected', 'connecting', 'disconnected', 'error', 'unknown'].map(current =>
+      `tg_forwarder_connection_state{state="${current}"} ${current === connectionState ? 1 : 0}`
+    ),
+    ...metric('tg_forwarder_last_confirmed_delivery_timestamp_seconds', 'Unix time of the last confirmed delivery', 'gauge', operational.lastForwardedAt ? Math.floor(operational.lastForwardedAt / 1000) : 0),
+    ...metric('tg_forwarder_backup_healthy', 'Whether the latest scheduled backup succeeded within the RPO window', 'gauge', operational.backupHealthy ? 1 : 0),
+    ...metric('tg_forwarder_backup_last_success_timestamp_seconds', 'Unix time of the last verified backup', 'gauge', operational.backupLastSuccessAt ? Math.floor(operational.backupLastSuccessAt / 1000) : 0),
+    ...metric('tg_forwarder_retention_healthy', 'Whether operational data retention is current and has no backlog', 'gauge', operational.retentionHealthy ? 1 : 0),
+    ...metric('tg_forwarder_retention_last_success_timestamp_seconds', 'Unix time of the last successful retention run', 'gauge', operational.retentionLastSuccessAt ? Math.floor(operational.retentionLastSuccessAt / 1000) : 0),
+    ...metric('tg_forwarder_retention_deleted_rows_total', 'Operational rows deleted by retention since process start', 'counter', operational.retentionDeletedTotal),
+    ...metric('tg_forwarder_retention_backlog', 'Whether retention exceeded the bounded cleanup work per run', 'gauge', operational.retentionBacklog ? 1 : 0),
+    ...metric('tg_forwarder_database_allocated_bytes', 'SQLite allocated database bytes', 'gauge', operational.databaseAllocatedBytes),
+    ...metric('tg_forwarder_database_reusable_bytes', 'SQLite bytes currently reusable from the freelist', 'gauge', operational.databaseReusableBytes),
+    ...metric('tg_forwarder_disk_available_bytes', 'Available bytes on the operational data filesystem', 'gauge', operational.diskAvailableBytes),
+    ...metric('tg_forwarder_disk_capacity_healthy', 'Whether available disk remains above the configured minimum', 'gauge', operational.diskCapacityHealthy ? 1 : 0),
+    ...metric('tg_forwarder_ai_requests_today', 'AI provider requests reserved today (UTC)', 'gauge', operational.aiRequestsToday),
+    ...metric('tg_forwarder_ai_used_tokens_today', 'AI tokens accounted today (UTC)', 'gauge', operational.aiUsedTokensToday),
+    ...metric('tg_forwarder_ai_reserved_tokens_today', 'AI tokens reserved by unfinished calls today (UTC)', 'gauge', operational.aiReservedTokensToday),
+    '# HELP tg_forwarder_outbox_tasks Durable outbox tasks by status',
+    '# TYPE tg_forwarder_outbox_tasks gauge',
+    ...Object.entries(operational.outbox).map(([status, count]) =>
+      `tg_forwarder_outbox_tasks{status="${status}"} ${count}`
+    ),
+    ...metric('process_uptime_seconds', 'Process uptime in seconds', 'gauge', process.uptime()),
+    ...metric('process_resident_memory_bytes', 'Resident memory size in bytes', 'gauge', process.memoryUsage().rss)
+  ];
+  return `${lines.join('\n')}\n`;
 }
 
 export function startMetricsServer(
@@ -86,60 +159,21 @@ export function startMetricsServer(
     }
 
     if (url === '/readyz') {
-      const ready = operational.databaseHealthy
-        && operational.isRunning
-        && operational.connectionState === 'connected'
-        && !operational.queuePaused
-        && operational.backupHealthy;
+      const ready = isOperationallyReady(operational);
       sendJson(res, ready ? 200 : 503, {
         status: ready ? 'ready' : 'not_ready',
-        checks: {
-          database: operational.databaseHealthy,
-          routing: operational.isRunning,
-          connection: safeConnectionState(operational.connectionState),
-          queuePaused: operational.queuePaused,
-          backup: operational.backupHealthy
-        },
+        checks: readinessChecks(operational),
         unresolvedDeliveries: operational.outbox.failed + operational.outbox.unknown
       });
       return;
     }
 
-    const queue = state.getQueueStateCallback();
-    const forwarded = state.totalForwardedCountCallback();
-    const connectionState = safeConnectionState(operational.connectionState);
-    const lines = [
-      ...metric('tg_forwarder_total_forwarded', 'Confirmed forwarded messages', 'counter', forwarded),
-      ...metric('tg_forwarder_queue_running', 'Tasks currently executing', 'gauge', queue.running),
-      ...metric('tg_forwarder_queue_queued', 'Tasks waiting for execution', 'gauge', queue.queued),
-      ...metric('tg_forwarder_queue_max_concurrency', 'Configured task concurrency', 'gauge', queue.maxConcurrency),
-      ...metric('tg_forwarder_routing_active', 'Whether routing is active', 'gauge', operational.isRunning ? 1 : 0),
-      ...metric('tg_forwarder_database_healthy', 'Whether SQLite responds to a health query', 'gauge', operational.databaseHealthy ? 1 : 0),
-      '# HELP tg_forwarder_connection_state Current Telegram connection state',
-      '# TYPE tg_forwarder_connection_state gauge',
-      ...['connected', 'connecting', 'disconnected', 'error', 'unknown'].map(current =>
-        `tg_forwarder_connection_state{state="${current}"} ${current === connectionState ? 1 : 0}`
-      ),
-      ...metric('tg_forwarder_last_confirmed_delivery_timestamp_seconds', 'Unix time of the last confirmed delivery', 'gauge', operational.lastForwardedAt ? Math.floor(operational.lastForwardedAt / 1000) : 0),
-      ...metric('tg_forwarder_backup_healthy', 'Whether the latest scheduled backup succeeded within the RPO window', 'gauge', operational.backupHealthy ? 1 : 0),
-      ...metric('tg_forwarder_backup_last_success_timestamp_seconds', 'Unix time of the last verified backup', 'gauge', operational.backupLastSuccessAt ? Math.floor(operational.backupLastSuccessAt / 1000) : 0),
-      ...metric('tg_forwarder_ai_requests_today', 'AI provider requests reserved today (UTC)', 'gauge', operational.aiRequestsToday),
-      ...metric('tg_forwarder_ai_used_tokens_today', 'AI tokens accounted today (UTC)', 'gauge', operational.aiUsedTokensToday),
-      ...metric('tg_forwarder_ai_reserved_tokens_today', 'AI tokens reserved by unfinished calls today (UTC)', 'gauge', operational.aiReservedTokensToday),
-      '# HELP tg_forwarder_outbox_tasks Durable outbox tasks by status',
-      '# TYPE tg_forwarder_outbox_tasks gauge',
-      ...Object.entries(operational.outbox).map(([status, count]) =>
-        `tg_forwarder_outbox_tasks{status="${status}"} ${count}`
-      ),
-      ...metric('process_uptime_seconds', 'Process uptime in seconds', 'gauge', process.uptime()),
-      ...metric('process_resident_memory_bytes', 'Resident memory size in bytes', 'gauge', process.memoryUsage().rss)
-    ];
     res.writeHead(200, {
       'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff'
     });
-    res.end(`${lines.join('\n')}\n`);
+    res.end(prometheusMetrics(operational, state));
   });
 
   server.requestTimeout = 10_000;

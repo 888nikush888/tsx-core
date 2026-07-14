@@ -2,6 +2,13 @@
 
 Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folgt Keep a Changelog; Versionen folgen Semantic Versioning.
 
+## [Unreleased]
+
+### Added
+
+- Fail-closed Kanonisierung von Telegram-Quellen für quellspezifische Filter, Aliase und KI-Templates.
+- Begrenzte operative Daten-Retention mit Disk-/SQLite-Kapazitätsmetriken und Readiness-Gates.
+
 ## [1.0.0] - 2026-07-13
 
 ### Added
