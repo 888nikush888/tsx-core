@@ -10,10 +10,12 @@
     "dev": "tsx src/forwarder.ts",
     "test:js": "node tests/run_all.js",
     "test:ai-eval": "tsx tests/evaluate_signal_golden_set.js",
+    "test:staging-e2e": "node scripts/run_staging_e2e.js",
     "backup:create": "tsx src/backup_cli.ts create",
     "backup:verify": "tsx src/backup_cli.ts verify",
     "backup:restore": "tsx src/backup_cli.ts restore",
     "ops:test-alert": "node scripts/send_synthetic_alert.js",
+    "ops:soak": "node --import tsx scripts/check_soak_window.js",
     "test": "node tests/run_all.js",
     "test:coverage": "c8 node tests/run_all.js",
     "test:mutation": "node scripts/run_mutation_shards.js",
@@ -69,6 +71,7 @@
       "src/delivery_tracker.ts",
       "src/queue.ts",
       "src/signal_schema.ts",
+      "src/slo_tracker.ts",
       "src/tdlib_retry.ts"
     ],
     "exclude": [

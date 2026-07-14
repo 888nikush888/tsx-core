@@ -90,3 +90,23 @@ groups:
         annotations:
           summary: More than 100 forwarding jobs have remained queued
           runbook: docs/runbooks/operations.md#alarm-triage
+
+      - alert: ForwarderDeliverySuccessSloBurn
+        expr: (sum(rate(tg_forwarder_delivery_confirmed_total[15m])) / clamp_min(sum(rate(tg_forwarder_delivery_attempts_total[15m])), 0.001)) < 0.995 and sum(increase(tg_forwarder_delivery_attempts_total[15m])) >= 5
+        for: 5m
+        labels:
+          severity: high
+          service: telegram-forwarder
+        annotations:
+          summary: Confirmed delivery success is below the 99.5 percent SLO
+          runbook: docs/runbooks/operations.md#alarm-triage
+
+      - alert: ForwarderDeliveryLatencySloBurn
+        expr: histogram_quantile(0.95, sum by (le) (rate(tg_forwarder_delivery_latency_seconds_bucket[15m]))) > 60 and sum(increase(tg_forwarder_delivery_latency_seconds_count[15m])) >= 5
+        for: 5m
+        labels:
+          severity: high
+          service: telegram-forwarder
+        annotations:
+          summary: Accepted-to-confirmed delivery P95 exceeds 60 seconds
+          runbook: docs/runbooks/operations.md#alarm-triage

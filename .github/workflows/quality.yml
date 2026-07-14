@@ -248,6 +248,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
+      actions: read
       attestations: write
       artifact-metadata: write
       contents: write
@@ -260,6 +261,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" >/dev/null
+      - name: Require successful staging and 30-day evidence for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for workflow in staging.yml production_evidence.yml; do
+            count="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?head_sha=${GITHUB_SHA}&status=success&per_page=1" --jq '.total_count')"
+            test "${count}" -ge 1 || { echo "No successful ${workflow} run exists for ${GITHUB_SHA}." >&2; exit 1; }
+          done
       - name: Require tag and package versions to match
         run: test "${GITHUB_REF_NAME}" = "v$(node -p "require('./package.json').version")"
       - name: Download scanned image candidate

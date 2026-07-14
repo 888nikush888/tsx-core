@@ -196,6 +196,14 @@ npm run ops:test-alert -- --confirm-alert-delivery
 
 Der ausgegebene `correlation_id` muss im externen Incident-System nachgewiesen und im Release-/Übungsrecord abgelegt werden. Eine HTTP-Annahme durch Alertmanager allein ist kein Zustellnachweis.
 
+### Staging-E2E und 30-Tage-Produktionsnachweis
+
+Die Workflows `staging.yml` und `synthetic.yml` benötigen einen isolierten Self-hosted Runner mit den Labels `self-hosted, staging`, einen bereits authentifizierten technischen Telegram-Account, zwei ausschließlich dafür verwendete Chats sowie getrennte TDLib-Verzeichnisse. Der Test sendet eine eindeutig korrelierte Fixture in den Quellchat, wartet auf die reale Weiterleitung und akzeptiert im Zielchat exakt eine Kopie. Das Evidence-Artefakt enthält IDs, Zeitpunkte, Latenz und Inhalts-Hashes, aber keinen Nachrichteninhalt. Interaktive Anmeldung und die Wiederverwendung der Produktions-Session werden abgewiesen.
+
+Ein zweiter, read-only Self-hosted Runner mit den Labels `self-hosted, production-observer` liest täglich ein vollständiges 30-Tage-Fenster aus Prometheus. `npm run ops:soak` fordert mindestens 99,5 % Scrape-Verfügbarkeit und bestätigte Zustellung, P95 unter 60 Sekunden, mindestens 100 Zustellversuche, keine unbekannte Zustellung, durchgehend gesunde Backups/Retention/Disk sowie begrenzte Queue und RAM. `PROMETHEUS_URL` muss HTTPS verwenden (Loopback ausgenommen), das optionale Bearer-Token kommt aus `PROMETHEUS_TOKEN[_FILE]`.
+
+Der Tag-Release in `quality.yml` prüft über die GitHub-API, dass für exakt denselben Commit sowohl das Staging-Gate als auch der 30-Tage-Nachweis erfolgreich waren. Fehlende Runner, Provider-Zugänge, unvollständige Messfenster oder fehlende Artefakte blockieren damit die Veröffentlichung; sie werden nicht als N/A behandelt. Einrichtung und Secret-/Variable-Zuordnung stehen in `docs/runbooks/operations.md`.
+
 ---
 
 ## 🧪 Tests ausführen

@@ -5,11 +5,15 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const workflow = await readFile(path.join(root, '.github', 'workflows', 'quality.yml'), 'utf8');
+const stagingWorkflow = await readFile(path.join(root, '.github', 'workflows', 'staging.yml'), 'utf8');
+const syntheticWorkflow = await readFile(path.join(root, '.github', 'workflows', 'synthetic.yml'), 'utf8');
+const productionEvidenceWorkflow = await readFile(path.join(root, '.github', 'workflows', 'production_evidence.yml'), 'utf8');
 const dockerfile = await readFile(path.join(root, 'Dockerfile'), 'utf8');
 const strykerConfig = await readFile(path.join(root, 'stryker.config.mjs'), 'utf8');
 const mutationRunner = await readFile(path.join(root, 'scripts', 'run_mutation_shards.js'), 'utf8');
 
-const actionReferences = [...workflow.matchAll(/^\s*uses:\s*([^\s#]+).*$/gm)].map(
+const allWorkflows = `${workflow}\n${stagingWorkflow}\n${syntheticWorkflow}\n${productionEvidenceWorkflow}`;
+const actionReferences = [...allWorkflows.matchAll(/^\s*uses:\s*([^\s#]+).*$/gm)].map(
   (match) => match[1]
 );
 assert.ok(actionReferences.length > 0, 'quality workflow must use pinned actions');

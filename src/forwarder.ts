@@ -51,6 +51,7 @@ import { BackupScheduler } from './backup.js';
 import { offsiteBackupFromEnvironment } from './backup_replication.js';
 import { OperationalDataRetention, retentionPolicyFromEnvironment } from './retention.js';
 import { invokeWithFloodWaitRetry } from './tdlib_retry.js';
+import { DeliverySloTracker } from './slo_tracker.js';
 import {
   C_RESET, C_GREEN, C_DARK_GREEN, C_RED,
   clearConsole, pressAnyKey, addLog, clearLogHistory,
@@ -199,9 +200,16 @@ function scheduleOutboxTask(
     const task = await claimOutboxTask(taskId);
     if (!task) return;
     const effectiveConfig = task.config ? mergeConfigDefaults(task.config) : fallbackConfig;
+    let deliveryAttempted = false;
     const context: OutboxExecutionContext = {
       signal,
-      markSending: () => markOutboxSending(task.id)
+      markSending: async () => {
+        await markOutboxSending(task.id);
+        if (!deliveryAttempted) {
+          deliveryAttempted = true;
+          deliverySlo.recordAttempt();
+        }
+      }
     };
     const startedAt = Date.now();
     addLog(`[INFO] Outbox task ${task.id} claimed.`, {
@@ -215,6 +223,7 @@ function scheduleOutboxTask(
         ? await executeLogic(context)
         : await executePersistedOutboxTask(task, effectiveConfig, context);
       await completeOutboxTask(task.id, result);
+      if (deliveryAttempted) deliverySlo.recordConfirmed(Math.max(0, Date.now() - Number(task.addedAt || startedAt)));
       addLog(`[SUCCESS] Outbox task ${task.id} completed.`, {
         correlation_id: task.id,
         event: 'outbox_completed',
@@ -225,6 +234,7 @@ function scheduleOutboxTask(
       return result;
     } catch (error: any) {
       const finalStatus = await failOutboxTask(task.id, error);
+      if (deliveryAttempted) deliverySlo.recordFailure(finalStatus === 'unknown' ? 'unknown' : 'failed');
       addLog(`[ERROR] Outbox task ${task.id} failed with status ${finalStatus}: ${error.message}`, {
         correlation_id: task.id,
         event: 'outbox_failed',
@@ -246,7 +256,10 @@ function scheduleOutboxTask(
 
 async function enqueueTask(taskData: any, config: any, executeLogic: (context: OutboxExecutionContext) => Promise<any>): Promise<void> {
   const inserted = await enqueueOutboxTask({ ...taskData, config: configSnapshot(config) });
-  if (inserted) scheduleOutboxTask(taskData.id, config, executeLogic);
+  if (inserted) {
+    deliverySlo.recordAccepted();
+    scheduleOutboxTask(taskData.id, config, executeLogic);
+  }
   else addLog(`[INFO] Duplicate outbox task ${taskData.id} ignored.`);
 }
 
@@ -318,6 +331,7 @@ const state = {
   lastSuccessfulForwardAt: null as number | null,
   startupTime: null as number | null
 };
+const deliverySlo = new DeliverySloTracker();
 
 async function recordForwardedMessages(amount = 1) {
   const forwardedAt = Date.now();
@@ -410,7 +424,8 @@ async function collectOperationalMetrics(
     ...backupMetricSnapshot(),
     ...retentionMetricSnapshot(),
     diskAvailableBytes,
-    diskCapacityHealthy
+    diskCapacityHealthy,
+    deliverySlo: deliverySlo.snapshot()
   };
   if (!databaseHealthy) {
     return {

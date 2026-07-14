@@ -1,0 +1,38 @@
+name: Production 30-Day Evidence
+
+on:
+  schedule:
+    - cron: '11 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-30-day-evidence
+  cancel-in-progress: true
+
+jobs:
+  soak:
+    runs-on: [self-hosted, production-observer]
+    environment: production-observer
+    timeout-minutes: 10
+    env:
+      PROMETHEUS_URL: ${{ vars.PROMETHEUS_URL }}
+      PROMETHEUS_TOKEN: ${{ secrets.PROMETHEUS_TOKEN }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run ops:soak
+      - name: Upload 30-day evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: production-30-day-evidence-${{ github.sha }}-${{ github.run_id }}
+          path: reports/soak/
+          if-no-files-found: error
+          retention-days: 90

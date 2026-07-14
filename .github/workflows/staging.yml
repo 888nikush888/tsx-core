@@ -1,0 +1,54 @@
+name: Staging Release Gate
+
+on:
+  workflow_run:
+    workflows: [Quality OS]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-release-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  staging:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: [self-hosted, staging]
+    environment: staging
+    timeout-minutes: 20
+    env:
+      NON_INTERACTIVE: 'true'
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      E2E_SOURCE_CHAT_ID: ${{ vars.E2E_SOURCE_CHAT_ID }}
+      E2E_TARGET_CHAT_ID: ${{ vars.E2E_TARGET_CHAT_ID }}
+      E2E_TDL_DATABASE_DIR: ${{ vars.E2E_TDL_DATABASE_DIR }}
+      E2E_TDL_FILES_DIR: ${{ vars.E2E_TDL_FILES_DIR }}
+    steps:
+      - name: Checkout the verified commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Configure pinned Node major
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify Telegram source-to-target exactly once
+        run: npm run test:staging-e2e
+      - name: Verify live AI golden set
+        run: npm run test:ai-eval
+      - name: Upload staging evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: staging-evidence-${{ github.event.workflow_run.head_sha || github.sha }}
+          path: reports/staging/
+          if-no-files-found: error
+          retention-days: 90

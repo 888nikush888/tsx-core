@@ -69,3 +69,13 @@ Vor Restore Dienst stoppen, Locks und Outbox dokumentieren, Backup aus unabhäng
 - Staging-Smoke, Live-AI-Golden-Set bei KI-Änderung und Restore-Evidenz müssen vorliegen.
 - Rollback auf das vorherige Image verändert keine DB rückwärts. Bei Schemaänderungen gilt ausschließlich der freigegebene Downgrade-Plan.
 - Nach Rollback Readiness, Outbox, letzte bestätigte Zustellung und Backup-Frische prüfen.
+
+## Staging- und Produktions-Evidence
+
+1. Einen nur für Staging bestimmten, nicht interaktiv betriebenen Telegram-Account einmalig anmelden und dessen TDLib-Verzeichnisse außerhalb des Repository-Workspaces sichern. Der Account benötigt Schreibzugriff auf `E2E_SOURCE_CHAT_ID` und Lesezugriff auf `E2E_TARGET_CHAT_ID`; der laufende Staging-Forwarder muss genau diese Quelle auf genau dieses Ziel routen.
+2. Einen GitHub Self-hosted Runner mit den Labels `self-hosted, staging` anlegen. Im geschützten Environment `staging` die Secrets `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `OPENROUTER_API_KEY` und die Variablen `E2E_SOURCE_CHAT_ID`, `E2E_TARGET_CHAT_ID`, `E2E_TDL_DATABASE_DIR`, `E2E_TDL_FILES_DIR` hinterlegen. Verzeichnisse und Account dürfen nicht von Produktion genutzt werden.
+3. Einen getrennten read-only Runner mit den Labels `self-hosted, production-observer` anlegen. Im Environment `production-observer` `PROMETHEUS_URL` und ein minimal berechtigtes `PROMETHEUS_TOKEN` setzen. Der Endpunkt darf nur PromQL-Abfragen erlauben; Admin-, Reload- und Write-APIs bleiben gesperrt.
+4. `Staging Release Gate` nach jedem erfolgreichen Main-Build und `Staging Synthetic Monitor` alle 15 Minuten ausführen lassen. Das externe Incident-System muss Ausfälle des Schedules/Runner-Offline-Zustands zusätzlich überwachen, weil ein nicht gestarteter Workflow keinen Anwendungsalarm erzeugt.
+5. Vor dem Release die JSON-Artefakte unter `reports/staging/` und `reports/soak/` dem Release-Record zuordnen. Sie müssen denselben Commit-Hash wie der Tag tragen; ein 30-Tage-Fenster mit weniger als 171936 Scrapes oder 100 Zustellversuchen ist nicht belastbar und bleibt NO-GO.
+
+Die Staging- und Produktions-Observer-Identitäten erhalten keinerlei Produktions-Schreibrechte außer dem absichtlich begrenzten synthetischen Staging-Send. Token-Rotation, Runner-Patching und die Prüfung des externen Alarmempfängers erfolgen monatlich und nach jedem Credential-Verdacht.

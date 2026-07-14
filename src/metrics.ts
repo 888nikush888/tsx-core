@@ -1,5 +1,6 @@
 import http from 'http';
 import type { OutboxStatus } from './db.js';
+import type { DeliverySloSnapshot } from './slo_tracker.js';
 
 export interface OperationalMetrics {
   databaseHealthy: boolean;
@@ -24,6 +25,7 @@ export interface OperationalMetrics {
   databaseReusableBytes: number;
   diskAvailableBytes: number;
   diskCapacityHealthy: boolean;
+  deliverySlo: DeliverySloSnapshot;
 }
 
 interface MetricsState {
@@ -87,6 +89,7 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
   const queue = state.getQueueStateCallback();
   const forwarded = state.totalForwardedCountCallback();
   const connectionState = safeConnectionState(operational.connectionState);
+  const delivery = operational.deliverySlo;
   const lines = [
     ...metric('tg_forwarder_total_forwarded', 'Confirmed forwarded messages', 'counter', forwarded),
     ...metric('tg_forwarder_queue_running', 'Tasks currently executing', 'gauge', queue.running),
@@ -116,6 +119,17 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
     ...metric('tg_forwarder_ai_requests_today', 'AI provider requests reserved today (UTC)', 'gauge', operational.aiRequestsToday),
     ...metric('tg_forwarder_ai_used_tokens_today', 'AI tokens accounted today (UTC)', 'gauge', operational.aiUsedTokensToday),
     ...metric('tg_forwarder_ai_reserved_tokens_today', 'AI tokens reserved by unfinished calls today (UTC)', 'gauge', operational.aiReservedTokensToday),
+    ...metric('tg_forwarder_delivery_accepted_total', 'Filtered messages accepted into the durable outbox', 'counter', delivery.accepted),
+    ...metric('tg_forwarder_delivery_attempts_total', 'Durable tasks that reached the Telegram send boundary', 'counter', delivery.attempts),
+    ...metric('tg_forwarder_delivery_confirmed_total', 'Telegram delivery tasks with a confirmed outcome', 'counter', delivery.confirmed),
+    ...metric('tg_forwarder_delivery_failed_total', 'Telegram delivery attempts with a retryable failed outcome', 'counter', delivery.failed),
+    ...metric('tg_forwarder_delivery_unknown_total', 'Telegram delivery attempts with an unknown outcome', 'counter', delivery.unknown),
+    '# HELP tg_forwarder_delivery_latency_seconds Accepted-to-confirmed Telegram delivery latency',
+    '# TYPE tg_forwarder_delivery_latency_seconds histogram',
+    ...delivery.latencyBuckets.map(bucket => `tg_forwarder_delivery_latency_seconds_bucket{le="${bucket.le}"} ${bucket.count}`),
+    `tg_forwarder_delivery_latency_seconds_bucket{le="+Inf"} ${delivery.latencyCount}`,
+    `tg_forwarder_delivery_latency_seconds_sum ${delivery.latencySumSeconds}`,
+    `tg_forwarder_delivery_latency_seconds_count ${delivery.latencyCount}`,
     '# HELP tg_forwarder_outbox_tasks Durable outbox tasks by status',
     '# TYPE tg_forwarder_outbox_tasks gauge',
     ...Object.entries(operational.outbox).map(([status, count]) =>

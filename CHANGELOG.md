@@ -13,6 +13,8 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Fail-closed Secret-File-Unterstützung für Orchestrator-/Vault-Mounts mit sicherer Umgebungspriorität.
 - Verschlüsselte Off-host-Backups mit erzwungenem Download, Authentizitätsprüfung und vollständiger Restore-Verifikation vor Erfolgsmeldung.
 - Gepinnter Prometheus-/Alertmanager-Stack mit getesteten Sicherheitsalarmen, authentifiziertem HTTPS-Incident-Relay und synthetischem Zustelltest.
+- Reales Staging-Telegram-E2E, viertelstündliche synthetische Prüfung und inhaltsfreie Evidence-Artefakte ohne Human-in-the-loop.
+- Gemessene Delivery-SLIs, getestete SLO-Burn-Alarme und ein verpflichtendes automatisiertes 30-Tage-Produktionsfenster vor Release.
 
 ## [1.0.0] - 2026-07-13
 

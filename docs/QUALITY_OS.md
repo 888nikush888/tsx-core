@@ -60,10 +60,10 @@ Jeder zutreffende Faktor wird einmal addiert. Der Autor trägt Summe und Evidenz
 | Breaking-API-Check                                | N/A: keine externe Public API | N/A      | N/A, bis Vertrag entsteht |
 | Live KI-Golden-Set mit Staging-Provider           | Bei KI-Änderung Fail          | Evidence | Fail                      |
 | Synthetischer E2E-Flow                            | Optional                      | Evidence | Fail                      |
-| Performance-/30-Tage-Soak                         | Bei Ressourcenänderung        | Evidence | Fail vor Erstproduktion   |
+| Performance-/30-Tage-Soak                         | Bei Ressourcenänderung        | Evidence | Fail                      |
 | Rollback- und Offline-Restore-Übung               | Bei betroffener Änderung      | Evidence | Fail                      |
 
-Der Workflow `.github/workflows/quality.yml` implementiert die lokal automatisierbaren Gates einschließlich getesteter Alarmregeln. Branch Protection, Staging-Zugang, Eigentum am Off-host-Ziel, der konkrete Incident-Empfänger und reale Produktions-SLO-Messwerte sind externe Kontrollen und müssen separat belegt werden.
+Der Workflow `.github/workflows/quality.yml` implementiert die lokal automatisierbaren Gates einschließlich getesteter Alarmregeln. `.github/workflows/staging.yml`, `.github/workflows/synthetic.yml` und `.github/workflows/production_evidence.yml` erzeugen die externen Staging-/SLO-Nachweise; ein Tag-Release prüft erfolgreiche Läufe für exakt seinen Commit. Branch Protection, Runner-/Environment-Schutz, Eigentum am Off-host-Ziel, der konkrete Incident-Empfänger und die tatsächlichen Messwerte bleiben externe Kontrollen und müssen durch die Plattform beziehungsweise den Release-Record belegt werden.
 
 Die aktuell noch vorhandenen Alt-Hotspots sind in `quality-baseline.json` exakt geratcheted. `npm run quality:complexity` blockiert jede zusätzliche Warnung und jede höhere Worst-Case-Komplexität; auch eine Verbesserung blockiert so lange, bis das Budget im selben PR nach unten korrigiert wird. Das Budget darf nie erhöht werden, außer über einen gültigen zeitlich befristeten Risikoakzeptanz-Record.
 

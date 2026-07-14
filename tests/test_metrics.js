@@ -4,32 +4,47 @@ import { startMetricsServer, stopMetricsServer } from '../src/metrics.js';
 import { MetricsTracker } from '../src/metrics_tracker.js';
 
 const EMPTY_OUTBOX = { pending: 0, preparing: 0, sending: 0, completed: 4, failed: 1, unknown: 2 };
+const HEALTHY_OPERATIONAL_METRICS = {
+  databaseHealthy: true,
+  isRunning: false,
+  connectionState: 'disconnected',
+  queuePaused: false,
+  outbox: { ...EMPTY_OUTBOX },
+  aiRequestsToday: 3,
+  aiUsedTokensToday: 120,
+  aiReservedTokensToday: 40,
+  lastForwardedAt: 1_700_000_000_000,
+  backupHealthy: true,
+  backupLastSuccessAt: 1_700_000_100_000,
+  backupOffsiteHealthy: true,
+  backupOffsiteRequired: true,
+  backupOffsiteLastSuccessAt: 1_700_000_150_000,
+  retentionHealthy: true,
+  retentionLastSuccessAt: 1_700_000_200_000,
+  retentionDeletedTotal: 12,
+  retentionBacklog: false,
+  databaseAllocatedBytes: 8192,
+  databaseReusableBytes: 4096,
+  diskAvailableBytes: 2_000_000_000,
+  diskCapacityHealthy: true,
+  deliverySlo: {
+    accepted: 11,
+    attempts: 10,
+    confirmed: 9,
+    failed: 1,
+    unknown: 0,
+    latencyCount: 9,
+    latencySumSeconds: 42,
+    latencyBuckets: [
+      { le: 1, count: 2 },
+      { le: 5, count: 8 },
+      { le: 60, count: 9 }
+    ]
+  }
+};
 
 async function runTests() {
-  let operational = {
-    databaseHealthy: true,
-    isRunning: false,
-    connectionState: 'disconnected',
-    queuePaused: false,
-    outbox: { ...EMPTY_OUTBOX },
-    aiRequestsToday: 3,
-    aiUsedTokensToday: 120,
-    aiReservedTokensToday: 40,
-    lastForwardedAt: 1_700_000_000_000,
-    backupHealthy: true,
-    backupLastSuccessAt: 1_700_000_100_000,
-    backupOffsiteHealthy: true,
-    backupOffsiteRequired: true,
-    backupOffsiteLastSuccessAt: 1_700_000_150_000,
-    retentionHealthy: true,
-    retentionLastSuccessAt: 1_700_000_200_000,
-    retentionDeletedTotal: 12,
-    retentionBacklog: false,
-    databaseAllocatedBytes: 8192,
-    databaseReusableBytes: 4096,
-    diskAvailableBytes: 2_000_000_000,
-    diskCapacityHealthy: true
-  };
+  let operational = { ...HEALTHY_OPERATIONAL_METRICS };
   const server = startMetricsServer(0, {
     totalForwardedCountCallback: () => 7,
     getQueueStateCallback: () => ({ running: 1, queued: 2, maxConcurrency: 3 }),
@@ -70,6 +85,10 @@ async function runTests() {
   assert.match(metrics, /tg_forwarder_retention_deleted_rows_total 12/);
   assert.match(metrics, /tg_forwarder_database_allocated_bytes 8192/);
   assert.match(metrics, /tg_forwarder_disk_capacity_healthy 1/);
+  assert.match(metrics, /tg_forwarder_delivery_attempts_total 10/);
+  assert.match(metrics, /tg_forwarder_delivery_confirmed_total 9/);
+  assert.match(metrics, /tg_forwarder_delivery_latency_seconds_bucket\{le="5"\} 8/);
+  assert.match(metrics, /tg_forwarder_delivery_latency_seconds_count 9/);
 
   operational = { ...operational, diskCapacityHealthy: false };
   response = await fetch(`${baseUrl}/readyz`);

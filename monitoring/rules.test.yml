@@ -31,3 +31,37 @@ tests:
             exp_annotations:
               summary: Local or off-host backup verification is unhealthy
               runbook: docs/runbooks/operations.md#backup-restore-und-rollback
+
+  - interval: 1m
+    input_series:
+      - series: 'tg_forwarder_delivery_attempts_total'
+        values: '0+10x25'
+      - series: 'tg_forwarder_delivery_confirmed_total'
+        values: '0+0x25'
+      - series: 'tg_forwarder_delivery_latency_seconds_bucket{le="60"}'
+        values: '0+0x25'
+      - series: 'tg_forwarder_delivery_latency_seconds_bucket{le="120"}'
+        values: '0+10x25'
+      - series: 'tg_forwarder_delivery_latency_seconds_bucket{le="+Inf"}'
+        values: '0+10x25'
+      - series: 'tg_forwarder_delivery_latency_seconds_count'
+        values: '0+10x25'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: ForwarderDeliverySuccessSloBurn
+        exp_alerts:
+          - exp_labels:
+              severity: high
+              service: telegram-forwarder
+            exp_annotations:
+              summary: Confirmed delivery success is below the 99.5 percent SLO
+              runbook: docs/runbooks/operations.md#alarm-triage
+      - eval_time: 20m
+        alertname: ForwarderDeliveryLatencySloBurn
+        exp_alerts:
+          - exp_labels:
+              severity: high
+              service: telegram-forwarder
+            exp_annotations:
+              summary: Accepted-to-confirmed delivery P95 exceeds 60 seconds
+              runbook: docs/runbooks/operations.md#alarm-triage

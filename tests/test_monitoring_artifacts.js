@@ -15,7 +15,9 @@ for (const requiredAlert of [
   'ForwarderMetricsMissing',
   'ForwarderUnknownDelivery',
   'ForwarderBackupUnhealthy',
-  'ForwarderDiskCapacityUnsafe'
+  'ForwarderDiskCapacityUnsafe',
+  'ForwarderDeliverySuccessSloBurn',
+  'ForwarderDeliveryLatencySloBurn'
 ]) assert.match(rules, new RegExp(`alert: ${requiredAlert}`));
 assert.match(alertmanager, /credentials_file:\s*\/run\/secrets\/alert_relay_token/);
 assert.match(alertmanager, /send_resolved:\s*true/);
