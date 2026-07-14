@@ -110,33 +110,62 @@ export async function verifySqliteDatabase(databasePath: string): Promise<void> 
   }
 }
 
+async function readBackupManifest(artifactPath: string): Promise<BackupManifest> {
+  const manifestPath = path.join(artifactPath, MANIFEST_FILE);
+  const stats = await fs.stat(manifestPath);
+  if (stats.size > 64 * 1024) throw new Error('Backup manifest exceeds 64 KiB.');
+  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as BackupManifest;
+  if (manifest.version !== 1 || !manifest.createdAt || !manifest.files) {
+    throw new Error('Unsupported or malformed backup manifest.');
+  }
+  if (Number.isNaN(Date.parse(manifest.createdAt))) {
+    throw new Error('Backup manifest has an invalid creation timestamp.');
+  }
+  return manifest;
+}
+
+async function verifyManifestFile(
+  artifactPath: string,
+  manifest: BackupManifest,
+  fileName: typeof DATABASE_FILE | typeof CONFIG_FILE
+): Promise<void> {
+  const expected = manifest.files[fileName];
+  if (
+    !expected ||
+    !/^[a-f0-9]{64}$/.test(expected.sha256) ||
+    !Number.isSafeInteger(expected.size) ||
+    expected.size < 1
+  ) {
+    throw new Error(`Backup manifest metadata for '${fileName}' is invalid.`);
+  }
+  const actual = await sha256File(path.join(artifactPath, fileName));
+  if (actual.sha256 !== expected.sha256 || actual.size !== expected.size) {
+    throw new Error(`Backup checksum mismatch for '${fileName}'.`);
+  }
+}
+
+async function verifyBackupConfig(artifactPath: string): Promise<void> {
+  const configPath = path.join(artifactPath, CONFIG_FILE);
+  const stats = await fs.stat(configPath);
+  if (stats.size > 1024 * 1024) throw new Error('Backup configuration exceeds 1 MiB.');
+  const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    throw new Error('Backup configuration must be a JSON object.');
+  }
+  if (containsForbiddenConfigKey(config)) {
+    throw new Error('Backup configuration contains a forbidden secret field.');
+  }
+}
+
 export async function verifyBackupArtifact(artifactPath: string): Promise<BackupManifest> {
   const resolvedArtifact = path.resolve(artifactPath);
   const artifactStats = await fs.stat(resolvedArtifact);
   if (!artifactStats.isDirectory()) throw new Error('Backup artifact must be a directory.');
-  const manifestPath = path.join(resolvedArtifact, MANIFEST_FILE);
-  const manifestStats = await fs.stat(manifestPath);
-  if (manifestStats.size > 64 * 1024) throw new Error('Backup manifest exceeds 64 KiB.');
-  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as BackupManifest;
-  if (manifest.version !== 1 || !manifest.createdAt || !manifest.files) throw new Error('Unsupported or malformed backup manifest.');
-  if (Number.isNaN(Date.parse(manifest.createdAt))) throw new Error('Backup manifest has an invalid creation timestamp.');
-
+  const manifest = await readBackupManifest(resolvedArtifact);
   for (const fileName of [DATABASE_FILE, CONFIG_FILE] as const) {
-    const expected = manifest.files[fileName];
-    if (!expected || !/^[a-f0-9]{64}$/.test(expected.sha256) || !Number.isSafeInteger(expected.size) || expected.size < 1) {
-      throw new Error(`Backup manifest metadata for '${fileName}' is invalid.`);
-    }
-    const actual = await sha256File(path.join(resolvedArtifact, fileName));
-    if (actual.sha256 !== expected.sha256 || actual.size !== expected.size) {
-      throw new Error(`Backup checksum mismatch for '${fileName}'.`);
-    }
+    await verifyManifestFile(resolvedArtifact, manifest, fileName);
   }
-
-  const configStats = await fs.stat(path.join(resolvedArtifact, CONFIG_FILE));
-  if (configStats.size > 1024 * 1024) throw new Error('Backup configuration exceeds 1 MiB.');
-  const config = JSON.parse(await fs.readFile(path.join(resolvedArtifact, CONFIG_FILE), 'utf8'));
-  if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('Backup configuration must be a JSON object.');
-  if (containsForbiddenConfigKey(config)) throw new Error('Backup configuration contains a forbidden secret field.');
+  await verifyBackupConfig(resolvedArtifact);
   await verifySqliteDatabase(path.join(resolvedArtifact, DATABASE_FILE));
   return manifest;
 }
@@ -203,61 +232,118 @@ export async function pruneBackupArtifacts(backupDirectory: string, retainCount:
   return removed;
 }
 
+interface RestorePlan {
+  artifact: string;
+  targetDb: string;
+  targetConfig: string;
+  dbTemp: string;
+  configTemp: string;
+  previousDb: string | null;
+  previousConfig: string | null;
+  restoreId: string;
+}
+
+interface RestoreProgress {
+  installedDb: boolean;
+  installedConfig: boolean;
+  movedSidecars: Array<{ original: string; preserved: string }>;
+}
+
+async function assertRestoreInactive(stateDirectory: string): Promise<void> {
+  for (const lockName of ['.process_active', '.routing_active']) {
+    if (await fileExists(path.join(path.resolve(stateDirectory), lockName))) {
+      throw new Error(
+        `Restore refused while '${lockName}' exists. Stop the process and reconcile active work first.`
+      );
+    }
+  }
+}
+
+async function createRestorePlan(
+  artifactPath: string,
+  targetDatabasePath: string,
+  targetConfigPath: string
+): Promise<RestorePlan> {
+  const artifact = path.resolve(artifactPath);
+  const targetDb = path.resolve(targetDatabasePath);
+  const targetConfig = path.resolve(targetConfigPath);
+  const restoreId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
+  return {
+    artifact,
+    targetDb,
+    targetConfig,
+    restoreId,
+    dbTemp: `${targetDb}.restore-${restoreId}.tmp`,
+    configTemp: `${targetConfig}.restore-${restoreId}.tmp`,
+    previousDb: (await fileExists(targetDb)) ? `${targetDb}.pre-restore-${restoreId}` : null,
+    previousConfig: (await fileExists(targetConfig))
+      ? `${targetConfig}.pre-restore-${restoreId}`
+      : null,
+  };
+}
+
+async function stageRestore(plan: RestorePlan): Promise<void> {
+  await fs.copyFile(path.join(plan.artifact, DATABASE_FILE), plan.dbTemp, fs.constants.COPYFILE_EXCL);
+  await fs.copyFile(path.join(plan.artifact, CONFIG_FILE), plan.configTemp, fs.constants.COPYFILE_EXCL);
+  await verifySqliteDatabase(plan.dbTemp);
+  JSON.parse(await fs.readFile(plan.configTemp, 'utf8'));
+}
+
+async function preserveCurrentFiles(plan: RestorePlan, progress: RestoreProgress): Promise<void> {
+  if (plan.previousDb) await fs.rename(plan.targetDb, plan.previousDb);
+  if (plan.previousConfig) await fs.rename(plan.targetConfig, plan.previousConfig);
+  for (const suffix of ['-wal', '-shm']) {
+    const original = `${plan.targetDb}${suffix}`;
+    if (await fileExists(original)) {
+      const preserved = `${plan.previousDb || `${plan.targetDb}.pre-restore-${plan.restoreId}`}${suffix}`;
+      await fs.rename(original, preserved);
+      progress.movedSidecars.push({ original, preserved });
+    }
+  }
+}
+
+async function installRestore(plan: RestorePlan, progress: RestoreProgress): Promise<void> {
+  await fs.rename(plan.dbTemp, plan.targetDb);
+  progress.installedDb = true;
+  await fs.rename(plan.configTemp, plan.targetConfig);
+  progress.installedConfig = true;
+}
+
 export async function restoreBackupArtifact(
   artifactPath: string,
   targetDatabasePath: string,
   targetConfigPath: string,
   stateDirectory = path.dirname(path.resolve(targetDatabasePath))
 ): Promise<{ previousDatabase: string | null; previousConfig: string | null }> {
-  const resolvedArtifact = path.resolve(artifactPath);
-  const targetDb = path.resolve(targetDatabasePath);
-  const targetConfig = path.resolve(targetConfigPath);
-  for (const lockName of ['.process_active', '.routing_active']) {
-    if (await fileExists(path.join(path.resolve(stateDirectory), lockName))) {
-      throw new Error(`Restore refused while '${lockName}' exists. Stop the process and reconcile active work first.`);
-    }
-  }
-  await verifyBackupArtifact(resolvedArtifact);
-  await fs.mkdir(path.dirname(targetDb), { recursive: true });
-  await fs.mkdir(path.dirname(targetConfig), { recursive: true });
-  const restoreId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
-  const dbTemp = `${targetDb}.restore-${restoreId}.tmp`;
-  const configTemp = `${targetConfig}.restore-${restoreId}.tmp`;
-  const previousDb = await fileExists(targetDb) ? `${targetDb}.pre-restore-${restoreId}` : null;
-  const previousConfig = await fileExists(targetConfig) ? `${targetConfig}.pre-restore-${restoreId}` : null;
-  const movedSidecars: Array<{ original: string; preserved: string }> = [];
-  let installedDb = false;
-  let installedConfig = false;
+  await assertRestoreInactive(stateDirectory);
+  const plan = await createRestorePlan(artifactPath, targetDatabasePath, targetConfigPath);
+  await verifyBackupArtifact(plan.artifact);
+  await fs.mkdir(path.dirname(plan.targetDb), { recursive: true });
+  await fs.mkdir(path.dirname(plan.targetConfig), { recursive: true });
+  const progress: RestoreProgress = {
+    installedDb: false,
+    installedConfig: false,
+    movedSidecars: [],
+  };
   try {
-    await fs.copyFile(path.join(resolvedArtifact, DATABASE_FILE), dbTemp, fs.constants.COPYFILE_EXCL);
-    await fs.copyFile(path.join(resolvedArtifact, CONFIG_FILE), configTemp, fs.constants.COPYFILE_EXCL);
-    await verifySqliteDatabase(dbTemp);
-    JSON.parse(await fs.readFile(configTemp, 'utf8'));
-    if (previousDb) await fs.rename(targetDb, previousDb);
-    if (previousConfig) await fs.rename(targetConfig, previousConfig);
-    for (const suffix of ['-wal', '-shm']) {
-      const original = `${targetDb}${suffix}`;
-      if (await fileExists(original)) {
-        const preserved = `${previousDb || `${targetDb}.pre-restore-${restoreId}`}${suffix}`;
-        await fs.rename(original, preserved);
-        movedSidecars.push({ original, preserved });
-      }
-    }
-    await fs.rename(dbTemp, targetDb);
-    installedDb = true;
-    await fs.rename(configTemp, targetConfig);
-    installedConfig = true;
-    return { previousDatabase: previousDb, previousConfig };
+    await stageRestore(plan);
+    await preserveCurrentFiles(plan, progress);
+    await installRestore(plan, progress);
+    return { previousDatabase: plan.previousDb, previousConfig: plan.previousConfig };
   } catch (error) {
-    if (installedConfig) await fs.rm(targetConfig, { force: true });
-    if (installedDb) await fs.rm(targetDb, { force: true });
-    if (previousConfig && await fileExists(previousConfig)) await fs.rename(previousConfig, targetConfig);
-    if (previousDb && await fileExists(previousDb)) await fs.rename(previousDb, targetDb);
-    for (const sidecar of movedSidecars.reverse()) {
+    if (progress.installedConfig) await fs.rm(plan.targetConfig, { force: true });
+    if (progress.installedDb) await fs.rm(plan.targetDb, { force: true });
+    if (plan.previousConfig && (await fileExists(plan.previousConfig))) {
+      await fs.rename(plan.previousConfig, plan.targetConfig);
+    }
+    if (plan.previousDb && (await fileExists(plan.previousDb))) {
+      await fs.rename(plan.previousDb, plan.targetDb);
+    }
+    for (const sidecar of progress.movedSidecars.reverse()) {
       if (await fileExists(sidecar.preserved)) await fs.rename(sidecar.preserved, sidecar.original);
     }
-    await fs.rm(dbTemp, { force: true });
-    await fs.rm(configTemp, { force: true });
+    await fs.rm(plan.dbTemp, { force: true });
+    await fs.rm(plan.configTemp, { force: true });
     throw error;
   }
 }
