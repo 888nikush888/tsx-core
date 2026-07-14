@@ -2,7 +2,7 @@ import assert from 'assert';
 import { isValidTargetChannel, mergeConfigDefaults } from '../src/config.js';
 import { hasNestedQuantifiers, parseRegex } from '../src/filters.js';
 import { ConcurrencyQueue } from '../src/queue.js';
-import { buildStructuredLogEntry, maskPII } from '../src/ui.js';
+import { buildStructuredLogEntry, maskPII } from '../src/logger.js';
 
 async function runTests() {
   console.log("=== Running Modular Unit Tests ===");

@@ -102,7 +102,7 @@ export async function analyzeArchitecture() {
     ...entryPoints,
     'backup.ts',
     'signal_parser.ts',
-    'ui.ts',
+    'logger.ts',
     'web_server.ts',
   ]);
 

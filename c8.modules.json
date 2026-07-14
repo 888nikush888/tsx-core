@@ -4,7 +4,6 @@
   "exclude": [
     "src/**/*.d.ts",
     "src/forwarder.ts",
-    "src/ui.ts",
     "src/*_cli.ts"
   ],
   "reporter": ["text", "json-summary", "html"],

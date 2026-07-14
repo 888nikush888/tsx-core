@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import { writeConfigSync } from './config.js';
-import { addLog, getLogHistory } from './ui.js';
+import { addLog, getLogHistory } from './logger.js';
 import {
   getIncomingMessages,
   getProcessedSignals,

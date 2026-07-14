@@ -53,11 +53,7 @@ import { OperationalDataRetention, retentionPolicyFromEnvironment } from './rete
 import { invokeWithFloodWaitRetry } from './tdlib_retry.js';
 import { DeliverySloTracker } from './slo_tracker.js';
 import { auditTrailFromEnvironment, type EnterpriseAuditTrail } from './audit_trail.js';
-import {
-  C_RESET, C_GREEN, C_DARK_GREEN, C_RED,
-  clearConsole, pressAnyKey, addLog, clearLogHistory,
-  runMenuSystem, runLiveLogScreen, playStartupAnimation, initFileLogger
-} from './ui.js';
+import { addLog, clearLogHistory, initFileLogger } from './logger.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -1033,58 +1029,6 @@ async function startForwardingNonInteractive(config) {
   }
 }
 
-async function startForwarding(config) {
-  if (forwardQueue.running > 0) throw new Error('Cannot start routing while previous queue tasks are still running.');
-  applyQueueSettings(config);
-  const { apiId, apiHash } = routingCredentials(config);
-  if (!routingConfigurationIsComplete(config, apiId, apiHash)) {
-    console.log(`\n${C_RED}FEHLER: Konfiguration unvollständig!${C_RESET}\n${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-    await pressAnyKey(); return 'main';
-  }
-  clearConsole();
-  console.log(`${C_DARK_GREEN}===================================================\n Verbinde mit Telegram Mainframe... Bitte warten.\n===================================================${C_RESET}`);
-  try {
-    await connectAndActivateRouting(config, apiId, apiHash, true, "[SUCCESS] Mainframe-Routing aktiv!");
-    await runLiveLogScreen(
-      config,
-      client,
-      () => state.totalForwardedCount,
-      async () => {
-        await stopForwarding();
-      },
-      (cmd) => {
-        if (cmd === 'p') {
-          forwardQueue.pause();
-          addLog("[WARN] Weiterleitung PAUSIERT. Nachrichten werden in der Queue gesammelt.");
-        } else if (cmd === 'r') {
-          forwardQueue.resume();
-          addLog("[SUCCESS] Weiterleitung REAKTIVIERT. Abarbeitung fortgesetzt.");
-        }
-      },
-      () => forwardQueue.paused,
-      () => ({
-        running: forwardQueue.running,
-        queued: forwardQueue.queue.length,
-        maxConcurrency: forwardQueue.maxConcurrency
-      })
-    );
-  } catch (error: any) {
-    state.connectionState = 'error';
-    console.error(`\n${C_RED}Startfehler:${C_RESET}`, error.message);
-    const drained = await cleanupFailedRoutingStart('Interactive startup failed.');
-    if (!drained) addLog('[CRITICAL] Queue did not drain after interactive startup failure.');
-    console.log(`\n${C_GREEN}Beliebige Taste drücken...${C_RESET}`); await pressAnyKey();
-  }
-  return 'main';
-}
-
-async function restartApp() {
-  clearConsole(); console.log(`${C_GREEN}Initialisiere Neustart des Mainframes...${C_RESET}`);
-  await stopForwarding();
-  clearLogHistory();
-  await new Promise(r => setTimeout(r, 800)); await playStartupAnimation(); return 'main';
-}
-
 function getShutdownGraceMs(): number {
   const configured = Number(process.env.SHUTDOWN_GRACE_MS || 30_000);
   return Number.isSafeInteger(configured) && configured >= 1_000 && configured <= 120_000 ? configured : 30_000;
@@ -1295,32 +1239,18 @@ function startDashboardRuntime(runtime: RuntimeConfiguration): void {
 }
 
 async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<void> {
-  const isNonInteractive = process.env.NON_INTERACTIVE === 'true' || !process.stdout.isTTY;
-  if (isNonInteractive) {
-    addLog("[INFO] Starte im nicht-interaktiven Modus (Daemon-Modus)...");
-    await startForwardingNonInteractive(runtime.config);
+  const { apiId, apiHash } = routingCredentials(runtime.config);
+  if (!routingConfigurationIsComplete(runtime.config, apiId, apiHash)) {
+    state.connectionState = 'configuration-required';
+    addLog('[INFO] Web setup required; routing remains stopped until configuration is complete.');
     return;
   }
-
-  await playStartupAnimation();
-  let menu = 'main';
+  addLog('[INFO] Starting configured Docker service.');
   try {
-    await fsPromises.access('./session_data/.routing_active');
-    menu = 'start';
-    addLog('[INFO] Unerwarteter Abbruch erkannt. Starte automatische Wiederaufnahme des Routings...');
-  } catch {
-    // Lockfile existiert nicht, normal starten
+    await startForwardingNonInteractive(runtime.config);
+  } catch (error: any) {
+    addLog(`[ERROR] Automatic routing start failed; dashboard remains available: ${error.message}`);
   }
-  while (menu !== 'exit') {
-    if (menu === 'main') menu = await runMenuSystem(runtime.config, writeConfigSync, state);
-    else if (menu === 'start') menu = await startForwarding(runtime.config);
-    else if (menu === 'restart') {
-      menu = await restartApp();
-      runtime.config = readConfigSync();
-    }
-  }
-  clearConsole(); console.log(`${C_GREEN}Beende Programm...${C_RESET}`);
-  await shutdown(0);
 }
 
 async function run() {
