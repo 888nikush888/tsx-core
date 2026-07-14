@@ -3,7 +3,13 @@ import { getTdjson } from 'prebuilt-tdlib';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { readConfigSync, writeConfigSync, isValidTargetChannel, mergeConfigDefaults } from './config.js';
+import {
+  canonicalizeResolvedSources,
+  readConfigSync,
+  writeConfigSync,
+  isValidTargetChannel,
+  mergeConfigDefaults
+} from './config.js';
 import { loadEnv } from './env.js';
 import { getMessageTextAndType, shouldForward } from './filters.js';
 import { ConcurrencyQueue } from './queue.js';
@@ -399,6 +405,27 @@ async function resolveChatId(identifier) {
   } catch (e) { throw new Error(`Kanal @${username} nicht gefunden (${e.message})`, { cause: e }); }
 }
 
+async function resolveConfiguredSources(config) {
+  const resolutions: Array<{ configured: string; canonicalId: string }> = [];
+  for (const source of config.sourceChannels) {
+    const canonicalId = await resolveChatId(source);
+    resolutions.push({ configured: source, canonicalId });
+    addLog(`[SUCCESS] Quell-Knoten geladen: ${source} -> ${canonicalId}`);
+  }
+
+  const canonicalized = canonicalizeResolvedSources(config, resolutions);
+  if (canonicalized.changed) {
+    Object.assign(config, canonicalized.config);
+    writeConfigSync(config);
+    addLog('[INFO] Quellenidentitäten, Filter und KI-Templates wurden atomar auf numerische Telegram-IDs migriert.');
+  }
+
+  state.resolvedSourceChatIds.clear();
+  for (const sourceId of canonicalized.config.sourceChannels) {
+    state.resolvedSourceChatIds.add(sourceId);
+  }
+}
+
 function isForwardRestrictedError(error: any): boolean {
   const message = String(error?.message || error || '');
   return /CHAT_FORWARDS_RESTRICTED|MESSAGE_COPY_FORBIDDEN|CONTENT_RESTRICTED/i.test(message);
@@ -775,12 +802,7 @@ async function startForwardingNonInteractive(config) {
       }
     }
     
-    state.resolvedSourceChatIds.clear();
-    for (const src of config.sourceChannels) {
-      const id = await resolveChatId(src); 
-      state.resolvedSourceChatIds.add(id);
-      addLog(`[SUCCESS] Quell-Knoten geladen: ${src} -> ${id}`);
-    }
+    await resolveConfiguredSources(config);
     
     targetChatId = await resolveChatId(config.targetChannel);
     addLog(`[SUCCESS] Ziel-Knoten geladen: ${config.targetChannel} -> ${targetChatId}`);
@@ -865,11 +887,7 @@ async function startForwarding(config) {
         for (let i = 0; i < 15; i++) await client.invoke({ _: 'loadChats', chat_list: list, limit: 100 });
       } catch (e) { if (e.message && !e.message.includes('CHAT_LIST_LOAD')) addLog(`[WARN] loadChats (${list._}): ${e.message}`); }
     }
-    state.resolvedSourceChatIds.clear();
-    for (const src of config.sourceChannels) {
-      const id = await resolveChatId(src); state.resolvedSourceChatIds.add(id);
-      addLog(`[SUCCESS] Quell-Knoten geladen: ${src} -> ${id}`);
-    }
+    await resolveConfiguredSources(config);
     targetChatId = await resolveChatId(config.targetChannel);
     addLog(`[SUCCESS] Ziel-Knoten geladen: ${config.targetChannel} -> ${targetChatId}`);
     client.on('update', update => {

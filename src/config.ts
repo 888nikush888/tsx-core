@@ -86,6 +86,16 @@ export interface Config {
   };
 }
 
+export interface SourceResolution {
+  configured: string;
+  canonicalId: string;
+}
+
+export interface CanonicalizedSourceConfig {
+  config: Config;
+  changed: boolean;
+}
+
 export const DEFAULT_CONFIG: Config = {
   apiId: 0,
   sourceChannels: [],
@@ -128,6 +138,113 @@ export const DEFAULT_CONFIG: Config = {
     cooldownHours: 24
   }
 };
+
+function sameJsonValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function remapSourceScopedValues<T>(
+  values: Record<string, T>,
+  resolutionByConfigured: Map<string, string>,
+  canonicalIds: Set<string>,
+  fieldName: string
+): Record<string, T> {
+  const remapped: Record<string, T> = {};
+  for (const [sourceKey, value] of Object.entries(values || {})) {
+    const canonicalId = resolutionByConfigured.get(sourceKey)
+      || (canonicalIds.has(sourceKey) ? sourceKey : undefined);
+    if (!canonicalId) {
+      throw new Error(`${fieldName}["${sourceKey}"] does not match a configured Telegram source.`);
+    }
+    if (canonicalId in remapped && !sameJsonValue(remapped[canonicalId], value)) {
+      throw new Error(`${fieldName} contains conflicting values for canonical source ${canonicalId}.`);
+    }
+    remapped[canonicalId] = value;
+  }
+  return remapped;
+}
+
+function validateSourceResolutions(
+  sourceChannels: string[],
+  resolutions: SourceResolution[]
+): { resolutionByConfigured: Map<string, string>; canonicalIds: Set<string> } {
+  if (resolutions.length !== sourceChannels.length) {
+    throw new Error('Every configured Telegram source must have exactly one resolution.');
+  }
+  const configuredSources = new Set(sourceChannels);
+  if (configuredSources.size !== sourceChannels.length) {
+    throw new Error('Duplicate configured Telegram sources are not allowed.');
+  }
+
+  const resolutionByConfigured = new Map<string, string>();
+  const canonicalIds = new Set<string>();
+  for (const resolution of resolutions) {
+    const configured = String(resolution.configured || '').trim();
+    const canonicalId = String(resolution.canonicalId || '').trim();
+    if (!configuredSources.has(configured)) {
+      throw new Error(`Resolution for unknown Telegram source ${configured || '<empty>'}.`);
+    }
+    if (resolutionByConfigured.has(configured)) {
+      throw new Error(`Telegram source ${configured} was resolved more than once.`);
+    }
+    if (!/^-?\d+$/.test(canonicalId)) {
+      throw new Error(`Telegram source ${configured} resolved to an invalid numeric chat id.`);
+    }
+    if (canonicalIds.has(canonicalId)) {
+      throw new Error(`Multiple configured Telegram sources resolve to canonical chat id ${canonicalId}.`);
+    }
+    resolutionByConfigured.set(configured, canonicalId);
+    canonicalIds.add(canonicalId);
+  }
+  for (const configured of sourceChannels) {
+    if (!resolutionByConfigured.has(configured)) {
+      throw new Error(`Telegram source ${configured} was not resolved.`);
+    }
+  }
+  return { resolutionByConfigured, canonicalIds };
+}
+
+export function canonicalizeResolvedSources(
+  input: Config,
+  resolutions: SourceResolution[]
+): CanonicalizedSourceConfig {
+  const config = structuredClone(input);
+  const { resolutionByConfigured, canonicalIds } = validateSourceResolutions(
+    config.sourceChannels,
+    resolutions
+  );
+
+  config.sourceFilters = remapSourceScopedValues(
+    config.sourceFilters,
+    resolutionByConfigured,
+    canonicalIds,
+    'sourceFilters'
+  );
+  config.sourceAliases = remapSourceScopedValues(
+    config.sourceAliases,
+    resolutionByConfigured,
+    canonicalIds,
+    'sourceAliases'
+  );
+  config.xmlParsing.sourceTemplates = remapSourceScopedValues(
+    config.xmlParsing.sourceTemplates,
+    resolutionByConfigured,
+    canonicalIds,
+    'xmlParsing.sourceTemplates'
+  );
+
+  for (const [configured, canonicalId] of resolutionByConfigured) {
+    if (configured.startsWith('@') && !config.sourceAliases[canonicalId]) {
+      config.sourceAliases[canonicalId] = configured;
+    }
+  }
+  config.sourceChannels = input.sourceChannels.map(source => resolutionByConfigured.get(source)!);
+
+  return {
+    config,
+    changed: JSON.stringify(config) !== JSON.stringify(input)
+  };
+}
 
 /**
  * Validates the target channel format without using hardcoded magic strings.
