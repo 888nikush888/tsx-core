@@ -107,7 +107,7 @@ Die Werte sind die initialen verbindlichen Ziele; sie werden nach dem ersten bel
 | Readiness-Verfügbarkeit                     |                      ≥99,5 % |          3 h 36 min | Error-Budget-Freeze und Ursachenreview                  |
 | KI-Golden-Set exakte Erwartung              |           100 % Release-Gate |                   0 | Modell-/Prompt-Release blockieren                       |
 | KI-Kosten/Tag                               | ≤ konfiguriertes Tagesbudget |    0 Überschreitung | Provider-Aufrufe fail closed blockieren                 |
-| Backup-Frische                              |                      ≤15 min |                   0 | Readiness rot; Off-host-Pipeline reparieren             |
+| Lokal und Off-host restore-verifiziert      |                      ≤15 min |                   0 | Readiness rot; Off-host-Pipeline reparieren             |
 | Retention-Lauf ohne Backlog                 |                       ≤12 h |                   0 | Readiness rot; Kapazität und Batchgrenze prüfen         |
 | Freier operativer Speicher                  | `≥ DATA_MIN_FREE_BYTES`      |                   0 | Routing stoppen; Kapazität sicher erweitern             |
 

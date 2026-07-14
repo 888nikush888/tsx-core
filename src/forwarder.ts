@@ -48,6 +48,7 @@ import { MetricsTracker } from './metrics_tracker.js';
 import { TelegramDeliveryTracker } from './delivery_tracker.js';
 import { checkCrashLoopFiles } from './crash_guard.js';
 import { BackupScheduler } from './backup.js';
+import { offsiteBackupFromEnvironment } from './backup_replication.js';
 import { OperationalDataRetention, retentionPolicyFromEnvironment } from './retention.js';
 import { invokeWithFloodWaitRetry } from './tdlib_retry.js';
 import {
@@ -339,12 +340,27 @@ async function availableDiskBytes(databasePath: string): Promise<number> {
   return available;
 }
 
-function backupMetricSnapshot(): Pick<OperationalMetrics, 'backupHealthy' | 'backupLastSuccessAt'> {
+function backupMetricSnapshot(): Pick<OperationalMetrics,
+  | 'backupHealthy'
+  | 'backupLastSuccessAt'
+  | 'backupOffsiteHealthy'
+  | 'backupOffsiteRequired'
+  | 'backupOffsiteLastSuccessAt'
+> {
   const backup = backupScheduler?.getStatus();
-  if (!backup) return { backupHealthy: false, backupLastSuccessAt: null };
+  if (!backup) return {
+    backupHealthy: false,
+    backupLastSuccessAt: null,
+    backupOffsiteHealthy: false,
+    backupOffsiteRequired: false,
+    backupOffsiteLastSuccessAt: null
+  };
   return {
     backupHealthy: backup.healthy,
-    backupLastSuccessAt: backup.lastSuccessAt
+    backupLastSuccessAt: backup.lastSuccessAt,
+    backupOffsiteHealthy: backup.offsiteHealthy,
+    backupOffsiteRequired: backup.offsiteRequired,
+    backupOffsiteLastSuccessAt: backup.lastOffsiteSuccessAt
   };
 }
 
@@ -1154,7 +1170,9 @@ process.on('SIGINT', () => { void shutdown(0).finally(() => process.exit(process
 process.on('SIGTERM', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
 
 async function run() {
-  loadEnv(); let config = readConfigSync();
+  loadEnv();
+  const offsiteBackup = offsiteBackupFromEnvironment();
+  let config = readConfigSync();
   initializeDeliveryTracker();
   await initFileLogger();
   await initDb();
@@ -1183,7 +1201,9 @@ async function run() {
     () => configSnapshot(config),
     backupIntervalMs,
     backupRetention,
-    addLog
+    addLog,
+    offsiteBackup.replicator,
+    offsiteBackup.required
   );
   await backupScheduler.start();
 

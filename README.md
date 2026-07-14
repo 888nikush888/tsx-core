@@ -116,7 +116,9 @@ npm run backup:restore -- ./backups/backup-<timestamp>-<id>
 
 Restore verweigert die Ausführung, solange `.process_active` oder `.routing_active` im State-Verzeichnis existiert. Ein nach hartem Prozessabbruch veralteter Lock darf erst entfernt werden, nachdem auf Betriebssystemebene bestätigt wurde, dass kein Forwarder-Prozess mehr läuft und die Outbox reconciled ist. Bestehende DB und Konfiguration werden nicht gelöscht, sondern als `.pre-restore-*` für einen unmittelbaren Rollback erhalten.
 
-Die Backup-Artefakte enthalten Nachrichten-, Signal- und damit potenziell personenbezogene Daten. `BACKUP_DIR` muss auf ein zugriffsbeschränktes, verschlüsseltes und vom Primärhost unabhängiges Backup-Ziel repliziert werden; ein Verzeichnis auf derselben Platte erfüllt Disaster Recovery nicht. Der automatisierte Restore-Test belegt das Verfahren gegen isolierte Testdaten, ersetzt aber nicht den mindestens monatlichen Staging-Restore mit dokumentierter Dauer und Datenabgleich.
+Die Backup-Artefakte enthalten Nachrichten-, Signal- und damit potenziell personenbezogene Daten. In `NODE_ENV=production` ist Off-host-Replikation deshalb standardmäßig Pflicht. `BACKUP_OFFSITE_URL_TEMPLATE` bezeichnet einen HTTPS-Objektendpunkt, der authentifizierte `PUT`- und `GET`-Anfragen auf demselben, durch `{artifact}` parametrisierten Pfad unterstützt; Token und 32-Byte-AES-Schlüssel kommen über `BACKUP_OFFSITE_TOKEN[_FILE]` und `BACKUP_ENCRYPTION_KEY[_FILE]`. Einen Schlüssel erzeugt `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+
+Jedes lokale Artefakt wird vor dem Upload geprüft, als begrenztes internes Archiv mit AES-256-GCM verschlüsselt und hochgeladen. Anschließend lädt der Dienst exakt dieses Objekt wieder herunter, vergleicht SHA-256 und Länge, authentifiziert und entschlüsselt es und führt erneut SQLite-Integritäts-, Tabellen-, Manifest- und Secret-Prüfungen aus. Erst dann gilt das Backup als erfolgreich und Readiness bleibt grün. Der Verschlüsselungsschlüssel muss getrennt vom Backup-Store aufbewahrt werden; ein lokales Verzeichnis oder ein nicht zurücklesbarer Upload erfüllt Disaster Recovery nicht.
 
 ### Daten-Retention und Kapazität
 
@@ -156,7 +158,7 @@ Der Container läuft als unprivilegierter Benutzer mit schreibgeschütztem Root-
    docker compose ps
    ```
 
-Der Container-Restart ist auf drei Fehlversuche begrenzt, damit Konfigurations-, Authentifizierungs- oder Crash-Loops nicht unbegrenzt weiterlaufen. `./backups` ist nur die lokale Restore-Quelle und muss zusätzlich verschlüsselt und vom Primärhost unabhängig repliziert werden.
+Der Container-Restart ist auf drei Fehlversuche begrenzt, damit Konfigurations-, Authentifizierungs- oder Crash-Loops nicht unbegrenzt weiterlaufen. `./backups` ist nur die lokale Restore-Quelle. Ohne vollständige Off-host-Konfiguration verweigert der Production-Container den Start.
 
 ---
 

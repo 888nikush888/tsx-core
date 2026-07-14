@@ -15,6 +15,7 @@ const allTests = [
   'test_delivery_tracker.js',
   'test_crash_guard.js',
   'test_backup.js',
+  'test_backup_replication.js',
   'test_retention.js',
   'test_metrics.js',
   'test_web_server.js',

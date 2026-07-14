@@ -13,6 +13,9 @@ export interface OperationalMetrics {
   lastForwardedAt: number | null;
   backupHealthy: boolean;
   backupLastSuccessAt: number | null;
+  backupOffsiteHealthy: boolean;
+  backupOffsiteRequired: boolean;
+  backupOffsiteLastSuccessAt: number | null;
   retentionHealthy: boolean;
   retentionLastSuccessAt: number | null;
   retentionDeletedTotal: number;
@@ -73,6 +76,8 @@ function readinessChecks(operational: OperationalMetrics): Record<string, boolea
     connection: safeConnectionState(operational.connectionState),
     queuePaused: operational.queuePaused,
     backup: operational.backupHealthy,
+    backupOffsite: operational.backupOffsiteHealthy,
+    backupOffsiteRequired: operational.backupOffsiteRequired,
     retention: operational.retentionHealthy,
     diskCapacity: operational.diskCapacityHealthy
   };
@@ -97,6 +102,9 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
     ...metric('tg_forwarder_last_confirmed_delivery_timestamp_seconds', 'Unix time of the last confirmed delivery', 'gauge', operational.lastForwardedAt ? Math.floor(operational.lastForwardedAt / 1000) : 0),
     ...metric('tg_forwarder_backup_healthy', 'Whether the latest scheduled backup succeeded within the RPO window', 'gauge', operational.backupHealthy ? 1 : 0),
     ...metric('tg_forwarder_backup_last_success_timestamp_seconds', 'Unix time of the last verified backup', 'gauge', operational.backupLastSuccessAt ? Math.floor(operational.backupLastSuccessAt / 1000) : 0),
+    ...metric('tg_forwarder_backup_offsite_healthy', 'Whether encrypted off-site replication was downloaded and restore-verified', 'gauge', operational.backupOffsiteHealthy ? 1 : 0),
+    ...metric('tg_forwarder_backup_offsite_required', 'Whether off-site replication is a readiness requirement', 'gauge', operational.backupOffsiteRequired ? 1 : 0),
+    ...metric('tg_forwarder_backup_offsite_last_success_timestamp_seconds', 'Unix time of the last restore-verified off-site backup', 'gauge', operational.backupOffsiteLastSuccessAt ? Math.floor(operational.backupOffsiteLastSuccessAt / 1000) : 0),
     ...metric('tg_forwarder_retention_healthy', 'Whether operational data retention is current and has no backlog', 'gauge', operational.retentionHealthy ? 1 : 0),
     ...metric('tg_forwarder_retention_last_success_timestamp_seconds', 'Unix time of the last successful retention run', 'gauge', operational.retentionLastSuccessAt ? Math.floor(operational.retentionLastSuccessAt / 1000) : 0),
     ...metric('tg_forwarder_retention_deleted_rows_total', 'Operational rows deleted by retention since process start', 'counter', operational.retentionDeletedTotal),

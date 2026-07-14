@@ -5,6 +5,13 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import { backupDatabase } from './db.js';
 
+interface BackupReplicator {
+  replicate(artifactPath: string): Promise<{
+    objectName: string;
+    verifiedAt: number;
+  }>;
+}
+
 const DATABASE_FILE = 'forwarder.db';
 const CONFIG_FILE = 'config.json';
 const MANIFEST_FILE = 'manifest.json';
@@ -35,6 +42,8 @@ export interface BackupStatus {
   lastArtifact: string | null;
   lastError: string | null;
   running: boolean;
+  lastOffsiteSuccessAt: number | null;
+  lastOffsiteObject: string | null;
 }
 
 function normalizedConfigKey(key: string): string {
@@ -250,14 +259,23 @@ export async function restoreBackupArtifact(
 export class BackupScheduler {
   private interval: NodeJS.Timeout | null = null;
   private activeRun: Promise<string> | null = null;
-  private status: BackupStatus = { lastSuccessAt: null, lastArtifact: null, lastError: null, running: false };
+  private status: BackupStatus = {
+    lastSuccessAt: null,
+    lastArtifact: null,
+    lastError: null,
+    running: false,
+    lastOffsiteSuccessAt: null,
+    lastOffsiteObject: null
+  };
 
   constructor(
     private readonly backupDirectory: string,
     private readonly configProvider: () => any,
     private readonly intervalMs = 15 * 60_000,
     private readonly retainCount = 672,
-    private readonly logger: (message: string) => void = console.log
+    private readonly logger: (message: string) => void = console.log,
+    private readonly replicator: BackupReplicator | null = null,
+    private readonly offsiteRequired = false
   ) {
     if (!Number.isSafeInteger(intervalMs) || intervalMs < 60_000 || intervalMs > 15 * 60_000) {
       throw new Error('Backup interval must be between 1 and 15 minutes to preserve the RPO.');
@@ -265,6 +283,7 @@ export class BackupScheduler {
     if (!Number.isSafeInteger(retainCount) || retainCount < 1 || retainCount > 10_000) {
       throw new Error('Backup retention count must be between 1 and 10000.');
     }
+    if (offsiteRequired && !replicator) throw new Error('Required off-site backup replication is not configured.');
   }
 
   public async start(): Promise<void> {
@@ -282,11 +301,16 @@ export class BackupScheduler {
     if (this.activeRun) await this.activeRun;
   }
 
-  public getStatus(): BackupStatus & { healthy: boolean } {
+  public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean } {
     const status = { ...this.status };
+    const offsiteHealthy = !this.replicator && !this.offsiteRequired
+      ? true
+      : !!status.lastOffsiteSuccessAt && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
     return {
       ...status,
-      healthy: !!status.lastSuccessAt && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2
+      healthy: !!status.lastSuccessAt && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy,
+      offsiteHealthy,
+      offsiteRequired: this.offsiteRequired
     };
   }
 
@@ -296,9 +320,18 @@ export class BackupScheduler {
     const operation = (async () => {
       try {
         const artifact = await createBackupArtifact(this.backupDirectory, this.configProvider());
+        const replication = this.replicator ? await this.replicator.replicate(artifact) : null;
         await pruneBackupArtifacts(this.backupDirectory, this.retainCount);
-        this.status = { lastSuccessAt: Date.now(), lastArtifact: artifact, lastError: null, running: false };
+        this.status = {
+          lastSuccessAt: Date.now(),
+          lastArtifact: artifact,
+          lastError: null,
+          running: false,
+          lastOffsiteSuccessAt: replication?.verifiedAt ?? this.status.lastOffsiteSuccessAt,
+          lastOffsiteObject: replication?.objectName ?? this.status.lastOffsiteObject
+        };
         this.logger(`[INFO] Verified backup created: ${artifact}`);
+        if (replication) this.logger(`[INFO] Encrypted off-site backup verified: ${replication.objectName}`);
         return artifact;
       } catch (error: any) {
         this.status = { ...this.status, lastError: error.message, running: false };

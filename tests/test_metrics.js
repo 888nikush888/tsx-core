@@ -18,6 +18,9 @@ async function runTests() {
     lastForwardedAt: 1_700_000_000_000,
     backupHealthy: true,
     backupLastSuccessAt: 1_700_000_100_000,
+    backupOffsiteHealthy: true,
+    backupOffsiteRequired: true,
+    backupOffsiteLastSuccessAt: 1_700_000_150_000,
     retentionHealthy: true,
     retentionLastSuccessAt: 1_700_000_200_000,
     retentionDeletedTotal: 12,
@@ -60,6 +63,9 @@ async function runTests() {
   assert.match(metrics, /tg_forwarder_last_confirmed_delivery_timestamp_seconds 1700000000/);
   assert.match(metrics, /tg_forwarder_backup_healthy 1/);
   assert.match(metrics, /tg_forwarder_backup_last_success_timestamp_seconds 1700000100/);
+  assert.match(metrics, /tg_forwarder_backup_offsite_healthy 1/);
+  assert.match(metrics, /tg_forwarder_backup_offsite_required 1/);
+  assert.match(metrics, /tg_forwarder_backup_offsite_last_success_timestamp_seconds 1700000150/);
   assert.match(metrics, /tg_forwarder_retention_healthy 1/);
   assert.match(metrics, /tg_forwarder_retention_deleted_rows_total 12/);
   assert.match(metrics, /tg_forwarder_database_allocated_bytes 8192/);

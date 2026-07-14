@@ -95,6 +95,10 @@ async function runTests() {
 
     assert.throws(() => new BackupScheduler(path.join(root, 'invalid-scheduler'), () => ({}), 59_999), /between 1 and 15 minutes/);
     assert.throws(() => new BackupScheduler(path.join(root, 'invalid-retention'), () => ({}), 60_000, 0), /between 1 and 10000/);
+    assert.throws(
+      () => new BackupScheduler(path.join(root, 'required-offsite'), () => ({}), 60_000, 2, () => {}, null, true),
+      /Required off-site backup replication is not configured/
+    );
 
     await initDb(databasePath);
     const schedulerRoot = path.join(root, 'scheduled');
