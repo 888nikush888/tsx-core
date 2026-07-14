@@ -59,6 +59,7 @@ Das System wurde auf Enterprise-Niveau gehoben und nutzt moderne Best Practices:
    ```
 2. **Konfiguration einrichten**:
    * Kopieren Sie `.env.example` zu `.env` und tragen Sie `OPENROUTER_API_KEY`, `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` sowie einen zufälligen `DASHBOARD_ADMIN_TOKEN` ein. Secrets werden ausschließlich über die Prozessumgebung gelesen und weder im Dashboard angezeigt noch in Backups exportiert.
+   * Im Enterprise-Betrieb werden Secrets als einzelne Dateien aus dem Secret-Store eingebunden und über `OPENROUTER_API_KEY_FILE`, `TELEGRAM_API_HASH_FILE`, `DASHBOARD_ADMIN_TOKEN_FILE` und optional `DASHBOARD_VIEWER_TOKEN_FILE` referenziert. Direkter Wert und `_FILE` dürfen nie gleichzeitig gesetzt sein; der Prozess bricht sonst fail-closed ab. Bereits gesetzte Orchestrator-Variablen haben Vorrang vor `.env`.
    * Kopieren Sie `config.json.example` zu `config.json` und tragen Sie Ihre Quell- und Zielkanäle ein.
 3. **Im Entwicklungsmodus ausführen** (kompiliert on-the-fly):
    ```bash
