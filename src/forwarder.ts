@@ -840,45 +840,40 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
   }
 }
 
-async function handleUpdate(update, config) {
+async function routeIncomingMessage(message: any, config: any): Promise<void> {
+  const chatId = String(message.chat_id);
+  if (!state.resolvedSourceChatIds.has(chatId) || message.is_outgoing) return;
+
+  const { text, type } = getMessageTextAndType(message);
+  const sender = config.sourceAliases?.[chatId] || chatId;
+  const inserted = await saveIncomingMessage(chatId, message.id, sender, text || '', type, 'received');
+  if (!inserted) {
+    addLog(`[INFO] Duplicate incoming message ${chatId}/${message.id} ignored.`);
+    return;
+  }
+
+  addLog(`[INFO] Neues Datenpaket ${message.id} an Quell-Knoten ${chatId} abgefangen.`);
+  if (!shouldForward(message, config.filters, addLog, chatId, config)) {
+    await updateIncomingMessageStatus(chatId, message.id, 'filtered');
+    return;
+  }
+  if (!message.media_group_id || message.media_group_id === '0') {
+    await enqueueSingleMessage(message, config);
+    return;
+  }
+  if (config.forwardOptions?.forwardToTarget ?? true) {
+    await handleMediaGroupMessage(message, config);
+    return;
+  }
+  addLog(`[INFO] Album-Paketgruppe ${message.media_group_id} übersprungen (Weiterleitung deaktiviert).`);
+}
+
+async function handleUpdate(update: any, config: any): Promise<void> {
   deliveryTracker?.handleUpdate(update);
-
   if (update._ === 'updateConnectionState') {
-    const stateName = update.state?._ || 'unknown';
-    addLog(`[TDLib Status] Verbindungszustand geändert: ${stateName}`);
+    addLog(`[TDLib Status] Verbindungszustand geändert: ${update.state?._ || 'unknown'}`);
   }
-
-  if (update._ === 'updateNewMessage') {
-    const message = update.message;
-    const chatIdStr = String(message.chat_id);
-    if (state.resolvedSourceChatIds.has(chatIdStr)) {
-      if (message.is_outgoing) return;
-
-      const { text, type } = getMessageTextAndType(message);
-      const sender = config.sourceAliases?.[chatIdStr] || chatIdStr;
-      const inserted = await saveIncomingMessage(chatIdStr, message.id, sender, text || '', type, 'received');
-      if (!inserted) {
-        addLog(`[INFO] Duplicate incoming message ${chatIdStr}/${message.id} ignored.`);
-        return;
-      }
-
-      addLog(`[INFO] Neues Datenpaket ${message.id} an Quell-Knoten ${chatIdStr} abgefangen.`);
-      if (!shouldForward(message, config.filters, addLog, chatIdStr, config)) {
-        await updateIncomingMessageStatus(chatIdStr, message.id, 'filtered');
-        return;
-      }
-      if (message.media_group_id && message.media_group_id !== '0') {
-        const shouldForwardToTelegram = config.forwardOptions?.forwardToTarget ?? true;
-        if (shouldForwardToTelegram) {
-          await handleMediaGroupMessage(message, config);
-        } else {
-          addLog(`[INFO] Album-Paketgruppe ${message.media_group_id} übersprungen (Weiterleitung deaktiviert).`);
-        }
-      } else {
-        await enqueueSingleMessage(message, config);
-      }
-    }
-  }
+  if (update._ === 'updateNewMessage') await routeIncomingMessage(update.message, config);
 }
 
 async function stopForwarding() {
@@ -914,96 +909,126 @@ async function stopForwarding() {
   addLog("[SUCCESS] Weiterleitung gestoppt!");
 }
 
+function routingCredentials(config: any): { apiId: number; apiHash: string } {
+  const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
+  return { apiId, apiHash: process.env.TELEGRAM_API_HASH || '' };
+}
+
+function routingConfigurationIsComplete(config: any, apiId: number, apiHash: string): boolean {
+  return Boolean(
+    apiId
+    && /^[a-f0-9]{32}$/i.test(apiHash)
+    && config.sourceChannels.length > 0
+    && isValidTargetChannel(config.targetChannel)
+  );
+}
+
+async function preloadTelegramChats(): Promise<void> {
+  for (const list of [{ _: 'chatListMain' }, { _: 'chatListArchive' }]) {
+    try {
+      for (let index = 0; index < 15; index++) {
+        await client.invoke({ _: 'loadChats', chat_list: list, limit: 100 });
+      }
+    } catch (error: any) {
+      if (error.message && !error.message.includes('CHAT_LIST_LOAD')) {
+        addLog(`[WARN] loadChats (${list._}): ${error.message}`);
+      }
+    }
+  }
+}
+
+function attachTelegramUpdateHandler(config: any): void {
+  client.on('update', update => {
+    void handleUpdate(update, config).catch(error => {
+      addLog(`[ERROR] Telegram update handling failed: ${error.message}`);
+    });
+  });
+}
+
+async function writeRoutingActiveMarker(): Promise<void> {
+  try {
+    await fsPromises.mkdir('./session_data', { recursive: true });
+    await fsPromises.writeFile('./session_data/.routing_active', 'active', 'utf-8');
+  } catch (error: any) {
+    addLog(`[WARN] Konnte Lockfile nicht erstellen: ${error.message}`);
+  }
+}
+
+async function connectAndActivateRouting(
+  config: any,
+  apiId: number,
+  apiHash: string,
+  resetLogs: boolean,
+  activeMessage: string
+): Promise<void> {
+  state.connectionState = 'connecting';
+  client = tdl.createClient({ apiId, apiHash, databaseDirectory: './session_data', filesDirectory: './session_files' });
+  client.on('error', err => {
+    state.connectionState = 'error';
+    addLog(`[TDLib Fehler] ${err.message || err}`);
+  });
+  await client.login();
+  state.connectionState = 'connected';
+  if (resetLogs) clearLogHistory();
+  addLog("[SUCCESS] Mainframe-Verbindung autorisiert!");
+  await preloadTelegramChats();
+  await resolveConfiguredSources(config);
+  targetChatId = await resolveChatId(config.targetChannel);
+  addLog(`[SUCCESS] Ziel-Knoten geladen: ${config.targetChannel} -> ${targetChatId}`);
+  attachTelegramUpdateHandler(config);
+  state.startupTime = Math.floor(Date.now() / 1000);
+  state.isRunning = true;
+  addLog(activeMessage);
+  await writeRoutingActiveMarker();
+  forwardQueue.resume();
+  await resumePersistedTasks(config);
+  await loadAndResumeMediaGroupBuffer(config);
+}
+
+async function cleanupFailedRoutingStart(reason: string): Promise<boolean> {
+  state.isRunning = false;
+  state.startupTime = null;
+  state.resolvedSourceChatIds.clear();
+  targetChatId = null;
+  forwardQueue.pause();
+  forwardQueue.clear();
+  forwardQueue.abortRunning(reason);
+  const drained = await forwardQueue.waitForIdle(getShutdownGraceMs());
+  if (client) {
+    try {
+      await client.close();
+    } catch (error: any) {
+      addLog(`[WARN] TDLib client close failed after startup error: ${error.message}`);
+    }
+    client = null;
+  }
+  if (drained) {
+    try {
+      await fsPromises.unlink('./session_data/.routing_active');
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') addLog(`[WARN] Routing lock cleanup failed after startup error: ${error.message}`);
+    }
+  }
+  return drained;
+}
+
 async function startForwardingNonInteractive(config) {
   if (forwardQueue.running > 0) throw new Error('Cannot start routing while previous queue tasks are still running.');
   applyQueueSettings(config);
-  
-  const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
-  const apiHash = process.env.TELEGRAM_API_HASH;
-  
-  if (!apiId || !/^[a-f0-9]{32}$/i.test(apiHash || '') || config.sourceChannels.length === 0 || !isValidTargetChannel(config.targetChannel)) {
+  const { apiId, apiHash } = routingCredentials(config);
+  if (!routingConfigurationIsComplete(config, apiId, apiHash)) {
     addLog("[ERROR] Konfiguration unvollständig! Bitte apiId, TELEGRAM_API_HASH, sourceChannels und targetChannel prüfen.");
     throw new Error('Non-interactive routing configuration is incomplete.');
   }
 
   try {
     addLog("[INFO] Verbinde mit Telegram Mainframe...");
-    state.connectionState = 'connecting';
-    client = tdl.createClient({ apiId, apiHash, databaseDirectory: './session_data', filesDirectory: './session_files' });
-    client.on('error', err => {
-      state.connectionState = 'error';
-      addLog(`[TDLib Fehler] ${err.message || err}`);
-    });
-    
-    await client.login();
-    state.connectionState = 'connected';
-    addLog("[SUCCESS] Mainframe-Verbindung autorisiert!");
-    
-    for (const list of [{ _: 'chatListMain' }, { _: 'chatListArchive' }]) {
-      try {
-        for (let i = 0; i < 15; i++) await client.invoke({ _: 'loadChats', chat_list: list, limit: 100 });
-      } catch (e) { 
-        if (e.message && !e.message.includes('CHAT_LIST_LOAD')) {
-          addLog(`[WARN] loadChats (${list._}): ${e.message}`); 
-        }
-      }
-    }
-    
-    await resolveConfiguredSources(config);
-    
-    targetChatId = await resolveChatId(config.targetChannel);
-    addLog(`[SUCCESS] Ziel-Knoten geladen: ${config.targetChannel} -> ${targetChatId}`);
-    
-    // Set startupTime to filter out offline messages
-    state.startupTime = Math.floor(Date.now() / 1000);
-    
-    client.on('update', update => {
-      void handleUpdate(update, config).catch(error => {
-        addLog(`[ERROR] Telegram update handling failed: ${error.message}`);
-      });
-    });
-    state.isRunning = true; 
-    addLog("[SUCCESS] Mainframe-Routing aktiv!");
-    
-    // Create lockfile to mark routing active
-    try {
-      await fsPromises.mkdir('./session_data', { recursive: true });
-      await fsPromises.writeFile('./session_data/.routing_active', 'active', 'utf-8');
-    } catch (e) {
-      addLog(`[WARN] Konnte Lockfile nicht erstellen: ${e.message}`);
-    }
-
-    forwardQueue.resume();
-    await resumePersistedTasks(config);
-    await loadAndResumeMediaGroupBuffer(config);
-
+    await connectAndActivateRouting(config, apiId, apiHash, false, "[SUCCESS] Mainframe-Routing aktiv!");
   } catch (error: any) {
     state.connectionState = 'error';
     addLog(`[FATAL] Fehler beim Starten des Forwardings: ${error.message}`);
-    state.isRunning = false;
-    state.startupTime = null;
-    state.resolvedSourceChatIds.clear();
-    targetChatId = null;
-    forwardQueue.pause();
-    forwardQueue.clear();
-    forwardQueue.abortRunning('Non-interactive startup failed.');
-    const drained = await forwardQueue.waitForIdle(getShutdownGraceMs());
+    const drained = await cleanupFailedRoutingStart('Non-interactive startup failed.');
     if (!drained) addLog('[CRITICAL] Queue did not drain after non-interactive startup failure.');
-    if (client) {
-      try {
-        await client.close();
-      } catch (closeError: any) {
-        addLog(`[WARN] TDLib client close failed after startup error: ${closeError.message}`);
-      }
-      client = null;
-    }
-    if (drained) {
-      try {
-        await fsPromises.unlink('./session_data/.routing_active');
-      } catch (lockError: any) {
-        if (lockError.code !== 'ENOENT') addLog(`[WARN] Routing lock cleanup failed after startup error: ${lockError.message}`);
-      }
-    }
     throw error;
   }
 }
@@ -1011,51 +1036,15 @@ async function startForwardingNonInteractive(config) {
 async function startForwarding(config) {
   if (forwardQueue.running > 0) throw new Error('Cannot start routing while previous queue tasks are still running.');
   applyQueueSettings(config);
-  const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
-  const apiHash = process.env.TELEGRAM_API_HASH;
-  if (!apiId || !/^[a-f0-9]{32}$/i.test(apiHash || '') || config.sourceChannels.length === 0 || !isValidTargetChannel(config.targetChannel)) {
+  const { apiId, apiHash } = routingCredentials(config);
+  if (!routingConfigurationIsComplete(config, apiId, apiHash)) {
     console.log(`\n${C_RED}FEHLER: Konfiguration unvollständig!${C_RESET}\n${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
     await pressAnyKey(); return 'main';
   }
   clearConsole();
   console.log(`${C_DARK_GREEN}===================================================\n Verbinde mit Telegram Mainframe... Bitte warten.\n===================================================${C_RESET}`);
   try {
-    state.connectionState = 'connecting';
-    client = tdl.createClient({ apiId, apiHash, databaseDirectory: './session_data', filesDirectory: './session_files' });
-    client.on('error', err => {
-      state.connectionState = 'error';
-      addLog(`[TDLib Fehler] ${err.message || err}`);
-    });
-    await client.login();
-    state.connectionState = 'connected';
-    clearLogHistory(); addLog("[SUCCESS] Mainframe-Verbindung autorisiert!");
-    for (const list of [{ _: 'chatListMain' }, { _: 'chatListArchive' }]) {
-      try {
-        for (let i = 0; i < 15; i++) await client.invoke({ _: 'loadChats', chat_list: list, limit: 100 });
-      } catch (e) { if (e.message && !e.message.includes('CHAT_LIST_LOAD')) addLog(`[WARN] loadChats (${list._}): ${e.message}`); }
-    }
-    await resolveConfiguredSources(config);
-    targetChatId = await resolveChatId(config.targetChannel);
-    addLog(`[SUCCESS] Ziel-Knoten geladen: ${config.targetChannel} -> ${targetChatId}`);
-    client.on('update', update => {
-      void handleUpdate(update, config).catch(error => {
-        addLog(`[ERROR] Telegram update handling failed: ${error.message}`);
-      });
-    });
-    state.startupTime = Math.floor(Date.now() / 1000);
-    state.isRunning = true; addLog("[SUCCESS] Mainframe-Routing active!");
-    
-    // Create lockfile to mark routing active
-    try {
-      await fsPromises.mkdir('./session_data', { recursive: true });
-      await fsPromises.writeFile('./session_data/.routing_active', 'active', 'utf-8');
-    } catch (e) {
-      addLog(`[WARN] Konnte Lockfile nicht erstellen: ${e.message}`);
-    }
-
-    forwardQueue.resume();
-    await resumePersistedTasks(config);
-    await loadAndResumeMediaGroupBuffer(config);
+    await connectAndActivateRouting(config, apiId, apiHash, true, "[SUCCESS] Mainframe-Routing aktiv!");
     await runLiveLogScreen(
       config,
       client,
@@ -1079,29 +1068,11 @@ async function startForwarding(config) {
         maxConcurrency: forwardQueue.maxConcurrency
       })
     );
-  } catch (error) {
+  } catch (error: any) {
     state.connectionState = 'error';
     console.error(`\n${C_RED}Startfehler:${C_RESET}`, error.message);
-    if (client) {
-      try {
-        await client.close();
-      } catch (closeError: any) {
-        addLog(`[WARN] TDLib client close failed after interactive startup error: ${closeError.message}`);
-      }
-      client = null;
-    }
-    forwardQueue.pause();
-    forwardQueue.clear();
-    forwardQueue.abortRunning('Interactive startup failed.');
-    const drained = await forwardQueue.waitForIdle(getShutdownGraceMs());
+    const drained = await cleanupFailedRoutingStart('Interactive startup failed.');
     if (!drained) addLog('[CRITICAL] Queue did not drain after interactive startup failure.');
-    if (drained) {
-      try {
-        await fsPromises.unlink('./session_data/.routing_active');
-      } catch (error: any) {
-        if (error.code !== 'ENOENT') addLog(`[WARN] Routing-Lock konnte nicht entfernt werden: ${error.message}`);
-      }
-    }
     console.log(`\n${C_GREEN}Beliebige Taste drücken...${C_RESET}`); await pressAnyKey();
   }
   return 'main';
@@ -1121,94 +1092,93 @@ function getShutdownGraceMs(): number {
 
 let shutdownPromise: Promise<void> | null = null;
 
+async function stopScheduler(scheduler: { stop: () => Promise<void> } | null, label: string): Promise<void> {
+  if (!scheduler) return;
+  try {
+    await scheduler.stop();
+  } catch (error: any) {
+    console.warn(`[WARN] ${label} konnte nicht sauber beendet werden: ${error.message}`);
+  }
+}
+
+async function stopRuntimeServices(): Promise<void> {
+  await stopScheduler(backupScheduler, 'Laufendes Backup');
+  await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
+  try {
+    metricsTracker?.stop();
+  } catch {
+    /* ignore stop error */
+  }
+  try {
+    await stopMetricsServer();
+  } catch {
+    /* ignore metrics server close error */
+  }
+  try {
+    await stopWebServer();
+  } catch {
+    /* ignore web server close error */
+  }
+  if (!client) return;
+  try {
+    await client.close();
+  } catch (error: any) {
+    console.warn(`[WARN] Fehler beim Schließen des TDLib Clients: ${error.message}`);
+  }
+  client = null;
+}
+
+async function closeDatabaseAfterDrain(drained: boolean): Promise<boolean> {
+  if (!drained) return false;
+  try {
+    await closeDb();
+    return true;
+  } catch (error: any) {
+    console.warn(`[WARN] Fehler beim Schließen der SQLite-Datenbank: ${error.message}`);
+    return false;
+  }
+}
+
+async function removeOperationalLock(lockPath: string, label: string): Promise<void> {
+  try {
+    await fsPromises.unlink(lockPath);
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') console.warn(`[WARN] ${label} konnte nicht entfernt werden: ${error.message}`);
+  }
+}
+
+async function performShutdown(exitCode: number): Promise<void> {
+  addLog("[INFO] System-Shutdown eingeleitet...");
+  state.isRunning = false;
+  state.connectionState = 'disconnected';
+  forwardQueue.pause();
+  forwardQueue.clear();
+  forwardQueue.abortRunning('Process shutdown.');
+  deliveryTracker?.close('Process shutdown.');
+  const drained = await forwardQueue.waitForIdle(getShutdownGraceMs());
+  if (!drained) {
+    addLog('[CRITICAL] Shutdown-Frist abgelaufen; nicht abgeschlossene Tasks werden beim Neustart reconciled.');
+  }
+  await stopRuntimeServices();
+  const databaseClosed = await closeDatabaseAfterDrain(drained);
+  if (drained) await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
+  if (databaseClosed) await removeOperationalLock(processLockPath, 'Prozess-Lock');
+  process.exitCode = exitCode;
+}
+
 function shutdown(exitCode = 0): Promise<void> {
-  if (shutdownPromise) return shutdownPromise;
-  shutdownPromise = (async () => {
-    addLog("[INFO] System-Shutdown eingeleitet...");
-    state.isRunning = false;
-    state.connectionState = 'disconnected';
-    forwardQueue.pause();
-    forwardQueue.clear();
-    forwardQueue.abortRunning('Process shutdown.');
-    deliveryTracker?.close('Process shutdown.');
-    const drained = await forwardQueue.waitForIdle(getShutdownGraceMs());
-    if (!drained) {
-      addLog('[CRITICAL] Shutdown-Frist abgelaufen; nicht abgeschlossene Tasks werden beim Neustart reconciled.');
-    }
-    if (backupScheduler) {
-      try {
-        await backupScheduler.stop();
-      } catch (error: any) {
-        console.warn(`[WARN] Laufendes Backup konnte nicht sauber beendet werden: ${error.message}`);
-      }
-    }
-    if (retentionScheduler) {
-      try {
-        await retentionScheduler.stop();
-      } catch (error: any) {
-        console.warn(`[WARN] Laufende Daten-Retention konnte nicht sauber beendet werden: ${error.message}`);
-      }
-    }
-    if (metricsTracker) {
-      try {
-        metricsTracker.stop();
-      } catch {
-        /* ignore stop error */
-      }
-    }
-    try {
-      await stopMetricsServer();
-    } catch {
-      /* ignore metrics server close error */
-    }
-    try {
-      await stopWebServer();
-    } catch {
-      /* ignore web server close error */
-    }
-    if (client) {
-      try {
-        await client.close();
-      } catch (err: any) {
-        console.warn(`[WARN] Fehler beim Schließen des TDLib Clients: ${err.message}`);
-      }
-      client = null;
-    }
-    let databaseClosed = false;
-    if (drained) {
-      try {
-        await closeDb();
-        databaseClosed = true;
-      } catch (error: any) {
-        console.warn(`[WARN] Fehler beim Schließen der SQLite-Datenbank: ${error.message}`);
-      }
-    }
-    if (drained) {
-      try {
-        await fsPromises.unlink('./session_data/.routing_active');
-      } catch (error: any) {
-        if (error.code !== 'ENOENT') console.warn(`[WARN] Routing-Lock konnte nicht entfernt werden: ${error.message}`);
-      }
-    }
-    if (databaseClosed) {
-      try {
-        await fsPromises.unlink(processLockPath);
-      } catch (error: any) {
-        if (error.code !== 'ENOENT') console.warn(`[WARN] Prozess-Lock konnte nicht entfernt werden: ${error.message}`);
-      }
-    }
-    process.exitCode = exitCode;
-  })();
+  if (!shutdownPromise) shutdownPromise = performShutdown(exitCode);
   return shutdownPromise;
 }
 
 process.on('SIGINT', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
 process.on('SIGTERM', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
 
-async function run() {
-  loadEnv();
-  const offsiteBackup = offsiteBackupFromEnvironment();
-  let config = readConfigSync();
+interface RuntimeConfiguration {
+  config: any;
+}
+
+async function initializeCoreRuntime() {
   initializeDeliveryTracker();
   await initFileLogger();
   auditTrail = auditTrailFromEnvironment();
@@ -1228,7 +1198,11 @@ async function run() {
   const retentionPolicy = retentionPolicyFromEnvironment();
   retentionScheduler = new OperationalDataRetention(retentionPolicy, addLog);
   await retentionScheduler.start();
+  return { databasePath, retentionPolicy };
+}
 
+async function startBackupRuntime(runtime: RuntimeConfiguration): Promise<void> {
+  const offsiteBackup = offsiteBackupFromEnvironment();
   const backupIntervalValue = Number(process.env.BACKUP_INTERVAL_MS || 15 * 60_000);
   const backupIntervalMs = Number.isSafeInteger(backupIntervalValue) && backupIntervalValue >= 60_000 && backupIntervalValue <= 15 * 60_000
     ? backupIntervalValue
@@ -1237,7 +1211,7 @@ async function run() {
   const backupRetention = Number.isSafeInteger(retentionValue) && retentionValue >= 1 && retentionValue <= 10_000 ? retentionValue : 672;
   backupScheduler = new BackupScheduler(
     process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'),
-    () => configSnapshot(config),
+    () => configSnapshot(runtime.config),
     backupIntervalMs,
     backupRetention,
     addLog,
@@ -1245,7 +1219,9 @@ async function run() {
     offsiteBackup.required
   );
   await backupScheduler.start();
+}
 
+function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number): void {
   startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
     totalForwardedCountCallback: () => state.totalForwardedCount,
     getQueueStateCallback: () => ({
@@ -1255,11 +1231,10 @@ async function run() {
     }),
     getOperationalMetricsCallback: () => collectOperationalMetrics(
       databasePath,
-      retentionPolicy.minFreeBytes
+      minimumFreeBytes
     )
   });
 
-  // Initialize and start Metrics Tracker
   try {
     metricsTracker = new MetricsTracker({
       totalForwardedCountCallback: () => state.totalForwardedCount,
@@ -1274,12 +1249,13 @@ async function run() {
   } catch (err: any) {
     console.error(`[WARN] Konnte Metrics Tracker nicht initialisieren: ${err.message}`);
   }
+}
 
-  // Start Web Dashboard Server (Default Port: 8080)
+function startDashboardRuntime(runtime: RuntimeConfiguration): void {
   const webPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
   try {
     startWebServer(webPort, {
-      config,
+      config: runtime.config,
       state,
       startForwarding: async (cfg) => {
         await startForwardingNonInteractive(cfg);
@@ -1294,7 +1270,7 @@ async function run() {
         paused: forwardQueue.paused
       }),
       reloadConfig: () => {
-        config = readConfigSync();
+        runtime.config = readConfigSync();
       },
       applyRuntimeConfig: (updatedConfig) => {
         applyQueueSettings(updatedConfig);
@@ -1306,7 +1282,7 @@ async function run() {
         return listOutboxTasks(statuses as any, 1000);
       },
       retryOutboxTask: async (taskId) => {
-        return retryPersistedTask(taskId, config);
+        return retryPersistedTask(taskId, runtime.config);
       },
       acknowledgeOutboxTask: async (taskId, reason) => {
         return acknowledgeOutboxTask(taskId, reason);
@@ -1316,12 +1292,13 @@ async function run() {
   } catch (err: any) {
     addLog(`[WARN] Web Dashboard konnte nicht gestartet werden: ${err.message}`);
   }
+}
 
+async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<void> {
   const isNonInteractive = process.env.NON_INTERACTIVE === 'true' || !process.stdout.isTTY;
-
   if (isNonInteractive) {
     addLog("[INFO] Starte im nicht-interaktiven Modus (Daemon-Modus)...");
-    await startForwardingNonInteractive(config);
+    await startForwardingNonInteractive(runtime.config);
     return;
   }
 
@@ -1335,12 +1312,25 @@ async function run() {
     // Lockfile existiert nicht, normal starten
   }
   while (menu !== 'exit') {
-    if (menu === 'main') menu = await runMenuSystem(config, writeConfigSync, state);
-    else if (menu === 'start') menu = await startForwarding(config);
-    else if (menu === 'restart') { menu = await restartApp(); config = readConfigSync(); }
+    if (menu === 'main') menu = await runMenuSystem(runtime.config, writeConfigSync, state);
+    else if (menu === 'start') menu = await startForwarding(runtime.config);
+    else if (menu === 'restart') {
+      menu = await restartApp();
+      runtime.config = readConfigSync();
+    }
   }
   clearConsole(); console.log(`${C_GREEN}Beende Programm...${C_RESET}`);
   await shutdown(0);
+}
+
+async function run() {
+  loadEnv();
+  const runtime = { config: readConfigSync() };
+  const { databasePath, retentionPolicy } = await initializeCoreRuntime();
+  await startBackupRuntime(runtime);
+  startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
+  startDashboardRuntime(runtime);
+  await runConfiguredMode(runtime);
 }
 run().catch(async err => {
   console.error("Kritischer Fehler:", err.message);
