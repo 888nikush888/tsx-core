@@ -129,10 +129,41 @@ async function runTests() {
   const originalKey = process.env.OPENROUTER_API_KEY;
   const originalModel = process.env.OPENROUTER_MODEL;
   const originalFallback = process.env.OPENROUTER_FALLBACK_MODEL;
+  delete process.env.OPENROUTER_API_KEY;
+  await assert.rejects(parseSignalToXml('valid input'), /OPENROUTER_API_KEY/);
   process.env.OPENROUTER_API_KEY = 'test-key-not-a-secret';
   delete process.env.OPENROUTER_MODEL;
   delete process.env.OPENROUTER_FALLBACK_MODEL;
   try {
+    await assert.rejects(parseSignalToXml(''), /source text is empty/);
+    await assert.rejects(parseSignalToXml('contains\0nul'), /forbidden NUL/);
+    await assert.rejects(
+      parseSignalToXml('x'.repeat(101), undefined, undefined, {
+        limits: { maxInputChars: 100 },
+        budget: memoryBudget(),
+        requestCompletion: async () => ({ choices: [] })
+      }),
+      /character limit/
+    );
+    await assert.rejects(
+      parseSignalToXml('valid input', undefined, undefined, {
+        limits: { primaryAttempts: 1, fallbackAttempts: 0, backoffMs: 0 },
+        budget: memoryBudget(),
+        requestCompletion: async () => ({ choices: [] })
+      }),
+      /exactly one choice/
+    );
+    await assert.rejects(
+      parseSignalToXml('valid input', undefined, undefined, {
+        limits: { primaryAttempts: 1, fallbackAttempts: 0, backoffMs: 0 },
+        budget: memoryBudget(),
+        requestCompletion: async () => ({
+          choices: [{ finish_reason: 'stop', message: { content: '' } }]
+        })
+      }),
+      /content is empty/
+    );
+
     const budget = memoryBudget();
     let capturedRequest;
     let capturedOptions;
