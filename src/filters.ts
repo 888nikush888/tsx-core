@@ -25,22 +25,34 @@ export function clearRegexCache(): void {
   regexCache.clear();
 }
 
+interface RegexGroupState {
+  index: number;
+  hasQuantifier: boolean;
+  isSpecial: boolean;
+}
+
+function closesNestedQuantifier(pattern: string, index: number, openGroups: RegexGroupState[]): boolean {
+  const group = openGroups.pop();
+  if (!group?.hasQuantifier) return false;
+  const nextChar = pattern[index + 1];
+  return nextChar === '+' || nextChar === '*' || nextChar === '?' || nextChar === '{';
+}
+
 /**
  * Checks if a pattern contains nested quantifiers or dangerous alternation structures
  * that might result in exponential backtracking (ReDoS).
  */
 export function hasNestedQuantifiers(pattern: string): boolean {
-  const openParens: Array<{ index: number; hasQuantifier: boolean; isSpecial: boolean }> = [];
-  let inCharacterClass = false; // Zeichenklassen [...] tracken
+  const openParens: RegexGroupState[] = [];
+  let inCharacterClass = false;
 
   for (let i = 0; i < pattern.length; i++) {
     const char = pattern[i];
     if (char === '\\') {
-      i++; // Escaptes Zeichen überspringen
+      i++;
       continue;
     }
 
-    // Zeichenklassen-Grenzen erkennen
     if (char === '[' && !inCharacterClass) {
       inCharacterClass = true;
       continue;
@@ -49,27 +61,13 @@ export function hasNestedQuantifiers(pattern: string): boolean {
       continue;
     }
 
-    // Innerhalb von [...] sind Klammern und Quantoren literal, keine Regex-Logik
-    if (inCharacterClass) {
-      continue;
-    }
+    if (inCharacterClass) continue;
 
     if (char === '(') {
       const isSpecial = pattern[i + 1] === '?';
       openParens.push({ index: i, hasQuantifier: false, isSpecial });
     } else if (char === ')') {
-      const group = openParens.pop();
-      if (group) {
-        const nextChar = pattern[i + 1];
-        const isFollowedByQuantifier = nextChar === '+' || nextChar === '*' || nextChar === '?';
-        const isFollowedByBraces = nextChar === '{';
-        if (isFollowedByQuantifier || isFollowedByBraces) {
-          if (group.hasQuantifier) {
-            // Quantifier inside the parenthesis group and quantifier outside -> ReDoS risk
-            return true;
-          }
-        }
-      }
+      if (closesNestedQuantifier(pattern, i, openParens)) return true;
     } else if (char === '+' || char === '*' || char === '{') {
       if (openParens.length > 0) {
         openParens[openParens.length - 1]!.hasQuantifier = true;
@@ -173,6 +171,42 @@ export function getRegexPatternsForSource(config: any, sourceChatId: string | nu
   return config?.filters?.regexPatterns || [];
 }
 
+function containsKeyword(text: string, keywords: string[] | undefined): boolean {
+  if (!keywords?.length) return false;
+  const textLower = text.toLowerCase();
+  return keywords.some(keyword => textLower.includes(keyword.toLowerCase()));
+}
+
+function allowsKeyword(text: string, keywords: string[] | undefined): boolean {
+  return !keywords?.length || containsKeyword(text, keywords);
+}
+
+function resolveRegexPatterns(
+  filters: any,
+  sourceChatId: string | number | null,
+  config: any
+): string[] {
+  return sourceChatId && config
+    ? getRegexPatternsForSource(config, sourceChatId)
+    : (filters.regexPatterns || []);
+}
+
+function matchesAllRegexPatterns(
+  text: string,
+  patterns: string[],
+  logCallback: (msg: string) => void
+): boolean {
+  const safeMatchText = text.length > 8000 ? text.slice(0, 8000) : text;
+  return patterns.every(pattern => {
+    try {
+      return safeRegexTest(parseRegex(pattern), safeMatchText, 100);
+    } catch (err: any) {
+      logCallback(`[Filter-FEHLER] Ungültiges Regex-Muster /${pattern}/: ${err.message}`);
+      return false;
+    }
+  });
+}
+
 /**
  * Filters the message based on configured allowed/blocked keywords, media types, and custom regex.
  * Includes text length limiting to prevent long match ReDoS execution times.
@@ -188,64 +222,25 @@ export function shouldForward(
 
   const { text, type } = getMessageTextAndType(message);
 
-  // 1. Filter by content type
-  if (filters.allowedTypes && filters.allowedTypes.length > 0) {
-    if (!filters.allowedTypes.includes(type)) {
-      logCallback(`[Filter] Paket ${message.id} ignoriert (Inhaltstyp '${type}' nicht im Filter-Schema).`);
-      return false;
-    }
+  if (filters.allowedTypes?.length && !filters.allowedTypes.includes(type)) {
+    logCallback(`[Filter] Paket ${message.id} ignoriert (Inhaltstyp '${type}' nicht im Filter-Schema).`);
+    return false;
   }
 
-  // 2. Filter by blocked keywords (Blacklist)
-  if (filters.blockedKeywords && filters.blockedKeywords.length > 0) {
-    const textLower = text.toLowerCase();
-    const matchesBlocked = filters.blockedKeywords.some((keyword: string) => 
-      textLower.includes(keyword.toLowerCase())
-    );
-    if (matchesBlocked) {
-      logCallback(`[Filter] Paket ${message.id} blockiert (enthält Blacklist-Signatur).`);
-      return false;
-    }
+  if (containsKeyword(text, filters.blockedKeywords)) {
+    logCallback(`[Filter] Paket ${message.id} blockiert (enthält Blacklist-Signatur).`);
+    return false;
   }
 
-
-
-  // 3. Filter by allowed keywords (Whitelist)
-  if (filters.allowedKeywords && filters.allowedKeywords.length > 0) {
-    const textLower = text.toLowerCase();
-    const matchesAllowed = filters.allowedKeywords.some((keyword: string) =>
-      textLower.includes(keyword.toLowerCase())
-    );
-    if (!matchesAllowed) {
-      logCallback(`[Filter] Paket ${message.id} verworfen (keine erlaubte Signatur enthalten).`);
-      return false;
-    }
+  if (!allowsKeyword(text, filters.allowedKeywords)) {
+    logCallback(`[Filter] Paket ${message.id} verworfen (keine erlaubte Signatur enthalten).`);
+    return false;
   }
 
-  // 4. Custom Regex Filter (all must match)
-  // Resolve per-source or global regex patterns
-  const regexPatterns = (sourceChatId && config)
-    ? getRegexPatternsForSource(config, sourceChatId)
-    : (filters.regexPatterns || []);
-
-  if (regexPatterns.length > 0) {
-    // ReDoS Mitigation: Limit input text length to 8000 characters for regex matching
-    const safeMatchText = text.length > 8000 ? text.slice(0, 8000) : text;
-    
-    const matchesAll = regexPatterns.every((pattern: string) => {
-      try {
-        const regex = parseRegex(pattern);
-        return safeRegexTest(regex, safeMatchText, 100);
-      } catch (err: any) {
-        logCallback(`[Filter-FEHLER] Ungültiges Regex-Muster /${pattern}/: ${err.message}`);
-        return false;
-      }
-    });
-
-    if (!matchesAll) {
-      logCallback(`[Filter] Paket ${message.id} verworfen (Regex-Kriterien nicht erfüllt).`);
-      return false;
-    }
+  const regexPatterns = resolveRegexPatterns(filters, sourceChatId, config);
+  if (!matchesAllRegexPatterns(text, regexPatterns, logCallback)) {
+    logCallback(`[Filter] Paket ${message.id} verworfen (Regex-Kriterien nicht erfüllt).`);
+    return false;
   }
 
   return true;

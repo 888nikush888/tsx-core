@@ -1,11 +1,36 @@
 import assert from 'assert';
 import {
+  clearRegexCache,
   hasNestedQuantifiers,
   parseRegex,
+  safeRegexTest,
   getMessageTextAndType,
   shouldForward,
   getRegexPatternsForSource
 } from '../src/filters.js';
+
+function testRegexParsing() {
+  console.log("2. Testing parseRegex...");
+  const rx1 = parseRegex("hello");
+  assert.strictEqual(rx1.test("hello world"), true);
+  assert.strictEqual(rx1.test("HELLO world"), true);
+  assert.strictEqual(parseRegex("hello"), rx1, 'Compiled patterns should be reused');
+  clearRegexCache();
+  assert.notStrictEqual(parseRegex("hello"), rx1, 'Config reload must invalidate compiled patterns');
+
+  const rx2 = parseRegex("/\\btest\\b/i");
+  assert.strictEqual(rx2.test("this is a test message"), true);
+  assert.strictEqual(rx2.test("testing"), false);
+  assert.throws(() => parseRegex("(a+)+"), /ReDoS warning/);
+  assert.throws(() => parseRegex("(a|b+)+$"), /ReDoS warning/);
+  assert.throws(() => parseRegex("a".repeat(151)), /exceeds maximum length of 150/);
+  assert.throws(() => parseRegex("[a-z"), /Invalid regex pattern/);
+  assert.throws(
+    () => safeRegexTest(/(a+)+$/, `${'a'.repeat(10_000)}!`, 10),
+    /Regex timeout oder Script-Fehler/
+  );
+  console.log("   -> OK");
+}
 
 async function runTests() {
   console.log("=== Running Filters Unit Tests ===");
@@ -26,28 +51,7 @@ async function runTests() {
   assert.strictEqual(hasNestedQuantifiers("([a+])+"), false, "Quantifier inside char class, not in group");
   console.log("   -> OK");
 
-  // 2. parseRegex
-  console.log("2. Testing parseRegex...");
-  // Safe pattern
-  const rx1 = parseRegex("hello");
-  assert.strictEqual(rx1.test("hello world"), true);
-  assert.strictEqual(rx1.test("HELLO world"), true); // default flag is 'i'
-
-  const rx2 = parseRegex("/\\btest\\b/i");
-  assert.strictEqual(rx2.test("this is a test message"), true);
-  assert.strictEqual(rx2.test("testing"), false);
-
-  // ReDoS warning for nested quantifiers
-  assert.throws(() => parseRegex("(a+)+"), /ReDoS warning/);
-  assert.throws(() => parseRegex("(a|b+)+$"), /ReDoS warning/);
-
-  // Pattern length > 150 limit
-  const longPattern = "a".repeat(151);
-  assert.throws(() => parseRegex(longPattern), /exceeds maximum length of 150/);
-
-  // Invalid regex syntax
-  assert.throws(() => parseRegex("[a-z"), /Invalid regex pattern/);
-  console.log("   -> OK");
+  testRegexParsing();
 
   // 3. getMessageTextAndType
   console.log("3. Testing getMessageTextAndType...");
