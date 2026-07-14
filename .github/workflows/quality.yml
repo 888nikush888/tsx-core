@@ -62,7 +62,9 @@ jobs:
           npm run quality:risk-acceptances
           npm run quality:monitoring
       - name: Test and per-file coverage gate
-        run: npm run test:coverage
+        run: |
+          npm run test:coverage
+          npm run test:coverage:modules
       - name: Duplicate ratio gate
         run: npm run quality:duplicates
       - name: Reproducible build
@@ -75,6 +77,7 @@ jobs:
           name: quality-evidence-${{ github.sha }}
           path: |
             coverage/
+            coverage-modules/
             reports/
           if-no-files-found: error
           retention-days: 90

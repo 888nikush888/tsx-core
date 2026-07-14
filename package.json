@@ -20,7 +20,8 @@
     "ops:test-alert": "node scripts/send_synthetic_alert.js",
     "ops:soak": "node --import tsx scripts/check_soak_window.js",
     "test": "node tests/run_all.js",
-    "test:coverage": "c8 node tests/run_all.js",
+    "test:coverage": "c8 --config c8.critical.json node tests/run_all.js",
+    "test:coverage:modules": "node scripts/check_module_coverage.js",
     "test:mutation": "node scripts/run_mutation_shards.js",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"scripts/**/*.js\" \"*.js\" --quiet",
     "lint:frontend": "npm run lint --prefix frontend",
@@ -68,32 +69,5 @@
     "tsx": "^4.23.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0"
-  },
-  "c8": {
-    "all": true,
-    "include": [
-      "src/backup.ts",
-      "src/crash_guard.ts",
-      "src/delivery_tracker.ts",
-      "src/queue.ts",
-      "src/signal_schema.ts",
-      "src/slo_tracker.ts",
-      "src/tdlib_retry.ts"
-    ],
-    "exclude": [
-      "**/*.d.ts"
-    ],
-    "reporter": [
-      "text",
-      "json-summary",
-      "html"
-    ],
-    "reports-dir": "coverage",
-    "check-coverage": true,
-    "per-file": true,
-    "branches": 80,
-    "functions": 80,
-    "lines": 80,
-    "statements": 80
   }
 }

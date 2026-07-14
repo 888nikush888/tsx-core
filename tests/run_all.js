@@ -37,6 +37,7 @@ const allTests = [
   'test_frontend_quality.js',
   'test_release_artifacts.js',
   'test_complexity_budget.js',
+  'test_module_coverage.js',
 ];
 
 const requestedTests = process.argv.slice(2);

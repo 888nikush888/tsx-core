@@ -46,6 +46,7 @@ Jeder zutreffende Faktor wird einmal addiert. `scripts/calculate_pr_risk.js` ber
 | Lockfile-Install, Lint, Typecheck                 | Fail                          | Fail     | Fail                      |
 | Unit-/Integration-/Contract-Tests                 | Fail                          | Fail     | Fail                      |
 | Kritische per-file Branch Coverage ≥80 %          | Fail                          | Fail     | Fail                      |
+| Kernmodul-Coverage gegen Ratchet                  | Fail                          | Fail     | Fail                      |
 | Mutation Score kritischer Module ≥70 %            | Fail                          | Fail     | Fail                      |
 | Duplicate Ratio <5 %                              | Fail                          | Fail     | Fail                      |
 | Complexity-/Längen-Budget (kein Wachstum)         | Fail                          | Fail     | Fail                      |
@@ -68,6 +69,8 @@ Der Workflow `.github/workflows/quality.yml` implementiert die lokal automatisie
 Vor Veröffentlichung validiert `scripts/verify_github_governance.js` Branch Protection, konkrete Required Checks, Review-/CODEOWNERS-Regeln, Security-Features und die benötigten Environments direkt über die GitHub-API. Fehlende oder unprüfbare Plattformkontrollen blockieren den Release; die Einrichtung ist in `docs/GITHUB_GOVERNANCE.md` beschrieben.
 
 Die aktuell noch vorhandenen Alt-Hotspots sind in `quality-baseline.json` exakt geratcheted. `npm run quality:complexity` blockiert jede zusätzliche Warnung und jede höhere Worst-Case-Komplexität; auch eine Verbesserung blockiert so lange, bis das Budget im selben PR nach unten korrigiert wird. Das Budget darf nie erhöht werden, außer über einen gültigen zeitlich befristeten Risikoakzeptanz-Record.
+
+`npm run test:coverage` erzwingt zusätzlich mindestens 80 Prozent je Datei für die besonders kritischen Zustellungs-, Retry-, Schema-, Backup- und SLO-Module. `npm run test:coverage:modules` misst alle testbaren Kernmodule und blockiert jede Unterschreitung von `coverage-baseline.json`. Ausgenommen sind ausschließlich die Composition Roots `forwarder.ts`, `ui.ts` und die interaktiven `*_cli.ts`; deren Verdrahtung wird durch Build, Contract-Tests und den echten Staging-E2E-Lauf validiert, nicht als Unit-Coverage ausgegeben.
 
 ## Gate-Ausnahmen
 
