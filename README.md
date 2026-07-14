@@ -4,6 +4,8 @@ Ein leistungsstarker, robuster und vollständig nach **TypeScript** migrierter T
 
 Es ist für den **Docker-Betrieb als daemonisierten Hintergrunddienst (Service)** optimiert, bietet integrierte **Prometheus-Metriken**, strukturierte **JSON-Logs** und speichert Zustände ausfallsicher in einer **SQLite-Datenbank**.
 
+Die vollständige, verbindliche Anleitung für Installation, Konfiguration, Nutzung, Production-Release, Recovery und alle noch extern zu erbringenden Enterprise-Nachweise steht in [`docs/PRODUCTION_GUIDE.md`](docs/PRODUCTION_GUIDE.md).
+
 ---
 
 ## 📂 Ordnerstruktur & Datei-Guide
