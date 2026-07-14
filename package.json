@@ -15,7 +15,7 @@
     "backup:restore": "tsx src/backup_cli.ts restore",
     "test": "node tests/run_all.js",
     "test:coverage": "c8 node tests/run_all.js",
-    "test:mutation": "stryker run",
+    "test:mutation": "node scripts/run_mutation_shards.js",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"scripts/**/*.js\" \"*.js\" --quiet",
     "lint:frontend": "npm run lint --prefix frontend",
     "lint:report": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"scripts/**/*.js\" \"*.js\"",

@@ -8,6 +8,7 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 - Fail-closed Kanonisierung von Telegram-Quellen für quellspezifische Filter, Aliase und KI-Templates.
 - Begrenzte operative Daten-Retention mit Disk-/SQLite-Kapazitätsmetriken und Readiness-Gates.
+- Isolierte, terminierende Mutation-Shards für Queue, Retry und KI-Schema mit eigenständiger Evidenz.
 
 ## [1.0.0] - 2026-07-13
 

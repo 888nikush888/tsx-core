@@ -1,16 +1,38 @@
+const shardDefinitions = {
+  queue: {
+    mutate: ['src/queue.ts'],
+    command: 'node --import tsx tests/test_queue.js',
+  },
+  retry: {
+    mutate: ['src/tdlib_retry.ts'],
+    command: 'node --import tsx tests/test_tdlib_retry.js',
+  },
+  schema: {
+    mutate: ['src/signal_schema.ts'],
+    command: 'node --import tsx tests/test_signal_parser.js',
+  },
+};
+
+const shardName = process.env.STRYKER_SHARD || 'queue';
+const shard = shardDefinitions[shardName];
+if (!shard) throw new Error(`Unknown STRYKER_SHARD ${shardName}.`);
+
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 const config = {
-  mutate: ['src/queue.ts', 'src/tdlib_retry.ts', 'src/signal_schema.ts'],
+  mutate: shard.mutate,
   testRunner: 'command',
   commandRunner: {
-    command: 'node tests/run_all.js test_queue.js test_tdlib_retry.js test_signal_parser.js',
+    command: shard.command,
   },
   coverageAnalysis: 'off',
   incremental: true,
-  concurrency: 2,
-  timeoutMS: 20_000,
+  incrementalFile: `reports/stryker-${shardName}-incremental.json`,
+  concurrency: 1,
+  timeoutMS: 10_000,
+  cleanTempDir: 'always',
+  tempDirName: `.stryker-tmp-${shardName}`,
   reporters: ['clear-text', 'json'],
-  jsonReporter: { fileName: 'reports/mutation/mutation.json' },
+  jsonReporter: { fileName: `reports/mutation/${shardName}.json` },
   thresholds: { high: 80, low: 70, break: 70 },
   ignorePatterns: [
     'backups',
@@ -19,6 +41,7 @@ const config = {
     'frontend',
     'logs',
     'reports',
+    'scratch',
     'session_data',
     'session_files',
     'signals',
