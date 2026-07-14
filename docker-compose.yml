@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: telegram-tdlib-forwarder:local
+    image: ${FORWARDER_IMAGE:-telegram-tdlib-forwarder:local}
     container_name: tg-forwarder
     init: true
     restart: "on-failure:3"

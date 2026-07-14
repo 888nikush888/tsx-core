@@ -47,7 +47,7 @@ services:
       - alert-relay
 
   alert-relay:
-    image: telegram-tdlib-forwarder:local
+    image: ${FORWARDER_IMAGE:-telegram-tdlib-forwarder:local}
     command: [node, dist/alert_relay.js]
     restart: on-failure:3
     read_only: true

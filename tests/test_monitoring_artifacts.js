@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [prometheus, rules, alertmanager, compose, checker] = await Promise.all([
+const [prometheus, rules, alertmanager, compose, applicationCompose, checker] = await Promise.all([
   readFile('monitoring/prometheus.yml', 'utf8'),
   readFile('monitoring/rules.yml', 'utf8'),
   readFile('monitoring/alertmanager.yml', 'utf8'),
   readFile('docker-compose.monitoring.yml', 'utf8'),
+  readFile('docker-compose.yml', 'utf8'),
   readFile('scripts/check_monitoring.js', 'utf8')
 ]);
 
@@ -25,6 +26,8 @@ assert.match(alertmanager, /send_resolved:\s*true/);
 assert.match(compose, /prom\/prometheus:v3\.13\.0-distroless@sha256:[a-f0-9]{64}/);
 assert.match(compose, /prom\/alertmanager:v0\.32\.1@sha256:[a-f0-9]{64}/);
 assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
+assert.match(applicationCompose, /image:\s*\$\{FORWARDER_IMAGE:-telegram-tdlib-forwarder:local\}/);
+assert.match(compose, /image:\s*\$\{FORWARDER_IMAGE:-telegram-tdlib-forwarder:local\}/);
 assert.match(compose, /127\.0\.0\.1:\$\{HOST_PROMETHEUS_PORT:-9090\}:9090/);
 assert.match(checker, /promtool.*check/s);
 assert.match(checker, /promtool.*test/s);
