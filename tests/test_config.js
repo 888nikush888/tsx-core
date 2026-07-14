@@ -7,6 +7,7 @@ import {
   canonicalizeResolvedSources,
   readConfig,
   readConfigSync,
+  validateConfig,
   writeConfig,
   writeConfigSync
 } from '../src/config.js';
@@ -31,6 +32,27 @@ try {
   asyncConfig.targetChannel = '@valid_target';
   await writeConfig(asyncConfig, asyncPath);
   assert.equal((await readConfig(asyncPath)).targetChannel, '@valid_target');
+
+  const malformedValues = structuredClone(DEFAULT_CONFIG);
+  malformedValues.apiId = -7;
+  malformedValues.apiHash = 'remove-me';
+  malformedValues.forwardOptions = { maxConcurrency: 0, queueTimeoutSeconds: 100_000 };
+  malformedValues.xmlParsing.primaryModel = '../invalid model';
+  malformedValues.xmlParsing.sourceTemplates = ['not-a-map'];
+  malformedValues.xmlParsing.aiLimits = [];
+  malformedValues.sourceFilters = ['not-a-map'];
+  malformedValues.sourceAliases = ['not-a-map'];
+  const sanitized = validateConfig(malformedValues);
+  assert.equal(sanitized.apiId, 0);
+  assert.equal(sanitized.apiHash, undefined);
+  assert.equal(sanitized.forwardOptions.maxConcurrency, DEFAULT_CONFIG.forwardOptions.maxConcurrency);
+  assert.equal(sanitized.forwardOptions.queueTimeoutSeconds, DEFAULT_CONFIG.forwardOptions.queueTimeoutSeconds);
+  assert.equal(sanitized.xmlParsing.primaryModel, DEFAULT_CONFIG.xmlParsing.primaryModel);
+  assert.deepEqual(sanitized.xmlParsing.sourceTemplates, {});
+  assert.deepEqual(sanitized.xmlParsing.aiLimits, DEFAULT_CONFIG.xmlParsing.aiLimits);
+  assert.deepEqual(sanitized.sourceFilters, {});
+  assert.deepEqual(sanitized.sourceAliases, {});
+  assert.throws(() => validateConfig(null), /root must be a JSON object/);
 
   const missingPath = path.join(root, 'created-on-read.json');
   assert.deepEqual(readConfigSync(missingPath).sourceChannels, []);

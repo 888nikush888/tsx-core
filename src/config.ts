@@ -260,106 +260,133 @@ export function isValidTargetChannel(channel: unknown): boolean {
   return isNumeric || isUsername;
 }
 
+function isRecord(value: unknown): value is Record<string, any> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeApiId(cfg: Record<string, any>): void {
+  if (cfg.apiId === undefined) return;
+  const parsed = Number(cfg.apiId);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    console.warn(`[WARN] Invalid apiId "${cfg.apiId}" in config.json. Resetting to 0.`);
+    cfg.apiId = 0;
+    return;
+  }
+  cfg.apiId = parsed;
+}
+
+function normalizeForwardOptions(cfg: Record<string, any>): void {
+  if (!isRecord(cfg.forwardOptions)) cfg.forwardOptions = {};
+  const maxConcurrency = Number(cfg.forwardOptions.maxConcurrency);
+  cfg.forwardOptions.maxConcurrency =
+    Number.isSafeInteger(maxConcurrency) && maxConcurrency >= 1 && maxConcurrency <= 100
+      ? maxConcurrency
+      : DEFAULT_CONFIG.forwardOptions.maxConcurrency;
+  const queueTimeoutSeconds = Number(cfg.forwardOptions.queueTimeoutSeconds);
+  cfg.forwardOptions.queueTimeoutSeconds =
+    Number.isFinite(queueTimeoutSeconds) &&
+    queueTimeoutSeconds >= 0 &&
+    queueTimeoutSeconds <= 86_400
+      ? Math.floor(queueTimeoutSeconds)
+      : DEFAULT_CONFIG.forwardOptions.queueTimeoutSeconds;
+}
+
+function normalizeModelNames(xmlParsing: Record<string, any>): void {
+  for (const key of ['primaryModel', 'fallbackModel'] as const) {
+    const value = String(xmlParsing[key] || '').trim();
+    xmlParsing[key] = /^[a-zA-Z0-9._:/-]{1,128}$/.test(value)
+      ? value
+      : DEFAULT_CONFIG.xmlParsing[key];
+  }
+}
+
+function normalizeSourceTemplates(xmlParsing: Record<string, any>): void {
+  if (!isRecord(xmlParsing.sourceTemplates)) {
+    xmlParsing.sourceTemplates = {};
+    return;
+  }
+  for (const [key, value] of Object.entries(xmlParsing.sourceTemplates)) {
+    if (typeof value !== 'string') {
+      console.warn(`[WARN] xmlParsing.sourceTemplates["${key}"] is not a string and was removed.`);
+      delete xmlParsing.sourceTemplates[key];
+    }
+  }
+}
+
+const AI_LIMIT_RANGES: Record<keyof Config['xmlParsing']['aiLimits'], [number, number]> = {
+  maxInputChars: [100, 100_000],
+  maxOutputTokens: [128, 8_192],
+  primaryAttempts: [1, 3],
+  fallbackAttempts: [0, 2],
+  dailyRequestLimit: [1, 10_000],
+  dailyTokenLimit: [1_000, 100_000_000],
+  requestTimeoutMs: [1_000, 300_000],
+  backoffMs: [0, 10_000],
+};
+
+function normalizeAiLimits(xmlParsing: Record<string, any>): void {
+  if (!isRecord(xmlParsing.aiLimits)) {
+    xmlParsing.aiLimits = { ...DEFAULT_CONFIG.xmlParsing.aiLimits };
+  }
+  for (const [key, [minimum, maximum]] of Object.entries(AI_LIMIT_RANGES) as Array<[
+    keyof Config['xmlParsing']['aiLimits'],
+    [number, number],
+  ]>) {
+    const value = Number(xmlParsing.aiLimits[key]);
+    xmlParsing.aiLimits[key] =
+      Number.isSafeInteger(value) && value >= minimum && value <= maximum
+        ? value
+        : DEFAULT_CONFIG.xmlParsing.aiLimits[key];
+  }
+}
+
+function normalizeXmlParsing(cfg: Record<string, any>): void {
+  if (!isRecord(cfg.xmlParsing)) cfg.xmlParsing = structuredClone(DEFAULT_CONFIG.xmlParsing);
+  normalizeModelNames(cfg.xmlParsing);
+  normalizeSourceTemplates(cfg.xmlParsing);
+  normalizeAiLimits(cfg.xmlParsing);
+}
+
+function normalizeSourceFilters(cfg: Record<string, any>): void {
+  if (!isRecord(cfg.sourceFilters)) {
+    cfg.sourceFilters = {};
+    return;
+  }
+  for (const [key, value] of Object.entries(cfg.sourceFilters)) {
+    if (!isRecord(value)) {
+      console.warn(`[WARN] sourceFilters["${key}"] is not an object and was removed.`);
+      delete cfg.sourceFilters[key];
+    } else if (value.regexPatterns && !Array.isArray(value.regexPatterns)) {
+      console.warn(`[WARN] sourceFilters["${key}"].regexPatterns is not an array and was reset.`);
+      value.regexPatterns = [];
+    }
+  }
+}
+
+function normalizeSourceAliases(cfg: Record<string, any>): void {
+  if (!isRecord(cfg.sourceAliases)) {
+    cfg.sourceAliases = {};
+    return;
+  }
+  for (const [key, value] of Object.entries(cfg.sourceAliases)) {
+    if (typeof value !== 'string') {
+      console.warn(`[WARN] sourceAliases["${key}"] is not a string and was removed.`);
+      delete cfg.sourceAliases[key];
+    }
+  }
+}
+
 /**
  * Validates and sanitizes config properties.
  */
 export function validateConfig(cfg: any): Config {
-  // 0 means not configured yet; any configured apiId must be a safe positive integer.
-  if (cfg.apiId !== undefined) {
-    const parsed = Number(cfg.apiId);
-    if (!Number.isSafeInteger(parsed) || parsed < 0) {
-      console.warn(`[WARN] Ungültige apiId "${cfg.apiId}" in config.json. Setze auf 0 zurück.`);
-      cfg.apiId = 0;
-    } else {
-      cfg.apiId = parsed;
-    }
-  }
-  
+  if (!isRecord(cfg)) throw new Error('Configuration root must be a JSON object.');
+  normalizeApiId(cfg);
   delete cfg.apiHash;
-
-  if (!cfg.forwardOptions || typeof cfg.forwardOptions !== 'object') {
-    cfg.forwardOptions = {};
-  }
-  const maxConcurrency = Number(cfg.forwardOptions.maxConcurrency);
-  cfg.forwardOptions.maxConcurrency = Number.isSafeInteger(maxConcurrency) && maxConcurrency >= 1 && maxConcurrency <= 100
-    ? maxConcurrency
-    : DEFAULT_CONFIG.forwardOptions.maxConcurrency;
-
-  const queueTimeoutSeconds = Number(cfg.forwardOptions.queueTimeoutSeconds);
-  cfg.forwardOptions.queueTimeoutSeconds = Number.isFinite(queueTimeoutSeconds) && queueTimeoutSeconds >= 0 && queueTimeoutSeconds <= 86400
-    ? Math.floor(queueTimeoutSeconds)
-    : DEFAULT_CONFIG.forwardOptions.queueTimeoutSeconds;
-
-  if (cfg.xmlParsing) {
-    for (const key of ['primaryModel', 'fallbackModel'] as const) {
-      const value = String(cfg.xmlParsing[key] || '').trim();
-      cfg.xmlParsing[key] = /^[a-zA-Z0-9._:/-]{1,128}$/.test(value)
-        ? value
-        : DEFAULT_CONFIG.xmlParsing[key];
-    }
-    // Validate xmlParsing.sourceTemplates: must be an object with string template mappings
-    if (cfg.xmlParsing.sourceTemplates && typeof cfg.xmlParsing.sourceTemplates === 'object') {
-      for (const [key, value] of Object.entries(cfg.xmlParsing.sourceTemplates)) {
-        if (typeof value !== 'string') {
-          console.warn(`[WARN] xmlParsing.sourceTemplates["${key}"] ist kein gültiger String. Wird entfernt.`);
-          delete cfg.xmlParsing.sourceTemplates[key];
-        }
-      }
-    } else {
-      cfg.xmlParsing.sourceTemplates = {};
-    }
-
-    if (!cfg.xmlParsing.aiLimits || typeof cfg.xmlParsing.aiLimits !== 'object') {
-      cfg.xmlParsing.aiLimits = { ...DEFAULT_CONFIG.xmlParsing.aiLimits };
-    }
-    const aiLimitRanges: Record<keyof Config['xmlParsing']['aiLimits'], [number, number]> = {
-      maxInputChars: [100, 100_000],
-      maxOutputTokens: [128, 8_192],
-      primaryAttempts: [1, 3],
-      fallbackAttempts: [0, 2],
-      dailyRequestLimit: [1, 10_000],
-      dailyTokenLimit: [1_000, 100_000_000],
-      requestTimeoutMs: [1_000, 300_000],
-      backoffMs: [0, 10_000]
-    };
-    for (const [key, [minimum, maximum]] of Object.entries(aiLimitRanges) as Array<[
-      keyof Config['xmlParsing']['aiLimits'],
-      [number, number]
-    ]>) {
-      const value = Number(cfg.xmlParsing.aiLimits[key]);
-      cfg.xmlParsing.aiLimits[key] = Number.isSafeInteger(value) && value >= minimum && value <= maximum
-        ? value
-        : DEFAULT_CONFIG.xmlParsing.aiLimits[key];
-    }
-  }
-
-  // Validate sourceFilters: must be an object with valid regexPatterns arrays
-  if (cfg.sourceFilters && typeof cfg.sourceFilters === 'object') {
-    for (const [key, value] of Object.entries(cfg.sourceFilters)) {
-      if (!value || typeof value !== 'object') {
-        console.warn(`[WARN] sourceFilters["${key}"] ist kein gültiges Objekt. Wird entfernt.`);
-        delete cfg.sourceFilters[key];
-      } else if ((value as any).regexPatterns && !Array.isArray((value as any).regexPatterns)) {
-        console.warn(`[WARN] sourceFilters["${key}"].regexPatterns ist kein Array. Wird auf [] zurückgesetzt.`);
-        (value as any).regexPatterns = [];
-      }
-    }
-  } else {
-    cfg.sourceFilters = {};
-  }
-
-  // Validate sourceAliases: must be an object with string values
-  if (cfg.sourceAliases && typeof cfg.sourceAliases === 'object') {
-    for (const [key, value] of Object.entries(cfg.sourceAliases)) {
-      if (typeof value !== 'string') {
-        console.warn(`[WARN] sourceAliases["${key}"] ist kein gültiger String. Wird entfernt.`);
-        delete cfg.sourceAliases[key];
-      }
-    }
-  } else {
-    cfg.sourceAliases = {};
-  }
-
+  normalizeForwardOptions(cfg);
+  normalizeXmlParsing(cfg);
+  normalizeSourceFilters(cfg);
+  normalizeSourceAliases(cfg);
   return cfg as Config;
 }
 
