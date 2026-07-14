@@ -5,6 +5,8 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+  schedule:
+    - cron: '17 3 * * 1'
   workflow_dispatch:
 
 concurrency:
@@ -69,7 +71,7 @@ jobs:
             coverage/
             reports/
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
 
   mutation:
     name: Critical mutation gate (${{ matrix.shard }})
@@ -102,7 +104,7 @@ jobs:
             reports/mutation/${{ matrix.shard }}.json
             reports/stryker-${{ matrix.shard }}-incremental.json
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
 
   sast:
     name: CodeQL SAST
@@ -176,8 +178,19 @@ jobs:
           format: sarif
           output: trivy.sarif
           severity: HIGH,CRITICAL
-          ignore-unfixed: true
           exit-code: '1'
+      - name: Preserve the scanned release candidate
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: docker save telegram-tdlib-forwarder:${{ github.sha }} | zstd -T0 -3 -o release-image.tar.zst
+      - name: Upload release candidate
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-image-${{ github.sha }}
+          path: release-image.tar.zst
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
       - name: Upload container evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -187,4 +200,100 @@ jobs:
             container.cdx.json
             trivy.sarif
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
+
+  release:
+    name: Publish attested immutable release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [verify, mutation, sast, secrets, container]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      attestations: write
+      artifact-metadata: write
+      contents: write
+      id-token: write
+      packages: write
+    steps:
+      - name: Checkout the exact release tag
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Require repository release immutability
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" >/dev/null
+      - name: Require tag and package versions to match
+        run: test "${GITHUB_REF_NAME}" = "v$(node -p "require('./package.json').version")"
+      - name: Download scanned image candidate
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: release-image-${{ github.sha }}
+          path: release-candidate
+      - name: Download application SBOM evidence
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: quality-evidence-${{ github.sha }}
+          path: application-evidence
+      - name: Download container scan evidence
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: container-evidence-${{ github.sha }}
+          path: container-evidence
+      - name: Load, publish and identify the scanned image
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zstd -dc release-candidate/release-image.tar.zst | docker load
+          image_name="ghcr.io/${GITHUB_REPOSITORY,,}"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker tag "telegram-tdlib-forwarder:${GITHUB_SHA}" "${image_name}:${GITHUB_REF_NAME}"
+          docker tag "telegram-tdlib-forwarder:${GITHUB_SHA}" "${image_name}:sha-${GITHUB_SHA}"
+          docker push "${image_name}:${GITHUB_REF_NAME}"
+          docker push "${image_name}:sha-${GITHUB_SHA}"
+          published_ref="$(docker inspect --format '{{index .RepoDigests 0}}' "${image_name}:${GITHUB_REF_NAME}")"
+          test "${published_ref}" != '<no value>'
+          echo "image-name=${image_name}" >> "$GITHUB_OUTPUT"
+          echo "image-digest=${published_ref#*@}" >> "$GITHUB_OUTPUT"
+      - name: Attest image build provenance
+        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999
+        with:
+          subject-name: ${{ steps.publish.outputs.image-name }}
+          subject-digest: ${{ steps.publish.outputs.image-digest }}
+          push-to-registry: true
+      - name: Attest the container SBOM
+        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999
+        with:
+          subject-name: ${{ steps.publish.outputs.image-name }}
+          subject-digest: ${{ steps.publish.outputs.image-digest }}
+          sbom-path: container-evidence/container.cdx.json
+          push-to-registry: true
+      - name: Assemble signed release evidence
+        env:
+          IMAGE_NAME: ${{ steps.publish.outputs.image-name }}
+          IMAGE_DIGEST: ${{ steps.publish.outputs.image-digest }}
+        run: |
+          mkdir release-assets
+          cp application-evidence/reports/sbom/backend.cdx.json release-assets/backend.cdx.json
+          cp application-evidence/reports/sbom/frontend.cdx.json release-assets/frontend.cdx.json
+          cp container-evidence/container.cdx.json release-assets/container.cdx.json
+          cp container-evidence/trivy.sarif release-assets/trivy.sarif
+          sha256sum release-assets/* > release-assets/SHA256SUMS
+          jq -n \
+            --arg tag "$GITHUB_REF_NAME" \
+            --arg commit "$GITHUB_SHA" \
+            --arg image "$IMAGE_NAME" \
+            --arg digest "$IMAGE_DIGEST" \
+            '{schemaVersion:1, tag:$tag, commit:$commit, image:$image, digest:$digest}' \
+            > release-assets/release-manifest.json
+      - name: Publish release with all assets atomically
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" release-assets/*
+          --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
+      - name: Verify immutable release and published attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release verify "$GITHUB_REF_NAME"
+          gh attestation verify "oci://${{ steps.publish.outputs.image-name }}@${{ steps.publish.outputs.image-digest }}" --repo "$GITHUB_REPOSITORY"

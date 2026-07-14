@@ -40,6 +40,14 @@ assert.match(strykerConfig, /process\.env\.STRYKER_SHARD/);
 assert.match(strykerConfig, /cleanTempDir:\s*'always'/);
 assert.match(strykerConfig, /concurrency:\s*1/);
 assert.match(mutationRunner, /timeout:\s*20 \* 60_000/);
+assert.match(workflow, /cron:\s*'17 3 \* \* 1'/);
+assert.doesNotMatch(workflow, /ignore-unfixed:\s*true/);
+assert.match(workflow, /retention-days:\s*90/);
+assert.match(workflow, /needs:\s*\[verify, mutation, sast, secrets, container\]/);
+assert.match(workflow, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/);
+assert.match(workflow, /actions\/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0/);
+assert.match(workflow, /actions\/attest@f6bf1532d7d6793fce74eac584813a8eee607999/);
+assert.match(workflow, /gh release verify "\$GITHUB_REF_NAME"/);
 
 const baseImages = [...dockerfile.matchAll(/^FROM\s+([^\s]+).*$/gm)].map((match) => match[1]);
 assert.ok(baseImages.length > 0, 'Dockerfile must declare a base image');
