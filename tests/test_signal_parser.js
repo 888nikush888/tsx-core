@@ -107,6 +107,26 @@ async function runTests() {
   ]) {
     assert.throws(() => validateSignalXml(malformedXml), SignalValidationError);
   }
+  assert.strictEqual(new SignalValidationError('test').name, 'SignalValidationError');
+  assert.throws(() => validateSignalXml(null), /non-empty string/);
+  const exactLimitXml = STANDARD_LONG.replace(
+    '</signal>',
+    `${' '.repeat(64 * 1024 - STANDARD_LONG.length)}</signal>`
+  );
+  validateSignalXml(exactLimitXml);
+  assert.throws(
+    () => validateSignalXml(exactLimitXml.replace('</signal>', ' </signal>')),
+    /64 KiB/
+  );
+  for (const tokenFailure of [
+    '<signal><ACTION>LONG</ACTION></signal>',
+    '<signal><action>LONG</pair></signal>',
+    '<signal></signal><signal></signal>',
+    '<signal></signal>text</signal>',
+    '<signal>bad > text</signal>'
+  ]) {
+    assert.throws(() => validateSignalXml(tokenFailure), SignalValidationError);
+  }
 
   const cryptoMarket = '<signal><action>SHORT</action><pair>HYPEUSDT</pair><entry_type>MARKET</entry_type><averaging>64.856</averaging><targets><target id="1">60.822</target></targets><stoploss>69.4</stoploss><risk_percent>1</risk_percent></signal>';
   const cryptoLimit = '<signal><action>LONG</action><pair>SOLUSDT</pair><entry_type>LIMIT</entry_type><entry_range><min>100</min><max>101</max></entry_range><targets><target id="1">105</target></targets><stoploss>98</stoploss></signal>';

@@ -1,7 +1,7 @@
 {
   "scope": "testable core modules; excludes composition roots and interactive CLI/UI entrypoints",
-  "statements": 91.51,
-  "branches": 76.64,
-  "functions": 96.08,
-  "lines": 91.51
+  "statements": 91.55,
+  "branches": 76.99,
+  "functions": 96.13,
+  "lines": 91.55
 }

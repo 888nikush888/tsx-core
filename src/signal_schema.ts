@@ -23,7 +23,7 @@ export class SignalValidationError extends Error {
   }
 }
 
-function parseXml(xml: string): XmlNode {
+function tokenizeXml(xml: string): { source: string; tokens: string[] } {
   if (typeof xml !== 'string' || xml.length === 0 || xml.length > 64 * 1024) {
     throw new SignalValidationError('Signal XML must be a non-empty string no larger than 64 KiB.');
   }
@@ -37,48 +37,71 @@ function parseXml(xml: string): XmlNode {
 
   const tokens = source.match(/<[^>]*>|[^<]+/g) || [];
   if (tokens.join('') !== source) throw new SignalValidationError('Malformed XML token sequence.');
+  return { source, tokens };
+}
+
+function appendTextToken(token: string, stack: XmlNode[]): void {
+  if (stack.length === 0) {
+    if (token.trim()) {
+      throw new SignalValidationError('Text outside the signal root is forbidden.');
+    }
+    return;
+  }
+  if (/[<>]/.test(token)) {
+    throw new SignalValidationError('Unescaped angle brackets are forbidden in XML text.');
+  }
+  stack[stack.length - 1]!.text += token;
+}
+
+function createXmlNode(token: string): XmlNode {
+  const opening = token.match(/^<([a-z_]+)(?: id="([1-9]\d*)")?>$/);
+  if (!opening) throw new SignalValidationError(`Malformed or disallowed XML tag '${token}'.`);
+  const node: XmlNode = {
+    name: opening[1]!,
+    id: opening[2] ? Number(opening[2]) : undefined,
+    text: '',
+    children: [],
+  };
+  if (node.id !== undefined && node.name !== 'target') {
+    throw new SignalValidationError(`Attribute 'id' is not allowed on '${node.name}'.`);
+  }
+  return node;
+}
+
+function consumeTagToken(token: string, stack: XmlNode[], root: XmlNode | null): XmlNode | null {
+  const closing = token.match(/^<\/([a-z_]+)>$/);
+  if (closing) {
+    const node = stack.pop();
+    if (!node || node.name !== closing[1]) {
+      throw new SignalValidationError(`Mismatched closing tag '${closing[1]}'.`);
+    }
+    return root;
+  }
+  const node = createXmlNode(token);
+  if (stack.length > 0) stack[stack.length - 1]!.children.push(node);
+  else if (root) throw new SignalValidationError('Multiple XML root elements are forbidden.');
+  else root = node;
+  stack.push(node);
+  return root;
+}
+
+function parseXml(xml: string): XmlNode {
+  const { tokens } = tokenizeXml(xml);
   const stack: XmlNode[] = [];
   let root: XmlNode | null = null;
-
   for (const token of tokens) {
     if (!token.startsWith('<')) {
-      if (!stack.length) {
-        if (token.trim()) throw new SignalValidationError('Text outside the signal root is forbidden.');
-        continue;
-      }
-      if (/[<>]/.test(token)) throw new SignalValidationError('Unescaped angle brackets are forbidden in XML text.');
-      stack[stack.length - 1]!.text += token;
+      appendTextToken(token, stack);
       continue;
     }
-
-    const closing = token.match(/^<\/([a-z_]+)>$/);
-    if (closing) {
-      const node = stack.pop();
-      if (!node || node.name !== closing[1]) {
-        throw new SignalValidationError(`Mismatched closing tag '${closing[1]}'.`);
-      }
-      continue;
-    }
-
-    const opening = token.match(/^<([a-z_]+)(?: id="([1-9]\d*)")?>$/);
-    if (!opening) throw new SignalValidationError(`Malformed or disallowed XML tag '${token}'.`);
-    const node: XmlNode = {
-      name: opening[1]!,
-      id: opening[2] ? Number(opening[2]) : undefined,
-      text: '',
-      children: []
-    };
-    if (node.id !== undefined && node.name !== 'target') {
-      throw new SignalValidationError(`Attribute 'id' is not allowed on '${node.name}'.`);
-    }
-    if (stack.length) stack[stack.length - 1]!.children.push(node);
-    else if (root) throw new SignalValidationError('Multiple XML root elements are forbidden.');
-    else root = node;
-    stack.push(node);
+    root = consumeTagToken(token, stack, root);
   }
-
-  if (stack.length) throw new SignalValidationError(`Unclosed XML tag '${stack[stack.length - 1]!.name}'.`);
-  if (!root || root.name !== 'signal') throw new SignalValidationError("Root tag must be 'signal' and properly closed.");
+  if (stack.length > 0) {
+    throw new SignalValidationError(`Unclosed XML tag '${stack[stack.length - 1]!.name}'.`);
+  }
+  if (!root || root.name !== 'signal') {
+    throw new SignalValidationError("Root tag must be 'signal' and properly closed.");
+  }
   return root;
 }
 
@@ -326,6 +349,9 @@ export function schemaForTemplate(templateName?: string): SignalSchemaName {
 }
 
 export function validateSignalXml(xml: string, templateName?: string): ValidatedSignal {
+  if (typeof xml !== 'string') {
+    throw new SignalValidationError('Signal XML must be a non-empty string no larger than 64 KiB.');
+  }
   const normalizedXml = xml.trim();
   const root = parseXml(normalizedXml);
   const schema = schemaForTemplate(templateName);
