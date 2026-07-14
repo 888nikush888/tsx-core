@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { once } from 'events';
-import { mkdtemp, rm } from 'fs/promises';
+import { mkdir, mkdtemp, rm } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { closeDb, initDb } from '../src/db.js';
@@ -16,16 +16,22 @@ function headers(token, extra = {}) {
   };
 }
 
+function mutationHeaders(extra = {}) {
+  return headers(ADMIN_TOKEN, { 'X-Requested-With': 'forwarder-dashboard', ...extra });
+}
+
 async function runTests() {
   const previousAdminToken = process.env.DASHBOARD_ADMIN_TOKEN;
   const previousViewerToken = process.env.DASHBOARD_VIEWER_TOKEN;
   const previousWebHost = process.env.WEB_HOST;
   const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-web-test-'));
+  const staticDirectory = path.resolve('frontend/dist/.directory-response-test');
   let stopped = false;
 
   try {
     await initDb(path.join(testDir, 'forwarder.db'));
+    await mkdir(staticDirectory, { recursive: true });
     delete process.env.DASHBOARD_ADMIN_TOKEN;
     delete process.env.DASHBOARD_VIEWER_TOKEN;
     delete process.env.WEB_HOST;
@@ -64,6 +70,7 @@ async function runTests() {
       stopForwarding: async () => { stopCalls += 1; appState.state.isRunning = false; },
       reloadConfig: () => {},
       applyRuntimeConfig: () => {},
+      persistConfig: () => {},
       getMetricsHistory: () => [],
       getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
       retryOutboxTask: async id => { retryCalls += 1; return id === 'unknown-task'; },
@@ -104,6 +111,44 @@ async function runTests() {
     assert.strictEqual(publicConfig.apiHash, undefined, 'Telegram secret must be redacted');
     assert.strictEqual(publicConfig.nested.OPENROUTER_API_KEY, undefined, 'Nested secrets must be redacted');
     assert.strictEqual(publicConfig.nested.AUDIT_WEBHOOK_TOKEN, undefined, 'Audit credentials must be redacted');
+
+    for (const route of [
+      '/api/logs',
+      '/api/metrics-history',
+      '/api/incoming-messages',
+      '/api/processed-signals',
+      '/api/templates'
+    ]) {
+      response = await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) });
+      assert.strictEqual(response.status, 200, `${route} must satisfy its authenticated read contract`);
+    }
+
+    const rejectedRouteCases = [
+      ['/api/incoming-messages', { method: 'DELETE', headers: mutationHeaders() }, 400],
+      ['/api/processed-signals', { method: 'DELETE', headers: mutationHeaders() }, 400],
+      ['/api/config', {
+        method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '[]'
+      }, 400],
+      ['/api/import', {
+        method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{}'
+      }, 400],
+      ['/api/templates', {
+        method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"../escape","content":"x"}'
+      }, 400],
+      ['/api/templates?name=default', { method: 'DELETE', headers: mutationHeaders() }, 400],
+      ['/api/factory-reset', { method: 'POST', headers: mutationHeaders() }, 412]
+    ];
+    for (const [route, options, expectedStatus] of rejectedRouteCases) {
+      response = await fetch(`${baseUrl}${route}`, options);
+      assert.strictEqual(response.status, expectedStatus, `${route} must reject an invalid request`);
+    }
+
+    response = await fetch(`${baseUrl}/api/config`, {
+      method: 'POST',
+      headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: '{"forwardOptions":{"forwardToTarget":true}}'
+    });
+    assert.strictEqual(response.status, 200, 'A valid non-secret configuration update must apply');
 
     response = await fetch(`${baseUrl}/api/outbox?status=unknown`, { headers: headers(VIEWER_TOKEN) });
     assert.strictEqual(response.status, 200, 'Viewer must be able to inspect unresolved outbox work');
@@ -235,6 +280,12 @@ async function runTests() {
     response = await fetch(`${baseUrl}/api/does-not-exist`, { headers: headers(ADMIN_TOKEN) });
     assert.strictEqual(response.status, 404, 'Unknown API routes must not fall through to the SPA');
 
+    response = await fetch(`${baseUrl}/.directory-response-test`, {
+      signal: AbortSignal.timeout(2000)
+    });
+    assert.strictEqual(response.status, 200, 'A static directory path must receive a bounded SPA response');
+    assert.match(await response.text(), /<html(?:\s|>)/i);
+
     await stopWebServer();
     stopped = true;
     console.log('ALL WEB CONTROL SECURITY TESTS PASSED!');
@@ -242,6 +293,7 @@ async function runTests() {
     if (!stopped) await stopWebServer();
     await closeDb();
     await rm(testDir, { recursive: true, force: true });
+    await rm(staticDirectory, { recursive: true, force: true });
     if (previousAdminToken === undefined) delete process.env.DASHBOARD_ADMIN_TOKEN;
     else process.env.DASHBOARD_ADMIN_TOKEN = previousAdminToken;
     if (previousViewerToken === undefined) delete process.env.DASHBOARD_VIEWER_TOKEN;
