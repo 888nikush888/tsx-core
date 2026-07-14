@@ -16,7 +16,7 @@ Fehlt der Contract für einen kritischen Pfad, ist Correctness nicht beweisbar u
 
 ## PR-Risikowert
 
-Jeder zutreffende Faktor wird einmal addiert. Der Autor trägt Summe und Evidenz in die PR-Vorlage ein.
+Jeder zutreffende Faktor wird einmal addiert. `scripts/calculate_pr_risk.js` berechnet die Summe aus dem tatsächlichen Git-Diff und veröffentlicht die JSON-Evidenz; der Autor verlinkt sie in der PR-Vorlage.
 
 | Faktor                                                                      | Punkte |
 | --------------------------------------------------------------------------- | -----: |
@@ -64,6 +64,8 @@ Jeder zutreffende Faktor wird einmal addiert. Der Autor trägt Summe und Evidenz
 | Rollback- und Offline-Restore-Übung               | Bei betroffener Änderung      | Evidence | Fail                      |
 
 Der Workflow `.github/workflows/quality.yml` implementiert die lokal automatisierbaren Gates einschließlich getesteter Alarmregeln. `.github/workflows/staging.yml`, `.github/workflows/synthetic.yml` und `.github/workflows/production_evidence.yml` erzeugen die externen Staging-/SLO-Nachweise; ein Tag-Release prüft erfolgreiche Läufe für exakt seinen Commit. Branch Protection, Runner-/Environment-Schutz, Eigentum am Off-host-Ziel, der konkrete Incident-Empfänger und die tatsächlichen Messwerte bleiben externe Kontrollen und müssen durch die Plattform beziehungsweise den Release-Record belegt werden.
+
+Vor Veröffentlichung validiert `scripts/verify_github_governance.js` Branch Protection, konkrete Required Checks, Review-/CODEOWNERS-Regeln, Security-Features und die benötigten Environments direkt über die GitHub-API. Fehlende oder unprüfbare Plattformkontrollen blockieren den Release; die Einrichtung ist in `docs/GITHUB_GOVERNANCE.md` beschrieben.
 
 Die aktuell noch vorhandenen Alt-Hotspots sind in `quality-baseline.json` exakt geratcheted. `npm run quality:complexity` blockiert jede zusätzliche Warnung und jede höhere Worst-Case-Komplexität; auch eine Verbesserung blockiert so lange, bis das Budget im selben PR nach unten korrigiert wird. Das Budget darf nie erhöht werden, außer über einen gültigen zeitlich befristeten Risikoakzeptanz-Record.
 

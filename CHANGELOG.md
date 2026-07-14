@@ -18,6 +18,7 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Lückenlose, checksum-geschützte SQLite-Migrationen mit verifiziertem Pre-Migration-Snapshot und forensisch sicherem Downgrade-Restore.
 - Fail-closed, hashverketteter Control-Plane-Audit-Trail mit verpflichtender externer HTTPS-Persistenz im Produktions-Container.
 - OIDC-/JWKS-Authentifizierung mit geprüftem Issuer, Audience, Zeitgrenzen und Admin-/Viewer-Rollen für die Production-Control-Plane.
+- Automatischer Diff-basierter PR-Risikoscore, Dependabot-Matrix und API-verifiziertes GitHub-Governance-Release-Gate.
 
 ## [1.0.0] - 2026-07-13
 

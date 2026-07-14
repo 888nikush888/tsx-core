@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout pinned source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
       - name: Configure pinned Node major
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -45,6 +47,9 @@ jobs:
           npm audit --prefix frontend --audit-level=moderate
       - name: License policy gate
         run: npm run quality:licenses
+      - name: Calculate evidence-based PR risk
+        if: github.event_name == 'pull_request'
+        run: node scripts/calculate_pr_risk.js "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
       - name: Static and type gates
         run: |
           npm run lint
@@ -257,6 +262,10 @@ jobs:
     steps:
       - name: Checkout the exact release tag
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Verify repository governance controls
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/verify_github_governance.js
       - name: Require repository release immutability
         env:
           GH_TOKEN: ${{ github.token }}
@@ -329,6 +338,7 @@ jobs:
           cp container-evidence/prometheus-trivy.sarif release-assets/prometheus-trivy.sarif
           cp container-evidence/alertmanager.cdx.json release-assets/alertmanager.cdx.json
           cp container-evidence/alertmanager-trivy.sarif release-assets/alertmanager-trivy.sarif
+          cp reports/governance/github-governance.json release-assets/github-governance.json
           sha256sum release-assets/* > release-assets/SHA256SUMS
           jq -n \
             --arg tag "$GITHUB_REF_NAME" \

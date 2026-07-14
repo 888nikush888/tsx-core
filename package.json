@@ -32,6 +32,8 @@
     "quality:frontend": "node scripts/check_frontend_reachability.js",
     "quality:release": "node scripts/check_release_artifacts.js",
     "quality:risk-acceptances": "node scripts/check_risk_acceptances.js",
+    "quality:pr-risk": "node scripts/calculate_pr_risk.js",
+    "quality:github-governance": "node scripts/verify_github_governance.js",
     "quality:licenses": "node scripts/check_licenses.js",
     "quality:sbom": "node scripts/generate_sbom.js",
     "quality:monitoring": "node scripts/check_monitoring.js"
