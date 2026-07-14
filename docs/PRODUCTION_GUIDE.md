@@ -98,7 +98,7 @@ Beim ersten Browseraufruf erzeugt der Server nach Origin- und Audit-Prüfung ein
 Die Wiederherstellung des Admin-Tokens ist eine privilegierte Host-Aktion:
 
 ```bash
-docker compose exec -T forwarder sh -c 'cat /app/secrets/dashboard_admin_token'
+docker compose exec -T forwarder /nodejs/bin/node -e "process.stdout.write(require('fs').readFileSync('/app/secrets/dashboard_admin_token','utf8'))"
 ```
 
 Die Ausgabe ist ein Secret. Sie darf weder in Tickets noch in Logs oder Shell-Transkripte übernommen werden.
@@ -270,7 +270,7 @@ Backup erstellen und prüfen:
 
 ```bash
 docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js create /app/backups
-docker compose exec -T forwarder sh -c 'ls -1dt /app/backups/backup-* | head -1'
+docker compose exec -T forwarder /nodejs/bin/node -e "const fs=require('fs');const names=fs.readdirSync('/app/backups').filter(name=>name.startsWith('backup-')).sort();console.log(names.at(-1)||'no backup found')"
 docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js verify /app/backups/<artifact-name>
 ```
 

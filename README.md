@@ -72,7 +72,7 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
    docker compose logs -f forwarder
    ```
 
-`healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Bei verlorenem Browser-Token kann ein Host-Administrator es gezielt mit `docker compose exec -T forwarder sh -c 'cat /app/secrets/dashboard_admin_token'` wiederherstellen. Der Befehl gibt ein Secret aus und darf nicht in Tickets oder Logs kopiert werden.
+`healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Bei verlorenem Browser-Token kann ein Host-Administrator es gezielt mit `docker compose exec -T forwarder /nodejs/bin/node -e "process.stdout.write(require('fs').readFileSync('/app/secrets/dashboard_admin_token','utf8'))"` wiederherstellen. Der Befehl gibt ein Secret aus und darf nicht in Tickets oder Logs kopiert werden.
 
 Im Standalone-Modus (`ENTERPRISE_MODE=false`, Standard) verwendet das Dashboard den sicheren Erststart-Token und lokale, verkettete Audit-Logs sowie verifizierte lokale Backups. `ENTERPRISE_MODE=true` aktiviert die harten Enterprise-Gates: OIDC, unveränderlicher Remote-Audit-Trail und verschlüsselte, rücklesbar verifizierte Off-host-Backups werden Pflicht. Remote-Zugriff erfolgt ausschließlich über einen TLS-Reverse-Proxy; dessen exakte Origin wird mit `DASHBOARD_ALLOWED_ORIGIN` freigegeben.
 
@@ -101,7 +101,7 @@ Manuelle Prüfung und Wiederherstellung im Docker-Betrieb (`<artifact-name>` dur
 
 ```bash
 docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js create /app/backups
-docker compose exec -T forwarder sh -c 'ls -1dt /app/backups/backup-* | head -1'
+docker compose exec -T forwarder /nodejs/bin/node -e "const fs=require('fs');const names=fs.readdirSync('/app/backups').filter(name=>name.startsWith('backup-')).sort();console.log(names.at(-1)||'no backup found')"
 docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js verify /app/backups/<artifact-name>
 
 # Dienst vollständig stoppen und failed/unknown Zustellungen dokumentieren.
