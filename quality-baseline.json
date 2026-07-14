@@ -1,7 +1,7 @@
 {
-  "eslintWarnings": 31,
+  "eslintWarnings": 30,
   "rules": {
-    "complexity": 18,
+    "complexity": 17,
     "max-depth": 3,
     "max-lines-per-function": 10
   },

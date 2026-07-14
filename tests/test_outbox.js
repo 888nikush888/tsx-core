@@ -102,6 +102,11 @@ async function runTests() {
     assert.strictEqual(await getSchemaVersion(), LATEST_SCHEMA_VERSION);
 
     assert.strictEqual(await isDatabaseHealthy(), true);
+    assert.strictEqual(await getTotalForwardedCount(), 0);
+    assert.strictEqual(await getLastForwardedAt(), null);
+    await incrementForwardedCount(0, 1_700_000_000_000);
+    assert.strictEqual(await getTotalForwardedCount(), 0);
+    await assert.rejects(incrementForwardedCount(1, 0), /positive timestamp/);
     await incrementForwardedCount(2, 1_700_000_000_000);
     assert.strictEqual(await getTotalForwardedCount(), 2);
     assert.strictEqual(await getLastForwardedAt(), 1_700_000_000_000);
@@ -199,7 +204,6 @@ async function runTests() {
       'SELECT template_name, schema_name, prompt_sha256, model, provider_request_id, prompt_tokens, completion_tokens, parser_version FROM signals WHERE id = ?',
       ['provenance-signal']
     );
-    await inspectionDb.close();
     assert.deepStrictEqual(provenance, {
       template_name: 'loma',
       schema_name: 'loma',
@@ -210,6 +214,32 @@ async function runTests() {
       completion_tokens: 34,
       parser_version: '2.0.0'
     });
+
+    await saveSignal('empty-provenance-signal', '-1001', 100, '<signal/>', '<signal/>', {
+      templateName: '',
+      schemaName: '',
+      promptSha256: '',
+      model: '',
+      providerRequestId: '',
+      promptTokens: null,
+      completionTokens: null,
+      parserVersion: ''
+    });
+    const emptyProvenance = await inspectionDb.get(
+      'SELECT template_name, schema_name, prompt_sha256, model, provider_request_id, prompt_tokens, completion_tokens, parser_version FROM signals WHERE id = ?',
+      ['empty-provenance-signal']
+    );
+    assert.deepStrictEqual(emptyProvenance, {
+      template_name: null,
+      schema_name: null,
+      prompt_sha256: null,
+      model: null,
+      provider_request_id: null,
+      prompt_tokens: null,
+      completion_tokens: null,
+      parser_version: null
+    });
+    await inspectionDb.close();
 
     await closeDb();
     const migrationBackupDirectory = path.join(testDir, '.migration-backups');

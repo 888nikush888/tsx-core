@@ -459,6 +459,20 @@ export async function incrementForwardedCount(amount = 1, forwardedAt = Date.now
 }
 
 // Signals Deduplication API
+function signalProvenanceParameters(provenance?: SignalProvenance): Array<string | number | null> {
+  const source: Partial<SignalProvenance> = provenance ?? {};
+  return [
+    source.templateName || null,
+    source.schemaName || null,
+    source.promptSha256 || null,
+    source.model || null,
+    source.providerRequestId || null,
+    source.promptTokens ?? null,
+    source.completionTokens ?? null,
+    source.parserVersion || null
+  ];
+}
+
 export async function saveSignal(
   id: string,
   chatId: string,
@@ -476,14 +490,7 @@ export async function saveSignal(
      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id, chatId, messageId, xmlContent, normalizedContent, Date.now(),
-      provenance?.templateName || null,
-      provenance?.schemaName || null,
-      provenance?.promptSha256 || null,
-      provenance?.model || null,
-      provenance?.providerRequestId || null,
-      provenance?.promptTokens ?? null,
-      provenance?.completionTokens ?? null,
-      provenance?.parserVersion || null
+      ...signalProvenanceParameters(provenance)
     ]
   );
 }
