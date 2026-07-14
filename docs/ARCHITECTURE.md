@@ -18,6 +18,8 @@ flowchart LR
   M["Loopback Health/Metrics"] --> F
   RP["TLS Reverse Proxy"] --> W
   Admin["Admin/Viewer"] --> RP
+  W --> AT["Local hash-chained audit"]
+  AT --> AG["Immutable HTTPS audit gateway"]
 ```
 
 Trust Boundaries liegen an Telegram/TDLib, der externen KI-API, allen HTTP-Anfragen an Dashboard/Metriken, Prozessumgebung/Secrets, Host-Volumes und Backup-Replikation. Externe Eingaben werden vor einer Nebenwirkung validiert; ein unklarer Zustellstatus wird `unknown` und nie automatisch erneut gesendet.
@@ -26,10 +28,10 @@ Trust Boundaries liegen an Telegram/TDLib, der externen KI-API, allen HTTP-Anfra
 
 | Bereich      | Module                                                                                                                        | Verantwortung                                   |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Entry Points | `forwarder.ts`, `backup_cli.ts`                                                                                               | Lifecycle und Composition Root                  |
+| Entry Points | `forwarder.ts`, `backup_cli.ts`, `migration_cli.ts`, `audit_cli.ts`                                                                 | Lifecycle und Composition Root                  |
 | Core         | `queue.ts`, `filters.ts`, `signal_schema.ts`, `tdlib_retry.ts`, `delivery_tracker.ts`, `crash_guard.ts`, `metrics_tracker.ts` | deterministische Regeln und Zustandsmaschinen   |
 | State/Config | `db.ts`, `config.ts`, `env.ts`                                                                                                | persistente Verträge und Konfigurationsgrenzen  |
-| Adapter      | `signal_parser.ts`, `web_server.ts`, `metrics.ts`, `ui.ts`, `backup.ts`, `retention.ts`                                       | externe Provider, HTTP, Operator und Filesystem |
+| Adapter      | `signal_parser.ts`, `web_server.ts`, `metrics.ts`, `ui.ts`, `backup.ts`, `retention.ts`, `audit_trail.ts`                     | externe Provider, HTTP, Operator und Filesystem |
 
 Erlaubte Richtung: `Entry Point → Adapter → Core/State`. Core importiert keine Adapter oder Entry Points. Kein Modul außerhalb des Composition Root importiert einen Entry Point. `db.ts` importiert kein internes Modul. Zirkuläre Imports sind verboten.
 

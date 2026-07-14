@@ -20,6 +20,8 @@ const allTests = [
   'test_retention.js',
   'test_metrics.js',
   'test_slo_tracker.js',
+  'test_audit_trail.js',
+  'test_audit_cli.js',
   'test_alert_relay.js',
   'test_monitoring_artifacts.js',
   'test_staging_e2e.js',

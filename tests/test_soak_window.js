@@ -11,6 +11,7 @@ const passing = {
   backupHealth: 1,
   retentionHealth: 1,
   diskHealth: 1,
+  auditHealth: 1,
   maxResidentMemoryBytes: 500_000_000,
   maxQueuedTasks: 10
 };

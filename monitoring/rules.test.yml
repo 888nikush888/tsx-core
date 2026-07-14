@@ -12,6 +12,8 @@ tests:
         values: '1 0 0'
       - series: 'tg_forwarder_backup_offsite_healthy'
         values: '1 1 1'
+      - series: 'tg_forwarder_audit_healthy'
+        values: '1 0 0'
     alert_rule_test:
       - eval_time: 1m
         alertname: ForwarderUnknownDelivery
@@ -31,6 +33,15 @@ tests:
             exp_annotations:
               summary: Local or off-host backup verification is unhealthy
               runbook: docs/runbooks/operations.md#backup-restore-und-rollback
+      - eval_time: 2m
+        alertname: ForwarderAuditTrailUnhealthy
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: telegram-forwarder
+            exp_annotations:
+              summary: Control-plane audit persistence or remote delivery is unhealthy
+              runbook: docs/runbooks/operations.md#audit-trail-ausfall
 
   - interval: 1m
     input_series:

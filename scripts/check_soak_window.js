@@ -14,6 +14,7 @@ const THRESHOLDS = Object.freeze({
   minimumBackupHealth: 1,
   minimumRetentionHealth: 1,
   minimumDiskHealth: 1,
+  minimumAuditHealth: 1,
   maximumResidentMemoryBytes: 805_306_368,
   maximumQueuedTasks: 100
 });
@@ -29,6 +30,7 @@ export function soakQueries(window = WINDOW) {
     backupHealth: `min(min_over_time(tg_forwarder_backup_healthy[${window}]))`,
     retentionHealth: `min(min_over_time(tg_forwarder_retention_healthy[${window}]))`,
     diskHealth: `min(min_over_time(tg_forwarder_disk_capacity_healthy[${window}]))`,
+    auditHealth: `min(min_over_time(tg_forwarder_audit_healthy[${window}]))`,
     maxResidentMemoryBytes: `max(max_over_time(process_resident_memory_bytes[${window}]))`,
     maxQueuedTasks: `max(max_over_time(tg_forwarder_queue_queued[${window}]))`
   };
@@ -45,6 +47,7 @@ export function evaluateSoakWindow(values, thresholds = THRESHOLDS) {
     { name: 'backup health minimum', actual: values.backupHealth, target: `>= ${thresholds.minimumBackupHealth}`, passed: values.backupHealth >= thresholds.minimumBackupHealth },
     { name: 'retention health minimum', actual: values.retentionHealth, target: `>= ${thresholds.minimumRetentionHealth}`, passed: values.retentionHealth >= thresholds.minimumRetentionHealth },
     { name: 'disk health minimum', actual: values.diskHealth, target: `>= ${thresholds.minimumDiskHealth}`, passed: values.diskHealth >= thresholds.minimumDiskHealth },
+    { name: 'audit health minimum', actual: values.auditHealth, target: `>= ${thresholds.minimumAuditHealth}`, passed: values.auditHealth >= thresholds.minimumAuditHealth },
     { name: 'resident memory maximum bytes', actual: values.maxResidentMemoryBytes, target: `<= ${thresholds.maximumResidentMemoryBytes}`, passed: values.maxResidentMemoryBytes <= thresholds.maximumResidentMemoryBytes },
     { name: 'queued task maximum', actual: values.maxQueuedTasks, target: `<= ${thresholds.maximumQueuedTasks}`, passed: values.maxQueuedTasks <= thresholds.maximumQueuedTasks }
   ];

@@ -80,3 +80,13 @@ Vor Restore Dienst stoppen, Locks und Outbox dokumentieren, Backup aus unabhäng
 5. Vor dem Release die JSON-Artefakte unter `reports/staging/` und `reports/soak/` dem Release-Record zuordnen. Sie müssen denselben Commit-Hash wie der Tag tragen; ein 30-Tage-Fenster mit weniger als 171936 Scrapes oder 100 Zustellversuchen ist nicht belastbar und bleibt NO-GO.
 
 Die Staging- und Produktions-Observer-Identitäten erhalten keinerlei Produktions-Schreibrechte außer dem absichtlich begrenzten synthetischen Staging-Send. Token-Rotation, Runner-Patching und die Prüfung des externen Alarmempfängers erfolgen monatlich und nach jedem Credential-Verdacht.
+
+## Audit-Trail-Ausfall
+
+1. Bei `ForwarderAuditTrailUnhealthy` alle Dashboard-Mutationen einstellen; die Anwendung blockiert neue Änderungen bereits mit HTTP 503. Telegram-Routing läuft weiter, solange keine andere Readiness-Bedingung verletzt ist.
+2. `tg_forwarder_audit_last_remote_success_timestamp_seconds`, Gateway-Status und die letzte `request_id` vergleichen. Keine Records oder Bearer-Token in Tickets kopieren.
+3. Die lokale `logs/audit-chain.jsonl` schreibgeschützt sichern und mit einer isolierten Instanz beziehungsweise dem zugehörigen Audit-Test verifizieren. Eine beschädigte Kette nie bearbeiten oder überschreiben; Host und Datei forensisch erhalten.
+4. Bei Gateway-Ausfall den externen Store reparieren, den Dienst stoppen und zunächst `npm run audit:verify` ausführen. Danach mit `npm run audit:replay -- --confirm-audit-replay` die vollständige lokale Kette idempotent nachliefern. Der Gateway-Vertrag muss Duplikate anhand des Hashes akzeptieren, aber widersprüchliche Records ablehnen.
+5. Vor Wiederfreigabe einen ungefährlichen authentifizierten Test-Request ausführen und lokale Kette, externen Record, 2xx-Antwort, Metrik und Alarmauflösung gemeinsam belegen.
+
+Erreicht die lokale Datei `AUDIT_LOCAL_MAX_BYTES`, wird sie nur im vollständigen Stoppzustand nach belegter Off-host-Archivierung verschoben. Danach startet der Dienst eine neue Kette; Archiv-Hash, letzter alter Hash und erster neuer Hash werden im unveränderlichen Audit-System und im Betriebsrecord verknüpft.

@@ -16,6 +16,7 @@ for (const requiredAlert of [
   'ForwarderUnknownDelivery',
   'ForwarderBackupUnhealthy',
   'ForwarderDiskCapacityUnsafe',
+  'ForwarderAuditTrailUnhealthy',
   'ForwarderDeliverySuccessSloBurn',
   'ForwarderDeliveryLatencySloBurn'
 ]) assert.match(rules, new RegExp(`alert: ${requiredAlert}`));

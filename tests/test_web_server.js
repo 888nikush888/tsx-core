@@ -32,6 +32,8 @@ async function runTests() {
     let stopCalls = 0;
     let retryCalls = 0;
     let acknowledgeCalls = 0;
+    let auditShouldFail = false;
+    const auditEvents = [];
     const appState = {
       config: {
         apiId: 123,
@@ -44,7 +46,10 @@ async function runTests() {
         sourceAliases: {},
         xmlParsing: {},
         dupeBlocker: {},
-        nested: { OPENROUTER_API_KEY: 'must-also-be-redacted' }
+        nested: {
+          OPENROUTER_API_KEY: 'must-also-be-redacted',
+          AUDIT_WEBHOOK_TOKEN: 'must-also-be-redacted'
+        }
       },
       state: {
         isRunning: true,
@@ -60,7 +65,13 @@ async function runTests() {
       getMetricsHistory: () => [],
       getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
       retryOutboxTask: async id => { retryCalls += 1; return id === 'unknown-task'; },
-      acknowledgeOutboxTask: async id => { acknowledgeCalls += 1; return id === 'unknown-task'; }
+      acknowledgeOutboxTask: async id => { acknowledgeCalls += 1; return id === 'unknown-task'; },
+      auditTrail: {
+        record: async event => {
+          auditEvents.push(event);
+          if (auditShouldFail) throw new Error('audit unavailable');
+        }
+      }
     };
 
     const server = startWebServer(0, appState);
@@ -90,6 +101,7 @@ async function runTests() {
     const publicConfig = await response.json();
     assert.strictEqual(publicConfig.apiHash, undefined, 'Telegram secret must be redacted');
     assert.strictEqual(publicConfig.nested.OPENROUTER_API_KEY, undefined, 'Nested secrets must be redacted');
+    assert.strictEqual(publicConfig.nested.AUDIT_WEBHOOK_TOKEN, undefined, 'Audit credentials must be redacted');
 
     response = await fetch(`${baseUrl}/api/outbox?status=unknown`, { headers: headers(VIEWER_TOKEN) });
     assert.strictEqual(response.status, 200, 'Viewer must be able to inspect unresolved outbox work');
@@ -116,6 +128,17 @@ async function runTests() {
     });
     assert.strictEqual(response.status, 200, 'Authenticated administrator must be able to stop routing');
     assert.strictEqual(stopCalls, 1);
+    assert.ok(auditEvents.some(event => event.phase === 'authorized' && event.path === '/api/control'));
+
+    auditShouldFail = true;
+    response = await fetch(`${baseUrl}/api/control`, {
+      method: 'POST',
+      headers: headers(ADMIN_TOKEN, { 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' }),
+      body: JSON.stringify({ action: 'stop' })
+    });
+    assert.strictEqual(response.status, 503, 'Mutation must fail closed when the audit precondition cannot be persisted');
+    assert.strictEqual(stopCalls, 1, 'Blocked mutation must not reach its side effect');
+    auditShouldFail = false;
 
     response = await fetch(`${baseUrl}/api/control`, {
       method: 'POST',

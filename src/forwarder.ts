@@ -52,6 +52,7 @@ import { offsiteBackupFromEnvironment } from './backup_replication.js';
 import { OperationalDataRetention, retentionPolicyFromEnvironment } from './retention.js';
 import { invokeWithFloodWaitRetry } from './tdlib_retry.js';
 import { DeliverySloTracker } from './slo_tracker.js';
+import { auditTrailFromEnvironment, type EnterpriseAuditTrail } from './audit_trail.js';
 import {
   C_RESET, C_GREEN, C_DARK_GREEN, C_RED,
   clearConsole, pressAnyKey, addLog, clearLogHistory,
@@ -131,7 +132,12 @@ function applyQueueSettings(config: any) {
 }
 
 function configSnapshot(config: any): any {
-  const forbidden = new Set(['apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH', 'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN']);
+  const forbidden = new Set([
+    'apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH',
+    'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN', 'BACKUP_OFFSITE_TOKEN',
+    'BACKUP_ENCRYPTION_KEY', 'ALERT_RELAY_TOKEN', 'ALERT_WEBHOOK_TOKEN',
+    'PROMETHEUS_TOKEN', 'AUDIT_WEBHOOK_TOKEN'
+  ]);
   return JSON.parse(JSON.stringify(config, (key, value) => forbidden.has(key) ? undefined : value));
 }
 
@@ -321,6 +327,7 @@ let client = null, targetChatId = null;
 let metricsTracker: MetricsTracker | null = null;
 let backupScheduler: BackupScheduler | null = null;
 let retentionScheduler: OperationalDataRetention | null = null;
+let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
 const state = {
   isRunning: false,
@@ -407,6 +414,19 @@ function retentionMetricSnapshot(): Pick<OperationalMetrics,
   };
 }
 
+function auditMetricSnapshot(): Pick<OperationalMetrics,
+  | 'auditHealthy'
+  | 'auditRemoteRequired'
+  | 'auditLastRemoteSuccessAt'
+> {
+  const audit = auditTrail?.snapshot();
+  return {
+    auditHealthy: audit?.healthy ?? false,
+    auditRemoteRequired: audit?.remoteRequired ?? false,
+    auditLastRemoteSuccessAt: audit?.lastRemoteSuccessAt ?? null
+  };
+}
+
 async function collectOperationalMetrics(
   databasePath: string,
   minimumFreeBytes: number
@@ -423,6 +443,7 @@ async function collectOperationalMetrics(
     lastForwardedAt: state.lastSuccessfulForwardAt,
     ...backupMetricSnapshot(),
     ...retentionMetricSnapshot(),
+    ...auditMetricSnapshot(),
     diskAvailableBytes,
     diskCapacityHealthy,
     deliverySlo: deliverySlo.snapshot()
@@ -1190,6 +1211,9 @@ async function run() {
   let config = readConfigSync();
   initializeDeliveryTracker();
   await initFileLogger();
+  auditTrail = auditTrailFromEnvironment();
+  await auditTrail.initialize();
+  await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
   await initDb();
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
   processLockPath = path.join(path.dirname(databasePath), '.process_active');
@@ -1286,7 +1310,8 @@ async function run() {
       },
       acknowledgeOutboxTask: async (taskId, reason) => {
         return acknowledgeOutboxTask(taskId, reason);
-      }
+      },
+      auditTrail
     });
   } catch (err: any) {
     addLog(`[WARN] Web Dashboard konnte nicht gestartet werden: ${err.message}`);

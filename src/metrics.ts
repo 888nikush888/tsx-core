@@ -26,6 +26,9 @@ export interface OperationalMetrics {
   diskAvailableBytes: number;
   diskCapacityHealthy: boolean;
   deliverySlo: DeliverySloSnapshot;
+  auditHealthy: boolean;
+  auditRemoteRequired: boolean;
+  auditLastRemoteSuccessAt: number | null;
 }
 
 interface MetricsState {
@@ -59,6 +62,14 @@ function safeConnectionState(value: string): string {
   return ['connected', 'connecting', 'disconnected', 'error'].includes(normalized) ? normalized : 'unknown';
 }
 
+function asFlag(value: boolean): number {
+  return value ? 1 : 0;
+}
+
+function timestampSeconds(value: number | null): number {
+  return value ? Math.floor(value / 1000) : 0;
+}
+
 function isOperationallyReady(operational: OperationalMetrics): boolean {
   return [
     operational.databaseHealthy,
@@ -67,7 +78,8 @@ function isOperationallyReady(operational: OperationalMetrics): boolean {
     !operational.queuePaused,
     operational.backupHealthy,
     operational.retentionHealthy,
-    operational.diskCapacityHealthy
+    operational.diskCapacityHealthy,
+    operational.auditHealthy
   ].every(Boolean);
 }
 
@@ -81,7 +93,9 @@ function readinessChecks(operational: OperationalMetrics): Record<string, boolea
     backupOffsite: operational.backupOffsiteHealthy,
     backupOffsiteRequired: operational.backupOffsiteRequired,
     retention: operational.retentionHealthy,
-    diskCapacity: operational.diskCapacityHealthy
+    diskCapacity: operational.diskCapacityHealthy,
+    audit: operational.auditHealthy,
+    auditRemoteRequired: operational.auditRemoteRequired
   };
 }
 
@@ -95,27 +109,30 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
     ...metric('tg_forwarder_queue_running', 'Tasks currently executing', 'gauge', queue.running),
     ...metric('tg_forwarder_queue_queued', 'Tasks waiting for execution', 'gauge', queue.queued),
     ...metric('tg_forwarder_queue_max_concurrency', 'Configured task concurrency', 'gauge', queue.maxConcurrency),
-    ...metric('tg_forwarder_routing_active', 'Whether routing is active', 'gauge', operational.isRunning ? 1 : 0),
-    ...metric('tg_forwarder_database_healthy', 'Whether SQLite responds to a health query', 'gauge', operational.databaseHealthy ? 1 : 0),
+    ...metric('tg_forwarder_routing_active', 'Whether routing is active', 'gauge', asFlag(operational.isRunning)),
+    ...metric('tg_forwarder_database_healthy', 'Whether SQLite responds to a health query', 'gauge', asFlag(operational.databaseHealthy)),
     '# HELP tg_forwarder_connection_state Current Telegram connection state',
     '# TYPE tg_forwarder_connection_state gauge',
     ...['connected', 'connecting', 'disconnected', 'error', 'unknown'].map(current =>
       `tg_forwarder_connection_state{state="${current}"} ${current === connectionState ? 1 : 0}`
     ),
-    ...metric('tg_forwarder_last_confirmed_delivery_timestamp_seconds', 'Unix time of the last confirmed delivery', 'gauge', operational.lastForwardedAt ? Math.floor(operational.lastForwardedAt / 1000) : 0),
-    ...metric('tg_forwarder_backup_healthy', 'Whether the latest scheduled backup succeeded within the RPO window', 'gauge', operational.backupHealthy ? 1 : 0),
-    ...metric('tg_forwarder_backup_last_success_timestamp_seconds', 'Unix time of the last verified backup', 'gauge', operational.backupLastSuccessAt ? Math.floor(operational.backupLastSuccessAt / 1000) : 0),
-    ...metric('tg_forwarder_backup_offsite_healthy', 'Whether encrypted off-site replication was downloaded and restore-verified', 'gauge', operational.backupOffsiteHealthy ? 1 : 0),
-    ...metric('tg_forwarder_backup_offsite_required', 'Whether off-site replication is a readiness requirement', 'gauge', operational.backupOffsiteRequired ? 1 : 0),
-    ...metric('tg_forwarder_backup_offsite_last_success_timestamp_seconds', 'Unix time of the last restore-verified off-site backup', 'gauge', operational.backupOffsiteLastSuccessAt ? Math.floor(operational.backupOffsiteLastSuccessAt / 1000) : 0),
-    ...metric('tg_forwarder_retention_healthy', 'Whether operational data retention is current and has no backlog', 'gauge', operational.retentionHealthy ? 1 : 0),
-    ...metric('tg_forwarder_retention_last_success_timestamp_seconds', 'Unix time of the last successful retention run', 'gauge', operational.retentionLastSuccessAt ? Math.floor(operational.retentionLastSuccessAt / 1000) : 0),
+    ...metric('tg_forwarder_last_confirmed_delivery_timestamp_seconds', 'Unix time of the last confirmed delivery', 'gauge', timestampSeconds(operational.lastForwardedAt)),
+    ...metric('tg_forwarder_backup_healthy', 'Whether the latest scheduled backup succeeded within the RPO window', 'gauge', asFlag(operational.backupHealthy)),
+    ...metric('tg_forwarder_backup_last_success_timestamp_seconds', 'Unix time of the last verified backup', 'gauge', timestampSeconds(operational.backupLastSuccessAt)),
+    ...metric('tg_forwarder_backup_offsite_healthy', 'Whether encrypted off-site replication was downloaded and restore-verified', 'gauge', asFlag(operational.backupOffsiteHealthy)),
+    ...metric('tg_forwarder_backup_offsite_required', 'Whether off-site replication is a readiness requirement', 'gauge', asFlag(operational.backupOffsiteRequired)),
+    ...metric('tg_forwarder_backup_offsite_last_success_timestamp_seconds', 'Unix time of the last restore-verified off-site backup', 'gauge', timestampSeconds(operational.backupOffsiteLastSuccessAt)),
+    ...metric('tg_forwarder_retention_healthy', 'Whether operational data retention is current and has no backlog', 'gauge', asFlag(operational.retentionHealthy)),
+    ...metric('tg_forwarder_retention_last_success_timestamp_seconds', 'Unix time of the last successful retention run', 'gauge', timestampSeconds(operational.retentionLastSuccessAt)),
     ...metric('tg_forwarder_retention_deleted_rows_total', 'Operational rows deleted by retention since process start', 'counter', operational.retentionDeletedTotal),
-    ...metric('tg_forwarder_retention_backlog', 'Whether retention exceeded the bounded cleanup work per run', 'gauge', operational.retentionBacklog ? 1 : 0),
+    ...metric('tg_forwarder_retention_backlog', 'Whether retention exceeded the bounded cleanup work per run', 'gauge', asFlag(operational.retentionBacklog)),
     ...metric('tg_forwarder_database_allocated_bytes', 'SQLite allocated database bytes', 'gauge', operational.databaseAllocatedBytes),
     ...metric('tg_forwarder_database_reusable_bytes', 'SQLite bytes currently reusable from the freelist', 'gauge', operational.databaseReusableBytes),
     ...metric('tg_forwarder_disk_available_bytes', 'Available bytes on the operational data filesystem', 'gauge', operational.diskAvailableBytes),
-    ...metric('tg_forwarder_disk_capacity_healthy', 'Whether available disk remains above the configured minimum', 'gauge', operational.diskCapacityHealthy ? 1 : 0),
+    ...metric('tg_forwarder_disk_capacity_healthy', 'Whether available disk remains above the configured minimum', 'gauge', asFlag(operational.diskCapacityHealthy)),
+    ...metric('tg_forwarder_audit_healthy', 'Whether the tamper-evident audit trail and required remote sink are healthy', 'gauge', asFlag(operational.auditHealthy)),
+    ...metric('tg_forwarder_audit_remote_required', 'Whether remote audit delivery is required', 'gauge', asFlag(operational.auditRemoteRequired)),
+    ...metric('tg_forwarder_audit_last_remote_success_timestamp_seconds', 'Unix time of the last successful remote audit delivery', 'gauge', timestampSeconds(operational.auditLastRemoteSuccessAt)),
     ...metric('tg_forwarder_ai_requests_today', 'AI provider requests reserved today (UTC)', 'gauge', operational.aiRequestsToday),
     ...metric('tg_forwarder_ai_used_tokens_today', 'AI tokens accounted today (UTC)', 'gauge', operational.aiUsedTokensToday),
     ...metric('tg_forwarder_ai_reserved_tokens_today', 'AI tokens reserved by unfinished calls today (UTC)', 'gauge', operational.aiReservedTokensToday),

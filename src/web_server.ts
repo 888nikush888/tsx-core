@@ -2,10 +2,11 @@ import http from 'http';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { randomUUID, timingSafeEqual } from 'crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'crypto';
 import { writeConfigSync } from './config.js';
 import { addLog, getLogHistory } from './ui.js';
 import { getIncomingMessages, getProcessedSignals, clearDb, deleteIncomingMessage, deleteProcessedSignal } from './db.js';
+import type { EnterpriseAuditTrail } from './audit_trail.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,11 +22,17 @@ interface WebServerState {
   getOutboxTasks?: (statuses?: string[]) => Promise<any[]>;
   retryOutboxTask?: (id: string) => Promise<boolean>;
   acknowledgeOutboxTask?: (id: string, reason: string) => Promise<boolean>;
+  auditTrail?: Pick<EnterpriseAuditTrail, 'record'>;
 }
 
 let server: http.Server | null = null;
 
 type DashboardRole = 'viewer' | 'admin';
+
+interface AuthenticatedActor {
+  role: DashboardRole;
+  id: string;
+}
 
 class HttpError extends Error {
   constructor(public readonly statusCode: number, message: string) {
@@ -56,16 +63,41 @@ function isAuthenticationConfigured(): boolean {
   return !!adminToken && (!viewerToken || !safeTokenEquals(adminToken, viewerToken));
 }
 
-function authenticate(req: http.IncomingMessage): DashboardRole | null {
+function authenticate(req: http.IncomingMessage): AuthenticatedActor | null {
   const authorization = req.headers.authorization || '';
   const match = /^Bearer ([^\s]+)$/.exec(authorization);
   if (!match) return null;
   const token = match[1]!;
   const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
-  if (adminToken && safeTokenEquals(token, adminToken)) return 'admin';
+  const id = `token:${createHash('sha256').update(token).digest('hex').slice(0, 16)}`;
+  if (adminToken && safeTokenEquals(token, adminToken)) return { role: 'admin', id };
   const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
-  if (viewerToken && safeTokenEquals(token, viewerToken)) return 'viewer';
+  if (viewerToken && safeTokenEquals(token, viewerToken)) return { role: 'viewer', id };
   return null;
+}
+
+function recordAuditCompletion(
+  auditTrail: WebServerState['auditTrail'],
+  actor: AuthenticatedActor,
+  requestId: string,
+  method: string,
+  url: string,
+  statusCode: number
+): void {
+  addLog(`[AUDIT] request_id=${requestId} actor_role=${actor.role} method=${method} path=${url} status=${statusCode}`);
+  void auditTrail?.record({
+    phase: 'completed',
+    action: 'dashboard.mutation',
+    requestId,
+    actorId: actor.id,
+    actorRole: actor.role,
+    method,
+    path: url,
+    statusCode
+  }).catch(error => addLog(`[CRITICAL] Audit outcome delivery failed: ${error.message}`, {
+    request_id: requestId,
+    event: 'audit_delivery_failed'
+  }));
 }
 
 function isAllowedOrigin(origin: string | undefined): boolean {
@@ -117,19 +149,66 @@ async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): P
 }
 
 function publicConfig(config: any): any {
-  const forbidden = new Set(['apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH', 'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN']);
+  const forbidden = new Set([
+    'apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH',
+    'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN', 'BACKUP_OFFSITE_TOKEN',
+    'BACKUP_ENCRYPTION_KEY', 'ALERT_RELAY_TOKEN', 'ALERT_WEBHOOK_TOKEN',
+    'PROMETHEUS_TOKEN', 'AUDIT_WEBHOOK_TOKEN'
+  ]);
   return JSON.parse(JSON.stringify(config || {}, (key, value) => forbidden.has(key) ? undefined : value));
 }
 
 function containsSecretConfig(input: any): boolean {
   if (!input || typeof input !== 'object') return false;
-  const forbidden = new Set(['apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH', 'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN']);
+  const forbidden = new Set([
+    'apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH',
+    'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN', 'BACKUP_OFFSITE_TOKEN',
+    'BACKUP_ENCRYPTION_KEY', 'ALERT_RELAY_TOKEN', 'ALERT_WEBHOOK_TOKEN',
+    'PROMETHEUS_TOKEN', 'AUDIT_WEBHOOK_TOKEN'
+  ]);
   return Object.entries(input).some(([key, value]) => forbidden.has(key) || containsSecretConfig(value));
 }
 
 function requireMutationHeaders(req: http.IncomingMessage): void {
   if (req.headers['x-requested-with'] !== 'forwarder-dashboard') {
     throw new HttpError(400, 'Missing X-Requested-With header.');
+  }
+}
+
+async function authorizeMutationAudit(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  auditTrail: WebServerState['auditTrail'],
+  actor: AuthenticatedActor,
+  requestId: string,
+  method: string,
+  url: string
+): Promise<boolean> {
+  try {
+    requireMutationHeaders(req);
+  } catch (error) {
+    const httpError = error as HttpError;
+    sendJson(res, httpError.statusCode, { error: httpError.message, requestId });
+    return false;
+  }
+  try {
+    await auditTrail?.record({
+      phase: 'authorized',
+      action: 'dashboard.mutation',
+      requestId,
+      actorId: actor.id,
+      actorRole: actor.role,
+      method,
+      path: url
+    });
+    return true;
+  } catch (error: any) {
+    addLog(`[CRITICAL] Audit precondition failed; dashboard mutation blocked: ${error.message}`, {
+      request_id: requestId,
+      event: 'audit_precondition_failed'
+    });
+    sendJson(res, 503, { error: 'Audit trail unavailable; mutation blocked.', requestId });
+    return false;
   }
 }
 
@@ -161,36 +240,30 @@ export function startWebServer(
       return;
     }
 
-    let role: DashboardRole | null = null;
+    let actor: AuthenticatedActor | null = null;
     if (url.startsWith('/api/')) {
       if (!isAuthenticationConfigured()) {
         sendJson(res, 503, { error: 'Dashboard authentication is not configured.', requestId });
         return;
       }
-      role = authenticate(req);
-      if (!role) {
+      actor = authenticate(req);
+      if (!actor) {
         res.setHeader('WWW-Authenticate', 'Bearer realm="forwarder-dashboard"');
         sendJson(res, 401, { error: 'Valid dashboard bearer token required.', requestId });
         return;
       }
-      res.setHeader('X-Authenticated-Role', role);
+      res.setHeader('X-Authenticated-Role', actor.role);
       if (method !== 'GET') {
         res.once('finish', () => {
-          addLog(`[AUDIT] request_id=${requestId} actor_role=${role} method=${method} path=${url} status=${res.statusCode}`);
+          recordAuditCompletion(appState.auditTrail, actor!, requestId, method, url, res.statusCode);
         });
       }
-      if (method !== 'GET' && role !== 'admin') {
+      if (method !== 'GET' && actor.role !== 'admin') {
         sendJson(res, 403, { error: 'Administrator role required.', requestId });
         return;
       }
-      if (method !== 'GET') {
-        try {
-          requireMutationHeaders(req);
-        } catch (error) {
-          const httpError = error as HttpError;
-          sendJson(res, httpError.statusCode, { error: httpError.message, requestId });
-          return;
-        }
+      if (method !== 'GET' && !await authorizeMutationAudit(req, res, appState.auditTrail, actor, requestId, method, url)) {
+        return;
       }
     }
 

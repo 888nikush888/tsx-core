@@ -110,3 +110,13 @@ groups:
         annotations:
           summary: Accepted-to-confirmed delivery P95 exceeds 60 seconds
           runbook: docs/runbooks/operations.md#alarm-triage
+
+      - alert: ForwarderAuditTrailUnhealthy
+        expr: tg_forwarder_audit_healthy == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: Control-plane audit persistence or remote delivery is unhealthy
+          runbook: docs/runbooks/operations.md#audit-trail-ausfall

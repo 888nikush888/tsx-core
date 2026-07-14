@@ -27,6 +27,9 @@ const HEALTHY_OPERATIONAL_METRICS = {
   databaseReusableBytes: 4096,
   diskAvailableBytes: 2_000_000_000,
   diskCapacityHealthy: true,
+  auditHealthy: true,
+  auditRemoteRequired: true,
+  auditLastRemoteSuccessAt: 1_700_000_250_000,
   deliverySlo: {
     accepted: 11,
     attempts: 10,
@@ -85,6 +88,8 @@ async function runTests() {
   assert.match(metrics, /tg_forwarder_retention_deleted_rows_total 12/);
   assert.match(metrics, /tg_forwarder_database_allocated_bytes 8192/);
   assert.match(metrics, /tg_forwarder_disk_capacity_healthy 1/);
+  assert.match(metrics, /tg_forwarder_audit_healthy 1/);
+  assert.match(metrics, /tg_forwarder_audit_last_remote_success_timestamp_seconds 1700000250/);
   assert.match(metrics, /tg_forwarder_delivery_attempts_total 10/);
   assert.match(metrics, /tg_forwarder_delivery_confirmed_total 9/);
   assert.match(metrics, /tg_forwarder_delivery_latency_seconds_bucket\{le="5"\} 8/);
@@ -93,6 +98,10 @@ async function runTests() {
   operational = { ...operational, diskCapacityHealthy: false };
   response = await fetch(`${baseUrl}/readyz`);
   assert.strictEqual(response.status, 503, 'Low disk capacity must fail readiness');
+
+  operational = { ...operational, diskCapacityHealthy: true, auditHealthy: false };
+  response = await fetch(`${baseUrl}/readyz`);
+  assert.strictEqual(response.status, 503, 'Audit delivery failure must fail readiness');
 
   response = await fetch(`${baseUrl}/metrics`, { method: 'POST' });
   assert.strictEqual(response.status, 405);

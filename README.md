@@ -200,6 +200,14 @@ METRICS_HOST=127.0.0.1
 
 Die Dashboard-Historie zeigt ausschließlich gemessenen Durchsatz, Queue, CPU und RAM. Die frühere aus HTTP-Latenz und Zufall abgeleitete angebliche Internet-Bandbreite wurde entfernt, da sie keine belastbare Betriebsmetrik war. Die versionierten Regeln unter `monitoring/` alarmieren auf fehlende Metriken, unbekannte/fehlgeschlagene Zustellungen, DB-/Telegram-Ausfall, Backup-/Retention-/Disk-Probleme und Queue-Rückstau. `npm run quality:monitoring` validiert Prometheus, Alertmanager und die Regeltests mit gepinnten Tool-Images.
 
+### Manipulationsnachweis und externer Audit-Trail
+
+Mutierende Dashboard-Aufrufe werden vor ihrer Nebenwirkung synchron in `logs/audit-chain.jsonl` geschrieben, auf den Datenträger synchronisiert und über SHA-256 mit dem vorherigen Record verkettet. Der Record enthält Request-ID, pseudonyme Actor-ID, Rolle, Methode, Pfad und Abschlussstatus, aber weder Bearer-Token noch Request-Body. Eine beim Start beschädigte Kette blockiert den Dienst; das lokale 64-MiB-Limit blockiert weitere Mutationen, statt unkontrolliert zu wachsen.
+
+Im Produktions-Container ist zusätzlich `AUDIT_WEBHOOK_URL` mit `AUDIT_WEBHOOK_TOKEN[_FILE]` Pflicht. Der HTTPS-Endpunkt darf erst 2xx antworten, nachdem der Record außerhalb des Forwarder-Hosts unveränderlich und gemäß Unternehmens-Retention gespeichert wurde. Ist die Vorabzustellung nicht beweisbar, antwortet die Control Plane mit 503 und führt die Mutation nicht aus; spätere Zustellfehler setzen Readiness und `tg_forwarder_audit_healthy` auf rot. `AUDIT_REMOTE_REQUIRED=false` ist ausschließlich für explizit als lokal deklarierte Nicht-Produktionsprozesse vorgesehen und im Containerbetrieb kein Enterprise-Nachweis.
+
+Nach einem Gateway-Ausfall wird die lokale Kette zuerst mit `npm run audit:verify` geprüft und anschließend im gestoppten Zustand mit `npm run audit:replay -- --confirm-audit-replay` vollständig und idempotent nachgeliefert. Der Gateway muss bereits bekannte Hashes akzeptieren und bei gleichem Hash mit abweichendem Inhalt fail-closed ablehnen.
+
 Nach jedem neuen Incident-Empfänger und mindestens monatlich wird eine echte Testalarmierung ausgelöst:
 
 ```bash
