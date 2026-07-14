@@ -6,7 +6,7 @@ async function main(): Promise<void> {
   loadEnv();
   const [command, snapshot, confirmation] = process.argv.slice(2);
   if (command !== 'restore' || !snapshot || confirmation !== '--confirm-restore-pre-migration') {
-    throw new Error('Usage: npm run db:migration:restore -- <snapshot.db> --confirm-restore-pre-migration');
+    throw new Error('Usage: node dist/migration_cli.js restore <snapshot.db> --confirm-restore-pre-migration');
   }
   const target = path.resolve(
     process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db')

@@ -4,26 +4,30 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ${FORWARDER_IMAGE:-telegram-tdlib-forwarder:local}
-    container_name: tg-forwarder
     init: true
     restart: "on-failure:3"
     stop_grace_period: 45s
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
-      NON_INTERACTIVE: "true"
+      ENTERPRISE_MODE: ${ENTERPRISE_MODE:-false}
       WEB_HOST: "0.0.0.0"
       METRICS_HOST: "0.0.0.0"
       PORT: "8080"
       METRICS_PORT: "9100"
       BACKUP_DIR: "/app/backups"
+      CONFIG_PATH: "/app/config/config.json"
+      MANAGED_SECRET_DIR: "/app/secrets"
     volumes:
-      - ./config.json:/app/config.json:rw
-      - ./session_data:/app/session_data:rw
-      - ./session_files:/app/session_files:rw
-      - ./signals:/app/signals:rw
-      - ./logs:/app/logs:rw
-      - ./backups:/app/backups:rw
+      - forwarder_config:/app/config
+      - forwarder_secrets:/app/secrets
+      - forwarder_templates:/app/templates
+      - forwarder_session_data:/app/session_data
+      - forwarder_session_files:/app/session_files
+      - forwarder_signals:/app/signals
+      - forwarder_logs:/app/logs
+      - forwarder_backups:/app/backups
     ports:
       - "127.0.0.1:${HOST_WEB_PORT:-8080}:8080"
       - "127.0.0.1:${HOST_METRICS_PORT:-9100}:9100"
@@ -40,7 +44,7 @@ services:
     healthcheck:
       test:
         - CMD
-        - node
+        - /nodejs/bin/node
         - -e
         - "fetch('http://127.0.0.1:9100/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
       interval: 30s
@@ -52,3 +56,13 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+
+volumes:
+  forwarder_config:
+  forwarder_secrets:
+  forwarder_templates:
+  forwarder_session_data:
+  forwarder_session_files:
+  forwarder_signals:
+  forwarder_logs:
+  forwarder_backups:

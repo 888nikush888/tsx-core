@@ -1,4 +1,5 @@
-ARG NODE_IMAGE=node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
+ARG NODE_IMAGE=node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3
+ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13@sha256:773a62fbe24a3f8c8b24b16fd59154627f8b406737bc906f83bf1732bc8907dd
 ARG DEBIAN_SNAPSHOT=20260713T150000Z
 
 FROM ${NODE_IMAGE} AS base
@@ -10,8 +11,8 @@ FROM base AS builder
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.json ./
 COPY frontend/package.json frontend/package-lock.json ./frontend/
-RUN npm ci --ignore-scripts --no-audit --no-fund \
-    && npm ci --prefix frontend --ignore-scripts --no-audit --no-fund
+RUN npm ci --ignore-scripts --include=optional --no-audit --no-fund \
+    && npm ci --prefix frontend --ignore-scripts --include=optional --no-audit --no-fund
 COPY src/ ./src/
 COPY frontend/ ./frontend/
 RUN npm run build
@@ -26,33 +27,33 @@ RUN apt-get update \
     && npm rebuild sqlite3 --build-from-source \
     && npm cache clean --force
 
-FROM base AS runner
+FROM base AS runtime-layout
+RUN mkdir -p /runtime/app/config /runtime/app/secrets /runtime/app/templates \
+      /runtime/app/session_data /runtime/app/session_files /runtime/app/signals \
+      /runtime/app/logs /runtime/app/backups \
+    && chown -R 65532:65532 /runtime/app
+
+FROM ${RUNTIME_IMAGE} AS runner
 LABEL org.opencontainers.image.title="Telegram TDLib Forwarder" \
       org.opencontainers.image.source="local-workspace" \
-      org.opencontainers.image.base.name="docker.io/library/node:20-bookworm-slim" \
-      org.opencontainers.image.base.digest="sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0"
+      org.opencontainers.image.base.name="gcr.io/distroless/nodejs22-debian13" \
+      org.opencontainers.image.base.digest="sha256:773a62fbe24a3f8c8b24b16fd59154627f8b406737bc906f83bf1732bc8907dd"
 
 ENV NODE_ENV=production \
-    NON_INTERACTIVE=true
+    ENTERPRISE_MODE=false \
+    CONFIG_PATH=/app/config/config.json
 WORKDIR /app
 
-COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /app/dist ./dist
-COPY --from=builder --chown=node:node /app/frontend/dist ./frontend/dist
-COPY --chown=node:node templates/ ./templates/
-COPY --chown=node:node config.json.example ./config.json.example
+COPY --from=runtime-layout --chown=65532:65532 /runtime/app/ /app/
+COPY --from=production-dependencies --chown=65532:65532 /app/node_modules ./node_modules
+COPY --from=builder --chown=65532:65532 /app/dist ./dist
+COPY --from=builder --chown=65532:65532 /app/frontend/dist ./frontend/dist
+COPY --chown=65532:65532 templates/ ./templates/
+COPY --chown=65532:65532 config.json.example ./config/config.json
 
-RUN apt-get update \
-    && apt-get upgrade -y --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /usr/local/lib/node_modules/npm \
-    && rm -f /usr/local/bin/npm /usr/local/bin/npx \
-    && mkdir -p /app/session_data /app/session_files /app/signals /app/logs /app/backups \
-    && chown -R node:node /app/session_data /app/session_files /app/signals /app/logs /app/backups
-
-USER node
+USER 65532:65532
 EXPOSE 8080 9100
 STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:9100/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
-CMD ["node", "dist/forwarder.js"]
+  CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:9100/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+CMD ["dist/forwarder.js"]

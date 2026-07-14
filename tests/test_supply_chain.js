@@ -56,15 +56,26 @@ assert.match(workflow, /gh release verify "\$GITHUB_REF_NAME"/);
 const baseImages = [...dockerfile.matchAll(/^FROM\s+([^\s]+).*$/gm)].map((match) => match[1]);
 assert.ok(baseImages.length > 0, 'Dockerfile must declare a base image');
 const nodeImage = dockerfile.match(/^ARG NODE_IMAGE=([^\s]+)$/m)?.[1];
+const runtimeImage = dockerfile.match(/^ARG RUNTIME_IMAGE=([^\s]+)$/m)?.[1];
 assert.ok(nodeImage, 'Dockerfile must define NODE_IMAGE');
+assert.ok(runtimeImage, 'Dockerfile must define RUNTIME_IMAGE');
 assert.match(nodeImage, /@sha256:[a-f0-9]{64}$/, 'NODE_IMAGE must use a sha256 digest');
+assert.match(runtimeImage, /@sha256:[a-f0-9]{64}$/, 'RUNTIME_IMAGE must use a sha256 digest');
 assert.doesNotMatch(nodeImage, /:latest(?:@|$)/, 'NODE_IMAGE must not use latest');
+assert.doesNotMatch(runtimeImage, /:latest(?:@|$)/, 'RUNTIME_IMAGE must not use latest');
+assert.match(runtimeImage, /^gcr\.io\/distroless\/nodejs22-debian13@sha256:/);
 assert.equal(baseImages[0], '${NODE_IMAGE}', 'base stage must use the pinned NODE_IMAGE argument');
-assert.ok(baseImages.slice(1).every((image) => image === 'base'), 'all stages must inherit pinned base');
+assert.ok(
+  baseImages.slice(1, -1).every((image) => image === 'base'),
+  'all build stages must inherit the pinned build base'
+);
+assert.equal(baseImages.at(-1), '${RUNTIME_IMAGE}', 'runner must use the pinned distroless image');
 assert.match(dockerfile, /^ARG DEBIAN_SNAPSHOT=\d{8}T\d{6}Z$/m);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian\/\$\{DEBIAN_SNAPSHOT\}/);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian-security\/\$\{DEBIAN_SNAPSHOT\}/);
-assert.match(dockerfile, /apt-get upgrade -y --no-install-recommends/);
-assert.match(dockerfile, /rm -rf \/usr\/local\/lib\/node_modules\/npm/);
+const runtimeStage = dockerfile.slice(dockerfile.indexOf('FROM ${RUNTIME_IMAGE} AS runner'));
+assert.doesNotMatch(runtimeStage, /^RUN\s/m, 'distroless runtime must not install packages');
+assert.match(runtimeStage, /^USER 65532:65532$/m);
+assert.match(runtimeStage, /^CMD \["dist\/forwarder\.js"\]$/m);
 
 console.log('Supply-chain pinning policy tests passed.');

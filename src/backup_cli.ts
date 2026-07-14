@@ -8,9 +8,9 @@ import { loadEnv } from './env.js';
 function usage(): never {
   throw new Error([
     'Usage:',
-    '  npm run backup:create -- [backup-directory]',
-    '  npm run backup:verify -- <artifact-directory>',
-    '  npm run backup:restore -- <artifact-directory>'
+    '  node dist/backup_cli.js create [backup-directory]',
+    '  node dist/backup_cli.js verify <artifact-directory>',
+    '  node dist/backup_cli.js restore <artifact-directory>'
   ].join('\n'));
 }
 

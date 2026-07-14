@@ -20,6 +20,12 @@ const tested = scorePullRequest([
   { path: 'tests/test_config.js', additions: 10, deletions: 0 }
 ]);
 assert.ok(!tested.factors.some(factor => factor.id === 'test-gap'));
+const managedSecretChange = scorePullRequest([
+  { path: 'src/secret_store.ts', additions: 5, deletions: 1 },
+  { path: 'tests/test_secret_store.js', additions: 8, deletions: 0 }
+]);
+assert.ok(managedSecretChange.factors.some(factor => factor.id === 'critical-domain'));
+assert.ok(managedSecretChange.factors.some(factor => factor.id === 'auth-secrets'));
 
 const requiredContexts = [
   'Lint, tests, coverage, build, supply chain',

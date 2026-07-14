@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 const testsDirectory = path.dirname(fileURLToPath(import.meta.url));
 const allTests = [
   'test_modules.js',
+  'test_logger_file.js',
   'test_queue.js',
   'test_filters.js',
   'test_config.js',

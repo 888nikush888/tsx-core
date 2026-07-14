@@ -95,7 +95,10 @@ export async function analyzeArchitecture() {
     'filters.ts',
     'metrics_tracker.ts',
     'queue.ts',
+    'runtime_profile.ts',
+    'secret_store.ts',
     'signal_schema.ts',
+    'telegram_login.ts',
     'tdlib_retry.ts',
   ]);
   const outerModules = new Set([

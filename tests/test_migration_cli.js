@@ -8,6 +8,6 @@ const result = spawnSync(
 );
 
 assert.equal(result.status, 1, 'Migration restore CLI must fail without the exact confirmation flag.');
-assert.match(result.stderr, /Usage: npm run db:migration:restore/);
+assert.match(result.stderr, /Usage: node dist\/migration_cli\.js restore/);
 
 console.log('Migration CLI confirmation test passed.');

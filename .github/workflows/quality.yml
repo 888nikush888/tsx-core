@@ -169,8 +169,8 @@ jobs:
         run: docker build --tag telegram-tdlib-forwarder:${{ github.sha }} .
       - name: Verify runtime native modules and non-root user
         run: |
-          test "$(docker image inspect telegram-tdlib-forwarder:${{ github.sha }} --format '{{.Config.User}}')" = node
-          docker run --rm --entrypoint node telegram-tdlib-forwarder:${{ github.sha }} -e "Promise.all([import('sqlite3'),import('tdl'),import('prebuilt-tdlib')]).then(()=>console.log('native-import-ok')).catch(error=>{console.error(error);process.exit(1)})"
+          test "$(docker image inspect telegram-tdlib-forwarder:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
+          docker run --rm --entrypoint /nodejs/bin/node telegram-tdlib-forwarder:${{ github.sha }} -e "Promise.all([import('sqlite3'),import('tdl'),import('prebuilt-tdlib')]).then(()=>console.log('native-import-ok')).catch(error=>{console.error(error);process.exit(1)})"
       - name: Generate container SBOM
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:

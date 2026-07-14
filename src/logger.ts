@@ -2,7 +2,9 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const LOG_DIRECTORY = path.join(path.dirname(fileURLToPath(import.meta.url)), '../logs');
+const LOG_DIRECTORY = path.resolve(
+  process.env.LOG_DIR?.trim() || path.join(path.dirname(fileURLToPath(import.meta.url)), '../logs')
+);
 const MAX_LOG_ENTRIES = 30;
 const LOG_RETENTION_DAYS = 14;
 
