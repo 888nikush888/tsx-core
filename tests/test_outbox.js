@@ -47,11 +47,7 @@ function task(id, messageId) {
   };
 }
 
-async function runTests() {
-  const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-outbox-test-'));
-  const dbPath = path.join(testDir, 'legacy.db');
-
-  try {
+async function prepareLegacyDatabase(testDir, dbPath) {
     const futurePath = path.join(testDir, 'future.db');
     const futureDb = await open({ filename: futurePath, driver: sqlite3.Database });
     await futureDb.exec(`
@@ -100,7 +96,9 @@ async function runTests() {
 
     await initDb(dbPath);
     assert.strictEqual(await getSchemaVersion(), LATEST_SCHEMA_VERSION);
+}
 
+async function testOutboxLifecycle() {
     assert.strictEqual(await isDatabaseHealthy(), true);
     assert.strictEqual(await getTotalForwardedCount(), 0);
     assert.strictEqual(await getLastForwardedAt(), null);
@@ -158,7 +156,9 @@ async function runTests() {
     assert.strictEqual(statusCounts.failed, 1);
     assert.strictEqual(statusCounts.unknown, 0);
     assert.ok(statusCounts.completed >= 2);
+}
 
+async function testAuxiliaryPersistence() {
     const incomingAfterMigration = await getIncomingMessages(100);
     assert.strictEqual(incomingAfterMigration.filter(message => message.chat_id === '-1001' && message.message_id === 7).length, 1, 'Migration must deduplicate inbox rows');
     assert.strictEqual(incomingAfterMigration.filter(message => message.chat_id === null && message.message_id === null).length, 2, 'Migration must not collapse legacy rows without a delivery identity');
@@ -188,7 +188,9 @@ async function runTests() {
       usedTokens: 950,
       reservedTokens: 0
     });
+}
 
+async function testSignalProvenance(dbPath) {
     await saveSignal('provenance-signal', '-1001', 99, '<signal/>', '<signal/>', {
       templateName: 'loma',
       schemaName: 'loma',
@@ -240,7 +242,9 @@ async function runTests() {
       parser_version: null
     });
     await inspectionDb.close();
+}
 
+async function testMigrationRecovery(testDir, dbPath) {
     await closeDb();
     const migrationBackupDirectory = path.join(testDir, '.migration-backups');
     const migrationSnapshots = (await readdir(migrationBackupDirectory))
@@ -266,7 +270,17 @@ async function runTests() {
     assert.strictEqual(restoredLegacyTask.id, 'legacy-task');
     await initDb(dbPath);
     assert.strictEqual(await getSchemaVersion(), LATEST_SCHEMA_VERSION, 'Restored legacy snapshot must migrate reproducibly');
+}
 
+async function runTests() {
+  const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-outbox-test-'));
+  const dbPath = path.join(testDir, 'legacy.db');
+  try {
+    await prepareLegacyDatabase(testDir, dbPath);
+    await testOutboxLifecycle();
+    await testAuxiliaryPersistence();
+    await testSignalProvenance(dbPath);
+    await testMigrationRecovery(testDir, dbPath);
     console.log('ALL DURABLE OUTBOX TESTS PASSED!');
   } finally {
     await closeDb();

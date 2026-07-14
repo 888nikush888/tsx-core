@@ -54,6 +54,28 @@ const SAMPLE_SIGNAL_WITH_XML_DECL = `<?xml version="1.0" encoding="UTF-8"?>
     <leverage>15</leverage>
 </signal>`;
 
+function runNormalizationTests(testPass, testFail) {
+  console.log('\n=== 1. normalizeSignalXml Tests ===');
+  try {
+    assert.strictEqual(normalizeSignalXml(SAMPLE_SIGNAL_1), normalizeSignalXml(SAMPLE_SIGNAL_1_DIFFERENT_WHITESPACE));
+    testPass('Whitespace-Toleranz: Identische Signale mit verschiedenem Whitespace');
+  } catch (error) { testFail('Whitespace-Toleranz', error); }
+  try {
+    assert.strictEqual(normalizeSignalXml(SAMPLE_SIGNAL_1), normalizeSignalXml(SAMPLE_SIGNAL_WITH_XML_DECL));
+    testPass('XML-Declaration wird entfernt');
+  } catch (error) { testFail('XML-Declaration wird entfernt', error); }
+  try {
+    assert.notStrictEqual(normalizeSignalXml(SAMPLE_SIGNAL_1), normalizeSignalXml(SAMPLE_SIGNAL_2));
+    testPass('Unterschiedliche Signale ergeben unterschiedliche Normalisierung');
+  } catch (error) { testFail('Unterschiedliche Signale', error); }
+  try {
+    assert.strictEqual(normalizeSignalXml(''), '');
+    assert.strictEqual(normalizeSignalXml(null), '');
+    assert.strictEqual(normalizeSignalXml(undefined), '');
+    testPass('Leere/null/undefined Eingaben werden behandelt');
+  } catch (error) { testFail('Leere Eingaben', error); }
+}
+
 async function runTests() {
   let passed = 0;
   let failed = 0;
@@ -76,36 +98,7 @@ async function runTests() {
   const db = await open({ filename: dbPath, driver: sqlite3.Database });
   await db.exec(`DELETE FROM signals`);
 
-  // ========== normalizeSignalXml Tests ==========
-  console.log('\n=== 1. normalizeSignalXml Tests ===');
-
-  try {
-    const n1 = normalizeSignalXml(SAMPLE_SIGNAL_1);
-    const n2 = normalizeSignalXml(SAMPLE_SIGNAL_1_DIFFERENT_WHITESPACE);
-    assert.strictEqual(n1, n2, 'Same content with different whitespace should normalize equally');
-    testPass('Whitespace-Toleranz: Identische Signale mit verschiedenem Whitespace');
-  } catch (e) { testFail('Whitespace-Toleranz', e); }
-
-  try {
-    const n1 = normalizeSignalXml(SAMPLE_SIGNAL_1);
-    const n2 = normalizeSignalXml(SAMPLE_SIGNAL_WITH_XML_DECL);
-    assert.strictEqual(n1, n2, 'XML declaration should be stripped during normalization');
-    testPass('XML-Declaration wird entfernt');
-  } catch (e) { testFail('XML-Declaration wird entfernt', e); }
-
-  try {
-    const n1 = normalizeSignalXml(SAMPLE_SIGNAL_1);
-    const n2 = normalizeSignalXml(SAMPLE_SIGNAL_2);
-    assert.notStrictEqual(n1, n2, 'Different signals should normalize differently');
-    testPass('Unterschiedliche Signale ergeben unterschiedliche Normalisierung');
-  } catch (e) { testFail('Unterschiedliche Signale', e); }
-
-  try {
-    assert.strictEqual(normalizeSignalXml(''), '');
-    assert.strictEqual(normalizeSignalXml(null), '');
-    assert.strictEqual(normalizeSignalXml(undefined), '');
-    testPass('Leere/null/undefined Eingaben werden behandelt');
-  } catch (e) { testFail('Leere Eingaben', e); }
+  runNormalizationTests(testPass, testFail);
 
   // ========== isDuplicateSignal Tests ==========
   console.log('\n=== 2. isDuplicateSignal Tests ===');

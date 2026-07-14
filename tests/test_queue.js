@@ -1,9 +1,7 @@
 import assert from 'assert';
 import { ConcurrencyQueue } from '../src/queue.js';
 
-async function runTests() {
-  console.log("=== Running ConcurrencyQueue Unit Tests ===");
-
+async function testConcurrencyLimits() {
   // 1. Concurrency limit test (default = 2)
   console.log("1. Testing default maxConcurrency of 2...");
   const queue = new ConcurrencyQueue(2);
@@ -61,7 +59,9 @@ async function runTests() {
 
   assert.strictEqual(maxActiveJobs1, 1, `Expected max active jobs to be exactly 1, got ${maxActiveJobs1}`);
   console.log("   -> OK");
+}
 
+async function testErrorsAndTimeouts() {
   // 3. Error handling in jobs
   console.log("3. Testing queue handles throwing jobs correctly...");
   const errorQueue = new ConcurrencyQueue(2);
@@ -140,7 +140,9 @@ async function runTests() {
   assert.strictEqual(maxActiveTimedJobs, 1, 'Physical concurrency must remain within the configured limit');
   assert.strictEqual(timeoutQueue.running, 0);
   console.log("   -> OK");
+}
 
+async function testPauseAndAbortPropagation() {
   // 5. Queue Pause/Resume test
   console.log("5. Testing queue pause and resume...");
   const pauseQueue = new ConcurrencyQueue(2);
@@ -194,7 +196,9 @@ async function runTests() {
 
   assert.strictEqual(abortedSignalCaught, true, "AbortSignal listener should have fired on timeout");
   console.log("   -> OK");
+}
 
+async function testRuntimeSettingsAndDrain() {
   // 7. Applying a higher concurrency starts waiting work immediately
   console.log("7. Testing live queue settings update...");
   const configurableQueue = new ConcurrencyQueue(1);
@@ -238,6 +242,14 @@ async function runTests() {
   console.log("   -> OK");
 
   console.log("\nALL CONCURRENCY QUEUE UNIT TESTS PASSED!");
+}
+
+async function runTests() {
+  console.log("=== Running ConcurrencyQueue Unit Tests ===");
+  await testConcurrencyLimits();
+  await testErrorsAndTimeouts();
+  await testPauseAndAbortPropagation();
+  await testRuntimeSettingsAndDrain();
 }
 
 await runTests().catch(err => {

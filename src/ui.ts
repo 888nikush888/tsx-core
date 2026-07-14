@@ -276,33 +276,67 @@ function readMenuKeypress(validKeys = null) {
 /**
  * Draws the Main Menu into a single string buffer and prints it to prevent terminal flickering.
  */
+function animatedStreamSegment(stream: string, start: number, highlightedIndex: number): string {
+  let output = '';
+  for (let index = 0; index < 16; index++) {
+    const character = stream[(start + index) % stream.length];
+    output += index === highlightedIndex ? `${C_WHITE}${character}${C_RESET}${C_GREEN}` : character;
+  }
+  return output;
+}
+
+function apiConnectionStatus(config: any): string {
+  const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
+  const configured = apiId !== 0 && /^[a-f0-9]{32}$/i.test(process.env.TELEGRAM_API_HASH || '');
+  return configured
+    ? `${C_GREEN}RESOLVED (Knoten-ID: ${apiId})${C_RESET}`
+    : `${C_RED}UNRESOLVED (Mainframe API-Credentials fehlen - Option [2])${C_RESET}`;
+}
+
+function sourceConnectionStatus(config: any, resolvedSourceChatIds: Set<string>): string {
+  return config.sourceChannels.length > 0
+    ? `${C_GREEN}${config.sourceChannels.length} Quell-Knoten${C_RESET} ${C_DARK_GREEN}(aktiv: ${resolvedSourceChatIds.size})${C_RESET}`
+    : `${C_RED}[ Keine Quell-Knoten konfiguriert ]${C_RESET}`;
+}
+
+function routingModeStatus(config: any): string {
+  if (config.forwardOptions?.forwardToTarget === false) {
+    return `${C_RED}DEAKTIVIERT (Nur lokale Signal-Speicherung)${C_RESET}`;
+  }
+  return config.forwardOptions?.sendCopy
+    ? `${C_GREEN}KOPY-MODUS (Original-Absender entfernen)${C_RESET}`
+    : `${C_DARK_GREEN}FORWARD-MODUS (Direkte Weiterleitung)${C_RESET}`;
+}
+
+function configuredFilterStatus(config: any): string {
+  const sourceFilterCount = config.sourceFilters
+    ? Object.keys(config.sourceFilters).filter(key => config.sourceFilters[key]?.regexPatterns?.length > 0).length
+    : 0;
+  const allowedTypes = config.filters?.allowedTypes?.length > 0 ? config.filters.allowedTypes.join(', ') : 'Alle';
+  return `Blacklist: ${config.filters?.blockedKeywords?.length || 0} | Regex: ${config.filters?.regexPatterns?.length || 0} (${sourceFilterCount} quellspez.) | Typen: ${allowedTypes}`;
+}
+
+function xmlParserStatus(config: any): string {
+  const primaryModel = config.xmlParsing?.primaryModel || 'google/gemini-flash-1.5';
+  const fallbackModel = config.xmlParsing?.fallbackModel || 'anthropic/claude-3-haiku';
+  const status = config.xmlParsing?.enabled ? `${C_GREEN}AKTIV` : `${C_RED}DEAKTIVIERT`;
+  return `${status}${C_RESET} ${C_DARK_GREEN}(Primär: ${primaryModel} | Fallback: ${fallbackModel})${C_RESET}`;
+}
+
+function dupeBlockerStatus(config: any): string {
+  return config.dupeBlocker?.enabled
+    ? `${C_GREEN}AKTIV${C_RESET} ${C_DARK_GREEN}(Cooldown: ${config.dupeBlocker?.cooldownHours ?? 24}h)${C_RESET}`
+    : `${C_RED}DEAKTIVIERT${C_RESET}`;
+}
+
 export function drawMainMenuBuffered(config, state, spinnerFrame, resolvedSourceChatIds, totalForwardedCount) {
   let output = '\x1B[H\x1B[J'; // Move cursor to top-left and clear screen below
 
   const spinChar = spinnerChars[spinnerFrame];
   const streamText = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ#@$%&*()[]{}<>-+=/";
   
-  const leftStart = spinnerFrame % streamText.length;
-  let leftCode = "";
-  for (let i = 0; i < 16; i++) {
-    const char = streamText[(leftStart + i) % streamText.length];
-    if (i === 0) {
-      leftCode += `${C_WHITE}${char}${C_RESET}${C_GREEN}`;
-    } else {
-      leftCode += char;
-    }
-  }
-
-  const rightStart = (streamText.length - spinnerFrame) % streamText.length;
-  let rightCode = "";
-  for (let i = 0; i < 16; i++) {
-    const char = streamText[(rightStart + i) % streamText.length];
-    if (i === 15) {
-      rightCode += `${C_WHITE}${char}${C_RESET}${C_GREEN}`;
-    } else {
-      rightCode += char;
-    }
-  }
+  const leftCode = animatedStreamSegment(streamText, spinnerFrame % streamText.length, 0);
+  const rightCode = animatedStreamSegment(streamText, (streamText.length - spinnerFrame) % streamText.length, 15);
 
   output += `${C_DARK_GREEN}┌──────────────────────────────────────────────────────────────────┐\n`;
   output += `│  ${C_GREEN}${leftCode}${C_RESET}${C_DARK_GREEN}              ${C_BRIGHT_GREEN}${C_BOLD}${spinChar}${C_RESET}${C_DARK_GREEN}               ${C_GREEN}${rightCode}${C_RESET}${C_DARK_GREEN}  │\n`;
@@ -312,35 +346,20 @@ export function drawMainMenuBuffered(config, state, spinnerFrame, resolvedSource
     ? `${C_BRIGHT_GREEN}[ RUNNING / INTERCEPT-ACTIVE ]${C_RESET}` 
     : `${C_RED}[ STANDBY / INTERCEPT-OFF ]${C_RESET}`;
     
-  const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
-  const apiHashConfigured = /^[a-f0-9]{32}$/i.test(process.env.TELEGRAM_API_HASH || '');
-  const apiStatus = (apiId !== 0 && apiHashConfigured)
-    ? `${C_GREEN}RESOLVED (Knoten-ID: ${apiId})${C_RESET}`
-    : `${C_RED}UNRESOLVED (Mainframe API-Credentials fehlen - Option [2])${C_RESET}`;
-
-  const sourceStatus = config.sourceChannels.length > 0 
-    ? `${C_GREEN}${config.sourceChannels.length} Quell-Knoten${C_RESET} ${C_DARK_GREEN}(aktiv: ${resolvedSourceChatIds.size})${C_RESET}`
-    : `${C_RED}[ Keine Quell-Knoten konfiguriert ]${C_RESET}`;
+  const apiStatus = apiConnectionStatus(config);
+  const sourceStatus = sourceConnectionStatus(config, resolvedSourceChatIds);
 
   const targetStatus = config.targetChannel 
     ? `${C_GREEN}${config.targetChannel}${C_RESET}`
     : `${C_RED}[ Kein Ziel-Knoten konfiguriert ]${C_RESET}`;
 
-  let copyStatus;
-  if (config.forwardOptions?.forwardToTarget === false) {
-    copyStatus = `${C_RED}DEAKTIVIERT (Nur lokale Signal-Speicherung)${C_RESET}`;
-  } else {
-    copyStatus = config.forwardOptions?.sendCopy 
-      ? `${C_GREEN}KOPY-MODUS (Original-Absender entfernen)${C_RESET}`
-      : `${C_DARK_GREEN}FORWARD-MODUS (Direkte Weiterleitung)${C_RESET}`;
-  }
+  const copyStatus = routingModeStatus(config);
 
   const removeCapStatus = config.forwardOptions?.removeCaption 
     ? `${C_GREEN}BILDUNTERSCHRIFT STRIPPEN${C_RESET}`
     : `${C_DARK_GREEN}BILDUNTERSCHRIFT BEIBEHALTEN${C_RESET}`;
 
-  const sourceFilterCount = config.sourceFilters ? Object.keys(config.sourceFilters).filter(k => config.sourceFilters[k]?.regexPatterns?.length > 0).length : 0;
-  const filterStatus = `Blacklist: ${config.filters?.blockedKeywords?.length || 0} | Regex: ${config.filters?.regexPatterns?.length || 0} (${sourceFilterCount} quellspez.) | Typen: ${config.filters?.allowedTypes?.length > 0 ? config.filters.allowedTypes.join(', ') : 'Alle'}`;
+  const filterStatus = configuredFilterStatus(config);
 
   output += `${C_BOLD}${C_DARK_GREEN}┌─ MAINFRAME STATUS ────────────────────────────────────────────────${C_RESET}\n`;
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET} System-Zustand:  ${statusBadge}\n`;
@@ -348,17 +367,11 @@ export function drawMainMenuBuffered(config, state, spinnerFrame, resolvedSource
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET} Quell-Knoten:    ${sourceStatus}\n`;
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET} Ziel-Knoten:     ${targetStatus}\n`;
   
-  const currentModel = config.xmlParsing?.primaryModel || 'google/gemini-flash-1.5';
-  const fallbackModel = config.xmlParsing?.fallbackModel || 'anthropic/claude-3-haiku';
-  const xmlStatus = config.xmlParsing?.enabled
-    ? `${C_GREEN}AKTIV${C_RESET} ${C_DARK_GREEN}(Primär: ${currentModel} | Fallback: ${fallbackModel})${C_RESET}`
-    : `${C_RED}DEAKTIVIERT${C_RESET} ${C_DARK_GREEN}(Primär: ${currentModel} | Fallback: ${fallbackModel})${C_RESET}`;
+  const xmlStatus = xmlParserStatus(config);
     
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET} XML-Signal-KI:   ${xmlStatus}\n`;
 
-  const dupeStatus = config.dupeBlocker?.enabled
-    ? `${C_GREEN}AKTIV${C_RESET} ${C_DARK_GREEN}(Cooldown: ${config.dupeBlocker?.cooldownHours ?? 24}h)${C_RESET}`
-    : `${C_RED}DEAKTIVIERT${C_RESET}`;
+  const dupeStatus = dupeBlockerStatus(config);
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET} Dupe-Blocker:    ${dupeStatus}\n`;
 
   output += `${C_BOLD}${C_DARK_GREEN}│${C_RESET} Übertragen:      ${C_BOLD}${C_BRIGHT_GREEN}${totalForwardedCount} Pakete${C_RESET}\n`;
@@ -440,6 +453,66 @@ async function configureApiCredentials(config, saveConfig) {
   return 'main';
 }
 
+function selectedIndex(value: string, length: number): number | null {
+  const index = parseInt(value.trim(), 10) - 1;
+  return Number.isInteger(index) && index >= 0 && index < length ? index : null;
+}
+
+async function addConfiguredSource(config: any, saveConfig: any): Promise<string> {
+  const source = (await promptUser(`${C_GREEN}Username (z.B. @mein_kanal) oder ID des Quell-Knotens eingeben: ${C_WHITE}`)).trim();
+  if (!source) return 'sources';
+  if (!isValidTargetChannel(source)) {
+    console.log(`${C_RED}Ungültiges Format. Erlaubt: @username (5-32 Zeichen) oder numerische ID.${C_RESET}`);
+    return 'sources';
+  }
+  config.sourceChannels.push(source);
+  saveConfig(config);
+  console.log(`${C_BRIGHT_GREEN}Quell-Knoten hinzugefügt!${C_RESET}`);
+  return 'sources';
+}
+
+async function removeConfiguredSource(config: any, saveConfig: any): Promise<string> {
+  if (config.sourceChannels.length === 0) {
+    console.log(`${C_RED}Keine Knoten zum Entfernen vorhanden. Beliebige Taste drücken...${C_RESET}`);
+    await pressAnyKey();
+    return 'sources';
+  }
+  const input = await promptUser(`${C_GREEN}Nummer des zu entfernenden Knotens eingeben (1-${config.sourceChannels.length}): ${C_WHITE}`);
+  const index = selectedIndex(input, config.sourceChannels.length);
+  if (index === null) console.log(`${C_RED}Ungültige Nummer.${C_RESET}`);
+  else {
+    const [removedSource] = config.sourceChannels.splice(index, 1);
+    if (config.sourceAliases?.[removedSource]) delete config.sourceAliases[removedSource];
+    saveConfig(config);
+    console.log(`${C_BRIGHT_GREEN}Quell-Knoten '${removedSource}' entfernt!${C_RESET}`);
+  }
+  await pressAnyKey();
+  return 'sources';
+}
+
+async function renameConfiguredSource(config: any, saveConfig: any): Promise<string> {
+  if (config.sourceChannels.length === 0) {
+    console.log(`${C_RED}Keine Knoten zum Benennen vorhanden. Beliebige Taste drücken...${C_RESET}`);
+    await pressAnyKey();
+    return 'sources';
+  }
+  const input = await promptUser(`${C_GREEN}Nummer des zu benennenden Knotens eingeben (1-${config.sourceChannels.length}): ${C_WHITE}`);
+  const index = selectedIndex(input, config.sourceChannels.length);
+  if (index === null) console.log(`${C_RED}Ungültige Nummer.${C_RESET}`);
+  else {
+    const source = config.sourceChannels[index];
+    console.log(`\n${C_GREEN}Aktueller Nickname für ${C_WHITE}${source}${C_RESET}${C_GREEN}: ${C_WHITE}${config.sourceAliases?.[source] || '[ Keiner ]'}${C_RESET}`);
+    const alias = (await promptUser(`${C_GREEN}Neuen Nickname eingeben (leer lassen zum Löschen): ${C_WHITE}`)).trim();
+    config.sourceAliases ??= {};
+    if (alias) config.sourceAliases[source] = alias;
+    else delete config.sourceAliases[source];
+    saveConfig(config);
+    console.log(`${C_BRIGHT_GREEN}Nickname für '${source}' ${alias ? `auf '${alias}' gesetzt` : 'entfernt'}!${C_RESET}`);
+  }
+  await pressAnyKey();
+  return 'sources';
+}
+
 // Sources Menu
 async function configureSources(config, saveConfig) {
   clearConsole();
@@ -458,76 +531,13 @@ async function configureSources(config, saveConfig) {
   console.log(` 4. Zurück zum Hauptmenü`);
   console.log(`${C_DARK_GREEN}===================================================`);
 
-  const choice = await promptUser(`${C_GREEN}Wähle eine Option (1-4): ${C_WHITE}`);
-  if (choice.trim() === '1') {
-    const newChan = await promptUser(`${C_GREEN}Username (z.B. @mein_kanal) oder ID des Quell-Knotens eingeben: ${C_WHITE}`);
-    const trimmedChan = newChan.trim();
-    if (trimmedChan !== '') {
-      if (isValidTargetChannel(trimmedChan)) {
-        config.sourceChannels.push(trimmedChan);
-        saveConfig(config);
-        console.log(`${C_BRIGHT_GREEN}Quell-Knoten hinzugefügt!${C_RESET}`);
-      } else {
-        console.log(`${C_RED}Ungültiges Format. Erlaubt: @username (5-32 Zeichen) oder numerische ID.${C_RESET}`);
-      }
-    }
-    return 'sources';
-  } else if (choice.trim() === '2') {
-    if (config.sourceChannels.length === 0) {
-      console.log(`${C_RED}Keine Knoten zum Entfernen vorhanden. Beliebige Taste drücken...${C_RESET}`);
-      await pressAnyKey();
-      return 'sources';
-    }
-    const idxInput = await promptUser(`${C_GREEN}Nummer des zu entfernenden Knotens eingeben (1-${config.sourceChannels.length}): ${C_WHITE}`);
-    const idx = parseInt(idxInput.trim(), 10) - 1;
-    if (!isNaN(idx) && idx >= 0 && idx < config.sourceChannels.length) {
-      const removed = config.sourceChannels.splice(idx, 1);
-      // Clean up alias if source is removed
-      if (config.sourceAliases?.[removed]) {
-        delete config.sourceAliases[removed];
-      }
-      saveConfig(config);
-      console.log(`${C_BRIGHT_GREEN}Quell-Knoten '${removed}' entfernt!${C_RESET}`);
-    } else {
-      console.log(`${C_RED}Ungültige Nummer.${C_RESET}`);
-    }
-    console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-    await pressAnyKey();
-    return 'sources';
-  } else if (choice.trim() === '3') {
-    if (config.sourceChannels.length === 0) {
-      console.log(`${C_RED}Keine Knoten zum Benennen vorhanden. Beliebige Taste drücken...${C_RESET}`);
-      await pressAnyKey();
-      return 'sources';
-    }
-    const idxInput = await promptUser(`${C_GREEN}Nummer des zu benennenden Knotens eingeben (1-${config.sourceChannels.length}): ${C_WHITE}`);
-    const idx = parseInt(idxInput.trim(), 10) - 1;
-    if (!isNaN(idx) && idx >= 0 && idx < config.sourceChannels.length) {
-      const selectedSource = config.sourceChannels[idx];
-      const currentAlias = config.sourceAliases?.[selectedSource] || '';
-      console.log(`\n${C_GREEN}Aktueller Nickname für ${C_WHITE}${selectedSource}${C_RESET}${C_GREEN}: ${C_WHITE}${currentAlias || '[ Keiner ]'}${C_RESET}`);
-      const newAlias = await promptUser(`${C_GREEN}Neuen Nickname eingeben (leer lassen zum Löschen): ${C_WHITE}`);
-      
-      if (!config.sourceAliases) config.sourceAliases = {};
-      
-      if (newAlias.trim() === '') {
-        delete config.sourceAliases[selectedSource];
-        saveConfig(config);
-        console.log(`${C_BRIGHT_GREEN}Nickname für '${selectedSource}' entfernt!${C_RESET}`);
-      } else {
-        config.sourceAliases[selectedSource] = newAlias.trim();
-        saveConfig(config);
-        console.log(`${C_BRIGHT_GREEN}Nickname für '${selectedSource}' auf '${newAlias.trim()}' gesetzt!${C_RESET}`);
-      }
-    } else {
-      console.log(`${C_RED}Ungültige Nummer.${C_RESET}`);
-    }
-    console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-    await pressAnyKey();
-    return 'sources';
-  } else {
-    return 'main';
-  }
+  const choice = (await promptUser(`${C_GREEN}Wähle eine Option (1-4): ${C_WHITE}`)).trim();
+  const actions: Record<string, () => Promise<string>> = {
+    '1': () => addConfiguredSource(config, saveConfig),
+    '2': () => removeConfiguredSource(config, saveConfig),
+    '3': () => renameConfiguredSource(config, saveConfig)
+  };
+  return actions[choice] ? actions[choice]() : 'main';
 }
 
 // Target Menu
@@ -570,52 +580,48 @@ async function configureForwardOptions(config, saveConfig) {
   console.log(` ${C_GREEN}6. Zurück zum Hauptmenü`);
   console.log(`${C_DARK_GREEN}===================================================`);
 
-  const choice = await promptUser(`${C_GREEN}Wähle eine Option (1-6): ${C_WHITE}`);
-  if (choice.trim() === '1') {
-    config.forwardOptions.sendCopy = !config.forwardOptions.sendCopy;
-    saveConfig(config);
-    return 'forwardOptions';
-  } else if (choice.trim() === '2') {
-    config.forwardOptions.removeCaption = !config.forwardOptions.removeCaption;
-    saveConfig(config);
-    return 'forwardOptions';
-  } else if (choice.trim() === '3') {
-    const input = await promptUser(`${C_GREEN}Maximale Concurrency eingeben (1 = komplett seriell, empfohlen bei Dupe-Blocker): ${C_WHITE}`);
-    const parsed = parseInt(input.trim(), 10);
-    if (!isNaN(parsed) && parsed >= 1) {
-      config.forwardOptions.maxConcurrency = parsed;
+  const choice = (await promptUser(`${C_GREEN}Wähle eine Option (1-6): ${C_WHITE}`)).trim();
+  const actions: Record<string, () => Promise<string>> = {
+    '1': async () => {
+      config.forwardOptions.sendCopy = !config.forwardOptions.sendCopy;
       saveConfig(config);
-      console.log(`\n${C_BRIGHT_GREEN}Concurrency auf ${parsed} gesetzt!${C_RESET}`);
-    } else {
-      console.log(`\n${C_RED}Ungültiger Wert (Muss eine Ganzzahl >= 1 sein).${C_RESET}`);
-    }
-    await pressAnyKey();
-    return 'forwardOptions';
-  } else if (choice.trim() === '4') {
-    if (config.forwardOptions.forwardToTarget === undefined) {
-      config.forwardOptions.forwardToTarget = true;
-    }
-    config.forwardOptions.forwardToTarget = !config.forwardOptions.forwardToTarget;
-    saveConfig(config);
-    console.log(`\n${C_BRIGHT_GREEN}Weiterleitung an Ziel-Knoten ${config.forwardOptions.forwardToTarget ? 'AKTIVIERT' : 'DEAKTIVIERT'}!${C_RESET}`);
-    await pressAnyKey();
-    return 'forwardOptions';
-  } else if (choice.trim() === '5') {
-    const input = await promptUser(`${C_GREEN}Timeout für Queue-Tasks in Sekunden eingeben (z.B. 60, 0 = deaktiviert): ${C_WHITE}`);
-    const parsed = parseInt(input.trim(), 10);
-    if (!isNaN(parsed) && parsed >= 0) {
-      if (!config.forwardOptions) config.forwardOptions = {};
-      config.forwardOptions.queueTimeoutSeconds = parsed;
+      return 'forwardOptions';
+    },
+    '2': async () => {
+      config.forwardOptions.removeCaption = !config.forwardOptions.removeCaption;
       saveConfig(config);
-      console.log(`\n${C_BRIGHT_GREEN}Queue Task-Timeout auf ${parsed} Sekunden gesetzt!${C_RESET}`);
-    } else {
-      console.log(`\n${C_RED}Ungültiger Wert (Muss eine Ganzzahl >= 0 sein).${C_RESET}`);
+      return 'forwardOptions';
+    },
+    '3': async () => {
+      const parsed = parseInt((await promptUser(`${C_GREEN}Maximale Concurrency eingeben (1 = komplett seriell, empfohlen bei Dupe-Blocker): ${C_WHITE}`)).trim(), 10);
+      if (!isNaN(parsed) && parsed >= 1) {
+        config.forwardOptions.maxConcurrency = parsed;
+        saveConfig(config);
+        console.log(`\n${C_BRIGHT_GREEN}Concurrency auf ${parsed} gesetzt!${C_RESET}`);
+      } else console.log(`\n${C_RED}Ungültiger Wert (Muss eine Ganzzahl >= 1 sein).${C_RESET}`);
+      await pressAnyKey();
+      return 'forwardOptions';
+    },
+    '4': async () => {
+      const currentlyEnabled = config.forwardOptions.forwardToTarget ?? true;
+      config.forwardOptions.forwardToTarget = !currentlyEnabled;
+      saveConfig(config);
+      console.log(`\n${C_BRIGHT_GREEN}Weiterleitung an Ziel-Knoten ${config.forwardOptions.forwardToTarget ? 'AKTIVIERT' : 'DEAKTIVIERT'}!${C_RESET}`);
+      await pressAnyKey();
+      return 'forwardOptions';
+    },
+    '5': async () => {
+      const parsed = parseInt((await promptUser(`${C_GREEN}Timeout für Queue-Tasks in Sekunden eingeben (z.B. 60, 0 = deaktiviert): ${C_WHITE}`)).trim(), 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        config.forwardOptions.queueTimeoutSeconds = parsed;
+        saveConfig(config);
+        console.log(`\n${C_BRIGHT_GREEN}Queue Task-Timeout auf ${parsed} Sekunden gesetzt!${C_RESET}`);
+      } else console.log(`\n${C_RED}Ungültiger Wert (Muss eine Ganzzahl >= 0 sein).${C_RESET}`);
+      await pressAnyKey();
+      return 'forwardOptions';
     }
-    await pressAnyKey();
-    return 'forwardOptions';
-  } else {
-    return 'main';
-  }
+  };
+  return actions[choice] ? actions[choice]() : 'main';
 }
 
 // Filters Menu
@@ -641,24 +647,26 @@ async function configureFilters(config, saveConfig) {
   console.log(` 5. Zurück zum Hauptmenü`);
   console.log(`${C_DARK_GREEN}===================================================`);
 
-  const choice = await promptUser(`${C_GREEN}Wähle eine Option (1-5): ${C_WHITE}`);
-  if (choice.trim() === '1') {
-    const input = await promptUser(`${C_GREEN}Blacklist-Keywords eingeben (mit Komma getrennt, leer zum Löschen): ${C_WHITE}`);
-    config.filters.blockedKeywords = input.trim() === '' ? [] : input.split(',').map(s => s.trim()).filter(s => s !== '');
-    saveConfig(config);
-    return 'filters';
-  } else if (choice.trim() === '2') {
-    return 'regexFilters';
-  } else if (choice.trim() === '3') {
-    return 'sourceRegexSelect';
-  } else if (choice.trim() === '4') {
-    const input = await promptUser(`${C_GREEN}Erlaubte Typen eingeben (z.B. text, photo - leer für alle): ${C_WHITE}`);
-    config.filters.allowedTypes = input.trim() === '' ? [] : input.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '');
-    saveConfig(config);
-    return 'filters';
-  } else {
-    return 'main';
-  }
+  const choice = (await promptUser(`${C_GREEN}Wähle eine Option (1-5): ${C_WHITE}`)).trim();
+  const editList = async (prompt: string, normalize: (value: string) => string): Promise<string[]> => {
+    const input = (await promptUser(prompt)).trim();
+    return input ? input.split(',').map(value => normalize(value.trim())).filter(Boolean) : [];
+  };
+  const actions: Record<string, () => Promise<string>> = {
+    '1': async () => {
+      config.filters.blockedKeywords = await editList(`${C_GREEN}Blacklist-Keywords eingeben (mit Komma getrennt, leer zum Löschen): ${C_WHITE}`, value => value);
+      saveConfig(config);
+      return 'filters';
+    },
+    '2': async () => 'regexFilters',
+    '3': async () => 'sourceRegexSelect',
+    '4': async () => {
+      config.filters.allowedTypes = await editList(`${C_GREEN}Erlaubte Typen eingeben (z.B. text, photo - leer für alle): ${C_WHITE}`, value => value.toLowerCase());
+      saveConfig(config);
+      return 'filters';
+    }
+  };
+  return actions[choice] ? actions[choice]() : 'main';
 }
 
 // Regex Filters Menu
@@ -764,17 +772,74 @@ async function configureSourceRegexSelect(config) {
   return 'filters';
 }
 
+function sourceRegexPatterns(config: any, sourceId: string): string[] {
+  config.sourceFilters ??= {};
+  config.sourceFilters[sourceId] ??= { regexPatterns: [] };
+  config.sourceFilters[sourceId].regexPatterns ??= [];
+  return config.sourceFilters[sourceId].regexPatterns;
+}
+
+async function addSourceRegex(config: any, saveConfig: any, sourceId: string): Promise<string> {
+  const pattern = (await promptUser(`${C_GREEN}Regex-Ausdruck eingeben (z.B. wort1, \\bwort2\\b oder /wort3/i): ${C_WHITE}`)).trim();
+  if (pattern) {
+    try {
+      parseRegex(pattern);
+      sourceRegexPatterns(config, sourceId).push(pattern);
+      saveConfig(config);
+      console.log(`${C_BRIGHT_GREEN}Regex-Muster hinzugefügt!${C_RESET}`);
+    } catch (error: any) {
+      console.log(`${C_RED}Ungültiger Regex-Ausdruck: ${error.message}${C_RESET}`);
+    }
+  }
+  await pressAnyKey();
+  return 'sourceRegexFilters';
+}
+
+async function removeSourceRegex(config: any, saveConfig: any, sourceId: string): Promise<string> {
+  const patterns = sourceRegexPatterns(config, sourceId);
+  if (patterns.length === 0) {
+    console.log(`${C_RED}Keine Muster zum Entfernen vorhanden. Beliebige Taste drücken...${C_RESET}`);
+    await pressAnyKey();
+    return 'sourceRegexFilters';
+  }
+  const input = await promptUser(`${C_GREEN}Nummer des zu entfernenden Musters eingeben (1-${patterns.length}): ${C_WHITE}`);
+  const index = selectedIndex(input, patterns.length);
+  if (index === null) console.log(`${C_RED}Ungültige Nummer.${C_RESET}`);
+  else {
+    const [removed] = patterns.splice(index, 1);
+    if (patterns.length === 0) delete config.sourceFilters[sourceId];
+    saveConfig(config);
+    console.log(`${C_BRIGHT_GREEN}Regex-Muster '${removed}' entfernt!${C_RESET}`);
+  }
+  await pressAnyKey();
+  return 'sourceRegexFilters';
+}
+
+async function clearSourceRegex(config: any, saveConfig: any, sourceId: string): Promise<string> {
+  delete config.sourceFilters[sourceId];
+  saveConfig(config);
+  console.log(`${C_BRIGHT_GREEN}Quell-spezifische Muster gelöscht. Standard-Regex wird verwendet.${C_RESET}`);
+  await pressAnyKey();
+  return 'sourceRegexFilters';
+}
+
+async function copyGlobalSourceRegex(config: any, saveConfig: any, sourceId: string, globalPatterns: string[]): Promise<string> {
+  if (globalPatterns.length === 0) console.log(`${C_RED}Keine Standard-Regex vorhanden zum Kopieren.${C_RESET}`);
+  else {
+    sourceRegexPatterns(config, sourceId).splice(0, Infinity, ...globalPatterns);
+    saveConfig(config);
+    console.log(`${C_BRIGHT_GREEN}${globalPatterns.length} Standard-Regex-Muster als Vorlage kopiert!${C_RESET}`);
+  }
+  await pressAnyKey();
+  return 'sourceRegexFilters';
+}
+
 // Source-specific Regex Filters Menu - manage regex for a specific source
 async function configureSourceRegexFilters(config, saveConfig) {
   const sourceId = config._selectedSourceForRegex;
   if (!sourceId) return 'sourceRegexSelect';
 
-  // Ensure sourceFilters object exists for this source
-  if (!config.sourceFilters) config.sourceFilters = {};
-  if (!config.sourceFilters[sourceId]) config.sourceFilters[sourceId] = { regexPatterns: [] };
-  if (!config.sourceFilters[sourceId].regexPatterns) config.sourceFilters[sourceId].regexPatterns = [];
-
-  const patterns = config.sourceFilters[sourceId].regexPatterns;
+  const patterns = sourceRegexPatterns(config, sourceId);
   const globalPatterns = config.filters?.regexPatterns || [];
 
   clearConsole();
@@ -810,71 +875,24 @@ async function configureSourceRegexFilters(config, saveConfig) {
   console.log(` 5. Zurück zur Quell-Auswahl`);
   console.log(`${C_DARK_GREEN}===================================================`);
 
-  const choice = await promptUser(`${C_GREEN}Wähle eine Option (1-5): ${C_WHITE}`);
-  if (choice.trim() === '1') {
-    const newRx = await promptUser(`${C_GREEN}Regex-Ausdruck eingeben (z.B. wort1, \\bwort2\\b oder /wort3/i): ${C_WHITE}`);
-    if (newRx.trim() !== '') {
-      try {
-        parseRegex(newRx.trim());
-        config.sourceFilters[sourceId].regexPatterns.push(newRx.trim());
-        saveConfig(config);
-        console.log(`${C_BRIGHT_GREEN}Regex-Muster hinzugefügt!${C_RESET}`);
-      } catch (e: any) {
-        console.log(`${C_RED}Ungültiger Regex-Ausdruck: ${e.message}${C_RESET}`);
-      }
-    }
-    console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-    await pressAnyKey();
-    return 'sourceRegexFilters';
-  } else if (choice.trim() === '2') {
-    if (patterns.length === 0) {
-      console.log(`${C_RED}Keine Muster zum Entfernen vorhanden. Beliebige Taste drücken...${C_RESET}`);
-      await pressAnyKey();
-      return 'sourceRegexFilters';
-    }
-    const idxInput = await promptUser(`${C_GREEN}Nummer des zu entfernenden Musters eingeben (1-${patterns.length}): ${C_WHITE}`);
-    const removeIdx = parseInt(idxInput.trim(), 10) - 1;
-    if (!isNaN(removeIdx) && removeIdx >= 0 && removeIdx < patterns.length) {
-      const removed = patterns.splice(removeIdx, 1);
-      // Clean up empty sourceFilters entries
-      if (patterns.length === 0) {
-        delete config.sourceFilters[sourceId];
-      }
-      saveConfig(config);
-      console.log(`${C_BRIGHT_GREEN}Regex-Muster '${removed}' entfernt!${C_RESET}`);
-    } else {
-      console.log(`${C_RED}Ungültige Nummer.${C_RESET}`);
-    }
-    console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-    await pressAnyKey();
-    return 'sourceRegexFilters';
-  } else if (choice.trim() === '3') {
-    delete config.sourceFilters[sourceId];
-    saveConfig(config);
-    console.log(`${C_BRIGHT_GREEN}Quell-spezifische Muster gelöscht. Standard-Regex wird verwendet.${C_RESET}`);
-    console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-    await pressAnyKey();
-    return 'sourceRegexFilters';
-  } else if (choice.trim() === '4') {
-    if (globalPatterns.length === 0) {
-      console.log(`${C_RED}Keine Standard-Regex vorhanden zum Kopieren.${C_RESET}`);
-    } else {
-      config.sourceFilters[sourceId].regexPatterns = [...globalPatterns];
-      saveConfig(config);
-      console.log(`${C_BRIGHT_GREEN}${globalPatterns.length} Standard-Regex-Muster als Vorlage kopiert!${C_RESET}`);
-    }
-    console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-    await pressAnyKey();
-    return 'sourceRegexFilters';
-  } else {
-    // Clean up temp state
-    delete config._selectedSourceForRegex;
-    return 'sourceRegexSelect';
-  }
+  const choice = (await promptUser(`${C_GREEN}Wähle eine Option (1-5): ${C_WHITE}`)).trim();
+  const actions: Record<string, () => Promise<string>> = {
+    '1': () => addSourceRegex(config, saveConfig, sourceId),
+    '2': () => removeSourceRegex(config, saveConfig, sourceId),
+    '3': () => clearSourceRegex(config, saveConfig, sourceId),
+    '4': () => copyGlobalSourceRegex(config, saveConfig, sourceId, globalPatterns)
+  };
+  if (actions[choice]) return actions[choice]();
+  delete config._selectedSourceForRegex;
+  return 'sourceRegexSelect';
 }
 
-// XML Parsing Menu
-async function configureXmlParsing(config, saveConfig) {
+function openRouterApiKeyConfigured(): boolean {
+  const key = process.env.OPENROUTER_API_KEY;
+  return Boolean(key && key.trim() !== '' && key !== 'your_openrouter_api_key_here');
+}
+
+function drawXmlParsingMenu(config: any): void {
   clearConsole();
   console.log(`${C_DARK_GREEN}===================================================`);
   console.log(`${C_BRIGHT_GREEN}            XML-SIGNAL-PARSER KONFIGURIEREN        `);
@@ -890,143 +908,109 @@ async function configureXmlParsing(config, saveConfig) {
   console.log(` ${C_GREEN}5. Fallback KI-Modell wechseln`);
   console.log(`    Aktuell: ${C_WHITE}${config.xmlParsing?.fallbackModel || 'anthropic/claude-3-haiku'}${C_RESET}`);
   console.log(` ${C_GREEN}6. OpenRouter API-Key Status`);
-  const hasApiKey = process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY.trim() !== '' && process.env.OPENROUTER_API_KEY !== 'your_openrouter_api_key_here';
-  console.log(`    Status:  ${hasApiKey ? `${C_GREEN}KONFIGURIERT` : `${C_RED}NICHT KONFIGURIERT`}${C_RESET}`);
+  console.log(`    Status:  ${openRouterApiKeyConfigured() ? `${C_GREEN}KONFIGURIERT` : `${C_RED}NICHT KONFIGURIERT`}${C_RESET}`);
   console.log(` ${C_GREEN}7. Parser-Timeout ändern`);
   console.log(`    Aktuell: ${C_WHITE}${config.xmlParsing?.timeout || 60000}ms${C_RESET}`);
   console.log(` ${C_GREEN}8. Quell-spezifische XML-Muster verwalten`);
   console.log(` 9. Zurück zum Hauptmenü`);
   console.log(`${C_DARK_GREEN}===================================================`);
+}
 
-  const choice = await promptUser(`${C_GREEN}Wähle eine Option (1-9): ${C_WHITE}`);
-  switch (choice.trim()) {
-    case '1': {
-      config.xmlParsing.enabled = !config.xmlParsing.enabled;
-      saveConfig(config);
-      return 'xmlParsing';
+async function configureAiModel(
+  config: any,
+  saveConfig: any,
+  field: 'primaryModel' | 'fallbackModel',
+  label: string,
+  defaultModel: string
+): Promise<string> {
+  clearConsole();
+  console.log(`${C_DARK_GREEN}===================================================`);
+  console.log(`${C_BRIGHT_GREEN}              ${label.toUpperCase()} AUSWÄHLEN                  `);
+  console.log(`${C_DARK_GREEN}===================================================`);
+  console.log(`Aktuelles ${label}: ${C_WHITE}${config.xmlParsing?.[field] || defaultModel}${C_RESET}`);
+  console.log(`${C_DARK_GREEN}---------------------------------------------------${C_RESET}`);
+  console.log(` ${C_GREEN}Schnellauswahl:`);
+  console.log(`   ${C_BOLD}${C_BRIGHT_GREEN}[1]${C_RESET} google/gemini-flash-1.5`);
+  console.log(`   ${C_BOLD}${C_BRIGHT_GREEN}[2]${C_RESET} anthropic/claude-3-haiku`);
+  console.log(`${C_DARK_GREEN}---------------------------------------------------${C_RESET}`);
+  const input = (await promptUser(`${C_GREEN}${label} (1/2/Name, leer = beibehalten): ${C_WHITE}`)).trim();
+  if (!input) return 'xmlParsing';
+  const shortcuts: Record<string, string> = {
+    '1': 'google/gemini-flash-1.5',
+    '2': 'anthropic/claude-3-haiku'
+  };
+  const model = shortcuts[input] ?? input;
+  if (!/^[a-zA-Z0-9._:/-]{1,128}$/.test(model)) {
+    console.log(`\n${C_RED}Ungültiger Modellname.${C_RESET}`);
+  } else {
+    config.xmlParsing[field] = model;
+    saveConfig(config);
+    console.log(`\n${C_BRIGHT_GREEN}${label} geändert zu ${model}!${C_RESET}`);
+  }
+  await pressAnyKey();
+  return 'xmlParsing';
+}
+
+async function showOpenRouterKeyStatus(): Promise<string> {
+  const message = openRouterApiKeyConfigured()
+    ? `${C_BRIGHT_GREEN}OPENROUTER_API_KEY ist über die Prozessumgebung konfiguriert.`
+    : `${C_RED}OPENROUTER_API_KEY fehlt in der Prozessumgebung.`;
+  console.log(`\n${message}${C_RESET}`);
+  console.log(`${C_GREEN}Secrets können nicht über die Anwendung geändert werden.${C_RESET}`);
+  await pressAnyKey();
+  return 'xmlParsing';
+}
+
+async function configureParserTimeout(config: any, saveConfig: any): Promise<string> {
+  const value = (await promptUser(`${C_GREEN}Gib das Timeout in Millisekunden ein [Standard: 60000]: ${C_WHITE}`)).trim();
+  if (!value) return 'xmlParsing';
+  const timeout = parseInt(value, 10);
+  if (!isNaN(timeout) && timeout >= 1000) {
+    config.xmlParsing.timeout = timeout;
+    saveConfig(config);
+    console.log(`\n${C_BRIGHT_GREEN}Timeout auf ${timeout}ms gesetzt!${C_RESET}`);
+  } else console.log(`\n${C_RED}Ungültiger Timeout-Wert (Muss eine Zahl >= 1000 sein).${C_RESET}`);
+  await pressAnyKey();
+  return 'xmlParsing';
+}
+
+// XML Parsing Menu
+async function configureXmlParsing(config, saveConfig) {
+  drawXmlParsingMenu(config);
+  const toggle = async (field: 'enabled' | 'forwardXmlToTarget' | 'saveToFile'): Promise<string> => {
+    config.xmlParsing[field] = !config.xmlParsing[field];
+    saveConfig(config);
+    return 'xmlParsing';
+  };
+  const actions: Record<string, () => Promise<string>> = {
+    '1': () => toggle('enabled'),
+    '2': () => toggle('forwardXmlToTarget'),
+    '3': () => toggle('saveToFile'),
+    '4': () => configureAiModel(config, saveConfig, 'primaryModel', 'Primär-Modell', 'google/gemini-flash-1.5'),
+    '5': () => configureAiModel(config, saveConfig, 'fallbackModel', 'Fallback-Modell', 'anthropic/claude-3-haiku'),
+    '6': showOpenRouterKeyStatus,
+    '7': () => configureParserTimeout(config, saveConfig),
+    '8': async () => 'sourceXmlTemplates'
+  };
+  const choice = (await promptUser(`${C_GREEN}Wähle eine Option (1-9): ${C_WHITE}`)).trim();
+  return actions[choice] ? actions[choice]() : 'main';
+}
+
+async function availableXmlTemplates(): Promise<string[]> {
+  const templatesDirectory = path.join(__dirname, '../templates');
+  try {
+    const files = await fsPromises.readdir(templatesDirectory);
+    const customTemplates = files
+      .filter(file => file.endsWith('.txt') && file !== 'default.txt')
+      .map(file => file.slice(0, -4));
+    return ['default', ...customTemplates];
+  } catch {
+    try {
+      await fsPromises.mkdir(templatesDirectory, { recursive: true });
+    } catch {
+      /* ignore directory creation failure */
     }
-    case '2': {
-      config.xmlParsing.forwardXmlToTarget = !config.xmlParsing.forwardXmlToTarget;
-      saveConfig(config);
-      return 'xmlParsing';
-    }
-    case '3': {
-      config.xmlParsing.saveToFile = !config.xmlParsing.saveToFile;
-      saveConfig(config);
-      return 'xmlParsing';
-    }
-    case '4': {
-      clearConsole();
-      console.log(`${C_DARK_GREEN}===================================================`);
-      console.log(`${C_BRIGHT_GREEN}              KI-MODELL AUSWÄHLEN                  `);
-      console.log(`${C_DARK_GREEN}===================================================`);
-      console.log("Aktuelles Primär-Modell: " + C_WHITE + (config.xmlParsing?.primaryModel || 'google/gemini-flash-1.5') + C_RESET);
-      console.log(`${C_DARK_GREEN}---------------------------------------------------${C_RESET}`);
-      console.log(` ${C_GREEN}Schnellauswahl:`);
-      console.log(`   ${C_BOLD}${C_BRIGHT_GREEN}[1]${C_RESET} google/gemini-flash-1.5 ${C_DARK_GREEN}(Empfohlen)${C_RESET}`);
-      console.log(`   ${C_BOLD}${C_BRIGHT_GREEN}[2]${C_RESET} anthropic/claude-3-haiku`);
-      console.log(`${C_DARK_GREEN}---------------------------------------------------${C_RESET}`);
-      console.log(` ${C_GREEN}Oder gib den vollen Modellnamen direkt ein.`);
-      console.log(` ${C_DARK_GREEN}Leer lassen um beizubehalten.${C_RESET}`);
-      console.log(`${C_DARK_GREEN}===================================================`);
-      const modelInput = await promptUser(`${C_GREEN}Primär-Modell (1/2/Name): ${C_WHITE}`);
-      const trimmedModel = modelInput.trim();
-      if (trimmedModel === '') {
-        // Keep current model
-      } else if (trimmedModel === '1') {
-        config.xmlParsing.primaryModel = 'google/gemini-flash-1.5';
-        saveConfig(config);
-        console.log(`\n${C_BRIGHT_GREEN}Modell geändert zu google/gemini-flash-1.5!${C_RESET}`);
-        await pressAnyKey();
-      } else if (trimmedModel === '2') {
-        config.xmlParsing.primaryModel = 'anthropic/claude-3-haiku';
-        saveConfig(config);
-        console.log(`\n${C_BRIGHT_GREEN}Modell geändert zu anthropic/claude-3-haiku!${C_RESET}`);
-        await pressAnyKey();
-      } else {
-        if (!/^[a-zA-Z0-9._:/-]{1,128}$/.test(trimmedModel)) {
-          console.log(`\n${C_RED}Ungültiger Modellname.${C_RESET}`);
-          await pressAnyKey();
-          return 'xmlParsing';
-        }
-        config.xmlParsing.primaryModel = trimmedModel;
-        saveConfig(config);
-        console.log(`\n${C_BRIGHT_GREEN}Modell geändert zu ${trimmedModel}!${C_RESET}`);
-        await pressAnyKey();
-      }
-      return 'xmlParsing';
-    }
-    case '5': {
-      clearConsole();
-      console.log(`${C_DARK_GREEN}===================================================`);
-      console.log(`${C_BRIGHT_GREEN}          FALLBACK KI-MODELL AUSWÄHLEN             `);
-      console.log(`${C_DARK_GREEN}===================================================`);
-      console.log("Aktuelles Fallback-Modell: " + C_WHITE + (config.xmlParsing?.fallbackModel || 'anthropic/claude-3-haiku') + C_RESET);
-      console.log(`${C_DARK_GREEN}---------------------------------------------------${C_RESET}`);
-      console.log(` ${C_GREEN}Schnellauswahl:`);
-      console.log(`   ${C_BOLD}${C_BRIGHT_GREEN}[1]${C_RESET} google/gemini-flash-1.5`);
-      console.log(`   ${C_BOLD}${C_BRIGHT_GREEN}[2]${C_RESET} anthropic/claude-3-haiku ${C_DARK_GREEN}(Standard-Fallback)${C_RESET}`);
-      console.log(`${C_DARK_GREEN}---------------------------------------------------${C_RESET}`);
-      console.log(` ${C_GREEN}Oder gib den vollen Modellnamen direkt ein.`);
-      console.log(` ${C_DARK_GREEN}Leer lassen um beizubehalten.${C_RESET}`);
-      console.log(`${C_DARK_GREEN}===================================================`);
-      const fallbackInput = await promptUser(`${C_GREEN}Fallback-Modell (1/2/Name): ${C_WHITE}`);
-      const trimmedFallback = fallbackInput.trim();
-      if (trimmedFallback === '') {
-        // Keep current fallback model
-      } else if (trimmedFallback === '1') {
-        config.xmlParsing.fallbackModel = 'google/gemini-flash-1.5';
-        saveConfig(config);
-        console.log(`\n${C_BRIGHT_GREEN}Fallback-Modell geändert zu google/gemini-flash-1.5!${C_RESET}`);
-        await pressAnyKey();
-      } else if (trimmedFallback === '2') {
-        config.xmlParsing.fallbackModel = 'anthropic/claude-3-haiku';
-        saveConfig(config);
-        console.log(`\n${C_BRIGHT_GREEN}Fallback-Modell geändert zu anthropic/claude-3-haiku!${C_RESET}`);
-        await pressAnyKey();
-      } else {
-        if (!/^[a-zA-Z0-9._:/-]{1,128}$/.test(trimmedFallback)) {
-          console.log(`\n${C_RED}Ungültiger Modellname.${C_RESET}`);
-          await pressAnyKey();
-          return 'xmlParsing';
-        }
-        config.xmlParsing.fallbackModel = trimmedFallback;
-        saveConfig(config);
-        console.log(`\n${C_BRIGHT_GREEN}Fallback-Modell geändert zu ${trimmedFallback}!${C_RESET}`);
-        await pressAnyKey();
-      }
-      return 'xmlParsing';
-    }
-    case '6': {
-      console.log(`\n${hasApiKey ? C_BRIGHT_GREEN + 'OPENROUTER_API_KEY ist über die Prozessumgebung konfiguriert.' : C_RED + 'OPENROUTER_API_KEY fehlt in der Prozessumgebung.'}${C_RESET}`);
-      console.log(`${C_GREEN}Secrets können nicht über die Anwendung geändert werden.${C_RESET}`);
-      await pressAnyKey();
-      return 'xmlParsing';
-    }
-    case '7': {
-      const newTimeout = await promptUser(`${C_GREEN}Gib das Timeout in Millisekunden ein [Standard: 60000]: ${C_WHITE}`);
-      if (newTimeout.trim() !== '') {
-        const parsedTimeout = parseInt(newTimeout.trim(), 10);
-        if (!isNaN(parsedTimeout) && parsedTimeout >= 1000) {
-          config.xmlParsing.timeout = parsedTimeout;
-          saveConfig(config);
-          console.log(`\n${C_BRIGHT_GREEN}Timeout auf ${parsedTimeout}ms gesetzt!${C_RESET}`);
-        } else {
-          console.log(`\n${C_RED}Ungültiger Timeout-Wert (Muss eine Zahl >= 1000 sein).${C_RESET}`);
-        }
-        await pressAnyKey();
-      }
-      return 'xmlParsing';
-    }
-    case '8': {
-      return 'sourceXmlTemplates';
-    }
-    case '9': {
-      return 'main';
-    }
-    default: {
-      return 'main';
-    }
+    return ['default'];
   }
 }
 
@@ -1073,23 +1057,7 @@ async function configureSourceXmlTemplates(config, saveConfig) {
 
   const selectedSource = config.sourceChannels[idx];
 
-  // Scan templates directory for available templates (.txt files)
-  const templatesDir = path.join(__dirname, '../templates');
-  let templatesList = ['default'];
-  try {
-    const files = await fsPromises.readdir(templatesDir);
-    const txtFiles = files
-      .filter(f => f.endsWith('.txt') && f !== 'default.txt')
-      .map(f => f.slice(0, -4)); // remove .txt extension
-    templatesList = ['default', ...txtFiles];
-  } catch {
-    // If directory doesn't exist, we try to create it
-    try {
-      await fsPromises.mkdir(templatesDir, { recursive: true });
-    } catch {
-      /* ignore directory creation failure */
-    }
-  }
+  const templatesList = await availableXmlTemplates();
 
   clearConsole();
   console.log(`${C_DARK_GREEN}===================================================`);
@@ -1222,7 +1190,80 @@ function applyImportBundle(bundle, saveConfig) {
   return importedConfig;
 }
 
-async function configureExportImport(config, saveConfig) {
+interface ConfigTransferResult {
+  nextMenu: string;
+  reloadConfig: boolean;
+  newConfig?: any;
+}
+
+async function exportConfiguration(config: any): Promise<ConfigTransferResult> {
+  const defaultFile = `cb2_backup_${new Date().toISOString().slice(0, 10)}.json`;
+  const fileInput = await promptUser(`${C_GREEN}Dateiname/Pfad für Export [${C_WHITE}${defaultFile}${C_GREEN}]: ${C_WHITE}`);
+  const exportPath = fileInput.trim() || defaultFile;
+  try {
+    const resolvedPath = path.resolve(exportPath);
+    await fsPromises.mkdir(path.dirname(resolvedPath), { recursive: true });
+    await fsPromises.writeFile(resolvedPath, JSON.stringify(buildExportBundle(config), null, 2), 'utf-8');
+    console.log(`\n${C_BRIGHT_GREEN}Konfiguration erfolgreich exportiert nach:${C_RESET}`);
+    console.log(`  ${C_WHITE}${resolvedPath}${C_RESET}`);
+  } catch (error: any) {
+    console.log(`\n${C_RED}Export fehlgeschlagen: ${error.message}${C_RESET}`);
+  }
+  console.log(`\n${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
+  await pressAnyKey();
+  return { nextMenu: 'main', reloadConfig: false };
+}
+
+function printImportPreview(bundle: any): void {
+  console.log(`\n${C_DARK_GREEN}───────────────────────────────────────────────────${C_RESET}`);
+  console.log(`${C_BRIGHT_GREEN}  IMPORT-VORSCHAU${C_RESET}`);
+  console.log(`${C_DARK_GREEN}───────────────────────────────────────────────────${C_RESET}`);
+  if (bundle._exportedAt) console.log(`  ${C_GREEN}Exportiert am: ${C_WHITE}${bundle._exportedAt}${C_RESET}`);
+  const importSources = (bundle.config.sourceChannels || []).map(ch => {
+    const alias = bundle.config.sourceAliases?.[ch];
+    return alias ? `${ch} (${alias})` : ch;
+  }).join(', ');
+  console.log(`  ${C_GREEN}Quell-Knoten:  ${C_WHITE}${importSources || '[ Keine ]'}${C_RESET}`);
+  console.log(`  ${C_GREEN}Ziel-Knoten:   ${C_WHITE}${bundle.config.targetChannel || '[ Keiner ]'}${C_RESET}`);
+  console.log(`  ${C_GREEN}XML-Parser:    ${C_WHITE}${bundle.config.xmlParsing?.enabled ? 'AKTIVIERT' : 'DEAKTIVIERT'}${C_RESET}`);
+  console.log(`  ${C_GREEN}Dupe-Blocker:  ${C_WHITE}${bundle.config.dupeBlocker?.enabled ? `AKTIVIERT (Cooldown: ${bundle.config.dupeBlocker?.cooldownHours ?? 24}h)` : 'DEAKTIVIERT'}${C_RESET}`);
+  console.log(`  ${C_GREEN}Concurrency:   ${C_WHITE}${bundle.config.forwardOptions?.maxConcurrency ?? 2} parallel${C_RESET}`);
+  console.log(`  ${C_GREEN}Weiterleitung: ${C_WHITE}${bundle.config.forwardOptions?.forwardToTarget !== false ? 'AKTIVIERT' : 'DEAKTIVIERT (Nur lokal)'}${C_RESET}`);
+  console.log(`  ${C_GREEN}Secrets:        ${C_WHITE}[ werden nie importiert ]${C_RESET}`);
+  console.log(`${C_DARK_GREEN}───────────────────────────────────────────────────${C_RESET}`);
+}
+
+async function importConfiguration(saveConfig: any): Promise<ConfigTransferResult> {
+  const importPath = (await promptUser(`${C_GREEN}Pfad zur Import-Datei eingeben: ${C_WHITE}`)).trim();
+  if (!importPath) {
+    console.log(`${C_RED}Kein Pfad angegeben.${C_RESET}`);
+    await pressAnyKey();
+    return { nextMenu: 'exportImport', reloadConfig: false };
+  }
+  try {
+    const bundle = JSON.parse(await fsPromises.readFile(path.resolve(importPath), 'utf-8'));
+    if (!bundle.config || typeof bundle.config !== 'object') {
+      throw new Error('Import-Datei enthält keine gültige "config"-Sektion.');
+    }
+    printImportPreview(bundle);
+    const confirm = (await promptUser(`\n${C_YELLOW}WARNUNG: Alle aktuellen Einstellungen werden überschrieben!${C_RESET}\n${C_GREEN}Fortfahren? (j/n): ${C_WHITE}`)).trim().toLowerCase();
+    if (confirm !== 'j' && confirm !== 'y') {
+      console.log(`\n${C_GREEN}Import abgebrochen. Beliebige Taste drücken...${C_RESET}`);
+      await pressAnyKey();
+      return { nextMenu: 'main', reloadConfig: false };
+    }
+    const newConfig = applyImportBundle(bundle, saveConfig);
+    console.log(`\n${C_BRIGHT_GREEN}Konfiguration erfolgreich importiert!${C_RESET}`);
+    await pressAnyKey();
+    return { nextMenu: 'main', reloadConfig: true, newConfig };
+  } catch (error: any) {
+    console.log(`\n${C_RED}Import fehlgeschlagen: ${error.message}${C_RESET}`);
+    await pressAnyKey();
+    return { nextMenu: 'exportImport', reloadConfig: false };
+  }
+}
+
+async function configureExportImport(config, saveConfig): Promise<ConfigTransferResult> {
   clearConsole();
   console.log(`${C_DARK_GREEN}===================================================`);
   console.log(`${C_BRIGHT_GREEN}        KONFIGURATION EXPORTIEREN / IMPORTIEREN     `);
@@ -1236,92 +1277,10 @@ async function configureExportImport(config, saveConfig) {
   console.log(` 3. Zurück zum Hauptmenü`);
   console.log(`${C_DARK_GREEN}===================================================`);
 
-  const choice = await promptUser(`${C_GREEN}Wähle eine Option (1-3): ${C_WHITE}`);
-
-  if (choice.trim() === '1') {
-    // EXPORT
-    const defaultFile = `cb2_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    const fileInput = await promptUser(`${C_GREEN}Dateiname/Pfad für Export [${C_WHITE}${defaultFile}${C_GREEN}]: ${C_WHITE}`);
-    const exportPath = fileInput.trim() || defaultFile;
-
-    try {
-      const bundle = buildExportBundle(config);
-      const exportDir = path.dirname(path.resolve(exportPath));
-      await fsPromises.mkdir(exportDir, { recursive: true });
-      await fsPromises.writeFile(path.resolve(exportPath), JSON.stringify(bundle, null, 2), 'utf-8');
-      console.log(`\n${C_BRIGHT_GREEN}Konfiguration erfolgreich exportiert nach:${C_RESET}`);
-      console.log(`  ${C_WHITE}${path.resolve(exportPath)}${C_RESET}`);
-    } catch (err: any) {
-      console.log(`\n${C_RED}Export fehlgeschlagen: ${err.message}${C_RESET}`);
-    }
-    console.log(`\n${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-    await pressAnyKey();
-    return { nextMenu: 'main', reloadConfig: false };
-
-  } else if (choice.trim() === '2') {
-    // IMPORT
-    const fileInput = await promptUser(`${C_GREEN}Pfad zur Import-Datei eingeben: ${C_WHITE}`);
-    const importPath = fileInput.trim();
-
-    if (!importPath) {
-      console.log(`${C_RED}Kein Pfad angegeben.${C_RESET}`);
-      console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-      await pressAnyKey();
-      return { nextMenu: 'exportImport', reloadConfig: false };
-    }
-
-    try {
-      const resolvedPath = path.resolve(importPath);
-      const raw = await fsPromises.readFile(resolvedPath, 'utf-8');
-      const bundle = JSON.parse(raw);
-
-      if (!bundle.config || typeof bundle.config !== 'object') {
-        throw new Error('Import-Datei enthält keine gültige "config"-Sektion.');
-      }
-
-      // Vorschau anzeigen
-      console.log(`\n${C_DARK_GREEN}───────────────────────────────────────────────────${C_RESET}`);
-      console.log(`${C_BRIGHT_GREEN}  IMPORT-VORSCHAU${C_RESET}`);
-      console.log(`${C_DARK_GREEN}───────────────────────────────────────────────────${C_RESET}`);
-      if (bundle._exportedAt) {
-        console.log(`  ${C_GREEN}Exportiert am: ${C_WHITE}${bundle._exportedAt}${C_RESET}`);
-      }
-      const importSources = (bundle.config.sourceChannels || []).map(ch => {
-        const alias = bundle.config.sourceAliases?.[ch];
-        return alias ? `${ch} (${alias})` : ch;
-      }).join(', ');
-      console.log(`  ${C_GREEN}Quell-Knoten:  ${C_WHITE}${importSources || '[ Keine ]'}${C_RESET}`);
-      console.log(`  ${C_GREEN}Ziel-Knoten:   ${C_WHITE}${bundle.config.targetChannel || '[ Keiner ]'}${C_RESET}`);
-      console.log(`  ${C_GREEN}XML-Parser:    ${C_WHITE}${bundle.config.xmlParsing?.enabled ? 'AKTIVIERT' : 'DEAKTIVIERT'}${C_RESET}`);
-      console.log(`  ${C_GREEN}Dupe-Blocker:  ${C_WHITE}${bundle.config.dupeBlocker?.enabled ? `AKTIVIERT (Cooldown: ${bundle.config.dupeBlocker?.cooldownHours ?? 24}h)` : 'DEAKTIVIERT'}${C_RESET}`);
-      console.log(`  ${C_GREEN}Concurrency:   ${C_WHITE}${bundle.config.forwardOptions?.maxConcurrency ?? 2} parallel${C_RESET}`);
-      console.log(`  ${C_GREEN}Weiterleitung: ${C_WHITE}${bundle.config.forwardOptions?.forwardToTarget !== false ? 'AKTIVIERT' : 'DEAKTIVIERT (Nur lokal)'}${C_RESET}`);
-      console.log(`  ${C_GREEN}Secrets:        ${C_WHITE}[ werden nie importiert ]${C_RESET}`);
-      console.log(`${C_DARK_GREEN}───────────────────────────────────────────────────${C_RESET}`);
-
-      const confirm = await promptUser(`\n${C_YELLOW}WARNUNG: Alle aktuellen Einstellungen werden überschrieben!${C_RESET}\n${C_GREEN}Fortfahren? (j/n): ${C_WHITE}`);
-
-      if (confirm.trim().toLowerCase() === 'j' || confirm.trim().toLowerCase() === 'y') {
-        const newConfig = applyImportBundle(bundle, saveConfig);
-        console.log(`\n${C_BRIGHT_GREEN}Konfiguration erfolgreich importiert!${C_RESET}`);
-        console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-        await pressAnyKey();
-        return { nextMenu: 'main', reloadConfig: true, newConfig };
-      } else {
-        console.log(`\n${C_GREEN}Import abgebrochen. Beliebige Taste drücken...${C_RESET}`);
-        await pressAnyKey();
-        return { nextMenu: 'main', reloadConfig: false };
-      }
-    } catch (err: any) {
-      console.log(`\n${C_RED}Import fehlgeschlagen: ${err.message}${C_RESET}`);
-      console.log(`${C_GREEN}Beliebige Taste drücken...${C_RESET}`);
-      await pressAnyKey();
-      return { nextMenu: 'exportImport', reloadConfig: false };
-    }
-
-  } else {
-    return { nextMenu: 'main', reloadConfig: false };
-  }
+  const choice = (await promptUser(`${C_GREEN}Wähle eine Option (1-3): ${C_WHITE}`)).trim();
+  if (choice === '1') return exportConfiguration(config);
+  if (choice === '2') return importConfiguration(saveConfig);
+  return { nextMenu: 'main', reloadConfig: false };
 }
 
 // ── FACTORY RESET ────────────────────────────────────────────────────────────
@@ -1374,43 +1333,37 @@ async function configureFactoryReset(config, saveConfig) {
   return 'restart';
 }
 
+async function runExportImportMenu(config: any, saveConfig: any): Promise<string> {
+  const result = await configureExportImport(config, saveConfig);
+  if (result.reloadConfig && result.newConfig) Object.assign(config, result.newConfig);
+  return result.nextMenu;
+}
+
+async function executeMenu(currentMenu: string, config: any, saveConfig: any, state: any): Promise<string> {
+  const handlers: Record<string, () => Promise<string>> = {
+    main: () => mainMenu(config, state),
+    apiCredentials: () => configureApiCredentials(config, saveConfig),
+    sources: () => configureSources(config, saveConfig),
+    target: () => configureTarget(config, saveConfig),
+    forwardOptions: () => configureForwardOptions(config, saveConfig),
+    filters: () => configureFilters(config, saveConfig),
+    regexFilters: () => configureRegexFilters(config, saveConfig),
+    sourceRegexSelect: () => configureSourceRegexSelect(config),
+    sourceRegexFilters: () => configureSourceRegexFilters(config, saveConfig),
+    xmlParsing: () => configureXmlParsing(config, saveConfig),
+    sourceXmlTemplates: () => configureSourceXmlTemplates(config, saveConfig),
+    dupeBlocker: () => configureDupeBlocker(config, saveConfig),
+    exportImport: () => runExportImportMenu(config, saveConfig),
+    factoryReset: () => configureFactoryReset(config, saveConfig)
+  };
+  return handlers[currentMenu] ? handlers[currentMenu]() : 'main';
+}
+
 export async function runMenuSystem(config, saveConfig, state) {
+  const terminalMenus = new Set(['start', 'restart', 'exit']);
   let currentMenu = 'main';
-  while (currentMenu !== 'start' && currentMenu !== 'restart' && currentMenu !== 'exit') {
-    if (currentMenu === 'main') {
-      currentMenu = await mainMenu(config, state);
-    } else if (currentMenu === 'apiCredentials') {
-      currentMenu = await configureApiCredentials(config, saveConfig);
-    } else if (currentMenu === 'sources') {
-      currentMenu = await configureSources(config, saveConfig);
-    } else if (currentMenu === 'target') {
-      currentMenu = await configureTarget(config, saveConfig);
-    } else if (currentMenu === 'forwardOptions') {
-      currentMenu = await configureForwardOptions(config, saveConfig);
-    } else if (currentMenu === 'filters') {
-      currentMenu = await configureFilters(config, saveConfig);
-    } else if (currentMenu === 'regexFilters') {
-      currentMenu = await configureRegexFilters(config, saveConfig);
-    } else if (currentMenu === 'sourceRegexSelect') {
-      currentMenu = await configureSourceRegexSelect(config);
-    } else if (currentMenu === 'sourceRegexFilters') {
-      currentMenu = await configureSourceRegexFilters(config, saveConfig);
-    } else if (currentMenu === 'xmlParsing') {
-      currentMenu = await configureXmlParsing(config, saveConfig);
-    } else if (currentMenu === 'sourceXmlTemplates') {
-      currentMenu = await configureSourceXmlTemplates(config, saveConfig);
-    } else if (currentMenu === 'dupeBlocker') {
-      currentMenu = await configureDupeBlocker(config, saveConfig);
-    } else if (currentMenu === 'exportImport') {
-      const result = await configureExportImport(config, saveConfig);
-      if (result.reloadConfig) {
-        // Nach Import: config-Objekt mit den neu geladenen Werten überschreiben
-        Object.assign(config, result.newConfig);
-      }
-      currentMenu = result.nextMenu;
-    } else if (currentMenu === 'factoryReset') {
-      currentMenu = await configureFactoryReset(config, saveConfig);
-    }
+  while (!terminalMenus.has(currentMenu)) {
+    currentMenu = await executeMenu(currentMenu, config, saveConfig, state);
   }
   return currentMenu;
 }
@@ -1538,183 +1491,167 @@ const STARTUP_ASCII = `
                                                 :*,                                                 
 `;
 
+interface MatrixDrop {
+  col: number;
+  row: number;
+  speed: number;
+  length: number;
+}
+
+interface MatrixAnimationState {
+  width: number;
+  height: number;
+  targetArt: string[];
+  revealed: boolean[][];
+  drops: MatrixDrop[];
+  frame: number;
+  totalFrames: number;
+}
+
+const MATRIX_CHARS = "日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍｦｲｸｺｿﾁﾄﾉﾌﾔﾖﾙﾚﾛﾝ0123456789$+-*=%#@&";
+
+function startupArtLines(): string[] {
+  const lines = STARTUP_ASCII.split('\n');
+  return lines.filter((line, index) => !(
+    (index === 0 || index === lines.length - 1) && line.trim() === ''
+  ));
+}
+
+function createMatrixDrops(width: number, height: number): MatrixDrop[] {
+  return Array.from({ length: Math.floor(width / 2.5) }, () => ({
+    col: Math.floor(Math.random() * width),
+    row: -Math.floor(Math.random() * height * 1.5),
+    speed: 0.35 + Math.random() * 0.5,
+    length: 5 + Math.floor(Math.random() * 8)
+  }));
+}
+
+function advanceMatrixDrops(state: MatrixAnimationState, progress: number): void {
+  const maxRevealRow = Math.floor(progress * state.height);
+  for (const drop of state.drops) {
+    drop.row += drop.speed;
+    const currentRow = Math.floor(drop.row);
+    if (currentRow >= 0 && currentRow < state.height && drop.col < state.width) {
+      for (let row = 0; row <= currentRow; row++) {
+        if (row < maxRevealRow || Math.random() < 0.25) state.revealed[row]![drop.col] = true;
+      }
+    }
+    if (drop.row - drop.length > state.height) {
+      drop.row = -Math.floor(Math.random() * 10);
+      drop.col = Math.floor(Math.random() * state.width);
+      drop.speed = 0.35 + Math.random() * 0.5;
+    }
+  }
+}
+
+function advanceMatrixReveal(state: MatrixAnimationState, progress: number): void {
+  for (let row = 0; row < Math.floor(progress * state.height); row++) {
+    for (let col = 0; col < state.width; col++) {
+      if (Math.random() < 0.25) state.revealed[row]![col] = true;
+    }
+  }
+  if (state.frame >= state.totalFrames) state.revealed.forEach(row => row.fill(true));
+}
+
+function dropsByColumn(drops: MatrixDrop[]): Map<number, MatrixDrop[]> {
+  const grouped = new Map<number, MatrixDrop[]>();
+  for (const drop of drops) {
+    const column = grouped.get(drop.col) ?? [];
+    column.push(drop);
+    grouped.set(drop.col, column);
+  }
+  return grouped;
+}
+
+function rainState(row: number, drops: MatrixDrop[] | undefined): { inRain: boolean; isHead: boolean } {
+  for (const drop of drops ?? []) {
+    const head = Math.floor(drop.row);
+    if (row <= head && row >= head - drop.length) return { inRain: true, isHead: row === head };
+  }
+  return { inRain: false, isHead: false };
+}
+
+function randomMatrixCharacter(): string {
+  return MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]!;
+}
+
+function renderMatrixCell(character: string, revealed: boolean, inRain: boolean, isHead: boolean): string {
+  if (!revealed) {
+    if (isHead) return `${C_WHITE_BOLD}${randomMatrixCharacter()}${C_RESET}`;
+    if (inRain) return `${C_GREEN}${randomMatrixCharacter()}${C_RESET}`;
+    return ' ';
+  }
+  if (isHead && character !== ' ') return `${C_WHITE_BOLD}${character}${C_RESET}`;
+  if (inRain && character !== ' ') return `${C_BRIGHT_GREEN}${character}${C_RESET}`;
+  return `${C_GREEN}${character}${C_RESET}`;
+}
+
+function animationStatus(percent: number): string {
+  if (percent < 25) return "BOOTING SECURE NETWORK SHELL...";
+  if (percent < 50) return "ESTABLISHING SECURE INTERCEPT ROUTING...";
+  if (percent < 75) return "SYNCHRONIZING MATRIX INTERFACE NODES...";
+  if (percent < 100) return "FINALIZING COMPILATION...";
+  return "CONSOLE PORTAL READY.";
+}
+
+function renderMatrixFrame(state: MatrixAnimationState): string {
+  const groupedDrops = dropsByColumn(state.drops);
+  let output = '\x1B[H';
+  for (let row = 0; row < state.height; row++) {
+    for (let col = 0; col < state.width; col++) {
+      const rain = rainState(row, groupedDrops.get(col));
+      output += renderMatrixCell(state.targetArt[row]![col]!, state.revealed[row]![col]!, rain.inRain, rain.isHead);
+    }
+    output += '\n';
+  }
+  const progress = Math.min(1, state.frame / state.totalFrames);
+  const percent = Math.floor(progress * 100);
+  const filledWidth = Math.floor(progress * 30);
+  const bar = `${C_BRIGHT_GREEN}${"█".repeat(filledWidth)}${C_DARK_GREEN}${"░".repeat(30 - filledWidth)}`;
+  return `${output}\n${" ".repeat(15)}${C_DARK_GREEN}[${bar}] ${C_BRIGHT_GREEN}${percent}%${C_RESET} ${C_GREEN}${animationStatus(percent)}${C_RESET}\n`;
+}
+
+function advanceAndRenderMatrixFrame(state: MatrixAnimationState): boolean {
+  state.frame++;
+  const revealProgress = Math.min(1, state.frame / (state.totalFrames * 0.8));
+  advanceMatrixDrops(state, revealProgress);
+  advanceMatrixReveal(state, revealProgress);
+  process.stdout.write(renderMatrixFrame(state));
+  return state.frame >= state.totalFrames;
+}
+
+async function runMatrixAnimation(state: MatrixAnimationState): Promise<void> {
+  await new Promise<void>(resolve => {
+    const interval = setInterval(() => {
+      if (!advanceAndRenderMatrixFrame(state)) return;
+      clearInterval(interval);
+      process.stdout.write('\x1B[?25h');
+      resolve();
+    }, 25);
+  });
+}
+
 export async function playStartupAnimation() {
   clearConsole();
-
-  const isTTY = !!process.stdout.isTTY;
-  const cols = process.stdout.columns || 80;
-
-  const lines = STARTUP_ASCII.split('\n');
-  const cleanedLines = lines.filter((line, idx) => {
-    if (idx === 0 && line.trim() === '') return false;
-    if (idx === lines.length - 1 && line.trim() === '') return false;
-    return true;
-  });
-
-  const height = cleanedLines.length;
-  const width = Math.max(...cleanedLines.map(l => l.length));
-  const targetArt = cleanedLines.map(l => l.padEnd(width, ' '));
-
-  if (!isTTY || cols < width) {
+  const lines = startupArtLines();
+  const width = Math.max(...lines.map(line => line.length));
+  if (!process.stdout.isTTY || (process.stdout.columns || 80) < width) {
     console.log(`${C_GREEN}===================================================\n BOOTING SECURE NETWORK SHELL...\n===================================================${C_RESET}`);
-    console.log(cleanedLines.join('\n'));
+    console.log(lines.join('\n'));
     console.log(`\n${C_GREEN}CONSOLE PORTAL READY.${C_RESET}\n`);
     await new Promise<void>(resolve => setTimeout(resolve, 800));
     return;
   }
-
-  // Hide cursor for the Matrix rain animation
   process.stdout.write('\x1B[?25l');
-
-  const revealed = Array.from({ length: height }, () => Array(width).fill(false));
-  const matrixChars = "日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍｦｲｸｺｿﾁﾄﾉﾌﾔﾖﾙﾚﾛﾝ0123456789$+-*=%#@&";
-
-  const numDrops = Math.floor(width / 2.5);
-  const drops = [];
-  for (let i = 0; i < numDrops; i++) {
-    drops.push({
-      col: Math.floor(Math.random() * width),
-      row: -Math.floor(Math.random() * height * 1.5),
-      speed: 0.35 + Math.random() * 0.5,
-      length: 5 + Math.floor(Math.random() * 8)
-    });
-  }
-
-  const durationMs = 2000; // Duration 2 seconds
-  const intervalMs = 25;   // 25ms interval = 40 FPS
-  const totalFrames = durationMs / intervalMs;
-  let frame = 0;
-
-  await new Promise<void>(resolve => {
-    const animInterval = setInterval(() => {
-      frame++;
-      
-      const progress = Math.min(1, frame / (totalFrames * 0.8));
-
-      // Move drops and reveal characters
-      for (const drop of drops) {
-        drop.row += drop.speed;
-        const currentRowInt = Math.floor(drop.row);
-        
-        if (currentRowInt >= 0 && currentRowInt < height && drop.col < width) {
-          const maxRevealRow = Math.floor(progress * height);
-          for (let r = 0; r <= currentRowInt; r++) {
-            if (r < maxRevealRow || Math.random() < 0.25) {
-              revealed[r][drop.col] = true;
-            }
-          }
-        }
-
-        if (drop.row - drop.length > height) {
-          drop.row = -Math.floor(Math.random() * 10);
-          drop.col = Math.floor(Math.random() * width);
-          drop.speed = 0.35 + Math.random() * 0.5;
-        }
-      }
-
-      const currentMaxRevealRow = Math.floor(progress * height);
-      for (let r = 0; r < currentMaxRevealRow; r++) {
-        for (let c = 0; c < width; c++) {
-          if (Math.random() < 0.25) {
-            revealed[r][c] = true;
-          }
-        }
-      }
-
-      if (frame >= totalFrames) {
-        for (let r = 0; r < height; r++) {
-          revealed[r].fill(true);
-        }
-      }
-
-      // Draw buffered frame to reduce flickering
-      let frameBuffer = '\x1B[H'; // Move cursor to top-left
-
-      // Spalten-Index für O(w·h) statt O(w·h·d) Lookup
-      const colToDrops = new Map();
-      for (const drop of drops) {
-        if (!colToDrops.has(drop.col)) colToDrops.set(drop.col, []);
-        colToDrops.get(drop.col).push(drop);
-      }
-
-      for (let r = 0; r < height; r++) {
-        let lineOut = "";
-        for (let c = 0; c < width; c++) {
-          let inRain = false;
-          let isHead = false;
-
-          const colDrops = colToDrops.get(c);
-          if (colDrops) {
-            for (const drop of colDrops) {
-              const head = Math.floor(drop.row);
-              const tail = head - drop.length;
-              if (r <= head && r >= tail) {
-                inRain = true;
-                if (r === head) isHead = true;
-                break;
-              }
-            }
-          }
-
-          if (revealed[r][c]) {
-            const char = targetArt[r][c];
-            if (isHead && char !== ' ') {
-              lineOut += `${C_WHITE_BOLD}${char}${C_RESET}`;
-            } else if (inRain && char !== ' ') {
-              lineOut += `${C_BRIGHT_GREEN}${char}${C_RESET}`;
-            } else {
-              lineOut += `${C_GREEN}${char}${C_RESET}`;
-            }
-          } else {
-            if (isHead) {
-              const randChar = matrixChars[Math.floor(Math.random() * matrixChars.length)];
-              lineOut += `${C_WHITE_BOLD}${randChar}${C_RESET}`;
-            } else if (inRain) {
-              const randChar = matrixChars[Math.floor(Math.random() * matrixChars.length)];
-              lineOut += `${C_GREEN}${randChar}${C_RESET}`;
-            } else {
-              lineOut += " ";
-            }
-          }
-        }
-        frameBuffer += lineOut + '\n';
-      }
-
-      const totalProgress = Math.min(1, frame / totalFrames);
-      const percent = Math.floor(totalProgress * 100);
-      const barWidth = 30;
-      const filledWidth = Math.floor(totalProgress * barWidth);
-      const emptyWidth = barWidth - filledWidth;
-      const filledBar = "█".repeat(filledWidth);
-      const emptyBar = "░".repeat(emptyWidth);
-      
-      let statusText = "";
-      if (percent < 25) {
-        statusText = "BOOTING SECURE NETWORK SHELL...";
-      } else if (percent < 50) {
-        statusText = "ESTABLISHING SECURE INTERCEPT ROUTING...";
-      } else if (percent < 75) {
-        statusText = "SYNCHRONIZING MATRIX INTERFACE NODES...";
-      } else if (percent < 100) {
-        statusText = "FINALIZING COMPILATION...";
-      } else {
-        statusText = "CONSOLE PORTAL READY.";
-      }
-
-      const indent = " ".repeat(15);
-      const loadingBarLine = `${indent}${C_DARK_GREEN}[${C_BRIGHT_GREEN}${filledBar}${C_DARK_GREEN}${emptyBar}] ${C_BRIGHT_GREEN}${percent}%${C_RESET} ${C_GREEN}${statusText}${C_RESET}`;
-      
-      frameBuffer += '\n' + loadingBarLine + '\n';
-      
-      process.stdout.write(frameBuffer);
-
-      if (frame >= totalFrames) {
-        clearInterval(animInterval);
-        process.stdout.write('\x1B[?25h'); // Show cursor
-        resolve();
-      }
-    }, intervalMs);
+  const height = lines.length;
+  await runMatrixAnimation({
+    width,
+    height,
+    targetArt: lines.map(line => line.padEnd(width, ' ')),
+    revealed: Array.from({ length: height }, () => Array(width).fill(false)),
+    drops: createMatrixDrops(width, height),
+    frame: 0,
+    totalFrames: 2_000 / 25
   });
-
   await new Promise<void>(resolve => setTimeout(resolve, 600));
 }
