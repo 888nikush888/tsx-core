@@ -10,7 +10,7 @@
     "dev": "tsx src/forwarder.ts",
     "test:js": "node tests/run_all.js",
     "test:ai-eval": "tsx tests/evaluate_signal_golden_set.js",
-    "test:staging-e2e": "node scripts/run_staging_e2e.js",
+    "test:staging-e2e": "node --import tsx scripts/run_staging_e2e.js",
     "backup:create": "tsx src/backup_cli.ts create",
     "backup:verify": "tsx src/backup_cli.ts verify",
     "backup:restore": "tsx src/backup_cli.ts restore",
