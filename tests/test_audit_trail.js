@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { EnterpriseAuditTrail } from '../src/audit_trail.js';
+import { auditTrailFromEnvironment, EnterpriseAuditTrail } from '../src/audit_trail.js';
 
 const TOKEN = 'audit-token-0123456789abcdef0123456789abcdef';
 const testDirectory = await mkdtemp(path.join(os.tmpdir(), 'forwarder-audit-test-'));
@@ -71,6 +71,13 @@ try {
     filePath: path.join(testDirectory, 'missing-remote.jsonl'),
     remoteRequired: true
   }), /requires AUDIT_WEBHOOK_URL/);
+
+  const savedEnvironment = process.env;
+  process.env = { ENTERPRISE_MODE: 'false', AUDIT_LOG_PATH: path.join(testDirectory, 'standalone.jsonl') };
+  assert.equal(auditTrailFromEnvironment().snapshot().remoteRequired, false);
+  process.env = { ENTERPRISE_MODE: 'true', AUDIT_LOG_PATH: path.join(testDirectory, 'enterprise.jsonl') };
+  assert.throws(() => auditTrailFromEnvironment(), /requires AUDIT_WEBHOOK_URL/);
+  process.env = savedEnvironment;
 
   console.log('Enterprise audit trail tests passed.');
 } finally {

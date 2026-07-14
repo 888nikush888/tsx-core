@@ -9,6 +9,8 @@ const allTests = [
   'test_filters.js',
   'test_config.js',
   'test_env.js',
+  'test_secret_store.js',
+  'test_telegram_login.js',
   'test_tdlib_retry.js',
   'test_dupe_blocker.js',
   'test_outbox.js',

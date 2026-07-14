@@ -54,6 +54,8 @@ import { invokeWithFloodWaitRetry } from './tdlib_retry.js';
 import { DeliverySloTracker } from './slo_tracker.js';
 import { auditTrailFromEnvironment, type EnterpriseAuditTrail } from './audit_trail.js';
 import { addLog, clearLogHistory, initFileLogger } from './logger.js';
+import { managedSecretStoreFromEnvironment, type ManagedSecretStore } from './secret_store.js';
+import { TelegramLoginCoordinator } from './telegram_login.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -320,6 +322,7 @@ async function retryPersistedTask(taskId: string, config: any): Promise<boolean>
 const mediaGroupBuffer = new Map();
 const ALBUM_DELAY_MS = 800;
 let client = null, targetChatId = null;
+let routingStopRequested = false;
 let metricsTracker: MetricsTracker | null = null;
 let backupScheduler: BackupScheduler | null = null;
 let retentionScheduler: OperationalDataRetention | null = null;
@@ -334,6 +337,10 @@ const state = {
   lastSuccessfulForwardAt: null as number | null,
   startupTime: null as number | null
 };
+const telegramLogin = new TelegramLoginCoordinator((snapshot) => {
+  if (snapshot.state === 'waiting') state.connectionState = 'authentication-required';
+  if (snapshot.state === 'authenticating' && !state.isRunning) state.connectionState = 'connecting';
+});
 const deliverySlo = new DeliverySloTracker();
 
 async function recordForwardedMessages(amount = 1) {
@@ -874,6 +881,8 @@ async function handleUpdate(update: any, config: any): Promise<void> {
 
 async function stopForwarding() {
   addLog("[INFO] Stoppe Weiterleitung...");
+  routingStopRequested = true;
+  telegramLogin.cancel();
   state.isRunning = false;
   state.connectionState = 'disconnected';
   state.startupTime = null;
@@ -906,7 +915,10 @@ async function stopForwarding() {
 }
 
 function routingCredentials(config: any): { apiId: number; apiHash: string } {
-  const apiId = process.env.TELEGRAM_API_ID ? parseInt(process.env.TELEGRAM_API_ID, 10) : config.apiId;
+  const environmentApiId = Number(process.env.TELEGRAM_API_ID);
+  const apiId = Number.isSafeInteger(environmentApiId) && environmentApiId > 0
+    ? environmentApiId
+    : config.apiId;
   return { apiId, apiHash: process.env.TELEGRAM_API_HASH || '' };
 }
 
@@ -963,7 +975,14 @@ async function connectAndActivateRouting(
     state.connectionState = 'error';
     addLog(`[TDLib Fehler] ${err.message || err}`);
   });
-  await client.login();
+  telegramLogin.begin();
+  try {
+    await client.login(telegramLogin.loginDetails());
+    telegramLogin.complete();
+  } catch (error) {
+    if (!routingStopRequested) telegramLogin.fail();
+    throw error;
+  }
   state.connectionState = 'connected';
   if (resetLogs) clearLogHistory();
   addLog("[SUCCESS] Mainframe-Verbindung autorisiert!");
@@ -1011,6 +1030,7 @@ async function cleanupFailedRoutingStart(reason: string): Promise<boolean> {
 async function startForwardingNonInteractive(config) {
   if (forwardQueue.running > 0) throw new Error('Cannot start routing while previous queue tasks are still running.');
   applyQueueSettings(config);
+  routingStopRequested = false;
   const { apiId, apiHash } = routingCredentials(config);
   if (!routingConfigurationIsComplete(config, apiId, apiHash)) {
     addLog("[ERROR] Konfiguration unvollständig! Bitte apiId, TELEGRAM_API_HASH, sourceChannels und targetChannel prüfen.");
@@ -1021,6 +1041,12 @@ async function startForwardingNonInteractive(config) {
     addLog("[INFO] Verbinde mit Telegram Mainframe...");
     await connectAndActivateRouting(config, apiId, apiHash, false, "[SUCCESS] Mainframe-Routing aktiv!");
   } catch (error: any) {
+    if (routingStopRequested) {
+      await cleanupFailedRoutingStart('Routing start cancelled by operator.');
+      state.connectionState = 'disconnected';
+      addLog('[INFO] Routing start cancelled by operator.');
+      return;
+    }
     state.connectionState = 'error';
     addLog(`[FATAL] Fehler beim Starten des Forwardings: ${error.message}`);
     const drained = await cleanupFailedRoutingStart('Non-interactive startup failed.');
@@ -1093,6 +1119,8 @@ async function removeOperationalLock(lockPath: string, label: string): Promise<v
 
 async function performShutdown(exitCode: number): Promise<void> {
   addLog("[INFO] System-Shutdown eingeleitet...");
+  routingStopRequested = true;
+  telegramLogin.cancel();
   state.isRunning = false;
   state.connectionState = 'disconnected';
   forwardQueue.pause();
@@ -1195,10 +1223,9 @@ function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number):
   }
 }
 
-function startDashboardRuntime(runtime: RuntimeConfiguration): void {
+function startDashboardRuntime(runtime: RuntimeConfiguration, secretStore: ManagedSecretStore): void {
   const webPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
-  try {
-    startWebServer(webPort, {
+  startWebServer(webPort, {
       config: runtime.config,
       state,
       startForwarding: async (cfg) => {
@@ -1231,11 +1258,11 @@ function startDashboardRuntime(runtime: RuntimeConfiguration): void {
       acknowledgeOutboxTask: async (taskId, reason) => {
         return acknowledgeOutboxTask(taskId, reason);
       },
-      auditTrail
-    });
-  } catch (err: any) {
-    addLog(`[WARN] Web Dashboard konnte nicht gestartet werden: ${err.message}`);
-  }
+      getTelegramLoginState: () => telegramLogin.snapshot(),
+      submitTelegramLogin: (payload) => telegramLogin.submit(payload),
+      auditTrail,
+      secretStore
+  });
 }
 
 async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<void> {
@@ -1255,11 +1282,13 @@ async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<void> {
 
 async function run() {
   loadEnv();
+  const secretStore = managedSecretStoreFromEnvironment();
+  await secretStore.initialize();
   const runtime = { config: readConfigSync() };
   const { databasePath, retentionPolicy } = await initializeCoreRuntime();
   await startBackupRuntime(runtime);
   startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
-  startDashboardRuntime(runtime);
+  startDashboardRuntime(runtime, secretStore);
   await runConfiguredMode(runtime);
 }
 run().catch(async err => {

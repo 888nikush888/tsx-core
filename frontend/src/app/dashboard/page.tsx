@@ -18,6 +18,16 @@ import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
 
+type SecretState = { configured: boolean; editable: boolean; source: 'managed' | 'external' | 'missing' }
+type SecretStatus = { telegramApiHash: SecretState; openRouterApiKey: SecretState }
+type TelegramLoginState = {
+  state: 'idle' | 'authenticating' | 'waiting' | 'completed' | 'failed'
+  prompt?: { kind: string; label: string; hint?: string; retry?: boolean; link?: string }
+  error?: string
+}
+
+const MISSING_SECRET: SecretState = { configured: false, editable: true, source: 'missing' }
+
 export default function Page() {
   const [searchParams] = useSearchParams()
   const tab = searchParams.get("tab") || "dashboard"
@@ -31,7 +41,12 @@ export default function Page() {
   const [uptime, setUptime] = useState("0h 0m")
   const [queue, setQueue] = useState({ running: 0, queued: 0, maxConcurrency: 2, paused: false })
   const [config, setConfig] = useState<any>(null)
-  const [openRouterApiKeyConfigured, setOpenRouterApiKeyConfigured] = useState(false)
+  const [secretStatus, setSecretStatus] = useState<SecretStatus>({
+    telegramApiHash: MISSING_SECRET,
+    openRouterApiKey: MISSING_SECRET,
+  })
+  const [secretDraft, setSecretDraft] = useState({ telegramApiHash: '', openRouterApiKey: '' })
+  const [telegramLogin, setTelegramLogin] = useState<TelegramLoginState>({ state: 'idle' })
   const [isSaving, setIsSaving] = useState(false)
   const [metricsHistory, setMetricsHistory] = useState<any[]>([])
 
@@ -48,6 +63,7 @@ export default function Page() {
         setForwardingEnabled(data.forwardingEnabled ?? true)
         setForwardXmlToTarget(data.forwardXmlToTarget ?? false)
         setQueue(data.queue || { running: 0, queued: 0, maxConcurrency: 2, paused: false })
+        setTelegramLogin(data.telegramLogin || { state: 'idle' })
         
         if (data.startTime) {
           const start = new Date(data.startTime)
@@ -85,10 +101,10 @@ export default function Page() {
         const data = await res.json()
         setConfig(data)
 
-        const statusRes = await apiFetch(`${API_BASE}/api/status`)
-        if (!statusRes.ok) throw new Error(`Status request failed with ${statusRes.status}`)
-        const statusData = await statusRes.json()
-        setOpenRouterApiKeyConfigured(statusData.openRouterApiKeyConfigured || false)
+        const secretsRes = await apiFetch(`${API_BASE}/api/secrets`)
+        if (!secretsRes.ok) throw new Error(`Secret status request failed with ${secretsRes.status}`)
+        const secretData = await secretsRes.json()
+        setSecretStatus(secretData.secrets)
       } catch (e) {
         console.error("Error fetching config:", e)
       }
@@ -123,6 +139,20 @@ export default function Page() {
     };
 
     try {
+      const secrets = Object.fromEntries(
+        Object.entries(secretDraft).filter(([, value]) => value.trim().length > 0)
+      )
+      if (Object.keys(secrets).length > 0) {
+        const secretResponse = await apiFetch(`${API_BASE}/api/secrets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(secrets),
+        })
+        const secretResult = await secretResponse.json().catch(() => ({}))
+        if (!secretResponse.ok) throw new Error(secretResult.error || 'Secrets could not be saved.')
+        setSecretStatus(secretResult.secrets)
+        setSecretDraft({ telegramApiHash: '', openRouterApiKey: '' })
+      }
       const configResponse = await apiFetch(`${API_BASE}/api/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,7 +172,7 @@ export default function Page() {
       alert("Configuration saved successfully!")
     } catch (e) {
       console.error("Error saving config:", e)
-      alert("Failed to save configuration.")
+      alert(e instanceof Error ? e.message : "Failed to save configuration.")
     } finally {
       setIsSaving(false)
     }
@@ -165,6 +195,14 @@ export default function Page() {
   }
 
   const isConfigTab = ["channels", "options", "filters", "parser"].includes(tab)
+  const setupSteps = [
+    { label: "Telegram API ID and API hash", complete: Boolean(config?.apiId > 0 && secretStatus.telegramApiHash.configured) },
+    { label: "At least one source and a target channel", complete: Boolean(config?.sourceChannels?.length > 0 && config?.targetChannel) },
+    { label: "OpenRouter key or AI parser disabled", complete: Boolean(!config?.xmlParsing?.enabled || secretStatus.openRouterApiKey.configured) },
+    { label: "Telegram account authenticated", complete: Boolean(isRunning || telegramLogin.state === "completed") },
+  ]
+  const routingConfigReady = setupSteps.slice(0, 3).every((step) => step.complete)
+  const setupComplete = setupSteps.every((step) => step.complete)
 
   let content = null
   if (tab === "dashboard") {
@@ -174,6 +212,8 @@ export default function Page() {
           <h2 className="text-2xl font-bold tracking-tight">System Status</h2>
           <Button 
             onClick={handleStartStop} 
+            disabled={!isRunning && !routingConfigReady}
+            title={!isRunning && !routingConfigReady ? "Complete and save the setup first" : undefined}
             className={`font-medium transition-all active:scale-[0.97] duration-150 shadow-md ${
               isRunning 
                 ? "bg-red-600 hover:bg-red-500 text-white dark:bg-red-500 dark:hover:bg-red-400" 
@@ -188,6 +228,15 @@ export default function Page() {
           </Button>
         </div>
         <div className="@container/main px-4 lg:px-6 space-y-6">
+          {!setupComplete && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+              <h3 className="font-semibold">First-run setup · {setupSteps.filter((step) => step.complete).length}/{setupSteps.length} complete</h3>
+              <ul className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+                {setupSteps.map((step) => <li key={step.label}>{step.complete ? "✓" : "○"} {step.label}</li>)}
+              </ul>
+              <p className="mt-3 text-sm">Configure credentials and routing under Channels, save, then start the forwarder to complete Telegram login in the browser.</p>
+            </div>
+          )}
           <SectionCards 
             isRunning={isRunning} 
             connectionState={connectionState} 
@@ -239,10 +288,24 @@ export default function Page() {
         </div>
 
         <div className={`pb-10 mx-auto md:mx-0 w-full ${tab === "logs" || tab === "messages" || tab === "signals" ? "max-w-none" : "max-w-5xl"}`}>
-          {tab === "channels" && <ChannelsTab config={config} setConfig={setConfig} />}
+          {tab === "channels" && <ChannelsTab
+            config={config}
+            setConfig={setConfig}
+            secretStatus={secretStatus.telegramApiHash}
+            secretValue={secretDraft.telegramApiHash}
+            setSecretValue={(value: string) => setSecretDraft((current) => ({ ...current, telegramApiHash: value }))}
+            telegramLogin={telegramLogin}
+            setTelegramLogin={setTelegramLogin}
+          />}
           {tab === "options" && <OptionsTab config={config} setConfig={setConfig} />}
           {tab === "filters" && <FiltersTab config={config} setConfig={setConfig} />}
-          {tab === "parser" && <ParserTab config={config} setConfig={setConfig} openRouterApiKeyConfigured={openRouterApiKeyConfigured} />}
+          {tab === "parser" && <ParserTab
+            config={config}
+            setConfig={setConfig}
+            secretStatus={secretStatus.openRouterApiKey}
+            secretValue={secretDraft.openRouterApiKey}
+            setSecretValue={(value: string) => setSecretDraft((current) => ({ ...current, openRouterApiKey: value }))}
+          />}
           {tab === "logs" && <LogsTab config={config} />}
           {tab === "system" && <SystemTab config={config} />}
           {tab === "messages" && <MessagesTab />}

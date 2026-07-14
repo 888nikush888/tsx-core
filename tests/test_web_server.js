@@ -5,6 +5,7 @@ import os from 'os';
 import path from 'path';
 import { closeDb, initDb } from '../src/db.js';
 import { startWebServer, stopWebServer } from '../src/web_server.js';
+import { ManagedSecretStore } from '../src/secret_store.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
 const VIEWER_TOKEN = 'viewer-token-0123456789abcdef0123456789abcdef';
@@ -21,7 +22,10 @@ function mutationHeaders(extra = {}) {
 }
 
 async function testAuthenticationAndReads(baseUrl) {
-  let response = await fetch(`${baseUrl}/api/status`);
+  let response = await fetch(`${baseUrl}/api/bootstrap/status`);
+  assert.strictEqual(response.status, 200, 'Bootstrap status must be available before authentication');
+  assert.deepStrictEqual(await response.json(), { mode: 'token', required: true, available: true });
+  response = await fetch(`${baseUrl}/api/status`);
   assert.strictEqual(response.status, 503, 'Missing server token must fail closed');
   process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;
   process.env.DASHBOARD_VIEWER_TOKEN = VIEWER_TOKEN;
@@ -51,6 +55,7 @@ async function testRequestValidation(baseUrl) {
     ['/api/config', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '[]' }, 400],
     ['/api/import', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{}' }, 400],
     ['/api/templates', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"../escape","content":"x"}' }, 400],
+    ['/api/templates', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"default","content":"replace safety"}' }, 400],
     ['/api/templates?name=default', { method: 'DELETE', headers: mutationHeaders() }, 400],
     ['/api/factory-reset', { method: 'POST', headers: mutationHeaders() }, 412]
   ];
@@ -107,11 +112,19 @@ async function testSensitiveMutations(baseUrl, controls) {
     body: JSON.stringify({ apiHash: 'attempted-secret-persistence' })
   });
   assert.strictEqual(response.status, 400, 'Dashboard configuration must reject secret fields');
-  response = await fetch(`${baseUrl}/api/env`, {
+  response = await fetch(`${baseUrl}/api/secrets`, {
     method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ OPENROUTER_API_KEY: 'attempted-secret-write' })
   });
-  assert.strictEqual(response.status, 405, 'Environment variables must not be web-editable');
+  assert.strictEqual(response.status, 400, 'Environment-style secret names must be rejected');
+  response = await fetch(`${baseUrl}/api/secrets`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ openRouterApiKey: 'sk-or-v1-dashboard-managed-key-1234567890' })
+  });
+  assert.strictEqual(response.status, 200, 'Allowed secrets must be editable by an authenticated administrator');
+  const secretResponse = await response.json();
+  assert.strictEqual(secretResponse.openRouterApiKey, undefined, 'Secret values must never be returned');
+  assert.strictEqual(secretResponse.secrets.openRouterApiKey.configured, true);
   response = await fetch(`${baseUrl}/api/outbox/retry`, {
     method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ id: 'unknown-task' })
@@ -157,6 +170,91 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   assert.match(await response.text(), /<html(?:\s|>)/i);
 }
 
+async function createAppState(testDir, controls) {
+  const appState = {
+    config: {
+      apiId: 123,
+      apiHash: 'must-never-be-returned',
+      sourceChannels: [],
+      targetChannel: '',
+      forwardOptions: {},
+      filters: {},
+      sourceFilters: {},
+      sourceAliases: {},
+      xmlParsing: {},
+      dupeBlocker: {},
+      nested: {
+        OPENROUTER_API_KEY: 'must-also-be-redacted',
+        AUDIT_WEBHOOK_TOKEN: 'must-also-be-redacted'
+      }
+    },
+    state: {
+      isRunning: true,
+      connectionState: 'connected',
+      resolvedSourceChatIds: new Set(),
+      startupTime: Math.floor(Date.now() / 1000)
+    },
+    getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 2, paused: false }),
+    startForwarding: async () => {},
+    stopForwarding: async () => { controls.stopCalls += 1; appState.state.isRunning = false; },
+    reloadConfig: () => {},
+    applyRuntimeConfig: () => {},
+    persistConfig: () => {},
+    getMetricsHistory: () => [],
+    getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
+    retryOutboxTask: async id => { controls.retryCalls += 1; return id === 'unknown-task'; },
+    acknowledgeOutboxTask: async id => { controls.acknowledgeCalls += 1; return id === 'unknown-task'; },
+    getTelegramLoginState: () => ({
+      state: 'waiting',
+      prompt: { kind: 'authCode', label: 'Telegram verification code' }
+    }),
+    submitTelegramLogin: payload => {
+      assert.deepEqual(payload, { value: '12345' });
+      return { state: 'authenticating' };
+    },
+    auditTrail: {
+      record: async event => {
+        controls.auditEvents.push(event);
+        if (controls.auditShouldFail) throw new Error('audit unavailable');
+      }
+    },
+    secretStore: new ManagedSecretStore(path.join(testDir, 'secrets'))
+  };
+  await appState.secretStore.initialize();
+  return appState;
+}
+
+async function testBootstrap(baseUrl) {
+  const missingOrigin = await fetch(`${baseUrl}/api/bootstrap`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'forwarder-dashboard' }
+  });
+  assert.strictEqual(missingOrigin.status, 403, 'Bootstrap must require an allowed browser origin');
+  const response = await fetch(`${baseUrl}/api/bootstrap`, {
+    method: 'POST',
+    headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
+  });
+  assert.strictEqual(response.status, 201, 'Allowed first-run browser must be able to bootstrap authentication');
+  const bootstrap = await response.json();
+  assert.match(bootstrap.token, /^[a-f0-9]{64}$/, 'Bootstrap must return a strong one-time token');
+  assert.strictEqual(bootstrap.recoveryLocation, 'secrets/dashboard_admin_token');
+  const authenticated = await fetch(`${baseUrl}/api/status`, { headers: headers(bootstrap.token) });
+  assert.strictEqual(authenticated.status, 200, 'Generated bootstrap token must authenticate immediately');
+  delete process.env.DASHBOARD_ADMIN_TOKEN;
+}
+
+async function testTelegramWebLogin(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/telegram-login`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200, 'Viewer may inspect the active Telegram login prompt');
+  assert.equal((await response.json()).telegramLogin.prompt.kind, 'authCode');
+  response = await fetch(`${baseUrl}/api/telegram-login`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ value: '12345' })
+  });
+  assert.strictEqual(response.status, 202, 'Administrator may answer the Telegram login prompt');
+}
+
 async function runTests() {
   const previousAdminToken = process.env.DASHBOARD_ADMIN_TOKEN;
   const previousViewerToken = process.env.DASHBOARD_VIEWER_TOKEN;
@@ -181,46 +279,7 @@ async function runTests() {
       auditShouldFail: false,
       auditEvents: []
     };
-    const appState = {
-      config: {
-        apiId: 123,
-        apiHash: 'must-never-be-returned',
-        sourceChannels: [],
-        targetChannel: '',
-        forwardOptions: {},
-        filters: {},
-        sourceFilters: {},
-        sourceAliases: {},
-        xmlParsing: {},
-        dupeBlocker: {},
-        nested: {
-          OPENROUTER_API_KEY: 'must-also-be-redacted',
-          AUDIT_WEBHOOK_TOKEN: 'must-also-be-redacted'
-        }
-      },
-      state: {
-        isRunning: true,
-        connectionState: 'connected',
-        resolvedSourceChatIds: new Set(),
-        startupTime: Math.floor(Date.now() / 1000)
-      },
-      getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 2, paused: false }),
-      startForwarding: async () => {},
-      stopForwarding: async () => { controls.stopCalls += 1; appState.state.isRunning = false; },
-      reloadConfig: () => {},
-      applyRuntimeConfig: () => {},
-      persistConfig: () => {},
-      getMetricsHistory: () => [],
-      getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
-      retryOutboxTask: async id => { controls.retryCalls += 1; return id === 'unknown-task'; },
-      acknowledgeOutboxTask: async id => { controls.acknowledgeCalls += 1; return id === 'unknown-task'; },
-      auditTrail: {
-        record: async event => {
-          controls.auditEvents.push(event);
-          if (controls.auditShouldFail) throw new Error('audit unavailable');
-        }
-      }
-    };
+    const appState = await createAppState(testDir, controls);
 
     const server = startWebServer(0, appState);
     await once(server, 'listening');
@@ -229,8 +288,9 @@ async function runTests() {
     assert.strictEqual(address.address, '127.0.0.1', 'Control plane must bind to loopback by default');
     const baseUrl = `http://127.0.0.1:${address.port}`;
 
+    await testBootstrap(baseUrl);
     await testAuthenticationAndReads(baseUrl);
-
+    await testTelegramWebLogin(baseUrl);
     await testRequestValidation(baseUrl);
 
     await testAuditedControl(baseUrl, controls);

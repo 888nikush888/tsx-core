@@ -18,6 +18,9 @@ import {
   type AuthenticatedActor,
   type DashboardAuthenticator,
 } from './dashboard_auth.js';
+import type { ManagedSecretStore } from './secret_store.js';
+import type { TelegramLoginSnapshot } from './telegram_login.js';
+import { DEFAULT_SIGNAL_PROMPT } from './signal_parser.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '../templates');
@@ -69,6 +72,9 @@ interface WebServerState {
   acknowledgeOutboxTask?: (id: string, reason: string) => Promise<boolean>;
   auditTrail?: Pick<EnterpriseAuditTrail, 'record'>;
   authenticator?: DashboardAuthenticator;
+  secretStore?: Pick<ManagedSecretStore, 'status' | 'set' | 'createDashboardAdminToken'>;
+  getTelegramLoginState?: () => TelegramLoginSnapshot;
+  submitTelegramLogin?: (payload: unknown) => TelegramLoginSnapshot;
 }
 
 interface RequestContext {
@@ -93,7 +99,11 @@ class HttpError extends Error {
 }
 
 function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown): void {
-  res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    Pragma: 'no-cache',
+  });
   res.end(JSON.stringify(payload));
 }
 
@@ -307,11 +317,50 @@ function statusHandler({ res, appState }: RequestContext): void {
       'anthropic/claude-3-haiku'
     ),
     openRouterApiKeyConfigured: Boolean(apiKey && apiKey !== 'your_openrouter_api_key_here'),
+    telegramLogin: appState.getTelegramLoginState?.() ?? { state: 'idle' },
     config: {
       sourceChannels: appState.config.sourceChannels,
       targetChannel: appState.config.targetChannel,
     },
   });
+}
+
+function secretsHandler({ res, appState }: RequestContext): void {
+  if (!appState.secretStore) {
+    sendJson(res, 503, { error: 'Managed secret storage is unavailable.' });
+    return;
+  }
+  sendJson(res, 200, { secrets: appState.secretStore.status() });
+}
+
+async function postSecretsHandler(context: RequestContext): Promise<void> {
+  if (!context.appState.secretStore) {
+    sendJson(context.res, 503, {
+      error: 'Managed secret storage is unavailable.',
+      requestId: context.requestId,
+    });
+    return;
+  }
+  try {
+    const payload = await readJsonBody(context.req, 8 * 1024);
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw new HttpError(400, 'Managed secrets must be a JSON object.');
+    }
+    const allowed = new Set(['telegramApiHash', 'openRouterApiKey']);
+    const entries = Object.entries(payload);
+    if (entries.length === 0 || entries.some(([name]) => !allowed.has(name))) {
+      throw new HttpError(400, 'Only telegramApiHash and openRouterApiKey may be updated.');
+    }
+    await context.appState.secretStore.set(payload);
+    addLog(`[INFO] request_id=${context.requestId} Managed dashboard secrets updated.`);
+    sendJson(context.res, 200, {
+      success: true,
+      secrets: context.appState.secretStore.status(),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
+  }
 }
 
 function logsHandler({ res }: RequestContext): void {
@@ -472,7 +521,10 @@ async function controlHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req);
     if (payload.action === 'start') {
-      if (context.appState.state.isRunning) {
+      if (
+        context.appState.state.isRunning
+        || ['connecting', 'authentication-required'].includes(context.appState.state.connectionState)
+      ) {
         throw new HttpError(409, 'Routing is already active.');
       }
       void context.appState.startForwarding(context.appState.config).catch((error) => {
@@ -486,7 +538,9 @@ async function controlHandler(context: RequestContext): Promise<void> {
       return;
     }
     if (payload.action !== 'stop') throw new HttpError(400, 'Invalid action.');
-    if (!context.appState.state.isRunning) throw new HttpError(409, 'Routing is not active.');
+    const routingStarted = context.appState.state.isRunning
+      || ['connecting', 'authentication-required'].includes(context.appState.state.connectionState);
+    if (!routingStarted) throw new HttpError(409, 'Routing is not active.');
     await context.appState.stopForwarding();
     sendJson(context.res, 200, {
       success: true,
@@ -495,6 +549,28 @@ async function controlHandler(context: RequestContext): Promise<void> {
     });
   } catch (error) {
     sendError(context, error);
+  }
+}
+
+function telegramLoginHandler(context: RequestContext): void {
+  sendJson(context.res, 200, {
+    telegramLogin: context.appState.getTelegramLoginState?.() ?? { state: 'idle' },
+  });
+}
+
+async function postTelegramLoginHandler(context: RequestContext): Promise<void> {
+  if (!context.appState.submitTelegramLogin) {
+    sendJson(context.res, 503, {
+      error: 'Telegram web login is unavailable.',
+      requestId: context.requestId,
+    });
+    return;
+  }
+  try {
+    const snapshot = context.appState.submitTelegramLogin(await readJsonBody(context.req, 8 * 1024));
+    sendJson(context.res, 202, { telegramLogin: snapshot, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, new HttpError(400, errorMessage(error)));
   }
 }
 
@@ -520,7 +596,7 @@ async function postConfigHandler(context: RequestContext): Promise<void> {
       throw new HttpError(400, 'Configuration must be a JSON object.');
     }
     if (containsSecretConfig(newConfig)) {
-      throw new HttpError(400, 'Secrets are environment-only and cannot be saved through the dashboard.');
+      throw new HttpError(400, 'Secrets must be submitted through the dedicated managed-secret endpoint.');
     }
     applyConfiguration(context, newConfig, 'Dashboard configuration updated.');
     sendJson(context.res, 200, {
@@ -532,13 +608,6 @@ async function postConfigHandler(context: RequestContext): Promise<void> {
   } catch (error) {
     sendError(context, error);
   }
-}
-
-function environmentHandler(context: RequestContext): void {
-  sendJson(context.res, 405, {
-    error: 'Environment variables are read-only at runtime.',
-    requestId: context.requestId,
-  });
 }
 
 async function importHandler(context: RequestContext): Promise<void> {
@@ -575,7 +644,7 @@ async function getTemplatesHandler(context: RequestContext): Promise<void> {
     await fsPromises.mkdir(TEMPLATES_DIR, { recursive: true });
     const files = await fsPromises.readdir(TEMPLATES_DIR);
     const templates: Record<string, string> = {
-      default: (await readTemplate('default.txt')) ?? '',
+      default: DEFAULT_SIGNAL_PROMPT,
     };
     for (const file of files.filter((name) => name.endsWith('.txt') && name !== 'default.txt')) {
       const content = await readTemplate(file);
@@ -598,6 +667,9 @@ async function postTemplateHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req, 128 * 1024);
     const name = requireTemplateName(payload.name);
+    if (name === 'default') {
+      throw new HttpError(400, 'The built-in default safety prompt is read-only. Create a named template instead.');
+    }
     if (typeof payload.content !== 'string' || Buffer.byteLength(payload.content, 'utf8') > 96 * 1024) {
       throw new HttpError(400, 'Template content must be a string no larger than 96 KiB.');
     }
@@ -697,9 +769,12 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['DELETE /api/incoming-messages', deleteIncomingHandler],
   ['DELETE /api/processed-signals', deleteSignalHandler],
   ['POST /api/control', controlHandler],
+  ['GET /api/telegram-login', telegramLoginHandler],
+  ['POST /api/telegram-login', postTelegramLoginHandler],
   ['GET /api/config', getConfigHandler],
   ['POST /api/config', postConfigHandler],
-  ['POST /api/env', environmentHandler],
+  ['GET /api/secrets', secretsHandler],
+  ['POST /api/secrets', postSecretsHandler],
   ['POST /api/import', importHandler],
   ['GET /api/templates', getTemplatesHandler],
   ['POST /api/templates', postTemplateHandler],
@@ -707,6 +782,60 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/factory-reset', factoryResetHandler],
   ['POST /api/clear-database', clearDatabaseHandler],
 ]);
+
+function bootstrapStatusHandler(
+  context: RequestContext,
+  authenticator: DashboardAuthenticator
+): void {
+  const required = authenticator.mode === 'token' && !authenticator.isConfigured();
+  sendJson(context.res, 200, {
+    mode: authenticator.mode,
+    required,
+    available: required && Boolean(context.appState.secretStore),
+  });
+}
+
+async function bootstrapHandler(
+  context: RequestContext,
+  authenticator: DashboardAuthenticator
+): Promise<void> {
+  try {
+    if (authenticator.mode !== 'token') {
+      throw new HttpError(409, 'Token bootstrap is unavailable in OIDC mode.');
+    }
+    if (authenticator.isConfigured()) {
+      throw new HttpError(409, 'Dashboard authentication is already configured.');
+    }
+    if (!context.appState.secretStore) {
+      throw new HttpError(503, 'Managed secret storage is unavailable.');
+    }
+    const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
+    if (!origin || !isAllowedOrigin(origin)) {
+      throw new HttpError(403, 'Dashboard bootstrap requires an allowed browser origin.');
+    }
+    const actor: AuthenticatedActor = { role: 'admin', id: 'bootstrap:local-browser' };
+    if (!(await authorizeMutationAudit(context, actor, 'POST', '/api/bootstrap'))) return;
+    context.res.once('finish', () => {
+      recordAuditCompletion(
+        context.appState.auditTrail,
+        actor,
+        context.requestId,
+        'POST',
+        '/api/bootstrap',
+        context.res.statusCode
+      );
+    });
+    const token = await context.appState.secretStore.createDashboardAdminToken();
+    addLog(`[SECURITY] request_id=${context.requestId} Dashboard administrator token bootstrapped.`);
+    sendJson(context.res, 201, {
+      token,
+      recoveryLocation: 'secrets/dashboard_admin_token',
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
+  }
+}
 
 function handleOptions(res: http.ServerResponse): void {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -787,6 +916,14 @@ async function handleRequest(
   }
   if (!url.startsWith('/api/')) {
     await serveStatic(context, url);
+    return;
+  }
+  if (method === 'GET' && url === '/api/bootstrap/status') {
+    bootstrapStatusHandler(context, authenticator);
+    return;
+  }
+  if (method === 'POST' && url === '/api/bootstrap') {
+    await bootstrapHandler(context, authenticator);
     return;
   }
   if (!(await authenticateApiRequest(context, authenticator, method, url))) return;

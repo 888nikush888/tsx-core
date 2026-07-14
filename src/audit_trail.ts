@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, open, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { enterpriseMode } from './runtime_profile.js';
 
 export type AuditPhase = 'startup' | 'authorized' | 'completed';
 
@@ -221,7 +222,7 @@ export function auditTrailFromEnvironment(): EnterpriseAuditTrail {
     filePath: process.env.AUDIT_LOG_PATH || path.join(process.cwd(), 'logs', 'audit-chain.jsonl'),
     remoteUrl: process.env.AUDIT_WEBHOOK_URL?.trim(),
     bearerToken: process.env.AUDIT_WEBHOOK_TOKEN,
-    remoteRequired: process.env.NODE_ENV === 'production' && process.env.AUDIT_REMOTE_REQUIRED !== 'false',
+    remoteRequired: enterpriseMode() && process.env.AUDIT_REMOTE_REQUIRED !== 'false',
     timeoutMs: boundedInteger(process.env.AUDIT_WEBHOOK_TIMEOUT_MS, 10_000, 1_000, 30_000, 'AUDIT_WEBHOOK_TIMEOUT_MS'),
     maximumLocalBytes: boundedInteger(process.env.AUDIT_LOCAL_MAX_BYTES, DEFAULT_MAXIMUM_LOCAL_BYTES, 1024 * 1024, 1024 * 1024 * 1024, 'AUDIT_LOCAL_MAX_BYTES')
   });

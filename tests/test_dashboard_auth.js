@@ -68,10 +68,13 @@ try {
     .sign(privateKey);
   assert.equal(await authenticator.authenticate(`Bearer ${missingExpiry}`), null, 'Tokens without an expiry must fail closed.');
 
-  process.env = { ...savedEnvironment, NODE_ENV: 'production' };
+  process.env = { ...savedEnvironment, NODE_ENV: 'production', ENTERPRISE_MODE: 'true' };
   delete process.env.DASHBOARD_AUTH_MODE;
   delete process.env.DASHBOARD_OIDC_ISSUER;
-  assert.throws(() => dashboardAuthenticatorFromEnvironment(), /Invalid URL|OIDC_ISSUER/, 'Production must default to configured OIDC.');
+  assert.throws(() => dashboardAuthenticatorFromEnvironment(), /Invalid URL|OIDC_ISSUER/, 'Enterprise mode must default to configured OIDC.');
+  process.env = { ...savedEnvironment, NODE_ENV: 'production', ENTERPRISE_MODE: 'false' };
+  delete process.env.DASHBOARD_AUTH_MODE;
+  assert.equal(dashboardAuthenticatorFromEnvironment().mode, 'token', 'Standalone Docker must support web bootstrap.');
 
   console.log('Dashboard token and OIDC authentication tests passed.');
 } finally {

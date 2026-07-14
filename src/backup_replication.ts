@@ -5,6 +5,7 @@ import { Readable, Transform } from 'stream';
 import { pipeline } from 'stream/promises';
 import { createGunzip, createGzip } from 'zlib';
 import { verifyBackupArtifact } from './backup.js';
+import { enterpriseMode } from './runtime_profile.js';
 
 const ENCRYPTED_MAGIC = Buffer.from('TGFE1\0', 'ascii');
 const ARCHIVE_MAGIC = Buffer.from('TGFA1\0', 'ascii');
@@ -292,10 +293,11 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
   required: boolean;
   replicator: BackupReplicator | null;
 } {
-  if (env.NODE_ENV === 'production' && env.BACKUP_OFFSITE_REQUIRED === 'false') {
-    throw new Error('Off-site backup cannot be disabled in production.');
+  const enterprise = enterpriseMode(env);
+  if (enterprise && env.BACKUP_OFFSITE_REQUIRED === 'false') {
+    throw new Error('Off-site backup cannot be disabled in enterprise mode.');
   }
-  const required = strictBoolean(env.BACKUP_OFFSITE_REQUIRED, env.NODE_ENV === 'production');
+  const required = strictBoolean(env.BACKUP_OFFSITE_REQUIRED, enterprise);
   const values = [env.BACKUP_OFFSITE_URL_TEMPLATE, env.BACKUP_OFFSITE_TOKEN, env.BACKUP_ENCRYPTION_KEY];
   const configured = values.some(value => !!value?.trim());
   if (!configured && !required) return { required, replicator: null };

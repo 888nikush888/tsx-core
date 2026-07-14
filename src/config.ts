@@ -4,7 +4,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const configPath = path.join(__dirname, '../config.json');
+export function configurationPathFromEnvironment(env: NodeJS.ProcessEnv = process.env): string {
+  return path.resolve(env.CONFIG_PATH?.trim() || path.join(__dirname, '../config.json'));
+}
+
+export const configPath = configurationPathFromEnvironment();
 
 function serializedConfig(cfg: Config): string {
   const validated = validateConfig(structuredClone(cfg));

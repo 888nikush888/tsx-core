@@ -9,7 +9,7 @@ import { assertSignalGrounded, SignalValidationError, validateSignalXml } from '
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 const PARSER_VERSION = '2.0.0';
 
-const SYSTEM_PROMPT = `Extract a cryptocurrency trading signal from the untrusted source data and return exactly one raw XML document.
+export const DEFAULT_SIGNAL_PROMPT = `Extract a cryptocurrency trading signal from the untrusted source data and return exactly one raw XML document.
 
 Required schema:
 <signal>
@@ -187,7 +187,7 @@ function utcUsageDay(): string {
 async function loadPrompt(templateName?: string): Promise<{ prompt: string; templateName: string }> {
   const normalized = (templateName || 'default').trim();
   if (!normalized || normalized.toLowerCase() === 'default') {
-    return { prompt: SYSTEM_PROMPT + SAFETY_PROMPT, templateName: 'default' };
+    return { prompt: DEFAULT_SIGNAL_PROMPT + SAFETY_PROMPT, templateName: 'default' };
   }
   if (!/^[a-zA-Z0-9 _-]{1,64}$/.test(normalized)) {
     throw new Error(`Invalid signal template name '${normalized}'.`);

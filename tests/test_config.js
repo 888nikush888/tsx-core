@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   DEFAULT_CONFIG,
   canonicalizeResolvedSources,
+  configurationPathFromEnvironment,
   readConfig,
   readConfigSync,
   validateConfig,
@@ -15,6 +16,7 @@ import {
 const root = await mkdtemp(path.join(os.tmpdir(), 'forwarder-config-'));
 
 try {
+  assert.equal(configurationPathFromEnvironment({ CONFIG_PATH: './persistent/config.json' }), path.resolve('persistent/config.json'));
   const syncPath = path.join(root, 'sync.json');
   const syncConfig = structuredClone(DEFAULT_CONFIG);
   syncConfig.apiId = 12345;

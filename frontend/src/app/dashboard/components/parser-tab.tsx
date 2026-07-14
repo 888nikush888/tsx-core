@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
 
-export function ParserTab({ config, setConfig, openRouterApiKeyConfigured }: any) {
+export function ParserTab({ config, setConfig, secretStatus, secretValue, setSecretValue }: any) {
   const [templates, setTemplates] = useState<Record<string, string>>({ default: "" })
   const [selectedTemplateName, setSelectedTemplateName] = useState<string>("default")
   const [newTemplateName, setNewTemplateName] = useState<string>("")
@@ -172,11 +172,21 @@ export function ParserTab({ config, setConfig, openRouterApiKeyConfigured }: any
 
           <div className="grid gap-4 md:grid-cols-2 pt-2">
             <div className="space-y-2">
-              <Label>OpenRouter API Key</Label>
-              <div className="h-10 rounded-md border bg-muted/40 px-3 flex items-center text-sm">
-                {openRouterApiKeyConfigured ? 'Configured through server environment' : 'Not configured'}
-              </div>
-              <p className="text-xs text-muted-foreground">Environment-only secret; never returned to the browser.</p>
+              <Label htmlFor="openRouterApiKey">OpenRouter API Key · {
+                secretStatus?.configured
+                  ? secretStatus.source === "external" ? "Managed by deployment" : "Stored securely"
+                  : "Not configured"
+              }</Label>
+              <Input
+                id="openRouterApiKey"
+                type="password"
+                autoComplete="off"
+                placeholder={secretStatus?.configured ? "Leave blank to keep the saved value" : "Enter API key"}
+                value={secretValue}
+                disabled={secretStatus?.editable === false}
+                onChange={(event) => setSecretValue(event.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Write-only secret. Use Save Configuration to store a replacement.</p>
             </div>
 
             <div className="space-y-2">
@@ -342,7 +352,7 @@ export function ParserTab({ config, setConfig, openRouterApiKeyConfigured }: any
                 <Label className="text-sm font-semibold">
                   Editor: <span className="text-primary font-mono">{selectedTemplateName}.txt</span>
                 </Label>
-                <Button size="sm" onClick={handleSaveTemplate} disabled={isSavingTemplate || isLoadingTemplates}>
+                <Button size="sm" onClick={handleSaveTemplate} disabled={selectedTemplateName === "default" || isSavingTemplate || isLoadingTemplates}>
                   <Save className="h-4 w-4 mr-2" />
                   {isSavingTemplate ? "Speichere..." : "Prompt speichern"}
                 </Button>
@@ -353,10 +363,13 @@ export function ParserTab({ config, setConfig, openRouterApiKeyConfigured }: any
                 className="font-mono text-xs leading-relaxed"
                 placeholder="Geben Sie hier die Prompt-Instruktionen ein..."
                 value={activeContent}
+                readOnly={selectedTemplateName === "default"}
                 onChange={(e) => setActiveContent(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Speichern Sie Änderungen am aktiven Template ab, bevor Sie auf ein anderes Template wechseln.
+                {selectedTemplateName === "default"
+                  ? "Das eingebaute Sicherheits-Prompt ist schreibgeschützt. Erstellen Sie für Anpassungen ein benanntes Template."
+                  : "Speichern Sie Änderungen am aktiven Template ab, bevor Sie auf ein anderes Template wechseln."}
               </p>
             </div>
           </div>

@@ -4,6 +4,7 @@ import {
   jwtVerify,
   type JWTVerifyGetKey
 } from 'jose';
+import { enterpriseMode } from './runtime_profile.js';
 
 export type DashboardRole = 'viewer' | 'admin';
 
@@ -153,7 +154,7 @@ export class OidcDashboardAuthenticator implements DashboardAuthenticator {
 }
 
 export function dashboardAuthenticatorFromEnvironment(): DashboardAuthenticator {
-  const defaultMode = process.env.NODE_ENV === 'production' ? 'oidc' : 'token';
+  const defaultMode = enterpriseMode() ? 'oidc' : 'token';
   const mode = process.env.DASHBOARD_AUTH_MODE?.trim().toLowerCase() || defaultMode;
   if (mode === 'token') return new EnvironmentTokenAuthenticator();
   if (mode !== 'oidc') throw new Error('DASHBOARD_AUTH_MODE must be token or oidc.');

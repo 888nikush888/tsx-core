@@ -73,13 +73,17 @@ try {
     required: false,
     replicator: null
   });
+  assert.deepEqual(offsiteBackupFromEnvironment({ NODE_ENV: 'production' }), {
+    required: false,
+    replicator: null
+  });
   assert.throws(
-    () => offsiteBackupFromEnvironment({ NODE_ENV: 'production' }),
+    () => offsiteBackupFromEnvironment({ ENTERPRISE_MODE: 'true' }),
     /Off-site backup requires/
   );
   assert.throws(
-    () => offsiteBackupFromEnvironment({ NODE_ENV: 'production', BACKUP_OFFSITE_REQUIRED: 'false' }),
-    /cannot be disabled in production/
+    () => offsiteBackupFromEnvironment({ ENTERPRISE_MODE: 'true', BACKUP_OFFSITE_REQUIRED: 'false' }),
+    /cannot be disabled in enterprise mode/
   );
   assert.throws(
     () => new HttpsBackupReplicator({
