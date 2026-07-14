@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { apiFetch, clearDashboardToken, getDashboardToken, onDashboardAuthRequired, setDashboardToken } from '@/lib/api'
+import { apiFetch, clearDashboardToken, onDashboardAuthRequired, setDashboardToken } from '@/lib/api'
 
 type AuthState = 'checking' | 'locked' | 'authenticated'
 
@@ -15,10 +15,6 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
   const [submitting, setSubmitting] = useState(false)
 
   const validateStoredToken = async () => {
-    if (!getDashboardToken()) {
-      setState('locked')
-      return
-    }
     try {
       const response = await apiFetch('/api/status')
       if (!response.ok) throw new Error(response.status === 503 ? 'Dashboard authentication is not configured on the server.' : 'The saved token is no longer valid.')
@@ -67,7 +63,7 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Dashboard authentication</CardTitle>
-            <CardDescription>Enter the administrator or read-only bearer token configured on the server.</CardDescription>
+            <CardDescription>Enter a local dashboard token or an OIDC access token. An authenticated reverse proxy can grant access without storing a token in the browser.</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={submit}>

@@ -48,6 +48,7 @@
     "qs": "6.15.3"
   },
   "dependencies": {
+    "jose": "6.2.3",
     "openai": "^6.46.0",
     "prebuilt-tdlib": "^0.1008064.0",
     "sqlite": "^5.1.1",

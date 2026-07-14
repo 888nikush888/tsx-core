@@ -2,11 +2,16 @@ import http from 'http';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createHash, randomUUID, timingSafeEqual } from 'crypto';
+import { randomUUID } from 'crypto';
 import { writeConfigSync } from './config.js';
 import { addLog, getLogHistory } from './ui.js';
 import { getIncomingMessages, getProcessedSignals, clearDb, deleteIncomingMessage, deleteProcessedSignal } from './db.js';
 import type { EnterpriseAuditTrail } from './audit_trail.js';
+import {
+  dashboardAuthenticatorFromEnvironment,
+  type AuthenticatedActor,
+  type DashboardAuthenticator
+} from './dashboard_auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,16 +28,10 @@ interface WebServerState {
   retryOutboxTask?: (id: string) => Promise<boolean>;
   acknowledgeOutboxTask?: (id: string, reason: string) => Promise<boolean>;
   auditTrail?: Pick<EnterpriseAuditTrail, 'record'>;
+  authenticator?: DashboardAuthenticator;
 }
 
 let server: http.Server | null = null;
-
-type DashboardRole = 'viewer' | 'admin';
-
-interface AuthenticatedActor {
-  role: DashboardRole;
-  id: string;
-}
 
 class HttpError extends Error {
   constructor(public readonly statusCode: number, message: string) {
@@ -43,37 +42,6 @@ class HttpError extends Error {
 function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown): void {
   res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(payload));
-}
-
-function safeTokenEquals(candidate: string, expected: string): boolean {
-  const candidateBuffer = Buffer.from(candidate);
-  const expectedBuffer = Buffer.from(expected);
-  return candidateBuffer.length === expectedBuffer.length && timingSafeEqual(candidateBuffer, expectedBuffer);
-}
-
-function configuredToken(name: 'DASHBOARD_ADMIN_TOKEN' | 'DASHBOARD_VIEWER_TOKEN'): string | null {
-  const value = process.env[name]?.trim() || '';
-  if (/^(replace_|change-?me|example|placeholder)/i.test(value)) return null;
-  return value.length >= 32 ? value : null;
-}
-
-function isAuthenticationConfigured(): boolean {
-  const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
-  const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
-  return !!adminToken && (!viewerToken || !safeTokenEquals(adminToken, viewerToken));
-}
-
-function authenticate(req: http.IncomingMessage): AuthenticatedActor | null {
-  const authorization = req.headers.authorization || '';
-  const match = /^Bearer ([^\s]+)$/.exec(authorization);
-  if (!match) return null;
-  const token = match[1]!;
-  const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
-  const id = `token:${createHash('sha256').update(token).digest('hex').slice(0, 16)}`;
-  if (adminToken && safeTokenEquals(token, adminToken)) return { role: 'admin', id };
-  const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
-  if (viewerToken && safeTokenEquals(token, viewerToken)) return { role: 'viewer', id };
-  return null;
 }
 
 function recordAuditCompletion(
@@ -217,6 +185,7 @@ export function startWebServer(
   appState: WebServerState,
   host = process.env.WEB_HOST?.trim() || '127.0.0.1'
 ): http.Server {
+  const authenticator = appState.authenticator ?? dashboardAuthenticatorFromEnvironment();
   server = http.createServer(async (req, res) => {
     const requestId = randomUUID();
     res.setHeader('X-Request-Id', requestId);
@@ -242,11 +211,11 @@ export function startWebServer(
 
     let actor: AuthenticatedActor | null = null;
     if (url.startsWith('/api/')) {
-      if (!isAuthenticationConfigured()) {
+      if (!authenticator.isConfigured()) {
         sendJson(res, 503, { error: 'Dashboard authentication is not configured.', requestId });
         return;
       }
-      actor = authenticate(req);
+      actor = await authenticator.authenticate(req.headers.authorization);
       if (!actor) {
         res.setHeader('WWW-Authenticate', 'Bearer realm="forwarder-dashboard"');
         sendJson(res, 401, { error: 'Valid dashboard bearer token required.', requestId });

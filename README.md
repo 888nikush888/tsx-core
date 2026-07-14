@@ -73,13 +73,15 @@ Das System wurde auf Enterprise-Niveau gehoben und nutzt moderne Best Practices:
 
 ### Dashboard-Zugriff
 
-Der Control-Plane-Server bindet standardmäßig ausschließlich an `127.0.0.1`. Alle `/api/*`-Endpunkte verlangen einen Bearer-Token; `DASHBOARD_ADMIN_TOKEN` erlaubt Änderungen, der optionale `DASHBOARD_VIEWER_TOKEN` nur Lesezugriffe. Beide Tokens müssen mindestens 32 zufällige Zeichen lang sein, zum Beispiel erzeugt mit:
+Der Control-Plane-Server bindet standardmäßig ausschließlich an `127.0.0.1`. Alle `/api/*`-Endpunkte verlangen einen verifizierten Bearer-Token. Lokale Nicht-Produktionsprozesse verwenden standardmäßig `DASHBOARD_AUTH_MODE=token`: `DASHBOARD_ADMIN_TOKEN` erlaubt Änderungen, der optionale `DASHBOARD_VIEWER_TOKEN` nur Lesezugriffe. Beide Tokens müssen mindestens 32 zufällige Zeichen lang und voneinander verschieden sein, zum Beispiel erzeugt mit:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Das Dashboard fragt den Token beim Öffnen ab und hält ihn nur im Browser-`sessionStorage`. Für Remote-Zugriff bleibt `WEB_HOST=127.0.0.1`; ein TLS-Reverse-Proxy wird vorgeschaltet und dessen exakte Origin mit `DASHBOARD_ALLOWED_ORIGIN=https://forwarder.example.com` freigegeben. Die API darf nicht direkt unverschlüsselt im Netzwerk exponiert werden.
+Der Produktions-Container wählt ohne explizite, geprüfte Abweichung `DASHBOARD_AUTH_MODE=oidc`. Er validiert Signatur, erlaubten Algorithmus, Issuer, Audience, Ablaufzeit und Rollen eines JWT gegen `DASHBOARD_OIDC_JWKS_URL`. Die Claim-Werte aus `DASHBOARD_OIDC_ADMIN_ROLE` und `DASHBOARD_OIDC_VIEWER_ROLE` werden auf die beiden internen Rollen abgebildet; unbekannte Rollen, fehlendes `sub`, falsche Audience und ungültige Signaturen werden abgewiesen. Die Audit-Actor-ID ist ein stabiler pseudonymer Hash aus Issuer und `sub`, kein Shared-Token-Fingerprint.
+
+Das Dashboard akzeptiert ein lokales Token oder kurzlebiges OIDC-Access-Token nur im Browser-`sessionStorage`. Alternativ kann ein vorgeschalteter, vollständig vertrauenswürdiger OIDC-Proxy das verifizierte Access-Token bei jeder Upstream-Anfrage injizieren; er muss eingehende `Authorization`-Header entfernen. Für Remote-Zugriff bleibt `WEB_HOST=127.0.0.1`, TLS endet am Proxy und dessen exakte Origin wird mit `DASHBOARD_ALLOWED_ORIGIN=https://forwarder.example.com` freigegeben. Die API darf nicht direkt unverschlüsselt im Netzwerk exponiert werden.
 
 ### Zustellgarantie und Recovery
 

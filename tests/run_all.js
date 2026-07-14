@@ -22,6 +22,7 @@ const allTests = [
   'test_slo_tracker.js',
   'test_audit_trail.js',
   'test_audit_cli.js',
+  'test_dashboard_auth.js',
   'test_alert_relay.js',
   'test_monitoring_artifacts.js',
   'test_staging_e2e.js',

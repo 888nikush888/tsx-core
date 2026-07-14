@@ -20,6 +20,7 @@ async function runTests() {
   const previousAdminToken = process.env.DASHBOARD_ADMIN_TOKEN;
   const previousViewerToken = process.env.DASHBOARD_VIEWER_TOKEN;
   const previousWebHost = process.env.WEB_HOST;
+  const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-web-test-'));
   let stopped = false;
 
@@ -28,6 +29,7 @@ async function runTests() {
     delete process.env.DASHBOARD_ADMIN_TOKEN;
     delete process.env.DASHBOARD_VIEWER_TOKEN;
     delete process.env.WEB_HOST;
+    process.env.DASHBOARD_AUTH_MODE = 'token';
 
     let stopCalls = 0;
     let retryCalls = 0;
@@ -246,6 +248,8 @@ async function runTests() {
     else process.env.DASHBOARD_VIEWER_TOKEN = previousViewerToken;
     if (previousWebHost === undefined) delete process.env.WEB_HOST;
     else process.env.WEB_HOST = previousWebHost;
+    if (previousAuthMode === undefined) delete process.env.DASHBOARD_AUTH_MODE;
+    else process.env.DASHBOARD_AUTH_MODE = previousAuthMode;
   }
 }
 

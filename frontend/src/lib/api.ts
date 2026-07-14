@@ -24,7 +24,7 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
   }
 
   const response = await fetch(input, { ...init, headers })
-  if (response.status === 401 || response.status === 503) {
+  if (response.status === 401) {
     window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT))
   }
   return response
