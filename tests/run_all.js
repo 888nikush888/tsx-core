@@ -12,6 +12,7 @@ const allTests = [
   'test_tdlib_retry.js',
   'test_dupe_blocker.js',
   'test_outbox.js',
+  'test_migration_cli.js',
   'test_delivery_tracker.js',
   'test_crash_guard.js',
   'test_backup.js',

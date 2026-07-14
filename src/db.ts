@@ -1,7 +1,8 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
-import { mkdir, stat } from 'fs/promises';
+import { copyFile, mkdir, rename, rm, stat } from 'fs/promises';
+import { createHash, randomUUID } from 'crypto';
 
 let db: Database | null = null;
 
@@ -55,158 +56,195 @@ async function ensureColumn(database: Database, table: string, column: string, d
   }
 }
 
-export async function initDb(
-  dbPath = process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db')
-): Promise<void> {
-  if (db) {
-    throw new Error('Database is already initialized. Call closeDb() before reinitializing.');
+interface MigrationColumn {
+  table: string;
+  name: string;
+  sqlDefinition: string;
+}
+
+interface SchemaMigration {
+  version: number;
+  name: string;
+  columns: MigrationColumn[];
+  sql: string;
+}
+
+const migrations: SchemaMigration[] = [
+  {
+    version: 1,
+    name: 'bootstrap_core_tables',
+    columns: [],
+    sql: `
+        CREATE TABLE IF NOT EXISTS signals (
+          id TEXT PRIMARY KEY,
+          chat_id TEXT,
+          message_id INTEGER,
+          xml_content TEXT,
+          normalized_content TEXT,
+          created_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS pending_tasks (
+          id TEXT PRIMARY KEY,
+          type TEXT,
+          chat_id TEXT,
+          message_id INTEGER,
+          message_ids TEXT,
+          media_group_id TEXT,
+          added_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS media_group_buffer (
+          group_id TEXT PRIMARY KEY,
+          from_chat_id TEXT,
+          messages_json TEXT,
+          added_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS forwarding_stats (
+          key TEXT PRIMARY KEY,
+          value INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS incoming_messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          chat_id TEXT,
+          message_id INTEGER,
+          sender TEXT,
+          text TEXT,
+          type TEXT,
+          status TEXT,
+          created_at INTEGER
+        );
+      `
+  },
+  {
+    version: 2,
+    name: 'durable_outbox_ai_provenance',
+    columns: [
+      { table: 'signals', name: 'template_name', sqlDefinition: 'TEXT' },
+      { table: 'signals', name: 'schema_name', sqlDefinition: 'TEXT' },
+      { table: 'signals', name: 'prompt_sha256', sqlDefinition: 'TEXT' },
+      { table: 'signals', name: 'model', sqlDefinition: 'TEXT' },
+      { table: 'signals', name: 'provider_request_id', sqlDefinition: 'TEXT' },
+      { table: 'signals', name: 'prompt_tokens', sqlDefinition: 'INTEGER' },
+      { table: 'signals', name: 'completion_tokens', sqlDefinition: 'INTEGER' },
+      { table: 'signals', name: 'parser_version', sqlDefinition: 'TEXT' },
+      { table: 'pending_tasks', name: 'status', sqlDefinition: "TEXT NOT NULL DEFAULT 'pending'" },
+      { table: 'pending_tasks', name: 'attempts', sqlDefinition: 'INTEGER NOT NULL DEFAULT 0' },
+      { table: 'pending_tasks', name: 'claimed_at', sqlDefinition: 'INTEGER' },
+      { table: 'pending_tasks', name: 'updated_at', sqlDefinition: 'INTEGER NOT NULL DEFAULT 0' },
+      { table: 'pending_tasks', name: 'completed_at', sqlDefinition: 'INTEGER' },
+      { table: 'pending_tasks', name: 'last_error', sqlDefinition: 'TEXT' },
+      { table: 'pending_tasks', name: 'config_json', sqlDefinition: 'TEXT' },
+      { table: 'pending_tasks', name: 'result_json', sqlDefinition: 'TEXT' }
+    ],
+    sql: `
+        CREATE TABLE IF NOT EXISTS ai_usage_daily (
+          usage_day TEXT PRIMARY KEY,
+          request_count INTEGER NOT NULL DEFAULT 0,
+          used_tokens INTEGER NOT NULL DEFAULT 0,
+          reserved_tokens INTEGER NOT NULL DEFAULT 0,
+          updated_at INTEGER NOT NULL
+        );
+        UPDATE pending_tasks SET status = 'pending' WHERE status IS NULL OR status = '';
+        UPDATE pending_tasks SET attempts = 0 WHERE attempts IS NULL;
+        UPDATE pending_tasks
+        SET updated_at = COALESCE(NULLIF(updated_at, 0), added_at, CAST(strftime('%s','now') AS INTEGER) * 1000);
+      `
+  },
+  {
+    version: 3,
+    name: 'integrity_indexes_and_stats',
+    columns: [],
+    sql: `
+        DELETE FROM incoming_messages
+        WHERE chat_id IS NOT NULL
+          AND message_id IS NOT NULL
+          AND id NOT IN (
+            SELECT MIN(id) FROM incoming_messages
+            WHERE chat_id IS NOT NULL AND message_id IS NOT NULL
+            GROUP BY chat_id, message_id
+          );
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_incoming_chat_message ON incoming_messages(chat_id, message_id);
+        CREATE INDEX IF NOT EXISTS idx_incoming_chat_msg ON incoming_messages(chat_id, message_id);
+        CREATE INDEX IF NOT EXISTS idx_incoming_created ON incoming_messages(created_at);
+        CREATE INDEX IF NOT EXISTS idx_signals_normalized ON signals(normalized_content);
+        CREATE INDEX IF NOT EXISTS idx_signals_chat_created ON signals(chat_id, created_at);
+        CREATE INDEX IF NOT EXISTS idx_pending_tasks_status_added ON pending_tasks(status, added_at);
+        INSERT OR IGNORE INTO forwarding_stats (key, value) VALUES ('total_forwarded_count', 0);
+        INSERT OR IGNORE INTO forwarding_stats (key, value) VALUES ('last_forwarded_at', 0);
+      `
   }
-  await mkdir(path.dirname(dbPath), { recursive: true });
-  db = await open({
-    filename: dbPath,
-    driver: sqlite3.Database
-  });
-  await db.exec(`
-    PRAGMA journal_mode = WAL;
-    PRAGMA synchronous = FULL;
-    PRAGMA busy_timeout = 5000;
-    PRAGMA foreign_keys = ON;
-  `);
+];
 
-  // Table for duplicate signal checks
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS signals (
-      id TEXT PRIMARY KEY,
-      chat_id TEXT,
-      message_id INTEGER,
-      xml_content TEXT,
-      normalized_content TEXT,
-      created_at INTEGER,
-      template_name TEXT,
-      schema_name TEXT,
-      prompt_sha256 TEXT,
-      model TEXT,
-      provider_request_id TEXT,
-      prompt_tokens INTEGER,
-      completion_tokens INTEGER,
-      parser_version TEXT
-    );
-    CREATE INDEX IF NOT EXISTS idx_signals_normalized ON signals(normalized_content);
-    CREATE INDEX IF NOT EXISTS idx_signals_chat_created ON signals(chat_id, created_at);
-  `);
-  await ensureColumn(db, 'signals', 'template_name', 'TEXT');
-  await ensureColumn(db, 'signals', 'schema_name', 'TEXT');
-  await ensureColumn(db, 'signals', 'prompt_sha256', 'TEXT');
-  await ensureColumn(db, 'signals', 'model', 'TEXT');
-  await ensureColumn(db, 'signals', 'provider_request_id', 'TEXT');
-  await ensureColumn(db, 'signals', 'prompt_tokens', 'INTEGER');
-  await ensureColumn(db, 'signals', 'completion_tokens', 'INTEGER');
-  await ensureColumn(db, 'signals', 'parser_version', 'TEXT');
+export const LATEST_SCHEMA_VERSION = migrations.length;
 
-  // Table for persistent forwarding queue
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS pending_tasks (
-      id TEXT PRIMARY KEY,
-      type TEXT,
-      chat_id TEXT,
-      message_id INTEGER,
-      message_ids TEXT,             -- JSON string array
-      media_group_id TEXT,
-      added_at INTEGER,
-      status TEXT NOT NULL DEFAULT 'pending',
-      attempts INTEGER NOT NULL DEFAULT 0,
-      claimed_at INTEGER,
-      updated_at INTEGER NOT NULL DEFAULT 0,
-      completed_at INTEGER,
-      last_error TEXT,
-      config_json TEXT,
-      result_json TEXT
-    );
-  `);
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS ai_usage_daily (
-      usage_day TEXT PRIMARY KEY,
-      request_count INTEGER NOT NULL DEFAULT 0,
-      used_tokens INTEGER NOT NULL DEFAULT 0,
-      reserved_tokens INTEGER NOT NULL DEFAULT 0,
-      updated_at INTEGER NOT NULL
-    );
-  `);
-  await ensureColumn(db, 'pending_tasks', 'status', "TEXT NOT NULL DEFAULT 'pending'");
-  await ensureColumn(db, 'pending_tasks', 'attempts', 'INTEGER NOT NULL DEFAULT 0');
-  await ensureColumn(db, 'pending_tasks', 'claimed_at', 'INTEGER');
-  await ensureColumn(db, 'pending_tasks', 'updated_at', 'INTEGER NOT NULL DEFAULT 0');
-  await ensureColumn(db, 'pending_tasks', 'completed_at', 'INTEGER');
-  await ensureColumn(db, 'pending_tasks', 'last_error', 'TEXT');
-  await ensureColumn(db, 'pending_tasks', 'config_json', 'TEXT');
-  await ensureColumn(db, 'pending_tasks', 'result_json', 'TEXT');
-  await db.exec(`
-    UPDATE pending_tasks SET status = 'pending' WHERE status IS NULL OR status = '';
-    UPDATE pending_tasks SET attempts = 0 WHERE attempts IS NULL;
-    UPDATE pending_tasks SET updated_at = COALESCE(NULLIF(updated_at, 0), added_at, CAST(strftime('%s','now') AS INTEGER) * 1000);
-    CREATE INDEX IF NOT EXISTS idx_pending_tasks_status_added ON pending_tasks(status, added_at);
-  `);
-
-  // Table for media group buffering
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS media_group_buffer (
-      group_id TEXT PRIMARY KEY,
-      from_chat_id TEXT,
-      messages_json TEXT,           -- JSON array of message objects
-      added_at INTEGER
-    );
-  `);
-
-  // Persistent total used by the dashboard and metrics across process restarts
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS forwarding_stats (
-      key TEXT PRIMARY KEY,
-      value INTEGER NOT NULL
-    );
-    INSERT OR IGNORE INTO forwarding_stats (key, value) VALUES ('total_forwarded_count', 0);
-    INSERT OR IGNORE INTO forwarding_stats (key, value) VALUES ('last_forwarded_at', 0);
-  `);
-
-  // Table for incoming messages and their routing status
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS incoming_messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      chat_id TEXT,
-      message_id INTEGER,
-      sender TEXT,
-      text TEXT,
-      type TEXT,
-      status TEXT,
-      created_at INTEGER
-    );
-    CREATE INDEX IF NOT EXISTS idx_incoming_chat_msg ON incoming_messages(chat_id, message_id);
-    CREATE INDEX IF NOT EXISTS idx_incoming_created ON incoming_messages(created_at);
-  `);
-  await db.exec(`
-    DELETE FROM incoming_messages
-    WHERE id NOT IN (
-      SELECT MIN(id) FROM incoming_messages GROUP BY chat_id, message_id
-    );
-    CREATE UNIQUE INDEX IF NOT EXISTS uq_incoming_chat_message ON incoming_messages(chat_id, message_id);
-  `);
+function migrationChecksum(migration: SchemaMigration): string {
+  return createHash('sha256')
+    .update(JSON.stringify({
+      version: migration.version,
+      name: migration.name,
+      columns: migration.columns,
+      sql: migration.sql
+    }))
+    .digest('hex');
 }
 
-export async function closeDb(): Promise<void> {
-  if (!db) return;
-  await db.close();
-  db = null;
+async function applyMigration(database: Database, migration: SchemaMigration): Promise<void> {
+  for (const column of migration.columns) {
+    await ensureColumn(database, column.table, column.name, column.sqlDefinition);
+  }
+  await database.exec(migration.sql);
 }
 
-export async function backupDatabase(destinationPath: string): Promise<void> {
+async function migrateDatabase(database: Database, beforeApply?: (fromVersion: number) => Promise<void>): Promise<void> {
+  await database.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      checksum TEXT NOT NULL,
+      applied_at INTEGER NOT NULL
+    );
+  `);
+  const applied = await database.all<Array<{ version: number; name: string; checksum: string }>>(
+    'SELECT version, name, checksum FROM schema_migrations ORDER BY version'
+  );
+  if (applied.some(record => record.version > LATEST_SCHEMA_VERSION)) {
+    throw new Error(`Database schema is newer than this binary (supported version ${LATEST_SCHEMA_VERSION}).`);
+  }
+  for (let index = 0; index < applied.length; index += 1) {
+    const record = applied[index];
+    const migration = migrations[index];
+    if (!migration || record.version !== migration.version) {
+      throw new Error('Database migration history is non-contiguous or out of order.');
+    }
+    if (record.name !== migration.name || record.checksum !== migrationChecksum(migration)) {
+      throw new Error(`Database migration ${record.version} checksum or name does not match this binary.`);
+    }
+  }
+  if (applied.length < migrations.length && beforeApply) await beforeApply(applied.length);
+  for (const migration of migrations.slice(applied.length)) {
+    await database.exec('BEGIN IMMEDIATE;');
+    try {
+      await applyMigration(database, migration);
+      await database.run(
+        'INSERT INTO schema_migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)',
+        [migration.version, migration.name, migrationChecksum(migration), Date.now()]
+      );
+      await database.exec('COMMIT;');
+    } catch (error) {
+      await database.exec('ROLLBACK;').catch(() => {});
+      throw new Error(`Database migration ${migration.version} (${migration.name}) failed.`, { cause: error });
+    }
+  }
+}
+
+async function copyDatabase(database: Database, destinationPath: string): Promise<void> {
   const resolvedDestination = path.resolve(destinationPath);
   await mkdir(path.dirname(resolvedDestination), { recursive: true });
   const destinationExists = await stat(resolvedDestination).then(() => true).catch((error: any) => {
     if (error.code === 'ENOENT') return false;
     throw error;
   });
-  if (destinationExists) throw new Error(`Backup destination already exists: ${resolvedDestination}`);
-  const nativeDatabase: any = getDb().getDatabaseInstance();
+  if (destinationExists) throw new Error(`Database copy destination already exists: ${resolvedDestination}`);
+  const nativeDatabase: any = database.getDatabaseInstance();
   const backup: any = await new Promise((resolve, reject) => {
     const operation = nativeDatabase.backup(resolvedDestination, (error: Error | null) => {
       if (error) reject(error);
@@ -220,6 +258,165 @@ export async function backupDatabase(destinationPath: string): Promise<void> {
       else resolve();
     });
   });
+}
+
+export async function verifyDatabaseIntegrity(databasePath: string): Promise<void> {
+  const inspection = await open({
+    filename: path.resolve(databasePath),
+    driver: sqlite3.Database,
+    mode: sqlite3.OPEN_READONLY
+  });
+  try {
+    const result = await inspection.get<{ integrity_check: string }>('PRAGMA integrity_check;');
+    if (result?.integrity_check !== 'ok') throw new Error(`SQLite integrity_check failed: ${result?.integrity_check || 'no result'}`);
+  } finally {
+    await inspection.close();
+  }
+}
+
+async function createPreMigrationSnapshot(database: Database, databasePath: string, fromVersion: number): Promise<string> {
+  const snapshotDirectory = path.join(path.dirname(path.resolve(databasePath)), '.migration-backups');
+  const snapshotPath = path.join(
+    snapshotDirectory,
+    `pre-migration-v${fromVersion}-to-v${LATEST_SCHEMA_VERSION}-${Date.now()}-${randomUUID().slice(0, 8)}.db`
+  );
+  await copyDatabase(database, snapshotPath);
+  await verifyDatabaseIntegrity(snapshotPath);
+  return snapshotPath;
+}
+
+export async function initDb(
+  dbPath = process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db')
+): Promise<void> {
+  if (db) {
+    throw new Error('Database is already initialized. Call closeDb() before reinitializing.');
+  }
+  const resolvedDbPath = path.resolve(dbPath);
+  const databaseExisted = await stat(resolvedDbPath).then(stats => stats.isFile() && stats.size > 0).catch((error: any) => {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  });
+  await mkdir(path.dirname(resolvedDbPath), { recursive: true });
+  db = await open({
+    filename: resolvedDbPath,
+    driver: sqlite3.Database
+  });
+  try {
+    await db.exec(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA synchronous = FULL;
+      PRAGMA busy_timeout = 5000;
+      PRAGMA foreign_keys = ON;
+    `);
+    await migrateDatabase(db, databaseExisted
+      ? async fromVersion => {
+          const snapshot = await createPreMigrationSnapshot(db!, resolvedDbPath, fromVersion);
+          console.log(`[INFO] Verified pre-migration database snapshot created: ${snapshot}`);
+        }
+      : undefined);
+  } catch (error) {
+    await db.close().catch(() => {});
+    db = null;
+    throw error;
+  }
+}
+
+export async function getSchemaVersion(): Promise<number> {
+  const row = await getDb().get<{ version: number }>('SELECT MAX(version) AS version FROM schema_migrations');
+  return Number(row?.version || 0);
+}
+
+export async function closeDb(): Promise<void> {
+  if (!db) return;
+  await db.close();
+  db = null;
+}
+
+export async function backupDatabase(destinationPath: string): Promise<void> {
+  await copyDatabase(getDb(), destinationPath);
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  return stat(filePath).then(() => true).catch((error: any) => {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  });
+}
+
+interface PreservedDatabaseSet {
+  previousDatabase: string | null;
+  sidecars: Array<{ original: string; preserved: string }>;
+}
+
+async function validateMigrationRestoreRequest(snapshot: string, target: string, stateDirectory: string): Promise<void> {
+  if (db) throw new Error('Migration snapshot restore requires the database connection to be closed.');
+  if (snapshot === target) throw new Error('Migration snapshot and target database must be different files.');
+  const snapshotStats = await stat(snapshot);
+  if (!snapshotStats.isFile() || snapshotStats.size < 1) throw new Error('Migration snapshot must be a non-empty regular file.');
+  for (const lockName of ['.process_active', '.routing_active']) {
+    if (await pathExists(path.join(stateDirectory, lockName))) {
+      throw new Error(`Migration restore refused while '${lockName}' exists.`);
+    }
+  }
+  await verifyDatabaseIntegrity(snapshot);
+}
+
+async function preserveDatabaseSet(target: string, restoreId: string): Promise<PreservedDatabaseSet> {
+  const preservationBase = `${target}.pre-migration-restore-${restoreId}`;
+  const previousDatabase = await pathExists(target) ? preservationBase : null;
+  if (previousDatabase) await rename(target, previousDatabase);
+  const sidecars: PreservedDatabaseSet['sidecars'] = [];
+  for (const suffix of ['-wal', '-shm']) {
+    const original = `${target}${suffix}`;
+    if (await pathExists(original)) {
+      const preserved = `${preservationBase}${suffix}`;
+      await rename(original, preserved);
+      sidecars.push({ original, preserved });
+    }
+  }
+  return { previousDatabase, sidecars };
+}
+
+async function rollbackMigrationRestore(
+  target: string,
+  temporary: string,
+  preserved: PreservedDatabaseSet,
+  installed: boolean
+): Promise<void> {
+  if (installed) await rm(target, { force: true });
+  if (preserved.previousDatabase && await pathExists(preserved.previousDatabase)) {
+    await rename(preserved.previousDatabase, target);
+  }
+  for (const sidecar of preserved.sidecars.reverse()) {
+    if (await pathExists(sidecar.preserved)) await rename(sidecar.preserved, sidecar.original);
+  }
+  await rm(temporary, { force: true });
+}
+
+export async function restorePreMigrationSnapshot(
+  snapshotPath: string,
+  targetDatabasePath = process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'),
+  stateDirectory = path.dirname(path.resolve(targetDatabasePath))
+): Promise<{ previousDatabase: string | null }> {
+  const snapshot = path.resolve(snapshotPath);
+  const target = path.resolve(targetDatabasePath);
+  await validateMigrationRestoreRequest(snapshot, target, path.resolve(stateDirectory));
+  await mkdir(path.dirname(target), { recursive: true });
+  const restoreId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
+  const temporary = `${target}.migration-restore-${restoreId}.tmp`;
+  let preserved: PreservedDatabaseSet = { previousDatabase: null, sidecars: [] };
+  let installed = false;
+  try {
+    await copyFile(snapshot, temporary);
+    await verifyDatabaseIntegrity(temporary);
+    preserved = await preserveDatabaseSet(target, restoreId);
+    await rename(temporary, target);
+    installed = true;
+    return { previousDatabase: preserved.previousDatabase };
+  } catch (error) {
+    await rollbackMigrationRestore(target, temporary, preserved, installed);
+    throw error;
+  }
 }
 
 // Helper to make sure db is initialized

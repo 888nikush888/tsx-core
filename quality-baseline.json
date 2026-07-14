@@ -1,9 +1,9 @@
 {
-  "eslintWarnings": 44,
+  "eslintWarnings": 43,
   "rules": {
     "complexity": 26,
     "max-depth": 4,
-    "max-lines-per-function": 14
+    "max-lines-per-function": 13
   },
   "worstCyclomaticComplexity": 166
 }

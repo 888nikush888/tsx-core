@@ -69,6 +69,7 @@ Vor Restore Dienst stoppen, Locks und Outbox dokumentieren, Backup aus unabhäng
 - Staging-Smoke, Live-AI-Golden-Set bei KI-Änderung und Restore-Evidenz müssen vorliegen.
 - Rollback auf das vorherige Image verändert keine DB rückwärts. Bei Schemaänderungen gilt ausschließlich der freigegebene Downgrade-Plan.
 - Nach Rollback Readiness, Outbox, letzte bestätigte Zustellung und Backup-Frische prüfen.
+- Bei inkompatibler DB-Migration ausschließlich den im Release-Record benannten `.migration-backups`-Snapshot mit `npm run db:migration:restore -- <snapshot> --confirm-restore-pre-migration` einspielen; das ersetzte DB/WAL/SHM-Set bleibt erhalten.
 
 ## Staging- und Produktions-Evidence
 

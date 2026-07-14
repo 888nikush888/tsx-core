@@ -14,6 +14,7 @@
     "backup:create": "tsx src/backup_cli.ts create",
     "backup:verify": "tsx src/backup_cli.ts verify",
     "backup:restore": "tsx src/backup_cli.ts restore",
+    "db:migration:restore": "tsx src/migration_cli.ts restore",
     "ops:test-alert": "node scripts/send_synthetic_alert.js",
     "ops:soak": "node --import tsx scripts/check_soak_window.js",
     "test": "node tests/run_all.js",

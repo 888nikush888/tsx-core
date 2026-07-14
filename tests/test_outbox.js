@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { mkdtemp, rm } from 'fs/promises';
+import { mkdtemp, readdir, rm, unlink, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import sqlite3 from 'sqlite3';
@@ -20,12 +20,15 @@ import {
   getTotalForwardedCount,
   incrementForwardedCount,
   initDb,
+  getSchemaVersion,
+  LATEST_SCHEMA_VERSION,
   isDatabaseHealthy,
   listOutboxTasks,
   markOutboxSending,
   recoverInterruptedOutboxTasks,
   removeMediaGroupBuffer,
   reserveAiUsage,
+  restorePreMigrationSnapshot,
   commitAiUsage,
   requeueOutboxTask,
   saveIncomingMessage,
@@ -49,6 +52,20 @@ async function runTests() {
   const dbPath = path.join(testDir, 'legacy.db');
 
   try {
+    const futurePath = path.join(testDir, 'future.db');
+    const futureDb = await open({ filename: futurePath, driver: sqlite3.Database });
+    await futureDb.exec(`
+      CREATE TABLE schema_migrations (
+        version INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        checksum TEXT NOT NULL,
+        applied_at INTEGER NOT NULL
+      );
+      INSERT INTO schema_migrations VALUES (999, 'future', '${'f'.repeat(64)}', 1);
+    `);
+    await futureDb.close();
+    await assert.rejects(initDb(futurePath), /schema is newer than this binary/);
+
     const legacyDb = await open({ filename: dbPath, driver: sqlite3.Database });
     await legacyDb.exec(`
       CREATE TABLE pending_tasks (
@@ -75,11 +92,14 @@ async function runTests() {
       );
       INSERT INTO incoming_messages (chat_id, message_id, sender, text, type, status, created_at)
       VALUES ('-1001', 7, 'sender', 'first', 'text', 'received', 1),
-             ('-1001', 7, 'sender', 'duplicate', 'text', 'received', 2);
+             ('-1001', 7, 'sender', 'duplicate', 'text', 'received', 2),
+             (NULL, NULL, 'legacy', 'unidentified-1', 'text', 'received', 3),
+             (NULL, NULL, 'legacy', 'unidentified-2', 'text', 'received', 4);
     `);
     await legacyDb.close();
 
     await initDb(dbPath);
+    assert.strictEqual(await getSchemaVersion(), LATEST_SCHEMA_VERSION);
 
     assert.strictEqual(await isDatabaseHealthy(), true);
     await incrementForwardedCount(2, 1_700_000_000_000);
@@ -136,6 +156,7 @@ async function runTests() {
 
     const incomingAfterMigration = await getIncomingMessages(100);
     assert.strictEqual(incomingAfterMigration.filter(message => message.chat_id === '-1001' && message.message_id === 7).length, 1, 'Migration must deduplicate inbox rows');
+    assert.strictEqual(incomingAfterMigration.filter(message => message.chat_id === null && message.message_id === null).length, 2, 'Migration must not collapse legacy rows without a delivery identity');
     assert.strictEqual(await saveIncomingMessage('-1001', 8, 'sender', 'new', 'text', 'received'), true);
     assert.strictEqual(await saveIncomingMessage('-1001', 8, 'sender', 'duplicate', 'text', 'received'), false, 'Inbox uniqueness must block duplicate updates');
 
@@ -189,6 +210,32 @@ async function runTests() {
       completion_tokens: 34,
       parser_version: '2.0.0'
     });
+
+    await closeDb();
+    const migrationBackupDirectory = path.join(testDir, '.migration-backups');
+    const migrationSnapshots = (await readdir(migrationBackupDirectory))
+      .filter(name => name.startsWith('pre-migration-v0-to-v') && name.endsWith('.db'));
+    assert.strictEqual(migrationSnapshots.length, 1, 'Legacy upgrade must create one verified pre-migration snapshot');
+    const migrationSnapshot = path.join(migrationBackupDirectory, migrationSnapshots[0]);
+    await writeFile(path.join(testDir, '.process_active'), 'active', 'utf8');
+    await assert.rejects(
+      restorePreMigrationSnapshot(migrationSnapshot, dbPath, testDir),
+      /restore refused.*process_active/
+    );
+    await unlink(path.join(testDir, '.process_active'));
+
+    const tamperDb = await open({ filename: dbPath, driver: sqlite3.Database });
+    await tamperDb.run("UPDATE schema_migrations SET checksum = ? WHERE version = 1", ['0'.repeat(64)]);
+    await tamperDb.close();
+    await assert.rejects(initDb(dbPath), /checksum or name does not match/);
+    const restored = await restorePreMigrationSnapshot(migrationSnapshot, dbPath, testDir);
+    assert.ok(restored.previousDatabase, 'Tampered database must be preserved for forensic rollback');
+    const restoredLegacyDb = await open({ filename: dbPath, driver: sqlite3.Database });
+    const restoredLegacyTask = await restoredLegacyDb.get("SELECT id FROM pending_tasks WHERE id = 'legacy-task'");
+    await restoredLegacyDb.close();
+    assert.strictEqual(restoredLegacyTask.id, 'legacy-task');
+    await initDb(dbPath);
+    assert.strictEqual(await getSchemaVersion(), LATEST_SCHEMA_VERSION, 'Restored legacy snapshot must migrate reproducibly');
 
     console.log('ALL DURABLE OUTBOX TESTS PASSED!');
   } finally {

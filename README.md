@@ -126,6 +126,18 @@ Operative Daten werden standardmäßig 90 Tage aufbewahrt. Die Retention löscht
 
 Konfiguration: `DATA_RETENTION_DAYS`, `DATA_RETENTION_INTERVAL_MS`, `DATA_RETENTION_BATCH_SIZE` und `DATA_MIN_FREE_BYTES`. Prometheus exportiert Retention-Zustand, gelöschte Zeilen, SQLite-Belegung, wiederverwendbare Seiten und freien Speicher. Eine Änderung der Aufbewahrungsfrist benötigt Data-Owner-Freigabe und muss mit der Off-host-Backup-Retention konsistent sein.
 
+### Datenbank-Migration und Binary-Rollback
+
+Das Schema wird über eine lückenlose, checksum-geschützte `schema_migrations`-Historie aktualisiert. Jede Migration läuft in einer eigenen SQLite-Transaktion; neuere, manipulierte oder lückenhafte Historien blockieren den Start. Vor Änderungen an einer bestehenden Datenbank erzeugt der Prozess unter `session_data/.migration-backups/` automatisch einen integritätsgeprüften Snapshot.
+
+Aktuelle Migrationen sind zum vorherigen Binary additiv kompatibel. Falls ein späteres Release einen DB-Downgrade verlangt, wird der Dienst inklusive aller Nebeninstanzen gestoppt, `failed`/`unknown` dokumentiert und der im Release-Record benannte Snapshot explizit wiederhergestellt:
+
+```bash
+npm run db:migration:restore -- ./session_data/.migration-backups/pre-migration-....db --confirm-restore-pre-migration
+```
+
+Das Kommando verweigert aktive Prozess-/Routing-Locks, prüft den Snapshot und bewahrt die ersetzte Datenbank samt WAL/SHM für Forensik. Anschließend darf nur das zum alten Schema passende Rollback-Image gestartet werden.
+
 ### Automatische KI-Signalverarbeitung
 
 Die Signalverarbeitung arbeitet ohne Human-in-the-loop. Ein Ergebnis darf jedoch nur automatisch weitergeleitet werden, wenn es exakt dem für die Quelle festgelegten Schema entspricht und alle Zahlen-, Wertebereichs-, Reihenfolge- und LONG/SHORT-Geometrieprüfungen besteht. Markdown, XML-Deklarationen, unbekannte Tags, nicht sequenzielle Targets, abgeschnittene Modellantworten und Text außerhalb des XML-Dokuments werden fail-closed abgewiesen; unbekannte oder nicht lesbare Template-Dateien fallen nicht still auf den Standardprompt zurück.
