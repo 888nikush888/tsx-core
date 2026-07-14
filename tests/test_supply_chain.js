@@ -24,10 +24,10 @@ for (const reference of actionReferences) {
 const safeTrivyAction = 'aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1';
 assert.equal(
   actionReferences.filter((reference) => reference === safeTrivyAction).length,
-  2,
-  'both Trivy steps must use the known-safe 0.35.0 action commit'
+  6,
+  'all Trivy steps must use the known-safe action commit'
 );
-assert.equal((workflow.match(/^\s*version:\s*v0\.69\.3\s*$/gm) ?? []).length, 2);
+assert.equal((workflow.match(/^\s*version:\s*v0\.69\.3\s*$/gm) ?? []).length, 6);
 assert.doesNotMatch(workflow, /^\s*version:\s*latest\s*$/m);
 assert.doesNotMatch(
   workflow,

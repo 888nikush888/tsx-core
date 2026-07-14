@@ -18,6 +18,8 @@ const allTests = [
   'test_backup_replication.js',
   'test_retention.js',
   'test_metrics.js',
+  'test_alert_relay.js',
+  'test_monitoring_artifacts.js',
   'test_web_server.js',
   'test_integration.js',
   'test_signal_parser.js',

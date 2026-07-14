@@ -55,6 +55,7 @@ jobs:
           npm run quality:frontend
           npm run quality:release
           npm run quality:risk-acceptances
+          npm run quality:monitoring
       - name: Test and per-file coverage gate
         run: npm run test:coverage
       - name: Duplicate ratio gate
@@ -179,6 +180,40 @@ jobs:
           output: trivy.sarif
           severity: HIGH,CRITICAL
           exit-code: '1'
+      - name: Generate Prometheus SBOM
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        with:
+          version: v0.69.3
+          image-ref: prom/prometheus:v3.13.0-distroless@sha256:f3b6aae627d96e7ad8256cdf6de5953247735117c6f577383fadb42efeeea7bc
+          format: cyclonedx
+          output: prometheus.cdx.json
+          exit-code: '0'
+      - name: Block Prometheus high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        with:
+          version: v0.69.3
+          image-ref: prom/prometheus:v3.13.0-distroless@sha256:f3b6aae627d96e7ad8256cdf6de5953247735117c6f577383fadb42efeeea7bc
+          format: sarif
+          output: prometheus-trivy.sarif
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+      - name: Generate Alertmanager SBOM
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        with:
+          version: v0.69.3
+          image-ref: prom/alertmanager:v0.32.1@sha256:51a825c2a40acc3e338fdd00d622e01ec090f72be2b3ea46be0839cd47a4d286
+          format: cyclonedx
+          output: alertmanager.cdx.json
+          exit-code: '0'
+      - name: Block Alertmanager high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        with:
+          version: v0.69.3
+          image-ref: prom/alertmanager:v0.32.1@sha256:51a825c2a40acc3e338fdd00d622e01ec090f72be2b3ea46be0839cd47a4d286
+          format: sarif
+          output: alertmanager-trivy.sarif
+          severity: HIGH,CRITICAL
+          exit-code: '1'
       - name: Preserve the scanned release candidate
         if: startsWith(github.ref, 'refs/tags/v')
         run: docker save telegram-tdlib-forwarder:${{ github.sha }} | zstd -T0 -3 -o release-image.tar.zst
@@ -199,6 +234,10 @@ jobs:
           path: |
             container.cdx.json
             trivy.sarif
+            prometheus.cdx.json
+            prometheus-trivy.sarif
+            alertmanager.cdx.json
+            alertmanager-trivy.sarif
           if-no-files-found: error
           retention-days: 90
 
@@ -277,6 +316,10 @@ jobs:
           cp application-evidence/reports/sbom/frontend.cdx.json release-assets/frontend.cdx.json
           cp container-evidence/container.cdx.json release-assets/container.cdx.json
           cp container-evidence/trivy.sarif release-assets/trivy.sarif
+          cp container-evidence/prometheus.cdx.json release-assets/prometheus.cdx.json
+          cp container-evidence/prometheus-trivy.sarif release-assets/prometheus-trivy.sarif
+          cp container-evidence/alertmanager.cdx.json release-assets/alertmanager.cdx.json
+          cp container-evidence/alertmanager-trivy.sarif release-assets/alertmanager-trivy.sarif
           sha256sum release-assets/* > release-assets/SHA256SUMS
           jq -n \
             --arg tag "$GITHUB_REF_NAME" \

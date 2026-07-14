@@ -12,6 +12,7 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Wöchentliche Vollprüfung, harte Container-CVE-Policy und ein attestiertes, nur nach allen Quality-Gates publizierbares Release-Image.
 - Fail-closed Secret-File-Unterstützung für Orchestrator-/Vault-Mounts mit sicherer Umgebungspriorität.
 - Verschlüsselte Off-host-Backups mit erzwungenem Download, Authentizitätsprüfung und vollständiger Restore-Verifikation vor Erfolgsmeldung.
+- Gepinnter Prometheus-/Alertmanager-Stack mit getesteten Sicherheitsalarmen, authentifiziertem HTTPS-Incident-Relay und synthetischem Zustelltest.
 
 ## [1.0.0] - 2026-07-13
 

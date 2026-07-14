@@ -13,6 +13,7 @@
     "backup:create": "tsx src/backup_cli.ts create",
     "backup:verify": "tsx src/backup_cli.ts verify",
     "backup:restore": "tsx src/backup_cli.ts restore",
+    "ops:test-alert": "node scripts/send_synthetic_alert.js",
     "test": "node tests/run_all.js",
     "test:coverage": "c8 node tests/run_all.js",
     "test:mutation": "node scripts/run_mutation_shards.js",
@@ -27,7 +28,8 @@
     "quality:release": "node scripts/check_release_artifacts.js",
     "quality:risk-acceptances": "node scripts/check_risk_acceptances.js",
     "quality:licenses": "node scripts/check_licenses.js",
-    "quality:sbom": "node scripts/generate_sbom.js"
+    "quality:sbom": "node scripts/generate_sbom.js",
+    "quality:monitoring": "node scripts/check_monitoring.js"
   },
   "keywords": [
     "telegram",

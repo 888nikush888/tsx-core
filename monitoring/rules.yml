@@ -1,0 +1,92 @@
+groups:
+  - name: telegram-forwarder-safety
+    rules:
+      - alert: ForwarderMetricsMissing
+        expr: up{job="telegram-forwarder"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: Forwarder metrics endpoint is unreachable
+          runbook: docs/runbooks/operations.md#alarm-triage
+
+      - alert: ForwarderUnknownDelivery
+        expr: sum(tg_forwarder_outbox_tasks{status="unknown"}) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: A Telegram delivery has an unknown outcome
+          runbook: docs/runbooks/operations.md#unknown-zustellung
+
+      - alert: ForwarderFailedDelivery
+        expr: sum(tg_forwarder_outbox_tasks{status="failed"}) > 0
+        for: 5m
+        labels:
+          severity: high
+          service: telegram-forwarder
+        annotations:
+          summary: A retryable Telegram delivery remains failed
+          runbook: docs/runbooks/operations.md#alarm-triage
+
+      - alert: ForwarderDatabaseUnavailable
+        expr: tg_forwarder_database_healthy == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: Forwarder SQLite health check is failing
+          runbook: docs/runbooks/operations.md#alarm-triage
+
+      - alert: ForwarderTelegramDisconnected
+        expr: tg_forwarder_routing_active == 1 and on() tg_forwarder_connection_state{state="connected"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: Active forwarding lost its Telegram connection
+          runbook: docs/runbooks/operations.md#alarm-triage
+
+      - alert: ForwarderBackupUnhealthy
+        expr: tg_forwarder_backup_healthy == 0 or tg_forwarder_backup_offsite_healthy == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: Local or off-host backup verification is unhealthy
+          runbook: docs/runbooks/operations.md#backup-restore-und-rollback
+
+      - alert: ForwarderRetentionBacklog
+        expr: tg_forwarder_retention_healthy == 0 or tg_forwarder_retention_backlog > 0
+        for: 5m
+        labels:
+          severity: high
+          service: telegram-forwarder
+        annotations:
+          summary: Data retention is unhealthy or cannot clear its bounded backlog
+          runbook: docs/runbooks/operations.md#alarm-triage
+
+      - alert: ForwarderDiskCapacityUnsafe
+        expr: tg_forwarder_disk_capacity_healthy == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: Operational storage is below the configured safety reserve
+          runbook: docs/runbooks/operations.md#alarm-triage
+
+      - alert: ForwarderQueueBacklog
+        expr: tg_forwarder_queue_queued > 100
+        for: 5m
+        labels:
+          severity: high
+          service: telegram-forwarder
+        annotations:
+          summary: More than 100 forwarding jobs have remained queued
+          runbook: docs/runbooks/operations.md#alarm-triage

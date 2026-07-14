@@ -149,7 +149,7 @@ Der Container läuft als unprivilegierter Benutzer mit schreibgeschütztem Root-
    Beenden Sie den interaktiven Lauf nach erfolgreicher Anmeldung sauber. Die Sitzung bleibt im eingebundenen `session_data`-Verzeichnis erhalten.
 3. Starten Sie anschließend den daemonisierten Dienst:
    ```bash
-   docker compose up -d
+   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
    ```
 4. Prüfen Sie Liveness, Readiness und den Containerstatus:
    ```bash
@@ -159,6 +159,8 @@ Der Container läuft als unprivilegierter Benutzer mit schreibgeschütztem Root-
    ```
 
 Der Container-Restart ist auf drei Fehlversuche begrenzt, damit Konfigurations-, Authentifizierungs- oder Crash-Loops nicht unbegrenzt weiterlaufen. `./backups` ist nur die lokale Restore-Quelle. Ohne vollständige Off-host-Konfiguration verweigert der Production-Container den Start.
+
+Für den Monitoring-Stack müssen `ALERT_WEBHOOK_URL`, `ALERT_RELAY_TOKEN_HOST_FILE` und `ALERT_WEBHOOK_TOKEN_HOST_FILE` gesetzt sein. Die beiden Dateien enthalten jeweils genau ein zufälliges Token mit mindestens 32 Zeichen und werden ausschließlich als Compose-Secrets eingebunden. Prometheus und Alertmanager sind per unveränderlichem Multi-Arch-Digest gepinnt, speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
 
 ---
 
@@ -184,7 +186,15 @@ METRICS_HOST=127.0.0.1
 * **Prometheus Scraping**: `curl http://localhost:9100/metrics`
   * Liefert bestätigte Zustellungen, Queue- und Outbox-Zustände einschließlich `failed`/`unknown`, Telegram-Verbindungszustand, letzten bestätigten Zustellzeitpunkt, Tagesverbrauch/-reservierung der KI sowie echte Prozess-RAM-/Uptime-Werte.
 
-Die Dashboard-Historie zeigt ausschließlich gemessenen Durchsatz, Queue, CPU und RAM. Die frühere aus HTTP-Latenz und Zufall abgeleitete angebliche Internet-Bandbreite wurde entfernt, da sie keine belastbare Betriebsmetrik war. Alarmierung sollte mindestens auf `readyz != 200`, `tg_forwarder_outbox_tasks{status="unknown"} > 0`, `failed > 0`, wachsende Pending-Queues und einen ausbleibenden letzten Zustellzeitpunkt bei erwarteter Last reagieren.
+Die Dashboard-Historie zeigt ausschließlich gemessenen Durchsatz, Queue, CPU und RAM. Die frühere aus HTTP-Latenz und Zufall abgeleitete angebliche Internet-Bandbreite wurde entfernt, da sie keine belastbare Betriebsmetrik war. Die versionierten Regeln unter `monitoring/` alarmieren auf fehlende Metriken, unbekannte/fehlgeschlagene Zustellungen, DB-/Telegram-Ausfall, Backup-/Retention-/Disk-Probleme und Queue-Rückstau. `npm run quality:monitoring` validiert Prometheus, Alertmanager und die Regeltests mit gepinnten Tool-Images.
+
+Nach jedem neuen Incident-Empfänger und mindestens monatlich wird eine echte Testalarmierung ausgelöst:
+
+```bash
+npm run ops:test-alert -- --confirm-alert-delivery
+```
+
+Der ausgegebene `correlation_id` muss im externen Incident-System nachgewiesen und im Release-/Übungsrecord abgelegt werden. Eine HTTP-Annahme durch Alertmanager allein ist kein Zustellnachweis.
 
 ---
 

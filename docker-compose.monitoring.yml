@@ -1,0 +1,75 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.13.0-distroless@sha256:f3b6aae627d96e7ad8256cdf6de5953247735117c6f577383fadb42efeeea7bc
+    working_dir: /etc/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=8GB
+    restart: on-failure:3
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 1.0
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - 127.0.0.1:${HOST_PROMETHEUS_PORT:-9090}:9090
+    depends_on:
+      - alertmanager
+
+  alertmanager:
+    image: prom/alertmanager:v0.32.1@sha256:51a825c2a40acc3e338fdd00d622e01ec090f72be2b3ea46be0839cd47a4d286
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --data.retention=120h
+    restart: on-failure:3
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: 256m
+    cpus: 0.5
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    secrets:
+      - alert_relay_token
+    ports:
+      - 127.0.0.1:${HOST_ALERTMANAGER_PORT:-9093}:9093
+    depends_on:
+      - alert-relay
+
+  alert-relay:
+    image: telegram-tdlib-forwarder:local
+    command: [node, dist/alert_relay.js]
+    restart: on-failure:3
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 128m
+    cpus: 0.25
+    env_file: [.env]
+    environment:
+      ALERT_RELAY_TOKEN_FILE: /run/secrets/alert_relay_token
+      ALERT_WEBHOOK_TOKEN_FILE: /run/secrets/alert_webhook_token
+    secrets:
+      - alert_relay_token
+      - alert_webhook_token
+
+secrets:
+  alert_relay_token:
+    file: ${ALERT_RELAY_TOKEN_HOST_FILE}
+  alert_webhook_token:
+    file: ${ALERT_WEBHOOK_TOKEN_HOST_FILE}
+
+volumes:
+  prometheus_data:
+  alertmanager_data:

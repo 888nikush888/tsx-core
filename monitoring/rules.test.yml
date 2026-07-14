@@ -1,0 +1,33 @@
+rule_files:
+  - rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'tg_forwarder_outbox_tasks{status="unknown"}'
+        values: '0 1 1'
+      - series: 'tg_forwarder_backup_healthy'
+        values: '1 0 0'
+      - series: 'tg_forwarder_backup_offsite_healthy'
+        values: '1 1 1'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: ForwarderUnknownDelivery
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: telegram-forwarder
+            exp_annotations:
+              summary: A Telegram delivery has an unknown outcome
+              runbook: docs/runbooks/operations.md#unknown-zustellung
+      - eval_time: 2m
+        alertname: ForwarderBackupUnhealthy
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: telegram-forwarder
+            exp_annotations:
+              summary: Local or off-host backup verification is unhealthy
+              runbook: docs/runbooks/operations.md#backup-restore-und-rollback

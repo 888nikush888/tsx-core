@@ -63,7 +63,7 @@ Jeder zutreffende Faktor wird einmal addiert. Der Autor trägt Summe und Evidenz
 | Performance-/30-Tage-Soak                         | Bei Ressourcenänderung        | Evidence | Fail vor Erstproduktion   |
 | Rollback- und Offline-Restore-Übung               | Bei betroffener Änderung      | Evidence | Fail                      |
 
-Der Workflow `.github/workflows/quality.yml` implementiert die lokal automatisierbaren Gates. Branch Protection, Staging-Zugang, Alarmziel, Off-host-Backup und Produktions-SLOs sind externe Kontrollen und müssen separat belegt werden.
+Der Workflow `.github/workflows/quality.yml` implementiert die lokal automatisierbaren Gates einschließlich getesteter Alarmregeln. Branch Protection, Staging-Zugang, Eigentum am Off-host-Ziel, der konkrete Incident-Empfänger und reale Produktions-SLO-Messwerte sind externe Kontrollen und müssen separat belegt werden.
 
 Die aktuell noch vorhandenen Alt-Hotspots sind in `quality-baseline.json` exakt geratcheted. `npm run quality:complexity` blockiert jede zusätzliche Warnung und jede höhere Worst-Case-Komplexität; auch eine Verbesserung blockiert so lange, bis das Budget im selben PR nach unten korrigiert wird. Das Budget darf nie erhöht werden, außer über einen gültigen zeitlich befristeten Risikoakzeptanz-Record.
 
