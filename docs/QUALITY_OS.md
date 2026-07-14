@@ -70,7 +70,7 @@ Vor Veröffentlichung validiert `scripts/verify_github_governance.js` Branch Pro
 
 Das in `quality-baseline.json` geratchete Budget steht bei null ESLint-Warnungen sowie null Complexity-, Nesting- und Funktionslängen-Hotspots. `npm run quality:complexity` blockiert jede neue Warnung oder Budgetabweichung. Das Budget darf nie erhöht werden, außer über einen gültigen zeitlich befristeten Risikoakzeptanz-Record.
 
-`npm run test:coverage` erzwingt zusätzlich mindestens 80 Prozent je Datei für die besonders kritischen Zustellungs-, Retry-, Schema-, Backup- und SLO-Module. `npm run test:coverage:modules` misst alle testbaren Kernmodule und blockiert jede Unterschreitung von `coverage-baseline.json`. Ausgenommen sind ausschließlich die Composition Roots `forwarder.ts`, `ui.ts` und die interaktiven `*_cli.ts`; deren Verdrahtung wird durch Build, Contract-Tests und den echten Staging-E2E-Lauf validiert, nicht als Unit-Coverage ausgegeben.
+`npm run test:coverage` erzwingt zusätzlich mindestens 80 Prozent je Datei für die besonders kritischen Zustellungs-, Retry-, Schema-, Backup- und SLO-Module. `npm run test:coverage:modules` misst alle testbaren Kernmodule und blockiert jede Unterschreitung von `coverage-baseline.json`. Ausgenommen sind ausschließlich die Composition Root `forwarder.ts` und die bestätigungspflichtigen Wartungsprogramme `*_cli.ts`; deren Verdrahtung wird durch Build, Contract-Tests und den echten Staging-E2E-Lauf validiert, nicht als Unit-Coverage ausgegeben.
 
 ## Gate-Ausnahmen
 

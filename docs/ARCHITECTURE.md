@@ -33,7 +33,7 @@ Trust Boundaries liegen an Telegram/TDLib, der externen KI-API, OIDC/JWKS, allen
 | Entry Points | `forwarder.ts`, `backup_cli.ts`, `migration_cli.ts`, `audit_cli.ts`                                                                 | Lifecycle und Composition Root                  |
 | Core         | `queue.ts`, `filters.ts`, `signal_schema.ts`, `tdlib_retry.ts`, `delivery_tracker.ts`, `dashboard_auth.ts`, `crash_guard.ts`, `metrics_tracker.ts` | deterministische Regeln und Zustandsmaschinen   |
 | State/Config | `db.ts`, `config.ts`, `env.ts`                                                                                                | persistente Verträge und Konfigurationsgrenzen  |
-| Adapter      | `signal_parser.ts`, `web_server.ts`, `metrics.ts`, `ui.ts`, `backup.ts`, `retention.ts`, `audit_trail.ts`                     | externe Provider, HTTP, Operator und Filesystem |
+| Adapter      | `signal_parser.ts`, `web_server.ts`, `metrics.ts`, `logger.ts`, `backup.ts`, `retention.ts`, `audit_trail.ts`                 | externe Provider, HTTP, Operator und Filesystem |
 
 Erlaubte Richtung: `Entry Point → Adapter → Core/State`. Core importiert keine Adapter oder Entry Points. Kein Modul außerhalb des Composition Root importiert einen Entry Point. `db.ts` importiert kein internes Modul. Zirkuläre Imports sind verboten.
 

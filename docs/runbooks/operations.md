@@ -56,9 +56,11 @@
 ## Backup, Restore und Rollback
 
 ```bash
-npm run backup:create
-npm run backup:verify -- ./backups/backup-<timestamp>-<id>
-npm run backup:restore -- ./backups/backup-<timestamp>-<id>
+docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js create /app/backups
+docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js verify /app/backups/<artifact-name>
+docker compose down
+docker compose run --rm --no-deps --entrypoint /nodejs/bin/node forwarder dist/backup_cli.js restore /app/backups/<artifact-name>
+docker compose up -d
 ```
 
 Vor Restore Dienst stoppen, Locks und Outbox dokumentieren, Backup aus unabhängigem Ziel holen und Prüfergebnis archivieren. Danach `readyz`, Tabellen/Counts und einen synthetischen E2E-Flow prüfen. Bei Abweichung Dienst stoppen und die erhaltenen `.pre-restore-*`-Dateien gemäß Restore-Ausgabe zurückrollen. TDLib-Sessiondaten sind nicht Teil des Backup-Artefakts; Reauthentifizierung ist ein separater Recovery-Schritt.
@@ -69,7 +71,7 @@ Vor Restore Dienst stoppen, Locks und Outbox dokumentieren, Backup aus unabhäng
 - Staging-Smoke, Live-AI-Golden-Set bei KI-Änderung und Restore-Evidenz müssen vorliegen.
 - Rollback auf das vorherige Image verändert keine DB rückwärts. Bei Schemaänderungen gilt ausschließlich der freigegebene Downgrade-Plan.
 - Nach Rollback Readiness, Outbox, letzte bestätigte Zustellung und Backup-Frische prüfen.
-- Bei inkompatibler DB-Migration ausschließlich den im Release-Record benannten `.migration-backups`-Snapshot mit `npm run db:migration:restore -- <snapshot> --confirm-restore-pre-migration` einspielen; das ersetzte DB/WAL/SHM-Set bleibt erhalten.
+- Bei inkompatibler DB-Migration den Dienst stoppen und ausschließlich den im Release-Record benannten `.migration-backups`-Snapshot mit `docker compose run --rm --no-deps --entrypoint /nodejs/bin/node forwarder dist/migration_cli.js restore <snapshot> --confirm-restore-pre-migration` einspielen; das ersetzte DB/WAL/SHM-Set bleibt erhalten.
 
 ## Staging- und Produktions-Evidence
 

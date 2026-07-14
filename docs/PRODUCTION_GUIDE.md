@@ -78,57 +78,37 @@ npm audit --prefix frontend --omit=dev --audit-level=moderate
 
 ## 4. Nicht geheime Anwendungskonfiguration
 
-`config.json.example` nach `config.json` kopieren und mindestens diese Felder setzen:
-
-```json
-{
-  "apiId": 123456,
-  "sourceChannels": ["@source_name", "-1001234567890"],
-  "targetChannel": "@target_name",
-  "forwardOptions": {
-    "sendCopy": false,
-    "removeCaption": false
-  },
-  "filters": {
-    "allowedKeywords": [],
-    "blockedKeywords": [],
-    "allowedTypes": [],
-    "regexPatterns": []
-  },
-  "sourceFilters": {},
-  "xmlParsing": {
-    "enabled": true,
-    "saveToFile": true,
-    "forwardXmlToTarget": false,
-    "signalsDir": "./signals",
-    "primaryModel": "<freigegebenes-modell>",
-    "fallbackModel": "<freigegebenes-fallback-modell>",
-    "aiLimits": {
-      "maxInputChars": 12000,
-      "maxOutputTokens": 1200,
-      "primaryAttempts": 2,
-      "fallbackAttempts": 1,
-      "dailyRequestLimit": 200,
-      "dailyTokenLimit": 250000,
-      "requestTimeoutMs": 30000,
-      "backoffMs": 500
-    }
-  }
-}
-```
+Im normalen Docker-Betrieb wird keine Host-Datei vorbereitet. Compose initialisiert `forwarder_config`; das Dashboard schreibt die validierte Konfiguration atomar nach `/app/config/config.json`. Unter **Channels** werden API ID, Quellen und Ziel gepflegt, unter **Options** und **Filters** die Routingregeln und unter **Parser** Modelle, Budgets und Templates. Der Import/Export im Bereich **System** enthält ausschließlich Nicht-Secrets.
 
 Regeln:
 
 - Quellidentitäten werden kanonisch normalisiert; Alias- und Filterregeln müssen dieselbe Quelle eindeutig bezeichnen.
 - `config.json` enthält keine API-Hashes, Tokens oder Schlüssel.
+- Mindestens Telegram API ID, ein Quellkanal und ein gültiger Zielkanal sind vor dem Start erforderlich.
 - Änderungen an Ziel, Filterlogik, Template, Modell oder AI-Limits werden wie kritische Änderungen getestet und reviewed.
 - Eine ungültige Konfiguration blockiert den Start oder die betroffene Funktion; Warnungen dürfen nicht als Produktionsfreigabe interpretiert werden.
+- Extern verwaltete API IDs können weiterhin über `TELEGRAM_API_ID` gesetzt werden; ein positiver externer Wert hat bewusst Vorrang vor dem Dashboard-Wert.
 
 ## 5. Secrets und OIDC
 
-Für lokale Entwicklung kann `.env.example` nach `.env` kopiert werden. In Produktion werden Secret-Dateien aus dem Orchestrator verwendet:
+### Standalone-Docker
+
+Beim ersten Browseraufruf erzeugt der Server nach Origin- und Audit-Prüfung ein zufälliges Admin-Token. Es wird nur in diesem Response angezeigt, im Browser ausschließlich im `sessionStorage` gehalten und im persistenten Volume `forwarder_secrets` gespeichert. Telegram API Hash und OpenRouter-Key werden im Dashboard write-only gesetzt: Status und Quelle sind lesbar, der Wert selbst nie. Extern gesetzte Secrets sind im Web schreibgeschützt.
+
+Die Wiederherstellung des Admin-Tokens ist eine privilegierte Host-Aktion:
+
+```bash
+docker compose exec -T forwarder sh -c 'cat /app/secrets/dashboard_admin_token'
+```
+
+Die Ausgabe ist ein Secret. Sie darf weder in Tickets noch in Logs oder Shell-Transkripte übernommen werden.
+
+### Enterprise-Modus
+
+`ENTERPRISE_MODE=true` aktiviert OIDC sowie zwingende Remote-Audit- und Off-host-Backup-Gates. Secrets kommen dabei bevorzugt als Orchestrator-Dateien:
 
 ```env
+ENTERPRISE_MODE=true
 TELEGRAM_API_ID=123456
 TELEGRAM_API_HASH_FILE=/run/secrets/telegram_api_hash
 OPENROUTER_API_KEY_FILE=/run/secrets/openrouter_api_key
@@ -155,40 +135,38 @@ Für dasselbe Secret dürfen direkter Wert und `_FILE` nie gleichzeitig gesetzt 
 
 ## 6. Einmalige Telegram-Anmeldung
 
-Die erstmalige TDLib-Anmeldung ist eine kontrollierte Bootstrap-Aktion, kein Laufzeit-HITL. Sie muss mit dem späteren technischen Account und den vorgesehenen persistenten Session-Verzeichnissen erfolgen:
+Die TDLib-Anmeldung findet vollständig im Dashboard statt und ist eine Account-Bootstrap-Aktion, keine inhaltliche Human-in-the-loop-Freigabe für Nachrichten:
 
-```bash
-docker compose build
-docker compose run --rm -e NON_INTERACTIVE=false forwarder node dist/forwarder.js
-```
+1. Unter **Channels** Telegram API ID und API Hash sowie Quelle und Ziel speichern.
+2. Im Dashboard **Start Forwarder** wählen.
+3. Die angeforderte Telefonnummer im internationalen Format eingeben.
+4. Telegram-/E-Mail-Code und bei Bedarf das 2FA-Passwort im jeweils angezeigten Web-Prompt eingeben oder die Anmeldung auf einem bereits angemeldeten Gerät bestätigen.
+5. Auf `connected` und anschließend `readyz=200` prüfen.
 
-Nach erfolgreicher Anmeldung den Prozess sauber beenden. Danach gelten:
+Codes und Passwörter werden nur an das aktive TDLib-Promise übergeben, nicht persistiert und nicht über Statusendpunkte zurückgegeben. Danach gelten:
 
-- `session_data` und `session_files` werden persistent und restriktiv berechtigt;
+- `forwarder_session_data` und `forwarder_session_files` bleiben über Container-Neuerstellungen persistent;
 - Staging und Produktion verwenden getrennte Accounts und Verzeichnisse;
 - Sessiondaten werden nie in Git, Build-Artefakte oder Support-Tickets aufgenommen;
-- ein Sessionverlust wird über erneute Authentifizierung behoben, nicht über ein SQLite-Restore.
+- ein Sessionverlust wird durch erneutes Starten und die Web-Anmeldung behoben, nicht über ein SQLite-Restore.
 
-## 7. Lokale Nutzung
+## 7. Nutzung und täglicher Betrieb
 
-Entwicklung:
-
-```bash
-npm run dev
-```
-
-Kompilierter Lauf:
+Start und Update im Standalone-Modus:
 
 ```bash
-npm run build
-npm start
+docker compose up --build -d
+docker compose ps
+docker compose logs --tail=200 forwarder
 ```
 
-Vor dem Start müssen `config.json`, Telegram-Zugang und gegebenenfalls der LLM-Key vorhanden sein. Lokal verwendet das Dashboard standardmäßig Token-Authentifizierung. Admin- und Viewer-Token müssen verschieden und mindestens 32 zufällige Zeichen lang sein.
+Kontrollierter Stopp ohne Datenlöschung:
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+docker compose down
 ```
+
+`docker compose down -v` löscht die persistenten Volumes und ist ausschließlich für einen bewusst bestätigten Total-Reset zulässig. Für normale Updates darf `-v` nie verwendet werden.
 
 Status prüfen:
 
@@ -198,16 +176,22 @@ curl --fail http://127.0.0.1:9100/readyz
 curl --fail http://127.0.0.1:9100/metrics
 ```
 
-`healthz=200` beweist nur, dass der Prozess antwortet. Nur `readyz=200` erlaubt Routing; Telegram, DB, Queue, Backup, Audit, Retention, Disk und weitere Einzelchecks müssen dabei grün sein.
+`healthz=200` beweist nur, dass der Prozess antwortet. Nur `readyz=200` erlaubt Routing; Telegram, DB, Queue, Backup, Audit, Retention, Disk und weitere Einzelchecks müssen dabei grün sein. Nach jedem Update werden im Dashboard Verbindung, Queue, `failed`/`unknown`-Outbox, letzter erfolgreicher Forward und Backupstatus geprüft.
+
+Nur für Quellcode-Entwicklung außerhalb Docker:
+
+```bash
+npm ci
+npm ci --prefix frontend
+npm run dev
+```
 
 ## 8. Produktionsstart mit Compose
 
-Hostverzeichnisse vorbereiten und ausschließlich die benötigte UID schreibberechtigen. Die folgenden Build-Kommandos sind nur für lokalen Bootstrap und Staging gedacht:
+Der einfache lokale Build ist für Standalone und Staging gedacht:
 
 ```bash
-mkdir -p session_data session_files signals logs backups secrets
-docker compose build
-docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+docker compose up --build -d
 docker compose ps
 curl --fail http://127.0.0.1:${HOST_METRICS_PORT:-9100}/healthz
 curl --fail http://127.0.0.1:${HOST_METRICS_PORT:-9100}/readyz
@@ -285,15 +269,18 @@ Verbindliche Alarmgrenzen, Crash-Loop-Ablauf und konkrete API-Schritte stehen in
 Backup erstellen und prüfen:
 
 ```bash
-npm run backup:create
-npm run backup:verify -- ./backups/backup-<timestamp>-<id>
+docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js create /app/backups
+docker compose exec -T forwarder sh -c 'ls -1dt /app/backups/backup-* | head -1'
+docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js verify /app/backups/<artifact-name>
 ```
 
 Restore:
 
 ```bash
-# Dienst und alle Nebeninstanzen zuerst vollständig stoppen.
-npm run backup:restore -- ./backups/backup-<timestamp>-<id>
+# Dienst und alle Nebeninstanzen zuerst vollständig stoppen; Volumes behalten.
+docker compose down
+docker compose run --rm --no-deps --entrypoint /nodejs/bin/node forwarder dist/backup_cli.js restore /app/backups/<artifact-name>
+docker compose up -d
 ```
 
 Das Restore-Kommando verweigert aktive Prozess-/Routing-Locks, validiert Manifest, Checksummen, SQLite-Integrität, Pflicht-Tabellen und Secret-Freiheit und bewahrt den ersetzten Zustand als `.pre-restore-*`. Danach werden Counts, `readyz`, Outbox und ein synthetischer E2E-Flow geprüft.
@@ -301,7 +288,10 @@ Das Restore-Kommando verweigert aktive Prozess-/Routing-Locks, validiert Manifes
 Bei einer inkompatiblen Migration wird nur der zum vorherigen Binary gehörende geprüfte Pre-Migration-Snapshot verwendet:
 
 ```bash
-npm run db:migration:restore -- ./session_data/.migration-backups/pre-migration-....db --confirm-restore-pre-migration
+docker compose down
+docker compose run --rm --no-deps --entrypoint /nodejs/bin/node forwarder dist/migration_cli.js restore \
+  /app/session_data/.migration-backups/pre-migration-....db --confirm-restore-pre-migration
+docker compose up -d
 ```
 
 Ein Rollback gilt erst als bewiesen, wenn der exakte vorherige Image-Digest mit dem passenden DB-Zustand gestartet, Readiness grün und eine Zustellung bestätigt wurde. Ein theoretischer Plan oder nur ein erfolgreiches Backup ist kein Restore-Nachweis.

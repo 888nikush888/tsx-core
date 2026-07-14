@@ -13,4 +13,4 @@ Dashboard und Metriken binden standardmäßig an Loopback. `/api/*` verlangt kon
 
 ## Konsequenzen
 
-Secrets bleiben Environment-only und werden weder angezeigt noch gesichert. Ein extern exponierter Port ohne den dokumentierten Proxy ist nicht unterstützt und macht Readiness nicht zur Sicherheitsgarantie.
+Secrets werden nie angezeigt oder in die normale Konfiguration/Backups aufgenommen. Die spätere webbasierte write-only Verwaltung und der Erststart-Token sind in ADR 0008 konkretisiert. Ein extern exponierter Port ohne den dokumentierten Proxy ist nicht unterstützt und macht Readiness nicht zur Sicherheitsgarantie.
