@@ -59,9 +59,9 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
    docker compose up --build -d
    ```
 
-2. `http://127.0.0.1:8080` öffnen und **Create secure dashboard** wählen. Das serverseitig erzeugte Admin-Token einmalig sicher ablegen; im Browser verbleibt es nur im `sessionStorage`.
-3. Unter **Channels** die Telegram API ID, den 32-stelligen API Hash, mindestens einen Quellkanal und den Zielkanal eintragen. **Save Configuration** speichert Nicht-Secrets und write-only Secrets getrennt in persistenten Docker-Volumes.
-4. Falls der KI-Parser verwendet wird: unter **Parser** den OpenRouter-Key eintragen und Limits/Modelle prüfen. Ohne KI-Parser ist kein OpenRouter-Key nötig.
+2. `http://127.0.0.1:8080` öffnen. Im normalen, ausschließlich auf Host-Loopback veröffentlichten Docker-Modus erzeugt und übernimmt das Programm den lokalen Admin-Zugang automatisch; es erscheint kein vorgeschalteter Bearer-Dialog.
+3. Unter **Channels** die Telegram API ID, den 32-stelligen API Hash, mindestens einen Quellkanal und den Zielkanal eintragen. **Save Configuration** speichert Nicht-Secrets und write-only Secrets getrennt in persistenten Docker-Volumes. Die lokale `.env` wird von Docker Compose bewusst nicht eingelesen und kann diese Felder daher nicht mehr sperren.
+4. Falls der KI-Parser verwendet wird: unter **Parser** den OpenRouter-Key eintragen und Limits/Modelle prüfen. Das `default`-Template ist direkt editierbar; die serverseitigen Prompt-Injection- und Schema-Schutzregeln bleiben unveränderlich angehängt. Ohne KI-Parser ist kein OpenRouter-Key nötig.
 5. Auf dem Dashboard **Start Forwarder** anklicken. Telefon, Telegram-Code, E-Mail-Code und optionale 2FA werden ausschließlich im Web-Dialog abgefragt und nicht persistiert.
 6. Betriebszustand prüfen:
 
@@ -72,9 +72,9 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
    docker compose logs -f forwarder
    ```
 
-`healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Bei verlorenem Browser-Token kann ein Host-Administrator es gezielt mit `docker compose exec -T forwarder /nodejs/bin/node -e "process.stdout.write(require('fs').readFileSync('/app/secrets/dashboard_admin_token','utf8'))"` wiederherstellen. Der Befehl gibt ein Secret aus und darf nicht in Tickets oder Logs kopiert werden.
+`healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Der lokale Browserzugang wird nach Container- und Browser-Neustarts automatisch aus dem persistenten Secret-Volume wiederhergestellt. Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System → API- und Bearer-Keys** erzeugt, rotiert oder deaktiviert und jeweils nur einmal angezeigt.
 
-Im Standalone-Modus (`ENTERPRISE_MODE=false`, Standard) verwendet das Dashboard den sicheren Erststart-Token und lokale, verkettete Audit-Logs sowie verifizierte lokale Backups. `ENTERPRISE_MODE=true` aktiviert die harten Enterprise-Gates: OIDC, unveränderlicher Remote-Audit-Trail und verschlüsselte, rücklesbar verifizierte Off-host-Backups werden Pflicht. Remote-Zugriff erfolgt ausschließlich über einen TLS-Reverse-Proxy; dessen exakte Origin wird mit `DASHBOARD_ALLOWED_ORIGIN` freigegeben.
+Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verkettete Audit-Logs und verifizierte lokale Backups. Sämtliche Runtime-/Enterprise-Parameter – OIDC, externe Origin, Remote-Audit, verschlüsselte Off-site-Backups, Retention, Kapazitätsgrenzen und Timeouts – werden unter **System → Vollständige Runtime- und Enterprise-Konfiguration** gespeichert und über **Container kontrolliert neu starten** aktiviert. Enterprise-Modus erzwingt OIDC, deaktiviert Local Trust und verlangt unveränderlichen Remote-Audit-Trail sowie verschlüsselte, rücklesbar verifizierte Off-host-Backups.
 
 ### Zustellgarantie und Recovery
 
@@ -97,6 +97,8 @@ Nach drei unerwarteten Abbrüchen innerhalb von fünf Minuten legt der Dienst `s
 
 Beim Prozessstart und danach spätestens alle 15 Minuten erstellt der Dienst unter `BACKUP_DIR` ein atomar veröffentlichtes Backup-Artefakt. Es enthält einen konsistenten SQLite-Online-Backup-Snapshot, die nicht geheime Konfiguration und ein SHA-256-/Größenmanifest. Jedes Artefakt wird vor Veröffentlichung mit Checksummen, `PRAGMA integrity_check`, Pflicht-Tabellen und Secret-Feld-Prüfung verifiziert; ein fehlgeschlagenes Backup setzt Readiness und `tg_forwarder_backup_healthy` auf Fehler. Standardmäßig werden 672 Artefakte (sieben Tage bei 15 Minuten) aufbewahrt.
 
+Im Web unter **System → Enterprise Operations** können Operatoren Backups sofort erzeugen, vorhandene Artefakte auswählen, vollständig verifizieren und nach Eingabe von `RESTORE` wiederherstellen. Der Dienst stoppt dabei Routing und Scheduler, schließt SQLite, bewahrt den ersetzten DB-/Config-Stand als Rollback auf und startet den Container kontrolliert neu. Die folgenden Befehle bleiben nur als Break-glass-Alternative erhalten.
+
 Manuelle Prüfung und Wiederherstellung im Docker-Betrieb (`<artifact-name>` durch den Verzeichnisnamen im Backup-Volume ersetzen):
 
 ```bash
@@ -114,9 +116,11 @@ docker compose up -d
 
 Restore verweigert die Ausführung, solange `.process_active` oder `.routing_active` im State-Verzeichnis existiert. Ein nach hartem Prozessabbruch veralteter Lock darf erst entfernt werden, nachdem auf Betriebssystemebene bestätigt wurde, dass kein Forwarder-Prozess mehr läuft und die Outbox reconciled ist. Bestehende DB und Konfiguration werden nicht gelöscht, sondern als `.pre-restore-*` für einen unmittelbaren Rollback erhalten.
 
-Die Backup-Artefakte enthalten Nachrichten-, Signal- und damit potenziell personenbezogene Daten. In `ENTERPRISE_MODE=true` ist Off-host-Replikation deshalb zwingend. `BACKUP_OFFSITE_URL_TEMPLATE` bezeichnet einen HTTPS-Objektendpunkt, der authentifizierte `PUT`- und `GET`-Anfragen auf demselben, durch `{artifact}` parametrisierten Pfad unterstützt; Token und 32-Byte-AES-Schlüssel kommen über `BACKUP_OFFSITE_TOKEN[_FILE]` und `BACKUP_ENCRYPTION_KEY[_FILE]`. Einen Schlüssel erzeugt `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+Die Backup-Artefakte enthalten Nachrichten-, Signal- und damit potenziell personenbezogene Daten. Im Enterprise-Modus ist Off-host-Replikation deshalb zwingend. Das Web-Feld `backupOffsiteUrlTemplate` bezeichnet einen HTTPS-Objektendpunkt, der authentifizierte `PUT`- und `GET`-Anfragen auf demselben, durch `{artifact}` parametrisierten Pfad unterstützt; Bearer-Token und 32-Byte-AES-Schlüssel werden unter **System → Enterprise-Secrets** write-only gespeichert.
 
 Jedes lokale Artefakt wird vor dem Upload geprüft, als begrenztes internes Archiv mit AES-256-GCM verschlüsselt und hochgeladen. Anschließend lädt der Dienst exakt dieses Objekt wieder herunter, vergleicht SHA-256 und Länge, authentifiziert und entschlüsselt es und führt erneut SQLite-Integritäts-, Tabellen-, Manifest- und Secret-Prüfungen aus. Erst dann gilt das Backup als erfolgreich und Readiness bleibt grün. Der Verschlüsselungsschlüssel muss getrennt vom Backup-Store aufbewahrt werden; ein lokales Verzeichnis oder ein nicht zurücklesbarer Upload erfüllt Disaster Recovery nicht.
+
+Nach Verlust des lokalen Backup-Volumes wird der im Backup-/Audit-Status vermerkte `.tgfb`-Objektname unter **System → Enterprise Operations → Off-site-Backup abrufen** eingegeben. Die Control Plane lädt, entschlüsselt und verifiziert das Objekt und stellt es erst danach in der lokalen Restore-Auswahl bereit. Der AES-Schlüssel ist nach der ersten Speicherung absichtlich unveränderlich; eine Rotation ohne Keyring würde ältere Generationen zerstören.
 
 ### Daten-Retention und Kapazität
 
@@ -143,6 +147,8 @@ Das Kommando verweigert aktive Prozess-/Routing-Locks, prüft den Snapshot und b
 
 Die Signalverarbeitung arbeitet ohne Human-in-the-loop. Ein Ergebnis darf jedoch nur automatisch weitergeleitet werden, wenn es exakt dem für die Quelle festgelegten Schema entspricht und alle Zahlen-, Wertebereichs-, Reihenfolge- und LONG/SHORT-Geometrieprüfungen besteht. Markdown, XML-Deklarationen, unbekannte Tags, nicht sequenzielle Targets, abgeschnittene Modellantworten und Text außerhalb des XML-Dokuments werden fail-closed abgewiesen; unbekannte oder nicht lesbare Template-Dateien fallen nicht still auf den Standardprompt zurück.
 
+Da die vollständige Quellnachricht an OpenRouter übertragen wird, muss der Operator einmalig im Parser-Tab **Externe Datenverarbeitung freigegeben** aktivieren und damit Data-Owner-Freigabe, Rechtsgrundlage und Providervertrag für sämtliche konfigurierten Quellen bestätigen. Ohne diese Konfigurationsfreigabe bleiben AI-Aufrufe und daraus folgende Side Effects blockiert; eine Laufzeitfreigabe pro Nachricht gibt es weiterhin nicht.
+
 `xmlParsing.aiLimits` begrenzt Eingabelänge, Ausgabetokens, sichtbare Primär-/Fallback-Versuche, Request-Timeout, Backoff sowie Requests und reservierte Tokens pro UTC-Tag. Die SDK-internen Retries sind deaktiviert. Das Tagesbudget wird vor jedem Provider-Aufruf atomar in SQLite reserviert; ein abgebrochener oder hinsichtlich der Provider-Nutzung unklarer Aufruf wird konservativ mit seiner Reservierung verbucht. Ein Prozessabbruch kann deshalb bis zum nächsten UTC-Tag Kapazität blockieren, gibt aber nie unbewiesen Budget frei.
 
 Zu jedem akzeptierten Signal speichert SQLite Template, Schemaname, SHA-256 des wirksamen Prompts, tatsächliches Modell, Provider-Request-ID, Tokenverbrauch und Parser-Version. Prompts oder vollständige Modell-Denkwege werden nicht geloggt. `OPENROUTER_API_KEY` bleibt ausschließlich in der Prozessumgebung.
@@ -168,26 +174,23 @@ docker compose down
 docker volume ls --filter name=cb2_forwarder
 ```
 
-Dashboard und Metriken werden ausschließlich auf Host-Loopback veröffentlicht; externer Zugriff benötigt einen authentifizierenden TLS-Reverse-Proxy. Der Container-Restart ist auf drei Fehlversuche begrenzt, damit Konfigurations-, Authentifizierungs- oder Crash-Loops nicht unbegrenzt weiterlaufen. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
+Dashboard und Metriken werden ausschließlich auf Host-Loopback veröffentlicht; externer Zugriff benötigt einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
 
-Für den Monitoring-Stack müssen `ALERT_WEBHOOK_URL`, `ALERT_RELAY_TOKEN_HOST_FILE` und `ALERT_WEBHOOK_TOKEN_HOST_FILE` gesetzt sein. Die beiden Dateien enthalten jeweils genau ein zufälliges Token mit mindestens 32 Zeichen und werden ausschließlich als Compose-Secrets eingebunden. Prometheus und Alertmanager sind per unveränderlichem Multi-Arch-Digest gepinnt, speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
+Incident-URL, internes Relay-Token und Incident-Gateway-Token werden vollständig im Web unter **System → Runtime-/Enterprise-Konfiguration** beziehungsweise **Enterprise-Secrets** gesetzt. Danach startet `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d` den Monitoring-Stack; Alertmanager und Relay lesen ausschließlich die verwalteten Config-/Secret-Volumes, nicht `.env` oder Host-Secret-Dateien. Prometheus und Alertmanager sind per unveränderlichem Multi-Arch-Digest gepinnt, speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
 
 ---
 
 ## 📊 Monitoring & Log-Konfiguration
 
-In der `.env`-Datei können Sie folgende Parameter konfigurieren:
+Diese Parameter werden im Docker-Standardbetrieb unter **System → Vollständige Runtime- und Enterprise-Konfiguration** gesetzt; die lokale `.env` wird nicht in den Container injiziert:
 
 ```env
 # Schaltet die Logausgabe auf strukturiertes JSON um (perfekt für Docker/Kubernetes)
-JSON_LOGGING=true
+JSON_LOGGING=true  # Web-Feld: jsonLogging
 
-# Definiert den Port des Prometheus-Metrikservers (Standard: 9100)
+# Interner Metrik-Port und Bind-Adresse bleiben durch Compose sicher vorgegeben.
 METRICS_PORT=9100
-
-# Bindet Metriken standardmäßig nur an Loopback. Für einen isolierten
-# Container-Port explizit auf 0.0.0.0 setzen.
-METRICS_HOST=127.0.0.1
+METRICS_HOST=0.0.0.0
 ```
 
 ### Abrufen der Metriken
@@ -202,7 +205,7 @@ Die Dashboard-Historie zeigt ausschließlich gemessenen Durchsatz, Queue, CPU un
 
 Mutierende Dashboard-Aufrufe werden vor ihrer Nebenwirkung synchron in `logs/audit-chain.jsonl` geschrieben, auf den Datenträger synchronisiert und über SHA-256 mit dem vorherigen Record verkettet. Der Record enthält Request-ID, pseudonyme Actor-ID, Rolle, Methode, Pfad und Abschlussstatus, aber weder Bearer-Token noch Request-Body. Eine beim Start beschädigte Kette blockiert den Dienst; das lokale 64-MiB-Limit blockiert weitere Mutationen, statt unkontrolliert zu wachsen.
 
-Im Enterprise-Modus ist zusätzlich `AUDIT_WEBHOOK_URL` mit `AUDIT_WEBHOOK_TOKEN[_FILE]` Pflicht. Der HTTPS-Endpunkt darf erst 2xx antworten, nachdem der Record außerhalb des Forwarder-Hosts unveränderlich und gemäß Unternehmens-Retention gespeichert wurde. Ist die Vorabzustellung nicht beweisbar, antwortet die Control Plane mit 503 und führt die Mutation nicht aus; spätere Zustellfehler setzen Readiness und `tg_forwarder_audit_healthy` auf rot. `AUDIT_REMOTE_REQUIRED=false` ist bei `ENTERPRISE_MODE=true` unzulässig.
+Im Enterprise-Modus sind zusätzlich `auditWebhookUrl` und das write-only Secret `auditWebhookToken` Pflicht. Der HTTPS-Endpunkt darf erst 2xx antworten, nachdem der Record außerhalb des Forwarder-Hosts unveränderlich und gemäß Unternehmens-Retention gespeichert wurde. Ist die Vorabzustellung nicht beweisbar, antwortet die Control Plane mit 503 und führt die Mutation nicht aus; spätere Zustellfehler setzen Readiness und `tg_forwarder_audit_healthy` auf rot. Remote-Audit kann im Enterprise-Modus nicht deaktiviert werden.
 
 Nach einem Gateway-Ausfall wird die lokale Kette zuerst mit `npm run audit:verify` geprüft und anschließend im gestoppten Zustand mit `npm run audit:replay -- --confirm-audit-replay` vollständig und idempotent nachgeliefert. Der Gateway muss bereits bekannte Hashes akzeptieren und bei gleichem Hash mit abweichendem Inhalt fail-closed ablehnen.
 

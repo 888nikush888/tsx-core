@@ -35,7 +35,7 @@ Für lokale Verifikation:
 
 Für Produktion zusätzlich:
 
-- Linux-Host oder vergleichbare Containerplattform mit persistenten, nur für UID/GID `1000:1000` beschreibbaren Volumes;
+- Linux-Host oder vergleichbare Containerplattform; das distroless Image läuft als UID/GID `65532:65532`, benannte Docker-Volumes werden vom Image passend initialisiert;
 - TLS-Reverse-Proxy und OIDC-Provider;
 - unveränderlicher externer Audit-Empfänger;
 - authentifizierter, rücklesbarer Off-host-Objektspeicher und davon getrennt verwalteter AES-Schlüssel;
@@ -93,45 +93,33 @@ Regeln:
 
 ### Standalone-Docker
 
-Beim ersten Browseraufruf erzeugt der Server nach Origin- und Audit-Prüfung ein zufälliges Admin-Token. Es wird nur in diesem Response angezeigt, im Browser ausschließlich im `sessionStorage` gehalten und im persistenten Volume `forwarder_secrets` gespeichert. Telegram API Hash und OpenRouter-Key werden im Dashboard write-only gesetzt: Status und Quelle sind lesbar, der Wert selbst nie. Extern gesetzte Secrets sind im Web schreibgeschützt.
+Beim ersten Browseraufruf erzeugt der Server nach Origin- und Audit-Prüfung automatisch einen lokalen Admin-Zugang und übernimmt ihn in den Session Storage des Browsers. Da Compose das Dashboard ausschließlich auf Host-Loopback veröffentlicht, ist kein vorgeschalteter Bearer-Dialog erforderlich; nach Container- oder Browser-Neustart stellt `/api/local-session` den lokalen Zugang wieder her. Der Standalone-Modus vertraut allen lokalen Prozessen des dedizierten Single-User-Hosts; Shared Hosts verwenden Enterprise-OIDC ohne Local Trust. Telegram API Hash und OpenRouter-Key werden im Dashboard write-only gesetzt: Status und Quelle sind lesbar, der Wert selbst nie. Die lokale `.env` wird vom Standard-Compose nicht eingelesen.
 
-Die Wiederherstellung des Admin-Tokens ist eine privilegierte Host-Aktion:
-
-```bash
-docker compose exec -T forwarder /nodejs/bin/node -e "process.stdout.write(require('fs').readFileSync('/app/secrets/dashboard_admin_token','utf8'))"
-```
-
-Die Ausgabe ist ein Secret. Sie darf weder in Tickets noch in Logs oder Shell-Transkripte übernommen werden.
+Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System → API- und Bearer-Keys** serverseitig erzeugt, rotiert oder deaktiviert. Der Klartext wird genau einmal angezeigt; eine Admin-Rotation ersetzt sofort den aktiven Browserzugang.
 
 ### Enterprise-Modus
 
-`ENTERPRISE_MODE=true` aktiviert OIDC sowie zwingende Remote-Audit- und Off-host-Backup-Gates. Secrets kommen dabei bevorzugt als Orchestrator-Dateien:
+Der Enterprise-Modus wird unter **System → Vollständige Runtime- und Enterprise-Konfiguration** vorbereitet. Dort werden OIDC, externe Origin, Remote-Audit, Incident-Webhook, Off-site-Backup, Retention, Kapazitätsgrenzen und Timeouts atomar in `forwarder_config` gespeichert. Audit-, Alert- und Backup-Tokens sowie der AES-Schlüssel werden getrennt unter **Enterprise-Secrets** write-only gespeichert. **Container kontrolliert neu starten** aktiviert die Konfiguration.
 
-```env
-ENTERPRISE_MODE=true
-TELEGRAM_API_ID=123456
-TELEGRAM_API_HASH_FILE=/run/secrets/telegram_api_hash
-OPENROUTER_API_KEY_FILE=/run/secrets/openrouter_api_key
+Der Validator erzwingt für Enterprise-Modus OIDC, deaktivierten Local Trust, Remote-Audit und Off-site-Backup. Die entsprechende frühere Environment-Darstellung lautet nur noch zur Feldzuordnung:
 
-DASHBOARD_AUTH_MODE=oidc
-DASHBOARD_OIDC_ISSUER=https://identity.example/realms/operations
-DASHBOARD_OIDC_AUDIENCE=telegram-forwarder
-DASHBOARD_OIDC_JWKS_URL=https://identity.example/realms/operations/protocol/openid-connect/certs
-DASHBOARD_OIDC_ADMIN_ROLE=forwarder-admin
-DASHBOARD_OIDC_VIEWER_ROLE=forwarder-viewer
-DASHBOARD_OIDC_ROLE_CLAIM=roles
-DASHBOARD_ALLOWED_ORIGIN=https://forwarder.example.com
-
-AUDIT_WEBHOOK_URL=https://audit.example/v1/records
-AUDIT_WEBHOOK_TOKEN_FILE=/run/secrets/audit_webhook_token
-
-BACKUP_OFFSITE_REQUIRED=true
-BACKUP_OFFSITE_URL_TEMPLATE=https://backup.example/telegram-forwarder/{artifact}
-BACKUP_OFFSITE_TOKEN_FILE=/run/secrets/backup_offsite_token
-BACKUP_ENCRYPTION_KEY_FILE=/run/secrets/backup_encryption_key
+```json
+{
+  "enterpriseMode": true,
+  "dashboardAuthMode": "oidc",
+  "dashboardLocalTrust": false,
+  "dashboardAllowedOrigin": "https://forwarder.example.com",
+  "oidcIssuer": "https://identity.example/realms/operations",
+  "oidcAudience": "telegram-forwarder",
+  "oidcJwksUrl": "https://identity.example/realms/operations/protocol/openid-connect/certs",
+  "auditWebhookUrl": "https://audit.example/v1/records",
+  "auditRemoteRequired": true,
+  "backupOffsiteUrlTemplate": "https://backup.example/telegram-forwarder/{artifact}",
+  "backupOffsiteRequired": true
+}
 ```
 
-Für dasselbe Secret dürfen direkter Wert und `_FILE` nie gleichzeitig gesetzt sein. Secret-Dateien gehören nicht in den Workspace, nicht in Images, nicht in Backups und nicht in Logs. Der Reverse-Proxy entfernt eingehende `Authorization`-Header und injiziert ausschließlich ein von ihm verifiziertes, kurzlebiges Access-Token. `WEB_HOST` bleibt auf Host-Ebene Loopback; nur innerhalb des isolierten Compose-Netzes bindet der Container auf `0.0.0.0`.
+Vor dem Speichern von `enterpriseMode=true` müssen `auditWebhookToken`, `backupOffsiteToken` und `backupEncryptionKey` im Web konfiguriert sein. Extern gemountete Secrets bleiben als fortgeschrittene Orchestrator-Option unterstützt, sind dann im Web absichtlich schreibgeschützt. Secret-Dateien gehören nicht in den Workspace, nicht in Images, nicht in Backups und nicht in Logs. Der Reverse-Proxy entfernt eingehende `Authorization`-Header und injiziert ausschließlich ein von ihm verifiziertes, kurzlebiges Access-Token. `WEB_HOST` bleibt auf Host-Ebene Loopback; nur innerhalb des isolierten Compose-Netzes bindet der Container auf `0.0.0.0`.
 
 ## 6. Einmalige Telegram-Anmeldung
 
@@ -167,6 +155,8 @@ docker compose down
 ```
 
 `docker compose down -v` löscht die persistenten Volumes und ist ausschließlich für einen bewusst bestätigten Total-Reset zulässig. Für normale Updates darf `-v` nie verwendet werden.
+
+Der bevorzugte anwendungsweite Total-Reset befindet sich unter **System → Factory Reset** und verlangt die Eingabe `RESET`. Vor der Stilllegung prüft er sämtliche Pfade und Secret-Quellen. Danach löscht er Konfiguration, alle verwalteten Secrets/Bearer-Keys, Runtime-Einstellungen, Templates, TDLib-Sitzung, Datenbank, Session-Dateien, Signale, Logs, lokale Audit-Kette und Backups und startet in den integrierten Erststart. Das Löschen des AES-Schlüssels bewirkt Crypto-Erasure verbleibender Off-site-Objekte. Ein externer Enterprise-Audit-Empfänger bewahrt bereits zugestellte Reset-Evidenz unabhängig von der lokalen Installation.
 
 Status prüfen:
 
@@ -241,6 +231,8 @@ Es gibt absichtlich keinen automatischen Retry für `unknown`, weil das Duplikat
 
 Vor jedem Provideraufruf greifen Zeichen-, Token-, Request-, Tagesbudget-, Timeout-, Retry- und Backoff-Grenzen. Akzeptiert wird nur exakt gültiges XML mit erlaubten Werten, lückenlosen Targets und konsistenter LONG-/SHORT-Geometrie. Providerfehler, Timeouts, unbekannte Templates, Schemaabweichungen und Budgetüberschreitungen führen zu keiner Weiterleitung.
 
+Vor Aktivierung muss im Parser-Tab **Externe Datenverarbeitung freigegeben** gesetzt werden. Diese administrative Freigabe bestätigt für alle konfigurierten Quellen Rechtsgrundlage, Data-Owner-Zustimmung, Provider-/DPA-Vertrag, Region und Retention, weil die vollständige Telegram-Nachricht an OpenRouter übertragen wird. Sie ist kein Human-in-the-loop im Nachrichtenpfad; fehlt sie, blockiert der Dienst jeden AI-Aufruf fail closed.
+
 Jede Änderung an Modell, Prompt, Template, Schema oder Parser benötigt:
 
 ```bash
@@ -265,6 +257,8 @@ On-Call muss binnen 15 Minuten beantworten können: Welche Quelle und Outbox-ID 
 Verbindliche Alarmgrenzen, Crash-Loop-Ablauf und konkrete API-Schritte stehen in [operations.md](runbooks/operations.md). Lockdateien, DB/WAL/SHM oder ungeklärte Outbox-Einträge werden niemals zur vermeintlichen Reparatur blind gelöscht.
 
 ## 12. Backup, Restore und Rollback
+
+Der bevorzugte Ablauf liegt unter **System → Enterprise Operations**: Backup erzeugen, Artefakt auswählen, **Backup verifizieren**, anschließend **Backup wiederherstellen** und `RESTORE` eingeben. Die Control Plane stoppt Routing und Hintergrundjobs, schließt SQLite, erhält den vorherigen DB-/Config-Stand für Rollback und startet den Container neu. Die folgenden CLI-Kommandos sind ausschließlich der Break-glass-Pfad, falls das Dashboard selbst nicht erreichbar ist.
 
 Backup erstellen und prüfen:
 
@@ -320,7 +314,7 @@ Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Die fo
 | GitHub-Remote und reale CODEOWNERS | **NICHT VERIFIZIERT**: Im lokalen Repository ist kein Remote konfiguriert; reale Owner können nicht abgeleitet werden. | Remote einrichten, auflösbare Benutzer/Teams in `.github/CODEOWNERS`, fehlerfreie GitHub-Auswertung |
 | Branch Protection und Security-Features | **NICHT VERIFIZIERT** ohne GitHub-Repository und berechtigtes Token | `npm run quality:github-governance` muss alle Reviews, Required Checks, Adminschutz, Dependency Graph, Secret Scanning und Push Protection belegen |
 | Geschützte Environments und Runner | **NICHT VERIFIZIERT** | Getrennte `staging`- und `production-observer`-Environments/Runner mit minimalen Rechten |
-| Container-Build und -Scan | **NICHT LOKAL VERIFIZIERT**: Docker-Client ist vorhanden, Engine war bei der letzten Prüfung nicht erreichbar. | Erfolgreicher CI-Build, Native-Import-Test, non-root-Prüfung, HIGH/CRITICAL-Scan und Container-SBOM |
+| Container-Build und -Scan | Lokaler Build, Native-Import und non-root-Image wurden am 2026-07-16 verifiziert; der abschließende HIGH/CRITICAL-Scan ist pro Release-Commit erneut auszuführen. | Erfolgreicher CI-Build, Native-Import-Test, non-root-Prüfung, HIGH/CRITICAL-Scan und Container-SBOM |
 | OIDC und TLS-Proxy | **NICHT VERIFIZIERT**: keine reale Issuer-/Proxy-Evidenz im Repository | Signatur-/Rollen-/Origin-Negativtests gegen Staging, TLS-Konfiguration und Header-Stripping belegen |
 | Unveränderlicher Audit-Empfänger | **NICHT VERIFIZIERT** | Reale Vorabpersistenz, idempotenter Replay, Retention und Alarm bei Ausfall nachweisen |
 | Verschlüsselter Off-host-Backup-Store | **NICHT VERIFIZIERT** | Reales PUT/GET, unabhängiger Schlüssel, Download/Decrypt/Restore und gemessenes RPO/RTO belegen |

@@ -54,7 +54,7 @@ Telegram update
   -> Prozessabbruch in sending: unknown (manuelle Reconciliation, kein Auto-Retry)
 ```
 
-Konfiguration wird atomar via temporärer Datei, `fsync` und Rename geschrieben. Secrets kommen nur aus der Prozessumgebung. Backups enthalten SQLite plus bereinigte Konfiguration, werden gehasht und vor Veröffentlichung geprüft. Die Retention bereinigt nur finale Daten in begrenzten Transaktionen; ungeklärte Zustellzustände sind von automatischer Löschung ausgeschlossen.
+Konfiguration und Runtime-Einstellungen werden atomar via temporärer Datei, `fsync` und Rename geschrieben. Secrets kommen entweder aus externen Environment-/File-Mounts oder aus dem write-only `ManagedSecretStore`; extern verwaltete Werte bleiben im Web schreibgeschützt. Backups enthalten SQLite plus bereinigte Routing-Konfiguration, werden gehasht und vor Veröffentlichung geprüft; verschlüsselte Off-site-Objekte können über die Web-Control-Plane heruntergeladen, entschlüsselt und restore-verifiziert werden. Die Retention bereinigt nur finale Daten in begrenzten Transaktionen; ungeklärte Zustellzustände sind von automatischer Löschung ausgeschlossen.
 
 ## Versionsregeln
 

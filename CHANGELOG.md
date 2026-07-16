@@ -6,6 +6,10 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ### Added
 
+- Vollständige Web-Control-Plane für Telegram-/OpenRouter-Secrets, Runtime-/Enterprise-Einstellungen, editierbare Default-Templates, Bearer-Key-Erzeugung, Monitoring-Secrets, lokale und verschlüsselte Off-site-Recovery sowie vollständigen Factory Reset.
+- Integrierter Standalone-Start ohne Bearer-Dialog, sessiongebundener Browserzugang und ausführbare Frontend-Verhaltenstests für kritische Enterprise-Aktionen.
+- Echte Readiness- und Pending-Alter-Metriken, serieller Mutations-Lock und gestreamtes Audit-Replay ohne unkontrollierte Speicherspitze.
+
 - Fail-closed Kanonisierung von Telegram-Quellen für quellspezifische Filter, Aliase und KI-Templates.
 - Begrenzte operative Daten-Retention mit Disk-/SQLite-Kapazitätsmetriken und Readiness-Gates.
 - Isolierte, terminierende Mutation-Shards für Queue, Retry und KI-Schema mit eigenständiger Evidenz.
