@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   evaluateComplexityBudget,
   measureEslint,
+  measureStructuralMetrics,
 } from '../scripts/check_complexity_budget.js';
 
 const messages = [
@@ -25,5 +26,24 @@ assert.ok(
     message.includes('lower the baseline')
   )
 );
+
+const structural = measureStructuralMetrics([
+  { ruleId: 'complexity', message: "Function 'small' has a complexity of 3. Maximum allowed is 0." },
+  { ruleId: 'complexity', message: "Function 'large' has a complexity of 15. Maximum allowed is 0." },
+  { ruleId: 'max-lines-per-function', message: "Function 'small' has too many lines (10). Maximum allowed is 0." },
+  { ruleId: 'max-lines-per-function', message: "Function 'large' has too many lines (67). Maximum allowed is 0." },
+  { ruleId: 'max-depth', message: 'Blocks are nested too deeply (4). Maximum allowed is 1.' },
+]);
+assert.deepEqual(structural, {
+  functionsMeasured: 2,
+  averageFunctionLength: 38.5,
+  functionsOver30Lines: 1,
+  functionsOver50Lines: 1,
+  functionsOver100Lines: 0,
+  worstFunctionLength: 67,
+  averageCyclomaticComplexity: 9,
+  worstCyclomaticComplexity: 15,
+  maximumNestingDepth: 4,
+});
 
 console.log('Complexity budget ratchet tests passed.');
