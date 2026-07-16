@@ -25,6 +25,7 @@
   },
   "xmlParsing": {
     "enabled": true,
+    "externalDataPolicyAccepted": false,
     "saveToFile": true,
     "forwardXmlToTarget": false,
     "signalsDir": "./signals",

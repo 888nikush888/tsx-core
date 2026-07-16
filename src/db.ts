@@ -568,6 +568,17 @@ export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, numb
   return counts;
 }
 
+export async function getOldestPendingOutboxAgeSeconds(now = Date.now()): Promise<number> {
+  if (!Number.isSafeInteger(now) || now < 0) throw new Error('Outbox age timestamp must be a non-negative safe integer.');
+  const row = await getDb().get<{ oldest: number | null }>(
+    `SELECT MIN(added_at) AS oldest FROM pending_tasks WHERE status IN ('pending', 'preparing', 'sending')`
+  );
+  if (row?.oldest === null || row?.oldest === undefined) return 0;
+  const oldest = Number(row.oldest);
+  if (!Number.isSafeInteger(oldest) || oldest < 0 || oldest > now) return 0;
+  return Math.floor((now - oldest) / 1000);
+}
+
 export async function getDatabaseStorageStats(): Promise<DatabaseStorageStats> {
   const database = getDb();
   const pageCount = await database.get<{ page_count: number }>('PRAGMA page_count');

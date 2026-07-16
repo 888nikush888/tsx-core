@@ -13,7 +13,8 @@ const passing = {
   diskHealth: 1,
   auditHealth: 1,
   maxResidentMemoryBytes: 500_000_000,
-  maxQueuedTasks: 10
+  maxQueuedTasks: 10,
+  maxOldestPendingAgeSeconds: 30
 };
 assert.equal(evaluateSoakWindow(passing).passed, true);
 const failed = evaluateSoakWindow({ ...passing, unknownDeliveries: 1, attempts: 99 });
@@ -26,5 +27,6 @@ const queries = soakQueries();
 assert.ok(Object.values(queries).every(query => query.includes('[30d]')));
 assert.match(queries.deliverySuccess, /delivery_confirmed_total/);
 assert.match(queries.p95LatencySeconds, /histogram_quantile\(0\.95/);
+assert.match(queries.availability, /tg_forwarder_readiness/);
 
 console.log('30-day soak evaluation tests passed.');

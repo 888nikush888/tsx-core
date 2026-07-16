@@ -20,14 +20,23 @@ import {
 } from './dashboard_auth.js';
 import type { ManagedSecretStore } from './secret_store.js';
 import type { TelegramLoginSnapshot } from './telegram_login.js';
+import type { ManagedRuntimeSettingsStore } from './runtime_settings.js';
 import { DEFAULT_SIGNAL_PROMPT } from './signal_parser.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEMPLATES_DIR = path.join(__dirname, '../templates');
+const DEFAULT_TEMPLATES_DIR = path.join(__dirname, '../templates');
 const STATIC_ROOT = path.resolve(__dirname, '../frontend/dist');
 const SECRET_CONFIG_KEYS = new Set([
   'apiHash',
   'openRouterApiKey',
+  'telegramApiHash',
+  'dashboardAdminToken',
+  'dashboardViewerToken',
+  'auditWebhookToken',
+  'alertRelayToken',
+  'alertWebhookToken',
+  'backupOffsiteToken',
+  'backupEncryptionKey',
   'OPENROUTER_API_KEY',
   'TELEGRAM_API_HASH',
   'DASHBOARD_ADMIN_TOKEN',
@@ -52,6 +61,10 @@ const MIME_TYPES: Record<string, string> = {
   '.json': 'application/json',
 };
 
+function templatesDirectory(): string {
+  return path.resolve(process.env.TEMPLATES_DIR?.trim() || DEFAULT_TEMPLATES_DIR);
+}
+
 interface WebServerState {
   config: any;
   state: any;
@@ -70,11 +83,28 @@ interface WebServerState {
   getOutboxTasks?: (statuses?: string[]) => Promise<any[]>;
   retryOutboxTask?: (id: string) => Promise<boolean>;
   acknowledgeOutboxTask?: (id: string, reason: string) => Promise<boolean>;
-  auditTrail?: Pick<EnterpriseAuditTrail, 'record'>;
+  auditTrail?: Pick<EnterpriseAuditTrail, 'record' | 'snapshot' | 'replayRemote' | 'flush'>;
   authenticator?: DashboardAuthenticator;
-  secretStore?: Pick<ManagedSecretStore, 'status' | 'set' | 'createDashboardAdminToken'>;
+  secretStore?: Pick<ManagedSecretStore,
+    | 'status'
+    | 'set'
+    | 'createDashboardAdminToken'
+    | 'getOrCreateDashboardAdminToken'
+    | 'rotateDashboardToken'
+    | 'removeDashboardViewerToken'
+    | 'clear'
+  >;
   getTelegramLoginState?: () => TelegramLoginSnapshot;
   submitTelegramLogin?: (payload: unknown) => TelegramLoginSnapshot;
+  getOperationsStatus?: () => Record<string, unknown>;
+  runBackupNow?: () => Promise<string>;
+  listBackups?: () => Promise<string[]>;
+  verifyBackup?: (artifactName: string) => Promise<unknown>;
+  recoverOffsiteBackup?: (objectName: string) => Promise<string>;
+  restoreBackup?: (artifactName: string) => Promise<{ previousDatabase: string | null; previousConfig: string | null }>;
+  performFactoryReset?: () => Promise<void>;
+  requestRestart?: () => void;
+  runtimeSettings?: Pick<ManagedRuntimeSettingsStore, 'snapshot' | 'set'>;
 }
 
 interface RequestContext {
@@ -88,6 +118,7 @@ interface RequestContext {
 type ApiHandler = (context: RequestContext) => Promise<void> | void;
 
 let server: http.Server | null = null;
+let mutationInProgress = false;
 
 class HttpError extends Error {
   constructor(
@@ -346,10 +377,18 @@ async function postSecretsHandler(context: RequestContext): Promise<void> {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new HttpError(400, 'Managed secrets must be a JSON object.');
     }
-    const allowed = new Set(['telegramApiHash', 'openRouterApiKey']);
+    const allowed = new Set([
+      'telegramApiHash',
+      'openRouterApiKey',
+      'auditWebhookToken',
+      'alertRelayToken',
+      'alertWebhookToken',
+      'backupOffsiteToken',
+      'backupEncryptionKey',
+    ]);
     const entries = Object.entries(payload);
     if (entries.length === 0 || entries.some(([name]) => !allowed.has(name))) {
-      throw new HttpError(400, 'Only telegramApiHash and openRouterApiKey may be updated.');
+      throw new HttpError(400, 'The request contains an unsupported managed secret.');
     }
     await context.appState.secretStore.set(payload);
     addLog(`[INFO] request_id=${context.requestId} Managed dashboard secrets updated.`);
@@ -495,6 +534,7 @@ async function deleteIncomingHandler(context: RequestContext): Promise<void> {
     sendJson(context.res, 400, { error: 'Missing or invalid id.' });
     return;
   }
+  if (!requireConfirmation(context, 'delete-incoming-message', 'Explicit message deletion confirmation required.')) return;
   try {
     await deleteIncomingMessage(id);
     sendJson(context.res, 200, { success: true });
@@ -509,6 +549,7 @@ async function deleteSignalHandler(context: RequestContext): Promise<void> {
     sendJson(context.res, 400, { error: 'Missing id.' });
     return;
   }
+  if (!requireConfirmation(context, 'delete-processed-signal', 'Explicit signal deletion confirmation required.')) return;
   try {
     await deleteProcessedSignal(id);
     sendJson(context.res, 200, { success: true });
@@ -632,7 +673,7 @@ async function importHandler(context: RequestContext): Promise<void> {
 
 async function readTemplate(file: string): Promise<string | null> {
   try {
-    return await fsPromises.readFile(path.join(TEMPLATES_DIR, file), 'utf8');
+    return await fsPromises.readFile(path.join(templatesDirectory(), file), 'utf8');
   } catch (error) {
     addLog(`[WARN] Template '${file}' could not be read: ${errorMessage(error)}`);
     return null;
@@ -641,10 +682,12 @@ async function readTemplate(file: string): Promise<string | null> {
 
 async function getTemplatesHandler(context: RequestContext): Promise<void> {
   try {
-    await fsPromises.mkdir(TEMPLATES_DIR, { recursive: true });
-    const files = await fsPromises.readdir(TEMPLATES_DIR);
+    const directory = templatesDirectory();
+    await fsPromises.mkdir(directory, { recursive: true });
+    const files = await fsPromises.readdir(directory);
+    const defaultOverride = files.includes('default.txt') ? await readTemplate('default.txt') : null;
     const templates: Record<string, string> = {
-      default: DEFAULT_SIGNAL_PROMPT,
+      default: defaultOverride?.trim() ? defaultOverride : DEFAULT_SIGNAL_PROMPT,
     };
     for (const file of files.filter((name) => name.endsWith('.txt') && name !== 'default.txt')) {
       const content = await readTemplate(file);
@@ -667,14 +710,23 @@ async function postTemplateHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req, 128 * 1024);
     const name = requireTemplateName(payload.name);
-    if (name === 'default') {
-      throw new HttpError(400, 'The built-in default safety prompt is read-only. Create a named template instead.');
-    }
     if (typeof payload.content !== 'string' || Buffer.byteLength(payload.content, 'utf8') > 96 * 1024) {
       throw new HttpError(400, 'Template content must be a string no larger than 96 KiB.');
     }
-    await fsPromises.mkdir(TEMPLATES_DIR, { recursive: true });
-    await fsPromises.writeFile(path.join(TEMPLATES_DIR, `${name}.txt`), payload.content, 'utf8');
+    if (name === 'default' && !payload.content.trim()) {
+      throw new HttpError(400, 'The default template override must not be empty.');
+    }
+    const directory = templatesDirectory();
+    await fsPromises.mkdir(directory, { recursive: true });
+    const destination = path.join(directory, `${name}.txt`);
+    const temporary = `${destination}.${process.pid}.${Date.now()}.tmp`;
+    try {
+      await fsPromises.writeFile(temporary, payload.content, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+      await fsPromises.rename(temporary, destination);
+    } catch (error) {
+      await fsPromises.unlink(temporary).catch(() => undefined);
+      throw error;
+    }
     addLog(`[INFO] request_id=${context.requestId} Template '${name}' saved.`);
     sendJson(context.res, 200, { success: true, requestId: context.requestId });
   } catch (error) {
@@ -684,12 +736,12 @@ async function postTemplateHandler(context: RequestContext): Promise<void> {
 
 async function deleteTemplateHandler(context: RequestContext): Promise<void> {
   const name = context.parsedUrl.searchParams.get('name');
-  if (!name || name === 'default' || !/^[a-zA-Z0-9_-]{1,64}$/.test(name)) {
+  if (!name || !/^[a-zA-Z0-9_-]{1,64}$/.test(name)) {
     sendJson(context.res, 400, { error: 'Invalid template name for deletion.' });
     return;
   }
   try {
-    await fsPromises.unlink(path.join(TEMPLATES_DIR, `${name}.txt`));
+    await fsPromises.unlink(path.join(templatesDirectory(), `${name}.txt`));
     addLog(`[INFO] Template '${name}' deleted via Web Dashboard.`);
     sendJson(context.res, 200, { success: true });
   } catch (error: any) {
@@ -710,25 +762,213 @@ async function factoryResetHandler(context: RequestContext): Promise<void> {
     )
   )
     return;
-  if (context.appState.state.isRunning) {
-    sendJson(context.res, 409, {
-      error: 'Stop routing before resetting configuration.',
+  try {
+    if (!context.appState.performFactoryReset) {
+      throw new HttpError(503, 'Complete factory reset is unavailable in this runtime.');
+    }
+    await context.appState.performFactoryReset();
+    addLog('[SECURITY] Complete factory reset executed through the web dashboard.');
+    context.res.once('finish', () => context.appState.requestRestart?.());
+    sendJson(context.res, 200, {
+      success: true,
+      message: 'Factory reset completed. The container is restarting into first-run setup.',
+      restartScheduled: Boolean(context.appState.requestRestart),
       requestId: context.requestId,
     });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function accessTokenHandler(context: RequestContext): Promise<void> {
+  if (!context.appState.secretStore) {
+    sendJson(context.res, 503, { error: 'Managed secret storage is unavailable.', requestId: context.requestId });
     return;
   }
   try {
-    const { DEFAULT_CONFIG } = await import('./config.js');
-    const candidateConfig = structuredClone(DEFAULT_CONFIG);
-    (context.appState.persistConfig ?? writeConfigSync)(candidateConfig);
-    for (const key of Object.keys(context.appState.config)) delete context.appState.config[key];
-    Object.assign(context.appState.config, candidateConfig);
-    context.appState.reloadConfig();
-    context.appState.applyRuntimeConfig(context.appState.config);
-    addLog('[INFO] Configuration reset to defaults through the web dashboard.');
-    sendJson(context.res, 200, { success: true, message: 'Factory reset completed.' });
+    const payload = await readJsonBody(context.req, 4 * 1024);
+    if (payload?.role !== 'admin' && payload?.role !== 'viewer') {
+      throw new HttpError(400, 'Access-token role must be admin or viewer.');
+    }
+    const token = await context.appState.secretStore.rotateDashboardToken(payload.role);
+    addLog(`[SECURITY] request_id=${context.requestId} Dashboard ${payload.role} token rotated.`);
+    sendJson(context.res, 201, {
+      token,
+      role: payload.role,
+      shownOnce: true,
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function disableViewerTokenHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(context, 'disable-viewer-token', 'Explicit viewer-token disable confirmation required.')) return;
+  if (!context.appState.secretStore) {
+    sendJson(context.res, 503, { error: 'Managed secret storage is unavailable.', requestId: context.requestId });
+    return;
+  }
+  try {
+    await context.appState.secretStore.removeDashboardViewerToken();
+    addLog(`[SECURITY] request_id=${context.requestId} Dashboard viewer token disabled.`);
+    sendJson(context.res, 200, { success: true, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+function operationsHandler({ res, appState }: RequestContext): void {
+  sendJson(res, 200, {
+    operations: appState.getOperationsStatus?.() ?? {},
+  });
+}
+
+async function runBackupHandler(context: RequestContext): Promise<void> {
+  if (!context.appState.runBackupNow) {
+    sendJson(context.res, 503, { error: 'Backup control is unavailable.', requestId: context.requestId });
+    return;
+  }
+  try {
+    const artifact = await context.appState.runBackupNow();
+    sendJson(context.res, 201, { success: true, artifact: path.basename(artifact), requestId: context.requestId });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function replayAuditHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(context, 'replay-audit', 'Explicit audit replay confirmation required.')) return;
+  if (!context.appState.auditTrail) {
+    sendJson(context.res, 503, { error: 'Audit control is unavailable.', requestId: context.requestId });
+    return;
+  }
+  try {
+    const replayed = await context.appState.auditTrail.replayRemote();
+    sendJson(context.res, 200, { success: true, replayed, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+function runtimeSettingsHandler({ res, appState }: RequestContext): void {
+  if (!appState.runtimeSettings) {
+    sendJson(res, 503, { error: 'Managed runtime settings are unavailable.' });
+    return;
+  }
+  sendJson(res, 200, { settings: appState.runtimeSettings.snapshot() });
+}
+
+async function postRuntimeSettingsHandler(context: RequestContext): Promise<void> {
+  if (!context.appState.runtimeSettings || !context.appState.secretStore) {
+    sendJson(context.res, 503, { error: 'Managed runtime settings are unavailable.', requestId: context.requestId });
+    return;
+  }
+  try {
+    const payload = await readJsonBody(context.req, 128 * 1024);
+    if (payload?.enterpriseMode === true) {
+      const secrets = context.appState.secretStore.status();
+      const missing = ['auditWebhookToken', 'alertRelayToken', 'alertWebhookToken', 'backupOffsiteToken', 'backupEncryptionKey']
+        .filter((name) => !secrets[name as keyof typeof secrets]?.configured);
+      if (missing.length > 0) {
+        throw new HttpError(409, `Enterprise mode requires configured managed secrets: ${missing.join(', ')}.`);
+      }
+    }
+    const settings = await context.appState.runtimeSettings.set(payload);
+    addLog(`[SECURITY] request_id=${context.requestId} Managed runtime settings updated; restart required.`);
+    sendJson(context.res, 200, { success: true, settings, restartRequired: true, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
+  }
+}
+
+async function restartHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(context, 'restart-service', 'Explicit service restart confirmation required.')) return;
+  if (!context.appState.requestRestart) {
+    sendJson(context.res, 503, { error: 'Service restart is unavailable.', requestId: context.requestId });
+    return;
+  }
+  if (context.appState.state.isRunning) await context.appState.stopForwarding();
+  context.res.once('finish', () => context.appState.requestRestart?.());
+  sendJson(context.res, 202, { success: true, message: 'Container restart scheduled.', requestId: context.requestId });
+}
+
+function backupArtifactName(value: unknown): string {
+  if (typeof value !== 'string' || !/^backup-\d{4}-[a-zA-Z0-9_.:-]{1,160}$/.test(value)) {
+    throw new HttpError(400, 'Invalid backup artifact name.');
+  }
+  return value;
+}
+
+function offsiteBackupObjectName(value: unknown): string {
+  if (typeof value !== 'string' || !/^backup-\d{4}-[a-zA-Z0-9_.:-]{1,160}\.tgfb$/.test(value)) {
+    throw new HttpError(400, 'Invalid off-site backup object name.');
+  }
+  return value;
+}
+
+async function backupsHandler(context: RequestContext): Promise<void> {
+  if (!context.appState.listBackups) {
+    sendJson(context.res, 503, { error: 'Backup inventory is unavailable.' });
+    return;
+  }
+  try {
+    sendJson(context.res, 200, { backups: await context.appState.listBackups() });
   } catch (error) {
     sendError(context, error);
+  }
+}
+
+async function verifyBackupHandler(context: RequestContext): Promise<void> {
+  if (!context.appState.verifyBackup) {
+    sendJson(context.res, 503, { error: 'Backup verification is unavailable.' });
+    return;
+  }
+  try {
+    const name = backupArtifactName(context.parsedUrl.searchParams.get('name'));
+    const manifest = await context.appState.verifyBackup(name);
+    sendJson(context.res, 200, { success: true, name, manifest });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function recoverOffsiteBackupHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(context, 'recover-offsite-backup', 'Explicit off-site recovery confirmation required.')) return;
+  if (!context.appState.recoverOffsiteBackup) {
+    sendJson(context.res, 503, { error: 'Off-site backup recovery is unavailable.', requestId: context.requestId });
+    return;
+  }
+  try {
+    const payload = await readJsonBody(context.req, 4 * 1024);
+    const objectName = offsiteBackupObjectName(payload.objectName);
+    const artifactName = await context.appState.recoverOffsiteBackup(objectName);
+    sendJson(context.res, 201, { success: true, objectName, artifactName, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function restoreBackupHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(context, 'restore-backup', 'Explicit backup restore confirmation required.')) return;
+  if (!context.appState.restoreBackup || !context.appState.requestRestart) {
+    sendJson(context.res, 503, { error: 'Backup restore is unavailable.', requestId: context.requestId });
+    return;
+  }
+  try {
+    const payload = await readJsonBody(context.req, 4 * 1024);
+    const name = backupArtifactName(payload.name);
+    const restored = await context.appState.restoreBackup(name);
+    context.res.once('finish', () => context.appState.requestRestart?.());
+    sendJson(context.res, 200, {
+      success: true,
+      name,
+      rollbackPreserved: Boolean(restored.previousDatabase || restored.previousConfig),
+      restartScheduled: true,
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
   }
 }
 
@@ -775,12 +1015,24 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/config', postConfigHandler],
   ['GET /api/secrets', secretsHandler],
   ['POST /api/secrets', postSecretsHandler],
+  ['POST /api/access-tokens', accessTokenHandler],
+  ['DELETE /api/access-tokens/viewer', disableViewerTokenHandler],
   ['POST /api/import', importHandler],
   ['GET /api/templates', getTemplatesHandler],
   ['POST /api/templates', postTemplateHandler],
   ['DELETE /api/templates', deleteTemplateHandler],
   ['POST /api/factory-reset', factoryResetHandler],
   ['POST /api/clear-database', clearDatabaseHandler],
+  ['GET /api/operations', operationsHandler],
+  ['POST /api/operations/backup', runBackupHandler],
+  ['POST /api/operations/audit-replay', replayAuditHandler],
+  ['GET /api/runtime-settings', runtimeSettingsHandler],
+  ['POST /api/runtime-settings', postRuntimeSettingsHandler],
+  ['POST /api/restart', restartHandler],
+  ['GET /api/backups', backupsHandler],
+  ['GET /api/backups/verify', verifyBackupHandler],
+  ['POST /api/backups/recover-offsite', recoverOffsiteBackupHandler],
+  ['POST /api/backups/restore', restoreBackupHandler],
 ]);
 
 function bootstrapStatusHandler(
@@ -830,6 +1082,63 @@ async function bootstrapHandler(
     sendJson(context.res, 201, {
       token,
       recoveryLocation: 'secrets/dashboard_admin_token',
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
+  }
+}
+
+function localDashboardStartupEnabled(): boolean {
+  return process.env.DASHBOARD_LOCAL_TRUST?.trim().toLowerCase() === 'true'
+    && process.env.ENTERPRISE_MODE?.trim().toLowerCase() !== 'true';
+}
+
+async function localSessionHandler(
+  context: RequestContext,
+  authenticator: DashboardAuthenticator
+): Promise<void> {
+  try {
+    if (!localDashboardStartupEnabled()) {
+      throw new HttpError(409, 'Integrated local dashboard startup is disabled.');
+    }
+    if (authenticator.mode !== 'token') {
+      throw new HttpError(409, 'Integrated local startup is unavailable in OIDC mode.');
+    }
+    if (!context.appState.secretStore) {
+      throw new HttpError(503, 'Managed secret storage is unavailable.');
+    }
+    const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
+    if (
+      !origin
+      || !isAllowedOrigin(origin)
+      || context.req.headers['x-requested-with'] !== 'forwarder-dashboard'
+    ) {
+      throw new HttpError(403, 'Integrated local startup requires the trusted dashboard origin.');
+    }
+    const tokenWasConfigured = authenticator.isConfigured();
+    const actor: AuthenticatedActor = { role: 'admin', id: 'startup:local-browser' };
+    if (!tokenWasConfigured && !(await authorizeMutationAudit(context, actor, 'POST', '/api/local-session'))) return;
+    if (!tokenWasConfigured) {
+      context.res.once('finish', () => {
+        recordAuditCompletion(
+          context.appState.auditTrail,
+          actor,
+          context.requestId,
+          'POST',
+          '/api/local-session',
+          context.res.statusCode
+        );
+      });
+    }
+    const token = await context.appState.secretStore.getOrCreateDashboardAdminToken();
+    if (!tokenWasConfigured) {
+      addLog(`[SECURITY] request_id=${context.requestId} Integrated local dashboard access initialized.`);
+    }
+    sendJson(context.res, tokenWasConfigured ? 200 : 201, {
+      token,
+      role: 'admin',
+      localStartup: true,
       requestId: context.requestId,
     });
   } catch (error) {
@@ -892,6 +1201,27 @@ async function serveStatic(context: RequestContext, url: string): Promise<void> 
   }
 }
 
+async function handlePublicApiRequest(
+  context: RequestContext,
+  authenticator: DashboardAuthenticator,
+  method: string,
+  url: string
+): Promise<boolean> {
+  if (method === 'GET' && url === '/api/bootstrap/status') {
+    bootstrapStatusHandler(context, authenticator);
+    return true;
+  }
+  if (method === 'POST' && url === '/api/bootstrap') {
+    await bootstrapHandler(context, authenticator);
+    return true;
+  }
+  if (method === 'POST' && url === '/api/local-session') {
+    await localSessionHandler(context, authenticator);
+    return true;
+  }
+  return false;
+}
+
 async function handleRequest(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -918,21 +1248,27 @@ async function handleRequest(
     await serveStatic(context, url);
     return;
   }
-  if (method === 'GET' && url === '/api/bootstrap/status') {
-    bootstrapStatusHandler(context, authenticator);
-    return;
-  }
-  if (method === 'POST' && url === '/api/bootstrap') {
-    await bootstrapHandler(context, authenticator);
-    return;
-  }
+  if (await handlePublicApiRequest(context, authenticator, method, url)) return;
   if (!(await authenticateApiRequest(context, authenticator, method, url))) return;
   const handler = API_ROUTES.get(`${method} ${url}`);
   if (!handler) {
     sendJson(res, 404, { error: 'API endpoint not found.', requestId });
     return;
   }
-  await handler(context);
+  if (method === 'GET') {
+    await handler(context);
+    return;
+  }
+  if (mutationInProgress) {
+    sendJson(res, 409, { error: 'Another control-plane mutation is already in progress.', requestId });
+    return;
+  }
+  mutationInProgress = true;
+  try {
+    await handler(context);
+  } finally {
+    mutationInProgress = false;
+  }
 }
 
 export function startWebServer(

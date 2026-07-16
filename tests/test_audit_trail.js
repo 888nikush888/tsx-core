@@ -48,6 +48,18 @@ try {
   });
   assert.ok(trail.snapshot().lastRemoteSuccessAt > 0);
 
+  const resetPath = path.join(testDirectory, 'reset.jsonl');
+  const resetTrail = new EnterpriseAuditTrail({ filePath: resetPath, remoteRequired: false });
+  await resetTrail.initialize();
+  void resetTrail.record({ phase: 'authorized', action: 'dashboard.mutation', actorRole: 'admin' });
+  await resetTrail.flush();
+  await resetTrail.resetLocal();
+  await resetTrail.record({ phase: 'completed', action: 'dashboard.mutation', actorRole: 'admin', statusCode: 200 });
+  const resetRecords = (await readFile(resetPath, 'utf8')).trim().split('\n').map(JSON.parse);
+  assert.equal(resetRecords.length, 1);
+  assert.equal(resetRecords[0].sequence, 1);
+  assert.equal(resetRecords[0].previousHash, '0'.repeat(64));
+
   await writeFile(filePath, `${JSON.stringify({ ...records[0], event: { ...records[0].event, path: '/tampered' } })}\n`, 'utf8');
   const tampered = new EnterpriseAuditTrail({ filePath, remoteRequired: false });
   await assert.rejects(tampered.initialize(), /Audit chain verification failed/);

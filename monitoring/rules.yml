@@ -111,6 +111,16 @@ groups:
           summary: Accepted-to-confirmed delivery P95 exceeds 60 seconds
           runbook: docs/runbooks/operations.md#alarm-triage
 
+      - alert: ForwarderPendingTaskStale
+        expr: tg_forwarder_outbox_oldest_pending_age_seconds >= 300
+        for: 1m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: An outbox task has remained pending for at least five minutes
+          runbook: docs/runbooks/operations.md#alarm-triage
+
       - alert: ForwarderAuditTrailUnhealthy
         expr: tg_forwarder_audit_healthy == 0
         for: 1m

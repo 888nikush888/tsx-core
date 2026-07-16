@@ -8,6 +8,7 @@ export interface OperationalMetrics {
   connectionState: string;
   queuePaused: boolean;
   outbox: Record<OutboxStatus, number>;
+  oldestPendingOutboxAgeSeconds: number;
   aiRequestsToday: number;
   aiUsedTokensToday: number;
   aiReservedTokensToday: number;
@@ -79,11 +80,12 @@ function isOperationallyReady(operational: OperationalMetrics): boolean {
     operational.backupHealthy,
     operational.retentionHealthy,
     operational.diskCapacityHealthy,
-    operational.auditHealthy
+    operational.auditHealthy,
+    operational.oldestPendingOutboxAgeSeconds < 300
   ].every(Boolean);
 }
 
-function readinessChecks(operational: OperationalMetrics): Record<string, boolean | string> {
+function readinessChecks(operational: OperationalMetrics): Record<string, boolean | string | number> {
   return {
     database: operational.databaseHealthy,
     routing: operational.isRunning,
@@ -95,7 +97,8 @@ function readinessChecks(operational: OperationalMetrics): Record<string, boolea
     retention: operational.retentionHealthy,
     diskCapacity: operational.diskCapacityHealthy,
     audit: operational.auditHealthy,
-    auditRemoteRequired: operational.auditRemoteRequired
+    auditRemoteRequired: operational.auditRemoteRequired,
+    oldestPendingOutboxAgeSeconds: operational.oldestPendingOutboxAgeSeconds
   };
 }
 
@@ -133,6 +136,8 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
     ...metric('tg_forwarder_audit_healthy', 'Whether the tamper-evident audit trail and required remote sink are healthy', 'gauge', asFlag(operational.auditHealthy)),
     ...metric('tg_forwarder_audit_remote_required', 'Whether remote audit delivery is required', 'gauge', asFlag(operational.auditRemoteRequired)),
     ...metric('tg_forwarder_audit_last_remote_success_timestamp_seconds', 'Unix time of the last successful remote audit delivery', 'gauge', timestampSeconds(operational.auditLastRemoteSuccessAt)),
+    ...metric('tg_forwarder_readiness', 'Whether all operational readiness checks currently pass', 'gauge', asFlag(isOperationallyReady(operational))),
+    ...metric('tg_forwarder_outbox_oldest_pending_age_seconds', 'Age in seconds of the oldest pending, preparing or sending outbox task', 'gauge', operational.oldestPendingOutboxAgeSeconds),
     ...metric('tg_forwarder_ai_requests_today', 'AI provider requests reserved today (UTC)', 'gauge', operational.aiRequestsToday),
     ...metric('tg_forwarder_ai_used_tokens_today', 'AI tokens accounted today (UTC)', 'gauge', operational.aiUsedTokensToday),
     ...metric('tg_forwarder_ai_reserved_tokens_today', 'AI tokens reserved by unfinished calls today (UTC)', 'gauge', operational.aiReservedTokensToday),

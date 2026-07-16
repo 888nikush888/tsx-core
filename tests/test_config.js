@@ -55,6 +55,22 @@ try {
   assert.deepEqual(sanitized.sourceFilters, {});
   assert.deepEqual(sanitized.sourceAliases, {});
   assert.throws(() => validateConfig(null), /root must be a JSON object/);
+  assert.throws(
+    () => validateConfig({ ...structuredClone(DEFAULT_CONFIG), xmlParsing: { ...DEFAULT_CONFIG.xmlParsing, enabled: 'false' } }),
+    /xmlParsing.enabled must be true or false/
+  );
+  assert.throws(
+    () => validateConfig({ ...structuredClone(DEFAULT_CONFIG), xmlParsing: { ...DEFAULT_CONFIG.xmlParsing, externalDataPolicyAccepted: 'yes' } }),
+    /externalDataPolicyAccepted must be true or false/
+  );
+  assert.throws(
+    () => validateConfig({ ...structuredClone(DEFAULT_CONFIG), forwardOptions: { ...DEFAULT_CONFIG.forwardOptions, forwardToTarget: 'false' } }),
+    /forwardOptions.forwardToTarget must be true or false/
+  );
+  assert.throws(
+    () => validateConfig({ ...structuredClone(DEFAULT_CONFIG), surpriseSecret: 'must-not-persist' }),
+    /Unknown configuration field/
+  );
 
   const missingPath = path.join(root, 'created-on-read.json');
   assert.deepEqual(readConfigSync(missingPath).sourceChannels, []);

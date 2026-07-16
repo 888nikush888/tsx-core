@@ -169,7 +169,10 @@ export function SignalsTab({ config }: { config?: any }) {
                               e.stopPropagation()
                               if (window.confirm("Dieses Signal wirklich aus der Datenbank löschen?")) {
                                 try {
-                                  const res = await apiFetch(`${API_BASE}/api/processed-signals?id=${sig.id}`, { method: 'DELETE' })
+                                  const res = await apiFetch(`${API_BASE}/api/processed-signals?id=${sig.id}`, {
+                                    method: 'DELETE',
+                                    headers: { 'X-Destructive-Confirmation': 'delete-processed-signal' },
+                                  })
                                   if (res.ok) {
                                     fetchSignals()
                                   } else {

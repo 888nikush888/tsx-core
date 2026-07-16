@@ -1,11 +1,12 @@
 import assert from 'assert';
 import { once } from 'events';
-import { mkdir, mkdtemp, rm } from 'fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { closeDb, initDb } from '../src/db.js';
 import { startWebServer, stopWebServer } from '../src/web_server.js';
 import { ManagedSecretStore } from '../src/secret_store.js';
+import { ManagedRuntimeSettingsStore } from '../src/runtime_settings.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
 const VIEWER_TOKEN = 'viewer-token-0123456789abcdef0123456789abcdef';
@@ -29,6 +30,17 @@ async function testAuthenticationAndReads(baseUrl) {
   assert.strictEqual(response.status, 503, 'Missing server token must fail closed');
   process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;
   process.env.DASHBOARD_VIEWER_TOKEN = VIEWER_TOKEN;
+  process.env.DASHBOARD_LOCAL_TRUST = 'true';
+  response = await fetch(`${baseUrl}/api/local-session`, {
+    method: 'POST', headers: { 'X-Requested-With': 'forwarder-dashboard' }
+  });
+  assert.strictEqual(response.status, 403, 'Integrated startup must reject requests without a trusted browser origin');
+  response = await fetch(`${baseUrl}/api/local-session`, {
+    method: 'POST',
+    headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
+  });
+  assert.strictEqual(response.status, 200, 'Trusted loopback startup must restore dashboard access without a bearer prompt');
+  assert.strictEqual((await response.json()).token, ADMIN_TOKEN);
   response = await fetch(`${baseUrl}/api/status`);
   assert.strictEqual(response.status, 401, 'Anonymous API access must be rejected');
   assert.match(response.headers.get('www-authenticate') || '', /^Bearer/);
@@ -42,6 +54,7 @@ async function testAuthenticationAndReads(baseUrl) {
   assert.strictEqual(publicConfig.apiHash, undefined, 'Telegram secret must be redacted');
   assert.strictEqual(publicConfig.nested.OPENROUTER_API_KEY, undefined, 'Nested secrets must be redacted');
   assert.strictEqual(publicConfig.nested.AUDIT_WEBHOOK_TOKEN, undefined, 'Audit credentials must be redacted');
+  assert.strictEqual(publicConfig.nested.backupEncryptionKey, undefined, 'Managed enterprise secrets must be redacted');
   for (const route of ['/api/logs', '/api/metrics-history', '/api/incoming-messages', '/api/processed-signals', '/api/templates']) {
     response = await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) });
     assert.strictEqual(response.status, 200, `${route} must satisfy its authenticated read contract`);
@@ -55,8 +68,12 @@ async function testRequestValidation(baseUrl) {
     ['/api/config', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '[]' }, 400],
     ['/api/import', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{}' }, 400],
     ['/api/templates', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"../escape","content":"x"}' }, 400],
-    ['/api/templates', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"default","content":"replace safety"}' }, 400],
-    ['/api/templates?name=default', { method: 'DELETE', headers: mutationHeaders() }, 400],
+    ['/api/access-tokens', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"role":"owner"}' }, 400],
+    ['/api/access-tokens/viewer', { method: 'DELETE', headers: mutationHeaders() }, 412],
+    ['/api/operations/audit-replay', { method: 'POST', headers: mutationHeaders() }, 412],
+    ['/api/backups/recover-offsite', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"objectName":"backup-2026-test.tgfb"}' }, 412],
+    ['/api/backups/restore', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"backup-2026-test"}' }, 412],
+    ['/api/restart', { method: 'POST', headers: mutationHeaders() }, 412],
     ['/api/factory-reset', { method: 'POST', headers: mutationHeaders() }, 412]
   ];
   for (const [route, options, expectedStatus] of rejectedRouteCases) {
@@ -71,6 +88,18 @@ async function testRequestValidation(baseUrl) {
   response = await fetch(`${baseUrl}/api/outbox?status=unknown`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200, 'Viewer must be able to inspect unresolved outbox work');
   assert.strictEqual((await response.json()).tasks[0].status, 'unknown');
+  response = await fetch(`${baseUrl}/api/backups/verify?name=../escape`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 400, 'Backup inventory must reject path traversal names');
+  response = await fetch(`${baseUrl}/api/incoming-messages?id=1`, { method: 'DELETE', headers: mutationHeaders() });
+  assert.strictEqual(response.status, 412, 'Single-message deletion must require explicit confirmation');
+  response = await fetch(`${baseUrl}/api/incoming-messages?id=1`, {
+    method: 'DELETE', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'delete-incoming-message' })
+  });
+  assert.strictEqual(response.status, 200);
+  response = await fetch(`${baseUrl}/api/processed-signals?id=missing-signal`, {
+    method: 'DELETE', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'delete-processed-signal' })
+  });
+  assert.strictEqual(response.status, 200);
 }
 
 async function testAuditedControl(baseUrl, controls) {
@@ -146,6 +175,176 @@ async function testSensitiveMutations(baseUrl, controls) {
   assert.strictEqual(controls.acknowledgeCalls, 1);
 }
 
+async function testEditableDefaultTemplate(baseUrl, templatesDirectory) {
+  const customDefault = 'Return the configured signal schema and preserve source values exactly.';
+  let response = await fetch(`${baseUrl}/api/templates`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ name: 'default', content: customDefault })
+  });
+  assert.strictEqual(response.status, 200, 'Administrator must be able to override the default prompt');
+  assert.strictEqual(await readFile(path.join(templatesDirectory, 'default.txt'), 'utf8'), customDefault);
+  response = await fetch(`${baseUrl}/api/templates`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual((await response.json()).templates.default, customDefault);
+  response = await fetch(`${baseUrl}/api/templates?name=default`, {
+    method: 'DELETE', headers: mutationHeaders()
+  });
+  assert.strictEqual(response.status, 200, 'Deleting the override must restore the built-in default prompt');
+  response = await fetch(`${baseUrl}/api/templates`, { headers: headers(VIEWER_TOKEN) });
+  assert.notStrictEqual((await response.json()).templates.default, customDefault);
+}
+
+async function testAccessTokenManagement(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/access-tokens`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ role: 'viewer' })
+  });
+  assert.strictEqual(response.status, 201);
+  const viewerToken = (await response.json()).token;
+  assert.match(viewerToken, /^[a-f0-9]{64}$/);
+  response = await fetch(`${baseUrl}/api/status`, { headers: headers(viewerToken) });
+  assert.strictEqual(response.headers.get('x-authenticated-role'), 'viewer');
+  response = await fetch(`${baseUrl}/api/access-tokens/viewer`, {
+    method: 'DELETE',
+    headers: mutationHeaders({ 'X-Destructive-Confirmation': 'disable-viewer-token' })
+  });
+  assert.strictEqual(response.status, 200);
+  response = await fetch(`${baseUrl}/api/status`, { headers: headers(viewerToken) });
+  assert.strictEqual(response.status, 401, 'Disabled viewer token must stop authenticating immediately');
+
+  response = await fetch(`${baseUrl}/api/access-tokens`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ role: 'admin' })
+  });
+  assert.strictEqual(response.status, 201);
+  const adminToken = (await response.json()).token;
+  assert.match(adminToken, /^[a-f0-9]{64}$/);
+  response = await fetch(`${baseUrl}/api/status`, { headers: headers(adminToken) });
+  assert.strictEqual(response.status, 200, 'Rotated administrator token must authenticate immediately');
+  return adminToken;
+}
+
+async function testOperationsControl(baseUrl, controls) {
+  let response = await fetch(`${baseUrl}/api/operations`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).operations.backup.healthy, true);
+  response = await fetch(`${baseUrl}/api/operations/backup`, { method: 'POST', headers: mutationHeaders() });
+  assert.strictEqual(response.status, 201);
+  assert.strictEqual(controls.backupCalls, 1);
+  response = await fetch(`${baseUrl}/api/operations/audit-replay`, {
+    method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'replay-audit' })
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual(controls.auditReplayCalls, 1);
+  response = await fetch(`${baseUrl}/api/backups`, { headers: headers(VIEWER_TOKEN) });
+  assert.deepEqual((await response.json()).backups, ['backup-2026-test']);
+  response = await fetch(`${baseUrl}/api/backups/verify?name=backup-2026-test`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual((await response.json()).manifest.schemaVersion, 1);
+  response = await fetch(`${baseUrl}/api/backups/recover-offsite`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'recover-offsite-backup' }),
+    body: JSON.stringify({ objectName: 'backup-2026-test.tgfb' })
+  });
+  assert.strictEqual(response.status, 201);
+  assert.strictEqual((await response.json()).artifactName, 'backup-2026-recovered');
+  assert.strictEqual(controls.offsiteRecoveryCalls, 1);
+  response = await fetch(`${baseUrl}/api/backups/restore`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'restore-backup' }),
+    body: JSON.stringify({ name: 'backup-2026-test' })
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual(controls.restoreCalls, 1);
+  assert.strictEqual(controls.restartCalls, 1);
+}
+
+async function testMutationSerialization(baseUrl, controls) {
+  let releaseBackup;
+  controls.backupBarrier = new Promise(resolve => { releaseBackup = resolve; });
+  const backupRequest = fetch(`${baseUrl}/api/operations/backup`, { method: 'POST', headers: mutationHeaders() });
+  const deadline = Date.now() + 1000;
+  while (controls.backupCalls < 2 && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 5));
+  const conflicting = await fetch(`${baseUrl}/api/control`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ action: 'stop' })
+  });
+  assert.strictEqual(conflicting.status, 409, 'Concurrent control-plane mutations must be rejected.');
+  releaseBackup();
+  assert.strictEqual((await backupRequest).status, 201);
+  controls.backupBarrier = null;
+}
+
+async function testRuntimeSettingsControl(baseUrl, controls) {
+  let response = await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  const settings = (await response.json()).settings;
+  const incompleteEnterprise = {
+    ...settings,
+    enterpriseMode: true,
+    dashboardAuthMode: 'oidc',
+    dashboardLocalTrust: false,
+    oidcIssuer: 'https://identity.example.com',
+    oidcAudience: 'forwarder',
+    oidcJwksUrl: 'https://identity.example.com/jwks',
+    auditWebhookUrl: 'https://audit.example.com/events',
+    auditRemoteRequired: true,
+    backupOffsiteUrlTemplate: 'https://backup.example.com/{artifact}',
+    backupOffsiteRequired: true
+  };
+  response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(incompleteEnterprise)
+  });
+  assert.strictEqual(response.status, 409, 'Enterprise activation must reject missing write-only integration secrets');
+  settings.shutdownGraceMs = 45_000;
+  response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(settings)
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).restartRequired, true);
+  response = await fetch(`${baseUrl}/api/restart`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'X-Destructive-Confirmation': 'restart-service' })
+  });
+  assert.strictEqual(response.status, 202);
+  assert.strictEqual(controls.restartCalls, 3, 'Restore, factory reset and explicit restart must schedule container restarts');
+}
+
+async function testUnavailableControlContracts(baseUrl, appState) {
+  const checks = [
+    ['runtimeSettings', '/api/runtime-settings', { method: 'GET', headers: headers(ADMIN_TOKEN) }],
+    ['runBackupNow', '/api/operations/backup', { method: 'POST', headers: mutationHeaders() }],
+    ['listBackups', '/api/backups', { method: 'GET', headers: headers(ADMIN_TOKEN) }],
+    ['verifyBackup', '/api/backups/verify?name=backup-2026-test', { method: 'GET', headers: headers(ADMIN_TOKEN) }],
+    ['recoverOffsiteBackup', '/api/backups/recover-offsite', {
+      method: 'POST',
+      headers: mutationHeaders({ 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'recover-offsite-backup' }),
+      body: JSON.stringify({ objectName: 'backup-2026-test.tgfb' })
+    }],
+    ['restoreBackup', '/api/backups/restore', {
+      method: 'POST',
+      headers: mutationHeaders({ 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'restore-backup' }),
+      body: JSON.stringify({ name: 'backup-2026-test' })
+    }],
+    ['performFactoryReset', '/api/factory-reset', {
+      method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'factory-reset' })
+    }],
+  ];
+  for (const [property, route, options] of checks) {
+    const original = appState[property];
+    appState[property] = undefined;
+    const response = await fetch(`${baseUrl}${route}`, options);
+    assert.strictEqual(response.status, 503, `${route} must report an unavailable runtime capability`);
+    appState[property] = original;
+  }
+}
+
 async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   let response = await fetch(`${baseUrl}/api/status`, { headers: headers(ADMIN_TOKEN, { Origin: 'https://attacker.example' }) });
   assert.strictEqual(response.status, 403, 'Untrusted browser origins must be rejected');
@@ -163,6 +362,15 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   appState.state.isRunning = false;
   response = await fetch(`${baseUrl}/api/clear-database`, { method: 'POST', headers: destructiveHeaders });
   assert.strictEqual(response.status, 200, 'Confirmed administrator database clear must succeed against the isolated test database');
+  appState.state.isRunning = true;
+  response = await fetch(`${baseUrl}/api/factory-reset`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'X-Destructive-Confirmation': 'factory-reset' })
+  });
+  assert.strictEqual(response.status, 200, 'Factory reset must stop active routing and execute the complete reset service');
+  assert.strictEqual((await response.json()).restartScheduled, true);
+  assert.strictEqual(appState.controls.factoryResetCalls, 1);
+  assert.strictEqual(appState.controls.restartCalls, 2);
   response = await fetch(`${baseUrl}/api/does-not-exist`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual(response.status, 404, 'Unknown API routes must not fall through to the SPA');
   response = await fetch(`${baseUrl}/.directory-response-test`, { signal: AbortSignal.timeout(2000) });
@@ -171,7 +379,10 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
 }
 
 async function createAppState(testDir, controls) {
+  const runtimeSettings = new ManagedRuntimeSettingsStore(path.join(testDir, 'runtime-settings.json'), process.env);
+  await runtimeSettings.initialize();
   const appState = {
+    controls,
     config: {
       apiId: 123,
       apiHash: 'must-never-be-returned',
@@ -185,7 +396,8 @@ async function createAppState(testDir, controls) {
       dupeBlocker: {},
       nested: {
         OPENROUTER_API_KEY: 'must-also-be-redacted',
-        AUDIT_WEBHOOK_TOKEN: 'must-also-be-redacted'
+        AUDIT_WEBHOOK_TOKEN: 'must-also-be-redacted',
+        backupEncryptionKey: 'must-also-be-redacted'
       }
     },
     state: {
@@ -216,15 +428,43 @@ async function createAppState(testDir, controls) {
       record: async event => {
         controls.auditEvents.push(event);
         if (controls.auditShouldFail) throw new Error('audit unavailable');
-      }
+      },
+      snapshot: () => ({ healthy: true, remoteRequired: false, lastRemoteSuccessAt: null, recordCount: controls.auditEvents.length }),
+      replayRemote: async () => { controls.auditReplayCalls += 1; return controls.auditEvents.length; }
     },
-    secretStore: new ManagedSecretStore(path.join(testDir, 'secrets'))
+    secretStore: new ManagedSecretStore(path.join(testDir, 'secrets')),
+    getOperationsStatus: () => ({ backup: { healthy: true }, audit: { healthy: true } }),
+    runBackupNow: async () => {
+      controls.backupCalls += 1;
+      if (controls.backupBarrier) await controls.backupBarrier;
+      return path.join(testDir, 'backups', 'backup-test');
+    },
+    listBackups: async () => ['backup-2026-test'],
+    verifyBackup: async () => ({ schemaVersion: 1 }),
+    recoverOffsiteBackup: async () => {
+      controls.offsiteRecoveryCalls += 1;
+      return 'backup-2026-recovered';
+    },
+    restoreBackup: async () => {
+      controls.restoreCalls += 1;
+      return { previousDatabase: path.join(testDir, 'previous.db'), previousConfig: null };
+    },
+    performFactoryReset: async () => {
+      controls.factoryResetCalls += 1;
+      await appState.stopForwarding();
+    },
+    requestRestart: () => { controls.restartCalls += 1; },
+    runtimeSettings
   };
   await appState.secretStore.initialize();
   return appState;
 }
 
 async function testBootstrap(baseUrl) {
+  let disabledLocal = await fetch(`${baseUrl}/api/local-session`, {
+    method: 'POST', headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
+  });
+  assert.strictEqual(disabledLocal.status, 409, 'Integrated startup must be explicitly enabled by the standalone runtime profile');
   const missingOrigin = await fetch(`${baseUrl}/api/bootstrap`, {
     method: 'POST',
     headers: { 'X-Requested-With': 'forwarder-dashboard' }
@@ -260,6 +500,8 @@ async function runTests() {
   const previousViewerToken = process.env.DASHBOARD_VIEWER_TOKEN;
   const previousWebHost = process.env.WEB_HOST;
   const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
+  const previousLocalTrust = process.env.DASHBOARD_LOCAL_TRUST;
+  const previousTemplatesDirectory = process.env.TEMPLATES_DIR;
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-web-test-'));
   const staticDirectory = path.resolve('frontend/dist/.directory-response-test');
   let stopped = false;
@@ -271,13 +513,21 @@ async function runTests() {
     delete process.env.DASHBOARD_VIEWER_TOKEN;
     delete process.env.WEB_HOST;
     process.env.DASHBOARD_AUTH_MODE = 'token';
+    process.env.TEMPLATES_DIR = path.join(testDir, 'templates');
 
     const controls = {
       stopCalls: 0,
       retryCalls: 0,
       acknowledgeCalls: 0,
+      backupCalls: 0,
+      auditReplayCalls: 0,
+      factoryResetCalls: 0,
+      restoreCalls: 0,
+      offsiteRecoveryCalls: 0,
+      restartCalls: 0,
       auditShouldFail: false,
-      auditEvents: []
+      auditEvents: [],
+      backupBarrier: null
     };
     const appState = await createAppState(testDir, controls);
 
@@ -295,7 +545,13 @@ async function runTests() {
 
     await testAuditedControl(baseUrl, controls);
     await testSensitiveMutations(baseUrl, controls);
+    await testEditableDefaultTemplate(baseUrl, process.env.TEMPLATES_DIR);
+    await testOperationsControl(baseUrl, controls);
+    await testMutationSerialization(baseUrl, controls);
+    await testUnavailableControlContracts(baseUrl, appState);
     await testBrowserAndDestructiveContracts(baseUrl, appState);
+    await testRuntimeSettingsControl(baseUrl, controls);
+    await testAccessTokenManagement(baseUrl);
 
     await stopWebServer();
     stopped = true;
@@ -313,6 +569,10 @@ async function runTests() {
     else process.env.WEB_HOST = previousWebHost;
     if (previousAuthMode === undefined) delete process.env.DASHBOARD_AUTH_MODE;
     else process.env.DASHBOARD_AUTH_MODE = previousAuthMode;
+    if (previousLocalTrust === undefined) delete process.env.DASHBOARD_LOCAL_TRUST;
+    else process.env.DASHBOARD_LOCAL_TRUST = previousLocalTrust;
+    if (previousTemplatesDirectory === undefined) delete process.env.TEMPLATES_DIR;
+    else process.env.TEMPLATES_DIR = previousTemplatesDirectory;
   }
 }
 

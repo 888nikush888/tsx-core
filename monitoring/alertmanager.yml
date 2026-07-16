@@ -14,4 +14,4 @@ receivers:
         http_config:
           authorization:
             type: Bearer
-            credentials_file: /run/secrets/alert_relay_token
+            credentials_file: /app/secrets/alert_relay_token

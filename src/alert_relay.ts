@@ -2,7 +2,9 @@ import { timingSafeEqual } from 'crypto';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFile } from 'node:fs/promises';
 import { loadEnv } from './env.js';
+import { validateRuntimeSettings } from './runtime_settings.js';
 
 const MAX_ALERT_BODY_BYTES = 1024 * 1024;
 
@@ -139,18 +141,32 @@ export function createAlertRelay(options: AlertRelayOptions): http.Server {
   return server;
 }
 
-function startFromEnvironment(): void {
+export async function applyManagedRuntimeSettings(env: NodeJS.ProcessEnv = process.env): Promise<void> {
+  if (env.ALERT_WEBHOOK_URL?.trim()) return;
+  const settingsPath = env.RUNTIME_SETTINGS_PATH?.trim();
+  if (!settingsPath) return;
+  const settings = validateRuntimeSettings(JSON.parse(await readFile(path.resolve(settingsPath), 'utf8')));
+  if (settings.alertWebhookUrl) env.ALERT_WEBHOOK_URL = settings.alertWebhookUrl;
+  env.ALERT_WEBHOOK_TIMEOUT_MS = String(settings.alertWebhookTimeoutMs);
+}
+
+async function startFromEnvironment(): Promise<void> {
   loadEnv();
+  await applyManagedRuntimeSettings(process.env);
   const port = Number(process.env.ALERT_RELAY_PORT || 9095);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) throw new Error('ALERT_RELAY_PORT must be between 1 and 65535.');
   const server = createAlertRelay({
     incomingToken: process.env.ALERT_RELAY_TOKEN || '',
     webhookUrl: process.env.ALERT_WEBHOOK_URL || '',
-    webhookToken: process.env.ALERT_WEBHOOK_TOKEN || ''
+    webhookToken: process.env.ALERT_WEBHOOK_TOKEN || '',
+    timeoutMs: Number(process.env.ALERT_WEBHOOK_TIMEOUT_MS || 10_000)
   });
   server.listen(port, '0.0.0.0', () => console.log(`[INFO] Alert relay listening on port ${port}.`));
 }
 
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {
-  startFromEnvironment();
+  startFromEnvironment().catch((error) => {
+    console.error(`[FATAL] Alert relay startup failed: ${error.message}`);
+    process.exitCode = 1;
+  });
 }

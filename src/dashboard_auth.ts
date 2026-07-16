@@ -114,6 +114,7 @@ export class OidcDashboardAuthenticator implements DashboardAuthenticator {
     this.viewerRole = configuredIdentifier(options.viewerRole, 'DASHBOARD_OIDC_VIEWER_ROLE');
     this.roleClaim = options.roleClaim?.trim() || 'roles';
     this.maxTokenAgeSeconds = options.maxTokenAgeSeconds ?? 3_600;
+    if (this.adminRole === this.viewerRole) throw new Error('OIDC administrator and viewer roles must be different.');
     if (!/^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$/.test(this.roleClaim)) throw new Error('DASHBOARD_OIDC_ROLE_CLAIM is invalid.');
     if (!Number.isSafeInteger(this.maxTokenAgeSeconds) || this.maxTokenAgeSeconds < 60 || this.maxTokenAgeSeconds > 86_400) {
       throw new Error('DASHBOARD_OIDC_MAX_TOKEN_AGE_SECONDS must be between 60 and 86400.');

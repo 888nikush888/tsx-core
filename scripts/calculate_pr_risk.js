@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const RISK_FACTORS = [
   { id: 'critical-domain', points: 5, label: 'Critical delivery, data, AI or control-plane domain', matches: file => /^src\/(forwarder|db|signal_parser|signal_schema|delivery_tracker|backup|backup_replication|web_server|audit_trail|dashboard_auth|secret_store|telegram_login)\.ts$/.test(file) },
-  { id: 'auth-secrets', points: 5, label: 'Authentication, authorization or secret boundary', matches: file => /^src\/(dashboard_auth|web_server|env|audit_trail|runtime_profile|secret_store|telegram_login)\.ts$/.test(file) || /^\.github\/workflows\//.test(file) },
+  { id: 'auth-secrets', points: 5, label: 'Authentication, authorization or secret boundary', matches: file => /^src\/(dashboard_auth|web_server|env|audit_trail|runtime_profile|runtime_settings|secret_store|telegram_login)\.ts$/.test(file) || /^\.github\/workflows\//.test(file) },
   { id: 'ai-side-effect', points: 5, label: 'AI prompt, schema or automatic side effect', matches: file => /^src\/(signal_parser|signal_schema|forwarder)\.ts$/.test(file) || /^templates\//.test(file) },
   { id: 'database', points: 4, label: 'Database, migration or persistent recovery', matches: file => /^src\/(db|migration_cli|backup)\.ts$/.test(file) },
   { id: 'concurrency', points: 4, label: 'Concurrency, retry, timeout, idempotency or shutdown', matches: file => /^src\/(queue|forwarder|delivery_tracker|tdlib_retry)\.ts$/.test(file) },

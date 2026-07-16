@@ -16,6 +16,7 @@ const root = await mkdtemp(path.join(os.tmpdir(), 'forwarder-offsite-test-'));
 const token = 't'.repeat(64);
 const key = Buffer.alloc(32, 7);
 const objects = new Map();
+const objectHashes = new Map();
 let tamperDownloads = false;
 const server = http.createServer(async (request, response) => {
   if (request.headers.authorization !== `Bearer ${token}`) {
@@ -31,13 +32,17 @@ const server = http.createServer(async (request, response) => {
       return;
     }
     objects.set(request.url, body);
+    objectHashes.set(request.url, request.headers['x-backup-sha256']);
     response.writeHead(201).end();
     return;
   }
   if (request.method === 'GET' && objects.has(request.url)) {
     const stored = Buffer.from(objects.get(request.url));
     if (tamperDownloads) stored[Math.floor(stored.length / 2)] ^= 1;
-    response.writeHead(200, { 'Content-Length': stored.length }).end(stored);
+    response.writeHead(200, {
+      'Content-Length': stored.length,
+      'X-Backup-SHA256': objectHashes.get(request.url),
+    }).end(stored);
     return;
   }
   response.writeHead(404).end();
@@ -63,7 +68,17 @@ try {
   assert.ok(result.size > 0);
   assert.equal(objects.size, 1);
 
+  const recovered = await replicator.recover(result.objectName, path.join(root, 'recovered'));
+  assert.equal(path.basename(recovered.artifactPath), result.objectName.replace(/\.tgfb$/, ''));
+  assert.equal(recovered.sha256, result.sha256);
+  await assert.rejects(replicator.recover('../escape.tgfb', path.join(root, 'recovered')), /object name is invalid/);
+  await assert.rejects(replicator.recover(result.objectName, path.join(root, 'recovered')), /already exists/);
+
   tamperDownloads = true;
+  await assert.rejects(
+    replicator.recover(result.objectName, path.join(root, 'tampered-recovery')),
+    /checksum does not match/
+  );
   await assert.rejects(replicator.replicate(artifact), /checksum does not match/);
 
   const encodedKey = key.toString('base64');

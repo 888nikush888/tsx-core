@@ -186,13 +186,26 @@ function utcUsageDay(): string {
 
 async function loadPrompt(templateName?: string): Promise<{ prompt: string; templateName: string }> {
   const normalized = (templateName || 'default').trim();
+  const templatesDir = path.resolve(
+    process.env.TEMPLATES_DIR?.trim()
+      || path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates')
+  );
   if (!normalized || normalized.toLowerCase() === 'default') {
-    return { prompt: DEFAULT_SIGNAL_PROMPT + SAFETY_PROMPT, templateName: 'default' };
+    const defaultPath = path.join(templatesDir, 'default.txt');
+    try {
+      const override = await fsPromises.readFile(defaultPath, 'utf-8');
+      if (!override.trim()) throw new Error('default template override is empty');
+      return { prompt: override.trim() + SAFETY_PROMPT, templateName: 'default' };
+    } catch (error: any) {
+      if (error?.code !== 'ENOENT') {
+        throw new Error(`Default signal template override cannot be loaded: ${error.message}`, { cause: error });
+      }
+      return { prompt: DEFAULT_SIGNAL_PROMPT + SAFETY_PROMPT, templateName: 'default' };
+    }
   }
   if (!/^[a-zA-Z0-9 _-]{1,64}$/.test(normalized)) {
     throw new Error(`Invalid signal template name '${normalized}'.`);
   }
-  const templatesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates');
   const templatePath = path.resolve(templatesDir, `${normalized}.txt`);
   if (path.dirname(templatePath) !== templatesDir) throw new Error(`Invalid signal template path '${normalized}'.`);
   try {

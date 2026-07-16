@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
-import { mkdir, open, readFile, stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { mkdir, open, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { createInterface } from 'node:readline';
 import { enterpriseMode } from './runtime_profile.js';
 
 export type AuditPhase = 'startup' | 'authorized' | 'completed';
@@ -73,22 +75,32 @@ function validateEvent(event: AuditEvent): void {
   }
 }
 
-function verifiedRecords(content: string): AuditRecord[] {
-  const records: AuditRecord[] = [];
+function verifiedRecord(line: string, previousHash: string, sequence: number): AuditRecord {
+  const parsed = JSON.parse(line) as AuditRecord;
+  const { hash, ...unsigned } = parsed;
+  if (parsed.schemaVersion !== 1 || parsed.sequence !== sequence + 1 || parsed.previousHash !== previousHash || hash !== recordHash(unsigned)) {
+    throw new Error(`Audit chain verification failed at record ${sequence + 1}.`);
+  }
+  validateEvent(parsed.event);
+  return parsed;
+}
+
+async function* verifiedRecordsFromFile(filePath: string): AsyncGenerator<AuditRecord> {
+  const exists = await stat(filePath).then(() => true).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  });
+  if (!exists) return;
+  const lines = createInterface({ input: createReadStream(filePath, { encoding: 'utf8' }), crlfDelay: Infinity });
   let previousHash = ZERO_HASH;
   let sequence = 0;
-  for (const line of content.split('\n').filter(Boolean)) {
-    const parsed = JSON.parse(line) as AuditRecord;
-    const { hash, ...unsigned } = parsed;
-    if (parsed.schemaVersion !== 1 || parsed.sequence !== sequence + 1 || parsed.previousHash !== previousHash || hash !== recordHash(unsigned)) {
-      throw new Error(`Audit chain verification failed at record ${sequence + 1}.`);
-    }
-    validateEvent(parsed.event);
-    previousHash = hash;
-    sequence = parsed.sequence;
-    records.push(parsed);
+  for await (const line of lines) {
+    if (!line) continue;
+    const record = verifiedRecord(line, previousHash, sequence);
+    previousHash = record.hash;
+    sequence = record.sequence;
+    yield record;
   }
-  return records;
 }
 
 export class EnterpriseAuditTrail {
@@ -121,13 +133,12 @@ export class EnterpriseAuditTrail {
 
   async initialize(): Promise<void> {
     await mkdir(path.dirname(this.filePath), { recursive: true });
-    const content = await readFile(this.filePath, 'utf8').catch((error: NodeJS.ErrnoException) => {
-      if (error.code === 'ENOENT') return '';
-      throw error;
-    });
-    const records = verifiedRecords(content);
-    this.previousHash = records.at(-1)?.hash ?? ZERO_HASH;
-    this.sequence = records.length;
+    this.previousHash = ZERO_HASH;
+    this.sequence = 0;
+    for await (const record of verifiedRecordsFromFile(this.filePath)) {
+      this.previousHash = record.hash;
+      this.sequence = record.sequence;
+    }
     this.healthy = true;
   }
 
@@ -135,6 +146,19 @@ export class EnterpriseAuditTrail {
     const operation = this.writeChain.then(() => this.recordSerial(event));
     this.writeChain = operation.catch(() => undefined);
     return operation;
+  }
+
+  async flush(): Promise<void> {
+    await this.writeChain;
+  }
+
+  async resetLocal(): Promise<void> {
+    await this.flush();
+    await rm(this.filePath, { force: true });
+    this.previousHash = ZERO_HASH;
+    this.sequence = 0;
+    this.healthy = true;
+    this.lastRemoteSuccessAt = null;
   }
 
   snapshot(): AuditTrailSnapshot {
@@ -148,11 +172,13 @@ export class EnterpriseAuditTrail {
 
   async replayRemote(): Promise<number> {
     if (!this.remoteUrl) throw new Error('Audit replay requires AUDIT_WEBHOOK_URL.');
-    const content = await readFile(this.filePath, 'utf8');
-    const records = verifiedRecords(content);
-    for (const record of records) await this.deliverRemote(record);
+    let replayed = 0;
+    for await (const record of verifiedRecordsFromFile(this.filePath)) {
+      await this.deliverRemote(record);
+      replayed += 1;
+    }
     this.healthy = true;
-    return records.length;
+    return replayed;
   }
 
   private async recordSerial(event: AuditEvent): Promise<void> {

@@ -35,6 +35,17 @@ try {
     viewerRole: 'forwarder-viewer',
     keySet: createLocalJWKSet({ keys: [publicJwk] })
   });
+  assert.throws(
+    () => new OidcDashboardAuthenticator({
+      issuer,
+      audience,
+      jwksUrl: `${issuer}/jwks.json`,
+      adminRole: 'shared-role',
+      viewerRole: 'shared-role',
+      keySet: createLocalJWKSet({ keys: [publicJwk] })
+    }),
+    /must be different/
+  );
   const sign = roles => new SignJWT({ roles })
     .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
     .setIssuer(issuer)

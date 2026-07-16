@@ -16,13 +16,14 @@ const THRESHOLDS = Object.freeze({
   minimumDiskHealth: 1,
   minimumAuditHealth: 1,
   maximumResidentMemoryBytes: 805_306_368,
-  maximumQueuedTasks: 100
+  maximumQueuedTasks: 100,
+  maximumOldestPendingAgeSeconds: 300
 });
 
 export function soakQueries(window = WINDOW) {
   return {
     scrapeCount: `sum(count_over_time(up{job="telegram-forwarder"}[${window}]))`,
-    availability: `avg(avg_over_time(up{job="telegram-forwarder"}[${window}]))`,
+    availability: `avg(avg_over_time(tg_forwarder_readiness[${window}]))`,
     attempts: `sum(increase(tg_forwarder_delivery_attempts_total[${window}]))`,
     deliverySuccess: `sum(increase(tg_forwarder_delivery_confirmed_total[${window}])) / clamp_min(sum(increase(tg_forwarder_delivery_attempts_total[${window}])), 1)`,
     p95LatencySeconds: `histogram_quantile(0.95, sum by (le) (rate(tg_forwarder_delivery_latency_seconds_bucket[${window}])))`,
@@ -32,7 +33,8 @@ export function soakQueries(window = WINDOW) {
     diskHealth: `min(min_over_time(tg_forwarder_disk_capacity_healthy[${window}]))`,
     auditHealth: `min(min_over_time(tg_forwarder_audit_healthy[${window}]))`,
     maxResidentMemoryBytes: `max(max_over_time(process_resident_memory_bytes[${window}]))`,
-    maxQueuedTasks: `max(max_over_time(tg_forwarder_queue_queued[${window}]))`
+    maxQueuedTasks: `max(max_over_time(tg_forwarder_queue_queued[${window}]))`,
+    maxOldestPendingAgeSeconds: `max(max_over_time(tg_forwarder_outbox_oldest_pending_age_seconds[${window}]))`
   };
 }
 
@@ -49,7 +51,8 @@ export function evaluateSoakWindow(values, thresholds = THRESHOLDS) {
     { name: 'disk health minimum', actual: values.diskHealth, target: `>= ${thresholds.minimumDiskHealth}`, passed: values.diskHealth >= thresholds.minimumDiskHealth },
     { name: 'audit health minimum', actual: values.auditHealth, target: `>= ${thresholds.minimumAuditHealth}`, passed: values.auditHealth >= thresholds.minimumAuditHealth },
     { name: 'resident memory maximum bytes', actual: values.maxResidentMemoryBytes, target: `<= ${thresholds.maximumResidentMemoryBytes}`, passed: values.maxResidentMemoryBytes <= thresholds.maximumResidentMemoryBytes },
-    { name: 'queued task maximum', actual: values.maxQueuedTasks, target: `<= ${thresholds.maximumQueuedTasks}`, passed: values.maxQueuedTasks <= thresholds.maximumQueuedTasks }
+    { name: 'queued task maximum', actual: values.maxQueuedTasks, target: `<= ${thresholds.maximumQueuedTasks}`, passed: values.maxQueuedTasks <= thresholds.maximumQueuedTasks },
+    { name: 'oldest pending task age seconds', actual: values.maxOldestPendingAgeSeconds, target: `<= ${thresholds.maximumOldestPendingAgeSeconds}`, passed: values.maxOldestPendingAgeSeconds <= thresholds.maximumOldestPendingAgeSeconds }
   ];
   return { passed: checks.every(check => check.passed), checks };
 }

@@ -39,8 +39,7 @@ services:
     volumes:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager
-    secrets:
-      - alert_relay_token
+      - forwarder_secrets:/app/secrets:ro
     ports:
       - 127.0.0.1:${HOST_ALERTMANAGER_PORT:-9093}:9093
     depends_on:
@@ -48,28 +47,24 @@ services:
 
   alert-relay:
     image: ${FORWARDER_IMAGE:-telegram-tdlib-forwarder:local}
-    command: [node, dist/alert_relay.js]
-    restart: on-failure:3
+    command: [dist/alert_relay.js]
+    restart: unless-stopped
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     pids_limit: 128
     mem_limit: 128m
     cpus: 0.25
-    env_file: [.env]
     environment:
-      ALERT_RELAY_TOKEN_FILE: /run/secrets/alert_relay_token
-      ALERT_WEBHOOK_TOKEN_FILE: /run/secrets/alert_webhook_token
-    secrets:
-      - alert_relay_token
-      - alert_webhook_token
-
-secrets:
-  alert_relay_token:
-    file: ${ALERT_RELAY_TOKEN_HOST_FILE}
-  alert_webhook_token:
-    file: ${ALERT_WEBHOOK_TOKEN_HOST_FILE}
+      ALERT_RELAY_TOKEN_FILE: /app/secrets/alert_relay_token
+      ALERT_WEBHOOK_TOKEN_FILE: /app/secrets/alert_webhook_token
+      RUNTIME_SETTINGS_PATH: /app/config/runtime-settings.json
+    volumes:
+      - forwarder_secrets:/app/secrets:ro
+      - forwarder_config:/app/config:ro
 
 volumes:
   prometheus_data:
   alertmanager_data:
+  forwarder_config:
+  forwarder_secrets:

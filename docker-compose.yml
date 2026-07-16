@@ -5,20 +5,19 @@ services:
       dockerfile: Dockerfile
     image: ${FORWARDER_IMAGE:-telegram-tdlib-forwarder:local}
     init: true
-    restart: "on-failure:3"
-    stop_grace_period: 45s
-    env_file:
-      - path: .env
-        required: false
+    restart: unless-stopped
+    stop_grace_period: 8m
     environment:
-      ENTERPRISE_MODE: ${ENTERPRISE_MODE:-false}
       WEB_HOST: "0.0.0.0"
       METRICS_HOST: "0.0.0.0"
       PORT: "8080"
       METRICS_PORT: "9100"
       BACKUP_DIR: "/app/backups"
+      LOG_DIR: "/app/logs"
       CONFIG_PATH: "/app/config/config.json"
+      RUNTIME_SETTINGS_PATH: "/app/config/runtime-settings.json"
       MANAGED_SECRET_DIR: "/app/secrets"
+      TEMPLATES_DIR: "/app/templates"
     volumes:
       - forwarder_config:/app/config
       - forwarder_secrets:/app/secrets

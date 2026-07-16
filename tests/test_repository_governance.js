@@ -26,6 +26,11 @@ const managedSecretChange = scorePullRequest([
 ]);
 assert.ok(managedSecretChange.factors.some(factor => factor.id === 'critical-domain'));
 assert.ok(managedSecretChange.factors.some(factor => factor.id === 'auth-secrets'));
+const runtimeSettingsChange = scorePullRequest([
+  { path: 'src/runtime_settings.ts', additions: 5, deletions: 1 },
+  { path: 'tests/test_runtime_settings.js', additions: 8, deletions: 0 }
+]);
+assert.ok(runtimeSettingsChange.factors.some(factor => factor.id === 'auth-secrets'));
 
 const requiredContexts = [
   'Lint, tests, coverage, build, supply chain',

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BrainCircuit, FolderOutput, Trash2, Plus, Save, FileCode } from "lucide-react"
+import { BrainCircuit, FolderOutput, Trash2, Plus, Save, FileCode, RotateCcw } from "lucide-react"
 import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
@@ -114,8 +114,10 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
   }
 
   const handleDeleteTemplate = async (nameToDelete: string) => {
-    if (nameToDelete === "default") return
-    if (!window.confirm(`Template „${nameToDelete}“ wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return
+    const confirmation = nameToDelete === "default"
+      ? "Eigenes Standard-Template verwerfen und das eingebaute sichere Standard-Template wiederherstellen?"
+      : `Template „${nameToDelete}“ wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`
+    if (!window.confirm(confirmation)) return
 
     try {
       const res = await apiFetch(`${API_BASE}/api/templates?name=${encodeURIComponent(nameToDelete)}`, {
@@ -224,7 +226,17 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5 pr-3">
+                <Label className="text-base">Externe Datenverarbeitung freigegeben</Label>
+                <p className="text-sm text-muted-foreground">Bestätigt Rechtsgrundlage, Quellenfreigabe und Provider-Vertrag für die Übertragung vollständiger Telegram-Nachrichten an OpenRouter.</p>
+              </div>
+              <Switch
+                checked={config.xmlParsing.externalDataPolicyAccepted === true}
+                onCheckedChange={(c) => handleXmlChange("externalDataPolicyAccepted", c)}
+              />
+            </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
                 <Label className="text-base">Forward XML</Label>
@@ -352,10 +364,18 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
                 <Label className="text-sm font-semibold">
                   Editor: <span className="text-primary font-mono">{selectedTemplateName}.txt</span>
                 </Label>
-                <Button size="sm" onClick={handleSaveTemplate} disabled={selectedTemplateName === "default" || isSavingTemplate || isLoadingTemplates}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSavingTemplate ? "Speichere..." : "Prompt speichern"}
-                </Button>
+                <div className="flex gap-2">
+                  {selectedTemplateName === "default" && (
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteTemplate("default")} disabled={isSavingTemplate || isLoadingTemplates}>
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Eingebautes Template
+                    </Button>
+                  )}
+                  <Button size="sm" onClick={handleSaveTemplate} disabled={isSavingTemplate || isLoadingTemplates || !activeContent.trim()}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {isSavingTemplate ? "Speichere..." : "Prompt speichern"}
+                  </Button>
+                </div>
               </div>
 
               <Textarea
@@ -363,12 +383,11 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
                 className="font-mono text-xs leading-relaxed"
                 placeholder="Geben Sie hier die Prompt-Instruktionen ein..."
                 value={activeContent}
-                readOnly={selectedTemplateName === "default"}
                 onChange={(e) => setActiveContent(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 {selectedTemplateName === "default"
-                  ? "Das eingebaute Sicherheits-Prompt ist schreibgeschützt. Erstellen Sie für Anpassungen ein benanntes Template."
+                  ? "Das Standard-Template ist editierbar. Die nicht entfernbaren Prompt-Injection- und Schema-Schutzregeln werden serverseitig weiterhin angehängt."
                   : "Speichern Sie Änderungen am aktiven Template ab, bevor Sie auf ein anderes Template wechseln."}
               </p>
             </div>

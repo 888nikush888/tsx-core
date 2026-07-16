@@ -17,6 +17,14 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
 
   const validateStoredToken = async () => {
     try {
+      const localSessionResponse = await apiFetch('/api/local-session', { method: 'POST' })
+      if (localSessionResponse.ok) {
+        const localSession = await localSessionResponse.json()
+        if (typeof localSession.token !== 'string') throw new Error('Integrated startup returned an invalid access token.')
+        setDashboardToken(localSession.token)
+        setState('authenticated')
+        return
+      }
       const bootstrapResponse = await apiFetch('/api/bootstrap/status')
       const bootstrap = await bootstrapResponse.json().catch(() => ({}))
       if (!bootstrapResponse.ok) throw new Error(bootstrap.error || 'Could not inspect dashboard setup.')
@@ -111,7 +119,7 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
         <Card className="w-full max-w-xl">
           <CardHeader>
             <CardTitle>Save your recovery token</CardTitle>
-            <CardDescription>This token is shown once. Docker also keeps it in the persistent secret volume.</CardDescription>
+            <CardDescription>This token is shown once. Docker also keeps it in the persistent secret volume and this browser keeps it in local storage.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="break-all rounded-md border bg-muted p-3 font-mono text-sm" data-testid="recovery-token">{recoveryToken}</div>

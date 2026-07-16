@@ -9,6 +9,7 @@ const stagingWorkflow = await readFile(path.join(root, '.github', 'workflows', '
 const syntheticWorkflow = await readFile(path.join(root, '.github', 'workflows', 'synthetic.yml'), 'utf8');
 const productionEvidenceWorkflow = await readFile(path.join(root, '.github', 'workflows', 'production_evidence.yml'), 'utf8');
 const dockerfile = await readFile(path.join(root, 'Dockerfile'), 'utf8');
+const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf8');
 const strykerConfig = await readFile(path.join(root, 'stryker.config.mjs'), 'utf8');
 const mutationRunner = await readFile(path.join(root, 'scripts', 'run_mutation_shards.js'), 'utf8');
 
@@ -77,5 +78,10 @@ const runtimeStage = dockerfile.slice(dockerfile.indexOf('FROM ${RUNTIME_IMAGE} 
 assert.doesNotMatch(runtimeStage, /^RUN\s/m, 'distroless runtime must not install packages');
 assert.match(runtimeStage, /^USER 65532:65532$/m);
 assert.match(runtimeStage, /^CMD \["dist\/forwarder\.js"\]$/m);
+assert.doesNotMatch(dockerCompose, /^\s*env_file:/m, 'default Docker runtime must not import workspace .env secrets');
+assert.match(dockerCompose, /^\s*restart:\s*unless-stopped\s*$/m);
+assert.match(dockerCompose, /^\s*stop_grace_period:\s*8m\s*$/m);
+assert.match(dockerCompose, /RUNTIME_SETTINGS_PATH:\s*"\/app\/config\/runtime-settings\.json"/);
+assert.match(dockerCompose, /"127\.0\.0\.1:\$\{HOST_WEB_PORT:-8080\}:8080"/);
 
 console.log('Supply-chain pinning policy tests passed.');

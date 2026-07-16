@@ -45,7 +45,7 @@ async function main() {
   ]);
   const { violations, improvements } = evaluateModuleCoverage(summary, baseline);
   for (const improvement of improvements) {
-    console.log(`COVERAGE IMPROVEMENT: ${improvement}; lower the baseline in this change.`);
+    console.log(`COVERAGE IMPROVEMENT: ${improvement}; raise the baseline in this change.`);
   }
   if (violations.length > 0) {
     for (const violation of violations) console.error(`MODULE COVERAGE VIOLATION: ${violation}`);

@@ -10,6 +10,7 @@ const HEALTHY_OPERATIONAL_METRICS = {
   connectionState: 'disconnected',
   queuePaused: false,
   outbox: { ...EMPTY_OUTBOX },
+  oldestPendingOutboxAgeSeconds: 15,
   aiRequestsToday: 3,
   aiUsedTokensToday: 120,
   aiReservedTokensToday: 40,
@@ -77,6 +78,8 @@ async function runTests() {
   assert.match(metrics, /tg_forwarder_total_forwarded 7/);
   assert.match(metrics, /tg_forwarder_connection_state\{state="connected"\} 1/);
   assert.match(metrics, /tg_forwarder_outbox_tasks\{status="unknown"\} 2/);
+  assert.match(metrics, /tg_forwarder_readiness 1/);
+  assert.match(metrics, /tg_forwarder_outbox_oldest_pending_age_seconds 15/);
   assert.match(metrics, /tg_forwarder_ai_reserved_tokens_today 40/);
   assert.match(metrics, /tg_forwarder_last_confirmed_delivery_timestamp_seconds 1700000000/);
   assert.match(metrics, /tg_forwarder_backup_healthy 1/);

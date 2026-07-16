@@ -58,6 +58,7 @@ export interface Config {
     queueTimeoutSeconds?: number;
   };
   filters: {
+    allowedKeywords?: string[];
     blockedKeywords: string[];
     allowedTypes: string[];
     regexPatterns: string[];
@@ -66,6 +67,7 @@ export interface Config {
   sourceAliases: Record<string, string>;
   xmlParsing: {
     enabled: boolean;
+    externalDataPolicyAccepted: boolean;
     saveToFile: boolean;
     forwardXmlToTarget: boolean;
     signalsDir: string;
@@ -120,6 +122,7 @@ export const DEFAULT_CONFIG: Config = {
   sourceAliases: {},
   xmlParsing: {
     enabled: false,
+    externalDataPolicyAccepted: false,
     saveToFile: true,
     forwardXmlToTarget: false,
     signalsDir: './signals',
@@ -380,11 +383,71 @@ function normalizeSourceAliases(cfg: Record<string, any>): void {
   }
 }
 
+function validateOptionalBoolean(container: Record<string, any>, key: string, qualifiedName: string): void {
+  if (container[key] !== undefined && typeof container[key] !== 'boolean') {
+    throw new Error(`${qualifiedName} must be true or false.`);
+  }
+}
+
+function validateOptionalStringArray(value: unknown, qualifiedName: string): void {
+  if (value === undefined) return;
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
+    throw new Error(`${qualifiedName} must be an array of strings.`);
+  }
+}
+
+function assertKnownKeys(container: Record<string, any>, allowed: readonly string[], qualifiedName: string): void {
+  const allowedKeys = new Set(allowed);
+  const unknown = Object.keys(container).filter((key) => !allowedKeys.has(key));
+  if (unknown.length > 0) throw new Error(`Unknown ${qualifiedName} field(s): ${unknown.join(', ')}.`);
+}
+
+function validateSideEffectContracts(cfg: Record<string, any>): void {
+  assertKnownKeys(cfg, [
+    'apiId', 'apiHash', 'sourceChannels', 'targetChannel', 'forwardOptions', 'filters',
+    'sourceFilters', 'sourceAliases', 'xmlParsing', 'dupeBlocker',
+  ], 'configuration');
+  validateOptionalStringArray(cfg.sourceChannels, 'sourceChannels');
+  if (cfg.targetChannel !== undefined && typeof cfg.targetChannel !== 'string') {
+    throw new Error('targetChannel must be a string.');
+  }
+  if (isRecord(cfg.forwardOptions)) {
+    assertKnownKeys(cfg.forwardOptions, [
+      'sendCopy', 'removeCaption', 'maxConcurrency', 'forwardToTarget', 'queueTimeoutSeconds',
+    ], 'forwardOptions');
+    validateOptionalBoolean(cfg.forwardOptions, 'sendCopy', 'forwardOptions.sendCopy');
+    validateOptionalBoolean(cfg.forwardOptions, 'removeCaption', 'forwardOptions.removeCaption');
+    validateOptionalBoolean(cfg.forwardOptions, 'forwardToTarget', 'forwardOptions.forwardToTarget');
+  }
+  if (isRecord(cfg.xmlParsing)) {
+    assertKnownKeys(cfg.xmlParsing, [
+      'enabled', 'externalDataPolicyAccepted', 'saveToFile', 'forwardXmlToTarget', 'signalsDir', 'sourceTemplates',
+      'primaryModel', 'fallbackModel', 'timeout', 'aiLimits',
+    ], 'xmlParsing');
+    validateOptionalBoolean(cfg.xmlParsing, 'enabled', 'xmlParsing.enabled');
+    validateOptionalBoolean(cfg.xmlParsing, 'externalDataPolicyAccepted', 'xmlParsing.externalDataPolicyAccepted');
+    validateOptionalBoolean(cfg.xmlParsing, 'saveToFile', 'xmlParsing.saveToFile');
+    validateOptionalBoolean(cfg.xmlParsing, 'forwardXmlToTarget', 'xmlParsing.forwardXmlToTarget');
+  }
+  if (isRecord(cfg.dupeBlocker)) {
+    assertKnownKeys(cfg.dupeBlocker, ['enabled', 'cooldownHours'], 'dupeBlocker');
+    validateOptionalBoolean(cfg.dupeBlocker, 'enabled', 'dupeBlocker.enabled');
+  }
+  if (isRecord(cfg.filters)) {
+    assertKnownKeys(cfg.filters, ['allowedKeywords', 'blockedKeywords', 'allowedTypes', 'regexPatterns'], 'filters');
+    validateOptionalStringArray(cfg.filters.allowedKeywords, 'filters.allowedKeywords');
+    validateOptionalStringArray(cfg.filters.blockedKeywords, 'filters.blockedKeywords');
+    validateOptionalStringArray(cfg.filters.allowedTypes, 'filters.allowedTypes');
+    validateOptionalStringArray(cfg.filters.regexPatterns, 'filters.regexPatterns');
+  }
+}
+
 /**
  * Validates and sanitizes config properties.
  */
 export function validateConfig(cfg: any): Config {
   if (!isRecord(cfg)) throw new Error('Configuration root must be a JSON object.');
+  validateSideEffectContracts(cfg);
   normalizeApiId(cfg);
   delete cfg.apiHash;
   normalizeForwardOptions(cfg);

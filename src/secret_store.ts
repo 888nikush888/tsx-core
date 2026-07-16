@@ -2,11 +2,29 @@ import { randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-export type ManagedSecretName = 'telegramApiHash' | 'openRouterApiKey' | 'dashboardAdminToken';
+export type ManagedSecretName =
+  | 'telegramApiHash'
+  | 'openRouterApiKey'
+  | 'dashboardAdminToken'
+  | 'dashboardViewerToken'
+  | 'auditWebhookToken'
+  | 'alertRelayToken'
+  | 'alertWebhookToken'
+  | 'backupOffsiteToken'
+  | 'backupEncryptionKey';
 export type ManagedSecretSource = 'managed' | 'external' | 'missing';
 
 interface SecretDefinition {
-  environmentName: 'TELEGRAM_API_HASH' | 'OPENROUTER_API_KEY' | 'DASHBOARD_ADMIN_TOKEN';
+  environmentName:
+    | 'TELEGRAM_API_HASH'
+    | 'OPENROUTER_API_KEY'
+    | 'DASHBOARD_ADMIN_TOKEN'
+    | 'DASHBOARD_VIEWER_TOKEN'
+    | 'AUDIT_WEBHOOK_TOKEN'
+    | 'ALERT_RELAY_TOKEN'
+    | 'ALERT_WEBHOOK_TOKEN'
+    | 'BACKUP_OFFSITE_TOKEN'
+    | 'BACKUP_ENCRYPTION_KEY';
   fileName: string;
   validate(value: string): boolean;
   error: string;
@@ -30,6 +48,48 @@ const DEFINITIONS: Record<ManagedSecretName, SecretDefinition> = {
     fileName: 'dashboard_admin_token',
     validate: (value) => value.length >= 32 && value.length <= 512 && !/^(replace_|change-?me|example|placeholder)/i.test(value),
     error: 'Dashboard administrator token must contain between 32 and 512 random characters.',
+  },
+  dashboardViewerToken: {
+    environmentName: 'DASHBOARD_VIEWER_TOKEN',
+    fileName: 'dashboard_viewer_token',
+    validate: (value) => value.length >= 32 && value.length <= 512 && !/^(replace_|change-?me|example|placeholder)/i.test(value),
+    error: 'Dashboard viewer token must contain between 32 and 512 random characters.',
+  },
+  auditWebhookToken: {
+    environmentName: 'AUDIT_WEBHOOK_TOKEN',
+    fileName: 'audit_webhook_token',
+    validate: (value) => value.length >= 32 && value.length <= 512 && !/^(replace_|change-?me|example|placeholder)/i.test(value),
+    error: 'Audit webhook token must contain between 32 and 512 random characters.',
+  },
+  alertRelayToken: {
+    environmentName: 'ALERT_RELAY_TOKEN',
+    fileName: 'alert_relay_token',
+    validate: (value) => value.length >= 32 && value.length <= 512 && !/^(replace_|change-?me|example|placeholder)/i.test(value),
+    error: 'Alert relay token must contain between 32 and 512 random characters.',
+  },
+  alertWebhookToken: {
+    environmentName: 'ALERT_WEBHOOK_TOKEN',
+    fileName: 'alert_webhook_token',
+    validate: (value) => value.length >= 32 && value.length <= 512 && !/^(replace_|change-?me|example|placeholder)/i.test(value),
+    error: 'Alert webhook token must contain between 32 and 512 random characters.',
+  },
+  backupOffsiteToken: {
+    environmentName: 'BACKUP_OFFSITE_TOKEN',
+    fileName: 'backup_offsite_token',
+    validate: (value) => value.length >= 32 && value.length <= 512 && !/^(replace_|change-?me|example|placeholder)/i.test(value),
+    error: 'Off-site backup token must contain between 32 and 512 random characters.',
+  },
+  backupEncryptionKey: {
+    environmentName: 'BACKUP_ENCRYPTION_KEY',
+    fileName: 'backup_encryption_key',
+    validate: (value) => {
+      try {
+        return Buffer.from(value, 'base64').length === 32 && Buffer.from(value, 'base64').toString('base64') === value;
+      } catch {
+        return false;
+      }
+    },
+    error: 'Backup encryption key must be a canonical base64-encoded 32-byte key.',
   },
 };
 
@@ -65,7 +125,7 @@ export class ManagedSecretStore {
   private readonly directory: string;
   private readonly env: NodeJS.ProcessEnv;
   private readonly sources = new Map<ManagedSecretName, ManagedSecretSource>();
-  private creatingDashboardToken = false;
+  private readonly generatingTokens = new Set<ManagedSecretName>();
 
   constructor(directory: string, env: NodeJS.ProcessEnv = process.env) {
     this.directory = path.resolve(directory);
@@ -85,7 +145,8 @@ export class ManagedSecretStore {
     return Object.fromEntries(
       (Object.keys(DEFINITIONS) as ManagedSecretName[]).map((name) => {
         const source = this.sources.get(name) ?? 'missing';
-        return [name, { configured: source !== 'missing', editable: source !== 'external', source }];
+        const immutableBackupKey = name === 'backupEncryptionKey' && source === 'managed';
+        return [name, { configured: source !== 'missing', editable: source !== 'external' && !immutableBackupKey, source }];
       })
     ) as Record<ManagedSecretName, ManagedSecretStatus>;
   }
@@ -98,26 +159,78 @@ export class ManagedSecretStore {
       if (this.sources.get(name) === 'external') {
         throw new Error(`${DEFINITIONS[name].environmentName} is externally managed and cannot be changed in the dashboard.`);
       }
-      return [name, validateSecret(name, value)] as const;
+      const normalized = validateSecret(name, value);
+      if (name === 'backupEncryptionKey' && this.sources.get(name) === 'managed') {
+        const current = this.env.BACKUP_ENCRYPTION_KEY?.trim();
+        if (current !== normalized) {
+          throw new Error('BACKUP_ENCRYPTION_KEY is immutable because rotating it would make existing off-site backups unrecoverable. Use factory reset only when those backups are intentionally abandoned.');
+        }
+      }
+      return [name, normalized] as const;
     });
     for (const [name, value] of validated) await this.write(name, value);
   }
 
   async createDashboardAdminToken(): Promise<string> {
-    if (this.creatingDashboardToken) {
+    if (this.generatingTokens.has('dashboardAdminToken')) {
       throw new Error('Dashboard authentication bootstrap is already in progress.');
     }
     if (this.status().dashboardAdminToken.configured) {
       throw new Error('Dashboard authentication is already configured.');
     }
-    this.creatingDashboardToken = true;
+    this.generatingTokens.add('dashboardAdminToken');
     try {
-      const token = randomBytes(32).toString('hex');
-      await this.set({ dashboardAdminToken: token });
-      return token;
+      return await this.generateDashboardToken('dashboardAdminToken');
     } finally {
-      this.creatingDashboardToken = false;
+      this.generatingTokens.delete('dashboardAdminToken');
     }
+  }
+
+  async getOrCreateDashboardAdminToken(): Promise<string> {
+    const source = this.sources.get('dashboardAdminToken') ?? 'missing';
+    if (source === 'external') {
+      throw new Error('Local dashboard startup cannot recover an externally managed administrator token.');
+    }
+    const configured = this.env.DASHBOARD_ADMIN_TOKEN?.trim();
+    if (source === 'managed' && configured) return validateSecret('dashboardAdminToken', configured);
+    return this.createDashboardAdminToken();
+  }
+
+  async rotateDashboardToken(role: 'admin' | 'viewer'): Promise<string> {
+    const name = role === 'admin' ? 'dashboardAdminToken' : 'dashboardViewerToken';
+    if (this.generatingTokens.has(name)) throw new Error(`Dashboard ${role} token generation is already in progress.`);
+    if (this.sources.get(name) === 'external') {
+      throw new Error(`${DEFINITIONS[name].environmentName} is externally managed and cannot be rotated in the dashboard.`);
+    }
+    this.generatingTokens.add(name);
+    try {
+      return await this.generateDashboardToken(name);
+    } finally {
+      this.generatingTokens.delete(name);
+    }
+  }
+
+  async removeDashboardViewerToken(): Promise<void> {
+    await this.remove('dashboardViewerToken');
+  }
+
+  async clear(): Promise<void> {
+    this.assertClearable();
+    for (const name of Object.keys(DEFINITIONS) as ManagedSecretName[]) await this.remove(name);
+  }
+
+  assertClearable(): void {
+    const external = (Object.keys(DEFINITIONS) as ManagedSecretName[])
+      .filter((name) => this.sources.get(name) === 'external');
+    if (external.length > 0) {
+      throw new Error(`Factory reset cannot remove externally managed secrets: ${external.map((name) => DEFINITIONS[name].environmentName).join(', ')}.`);
+    }
+  }
+
+  private async generateDashboardToken(name: 'dashboardAdminToken' | 'dashboardViewerToken'): Promise<string> {
+    const token = randomBytes(32).toString('hex');
+    await this.set({ [name]: token });
+    return token;
   }
 
   private secretPath(name: ManagedSecretName): string {
@@ -165,6 +278,18 @@ export class ManagedSecretStore {
       await fs.unlink(temporary).catch(() => undefined);
       throw error;
     }
+  }
+
+  private async remove(name: ManagedSecretName): Promise<void> {
+    if (this.sources.get(name) === 'external') {
+      throw new Error(`${DEFINITIONS[name].environmentName} is externally managed and cannot be removed in the dashboard.`);
+    }
+    await fs.unlink(this.secretPath(name)).catch((error: any) => {
+      if (error?.code !== 'ENOENT') throw error;
+    });
+    delete this.env[DEFINITIONS[name].environmentName];
+    this.sources.set(name, 'missing');
+    await syncDirectory(this.directory);
   }
 }
 

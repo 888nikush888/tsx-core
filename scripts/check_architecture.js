@@ -96,6 +96,7 @@ export async function analyzeArchitecture() {
     'metrics_tracker.ts',
     'queue.ts',
     'runtime_profile.ts',
+    'runtime_settings.ts',
     'secret_store.ts',
     'signal_schema.ts',
     'telegram_login.ts',

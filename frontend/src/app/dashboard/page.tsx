@@ -19,7 +19,15 @@ import { apiFetch } from "@/lib/api"
 const API_BASE = window.location.origin
 
 type SecretState = { configured: boolean; editable: boolean; source: 'managed' | 'external' | 'missing' }
-type SecretStatus = { telegramApiHash: SecretState; openRouterApiKey: SecretState }
+type SecretStatus = {
+  telegramApiHash: SecretState
+  openRouterApiKey: SecretState
+  dashboardAdminToken: SecretState
+  dashboardViewerToken: SecretState
+  auditWebhookToken: SecretState
+  backupOffsiteToken: SecretState
+  backupEncryptionKey: SecretState
+}
 type TelegramLoginState = {
   state: 'idle' | 'authenticating' | 'waiting' | 'completed' | 'failed'
   prompt?: { kind: string; label: string; hint?: string; retry?: boolean; link?: string }
@@ -44,6 +52,11 @@ export default function Page() {
   const [secretStatus, setSecretStatus] = useState<SecretStatus>({
     telegramApiHash: MISSING_SECRET,
     openRouterApiKey: MISSING_SECRET,
+    dashboardAdminToken: MISSING_SECRET,
+    dashboardViewerToken: MISSING_SECRET,
+    auditWebhookToken: MISSING_SECRET,
+    backupOffsiteToken: MISSING_SECRET,
+    backupEncryptionKey: MISSING_SECRET,
   })
   const [secretDraft, setSecretDraft] = useState({ telegramApiHash: '', openRouterApiKey: '' })
   const [telegramLogin, setTelegramLogin] = useState<TelegramLoginState>({ state: 'idle' })
@@ -307,7 +320,7 @@ export default function Page() {
             setSecretValue={(value: string) => setSecretDraft((current) => ({ ...current, openRouterApiKey: value }))}
           />}
           {tab === "logs" && <LogsTab config={config} />}
-          {tab === "system" && <SystemTab config={config} />}
+          {tab === "system" && <SystemTab config={config} secretStatus={secretStatus} onSecretStatusChange={setSecretStatus} />}
           {tab === "messages" && <MessagesTab />}
           {tab === "signals" && <SignalsTab config={config} />}
         </div>

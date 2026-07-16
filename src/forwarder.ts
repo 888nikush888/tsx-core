@@ -5,6 +5,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import {
   canonicalizeResolvedSources,
+  configurationPathFromEnvironment,
+  DEFAULT_CONFIG,
   readConfigSync,
   writeConfigSync,
   isValidTargetChannel,
@@ -25,6 +27,7 @@ import {
   getAiUsage,
   getDatabaseStorageStats,
   getLastForwardedAt,
+  getOldestPendingOutboxAgeSeconds,
   getOutboxStatusCounts,
   getTotalForwardedCount,
   incrementForwardedCount,
@@ -47,8 +50,8 @@ import { parseSignalToXml, type AiLimits, type ParsedSignal } from './signal_par
 import { MetricsTracker } from './metrics_tracker.js';
 import { TelegramDeliveryTracker } from './delivery_tracker.js';
 import { checkCrashLoopFiles } from './crash_guard.js';
-import { BackupScheduler } from './backup.js';
-import { offsiteBackupFromEnvironment } from './backup_replication.js';
+import { BackupScheduler, restoreBackupArtifact, verifyBackupArtifact } from './backup.js';
+import { offsiteBackupFromEnvironment, type BackupReplicator } from './backup_replication.js';
 import { OperationalDataRetention, retentionPolicyFromEnvironment } from './retention.js';
 import { invokeWithFloodWaitRetry } from './tdlib_retry.js';
 import { DeliverySloTracker } from './slo_tracker.js';
@@ -56,6 +59,10 @@ import { auditTrailFromEnvironment, type EnterpriseAuditTrail } from './audit_tr
 import { addLog, clearLogHistory, initFileLogger } from './logger.js';
 import { managedSecretStoreFromEnvironment, type ManagedSecretStore } from './secret_store.js';
 import { TelegramLoginCoordinator } from './telegram_login.js';
+import {
+  managedRuntimeSettingsFromEnvironment,
+  type ManagedRuntimeSettingsStore,
+} from './runtime_settings.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -325,6 +332,7 @@ let client = null, targetChatId = null;
 let routingStopRequested = false;
 let metricsTracker: MetricsTracker | null = null;
 let backupScheduler: BackupScheduler | null = null;
+let offsiteBackupReplicator: BackupReplicator | null = null;
 let retentionScheduler: OperationalDataRetention | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
@@ -455,20 +463,23 @@ async function collectOperationalMetrics(
     return {
       ...base,
       outbox: emptyOutbox,
+      oldestPendingOutboxAgeSeconds: 0,
       aiRequestsToday: 0,
       aiUsedTokensToday: 0,
       aiReservedTokensToday: 0
     };
   }
 
-  const [outbox, aiUsage, storage] = await Promise.all([
+  const [outbox, oldestPendingOutboxAgeSeconds, aiUsage, storage] = await Promise.all([
     getOutboxStatusCounts(),
+    getOldestPendingOutboxAgeSeconds(),
     getAiUsage(new Date().toISOString().slice(0, 10)),
     getDatabaseStorageStats()
   ]);
   return {
     ...base,
     outbox,
+    oldestPendingOutboxAgeSeconds,
     aiRequestsToday: aiUsage.requestCount,
     aiUsedTokensToday: aiUsage.usedTokens,
     aiReservedTokensToday: aiUsage.reservedTokens,
@@ -730,9 +741,7 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
     addLog(`[XML-Parser ERROR] Paket ${message.id}: ${error.message}`);
     updateIncomingMessageStatus(String(message.chat_id), message.id, 'failed')
       .catch(statusError => addLog(`[WARN] Inbox failure status update failed for ${message.id}: ${statusError.message}`));
-    if (forwardXml || !shouldForwardToTelegram) {
-      throw error;
-    }
+    throw error;
   }
   return { handled: false };
 }
@@ -747,6 +756,9 @@ async function forwardSingleMessage(message, config, context: OutboxExecutionCon
 
   let xmlResult = { handled: false } as { handled: boolean; result?: any };
   if (xmlParsing.enabled && text?.trim()) {
+    if (xmlParsing.externalDataPolicyAccepted !== true) {
+      throw new Error('AI parsing is blocked until the external data-processing policy is explicitly accepted in the Web UI.');
+    }
     xmlResult = await processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldForwardToTelegram, context);
   }
 
@@ -1133,6 +1145,7 @@ async function performShutdown(exitCode: number): Promise<void> {
   }
   await stopRuntimeServices();
   const databaseClosed = await closeDatabaseAfterDrain(drained);
+  await auditTrail?.flush();
   if (drained) await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
   if (databaseClosed) await removeOperationalLock(processLockPath, 'Prozess-Lock');
   process.exitCode = exitCode;
@@ -1175,6 +1188,7 @@ async function initializeCoreRuntime() {
 
 async function startBackupRuntime(runtime: RuntimeConfiguration): Promise<void> {
   const offsiteBackup = offsiteBackupFromEnvironment();
+  offsiteBackupReplicator = offsiteBackup.replicator;
   const backupIntervalValue = Number(process.env.BACKUP_INTERVAL_MS || 15 * 60_000);
   const backupIntervalMs = Number.isSafeInteger(backupIntervalValue) && backupIntervalValue >= 60_000 && backupIntervalValue <= 15 * 60_000
     ? backupIntervalValue
@@ -1223,7 +1237,137 @@ function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number):
   }
 }
 
-function startDashboardRuntime(runtime: RuntimeConfiguration, secretStore: ManagedSecretStore): void {
+async function assertFactoryResetDirectory(directory: string): Promise<string> {
+  const root = path.resolve(directory);
+  const applicationRoot = path.resolve(process.cwd());
+  if (root === applicationRoot || !root.startsWith(`${applicationRoot}${path.sep}`)) {
+    throw new Error(`Factory reset refuses to erase a path outside the application root: ${root}`);
+  }
+  await fsPromises.mkdir(root, { recursive: true, mode: 0o700 });
+  const stats = await fsPromises.lstat(root);
+  if (!stats.isDirectory() || stats.isSymbolicLink()) {
+    throw new Error(`Factory reset path must be a real directory: ${root}`);
+  }
+  return root;
+}
+
+async function clearFactoryResetDirectory(directory: string): Promise<void> {
+  const root = await assertFactoryResetDirectory(directory);
+  const entries = await fsPromises.readdir(root);
+  for (const entry of entries) {
+    await fsPromises.rm(path.join(root, entry), { recursive: true, force: true });
+  }
+}
+
+async function performCompleteFactoryReset(
+  runtime: RuntimeConfiguration,
+  secretStore: ManagedSecretStore,
+  runtimeSettings: ManagedRuntimeSettingsStore
+): Promise<void> {
+  secretStore.assertClearable();
+  const configPath = configurationPathFromEnvironment();
+  const applicationRoot = path.resolve(process.cwd());
+  if (!configPath.startsWith(`${applicationRoot}${path.sep}`)) {
+    throw new Error(`Factory reset refuses to erase a configuration outside the application root: ${configPath}`);
+  }
+  const logsDirectory = path.resolve(process.env.LOG_DIR || path.join(process.cwd(), 'logs'));
+  const configuredSignalsDirectory = path.resolve(runtime.config.xmlParsing?.signalsDir || path.join(process.cwd(), 'signals'));
+  const resetDirectories = [
+    process.env.MANAGED_SECRET_DIR || path.join(process.cwd(), 'secrets'),
+    process.env.TEMPLATES_DIR || path.resolve(__dirname, '../templates'),
+    path.join(process.cwd(), 'session_data'),
+    path.join(process.cwd(), 'session_files'),
+    configuredSignalsDirectory,
+    path.join(process.cwd(), 'signals'),
+    process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'),
+    logsDirectory,
+  ];
+  const targets = new Map<string, string>();
+  for (const directory of resetDirectories) {
+    const resolved = await assertFactoryResetDirectory(directory);
+    targets.set(resolved, resolved);
+  }
+
+  await stopForwarding();
+  await stopScheduler(backupScheduler, 'Laufendes Backup');
+  await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
+  backupScheduler = null;
+  retentionScheduler = null;
+  metricsTracker?.stop();
+  metricsTracker = null;
+  deliveryTracker?.close('Factory reset.');
+  deliveryTracker = null;
+  await closeDb();
+  await secretStore.clear();
+  await runtimeSettings.reset();
+  await fsPromises.rm(configPath, { force: true });
+  for (const target of targets.values()) await clearFactoryResetDirectory(target);
+  await auditTrail?.resetLocal();
+
+  const candidateConfig = structuredClone(DEFAULT_CONFIG);
+  writeConfigSync(candidateConfig);
+  for (const key of Object.keys(runtime.config)) delete runtime.config[key];
+  Object.assign(runtime.config, candidateConfig);
+  state.isRunning = false;
+  state.connectionState = 'factory-reset';
+  state.startupTime = null;
+  state.totalForwardedCount = 0;
+  state.processedSinceRestart = 0;
+  state.resolvedSourceChatIds.clear();
+  clearLogHistory();
+}
+
+function backupDirectoryPath(): string {
+  return path.resolve(process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'));
+}
+
+function resolvedBackupArtifact(artifactName: string): string {
+  const directory = backupDirectoryPath();
+  const artifact = path.resolve(directory, artifactName);
+  if (path.dirname(artifact) !== directory) throw new Error('Invalid backup artifact path.');
+  return artifact;
+}
+
+async function listAvailableBackups(): Promise<string[]> {
+  const entries = await fsPromises.readdir(backupDirectoryPath(), { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory() && /^backup-\d{4}-/.test(entry.name))
+    .map((entry) => entry.name)
+    .sort()
+    .reverse();
+}
+
+async function recoverNamedOffsiteBackup(objectName: string): Promise<string> {
+  if (!offsiteBackupReplicator) throw new Error('Off-site backup recovery is not configured.');
+  const recovered = await offsiteBackupReplicator.recover(objectName, backupDirectoryPath());
+  return path.basename(recovered.artifactPath);
+}
+
+async function restoreNamedBackup(artifactName: string) {
+  const artifact = resolvedBackupArtifact(artifactName);
+  await verifyBackupArtifact(artifact);
+  await stopForwarding();
+  await stopScheduler(backupScheduler, 'Laufendes Backup');
+  await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
+  backupScheduler = null;
+  retentionScheduler = null;
+  await closeDb();
+  await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
+  await removeOperationalLock(processLockPath, 'Prozess-Lock');
+  const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
+  return restoreBackupArtifact(
+    artifact,
+    databasePath,
+    configurationPathFromEnvironment(),
+    path.dirname(databasePath)
+  );
+}
+
+function startDashboardRuntime(
+  runtime: RuntimeConfiguration,
+  secretStore: ManagedSecretStore,
+  runtimeSettings: ManagedRuntimeSettingsStore
+): void {
   const webPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
   startWebServer(webPort, {
       config: runtime.config,
@@ -1261,7 +1405,29 @@ function startDashboardRuntime(runtime: RuntimeConfiguration, secretStore: Manag
       getTelegramLoginState: () => telegramLogin.snapshot(),
       submitTelegramLogin: (payload) => telegramLogin.submit(payload),
       auditTrail,
-      secretStore
+      secretStore,
+      runtimeSettings,
+      getOperationsStatus: () => ({
+        backup: backupScheduler?.getStatus() ?? null,
+        retention: retentionScheduler?.getStatus() ?? null,
+        audit: auditTrail?.snapshot() ?? null,
+      }),
+      runBackupNow: async () => {
+        if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
+        return backupScheduler.runNow();
+      },
+      listBackups: listAvailableBackups,
+      verifyBackup: (artifactName) => verifyBackupArtifact(resolvedBackupArtifact(artifactName)),
+      recoverOffsiteBackup: recoverNamedOffsiteBackup,
+      restoreBackup: restoreNamedBackup,
+      performFactoryReset: async () => {
+        await performCompleteFactoryReset(runtime, secretStore, runtimeSettings);
+      },
+      requestRestart: () => {
+        setTimeout(() => {
+          void shutdown(0).finally(() => process.exit(process.exitCode || 0));
+        }, 150).unref();
+      }
   });
 }
 
@@ -1282,13 +1448,20 @@ async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<void> {
 
 async function run() {
   loadEnv();
+  const runtimeSettings = managedRuntimeSettingsFromEnvironment();
+  await runtimeSettings.initialize();
+  runtimeSettings.applyToEnvironment();
   const secretStore = managedSecretStoreFromEnvironment();
   await secretStore.initialize();
   const runtime = { config: readConfigSync() };
   const { databasePath, retentionPolicy } = await initializeCoreRuntime();
-  await startBackupRuntime(runtime);
   startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
-  startDashboardRuntime(runtime, secretStore);
+  startDashboardRuntime(runtime, secretStore, runtimeSettings);
+  try {
+    await startBackupRuntime(runtime);
+  } catch (error: any) {
+    addLog(`[CRITICAL] Backup runtime failed to initialize; dashboard remains available for recovery: ${error.message}`);
+  }
   await runConfiguredMode(runtime);
 }
 run().catch(async err => {

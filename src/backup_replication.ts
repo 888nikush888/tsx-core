@@ -23,6 +23,15 @@ export interface BackupReplicationResult {
 
 export interface BackupReplicator {
   replicate(artifactPath: string): Promise<BackupReplicationResult>;
+  recover(objectName: string, backupDirectory: string): Promise<BackupRecoveryResult>;
+}
+
+export interface BackupRecoveryResult {
+  objectName: string;
+  artifactPath: string;
+  sha256: string;
+  size: number;
+  verifiedAt: number;
 }
 
 interface HttpsBackupReplicatorOptions {
@@ -210,6 +219,21 @@ async function downloadExactly(response: Response, destination: string, expected
   if (received !== expectedBytes) throw new Error('Off-site backup download is truncated.');
 }
 
+function offsiteObjectName(value: string): string {
+  if (!/^backup-\d{4}-[a-zA-Z0-9_.:-]{1,160}\.tgfb$/.test(value)) {
+    throw new Error('Off-site backup object name is invalid.');
+  }
+  return value;
+}
+
+function responseObjectSize(response: Response): number {
+  const value = Number(response.headers.get('content-length'));
+  if (!Number.isSafeInteger(value) || value < ENCRYPTED_MAGIC.length + IV_BYTES + TAG_BYTES + 1 || value > MAX_OBJECT_BYTES) {
+    throw new Error('Off-site backup download must declare a valid bounded Content-Length.');
+  }
+  return value;
+}
+
 export class HttpsBackupReplicator implements BackupReplicator {
   private readonly timeoutMs: number;
 
@@ -277,6 +301,52 @@ export class HttpsBackupReplicator implements BackupReplicator {
         fs.rm(encryptedPath, { force: true }),
         fs.rm(downloadedPath, { force: true }),
         fs.rm(restoredPath, { recursive: true, force: true })
+      ]);
+    }
+  }
+
+  async recover(objectName: string, backupDirectory: string): Promise<BackupRecoveryResult> {
+    const validatedName = offsiteObjectName(objectName);
+    const root = path.resolve(backupDirectory);
+    await fs.mkdir(root, { recursive: true, mode: 0o700 });
+    const artifactName = validatedName.slice(0, -'.tgfb'.length);
+    const finalPath = path.resolve(root, artifactName);
+    if (path.dirname(finalPath) !== root) throw new Error('Recovered backup path escapes the backup directory.');
+    await fs.lstat(finalPath).then(() => {
+      throw new Error(`Local backup artifact '${artifactName}' already exists.`);
+    }).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== 'ENOENT') throw error;
+    });
+    const operationId = randomUUID();
+    const encryptedPath = path.join(root, `.offsite-recovery-${operationId}.download`);
+    const temporaryArtifact = path.join(root, `.offsite-recovery-${operationId}.artifact`);
+    const objectUrl = this.options.urlTemplate.replace('{artifact}', encodeURIComponent(validatedName));
+    try {
+      const response = await fetch(objectUrl, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${this.options.bearerToken}` },
+        redirect: 'error',
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+      if (response.status !== 200) {
+        await response.body?.cancel();
+        throw new Error(`Off-site backup recovery download failed with HTTP ${response.status}.`);
+      }
+      const size = responseObjectSize(response);
+      await downloadExactly(response, encryptedPath, size);
+      const sha256 = await sha256File(encryptedPath);
+      const expectedHash = response.headers.get('x-backup-sha256');
+      if (expectedHash && (!/^[a-f0-9]{64}$/.test(expectedHash) || expectedHash !== sha256)) {
+        throw new Error('Off-site backup recovery checksum does not match the remote object metadata.');
+      }
+      await decryptArtifact(encryptedPath, temporaryArtifact, this.options.encryptionKey);
+      await verifyBackupArtifact(temporaryArtifact);
+      await fs.rename(temporaryArtifact, finalPath);
+      return { objectName: validatedName, artifactPath: finalPath, sha256, size, verifiedAt: Date.now() };
+    } finally {
+      await Promise.all([
+        fs.rm(encryptedPath, { force: true }),
+        fs.rm(temporaryArtifact, { recursive: true, force: true }),
       ]);
     }
   }

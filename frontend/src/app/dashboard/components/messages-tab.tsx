@@ -153,7 +153,10 @@ export function MessagesTab() {
                             e.stopPropagation()
                             if (window.confirm("Diese Nachricht wirklich aus dem Verlauf löschen?")) {
                               try {
-                                const res = await apiFetch(`${API_BASE}/api/incoming-messages?id=${msg.id}`, { method: 'DELETE' })
+                                const res = await apiFetch(`${API_BASE}/api/incoming-messages?id=${msg.id}`, {
+                                  method: 'DELETE',
+                                  headers: { 'X-Destructive-Confirmation': 'delete-incoming-message' },
+                                })
                                 if (res.ok) {
                                   fetchMessages()
                                 } else {
