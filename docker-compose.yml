@@ -23,6 +23,7 @@ services:
       RUNTIME_SETTINGS_PATH: "/app/config/runtime-settings.json"
       MANAGED_SECRET_DIR: "/app/secrets"
       TEMPLATES_DIR: "/app/templates"
+      EXCHANGE_EXECUTOR_URL: "http://exchange-executor:8090"
     volumes:
       - forwarder_config:/app/config
       - forwarder_secrets:/app/secrets
@@ -54,6 +55,48 @@ services:
       interval: 30s
       timeout: 5s
       start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  exchange-executor:
+    build:
+      context: ./exchange_executor
+      dockerfile: Dockerfile
+    image: ${EXCHANGE_EXECUTOR_IMAGE:-cb2-exchange-executor:local}
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      EXECUTOR_HOST: "0.0.0.0"
+      EXECUTOR_PORT: "8090"
+      MANAGED_SECRET_DIR: "/app/secrets"
+    volumes:
+      - forwarder_secrets:/app/secrets:ro
+    expose:
+      - "8090"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: ${EXCHANGE_EXECUTOR_MEMORY_LIMIT:-384m}
+    cpus: ${EXCHANGE_EXECUTOR_CPU_LIMIT:-0.5}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=4).read()"
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
       retries: 3
     logging:
       driver: json-file

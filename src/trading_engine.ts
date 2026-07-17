@@ -28,6 +28,13 @@ import type {
 
 type TradingLogger = (message: string) => void;
 
+class ReconciliationMismatchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ReconciliationMismatchError';
+  }
+}
+
 function replacementStopId(intentId: string, quantity: string, trigger: string): string {
   return `0x${createHash('sha256').update(`${intentId}:stop:${quantity}:${trigger}`).digest('hex').slice(0, 32)}`;
 }
@@ -450,8 +457,8 @@ export class TradingEngine {
       );
     } catch (error: any) {
       await getDatabase().run(
-        `UPDATE trading_reconciliation_runs SET status = 'failed', last_error = ?, completed_at = ? WHERE id = ?`,
-        [error?.message || String(error), Date.now(), runId],
+        `UPDATE trading_reconciliation_runs SET status = ?, last_error = ?, completed_at = ? WHERE id = ?`,
+        [error instanceof ReconciliationMismatchError ? 'mismatch' : 'failed', error?.message || String(error), Date.now(), runId],
       );
       throw error;
     }
@@ -462,6 +469,7 @@ export class TradingEngine {
     adapter: TradingExchangeAdapter,
     remote: ExchangeOpenState,
   ): Promise<void> {
+    await this.detectUnmanagedExposure(account, remote);
     for (const order of remote.orders) {
       await getDatabase().run(
         `UPDATE trading_orders SET exchange_order_id = ?, status = ?, filled_quantity = ?,
@@ -518,6 +526,42 @@ export class TradingEngine {
       );
       await this.ensureProtectiveStop(account, adapter, local, position.quantity, remote);
     }
+  }
+
+  private async detectUnmanagedExposure(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
+    const [localOrders, localPositions] = await Promise.all([
+      getDatabase().all<Array<{ client_order_id: string }>>(
+        'SELECT client_order_id FROM trading_orders WHERE account_id = ?',
+        [account.id],
+      ),
+      getDatabase().all<Array<{ symbol: string; side: string }>>(
+        `SELECT symbol, side FROM trading_positions
+         WHERE account_id = ? AND status IN ('opening', 'open', 'closing', 'emergency')`,
+        [account.id],
+      ),
+    ]);
+    const orderIds = new Set(localOrders.map(order => order.client_order_id));
+    const externalOrders = remote.orders.filter(order =>
+      ['open', 'partially_filled'].includes(order.status) && !orderIds.has(order.clientOrderId));
+    const externalPositions = remote.positions.filter(position =>
+      !localPositions.some(local => local.symbol === position.symbol && local.side === position.side));
+    if (externalOrders.length === 0 && externalPositions.length === 0) return;
+    const details = {
+      externalOrderIds: externalOrders.map(order => order.clientOrderId),
+      externalPositions: externalPositions.map(position => ({ symbol: position.symbol, side: position.side })),
+    };
+    await riskEvent({
+      severity: 'critical',
+      code: 'UNMANAGED_REMOTE_EXPOSURE',
+      accountId: account.id,
+      details,
+    });
+    await updateTradingRuntimeState({
+      executionEnabled: false,
+      killSwitchActive: true,
+      killSwitchReason: `Unmanaged remote exposure detected for account ${account.id}`,
+    });
+    throw new ReconciliationMismatchError('Unmanaged remote order or position detected.');
   }
 
   private async ensureProtectiveStop(

@@ -70,6 +70,11 @@ import { createTradingIntent, ensureTradingDefaults } from './trading_repository
 import { PaperExchangeAdapter } from './paper_exchange.js';
 import { TradingEngine } from './trading_engine.js';
 import { TradingRuntime } from './trading_runtime.js';
+import {
+  tradingCredentialStoreFromEnvironment,
+  type TradingCredentialStore,
+} from './trading_credentials.js';
+import { OfficialExchangeAdapter } from './official_exchange.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -1215,7 +1220,7 @@ function loadRuntimeConfiguration(): RuntimeConfiguration {
   }
 }
 
-async function initializeCoreRuntime() {
+async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore) {
   initializeDeliveryTracker();
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
   processLockPath = path.join(path.dirname(databasePath), '.process_active');
@@ -1227,7 +1232,11 @@ async function initializeCoreRuntime() {
   await initDb();
   await ensureTradingDefaults();
   tradingRuntime = new TradingRuntime(
-    new TradingEngine([new PaperExchangeAdapter()], addLog),
+    new TradingEngine([
+      new PaperExchangeAdapter(),
+      new OfficialExchangeAdapter('hyperliquid', tradingCredentials),
+      new OfficialExchangeAdapter('bybit', tradingCredentials),
+    ], addLog),
     2_000,
     addLog,
   );
@@ -1531,6 +1540,8 @@ async function run() {
   runtimeSettings.applyToEnvironment();
   const secretStore = managedSecretStoreFromEnvironment();
   await secretStore.initialize({ recoverInvalidManagedFiles: true });
+  const tradingCredentials = tradingCredentialStoreFromEnvironment();
+  await tradingCredentials.initialize();
   const runtime = loadRuntimeConfiguration();
   if (runtimeSettings.recoveryStatus().active || secretStore.recoveryStatus().length > 0 || runtime.configurationRecoveryReason) {
     state.connectionState = 'recovery-required';
@@ -1538,7 +1549,7 @@ async function run() {
     startDashboardRuntime(runtime, secretStore, runtimeSettings);
     return;
   }
-  const { databasePath, retentionPolicy } = await initializeCoreRuntime();
+  const { databasePath, retentionPolicy } = await initializeCoreRuntime(tradingCredentials);
   startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
   startDashboardRuntime(runtime, secretStore, runtimeSettings);
   try {

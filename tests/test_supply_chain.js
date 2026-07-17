@@ -9,6 +9,10 @@ const stagingWorkflow = await readFile(path.join(root, '.github', 'workflows', '
 const syntheticWorkflow = await readFile(path.join(root, '.github', 'workflows', 'synthetic.yml'), 'utf8');
 const productionEvidenceWorkflow = await readFile(path.join(root, '.github', 'workflows', 'production_evidence.yml'), 'utf8');
 const dockerfile = await readFile(path.join(root, 'Dockerfile'), 'utf8');
+const executorDockerfile = await readFile(path.join(root, 'exchange_executor', 'Dockerfile'), 'utf8');
+const executorLock = await readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8');
+const hyperliquidAdapter = await readFile(path.join(root, 'exchange_executor', 'hyperliquid_adapter.py'), 'utf8');
+const bybitAdapter = await readFile(path.join(root, 'exchange_executor', 'bybit_adapter.py'), 'utf8');
 const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf8');
 const strykerConfig = await readFile(path.join(root, 'stryker.config.mjs'), 'utf8');
 const mutationRunner = await readFile(path.join(root, 'scripts', 'run_mutation_shards.js'), 'utf8');
@@ -29,10 +33,10 @@ for (const reference of actionReferences) {
 const safeTrivyAction = 'aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1';
 assert.equal(
   actionReferences.filter((reference) => reference === safeTrivyAction).length,
-  6,
+  8,
   'all Trivy steps must use the known-safe action commit'
 );
-assert.equal((workflow.match(/^\s*version:\s*v0\.69\.3\s*$/gm) ?? []).length, 6);
+assert.equal((workflow.match(/^\s*version:\s*v0\.69\.3\s*$/gm) ?? []).length, 8);
 assert.doesNotMatch(workflow, /^\s*version:\s*latest\s*$/m);
 assert.doesNotMatch(
   workflow,
@@ -83,5 +87,22 @@ assert.match(dockerCompose, /^\s*restart:\s*unless-stopped\s*$/m);
 assert.match(dockerCompose, /^\s*stop_grace_period:\s*8m\s*$/m);
 assert.match(dockerCompose, /RUNTIME_SETTINGS_PATH:\s*"\/app\/config\/runtime-settings\.json"/);
 assert.match(dockerCompose, /"127\.0\.0\.1:\$\{HOST_WEB_PORT:-8080\}:8080"/);
+assert.match(executorDockerfile, /^ARG PYTHON_IMAGE=python:3\.12\.11-slim-bookworm@sha256:[a-f0-9]{64}$/m);
+assert.match(executorDockerfile, /^USER 65532:65532$/m);
+assert.match(executorDockerfile, /pip install --require-hashes/);
+assert.match(executorLock, /^hyperliquid-python-sdk==0\.24\.0 \\/m);
+assert.match(executorLock, /^pybit==5\.16\.0 \\/m);
+assert.match(executorLock, /f472dd4f6d8ef0e66182c7627276400462c86fbc0929eb5b63feda3ae45605f6/);
+assert.match(executorLock, /d214c4987aabb25c10e8e031244973a3be4728e044575ab6c6f6f7873f8c1cab/);
+assert.match(hyperliquidAdapter, /from hyperliquid\.exchange import Exchange/);
+assert.match(hyperliquidAdapter, /from hyperliquid\.info import Info/);
+assert.match(bybitAdapter, /from pybit\.unified_trading import HTTP/);
+const executorService = dockerCompose.slice(
+  dockerCompose.indexOf('\n  exchange-executor:'),
+  dockerCompose.indexOf('\nvolumes:'),
+);
+assert.ok(executorService.length > 0, 'compose must define the exchange executor service');
+assert.doesNotMatch(executorService, /^\s+ports:/m);
+assert.match(dockerCompose, /forwarder_secrets:\/app\/secrets:ro/);
 
 console.log('Supply-chain pinning policy tests passed.');

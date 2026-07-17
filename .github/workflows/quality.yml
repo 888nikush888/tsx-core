@@ -126,7 +126,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: github/codeql-action/init@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d
         with:
-          languages: javascript-typescript
+          languages: javascript-typescript,python
       - uses: github/codeql-action/analyze@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d
 
   secrets:
@@ -167,10 +167,15 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Build immutable candidate
         run: docker build --tag telegram-tdlib-forwarder:${{ github.sha }} .
+      - name: Build official exchange executor
+        run: docker build --tag cb2-exchange-executor:${{ github.sha }} exchange_executor
       - name: Verify runtime native modules and non-root user
         run: |
           test "$(docker image inspect telegram-tdlib-forwarder:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
           docker run --rm --entrypoint /nodejs/bin/node telegram-tdlib-forwarder:${{ github.sha }} -e "Promise.all([import('sqlite3'),import('tdl'),import('prebuilt-tdlib')]).then(()=>console.log('native-import-ok')).catch(error=>{console.error(error);process.exit(1)})"
+          test "$(docker image inspect cb2-exchange-executor:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
+          docker run --rm --entrypoint python cb2-exchange-executor:${{ github.sha }} -c "from importlib.metadata import version; assert version('hyperliquid-python-sdk') == '0.24.0'; assert version('pybit') == '5.16.0'"
+          docker run --rm -e PYTHONPATH=/app -v "$PWD/exchange_executor/tests:/tests:ro" --entrypoint python cb2-exchange-executor:${{ github.sha }} -m unittest discover -s /tests -v
       - name: Generate container SBOM
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
@@ -186,6 +191,23 @@ jobs:
           image-ref: telegram-tdlib-forwarder:${{ github.sha }}
           format: sarif
           output: trivy.sarif
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+      - name: Generate exchange executor SBOM
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        with:
+          version: v0.69.3
+          image-ref: cb2-exchange-executor:${{ github.sha }}
+          format: cyclonedx
+          output: exchange-executor.cdx.json
+          exit-code: '0'
+      - name: Block exchange executor high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        with:
+          version: v0.69.3
+          image-ref: cb2-exchange-executor:${{ github.sha }}
+          format: sarif
+          output: exchange-executor-trivy.sarif
           severity: HIGH,CRITICAL
           exit-code: '1'
       - name: Generate Prometheus SBOM
@@ -242,6 +264,8 @@ jobs:
           path: |
             container.cdx.json
             trivy.sarif
+            exchange-executor.cdx.json
+            exchange-executor-trivy.sarif
             prometheus.cdx.json
             prometheus-trivy.sarif
             alertmanager.cdx.json

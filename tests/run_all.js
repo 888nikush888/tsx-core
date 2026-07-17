@@ -39,6 +39,8 @@ const allTests = [
   'test_trading_core.js',
   'test_trading_engine.js',
   'test_trading_failures.js',
+  'test_trading_credentials.js',
+  'test_official_exchange.js',
   'test_supply_chain.js',
   'test_repository_governance.js',
   'test_architecture.js',
