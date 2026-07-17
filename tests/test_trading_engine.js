@@ -1,0 +1,123 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
+import { PaperExchangeAdapter } from '../src/paper_exchange.js';
+import { TradingEngine } from '../src/trading_engine.js';
+import {
+  createTradingIntent,
+  ensureTradingDefaults,
+  getTradingAccount,
+  getTradingIntent,
+  listTradingAccounts,
+  listTradingStrategies,
+  setTradingRoute,
+  updateTradingRuntimeState,
+} from '../src/trading_repository.js';
+import { validateSignalXml } from '../src/signal_schema.js';
+
+const SIGNAL = `<signal>
+<action>LONG</action>
+<pair>BTCUSDT</pair>
+<entry_range><min>60000</min><max>61000</max></entry_range>
+<targets><target id="1">62000</target><target id="2">63000</target></targets>
+<stoploss>59000</stoploss>
+<leverage>3</leverage>
+</signal>`;
+
+async function setupIntent(paper) {
+  await ensureTradingDefaults(1_700_000_000_000);
+  const [account] = await listTradingAccounts();
+  const [strategy] = await listTradingStrategies();
+  await setTradingRoute({
+    channelId: '-100001',
+    strategyVersionId: strategy.id,
+    accountId: account.id,
+    enabled: true,
+  });
+  await updateTradingRuntimeState({ executionEnabled: true });
+  await paper.setMarket(account.id, {
+    symbol: 'BTCUSDT',
+    markPrice: '60000',
+    priceTick: '0.1',
+    quantityStep: '0.001',
+    minimumQuantity: '0.001',
+    minimumNotional: '10',
+    maxLeverage: 50,
+  });
+  const validated = validateSignalXml(SIGNAL, 'default');
+  await saveSignal('trading-signal-1', '-100001', 1, SIGNAL, SIGNAL);
+  const intent = await createTradingIntent({
+    sourceSignalId: 'trading-signal-1',
+    channelId: '-100001',
+    signal: validated.execution,
+  });
+  return { account, intent };
+}
+
+async function run() {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-engine-'));
+  try {
+    await initDb(path.join(directory, 'forwarder.db'));
+    const paper = new PaperExchangeAdapter();
+    const { account, intent } = await setupIntent(paper);
+    const engine = new TradingEngine([paper]);
+    await engine.processIntent(intent.id);
+
+    const processed = await getTradingIntent(intent.id);
+    assert.equal(processed.status, 'monitoring');
+    assert.equal(processed.plan.quantity, '0.016');
+    assert.equal(processed.plan.riskAmount, '100');
+    assert.equal(processed.plan.notional, '968');
+    const localOrders = await getDatabase().all(
+      'SELECT role, status, quantity, trigger_price FROM trading_orders WHERE intent_id = ? ORDER BY role, created_at',
+      [intent.id],
+    );
+    assert.equal(localOrders.find(order => order.role === 'entry').status, 'filled');
+    assert.equal(localOrders.find(order => order.role === 'stop_loss').status, 'open');
+    assert.equal(localOrders.filter(order => order.role === 'take_profit').length, 2);
+
+    await paper.setMarket(account.id, {
+      symbol: 'BTCUSDT', markPrice: '62000', priceTick: '0.1', quantityStep: '0.001',
+      minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
+    });
+    await engine.reconcileAccount(account.id);
+    const remoteAfterTarget = await paper.openState(account);
+    const positionAfterTarget = remoteAfterTarget.positions[0];
+    assert.equal(positionAfterTarget.quantity, '0.008', 'First take profit must reduce the position.');
+    const activeStops = remoteAfterTarget.orders.filter(order => order.role === 'stop_loss' && order.status === 'open');
+    assert.equal(activeStops.length, 1, 'Exactly one protective stop must remain active.');
+    assert.equal(activeStops[0].quantity, '0.008', 'Protective stop must track remaining quantity.');
+    assert.equal(activeStops[0].triggerPrice, '60500', 'Stop must move to break-even after target one.');
+
+    await paper.setMarket(account.id, {
+      symbol: 'BTCUSDT', markPrice: '58000', priceTick: '0.1', quantityStep: '0.001',
+      minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
+    });
+    await engine.reconcileAccount(account.id);
+    const remoteClosed = await paper.openState(account);
+    assert.equal(remoteClosed.positions.length, 0, 'Protective stop must close the remaining position.');
+    assert.equal((await getTradingIntent(intent.id)).status, 'completed');
+    const localPosition = await getDatabase().get('SELECT * FROM trading_positions WHERE intent_id = ?', [intent.id]);
+    assert.equal(localPosition.status, 'closed');
+    assert.equal(localPosition.quantity, '0');
+    assert.equal(localPosition.realized_pnl, '-8');
+
+    const fillsBeforeRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
+    const restartedEngine = new TradingEngine([paper]);
+    await restartedEngine.reconcileAccount(account.id);
+    const fillsAfterRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
+    assert.equal(fillsAfterRestart.count, fillsBeforeRestart.count, 'Fill replay must be idempotent after restart.');
+
+    const readyAccount = await getTradingAccount(account.id);
+    const snapshot = await paper.accountSnapshot(readyAccount);
+    assert.equal(snapshot.equity, '9992', 'Paper equity must include exact realized PnL and stop slippage.');
+  } finally {
+    await closeDb();
+    await rm(directory, { recursive: true, force: true });
+  }
+  console.log('Trading engine and reconciliation tests passed.');
+}
+
+await run();

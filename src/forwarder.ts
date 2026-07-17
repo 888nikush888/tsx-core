@@ -67,6 +67,9 @@ import {
   type ManagedRuntimeSettingsStore,
 } from './runtime_settings.js';
 import { createTradingIntent, ensureTradingDefaults } from './trading_repository.js';
+import { PaperExchangeAdapter } from './paper_exchange.js';
+import { TradingEngine } from './trading_engine.js';
+import { TradingRuntime } from './trading_runtime.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -345,6 +348,7 @@ let metricsTracker: MetricsTracker | null = null;
 let backupScheduler: BackupScheduler | null = null;
 let offsiteBackupReplicator: BackupReplicator | null = null;
 let retentionScheduler: OperationalDataRetention | null = null;
+let tradingRuntime: TradingRuntime | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
 let processLock: ProcessLock | null = null;
@@ -1109,6 +1113,7 @@ async function stopScheduler(scheduler: { stop: () => Promise<void> } | null, la
 }
 
 async function stopRuntimeServices(): Promise<void> {
+  await stopScheduler(tradingRuntime, 'Trading Runtime');
   await stopScheduler(backupScheduler, 'Laufendes Backup');
   await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
   try {
@@ -1221,6 +1226,12 @@ async function initializeCoreRuntime() {
   await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
   await initDb();
   await ensureTradingDefaults();
+  tradingRuntime = new TradingRuntime(
+    new TradingEngine([new PaperExchangeAdapter()], addLog),
+    2_000,
+    addLog,
+  );
+  await tradingRuntime.start();
   state.totalForwardedCount = await getTotalForwardedCount();
   state.lastSuccessfulForwardAt = await getLastForwardedAt();
   await checkCrashLoop();

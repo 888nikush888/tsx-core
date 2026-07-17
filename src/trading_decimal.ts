@@ -67,7 +67,10 @@ export function subtractDecimal(left: string, right: string): string {
 export function multiplyDecimal(left: string, right: string): string {
   const a = parse(left);
   const b = parse(right);
-  return format(a.coefficient * b.coefficient, a.scale + b.scale);
+  const productScale = a.scale + b.scale;
+  const coefficient = a.coefficient * b.coefficient;
+  if (productScale <= 18) return format(coefficient, productScale);
+  return format(coefficient / powerOfTen(productScale - 18), 18);
 }
 
 export function divideDecimal(left: string, right: string, scale = 18): string {
@@ -87,4 +90,48 @@ export function sumDecimals(values: string[]): string {
 export function midpointDecimal(range: { min: string; max: string }): string {
   if (compareDecimal(range.min, range.max) > 0) throw new Error('Decimal range is inverted.');
   return divideDecimal(addDecimal(range.min, range.max), '2');
+}
+
+export function minDecimal(...values: string[]): string {
+  if (values.length === 0) throw new Error('At least one decimal is required.');
+  return values.reduce((minimum, value) => compareDecimal(value, minimum) < 0 ? value : minimum);
+}
+
+export function quantizeDecimalDown(value: string, increment: string): string {
+  decimal(value);
+  decimal(increment, { positive: true });
+  return multiplyDecimal(divideDecimal(value, increment, 0), increment);
+}
+
+export function signedDecimal(value: string): string {
+  if (typeof value !== 'string') throw new Error('Invalid signed decimal.');
+  const negative = value.startsWith('-');
+  const normalized = decimal(negative ? value.slice(1) : value);
+  return negative && normalized !== '0' ? `-${normalized}` : normalized;
+}
+
+export function addSignedDecimal(left: string, right: string): string {
+  const a = signedDecimal(left);
+  const b = signedDecimal(right);
+  const aNegative = a.startsWith('-');
+  const bNegative = b.startsWith('-');
+  const aMagnitude = aNegative ? a.slice(1) : a;
+  const bMagnitude = bNegative ? b.slice(1) : b;
+  if (aNegative === bNegative) {
+    const sum = addDecimal(aMagnitude, bMagnitude);
+    return aNegative && sum !== '0' ? `-${sum}` : sum;
+  }
+  const order = compareDecimal(aMagnitude, bMagnitude);
+  if (order === 0) return '0';
+  const difference = order > 0
+    ? subtractDecimal(aMagnitude, bMagnitude)
+    : subtractDecimal(bMagnitude, aMagnitude);
+  const negative = order > 0 ? aNegative : bNegative;
+  return negative ? `-${difference}` : difference;
+}
+
+export function signedDifference(left: string, right: string): string {
+  const order = compareDecimal(left, right);
+  if (order === 0) return '0';
+  return order > 0 ? subtractDecimal(left, right) : `-${subtractDecimal(right, left)}`;
 }

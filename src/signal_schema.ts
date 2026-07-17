@@ -229,6 +229,7 @@ function assertScalarGeometry(
 }
 
 function scalarExecution(input: {
+  schema: 'standard' | 'cryptodanielvip';
   action: 'LONG' | 'SHORT';
   pair: string;
   entry?: { min: string; max: string };
@@ -239,6 +240,7 @@ function scalarExecution(input: {
   risk?: string;
 }): ExecutableSignal {
   return {
+    schema: input.schema,
     action: input.action,
     symbol: input.pair,
     entry: input.entry ? { type: 'range', ...input.entry } : { type: 'market' },
@@ -270,7 +272,7 @@ function validateStandard(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'
   return {
     action,
     pair,
-    execution: scalarExecution({ action, pair, entry, targets, stoploss, leverage }),
+    execution: scalarExecution({ schema: 'standard', action, pair, entry, targets, stoploss, leverage }),
     groundingNumbers: [...(entry ? [entry.min, entry.max] : []), ...targets, stoploss, ...(leverage ? [leverage] : [])]
   };
 }
@@ -299,7 +301,7 @@ function validateCryptoDaniel(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'sch
   return {
     action,
     pair,
-    execution: scalarExecution({ action, pair, entry, targets, stoploss, averaging, risk }),
+    execution: scalarExecution({ schema: 'cryptodanielvip', action, pair, entry, targets, stoploss, averaging, risk }),
     groundingNumbers: [
       ...(entry ? [entry.min, entry.max] : []),
       ...(averaging ? [averaging] : []),
@@ -343,6 +345,7 @@ function validateLoma(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
     action,
     pair,
     execution: {
+      schema: 'loma',
       action,
       symbol: pair,
       entry: { type: 'range', ...entry },

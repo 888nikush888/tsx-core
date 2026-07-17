@@ -339,6 +339,78 @@ const migrations: SchemaMigration[] = [
           SELECT RAISE(ABORT, 'published strategy versions are immutable');
         END;
       `
+  },
+  {
+    version: 5,
+    name: 'isolated_paper_exchange_state',
+    columns: [],
+    sql: `
+        CREATE TABLE IF NOT EXISTS trading_paper_accounts (
+          account_id TEXT PRIMARY KEY REFERENCES trading_accounts(id) ON DELETE CASCADE,
+          equity TEXT NOT NULL,
+          available_balance TEXT NOT NULL,
+          realized_pnl TEXT NOT NULL DEFAULT '0',
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS trading_paper_markets (
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+          symbol TEXT NOT NULL,
+          mark_price TEXT NOT NULL,
+          price_tick TEXT NOT NULL,
+          quantity_step TEXT NOT NULL,
+          minimum_quantity TEXT NOT NULL,
+          minimum_notional TEXT NOT NULL,
+          max_leverage INTEGER NOT NULL CHECK(max_leverage BETWEEN 1 AND 125),
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY(account_id, symbol)
+        );
+        CREATE TABLE IF NOT EXISTS trading_paper_orders (
+          exchange_order_id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+          client_order_id TEXT NOT NULL,
+          symbol TEXT NOT NULL,
+          role TEXT NOT NULL CHECK(role IN ('entry', 'take_profit', 'stop_loss', 'flatten')),
+          side TEXT NOT NULL CHECK(side IN ('buy', 'sell')),
+          order_type TEXT NOT NULL CHECK(order_type IN ('market', 'limit', 'stop_market')),
+          status TEXT NOT NULL CHECK(status IN ('open', 'partially_filled', 'filled', 'cancelled', 'rejected')),
+          quantity TEXT NOT NULL,
+          filled_quantity TEXT NOT NULL DEFAULT '0',
+          average_price TEXT,
+          price TEXT,
+          trigger_price TEXT,
+          reduce_only INTEGER NOT NULL CHECK(reduce_only IN (0, 1)),
+          target_index INTEGER,
+          leverage INTEGER NOT NULL CHECK(leverage BETWEEN 1 AND 125),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE(account_id, client_order_id)
+        );
+        CREATE TABLE IF NOT EXISTS trading_paper_fills (
+          exchange_fill_id TEXT PRIMARY KEY,
+          exchange_order_id TEXT NOT NULL REFERENCES trading_paper_orders(exchange_order_id) ON DELETE CASCADE,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+          client_order_id TEXT NOT NULL,
+          price TEXT NOT NULL,
+          quantity TEXT NOT NULL,
+          fee TEXT NOT NULL DEFAULT '0',
+          fee_asset TEXT,
+          filled_at INTEGER NOT NULL,
+          raw_json TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS trading_paper_positions (
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+          symbol TEXT NOT NULL,
+          side TEXT NOT NULL CHECK(side IN ('LONG', 'SHORT')),
+          quantity TEXT NOT NULL,
+          average_entry_price TEXT NOT NULL,
+          margin_used TEXT NOT NULL,
+          realized_pnl TEXT NOT NULL DEFAULT '0',
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY(account_id, symbol)
+        );
+        CREATE INDEX IF NOT EXISTS idx_paper_orders_state ON trading_paper_orders(account_id, status, updated_at);
+        CREATE INDEX IF NOT EXISTS idx_paper_fills_account ON trading_paper_fills(account_id, filled_at);
+      `
   }
 ];
 
@@ -806,6 +878,10 @@ export async function pruneOperationalData(
                AND task.message_id = signal.message_id
                AND task.status IN ('pending', 'preparing', 'sending', 'failed', 'unknown')
            )
+           AND NOT EXISTS (
+             SELECT 1 FROM trading_trade_intents AS intent
+             WHERE intent.source_signal_id = signal.id
+           )
          ORDER BY signal.created_at ASC LIMIT ?
        )`,
       [cutoff, batchSize]
@@ -1175,6 +1251,11 @@ export async function clearDb(): Promise<void> {
     DELETE FROM trading_risk_events;
     DELETE FROM trading_trade_intents;
     DELETE FROM trading_routes;
+    DELETE FROM trading_paper_fills;
+    DELETE FROM trading_paper_orders;
+    DELETE FROM trading_paper_positions;
+    DELETE FROM trading_paper_markets;
+    DELETE FROM trading_paper_accounts;
     DELETE FROM trading_accounts;
     DELETE FROM trading_strategy_versions;
     UPDATE trading_runtime_state

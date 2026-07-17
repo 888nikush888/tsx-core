@@ -21,7 +21,7 @@ export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
     maxLeverage: 3,
   },
   exits: {
-    targetAllocationsPercent: ['50', '30', '20'],
+    targetAllocationsPercent: ['50', '50'],
     moveStopToBreakEvenAfterTarget: 1,
     trailingStopPercent: null,
     closeRemainderAtLastTarget: true,

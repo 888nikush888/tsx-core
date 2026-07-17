@@ -31,6 +31,7 @@ export interface DecimalRange {
 }
 
 export interface ExecutableSignal {
+  schema: 'standard' | 'cryptodanielvip' | 'loma';
   action: TradingSide;
   symbol: string;
   entry: { type: 'market' } | ({ type: 'range' } & DecimalRange);
@@ -133,6 +134,110 @@ export interface TradingIntent {
   error: string | null;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface TradingAccountSnapshot {
+  equity: string;
+  availableBalance: string;
+}
+
+export interface TradingMarketSnapshot {
+  symbol: string;
+  markPrice: string;
+  priceTick: string;
+  quantityStep: string;
+  minimumQuantity: string;
+  minimumNotional: string;
+  maxLeverage: number;
+  observedAt: number;
+}
+
+export interface PlannedOrder {
+  clientOrderId: string;
+  role: 'entry' | 'take_profit' | 'stop_loss' | 'flatten';
+  side: TradingOrderSide;
+  orderType: 'market' | 'limit' | 'stop_market';
+  quantity: string;
+  price: string | null;
+  triggerPrice: string | null;
+  reduceOnly: boolean;
+  postOnly: boolean;
+  targetIndex: number | null;
+}
+
+export interface TradingPlan {
+  version: 1;
+  symbol: string;
+  side: TradingSide;
+  entryPrice: string;
+  stopPrice: string;
+  quantity: string;
+  notional: string;
+  riskAmount: string;
+  leverage: number;
+  orders: PlannedOrder[];
+  createdAt: number;
+}
+
+export interface ExchangeOrderRequest extends PlannedOrder {
+  accountId: string;
+  symbol: string;
+  leverage: number;
+}
+
+export interface ExchangeOrderResult {
+  clientOrderId: string;
+  exchangeOrderId: string;
+  status: 'open' | 'partially_filled' | 'filled' | 'cancelled' | 'rejected' | 'unknown';
+  filledQuantity: string;
+  averagePrice: string | null;
+  error: string | null;
+  raw: unknown;
+}
+
+export interface ExchangeFill {
+  exchangeFillId: string;
+  clientOrderId: string;
+  price: string;
+  quantity: string;
+  fee: string;
+  feeAsset: string | null;
+  filledAt: number;
+  raw: unknown;
+}
+
+export interface ExchangeOrderSnapshot extends ExchangeOrderResult {
+  symbol: string;
+  role: PlannedOrder['role'];
+  side: TradingOrderSide;
+  quantity: string;
+  price: string | null;
+  triggerPrice: string | null;
+  reduceOnly: boolean;
+}
+
+export interface ExchangePositionSnapshot {
+  symbol: string;
+  side: TradingSide;
+  quantity: string;
+  averageEntryPrice: string;
+  unrealizedPnl: string;
+}
+
+export interface ExchangeOpenState {
+  orders: ExchangeOrderSnapshot[];
+  positions: ExchangePositionSnapshot[];
+  fills: ExchangeFill[];
+  observedAt: number;
+}
+
+export interface TradingExchangeAdapter {
+  readonly exchange: TradingExchange;
+  accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot>;
+  marketSnapshot(account: TradingAccount, symbol: string): Promise<TradingMarketSnapshot>;
+  submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult>;
+  cancelOrder(account: TradingAccount, clientOrderId: string): Promise<ExchangeOrderResult>;
+  openState(account: TradingAccount): Promise<ExchangeOpenState>;
 }
 
 export interface TradingOverview {

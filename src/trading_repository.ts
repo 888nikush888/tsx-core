@@ -162,6 +162,12 @@ export async function ensureTradingDefaults(now = Date.now()): Promise<void> {
        ) VALUES ('paper-default', 'Paper Trading', 'paper', 'paper', 'ready', 1, NULL, ?, NULL, ?, ?)`,
       [now, now, now],
     );
+    await getDatabase().run(
+      `INSERT OR IGNORE INTO trading_paper_accounts (
+         account_id, equity, available_balance, realized_pnl, updated_at
+       ) VALUES ('paper-default', '10000', '10000', '0', ?)`,
+      [now],
+    );
   });
 }
 
@@ -232,12 +238,12 @@ export async function listTradingAccounts(): Promise<TradingAccount[]> {
   return rows.map(accountFromRow);
 }
 
-export async function createTradingAccount(input: {
+function validateTradingAccountInput(input: {
   name: string;
   exchange: TradingExchange;
   mode: TradingAccountMode;
   credentialRef?: string;
-}, now = Date.now()): Promise<TradingAccount> {
+}): { name: string; paper: boolean; credentialRef: string | null } {
   const name = input.name?.trim();
   if (!name || name.length > 80) throw new Error('Account name must contain between 1 and 80 characters.');
   if (!['paper', 'hyperliquid', 'bybit'].includes(input.exchange)) throw new Error('Unsupported exchange.');
@@ -246,6 +252,16 @@ export async function createTradingAccount(input: {
   if (paper !== (input.mode === 'paper')) throw new Error('Paper mode may only be used with the paper exchange.');
   const credentialRef = input.credentialRef?.trim() || null;
   if (!paper && !credentialRef) throw new Error('Exchange accounts require a credential reference.');
+  return { name, paper, credentialRef };
+}
+
+export async function createTradingAccount(input: {
+  name: string;
+  exchange: TradingExchange;
+  mode: TradingAccountMode;
+  credentialRef?: string;
+}, now = Date.now()): Promise<TradingAccount> {
+  const { name, paper, credentialRef } = validateTradingAccountInput(input);
   const id = randomUUID();
   await getDatabase().run(
     `INSERT INTO trading_accounts (
@@ -254,6 +270,14 @@ export async function createTradingAccount(input: {
      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
     [id, name, input.exchange, input.mode, paper ? 'ready' : 'unverified', paper ? 1 : 0, credentialRef, paper ? now : null, now, now],
   );
+  if (paper) {
+    await getDatabase().run(
+      `INSERT INTO trading_paper_accounts (
+         account_id, equity, available_balance, realized_pnl, updated_at
+       ) VALUES (?, '10000', '10000', '0', ?)`,
+      [id, now],
+    );
+  }
   return accountFromRow(await getDatabase().get('SELECT * FROM trading_accounts WHERE id = ?', [id]));
 }
 
@@ -394,6 +418,16 @@ export async function listTradingIntents(limit = 100): Promise<TradingIntent[]> 
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000) throw new Error('Intent limit must be between 1 and 1000.');
   const rows = await getDatabase().all<any[]>('SELECT * FROM trading_trade_intents ORDER BY created_at DESC LIMIT ?', [limit]);
   return rows.map(intentFromRow);
+}
+
+export async function getTradingIntent(id: string): Promise<TradingIntent | null> {
+  const row = await getDatabase().get('SELECT * FROM trading_trade_intents WHERE id = ?', [id]);
+  return row ? intentFromRow(row) : null;
+}
+
+export async function getTradingAccount(id: string): Promise<TradingAccount | null> {
+  const row = await getDatabase().get('SELECT * FROM trading_accounts WHERE id = ?', [id]);
+  return row ? accountFromRow(row) : null;
 }
 
 export async function getTradingOverview(): Promise<TradingOverview> {
