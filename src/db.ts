@@ -171,6 +171,174 @@ const migrations: SchemaMigration[] = [
         INSERT OR IGNORE INTO forwarding_stats (key, value) VALUES ('total_forwarded_count', 0);
         INSERT OR IGNORE INTO forwarding_stats (key, value) VALUES ('last_forwarded_at', 0);
       `
+  },
+  {
+    version: 4,
+    name: 'integrated_trading_control_plane',
+    columns: [],
+    sql: `
+        CREATE TABLE IF NOT EXISTS trading_strategy_versions (
+          id TEXT PRIMARY KEY,
+          strategy_id TEXT NOT NULL,
+          version INTEGER NOT NULL CHECK(version > 0),
+          name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80),
+          description TEXT NOT NULL DEFAULT '' CHECK(length(description) <= 500),
+          status TEXT NOT NULL CHECK(status IN ('draft', 'published', 'archived')),
+          configuration_json TEXT NOT NULL,
+          configuration_sha256 TEXT NOT NULL CHECK(length(configuration_sha256) = 64),
+          created_at INTEGER NOT NULL,
+          published_at INTEGER,
+          UNIQUE(strategy_id, version)
+        );
+        CREATE TABLE IF NOT EXISTS trading_accounts (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80),
+          exchange TEXT NOT NULL CHECK(exchange IN ('paper', 'hyperliquid', 'bybit')),
+          mode TEXT NOT NULL CHECK(mode IN ('paper', 'testnet', 'live')),
+          status TEXT NOT NULL CHECK(status IN ('unverified', 'ready', 'disabled', 'error')),
+          enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0, 1)),
+          credential_ref TEXT,
+          last_verified_at INTEGER,
+          last_error TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          CHECK((exchange = 'paper' AND mode = 'paper' AND credential_ref IS NULL)
+             OR (exchange <> 'paper' AND mode <> 'paper' AND credential_ref IS NOT NULL))
+        );
+        CREATE TABLE IF NOT EXISTS trading_routes (
+          channel_id TEXT PRIMARY KEY,
+          strategy_version_id TEXT NOT NULL REFERENCES trading_strategy_versions(id) ON DELETE RESTRICT,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0, 1)),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS trading_runtime_state (
+          singleton_id INTEGER PRIMARY KEY CHECK(singleton_id = 1),
+          execution_enabled INTEGER NOT NULL DEFAULT 0 CHECK(execution_enabled IN (0, 1)),
+          live_trading_enabled INTEGER NOT NULL DEFAULT 0 CHECK(live_trading_enabled IN (0, 1)),
+          kill_switch_active INTEGER NOT NULL DEFAULT 0 CHECK(kill_switch_active IN (0, 1)),
+          kill_switch_reason TEXT,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS trading_trade_intents (
+          id TEXT PRIMARY KEY,
+          source_signal_id TEXT NOT NULL UNIQUE REFERENCES signals(id) ON DELETE RESTRICT,
+          channel_id TEXT NOT NULL,
+          strategy_version_id TEXT NOT NULL REFERENCES trading_strategy_versions(id) ON DELETE RESTRICT,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          exchange TEXT NOT NULL CHECK(exchange IN ('paper', 'hyperliquid', 'bybit')),
+          mode TEXT NOT NULL CHECK(mode IN ('paper', 'testnet', 'live')),
+          symbol TEXT NOT NULL,
+          side TEXT NOT NULL CHECK(side IN ('LONG', 'SHORT')),
+          status TEXT NOT NULL CHECK(status IN ('pending', 'planned', 'submitting', 'monitoring', 'completed', 'blocked', 'failed', 'unknown')),
+          signal_json TEXT NOT NULL,
+          plan_json TEXT,
+          block_reason TEXT,
+          last_error TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS trading_orders (
+          id TEXT PRIMARY KEY,
+          intent_id TEXT NOT NULL REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          client_order_id TEXT NOT NULL,
+          exchange_order_id TEXT,
+          role TEXT NOT NULL CHECK(role IN ('entry', 'take_profit', 'stop_loss', 'flatten')),
+          side TEXT NOT NULL CHECK(side IN ('buy', 'sell')),
+          order_type TEXT NOT NULL CHECK(order_type IN ('market', 'limit', 'stop_market')),
+          status TEXT NOT NULL CHECK(status IN ('created', 'submitting', 'open', 'partially_filled', 'filled', 'cancel_pending', 'cancelled', 'rejected', 'unknown')),
+          price TEXT,
+          trigger_price TEXT,
+          quantity TEXT NOT NULL,
+          filled_quantity TEXT NOT NULL DEFAULT '0',
+          reduce_only INTEGER NOT NULL CHECK(reduce_only IN (0, 1)),
+          request_json TEXT NOT NULL,
+          response_json TEXT,
+          last_error TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE(account_id, client_order_id)
+        );
+        CREATE TABLE IF NOT EXISTS trading_fills (
+          id TEXT PRIMARY KEY,
+          order_id TEXT NOT NULL REFERENCES trading_orders(id) ON DELETE RESTRICT,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          exchange_fill_id TEXT NOT NULL,
+          price TEXT NOT NULL,
+          quantity TEXT NOT NULL,
+          fee TEXT NOT NULL DEFAULT '0',
+          fee_asset TEXT,
+          filled_at INTEGER NOT NULL,
+          raw_json TEXT NOT NULL,
+          UNIQUE(account_id, exchange_fill_id)
+        );
+        CREATE TABLE IF NOT EXISTS trading_positions (
+          id TEXT PRIMARY KEY,
+          intent_id TEXT NOT NULL UNIQUE REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          strategy_version_id TEXT NOT NULL REFERENCES trading_strategy_versions(id) ON DELETE RESTRICT,
+          channel_id TEXT NOT NULL,
+          symbol TEXT NOT NULL,
+          side TEXT NOT NULL CHECK(side IN ('LONG', 'SHORT')),
+          status TEXT NOT NULL CHECK(status IN ('opening', 'open', 'closing', 'closed', 'emergency')),
+          quantity TEXT NOT NULL,
+          average_entry_price TEXT,
+          stop_price TEXT NOT NULL,
+          realized_pnl TEXT NOT NULL DEFAULT '0',
+          opened_at INTEGER,
+          closed_at INTEGER,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS trading_risk_events (
+          id TEXT PRIMARY KEY,
+          severity TEXT NOT NULL CHECK(severity IN ('info', 'warning', 'critical')),
+          code TEXT NOT NULL,
+          account_id TEXT REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          intent_id TEXT REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+          details_json TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          acknowledged_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS trading_reconciliation_runs (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          status TEXT NOT NULL CHECK(status IN ('running', 'succeeded', 'failed', 'mismatch')),
+          local_snapshot_json TEXT,
+          remote_snapshot_json TEXT,
+          mismatch_json TEXT,
+          last_error TEXT,
+          started_at INTEGER NOT NULL,
+          completed_at INTEGER
+        );
+        INSERT OR IGNORE INTO trading_runtime_state (
+          singleton_id, execution_enabled, live_trading_enabled, kill_switch_active, updated_at
+        ) VALUES (1, 0, 0, 0, CAST(strftime('%s','now') AS INTEGER) * 1000);
+        CREATE INDEX IF NOT EXISTS idx_trading_strategy_status ON trading_strategy_versions(status, strategy_id, version);
+        CREATE INDEX IF NOT EXISTS idx_trading_routes_account ON trading_routes(account_id, enabled);
+        CREATE INDEX IF NOT EXISTS idx_trading_intents_status ON trading_trade_intents(status, created_at);
+        CREATE INDEX IF NOT EXISTS idx_trading_orders_status ON trading_orders(account_id, status, updated_at);
+        CREATE INDEX IF NOT EXISTS idx_trading_fills_order ON trading_fills(order_id, filled_at);
+        CREATE INDEX IF NOT EXISTS idx_trading_positions_status ON trading_positions(account_id, status, updated_at);
+        CREATE INDEX IF NOT EXISTS idx_trading_risk_created ON trading_risk_events(severity, created_at);
+        CREATE INDEX IF NOT EXISTS idx_trading_reconcile_account ON trading_reconciliation_runs(account_id, started_at);
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_trading_active_account_symbol
+          ON trading_positions(account_id, symbol)
+          WHERE status IN ('opening', 'open', 'closing', 'emergency');
+        CREATE TRIGGER IF NOT EXISTS trg_trading_strategy_immutable
+        BEFORE UPDATE ON trading_strategy_versions
+        WHEN OLD.status IN ('published', 'archived') AND (
+          NEW.strategy_id <> OLD.strategy_id OR NEW.version <> OLD.version OR
+          NEW.name <> OLD.name OR NEW.description <> OLD.description OR
+          NEW.configuration_json <> OLD.configuration_json OR
+          NEW.configuration_sha256 <> OLD.configuration_sha256 OR
+          NEW.created_at <> OLD.created_at OR NEW.published_at IS NOT OLD.published_at
+        )
+        BEGIN
+          SELECT RAISE(ABORT, 'published strategy versions are immutable');
+        END;
+      `
   }
 ];
 
@@ -420,15 +588,17 @@ export async function restorePreMigrationSnapshot(
 }
 
 // Helper to make sure db is initialized
-function getDb(): Database {
+export function getDatabase(): Database {
   if (!db) {
     throw new Error("Database not initialized. Call initDb() first.");
   }
   return db;
 }
 
+const getDb = getDatabase;
+
 export async function getTotalForwardedCount(): Promise<number> {
-  const row = await getDb().get<{ value: number }>(
+  const row = await getDatabase().get<{ value: number }>(
     `SELECT value FROM forwarding_stats WHERE key = 'total_forwarded_count'`
   );
   return Number(row?.value || 0);
@@ -998,6 +1168,19 @@ export async function getProcessedSignals(limit = 100): Promise<any[]> {
 export async function clearDb(): Promise<void> {
   const database = getDb();
   await database.exec(`
+    DELETE FROM trading_fills;
+    DELETE FROM trading_orders;
+    DELETE FROM trading_positions;
+    DELETE FROM trading_reconciliation_runs;
+    DELETE FROM trading_risk_events;
+    DELETE FROM trading_trade_intents;
+    DELETE FROM trading_routes;
+    DELETE FROM trading_accounts;
+    DELETE FROM trading_strategy_versions;
+    UPDATE trading_runtime_state
+      SET execution_enabled = 0, live_trading_enabled = 0,
+          kill_switch_active = 0, kill_switch_reason = NULL, updated_at = 0
+      WHERE singleton_id = 1;
     DELETE FROM signals;
     DELETE FROM pending_tasks;
     DELETE FROM media_group_buffer;

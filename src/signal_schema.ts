@@ -1,3 +1,5 @@
+import type { ExecutableSignal } from './trading_types.js';
+
 export type SignalSchemaName = 'standard' | 'cryptodanielvip' | 'loma' | 'speculantca';
 
 interface XmlNode {
@@ -14,6 +16,7 @@ export interface ValidatedSignal {
   pair: string;
   groundingNumbers: string[];
   groundingComment?: string;
+  execution?: ExecutableSignal;
 }
 
 export class SignalValidationError extends Error {
@@ -225,6 +228,28 @@ function assertScalarGeometry(
   });
 }
 
+function scalarExecution(input: {
+  action: 'LONG' | 'SHORT';
+  pair: string;
+  entry?: { min: string; max: string };
+  targets: string[];
+  stoploss: string;
+  leverage?: string;
+  averaging?: string;
+  risk?: string;
+}): ExecutableSignal {
+  return {
+    action: input.action,
+    symbol: input.pair,
+    entry: input.entry ? { type: 'range', ...input.entry } : { type: 'market' },
+    targets: input.targets.map(target => ({ min: target, max: target })),
+    stopLoss: input.stoploss,
+    suggestedLeverage: input.leverage ? Number(input.leverage) : undefined,
+    averagingPrice: input.averaging,
+    suggestedRiskPercent: input.risk,
+  };
+}
+
 function validateStandard(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
   assertAllowedChildren(root, ['action', 'pair', 'entry_range', 'targets', 'stoploss', 'leverage']);
   const action = actionValue(root);
@@ -245,6 +270,7 @@ function validateStandard(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'
   return {
     action,
     pair,
+    execution: scalarExecution({ action, pair, entry, targets, stoploss, leverage }),
     groundingNumbers: [...(entry ? [entry.min, entry.max] : []), ...targets, stoploss, ...(leverage ? [leverage] : [])]
   };
 }
@@ -273,6 +299,7 @@ function validateCryptoDaniel(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'sch
   return {
     action,
     pair,
+    execution: scalarExecution({ action, pair, entry, targets, stoploss, averaging, risk }),
     groundingNumbers: [
       ...(entry ? [entry.min, entry.max] : []),
       ...(averaging ? [averaging] : []),
@@ -315,6 +342,13 @@ function validateLoma(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
   return {
     action,
     pair,
+    execution: {
+      action,
+      symbol: pair,
+      entry: { type: 'range', ...entry },
+      targets,
+      stopLoss: stoploss,
+    },
     groundingNumbers: [
       entry.min,
       entry.max,

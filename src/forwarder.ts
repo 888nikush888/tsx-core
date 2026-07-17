@@ -66,6 +66,7 @@ import {
   managedRuntimeSettingsFromEnvironment,
   type ManagedRuntimeSettingsStore,
 } from './runtime_settings.js';
+import { createTradingIntent, ensureTradingDefaults } from './trading_repository.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -676,7 +677,7 @@ async function checkDuplicateAndSave(
       addLog(`[DUPE-BLOCKER] Paket ${message.id} blockiert: ${dupeResult.reason}`);
       updateIncomingMessageStatus(String(message.chat_id), message.id, 'duplicate')
         .catch(error => addLog(`[WARN] Inbox duplicate status update failed for ${message.id}: ${error.message}`));
-      return true;
+      return null;
     }
   }
   
@@ -690,7 +691,7 @@ async function checkDuplicateAndSave(
   const normalizedNew = normalizeSignalXml(xmlString);
   await saveSignal(signalId, String(message.chat_id), message.id, xmlString, normalizedNew, provenance);
   
-  return false;
+  return signalId;
 }
 
 async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {
@@ -727,14 +728,27 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
     );
     addLog(`[XML-Parser SUCCESS] Paket ${message.id} erfolgreich analysiert.`);
     
-    const isDupe = await checkDuplicateAndSave(
+    const signalId = await checkDuplicateAndSave(
       message,
       parsedSignal.xml,
       xmlParsing,
       dupeBlocker,
       parsedSignal.provenance
     );
-    if (isDupe) return { handled: true, result: { mode: 'duplicate-blocked' } };
+    if (!signalId) return { handled: true, result: { mode: 'duplicate-blocked' } };
+
+    if (parsedSignal.signal.execution) {
+      const intent = await createTradingIntent({
+        sourceSignalId: signalId,
+        channelId: sourceId,
+        signal: parsedSignal.signal.execution,
+      });
+      if (intent) {
+        addLog(`[TRADING] intent=${intent.id} channel=${sourceId} status=${intent.status} symbol=${intent.symbol}`);
+      }
+    } else {
+      addLog(`[TRADING] channel=${sourceId} schema=${parsedSignal.signal.schema} is not executable; no trade intent created.`);
+    }
     
     if (forwardXml) {
       const result = await sendXmlMessage(parsedSignal.xml, context);
@@ -1206,6 +1220,7 @@ async function initializeCoreRuntime() {
   await auditTrail.initialize();
   await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
   await initDb();
+  await ensureTradingDefaults();
   state.totalForwardedCount = await getTotalForwardedCount();
   state.lastSuccessfulForwardAt = await getLastForwardedAt();
   await checkCrashLoop();

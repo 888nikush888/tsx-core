@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { OpenAI } from 'openai';
 import { closeDb, commitAiUsage, initDb, reserveAiUsage, type SignalProvenance } from './db.js';
 import { assertSignalGrounded, SignalValidationError, validateSignalXml } from './signal_schema.js';
+import type { ValidatedSignal } from './signal_schema.js';
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 const PARSER_VERSION = '2.0.0';
@@ -85,6 +86,7 @@ export interface ParseSignalOptions {
 
 export interface ParsedSignal {
   xml: string;
+  signal: ValidatedSignal;
   provenance: SignalProvenance;
 }
 
@@ -311,6 +313,7 @@ function validatedCompletion(
   );
   return {
     xml: validated.xml,
+    signal: validated,
     provenance: {
       templateName: context.templateName,
       schemaName: validated.schema,
