@@ -9,6 +9,11 @@ services:
     stop_grace_period: 8m
     environment:
       WEB_HOST: "0.0.0.0"
+      # The published port is host-loopback-only. This lets the local browser
+      # receive its managed session automatically without asking for a token.
+      DASHBOARD_LOCAL_TRUST: "true"
+      # Break-glass recovery uses the same host-loopback-only trust boundary.
+      DASHBOARD_RECOVERY_LOCAL_TRUST: "true"
       METRICS_HOST: "0.0.0.0"
       PORT: "8080"
       METRICS_PORT: "9100"

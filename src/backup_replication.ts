@@ -4,15 +4,21 @@ import path from 'path';
 import { Readable, Transform } from 'stream';
 import { pipeline } from 'stream/promises';
 import { createGunzip, createGzip } from 'zlib';
-import { verifyBackupArtifact } from './backup.js';
+import { isSupportedBackupArtifactFileName, listBackupArtifactFiles, verifyBackupArtifact } from './backup.js';
 import { enterpriseMode } from './runtime_profile.js';
 
 const ENCRYPTED_MAGIC = Buffer.from('TGFE1\0', 'ascii');
 const ARCHIVE_MAGIC = Buffer.from('TGFA1\0', 'ascii');
+const MANIFEST_FILE = 'manifest.json';
 const IV_BYTES = 12;
 const TAG_BYTES = 16;
-const BACKUP_FILES = ['manifest.json', 'config.json', 'forwarder.db'] as const;
-const MAX_OBJECT_BYTES = 1024 ** 4;
+const MAX_OBJECT_BYTES = 8 * 1024 ** 3;
+const DEFAULT_MAX_RECOVERY_BYTES = 2 * 1024 ** 3;
+const MIN_RECOVERY_BYTES = 1024 ** 2;
+const RECOVERY_SAFETY_BYTES = 64 * 1024 ** 2;
+const MAX_EXPANSION_RATIO = 100;
+const MAX_ARCHIVE_NAME_BYTES = 256;
+const CORE_BACKUP_FILES = ['manifest.json', 'config.json', 'forwarder.db'] as const;
 
 export interface BackupReplicationResult {
   objectName: string;
@@ -40,6 +46,8 @@ interface HttpsBackupReplicatorOptions {
   encryptionKey: Buffer;
   timeoutMs?: number;
   allowInsecureLoopback?: boolean;
+  maxRecoveryBytes?: number;
+  minRetentionDays?: number;
 }
 
 function validLoopback(hostname: string): boolean {
@@ -73,7 +81,8 @@ export function parseBackupEncryptionKey(value: string): Buffer {
 
 async function* archiveChunks(artifactPath: string): AsyncGenerator<Buffer> {
   yield ARCHIVE_MAGIC;
-  for (const fileName of BACKUP_FILES) {
+  const files = await listBackupArtifactFiles(artifactPath);
+  for (const fileName of [MANIFEST_FILE, ...files]) {
     const filePath = path.join(artifactPath, fileName);
     const stats = await fs.stat(filePath);
     if (!stats.isFile() || stats.size < 1 || !Number.isSafeInteger(stats.size)) {
@@ -112,48 +121,107 @@ async function readExact(file: fs.FileHandle, length: number, position: number):
   return buffer;
 }
 
-async function extractArchive(archivePath: string, destination: string): Promise<void> {
+interface ArchiveExtractionState {
+  position: number;
+  extracted: Set<string>;
+  extractedBytes: number;
+}
+
+async function readArchiveMemberName(file: fs.FileHandle, state: ArchiveExtractionState): Promise<string | null> {
+  const nameLength = (await readExact(file, 4, state.position)).readUInt32BE(0);
+  state.position += 4;
+  if (nameLength === 0) return null;
+  if (nameLength > MAX_ARCHIVE_NAME_BYTES) throw new Error('Encrypted backup archive contains an invalid file name.');
+  const fileName = (await readExact(file, nameLength, state.position)).toString('utf8');
+  state.position += nameLength;
+  return fileName;
+}
+
+function validateArchiveMemberName(fileName: string, extracted: Set<string>): void {
+  const supported = fileName === MANIFEST_FILE || isSupportedBackupArtifactFileName(fileName);
+  if (!supported || extracted.has(fileName)) {
+    throw new Error(`Encrypted backup archive contains unexpected file '${fileName}'.`);
+  }
+}
+
+async function readArchiveMemberSize(
+  file: fs.FileHandle,
+  state: ArchiveExtractionState,
+  archiveSize: number,
+  fileName: string
+): Promise<number> {
+  const size = Number((await readExact(file, 8, state.position)).readBigUInt64BE(0));
+  state.position += 8;
+  if (!Number.isSafeInteger(size) || size < 1 || state.position + size > archiveSize) {
+    throw new Error(`Encrypted backup archive has an invalid size for '${fileName}'.`);
+  }
+  return size;
+}
+
+function reserveArchiveExtraction(state: ArchiveExtractionState, size: number, maxExpandedBytes: number): void {
+  state.extractedBytes += size;
+  if (state.extractedBytes > maxExpandedBytes) {
+    throw new Error('Encrypted backup archive exceeds the configured recovery size limit.');
+  }
+}
+
+function archiveDestination(destination: string, fileName: string): string {
+  const destinationPath = path.resolve(destination, fileName);
+  if (destinationPath !== destination && !destinationPath.startsWith(`${destination}${path.sep}`)) {
+    throw new Error(`Encrypted backup archive path escapes destination: ${fileName}`);
+  }
+  return destinationPath;
+}
+
+async function extractArchiveMember(
+  file: fs.FileHandle,
+  archivePath: string,
+  destination: string,
+  archiveSize: number,
+  maxExpandedBytes: number,
+  state: ArchiveExtractionState
+): Promise<boolean> {
+  const fileName = await readArchiveMemberName(file, state);
+  if (fileName === null) return false;
+  validateArchiveMemberName(fileName, state.extracted);
+  const size = await readArchiveMemberSize(file, state, archiveSize, fileName);
+  reserveArchiveExtraction(state, size, maxExpandedBytes);
+  const destinationPath = archiveDestination(destination, fileName);
+  await fs.mkdir(path.dirname(destinationPath), { recursive: true, mode: 0o700 });
+  await pipeline(
+    createReadStream(archivePath, { start: state.position, end: state.position + size - 1 }),
+    createWriteStream(destinationPath, { flags: 'wx', mode: 0o600 })
+  );
+  state.position += size;
+  state.extracted.add(fileName);
+  return true;
+}
+
+function assertArchiveComplete(state: ArchiveExtractionState, archiveSize: number): void {
+  const hasRequiredFiles = CORE_BACKUP_FILES.every(fileName => state.extracted.has(fileName));
+  if (state.position !== archiveSize || !hasRequiredFiles || !state.extracted.has(MANIFEST_FILE)) {
+    throw new Error('Encrypted backup archive is incomplete or has trailing data.');
+  }
+}
+
+async function extractArchive(archivePath: string, destination: string, maxExpandedBytes: number): Promise<void> {
   const stats = await fs.stat(archivePath);
   const file = await fs.open(archivePath, 'r');
-  let position = 0;
-  const extracted = new Set<string>();
+  const destinationRoot = path.resolve(destination);
+  const state: ArchiveExtractionState = { position: 0, extracted: new Set<string>(), extractedBytes: 0 };
   try {
-    const magic = await readExact(file, ARCHIVE_MAGIC.length, position);
-    position += magic.length;
+    const magic = await readExact(file, ARCHIVE_MAGIC.length, state.position);
+    state.position += magic.length;
     if (!magic.equals(ARCHIVE_MAGIC)) throw new Error('Decrypted backup archive has an invalid header.');
-    await fs.mkdir(destination, { recursive: false, mode: 0o700 });
-    while (true) {
-      const nameLengthBuffer = await readExact(file, 4, position);
-      position += 4;
-      const nameLength = nameLengthBuffer.readUInt32BE(0);
-      if (nameLength === 0) break;
-      if (nameLength > 64) throw new Error('Encrypted backup archive contains an invalid file name.');
-      const fileName = (await readExact(file, nameLength, position)).toString('utf8');
-      position += nameLength;
-      if (!(BACKUP_FILES as readonly string[]).includes(fileName) || extracted.has(fileName)) {
-        throw new Error(`Encrypted backup archive contains unexpected file '${fileName}'.`);
-      }
-      const size = Number((await readExact(file, 8, position)).readBigUInt64BE(0));
-      position += 8;
-      if (!Number.isSafeInteger(size) || size < 1 || position + size > stats.size) {
-        throw new Error(`Encrypted backup archive has an invalid size for '${fileName}'.`);
-      }
-      await pipeline(
-        createReadStream(archivePath, { start: position, end: position + size - 1 }),
-        createWriteStream(path.join(destination, fileName), { flags: 'wx', mode: 0o600 })
-      );
-      position += size;
-      extracted.add(fileName);
-    }
-    if (position !== stats.size || extracted.size !== BACKUP_FILES.length) {
-      throw new Error('Encrypted backup archive is incomplete or has trailing data.');
-    }
+    await fs.mkdir(destinationRoot, { recursive: false, mode: 0o700 });
+    while (await extractArchiveMember(file, archivePath, destinationRoot, stats.size, maxExpandedBytes, state)) { /* bounded by archive data */ }
+    assertArchiveComplete(state, stats.size);
   } finally {
     await file.close();
   }
 }
 
-async function decryptArtifact(bundlePath: string, destination: string, key: Buffer): Promise<void> {
+async function decryptArtifact(bundlePath: string, destination: string, key: Buffer, maxExpandedBytes: number): Promise<void> {
   const stats = await fs.stat(bundlePath);
   const minimumSize = ENCRYPTED_MAGIC.length + IV_BYTES + TAG_BYTES + 1;
   if (!stats.isFile() || stats.size < minimumSize || stats.size > MAX_OBJECT_BYTES) {
@@ -176,6 +244,14 @@ async function decryptArtifact(bundlePath: string, destination: string, key: Buf
   decipher.setAuthTag(tag);
   const archivePath = `${destination}.archive`;
   try {
+    let decompressed = 0;
+    const expansionLimiter = new Transform({
+      transform(chunk, _encoding, callback) {
+        decompressed += chunk.length;
+        if (decompressed > maxExpandedBytes) callback(new Error('Encrypted backup archive exceeds the configured recovery size limit.'));
+        else callback(null, chunk);
+      }
+    });
     await pipeline(
       createReadStream(bundlePath, {
         start: header.length,
@@ -183,9 +259,10 @@ async function decryptArtifact(bundlePath: string, destination: string, key: Buf
       }),
       decipher,
       createGunzip(),
+      expansionLimiter,
       createWriteStream(archivePath, { flags: 'wx', mode: 0o600 })
     );
-    await extractArchive(archivePath, destination);
+    await extractArchive(archivePath, destination, maxExpandedBytes);
   } finally {
     await fs.rm(archivePath, { force: true });
   }
@@ -234,8 +311,43 @@ function responseObjectSize(response: Response): number {
   return value;
 }
 
+function validateRecoveryLimit(value: number | undefined): number {
+  const limit = value ?? DEFAULT_MAX_RECOVERY_BYTES;
+  if (!Number.isSafeInteger(limit) || limit < MIN_RECOVERY_BYTES || limit > MAX_OBJECT_BYTES) {
+    throw new Error('Off-site recovery size limit must be between 1 MiB and 8 GiB.');
+  }
+  return limit;
+}
+
+function expandedRecoveryLimit(encryptedBytes: number, maxRecoveryBytes: number): number {
+  return Math.min(maxRecoveryBytes, Math.max(MIN_RECOVERY_BYTES, encryptedBytes * MAX_EXPANSION_RATIO));
+}
+
+async function assertRecoveryCapacity(directory: string, encryptedBytes: number, maxRecoveryBytes: number): Promise<number> {
+  const expansionLimit = expandedRecoveryLimit(encryptedBytes, maxRecoveryBytes);
+  const requiredBytes = encryptedBytes + (expansionLimit * 2) + RECOVERY_SAFETY_BYTES;
+  const filesystem = await fs.statfs(directory);
+  const availableBytes = Number(filesystem.bavail) * Number(filesystem.bsize);
+  if (!Number.isSafeInteger(availableBytes) || availableBytes < requiredBytes) {
+    throw new Error(`Off-site recovery requires ${requiredBytes} free bytes but only ${availableBytes} are available.`);
+  }
+  return expansionLimit;
+}
+
+function validateRetentionReceipt(response: Response, minimumDays: number | undefined): void {
+  if (!minimumDays) return;
+  const value = response.headers.get('x-backup-retention-until');
+  const retentionUntil = value ? Date.parse(value) : Number.NaN;
+  const minimum = Date.now() + minimumDays * 24 * 60 * 60 * 1000;
+  if (!Number.isFinite(retentionUntil) || retentionUntil < minimum) {
+    throw new Error(`Off-site backup gateway did not confirm retention through at least ${minimumDays} day(s).`);
+  }
+}
+
 export class HttpsBackupReplicator implements BackupReplicator {
   private readonly timeoutMs: number;
+  private readonly maxRecoveryBytes: number;
+  private readonly minRetentionDays: number | undefined;
 
   constructor(private readonly options: HttpsBackupReplicatorOptions) {
     validateUrlTemplate(options.urlTemplate, !!options.allowInsecureLoopback);
@@ -247,6 +359,11 @@ export class HttpsBackupReplicator implements BackupReplicator {
     if (!Number.isSafeInteger(this.timeoutMs) || this.timeoutMs < 1_000 || this.timeoutMs > 15 * 60_000) {
       throw new Error('Off-site backup timeout must be between 1 second and 15 minutes.');
     }
+    this.maxRecoveryBytes = validateRecoveryLimit(options.maxRecoveryBytes);
+    if (options.minRetentionDays !== undefined && (!Number.isSafeInteger(options.minRetentionDays) || options.minRetentionDays < 1 || options.minRetentionDays > 3650)) {
+      throw new Error('Off-site backup retention must be between 1 and 3650 days.');
+    }
+    this.minRetentionDays = options.minRetentionDays;
   }
 
   async replicate(artifactPath: string): Promise<BackupReplicationResult> {
@@ -280,6 +397,7 @@ export class HttpsBackupReplicator implements BackupReplicator {
       if (![200, 201, 204].includes(upload.status)) {
         throw new Error(`Off-site backup upload failed with HTTP ${upload.status}.`);
       }
+      validateRetentionReceipt(upload, this.minRetentionDays);
       const download = await fetch(objectUrl, {
         method: 'GET',
         headers,
@@ -289,11 +407,12 @@ export class HttpsBackupReplicator implements BackupReplicator {
         await download.body?.cancel();
         throw new Error(`Off-site backup verification download failed with HTTP ${download.status}.`);
       }
+      const expansionLimit = await assertRecoveryCapacity(workingRoot, encryptedStats.size, this.maxRecoveryBytes);
       await downloadExactly(download, downloadedPath, encryptedStats.size);
       if (await sha256File(downloadedPath) !== sha256) {
         throw new Error('Off-site backup verification checksum does not match the uploaded object.');
       }
-      await decryptArtifact(downloadedPath, restoredPath, this.options.encryptionKey);
+      await decryptArtifact(downloadedPath, restoredPath, this.options.encryptionKey, expansionLimit);
       await verifyBackupArtifact(restoredPath);
       return { objectName, sha256, size: encryptedStats.size, verifiedAt: Date.now() };
     } finally {
@@ -333,13 +452,18 @@ export class HttpsBackupReplicator implements BackupReplicator {
         throw new Error(`Off-site backup recovery download failed with HTTP ${response.status}.`);
       }
       const size = responseObjectSize(response);
+      if (size > this.maxRecoveryBytes) {
+        await response.body?.cancel();
+        throw new Error(`Off-site backup recovery object exceeds the configured ${this.maxRecoveryBytes}-byte limit.`);
+      }
+      const expansionLimit = await assertRecoveryCapacity(root, size, this.maxRecoveryBytes);
       await downloadExactly(response, encryptedPath, size);
       const sha256 = await sha256File(encryptedPath);
       const expectedHash = response.headers.get('x-backup-sha256');
       if (expectedHash && (!/^[a-f0-9]{64}$/.test(expectedHash) || expectedHash !== sha256)) {
         throw new Error('Off-site backup recovery checksum does not match the remote object metadata.');
       }
-      await decryptArtifact(encryptedPath, temporaryArtifact, this.options.encryptionKey);
+      await decryptArtifact(encryptedPath, temporaryArtifact, this.options.encryptionKey, expansionLimit);
       await verifyBackupArtifact(temporaryArtifact);
       await fs.rename(temporaryArtifact, finalPath);
       return { objectName: validatedName, artifactPath: finalPath, sha256, size, verifiedAt: Date.now() };
@@ -359,6 +483,15 @@ function strictBoolean(value: string | undefined, fallback: boolean): boolean {
   throw new Error('BACKUP_OFFSITE_REQUIRED must be true or false.');
 }
 
+function optionalBoundedInteger(value: string | undefined, name: string, minimum: number, maximum: number): number | undefined {
+  if (value === undefined || value.trim() === '') return undefined;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) {
+    throw new Error(`${name} must be between ${minimum} and ${maximum}.`);
+  }
+  return parsed;
+}
+
 export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.env): {
   required: boolean;
   replicator: BackupReplicator | null;
@@ -375,13 +508,27 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
     throw new Error('Off-site backup requires BACKUP_OFFSITE_URL_TEMPLATE, BACKUP_OFFSITE_TOKEN and BACKUP_ENCRYPTION_KEY.');
   }
   const timeout = Number(env.BACKUP_OFFSITE_TIMEOUT_MS || 60_000);
+  const configuredRecoveryLimit = optionalBoundedInteger(
+    env.BACKUP_OFFSITE_MAX_RECOVERY_BYTES,
+    'BACKUP_OFFSITE_MAX_RECOVERY_BYTES',
+    MIN_RECOVERY_BYTES,
+    MAX_OBJECT_BYTES
+  );
+  const configuredRetentionDays = optionalBoundedInteger(
+    env.BACKUP_OFFSITE_RETENTION_DAYS,
+    'BACKUP_OFFSITE_RETENTION_DAYS',
+    0,
+    3650
+  );
   return {
     required,
     replicator: new HttpsBackupReplicator({
       urlTemplate: env.BACKUP_OFFSITE_URL_TEMPLATE!,
       bearerToken: env.BACKUP_OFFSITE_TOKEN!,
       encryptionKey: parseBackupEncryptionKey(env.BACKUP_ENCRYPTION_KEY!),
-      timeoutMs: timeout
+      timeoutMs: timeout,
+      maxRecoveryBytes: configuredRecoveryLimit,
+      minRetentionDays: configuredRetentionDays || (enterprise ? 30 : undefined)
     })
   };
 }

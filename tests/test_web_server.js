@@ -41,6 +41,18 @@ async function testAuthenticationAndReads(baseUrl) {
   });
   assert.strictEqual(response.status, 200, 'Trusted loopback startup must restore dashboard access without a bearer prompt');
   assert.strictEqual((await response.json()).token, ADMIN_TOKEN);
+  const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;
+  try {
+    process.env.DASHBOARD_ALLOWED_ORIGIN = 'https://dashboard.example.test';
+    response = await fetch(`${baseUrl}/api/local-session`, {
+      method: 'POST',
+      headers: { Origin: 'https://dashboard.example.test', 'X-Requested-With': 'forwarder-dashboard' }
+    });
+    assert.strictEqual(response.status, 403, 'Local-session startup must never extend to a configured remote dashboard origin');
+  } finally {
+    if (previousAllowedOrigin === undefined) delete process.env.DASHBOARD_ALLOWED_ORIGIN;
+    else process.env.DASHBOARD_ALLOWED_ORIGIN = previousAllowedOrigin;
+  }
   response = await fetch(`${baseUrl}/api/status`);
   assert.strictEqual(response.status, 401, 'Anonymous API access must be rejected');
   assert.match(response.headers.get('www-authenticate') || '', /^Bearer/);
@@ -133,6 +145,21 @@ async function testAuditedControl(baseUrl, controls) {
     body: JSON.stringify({ action: 'start', padding: 'x'.repeat(300 * 1024) })
   });
   assert.strictEqual(response.status, 413, 'Oversized request bodies must be rejected');
+}
+
+async function testMissingAuditFailsClosed(baseUrl, appState) {
+  const auditTrail = appState.auditTrail;
+  appState.auditTrail = undefined;
+  try {
+    const response = await fetch(`${baseUrl}/api/config`, {
+      method: 'POST',
+      headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ forwardOptions: { forwardToTarget: true } })
+    });
+    assert.strictEqual(response.status, 503, 'Mutations must fail closed when no audit trail is available');
+  } finally {
+    appState.auditTrail = auditTrail;
+  }
 }
 
 async function testSensitiveMutations(baseUrl, controls) {
@@ -483,6 +510,45 @@ async function testBootstrap(baseUrl) {
   delete process.env.DASHBOARD_ADMIN_TOKEN;
 }
 
+async function testLocalStartupFirstRun(testDir, appState) {
+  const previousAdminToken = process.env.DASHBOARD_ADMIN_TOKEN;
+  const previousViewerToken = process.env.DASHBOARD_VIEWER_TOKEN;
+  const previousLocalTrust = process.env.DASHBOARD_LOCAL_TRUST;
+  const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
+  const secretStore = new ManagedSecretStore(path.join(testDir, 'first-run-local-secrets'));
+  try {
+    delete process.env.DASHBOARD_ADMIN_TOKEN;
+    delete process.env.DASHBOARD_VIEWER_TOKEN;
+    process.env.DASHBOARD_AUTH_MODE = 'token';
+    process.env.DASHBOARD_LOCAL_TRUST = 'true';
+    await secretStore.initialize();
+    const firstRunServer = startWebServer(0, { ...appState, secretStore });
+    await once(firstRunServer, 'listening');
+    const address = firstRunServer.address();
+    assert.ok(address && typeof address === 'object');
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const response = await fetch(`${baseUrl}/api/local-session`, {
+      method: 'POST',
+      headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
+    });
+    const localStartup = await response.json();
+    assert.strictEqual(response.status, 201, 'First local startup must issue a browser session without requiring a bearer token');
+    assert.match(localStartup.token, /^[a-f0-9]{64}$/);
+    const authenticated = await fetch(`${baseUrl}/api/status`, { headers: headers(localStartup.token) });
+    assert.strictEqual(authenticated.status, 200, 'The first-run local session must authenticate immediately');
+  } finally {
+    await stopWebServer();
+    if (previousAdminToken === undefined) delete process.env.DASHBOARD_ADMIN_TOKEN;
+    else process.env.DASHBOARD_ADMIN_TOKEN = previousAdminToken;
+    if (previousViewerToken === undefined) delete process.env.DASHBOARD_VIEWER_TOKEN;
+    else process.env.DASHBOARD_VIEWER_TOKEN = previousViewerToken;
+    if (previousLocalTrust === undefined) delete process.env.DASHBOARD_LOCAL_TRUST;
+    else process.env.DASHBOARD_LOCAL_TRUST = previousLocalTrust;
+    if (previousAuthMode === undefined) delete process.env.DASHBOARD_AUTH_MODE;
+    else process.env.DASHBOARD_AUTH_MODE = previousAuthMode;
+  }
+}
+
 async function testTelegramWebLogin(baseUrl) {
   let response = await fetch(`${baseUrl}/api/telegram-login`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200, 'Viewer may inspect the active Telegram login prompt');
@@ -493,6 +559,110 @@ async function testTelegramWebLogin(baseUrl) {
     body: JSON.stringify({ value: '12345' })
   });
   assert.strictEqual(response.status, 202, 'Administrator may answer the Telegram login prompt');
+}
+
+async function testRecoveryMode(baseUrl, appState, controls) {
+  appState.recovery = {
+    active: true,
+    allowLoopbackLocalSession: false,
+    issues: [{ component: 'configuration', reason: 'Configuration is invalid.' }]
+  };
+  const stopCallsBeforeRecovery = controls.stopCalls;
+  let response = await fetch(`${baseUrl}/api/recovery`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual(response.status, 200, 'Authenticated operators must be able to inspect recovery status.');
+  const recovery = await response.json();
+  assert.strictEqual(recovery.active, true);
+  assert.strictEqual(recovery.restartRequired, true);
+  response = await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual(response.status, 200, 'Recovery mode must expose a safe configuration baseline for repair.');
+  response = await fetch(`${baseUrl}/api/config`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ forwardOptions: { forwardToTarget: true } })
+  });
+  assert.strictEqual(response.status, 200, 'Recovery mode must allow a valid configuration replacement.');
+  response = await fetch(`${baseUrl}/api/control`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ action: 'stop' })
+  });
+  assert.strictEqual(response.status, 503, 'Recovery mode must block routing control side effects.');
+  const currentSettings = await (await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(ADMIN_TOKEN) })).json();
+  response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(currentSettings.settings)
+  });
+  assert.strictEqual(response.status, 200, 'Recovery mode must allow runtime-settings repair.');
+  assert.strictEqual(controls.stopCalls, stopCallsBeforeRecovery, 'Recovery requests must not start or stop routing.');
+  appState.recovery = undefined;
+}
+
+async function testRecoveryLocalStartup(testDir, appState) {
+  const previousAdminToken = process.env.DASHBOARD_ADMIN_TOKEN;
+  const previousViewerToken = process.env.DASHBOARD_VIEWER_TOKEN;
+  const previousLocalTrust = process.env.DASHBOARD_LOCAL_TRUST;
+  const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
+  const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;
+  const secretStore = new ManagedSecretStore(path.join(testDir, 'recovery-secrets'));
+  let recoveryServer;
+  try {
+    delete process.env.DASHBOARD_ADMIN_TOKEN;
+    delete process.env.DASHBOARD_VIEWER_TOKEN;
+    delete process.env.DASHBOARD_ALLOWED_ORIGIN;
+    process.env.DASHBOARD_AUTH_MODE = 'token';
+    process.env.DASHBOARD_LOCAL_TRUST = 'false';
+    await secretStore.initialize();
+    const recoveryAppState = {
+      ...appState,
+      auditTrail: undefined,
+      secretStore,
+      recovery: {
+        active: true,
+        allowLoopbackLocalSession: true,
+        issues: [{ component: 'managedSecret', reason: 'Managed secret file is invalid.' }]
+      }
+    };
+    recoveryServer = startWebServer(0, recoveryAppState);
+    await once(recoveryServer, 'listening');
+    const address = recoveryServer.address();
+    assert.ok(address && typeof address === 'object');
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const response = await fetch(`${baseUrl}/api/local-session`, {
+      method: 'POST',
+      headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
+    });
+    const recoveryPayload = await response.json();
+    assert.strictEqual(response.status, 201, `Recovery mode must provide a loopback-only session without a bearer prompt: ${recoveryPayload.error || 'unknown error'}`);
+    const { token } = recoveryPayload;
+    assert.match(token, /^[a-f0-9]{64}$/);
+    const status = await fetch(`${baseUrl}/api/recovery`, { headers: headers(token) });
+    assert.strictEqual(status.status, 200, 'The recovery session must authenticate to the repair-only API');
+    const repair = await fetch(`${baseUrl}/api/config`, {
+      method: 'POST',
+      headers: headers(token, { 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' }),
+      body: JSON.stringify({ forwardOptions: { forwardToTarget: true } })
+    });
+    assert.strictEqual(repair.status, 200, 'Loopback recovery must permit a repair mutation when the audit trail itself is unavailable');
+    const blocked = await fetch(`${baseUrl}/api/control`, {
+      method: 'POST',
+      headers: headers(token, { 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' }),
+      body: JSON.stringify({ action: 'start' })
+    });
+    assert.strictEqual(blocked.status, 503, 'Recovery startup must not enable routing controls');
+  } finally {
+    await stopWebServer();
+    if (previousAdminToken === undefined) delete process.env.DASHBOARD_ADMIN_TOKEN;
+    else process.env.DASHBOARD_ADMIN_TOKEN = previousAdminToken;
+    if (previousViewerToken === undefined) delete process.env.DASHBOARD_VIEWER_TOKEN;
+    else process.env.DASHBOARD_VIEWER_TOKEN = previousViewerToken;
+    if (previousLocalTrust === undefined) delete process.env.DASHBOARD_LOCAL_TRUST;
+    else process.env.DASHBOARD_LOCAL_TRUST = previousLocalTrust;
+    if (previousAuthMode === undefined) delete process.env.DASHBOARD_AUTH_MODE;
+    else process.env.DASHBOARD_AUTH_MODE = previousAuthMode;
+    if (previousAllowedOrigin === undefined) delete process.env.DASHBOARD_ALLOWED_ORIGIN;
+    else process.env.DASHBOARD_ALLOWED_ORIGIN = previousAllowedOrigin;
+  }
 }
 
 async function runTests() {
@@ -530,6 +700,7 @@ async function runTests() {
       backupBarrier: null
     };
     const appState = await createAppState(testDir, controls);
+    await testLocalStartupFirstRun(testDir, appState);
 
     const server = startWebServer(0, appState);
     await once(server, 'listening');
@@ -544,6 +715,7 @@ async function runTests() {
     await testRequestValidation(baseUrl);
 
     await testAuditedControl(baseUrl, controls);
+    await testMissingAuditFailsClosed(baseUrl, appState);
     await testSensitiveMutations(baseUrl, controls);
     await testEditableDefaultTemplate(baseUrl, process.env.TEMPLATES_DIR);
     await testOperationsControl(baseUrl, controls);
@@ -551,9 +723,11 @@ async function runTests() {
     await testUnavailableControlContracts(baseUrl, appState);
     await testBrowserAndDestructiveContracts(baseUrl, appState);
     await testRuntimeSettingsControl(baseUrl, controls);
+    await testRecoveryMode(baseUrl, appState, controls);
     await testAccessTokenManagement(baseUrl);
 
     await stopWebServer();
+    await testRecoveryLocalStartup(testDir, appState);
     stopped = true;
     console.log('ALL WEB CONTROL SECURITY TESTS PASSED!');
   } finally {

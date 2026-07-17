@@ -37,7 +37,7 @@ type TelegramLoginState = {
 const MISSING_SECRET: SecretState = { configured: false, editable: true, source: 'missing' }
 
 export default function Page() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const tab = searchParams.get("tab") || "dashboard"
 
   const [isRunning, setIsRunning] = useState(false)
@@ -123,9 +123,23 @@ export default function Page() {
       }
     }
 
+    const redirectRecoveryToSystem = async () => {
+      try {
+        const response = await apiFetch(`${API_BASE}/api/recovery`)
+        const recovery = await response.json().catch(() => ({}))
+        if (!recovery.active || tab === "system") return
+        const next = new URLSearchParams(searchParams)
+        next.set("tab", "system")
+        setSearchParams(next)
+      } catch (error) {
+        console.error("Error checking recovery mode:", error)
+      }
+    }
+
     fetchStatus()
     fetchMetricsHistory()
     fetchConfig()
+    redirectRecoveryToSystem()
     
     const statusInterval = setInterval(fetchStatus, 3000)
     const metricsInterval = setInterval(fetchMetricsHistory, 5000)
@@ -134,7 +148,7 @@ export default function Page() {
       clearInterval(statusInterval)
       clearInterval(metricsInterval)
     }
-  }, [])
+  }, [searchParams, setSearchParams, tab])
 
   const saveConfig = async () => {
     setIsSaving(true);

@@ -11,15 +11,18 @@ interface QueueItem {
 export class ConcurrencyQueue {
   public maxConcurrency: number;
   public timeoutMs: number;
+  /** Maximum number of tasks waiting in memory; running tasks are not counted. */
+  public maxPending: number;
   public running: number;
   public queue: QueueItem[];
   public paused: boolean;
   private readonly activeControllers = new Set<AbortController>();
   private readonly idleWaiters = new Set<() => void>();
 
-  constructor(maxConcurrency = 2, timeoutMs = 60000) {
+  constructor(maxConcurrency = 2, timeoutMs = 60000, maxPending = Number.POSITIVE_INFINITY) {
     this.maxConcurrency = maxConcurrency;
     this.timeoutMs = timeoutMs;
+    this.maxPending = maxPending;
     this.running = 0;
     this.queue = [];
     this.paused = false;
@@ -34,10 +37,23 @@ export class ConcurrencyQueue {
     if (typeof taskFn !== 'function') {
       return Promise.reject(new TypeError('Task must be a function returning a Promise.'));
     }
+    if (this.isAtCapacity) {
+      return Promise.reject(new QueueCapacityError(this.maxPending));
+    }
     return new Promise<T>((resolve, reject) => {
       this.queue.push({ taskFn, resolve, reject });
       this.next();
     });
+  }
+
+  public get isAtCapacity(): boolean {
+    return this.queue.length >= this.maxPending;
+  }
+
+  public get availableCapacity(): number {
+    return Number.isFinite(this.maxPending)
+      ? Math.max(0, this.maxPending - this.queue.length)
+      : Number.MAX_SAFE_INTEGER;
   }
 
   public pause(): void {
@@ -166,5 +182,12 @@ export class ConcurrencyQueue {
           reject(err);
         }
       });
+  }
+}
+
+export class QueueCapacityError extends Error {
+  constructor(maxPending: number) {
+    super(`Queue pending-task capacity of ${maxPending} has been reached.`);
+    this.name = 'QueueCapacityError';
   }
 }

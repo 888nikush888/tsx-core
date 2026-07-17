@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { ManagedSecretStore } from '../src/secret_store.js';
@@ -27,6 +27,14 @@ try {
   assert.equal((await readFile(path.join(directory, 'telegram_api_hash'), 'utf8')).trim(), 'a'.repeat(32));
   await store.set({ openRouterApiKey: 'updated-realistic-test-key-1234567890' });
   assert.equal(env.OPENROUTER_API_KEY, 'updated-realistic-test-key-1234567890');
+  await assert.rejects(
+    store.set({
+      telegramApiHash: 'b'.repeat(32),
+      openRouterApiKey: 'invalid',
+    }),
+    /OpenRouter API key/
+  );
+  assert.equal(env.TELEGRAM_API_HASH, 'a'.repeat(32), 'A rejected multi-secret update must not publish any member.');
 
   const token = await store.createDashboardAdminToken();
   assert.match(token, /^[a-f0-9]{64}$/);
@@ -85,9 +93,41 @@ try {
   await automatic.initialize();
   assert.match(await automatic.getOrCreateDashboardAdminToken(), /^[a-f0-9]{64}$/);
 
+  const transactionDirectory = path.join(directory, 'transaction-recovery');
+  await mkdir(transactionDirectory, { recursive: true, mode: 0o700 });
+  await writeFile(path.join(transactionDirectory, '.managed-secret-transaction.json'), JSON.stringify({
+    version: 1,
+    updates: {
+      telegramApiHash: 'd'.repeat(32),
+      openRouterApiKey: 'transaction-test-key-1234567890',
+    },
+  }));
+  const transactionRecoveredEnv = {};
+  const transactionRecovered = new ManagedSecretStore(transactionDirectory, transactionRecoveredEnv);
+  await transactionRecovered.initialize();
+  assert.equal(transactionRecoveredEnv.TELEGRAM_API_HASH, 'd'.repeat(32), 'Startup must complete an interrupted multi-secret transaction.');
+  assert.equal(transactionRecoveredEnv.OPENROUTER_API_KEY, 'transaction-test-key-1234567890');
+  await assert.rejects(readFile(path.join(transactionDirectory, '.managed-secret-transaction.json')), /ENOENT/);
+
+  const invalidJournalDirectory = path.join(directory, 'invalid-journal-recovery');
+  await mkdir(invalidJournalDirectory, { recursive: true, mode: 0o700 });
+  await writeFile(path.join(invalidJournalDirectory, '.managed-secret-transaction.json'), '{not-json');
+  const invalidJournalStore = new ManagedSecretStore(invalidJournalDirectory, {});
+  await invalidJournalStore.initialize({ recoverInvalidManagedFiles: true });
+  assert.equal(invalidJournalStore.recoveryStatus().length, 1);
+  await invalidJournalStore.set({ telegramApiHash: 'e'.repeat(32) });
+  assert.equal(invalidJournalStore.recoveryStatus().length, 0, 'A successful replacement transaction must clear an invalid journal recovery issue.');
+  await assert.rejects(readFile(path.join(invalidJournalDirectory, '.managed-secret-transaction.json')), /ENOENT/);
+
   await store.set({ openRouterApiKey: 'updated-again-realistic-test-key-1234567890' });
   await writeFile(path.join(directory, 'openrouter_api_key'), 'bad\nmultiline\n');
   await assert.rejects(new ManagedSecretStore(directory, {}).initialize(), /OpenRouter API key/);
+  const recoveredSecrets = new ManagedSecretStore(directory, {});
+  await recoveredSecrets.initialize({ recoverInvalidManagedFiles: true });
+  assert.equal(recoveredSecrets.status().openRouterApiKey.configured, false);
+  assert.equal(recoveredSecrets.recoveryStatus()[0].name, 'openRouterApiKey');
+  await recoveredSecrets.set({ openRouterApiKey: 'repaired-realistic-test-key-1234567890' });
+  assert.equal(recoveredSecrets.recoveryStatus().length, 0, 'Saving a repaired secret must clear its recovery issue.');
 
   assert.equal(enterpriseMode({}), false);
   assert.equal(enterpriseMode({ ENTERPRISE_MODE: 'true' }), true);

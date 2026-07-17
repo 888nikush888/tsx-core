@@ -15,6 +15,8 @@ import {
 import { loadEnv } from './env.js';
 import { getMessageTextAndType, shouldForward } from './filters.js';
 import { ConcurrencyQueue } from './queue.js';
+import { DurableOutboxScheduler } from './outbox_scheduler.js';
+import { acquireProcessLock, type ProcessLock } from './process_lock.js';
 import { isDuplicateSignal, normalizeSignalXml } from './dupe_blocker.js';
 import {
   acknowledgeOutboxTask,
@@ -34,6 +36,7 @@ import {
   initDb,
   isDatabaseHealthy,
   listOutboxTasks,
+  listPendingOutboxTasksForScheduling,
   markOutboxSending,
   recoverInterruptedOutboxTasks,
   removeMediaGroupBuffer,
@@ -107,7 +110,8 @@ try { tdl.configure({ tdjson: getTdjson() }); } catch (error) {
   process.exit(1);
 }
 
-const forwardQueue = new ConcurrencyQueue(2);
+const OUTBOX_MAX_IN_MEMORY_TASKS = 200;
+const forwardQueue = new ConcurrencyQueue(2, 60_000, OUTBOX_MAX_IN_MEMORY_TASKS);
 const LEGACY_PERSIST_FILE = './session_data/queue_persist.json';
 const LEGACY_MEDIA_BUFFER_FILE = './session_data/media_group_buffer.json';
 
@@ -202,12 +206,12 @@ async function executePersistedOutboxTask(task: OutboxTask, config: any, context
   return forwardMediaGroup(task.mediaGroupId, config, { messages, fromChatId: Number(task.chatId) }, context);
 }
 
-function scheduleOutboxTask(
+async function executeScheduledOutboxTask(
   taskId: string,
   fallbackConfig: any,
-  executeLogic?: (context: OutboxExecutionContext) => Promise<any>
-): void {
-  forwardQueue.add(async (signal) => {
+  signal: AbortSignal
+): Promise<void> {
+  await (async () => {
     const task = await claimOutboxTask(taskId);
     if (!task) return;
     const effectiveConfig = task.config ? mergeConfigDefaults(task.config) : fallbackConfig;
@@ -230,9 +234,7 @@ function scheduleOutboxTask(
       outcome: 'started'
     });
     try {
-      const result = executeLogic
-        ? await executeLogic(context)
-        : await executePersistedOutboxTask(task, effectiveConfig, context);
+      const result = await executePersistedOutboxTask(task, effectiveConfig, context);
       await completeOutboxTask(task.id, result);
       if (deliveryAttempted) deliverySlo.recordConfirmed(Math.max(0, Date.now() - Number(task.addedAt || startedAt)));
       addLog(`[SUCCESS] Outbox task ${task.id} completed.`, {
@@ -260,16 +262,30 @@ function scheduleOutboxTask(
       }
       throw error;
     }
-  }).catch(err => {
-    addLog(`[ERROR] Outbox task ${taskId}: ${err.message}`);
-  });
+  })();
 }
 
-async function enqueueTask(taskData: any, config: any, executeLogic: (context: OutboxExecutionContext) => Promise<any>): Promise<void> {
+let activeOutboxConfig: any = null;
+const outboxScheduler = new DurableOutboxScheduler({
+  queue: forwardQueue,
+  listPending: (excludedTaskIds, limit) => listPendingOutboxTasksForScheduling(excludedTaskIds, limit),
+  execute: (taskId, signal) => executeScheduledOutboxTask(taskId, activeOutboxConfig, signal),
+  logError: message => addLog(`[ERROR] ${message}`),
+  batchSize: 100
+});
+
+function scheduleOutboxTask(taskId: string, fallbackConfig: any): void {
+  activeOutboxConfig = fallbackConfig;
+  if (outboxScheduler.schedule(taskId)) return;
+  // SQLite retains the task; a later scheduler cycle reloads it safely.
+  outboxScheduler.requestPump();
+}
+
+async function enqueueTask(taskData: any, config: any): Promise<void> {
   const inserted = await enqueueOutboxTask({ ...taskData, config: configSnapshot(config) });
   if (inserted) {
     deliverySlo.recordAccepted();
-    scheduleOutboxTask(taskData.id, config, executeLogic);
+    scheduleOutboxTask(taskData.id, config);
   }
   else addLog(`[INFO] Duplicate outbox task ${taskData.id} ignored.`);
 }
@@ -282,11 +298,7 @@ async function enqueueSingleMessage(message, config) {
     messageId: message.id,
     addedAt: Date.now()
   };
-  await enqueueTask(
-    task,
-    config,
-    (context) => forwardSingleMessage(message, config, context)
-  );
+  await enqueueTask(task, config);
 }
 
 async function enqueueMediaGroup(gId, config, g) {
@@ -298,11 +310,7 @@ async function enqueueMediaGroup(gId, config, g) {
     messageIds: g.messages.map(m => m.id),
     addedAt: Date.now()
   };
-  await enqueueTask(
-    task,
-    config,
-    (context) => forwardMediaGroup(gId, config, g, context)
-  );
+  await enqueueTask(task, config);
 }
 
 async function resumePersistedTasks(config: any): Promise<void> {
@@ -311,17 +319,19 @@ async function resumePersistedTasks(config: any): Promise<void> {
   if (recovery.requeued > 0) addLog(`[WARN] Safely requeued ${recovery.requeued} task(s) interrupted before provider send.`);
   if (recovery.unknown > 0) addLog(`[CRITICAL] ${recovery.unknown} task(s) stopped during provider send and require reconciliation.`);
 
-  const pendingTasks = await listOutboxTasks(['pending'], 1000);
-  const unresolvedTasks = await listOutboxTasks(['failed', 'unknown'], 1000);
-  if (unresolvedTasks.length > 0) {
-    addLog(`[ERROR] ${unresolvedTasks.length} failed/unknown outbox task(s) retained for operator recovery.`);
+  activeOutboxConfig = config;
+  const outboxCounts = await getOutboxStatusCounts();
+  const unresolvedCount = outboxCounts.failed + outboxCounts.unknown;
+  if (unresolvedCount > 0) {
+    addLog(`[ERROR] ${unresolvedCount} failed/unknown outbox task(s) retained for operator recovery.`);
   }
-  if (pendingTasks.length > 0) addLog(`[INFO] Resuming ${pendingTasks.length} durable outbox task(s).`);
-  for (const task of pendingTasks) scheduleOutboxTask(task.id, config);
+  if (outboxCounts.pending > 0) addLog(`[INFO] Resuming ${outboxCounts.pending} durable outbox task(s) through a bounded scheduler.`);
+  await outboxScheduler.resume();
 }
 
 async function retryPersistedTask(taskId: string, config: any): Promise<boolean> {
   if (!await requeueOutboxTask(taskId)) return false;
+  activeOutboxConfig = config;
   scheduleOutboxTask(taskId, config);
   return true;
 }
@@ -336,6 +346,7 @@ let offsiteBackupReplicator: BackupReplicator | null = null;
 let retentionScheduler: OperationalDataRetention | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
+let processLock: ProcessLock | null = null;
 const state = {
   isRunning: false,
   connectionState: 'disconnected',
@@ -1129,6 +1140,16 @@ async function removeOperationalLock(lockPath: string, label: string): Promise<v
   }
 }
 
+async function releaseProcessLock(label: string): Promise<void> {
+  if (!processLock) return;
+  try {
+    await processLock.release();
+    processLock = null;
+  } catch (error: any) {
+    console.warn(`[WARN] ${label} konnte nicht entfernt werden: ${error.message}`);
+  }
+}
+
 async function performShutdown(exitCode: number): Promise<void> {
   addLog("[INFO] System-Shutdown eingeleitet...");
   routingStopRequested = true;
@@ -1147,7 +1168,7 @@ async function performShutdown(exitCode: number): Promise<void> {
   const databaseClosed = await closeDatabaseAfterDrain(drained);
   await auditTrail?.flush();
   if (drained) await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
-  if (databaseClosed) await removeOperationalLock(processLockPath, 'Prozess-Lock');
+  if (databaseClosed) await releaseProcessLock('Prozess-Lock');
   process.exitCode = exitCode;
 }
 
@@ -1161,21 +1182,30 @@ process.on('SIGTERM', () => { void shutdown(0).finally(() => process.exit(proces
 
 interface RuntimeConfiguration {
   config: any;
+  configurationRecoveryReason?: string;
+}
+
+function loadRuntimeConfiguration(): RuntimeConfiguration {
+  try {
+    return { config: readConfigSync() };
+  } catch (error: any) {
+    return {
+      config: structuredClone(DEFAULT_CONFIG),
+      configurationRecoveryReason: error instanceof Error ? error.message : 'Configuration could not be read.'
+    };
+  }
 }
 
 async function initializeCoreRuntime() {
   initializeDeliveryTracker();
+  const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
+  processLockPath = path.join(path.dirname(databasePath), '.process_active');
+  processLock = await acquireProcessLock(processLockPath);
   await initFileLogger();
   auditTrail = auditTrailFromEnvironment();
   await auditTrail.initialize();
   await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
   await initDb();
-  const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
-  processLockPath = path.join(path.dirname(databasePath), '.process_active');
-  await fsPromises.mkdir(path.dirname(processLockPath), { recursive: true });
-  await fsPromises.writeFile(processLockPath, JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }), {
-    encoding: 'utf8', mode: 0o600
-  });
   state.totalForwardedCount = await getTotalForwardedCount();
   state.lastSuccessfulForwardAt = await getLastForwardedAt();
   await checkCrashLoop();
@@ -1353,13 +1383,13 @@ async function restoreNamedBackup(artifactName: string) {
   retentionScheduler = null;
   await closeDb();
   await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
-  await removeOperationalLock(processLockPath, 'Prozess-Lock');
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
   return restoreBackupArtifact(
     artifact,
     databasePath,
     configurationPathFromEnvironment(),
-    path.dirname(databasePath)
+    path.dirname(databasePath),
+    { allowCurrentProcessLock: true }
   );
 }
 
@@ -1369,6 +1399,11 @@ function startDashboardRuntime(
   runtimeSettings: ManagedRuntimeSettingsStore
 ): void {
   const webPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+  const runtimeRecovery = runtimeSettings.recoveryStatus();
+  const secretRecovery = secretStore.recoveryStatus();
+  const recoveryActive = Boolean(runtime.configurationRecoveryReason) || runtimeRecovery.active || secretRecovery.length > 0;
+  const allowLoopbackLocalSession = recoveryActive
+    && process.env.DASHBOARD_RECOVERY_LOCAL_TRUST?.trim().toLowerCase() === 'true';
   startWebServer(webPort, {
       config: runtime.config,
       state,
@@ -1423,6 +1458,23 @@ function startDashboardRuntime(
       performFactoryReset: async () => {
         await performCompleteFactoryReset(runtime, secretStore, runtimeSettings);
       },
+      recovery: {
+        active: recoveryActive,
+        allowLoopbackLocalSession,
+        issues: [
+          ...(runtime.configurationRecoveryReason
+            ? [{ component: 'configuration' as const, reason: runtime.configurationRecoveryReason }]
+            : []),
+          ...(runtimeRecovery.active && runtimeRecovery.reason
+            ? [{ component: 'runtimeSettings' as const, reason: runtimeRecovery.reason }]
+            : []),
+          ...secretRecovery.map((issue) => ({
+            component: 'managedSecret' as const,
+            name: issue.name,
+            reason: issue.reason,
+          })),
+        ],
+      },
       requestRestart: () => {
         setTimeout(() => {
           void shutdown(0).finally(() => process.exit(process.exitCode || 0));
@@ -1449,11 +1501,17 @@ async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<void> {
 async function run() {
   loadEnv();
   const runtimeSettings = managedRuntimeSettingsFromEnvironment();
-  await runtimeSettings.initialize();
+  await runtimeSettings.initialize({ recoverInvalidFile: true });
   runtimeSettings.applyToEnvironment();
   const secretStore = managedSecretStoreFromEnvironment();
-  await secretStore.initialize();
-  const runtime = { config: readConfigSync() };
+  await secretStore.initialize({ recoverInvalidManagedFiles: true });
+  const runtime = loadRuntimeConfiguration();
+  if (runtimeSettings.recoveryStatus().active || secretStore.recoveryStatus().length > 0 || runtime.configurationRecoveryReason) {
+    state.connectionState = 'recovery-required';
+    addLog('[CRITICAL] Managed settings or secrets are invalid. Routing and background operations remain disabled until repaired in the dashboard and restarted.');
+    startDashboardRuntime(runtime, secretStore, runtimeSettings);
+    return;
+  }
   const { databasePath, retentionPolicy } = await initializeCoreRuntime();
   startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
   startDashboardRuntime(runtime, secretStore, runtimeSettings);

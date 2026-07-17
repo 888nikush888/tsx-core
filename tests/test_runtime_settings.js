@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -46,6 +46,7 @@ try {
     auditRemoteRequired: true,
     backupOffsiteUrlTemplate: 'https://backup.example.com/{artifact}',
     backupOffsiteRequired: true,
+    backupOffsiteRetentionDays: 30,
   });
   assert.equal(enterprise.enterpriseMode, true);
   assert.throws(
@@ -64,6 +65,8 @@ try {
   assert.throws(() => validateRuntimeSettings({ ...enterprise, dashboardLocalTrust: true }), /disable trusted local/);
   assert.throws(() => validateRuntimeSettings({ ...enterprise, auditRemoteRequired: false }), /remote audit/);
   assert.throws(() => validateRuntimeSettings({ ...enterprise, backupOffsiteRequired: false }), /off-site backup/);
+  assert.throws(() => validateRuntimeSettings({ ...enterprise, backupOffsiteRetentionDays: 29 }), /30 days/);
+  assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, backupOffsiteMaxRecoveryBytes: 1024 * 1024 - 1 }), /backupOffsiteMaxRecoveryBytes/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, dashboardAuthMode: 'oidc' }), /oidcIssuer is required/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, dashboardAllowedOrigin: 'https://user@example.com' }), /credentials/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, dashboardAllowedOrigin: 'http://example.com' }), /HTTPS/);
@@ -120,6 +123,16 @@ try {
   assert.deepEqual(derived.snapshot(), DEFAULT_RUNTIME_SETTINGS);
   const invalidFileStore = new ManagedRuntimeSettingsStore(directory, {});
   await assert.rejects(invalidFileStore.initialize(), /small regular file/);
+
+  const corruptedPath = path.join(directory, 'corrupted-runtime-settings.json');
+  await writeFile(corruptedPath, '{not valid JSON');
+  const recoveryStore = new ManagedRuntimeSettingsStore(corruptedPath, {});
+  await recoveryStore.initialize({ recoverInvalidFile: true });
+  assert.equal(recoveryStore.recoveryStatus().active, true);
+  assert.equal(recoveryStore.snapshot().dashboardLocalTrust, false, 'Recovery defaults must not silently enable trusted local startup.');
+  await recoveryStore.set(DEFAULT_RUNTIME_SETTINGS);
+  assert.equal(recoveryStore.recoveryStatus().active, false);
+  assert.deepEqual(JSON.parse(await readFile(corruptedPath, 'utf8')), DEFAULT_RUNTIME_SETTINGS);
 
   await store.reset();
   assert.deepEqual(store.snapshot(), DEFAULT_RUNTIME_SETTINGS);

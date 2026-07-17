@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { once } from 'node:events';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { createBackupArtifact } from '../src/backup.js';
@@ -13,11 +13,14 @@ import {
 import { closeDb, initDb } from '../src/db.js';
 
 const root = await mkdtemp(path.join(os.tmpdir(), 'forwarder-offsite-test-'));
+const previousConfigPath = process.env.CONFIG_PATH;
 const token = 't'.repeat(64);
 const key = Buffer.alloc(32, 7);
+const longTemplateName = `${'t'.repeat(120)}.txt`;
 const objects = new Map();
 const objectHashes = new Map();
 let tamperDownloads = false;
+let includeRetentionReceipt = true;
 const server = http.createServer(async (request, response) => {
   if (request.headers.authorization !== `Bearer ${token}`) {
     response.writeHead(401).end();
@@ -33,7 +36,9 @@ const server = http.createServer(async (request, response) => {
     }
     objects.set(request.url, body);
     objectHashes.set(request.url, request.headers['x-backup-sha256']);
-    response.writeHead(201).end();
+    response.writeHead(201, includeRetentionReceipt ? {
+      'X-Backup-Retention-Until': new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString()
+    } : undefined).end();
     return;
   }
   if (request.method === 'GET' && objects.has(request.url)) {
@@ -49,7 +54,13 @@ const server = http.createServer(async (request, response) => {
 });
 
 try {
+  process.env.CONFIG_PATH = path.join(root, 'config', 'config.json');
   await initDb(path.join(root, 'state', 'forwarder.db'));
+  await mkdir(path.join(root, 'config'), { recursive: true });
+  await mkdir(path.join(root, 'templates'), { recursive: true });
+  await writeFile(path.join(root, 'config', 'runtime-settings.json'), JSON.stringify({ backupIntervalMs: 60_000 }), 'utf8');
+  await writeFile(path.join(root, 'templates', 'default.xml'), '<template/>', 'utf8');
+  await writeFile(path.join(root, 'templates', longTemplateName), '<long-template/>', 'utf8');
   const artifact = await createBackupArtifact(path.join(root, 'backups'), { apiId: 123 });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -71,6 +82,9 @@ try {
   const recovered = await replicator.recover(result.objectName, path.join(root, 'recovered'));
   assert.equal(path.basename(recovered.artifactPath), result.objectName.replace(/\.tgfb$/, ''));
   assert.equal(recovered.sha256, result.sha256);
+  assert.deepEqual(JSON.parse(await readFile(path.join(recovered.artifactPath, 'runtime-settings.json'), 'utf8')), { backupIntervalMs: 60_000 });
+  assert.equal(await readFile(path.join(recovered.artifactPath, 'templates', 'default.xml'), 'utf8'), '<template/>');
+  assert.equal(await readFile(path.join(recovered.artifactPath, 'templates', longTemplateName), 'utf8'), '<long-template/>');
   await assert.rejects(replicator.recover('../escape.tgfb', path.join(root, 'recovered')), /object name is invalid/);
   await assert.rejects(replicator.recover(result.objectName, path.join(root, 'recovered')), /already exists/);
 
@@ -108,10 +122,32 @@ try {
     }),
     /must use HTTPS/
   );
+  assert.throws(
+    () => new HttpsBackupReplicator({
+      urlTemplate: `http://127.0.0.1:${address.port}/objects/{artifact}`,
+      bearerToken: token,
+      encryptionKey: key,
+      allowInsecureLoopback: true,
+      maxRecoveryBytes: 1024
+    }),
+    /size limit/
+  );
+  includeRetentionReceipt = false;
+  const retentionReplicator = new HttpsBackupReplicator({
+    urlTemplate: `http://127.0.0.1:${address.port}/objects/{artifact}`,
+    bearerToken: token,
+    encryptionKey: key,
+    allowInsecureLoopback: true,
+    minRetentionDays: 30
+  });
+  await assert.rejects(retentionReplicator.replicate(artifact), /did not confirm retention/);
+  includeRetentionReceipt = true;
 
   console.log('ALL ENCRYPTED OFF-SITE BACKUP TESTS PASSED!');
 } finally {
   server.close();
   await closeDb();
   await rm(root, { recursive: true, force: true });
+  if (previousConfigPath === undefined) delete process.env.CONFIG_PATH;
+  else process.env.CONFIG_PATH = previousConfigPath;
 }

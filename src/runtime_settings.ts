@@ -22,6 +22,8 @@ export interface RuntimeSettings {
   backupOffsiteRequired: boolean;
   backupOffsiteUrlTemplate: string;
   backupOffsiteTimeoutMs: number;
+  backupOffsiteMaxRecoveryBytes: number;
+  backupOffsiteRetentionDays: number;
   backupIntervalMs: number;
   backupRetentionCount: number;
   dataRetentionDays: number;
@@ -31,6 +33,15 @@ export interface RuntimeSettings {
   deliveryConfirmTimeoutMs: number;
   shutdownGraceMs: number;
   jsonLogging: boolean;
+}
+
+export interface RuntimeSettingsRecoveryStatus {
+  active: boolean;
+  reason: string | null;
+}
+
+export interface RuntimeSettingsStoreOptions {
+  recoverInvalidFile?: boolean;
 }
 
 export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
@@ -54,6 +65,8 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
   backupOffsiteRequired: false,
   backupOffsiteUrlTemplate: '',
   backupOffsiteTimeoutMs: 60_000,
+  backupOffsiteMaxRecoveryBytes: 2 * 1024 * 1024 * 1024,
+  backupOffsiteRetentionDays: 0,
   backupIntervalMs: 15 * 60_000,
   backupRetentionCount: 672,
   dataRetentionDays: 90,
@@ -63,6 +76,14 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
   deliveryConfirmTimeoutMs: 30_000,
   shutdownGraceMs: 30_000,
   jsonLogging: true,
+};
+
+// A corrupted managed settings file must never silently re-enable the broad
+// standalone local-trust flow. Recovery is intentionally token-only and keeps
+// every optional external integration disabled until an operator repairs it.
+const SAFE_RECOVERY_RUNTIME_SETTINGS: RuntimeSettings = {
+  ...DEFAULT_RUNTIME_SETTINGS,
+  dashboardLocalTrust: false,
 };
 
 const KEYS = new Set(Object.keys(DEFAULT_RUNTIME_SETTINGS));
@@ -150,6 +171,9 @@ function validateEnterpriseProfile(
   if (enterprise && settings.dashboardLocalTrust !== false) throw new Error('Enterprise mode must disable trusted local dashboard startup.');
   if (enterprise && settings.auditRemoteRequired !== true) throw new Error('Enterprise mode requires remote audit delivery.');
   if (enterprise && settings.backupOffsiteRequired !== true) throw new Error('Enterprise mode requires off-site backup replication.');
+  if (enterprise && (!Number.isSafeInteger(settings.backupOffsiteRetentionDays) || Number(settings.backupOffsiteRetentionDays) < 30)) {
+    throw new Error('Enterprise mode requires at least 30 days of confirmed off-site backup retention.');
+  }
 }
 
 function validatedBackupUrl(settings: RuntimeSettingsRecord, enterprise: boolean): string {
@@ -225,6 +249,8 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
     backupOffsiteRequired: merged.backupOffsiteRequired as boolean,
     backupOffsiteUrlTemplate: backupUrl,
     backupOffsiteTimeoutMs: integer(merged.backupOffsiteTimeoutMs, 'backupOffsiteTimeoutMs', 1_000, 5 * 60_000),
+    backupOffsiteMaxRecoveryBytes: integer(merged.backupOffsiteMaxRecoveryBytes, 'backupOffsiteMaxRecoveryBytes', 1024 * 1024, 8 * 1024 * 1024 * 1024),
+    backupOffsiteRetentionDays: integer(merged.backupOffsiteRetentionDays, 'backupOffsiteRetentionDays', 0, 3_650),
     backupIntervalMs: integer(merged.backupIntervalMs, 'backupIntervalMs', 60_000, 15 * 60_000),
     backupRetentionCount: integer(merged.backupRetentionCount, 'backupRetentionCount', 1, 10_000),
     dataRetentionDays: integer(merged.dataRetentionDays, 'dataRetentionDays', 1, 3_650),
@@ -258,6 +284,8 @@ const ENVIRONMENT_MAPPING: Record<keyof RuntimeSettings, string> = {
   backupOffsiteRequired: 'BACKUP_OFFSITE_REQUIRED',
   backupOffsiteUrlTemplate: 'BACKUP_OFFSITE_URL_TEMPLATE',
   backupOffsiteTimeoutMs: 'BACKUP_OFFSITE_TIMEOUT_MS',
+  backupOffsiteMaxRecoveryBytes: 'BACKUP_OFFSITE_MAX_RECOVERY_BYTES',
+  backupOffsiteRetentionDays: 'BACKUP_OFFSITE_RETENTION_DAYS',
   backupIntervalMs: 'BACKUP_INTERVAL_MS',
   backupRetentionCount: 'BACKUP_RETENTION_COUNT',
   dataRetentionDays: 'DATA_RETENTION_DAYS',
@@ -282,13 +310,14 @@ async function syncDirectory(directory: string): Promise<void> {
 
 export class ManagedRuntimeSettingsStore {
   private settings = structuredClone(DEFAULT_RUNTIME_SETTINGS);
+  private recoveryReason: string | null = null;
 
   constructor(
     private readonly filePath: string,
     private readonly env: NodeJS.ProcessEnv = process.env
   ) {}
 
-  async initialize(): Promise<void> {
+  async initialize(options: RuntimeSettingsStoreOptions = {}): Promise<void> {
     const resolved = path.resolve(this.filePath);
     await fs.mkdir(path.dirname(resolved), { recursive: true, mode: 0o700 });
     try {
@@ -298,8 +327,13 @@ export class ManagedRuntimeSettingsStore {
       }
       this.settings = validateRuntimeSettings(JSON.parse(await fs.readFile(resolved, 'utf8')));
     } catch (error: any) {
-      if (error?.code !== 'ENOENT') throw error;
-      await this.write(DEFAULT_RUNTIME_SETTINGS);
+      if (error?.code === 'ENOENT') {
+        await this.write(DEFAULT_RUNTIME_SETTINGS);
+        return;
+      }
+      if (!options.recoverInvalidFile) throw error;
+      this.settings = structuredClone(SAFE_RECOVERY_RUNTIME_SETTINGS);
+      this.recoveryReason = error instanceof Error ? error.message : 'Managed runtime settings could not be read.';
     }
   }
 
@@ -307,14 +341,20 @@ export class ManagedRuntimeSettingsStore {
     return structuredClone(this.settings);
   }
 
+  recoveryStatus(): RuntimeSettingsRecoveryStatus {
+    return { active: this.recoveryReason !== null, reason: this.recoveryReason };
+  }
+
   async set(input: unknown): Promise<RuntimeSettings> {
     const candidate = validateRuntimeSettings(input);
     await this.write(candidate);
+    this.recoveryReason = null;
     return this.snapshot();
   }
 
   async reset(): Promise<void> {
     await this.write(DEFAULT_RUNTIME_SETTINGS);
+    this.recoveryReason = null;
   }
 
   applyToEnvironment(): void {

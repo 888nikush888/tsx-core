@@ -882,6 +882,23 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P
   return rows.map(mapOutboxRow);
 }
 
+/**
+ * Returns pending work which is not already represented by the bounded
+ * in-memory scheduler window. The database remains the source of truth.
+ */
+export async function listPendingOutboxTasksForScheduling(excludedTaskIds: string[] = [], limit = 100): Promise<OutboxTask[]> {
+  const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
+  const excluded = [...new Set(excludedTaskIds.filter(id => typeof id === 'string' && id.length > 0))].slice(0, 1000);
+  const exclusionClause = excluded.length > 0
+    ? ` AND id NOT IN (${excluded.map(() => '?').join(', ')})`
+    : '';
+  const rows = await getDb().all(
+    `SELECT * FROM pending_tasks WHERE status = 'pending'${exclusionClause} ORDER BY added_at ASC, id ASC LIMIT ?`,
+    [...excluded, safeLimit]
+  );
+  return rows.map(mapOutboxRow);
+}
+
 export async function requeueOutboxTask(id: string): Promise<boolean> {
   const result = await getDb().run(
     `UPDATE pending_tasks

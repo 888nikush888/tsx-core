@@ -93,6 +93,7 @@ interface WebServerState {
     | 'rotateDashboardToken'
     | 'removeDashboardViewerToken'
     | 'clear'
+    | 'recoveryStatus'
   >;
   getTelegramLoginState?: () => TelegramLoginSnapshot;
   submitTelegramLogin?: (payload: unknown) => TelegramLoginSnapshot;
@@ -104,7 +105,12 @@ interface WebServerState {
   restoreBackup?: (artifactName: string) => Promise<{ previousDatabase: string | null; previousConfig: string | null }>;
   performFactoryReset?: () => Promise<void>;
   requestRestart?: () => void;
-  runtimeSettings?: Pick<ManagedRuntimeSettingsStore, 'snapshot' | 'set'>;
+  runtimeSettings?: Pick<ManagedRuntimeSettingsStore, 'snapshot' | 'set' | 'recoveryStatus'>;
+  recovery?: {
+    active: boolean;
+    allowLoopbackLocalSession: boolean;
+    issues: Array<{ component: 'configuration' | 'runtimeSettings' | 'managedSecret'; name?: string; reason: string }>;
+  };
 }
 
 interface RequestContext {
@@ -161,11 +167,20 @@ function recordAuditCompletion(
   url: string,
   statusCode: number
 ): void {
+  if (!auditTrail) {
+    addLog(`[CRITICAL] request_id=${requestId} Dashboard mutation completed without a persisted audit record.`, {
+      request_id: requestId,
+      event: 'audit_completion_unavailable',
+      path: url,
+      status_code: statusCode,
+    });
+    return;
+  }
   addLog(
     `[AUDIT] request_id=${requestId} actor_role=${actor.role} method=${method} path=${url} status=${statusCode}`
   );
   void auditTrail
-    ?.record({
+    .record({
       phase: 'completed',
       action: 'dashboard.mutation',
       requestId,
@@ -193,6 +208,15 @@ function isAllowedOrigin(origin: string | undefined): boolean {
       parsed.protocol === 'http:' &&
       ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname)
     );
+  } catch {
+    return false;
+  }
+}
+
+function isLoopbackBrowserOrigin(origin: string): boolean {
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === 'http:' && ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname);
   } catch {
     return false;
   }
@@ -262,7 +286,20 @@ async function authorizeMutationAudit(
 ): Promise<boolean> {
   try {
     requireMutationHeaders(context.req);
-    await context.appState.auditTrail?.record({
+    if (!context.appState.auditTrail) {
+      if (context.appState.recovery?.active
+        && context.appState.recovery.allowLoopbackLocalSession
+        && recoveryAllowsRoute(method, url)) {
+        addLog(`[CRITICAL] request_id=${context.requestId} Recovery repair mutation accepted without an audit trail.`, {
+          request_id: context.requestId,
+          event: 'recovery_unaudited_repair',
+          path: url,
+        });
+        return true;
+      }
+      throw new Error('Audit trail is unavailable.');
+    }
+    await context.appState.auditTrail.record({
       phase: 'authorized',
       action: 'dashboard.mutation',
       requestId: context.requestId,
@@ -859,6 +896,14 @@ function runtimeSettingsHandler({ res, appState }: RequestContext): void {
   sendJson(res, 200, { settings: appState.runtimeSettings.snapshot() });
 }
 
+function recoveryStatusHandler({ res, appState }: RequestContext): void {
+  sendJson(res, 200, {
+    active: appState.recovery?.active === true,
+    issues: appState.recovery?.issues ?? [],
+    restartRequired: appState.recovery?.active === true,
+  });
+}
+
 async function postRuntimeSettingsHandler(context: RequestContext): Promise<void> {
   if (!context.appState.runtimeSettings || !context.appState.secretStore) {
     sendJson(context.res, 503, { error: 'Managed runtime settings are unavailable.', requestId: context.requestId });
@@ -1028,6 +1073,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/operations/audit-replay', replayAuditHandler],
   ['GET /api/runtime-settings', runtimeSettingsHandler],
   ['POST /api/runtime-settings', postRuntimeSettingsHandler],
+  ['GET /api/recovery', recoveryStatusHandler],
   ['POST /api/restart', restartHandler],
   ['GET /api/backups', backupsHandler],
   ['GET /api/backups/verify', verifyBackupHandler],
@@ -1094,44 +1140,70 @@ function localDashboardStartupEnabled(): boolean {
     && process.env.ENTERPRISE_MODE?.trim().toLowerCase() !== 'true';
 }
 
+function requireLocalSessionSecretStore(
+  context: RequestContext,
+  authenticator: DashboardAuthenticator
+): NonNullable<WebServerState['secretStore']> {
+  if (!localDashboardStartupEnabled() && !context.appState.recovery?.allowLoopbackLocalSession) {
+    throw new HttpError(409, 'Integrated local dashboard startup is disabled.');
+  }
+  if (authenticator.mode !== 'token') {
+    throw new HttpError(409, 'Integrated local startup is unavailable in OIDC mode.');
+  }
+  const secretStore = context.appState.secretStore;
+  if (!secretStore) throw new HttpError(503, 'Managed secret storage is unavailable.');
+  const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
+  if (!origin || !isLoopbackBrowserOrigin(origin) || context.req.headers['x-requested-with'] !== 'forwarder-dashboard') {
+    throw new HttpError(403, 'Integrated local startup requires the trusted dashboard origin.');
+  }
+  return secretStore;
+}
+
+function isRecoveryLocalSessionBootstrap(context: RequestContext): boolean {
+  return context.appState.recovery?.allowLoopbackLocalSession === true;
+}
+
+function recordLocalSessionCompletion(context: RequestContext, actor: AuthenticatedActor): void {
+  context.res.once('finish', () => {
+    recordAuditCompletion(
+      context.appState.auditTrail,
+      actor,
+      context.requestId,
+      'POST',
+      '/api/local-session',
+      context.res.statusCode
+    );
+  });
+}
+
+async function authorizeLocalSessionInitialization(
+  context: RequestContext,
+  actor: AuthenticatedActor,
+  tokenWasConfigured: boolean
+): Promise<boolean> {
+  if (tokenWasConfigured) return true;
+  if (isRecoveryLocalSessionBootstrap(context)) {
+    addLog(`[CRITICAL] request_id=${context.requestId} Recovery-mode loopback session initialized without an audit trail.`, {
+      request_id: context.requestId,
+      event: 'recovery_local_session_bootstrap',
+    });
+    return true;
+  }
+  if (!(await authorizeMutationAudit(context, actor, 'POST', '/api/local-session'))) return false;
+  recordLocalSessionCompletion(context, actor);
+  return true;
+}
+
 async function localSessionHandler(
   context: RequestContext,
   authenticator: DashboardAuthenticator
 ): Promise<void> {
   try {
-    if (!localDashboardStartupEnabled()) {
-      throw new HttpError(409, 'Integrated local dashboard startup is disabled.');
-    }
-    if (authenticator.mode !== 'token') {
-      throw new HttpError(409, 'Integrated local startup is unavailable in OIDC mode.');
-    }
-    if (!context.appState.secretStore) {
-      throw new HttpError(503, 'Managed secret storage is unavailable.');
-    }
-    const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
-    if (
-      !origin
-      || !isAllowedOrigin(origin)
-      || context.req.headers['x-requested-with'] !== 'forwarder-dashboard'
-    ) {
-      throw new HttpError(403, 'Integrated local startup requires the trusted dashboard origin.');
-    }
+    const secretStore = requireLocalSessionSecretStore(context, authenticator);
     const tokenWasConfigured = authenticator.isConfigured();
     const actor: AuthenticatedActor = { role: 'admin', id: 'startup:local-browser' };
-    if (!tokenWasConfigured && !(await authorizeMutationAudit(context, actor, 'POST', '/api/local-session'))) return;
-    if (!tokenWasConfigured) {
-      context.res.once('finish', () => {
-        recordAuditCompletion(
-          context.appState.auditTrail,
-          actor,
-          context.requestId,
-          'POST',
-          '/api/local-session',
-          context.res.statusCode
-        );
-      });
-    }
-    const token = await context.appState.secretStore.getOrCreateDashboardAdminToken();
+    if (!(await authorizeLocalSessionInitialization(context, actor, tokenWasConfigured))) return;
+    const token = await secretStore.getOrCreateDashboardAdminToken();
     if (!tokenWasConfigured) {
       addLog(`[SECURITY] request_id=${context.requestId} Integrated local dashboard access initialized.`);
     }
@@ -1144,6 +1216,19 @@ async function localSessionHandler(
   } catch (error) {
     sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
   }
+}
+
+function recoveryAllowsRoute(method: string, url: string): boolean {
+  return new Set([
+    'GET /api/recovery',
+    'GET /api/config',
+    'POST /api/config',
+    'GET /api/secrets',
+    'POST /api/secrets',
+    'GET /api/runtime-settings',
+    'POST /api/runtime-settings',
+    'POST /api/restart',
+  ]).has(`${method} ${url}`);
 }
 
 function handleOptions(res: http.ServerResponse): void {
@@ -1222,6 +1307,53 @@ async function handlePublicApiRequest(
   return false;
 }
 
+async function invokeApiHandler(
+  context: RequestContext,
+  method: string,
+  handler: ApiHandler
+): Promise<void> {
+  if (method === 'GET') {
+    await handler(context);
+    return;
+  }
+  if (mutationInProgress) {
+    sendJson(context.res, 409, {
+      error: 'Another control-plane mutation is already in progress.',
+      requestId: context.requestId,
+    });
+    return;
+  }
+  mutationInProgress = true;
+  try {
+    await handler(context);
+  } finally {
+    mutationInProgress = false;
+  }
+}
+
+async function handleAuthenticatedApiRequest(
+  context: RequestContext,
+  authenticator: DashboardAuthenticator,
+  method: string,
+  url: string
+): Promise<void> {
+  if (await handlePublicApiRequest(context, authenticator, method, url)) return;
+  if (!(await authenticateApiRequest(context, authenticator, method, url))) return;
+  if (context.appState.recovery?.active && !recoveryAllowsRoute(method, url)) {
+    sendJson(context.res, 503, {
+      error: 'Recovery mode only permits managed runtime-settings and secret repair followed by a restart.',
+      requestId: context.requestId,
+    });
+    return;
+  }
+  const handler = API_ROUTES.get(`${method} ${url}`);
+  if (!handler) {
+    sendJson(context.res, 404, { error: 'API endpoint not found.', requestId: context.requestId });
+    return;
+  }
+  await invokeApiHandler(context, method, handler);
+}
+
 async function handleRequest(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -1248,27 +1380,7 @@ async function handleRequest(
     await serveStatic(context, url);
     return;
   }
-  if (await handlePublicApiRequest(context, authenticator, method, url)) return;
-  if (!(await authenticateApiRequest(context, authenticator, method, url))) return;
-  const handler = API_ROUTES.get(`${method} ${url}`);
-  if (!handler) {
-    sendJson(res, 404, { error: 'API endpoint not found.', requestId });
-    return;
-  }
-  if (method === 'GET') {
-    await handler(context);
-    return;
-  }
-  if (mutationInProgress) {
-    sendJson(res, 409, { error: 'Another control-plane mutation is already in progress.', requestId });
-    return;
-  }
-  mutationInProgress = true;
-  try {
-    await handler(context);
-  } finally {
-    mutationInProgress = false;
-  }
+  await handleAuthenticatedApiRequest(context, authenticator, method, url);
 }
 
 export function startWebServer(

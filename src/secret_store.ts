@@ -30,6 +30,21 @@ interface SecretDefinition {
   error: string;
 }
 
+interface SecretTransaction {
+  version: 1;
+  updates: Partial<Record<ManagedSecretName, string>>;
+}
+
+export interface ManagedSecretRecoveryIssue {
+  name?: ManagedSecretName;
+  fileName: string;
+  reason: string;
+}
+
+export interface ManagedSecretStoreOptions {
+  recoverInvalidManagedFiles?: boolean;
+}
+
 const DEFINITIONS: Record<ManagedSecretName, SecretDefinition> = {
   telegramApiHash: {
     environmentName: 'TELEGRAM_API_HASH',
@@ -126,19 +141,42 @@ export class ManagedSecretStore {
   private readonly env: NodeJS.ProcessEnv;
   private readonly sources = new Map<ManagedSecretName, ManagedSecretSource>();
   private readonly generatingTokens = new Set<ManagedSecretName>();
+  private readonly recoveryIssues: ManagedSecretRecoveryIssue[] = [];
+  private writing = false;
 
   constructor(directory: string, env: NodeJS.ProcessEnv = process.env) {
     this.directory = path.resolve(directory);
     this.env = env;
   }
 
-  async initialize(): Promise<void> {
+  async initialize(options: ManagedSecretStoreOptions = {}): Promise<void> {
     await fs.mkdir(this.directory, { recursive: true, mode: 0o700 });
     const stats = await fs.lstat(this.directory);
     if (!stats.isDirectory() || stats.isSymbolicLink()) {
       throw new Error('Managed secret directory must be a real directory, not a symbolic link.');
     }
-    for (const name of Object.keys(DEFINITIONS) as ManagedSecretName[]) await this.load(name);
+    try {
+      await this.recoverPendingTransaction();
+    } catch (error) {
+      if (!options.recoverInvalidManagedFiles) throw error;
+      this.recoveryIssues.push({
+        fileName: path.basename(this.transactionPath()),
+        reason: error instanceof Error ? error.message : 'Managed secret transaction could not be read.',
+      });
+    }
+    for (const name of Object.keys(DEFINITIONS) as ManagedSecretName[]) {
+      try {
+        await this.load(name);
+      } catch (error) {
+        if (!options.recoverInvalidManagedFiles || this.env[DEFINITIONS[name].environmentName]?.trim()) throw error;
+        this.sources.set(name, 'missing');
+        this.recoveryIssues.push({
+          name,
+          fileName: DEFINITIONS[name].fileName,
+          reason: error instanceof Error ? error.message : 'Managed secret could not be read.',
+        });
+      }
+    }
   }
 
   status(): Record<ManagedSecretName, ManagedSecretStatus> {
@@ -151,7 +189,21 @@ export class ManagedSecretStore {
     ) as Record<ManagedSecretName, ManagedSecretStatus>;
   }
 
+  recoveryStatus(): ManagedSecretRecoveryIssue[] {
+    return this.recoveryIssues.map((issue) => ({ ...issue }));
+  }
+
   async set(updates: Partial<Record<ManagedSecretName, unknown>>): Promise<void> {
+    if (this.writing) throw new Error('Managed secret update is already in progress.');
+    this.writing = true;
+    try {
+      await this.setAtomically(updates);
+    } finally {
+      this.writing = false;
+    }
+  }
+
+  private async setAtomically(updates: Partial<Record<ManagedSecretName, unknown>>): Promise<void> {
     const entries = Object.entries(updates) as Array<[ManagedSecretName, unknown]>;
     if (entries.length === 0) throw new Error('At least one managed secret is required.');
     const validated = entries.map(([name, value]) => {
@@ -168,7 +220,16 @@ export class ManagedSecretStore {
       }
       return [name, normalized] as const;
     });
-    for (const [name, value] of validated) await this.write(name, value);
+    await this.writeTransaction(Object.fromEntries(validated));
+    for (let index = this.recoveryIssues.length - 1; index >= 0; index--) {
+      if (!this.recoveryIssues[index].name) this.recoveryIssues.splice(index, 1);
+    }
+    for (const [name, value] of validated) {
+      this.env[DEFINITIONS[name].environmentName] = value;
+      this.sources.set(name, 'managed');
+      const issueIndex = this.recoveryIssues.findIndex((issue) => issue.name === name);
+      if (issueIndex >= 0) this.recoveryIssues.splice(issueIndex, 1);
+    }
   }
 
   async createDashboardAdminToken(): Promise<string> {
@@ -259,20 +320,84 @@ export class ManagedSecretStore {
     }
   }
 
-  private async write(name: ManagedSecretName, value: string): Promise<void> {
-    const destination = this.secretPath(name);
-    const temporary = `${destination}.${process.pid}.${Date.now()}.tmp`;
+  private transactionPath(): string {
+    return path.join(this.directory, '.managed-secret-transaction.json');
+  }
+
+  private async writeTransaction(updates: Partial<Record<ManagedSecretName, string>>): Promise<void> {
+    const transaction: SecretTransaction = { version: 1, updates };
+    await this.writeFileAtomically(this.transactionPath(), `${JSON.stringify(transaction)}\n`);
+    // If publishing any member fails, this durable journal remains in place. The
+    // next initialize() completes every member instead of retaining a partial update.
+    for (const [name, value] of Object.entries(updates) as Array<[ManagedSecretName, string]>) {
+      await this.writeSecretFile(name, value);
+    }
+    await fs.unlink(this.transactionPath());
+    await syncDirectory(this.directory);
+  }
+
+  private async recoverPendingTransaction(): Promise<void> {
+    const entries = await this.readPendingTransactionEntries();
+    if (!entries) return;
+    await this.applyRecoveredSecretTransaction(entries);
+    await fs.unlink(this.transactionPath());
+    await syncDirectory(this.directory);
+  }
+
+  private async readPendingTransactionEntries(): Promise<Array<[ManagedSecretName, unknown]> | null> {
+    const transactionPath = this.transactionPath();
+    let parsed: unknown;
+    try {
+      const stats = await fs.lstat(transactionPath);
+      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 128 * 1024) {
+        throw new Error('Managed secret transaction must be a small regular file.');
+      }
+      parsed = JSON.parse(await fs.readFile(transactionPath, 'utf8'));
+    } catch (error: any) {
+      if (error?.code === 'ENOENT') return null;
+      throw error;
+    }
+    return this.validatePendingTransaction(parsed);
+  }
+
+  private validatePendingTransaction(parsed: unknown): Array<[ManagedSecretName, unknown]> {
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Managed secret transaction is invalid.');
+    }
+    const transaction = parsed as Partial<SecretTransaction>;
+    if (transaction.version !== 1 || !transaction.updates || typeof transaction.updates !== 'object' || Array.isArray(transaction.updates)) {
+      throw new Error('Managed secret transaction is invalid.');
+    }
+    const entries = Object.entries(transaction.updates) as Array<[ManagedSecretName, unknown]>;
+    if (entries.length === 0) throw new Error('Managed secret transaction is empty.');
+    return entries;
+  }
+
+  private async applyRecoveredSecretTransaction(entries: Array<[ManagedSecretName, unknown]>): Promise<void> {
+    for (const [name, value] of entries) {
+      if (!(name in DEFINITIONS)) throw new Error(`Managed secret transaction contains an unknown secret: ${name}.`);
+      if (this.env[DEFINITIONS[name].environmentName]?.trim()) {
+        throw new Error(`Managed secret transaction cannot overwrite externally managed ${DEFINITIONS[name].environmentName}.`);
+      }
+      await this.writeSecretFile(name, validateSecret(name, value));
+    }
+  }
+
+  private async writeSecretFile(name: ManagedSecretName, value: string): Promise<void> {
+    await this.writeFileAtomically(this.secretPath(name), `${value}\n`);
+  }
+
+  private async writeFileAtomically(destination: string, content: string): Promise<void> {
+    const temporary = `${destination}.${process.pid}.${Date.now()}.${randomBytes(6).toString('hex')}.tmp`;
     let handle: fs.FileHandle | undefined;
     try {
       handle = await fs.open(temporary, 'wx', 0o600);
-      await handle.writeFile(`${value}\n`, 'utf8');
+      await handle.writeFile(content, 'utf8');
       await handle.sync();
       await handle.close();
       handle = undefined;
       await fs.rename(temporary, destination);
       await syncDirectory(this.directory);
-      this.env[DEFINITIONS[name].environmentName] = value;
-      this.sources.set(name, 'managed');
     } catch (error) {
       await handle?.close().catch(() => undefined);
       await fs.unlink(temporary).catch(() => undefined);

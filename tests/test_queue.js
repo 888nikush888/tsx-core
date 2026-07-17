@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { ConcurrencyQueue } from '../src/queue.js';
+import { ConcurrencyQueue, QueueCapacityError } from '../src/queue.js';
 
 async function testConcurrencyLimits() {
   // 1. Concurrency limit test (default = 2)
@@ -239,6 +239,22 @@ async function testRuntimeSettingsAndDrain() {
   assert.strictEqual(await drainQueue.waitForIdle(200), true);
   assert.strictEqual(await active, 'settled');
   assert.strictEqual(drainQueue.running, 0);
+  console.log("   -> OK");
+
+  // 9. A bounded queue rejects only transient in-memory work; durable callers can retry later.
+  console.log("9. Testing bounded pending queue capacity...");
+  const boundedQueue = new ConcurrencyQueue(1, 0, 1);
+  let unblock;
+  const running = boundedQueue.add(() => new Promise(resolve => { unblock = resolve; }));
+  const waiting = boundedQueue.add(async () => 'queued');
+  await assert.rejects(
+    boundedQueue.add(async () => 'must-not-enter-memory'),
+    error => error instanceof QueueCapacityError && /capacity of 1/.test(error.message)
+  );
+  assert.strictEqual(boundedQueue.availableCapacity, 0);
+  unblock('running');
+  assert.strictEqual(await running, 'running');
+  assert.strictEqual(await waiting, 'queued');
   console.log("   -> OK");
 
   console.log("\nALL CONCURRENCY QUEUE UNIT TESTS PASSED!");

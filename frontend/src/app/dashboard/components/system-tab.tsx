@@ -14,6 +14,7 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
   const [busyAction, setBusyAction] = useState("")
   const [message, setMessage] = useState("")
   const [runtimeSettings, setRuntimeSettings] = useState<any>(null)
+  const [recovery, setRecovery] = useState<{ active: boolean; issues: Array<{ component: string; name?: string; reason: string }> }>({ active: false, issues: [] })
   const [restartRequired, setRestartRequired] = useState(false)
   const [backups, setBackups] = useState<string[]>([])
   const [selectedBackup, setSelectedBackup] = useState("")
@@ -41,6 +42,11 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
     if (response.ok) setRuntimeSettings((await response.json()).settings)
   }
 
+  const refreshRecovery = async () => {
+    const response = await apiFetch(`${API_BASE}/api/recovery`)
+    if (response.ok) setRecovery(await response.json())
+  }
+
   const refreshBackups = async () => {
     const response = await apiFetch(`${API_BASE}/api/backups`)
     if (!response.ok) return
@@ -52,6 +58,7 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
   useEffect(() => {
     void refreshOperations()
     void refreshRuntimeSettings()
+    void refreshRecovery()
     void refreshBackups()
   }, [])
 
@@ -197,7 +204,9 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
       const response = await apiFetch(`${API_BASE}/api/backups/verify?name=${encodeURIComponent(selectedBackup)}`)
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || "Backup-Verifikation fehlgeschlagen.")
-      setMessage(`Backup ${selectedBackup} ist vollständig und wiederherstellbar.`)
+      const included = Array.isArray(payload.manifest?.recovery?.includedState) ? payload.manifest.recovery.includedState.join(", ") : "Datenbank und nicht geheime Konfiguration"
+      const excluded = Array.isArray(payload.manifest?.recovery?.excludedState) ? payload.manifest.recovery.excludedState.join(", ") : "Secrets und TDLib-Sitzung"
+      setMessage(`Backup ${selectedBackup} verifiziert. Enthalten: ${included}. Separat erneut bereitzustellen: ${excluded}.`)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Backup-Verifikation fehlgeschlagen.")
     } finally {
@@ -206,7 +215,7 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
   }
 
   const restoreSelectedBackup = async () => {
-    if (!selectedBackup || window.prompt(`Backup ${selectedBackup} stellt Datenbank und Konfiguration wieder her und startet den Container neu. RESTORE eingeben:`) !== "RESTORE") return
+    if (!selectedBackup || window.prompt(`Backup ${selectedBackup} stellt Datenbank, nicht geheime Konfiguration, Runtime-Einstellungen und Templates wieder her und startet den Container neu. Secrets und TDLib-Sitzung werden bewusst nicht importiert. RESTORE eingeben:`) !== "RESTORE") return
     setBusyAction("restore-backup")
     try {
       const response = await apiFetch(`${API_BASE}/api/backups/restore`, {
@@ -371,6 +380,17 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
   return (
     <div className="space-y-6">
       {message && <div role="status" className="rounded-lg border bg-muted/40 p-3 text-sm">{message}</div>}
+      {recovery.active && (
+        <Card className="border-destructive/60">
+          <CardHeader>
+            <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /><CardTitle>GeschÃ¼tzter Reparaturmodus aktiv</CardTitle></div>
+            <CardDescription>Routing, Backups und sonstige Steuerungsaktionen bleiben deaktiviert. Korrigiere die markierte Konfiguration, Managed Secrets bzw. Runtime-Einstellungen und starte den Container danach kontrolliert neu.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {recovery.issues.map((issue, index) => <p key={`${issue.component}-${issue.name || index}`}>{issue.name ? `${issue.name}: ` : ''}{issue.reason}</p>)}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -466,6 +486,8 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
                 ["alertWebhookTimeoutMs", "Alert Timeout (ms)"],
                 ["auditLocalMaxBytes", "Lokales Audit-Limit (Bytes)"],
                 ["backupOffsiteTimeoutMs", "Off-site Timeout (ms)"],
+                ["backupOffsiteMaxRecoveryBytes", "Max. Off-site-Recovery-Gr\u00f6\u00dfe (Bytes)"],
+                ["backupOffsiteRetentionDays", "Best\u00e4tigte Off-site-Retention (Tage)"],
                 ["backupIntervalMs", "Backup-Intervall (ms)"],
                 ["backupRetentionCount", "Backup-Anzahl"],
                 ["dataRetentionDays", "Daten-Retention (Tage)"],

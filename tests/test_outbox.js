@@ -23,6 +23,7 @@ import {
   getSchemaVersion,
   LATEST_SCHEMA_VERSION,
   isDatabaseHealthy,
+  listPendingOutboxTasksForScheduling,
   listOutboxTasks,
   markOutboxSending,
   recoverInterruptedOutboxTasks,
@@ -156,6 +157,16 @@ async function testOutboxLifecycle() {
     assert.strictEqual(statusCounts.failed, 1);
     assert.strictEqual(statusCounts.unknown, 0);
     assert.ok(statusCounts.completed >= 2);
+
+    await enqueueOutboxTask({ ...task('schedule-a', 21), addedAt: 100 });
+    await enqueueOutboxTask({ ...task('schedule-b', 22), addedAt: 101 });
+    await enqueueOutboxTask({ ...task('schedule-c', 23), addedAt: 102 });
+    const schedulable = await listPendingOutboxTasksForScheduling(['schedule-a'], 2);
+    assert.deepStrictEqual(
+      schedulable.map(item => item.id),
+      ['schedule-b', 'schedule-c'],
+      'Scheduler paging must skip tasks already represented in the bounded in-memory window.'
+    );
 }
 
 async function testAuxiliaryPersistence() {
