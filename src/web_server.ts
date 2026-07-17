@@ -22,6 +22,7 @@ import type { ManagedSecretStore } from './secret_store.js';
 import type { TelegramLoginSnapshot } from './telegram_login.js';
 import type { ManagedRuntimeSettingsStore } from './runtime_settings.js';
 import { DEFAULT_SIGNAL_PROMPT } from './signal_parser.js';
+import type { TradingWebControl } from './trading_web_control.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TEMPLATES_DIR = path.join(__dirname, '../templates');
@@ -106,6 +107,7 @@ interface WebServerState {
   performFactoryReset?: () => Promise<void>;
   requestRestart?: () => void;
   runtimeSettings?: Pick<ManagedRuntimeSettingsStore, 'snapshot' | 'set' | 'recoveryStatus'>;
+  tradingControl?: TradingWebControl;
   recovery?: {
     active: boolean;
     allowLoopbackLocalSession: boolean;
@@ -1042,6 +1044,75 @@ async function clearDatabaseHandler(context: RequestContext): Promise<void> {
   }
 }
 
+function requireTradingControl(context: RequestContext): TradingWebControl {
+  if (!context.appState.tradingControl) throw new HttpError(503, 'Trading control is unavailable in this runtime.');
+  return context.appState.tradingControl;
+}
+
+async function tradingSnapshotHandler(context: RequestContext): Promise<void> {
+  try {
+    const snapshot = await requireTradingControl(context).snapshot();
+    const configuredChannels = Array.isArray(context.appState.config?.sourceChannels)
+      ? context.appState.config.sourceChannels.map((channel: any) => ({
+          id: String(channel?.id ?? channel?.channelId ?? channel),
+          name: String(channel?.name ?? channel?.title ?? channel?.id ?? channel),
+        }))
+      : [];
+    sendJson(context.res, 200, { ...snapshot, configuredChannels });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function tradingMutation(
+  context: RequestContext,
+  operation: (control: TradingWebControl, payload: any) => Promise<unknown> | unknown,
+  statusCode = 200,
+): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 256 * 1024);
+    const result = await operation(requireTradingControl(context), payload);
+    sendJson(context.res, statusCode, { success: true, result, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
+  }
+}
+
+const createTradingStrategyHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.createStrategy(payload), 201);
+const updateTradingStrategyHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.updateStrategy(payload));
+const publishTradingStrategyHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.publishStrategy(payload.id));
+const archiveTradingStrategyHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.archiveStrategy(payload.id));
+const createTradingAccountHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.createAccount(payload), 201);
+const replaceTradingCredentialsHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.replaceAccountCredentials(payload));
+const verifyTradingAccountHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.verifyAccount(payload.id));
+const updateTradingAccountHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.setAccountEnabled(payload.id, payload.enabled));
+const deleteTradingAccountHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.removeAccount(payload.id));
+const setTradingRouteHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.setRoute(payload));
+const deleteTradingRouteHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.removeRoute(payload.channelId));
+const updateTradingRuntimeHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.setRuntime(payload));
+const configurePaperTradingHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.configurePaper(payload));
+const reconcileTradingHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.reconcile(payload.accountId));
+const cancelTradingEntriesHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.cancelEntries(payload.accountId));
+const emergencyFlattenHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.emergencyFlatten(payload));
+const acknowledgeTradingRiskHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.acknowledgeRisk(payload.id));
+
 const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/status', statusHandler],
   ['GET /api/logs', logsHandler],
@@ -1079,6 +1150,24 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/backups/verify', verifyBackupHandler],
   ['POST /api/backups/recover-offsite', recoverOffsiteBackupHandler],
   ['POST /api/backups/restore', restoreBackupHandler],
+  ['GET /api/trading', tradingSnapshotHandler],
+  ['POST /api/trading/strategies', createTradingStrategyHandler],
+  ['POST /api/trading/strategies/update', updateTradingStrategyHandler],
+  ['POST /api/trading/strategies/publish', publishTradingStrategyHandler],
+  ['POST /api/trading/strategies/archive', archiveTradingStrategyHandler],
+  ['POST /api/trading/accounts', createTradingAccountHandler],
+  ['POST /api/trading/accounts/credentials', replaceTradingCredentialsHandler],
+  ['POST /api/trading/accounts/verify', verifyTradingAccountHandler],
+  ['POST /api/trading/accounts/state', updateTradingAccountHandler],
+  ['DELETE /api/trading/accounts', deleteTradingAccountHandler],
+  ['POST /api/trading/routes', setTradingRouteHandler],
+  ['DELETE /api/trading/routes', deleteTradingRouteHandler],
+  ['POST /api/trading/runtime', updateTradingRuntimeHandler],
+  ['POST /api/trading/paper', configurePaperTradingHandler],
+  ['POST /api/trading/reconcile', reconcileTradingHandler],
+  ['POST /api/trading/cancel-entries', cancelTradingEntriesHandler],
+  ['POST /api/trading/emergency-flatten', emergencyFlattenHandler],
+  ['POST /api/trading/risk/acknowledge', acknowledgeTradingRiskHandler],
 ]);
 
 function bootstrapStatusHandler(

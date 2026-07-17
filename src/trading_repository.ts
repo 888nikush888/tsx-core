@@ -455,3 +455,102 @@ export async function getTradingOverview(): Promise<TradingOverview> {
       : Number(reconciliation.latest),
   };
 }
+
+export async function listTradingActivity(limit = 200): Promise<{
+  orders: Array<Record<string, unknown>>;
+  fills: Array<Record<string, unknown>>;
+  positions: Array<Record<string, unknown>>;
+  riskEvents: Array<Record<string, unknown>>;
+  reconciliations: Array<Record<string, unknown>>;
+  paperAccounts: Array<Record<string, unknown>>;
+  paperMarkets: Array<Record<string, unknown>>;
+}> {
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000) {
+    throw new Error('Activity limit must be between 1 and 1000.');
+  }
+  const database = getDatabase();
+  const [orders, fills, positions, riskEvents, reconciliations, paperAccounts, paperMarkets] = await Promise.all([
+    database.all<any[]>(
+      `SELECT id, intent_id AS intentId, account_id AS accountId, client_order_id AS clientOrderId,
+              exchange_order_id AS exchangeOrderId, role, side, order_type AS orderType, status,
+              price, trigger_price AS triggerPrice, quantity, filled_quantity AS filledQuantity,
+              reduce_only AS reduceOnly, last_error AS error, created_at AS createdAt, updated_at AS updatedAt
+       FROM trading_orders ORDER BY updated_at DESC LIMIT ?`, [limit]),
+    database.all<any[]>(
+      `SELECT id, order_id AS orderId, account_id AS accountId, exchange_fill_id AS exchangeFillId,
+              price, quantity, fee, fee_asset AS feeAsset, filled_at AS filledAt
+       FROM trading_fills ORDER BY filled_at DESC LIMIT ?`, [limit]),
+    database.all<any[]>(
+      `SELECT id, intent_id AS intentId, account_id AS accountId, strategy_version_id AS strategyVersionId,
+              channel_id AS channelId, symbol, side, status, quantity,
+              average_entry_price AS averageEntryPrice, stop_price AS stopPrice,
+              realized_pnl AS realizedPnl, opened_at AS openedAt, closed_at AS closedAt, updated_at AS updatedAt
+       FROM trading_positions ORDER BY updated_at DESC LIMIT ?`, [limit]),
+    database.all<any[]>(
+      `SELECT id, severity, code, account_id AS accountId, intent_id AS intentId,
+              details_json AS detailsJson, created_at AS createdAt, acknowledged_at AS acknowledgedAt
+       FROM trading_risk_events ORDER BY created_at DESC LIMIT ?`, [limit]),
+    database.all<any[]>(
+      `SELECT id, account_id AS accountId, status, last_error AS error,
+              started_at AS startedAt, completed_at AS completedAt
+       FROM trading_reconciliation_runs ORDER BY started_at DESC LIMIT ?`, [limit]),
+    database.all<any[]>(
+      `SELECT account_id AS accountId, equity, available_balance AS availableBalance,
+              realized_pnl AS realizedPnl, updated_at AS updatedAt FROM trading_paper_accounts ORDER BY account_id`),
+    database.all<any[]>(
+      `SELECT account_id AS accountId, symbol, mark_price AS markPrice, price_tick AS priceTick,
+              quantity_step AS quantityStep, minimum_quantity AS minimumQuantity,
+              minimum_notional AS minimumNotional, max_leverage AS maxLeverage,
+              updated_at AS updatedAt FROM trading_paper_markets ORDER BY account_id, symbol`),
+  ]);
+  return {
+    orders: orders.map(row => ({ ...row, reduceOnly: boolean(row.reduceOnly) })),
+    fills,
+    positions,
+    riskEvents: riskEvents.map(row => ({
+      ...row,
+      details: parseJson(row.detailsJson, 'risk event details'),
+      detailsJson: undefined,
+    })),
+    reconciliations,
+    paperAccounts,
+    paperMarkets,
+  };
+}
+
+export async function acknowledgeTradingRiskEvent(id: string, now = Date.now()): Promise<boolean> {
+  const result = await getDatabase().run(
+    'UPDATE trading_risk_events SET acknowledged_at = COALESCE(acknowledged_at, ?) WHERE id = ?',
+    [now, id],
+  );
+  return Number(result.changes || 0) === 1;
+}
+
+export async function archiveTradingStrategyVersion(id: string): Promise<TradingStrategyVersion> {
+  const activeRoute = await getDatabase().get<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM trading_routes WHERE strategy_version_id = ? AND enabled = 1', [id],
+  );
+  if (Number(activeRoute?.count || 0) > 0) throw new Error('An active routed strategy version cannot be archived.');
+  const result = await getDatabase().run(
+    "UPDATE trading_strategy_versions SET status = 'archived' WHERE id = ? AND status = 'published'", [id],
+  );
+  if (Number(result.changes || 0) !== 1) throw new Error('Only a published strategy version can be archived.');
+  return (await getTradingStrategyVersion(id))!;
+}
+
+export async function deleteTradingAccount(id: string): Promise<boolean> {
+  if (id === 'paper-default') throw new Error('The default paper account cannot be deleted.');
+  return transaction(async () => {
+    const references = await getDatabase().get<any>(
+      `SELECT
+         (SELECT COUNT(*) FROM trading_routes WHERE account_id = ?) AS routes,
+         (SELECT COUNT(*) FROM trading_trade_intents WHERE account_id = ?) AS intents`,
+      [id, id],
+    );
+    if (Number(references?.routes || 0) > 0 || Number(references?.intents || 0) > 0) {
+      throw new Error('Account deletion requires all routes to be removed and no retained trade history. Disable it instead.');
+    }
+    const result = await getDatabase().run('DELETE FROM trading_accounts WHERE id = ?', [id]);
+    return Number(result.changes || 0) === 1;
+  });
+}

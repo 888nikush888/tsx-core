@@ -10,7 +10,8 @@ import {
   ListTree,
   Shield,
   MessageSquare,
-  FileCode
+  FileCode,
+  ChartCandlestick
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
@@ -44,6 +45,11 @@ const data = {
           title: "Signale-Datenbank",
           url: "/dashboard?tab=signals",
           icon: FileCode,
+        },
+        {
+          title: "Trading",
+          url: "/dashboard?tab=trading",
+          icon: ChartCandlestick,
         },
         {
           title: "Kanalverwaltung",

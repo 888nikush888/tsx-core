@@ -277,6 +277,84 @@ export class TradingEngine {
     }
   }
 
+  async cancelOpenEntries(accountId?: string): Promise<number> {
+    const parameters: unknown[] = [];
+    const accountFilter = accountId ? ' AND orders.account_id = ?' : '';
+    if (accountId) parameters.push(accountId);
+    const rows = await getDatabase().all<Array<{
+      intent_id: string;
+      account_id: string;
+      client_order_id: string;
+    }>>(
+      `SELECT orders.intent_id, orders.account_id, orders.client_order_id
+       FROM trading_orders AS orders
+       WHERE orders.role = 'entry' AND orders.status IN ('open', 'partially_filled')${accountFilter}
+       ORDER BY orders.created_at`,
+      parameters,
+    );
+    let cancelled = 0;
+    for (const row of rows) {
+      const account = await getTradingAccount(row.account_id);
+      if (!account) throw new Error('Open entry references a missing trading account.');
+      try {
+        const result = await this.adapter(account.exchange).cancelOrder(account, row.client_order_id);
+        await storeOrderResult(row.intent_id, result);
+        if (result.status === 'cancelled' || result.status === 'filled') cancelled += 1;
+      } catch (error: any) {
+        await getDatabase().run(
+          `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
+           WHERE account_id = ? AND client_order_id = ?`,
+          [error?.message || String(error), Date.now(), row.account_id, row.client_order_id],
+        );
+        await updateTradingRuntimeState({
+          executionEnabled: false,
+          killSwitchActive: true,
+          killSwitchReason: `Entry cancellation outcome unknown for account ${row.account_id}`,
+        });
+        throw error;
+      }
+    }
+    return cancelled;
+  }
+
+  async emergencyFlattenManaged(accountId?: string): Promise<number> {
+    const parameters: unknown[] = [];
+    const accountFilter = accountId ? ' AND position.account_id = ?' : '';
+    if (accountId) parameters.push(accountId);
+    const positions = await getDatabase().all<Array<{
+      intent_id: string;
+      account_id: string;
+      plan_json: string;
+    }>>(
+      `SELECT position.intent_id, position.account_id, intent.plan_json
+       FROM trading_positions AS position
+       JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
+       WHERE position.status IN ('opening', 'open', 'closing', 'emergency')
+         AND position.quantity <> '0'${accountFilter}
+       ORDER BY position.updated_at`,
+      parameters,
+    );
+    let flattened = 0;
+    for (const position of positions) {
+      const [account, intent] = await Promise.all([
+        getTradingAccount(position.account_id),
+        getTradingIntent(position.intent_id),
+      ]);
+      if (!account || !intent || !position.plan_json) {
+        throw new Error('Managed position is missing its recoverable account, intent or plan.');
+      }
+      await this.emergencyFlatten(
+        this.adapter(account.exchange),
+        account,
+        intent,
+        JSON.parse(position.plan_json) as TradingPlan,
+        'Operator requested emergency flatten through the dashboard.',
+      );
+      flattened += 1;
+    }
+    return flattened;
+  }
+
   private async executePendingIntent(intent: TradingIntent): Promise<void> {
     const [account, strategy] = await Promise.all([
       getTradingAccount(intent.accountId),

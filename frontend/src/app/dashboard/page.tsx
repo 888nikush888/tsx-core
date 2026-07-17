@@ -14,6 +14,7 @@ import { LogsTab } from "./components/logs-tab"
 import { SystemTab } from "./components/system-tab"
 import { MessagesTab } from "./components/messages-tab"
 import { SignalsTab } from "./components/signals-tab"
+import { TradingTab } from "./components/trading-tab"
 import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
@@ -293,6 +294,7 @@ export default function Page() {
               {tab === "system" && "System & Backup"}
               {tab === "messages" && "Nachrichten-Verlauf"}
               {tab === "signals" && "Signale-Datenbank"}
+              {tab === "trading" && "Trading Control Center"}
             </h2>
             <p className="text-muted-foreground mt-1">
               {tab === "channels" && "Manage your Telegram API credentials and channel routing."}
@@ -303,6 +305,7 @@ export default function Page() {
               {tab === "system" && "Export data and reset the application."}
               {tab === "messages" && "Review history of intercepted incoming messages."}
               {tab === "signals" && "Browse successfully extracted signals in database."}
+              {tab === "trading" && "Strategien, Kanal-Routing, Börsenkonten, Positionen und Risikosteuerung an einem Ort."}
             </p>
           </div>
           
@@ -314,7 +317,7 @@ export default function Page() {
           )}
         </div>
 
-        <div className={`pb-10 mx-auto md:mx-0 w-full ${tab === "logs" || tab === "messages" || tab === "signals" ? "max-w-none" : "max-w-5xl"}`}>
+        <div className={`pb-10 mx-auto md:mx-0 w-full ${tab === "logs" || tab === "messages" || tab === "signals" || tab === "trading" ? "max-w-none" : "max-w-5xl"}`}>
           {tab === "channels" && <ChannelsTab
             config={config}
             setConfig={setConfig}
@@ -337,6 +340,7 @@ export default function Page() {
           {tab === "system" && <SystemTab config={config} secretStatus={secretStatus} onSecretStatusChange={setSecretStatus} />}
           {tab === "messages" && <MessagesTab />}
           {tab === "signals" && <SignalsTab config={config} />}
+          {tab === "trading" && <TradingTab config={config} />}
         </div>
       </div>
     )

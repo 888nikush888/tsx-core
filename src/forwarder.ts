@@ -75,6 +75,7 @@ import {
   type TradingCredentialStore,
 } from './trading_credentials.js';
 import { OfficialExchangeAdapter } from './official_exchange.js';
+import { TradingWebControl } from './trading_web_control.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -354,6 +355,7 @@ let backupScheduler: BackupScheduler | null = null;
 let offsiteBackupReplicator: BackupReplicator | null = null;
 let retentionScheduler: OperationalDataRetention | null = null;
 let tradingRuntime: TradingRuntime | null = null;
+let tradingWebControl: TradingWebControl | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
 let processLock: ProcessLock | null = null;
@@ -1231,12 +1233,18 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore)
   await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
   await initDb();
   await ensureTradingDefaults();
+  const paperAdapter = new PaperExchangeAdapter();
+  const hyperliquidAdapter = new OfficialExchangeAdapter('hyperliquid', tradingCredentials);
+  const bybitAdapter = new OfficialExchangeAdapter('bybit', tradingCredentials);
+  const tradingEngine = new TradingEngine([paperAdapter, hyperliquidAdapter, bybitAdapter], addLog);
+  tradingWebControl = new TradingWebControl(
+    tradingCredentials,
+    paperAdapter,
+    [hyperliquidAdapter, bybitAdapter],
+    tradingEngine,
+  );
   tradingRuntime = new TradingRuntime(
-    new TradingEngine([
-      new PaperExchangeAdapter(),
-      new OfficialExchangeAdapter('hyperliquid', tradingCredentials),
-      new OfficialExchangeAdapter('bybit', tradingCredentials),
-    ], addLog),
+    tradingEngine,
     2_000,
     addLog,
   );
@@ -1327,9 +1335,12 @@ async function clearFactoryResetDirectory(directory: string): Promise<void> {
 async function performCompleteFactoryReset(
   runtime: RuntimeConfiguration,
   secretStore: ManagedSecretStore,
-  runtimeSettings: ManagedRuntimeSettingsStore
+  runtimeSettings: ManagedRuntimeSettingsStore,
+  tradingCredentials: TradingCredentialStore,
 ): Promise<void> {
   secretStore.assertClearable();
+  if (!tradingWebControl) throw new Error('Factory reset requires initialized trading safety controls.');
+  await tradingWebControl.assertFactoryResetSafe();
   const configPath = configurationPathFromEnvironment();
   const applicationRoot = path.resolve(process.cwd());
   if (!configPath.startsWith(`${applicationRoot}${path.sep}`)) {
@@ -1354,6 +1365,8 @@ async function performCompleteFactoryReset(
   }
 
   await stopForwarding();
+  await stopScheduler(tradingRuntime, 'Trading Runtime');
+  tradingRuntime = null;
   await stopScheduler(backupScheduler, 'Laufendes Backup');
   await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
   backupScheduler = null;
@@ -1363,6 +1376,7 @@ async function performCompleteFactoryReset(
   deliveryTracker?.close('Factory reset.');
   deliveryTracker = null;
   await closeDb();
+  await tradingCredentials.clear();
   await secretStore.clear();
   await runtimeSettings.reset();
   await fsPromises.rm(configPath, { force: true });
@@ -1431,7 +1445,8 @@ async function restoreNamedBackup(artifactName: string) {
 function startDashboardRuntime(
   runtime: RuntimeConfiguration,
   secretStore: ManagedSecretStore,
-  runtimeSettings: ManagedRuntimeSettingsStore
+  runtimeSettings: ManagedRuntimeSettingsStore,
+  tradingCredentials: TradingCredentialStore,
 ): void {
   const webPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
   const runtimeRecovery = runtimeSettings.recoveryStatus();
@@ -1477,6 +1492,7 @@ function startDashboardRuntime(
       auditTrail,
       secretStore,
       runtimeSettings,
+      tradingControl: tradingWebControl ?? undefined,
       getOperationsStatus: () => ({
         backup: backupScheduler?.getStatus() ?? null,
         retention: retentionScheduler?.getStatus() ?? null,
@@ -1491,7 +1507,7 @@ function startDashboardRuntime(
       recoverOffsiteBackup: recoverNamedOffsiteBackup,
       restoreBackup: restoreNamedBackup,
       performFactoryReset: async () => {
-        await performCompleteFactoryReset(runtime, secretStore, runtimeSettings);
+        await performCompleteFactoryReset(runtime, secretStore, runtimeSettings, tradingCredentials);
       },
       recovery: {
         active: recoveryActive,
@@ -1546,12 +1562,12 @@ async function run() {
   if (runtimeSettings.recoveryStatus().active || secretStore.recoveryStatus().length > 0 || runtime.configurationRecoveryReason) {
     state.connectionState = 'recovery-required';
     addLog('[CRITICAL] Managed settings or secrets are invalid. Routing and background operations remain disabled until repaired in the dashboard and restarted.');
-    startDashboardRuntime(runtime, secretStore, runtimeSettings);
+    startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
     return;
   }
   const { databasePath, retentionPolicy } = await initializeCoreRuntime(tradingCredentials);
   startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
-  startDashboardRuntime(runtime, secretStore, runtimeSettings);
+  startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
   try {
     await startBackupRuntime(runtime);
   } catch (error: any) {
