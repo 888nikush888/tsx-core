@@ -9,6 +9,8 @@ const generatedArtifacts = [
   'coverage',
   'coverage-modules',
   'reports',
+  'exchange_executor/__pycache__',
+  'exchange_executor/tests/__pycache__',
   '.stryker-tmp-queue',
   '.stryker-tmp-retry',
   '.stryker-tmp-schema'
