@@ -42,8 +42,16 @@
 
 - Normal: `SIGTERM` senden und Abschluss von Queue, TDLib, HTTP und DB abwarten.
 - Nach drei unerwarteten Abbrüchen in fünf Minuten startet Routing nicht weiter.
-- `.process_active`, `.routing_active` oder `.crash_blocked` erst entfernen, wenn auf OS-Ebene kein Prozess läuft, Logs ausgewertet und `failed/unknown` reconciled wurden.
+- `.process_active` ist ein exklusiver PID-/Token-Lock. Ein vorhandener oder unlesbarer Lock blockiert den Start fail closed; nur ein nachweislich beendeter PID wird automatisch als stale bereinigt.
+- `.routing_active` oder `.crash_blocked` erst entfernen, wenn auf OS-Ebene kein Prozess läuft, Logs ausgewertet und `failed/unknown` reconciled wurden.
 - Danach genau einen Start durchführen und Readiness sowie synthetische Zustellung beobachten.
+
+## Beschädigte verwaltete Konfiguration oder Secrets
+
+1. Nicht versuchen, JSON- oder Secret-Dateien im Volume manuell zu korrigieren. Der Dienst startet in `recovery-required`; Routing, Scheduler und Datenbank bleiben aus.
+2. Im mitgelieferten loopback-only Compose-Profil öffnet das Dashboard ohne Bearer-Eingabe eine ausschließlich lokale Repair-Session. Nur Konfiguration, Runtime-Einstellungen und verwaltete Secrets sowie Neustart sind erreichbar.
+3. Ursache und `request_id` aus dem kritischen Recovery-Log sichern. Diese Repair-Mutationen sind ausdrücklich als unauditiert markiert, weil die Audit-Kette selbst fehlen oder beschädigt sein kann.
+4. Gültige Werte im Web speichern, Container neu starten und erst nach grünem `readyz`, Outbox-Prüfung und synthetischem Test wieder Routing aktivieren.
 
 ## Unknown-Zustellung reconciliieren
 
@@ -63,7 +71,7 @@ docker compose run --rm --no-deps --entrypoint /nodejs/bin/node forwarder dist/b
 docker compose up -d
 ```
 
-Vor Restore Dienst stoppen, Locks und Outbox dokumentieren, Backup aus unabhängigem Ziel holen und Prüfergebnis archivieren. Danach `readyz`, Tabellen/Counts und einen synthetischen E2E-Flow prüfen. Bei Abweichung Dienst stoppen und die erhaltenen `.pre-restore-*`-Dateien gemäß Restore-Ausgabe zurückrollen. TDLib-Sessiondaten sind nicht Teil des Backup-Artefakts; Reauthentifizierung ist ein separater Recovery-Schritt.
+Vor Restore Dienst stoppen, Locks und Outbox dokumentieren, Backup aus unabhängigem Ziel holen und Prüfergebnis archivieren. Das Artefakt stellt DB, nicht geheime Konfiguration, Runtime-Einstellungen und Templates wieder her; verwaltete Secrets sowie TDLib-Sessiondaten sind nicht enthalten und werden getrennt re-provisioniert. Danach `readyz`, Tabellen/Counts und einen synthetischen E2E-Flow prüfen. Bei Abweichung Dienst stoppen und die erhaltenen `.pre-restore-*`-Dateien gemäß Restore-Ausgabe zurückrollen. TDLib-Reauthentifizierung ist ein separater Recovery-Schritt.
 
 ## Release und Rollback
 

@@ -95,6 +95,8 @@ Regeln:
 
 Beim ersten Browseraufruf erzeugt der Server nach Origin- und Audit-Prüfung automatisch einen lokalen Admin-Zugang und übernimmt ihn in den Session Storage des Browsers. Da Compose das Dashboard ausschließlich auf Host-Loopback veröffentlicht, ist kein vorgeschalteter Bearer-Dialog erforderlich; nach Container- oder Browser-Neustart stellt `/api/local-session` den lokalen Zugang wieder her. Der Standalone-Modus vertraut allen lokalen Prozessen des dedizierten Single-User-Hosts; Shared Hosts verwenden Enterprise-OIDC ohne Local Trust. Telegram API Hash und OpenRouter-Key werden im Dashboard write-only gesetzt: Status und Quelle sind lesbar, der Wert selbst nie. Die lokale `.env` wird vom Standard-Compose nicht eingelesen.
 
+Ist eine verwaltete Konfiguration, Runtime-Einstellung oder Secret-Datei beschädigt, startet nur die Recovery-Control-Plane: Routing, Scheduler und Datenbankzugriffe bleiben aus. Das mitgelieferte Compose aktiviert dafür ausschließlich auf dem Host-Loopback einen Break-glass-Sessionpfad; dieser darf nie mit einem remote veröffentlichten Dashboard kombiniert werden. Er erlaubt nur Reparaturen an Konfiguration, Runtime-Einstellungen und verwalteten Secrets plus Neustart und schreibt dafür explizite kritische Recovery-Logs, weil die normale Audit-Kette in diesem Zustand nicht verfügbar sein kann.
+
 Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System → API- und Bearer-Keys** serverseitig erzeugt, rotiert oder deaktiviert. Der Klartext wird genau einmal angezeigt; eine Admin-Rotation ersetzt sofort den aktiven Browserzugang.
 
 ### Enterprise-Modus
@@ -115,7 +117,9 @@ Der Validator erzwingt für Enterprise-Modus OIDC, deaktivierten Local Trust, Re
   "auditWebhookUrl": "https://audit.example/v1/records",
   "auditRemoteRequired": true,
   "backupOffsiteUrlTemplate": "https://backup.example/telegram-forwarder/{artifact}",
-  "backupOffsiteRequired": true
+  "backupOffsiteRequired": true,
+  "backupOffsiteMaxRecoveryBytes": 2147483648,
+  "backupOffsiteRetentionDays": 30
 }
 ```
 
@@ -277,7 +281,7 @@ docker compose run --rm --no-deps --entrypoint /nodejs/bin/node forwarder dist/b
 docker compose up -d
 ```
 
-Das Restore-Kommando verweigert aktive Prozess-/Routing-Locks, validiert Manifest, Checksummen, SQLite-Integrität, Pflicht-Tabellen und Secret-Freiheit und bewahrt den ersetzten Zustand als `.pre-restore-*`. Danach werden Counts, `readyz`, Outbox und ein synthetischer E2E-Flow geprüft.
+Das Restore-Kommando verweigert aktive Prozess-/Routing-Locks, validiert Manifest, Checksummen, SQLite-Integrität, Pflicht-Tabellen und Secret-Freiheit und bewahrt den ersetzten Zustand als `.pre-restore-*`. Ein Artefakt enthält Datenbank, nicht geheime Konfiguration sowie vorhandene Runtime-Einstellungen und Templates; verwaltete Secrets und TDLib-Sitzungen bleiben absichtlich ausgeschlossen und werden getrennt re-provisioniert. Off-site-Recovery fordert eine begrenzte deklarierte Objektgröße, freien Platz vor Entschlüsselung, eine Dekompressionsgrenze und im Enterprise-Profil mindestens 30 Tage Gateway-Retention-Bestätigung. Danach werden Counts, `readyz`, Outbox und ein synthetischer E2E-Flow geprüft.
 
 Bei einer inkompatiblen Migration wird nur der zum vorherigen Binary gehörende geprüfte Pre-Migration-Snapshot verwendet:
 

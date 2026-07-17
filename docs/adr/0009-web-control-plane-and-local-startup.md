@@ -12,6 +12,7 @@ Der Docker-Standardbetrieb las weiterhin `.env`, markierte dadurch Dashboard-Sec
 
 - Das Standard-Compose liest keine `.env` ein und veröffentlicht Dashboard sowie Metriken ausschließlich auf Host-Loopback.
 - `DASHBOARD_LOCAL_TRUST` wird im Standalone-Profil durch persistente Runtime-Einstellungen aktiviert. Ein Origin- und Header-geschützter lokaler Session-Endpunkt erzeugt oder übernimmt den verwalteten Admin-Zugang automatisch; Browser halten ihn nur im Session Storage. Dieser Modus vertraut ausdrücklich allen lokalen Prozessen des dedizierten Single-User-Hosts und ist kein Remote-/Shared-Host-Sicherheitsmodell.
+- Das mitgelieferte Compose aktiviert zusätzlich `DASHBOARD_RECOVERY_LOCAL_TRUST` nur hinter seiner festen Host-Loopback-Portfreigabe. Bei beschädigter Konfiguration, Runtime-Einstellung oder Secret-Datei bleibt ausschließlich eine Repair-Plane für diese drei Zustände und einen Neustart aktiv; ihre bewusst unauditierten Mutationen werden als kritisch geloggt. Diese Ausnahme ist für remote veröffentlichte oder Enterprise-OIDC-Dashboards verboten.
 - Admin- und Viewer-Bearer-Keys werden serverseitig erzeugt, write-only persistiert und nach Erzeugung genau einmal angezeigt.
 - Alle nicht geheimen Runtime-/Enterprise-Parameter werden atomar in `runtime-settings.json` gespeichert und erst nach kontrolliertem Neustart aktiviert. Enterprise-Modus erzwingt OIDC, deaktiviert Local Trust und verlangt Remote-Audit und Off-site-Backup.
 - Das Default-Template darf überschrieben werden. Der unveränderliche Safety-Suffix gegen Prompt Injection und Schemaabweichungen wird weiterhin serverseitig angehängt.
@@ -19,7 +20,7 @@ Der Docker-Standardbetrieb las weiterhin `.env`, markierte dadurch Dashboard-Sec
 
 ## Konsequenzen
 
-Der normale Docker-Erststart benötigt weder `.env` noch manuelle Bearer-Eingabe. Extern gemountete Orchestrator-Secrets bleiben möglich, sind dann aber im Web schreibgeschützt. Remote-Zugriff und Enterprise-OIDC benötigen weiterhin einen TLS-/Identity-Provider außerhalb dieses Containers.
+Der normale Docker-Erststart und die lokal begrenzte Recovery benötigen weder `.env` noch manuelle Bearer-Eingabe. Extern gemountete Orchestrator-Secrets bleiben möglich, sind dann aber im Web schreibgeschützt. Remote-Zugriff und Enterprise-OIDC benötigen weiterhin einen TLS-/Identity-Provider außerhalb dieses Containers.
 
 ## Abnahme und Traceability
 
