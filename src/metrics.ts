@@ -30,6 +30,19 @@ export interface OperationalMetrics {
   auditHealthy: boolean;
   auditRemoteRequired: boolean;
   auditLastRemoteSuccessAt: number | null;
+  tradingHealthy: boolean;
+  tradingExecutionEnabled: boolean;
+  tradingLiveEnabled: boolean;
+  tradingKillSwitchActive: boolean;
+  tradingEnabledRoutes: number;
+  tradingOpenPositions: number;
+  tradingPendingIntents: number;
+  tradingUnknownOrders: number;
+  tradingUnprotectedPositions: number;
+  tradingUnacknowledgedCriticalRiskEvents: number;
+  tradingIntentCount: number;
+  tradingFillCount: number;
+  tradingLatestReconciliationAt: number | null;
 }
 
 interface MetricsState {
@@ -81,6 +94,7 @@ function isOperationallyReady(operational: OperationalMetrics): boolean {
     operational.retentionHealthy,
     operational.diskCapacityHealthy,
     operational.auditHealthy,
+    operational.tradingHealthy,
     operational.oldestPendingOutboxAgeSeconds < 300
   ].every(Boolean);
 }
@@ -98,6 +112,11 @@ function readinessChecks(operational: OperationalMetrics): Record<string, boolea
     diskCapacity: operational.diskCapacityHealthy,
     audit: operational.auditHealthy,
     auditRemoteRequired: operational.auditRemoteRequired,
+    trading: operational.tradingHealthy,
+    tradingKillSwitchActive: operational.tradingKillSwitchActive,
+    tradingUnknownOrders: operational.tradingUnknownOrders,
+    tradingUnprotectedPositions: operational.tradingUnprotectedPositions,
+    tradingLatestReconciliationAt: operational.tradingLatestReconciliationAt,
     oldestPendingOutboxAgeSeconds: operational.oldestPendingOutboxAgeSeconds
   };
 }
@@ -136,6 +155,19 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
     ...metric('tg_forwarder_audit_healthy', 'Whether the tamper-evident audit trail and required remote sink are healthy', 'gauge', asFlag(operational.auditHealthy)),
     ...metric('tg_forwarder_audit_remote_required', 'Whether remote audit delivery is required', 'gauge', asFlag(operational.auditRemoteRequired)),
     ...metric('tg_forwarder_audit_last_remote_success_timestamp_seconds', 'Unix time of the last successful remote audit delivery', 'gauge', timestampSeconds(operational.auditLastRemoteSuccessAt)),
+    ...metric('tg_forwarder_trading_healthy', 'Whether managed trading is reconciled and has no unresolved safety state', 'gauge', asFlag(operational.tradingHealthy)),
+    ...metric('tg_forwarder_trading_execution_enabled', 'Whether automatic strategy execution is enabled', 'gauge', asFlag(operational.tradingExecutionEnabled)),
+    ...metric('tg_forwarder_trading_live_enabled', 'Whether the one-time live trading gate is enabled', 'gauge', asFlag(operational.tradingLiveEnabled)),
+    ...metric('tg_forwarder_trading_kill_switch_active', 'Whether the trading kill switch blocks new entries', 'gauge', asFlag(operational.tradingKillSwitchActive)),
+    ...metric('tg_forwarder_trading_enabled_routes', 'Enabled channel-to-strategy routes', 'gauge', operational.tradingEnabledRoutes),
+    ...metric('tg_forwarder_trading_open_positions', 'Managed non-zero positions', 'gauge', operational.tradingOpenPositions),
+    ...metric('tg_forwarder_trading_pending_intents', 'Trading intents requiring processing or monitoring', 'gauge', operational.tradingPendingIntents),
+    ...metric('tg_forwarder_trading_unknown_orders', 'Orders with an unknown exchange outcome', 'gauge', operational.tradingUnknownOrders),
+    ...metric('tg_forwarder_trading_unprotected_positions', 'Managed non-zero positions without a confirmed open protective stop', 'gauge', operational.tradingUnprotectedPositions),
+    ...metric('tg_forwarder_trading_unacknowledged_critical_risk_events', 'Unacknowledged critical trading risk events', 'gauge', operational.tradingUnacknowledgedCriticalRiskEvents),
+    ...metric('tg_forwarder_trading_intents_total', 'Persisted trading intents', 'counter', operational.tradingIntentCount),
+    ...metric('tg_forwarder_trading_fills_total', 'Persisted exchange fills', 'counter', operational.tradingFillCount),
+    ...metric('tg_forwarder_trading_last_reconciliation_timestamp_seconds', 'Unix time of the latest successful exchange reconciliation', 'gauge', timestampSeconds(operational.tradingLatestReconciliationAt)),
     ...metric('tg_forwarder_readiness', 'Whether all operational readiness checks currently pass', 'gauge', asFlag(isOperationallyReady(operational))),
     ...metric('tg_forwarder_outbox_oldest_pending_age_seconds', 'Age in seconds of the oldest pending, preparing or sending outbox task', 'gauge', operational.oldestPendingOutboxAgeSeconds),
     ...metric('tg_forwarder_ai_requests_today', 'AI provider requests reserved today (UTC)', 'gauge', operational.aiRequestsToday),

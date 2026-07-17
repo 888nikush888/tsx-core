@@ -31,6 +31,19 @@ const HEALTHY_OPERATIONAL_METRICS = {
   auditHealthy: true,
   auditRemoteRequired: true,
   auditLastRemoteSuccessAt: 1_700_000_250_000,
+  tradingHealthy: true,
+  tradingExecutionEnabled: true,
+  tradingLiveEnabled: false,
+  tradingKillSwitchActive: false,
+  tradingEnabledRoutes: 2,
+  tradingOpenPositions: 1,
+  tradingPendingIntents: 1,
+  tradingUnknownOrders: 0,
+  tradingUnprotectedPositions: 0,
+  tradingUnacknowledgedCriticalRiskEvents: 0,
+  tradingIntentCount: 120,
+  tradingFillCount: 240,
+  tradingLatestReconciliationAt: 1_700_000_260_000,
   deliverySlo: {
     accepted: 11,
     attempts: 10,
@@ -93,6 +106,12 @@ async function runTests() {
   assert.match(metrics, /tg_forwarder_disk_capacity_healthy 1/);
   assert.match(metrics, /tg_forwarder_audit_healthy 1/);
   assert.match(metrics, /tg_forwarder_audit_last_remote_success_timestamp_seconds 1700000250/);
+  assert.match(metrics, /tg_forwarder_trading_healthy 1/);
+  assert.match(metrics, /tg_forwarder_trading_enabled_routes 2/);
+  assert.match(metrics, /tg_forwarder_trading_open_positions 1/);
+  assert.match(metrics, /tg_forwarder_trading_intents_total 120/);
+  assert.match(metrics, /tg_forwarder_trading_fills_total 240/);
+  assert.match(metrics, /tg_forwarder_trading_last_reconciliation_timestamp_seconds 1700000260/);
   assert.match(metrics, /tg_forwarder_delivery_attempts_total 10/);
   assert.match(metrics, /tg_forwarder_delivery_confirmed_total 9/);
   assert.match(metrics, /tg_forwarder_delivery_latency_seconds_bucket\{le="5"\} 8/);
@@ -105,6 +124,10 @@ async function runTests() {
   operational = { ...operational, diskCapacityHealthy: true, auditHealthy: false };
   response = await fetch(`${baseUrl}/readyz`);
   assert.strictEqual(response.status, 503, 'Audit delivery failure must fail readiness');
+
+  operational = { ...operational, auditHealthy: true, tradingHealthy: false, tradingUnknownOrders: 1 };
+  response = await fetch(`${baseUrl}/readyz`);
+  assert.strictEqual(response.status, 503, 'Unknown trading outcomes must fail readiness');
 
   response = await fetch(`${baseUrl}/metrics`, { method: 'POST' });
   assert.strictEqual(response.status, 405);

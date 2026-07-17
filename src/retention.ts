@@ -56,6 +56,9 @@ function addResults(total: OperationalRetentionResult, next: OperationalRetentio
   total.incomingMessages += next.incomingMessages;
   total.signals += next.signals;
   total.aiUsageDays += next.aiUsageDays;
+  total.tradingIntents += next.tradingIntents;
+  total.tradingReconciliations += next.tradingReconciliations;
+  total.paperOrders += next.paperOrders;
 }
 
 function resultCount(result: OperationalRetentionResult): number {
@@ -127,7 +130,10 @@ export class OperationalDataRetention {
       completedOutbox: 0,
       incomingMessages: 0,
       signals: 0,
-      aiUsageDays: 0
+      aiUsageDays: 0,
+      tradingIntents: 0,
+      tradingReconciliations: 0,
+      paperOrders: 0
     };
     let latest: OperationalRetentionResult = { ...total };
     try {

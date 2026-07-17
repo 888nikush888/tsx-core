@@ -6,6 +6,8 @@ Es ist für den **Docker-Betrieb als daemonisierten Hintergrunddienst (Service)*
 
 Die vollständige, verbindliche Anleitung für Installation, Konfiguration, Nutzung, Production-Release, Recovery und alle noch extern zu erbringenden Enterprise-Nachweise steht in [`docs/PRODUCTION_GUIDE.md`](docs/PRODUCTION_GUIDE.md).
 
+Die vollständige Trading-Einrichtung für Strategien, paralleles Kanal-Routing, Hyperliquid/Bybit, TP/SL-Lifecycle und Notfälle steht in [`docs/TRADING_GUIDE.md`](docs/TRADING_GUIDE.md).
+
 ---
 
 ## 📂 Ordnerstruktur & Datei-Guide
@@ -75,6 +77,17 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
 `healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Der lokale Browserzugang wird nach Container- und Browser-Neustarts automatisch aus dem persistenten Secret-Volume wiederhergestellt. Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System → API- und Bearer-Keys** erzeugt, rotiert oder deaktiviert und jeweils nur einmal angezeigt.
 
 Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verkettete Audit-Logs und verifizierte lokale Backups. Sämtliche Runtime-/Enterprise-Parameter – OIDC, externe Origin, Remote-Audit, verschlüsselte Off-site-Backups, Retention, Kapazitätsgrenzen und Timeouts – werden unter **System → Vollständige Runtime- und Enterprise-Konfiguration** gespeichert und über **Container kontrolliert neu starten** aktiviert. Enterprise-Modus erzwingt OIDC, deaktiviert Local Trust und verlangt unveränderlichen Remote-Audit-Trail sowie verschlüsselte, rücklesbar verifizierte Off-host-Backups.
+
+### Trading vollständig im Web einrichten
+
+1. Unter **Trading → Paper-Märkte** zunächst Equity und Marktmetadaten für `paper-default` konfigurieren. Paper/Testnet sind der sichere Standard.
+2. Unter **Trading → Strategien** einen Entwurf anlegen, Signal-Schemas/Symbole, Entry, risikobasiertes Sizing, TP-Allokationen, Break-even-/Trailing-Regel und harte Limits setzen, speichern und publizieren. Publizierte Versionen sind immutable; Änderungen erfolgen als neue Version.
+3. Unter **Trading → Börsenkonten** Hyperliquid oder Bybit wählen, Testnet/Live bestimmen und die Keys eingeben. Die UI zeigt danach nur Konfigurations- und Verifikationsstatus; Keys werden nie zurückgelesen. Hyperliquid erwartet einen dedizierten API-Wallet Private Key plus Master-Wallet-Adresse, Bybit einen API-Key mit ausschließlich erforderlichen Futures-Handelsrechten. Withdrawal-Rechte sind nicht erforderlich und dürfen nicht vergeben werden.
+4. Unter **Trading → Kanal-Routing** jeden Telegram-Quellkanal genau einer publizierten Strategieversion und einem aktivierten Konto zuordnen. Kanal A, B und C können gleichzeitig unterschiedliche Strategien/Konten ausführen; dasselbe Konto/Symbol bleibt exklusiv bei einer aktiven Position.
+5. Unter **Trading → Betrieb** zuerst reconciliieren und dann die automatische Ausführung aktivieren. Für Echtgeld muss einmal exakt `ENABLE LIVE TRADING` bestätigt werden. Danach läuft die freigegebene Strategie ohne Approval pro Einzeltrade.
+6. **Trades & Risiko** zeigt Intents, Positionen, Entries, TP/SL/Flatten-Orders, Fills, Risk Events und Reconciliation. Unknown Orders, fremde Positionen oder fehlender Protective Stop aktivieren fail-closed die Sperre und machen `/readyz` rot.
+
+Die Anwendung führt keinen beliebigen in der UI eingegebenen Code aus. „Plugins“ sind strikt validierte, versionierte deklarative Strategien; ein neuer grundlegend anderer Algorithmus benötigt eine getestete Engine-Version. Exchange-Zugriffe laufen ausschließlich über das interne Sidecar mit den offiziellen SDKs `hyperliquid-python-sdk` und `pybit`; das Sidecar besitzt keinen Host-Port.
 
 ### Zustellgarantie und Recovery
 

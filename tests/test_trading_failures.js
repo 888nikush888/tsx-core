@@ -292,6 +292,52 @@ async function testPeriodicReconciliationFailureActivatesKillSwitch(directory) {
   await closeDb();
 }
 
+async function testRuntimeLifecycleAndDefaultFailureLogger(directory) {
+  await initDb(path.join(directory, 'runtime-lifecycle.db'));
+  await ensureTradingDefaults();
+  let reconciliations = 0;
+  const engine = {
+    reconcileAccount: async () => {
+      reconciliations += 1;
+      if (reconciliations === 2) throw new Error('scheduled failure handled by default logger');
+    },
+    cancelExpiredEntries: async () => 0,
+    processIntent: async () => undefined,
+  };
+  const runtime = new TradingRuntime(engine, 60_000);
+  await runtime.start();
+  runtime.wake();
+  await runtime.stop();
+  assert.equal(reconciliations, 2);
+  await closeDb();
+}
+
+async function testUnmanagedExposureAndOperatorFlatten(directory) {
+  const unmanaged = await setup(path.join(directory, 'unmanaged-exposure.db'));
+  const unmanagedAdapter = wrappedAdapter(unmanaged.paper, (...args) => unmanaged.paper.submitOrder(...args));
+  unmanagedAdapter.openState = async () => ({
+    orders: [{
+      clientOrderId: `0x${'9'.repeat(32)}`, exchangeOrderId: 'external-1', status: 'open',
+      filledQuantity: '0', averagePrice: null, error: null, raw: {}, symbol: 'ETHUSDT',
+      role: 'entry', side: 'buy', quantity: '1', price: '3000', triggerPrice: null, reduceOnly: false,
+    }],
+    positions: [], fills: [], observedAt: Date.now(),
+  });
+  await assert.rejects(
+    new TradingEngine([unmanagedAdapter]).reconcileAccount(unmanaged.account.id),
+    /Unmanaged remote order or position/,
+  );
+  assert.equal((await getTradingRuntimeState()).killSwitchActive, true);
+  await closeDb();
+
+  const managed = await setup(path.join(directory, 'operator-flatten.db'));
+  const engine = new TradingEngine([managed.paper]);
+  await engine.processIntent(managed.intent.id);
+  assert.equal(await engine.emergencyFlattenManaged(managed.account.id), 1);
+  assert.equal((await managed.paper.openState(managed.account)).positions.length, 0);
+  await closeDb();
+}
+
 async function run() {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-failures-'));
   try {
@@ -303,6 +349,8 @@ async function run() {
     await testPartialEntryProtectionAndTerminalResizing(directory);
     await testTrailingStopOnlyMovesTowardProfit(directory);
     await testPeriodicReconciliationFailureActivatesKillSwitch(directory);
+    await testRuntimeLifecycleAndDefaultFailureLogger(directory);
+    await testUnmanagedExposureAndOperatorFlatten(directory);
   } finally {
     await closeDb();
     await rm(directory, { recursive: true, force: true });

@@ -1,4 +1,4 @@
-ARG PYTHON_IMAGE=python:3.12.11-slim-bookworm@sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7
+ARG PYTHON_IMAGE=python:3.12-alpine3.23@sha256:601d3d3797e90e2534782e69c85fafb7971b43f24c7b1b079b7e48dd435e458d
 
 FROM ${PYTHON_IMAGE} AS dependencies
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -10,8 +10,8 @@ RUN python -m pip install --require-hashes --prefix=/install -r requirements.loc
 FROM ${PYTHON_IMAGE} AS runner
 LABEL org.opencontainers.image.title="CB2 Official Exchange Executor" \
       org.opencontainers.image.source="local-workspace" \
-      org.opencontainers.image.base.name="python:3.12.11-slim-bookworm" \
-      org.opencontainers.image.base.digest="sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7"
+      org.opencontainers.image.base.name="python:3.12-alpine3.23" \
+      org.opencontainers.image.base.digest="sha256:601d3d3797e90e2534782e69c85fafb7971b43f24c7b1b079b7e48dd435e458d"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -19,8 +19,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     EXECUTOR_HOST=0.0.0.0 \
     EXECUTOR_PORT=8090
 WORKDIR /app
-RUN groupadd --system --gid 65532 executor \
-    && useradd --system --uid 65532 --gid 65532 --no-create-home --home-dir /nonexistent executor
+RUN addgroup --system --gid 65532 executor \
+    && adduser --system --uid 65532 --ingroup executor --no-create-home --home /nonexistent executor
 COPY --from=dependencies /install /usr/local
 COPY --chown=65532:65532 *.py ./
 

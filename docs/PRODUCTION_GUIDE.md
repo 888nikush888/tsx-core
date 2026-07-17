@@ -309,6 +309,10 @@ Ein Rollback gilt erst als bewiesen, wenn der exakte vorherige Image-Digest mit 
 
 Ein Gate darf nur über einen gültigen, höchstens 30 Tage laufenden Record unter `docs/risk-acceptances/` behandelt werden. Die in `QUALITY_OS.md` ausdrücklich nicht akzeptierbaren Blocker können auch damit nicht freigegeben werden.
 
+## Trading-Betrieb
+
+Die vollständige Web-Anleitung für Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, Live-Gate, TP/SL-Lifecycle und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading ist Teil derselben Datenbank-, Audit-, Backup-, Monitoring- und Release-Grenze. Der Release veröffentlicht und attestiert deshalb zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor.
+
 ## 14. Enterprise-Nachweise und aktuelle offene Punkte
 
 Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Die folgenden Punkte hängen von realen Identitäten, Infrastruktur oder verstrichener Betriebszeit ab und dürfen nicht durch Beispieldaten ersetzt werden:
@@ -327,6 +331,9 @@ Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Die fo
 | Live-AI-Golden-Set des Release-Commits | Muss pro KI-relevantem Release neu belegt werden | Erfolgreiches `npm run test:ai-eval` auf Staging mit freigegebenem Provider/Modell |
 | Reale Restore-/Rollback-Übung | Lokale automatisierte Tests ersetzen keine Infrastrukturübung | Off-host-Restore und vorheriger Image-Digest mit Datenabgleich und gemessener Dauer |
 | 30-Tage-Stabilität und SLO | **NICHT VERIFIZIERT**, solange kein vollständiges reales Messfenster vorliegt | `npm run ops:soak`: mindestens 30 Tage, 99,5 %, mindestens 100 Versuche, keine `unknown`, P95 und Ressourcenlimits eingehalten |
+| Hyperliquid-/Bybit-Testnet-Lifecycle | **NICHT VERIFIZIERT** ohne reale isolierte Testnet-Konten | Je Exchange Entry, TP-Teilfills, Stop-Resize/Break-even, Cancel, Timeout/Unknown, Neustart-Reconciliation und Notfall-Flatten belegen |
+| Trading-Key-/Subkonto-Isolation | **NICHT VERIFIZIERT** ohne reale Exchange-Konfiguration | Dediziertes Subkonto, minimale Trading-Rechte ohne Withdrawal, IP-Allowlist, Rotation und Owner belegen |
+| Trading 30-Tage-Soak und Live-Canary | **NICHT VERIFIZIERT** ohne verstrichene Betriebszeit | 30 Tage Paper/Testnet ohne Unknown/Unprotected/Drift, danach begrenzter Live-Canary mit Max-Notional und Kill-Switch-Übung |
 
 Solange eine dieser für den konkreten Release relevanten Zeilen offen ist, lautet die Produktionsentscheidung **NO-GO**. Die Workflows blockieren Tag-Releases bei fehlender Staging-, Produktions-, Governance-, Scan- oder Artefaktevidenz; offen bedeutet damit nicht „später prüfen“, sondern „noch nicht veröffentlichen“.
 

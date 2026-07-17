@@ -23,6 +23,19 @@
 | Crash-Block-Datei vorhanden                   | Kritisch  | keine Lock-Löschung vor Ursachenklärung                                |
 | AI-Budget erschöpft / Schemafehleranstieg     | Hoch      | automatische AI-Verarbeitung fail closed lassen; Versionen vergleichen |
 
+## Trading-Notfall und Reconciliation
+
+<a id="trading-notfall-und-reconciliation"></a>
+
+1. In **Trading → Betrieb** prüfen, ob Kill-Switch, Unknown Orders, ungeschützte Positionen oder veralteter Abgleich gemeldet sind. Keine Order manuell erneut senden und keine lokale Zeile löschen.
+2. Exchange-Weboberfläche read-only gegen Konto, Symbol, Client Order ID, Menge und reduce-only Status vergleichen. Withdrawal-/Transfer-Funktionen sind für diese Untersuchung nie erforderlich.
+3. Bei offener managed Position sicherstellen, dass exakt ein gültiger Protective Stop über die vollständige Restmenge existiert. Bei fehlendem Schutz **Notfall-Flatten** mit der angezeigten exakten Phrase ausführen; die Anwendung deaktiviert vorher neue Entries und sendet nur reduce-only.
+4. Ein unbekannter Submit-/Cancel-Ausgang wird nicht blind wiederholt. Erst Exchange-Historie und Fills belegen. Danach **Jetzt reconciliieren**; der Reconciler übernimmt bestätigte Orders/Fills, verkleinert den Stop nach TP-Teilfills und setzt ihn entsprechend der Strategie auf Break-even.
+5. Fremde Orders oder Positionen auf demselben API-Konto gelten als unmanaged Exposure. Entweder außerhalb des Systems nach Vier-Augen-Betriebsprozess schließen oder ein separates ausschließlich diesem System gehörendes Exchange-Subkonto verwenden. Der Kill-Switch bleibt bis zu einer erfolgreichen Null-/Managed-Reconciliation aktiv.
+6. Vor Aufheben der Sperre Datenumfang, betroffene Kanäle/Strategieversionen und Ursache dokumentieren. **Abgleichen und Sperre aufheben** führt nochmals alle aktivierten Konten gegen die Exchange; erst Erfolg entfernt die Sperre.
+
+Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaisen lassen. Factory Reset stoppt den Trading-Worker, storniert offene Entries, prüft jedes Nicht-Paper-Konto über das offizielle SDK und verweigert bei Order/Position oder nicht erreichbarer Exchange die Löschung. Danach werden DB, Strategie-/Routingzustand, alle Exchange-Key-Dateien und der interne Executor-Key entfernt; der neue Key wird nach Neustart automatisch vom bereits laufenden Sidecar akzeptiert. Ein DB-only Reset ist im integrierten Trading-Betrieb deshalb deaktiviert.
+
 ## Retention und Speicherdruck
 
 - `failed`, `unknown` und aktive Outbox-Zustände niemals zur Speichergewinnung löschen.

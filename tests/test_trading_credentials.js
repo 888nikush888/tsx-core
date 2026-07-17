@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { TradingCredentialStore } from '../src/trading_credentials.js';
+import { TradingCredentialStore, tradingCredentialStoreFromEnvironment } from '../src/trading_credentials.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-credentials-'));
 try {
@@ -45,6 +45,11 @@ try {
   assert.equal((await store.status(hyperliquidId)).configured, false);
   const regenerated = await store.getOrCreateExecutorToken();
   assert.notEqual(regenerated, firstToken, 'Factory reset must rotate the internal executor token.');
+  const environmentStore = tradingCredentialStoreFromEnvironment({
+    MANAGED_SECRET_DIR: path.join(directory, 'environment-secrets'),
+  });
+  await environmentStore.initialize();
+  assert.match(await environmentStore.getOrCreateExecutorToken(), /^[a-f0-9]{64}$/);
 } finally {
   await rm(directory, { recursive: true, force: true });
 }

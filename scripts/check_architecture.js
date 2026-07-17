@@ -101,6 +101,10 @@ export async function analyzeArchitecture() {
     'signal_schema.ts',
     'telegram_login.ts',
     'tdlib_retry.ts',
+    'trading_decimal.ts',
+    'trading_risk.ts',
+    'trading_strategy.ts',
+    'trading_types.ts',
   ]);
   const outerModules = new Set([
     ...entryPoints,
@@ -108,6 +112,13 @@ export async function analyzeArchitecture() {
     'signal_parser.ts',
     'logger.ts',
     'web_server.ts',
+    'official_exchange.ts',
+    'paper_exchange.ts',
+    'trading_credentials.ts',
+    'trading_engine.ts',
+    'trading_repository.ts',
+    'trading_runtime.ts',
+    'trading_web_control.ts',
   ]);
 
   for (const [module, dependencies] of graph) {

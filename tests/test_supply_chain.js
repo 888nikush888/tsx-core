@@ -57,6 +57,12 @@ assert.match(workflow, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/);
 assert.match(workflow, /actions\/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0/);
 assert.match(workflow, /actions\/attest@f6bf1532d7d6793fce74eac584813a8eee607999/);
 assert.match(workflow, /gh release verify "\$GITHUB_REF_NAME"/);
+assert.match(workflow, /release-executor-image\.tar\.zst/);
+assert.match(workflow, /executor-image-name=\$\{executor_image_name\}/);
+assert.match(workflow, /executor-image-digest=\$\{executor_published_ref#\*@\}/);
+assert.match(workflow, /sbom-path: container-evidence\/exchange-executor\.cdx\.json/);
+assert.match(workflow, /executorImage:\$executorImage, executorDigest:\$executorDigest/);
+assert.match(workflow, /gh attestation verify "oci:\/\/\$\{\{ steps\.publish\.outputs\.executor-image-name \}\}@\$\{\{ steps\.publish\.outputs\.executor-image-digest \}\}"/);
 
 const baseImages = [...dockerfile.matchAll(/^FROM\s+([^\s]+).*$/gm)].map((match) => match[1]);
 assert.ok(baseImages.length > 0, 'Dockerfile must declare a base image');
@@ -87,7 +93,10 @@ assert.match(dockerCompose, /^\s*restart:\s*unless-stopped\s*$/m);
 assert.match(dockerCompose, /^\s*stop_grace_period:\s*8m\s*$/m);
 assert.match(dockerCompose, /RUNTIME_SETTINGS_PATH:\s*"\/app\/config\/runtime-settings\.json"/);
 assert.match(dockerCompose, /"127\.0\.0\.1:\$\{HOST_WEB_PORT:-8080\}:8080"/);
-assert.match(executorDockerfile, /^ARG PYTHON_IMAGE=python:3\.12\.11-slim-bookworm@sha256:[a-f0-9]{64}$/m);
+assert.match(
+  executorDockerfile,
+  /^ARG PYTHON_IMAGE=python:3\.12-alpine3\.23@sha256:601d3d3797e90e2534782e69c85fafb7971b43f24c7b1b079b7e48dd435e458d$/m,
+);
 assert.match(executorDockerfile, /^USER 65532:65532$/m);
 assert.match(executorDockerfile, /pip install --require-hashes/);
 assert.match(executorLock, /^hyperliquid-python-sdk==0\.24\.0 \\/m);

@@ -12,6 +12,11 @@ const passing = {
   retentionHealth: 1,
   diskHealth: 1,
   auditHealth: 1,
+  tradingHealth: 1,
+  tradingIntents: 120,
+  tradingUnknownOrders: 0,
+  tradingUnprotectedPositions: 0,
+  tradingKillSwitch: 0,
   maxResidentMemoryBytes: 500_000_000,
   maxQueuedTasks: 10,
   maxOldestPendingAgeSeconds: 30
@@ -28,5 +33,6 @@ assert.ok(Object.values(queries).every(query => query.includes('[30d]')));
 assert.match(queries.deliverySuccess, /delivery_confirmed_total/);
 assert.match(queries.p95LatencySeconds, /histogram_quantile\(0\.95/);
 assert.match(queries.availability, /tg_forwarder_readiness/);
+assert.match(queries.tradingIntents, /tg_forwarder_trading_intents_total/);
 
 console.log('30-day soak evaluation tests passed.');

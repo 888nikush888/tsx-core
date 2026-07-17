@@ -6,10 +6,12 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import {
   closeDb,
+  getDatabase,
   getDatabaseStorageStats,
   initDb,
   pruneOperationalData
 } from '../src/db.js';
+import { ensureTradingDefaults } from '../src/trading_repository.js';
 import {
   OperationalDataRetention,
   retentionPolicyFromEnvironment
@@ -61,14 +63,57 @@ async function runTests() {
   const dbPath = path.join(root, 'retention.db');
   try {
     await initDb(dbPath);
+    await ensureTradingDefaults(OLD);
     await seedRetentionRows(dbPath);
+    const database = getDatabase();
+    const strategy = await database.get('SELECT id FROM trading_strategy_versions LIMIT 1');
+    await database.run(
+      `INSERT INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at)
+       VALUES ('signal-trading-old', '-1001', 30, '<signal/>', '<signal/>', ?),
+              ('signal-trading-unknown', '-1001', 31, '<signal/>', '<signal/>', ?),
+              ('signal-trading-critical', '-1001', 32, '<signal/>', '<signal/>', ?)`,
+      [OLD, OLD, OLD]
+    );
+    for (const [id, source, status] of [
+      ['intent-old', 'signal-trading-old', 'completed'],
+      ['intent-unknown', 'signal-trading-unknown', 'unknown'],
+      ['intent-critical', 'signal-trading-critical', 'completed']
+    ]) {
+      await database.run(
+        `INSERT INTO trading_trade_intents (
+           id, source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
+           symbol, side, status, signal_json, created_at, updated_at
+         ) VALUES (?, ?, '-1001', ?, 'paper-default', 'paper', 'paper', 'BTCUSDT', 'LONG', ?, '{}', ?, ?)`,
+        [id, source, strategy.id, status, OLD, OLD]
+      );
+    }
+    await database.run(
+      `INSERT INTO trading_risk_events (id, severity, code, account_id, intent_id, details_json, created_at)
+       VALUES ('risk-old', 'info', 'TEST', 'paper-default', 'intent-old', '{}', ?),
+              ('risk-critical', 'critical', 'TEST_CRITICAL', 'paper-default', 'intent-critical', '{}', ?)`,
+      [OLD, OLD]
+    );
+    await database.run(
+      `INSERT INTO trading_reconciliation_runs (id, account_id, status, started_at, completed_at)
+       VALUES ('reconcile-old', 'paper-default', 'succeeded', ?, ?)`, [OLD, OLD]
+    );
+    await database.run(
+      `INSERT INTO trading_paper_orders (
+         exchange_order_id, account_id, client_order_id, symbol, role, side, order_type, status,
+         quantity, filled_quantity, reduce_only, leverage, created_at, updated_at
+       ) VALUES ('paper-old', 'paper-default', 'paper-client-old', 'BTCUSDT', 'entry', 'buy', 'limit',
+                 'filled', '1', '1', 0, 1, ?, ?)`, [OLD, OLD]
+    );
 
     const result = await pruneOperationalData(90, 100, NOW);
     assert.deepEqual(result, {
       completedOutbox: 1,
       incomingMessages: 2,
-      signals: 1,
-      aiUsageDays: 1
+      signals: 2,
+      aiUsageDays: 1,
+      tradingIntents: 1,
+      tradingReconciliations: 1,
+      paperOrders: 1
     });
 
     const inspection = await open({ filename: dbPath, driver: sqlite3.Database });
@@ -82,7 +127,12 @@ async function runTests() {
     );
     assert.deepEqual(
       (await inspection.all('SELECT id FROM signals ORDER BY id')).map(row => row.id),
-      ['signal-old-protected', 'signal-recent']
+      ['signal-old-protected', 'signal-recent', 'signal-trading-critical', 'signal-trading-unknown']
+    );
+    assert.deepEqual(
+      (await inspection.all('SELECT id FROM trading_trade_intents ORDER BY id')).map(row => row.id),
+      ['intent-critical', 'intent-unknown'],
+      'Unknown outcomes and unacknowledged critical trading evidence must never be pruned automatically.'
     );
     await inspection.close();
 

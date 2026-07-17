@@ -23,6 +23,14 @@ function boolean(value: unknown): boolean {
   return Number(value) === 1;
 }
 
+function numeric(value: unknown, fallback = 0): number {
+  return value === null || value === undefined ? fallback : Number(value);
+}
+
+function nullableNumeric(value: unknown): number | null {
+  return value === null || value === undefined ? null : Number(value);
+}
+
 function parseJson<T>(value: unknown, label: string): T {
   try {
     return JSON.parse(String(value)) as T;
@@ -553,4 +561,52 @@ export async function deleteTradingAccount(id: string): Promise<boolean> {
     const result = await getDatabase().run('DELETE FROM trading_accounts WHERE id = ?', [id]);
     return Number(result.changes || 0) === 1;
   });
+}
+
+export async function getTradingOperationalSnapshot(): Promise<{
+  executionEnabled: boolean;
+  liveTradingEnabled: boolean;
+  killSwitchActive: boolean;
+  enabledRoutes: number;
+  openPositions: number;
+  pendingIntents: number;
+  unknownOrders: number;
+  unprotectedPositions: number;
+  unacknowledgedCriticalRiskEvents: number;
+  intentCount: number;
+  fillCount: number;
+  latestReconciliationAt: number | null;
+}> {
+  const [runtime, values] = await Promise.all([
+    getTradingRuntimeState(),
+    getDatabase().get<any>(`SELECT
+      (SELECT COUNT(*) FROM trading_routes WHERE enabled = 1) AS enabled_routes,
+      (SELECT COUNT(*) FROM trading_positions WHERE status IN ('opening', 'open', 'closing', 'emergency') AND quantity <> '0') AS open_positions,
+      (SELECT COUNT(*) FROM trading_trade_intents WHERE status IN ('pending', 'planned', 'submitting', 'monitoring')) AS pending_intents,
+      (SELECT COUNT(*) FROM trading_orders WHERE status = 'unknown') AS unknown_orders,
+      (SELECT COUNT(*) FROM trading_positions AS position
+        WHERE position.status IN ('open', 'closing', 'emergency') AND position.quantity <> '0'
+          AND NOT EXISTS (
+            SELECT 1 FROM trading_orders AS stop
+            WHERE stop.intent_id = position.intent_id AND stop.role = 'stop_loss' AND stop.status = 'open'
+          )) AS unprotected_positions,
+      (SELECT COUNT(*) FROM trading_risk_events WHERE severity = 'critical' AND acknowledged_at IS NULL) AS critical_risk,
+      (SELECT COUNT(*) FROM trading_trade_intents) AS intent_count,
+      (SELECT COUNT(*) FROM trading_fills) AS fill_count,
+      (SELECT MAX(completed_at) FROM trading_reconciliation_runs WHERE status = 'succeeded') AS latest_reconciliation`),
+  ]);
+  return {
+    executionEnabled: runtime.executionEnabled,
+    liveTradingEnabled: runtime.liveTradingEnabled,
+    killSwitchActive: runtime.killSwitchActive,
+    enabledRoutes: numeric(values?.enabled_routes),
+    openPositions: numeric(values?.open_positions),
+    pendingIntents: numeric(values?.pending_intents),
+    unknownOrders: numeric(values?.unknown_orders),
+    unprotectedPositions: numeric(values?.unprotected_positions),
+    unacknowledgedCriticalRiskEvents: numeric(values?.critical_risk),
+    intentCount: numeric(values?.intent_count),
+    fillCount: numeric(values?.fill_count),
+    latestReconciliationAt: nullableNumeric(values?.latest_reconciliation),
+  };
 }

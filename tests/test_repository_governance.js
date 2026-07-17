@@ -31,6 +31,13 @@ const runtimeSettingsChange = scorePullRequest([
   { path: 'tests/test_runtime_settings.js', additions: 8, deletions: 0 }
 ]);
 assert.ok(runtimeSettingsChange.factors.some(factor => factor.id === 'auth-secrets'));
+const tradingChange = scorePullRequest([
+  { path: 'src/trading_engine.ts', additions: 5, deletions: 1 },
+  { path: 'tests/test_trading_engine.js', additions: 8, deletions: 0 }
+]);
+assert.ok(tradingChange.score >= 14, 'Trading execution changes require critical-domain, side-effect and concurrency review.');
+assert.ok(tradingChange.factors.some(factor => factor.id === 'critical-domain'));
+assert.ok(tradingChange.factors.some(factor => factor.id === 'ai-side-effect'));
 
 const requiredContexts = [
   'Lint, tests, coverage, build, supply chain',

@@ -130,3 +130,43 @@ groups:
         annotations:
           summary: Control-plane audit persistence or remote delivery is unhealthy
           runbook: docs/runbooks/operations.md#audit-trail-ausfall
+
+      - alert: TradingUnknownOrder
+        expr: tg_forwarder_trading_unknown_orders > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: A trading order has an unknown exchange outcome
+          runbook: docs/runbooks/operations.md#trading-notfall-und-reconciliation
+
+      - alert: TradingUnprotectedPosition
+        expr: tg_forwarder_trading_unprotected_positions > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: A managed position has no confirmed protective stop
+          runbook: docs/runbooks/operations.md#trading-notfall-und-reconciliation
+
+      - alert: TradingKillSwitchActive
+        expr: tg_forwarder_trading_kill_switch_active == 1
+        for: 0m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: Trading is fail-closed behind the kill switch
+          runbook: docs/runbooks/operations.md#trading-notfall-und-reconciliation
+
+      - alert: TradingReconciliationStale
+        expr: tg_forwarder_trading_execution_enabled == 1 and (time() - tg_forwarder_trading_last_reconciliation_timestamp_seconds) > 30
+        for: 1m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: Exchange reconciliation is stale while execution is enabled
+          runbook: docs/runbooks/operations.md#trading-notfall-und-reconciliation

@@ -1036,6 +1036,9 @@ async function clearDatabaseHandler(context: RequestContext): Promise<void> {
     return;
   }
   try {
+    if (context.appState.tradingControl) {
+      throw new HttpError(409, 'Database-only clearing is disabled while the integrated trading subsystem is installed. Use the complete Factory Reset to avoid orphaned exchange credentials or partial trading state.');
+    }
     await clearDb();
     addLog('[INFO] SQLite database cleared through the web dashboard.');
     sendJson(context.res, 200, { success: true, message: 'Database cleared successfully.' });
@@ -1316,6 +1319,7 @@ function recoveryAllowsRoute(method: string, url: string): boolean {
     'POST /api/secrets',
     'GET /api/runtime-settings',
     'POST /api/runtime-settings',
+    'POST /api/factory-reset',
     'POST /api/restart',
   ]).has(`${method} ${url}`);
 }

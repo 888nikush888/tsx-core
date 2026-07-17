@@ -66,7 +66,7 @@ import {
   managedRuntimeSettingsFromEnvironment,
   type ManagedRuntimeSettingsStore,
 } from './runtime_settings.js';
-import { createTradingIntent, ensureTradingDefaults } from './trading_repository.js';
+import { createTradingIntent, ensureTradingDefaults, getTradingOperationalSnapshot } from './trading_repository.js';
 import { PaperExchangeAdapter } from './paper_exchange.js';
 import { TradingEngine } from './trading_engine.js';
 import { TradingRuntime } from './trading_runtime.js';
@@ -469,6 +469,22 @@ async function collectOperationalMetrics(
   const diskAvailableBytes = await availableDiskBytes(databasePath);
   const diskCapacityHealthy = diskAvailableBytes >= minimumFreeBytes;
   const emptyOutbox = { pending: 0, preparing: 0, sending: 0, completed: 0, failed: 0, unknown: 0 };
+  const trading = databaseHealthy ? await getTradingOperationalSnapshot() : {
+    executionEnabled: false,
+    liveTradingEnabled: false,
+    killSwitchActive: false,
+    enabledRoutes: 0,
+    openPositions: 0,
+    pendingIntents: 0,
+    unknownOrders: 0,
+    unprotectedPositions: 0,
+    unacknowledgedCriticalRiskEvents: 0,
+    intentCount: 0,
+    fillCount: 0,
+    latestReconciliationAt: null,
+  };
+  const reconciliationCurrent = !trading.executionEnabled
+    || (trading.latestReconciliationAt !== null && Date.now() - trading.latestReconciliationAt <= 30_000);
   const base = {
     databaseHealthy,
     isRunning: state.isRunning,
@@ -480,7 +496,23 @@ async function collectOperationalMetrics(
     ...auditMetricSnapshot(),
     diskAvailableBytes,
     diskCapacityHealthy,
-    deliverySlo: deliverySlo.snapshot()
+    deliverySlo: deliverySlo.snapshot(),
+    tradingHealthy: !trading.killSwitchActive
+      && trading.unknownOrders === 0
+      && trading.unprotectedPositions === 0
+      && reconciliationCurrent,
+    tradingExecutionEnabled: trading.executionEnabled,
+    tradingLiveEnabled: trading.liveTradingEnabled,
+    tradingKillSwitchActive: trading.killSwitchActive,
+    tradingEnabledRoutes: trading.enabledRoutes,
+    tradingOpenPositions: trading.openPositions,
+    tradingPendingIntents: trading.pendingIntents,
+    tradingUnknownOrders: trading.unknownOrders,
+    tradingUnprotectedPositions: trading.unprotectedPositions,
+    tradingUnacknowledgedCriticalRiskEvents: trading.unacknowledgedCriticalRiskEvents,
+    tradingIntentCount: trading.intentCount,
+    tradingFillCount: trading.fillCount,
+    tradingLatestReconciliationAt: trading.latestReconciliationAt,
   };
   if (!databaseHealthy) {
     return {
@@ -1233,16 +1265,7 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore)
   await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
   await initDb();
   await ensureTradingDefaults();
-  const paperAdapter = new PaperExchangeAdapter();
-  const hyperliquidAdapter = new OfficialExchangeAdapter('hyperliquid', tradingCredentials);
-  const bybitAdapter = new OfficialExchangeAdapter('bybit', tradingCredentials);
-  const tradingEngine = new TradingEngine([paperAdapter, hyperliquidAdapter, bybitAdapter], addLog);
-  tradingWebControl = new TradingWebControl(
-    tradingCredentials,
-    paperAdapter,
-    [hyperliquidAdapter, bybitAdapter],
-    tradingEngine,
-  );
+  const tradingEngine = composeTradingControl(tradingCredentials);
   tradingRuntime = new TradingRuntime(
     tradingEngine,
     2_000,
@@ -1257,6 +1280,20 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore)
   retentionScheduler = new OperationalDataRetention(retentionPolicy, addLog);
   await retentionScheduler.start();
   return { databasePath, retentionPolicy };
+}
+
+function composeTradingControl(tradingCredentials: TradingCredentialStore): TradingEngine {
+  const paperAdapter = new PaperExchangeAdapter();
+  const hyperliquidAdapter = new OfficialExchangeAdapter('hyperliquid', tradingCredentials);
+  const bybitAdapter = new OfficialExchangeAdapter('bybit', tradingCredentials);
+  const tradingEngine = new TradingEngine([paperAdapter, hyperliquidAdapter, bybitAdapter], addLog);
+  tradingWebControl = new TradingWebControl(
+    tradingCredentials,
+    paperAdapter,
+    [hyperliquidAdapter, bybitAdapter],
+    tradingEngine,
+  );
+  return tradingEngine;
 }
 
 async function startBackupRuntime(runtime: RuntimeConfiguration): Promise<void> {
@@ -1340,7 +1377,6 @@ async function performCompleteFactoryReset(
 ): Promise<void> {
   secretStore.assertClearable();
   if (!tradingWebControl) throw new Error('Factory reset requires initialized trading safety controls.');
-  await tradingWebControl.assertFactoryResetSafe();
   const configPath = configurationPathFromEnvironment();
   const applicationRoot = path.resolve(process.cwd());
   if (!configPath.startsWith(`${applicationRoot}${path.sep}`)) {
@@ -1364,9 +1400,10 @@ async function performCompleteFactoryReset(
     targets.set(resolved, resolved);
   }
 
-  await stopForwarding();
   await stopScheduler(tradingRuntime, 'Trading Runtime');
   tradingRuntime = null;
+  await tradingWebControl.assertFactoryResetSafe();
+  await stopForwarding();
   await stopScheduler(backupScheduler, 'Laufendes Backup');
   await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
   backupScheduler = null;
@@ -1562,6 +1599,13 @@ async function run() {
   if (runtimeSettings.recoveryStatus().active || secretStore.recoveryStatus().length > 0 || runtime.configurationRecoveryReason) {
     state.connectionState = 'recovery-required';
     addLog('[CRITICAL] Managed settings or secrets are invalid. Routing and background operations remain disabled until repaired in the dashboard and restarted.');
+    try {
+      await initDb();
+      await ensureTradingDefaults();
+      composeTradingControl(tradingCredentials);
+    } catch (error: any) {
+      addLog(`[CRITICAL] Trading safety state could not be loaded in recovery mode; factory reset remains blocked until database recovery: ${error.message}`);
+    }
     startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
     return;
   }

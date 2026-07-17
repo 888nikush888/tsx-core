@@ -4,13 +4,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const RISK_FACTORS = [
-  { id: 'critical-domain', points: 5, label: 'Critical delivery, data, AI or control-plane domain', matches: file => /^src\/(forwarder|db|signal_parser|signal_schema|delivery_tracker|backup|backup_replication|web_server|audit_trail|dashboard_auth|secret_store|telegram_login)\.ts$/.test(file) },
-  { id: 'auth-secrets', points: 5, label: 'Authentication, authorization or secret boundary', matches: file => /^src\/(dashboard_auth|web_server|env|audit_trail|runtime_profile|runtime_settings|secret_store|telegram_login)\.ts$/.test(file) || /^\.github\/workflows\//.test(file) },
-  { id: 'ai-side-effect', points: 5, label: 'AI prompt, schema or automatic side effect', matches: file => /^src\/(signal_parser|signal_schema|forwarder)\.ts$/.test(file) || /^templates\//.test(file) },
-  { id: 'database', points: 4, label: 'Database, migration or persistent recovery', matches: file => /^src\/(db|migration_cli|backup)\.ts$/.test(file) },
-  { id: 'concurrency', points: 4, label: 'Concurrency, retry, timeout, idempotency or shutdown', matches: file => /^src\/(queue|forwarder|delivery_tracker|tdlib_retry)\.ts$/.test(file) },
+  { id: 'critical-domain', points: 5, label: 'Critical delivery, data, AI, trading or control-plane domain', matches: file => /^src\/(forwarder|db|signal_parser|signal_schema|delivery_tracker|backup|backup_replication|web_server|audit_trail|dashboard_auth|secret_store|telegram_login|trading_.+|paper_exchange|official_exchange)\.ts$/.test(file) || /^exchange_executor\/(?!tests\/)/.test(file) },
+  { id: 'auth-secrets', points: 5, label: 'Authentication, authorization or secret boundary', matches: file => /^src\/(dashboard_auth|web_server|env|audit_trail|runtime_profile|runtime_settings|secret_store|telegram_login|trading_credentials|official_exchange)\.ts$/.test(file) || /^exchange_executor\/(credentials|server)\.py$/.test(file) || /^\.github\/workflows\//.test(file) },
+  { id: 'ai-side-effect', points: 5, label: 'AI prompt, schema or automatic side effect', matches: file => /^src\/(signal_parser|signal_schema|forwarder|trading_engine|trading_runtime|trading_risk)\.ts$/.test(file) || /^templates\//.test(file) || /^exchange_executor\/(hyperliquid_adapter|bybit_adapter)\.py$/.test(file) },
+  { id: 'database', points: 4, label: 'Database, migration or persistent recovery', matches: file => /^src\/(db|migration_cli|backup|trading_repository|trading_engine)\.ts$/.test(file) },
+  { id: 'concurrency', points: 4, label: 'Concurrency, retry, timeout, idempotency or shutdown', matches: file => /^src\/(queue|forwarder|delivery_tracker|tdlib_retry|trading_engine|trading_runtime|official_exchange)\.ts$/.test(file) },
   { id: 'contract', points: 3, label: 'HTTP, configuration or metrics contract', matches: file => /^src\/(web_server|metrics|config)\.ts$/.test(file) },
-  { id: 'dependency', points: 2, label: 'Production dependency, workflow or base image', matches: file => /^(package(-lock)?\.json|frontend\/package(-lock)?\.json|Dockerfile|\.github\/workflows\/)/.test(file) }
+  { id: 'dependency', points: 2, label: 'Production dependency, workflow or base image', matches: file => /^(package(-lock)?\.json|frontend\/package(-lock)?\.json|Dockerfile|exchange_executor\/(Dockerfile|requirements\.(in|lock))|\.github\/workflows\/)/.test(file) }
 ];
 
 export function riskLevel(score) {
@@ -25,8 +25,8 @@ export function scorePullRequest(changes) {
   const factors = RISK_FACTORS
     .filter(factor => files.some(factor.matches))
     .map(({ id, points, label }) => ({ id, points, label }));
-  const productionChanged = files.some(file => /^(src\/|frontend\/src\/|Dockerfile|docker-compose|monitoring\/|package)/.test(file));
-  const testsChanged = files.some(file => /^(tests\/|frontend\/.*(?:test|spec)|monitoring\/rules\.test\.yml)/.test(file));
+  const productionChanged = files.some(file => /^(src\/|frontend\/src\/|exchange_executor\/(?!tests\/)|Dockerfile|docker-compose|monitoring\/|package)/.test(file));
+  const testsChanged = files.some(file => /^(tests\/|exchange_executor\/tests\/|frontend\/.*(?:test|spec)|monitoring\/rules\.test\.yml)/.test(file));
   if (productionChanged && !testsChanged) factors.push({ id: 'test-gap', points: 3, label: 'Production change without a changed regression test' });
   const changedLines = changes.reduce((sum, change) => sum + change.additions + change.deletions, 0);
   if (changedLines > 500) factors.push({ id: 'large-change', points: 2, label: 'More than 500 changed lines' });

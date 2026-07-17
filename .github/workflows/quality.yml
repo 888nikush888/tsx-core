@@ -246,13 +246,17 @@ jobs:
           exit-code: '1'
       - name: Preserve the scanned release candidate
         if: startsWith(github.ref, 'refs/tags/v')
-        run: docker save telegram-tdlib-forwarder:${{ github.sha }} | zstd -T0 -3 -o release-image.tar.zst
+        run: |
+          docker save telegram-tdlib-forwarder:${{ github.sha }} | zstd -T0 -3 -o release-image.tar.zst
+          docker save cb2-exchange-executor:${{ github.sha }} | zstd -T0 -3 -o release-executor-image.tar.zst
       - name: Upload release candidate
         if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: release-image-${{ github.sha }}
-          path: release-image.tar.zst
+          path: |
+            release-image.tar.zst
+            release-executor-image.tar.zst
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -328,16 +332,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           zstd -dc release-candidate/release-image.tar.zst | docker load
+          zstd -dc release-candidate/release-executor-image.tar.zst | docker load
           image_name="ghcr.io/${GITHUB_REPOSITORY,,}"
+          executor_image_name="${image_name}-exchange-executor"
           printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
           docker tag "telegram-tdlib-forwarder:${GITHUB_SHA}" "${image_name}:${GITHUB_REF_NAME}"
           docker tag "telegram-tdlib-forwarder:${GITHUB_SHA}" "${image_name}:sha-${GITHUB_SHA}"
+          docker tag "cb2-exchange-executor:${GITHUB_SHA}" "${executor_image_name}:${GITHUB_REF_NAME}"
+          docker tag "cb2-exchange-executor:${GITHUB_SHA}" "${executor_image_name}:sha-${GITHUB_SHA}"
           docker push "${image_name}:${GITHUB_REF_NAME}"
           docker push "${image_name}:sha-${GITHUB_SHA}"
+          docker push "${executor_image_name}:${GITHUB_REF_NAME}"
+          docker push "${executor_image_name}:sha-${GITHUB_SHA}"
           published_ref="$(docker inspect --format '{{index .RepoDigests 0}}' "${image_name}:${GITHUB_REF_NAME}")"
+          executor_published_ref="$(docker inspect --format '{{index .RepoDigests 0}}' "${executor_image_name}:${GITHUB_REF_NAME}")"
           test "${published_ref}" != '<no value>'
+          test "${executor_published_ref}" != '<no value>'
           echo "image-name=${image_name}" >> "$GITHUB_OUTPUT"
           echo "image-digest=${published_ref#*@}" >> "$GITHUB_OUTPUT"
+          echo "executor-image-name=${executor_image_name}" >> "$GITHUB_OUTPUT"
+          echo "executor-image-digest=${executor_published_ref#*@}" >> "$GITHUB_OUTPUT"
       - name: Attest image build provenance
         uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999
         with:
@@ -351,16 +365,33 @@ jobs:
           subject-digest: ${{ steps.publish.outputs.image-digest }}
           sbom-path: container-evidence/container.cdx.json
           push-to-registry: true
+      - name: Attest exchange executor build provenance
+        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999
+        with:
+          subject-name: ${{ steps.publish.outputs.executor-image-name }}
+          subject-digest: ${{ steps.publish.outputs.executor-image-digest }}
+          push-to-registry: true
+      - name: Attest the exchange executor SBOM
+        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999
+        with:
+          subject-name: ${{ steps.publish.outputs.executor-image-name }}
+          subject-digest: ${{ steps.publish.outputs.executor-image-digest }}
+          sbom-path: container-evidence/exchange-executor.cdx.json
+          push-to-registry: true
       - name: Assemble signed release evidence
         env:
           IMAGE_NAME: ${{ steps.publish.outputs.image-name }}
           IMAGE_DIGEST: ${{ steps.publish.outputs.image-digest }}
+          EXECUTOR_IMAGE_NAME: ${{ steps.publish.outputs.executor-image-name }}
+          EXECUTOR_IMAGE_DIGEST: ${{ steps.publish.outputs.executor-image-digest }}
         run: |
           mkdir release-assets
           cp application-evidence/reports/sbom/backend.cdx.json release-assets/backend.cdx.json
           cp application-evidence/reports/sbom/frontend.cdx.json release-assets/frontend.cdx.json
           cp container-evidence/container.cdx.json release-assets/container.cdx.json
           cp container-evidence/trivy.sarif release-assets/trivy.sarif
+          cp container-evidence/exchange-executor.cdx.json release-assets/exchange-executor.cdx.json
+          cp container-evidence/exchange-executor-trivy.sarif release-assets/exchange-executor-trivy.sarif
           cp container-evidence/prometheus.cdx.json release-assets/prometheus.cdx.json
           cp container-evidence/prometheus-trivy.sarif release-assets/prometheus-trivy.sarif
           cp container-evidence/alertmanager.cdx.json release-assets/alertmanager.cdx.json
@@ -372,7 +403,9 @@ jobs:
             --arg commit "$GITHUB_SHA" \
             --arg image "$IMAGE_NAME" \
             --arg digest "$IMAGE_DIGEST" \
-            '{schemaVersion:1, tag:$tag, commit:$commit, image:$image, digest:$digest}' \
+            --arg executorImage "$EXECUTOR_IMAGE_NAME" \
+            --arg executorDigest "$EXECUTOR_IMAGE_DIGEST" \
+            '{schemaVersion:1, tag:$tag, commit:$commit, image:$image, digest:$digest, executorImage:$executorImage, executorDigest:$executorDigest}' \
             > release-assets/release-manifest.json
       - name: Publish release with all assets atomically
         env:
@@ -386,3 +419,4 @@ jobs:
         run: |
           gh release verify "$GITHUB_REF_NAME"
           gh attestation verify "oci://${{ steps.publish.outputs.image-name }}@${{ steps.publish.outputs.image-digest }}" --repo "$GITHUB_REPOSITORY"
+          gh attestation verify "oci://${{ steps.publish.outputs.executor-image-name }}@${{ steps.publish.outputs.executor-image-digest }}" --repo "$GITHUB_REPOSITORY"

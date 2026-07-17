@@ -20,7 +20,11 @@ for (const requiredAlert of [
   'ForwarderAuditTrailUnhealthy',
   'ForwarderDeliverySuccessSloBurn',
   'ForwarderDeliveryLatencySloBurn',
-  'ForwarderPendingTaskStale'
+  'ForwarderPendingTaskStale',
+  'TradingUnknownOrder',
+  'TradingUnprotectedPosition',
+  'TradingKillSwitchActive',
+  'TradingReconciliationStale'
 ]) assert.match(rules, new RegExp(`alert: ${requiredAlert}`));
 assert.match(alertmanager, /credentials_file:\s*\/app\/secrets\/alert_relay_token/);
 assert.match(alertmanager, /send_resolved:\s*true/);

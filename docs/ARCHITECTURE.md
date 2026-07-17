@@ -22,6 +22,11 @@ flowchart LR
   IDP --> W
   W --> AT["Local hash-chained audit"]
   AT --> AG["Immutable HTTPS audit gateway"]
+  F --> TC["Trading Core + Risk Engine"]
+  TC --> DB
+  TC --> EX["Internal official-SDK executor"]
+  EX --> HL["Hyperliquid official API"]
+  EX --> BY["Bybit V5 official API"]
 ```
 
 Trust Boundaries liegen an Telegram/TDLib, der externen KI-API, OIDC/JWKS, allen HTTP-Anfragen an Dashboard/Metriken, Prozessumgebung/Secrets, Host-Volumes und Backup-Replikation. Externe Eingaben werden vor einer Nebenwirkung validiert; ein unklarer Zustellstatus wird `unknown` und nie automatisch erneut gesendet.
@@ -34,6 +39,8 @@ Trust Boundaries liegen an Telegram/TDLib, der externen KI-API, OIDC/JWKS, allen
 | Core         | `queue.ts`, `filters.ts`, `signal_schema.ts`, `tdlib_retry.ts`, `delivery_tracker.ts`, `dashboard_auth.ts`, `crash_guard.ts`, `metrics_tracker.ts` | deterministische Regeln und Zustandsmaschinen   |
 | State/Config | `db.ts`, `config.ts`, `env.ts`                                                                                                | persistente Verträge und Konfigurationsgrenzen  |
 | Adapter      | `signal_parser.ts`, `web_server.ts`, `metrics.ts`, `logger.ts`, `backup.ts`, `retention.ts`, `audit_trail.ts`                 | externe Provider, HTTP, Operator und Filesystem |
+| Trading      | `trading_strategy.ts`, `trading_risk.ts`, `trading_engine.ts`, `trading_repository.ts`, `trading_runtime.ts`                  | Strategieversionen, exakte Planung, Lifecycle und Reconciliation |
+| Exchange     | `official_exchange.ts`, `paper_exchange.ts`, `exchange_executor/`                                                               | Paper-Simulation und offizielle Hyperliquid-/Bybit-SDK-Grenze |
 
 Erlaubte Richtung: `Entry Point → Adapter → Core/State`. Core importiert keine Adapter oder Entry Points. Kein Modul außerhalb des Composition Root importiert einen Entry Point. `db.ts` importiert kein internes Modul. Zirkuläre Imports sind verboten.
 
@@ -55,6 +62,10 @@ Telegram update
 ```
 
 Konfiguration und Runtime-Einstellungen werden atomar via temporärer Datei, `fsync` und Rename geschrieben. Secrets kommen entweder aus externen Environment-/File-Mounts oder aus dem write-only `ManagedSecretStore`; extern verwaltete Werte bleiben im Web schreibgeschützt. Backups enthalten SQLite plus bereinigte Routing-Konfiguration, werden gehasht und vor Veröffentlichung geprüft; verschlüsselte Off-site-Objekte können über die Web-Control-Plane heruntergeladen, entschlüsselt und restore-verifiziert werden. Die Retention bereinigt nur finale Daten in begrenzten Transaktionen; ungeklärte Zustellzustände sind von automatischer Löschung ausgeschlossen.
+
+## Trading-Zustandsfluss
+
+Trading-Signale werden nach persistierter Signalvalidierung über eine immutable Kanalroute in einen Trade Intent überführt. Der Intent wird exakt einmal geplant, jede Order besitzt eine deterministische Client-ID, und eine Position wird gemeinsam mit Entry, TP-Staffel und zwingendem Stop persistiert. Teilgefüllte Entries werden bis zur maximal möglichen Entry-Menge geschützt; nach terminaler Füllung werden Stop und TPs exakt auf die reale Position skaliert. Der Reconciler gleicht Orders, Fills und Positionen mit der Exchange ab, passt den Stop an die Restmenge an und verschiebt ihn nur in Gewinnrichtung nach Break-even-/Trailing-Regel. Unbekannte Orderausgänge oder nicht vom System verwaltete Exchange-Exposure sperren neue Entries global.
 
 ## Versionsregeln
 

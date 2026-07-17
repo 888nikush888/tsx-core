@@ -3,6 +3,7 @@
   "include": ["src/**/*.ts"],
   "exclude": [
     "src/**/*.d.ts",
+    "src/trading_types.ts",
     "src/forwarder.ts",
     "src/*_cli.ts"
   ],

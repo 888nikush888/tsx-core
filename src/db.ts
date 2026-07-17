@@ -42,6 +42,9 @@ export interface OperationalRetentionResult {
   incomingMessages: number;
   signals: number;
   aiUsageDays: number;
+  tradingIntents: number;
+  tradingReconciliations: number;
+  paperOrders: number;
 }
 
 export interface DatabaseStorageStats {
@@ -838,8 +841,54 @@ function retentionResult(changes: Array<number | undefined>): OperationalRetenti
     incomingMessages: changes[0] || 0,
     signals: changes[1] || 0,
     completedOutbox: changes[2] || 0,
-    aiUsageDays: changes[3] || 0
+    aiUsageDays: changes[3] || 0,
+    tradingIntents: changes[4] || 0,
+    tradingReconciliations: changes[5] || 0,
+    paperOrders: changes[6] || 0
   };
+}
+
+async function pruneTradingData(database: Database, cutoff: number, batchSize: number): Promise<Array<number | undefined>> {
+  await database.exec(`
+    DROP TABLE IF EXISTS temp.retention_trade_intents;
+    CREATE TEMP TABLE retention_trade_intents (id TEXT PRIMARY KEY);
+  `);
+  await database.run(
+    `INSERT INTO retention_trade_intents (id)
+     SELECT id FROM trading_trade_intents
+     WHERE status IN ('completed', 'blocked', 'failed') AND updated_at < ?
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_risk_events AS risk
+         WHERE risk.intent_id = trading_trade_intents.id
+           AND risk.severity = 'critical' AND risk.acknowledged_at IS NULL
+       )
+     ORDER BY updated_at ASC LIMIT ?`,
+    [cutoff, batchSize]
+  );
+  await database.run('DELETE FROM trading_risk_events WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
+  await database.run(`DELETE FROM trading_fills WHERE order_id IN (
+    SELECT id FROM trading_orders WHERE intent_id IN (SELECT id FROM retention_trade_intents)
+  )`);
+  await database.run('DELETE FROM trading_orders WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
+  await database.run('DELETE FROM trading_positions WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
+  const intents = await database.run('DELETE FROM trading_trade_intents WHERE id IN (SELECT id FROM retention_trade_intents)');
+  const reconciliations = await database.run(
+    `DELETE FROM trading_reconciliation_runs WHERE id IN (
+       SELECT id FROM trading_reconciliation_runs
+       WHERE status = 'succeeded' AND completed_at < ?
+       ORDER BY completed_at ASC LIMIT ?
+     )`,
+    [cutoff, batchSize]
+  );
+  const paperOrders = await database.run(
+    `DELETE FROM trading_paper_orders WHERE exchange_order_id IN (
+       SELECT exchange_order_id FROM trading_paper_orders
+       WHERE status IN ('filled', 'cancelled', 'rejected') AND updated_at < ?
+       ORDER BY updated_at ASC LIMIT ?
+     )`,
+    [cutoff, batchSize]
+  );
+  return [intents.changes, reconciliations.changes, paperOrders.changes];
 }
 
 export async function pruneOperationalData(
@@ -860,6 +909,7 @@ export async function pruneOperationalData(
   const cutoffDay = new Date(cutoff).toISOString().slice(0, 10);
   await database.exec('BEGIN IMMEDIATE');
   try {
+    const tradingChanges = await pruneTradingData(database, cutoff, batchSize);
     const incoming = await database.run(
       `DELETE FROM incoming_messages WHERE id IN (
          SELECT id FROM incoming_messages
@@ -907,7 +957,8 @@ export async function pruneOperationalData(
       incoming.changes,
       signals.changes,
       completed.changes,
-      aiUsage.changes
+      aiUsage.changes,
+      ...tradingChanges
     ]);
   } catch (error) {
     await database.exec('ROLLBACK').catch(() => undefined);
