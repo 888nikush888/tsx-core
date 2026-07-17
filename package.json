@@ -6,6 +6,7 @@
   "main": "dist/forwarder.js",
   "scripts": {
     "build": "tsc && npm run build --prefix frontend",
+    "clean:artifacts": "node scripts/clean_artifacts.js",
     "start": "node dist/forwarder.js",
     "dev": "tsx src/forwarder.ts",
     "test:js": "node tests/run_all.js",
