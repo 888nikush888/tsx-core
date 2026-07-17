@@ -20,7 +20,7 @@ MAX_BODY_BYTES = 128 * 1024
 class Application:
     def __init__(self, secret_directory: str) -> None:
         self.credentials = CredentialStore(secret_directory)
-        self.token = load_token_with_retry(self.credentials)
+        load_token_with_retry(self.credentials)
         self.adapters = {
             "hyperliquid": HyperliquidAdapter(self.credentials),
             "bybit": BybitAdapter(self.credentials),
@@ -99,7 +99,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _authenticated(self) -> bool:
         authorization = self.headers.get("Authorization", "")
-        expected = f"Bearer {self.server.application.token}"  # type: ignore[attr-defined]
+        token = self.server.application.credentials.token()  # type: ignore[attr-defined]
+        expected = f"Bearer {token}"
         return hmac.compare_digest(authorization, expected)
 
     def _json(self, status: HTTPStatus, payload: Any) -> None:

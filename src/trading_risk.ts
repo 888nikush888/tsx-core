@@ -95,7 +95,7 @@ function positionQuantity(input: {
   return quantity;
 }
 
-function targetQuantities(quantity: string, allocations: string[], step: string): string[] {
+export function allocateTargetQuantities(quantity: string, allocations: string[], step: string): string[] {
   let allocated = '0';
   return allocations.map((allocation, index) => {
     if (index === allocations.length - 1) return subtractDecimal(quantity, allocated);
@@ -122,7 +122,7 @@ function plannedOrders(input: {
   const openingSide = input.signal.action === 'LONG' ? 'buy' : 'sell';
   const closingSide = openingSide === 'buy' ? 'sell' : 'buy';
   const entryType = input.strategy.entry.orderType === 'market' || input.signal.entry.type === 'market' ? 'market' : 'limit';
-  const targets = targetQuantities(
+  const targets = allocateTargetQuantities(
     input.quantity,
     input.strategy.exits.targetAllocationsPercent,
     input.market.quantityStep,
@@ -202,6 +202,11 @@ export function createTradingPlan(input: {
     notional,
     riskAmount,
     leverage,
+    entryTimeoutSeconds: input.strategy.entry.timeoutSeconds,
+    entryOrderTtlSeconds: input.strategy.safety.entryOrderTtlSeconds,
+    maxSlippagePercent: input.strategy.safety.maxSlippagePercent,
+    quantityStep: input.market.quantityStep,
+    targetAllocationsPercent: [...input.strategy.exits.targetAllocationsPercent],
     orders: plannedOrders({ ...input, entry: price, quantity }),
     createdAt: input.now ?? Date.now(),
   };

@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -14,6 +15,7 @@ from bybit_adapter import BybitAdapter
 from common import ExchangeContractError, decimal_string, map_bybit_status
 from credentials import CredentialError, CredentialStore
 from hyperliquid_adapter import HyperliquidAdapter
+from server import Handler
 
 
 class ContractTests(unittest.TestCase):
@@ -50,6 +52,20 @@ class ContractTests(unittest.TestCase):
             self.assertEqual(store.account(account_id, "bybit")["apiKey"], "bybit-key-123")
             with self.assertRaises(CredentialError):
                 store.account(account_id, "hyperliquid")
+
+    def test_executor_authentication_accepts_factory_reset_token_rotation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "trading").mkdir()
+            token_file = root / "exchange_executor_token"
+            token_file.write_text("a" * 64 + "\n", encoding="utf-8")
+            handler = Handler.__new__(Handler)
+            handler.server = SimpleNamespace(application=SimpleNamespace(credentials=CredentialStore(directory)))
+            handler.headers = {"Authorization": f"Bearer {'a' * 64}"}
+            self.assertTrue(handler._authenticated())
+            token_file.write_text("b" * 64 + "\n", encoding="utf-8")
+            handler.headers = {"Authorization": f"Bearer {'b' * 64}"}
+            self.assertTrue(handler._authenticated(), "The sidecar must accept the rotated token without restart.")
 
     def test_hyperliquid_official_response_mapping(self) -> None:
         resting = HyperliquidAdapter._order_result(
@@ -89,6 +105,23 @@ class BybitMappingTests(unittest.TestCase):
         self.assertEqual(snapshot["markPrice"], "100.5")
         self.assertEqual(snapshot["quantityStep"], "0.001")
         self.assertEqual(snapshot["maxLeverage"], 50)
+
+    def test_open_state_pagination_is_bounded_and_complete(self) -> None:
+        calls: list[str | None] = []
+
+        def page(**kwargs):
+            calls.append(kwargs.get("cursor"))
+            return {
+                "retCode": 0,
+                "result": {
+                    "list": [{"id": len(calls)}],
+                    "nextPageCursor": "next" if len(calls) == 1 else "",
+                },
+            }
+
+        values = BybitAdapter._all_pages(page, "test pages", category="linear", limit=50)
+        self.assertEqual(values, [{"id": 1}, {"id": 2}])
+        self.assertEqual(calls, [None, "next"])
 
 
 if __name__ == "__main__":

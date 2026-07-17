@@ -69,6 +69,9 @@ async function run() {
   const invalidStopPolicy = configuration();
   invalidStopPolicy.safety.requireProtectiveStop = false;
   assert.throws(() => validateStrategyConfiguration(invalidStopPolicy), /mandatory/);
+  const invalidRemainderPolicy = configuration();
+  invalidRemainderPolicy.exits.closeRemainderAtLastTarget = false;
+  assert.throws(() => validateStrategyConfiguration(invalidRemainderPolicy), /full remainder.*mandatory/);
 
   const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-core-'));
   try {

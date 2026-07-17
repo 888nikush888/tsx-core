@@ -181,8 +181,20 @@ export class TradingWebControl {
   async setAccountEnabled(id: unknown, enabledValue: unknown): Promise<TradingAccount> {
     const account = await this.requiredAccount(id);
     const enabled = boolean(enabledValue, 'Account enabled state');
+    if (enabled && account.status === 'disabled') return this.verifyAccount(account.id, true);
     if (enabled && account.status !== 'ready') throw new Error('Only a successfully verified account can be enabled.');
-    if (!enabled) await this.engine.cancelOpenEntries(account.id);
+    if (!enabled) {
+      await this.engine.cancelOpenEntries(account.id);
+      await this.engine.reconcileAccount(account.id);
+      const managed = await getDatabase().get<{ count: number }>(
+        `SELECT COUNT(*) AS count FROM trading_positions
+         WHERE account_id = ? AND status IN ('opening', 'open', 'closing', 'emergency')`,
+        [account.id],
+      );
+      if (Number(managed?.count || 0) > 0) {
+        throw new Error('Account cannot be disabled while it owns a managed position. Disable its routes or emergency-flatten first.');
+      }
+    }
     return updateTradingAccountState(account.id, {
       status: enabled ? 'ready' : 'disabled',
       enabled,

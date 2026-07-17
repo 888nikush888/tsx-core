@@ -62,7 +62,7 @@ export interface StrategyConfiguration {
     targetAllocationsPercent: string[];
     moveStopToBreakEvenAfterTarget: number | null;
     trailingStopPercent: string | null;
-    closeRemainderAtLastTarget: boolean;
+    closeRemainderAtLastTarget: true;
   };
   safety: {
     maxConcurrentPositions: number;
@@ -175,6 +175,11 @@ export interface TradingPlan {
   notional: string;
   riskAmount: string;
   leverage: number;
+  entryTimeoutSeconds: number;
+  entryOrderTtlSeconds: number;
+  maxSlippagePercent: string;
+  quantityStep: string;
+  targetAllocationsPercent: string[];
   orders: PlannedOrder[];
   createdAt: number;
 }
@@ -183,6 +188,7 @@ export interface ExchangeOrderRequest extends PlannedOrder {
   accountId: string;
   symbol: string;
   leverage: number;
+  timeoutSeconds: number;
 }
 
 export interface ExchangeOrderResult {

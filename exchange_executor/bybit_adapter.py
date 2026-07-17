@@ -132,21 +132,39 @@ class BybitAdapter:
 
     def open_state(self, account: dict[str, str]) -> dict[str, Any]:
         client = self._client(account)
-        open_orders = response_list(client.get_open_orders(category="linear", settleCoin="USDT", limit=50), "Bybit open orders")
-        history = response_list(client.get_order_history(category="linear", settleCoin="USDT", limit=50), "Bybit order history")
+        open_orders = self._all_pages(client.get_open_orders, "Bybit open orders", category="linear", settleCoin="USDT", limit=50)
+        history = self._all_pages(client.get_order_history, "Bybit order history", category="linear", settleCoin="USDT", limit=50)
         orders_by_id = {
             str(order.get("orderLinkId") or f"orderId:{order.get('orderId')}"): order
             for order in [*history, *open_orders]
             if order.get("orderLinkId") or order.get("orderId")
         }
-        executions = response_list(client.get_executions(category="linear", limit=100), "Bybit executions")
-        positions = response_list(client.get_positions(category="linear", settleCoin="USDT", limit=200), "Bybit positions")
+        executions = self._all_pages(client.get_executions, "Bybit executions", category="linear", limit=100)
+        positions = self._all_pages(client.get_positions, "Bybit positions", category="linear", settleCoin="USDT", limit=200)
         return {
             "orders": [self._order_snapshot(order) for order in orders_by_id.values()],
             "positions": [self._position(position) for position in positions if DecimalValue(position.get("size")) > 0],
             "fills": [self._fill(execution) for execution in executions if execution.get("orderLinkId")],
             "observedAt": int(time.time() * 1000),
         }
+
+    @staticmethod
+    def _all_pages(method: Any, label: str, **arguments: Any) -> list[dict[str, Any]]:
+        values: list[dict[str, Any]] = []
+        cursor: str | None = None
+        seen: set[str] = set()
+        for _ in range(20):
+            response = method(**arguments, **({"cursor": cursor} if cursor else {}))
+            values.extend(response_list(response, label))
+            result = response.get("result", {})
+            next_cursor = result.get("nextPageCursor") if isinstance(result, dict) else None
+            if not next_cursor:
+                return values
+            cursor = str(next_cursor)
+            if cursor in seen:
+                raise ExchangeContractError(f"{label} returned a repeated pagination cursor.")
+            seen.add(cursor)
+        raise ExchangeContractError(f"{label} exceeded the bounded pagination limit.")
 
     @staticmethod
     def _result(request: dict[str, Any], order_id: str, status: str, filled: str, average: str | None, error: str | None, raw: Any) -> dict[str, Any]:

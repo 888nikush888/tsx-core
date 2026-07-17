@@ -128,12 +128,14 @@ function validateExits(input: unknown): StrategyConfiguration['exits'] {
   const trailingStop = value.trailingStopPercent === null
     ? null
     : decimal(value.trailingStopPercent, { positive: true, max: '20' });
-  if (typeof value.closeRemainderAtLastTarget !== 'boolean') throw new Error('exits.closeRemainderAtLastTarget must be boolean.');
+  if (value.closeRemainderAtLastTarget !== true) {
+    throw new Error('Closing the full remainder at the last target is mandatory.');
+  }
   return {
     targetAllocationsPercent: allocations,
     moveStopToBreakEvenAfterTarget: breakEvenTarget,
     trailingStopPercent: trailingStop,
-    closeRemainderAtLastTarget: value.closeRemainderAtLastTarget,
+    closeRemainderAtLastTarget: true,
   };
 }
 

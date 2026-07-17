@@ -49,16 +49,15 @@ export class TradingRuntime {
       try {
         await this.engine.reconcileAccount(account.id);
       } catch (error: any) {
-        if (startup) {
-          await updateTradingRuntimeState({
-            executionEnabled: false,
-            killSwitchActive: true,
-            killSwitchReason: `Startup reconciliation failed for account ${account.id}`,
-          });
-        }
+        await updateTradingRuntimeState({
+          executionEnabled: false,
+          killSwitchActive: true,
+          killSwitchReason: `${startup ? 'Startup' : 'Periodic'} reconciliation failed for account ${account.id}`,
+        });
         throw error;
       }
     }
+    await this.engine.cancelExpiredEntries();
     const intents = await getDatabase().all<Array<{ id: string }>>(
       `SELECT id FROM trading_trade_intents WHERE status = 'pending' ORDER BY created_at LIMIT 100`,
     );

@@ -65,7 +65,16 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
   }
 
   async submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult> {
-    return assertOrderResult(await this.post('/v1/submit-order', { account: accountPayload(account), request }));
+    const timeoutSeconds = Number.isSafeInteger(request.timeoutSeconds)
+      && request.timeoutSeconds >= 2
+      && request.timeoutSeconds <= 30
+      ? request.timeoutSeconds
+      : 12;
+    return assertOrderResult(await this.post(
+      '/v1/submit-order',
+      { account: accountPayload(account), request },
+      timeoutSeconds * 1_000,
+    ));
   }
 
   async cancelOrder(account: TradingAccount, clientOrderId: string): Promise<ExchangeOrderResult> {
@@ -100,7 +109,7 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
     return state as ExchangeOpenState;
   }
 
-  private async post(endpoint: string, payload: unknown): Promise<unknown> {
+  private async post(endpoint: string, payload: unknown, timeoutMs = 12_000): Promise<unknown> {
     const token = await this.credentials.getOrCreateExecutorToken();
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
@@ -109,7 +118,7 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     const body = await response.json().catch(() => ({})) as ExecutorErrorPayload;
     if (!response.ok) throw new Error(`Exchange executor request failed (${response.status}): ${body.error || 'invalid response'}`);
