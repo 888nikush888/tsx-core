@@ -10,6 +10,7 @@ import {
   Settings,
   Inbox,
   Database,
+  ChartCandlestick,
   type LucideIcon,
 } from "lucide-react"
 
@@ -118,12 +119,14 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
 
   const searchItems: SearchItem[] = [
     { title: "Dashboard", url: "/dashboard", group: "Apps", icon: LayoutDashboard },
-    { title: "Nachrichten-Verlauf", url: "/dashboard?tab=messages", group: "Apps", icon: Inbox },
-    { title: "Signale-Datenbank", url: "/dashboard?tab=signals", group: "Apps", icon: Database },
-    { title: "Kanalverwaltung", url: "/dashboard?tab=channels", group: "Konfiguration", icon: Settings },
-    { title: "Optionen", url: "/dashboard?tab=options", group: "Konfiguration", icon: Settings },
-    { title: "Filter & Regex", url: "/dashboard?tab=filters", group: "Konfiguration", icon: Settings },
-    { title: "KI-Parser", url: "/dashboard?tab=parser", group: "Konfiguration", icon: Settings },
+    { title: "Signal Control Center", url: "/dashboard?tab=signals", group: "Apps", icon: Database },
+    { title: "Nachrichten-Verlauf", url: "/dashboard?tab=signals&workspace=messages", group: "Signale", icon: Inbox },
+    { title: "Signale-Datenbank", url: "/dashboard?tab=signals&workspace=signals", group: "Signale", icon: Database },
+    { title: "Kanalverwaltung", url: "/dashboard?tab=signals&workspace=channels", group: "Signale", icon: Settings },
+    { title: "Verarbeitung", url: "/dashboard?tab=signals&workspace=processing", group: "Signale", icon: Settings },
+    { title: "Filter & Regex", url: "/dashboard?tab=signals&workspace=filters", group: "Signale", icon: Settings },
+    { title: "KI-Parser", url: "/dashboard?tab=signals&workspace=parser", group: "Signale", icon: Settings },
+    { title: "Trading Control Center", url: "/dashboard?tab=trading", group: "Apps", icon: ChartCandlestick },
     { title: "System Logs", url: "/dashboard?tab=logs", group: "System", icon: Settings },
     { title: "System & Backup", url: "/dashboard?tab=system", group: "System", icon: Shield },
   ]

@@ -3,13 +3,8 @@
 import * as React from "react"
 import {
   LayoutDashboard,
-  Settings,
-  Filter,
-  BrainCircuit,
   TerminalSquare,
-  ListTree,
   Shield,
-  MessageSquare,
   FileCode,
   ChartCandlestick
 } from "lucide-react"
@@ -37,12 +32,7 @@ const data = {
           icon: LayoutDashboard,
         },
         {
-          title: "Nachrichten-Verlauf",
-          url: "/dashboard?tab=messages",
-          icon: MessageSquare,
-        },
-        {
-          title: "Signale-Datenbank",
+          title: "Signale & Nachrichten",
           url: "/dashboard?tab=signals",
           icon: FileCode,
         },
@@ -50,26 +40,6 @@ const data = {
           title: "Trading",
           url: "/dashboard?tab=trading",
           icon: ChartCandlestick,
-        },
-        {
-          title: "Kanalverwaltung",
-          url: "/dashboard?tab=channels",
-          icon: ListTree,
-        },
-        {
-          title: "Optionen",
-          url: "/dashboard?tab=options",
-          icon: Settings,
-        },
-        {
-          title: "Filter & Regex",
-          url: "/dashboard?tab=filters",
-          icon: Filter,
-        },
-        {
-          title: "KI-Parser",
-          url: "/dashboard?tab=parser",
-          icon: BrainCircuit,
         },
         {
           title: "Logs",

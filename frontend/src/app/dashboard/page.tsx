@@ -4,16 +4,11 @@ import { ChartAreaInteractive } from "./components/chart-area-interactive"
 import { SectionCards } from "./components/section-cards"
 import { useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Play, Square, Save } from "lucide-react"
+import { Play, Square } from "lucide-react"
 
-import { ChannelsTab } from "./components/channels-tab"
-import { OptionsTab } from "./components/options-tab"
-import { FiltersTab } from "./components/filters-tab"
-import { ParserTab } from "./components/parser-tab"
 import { LogsTab } from "./components/logs-tab"
 import { SystemTab } from "./components/system-tab"
-import { MessagesTab } from "./components/messages-tab"
-import { SignalsTab } from "./components/signals-tab"
+import { normalizeSignalWorkspace, SignalCenterTab, type SignalWorkspace } from "./components/signal-center-tab"
 import { TradingTab } from "./components/trading-tab"
 import { apiFetch } from "@/lib/api"
 
@@ -36,6 +31,14 @@ type TelegramLoginState = {
 }
 
 const MISSING_SECRET: SecretState = { configured: false, editable: true, source: 'missing' }
+const SIGNAL_CENTER_TABS = new Set(["signals", "messages", "channels", "options", "filters", "parser"])
+const LEGACY_SIGNAL_WORKSPACES: Record<string, SignalWorkspace> = {
+  messages: "messages",
+  channels: "channels",
+  options: "processing",
+  filters: "filters",
+  parser: "parser",
+}
 
 export default function Page() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -63,6 +66,18 @@ export default function Page() {
   const [telegramLogin, setTelegramLogin] = useState<TelegramLoginState>({ state: 'idle' })
   const [isSaving, setIsSaving] = useState(false)
   const [metricsHistory, setMetricsHistory] = useState<any[]>([])
+  const isSignalCenter = SIGNAL_CENTER_TABS.has(tab)
+  const signalWorkspace = normalizeSignalWorkspace(
+    tab === "signals" ? searchParams.get("workspace") : LEGACY_SIGNAL_WORKSPACES[tab],
+  )
+
+  const selectSignalWorkspace = (workspace: SignalWorkspace) => {
+    const next = new URLSearchParams(searchParams)
+    next.set("tab", "signals")
+    if (workspace === "overview") next.delete("workspace")
+    else next.set("workspace", workspace)
+    setSearchParams(next)
+  }
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -222,7 +237,6 @@ export default function Page() {
     }
   }
 
-  const isConfigTab = ["channels", "options", "filters", "parser"].includes(tab)
   const setupSteps = [
     { label: "Telegram API ID and API hash", complete: Boolean(config?.apiId > 0 && secretStatus.telegramApiHash.configured) },
     { label: "At least one source and a target channel", complete: Boolean(config?.sourceChannels?.length > 0 && config?.targetChannel) },
@@ -286,60 +300,36 @@ export default function Page() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">
-              {tab === "channels" && "Kanalverwaltung"}
-              {tab === "options" && "Optionen"}
-              {tab === "filters" && "Filter & Reguläre Ausdrücke"}
-              {tab === "parser" && "KI-Parser (OpenAI)"}
+              {isSignalCenter && "Signal Control Center"}
               {tab === "logs" && "System Logs"}
               {tab === "system" && "System & Backup"}
-              {tab === "messages" && "Nachrichten-Verlauf"}
-              {tab === "signals" && "Signale-Datenbank"}
               {tab === "trading" && "Trading Control Center"}
             </h2>
             <p className="text-muted-foreground mt-1">
-              {tab === "channels" && "Manage your Telegram API credentials and channel routing."}
-              {tab === "options" && "Configure how messages are copied and forwarded."}
-              {tab === "filters" && "Set up strict keyword and regex matching rules."}
-              {tab === "parser" && "Instruct the AI to parse unstructured text into XML."}
+              {isSignalCenter && "Nachrichten, extrahierte Signale, Kanäle, Verarbeitung, Filter und KI-Parser an einem Ort."}
               {tab === "logs" && "Live terminal output from the backend daemon."}
               {tab === "system" && "Export data and reset the application."}
-              {tab === "messages" && "Review history of intercepted incoming messages."}
-              {tab === "signals" && "Browse successfully extracted signals in database."}
               {tab === "trading" && "Strategien, Kanal-Routing, Börsenkonten, Positionen und Risikosteuerung an einem Ort."}
             </p>
           </div>
-          
-          {isConfigTab && (
-            <Button onClick={saveConfig} disabled={isSaving} size="lg" className="w-full md:w-auto">
-              <Save className="mr-2 h-4 w-4" />
-              {isSaving ? "Saving..." : "Save Configuration"}
-            </Button>
-          )}
         </div>
 
-        <div className={`pb-10 mx-auto md:mx-0 w-full ${tab === "logs" || tab === "messages" || tab === "signals" || tab === "trading" ? "max-w-none" : "max-w-5xl"}`}>
-          {tab === "channels" && <ChannelsTab
+        <div className={`pb-10 mx-auto md:mx-0 w-full ${tab === "logs" || isSignalCenter || tab === "trading" ? "max-w-none" : "max-w-5xl"}`}>
+          {isSignalCenter && <SignalCenterTab
             config={config}
             setConfig={setConfig}
-            secretStatus={secretStatus.telegramApiHash}
-            secretValue={secretDraft.telegramApiHash}
-            setSecretValue={(value: string) => setSecretDraft((current) => ({ ...current, telegramApiHash: value }))}
+            secretStatus={secretStatus}
+            secretDraft={secretDraft}
+            setSecretDraft={setSecretDraft}
             telegramLogin={telegramLogin}
             setTelegramLogin={setTelegramLogin}
-          />}
-          {tab === "options" && <OptionsTab config={config} setConfig={setConfig} />}
-          {tab === "filters" && <FiltersTab config={config} setConfig={setConfig} />}
-          {tab === "parser" && <ParserTab
-            config={config}
-            setConfig={setConfig}
-            secretStatus={secretStatus.openRouterApiKey}
-            secretValue={secretDraft.openRouterApiKey}
-            setSecretValue={(value: string) => setSecretDraft((current) => ({ ...current, openRouterApiKey: value }))}
+            workspace={signalWorkspace}
+            onWorkspaceChange={selectSignalWorkspace}
+            onSave={saveConfig}
+            isSaving={isSaving}
           />}
           {tab === "logs" && <LogsTab config={config} />}
           {tab === "system" && <SystemTab config={config} secretStatus={secretStatus} onSecretStatusChange={setSecretStatus} />}
-          {tab === "messages" && <MessagesTab />}
-          {tab === "signals" && <SignalsTab config={config} />}
           {tab === "trading" && <TradingTab config={config} />}
         </div>
       </div>
