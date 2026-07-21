@@ -11,7 +11,7 @@ import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import { TradingWebControl } from '../src/trading_web_control.js';
 
 class FakeOfficialAdapter {
-  constructor(exchange) { this.exchange = exchange; }
+  constructor(exchange) { this.exchange = exchange; this.snapshotCalls = 0; }
   remote = { orders: [], positions: [], fills: [], observedAt: Date.now() };
   verified = true;
   verificationError = null;
@@ -19,7 +19,10 @@ class FakeOfficialAdapter {
     if (this.verificationError) throw this.verificationError;
     return { verified: this.verified, equity: '1000' };
   }
-  async accountSnapshot() { return { equity: '1000', availableBalance: '1000' }; }
+  async accountSnapshot() {
+    this.snapshotCalls += 1;
+    return { equity: '1000', availableBalance: '900', unrealizedPnl: '25', marginUsed: '100' };
+  }
   async marketSnapshot(_account, symbol) {
     return { symbol, markPrice: '100', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now() };
   }
@@ -42,8 +45,15 @@ try {
 
   const initial = await control.snapshot();
   assert.equal(initial.accounts.length, 1);
+  assert.equal(initial.analytics.accounts.length, 1);
   assert.equal('credentialRef' in initial.accounts[0], false, 'Credential references must not reach the browser.');
   assert.equal(initial.confirmations.live, 'ENABLE LIVE TRADING');
+  const initialPortfolio = await control.portfolioSnapshot(true);
+  assert.equal(initialPortfolio.cached, false);
+  assert.deepEqual(initialPortfolio.accounts.map(account => account.exchange), ['paper']);
+  assert.equal(initialPortfolio.accounts[0].reportingCurrency, 'QUOTE');
+  assert.equal(initialPortfolio.accounts[0].equity, '10000');
+  assert.equal((await control.portfolioSnapshot()).cached, true);
   assert.throws(() => control.createStrategy({
     name: '', configuration: structuredClone(DEFAULT_STRATEGY_CONFIGURATION),
   }), /Strategy name is invalid/);
@@ -115,6 +125,21 @@ try {
     name: 'Bybit Live', exchange: 'bybit', mode: 'live',
     credentials: { apiKey: 'official-api-key', apiSecret: 'official-api-secret' },
   });
+  const livePortfolio = await control.portfolioSnapshot(true);
+  const liveSnapshot = livePortfolio.accounts.find(account => account.accountId === live.id);
+  assert.deepEqual(liveSnapshot && {
+    reportingCurrency: liveSnapshot.reportingCurrency,
+    equity: liveSnapshot.equity,
+    availableBalance: liveSnapshot.availableBalance,
+    unrealizedPnl: liveSnapshot.unrealizedPnl,
+    marginUsed: liveSnapshot.marginUsed,
+    error: liveSnapshot.error,
+  }, { reportingCurrency: 'USD', equity: '1000', availableBalance: '900', unrealizedPnl: '25', marginUsed: '100', error: null });
+  const callsAfterLiveRefresh = bybit.snapshotCalls;
+  assert.equal((await control.portfolioSnapshot()).cached, true);
+  assert.equal(bybit.snapshotCalls, callsAfterLiveRefresh, 'Cached dashboard refresh must not call the exchange again.');
+  await control.portfolioSnapshot(true);
+  assert.equal(bybit.snapshotCalls, callsAfterLiveRefresh + 1, 'Forced dashboard refresh must call the official adapter.');
   await assert.rejects(control.configurePaper({ accountId: live.id }), /requires a paper account/);
   await assert.rejects(control.setAccountEnabled(live.id, 'yes'), /must be boolean/);
   await control.replaceAccountCredentials({

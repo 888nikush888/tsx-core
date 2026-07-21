@@ -5,7 +5,7 @@ from typing import Any
 
 from pybit.unified_trading import HTTP
 
-from common import ExchangeContractError, decimal_string, map_bybit_status, response_list
+from common import ExchangeContractError, decimal_string, map_bybit_status, response_list, signed_decimal_string
 from credentials import CredentialStore
 
 
@@ -35,6 +35,8 @@ class BybitAdapter:
         return {
             "equity": decimal_string(values[0].get("totalEquity"), "totalEquity", positive=True),
             "availableBalance": decimal_string(values[0].get("totalAvailableBalance"), "totalAvailableBalance"),
+            "unrealizedPnl": signed_decimal_string(values[0].get("totalPerpUPL", "0"), "totalPerpUPL"),
+            "marginUsed": decimal_string(values[0].get("totalInitialMargin", "0"), "totalInitialMargin"),
         }
 
     def market_snapshot(self, account: dict[str, str], symbol: str) -> dict[str, Any]:

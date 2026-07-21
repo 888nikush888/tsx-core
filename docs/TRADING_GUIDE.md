@@ -85,6 +85,11 @@ Eine Teilfüllung wird sofort mit einem reduce-only Stop bis zur maximal noch m�
 
 ## 7. Dashboard und Notfall
 
+- **Executive Dashboard:** Der Portfolio-Filter zeigt alle Konten nominal zusammen, eine einzelne Börse oder ein einzelnes Konto. Paper, Hyperliquid Testnet/Mainnet und Bybit Testnet/Mainnet bleiben in der Account-Matrix getrennt erkennbar.
+- **Zeiträume:** `24h`, `7 Tage`, `30 Tage` und `Gesamt` steuern PnL, Trades, Win Rate, Profit Factor, Volumen, Fills, Gebühren, Intents und Risk Events. Alle vier PnL-Zeiträume bleiben gleichzeitig sichtbar.
+- **Datenherkunft:** Equity, verfügbarer Saldo, Margin und unrealisierter PnL kommen über die offiziellen Exchange-SDKs. Realisierter PnL und historische Kennzahlen kommen aus den vom System persistierten Managed Trades; externe/manuelle Trades werden nicht fälschlich als Managed Performance ausgegeben.
+- **Aktualisierung:** Das Dashboard lädt lokale Statistiken alle zehn Sekunden. Exchange-Snapshots werden 60 Sekunden gecacht; **Alles aktualisieren** erzwingt sofort eine neue Abfrage aller angebundenen Konten und zeigt Teilfehler je Konto an.
+- **Nominale Gesamtsicht:** Die gemeinsame Equity addiert Bybit-USD, Hyperliquid-USDC und Paper-Quote nominal. Sie ist keine FX-Bewertung und garantiert keine Stablecoin-Parität; für belastbare Bewertung immer zusätzlich den Konto-Drill-down verwenden.
 - **Betrieb:** offene Positionen, aktive Routen, laufende Intents, Unknown Orders und letzter Abgleich.
 - **Trades & Risiko:** Positionen mit Ursprungskanal/Strategie, Orderrollen, Fillmengen, Risk Events und Reconciliation-Runs.
 - Prometheus: `tg_forwarder_trading_*`. Unknown Orders, ungeschützte Positionen, Kill-Switch oder >30 Sekunden alter Abgleich bei aktiver Execution machen `/readyz` rot und lösen kritische Alerts aus.

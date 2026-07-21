@@ -1292,6 +1292,57 @@ export async function getProcessedSignals(limit = 100): Promise<any[]> {
   );
 }
 
+export type DashboardAnalyticsWindow = '24h' | '7d' | '30d' | 'all';
+
+export interface SignalWindowAnalytics {
+  messages: number;
+  processed: number;
+  filtered: number;
+  duplicates: number;
+  failed: number;
+  signals: number;
+}
+
+export async function getSignalDashboardAnalytics(now = Date.now()): Promise<{
+  generatedAt: number;
+  windows: Record<DashboardAnalyticsWindow, SignalWindowAnalytics>;
+}> {
+  if (!Number.isSafeInteger(now) || now <= 0) throw new Error('Dashboard analytics timestamp is invalid.');
+  const definitions: Array<[DashboardAnalyticsWindow, number | null]> = [
+    ['24h', now - 24 * 60 * 60 * 1_000],
+    ['7d', now - 7 * 24 * 60 * 60 * 1_000],
+    ['30d', now - 30 * 24 * 60 * 60 * 1_000],
+    ['all', null],
+  ];
+  const database = getDb();
+  const values = await Promise.all(definitions.map(async ([window, since]) => {
+    const filter = since === null ? '' : ' WHERE created_at >= ?';
+    const parameters = since === null ? [] : [since];
+    const [messageRows, signalRow] = await Promise.all([
+      database.all<Array<{ status: string | null; count: number }>>(
+        `SELECT status, COUNT(*) AS count FROM incoming_messages${filter} GROUP BY status`, parameters),
+      database.get<{ count: number }>(`SELECT COUNT(*) AS count FROM signals${filter}`, parameters),
+    ]);
+    const result: SignalWindowAnalytics = {
+      messages: 0, processed: 0, filtered: 0, duplicates: 0, failed: 0,
+      signals: Number(signalRow?.count || 0),
+    };
+    for (const row of messageRows) {
+      const count = Number(row.count || 0);
+      result.messages += count;
+      if (row.status === 'processed') result.processed += count;
+      else if (row.status === 'filtered') result.filtered += count;
+      else if (row.status === 'duplicate') result.duplicates += count;
+      else if (row.status === 'failed') result.failed += count;
+    }
+    return [window, result] as const;
+  }));
+  return {
+    generatedAt: now,
+    windows: Object.fromEntries(values) as Record<DashboardAnalyticsWindow, SignalWindowAnalytics>,
+  };
+}
+
 export async function clearDb(): Promise<void> {
   const database = getDb();
   await database.exec(`

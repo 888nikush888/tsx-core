@@ -25,6 +25,7 @@ const allTests = [
   'test_backup_replication.js',
   'test_retention.js',
   'test_metrics.js',
+  'test_dashboard_analytics.js',
   'test_slo_tracker.js',
   'test_audit_trail.js',
   'test_audit_cli.js',

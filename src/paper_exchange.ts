@@ -258,6 +258,8 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     return {
       equity: decimal(row.equity, { positive: true }),
       availableBalance: decimal(row.available_balance),
+      unrealizedPnl: '0',
+      marginUsed: subtractDecimal(decimal(row.equity), decimal(row.available_balance)),
     };
   }
 

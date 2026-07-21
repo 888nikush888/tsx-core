@@ -10,7 +10,7 @@ from hyperliquid.info import Info
 from hyperliquid.utils import constants
 from hyperliquid.utils.types import Cloid
 
-from common import ExchangeContractError, decimal_string
+from common import ExchangeContractError, decimal_string, signed_decimal_string
 from credentials import CredentialStore
 
 
@@ -41,9 +41,15 @@ class HyperliquidAdapter:
         info, _, address = self._clients(account)
         state = info.user_state(address)
         summary = state.get("marginSummary", {})
+        unrealized_pnl = sum(
+            (Decimal(str(item.get("position", {}).get("unrealizedPnl", "0"))) for item in state.get("assetPositions", [])),
+            Decimal("0"),
+        )
         return {
             "equity": decimal_string(summary.get("accountValue"), "accountValue", positive=True),
             "availableBalance": decimal_string(state.get("withdrawable", "0"), "withdrawable"),
+            "unrealizedPnl": signed_decimal_string(str(unrealized_pnl), "unrealizedPnl"),
+            "marginUsed": decimal_string(summary.get("totalMarginUsed", "0"), "totalMarginUsed"),
         }
 
     def market_snapshot(self, account: dict[str, str], symbol: str) -> dict[str, Any]:

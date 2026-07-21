@@ -8,6 +8,7 @@ import { addLog, getLogHistory } from './logger.js';
 import {
   getIncomingMessages,
   getProcessedSignals,
+  getSignalDashboardAnalytics,
   clearDb,
   deleteIncomingMessage,
   deleteProcessedSignal,
@@ -460,6 +461,14 @@ async function incomingMessagesHandler(context: RequestContext): Promise<void> {
 async function processedSignalsHandler(context: RequestContext): Promise<void> {
   try {
     sendJson(context.res, 200, { signals: await getProcessedSignals(100) });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function dashboardAnalyticsHandler(context: RequestContext): Promise<void> {
+  try {
+    sendJson(context.res, 200, { analytics: await getSignalDashboardAnalytics() });
   } catch (error) {
     sendError(context, error);
   }
@@ -1067,6 +1076,15 @@ async function tradingSnapshotHandler(context: RequestContext): Promise<void> {
   }
 }
 
+async function tradingPortfolioHandler(context: RequestContext): Promise<void> {
+  try {
+    const refresh = context.parsedUrl.searchParams.get('refresh') === 'true';
+    sendJson(context.res, 200, await requireTradingControl(context).portfolioSnapshot(refresh));
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
 async function tradingMutation(
   context: RequestContext,
   operation: (control: TradingWebControl, payload: any) => Promise<unknown> | unknown,
@@ -1122,6 +1140,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/metrics-history', metricsHistoryHandler],
   ['GET /api/incoming-messages', incomingMessagesHandler],
   ['GET /api/processed-signals', processedSignalsHandler],
+  ['GET /api/dashboard-analytics', dashboardAnalyticsHandler],
   ['GET /api/outbox', outboxHandler],
   ['POST /api/outbox/retry', retryOutboxHandler],
   ['POST /api/outbox/acknowledge', acknowledgeOutboxHandler],
@@ -1154,6 +1173,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/backups/recover-offsite', recoverOffsiteBackupHandler],
   ['POST /api/backups/restore', restoreBackupHandler],
   ['GET /api/trading', tradingSnapshotHandler],
+  ['GET /api/trading/portfolio', tradingPortfolioHandler],
   ['POST /api/trading/strategies', createTradingStrategyHandler],
   ['POST /api/trading/strategies/update', updateTradingStrategyHandler],
   ['POST /api/trading/strategies/publish', publishTradingStrategyHandler],

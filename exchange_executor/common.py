@@ -24,6 +24,22 @@ def decimal_string(value: Any, label: str, *, positive: bool = False) -> str:
     return normalized or "0"
 
 
+def signed_decimal_string(value: Any, label: str) -> str:
+    if not isinstance(value, (str, int)) or isinstance(value, bool):
+        raise ExchangeContractError(f"{label} must be a plain decimal string.")
+    text = str(value)
+    if "e" in text.lower() or text.startswith("+"):
+        raise ExchangeContractError(f"{label} must be a plain decimal string.")
+    try:
+        number = Decimal(text)
+    except InvalidOperation as error:
+        raise ExchangeContractError(f"{label} is invalid.") from error
+    if not number.is_finite():
+        raise ExchangeContractError(f"{label} is outside the allowed range.")
+    normalized = format(number, "f").rstrip("0").rstrip(".") if "." in format(number, "f") else format(number, "f")
+    return normalized if normalized not in {"", "-0"} else "0"
+
+
 def account_request(payload: dict[str, Any]) -> dict[str, str]:
     account = payload.get("account")
     if not isinstance(account, dict):

@@ -10,6 +10,7 @@ import {
   deleteTradingAccount,
   deleteTradingRoute,
   getTradingAccount,
+  getTradingAnalytics,
   getTradingOverview,
   listTradingAccounts,
   listTradingActivity,
@@ -22,6 +23,7 @@ import {
   updateTradingRuntimeState,
   updateTradingStrategyDraft,
 } from './trading_repository.js';
+import { decimal, signedDecimal } from './trading_decimal.js';
 import type {
   ExchangeOpenState,
   StrategyConfiguration,
@@ -53,6 +55,7 @@ function boolean(value: unknown, label: string): boolean {
 
 export interface TradingWebSnapshot {
   overview: Awaited<ReturnType<typeof getTradingOverview>>;
+  analytics: Awaited<ReturnType<typeof getTradingAnalytics>>;
   strategies: Awaited<ReturnType<typeof listTradingStrategies>>;
   accounts: Array<Omit<TradingAccount, 'credentialRef'> & {
     credentials: Awaited<ReturnType<TradingCredentialStore['status']>>;
@@ -63,8 +66,32 @@ export interface TradingWebSnapshot {
   confirmations: { live: string; emergencyFlatten: string };
 }
 
+export interface TradingPortfolioAccountSnapshot {
+  accountId: string;
+  name: string;
+  exchange: TradingExchange;
+  mode: TradingAccountMode;
+  enabled: boolean;
+  status: string;
+  reportingCurrency: 'QUOTE' | 'USDC' | 'USD';
+  equity: string | null;
+  availableBalance: string | null;
+  unrealizedPnl: string | null;
+  marginUsed: string | null;
+  observedAt: number | null;
+  error: string | null;
+}
+
+export interface TradingPortfolioSnapshot {
+  accounts: TradingPortfolioAccountSnapshot[];
+  observedAt: number;
+  cached: boolean;
+}
+
 export class TradingWebControl {
   private readonly adapters = new Map<TradingExchange, VerifiableAdapter>();
+  private portfolioCache: { value: TradingPortfolioSnapshot; expiresAt: number } | null = null;
+  private portfolioRefresh: Promise<TradingPortfolioSnapshot> | null = null;
 
   constructor(
     private readonly credentials: TradingCredentialStore,
@@ -77,8 +104,9 @@ export class TradingWebControl {
   }
 
   async snapshot(): Promise<TradingWebSnapshot> {
-    const [overview, strategies, accounts, routes, intents, activity] = await Promise.all([
+    const [overview, analytics, strategies, accounts, routes, intents, activity] = await Promise.all([
       getTradingOverview(),
+      getTradingAnalytics(),
       listTradingStrategies(),
       listTradingAccounts(),
       listTradingRoutes(),
@@ -87,6 +115,7 @@ export class TradingWebControl {
     ]);
     return {
       overview,
+      analytics,
       strategies,
       accounts: await Promise.all(accounts.map(async ({ credentialRef: _credentialRef, ...account }) => ({
         ...account,
@@ -99,6 +128,65 @@ export class TradingWebControl {
       activity,
       confirmations: { live: LIVE_CONFIRMATION, emergencyFlatten: FLATTEN_CONFIRMATION },
     };
+  }
+
+  async portfolioSnapshot(forceRefresh = false): Promise<TradingPortfolioSnapshot> {
+    const now = Date.now();
+    if (!forceRefresh && this.portfolioCache && this.portfolioCache.expiresAt > now) {
+      return { ...this.portfolioCache.value, cached: true };
+    }
+    if (this.portfolioRefresh) return this.portfolioRefresh;
+    this.portfolioRefresh = this.collectPortfolioSnapshot();
+    try {
+      const value = await this.portfolioRefresh;
+      this.portfolioCache = { value, expiresAt: Date.now() + 60_000 };
+      return value;
+    } finally {
+      this.portfolioRefresh = null;
+    }
+  }
+
+  private async collectPortfolioSnapshot(): Promise<TradingPortfolioSnapshot> {
+    const accounts = await listTradingAccounts();
+    const observedAt = Date.now();
+    const snapshots = await Promise.all(accounts.map(async (account): Promise<TradingPortfolioAccountSnapshot> => {
+      const base = {
+        accountId: account.id,
+        name: account.name,
+        exchange: account.exchange,
+        mode: account.mode,
+        enabled: account.enabled,
+        status: account.status,
+        reportingCurrency: account.exchange === 'paper' ? 'QUOTE' as const
+          : account.exchange === 'hyperliquid' ? 'USDC' as const : 'USD' as const,
+      };
+      if (!['ready', 'disabled'].includes(account.status)) {
+        return { ...base, equity: null, availableBalance: null, unrealizedPnl: null, marginUsed: null, observedAt: null, error: 'Account is not verified.' };
+      }
+      try {
+        const snapshot = await this.requiredAdapter(account.exchange).accountSnapshot(account);
+        return {
+          ...base,
+          equity: decimal(snapshot.equity, { positive: true }),
+          availableBalance: decimal(snapshot.availableBalance),
+          unrealizedPnl: snapshot.unrealizedPnl ? signedDecimal(snapshot.unrealizedPnl) : '0',
+          marginUsed: snapshot.marginUsed ? decimal(snapshot.marginUsed) : '0',
+          observedAt: Date.now(),
+          error: null,
+        };
+      } catch (error: any) {
+        return {
+          ...base,
+          equity: null,
+          availableBalance: null,
+          unrealizedPnl: null,
+          marginUsed: null,
+          observedAt: null,
+          error: error?.message || String(error),
+        };
+      }
+    }));
+    return { accounts: snapshots, observedAt, cached: false };
   }
 
   createStrategy(payload: any) {

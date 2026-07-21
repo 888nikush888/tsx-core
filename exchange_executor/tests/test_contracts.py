@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from bybit_adapter import BybitAdapter
-from common import ExchangeContractError, decimal_string, map_bybit_status
+from common import ExchangeContractError, decimal_string, map_bybit_status, signed_decimal_string
 from credentials import CredentialError, CredentialStore
 from hyperliquid_adapter import HyperliquidAdapter
 from server import Handler
@@ -21,8 +21,12 @@ from server import Handler
 class ContractTests(unittest.TestCase):
     def test_plain_decimals_only(self) -> None:
         self.assertEqual(decimal_string("1.2300", "price", positive=True), "1.23")
+        self.assertEqual(signed_decimal_string("-12.3400", "pnl"), "-12.34")
+        self.assertEqual(signed_decimal_string("-0", "pnl"), "0")
         with self.assertRaises(ExchangeContractError):
             decimal_string("1e3", "price")
+        with self.assertRaises(ExchangeContractError):
+            signed_decimal_string("+1", "pnl")
         with self.assertRaises(ExchangeContractError):
             decimal_string("0", "price", positive=True)
 
@@ -83,6 +87,15 @@ class ContractTests(unittest.TestCase):
 
 
 class FakeBybitHttp:
+    def get_wallet_balance(self, **_kwargs):
+        return {
+            "retCode": 0,
+            "result": {"list": [{
+                "totalEquity": "1000.00", "totalAvailableBalance": "800",
+                "totalPerpUPL": "-12.5", "totalInitialMargin": "200",
+            }]},
+        }
+
     def get_instruments_info(self, **_kwargs):
         return {
             "retCode": 0,
@@ -98,6 +111,14 @@ class FakeBybitHttp:
 
 
 class BybitMappingTests(unittest.TestCase):
+    def test_account_snapshot_exposes_live_dashboard_finance(self) -> None:
+        adapter = BybitAdapter.__new__(BybitAdapter)
+        adapter._client = lambda _account: FakeBybitHttp()
+        self.assertEqual(adapter.account_snapshot({}), {
+            "equity": "1000", "availableBalance": "800",
+            "unrealizedPnl": "-12.5", "marginUsed": "200",
+        })
+
     def test_market_metadata_comes_from_official_contract(self) -> None:
         adapter = BybitAdapter.__new__(BybitAdapter)
         adapter._client = lambda _account: FakeBybitHttp()
@@ -122,6 +143,28 @@ class BybitMappingTests(unittest.TestCase):
         values = BybitAdapter._all_pages(page, "test pages", category="linear", limit=50)
         self.assertEqual(values, [{"id": 1}, {"id": 2}])
         self.assertEqual(calls, [None, "next"])
+
+
+class HyperliquidMappingTests(unittest.TestCase):
+    def test_account_snapshot_sums_official_position_upl(self) -> None:
+        class InfoStub:
+            @staticmethod
+            def user_state(_address):
+                return {
+                    "marginSummary": {"accountValue": "1500", "totalMarginUsed": "300"},
+                    "withdrawable": "1200",
+                    "assetPositions": [
+                        {"position": {"unrealizedPnl": "10.25"}},
+                        {"position": {"unrealizedPnl": "-4.75"}},
+                    ],
+                }
+
+        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
+        adapter._clients = lambda _account: (InfoStub(), object(), "0xwallet")
+        self.assertEqual(adapter.account_snapshot({}), {
+            "equity": "1500", "availableBalance": "1200",
+            "unrealizedPnl": "5.5", "marginUsed": "300",
+        })
 
 
 if __name__ == "__main__":

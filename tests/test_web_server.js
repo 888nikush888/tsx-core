@@ -67,7 +67,7 @@ async function testAuthenticationAndReads(baseUrl) {
   assert.strictEqual(publicConfig.nested.OPENROUTER_API_KEY, undefined, 'Nested secrets must be redacted');
   assert.strictEqual(publicConfig.nested.AUDIT_WEBHOOK_TOKEN, undefined, 'Audit credentials must be redacted');
   assert.strictEqual(publicConfig.nested.backupEncryptionKey, undefined, 'Managed enterprise secrets must be redacted');
-  for (const route of ['/api/logs', '/api/metrics-history', '/api/incoming-messages', '/api/processed-signals', '/api/templates']) {
+  for (const route of ['/api/logs', '/api/metrics-history', '/api/incoming-messages', '/api/processed-signals', '/api/dashboard-analytics', '/api/templates']) {
     response = await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) });
     assert.strictEqual(response.status, 200, `${route} must satisfy its authenticated read contract`);
   }

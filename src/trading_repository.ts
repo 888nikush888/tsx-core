@@ -526,6 +526,140 @@ export async function listTradingActivity(limit = 200): Promise<{
   };
 }
 
+export type TradingAnalyticsWindow = '24h' | '7d' | '30d' | 'all';
+
+export interface TradingWindowAnalytics {
+  realizedPnl: string;
+  grossProfit: string;
+  grossLoss: string;
+  closedTrades: number;
+  wins: number;
+  losses: number;
+  breakeven: number;
+  fills: number;
+  volume: string;
+  fees: Record<string, string>;
+  intents: number;
+  completedIntents: number;
+  rejectedIntents: number;
+  riskEvents: number;
+  criticalRiskEvents: number;
+}
+
+export interface TradingAccountAnalytics {
+  accountId: string;
+  name: string;
+  exchange: TradingExchange;
+  mode: TradingAccountMode;
+  windows: Record<TradingAnalyticsWindow, TradingWindowAnalytics>;
+}
+
+function emptyTradingWindow(): TradingWindowAnalytics {
+  return {
+    realizedPnl: '0', grossProfit: '0', grossLoss: '0', closedTrades: 0, wins: 0, losses: 0, breakeven: 0,
+    fills: 0, volume: '0', fees: {}, intents: 0, completedIntents: 0,
+    rejectedIntents: 0, riskEvents: 0, criticalRiskEvents: 0,
+  };
+}
+
+function dashboardDecimal(value: unknown): string {
+  const parsed = Number(value ?? 0);
+  if (!Number.isFinite(parsed)) throw new Error('Trading analytics produced a non-finite decimal.');
+  return parsed.toFixed(8).replace(/\.?0+$/, '') || '0';
+}
+
+async function tradingAnalyticsWindow(since: number | null): Promise<Map<string, TradingWindowAnalytics>> {
+  const database = getDatabase();
+  const filter = since === null ? '' : ' AND closed_at >= ?';
+  const parameters = since === null ? [] : [since];
+  const [positions, fills, intents, risks] = await Promise.all([
+    database.all<any[]>(
+      `SELECT account_id AS accountId,
+              COUNT(*) AS closedTrades,
+              SUM(CASE WHEN CAST(realized_pnl AS REAL) > 0 THEN 1 ELSE 0 END) AS wins,
+              SUM(CASE WHEN CAST(realized_pnl AS REAL) < 0 THEN 1 ELSE 0 END) AS losses,
+              SUM(CASE WHEN CAST(realized_pnl AS REAL) = 0 THEN 1 ELSE 0 END) AS breakeven,
+              COALESCE(SUM(CAST(realized_pnl AS REAL)), 0) AS realizedPnl,
+              COALESCE(SUM(CASE WHEN CAST(realized_pnl AS REAL) > 0 THEN CAST(realized_pnl AS REAL) ELSE 0 END), 0) AS grossProfit,
+              COALESCE(SUM(CASE WHEN CAST(realized_pnl AS REAL) < 0 THEN -CAST(realized_pnl AS REAL) ELSE 0 END), 0) AS grossLoss
+       FROM trading_positions WHERE status = 'closed'${filter} GROUP BY account_id`, parameters),
+    database.all<any[]>(
+      `SELECT account_id AS accountId, fee_asset AS feeAsset, COUNT(*) AS fills,
+              COALESCE(SUM(CAST(price AS REAL) * CAST(quantity AS REAL)), 0) AS volume,
+              COALESCE(SUM(CAST(fee AS REAL)), 0) AS fees
+       FROM trading_fills WHERE 1 = 1${since === null ? '' : ' AND filled_at >= ?'}
+       GROUP BY account_id, fee_asset`, parameters),
+    database.all<any[]>(
+      `SELECT account_id AS accountId, COUNT(*) AS intents,
+              SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completedIntents,
+              SUM(CASE WHEN status IN ('blocked', 'failed', 'unknown') THEN 1 ELSE 0 END) AS rejectedIntents
+       FROM trading_trade_intents WHERE 1 = 1${since === null ? '' : ' AND created_at >= ?'}
+       GROUP BY account_id`, parameters),
+    database.all<any[]>(
+      `SELECT account_id AS accountId, COUNT(*) AS riskEvents,
+              SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) AS criticalRiskEvents
+       FROM trading_risk_events WHERE account_id IS NOT NULL${since === null ? '' : ' AND created_at >= ?'}
+       GROUP BY account_id`, parameters),
+  ]);
+  const result = new Map<string, TradingWindowAnalytics>();
+  const metrics = (accountId: unknown) => {
+    const id = String(accountId);
+    const current = result.get(id) ?? emptyTradingWindow();
+    result.set(id, current);
+    return current;
+  };
+  for (const row of positions) Object.assign(metrics(row.accountId), {
+    realizedPnl: dashboardDecimal(row.realizedPnl),
+    grossProfit: dashboardDecimal(row.grossProfit), grossLoss: dashboardDecimal(row.grossLoss),
+    closedTrades: numeric(row.closedTrades), wins: numeric(row.wins),
+    losses: numeric(row.losses), breakeven: numeric(row.breakeven),
+  });
+  for (const row of fills) {
+    const current = metrics(row.accountId);
+    current.fills += numeric(row.fills);
+    current.volume = dashboardDecimal(Number(current.volume) + Number(row.volume || 0));
+    const asset = String(row.feeAsset || 'UNKNOWN').toUpperCase();
+    current.fees[asset] = dashboardDecimal(Number(current.fees[asset] || 0) + Number(row.fees || 0));
+  }
+  for (const row of intents) Object.assign(metrics(row.accountId), {
+    intents: numeric(row.intents), completedIntents: numeric(row.completedIntents),
+    rejectedIntents: numeric(row.rejectedIntents),
+  });
+  for (const row of risks) Object.assign(metrics(row.accountId), {
+    riskEvents: numeric(row.riskEvents), criticalRiskEvents: numeric(row.criticalRiskEvents),
+  });
+  return result;
+}
+
+export async function getTradingAnalytics(now = Date.now()): Promise<{
+  generatedAt: number;
+  accounts: TradingAccountAnalytics[];
+}> {
+  if (!Number.isSafeInteger(now) || now <= 0) throw new Error('Trading analytics timestamp is invalid.');
+  const windows: Array<[TradingAnalyticsWindow, number | null]> = [
+    ['24h', now - 24 * 60 * 60 * 1_000],
+    ['7d', now - 7 * 24 * 60 * 60 * 1_000],
+    ['30d', now - 30 * 24 * 60 * 60 * 1_000],
+    ['all', null],
+  ];
+  const [accounts, snapshots] = await Promise.all([
+    listTradingAccounts(),
+    Promise.all(windows.map(([, since]) => tradingAnalyticsWindow(since))),
+  ]);
+  return {
+    generatedAt: now,
+    accounts: accounts.map(account => ({
+      accountId: account.id,
+      name: account.name,
+      exchange: account.exchange,
+      mode: account.mode,
+      windows: Object.fromEntries(windows.map(([window], index) => [
+        window, snapshots[index].get(account.id) ?? emptyTradingWindow(),
+      ])) as Record<TradingAnalyticsWindow, TradingWindowAnalytics>,
+    })),
+  };
+}
+
 export async function acknowledgeTradingRiskEvent(id: string, now = Date.now()): Promise<boolean> {
   const result = await getDatabase().run(
     'UPDATE trading_risk_events SET acknowledged_at = COALESCE(acknowledged_at, ?) WHERE id = ?',

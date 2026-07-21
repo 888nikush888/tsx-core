@@ -139,6 +139,8 @@ export interface TradingIntent {
 export interface TradingAccountSnapshot {
   equity: string;
   availableBalance: string;
+  unrealizedPnl?: string;
+  marginUsed?: string;
 }
 
 export interface TradingMarketSnapshot {
