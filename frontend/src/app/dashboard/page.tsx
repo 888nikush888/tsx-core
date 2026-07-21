@@ -1,15 +1,12 @@
 import { useState, useEffect } from "react"
 import { BaseLayout } from "@/components/layouts/base-layout"
-import { ChartAreaInteractive } from "./components/chart-area-interactive"
-import { SectionCards } from "./components/section-cards"
 import { useSearchParams } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Play, Square } from "lucide-react"
 
 import { LogsTab } from "./components/logs-tab"
 import { SystemTab } from "./components/system-tab"
 import { normalizeSignalWorkspace, SignalCenterTab, type SignalWorkspace } from "./components/signal-center-tab"
 import { TradingTab } from "./components/trading-tab"
+import { ExecutiveDashboard } from "./components/executive-dashboard"
 import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
@@ -76,6 +73,13 @@ export default function Page() {
     next.set("tab", "signals")
     if (workspace === "overview") next.delete("workspace")
     else next.set("workspace", workspace)
+    setSearchParams(next)
+  }
+
+  const selectPrimaryTab = (nextTab: string) => {
+    const next = new URLSearchParams(searchParams)
+    next.set("tab", nextTab)
+    next.delete("workspace")
     setSearchParams(next)
   }
 
@@ -249,50 +253,23 @@ export default function Page() {
   let content = null
   if (tab === "dashboard") {
     content = (
-      <>
-        <div className="flex items-center justify-between px-4 lg:px-6">
-          <h2 className="text-2xl font-bold tracking-tight">System Status</h2>
-          <Button 
-            onClick={handleStartStop} 
-            disabled={!isRunning && !routingConfigReady}
-            title={!isRunning && !routingConfigReady ? "Complete and save the setup first" : undefined}
-            className={`font-medium transition-all active:scale-[0.97] duration-150 shadow-md ${
-              isRunning 
-                ? "bg-red-600 hover:bg-red-500 text-white dark:bg-red-500 dark:hover:bg-red-400" 
-                : "bg-primary hover:bg-primary/90 text-primary-foreground"
-            }`}
-          >
-            {isRunning ? (
-              <><Square className="mr-2 h-4 w-4 fill-white" /> Stop Forwarder</>
-            ) : (
-              <><Play className="mr-2 h-4 w-4 fill-current" /> Start Forwarder</>
-            )}
-          </Button>
-        </div>
-        <div className="@container/main px-4 lg:px-6 space-y-6">
-          {!setupComplete && (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-              <h3 className="font-semibold">First-run setup · {setupSteps.filter((step) => step.complete).length}/{setupSteps.length} complete</h3>
-              <ul className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
-                {setupSteps.map((step) => <li key={step.label}>{step.complete ? "✓" : "○"} {step.label}</li>)}
-              </ul>
-              <p className="mt-3 text-sm">Configure credentials and routing under Channels, save, then start the forwarder to complete Telegram login in the browser.</p>
-            </div>
-          )}
-          <SectionCards 
-            isRunning={isRunning} 
-            connectionState={connectionState} 
-            totalForwardedCount={totalForwardedCount}
-            processedSinceRestart={processedSinceRestart}
-            parserEnabled={config?.xmlParsing?.enabled ?? true}
-            forwardingEnabled={forwardingEnabled}
-            forwardXmlToTarget={forwardXmlToTarget}
-            uptime={uptime}
-            queue={queue}
-          />
-          <ChartAreaInteractive data={metricsHistory} />
-        </div>
-      </>
+      <ExecutiveDashboard
+        isRunning={isRunning}
+        connectionState={connectionState}
+        totalForwardedCount={totalForwardedCount}
+        processedSinceRestart={processedSinceRestart}
+        parserEnabled={config?.xmlParsing?.enabled ?? true}
+        forwardingEnabled={forwardingEnabled}
+        forwardXmlToTarget={forwardXmlToTarget}
+        uptime={uptime}
+        queue={queue}
+        setupSteps={setupSteps}
+        setupComplete={setupComplete}
+        routingConfigReady={routingConfigReady}
+        metricsHistory={metricsHistory}
+        onToggleRouting={handleStartStop}
+        onNavigate={selectPrimaryTab}
+      />
     )
   } else {
     content = (
