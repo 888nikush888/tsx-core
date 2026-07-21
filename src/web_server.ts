@@ -91,7 +91,6 @@ interface WebServerState {
     | 'status'
     | 'set'
     | 'createDashboardAdminToken'
-    | 'getOrCreateDashboardAdminToken'
     | 'rotateDashboardToken'
     | 'removeDashboardViewerToken'
     | 'clear'
@@ -122,12 +121,21 @@ interface RequestContext {
   requestId: string;
   parsedUrl: URL;
   appState: WebServerState;
+  mutationAudit?: MutationAuditContext;
+}
+
+interface MutationAuditContext {
+  actor: AuthenticatedActor;
+  action: string;
+  target: unknown;
+  before: unknown;
 }
 
 type ApiHandler = (context: RequestContext) => Promise<void> | void;
 
 let server: http.Server | null = null;
 let mutationInProgress = false;
+const requestContexts = new WeakMap<http.IncomingMessage, RequestContext>();
 
 class HttpError extends Error {
   constructor(
@@ -139,11 +147,10 @@ class HttpError extends Error {
 }
 
 function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown): void {
-  res.writeHead(statusCode, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-    Pragma: 'no-cache',
-  });
+  res.statusCode = statusCode;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
   res.end(JSON.stringify(payload));
 }
 
@@ -160,45 +167,6 @@ function sendError(context: RequestContext, error: unknown): void {
     error: errorMessage(error),
     requestId: context.requestId,
   });
-}
-
-function recordAuditCompletion(
-  auditTrail: WebServerState['auditTrail'],
-  actor: AuthenticatedActor,
-  requestId: string,
-  method: string,
-  url: string,
-  statusCode: number
-): void {
-  if (!auditTrail) {
-    addLog(`[CRITICAL] request_id=${requestId} Dashboard mutation completed without a persisted audit record.`, {
-      request_id: requestId,
-      event: 'audit_completion_unavailable',
-      path: url,
-      status_code: statusCode,
-    });
-    return;
-  }
-  addLog(
-    `[AUDIT] request_id=${requestId} actor_role=${actor.role} method=${method} path=${url} status=${statusCode}`
-  );
-  void auditTrail
-    .record({
-      phase: 'completed',
-      action: 'dashboard.mutation',
-      requestId,
-      actorId: actor.id,
-      actorRole: actor.role,
-      method,
-      path: url,
-      statusCode,
-    })
-    .catch((error) =>
-      addLog(`[CRITICAL] Audit outcome delivery failed: ${error.message}`, {
-        request_id: requestId,
-        event: 'audit_delivery_failed',
-      })
-    );
 }
 
 function isAllowedOrigin(origin: string | undefined): boolean {
@@ -256,7 +224,17 @@ async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): P
   }
   if (chunks.length === 0) return {};
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const context = requestContexts.get(req);
+    if (context?.mutationAudit) {
+      context.mutationAudit.target = {
+        ...(typeof context.mutationAudit.target === 'object' && context.mutationAudit.target
+          ? context.mutationAudit.target as Record<string, unknown>
+          : {}),
+        request: safeAuditValue(parsed),
+      };
+    }
+    return parsed;
   } catch {
     throw new HttpError(400, 'Request body is not valid JSON.');
   }
@@ -266,6 +244,147 @@ function publicConfig(config: any): any {
   return JSON.parse(
     JSON.stringify(config || {}, (key, value) => (SECRET_CONFIG_KEYS.has(key) ? undefined : value))
   );
+}
+
+const AUDIT_SECRET_KEY = /(secret|token|password|private.?key|api.?key|api.?hash|authorization|credential)/i;
+
+function safeAuditValue(value: unknown, depth = 0): unknown {
+  if (value === null || typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : '[INVALID_NUMBER]';
+  if (typeof value === 'string') return value.length <= 1024 ? value : `${value.slice(0, 1024)}...[TRUNCATED]`;
+  if (depth >= 6) return '[MAX_DEPTH]';
+  if (Array.isArray(value)) {
+    return value.slice(0, 100).map((item) => safeAuditValue(item, depth + 1));
+  }
+  if (!value || typeof value !== 'object') return String(value);
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .slice(0, 100)
+      .map(([key, item]) => [key, SECRET_CONFIG_KEYS.has(key) || AUDIT_SECRET_KEY.test(key)
+        ? '[REDACTED]'
+        : safeAuditValue(item, depth + 1)])
+  );
+}
+
+function semanticMutationAction(method: string, url: string): string {
+  const known: Record<string, string> = {
+    '/api/config': 'configuration.update',
+    '/api/import': 'configuration.import',
+    '/api/secrets': 'secrets.update',
+    '/api/control': 'routing.control',
+    '/api/telegram-login': 'telegram.authentication.update',
+    '/api/runtime-settings': 'runtime.settings.update',
+    '/api/factory-reset': 'system.factory-reset',
+    '/api/restart': 'system.restart',
+    '/api/access-tokens': 'access-token.rotate',
+    '/api/access-tokens/viewer': 'access-token.disable-viewer',
+    '/api/operations/backup': 'backup.create',
+    '/api/operations/audit-replay': 'audit.replay',
+    '/api/backups/recover-offsite': 'backup.recover-offsite',
+    '/api/backups/restore': 'backup.restore',
+    '/api/database': 'database.clear',
+    '/api/outbox/retry': 'outbox.retry',
+    '/api/outbox/acknowledge': 'outbox.acknowledge',
+  };
+  if (known[url]) return known[url];
+  if (url.startsWith('/api/trading/')) {
+    const target = url.slice('/api/trading/'.length).replace(/[^a-z0-9]+/gi, '.').replace(/^\.|\.$/g, '');
+    return `trading.${target || 'control'}.${method.toLowerCase()}`.slice(0, 128);
+  }
+  const target = url.slice('/api/'.length).replace(/[^a-z0-9]+/gi, '.').replace(/^\.|\.$/g, '');
+  return `dashboard.${target || 'mutation'}.${method.toLowerCase()}`.slice(0, 128);
+}
+
+function auditTargetFromRequest(context: RequestContext): unknown {
+  const query = Object.fromEntries(context.parsedUrl.searchParams.entries());
+  return safeAuditValue(Object.keys(query).length > 0 ? { query } : { resource: context.parsedUrl.pathname });
+}
+
+function secretAuditState(context: RequestContext): unknown {
+  return safeAuditValue(context.appState.secretStore?.status() ?? { available: false });
+}
+
+function runtimeAuditState(context: RequestContext): unknown {
+  return safeAuditValue(context.appState.runtimeSettings?.snapshot() ?? { available: false });
+}
+
+function routingAuditState(context: RequestContext): unknown {
+  const { appState } = context;
+  return safeAuditValue({
+    isRunning: appState.state.isRunning,
+    connectionState: appState.state.connectionState,
+    forwardingEnabled: appState.config.forwardOptions?.forwardToTarget ?? true,
+    queue: appState.getQueueState(),
+    telegramLogin: appState.getTelegramLoginState?.(),
+  });
+}
+
+function auditDomainState(context: RequestContext, action: string): unknown {
+  const { appState } = context;
+  if (action.startsWith('configuration.')) return safeAuditValue(publicConfig(appState.config));
+  if (action.startsWith('secrets.') || action.startsWith('access-token.')) return secretAuditState(context);
+  if (action.startsWith('runtime.settings.')) return runtimeAuditState(context);
+  if (action.startsWith('routing.') || action.startsWith('telegram.')) return routingAuditState(context);
+  if (action.startsWith('system.')) {
+    return safeAuditValue({ recovery: appState.recovery?.active ?? false, isRunning: appState.state.isRunning });
+  }
+  return safeAuditValue({ domain: action.split('.')[0], stateSnapshot: 'captured-in-domain-result' });
+}
+
+function installMutationAuditBarrier(context: RequestContext): void {
+  const audit = context.mutationAudit;
+  const trail = context.appState.auditTrail;
+  if (!audit || !trail) return;
+  const response = context.res;
+  const originalEnd = response.end.bind(response);
+  let finalizing = false;
+  (response as any).end = (chunk?: unknown, encodingOrCallback?: unknown, callback?: unknown) => {
+    if (finalizing) return response;
+    finalizing = true;
+    const originalStatus = response.statusCode;
+    const callbackFunction = typeof encodingOrCallback === 'function'
+      ? encodingOrCallback
+      : typeof callback === 'function' ? callback : undefined;
+    let responsePayload: unknown;
+    if (typeof chunk === 'string') {
+      try { responsePayload = JSON.parse(chunk); } catch { responsePayload = '[NON_JSON_RESPONSE]'; }
+    }
+    const outcome = originalStatus < 400 ? 'succeeded' : originalStatus < 500 ? 'rejected' : 'failed';
+    void trail.record({
+      phase: 'completed',
+      action: audit.action,
+      requestId: context.requestId,
+      actorId: audit.actor.id,
+      actorRole: audit.actor.role,
+      method: context.req.method,
+      path: context.parsedUrl.pathname,
+      statusCode: originalStatus,
+      target: safeAuditValue(audit.target),
+      before: safeAuditValue(audit.before),
+      after: safeAuditValue({ state: auditDomainState(context, audit.action), response: responsePayload }),
+      outcome,
+    }).then(() => {
+      addLog(`[AUDIT] request_id=${context.requestId} action=${audit.action} actor_role=${audit.actor.role} outcome=${outcome} status=${originalStatus}`);
+      (originalEnd as any)(chunk, callbackFunction);
+    }).catch((error: Error) => {
+      addLog(`[CRITICAL] request_id=${context.requestId} Audit outcome persistence failed: ${error.message}`, {
+        request_id: context.requestId,
+        event: 'audit_outcome_persistence_failed',
+        action: audit.action,
+      });
+      if (originalStatus < 400 && !response.headersSent) {
+        response.statusCode = 503;
+        response.removeHeader('Content-Length');
+        (originalEnd as any)(JSON.stringify({
+          error: 'Audit outcome could not be durably persisted; mutation result is not acknowledged.',
+          requestId: context.requestId,
+        }), callbackFunction);
+        return;
+      }
+      (originalEnd as any)(chunk, callbackFunction);
+    });
+    return response;
+  };
 }
 
 function containsSecretConfig(input: any): boolean {
@@ -302,17 +421,28 @@ async function authorizeMutationAudit(
       }
       throw new Error('Audit trail is unavailable.');
     }
+    const action = semanticMutationAction(method, url);
+    context.mutationAudit = {
+      actor,
+      action,
+      target: auditTargetFromRequest(context),
+      before: auditDomainState(context, action),
+    };
     await context.appState.auditTrail.record({
       phase: 'authorized',
-      action: 'dashboard.mutation',
+      action,
       requestId: context.requestId,
       actorId: actor.id,
       actorRole: actor.role,
       method,
       path: url,
+      target: context.mutationAudit.target,
+      before: context.mutationAudit.before,
     });
+    installMutationAuditBarrier(context);
     return true;
   } catch (error) {
+    context.mutationAudit = undefined;
     if (error instanceof HttpError) {
       sendError(context, error);
       return false;
@@ -335,7 +465,7 @@ async function authenticateApiRequest(
   method: string,
   url: string
 ): Promise<AuthenticatedActor | null> {
-  const { res, requestId, appState } = context;
+  const { res, requestId } = context;
   if (!authenticator.isConfigured()) {
     sendJson(res, 503, { error: 'Dashboard authentication is not configured.', requestId });
     return null;
@@ -348,9 +478,6 @@ async function authenticateApiRequest(
   }
   res.setHeader('X-Authenticated-Role', actor.role);
   if (method === 'GET') return actor;
-  res.once('finish', () => {
-    recordAuditCompletion(appState.auditTrail, actor, requestId, method, url, res.statusCode);
-  });
   if (actor.role !== 'admin') {
     sendJson(res, 403, { error: 'Administrator role required.', requestId });
     return null;
@@ -1212,6 +1339,9 @@ function bootstrapStatusHandler(
     mode: authenticator.mode,
     required,
     available: required && Boolean(context.appState.secretStore),
+    ...(required && context.appState.recovery?.allowLoopbackLocalSession === true
+      ? { recoveryBootstrap: true }
+      : {}),
   });
 }
 
@@ -1235,16 +1365,6 @@ async function bootstrapHandler(
     }
     const actor: AuthenticatedActor = { role: 'admin', id: 'bootstrap:local-browser' };
     if (!(await authorizeMutationAudit(context, actor, 'POST', '/api/bootstrap'))) return;
-    context.res.once('finish', () => {
-      recordAuditCompletion(
-        context.appState.auditTrail,
-        actor,
-        context.requestId,
-        'POST',
-        '/api/bootstrap',
-        context.res.statusCode
-      );
-    });
     const token = await context.appState.secretStore.createDashboardAdminToken();
     addLog(`[SECURITY] request_id=${context.requestId} Dashboard administrator token bootstrapped.`);
     sendJson(context.res, 201, {
@@ -1285,19 +1405,6 @@ function isRecoveryLocalSessionBootstrap(context: RequestContext): boolean {
   return context.appState.recovery?.allowLoopbackLocalSession === true;
 }
 
-function recordLocalSessionCompletion(context: RequestContext, actor: AuthenticatedActor): void {
-  context.res.once('finish', () => {
-    recordAuditCompletion(
-      context.appState.auditTrail,
-      actor,
-      context.requestId,
-      'POST',
-      '/api/local-session',
-      context.res.statusCode
-    );
-  });
-}
-
 async function authorizeLocalSessionInitialization(
   context: RequestContext,
   actor: AuthenticatedActor,
@@ -1312,7 +1419,6 @@ async function authorizeLocalSessionInitialization(
     return true;
   }
   if (!(await authorizeMutationAudit(context, actor, 'POST', '/api/local-session'))) return false;
-  recordLocalSessionCompletion(context, actor);
   return true;
 }
 
@@ -1323,13 +1429,14 @@ async function localSessionHandler(
   try {
     const secretStore = requireLocalSessionSecretStore(context, authenticator);
     const tokenWasConfigured = authenticator.isConfigured();
+    if (tokenWasConfigured) {
+      throw new HttpError(409, 'Local-session bootstrap never discloses an existing administrator token. Use the saved token or rotate it through an authenticated session.');
+    }
     const actor: AuthenticatedActor = { role: 'admin', id: 'startup:local-browser' };
     if (!(await authorizeLocalSessionInitialization(context, actor, tokenWasConfigured))) return;
-    const token = await secretStore.getOrCreateDashboardAdminToken();
-    if (!tokenWasConfigured) {
-      addLog(`[SECURITY] request_id=${context.requestId} Integrated local dashboard access initialized.`);
-    }
-    sendJson(context.res, tokenWasConfigured ? 200 : 201, {
+    const token = await secretStore.createDashboardAdminToken();
+    addLog(`[SECURITY] request_id=${context.requestId} Integrated local dashboard access initialized.`);
+    sendJson(context.res, 201, {
       token,
       role: 'admin',
       localStartup: true,
@@ -1489,7 +1596,8 @@ async function handleRequest(
   const url = parsedUrl.pathname;
   const method = req.method || 'GET';
   const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
-  const context = { req, res, requestId, parsedUrl, appState };
+  const context: RequestContext = { req, res, requestId, parsedUrl, appState };
+  requestContexts.set(req, context);
   setSecurityHeaders(res, origin);
   if (!isAllowedOrigin(origin)) {
     sendJson(res, 403, { error: 'Origin is not allowed.', requestId });

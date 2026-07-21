@@ -15,8 +15,16 @@ export interface ValidatedSignal {
   action: 'LONG' | 'SHORT';
   pair: string;
   groundingNumbers: string[];
+  groundingFields: GroundingField[];
   groundingComment?: string;
   execution?: ExecutableSignal;
+}
+
+export type GroundingFieldKind = 'entry' | 'averaging' | 'target' | 'stop' | 'leverage' | 'risk';
+
+export interface GroundingField {
+  kind: GroundingFieldKind;
+  values: string[];
 }
 
 export class SignalValidationError extends Error {
@@ -273,8 +281,34 @@ function validateStandard(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'
     action,
     pair,
     execution: scalarExecution({ schema: 'standard', action, pair, entry, targets, stoploss, leverage }),
-    groundingNumbers: [...(entry ? [entry.min, entry.max] : []), ...targets, stoploss, ...(leverage ? [leverage] : [])]
+    groundingNumbers: [...(entry ? [entry.min, entry.max] : []), ...targets, stoploss, ...(leverage ? [leverage] : [])],
+    groundingFields: [
+      ...(entry ? [{ kind: 'entry' as const, values: [entry.min, entry.max] }] : []),
+      { kind: 'target', values: targets },
+      { kind: 'stop', values: [stoploss] },
+      ...(leverage ? [{ kind: 'leverage' as const, values: [leverage] }] : [])
+    ]
   };
+}
+
+function cryptodanielEntry(root: XmlNode, entryType: string): { min: string; max: string } | undefined {
+  const entryNode = optional(root, 'entry_range');
+  if (entryType === 'LIMIT' && !entryNode) throw new SignalValidationError('LIMIT signals require entry_range.');
+  if (entryType === 'MARKET' && entryNode) throw new SignalValidationError('MARKET signals must omit entry_range.');
+  return entryNode ? range(entryNode) : undefined;
+}
+
+function optionalDecimalChild(root: XmlNode, name: string): string | undefined {
+  const node = optional(root, name);
+  return node ? decimal(node, name) : undefined;
+}
+
+function cryptodanielRisk(root: XmlNode): string | undefined {
+  const risk = optionalDecimalChild(root, 'risk_percent');
+  if (risk && compareDecimals(risk, '100') > 0) {
+    throw new SignalValidationError('risk_percent must not exceed 100.');
+  }
+  return risk;
 }
 
 function validateCryptoDaniel(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
@@ -283,20 +317,11 @@ function validateCryptoDaniel(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'sch
   const pair = pairValue(root, true);
   const entryType = leaf(required(root, 'entry_type'));
   if (entryType !== 'MARKET' && entryType !== 'LIMIT') throw new SignalValidationError("entry_type must be 'MARKET' or 'LIMIT'.");
-  const entryNode = optional(root, 'entry_range');
-  if (entryType === 'LIMIT' && !entryNode) throw new SignalValidationError('LIMIT signals require entry_range.');
-  if (entryType === 'MARKET' && entryNode) throw new SignalValidationError('MARKET signals must omit entry_range.');
-  const entry = entryNode ? range(entryNode) : undefined;
-  const averagingNode = optional(root, 'averaging');
-  const averaging = averagingNode ? decimal(averagingNode) : undefined;
+  const entry = cryptodanielEntry(root, entryType);
+  const averaging = optionalDecimalChild(root, 'averaging');
   const targets = scalarTargets(required(root, 'targets'));
   const stoploss = decimal(required(root, 'stoploss'));
-  const riskNode = optional(root, 'risk_percent');
-  let risk: string | undefined;
-  if (riskNode) {
-    risk = decimal(riskNode, 'risk_percent');
-    if (compareDecimals(risk, '100') > 0) throw new SignalValidationError('risk_percent must not exceed 100.');
-  }
+  const risk = cryptodanielRisk(root);
   assertScalarGeometry(action, stoploss, targets, entry);
   return {
     action,
@@ -308,6 +333,13 @@ function validateCryptoDaniel(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'sch
       ...targets,
       stoploss,
       ...(risk ? [risk] : [])
+    ],
+    groundingFields: [
+      ...(entry ? [{ kind: 'entry' as const, values: [entry.min, entry.max] }] : []),
+      ...(averaging ? [{ kind: 'averaging' as const, values: [averaging] }] : []),
+      { kind: 'target', values: targets },
+      { kind: 'stop', values: [stoploss] },
+      ...(risk ? [{ kind: 'risk' as const, values: [risk] }] : [])
     ]
   };
 }
@@ -357,6 +389,11 @@ function validateLoma(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
       entry.max,
       stoploss,
       ...targets.flatMap(target => [target.min, target.max])
+    ],
+    groundingFields: [
+      { kind: 'entry', values: [entry.min, entry.max] },
+      { kind: 'target', values: targets.flatMap(target => [target.min, target.max]) },
+      { kind: 'stop', values: [stoploss] }
     ]
   };
 }
@@ -374,7 +411,7 @@ function validateSpeculant(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema
   if (comment.length > 500) throw new SignalValidationError('comment must not exceed 500 characters.');
   const riskWarning = leaf(required(root, 'risk_warning'));
   if (riskWarning !== 'true' && riskWarning !== 'false') throw new SignalValidationError('risk_warning must be true or false.');
-  return { action, pair, groundingNumbers: [], groundingComment: comment };
+  return { action, pair, groundingNumbers: [], groundingFields: [], groundingComment: comment };
 }
 
 export function schemaForTemplate(templateName?: string): SignalSchemaName {
@@ -406,22 +443,90 @@ function normalizedGroundingText(value: string): string {
   return value.normalize('NFKC').toLocaleUpperCase('en-US').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 }
 
-export function assertSignalGrounded(signal: ValidatedSignal, sourceText: string): void {
-  if (typeof sourceText !== 'string' || !sourceText.trim()) {
-    throw new SignalValidationError('Signal source text is empty and cannot ground an AI result.');
+const GROUNDING_LABEL = /\b(ENTRY(?:\s+(?:RANGE|LIMIT|MARKET))?|AVERAGING|STOP\s*LOSS|STOPLOSS|STOP|SL|TARGETS|TARGET(?:\s+#?\d+(?=\s*:))?|TP(?:\s+#?\d+(?=\s*:))?|TAKE\s*PROFIT(?:\s+#?\d+(?=\s*:))?|LEVERAGE|RISK(?:\s*PERCENT)?)\b/giu;
+
+function groundingKind(label: string): GroundingFieldKind {
+  const normalized = label.replace(/\s+/g, ' ').trim().toUpperCase();
+  if (normalized.startsWith('ENTRY')) return 'entry';
+  if (normalized.startsWith('AVERAGING')) return 'averaging';
+  if (normalized.startsWith('STOP') || normalized === 'SL') return 'stop';
+  if (normalized.startsWith('TARGET') || normalized.startsWith('TP') || normalized.startsWith('TAKE PROFIT')) return 'target';
+  if (normalized.startsWith('LEVERAGE')) return 'leverage';
+  return 'risk';
+}
+
+function canonicalDecimal(value: string): string {
+  const [integer = '0', fraction = ''] = value.split('.');
+  const normalizedInteger = integer.replace(/^0+(?=\d)/, '') || '0';
+  const normalizedFraction = fraction.replace(/0+$/, '');
+  return normalizedFraction ? `${normalizedInteger}.${normalizedFraction}` : normalizedInteger;
+}
+
+function numbersInGroundingClause(value: string): string[] {
+  return Array.from(
+    value.matchAll(/(?<![\p{L}\p{N}_])(?<!\d\.)(?:0|[1-9]\d{0,17})(?:\.\d{1,18})?(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu),
+    match => canonicalDecimal(match[0])
+  );
+}
+
+function sourceFieldNumbers(sourceText: string): Map<GroundingFieldKind, string[]> {
+  const normalized = sourceText.normalize('NFKC');
+  const labels = Array.from(normalized.matchAll(GROUNDING_LABEL));
+  const result = new Map<GroundingFieldKind, string[]>();
+  labels.forEach((match, index) => {
+    const start = (match.index ?? 0) + match[0].length;
+    const end = labels[index + 1]?.index ?? normalized.length;
+    const kind = groundingKind(match[0]);
+    const values = numbersInGroundingClause(normalized.slice(start, end));
+    result.set(kind, [...(result.get(kind) ?? []), ...values]);
+  });
+  return result;
+}
+
+function assertFieldGrounded(field: GroundingField, sourceFields: Map<GroundingFieldKind, string[]>): void {
+  const expected = [...new Set(field.values.map(canonicalDecimal))].sort();
+  const actual = [...new Set(sourceFields.get(field.kind) ?? [])].sort();
+  if (actual.length === 0) {
+    throw new SignalValidationError(`Output field '${field.kind}' has no explicit source label and cannot be grounded.`);
   }
+  if (expected.length !== actual.length || expected.some((value, index) => value !== actual[index])) {
+    throw new SignalValidationError(
+      `Output field '${field.kind}' is ambiguous or does not exactly match its labeled source values.`
+    );
+  }
+}
+
+function assertPairGrounded(signal: ValidatedSignal, sourceText: string): void {
   const compactSource = sourceText.normalize('NFKC').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (!compactSource.includes(signal.pair)) {
     throw new SignalValidationError(`Pair '${signal.pair}' is not grounded in the source text.`);
   }
+  if (!signal.execution) return;
+  const quotedPairs = new Set(
+    Array.from(
+      sourceText.normalize('NFKC').toUpperCase().matchAll(/\b([A-Z0-9]{2,12})\s*\/?\s*(USDT|USDC|USD|BTC|ETH)\b/g),
+      match => `${match[1]}${match[2]}`
+    )
+  );
+  if (quotedPairs.size > 1 || (quotedPairs.size === 1 && !quotedPairs.has(signal.pair))) {
+    throw new SignalValidationError('Source text contains competing trading pairs and is ambiguous.');
+  }
+}
 
-  const actionPattern = signal.action === 'LONG'
-    ? /(?:^|[^A-Z])(LONG|BUY|CALL)(?:$|[^A-Z])/i
-    : /(?:^|[^A-Z])(SHORT|SELL|PUT)(?:$|[^A-Z])/i;
-  if (!actionPattern.test(sourceText.normalize('NFKC'))) {
+function assertActionGrounded(signal: ValidatedSignal, sourceText: string): void {
+  const normalized = sourceText.normalize('NFKC');
+  const longPattern = /(?:^|[^A-Z])(LONG|BUY|CALL)(?:$|[^A-Z])/i;
+  const shortPattern = /(?:^|[^A-Z])(SHORT|SELL|PUT)(?:$|[^A-Z])/i;
+  if (longPattern.test(normalized) && shortPattern.test(normalized)) {
+    throw new SignalValidationError('Source text contains competing LONG and SHORT actions and is ambiguous.');
+  }
+  const expected = signal.action === 'LONG' ? longPattern : shortPattern;
+  if (!expected.test(normalized)) {
     throw new SignalValidationError(`Action '${signal.action}' is not grounded in the source text.`);
   }
+}
 
+function assertNumbersGrounded(signal: ValidatedSignal, sourceText: string): void {
   const sourceNumbers = Array.from(
     sourceText.matchAll(/(?<![\p{L}\p{N}_])(?<!\d\.)(?:0|[1-9]\d{0,17})(?:\.\d{1,18})?(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu),
     match => match[0]
@@ -431,12 +536,25 @@ export function assertSignalGrounded(signal: ValidatedSignal, sourceText: string
       throw new SignalValidationError(`Output number '${value}' is not grounded in the source text.`);
     }
   }
+}
 
-  if (signal.groundingComment) {
-    const normalizedSource = normalizedGroundingText(sourceText);
-    const normalizedComment = normalizedGroundingText(signal.groundingComment);
-    if (!normalizedComment || !normalizedSource.includes(normalizedComment)) {
-      throw new SignalValidationError('Signal comment must be a contiguous excerpt grounded in the source text.');
-    }
+function assertCommentGrounded(comment: string | undefined, sourceText: string): void {
+  if (!comment) return;
+  const normalizedSource = normalizedGroundingText(sourceText);
+  const normalizedComment = normalizedGroundingText(comment);
+  if (!normalizedComment || !normalizedSource.includes(normalizedComment)) {
+    throw new SignalValidationError('Signal comment must be a contiguous excerpt grounded in the source text.');
   }
+}
+
+export function assertSignalGrounded(signal: ValidatedSignal, sourceText: string): void {
+  if (typeof sourceText !== 'string' || !sourceText.trim()) {
+    throw new SignalValidationError('Signal source text is empty and cannot ground an AI result.');
+  }
+  assertPairGrounded(signal, sourceText);
+  assertActionGrounded(signal, sourceText);
+  assertNumbersGrounded(signal, sourceText);
+  const sourceFields = sourceFieldNumbers(sourceText);
+  for (const field of signal.groundingFields) assertFieldGrounded(field, sourceFields);
+  assertCommentGrounded(signal.groundingComment, sourceText);
 }

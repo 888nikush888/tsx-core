@@ -7,7 +7,8 @@
     "src/queue.ts",
     "src/signal_schema.ts",
     "src/slo_tracker.ts",
-    "src/tdlib_retry.ts"
+    "src/tdlib_retry.ts",
+    "src/trading_risk.ts"
   ],
   "exclude": ["**/*.d.ts"],
   "reporter": ["text", "json-summary", "html"],

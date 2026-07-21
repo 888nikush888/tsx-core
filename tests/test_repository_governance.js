@@ -44,6 +44,7 @@ const requiredContexts = [
   'Critical mutation gate (queue)',
   'Critical mutation gate (retry)',
   'Critical mutation gate (schema)',
+  'Critical mutation gate (trading-risk)',
   'CodeQL SAST',
   'Secret history scan',
   'Container build, SBOM, vulnerability scan'

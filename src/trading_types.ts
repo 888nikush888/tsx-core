@@ -94,6 +94,8 @@ export interface TradingAccount {
   status: TradingAccountStatus;
   enabled: boolean;
   credentialRef: string | null;
+  /** Stable provider account/subaccount identity; never a credential value. */
+  externalAccountId: string | null;
   lastVerifiedAt: number | null;
   lastError: string | null;
   createdAt: number;
@@ -139,8 +141,10 @@ export interface TradingIntent {
 export interface TradingAccountSnapshot {
   equity: string;
   availableBalance: string;
-  unrealizedPnl?: string;
-  marginUsed?: string;
+  unrealizedPnl: string;
+  marginUsed: string;
+  /** Signed funding credits/payments since 00:00 UTC; negative values are losses. */
+  fundingPnlToday: string;
 }
 
 export interface TradingMarketSnapshot {
@@ -244,6 +248,16 @@ export interface TradingExchangeAdapter {
   accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot>;
   marketSnapshot(account: TradingAccount, symbol: string): Promise<TradingMarketSnapshot>;
   submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult>;
+  /**
+   * Atomically registers an entry and its reduce-only protective stop at the
+   * provider boundary. Live/testnet adapters must implement this contract;
+   * callers may only fall back for the transactional paper simulator.
+   */
+  submitProtectedEntry?(
+    account: TradingAccount,
+    entry: ExchangeOrderRequest,
+    protectiveStop: ExchangeOrderRequest,
+  ): Promise<{ entry: ExchangeOrderResult; protectiveStop: ExchangeOrderResult }>;
   cancelOrder(account: TradingAccount, clientOrderId: string): Promise<ExchangeOrderResult>;
   openState(account: TradingAccount): Promise<ExchangeOpenState>;
 }

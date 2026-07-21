@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { getDatabase } from './db.js';
+import { getDatabase, withDatabaseTransaction } from './db.js';
 import {
   getTradingAccount,
   getTradingIntent,
@@ -32,6 +32,8 @@ import type {
 } from './trading_types.js';
 
 type TradingLogger = (message: string) => void;
+type ReconciliationOptions = { force?: boolean };
+type RemoteStateWithIdentity = ExchangeOpenState & { accountFingerprint?: string };
 type OpenEntryRow = {
   intent_id: string;
   account_id: string;
@@ -39,6 +41,9 @@ type OpenEntryRow = {
   created_at?: number;
   plan_json?: string;
 };
+
+const MIN_PERIODIC_RECONCILIATION_MS = 10_000;
+const MAX_RECONCILIATION_ROWS_PER_ACCOUNT = 256;
 
 class ReconciliationMismatchError extends Error {
   constructor(message: string) {
@@ -52,25 +57,21 @@ function replacementStopId(intentId: string, quantity: string, trigger: string):
 }
 
 async function transaction<T>(operation: () => Promise<T>): Promise<T> {
-  const database = getDatabase();
-  await database.exec('BEGIN IMMEDIATE');
-  try {
-    const result = await operation();
-    await database.exec('COMMIT');
-    return result;
-  } catch (error) {
-    await database.exec('ROLLBACK').catch(() => undefined);
-    throw error;
-  }
+  return withDatabaseTransaction(operation);
 }
 
-function requestFromOrder(account: TradingAccount, plan: TradingPlan, order: PlannedOrder): ExchangeOrderRequest {
+function requestFromOrder(
+  account: TradingAccount,
+  plan: TradingPlan,
+  order: PlannedOrder,
+): ExchangeOrderRequest & { maxSlippagePercent: string } {
   return {
     ...order,
     accountId: account.id,
     symbol: plan.symbol,
     leverage: plan.leverage,
     timeoutSeconds: order.role === 'entry' ? plan.entryTimeoutSeconds : 12,
+    maxSlippagePercent: plan.maxSlippagePercent,
   };
 }
 
@@ -101,6 +102,16 @@ async function riskEvent(input: {
   intentId?: string;
   details: unknown;
 }): Promise<void> {
+  if (input.severity === 'critical') {
+    const existing = await getDatabase().get<{ id: string }>(
+      `SELECT id FROM trading_risk_events
+       WHERE severity = 'critical' AND code = ?
+         AND account_id IS ? AND intent_id IS ? AND acknowledged_at IS NULL
+       LIMIT 1`,
+      [input.code, input.accountId || null, input.intentId || null],
+    );
+    if (existing) return;
+  }
   await getDatabase().run(
     `INSERT INTO trading_risk_events (
        id, severity, code, account_id, intent_id, details_json, created_at, acknowledged_at
@@ -109,18 +120,26 @@ async function riskEvent(input: {
   );
 }
 
-async function realizedPnlSince(strategyVersionId: string, since: number): Promise<string> {
+async function realizedPnlSince(accountId: string, since: number): Promise<string> {
   const rows = await getDatabase().all<Array<{ realized_pnl: string }>>(
     `SELECT realized_pnl FROM trading_positions
-     WHERE strategy_version_id = ? AND closed_at IS NOT NULL AND closed_at >= ?`,
-    [strategyVersionId, since],
+     WHERE account_id = ? AND closed_at IS NOT NULL AND closed_at >= ?`,
+    [accountId, since],
   );
   return rows.reduce((total, row) => addSignedDecimal(total, row.realized_pnl), '0');
 }
 
-async function assertCapacity(intent: TradingIntent, maxConcurrent: number, maxDailyLoss: string): Promise<void> {
+interface CapacityState {
+  strategyPositionCount: number;
+  symbolOwned: boolean;
+  unknownOrderCount: number;
+  criticalRiskCount: number;
+  activePlans: Array<{ plan_json: string | null }>;
+}
+
+async function loadCapacityState(intent: TradingIntent): Promise<CapacityState> {
   const database = getDatabase();
-  const [strategyPositions, owner, unknownOrders] = await Promise.all([
+  const [strategyPositions, owner, unknownOrders, criticalRisks, activePlans] = await Promise.all([
     database.get<{ count: number }>(
       `SELECT COUNT(*) AS count FROM trading_positions
        WHERE strategy_version_id = ? AND status IN ('opening', 'open', 'closing', 'emergency')`,
@@ -135,18 +154,95 @@ async function assertCapacity(intent: TradingIntent, maxConcurrent: number, maxD
       `SELECT COUNT(*) AS count FROM trading_orders WHERE account_id = ? AND status = 'unknown'`,
       [intent.accountId],
     ),
+    database.get<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM trading_risk_events
+       WHERE account_id = ? AND severity = 'critical' AND acknowledged_at IS NULL`,
+      [intent.accountId],
+    ),
+    database.all<Array<{ plan_json: string | null }>>(
+      `SELECT intent.plan_json FROM trading_positions AS position
+       JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
+       WHERE position.account_id = ? AND position.status IN ('opening', 'open', 'closing', 'emergency')`,
+      [intent.accountId],
+    ),
   ]);
-  if (Number(strategyPositions?.count || 0) >= maxConcurrent) {
+  return {
+    strategyPositionCount: Number(strategyPositions?.count || 0),
+    symbolOwned: Boolean(owner),
+    unknownOrderCount: Number(unknownOrders?.count || 0),
+    criticalRiskCount: Number(criticalRisks?.count || 0),
+    activePlans,
+  };
+}
+
+function assertCapacityState(state: CapacityState, maxConcurrent: number): void {
+  if (state.strategyPositionCount >= maxConcurrent) {
     throw new TradingRiskError('MAX_CONCURRENT_POSITIONS', 'Strategy concurrent-position limit is reached.');
   }
-  if (owner) throw new TradingRiskError('SYMBOL_ALREADY_OWNED', 'Another route already owns this account and symbol.');
-  if (Number(unknownOrders?.count || 0) > 0) {
+  if (state.symbolOwned) throw new TradingRiskError('SYMBOL_ALREADY_OWNED', 'Another route already owns this account and symbol.');
+  if (state.unknownOrderCount > 0) {
     throw new TradingRiskError('UNRESOLVED_ORDER', 'Account has an order with unknown outcome; new entries are fail-closed.');
   }
+  if (state.criticalRiskCount > 0) {
+    throw new TradingRiskError('UNACKNOWLEDGED_CRITICAL_RISK', 'Account has an unacknowledged critical risk event.');
+  }
+}
+
+function reservedPlanRisk(activePlans: CapacityState['activePlans'], maxDailyLoss: string): string {
+  return activePlans.reduce((total, row) => {
+    if (!row.plan_json) return total;
+    try {
+      return addDecimal(total, (JSON.parse(row.plan_json) as TradingPlan).riskAmount);
+    } catch {
+      return addDecimal(total, maxDailyLoss);
+    }
+  }, '0');
+}
+
+function assertExecutionPreconditions(
+  account: Awaited<ReturnType<typeof getTradingAccount>>,
+  runtime: Awaited<ReturnType<typeof getTradingRuntimeState>>,
+): asserts account is TradingAccount {
+  if (runtime.killSwitchActive) throw new TradingRiskError('KILL_SWITCH_ACTIVE', 'Trading kill switch is active.');
+  if (!runtime.executionEnabled) throw new TradingRiskError('EXECUTION_DISABLED', 'Trading execution is disabled.');
+  if (!account || account.status !== 'ready' || !account.enabled) {
+    throw new TradingRiskError('ACCOUNT_NOT_READY', 'Trading account is not ready.');
+  }
+  if (account.mode === 'live' && !runtime.liveTradingEnabled) {
+    throw new TradingRiskError('LIVE_TRADING_DISABLED', 'Live trading is disabled.');
+  }
+}
+
+function assertPublishedStrategy(
+  strategy: Awaited<ReturnType<typeof getTradingStrategyVersion>>,
+): asserts strategy is NonNullable<Awaited<ReturnType<typeof getTradingStrategyVersion>>> {
+  if (!strategy || strategy.status !== 'published') {
+    throw new TradingRiskError('STRATEGY_NOT_PUBLISHED', 'Strategy version is not published.');
+  }
+}
+
+async function assertCapacity(
+  intent: TradingIntent,
+  maxConcurrent: number,
+  maxDailyLoss: string,
+  newRiskAmount: string,
+  unrealizedPnl = '0',
+  fundingPnlToday = '0',
+): Promise<void> {
+  const state = await loadCapacityState(intent);
+  assertCapacityState(state, maxConcurrent);
   const startOfDay = new Date().setUTCHours(0, 0, 0, 0);
-  const pnl = signedDecimal(await realizedPnlSince(intent.strategyVersionId, startOfDay));
-  if (pnl.startsWith('-') && compareDecimal(pnl.slice(1), maxDailyLoss) >= 0) {
-    throw new TradingRiskError('MAX_DAILY_LOSS', 'Strategy daily-loss limit is reached.');
+  const pnl = signedDecimal(addSignedDecimal(
+    addSignedDecimal(await realizedPnlSince(intent.accountId, startOfDay), unrealizedPnl),
+    fundingPnlToday,
+  ));
+  const loss = pnl.startsWith('-') ? pnl.slice(1) : '0';
+  if (compareDecimal(loss, maxDailyLoss) >= 0) {
+    throw new TradingRiskError('MAX_DAILY_LOSS', 'Account daily-loss limit is reached.');
+  }
+  const reservedRisk = reservedPlanRisk(state.activePlans, maxDailyLoss);
+  if (compareDecimal(addDecimal(addDecimal(loss, reservedRisk), newRiskAmount), maxDailyLoss) > 0) {
+    throw new TradingRiskError('MAX_DAILY_RISK', 'Account loss plus reserved trade risk exceeds the daily-loss budget.');
   }
 }
 
@@ -154,10 +250,11 @@ async function calculateIntentPnl(intentId: string, side: 'LONG' | 'SHORT', entr
   const fills = await getDatabase().all<Array<{ role: string; price: string; quantity: string; fee: string }>>(
     `SELECT orders.role, fills.price, fills.quantity, fills.fee
      FROM trading_fills AS fills JOIN trading_orders AS orders ON orders.id = fills.order_id
-     WHERE orders.intent_id = ? AND orders.role <> 'entry'`,
+     WHERE orders.intent_id = ?`,
     [intentId],
   );
   return fills.reduce((total, fill) => {
+    if (fill.role === 'entry') return addSignedDecimal(total, `-${fill.fee}`);
     const difference = side === 'LONG'
       ? signedDifference(fill.price, entryPrice)
       : signedDifference(entryPrice, fill.price);
@@ -165,6 +262,70 @@ async function calculateIntentPnl(intentId: string, side: 'LONG' | 'SHORT', entr
     const signedGross = difference.startsWith('-') && gross !== '0' ? `-${gross}` : gross;
     return addSignedDecimal(addSignedDecimal(total, signedGross), `-${fill.fee}`);
   }, '0');
+}
+
+async function hasTerminalClosureProof(intentId: string): Promise<boolean> {
+  const [fills, terminalExit, unresolved] = await Promise.all([
+    getDatabase().all<Array<{ role: string; quantity: string }>>(
+      `SELECT orders.role, fills.quantity FROM trading_fills AS fills
+       JOIN trading_orders AS orders ON orders.id = fills.order_id
+       WHERE orders.intent_id = ?`,
+      [intentId],
+    ),
+    getDatabase().get<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM trading_orders
+       WHERE intent_id = ? AND role <> 'entry' AND status = 'filled'`,
+      [intentId],
+    ),
+    getDatabase().get<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM trading_orders
+       WHERE intent_id = ? AND role IN ('entry', 'flatten')
+         AND status IN ('submitting', 'unknown', 'cancel_pending')`,
+      [intentId],
+    ),
+  ]);
+  if (Number(terminalExit?.count || 0) === 0 || Number(unresolved?.count || 0) > 0) return false;
+  let opened = '0';
+  let closed = '0';
+  for (const fill of fills) {
+    if (fill.role === 'entry') opened = addDecimal(opened, fill.quantity);
+    else closed = addDecimal(closed, fill.quantity);
+  }
+  return compareDecimal(opened, '0') > 0 && compareDecimal(closed, opened) >= 0;
+}
+
+function remoteStateDigest(remote: ExchangeOpenState): string {
+  const stable = {
+    orders: remote.orders.map(order => ({
+      id: order.clientOrderId,
+      status: order.status,
+      filled: order.filledQuantity,
+      quantity: order.quantity,
+      trigger: order.triggerPrice,
+    })).sort((left, right) => left.id.localeCompare(right.id)),
+    positions: remote.positions.map(position => ({
+      symbol: position.symbol,
+      side: position.side,
+      quantity: position.quantity,
+      entry: position.averageEntryPrice,
+    })).sort((left, right) => `${left.symbol}:${left.side}`.localeCompare(`${right.symbol}:${right.side}`)),
+    fillIds: remote.fills.map(fill => fill.exchangeFillId).sort(),
+  };
+  return createHash('sha256').update(JSON.stringify(stable)).digest('hex');
+}
+
+function compactRemoteSnapshot(remote: RemoteStateWithIdentity): string {
+  return JSON.stringify({
+    version: 2,
+    accountFingerprint: remote.accountFingerprint || null,
+    stateDigest: remoteStateDigest(remote),
+    observedAt: remote.observedAt,
+    counts: {
+      orders: remote.orders.length,
+      positions: remote.positions.length,
+      fills: remote.fills.length,
+    },
+  });
 }
 
 async function persistPlan(intent: TradingIntent, plan: TradingPlan): Promise<void> {
@@ -366,20 +527,34 @@ async function desiredProtectiveTrigger(input: {
   return trigger;
 }
 
-function matchingActiveStop(
+function matchingActiveStops(
   remote: ExchangeOpenState,
   intentOrderIds: Set<string>,
   symbol: string,
 ) {
-  return remote.orders.find(order =>
+  return remote.orders.filter(order =>
     intentOrderIds.has(order.clientOrderId)
     && order.role === 'stop_loss'
     && order.status === 'open'
     && order.symbol === symbol);
 }
 
+type ActiveStop = ReturnType<typeof matchingActiveStops>[number];
+
+function safestActiveStop(activeStops: ActiveStop[], side: 'LONG' | 'SHORT'): ActiveStop | undefined {
+  return activeStops.reduce<ActiveStop | undefined>((best, candidate) => {
+    if (!best || !candidate.triggerPrice) return best || candidate;
+    if (!best.triggerPrice) return candidate;
+    const candidateIsSafer = side === 'LONG'
+      ? compareDecimal(candidate.triggerPrice, best.triggerPrice) > 0
+      : compareDecimal(candidate.triggerPrice, best.triggerPrice) < 0;
+    return candidateIsSafer ? candidate : best;
+  }, undefined);
+}
+
 export class TradingEngine {
   private readonly adapters = new Map<TradingExchange, TradingExchangeAdapter>();
+  private readonly lastPeriodicReconciliationAt = new Map<string, number>();
 
   constructor(adapters: TradingExchangeAdapter[], private readonly logger: TradingLogger = () => undefined) {
     for (const adapter of adapters) this.adapters.set(adapter.exchange, adapter);
@@ -509,22 +684,8 @@ export class TradingEngine {
       getTradingStrategyVersion(intent.strategyVersionId),
       getTradingRuntimeState(),
     ]);
-    if (runtime.killSwitchActive) throw new TradingRiskError('KILL_SWITCH_ACTIVE', 'Trading kill switch is active.');
-    if (!runtime.executionEnabled) throw new TradingRiskError('EXECUTION_DISABLED', 'Trading execution is disabled.');
-    if (!account || account.status !== 'ready' || !account.enabled) {
-      throw new TradingRiskError('ACCOUNT_NOT_READY', 'Trading account is not ready.');
-    }
-    if (account.mode === 'live' && !runtime.liveTradingEnabled) {
-      throw new TradingRiskError('LIVE_TRADING_DISABLED', 'Live trading is disabled.');
-    }
-    if (!strategy || strategy.status !== 'published') {
-      throw new TradingRiskError('STRATEGY_NOT_PUBLISHED', 'Strategy version is not published.');
-    }
-    await assertCapacity(
-      intent,
-      strategy.configuration.safety.maxConcurrentPositions,
-      strategy.configuration.safety.maxDailyLoss,
-    );
+    assertExecutionPreconditions(account, runtime);
+    assertPublishedStrategy(strategy);
     const adapter = this.adapter(account.exchange);
     const [accountSnapshot, market] = await Promise.all([
       adapter.accountSnapshot(account),
@@ -537,27 +698,92 @@ export class TradingEngine {
       account: accountSnapshot,
       market,
     });
+    await assertCapacity(
+      intent,
+      strategy.configuration.safety.maxConcurrentPositions,
+      strategy.configuration.safety.maxDailyLoss,
+      plan.riskAmount,
+      accountSnapshot.unrealizedPnl,
+      accountSnapshot.fundingPnlToday,
+    );
     await persistPlan(intent, plan);
     const entry = plan.orders.find(order => order.role === 'entry')!;
+    const protectiveStop = plan.orders.find(order => order.role === 'stop_loss')!;
     await setIntentState(intent.id, 'submitting', { plan });
-    const entryResult = await submitTrackedOrder({ adapter, account, intent, plan, order: entry });
+    const protectedResult = await submitTrackedProtectedEntry({
+      adapter,
+      account,
+      intent,
+      plan,
+      entry,
+      stop: protectiveStop,
+    });
+    const entryResult = protectedResult.entry;
+    await this.validateProtectedEntryOutcome(
+      adapter, account, intent, plan, protectiveStop, protectedResult,
+    );
+    await this.enforceEntrySlippage(adapter, account, intent, plan, entryResult);
+    await this.submitInitialExits(adapter, account, intent, plan, entryResult);
+    await setIntentState(intent.id, 'monitoring', { plan });
+    this.logger(`[TRADING] intent=${intent.id} submitted status=${entryResult.status}`);
+  }
+
+  private async validateProtectedEntryOutcome(
+    adapter: TradingExchangeAdapter,
+    account: TradingAccount,
+    intent: TradingIntent,
+    plan: TradingPlan,
+    protectiveStop: PlannedOrder,
+    protectedResult: { entry: ExchangeOrderResult; protectiveStop: ExchangeOrderResult },
+  ): Promise<void> {
+    const entryResult = protectedResult.entry;
     if (entryResult.status === 'rejected') {
+      if (['open', 'partially_filled'].includes(protectedResult.protectiveStop.status)) {
+        const cancelled = await adapter.cancelOrder(account, protectiveStop.clientOrderId);
+        await storeOrderResult(intent.id, cancelled);
+      }
       throw new TradingRiskError('ENTRY_REJECTED', entryResult.error || 'Entry order rejected.');
     }
+    if (!['open', 'partially_filled', 'filled'].includes(entryResult.status)) {
+      throw new Error(`Protected entry outcome is ${entryResult.status}.`);
+    }
     await openLocalPosition(intent, entryResult);
+    if (!['open', 'filled'].includes(protectedResult.protectiveStop.status)) {
+      const error = new Error(
+        `Provider-native protective stop status is ${protectedResult.protectiveStop.status}.`,
+      );
+      await this.emergencyFlatten(adapter, account, intent, plan, error);
+      throw error;
+    }
+  }
+
+  private async enforceEntrySlippage(
+    adapter: TradingExchangeAdapter,
+    account: TradingAccount,
+    intent: TradingIntent,
+    plan: TradingPlan,
+    entryResult: ExchangeOrderResult,
+  ): Promise<void> {
     try {
       assertEntrySlippage(intent, plan, entryResult);
     } catch (error) {
       await this.emergencyFlatten(adapter, account, intent, plan, error);
       throw error;
     }
+  }
+
+  private async submitInitialExits(
+    adapter: TradingExchangeAdapter,
+    account: TradingAccount,
+    intent: TradingIntent,
+    plan: TradingPlan,
+    entryResult: ExchangeOrderResult,
+  ): Promise<void> {
     if (entryResult.status === 'filled') {
       await this.submitExits(adapter, account, intent, plan);
     } else if (entryResult.status === 'partially_filled') {
       await this.ensureExitProtection(adapter, account, intent, plan);
     }
-    await setIntentState(intent.id, 'monitoring', { plan });
-    this.logger(`[TRADING] intent=${intent.id} submitted status=${entryResult.status}`);
   }
 
   private async handleIntentFailure(intent: TradingIntent, error: any): Promise<void> {
@@ -688,12 +914,13 @@ export class TradingEngine {
     try {
       const result = await submitTrackedOrder({ adapter, account, intent, plan, order });
       if (result.status !== 'filled') throw new Error(`Emergency flatten status is ${result.status}.`);
-      await getDatabase().run(
-        `UPDATE trading_positions SET status = 'closed', quantity = '0', closed_at = ?, updated_at = ? WHERE intent_id = ?`,
-        [Date.now(), Date.now(), intent.id],
-      );
+      await updateTradingRuntimeState({
+        executionEnabled: false,
+        killSwitchActive: true,
+        killSwitchReason: `Emergency flatten for intent ${intent.id} awaits exchange reconciliation`,
+      });
       await riskEvent({
-        severity: 'critical', code: 'EMERGENCY_FLATTENED', accountId: account.id, intentId: intent.id,
+        severity: 'critical', code: 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION', accountId: account.id, intentId: intent.id,
         details: { cause: cause instanceof Error ? cause.message : String(cause) },
       });
     } catch (flattenError: any) {
@@ -710,31 +937,157 @@ export class TradingEngine {
     }
   }
 
-  async reconcileAccount(accountId: string): Promise<void> {
+  async reconcileAccount(accountId: string, options: ReconciliationOptions = { force: true }): Promise<void> {
+    const force = options.force !== false;
+    const now = Date.now();
+    if (!force) {
+      const inMemory = this.lastPeriodicReconciliationAt.get(accountId) || 0;
+      if (now - inMemory < MIN_PERIODIC_RECONCILIATION_MS) return;
+      this.lastPeriodicReconciliationAt.set(accountId, now);
+      const latest = await getDatabase().get<{ completed_at: number | null }>(
+        `SELECT MAX(completed_at) AS completed_at FROM trading_reconciliation_runs
+         WHERE account_id = ? AND status = 'succeeded'`,
+        [accountId],
+      );
+      if (latest?.completed_at && now - latest.completed_at < MIN_PERIODIC_RECONCILIATION_MS) {
+        this.lastPeriodicReconciliationAt.set(accountId, latest.completed_at);
+        return;
+      }
+    }
     const account = await getTradingAccount(accountId);
     if (!account) throw new Error('Trading account does not exist.');
     const adapter = this.adapter(account.exchange);
     const runId = randomUUID();
     const startedAt = Date.now();
-    await getDatabase().run(
-      `INSERT INTO trading_reconciliation_runs (id, account_id, status, started_at)
-       VALUES (?, ?, 'running', ?)`,
-      [runId, accountId, startedAt],
-    );
     try {
-      const remote = await adapter.openState(account);
+      const remote = await adapter.openState(account) as RemoteStateWithIdentity;
+      await this.assertRemoteAccountIdentity(account, remote);
       await this.applyRemoteState(account, adapter, remote);
-      await getDatabase().run(
-        `UPDATE trading_reconciliation_runs SET status = 'succeeded', remote_snapshot_json = ?, completed_at = ? WHERE id = ?`,
-        [JSON.stringify(remote), Date.now(), runId],
-      );
+      await this.recordReconciliationSuccess(accountId, runId, startedAt, remote);
     } catch (error: any) {
       await getDatabase().run(
-        `UPDATE trading_reconciliation_runs SET status = ?, last_error = ?, completed_at = ? WHERE id = ?`,
-        [error instanceof ReconciliationMismatchError ? 'mismatch' : 'failed', error?.message || String(error), Date.now(), runId],
+        `INSERT INTO trading_reconciliation_runs (
+           id, account_id, status, last_error, started_at, completed_at
+         ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          runId,
+          accountId,
+          error instanceof ReconciliationMismatchError ? 'mismatch' : 'failed',
+          error?.message || String(error),
+          startedAt,
+          Date.now(),
+        ],
       );
+      await this.pruneReconciliationRuns(accountId);
       throw error;
     }
+  }
+
+  private async assertRemoteAccountIdentity(
+    account: TradingAccount,
+    remote: RemoteStateWithIdentity,
+  ): Promise<void> {
+    if (account.exchange === 'paper') return;
+    const current = remote.accountFingerprint;
+    if (typeof current !== 'string' || !/^[a-f0-9]{64}$/.test(current)) {
+      await this.failRemoteAccountIdentity(account, 'Exchange snapshot omitted a valid account fingerprint.');
+    }
+    if (account.externalAccountId && account.externalAccountId !== current) {
+      await this.failRemoteAccountIdentity(account, 'Exchange snapshot does not match the bound external account identity.', {
+        boundPrefix: account.externalAccountId.slice(0, 12),
+        currentPrefix: current!.slice(0, 12),
+      });
+    }
+    const previous = await getDatabase().get<{ remote_snapshot_json: string | null }>(
+      `SELECT remote_snapshot_json FROM trading_reconciliation_runs
+       WHERE account_id = ? AND status = 'succeeded' AND remote_snapshot_json IS NOT NULL
+       ORDER BY completed_at DESC LIMIT 1`,
+      [account.id],
+    );
+    if (!previous?.remote_snapshot_json) return;
+    let priorFingerprint: string | null = null;
+    try {
+      const parsed = JSON.parse(previous.remote_snapshot_json) as { accountFingerprint?: unknown };
+      if (typeof parsed.accountFingerprint === 'string') priorFingerprint = parsed.accountFingerprint;
+    } catch {
+      return;
+    }
+    if (!priorFingerprint || priorFingerprint === current) return;
+    await this.failRemoteAccountIdentity(account, 'Exchange account fingerprint changed.', {
+      previousPrefix: priorFingerprint.slice(0, 12),
+      currentPrefix: current!.slice(0, 12),
+    });
+  }
+
+  private async failRemoteAccountIdentity(
+    account: TradingAccount,
+    message: string,
+    details: Record<string, unknown> = {},
+  ): Promise<never> {
+    await riskEvent({
+      severity: 'critical',
+      code: 'REMOTE_ACCOUNT_IDENTITY_MISMATCH',
+      accountId: account.id,
+      details: { message, ...details },
+    });
+    await updateTradingRuntimeState({
+      executionEnabled: false,
+      killSwitchActive: true,
+      killSwitchReason: `Remote account identity is untrusted for account ${account.id}`,
+    });
+    throw new ReconciliationMismatchError(message);
+  }
+
+  private async recordReconciliationSuccess(
+    accountId: string,
+    runId: string,
+    startedAt: number,
+    remote: RemoteStateWithIdentity,
+  ): Promise<void> {
+    const snapshot = compactRemoteSnapshot(remote);
+    const previous = await getDatabase().get<{ id: string; remote_snapshot_json: string | null }>(
+      `SELECT id, remote_snapshot_json FROM trading_reconciliation_runs
+       WHERE account_id = ? AND status = 'succeeded'
+       ORDER BY completed_at DESC LIMIT 1`,
+      [accountId],
+    );
+    let coalesce = false;
+    if (previous?.remote_snapshot_json) {
+      try {
+        const before = JSON.parse(previous.remote_snapshot_json) as { stateDigest?: unknown; accountFingerprint?: unknown };
+        const after = JSON.parse(snapshot) as { stateDigest: string; accountFingerprint: string | null };
+        coalesce = before.stateDigest === after.stateDigest
+          && before.accountFingerprint === after.accountFingerprint;
+      } catch {
+        coalesce = false;
+      }
+    }
+    if (coalesce && previous) {
+      await getDatabase().run(
+        `UPDATE trading_reconciliation_runs SET started_at = ?, completed_at = ?, remote_snapshot_json = ?
+         WHERE id = ?`,
+        [startedAt, Date.now(), snapshot, previous.id],
+      );
+    } else {
+      await getDatabase().run(
+        `INSERT INTO trading_reconciliation_runs (
+           id, account_id, status, remote_snapshot_json, started_at, completed_at
+         ) VALUES (?, ?, 'succeeded', ?, ?, ?)`,
+        [runId, accountId, snapshot, startedAt, Date.now()],
+      );
+    }
+    await this.pruneReconciliationRuns(accountId);
+  }
+
+  private async pruneReconciliationRuns(accountId: string): Promise<void> {
+    await getDatabase().run(
+      `DELETE FROM trading_reconciliation_runs
+       WHERE account_id = ? AND id NOT IN (
+         SELECT id FROM trading_reconciliation_runs
+         WHERE account_id = ? ORDER BY started_at DESC LIMIT ?
+       )`,
+      [accountId, accountId, MAX_RECONCILIATION_ROWS_PER_ACCOUNT],
+    );
   }
 
   private async applyRemoteState(
@@ -743,6 +1096,21 @@ export class TradingEngine {
     remote: ExchangeOpenState,
   ): Promise<void> {
     await this.detectUnmanagedExposure(account, remote);
+    await this.persistRemoteExecutions(account, remote);
+    const localPositions = await getDatabase().all<any[]>(
+      `SELECT position.*, intent.plan_json FROM trading_positions AS position
+       JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
+       WHERE position.account_id = ? AND position.status IN ('opening', 'open', 'closing', 'emergency')`,
+      [account.id],
+    );
+    for (const local of localPositions) {
+      const position = remote.positions.find(candidate => candidate.symbol === local.symbol);
+      if (position) await this.reconcileOpenRemotePosition(account, adapter, remote, local, position);
+      else await this.reconcileMissingRemotePosition(account, remote, local);
+    }
+  }
+
+  private async persistRemoteExecutions(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
     for (const order of remote.orders) {
       await getDatabase().run(
         `UPDATE trading_orders SET exchange_order_id = ?, status = ?, filled_quantity = ?,
@@ -764,66 +1132,85 @@ export class TradingEngine {
         [randomUUID(), localOrder.id, account.id, fill.exchangeFillId, fill.price, fill.quantity, fill.fee, fill.feeAsset, fill.filledAt, JSON.stringify(fill.raw)],
       );
     }
-    const localPositions = await getDatabase().all<any[]>(
-      `SELECT position.*, intent.plan_json FROM trading_positions AS position
-       JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
-       WHERE position.account_id = ? AND position.status IN ('opening', 'open', 'closing', 'emergency')`,
-      [account.id],
+  }
+
+  private async reconcileMissingRemotePosition(
+    account: TradingAccount,
+    remote: ExchangeOpenState,
+    local: any,
+  ): Promise<void> {
+    if (compareDecimal(local.quantity, '0') > 0) {
+      await this.closeRemotelyAbsentPosition(account, remote, local);
+      return;
+    }
+    const entry = await getDatabase().get<{ status: string }>(
+      `SELECT status FROM trading_orders
+       WHERE intent_id = ? AND role = 'entry' ORDER BY created_at LIMIT 1`,
+      [local.intent_id],
     );
-    for (const local of localPositions) {
-      const position = remote.positions.find(candidate => candidate.symbol === local.symbol);
-      if (!position) {
-        if (compareDecimal(local.quantity, '0') > 0) {
-          const realizedPnl = await calculateIntentPnl(local.intent_id, local.side, local.average_entry_price);
-          await getDatabase().run(
-            `UPDATE trading_positions SET status = 'closed', quantity = '0', realized_pnl = ?,
-               closed_at = ?, updated_at = ? WHERE id = ?`,
-            [realizedPnl, remote.observedAt, remote.observedAt, local.id],
-          );
-          await setIntentState(local.intent_id, 'completed');
-        } else {
-          const entry = await getDatabase().get<{ status: string }>(
-            `SELECT status FROM trading_orders
-             WHERE intent_id = ? AND role = 'entry' ORDER BY created_at LIMIT 1`,
-            [local.intent_id],
-          );
-          if (entry && ['cancelled', 'rejected'].includes(entry.status)) {
-            await getDatabase().run(
-              `UPDATE trading_positions SET status = 'closed', closed_at = ?, updated_at = ? WHERE id = ?`,
-              [remote.observedAt, remote.observedAt, local.id],
-            );
-            await setIntentState(local.intent_id, 'failed', { error: `Entry order ${entry.status} before opening a position.` });
-          }
-        }
-        continue;
-      }
+    if (entry && ['cancelled', 'rejected'].includes(entry.status)) {
       await getDatabase().run(
-        `UPDATE trading_positions SET status = 'open', quantity = ?, average_entry_price = ?,
-           opened_at = COALESCE(opened_at, ?), updated_at = ? WHERE id = ?`,
-        [position.quantity, position.averageEntryPrice, remote.observedAt, remote.observedAt, local.id],
+        `UPDATE trading_positions SET status = 'closed', closed_at = ?, updated_at = ? WHERE id = ?`,
+        [remote.observedAt, remote.observedAt, local.id],
       );
-      const recoverableIntent = await getTradingIntent(local.intent_id);
-      if (!recoverableIntent || !local.plan_json) throw new Error('Remote position has no recoverable trade plan.');
-      const recoverablePlan = JSON.parse(local.plan_json) as TradingPlan;
-      try {
-        await assertTerminalEntrySlippage(
-          recoverableIntent,
-          recoverablePlan,
-          position.averageEntryPrice,
-          position.quantity,
-        );
-      } catch (error) {
-        await this.emergencyFlatten(adapter, account, recoverableIntent, recoverablePlan, error);
-        throw error;
-      }
-      await this.ensureProtectiveStop(account, adapter, local, position.quantity, remote);
-      await this.submitExits(
-        adapter,
-        account,
-        recoverableIntent,
-        recoverablePlan,
+      await setIntentState(local.intent_id, 'failed', { error: `Entry order ${entry.status} before opening a position.` });
+    }
+  }
+
+  private async closeRemotelyAbsentPosition(
+    account: TradingAccount,
+    remote: ExchangeOpenState,
+    local: any,
+  ): Promise<void> {
+    if (!await hasTerminalClosureProof(local.intent_id)) {
+      await riskEvent({
+        severity: 'critical', code: 'REMOTE_POSITION_ABSENCE_UNCONFIRMED',
+        accountId: account.id, intentId: local.intent_id,
+        details: { symbol: local.symbol, observedAt: remote.observedAt },
+      });
+      await updateTradingRuntimeState({
+        executionEnabled: false,
+        killSwitchActive: true,
+        killSwitchReason: `Remote position absence is unconfirmed for account ${account.id}`,
+      });
+      throw new ReconciliationMismatchError(
+        `Remote position ${local.symbol} is absent without terminal fill proof.`,
       );
     }
+    const realizedPnl = await calculateIntentPnl(local.intent_id, local.side, local.average_entry_price);
+    await getDatabase().run(
+      `UPDATE trading_positions SET status = 'closed', quantity = '0', realized_pnl = ?,
+         closed_at = ?, updated_at = ? WHERE id = ?`,
+      [realizedPnl, remote.observedAt, remote.observedAt, local.id],
+    );
+    await setIntentState(local.intent_id, 'completed');
+  }
+
+  private async reconcileOpenRemotePosition(
+    account: TradingAccount,
+    adapter: TradingExchangeAdapter,
+    remote: ExchangeOpenState,
+    local: any,
+    position: ExchangeOpenState['positions'][number],
+  ): Promise<void> {
+    await getDatabase().run(
+      `UPDATE trading_positions SET status = 'open', quantity = ?, average_entry_price = ?,
+         opened_at = COALESCE(opened_at, ?), updated_at = ? WHERE id = ?`,
+      [position.quantity, position.averageEntryPrice, remote.observedAt, remote.observedAt, local.id],
+    );
+    const recoverableIntent = await getTradingIntent(local.intent_id);
+    if (!recoverableIntent || !local.plan_json) throw new Error('Remote position has no recoverable trade plan.');
+    const recoverablePlan = JSON.parse(local.plan_json) as TradingPlan;
+    try {
+      await assertTerminalEntrySlippage(
+        recoverableIntent, recoverablePlan, position.averageEntryPrice, position.quantity,
+      );
+    } catch (error) {
+      await this.emergencyFlatten(adapter, account, recoverableIntent, recoverablePlan, error);
+      throw error;
+    }
+    await this.ensureProtectiveStop(account, adapter, local, position.quantity, remote);
+    await this.submitExits(adapter, account, recoverableIntent, recoverablePlan);
   }
 
   private async detectUnmanagedExposure(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
@@ -840,13 +1227,15 @@ export class TradingEngine {
     ]);
     const orderIds = new Set(localOrders.map(order => order.client_order_id));
     const externalOrders = remote.orders.filter(order =>
-      ['open', 'partially_filled'].includes(order.status) && !orderIds.has(order.clientOrderId));
+      !['filled', 'cancelled', 'rejected'].includes(order.status) && !orderIds.has(order.clientOrderId));
+    const unknownOrders = remote.orders.filter(order => order.status === 'unknown');
     const externalPositions = remote.positions.filter(position =>
       !localPositions.some(local => local.symbol === position.symbol && local.side === position.side));
-    if (externalOrders.length === 0 && externalPositions.length === 0) return;
+    if (externalOrders.length === 0 && externalPositions.length === 0 && unknownOrders.length === 0) return;
     const details = {
       externalOrderIds: externalOrders.map(order => order.clientOrderId),
       externalPositions: externalPositions.map(position => ({ symbol: position.symbol, side: position.side })),
+      unknownOrderIds: unknownOrders.map(order => order.clientOrderId),
     };
     await riskEvent({
       severity: 'critical',
@@ -883,7 +1272,8 @@ export class TradingEngine {
        WHERE intent_id = ? AND role = 'take_profit' AND status = 'filled'`, [intent.id],
     );
     const filledTargets = Number(filledTargetState?.count || 0);
-    const activeStop = matchingActiveStop(remote, intentOrderIds, local.symbol);
+    const activeStops = matchingActiveStops(remote, intentOrderIds, local.symbol);
+    const activeStop = safestActiveStop(activeStops, local.side);
     const protectiveQuantity = await requiredProtectiveQuantity(intent.id, plan, quantity);
     const trigger = await desiredProtectiveTrigger({
       adapter,
@@ -895,18 +1285,109 @@ export class TradingEngine {
       filledTargets,
       currentTrigger: activeStop?.triggerPrice || null,
     });
-    if (activeStop && activeStop.quantity === protectiveQuantity && activeStop.triggerPrice === trigger) return;
-    if (activeStop) {
-      const cancelled = await adapter.cancelOrder(account, activeStop.clientOrderId);
-      await storeOrderResult(intent.id, cancelled);
-    }
-    const replacement = await createReplacementStop(intent, plan, protectiveQuantity, trigger);
+    const exactStop = activeStops.find(stop => stop.quantity === protectiveQuantity && stop.triggerPrice === trigger);
+    const protectedStop = await this.activateProtectiveStop(
+      adapter, account, intent, plan, local.symbol, protectiveQuantity, trigger, exactStop,
+    );
+    await this.cancelStaleProtectiveStops(account, adapter, intent, activeStops, protectedStop);
+  }
+
+  private async activateProtectiveStop(
+    adapter: TradingExchangeAdapter,
+    account: TradingAccount,
+    intent: TradingIntent,
+    plan: TradingPlan,
+    symbol: string,
+    quantity: string,
+    trigger: string,
+    existing: ActiveStop | undefined,
+  ): Promise<ActiveStop> {
+    if (existing) return existing;
     try {
+      const replacement = await createReplacementStop(intent, plan, quantity, trigger);
       const result = await submitTrackedOrder({ adapter, account, intent, plan, order: replacement });
       if (result.status !== 'open') throw new Error(`Replacement stop status is ${result.status}.`);
+      return { ...replacement, ...result, symbol } as ActiveStop;
     } catch (error) {
       await this.emergencyFlatten(adapter, account, intent, plan, error);
       throw error;
     }
+  }
+
+  private async cancelStaleProtectiveStops(
+    account: TradingAccount,
+    adapter: TradingExchangeAdapter,
+    intent: TradingIntent,
+    activeStops: ActiveStop[],
+    protectedStop: ActiveStop,
+  ): Promise<void> {
+    for (const stale of activeStops) {
+      if (stale.clientOrderId === protectedStop.clientOrderId) continue;
+      try {
+        const cancelled = await adapter.cancelOrder(account, stale.clientOrderId);
+        await storeOrderResult(intent.id, cancelled);
+        if (!['cancelled', 'filled'].includes(cancelled.status)) {
+          throw new Error(`Stale protective stop cancellation status is ${cancelled.status}.`);
+        }
+      } catch (error: any) {
+        await riskEvent({
+          severity: 'critical',
+          code: 'STOP_REPLACEMENT_CANCEL_UNRESOLVED',
+          accountId: account.id,
+          intentId: intent.id,
+          details: {
+            protectedStopId: protectedStop.clientOrderId,
+            staleStopId: stale.clientOrderId,
+            message: error?.message || String(error),
+          },
+        });
+        await updateTradingRuntimeState({
+          executionEnabled: false,
+          killSwitchActive: true,
+          killSwitchReason: `Protective stop cancellation is unresolved for account ${account.id}`,
+        });
+        throw new ReconciliationMismatchError('Replacement stop is active but the stale stop outcome is unresolved.');
+      }
+    }
+  }
+}
+
+async function submitTrackedProtectedEntry(input: {
+  adapter: TradingExchangeAdapter;
+  account: TradingAccount;
+  intent: TradingIntent;
+  plan: TradingPlan;
+  entry: PlannedOrder;
+  stop: PlannedOrder;
+}): Promise<{ entry: ExchangeOrderResult; protectiveStop: ExchangeOrderResult }> {
+  if (!input.adapter.submitProtectedEntry) {
+    throw new Error(`Exchange adapter ${input.account.exchange} lacks atomic protected-entry support.`);
+  }
+  await markOrderSubmitting(input.intent.id, input.stop.clientOrderId);
+  await markOrderSubmitting(input.intent.id, input.entry.clientOrderId);
+  try {
+    const results = await input.adapter.submitProtectedEntry(
+      input.account,
+      requestFromOrder(input.account, input.plan, input.entry),
+      requestFromOrder(input.account, input.plan, input.stop),
+    );
+    await withDatabaseTransaction(async () => {
+      await storeOrderResult(input.intent.id, results.protectiveStop);
+      await storeOrderResult(input.intent.id, results.entry);
+    });
+    return results;
+  } catch (error: any) {
+    await getDatabase().run(
+      `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
+       WHERE intent_id = ? AND client_order_id IN (?, ?)`,
+      [
+        error?.message || 'Protected entry outcome is unknown.',
+        Date.now(),
+        input.intent.id,
+        input.entry.clientOrderId,
+        input.stop.clientOrderId,
+      ],
+    );
+    throw error;
   }
 }

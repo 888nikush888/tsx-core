@@ -25,6 +25,7 @@ interface StoredCredentials {
 }
 
 const ACCOUNT_ID_PATTERN = /^[a-zA-Z0-9-]{1,64}$/;
+const CANDIDATE_ID_PATTERN = /^candidate-[a-f0-9]{32}$/;
 
 function assertAccountId(accountId: string): string {
   if (!ACCOUNT_ID_PATTERN.test(accountId)) throw new Error('Invalid trading account identifier.');
@@ -77,6 +78,16 @@ export class TradingCredentialStore {
     await fs.mkdir(this.accountsDirectory, { recursive: true, mode: 0o700 });
     const stats = await fs.lstat(this.accountsDirectory);
     if (!stats.isDirectory() || stats.isSymbolicLink()) throw new Error('Trading credential directory must be a real directory.');
+    // A process crash may leave a verification-only credential candidate. The
+    // process lock guarantees that no live verifier can still own it here.
+    let removedCandidate = false;
+    for (const entry of await fs.readdir(this.accountsDirectory, { withFileTypes: true })) {
+      if (entry.isFile() && CANDIDATE_ID_PATTERN.test(entry.name.replace(/\.json$/, '')) && entry.name.endsWith('.json')) {
+        await fs.unlink(path.join(this.accountsDirectory, entry.name));
+        removedCandidate = true;
+      }
+    }
+    if (removedCandidate) await syncDirectory(this.accountsDirectory);
     await this.getOrCreateExecutorToken();
   }
 
@@ -84,6 +95,35 @@ export class TradingCredentialStore {
     const safeAccountId = assertAccountId(accountId);
     const stored = storedCredentials(safeAccountId, credentials, now);
     await this.writeAtomically(this.accountPath(safeAccountId), `${JSON.stringify(stored)}\n`);
+  }
+
+  async stageCandidate(credentials: TradingCredentials, now = Date.now()): Promise<string> {
+    const candidateId = `candidate-${randomBytes(16).toString('hex')}`;
+    await this.set(candidateId, credentials, now);
+    return candidateId;
+  }
+
+  async promoteCandidate(candidateId: string, accountId: string, now = Date.now()): Promise<void> {
+    if (!CANDIDATE_ID_PATTERN.test(candidateId)) throw new Error('Invalid credential candidate identifier.');
+    const candidate = await this.read(candidateId);
+    const credentials: TradingCredentials = candidate.exchange === 'hyperliquid'
+      ? {
+          exchange: 'hyperliquid',
+          privateKey: candidate.privateKey!,
+          walletAddress: candidate.walletAddress!,
+        }
+      : {
+          exchange: 'bybit',
+          apiKey: candidate.apiKey!,
+          apiSecret: candidate.apiSecret!,
+        };
+    await this.set(accountId, credentials, now);
+    await this.remove(candidateId);
+  }
+
+  async discardCandidate(candidateId: string): Promise<void> {
+    if (!CANDIDATE_ID_PATTERN.test(candidateId)) throw new Error('Invalid credential candidate identifier.');
+    await this.remove(candidateId);
   }
 
   async status(accountId: string): Promise<TradingCredentialStatus> {

@@ -20,6 +20,7 @@ import { acquireProcessLock, type ProcessLock } from './process_lock.js';
 import { isDuplicateSignal, normalizeSignalXml } from './dupe_blocker.js';
 import {
   acknowledgeOutboxTask,
+  beginDatabaseMaintenance,
   claimOutboxTask,
   closeDb,
   completeOutboxTask,
@@ -61,12 +62,22 @@ import { DeliverySloTracker } from './slo_tracker.js';
 import { auditTrailFromEnvironment, type EnterpriseAuditTrail } from './audit_trail.js';
 import { addLog, clearLogHistory, initFileLogger } from './logger.js';
 import { managedSecretStoreFromEnvironment, type ManagedSecretStore } from './secret_store.js';
+import {
+  assertFactoryResetTarget,
+  clearFactoryResetTarget,
+  type FactoryResetBoundary,
+} from './factory_reset_paths.js';
 import { TelegramLoginCoordinator } from './telegram_login.js';
 import {
   managedRuntimeSettingsFromEnvironment,
   type ManagedRuntimeSettingsStore,
 } from './runtime_settings.js';
-import { createTradingIntent, ensureTradingDefaults, getTradingOperationalSnapshot } from './trading_repository.js';
+import {
+  createTradingIntent,
+  ensureTradingDefaults,
+  getTradingOperationalSnapshot,
+  getTradingRuntimeState,
+} from './trading_repository.js';
 import { PaperExchangeAdapter } from './paper_exchange.js';
 import { TradingEngine } from './trading_engine.js';
 import { TradingRuntime } from './trading_runtime.js';
@@ -356,6 +367,7 @@ let offsiteBackupReplicator: BackupReplicator | null = null;
 let retentionScheduler: OperationalDataRetention | null = null;
 let tradingRuntime: TradingRuntime | null = null;
 let tradingWebControl: TradingWebControl | null = null;
+let activeMaintenanceOperation: string | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
 let processLock: ProcessLock | null = null;
@@ -1151,6 +1163,31 @@ async function stopScheduler(scheduler: { stop: () => Promise<void> } | null, la
   }
 }
 
+function beginApplicationMaintenance(operation: string): () => void {
+  if (activeMaintenanceOperation) {
+    throw new Error(`Maintenance operation '${activeMaintenanceOperation}' is already active.`);
+  }
+  activeMaintenanceOperation = operation;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    activeMaintenanceOperation = null;
+  };
+}
+
+async function stopSchedulerForMaintenance(
+  scheduler: { stop: () => Promise<void> } | null,
+  label: string,
+): Promise<void> {
+  if (!scheduler) return;
+  try {
+    await scheduler.stop();
+  } catch (error: any) {
+    throw new Error(`${label} could not be drained for maintenance.`, { cause: error });
+  }
+}
+
 async function stopRuntimeServices(): Promise<void> {
   await stopScheduler(tradingRuntime, 'Trading Runtime');
   await stopScheduler(backupScheduler, 'Laufendes Backup');
@@ -1271,7 +1308,10 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore)
     2_000,
     addLog,
   );
-  await tradingRuntime.start();
+  // Existing exposure is reconciled immediately, but pending entries remain
+  // latched off until crash, retention, dashboard, monitoring and backup gates
+  // have all completed below.
+  await tradingRuntime.startProtectionOnly();
   state.totalForwardedCount = await getTotalForwardedCount();
   state.lastSuccessfulForwardAt = await getLastForwardedAt();
   await checkCrashLoop();
@@ -1317,7 +1357,7 @@ async function startBackupRuntime(runtime: RuntimeConfiguration): Promise<void> 
   await backupScheduler.start();
 }
 
-function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number): void {
+async function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number): Promise<void> {
   startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
     totalForwardedCountCallback: () => state.totalForwardedCount,
     getQueueStateCallback: () => ({
@@ -1342,30 +1382,10 @@ function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number):
       })
     });
     metricsTracker.start();
-  } catch (err: any) {
-    console.error(`[WARN] Konnte Metrics Tracker nicht initialisieren: ${err.message}`);
-  }
-}
-
-async function assertFactoryResetDirectory(directory: string): Promise<string> {
-  const root = path.resolve(directory);
-  const applicationRoot = path.resolve(process.cwd());
-  if (root === applicationRoot || !root.startsWith(`${applicationRoot}${path.sep}`)) {
-    throw new Error(`Factory reset refuses to erase a path outside the application root: ${root}`);
-  }
-  await fsPromises.mkdir(root, { recursive: true, mode: 0o700 });
-  const stats = await fsPromises.lstat(root);
-  if (!stats.isDirectory() || stats.isSymbolicLink()) {
-    throw new Error(`Factory reset path must be a real directory: ${root}`);
-  }
-  return root;
-}
-
-async function clearFactoryResetDirectory(directory: string): Promise<void> {
-  const root = await assertFactoryResetDirectory(directory);
-  const entries = await fsPromises.readdir(root);
-  for (const entry of entries) {
-    await fsPromises.rm(path.join(root, entry), { recursive: true, force: true });
+  } catch (error) {
+    metricsTracker = null;
+    await stopMetricsServer();
+    throw error;
   }
 }
 
@@ -1384,20 +1404,25 @@ async function performCompleteFactoryReset(
   }
   const logsDirectory = path.resolve(process.env.LOG_DIR || path.join(process.cwd(), 'logs'));
   const configuredSignalsDirectory = path.resolve(runtime.config.xmlParsing?.signalsDir || path.join(process.cwd(), 'signals'));
-  const resetDirectories = [
-    process.env.MANAGED_SECRET_DIR || path.join(process.cwd(), 'secrets'),
-    process.env.TEMPLATES_DIR || path.resolve(__dirname, '../templates'),
-    path.join(process.cwd(), 'session_data'),
-    path.join(process.cwd(), 'session_files'),
-    configuredSignalsDirectory,
-    path.join(process.cwd(), 'signals'),
-    process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'),
-    logsDirectory,
+  const applicationBoundary: FactoryResetBoundary = { kind: 'application', applicationRoot };
+  const managedSecretRoot = secretStore.rootPath();
+  const resetDirectories: Array<{ directory: string; boundary: FactoryResetBoundary }> = [
+    {
+      directory: managedSecretRoot,
+      boundary: { kind: 'exact-managed-secret', configuredRoot: managedSecretRoot, applicationRoot },
+    },
+    { directory: process.env.TEMPLATES_DIR || path.resolve(__dirname, '../templates'), boundary: applicationBoundary },
+    { directory: path.join(process.cwd(), 'session_data'), boundary: applicationBoundary },
+    { directory: path.join(process.cwd(), 'session_files'), boundary: applicationBoundary },
+    { directory: configuredSignalsDirectory, boundary: applicationBoundary },
+    { directory: path.join(process.cwd(), 'signals'), boundary: applicationBoundary },
+    { directory: process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'), boundary: applicationBoundary },
+    { directory: logsDirectory, boundary: applicationBoundary },
   ];
-  const targets = new Map<string, string>();
-  for (const directory of resetDirectories) {
-    const resolved = await assertFactoryResetDirectory(directory);
-    targets.set(resolved, resolved);
+  const targets = new Map<string, FactoryResetBoundary>();
+  for (const target of resetDirectories) {
+    const resolved = await assertFactoryResetTarget(target.directory, target.boundary);
+    targets.set(resolved, target.boundary);
   }
 
   await stopScheduler(tradingRuntime, 'Trading Runtime');
@@ -1417,7 +1442,7 @@ async function performCompleteFactoryReset(
   await secretStore.clear();
   await runtimeSettings.reset();
   await fsPromises.rm(configPath, { force: true });
-  for (const target of targets.values()) await clearFactoryResetDirectory(target);
+  for (const [target, boundary] of targets) await clearFactoryResetTarget(target, boundary);
   await auditTrail?.resetLocal();
 
   const candidateConfig = structuredClone(DEFAULT_CONFIG);
@@ -1460,23 +1485,61 @@ async function recoverNamedOffsiteBackup(objectName: string): Promise<string> {
 }
 
 async function restoreNamedBackup(artifactName: string) {
+  const releaseApplicationMaintenance = beginApplicationMaintenance('backup-restore');
   const artifact = resolvedBackupArtifact(artifactName);
-  await verifyBackupArtifact(artifact);
-  await stopForwarding();
-  await stopScheduler(backupScheduler, 'Laufendes Backup');
-  await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
-  backupScheduler = null;
-  retentionScheduler = null;
-  await closeDb();
-  await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
-  return restoreBackupArtifact(
-    artifact,
-    databasePath,
-    configurationPathFromEnvironment(),
-    path.dirname(databasePath),
-    { allowCurrentProcessLock: true }
-  );
+  const previousTradingRuntime = tradingRuntime;
+  const previousBackupScheduler = backupScheduler;
+  const previousRetentionScheduler = retentionScheduler;
+  let databaseMaintenance: Awaited<ReturnType<typeof beginDatabaseMaintenance>> | null = null;
+  let closeAttempted = false;
+  let restored = false;
+  let tradingStopped = false;
+  let backupStopped = false;
+  let retentionStopped = false;
+  try {
+    await verifyBackupArtifact(artifact);
+    await stopForwarding();
+    tradingStopped = previousTradingRuntime !== null;
+    await stopSchedulerForMaintenance(previousTradingRuntime, 'Trading Runtime');
+    if (!tradingWebControl) throw new Error('Backup restore requires initialized trading safety controls.');
+    await tradingWebControl.assertFactoryResetSafe();
+    backupStopped = previousBackupScheduler !== null;
+    await stopSchedulerForMaintenance(previousBackupScheduler, 'Backup scheduler');
+    retentionStopped = previousRetentionScheduler !== null;
+    await stopSchedulerForMaintenance(previousRetentionScheduler, 'Data retention scheduler');
+    databaseMaintenance = await beginDatabaseMaintenance('verified backup restore');
+    closeAttempted = true;
+    await closeDb();
+    await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
+    const result = await restoreBackupArtifact(
+      artifact,
+      databasePath,
+      configurationPathFromEnvironment(),
+      path.dirname(databasePath),
+      { allowCurrentProcessLock: true }
+    );
+    tradingRuntime = null;
+    backupScheduler = null;
+    retentionScheduler = null;
+    restored = true;
+    return result;
+  } finally {
+    if (!restored) {
+      if (closeAttempted) {
+        await initDb(databasePath).catch(error => {
+          if (!String(error?.message || error).includes('already initialized')) throw error;
+        });
+      }
+      databaseMaintenance?.release();
+      releaseApplicationMaintenance();
+      await Promise.all([
+        retentionStopped && previousRetentionScheduler ? previousRetentionScheduler.start() : Promise.resolve(),
+        backupStopped && previousBackupScheduler ? previousBackupScheduler.start() : Promise.resolve(),
+        tradingStopped && previousTradingRuntime ? previousTradingRuntime.start() : Promise.resolve(),
+      ]);
+    }
+  }
 }
 
 function startDashboardRuntime(
@@ -1571,18 +1634,20 @@ function startDashboardRuntime(
   });
 }
 
-async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<void> {
+async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<boolean> {
   const { apiId, apiHash } = routingCredentials(runtime.config);
   if (!routingConfigurationIsComplete(runtime.config, apiId, apiHash)) {
     state.connectionState = 'configuration-required';
     addLog('[INFO] Web setup required; routing remains stopped until configuration is complete.');
-    return;
+    return false;
   }
   addLog('[INFO] Starting configured Docker service.');
   try {
     await startForwardingNonInteractive(runtime.config);
+    return true;
   } catch (error: any) {
     addLog(`[ERROR] Automatic routing start failed; dashboard remains available: ${error.message}`);
+    return false;
   }
 }
 
@@ -1610,14 +1675,32 @@ async function run() {
     return;
   }
   const { databasePath, retentionPolicy } = await initializeCoreRuntime(tradingCredentials);
-  startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
   startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
+  let operationalGatesHealthy = true;
+  try {
+    await startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
+  } catch (error: any) {
+    operationalGatesHealthy = false;
+    addLog(`[CRITICAL] Monitoring runtime failed to initialize; trading entries remain disabled: ${error.message}`);
+  }
   try {
     await startBackupRuntime(runtime);
   } catch (error: any) {
-    addLog(`[CRITICAL] Backup runtime failed to initialize; dashboard remains available for recovery: ${error.message}`);
+    operationalGatesHealthy = false;
+    addLog(`[CRITICAL] Backup runtime failed to initialize; trading entries remain disabled: ${error.message}`);
   }
-  await runConfiguredMode(runtime);
+  const routingHealthy = await runConfiguredMode(runtime);
+  const tradingState = await getTradingRuntimeState();
+  if (operationalGatesHealthy && routingHealthy && tradingState.executionEnabled && !tradingState.killSwitchActive) {
+    try {
+      await tradingRuntime?.enableEntries();
+      addLog('[TRADING] Entry processing enabled after all startup gates passed.');
+    } catch (error: any) {
+      addLog(`[CRITICAL] Trading entry latch remains disabled: ${error.message}`);
+    }
+  } else if (tradingState.executionEnabled) {
+    addLog('[CRITICAL] Persisted trading execution was enabled, but one or more startup gates failed; entry processing remains disabled.');
+  }
 }
 run().catch(async err => {
   console.error("Kritischer Fehler:", err.message);

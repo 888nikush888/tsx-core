@@ -43,7 +43,7 @@ assert.doesNotMatch(
   /aquasecurity\/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8/
 );
 
-assert.match(workflow, /shard:\s*\[queue, retry, schema\]/);
+assert.match(workflow, /shard:\s*\[queue, retry, schema, trading-risk\]/);
 assert.match(workflow, /npm run test:mutation -- \$\{\{ matrix\.shard \}\}/);
 assert.match(strykerConfig, /process\.env\.STRYKER_SHARD/);
 assert.match(strykerConfig, /cleanTempDir:\s*'always'/);

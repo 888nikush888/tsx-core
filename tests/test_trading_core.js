@@ -164,6 +164,40 @@ function testTradingPlanContracts() {
   assert.equal(shortPlan.orders[1].side, 'buy');
   assert.equal(shortPlan.riskAmount, '50');
   assert.equal(shortPlan.leverage, configuration().sizing.maxLeverage);
+  const coarseMarket = {
+    ...input.market,
+    priceTick: '1',
+    markPrice: '60000.4',
+  };
+  const coarseStrategy = configuration();
+  coarseStrategy.sizing.maxPositionNotional = '1000000';
+  const coarseLong = createTradingPlan({
+    ...input,
+    strategy: coarseStrategy,
+    market: coarseMarket,
+    signal: {
+      ...executable,
+      entry: { type: 'range', min: '60000.2', max: '60000.4' },
+      stopLoss: '59000.9',
+    },
+  });
+  assert.equal(coarseLong.entryPrice, '60000', 'A long limit must round down before risk sizing.');
+  assert.equal(coarseLong.stopPrice, '59000', 'A long stop must use the adverse lower tick before risk sizing.');
+  assert.equal(coarseLong.quantity, '0.1', 'Quantity must be derived from the submitted tick-aligned prices.');
+  const coarseShort = createTradingPlan({
+    ...input,
+    strategy: coarseStrategy,
+    market: coarseMarket,
+    signal: {
+      ...executable,
+      action: 'SHORT',
+      entry: { type: 'range', min: '60000.2', max: '60000.4' },
+      stopLoss: '62000.1',
+    },
+  });
+  assert.equal(coarseShort.entryPrice, '60001', 'A short limit must round up before risk sizing.');
+  assert.equal(coarseShort.stopPrice, '62001', 'A short stop must use the adverse upper tick.');
+  assert.equal(coarseShort.quantity, '0.05');
   assert.throws(
     () => allocateTargetQuantities('0.001', ['1', '99'], '0.001'),
     /allocation rounds to zero/,
@@ -212,6 +246,34 @@ async function testRepositoryValidation(defaults, accounts) {
   await assert.rejects(setTradingRoute({
     channelId: '-missing-account', strategyVersionId: defaults[0].id, accountId: 'missing', enabled: true,
   }), /account does not exist/);
+
+  const firstExternal = await createTradingAccount({
+    name: 'Identity-bound account', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
+  });
+  const bound = await updateTradingAccountState(firstExternal.id, {
+    status: 'ready', enabled: true, verifiedAt: Date.now(), externalAccountId: 'bybit:testnet:account-123',
+  });
+  assert.equal(bound.externalAccountId, 'bybit:testnet:account-123');
+  const retainedBinding = await updateTradingAccountState(firstExternal.id, {
+    status: 'error', enabled: false, error: 'verification unavailable', verifiedAt: null,
+  });
+  assert.equal(retainedBinding.externalAccountId, 'bybit:testnet:account-123', 'Omitted identity updates must preserve the binding.');
+  const secondExternal = await createTradingAccount({
+    name: 'Duplicate identity account', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
+  });
+  await assert.rejects(
+    updateTradingAccountState(secondExternal.id, {
+      status: 'ready', enabled: true, verifiedAt: Date.now(), externalAccountId: 'bybit:testnet:account-123',
+    }),
+    /UNIQUE constraint failed/,
+    'One external exchange identity must not be bound to two local accounts.',
+  );
+  const cleared = await updateTradingAccountState(firstExternal.id, {
+    status: 'unverified', enabled: false, verifiedAt: null, externalAccountId: null,
+  });
+  assert.equal(cleared.externalAccountId, null, 'Credential replacement must be able to clear the old identity binding.');
+  await deleteTradingAccount(firstExternal.id);
+  await deleteTradingAccount(secondExternal.id);
 }
 
 async function testRepositoryRouting(defaults, accounts) {

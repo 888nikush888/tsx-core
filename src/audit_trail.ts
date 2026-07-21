@@ -16,6 +16,10 @@ export interface AuditEvent {
   method?: string;
   path?: string;
   statusCode?: number;
+  target?: unknown;
+  before?: unknown;
+  after?: unknown;
+  outcome?: 'succeeded' | 'rejected' | 'failed';
 }
 
 interface AuditRecord {
@@ -62,17 +66,35 @@ function recordHash(record: Omit<AuditRecord, 'hash'>): string {
   return createHash('sha256').update(JSON.stringify(record)).digest('hex');
 }
 
-function validateEvent(event: AuditEvent): void {
-  if (!['startup', 'authorized', 'completed'].includes(event.phase)) throw new Error('Audit phase is invalid.');
-  if (!/^[a-z][a-z0-9_.:-]{0,127}$/i.test(event.action)) throw new Error('Audit action is invalid.');
+function assertAuditStringFields(event: AuditEvent): void {
   for (const value of [event.requestId, event.actorId, event.method, event.path]) {
     if (value !== undefined && (typeof value !== 'string' || value.length > 512 || /[\r\n]/.test(value))) {
       throw new Error('Audit event contains an invalid string field.');
     }
   }
+}
+
+function assertAuditStateFields(event: AuditEvent): void {
+  for (const value of [event.target, event.before, event.after]) {
+    if (value === undefined) continue;
+    const serialized = JSON.stringify(value);
+    if (!serialized || Buffer.byteLength(serialized) > 64 * 1024) {
+      throw new Error('Audit state must be JSON-serializable and no larger than 64 KiB.');
+    }
+  }
+}
+
+function validateEvent(event: AuditEvent): void {
+  if (!['startup', 'authorized', 'completed'].includes(event.phase)) throw new Error('Audit phase is invalid.');
+  if (!/^[a-z][a-z0-9_.:-]{0,127}$/i.test(event.action)) throw new Error('Audit action is invalid.');
+  assertAuditStringFields(event);
   if (event.statusCode !== undefined && (!Number.isSafeInteger(event.statusCode) || event.statusCode < 100 || event.statusCode > 599)) {
     throw new Error('Audit status code is invalid.');
   }
+  if (event.outcome !== undefined && !['succeeded', 'rejected', 'failed'].includes(event.outcome)) {
+    throw new Error('Audit outcome is invalid.');
+  }
+  assertAuditStateFields(event);
 }
 
 function verifiedRecord(line: string, previousHash: string, sequence: number): AuditRecord {

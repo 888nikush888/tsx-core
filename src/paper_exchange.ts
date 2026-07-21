@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { getDatabase } from './db.js';
+import { getDatabase, withDatabaseTransaction } from './db.js';
 import {
   addSignedDecimal,
   compareDecimal,
@@ -61,16 +61,7 @@ function orderCanFill(row: any, markPrice: string): boolean {
 }
 
 async function transaction<T>(operation: () => Promise<T>): Promise<T> {
-  const database = getDatabase();
-  await database.exec('BEGIN IMMEDIATE');
-  try {
-    const result = await operation();
-    await database.exec('COMMIT');
-    return result;
-  } catch (error) {
-    await database.exec('ROLLBACK').catch(() => undefined);
-    throw error;
-  }
+  return withDatabaseTransaction(() => operation());
 }
 
 async function updateOpeningPosition(row: any, fillQuantity: string, fillPrice: string, now: number): Promise<void> {
@@ -260,6 +251,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       availableBalance: decimal(row.available_balance),
       unrealizedPnl: '0',
       marginUsed: subtractDecimal(decimal(row.equity), decimal(row.available_balance)),
+      fundingPnlToday: '0',
     };
   }
 
@@ -309,6 +301,24 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       let row = await getDatabase().get<any>('SELECT * FROM trading_paper_orders WHERE exchange_order_id = ?', [exchangeOrderId]);
       if (orderCanFill(row, market.markPrice)) row = await fillOrder(row, market.markPrice, now);
       return orderResult(row);
+    });
+  }
+
+  async submitProtectedEntry(
+    account: TradingAccount,
+    entry: ExchangeOrderRequest,
+    protectiveStop: ExchangeOrderRequest,
+  ): Promise<{ entry: ExchangeOrderResult; protectiveStop: ExchangeOrderResult }> {
+    if (entry.role !== 'entry' || protectiveStop.role !== 'stop_loss' || !protectiveStop.reduceOnly) {
+      throw new Error('Paper protected-entry contract requires an entry and a reduce-only stop.');
+    }
+    return transaction(async () => {
+      // The outer SQLite transaction makes both simulated side effects visible
+      // atomically. If the current mark is already beyond the stop, the entry
+      // and immediate protective close settle before commit.
+      const entryResult = await this.submitOrder(account, entry);
+      const stopResult = await this.submitOrder(account, protectiveStop);
+      return { entry: entryResult, protectiveStop: stopResult };
     });
   }
 

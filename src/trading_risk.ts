@@ -38,6 +38,37 @@ function entryPrice(signal: ExecutableSignal, strategy: StrategyConfiguration, m
   return strategy.entry.rangePrice === 'near' ? near : far;
 }
 
+function quantizeDecimalUp(value: string, increment: string): string {
+  const down = quantizeDecimalDown(value, increment);
+  return compareDecimal(down, value) === 0 ? down : addDecimal(down, increment);
+}
+
+function quantizedEntryPrice(
+  signal: ExecutableSignal,
+  strategy: StrategyConfiguration,
+  market: TradingMarketSnapshot,
+): string {
+  const raw = decimal(entryPrice(signal, strategy, market), { positive: true });
+  const isMarket = strategy.entry.orderType === 'market' || signal.entry.type === 'market';
+  if (isMarket) {
+    // Conservatively model a market buy one tick upward and a market sell downward.
+    return signal.action === 'LONG'
+      ? quantizeDecimalUp(raw, market.priceTick)
+      : quantizeDecimalDown(raw, market.priceTick);
+  }
+  // Limit prices must be executable without silently crossing the requested bound.
+  return signal.action === 'LONG'
+    ? quantizeDecimalDown(raw, market.priceTick)
+    : quantizeDecimalUp(raw, market.priceTick);
+}
+
+function quantizedStopPrice(signal: ExecutableSignal, market: TradingMarketSnapshot): string {
+  // Use the adverse tick in both the submitted stop and the risk calculation.
+  return signal.action === 'LONG'
+    ? quantizeDecimalDown(signal.stopLoss, market.priceTick)
+    : quantizeDecimalUp(signal.stopLoss, market.priceTick);
+}
+
 function assertStrategyAllows(signal: ExecutableSignal, strategy: StrategyConfiguration): void {
   if (!strategy.allowedSignalSchemas.includes(signal.schema)) {
     throw new TradingRiskError('SIGNAL_SCHEMA_BLOCKED', `Strategy does not allow ${signal.schema} signals.`);
@@ -117,6 +148,7 @@ function plannedOrders(input: {
   strategy: StrategyConfiguration;
   market: TradingMarketSnapshot;
   entry: string;
+  stop: string;
   quantity: string;
 }): PlannedOrder[] {
   const openingSide = input.signal.action === 'LONG' ? 'buy' : 'sell';
@@ -133,7 +165,7 @@ function plannedOrders(input: {
     side: openingSide,
     orderType: entryType,
     quantity: input.quantity,
-    price: entryType === 'limit' ? quantizeDecimalDown(input.entry, input.market.priceTick) : null,
+    price: entryType === 'limit' ? input.entry : null,
     triggerPrice: null,
     reduceOnly: false,
     postOnly: entryType === 'limit' && input.strategy.entry.postOnly,
@@ -146,7 +178,7 @@ function plannedOrders(input: {
     orderType: 'stop_market',
     quantity: input.quantity,
     price: null,
-    triggerPrice: quantizeDecimalDown(input.signal.stopLoss, input.market.priceTick),
+    triggerPrice: input.stop,
     reduceOnly: true,
     postOnly: false,
     targetIndex: null,
@@ -157,7 +189,9 @@ function plannedOrders(input: {
     side: closingSide,
     orderType: 'limit',
     quantity: targets[index]!,
-    price: quantizeDecimalDown(midpointDecimal(target), input.market.priceTick),
+    price: input.signal.action === 'LONG'
+      ? quantizeDecimalDown(midpointDecimal(target), input.market.priceTick)
+      : quantizeDecimalUp(midpointDecimal(target), input.market.priceTick),
     triggerPrice: null,
     reduceOnly: true,
     postOnly: false,
@@ -175,8 +209,9 @@ export function createTradingPlan(input: {
   now?: number;
 }): TradingPlan {
   assertStrategyAllows(input.signal, input.strategy);
-  const price = decimal(entryPrice(input.signal, input.strategy, input.market), { positive: true });
-  const distance = riskDistance(input.signal, price);
+  const price = quantizedEntryPrice(input.signal, input.strategy, input.market);
+  const stop = quantizedStopPrice(input.signal, input.market);
+  const distance = riskDistance({ ...input.signal, stopLoss: stop }, price);
   const configuredRisk = input.signal.suggestedRiskPercent
     ? minDecimal(input.strategy.sizing.riskPerTradePercent, input.signal.suggestedRiskPercent)
     : input.strategy.sizing.riskPerTradePercent;
@@ -197,7 +232,7 @@ export function createTradingPlan(input: {
     symbol: input.signal.symbol,
     side: input.signal.action,
     entryPrice: price,
-    stopPrice: input.signal.stopLoss,
+    stopPrice: stop,
     quantity,
     notional,
     riskAmount,
@@ -207,7 +242,7 @@ export function createTradingPlan(input: {
     maxSlippagePercent: input.strategy.safety.maxSlippagePercent,
     quantityStep: input.market.quantityStep,
     targetAllocationsPercent: [...input.strategy.exits.targetAllocationsPercent],
-    orders: plannedOrders({ ...input, entry: price, quantity }),
+    orders: plannedOrders({ ...input, entry: price, stop, quantity }),
     createdAt: input.now ?? Date.now(),
   };
 }

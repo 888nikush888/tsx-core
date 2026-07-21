@@ -50,20 +50,52 @@ function memoryBudget(allow = true) {
   };
 }
 
-async function testStandardSchemaContracts() {
-  const goldenSetPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'signal_golden_set.json');
-  const goldenSet = JSON.parse(await readFile(goldenSetPath, 'utf8'));
+async function assertGoldenSetGrounding() {
+  const fixtureDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures');
+  const goldenSet = JSON.parse(await readFile(path.join(fixtureDir, 'signal_golden_set.json'), 'utf8'));
   assert.ok(goldenSet.length >= 8);
   for (const testCase of goldenSet.filter(item => !item.expectedReject)) {
     const validatedGolden = validateSignalXml(testCase.expectedXml, testCase.template);
     assertSignalGrounded(validatedGolden, testCase.input);
   }
+}
+
+async function testStandardSchemaContracts() {
+  await assertGoldenSetGrounding();
 
   validateXmlStructure(STANDARD_LONG);
   assert.strictEqual(validateSignalXml(STANDARD_SHORT).action, 'SHORT');
   assert.throws(
     () => assertSignalGrounded(validateSignalXml(STANDARD_LONG), 'LONG ETHUSDT 3400.50 3300.00 3500.00 leverage 15x'),
     /3600.00.*not grounded/
+  );
+  assert.throws(
+    () => assertSignalGrounded(
+      validateSignalXml(STANDARD_LONG),
+      'LONG ETHUSDT entry 3300.00 stop 3400.50 targets 3500.00, 3600.00 leverage 15x'
+    ),
+    /field 'entry'.*does not exactly match/
+  );
+  assert.throws(
+    () => assertSignalGrounded(
+      validateSignalXml(STANDARD_LONG),
+      'LONG ETHUSDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00, 9999 leverage 15x'
+    ),
+    /field 'target'.*ambiguous/
+  );
+  assert.throws(
+    () => assertSignalGrounded(
+      validateSignalXml(STANDARD_LONG),
+      'LONG and SHORT ETHUSDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x'
+    ),
+    /competing LONG and SHORT/
+  );
+  assert.throws(
+    () => assertSignalGrounded(
+      validateSignalXml(STANDARD_LONG),
+      'LONG ETHUSDT or BTCUSDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x'
+    ),
+    /competing trading pairs/
   );
 
   const invalidStandard = [

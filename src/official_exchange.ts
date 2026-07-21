@@ -14,6 +14,13 @@ interface ExecutorErrorPayload {
   error?: string;
 }
 
+export interface VerifiedExternalAccount {
+  verified: boolean;
+  equity: string;
+  externalAccountId: string;
+  accountFingerprint: string;
+}
+
 function executorUrl(): string {
   const value = process.env.EXCHANGE_EXECUTOR_URL?.trim() || 'http://exchange-executor:8090';
   const parsed = new URL(value);
@@ -52,12 +59,27 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
     this.baseUrl = executorUrl();
   }
 
-  async verifyAccount(account: TradingAccount): Promise<{ verified: boolean; equity: string }> {
-    return this.post('/v1/verify-account', { account: accountPayload(account) }) as Promise<{ verified: boolean; equity: string }>;
+  async verifyAccount(account: TradingAccount): Promise<VerifiedExternalAccount> {
+    const result = assertObject(await this.post('/v1/verify-account', { account: accountPayload(account) }), 'Exchange executor');
+    if (result.verified !== true || typeof result.equity !== 'string'
+      || typeof result.externalAccountId !== 'string' || !/^[a-f0-9]{64}$/.test(result.externalAccountId)
+      || result.accountFingerprint !== result.externalAccountId) {
+      throw new Error('Exchange executor returned an invalid verified-account identity contract.');
+    }
+    return result as unknown as VerifiedExternalAccount;
   }
 
   async accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
-    return this.post('/v1/account-snapshot', { account: accountPayload(account) }) as Promise<TradingAccountSnapshot>;
+    const result = assertObject(
+      await this.post('/v1/account-snapshot', { account: accountPayload(account) }),
+      'Exchange executor',
+    );
+    for (const field of ['equity', 'availableBalance', 'unrealizedPnl', 'marginUsed', 'fundingPnlToday']) {
+      if (typeof result[field] !== 'string') {
+        throw new Error(`Exchange executor account snapshot omitted ${field}.`);
+      }
+    }
+    return result as TradingAccountSnapshot;
   }
 
   async marketSnapshot(account: TradingAccount, symbol: string): Promise<TradingMarketSnapshot> {
@@ -75,6 +97,27 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
       { account: accountPayload(account), request },
       timeoutSeconds * 1_000,
     ));
+  }
+
+  async submitProtectedEntry(
+    account: TradingAccount,
+    entry: ExchangeOrderRequest,
+    protectiveStop: ExchangeOrderRequest,
+  ): Promise<{ entry: ExchangeOrderResult; protectiveStop: ExchangeOrderResult }> {
+    const timeoutSeconds = Number.isSafeInteger(entry.timeoutSeconds)
+      && entry.timeoutSeconds >= 2
+      && entry.timeoutSeconds <= 30
+      ? entry.timeoutSeconds
+      : 12;
+    const result = assertObject(await this.post(
+      '/v1/submit-protected-entry',
+      { account: accountPayload(account), entry, protectiveStop },
+      timeoutSeconds * 1_000,
+    ), 'Exchange executor');
+    return {
+      entry: assertOrderResult(result.entry),
+      protectiveStop: assertOrderResult(result.protectiveStop),
+    };
   }
 
   async cancelOrder(account: TradingAccount, clientOrderId: string): Promise<ExchangeOrderResult> {
@@ -97,27 +140,52 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
     if (!Array.isArray(state.orders) || !Array.isArray(state.positions) || !Array.isArray(state.fills)) {
       throw new Error('Exchange executor returned an invalid open-state contract.');
     }
-    const localOrders = await getDatabase().all<Array<{ client_order_id: string; role: string }>>(
-      'SELECT client_order_id, role FROM trading_orders WHERE account_id = ?',
+    if (typeof state.accountFingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(state.accountFingerprint)) {
+      throw new Error('Exchange executor returned an invalid account fingerprint.');
+    }
+    const localOrders = await getDatabase().all<Array<{
+      client_order_id: string;
+      role: string;
+      symbol: string;
+      trigger_price: string | null;
+      reduce_only: number;
+    }>>(
+      `SELECT orders.client_order_id, orders.role, intent.symbol,
+              orders.trigger_price, orders.reduce_only
+       FROM trading_orders AS orders
+       JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id
+       WHERE orders.account_id = ?`,
       [account.id],
     );
     const roles = new Map(localOrders.map(order => [order.client_order_id, order.role]));
-    state.orders = state.orders.map((order: any) => ({
-      ...order,
-      role: roles.get(order.clientOrderId) || order.role || 'entry',
-    }));
+    state.orders = state.orders.map((order: any) => {
+      const attachedStop = roles.has(order.clientOrderId) ? undefined : localOrders.find(local =>
+        local.role === 'stop_loss'
+        && local.symbol === order.symbol
+        && local.reduce_only === 1
+        && local.trigger_price === order.triggerPrice
+        && order.reduceOnly === true);
+      const clientOrderId = attachedStop?.client_order_id || order.clientOrderId;
+      return {
+        ...order,
+        clientOrderId,
+        role: roles.get(clientOrderId) || order.role || 'entry',
+      };
+    });
     return state as ExchangeOpenState;
   }
 
   private async post(endpoint: string, payload: unknown, timeoutMs = 12_000): Promise<unknown> {
     const token = await this.credentials.getOrCreateExecutorToken();
+    const bodyPayload = assertObject(payload, 'Exchange executor request');
+    const deadlineAt = Date.now() + Math.max(1, timeoutMs - 250);
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...bodyPayload, deadlineAt }),
       signal: AbortSignal.timeout(timeoutMs),
     });
     const body = await response.json().catch(() => ({})) as ExecutorErrorPayload;

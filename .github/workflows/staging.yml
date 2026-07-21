@@ -37,7 +37,7 @@ jobs:
       - name: Configure pinned Node major
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Verify Telegram source-to-target exactly once

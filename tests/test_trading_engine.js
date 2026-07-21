@@ -105,10 +105,45 @@ async function run() {
     assert.equal(localPosition.realized_pnl, '-8');
 
     const fillsBeforeRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
+    const runsBeforeRestart = await getDatabase().get(
+      'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
+    );
     const restartedEngine = new TradingEngine([paper]);
     await restartedEngine.reconcileAccount(account.id);
     const fillsAfterRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
     assert.equal(fillsAfterRestart.count, fillsBeforeRestart.count, 'Fill replay must be idempotent after restart.');
+    const runsAfterRestart = await getDatabase().get(
+      'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
+    );
+    assert.equal(
+      runsAfterRestart.count,
+      runsBeforeRestart.count,
+      'Unchanged successful reconciliation state must coalesce instead of appending a full snapshot.',
+    );
+    const compact = await getDatabase().get(
+      `SELECT remote_snapshot_json FROM trading_reconciliation_runs
+       WHERE account_id = ? AND status = 'succeeded' ORDER BY completed_at DESC LIMIT 1`,
+      [account.id],
+    );
+    const compactPayload = JSON.parse(compact.remote_snapshot_json);
+    assert.equal(compactPayload.version, 2);
+    assert.match(compactPayload.stateDigest, /^[a-f0-9]{64}$/);
+    assert.equal('orders' in compactPayload, false, 'Reconciliation evidence must not duplicate the full provider response.');
+
+    const now = Date.now();
+    for (let index = 0; index < 300; index += 1) {
+      await getDatabase().run(
+        `INSERT INTO trading_reconciliation_runs (
+           id, account_id, status, last_error, started_at, completed_at
+         ) VALUES (?, ?, 'failed', 'bounded-test', ?, ?)`,
+        [`bounded-${index}`, account.id, now + index, now + index],
+      );
+    }
+    await restartedEngine.pruneReconciliationRuns(account.id);
+    const boundedRuns = await getDatabase().get(
+      'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
+    );
+    assert.equal(boundedRuns.count, 256, 'Per-account reconciliation evidence must remain bounded.');
 
     const readyAccount = await getTradingAccount(account.id);
     const snapshot = await paper.accountSnapshot(readyAccount);

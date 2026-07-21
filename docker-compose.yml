@@ -3,14 +3,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Local tags are development-only. Production must validate and pass both
+    # independently released image digests with quality:deployment-images.
     image: ${FORWARDER_IMAGE:-telegram-tdlib-forwarder:local}
     init: true
     restart: unless-stopped
     stop_grace_period: 8m
     environment:
       WEB_HOST: "0.0.0.0"
-      # The published port is host-loopback-only. This lets the local browser
-      # receive its managed session automatically without asking for a token.
+      # The published port is host-loopback-only. Local trust permits only the
+      # one-time initial/recovery bootstrap; existing tokens are never disclosed.
       DASHBOARD_LOCAL_TRUST: "true"
       # Break-glass recovery uses the same host-loopback-only trust boundary.
       DASHBOARD_RECOVERY_LOCAL_TRUST: "true"

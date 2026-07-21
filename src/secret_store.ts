@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 export type ManagedSecretName =
@@ -149,12 +150,32 @@ export class ManagedSecretStore {
     this.env = env;
   }
 
+  rootPath(): string {
+    return this.directory;
+  }
+
   async initialize(options: ManagedSecretStoreOptions = {}): Promise<void> {
+    await this.initializeDirectory();
+    await this.initializeTransactionRecovery(options);
+    await this.initializeSecrets(options);
+  }
+
+  private async initializeDirectory(): Promise<void> {
     await fs.mkdir(this.directory, { recursive: true, mode: 0o700 });
-    const stats = await fs.lstat(this.directory);
+    let stats = await fs.lstat(this.directory);
     if (!stats.isDirectory() || stats.isSymbolicLink()) {
       throw new Error('Managed secret directory must be a real directory, not a symbolic link.');
     }
+    if (process.platform !== 'win32') {
+      await fs.chmod(this.directory, 0o700);
+      stats = await fs.lstat(this.directory);
+    }
+    if (process.platform !== 'win32' && (stats.mode & 0o077) !== 0) {
+      throw new Error('Managed secret directory must not be accessible by group or other users.');
+    }
+  }
+
+  private async initializeTransactionRecovery(options: ManagedSecretStoreOptions): Promise<void> {
     try {
       await this.recoverPendingTransaction();
     } catch (error) {
@@ -164,6 +185,9 @@ export class ManagedSecretStore {
         reason: error instanceof Error ? error.message : 'Managed secret transaction could not be read.',
       });
     }
+  }
+
+  private async initializeSecrets(options: ManagedSecretStoreOptions): Promise<void> {
     for (const name of Object.keys(DEFINITIONS) as ManagedSecretName[]) {
       try {
         await this.load(name);
@@ -247,16 +271,6 @@ export class ManagedSecretStore {
     }
   }
 
-  async getOrCreateDashboardAdminToken(): Promise<string> {
-    const source = this.sources.get('dashboardAdminToken') ?? 'missing';
-    if (source === 'external') {
-      throw new Error('Local dashboard startup cannot recover an externally managed administrator token.');
-    }
-    const configured = this.env.DASHBOARD_ADMIN_TOKEN?.trim();
-    if (source === 'managed' && configured) return validateSecret('dashboardAdminToken', configured);
-    return this.createDashboardAdminToken();
-  }
-
   async rotateDashboardToken(role: 'admin' | 'viewer'): Promise<string> {
     const name = role === 'admin' ? 'dashboardAdminToken' : 'dashboardViewerToken';
     if (this.generatingTokens.has(name)) throw new Error(`Dashboard ${role} token generation is already in progress.`);
@@ -311,6 +325,9 @@ export class ManagedSecretStore {
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) {
         throw new Error(`${definition.fileName} must be a small regular file.`);
       }
+      if (process.platform !== 'win32' && (stats.mode & 0o077) !== 0) {
+        throw new Error(`${definition.fileName} must not be accessible by group or other users.`);
+      }
       const value = validateSecret(name, (await fs.readFile(filePath, 'utf8')).replace(/\r?\n$/, ''));
       this.env[definition.environmentName] = value;
       this.sources.set(name, 'managed');
@@ -351,6 +368,9 @@ export class ManagedSecretStore {
       const stats = await fs.lstat(transactionPath);
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 128 * 1024) {
         throw new Error('Managed secret transaction must be a small regular file.');
+      }
+      if (process.platform !== 'win32' && (stats.mode & 0o077) !== 0) {
+        throw new Error('Managed secret transaction must not be accessible by group or other users.');
       }
       parsed = JSON.parse(await fs.readFile(transactionPath, 'utf8'));
     } catch (error: any) {
@@ -419,5 +439,14 @@ export class ManagedSecretStore {
 }
 
 export function managedSecretStoreFromEnvironment(env: NodeJS.ProcessEnv = process.env): ManagedSecretStore {
-  return new ManagedSecretStore(env.MANAGED_SECRET_DIR || path.join(process.cwd(), 'secrets'), env);
+  const configuredStateRoot = env.XDG_STATE_HOME?.trim()
+    || (process.platform === 'win32' ? env.LOCALAPPDATA?.trim() : '');
+  const stateRoot = configuredStateRoot && path.isAbsolute(configuredStateRoot)
+    ? configuredStateRoot
+    : path.join(os.homedir(), '.local', 'state');
+  const directory = path.resolve(env.MANAGED_SECRET_DIR?.trim() || path.join(stateRoot, 'telegram-tdlib-forwarder', 'secrets'));
+  // Publish the resolved root so every credential store in this process uses
+  // the same out-of-worktree boundary without independently falling back to cwd.
+  env.MANAGED_SECRET_DIR = directory;
+  return new ManagedSecretStore(directory, env);
 }

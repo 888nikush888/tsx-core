@@ -7,6 +7,7 @@ import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { TradingEngine } from '../src/trading_engine.js';
 import { TradingRuntime } from '../src/trading_runtime.js';
 import {
+  createTradingAccount,
   createTradingStrategyDraft,
   createTradingIntent,
   ensureTradingDefaults,
@@ -17,6 +18,7 @@ import {
   publishTradingStrategyVersion,
   setTradingRoute,
   updateTradingRuntimeState,
+  updateTradingAccountState,
 } from '../src/trading_repository.js';
 import { validateSignalXml } from '../src/signal_schema.js';
 import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
@@ -47,12 +49,17 @@ async function setup(databasePath, trailingStopPercent = null) {
   return { paper, account, intent };
 }
 
-function wrappedAdapter(paper, submit) {
+function wrappedAdapter(paper, submit, submitProtectedEntry = null) {
   return {
     exchange: 'paper',
     accountSnapshot: (...args) => paper.accountSnapshot(...args),
     marketSnapshot: (...args) => paper.marketSnapshot(...args),
     submitOrder: submit,
+    submitProtectedEntry: submitProtectedEntry || (async (account, entry, protectiveStop) => {
+      const entryResult = await submit(account, entry);
+      const stopResult = await submit(account, protectiveStop);
+      return { entry: entryResult, protectiveStop: stopResult };
+    }),
     cancelOrder: (...args) => paper.cancelOrder(...args),
     openState: (...args) => paper.openState(...args),
   };
@@ -80,22 +87,37 @@ async function testUnknownEntry(directory) {
 
 async function testProtectiveStopFailure(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'stop-failure.db'));
-  const adapter = wrappedAdapter(paper, async (targetAccount, request) => {
-    if (request.role === 'stop_loss') throw new Error('simulated protective stop timeout');
-    return paper.submitOrder(targetAccount, request);
-  });
+  const submit = (...args) => paper.submitOrder(...args);
+  const adapter = wrappedAdapter(paper, submit, async (targetAccount, entry, protectiveStop) => ({
+    entry: await paper.submitOrder(targetAccount, entry),
+    protectiveStop: {
+      clientOrderId: protectiveStop.clientOrderId,
+      exchangeOrderId: '',
+      status: 'rejected',
+      filledQuantity: '0',
+      averagePrice: null,
+      error: 'simulated provider-native protective stop rejection',
+    },
+  }));
   const engine = new TradingEngine([adapter]);
   await engine.processIntent(intent.id);
   assert.equal((await paper.openState(account)).positions.length, 0, 'Unprotected exposure must be flattened automatically.');
   const position = await getDatabase().get('SELECT * FROM trading_positions WHERE intent_id = ?', [intent.id]);
-  assert.equal(position.status, 'closed');
-  assert.equal(position.quantity, '0');
+  assert.equal(position.status, 'emergency', 'A submitted flatten remains unsafe until exchange reconciliation proves closure.');
+  assert.notEqual(position.quantity, '0');
   assert.equal((await getTradingIntent(intent.id)).status, 'unknown');
   const event = await getDatabase().get(
-    `SELECT code FROM trading_risk_events WHERE intent_id = ? AND code = 'EMERGENCY_FLATTENED'`,
+    `SELECT code FROM trading_risk_events WHERE intent_id = ? AND code = 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION'`,
     [intent.id],
   );
-  assert.equal(event.code, 'EMERGENCY_FLATTENED');
+  assert.equal(event.code, 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION');
+  await engine.reconcileAccount(account.id);
+  const reconciled = await getDatabase().get(
+    'SELECT status, quantity, realized_pnl FROM trading_positions WHERE intent_id = ?', [intent.id],
+  );
+  assert.equal(reconciled.status, 'closed');
+  assert.equal(reconciled.quantity, '0');
+  assert.notEqual(reconciled.realized_pnl, null, 'Closure PnL must be derived only after terminal fills reconcile.');
   await closeDb();
 }
 
@@ -154,12 +176,12 @@ async function testAdverseEntrySlippageFlattens(directory) {
   const engine = new TradingEngine([adapter]);
   await engine.processIntent(intent.id);
   const blocked = await getTradingIntent(intent.id);
-  assert.deepEqual(roles, ['entry', 'flatten']);
+  assert.deepEqual(roles, ['entry', 'stop_loss', 'flatten']);
   assert.equal(blocked.status, 'blocked');
   assert.equal(blocked.blockReason, 'MAX_SLIPPAGE');
   assert.equal((await getDatabase().get(
     'SELECT status FROM trading_positions WHERE intent_id = ?', [intent.id],
-  )).status, 'closed');
+  )).status, 'emergency');
   await closeDb();
 }
 
@@ -192,6 +214,7 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'partial-entry.db'));
   let entryRequest;
   let activeStop;
+  const submittedStops = new Map();
   let terminal = false;
   const submittedTakeProfits = [];
   const adapter = wrappedAdapter(paper, async (_targetAccount, request) => {
@@ -201,6 +224,7 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
     }
     if (request.role === 'stop_loss') {
       activeStop = request;
+      submittedStops.set(request.clientOrderId, request);
       return orderResult(request, 'open', '0');
     }
     if (request.role === 'take_profit') {
@@ -210,8 +234,10 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
     throw new Error(`Unexpected ${request.role} submission.`);
   });
   adapter.cancelOrder = async (_targetAccount, clientOrderId) => {
-    assert.equal(clientOrderId, activeStop.clientOrderId);
-    return orderResult(activeStop, 'cancelled', '0');
+    const cancelled = submittedStops.get(clientOrderId);
+    assert.ok(cancelled, 'Only a previously confirmed stop may be cancelled.');
+    assert.notEqual(clientOrderId, activeStop.clientOrderId, 'Replacement must be active before the stale stop is cancelled.');
+    return orderResult(cancelled, 'cancelled', '0');
   };
   adapter.openState = async () => ({
     orders: terminal
@@ -228,6 +254,7 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
   });
   const engine = new TradingEngine([adapter]);
   await engine.processIntent(intent.id);
+  assert.equal(entryRequest.maxSlippagePercent, '0.5', 'Entry requests must carry the provider-side slippage budget.');
   assert.equal(activeStop.quantity, '0.327', 'An open partial entry must be protected up to its full possible quantity.');
   assert.equal(submittedTakeProfits.length, 0, 'Take profits must wait until the entry quantity is terminal.');
   assert.equal((await getDatabase().get(
@@ -292,6 +319,185 @@ async function testPeriodicReconciliationFailureActivatesKillSwitch(directory) {
   await closeDb();
 }
 
+async function testEntryExpiryFailureActivatesKillSwitch(directory) {
+  await initDb(path.join(directory, 'entry-expiry-failure.db'));
+  await ensureTradingDefaults();
+  await updateTradingRuntimeState({ executionEnabled: true });
+  const engine = {
+    reconcileAccount: async () => undefined,
+    cancelExpiredEntries: async () => { throw new Error('simulated expiry cancellation outage'); },
+    processIntent: async () => undefined,
+  };
+  const runtime = new TradingRuntime(engine);
+  await assert.rejects(runtime.runOnce(false), /entry-expiry.*simulated expiry cancellation outage/);
+  assert.equal((await getTradingRuntimeState()).killSwitchActive, true);
+  await closeDb();
+}
+
+async function testRuntimeIsolatesAccountFailures(directory) {
+  await initDb(path.join(directory, 'runtime-account-isolation.db'));
+  await ensureTradingDefaults();
+  const first = (await listTradingAccounts())[0];
+  await getDatabase().run(
+    `INSERT INTO trading_accounts (
+       id, name, exchange, mode, status, enabled, created_at, updated_at
+     ) VALUES ('paper-secondary', 'Secondary paper', 'paper', 'paper', 'ready', 1, ?, ?)`,
+    [Date.now() + 1, Date.now() + 1],
+  );
+  await updateTradingRuntimeState({ executionEnabled: true });
+  const calls = [];
+  const engine = {
+    reconcileAccount: async accountId => {
+      calls.push(accountId);
+      if (accountId === first.id) throw new Error('first account unavailable');
+    },
+    cancelExpiredEntries: async () => 0,
+    processIntent: async () => undefined,
+  };
+  const runtime = new TradingRuntime(engine);
+  await assert.rejects(runtime.runOnce(false), /first account unavailable/);
+  assert.deepEqual(calls, [first.id, 'paper-secondary'], 'One account failure must not skip protection for later accounts.');
+  assert.equal(runtime.isProtectionHealthy(), false);
+  await closeDb();
+}
+
+async function testStopReplacementCancellationFailsClosed(directory) {
+  const { paper, account, intent } = await setup(path.join(directory, 'stop-replacement-cancel.db'), '2');
+  const adapter = wrappedAdapter(paper, (...args) => paper.submitOrder(...args));
+  adapter.cancelOrder = async () => { throw new Error('simulated stale-stop cancellation timeout'); };
+  const engine = new TradingEngine([adapter]);
+  await engine.processIntent(intent.id);
+  await paper.setMarket(account.id, {
+    symbol: 'ETHUSDT', markPrice: '3150', priceTick: '0.1', quantityStep: '0.001',
+    minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 25,
+  });
+
+  await assert.rejects(
+    engine.reconcileAccount(account.id),
+    /replacement stop is active but the stale stop outcome is unresolved/i,
+  );
+  const state = await getTradingRuntimeState();
+  assert.equal(state.executionEnabled, false);
+  assert.equal(state.killSwitchActive, true);
+  assert.match(state.killSwitchReason, /Protective stop cancellation is unresolved/);
+  assert.equal(
+    (await getDatabase().get(
+      `SELECT COUNT(*) AS count FROM trading_risk_events
+       WHERE intent_id = ? AND code = 'STOP_REPLACEMENT_CANCEL_UNRESOLVED'`,
+      [intent.id],
+    )).count,
+    1,
+  );
+  assert.equal(
+    (await paper.openState(account)).orders.filter(order => order.role === 'stop_loss' && order.status === 'open').length,
+    2,
+    'Both confirmed stops must remain tracked when stale-stop cancellation is unresolved.',
+  );
+  await closeDb();
+}
+
+async function testRemoteAccountIdentityBinding(directory) {
+  await initDb(path.join(directory, 'remote-account-identity.db'));
+  await ensureTradingDefaults();
+  const boundIdentity = 'a'.repeat(64);
+  const account = await createTradingAccount({
+    name: 'Bound Bybit', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
+  });
+  await updateTradingAccountState(account.id, {
+    status: 'ready', enabled: true, verifiedAt: Date.now(), externalAccountId: boundIdentity,
+  });
+  let observedIdentity = boundIdentity;
+  const adapter = {
+    exchange: 'bybit',
+    openState: async () => ({
+      orders: [], positions: [], fills: [], observedAt: Date.now(), accountFingerprint: observedIdentity,
+    }),
+  };
+  const engine = new TradingEngine([adapter]);
+  await engine.reconcileAccount(account.id);
+  observedIdentity = 'b'.repeat(64);
+  await assert.rejects(
+    engine.reconcileAccount(account.id),
+    /does not match the bound external account identity/,
+  );
+  const state = await getTradingRuntimeState();
+  assert.equal(state.killSwitchActive, true);
+  assert.equal(state.executionEnabled, false);
+  await closeDb();
+}
+
+async function testProtectionOnlyStartupRequiresExplicitEntryEnable(directory) {
+  const { paper, intent } = await setup(path.join(directory, 'protection-only-startup.db'));
+  const runtime = new TradingRuntime(new TradingEngine([paper]), 60_000);
+  await runtime.startProtectionOnly();
+  assert.equal(runtime.isProtectionHealthy(), true);
+  assert.equal((await getTradingIntent(intent.id)).status, 'pending', 'Protection-only startup must not consume pending intents.');
+  await updateTradingRuntimeState({ executionEnabled: false });
+  await assert.rejects(runtime.enableEntries(), /execution is disabled or the kill switch is active/);
+  await updateTradingRuntimeState({ executionEnabled: true });
+  await runtime.enableEntries();
+  await updateTradingRuntimeState({ executionEnabled: false });
+  await runtime.runOnce(false);
+  assert.equal((await getTradingIntent(intent.id)).status, 'pending', 'A stopped control plane must disable entry processing.');
+  await updateTradingRuntimeState({ executionEnabled: true });
+  await runtime.enableEntries();
+  await runtime.runOnce(false);
+  assert.equal((await getTradingIntent(intent.id)).status, 'monitoring');
+  await runtime.stop();
+  await closeDb();
+}
+
+async function testAccountDailyRiskIncludesExistingLoss(directory) {
+  const { paper, account, intent } = await setup(path.join(directory, 'account-daily-risk.db'));
+  const now = Date.now();
+  await getDatabase().run(
+    `UPDATE trading_trade_intents SET status = 'completed', updated_at = ? WHERE id = ?`,
+    [now, intent.id],
+  );
+  await getDatabase().run(
+    `INSERT INTO trading_positions (
+       id, intent_id, account_id, strategy_version_id, channel_id, symbol, side,
+       status, quantity, average_entry_price, stop_price, realized_pnl,
+       opened_at, closed_at, updated_at
+     ) VALUES ('historical-loss', ?, ?, ?, ?, 'OLDUSDT', 'LONG',
+               'closed', '0', '100', '90', '-50', ?, ?, ?)`,
+    [intent.id, account.id, intent.strategyVersionId, intent.channelId, now - 1_000, now, now],
+  );
+  await saveSignal('daily-risk-signal', '-200001', 2, SIGNAL, SIGNAL);
+  const next = await createTradingIntent({
+    sourceSignalId: 'daily-risk-signal', channelId: '-200001', signal: validateSignalXml(SIGNAL).execution,
+  });
+  await new TradingEngine([paper]).processIntent(next.id);
+  const blocked = await getTradingIntent(next.id);
+  assert.equal(blocked.status, 'blocked');
+  assert.equal(blocked.blockReason, 'MAX_DAILY_RISK');
+  assert.equal(
+    (await getDatabase().get('SELECT COUNT(*) AS count FROM trading_orders WHERE intent_id = ?', [next.id])).count,
+    0,
+    'Daily account loss and the new risk reservation must be checked before persisting or submitting orders.',
+  );
+  await closeDb();
+}
+
+async function testAccountDailyRiskIncludesFundingLoss(directory) {
+  const { paper, intent } = await setup(path.join(directory, 'account-funding-risk.db'));
+  const adapter = wrappedAdapter(paper, (...args) => paper.submitOrder(...args));
+  adapter.accountSnapshot = async account => ({
+    ...await paper.accountSnapshot(account),
+    fundingPnlToday: '-90',
+  });
+  await new TradingEngine([adapter]).processIntent(intent.id);
+  const blocked = await getTradingIntent(intent.id);
+  assert.equal(blocked.status, 'blocked');
+  assert.equal(blocked.blockReason, 'MAX_DAILY_RISK');
+  assert.equal(
+    (await getDatabase().get('SELECT COUNT(*) AS count FROM trading_orders WHERE intent_id = ?', [intent.id])).count,
+    0,
+    'Funding losses must reduce the remaining daily risk budget before order persistence.',
+  );
+  await closeDb();
+}
+
 async function testRuntimeLifecycleAndDefaultFailureLogger(directory) {
   await initDb(path.join(directory, 'runtime-lifecycle.db'));
   await ensureTradingDefaults();
@@ -304,6 +510,8 @@ async function testRuntimeLifecycleAndDefaultFailureLogger(directory) {
     cancelExpiredEntries: async () => 0,
     processIntent: async () => undefined,
   };
+  assert.throws(() => new TradingRuntime(engine, 249), /interval must be between 250 and 60000/);
+  await assert.rejects(new TradingRuntime(engine).enableEntries(), /runtime is not running/);
   const runtime = new TradingRuntime(engine, 60_000);
   await runtime.start();
   runtime.wake();
@@ -332,6 +540,7 @@ async function testStartupReconciliationFailureKeepsControlPlaneAvailable(direct
   assert.match(state.killSwitchReason, /Startup reconciliation failed/);
   assert.equal(logs.length, 1);
   assert.match(logs[0], /trading remains fail-closed and will retry/);
+  await assert.rejects(runtime.enableEntries(), /protection has not reached a healthy reconciliation latch/);
   await runtime.stop();
   await closeDb();
 }
@@ -354,6 +563,22 @@ async function testUnmanagedExposureAndOperatorFlatten(directory) {
   assert.equal((await getTradingRuntimeState()).killSwitchActive, true);
   await closeDb();
 
+  const absent = await setup(path.join(directory, 'unconfirmed-position-absence.db'));
+  const absentAdapter = wrappedAdapter(absent.paper, (...args) => absent.paper.submitOrder(...args));
+  const absenceEngine = new TradingEngine([absentAdapter]);
+  await absenceEngine.processIntent(absent.intent.id);
+  absentAdapter.openState = async () => ({ orders: [], positions: [], fills: [], observedAt: Date.now() });
+  await assert.rejects(
+    absenceEngine.reconcileAccount(absent.account.id),
+    /absent without terminal fill proof/,
+  );
+  const retained = await getDatabase().get(
+    'SELECT status, quantity FROM trading_positions WHERE intent_id = ?', [absent.intent.id],
+  );
+  assert.equal(retained.status, 'open');
+  assert.notEqual(retained.quantity, '0', 'A missing snapshot must never close local ownership without terminal fills.');
+  await closeDb();
+
   const managed = await setup(path.join(directory, 'operator-flatten.db'));
   const engine = new TradingEngine([managed.paper]);
   await engine.processIntent(managed.intent.id);
@@ -372,7 +597,14 @@ async function run() {
     await testAdverseEntrySlippageFlattens(directory);
     await testPartialEntryProtectionAndTerminalResizing(directory);
     await testTrailingStopOnlyMovesTowardProfit(directory);
+    await testStopReplacementCancellationFailsClosed(directory);
     await testPeriodicReconciliationFailureActivatesKillSwitch(directory);
+    await testEntryExpiryFailureActivatesKillSwitch(directory);
+    await testRuntimeIsolatesAccountFailures(directory);
+    await testRemoteAccountIdentityBinding(directory);
+    await testProtectionOnlyStartupRequiresExplicitEntryEnable(directory);
+    await testAccountDailyRiskIncludesExistingLoss(directory);
+    await testAccountDailyRiskIncludesFundingLoss(directory);
     await testRuntimeLifecycleAndDefaultFailureLogger(directory);
     await testStartupReconciliationFailureKeepsControlPlaneAvailable(directory);
     await testUnmanagedExposureAndOperatorFlatten(directory);

@@ -4,6 +4,28 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-21
+
+### Security
+
+- Existing dashboard administrator tokens are no longer recoverable through the unauthenticated local-session bootstrap route; managed secrets default outside the checkout and build contexts reject runtime secret paths.
+- Dashboard mutations persist secret-redacted semantic before/after outcomes before acknowledging success.
+- High-risk pull requests, unsigned or off-main release tags, unpinned executor deployments, dependency drift, and missing ownership now fail their respective release gates.
+
+### Changed
+
+- Frontend polling is serialized, abortable, and background-aware; keyboard and accessible-name coverage was added to dynamic controls.
+- Trading starts protection-only and enables new entries only after reconciliation, monitoring, backup, routing and persisted-runtime gates pass.
+- Backup manifests now bind the complete application/database feature set and reject legacy or exposure-bearing restores.
+
+### Fixed
+
+- Exchange account identity is bound across credential rotation and reconciliation; missing or unmanaged exposure is fail-closed.
+- Daily trading limits include realized fees, unrealized PnL, live funding payments and active-plan risk reservations.
+- Live entries register a provider-native reduce-only stop atomically, stop replacement establishes the new protection first, and emergency flatten remains unresolved until reconciliation proves closure.
+- SQLite transactions, maintenance, restore, retention and paper-exchange writes now share one serialized ownership coordinator.
+- AI execution values must be uniquely grounded in the labelled source segment and reject conflicting pairs, sides and decoy values.
+
 ### Added
 
 - Vollständige Web-Control-Plane für Telegram-/OpenRouter-Secrets, Runtime-/Enterprise-Einstellungen, editierbare Default-Templates, Bearer-Key-Erzeugung, Monitoring-Secrets, lokale und verschlüsselte Off-site-Recovery sowie vollständigen Factory Reset.

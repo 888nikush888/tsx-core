@@ -1,7 +1,10 @@
 import assert from 'assert';
+import { createHash } from 'node:crypto';
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
 import {
   BackupScheduler,
   createBackupArtifact,
@@ -11,9 +14,11 @@ import {
   verifyBackupArtifact
 } from '../src/backup.js';
 import { DEFAULT_RUNTIME_SETTINGS } from '../src/runtime_settings.js';
+import { ensureTradingDefaults } from '../src/trading_repository.js';
 import {
   closeDb,
   enqueueOutboxTask,
+  getDatabase,
   getOutboxTask,
   initDb,
   saveSignal
@@ -21,8 +26,14 @@ import {
 
 async function createVerifiedArtifact(root, databasePath, backupRoot) {
   await initDb(databasePath);
+  await ensureTradingDefaults();
   await enqueueOutboxTask({ id: 'before-backup', type: 'single', chatId: '-1001', messageId: 1, addedAt: 1 });
   await saveSignal('signal-before', '-1001', 1, '<signal/>', '<signal/>');
+  await getDatabase().run(
+    `UPDATE trading_runtime_state
+     SET execution_enabled = 1, live_trading_enabled = 1, kill_switch_active = 0, kill_switch_reason = NULL
+     WHERE singleton_id = 1`
+  );
   await mkdir(path.join(root, 'templates', 'nested'), { recursive: true });
   await writeFile(path.join(root, 'runtime-settings.json'), JSON.stringify({ ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 120_000 }), 'utf8');
   await writeFile(path.join(root, 'templates', 'default - alt.txt'), '<alternate-template/>', 'utf8');
@@ -37,6 +48,16 @@ async function createVerifiedArtifact(root, databasePath, backupRoot) {
   }, 1_700_000_000_000);
   const manifest = await verifyBackupArtifact(artifact);
   assert.strictEqual(manifest.version, 2);
+  assert.strictEqual(manifest.compatibility.application.id, 'telegram-tdlib-forwarder');
+  assert.match(manifest.compatibility.application.releaseVersion, /^\d+\.\d+\.\d+/);
+  assert.strictEqual(manifest.compatibility.application.dataModel, 'integrated-trading');
+  assert.ok(manifest.compatibility.database.schemaVersion >= 6);
+  assert.strictEqual(
+    manifest.compatibility.database.migrations.length,
+    manifest.compatibility.database.schemaVersion,
+    'The manifest must bind every applied migration.',
+  );
+  assert.ok(manifest.compatibility.features.includes('integrated-trading-control-plane'));
   assert.deepStrictEqual(manifest.recovery?.includedState, ['runtime-settings.json', 'templates/default - alt.txt', 'templates/default.xml', 'templates/nested/source.xml']);
   assert.deepStrictEqual(manifest.recovery?.excludedState, ['managed-secrets', 'tdlib-session-data', 'tdlib-session-files']);
   const backedUpConfig = JSON.parse(await readFile(path.join(artifact, 'config.json'), 'utf8'));
@@ -71,6 +92,14 @@ async function assertRestoredState(root, artifact, databasePath, configPath, sta
   await initDb(databasePath);
   assert.ok(await getOutboxTask('before-backup'));
   assert.strictEqual(await getOutboxTask('after-backup'), null, 'Restore must replace post-backup state');
+  const restoredRuntime = await getDatabase().get(
+    `SELECT execution_enabled, live_trading_enabled, kill_switch_active, kill_switch_reason
+     FROM trading_runtime_state WHERE singleton_id = 1`
+  );
+  assert.equal(restoredRuntime.execution_enabled, 0);
+  assert.equal(restoredRuntime.live_trading_enabled, 0);
+  assert.equal(restoredRuntime.kill_switch_active, 1);
+  assert.match(restoredRuntime.kill_switch_reason, /operator reconciliation required/);
   await closeDb();
   const restoredConfig = JSON.parse(await readFile(configPath, 'utf8'));
   assert.strictEqual(restoredConfig.apiId, 123);
@@ -83,6 +112,22 @@ async function assertRestoredState(root, artifact, databasePath, configPath, sta
   await assert.rejects(readFile(path.join(recoveryRoot, 'templates', 'old.xml')), /ENOENT/);
 }
 
+function invalidManifestCases() {
+  return [
+    ['unsupported', manifest => { manifest.version = 3; }, /Unsupported or malformed/],
+    ['legacy', manifest => { manifest.version = 1; delete manifest.compatibility; }, /Unsupported or malformed/],
+    ['bad-date', manifest => { manifest.createdAt = 'not-a-date'; }, /invalid creation timestamp/],
+    ['invalid-count', manifest => { manifest.files = {}; }, /invalid number of files/],
+    ['bad-metadata', manifest => { delete manifest.files['config.json']; }, /missing required file 'config.json'/],
+    ['wrong-app', manifest => { manifest.compatibility.application.id = 'different-application'; }, /unsupported application/],
+    ['bad-release', manifest => { manifest.compatibility.application.releaseVersion = 'not-semver'; }, /unsupported application/],
+    ['wrong-data-model', manifest => { manifest.compatibility.application.dataModel = 'forwarding-only'; }, /unsupported application/],
+    ['wrong-schema', manifest => { manifest.compatibility.database.schemaVersion += 1; }, /schema version .* incompatible/],
+    ['wrong-features', manifest => { manifest.compatibility.features = ['core-forwarding']; }, /feature set is incompatible/],
+    ['wrong-migrations', manifest => { manifest.compatibility.database.migrations[0].checksum = '0'.repeat(64); }, /migration history does not match/]
+  ];
+}
+
 async function assertInvalidArtifacts(root, artifact, manifest, configPath, backupRoot) {
   const corruptArtifact = path.join(root, 'corrupt-backup');
   await cp(artifact, corruptArtifact, { recursive: true });
@@ -91,11 +136,7 @@ async function assertInvalidArtifacts(root, artifact, manifest, configPath, back
   await assert.rejects(verifyBackupArtifact(configPath), /must be a directory/);
   await assert.rejects(createBackupArtifact(backupRoot, {}, 0), /timestamp is invalid/);
   await assert.rejects(pruneBackupArtifacts(backupRoot, 0), /between 1 and 10000/);
-  for (const [name, mutate, expected] of [
-    ['unsupported', manifest => { manifest.version = 3; }, /Unsupported or malformed/],
-    ['bad-date', manifest => { manifest.createdAt = 'not-a-date'; }, /invalid creation timestamp/],
-    ['bad-metadata', manifest => { delete manifest.files['config.json']; }, /missing required file 'config.json'/]
-  ]) {
+  for (const [name, mutate, expected] of invalidManifestCases()) {
     const invalidArtifact = path.join(root, `invalid-${name}`);
     await cp(artifact, invalidArtifact, { recursive: true });
     const manifestPath = path.join(invalidArtifact, 'manifest.json');
@@ -108,6 +149,73 @@ async function assertInvalidArtifacts(root, artifact, manifest, configPath, back
   await cp(artifact, oversizedManifestArtifact, { recursive: true });
   await writeFile(path.join(oversizedManifestArtifact, 'manifest.json'), 'x'.repeat(64 * 1024 + 1), 'utf8');
   await assert.rejects(verifyBackupArtifact(oversizedManifestArtifact), /exceeds 64 KiB/);
+
+  const incompleteTradingArtifact = path.join(root, 'incomplete-trading-backup');
+  await cp(artifact, incompleteTradingArtifact, { recursive: true });
+  const incompleteDatabasePath = path.join(incompleteTradingArtifact, 'forwarder.db');
+  const incompleteDatabase = await open({ filename: incompleteDatabasePath, driver: sqlite3.Database });
+  await incompleteDatabase.exec('DROP TABLE trading_paper_positions;');
+  await incompleteDatabase.close();
+  const incompleteManifestPath = path.join(incompleteTradingArtifact, 'manifest.json');
+  const incompleteManifest = JSON.parse(await readFile(incompleteManifestPath, 'utf8'));
+  const databaseBytes = await readFile(incompleteDatabasePath);
+  incompleteManifest.files['forwarder.db'] = {
+    sha256: createHash('sha256').update(databaseBytes).digest('hex'),
+    size: databaseBytes.length,
+  };
+  await writeFile(incompleteManifestPath, JSON.stringify(incompleteManifest), 'utf8');
+  await assert.rejects(
+    verifyBackupArtifact(incompleteTradingArtifact),
+    /missing required tables: trading_paper_positions/,
+    'A checksum-consistent backup without complete trading state must be rejected.',
+  );
+
+  const unresolvedTradingArtifact = path.join(root, 'unresolved-trading-backup');
+  await cp(artifact, unresolvedTradingArtifact, { recursive: true });
+  const unresolvedDatabasePath = path.join(unresolvedTradingArtifact, 'forwarder.db');
+  const unresolvedDatabase = await open({ filename: unresolvedDatabasePath, driver: sqlite3.Database });
+  const strategy = await unresolvedDatabase.get('SELECT id FROM trading_strategy_versions LIMIT 1');
+  await unresolvedDatabase.run(
+    `INSERT INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at)
+     VALUES ('restore-active-signal', '-1001', 999, '<signal/>', '<signal/>', ?)`,
+    [Date.now()],
+  );
+  await unresolvedDatabase.run(
+    `INSERT INTO trading_trade_intents (
+       id, source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
+       symbol, side, status, signal_json, created_at, updated_at
+     ) VALUES ('restore-active-intent', 'restore-active-signal', '-1001', ?, 'paper-default',
+               'paper', 'paper', 'BTCUSDT', 'LONG', 'monitoring', '{}', ?, ?)`,
+    [strategy.id, Date.now(), Date.now()],
+  );
+  await unresolvedDatabase.run(
+    `INSERT INTO trading_orders (
+       id, intent_id, account_id, client_order_id, role, side, order_type, status,
+       quantity, filled_quantity, reduce_only, request_json, created_at, updated_at
+     ) VALUES ('restore-active-order', 'restore-active-intent', 'paper-default', 'restore-active-client',
+               'entry', 'buy', 'limit', 'open', '1', '0', 0, '{}', ?, ?)`,
+    [Date.now(), Date.now()],
+  );
+  await unresolvedDatabase.close();
+  const unresolvedManifestPath = path.join(unresolvedTradingArtifact, 'manifest.json');
+  const unresolvedManifest = JSON.parse(await readFile(unresolvedManifestPath, 'utf8'));
+  const unresolvedBytes = await readFile(unresolvedDatabasePath);
+  unresolvedManifest.files['forwarder.db'] = {
+    sha256: createHash('sha256').update(unresolvedBytes).digest('hex'),
+    size: unresolvedBytes.length,
+  };
+  await writeFile(unresolvedManifestPath, JSON.stringify(unresolvedManifest), 'utf8');
+  await verifyBackupArtifact(unresolvedTradingArtifact);
+  await assert.rejects(
+    restoreBackupArtifact(
+      unresolvedTradingArtifact,
+      path.join(root, 'state', 'forwarder.db'),
+      configPath,
+      path.join(root, 'state'),
+      { allowCurrentProcessLock: true },
+    ),
+    /backup captures unresolved trading exposure/,
+  );
 }
 
 async function assertArtifactNameValidation(root, artifact) {

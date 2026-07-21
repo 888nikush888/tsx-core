@@ -8,6 +8,8 @@ export class TradingRuntime {
   private timer: NodeJS.Timeout | null = null;
   private active: Promise<void> | null = null;
   private stopped = true;
+  private entriesEnabled = false;
+  private protectionHealthy = false;
 
   constructor(
     private readonly engine: TradingEngine,
@@ -19,11 +21,14 @@ export class TradingRuntime {
     }
   }
 
-  async start(): Promise<void> {
+  async start(options: { allowEntries?: boolean } = {}): Promise<void> {
     if (!this.stopped) return;
     this.stopped = false;
+    this.entriesEnabled = false;
+    this.protectionHealthy = false;
     try {
       await this.runOnce(true);
+      if (options.allowEntries === true) await this.enableEntries();
     } catch (error) {
       this.logger(
         `[TRADING] Startup reconciliation failed; trading remains fail-closed and will retry: ${error instanceof Error ? error.message : String(error)}`,
@@ -31,6 +36,27 @@ export class TradingRuntime {
     }
     this.timer = setInterval(() => this.wake(), this.intervalMs);
     this.timer.unref();
+  }
+
+  async startProtectionOnly(): Promise<void> {
+    await this.start({ allowEntries: false });
+  }
+
+  async enableEntries(): Promise<void> {
+    if (this.stopped) throw new Error('Trading runtime is not running.');
+    if (!this.protectionHealthy) throw new Error('Trading protection has not reached a healthy reconciliation latch.');
+    const state = await getDatabase().get<{
+      execution_enabled: number;
+      kill_switch_active: number;
+    }>('SELECT execution_enabled, kill_switch_active FROM trading_runtime_state WHERE singleton_id = 1');
+    if (!state || state.execution_enabled !== 1 || state.kill_switch_active === 1) {
+      throw new Error('Trading entries cannot be enabled while execution is disabled or the kill switch is active.');
+    }
+    this.entriesEnabled = true;
+  }
+
+  isProtectionHealthy(): boolean {
+    return this.protectionHealthy;
   }
 
   wake(): void {
@@ -42,28 +68,64 @@ export class TradingRuntime {
 
   async stop(): Promise<void> {
     this.stopped = true;
+    this.entriesEnabled = false;
+    this.protectionHealthy = false;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     await this.active;
   }
 
   private async runOnce(startup: boolean): Promise<void> {
+    const failures = await this.reconcileAccounts(startup);
+    await this.captureEntryExpiryFailure(failures);
+    if (failures.length > 0) await this.failProtectionCycle(startup, failures);
+    this.protectionHealthy = true;
+    if (this.entriesEnabled) await this.processPendingEntries();
+  }
+
+  private async reconcileAccounts(startup: boolean): Promise<string[]> {
     const accounts = await getDatabase().all<Array<{ id: string }>>(
       `SELECT id FROM trading_accounts WHERE enabled = 1 AND status = 'ready' ORDER BY created_at`,
     );
+    const failures: string[] = [];
     for (const account of accounts) {
       try {
-        await this.engine.reconcileAccount(account.id);
+        await this.engine.reconcileAccount(account.id, { force: startup });
       } catch (error: any) {
-        await updateTradingRuntimeState({
-          executionEnabled: false,
-          killSwitchActive: true,
-          killSwitchReason: `${startup ? 'Startup' : 'Periodic'} reconciliation failed for account ${account.id}`,
-        });
-        throw error;
+        failures.push(`${account.id}: ${error?.message || String(error)}`);
       }
     }
-    await this.engine.cancelExpiredEntries();
+    return failures;
+  }
+
+  private async captureEntryExpiryFailure(failures: string[]): Promise<void> {
+    try {
+      await this.engine.cancelExpiredEntries();
+    } catch (error: any) {
+      failures.push(`entry-expiry: ${error?.message || String(error)}`);
+    }
+  }
+
+  private async failProtectionCycle(startup: boolean, failures: string[]): Promise<never> {
+    this.entriesEnabled = false;
+    this.protectionHealthy = false;
+    const cycle = startup ? 'Startup' : 'Periodic';
+    await updateTradingRuntimeState({
+      executionEnabled: false,
+      killSwitchActive: true,
+      killSwitchReason: `${cycle} reconciliation failed for ${failures.length} protection task(s)`,
+    });
+    throw new Error(`${cycle} trading protection failed: ${failures.join('; ')}`);
+  }
+
+  private async processPendingEntries(): Promise<void> {
+    const state = await getDatabase().get<{ execution_enabled: number; kill_switch_active: number }>(
+      'SELECT execution_enabled, kill_switch_active FROM trading_runtime_state WHERE singleton_id = 1',
+    );
+    if (!state || state.execution_enabled !== 1 || state.kill_switch_active === 1) {
+      this.entriesEnabled = false;
+      return;
+    }
     const intents = await getDatabase().all<Array<{ id: string }>>(
       `SELECT id FROM trading_trade_intents WHERE status = 'pending' ORDER BY created_at LIMIT 100`,
     );

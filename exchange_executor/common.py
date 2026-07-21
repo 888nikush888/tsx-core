@@ -1,11 +1,49 @@
 from __future__ import annotations
 
+import hashlib
+import time
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 
 class ExchangeContractError(ValueError):
     pass
+
+
+class RequestDeadline:
+    MAX_FUTURE_MS = 35_000
+
+    def __init__(self, deadline_at_ms: int) -> None:
+        self.deadline_at_ms = deadline_at_ms
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "RequestDeadline":
+        value = payload.get("deadlineAt")
+        now = int(time.time() * 1000)
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ExchangeContractError("deadlineAt is required.")
+        if value <= now or value > now + cls.MAX_FUTURE_MS:
+            raise ExchangeContractError("deadlineAt is expired or outside the allowed request budget.")
+        return cls(value)
+
+    def remaining_ms(self) -> int:
+        return self.deadline_at_ms - int(time.time() * 1000)
+
+    def ensure(self, minimum_ms: int = 1) -> None:
+        if self.remaining_ms() < minimum_ms:
+            raise ExchangeContractError("Executor request deadline expired before the next operation.")
+
+    def sdk_timeout_seconds(self, cap: float = 10.0) -> float:
+        self.ensure(250)
+        # Leave response-serialization headroom so an SDK timeout settles before
+        # the caller's absolute deadline rather than racing it.
+        return max(0.1, min(cap, (self.remaining_ms() - 250) / 1000))
+
+
+def external_account_id(exchange: str, mode: str, stable_identifier: str) -> str:
+    if not stable_identifier:
+        raise ExchangeContractError("Exchange account identity is unavailable.")
+    return hashlib.sha256(f"{exchange}:{mode}:{stable_identifier}".encode("utf-8")).hexdigest()
 
 
 def decimal_string(value: Any, label: str, *, positive: bool = False) -> str:

@@ -2,8 +2,15 @@ import { createHash, randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
 import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import { backupDatabase } from './db.js';
+import { open, Database } from 'sqlite';
+import {
+  backupDatabase,
+  DATABASE_FEATURE_SET,
+  expectedDatabaseMigrations,
+  LATEST_SCHEMA_VERSION,
+  REQUIRED_DATABASE_TABLES,
+  type DatabaseMigrationDescriptor,
+} from './db.js';
 import { configurationPathFromEnvironment } from './config.js';
 import { validateRuntimeSettings } from './runtime_settings.js';
 
@@ -23,7 +30,9 @@ const CORE_BACKUP_FILES = [DATABASE_FILE, CONFIG_FILE] as const;
 const MAX_BACKUP_STATE_FILES = 256;
 const MAX_BACKUP_STATE_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_BACKUP_STATE_BYTES = 20 * 1024 * 1024;
-const REQUIRED_TABLES = ['signals', 'pending_tasks', 'media_group_buffer', 'forwarding_stats', 'incoming_messages', 'ai_usage_daily'];
+const BACKUP_APPLICATION_ID = 'telegram-tdlib-forwarder';
+const BACKUP_APPLICATION_RELEASE = '2.0.0';
+const BACKUP_DATA_MODEL = 'integrated-trading';
 const FORBIDDEN_CONFIG_KEYS = new Set([
   'APIHASH',
   'OPENROUTERAPIKEY',
@@ -46,9 +55,21 @@ interface BackupFileMetadata {
 }
 
 export interface BackupManifest {
-  version: 1 | 2;
+  version: 2;
   createdAt: string;
   files: Record<string, BackupFileMetadata>;
+  compatibility: {
+    application: {
+      id: typeof BACKUP_APPLICATION_ID;
+      releaseVersion: string;
+      dataModel: typeof BACKUP_DATA_MODEL;
+    };
+    database: {
+      schemaVersion: number;
+      migrations: DatabaseMigrationDescriptor[];
+    };
+    features: string[];
+  };
   recovery?: {
     schemaVersion: 1;
     includedState: string[];
@@ -141,6 +162,126 @@ async function assertRegularFile(filePath: string, description: string): Promise
   if (!entry.isFile() || entry.isSymbolicLink()) throw new Error(`${description} must be a regular file, not a symbolic link.`);
 }
 
+function expectedCompatibility(): BackupManifest['compatibility'] {
+  return {
+    application: {
+      id: BACKUP_APPLICATION_ID,
+      releaseVersion: BACKUP_APPLICATION_RELEASE,
+      dataModel: BACKUP_DATA_MODEL,
+    },
+    database: {
+      schemaVersion: LATEST_SCHEMA_VERSION,
+      migrations: expectedDatabaseMigrations(),
+    },
+    features: [...DATABASE_FEATURE_SET],
+  };
+}
+
+function assertBackupApplicationCompatibility(
+  compatibility: BackupManifest['compatibility'],
+  expected: BackupManifest['compatibility'],
+): void {
+  if (
+    !compatibility
+    || compatibility.application?.id !== expected.application.id
+    || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(compatibility.application?.releaseVersion || '')
+    || compatibility.application?.dataModel !== expected.application.dataModel
+  ) {
+    throw new Error('Backup belongs to an unsupported application or data model.');
+  }
+}
+
+function assertBackupDatabaseCompatibility(
+  compatibility: BackupManifest['compatibility'],
+  expected: BackupManifest['compatibility'],
+): void {
+  if (compatibility.database?.schemaVersion !== expected.database.schemaVersion) {
+    throw new Error(
+      `Backup schema version ${compatibility.database?.schemaVersion ?? 'missing'} is incompatible; expected ${expected.database.schemaVersion}.`
+    );
+  }
+  if (JSON.stringify(compatibility.database.migrations) !== JSON.stringify(expected.database.migrations)) {
+    throw new Error('Backup migration history does not match this application binary.');
+  }
+}
+
+function assertBackupFeatureCompatibility(
+  compatibility: BackupManifest['compatibility'],
+  expected: BackupManifest['compatibility'],
+): void {
+  const actualFeatures = [...(compatibility.features || [])].sort();
+  const requiredFeatures = [...expected.features].sort();
+  if (JSON.stringify(actualFeatures) !== JSON.stringify(requiredFeatures)) {
+    throw new Error(`Backup feature set is incompatible; required features: ${requiredFeatures.join(', ')}.`);
+  }
+}
+
+function assertManifestCompatibility(manifest: BackupManifest): void {
+  const compatibility = manifest.compatibility;
+  const expected = expectedCompatibility();
+  assertBackupApplicationCompatibility(compatibility, expected);
+  assertBackupDatabaseCompatibility(compatibility, expected);
+  assertBackupFeatureCompatibility(compatibility, expected);
+}
+
+async function verifyCoreDatabaseSchema(database: Database): Promise<void> {
+  const integrity = await database.get<{ integrity_check: string }>('PRAGMA integrity_check;');
+  if (integrity?.integrity_check !== 'ok') {
+    throw new Error(`SQLite integrity_check failed: ${integrity?.integrity_check || 'no result'}`);
+  }
+  const rows = await database.all<Array<{ name: string }>>(`SELECT name FROM sqlite_master WHERE type = 'table'`);
+  const tables = new Set(rows.map(row => row.name));
+  const missing = REQUIRED_DATABASE_TABLES.filter(table => !tables.has(table));
+  if (missing.length > 0) throw new Error(`Backup is missing required tables: ${missing.join(', ')}`);
+  const foreignKeyFailures = await database.all<Array<Record<string, unknown>>>('PRAGMA foreign_key_check;');
+  if (foreignKeyFailures.length > 0) throw new Error(`Backup contains ${foreignKeyFailures.length} foreign-key violation(s).`);
+  const appliedMigrations = await database.all<DatabaseMigrationDescriptor[]>(
+    'SELECT version, name, checksum FROM schema_migrations ORDER BY version'
+  );
+  if (JSON.stringify(appliedMigrations) !== JSON.stringify(expectedDatabaseMigrations())) {
+    throw new Error('Backup database migration history does not match this application binary.');
+  }
+}
+
+async function verifyTradingDatabaseSchema(database: Database): Promise<void> {
+  const tradingAccountColumns = await database.all<Array<{ name: string }>>('PRAGMA table_info(trading_accounts);');
+  if (!tradingAccountColumns.some(column => column.name === 'external_account_id')) {
+    throw new Error('Backup trading account schema is missing external account identity binding.');
+  }
+  const runtimeState = await database.get<{ count: number; minimum: number; maximum: number }>(
+    `SELECT COUNT(*) AS count, MIN(singleton_id) AS minimum, MAX(singleton_id) AS maximum FROM trading_runtime_state`
+  );
+  if (Number(runtimeState?.count) !== 1 || Number(runtimeState?.minimum) !== 1 || Number(runtimeState?.maximum) !== 1) {
+    throw new Error('Backup trading runtime singleton is missing or malformed.');
+  }
+  const immutableTrigger = await database.get<{ name: string }>(
+    `SELECT name FROM sqlite_master WHERE type = 'trigger' AND name = 'trg_trading_strategy_immutable'`
+  );
+  if (!immutableTrigger) throw new Error('Backup is missing the published-strategy immutability trigger.');
+  const identityIndex = await database.get<{ name: string }>(
+    `SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'uq_trading_external_account_identity'`
+  );
+  if (!identityIndex) throw new Error('Backup is missing the external account identity uniqueness constraint.');
+}
+
+async function verifyStrategyConfigurationHashes(database: Database): Promise<void> {
+  const strategies = await database.all<Array<{ id: string; configuration_json: string; configuration_sha256: string }>>(
+    'SELECT id, configuration_json, configuration_sha256 FROM trading_strategy_versions'
+  );
+  for (const strategy of strategies) {
+    let normalized: string;
+    try {
+      normalized = JSON.stringify(JSON.parse(strategy.configuration_json));
+    } catch (error) {
+      throw new Error(`Backup strategy ${strategy.id} contains invalid configuration JSON.`, { cause: error });
+    }
+    const hash = createHash('sha256').update(normalized).digest('hex');
+    if (hash !== strategy.configuration_sha256) {
+      throw new Error(`Backup strategy ${strategy.id} failed its configuration integrity check.`);
+    }
+  }
+}
+
 export async function verifySqliteDatabase(databasePath: string): Promise<void> {
   const database = await open({
     filename: path.resolve(databasePath),
@@ -148,14 +289,9 @@ export async function verifySqliteDatabase(databasePath: string): Promise<void> 
     mode: sqlite3.OPEN_READONLY
   });
   try {
-    const integrity = await database.get<{ integrity_check: string }>('PRAGMA integrity_check;');
-    if (integrity?.integrity_check !== 'ok') throw new Error(`SQLite integrity_check failed: ${integrity?.integrity_check || 'no result'}`);
-    const rows = await database.all<Array<{ name: string }>>(
-      `SELECT name FROM sqlite_master WHERE type = 'table'`
-    );
-    const tables = new Set(rows.map(row => row.name));
-    const missing = REQUIRED_TABLES.filter(table => !tables.has(table));
-    if (missing.length > 0) throw new Error(`Backup is missing required tables: ${missing.join(', ')}`);
+    await verifyCoreDatabaseSchema(database);
+    await verifyTradingDatabaseSchema(database);
+    await verifyStrategyConfigurationHashes(database);
   } finally {
     await database.close();
   }
@@ -166,12 +302,13 @@ async function readBackupManifest(artifactPath: string): Promise<BackupManifest>
   const stats = await fs.stat(manifestPath);
   if (stats.size > 64 * 1024) throw new Error('Backup manifest exceeds 64 KiB.');
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as BackupManifest;
-  if ((manifest.version !== 1 && manifest.version !== 2) || !manifest.createdAt || !manifest.files || typeof manifest.files !== 'object') {
+  if (manifest.version !== 2 || !manifest.createdAt || !manifest.files || typeof manifest.files !== 'object') {
     throw new Error('Unsupported or malformed backup manifest.');
   }
   if (Number.isNaN(Date.parse(manifest.createdAt))) {
     throw new Error('Backup manifest has an invalid creation timestamp.');
   }
+  assertManifestCompatibility(manifest);
   return manifest;
 }
 
@@ -332,6 +469,7 @@ export async function createBackupArtifact(
       version: 2,
       createdAt: new Date(now).toISOString(),
       files,
+      compatibility: expectedCompatibility(),
       recovery: {
         schemaVersion: 1,
         includedState,
@@ -477,6 +615,38 @@ async function createRestorePlan(
 async function stageRestore(plan: RestorePlan): Promise<void> {
   await fs.copyFile(path.join(plan.artifact, DATABASE_FILE), plan.dbTemp, fs.constants.COPYFILE_EXCL);
   await fs.copyFile(path.join(plan.artifact, CONFIG_FILE), plan.configTemp, fs.constants.COPYFILE_EXCL);
+  await verifySqliteDatabase(plan.dbTemp);
+  const stagedDatabase = await open({ filename: plan.dbTemp, driver: sqlite3.Database });
+  try {
+    const unresolved = await stagedDatabase.get<{ positions: number; orders: number }>(
+      `SELECT
+         (SELECT COUNT(*) FROM trading_positions
+          WHERE status IN ('opening', 'open', 'closing', 'emergency') AND quantity <> '0') AS positions,
+         (SELECT COUNT(*) FROM trading_orders
+          WHERE status IN ('submitting', 'open', 'partially_filled', 'cancel_pending', 'unknown')) AS orders`
+    );
+    if (Number(unresolved?.positions || 0) > 0 || Number(unresolved?.orders || 0) > 0) {
+      throw new Error(
+        `Restore refused because the backup captures unresolved trading exposure `
+        + `(positions=${Number(unresolved?.positions || 0)}, orders=${Number(unresolved?.orders || 0)}).`
+      );
+    }
+    const runtimeUpdate = await stagedDatabase.run(
+      `UPDATE trading_runtime_state
+       SET execution_enabled = 0,
+           live_trading_enabled = 0,
+           kill_switch_active = 1,
+           kill_switch_reason = 'Backup restored; operator reconciliation required',
+           updated_at = ?
+       WHERE singleton_id = 1`,
+      [Date.now()],
+    );
+    if (Number(runtimeUpdate.changes || 0) !== 1) {
+      throw new Error('Restore could not put the staged trading runtime into a fail-closed state.');
+    }
+  } finally {
+    await stagedDatabase.close();
+  }
   await verifySqliteDatabase(plan.dbTemp);
   JSON.parse(await fs.readFile(plan.configTemp, 'utf8'));
   if (plan.runtimeSettings) {

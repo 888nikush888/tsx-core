@@ -2,6 +2,7 @@ name: Quality OS
 
 on:
   pull_request:
+  merge_group:
   push:
     branches: [main]
     tags: ['v*']
@@ -17,7 +18,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   verify:
@@ -46,10 +47,22 @@ jobs:
           npm audit --audit-level=moderate
           npm audit --prefix frontend --audit-level=moderate
       - name: License policy gate
-        run: npm run quality:licenses
+        run: |
+          npm run quality:licenses
+          npm run quality:dependencies
       - name: Calculate evidence-based PR risk
+        id: pr_risk
         if: github.event_name == 'pull_request'
+        continue-on-error: true
         run: node scripts/calculate_pr_risk.js "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+      - name: Preserve PR-risk decision evidence
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr-risk-evidence-${{ github.event.pull_request.head.sha }}
+          path: reports/pr-risk/
+          if-no-files-found: error
+          retention-days: 90
       - name: Static and type gates
         run: |
           npm run lint
@@ -61,6 +74,7 @@ jobs:
           npm run quality:release
           npm run quality:risk-acceptances
           npm run quality:monitoring
+          npm run quality:build-context
       - name: Test and per-file coverage gate
         run: |
           npm run test:coverage
@@ -72,6 +86,7 @@ jobs:
       - name: Generate CycloneDX SBOMs
         run: npm run quality:sbom
       - name: Upload verification evidence
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: quality-evidence-${{ github.sha }}
@@ -81,6 +96,9 @@ jobs:
             reports/
           if-no-files-found: error
           retention-days: 90
+      - name: Enforce high-risk PR decision
+        if: always() && github.event_name == 'pull_request'
+        run: test "${{ steps.pr_risk.outcome }}" = success
 
   mutation:
     name: Critical mutation gate (${{ matrix.shard }})
@@ -89,7 +107,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [queue, retry, schema]
+        shard: [queue, retry, schema, trading-risk]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -99,8 +117,8 @@ jobs:
       - name: Restore mutation baseline
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
-          path: reports/stryker-${{ matrix.shard }}-incremental.json
-          key: stryker-${{ matrix.shard }}-${{ runner.os }}-${{ hashFiles('src/queue.ts', 'src/tdlib_retry.ts', 'src/signal_schema.ts', 'tests/test_queue.js', 'tests/test_tdlib_retry.js', 'tests/test_signal_parser.js', 'stryker.config.mjs', 'scripts/run_mutation_shards.js') }}
+          path: reports/stryker-${{ matrix.shard }}*-incremental.json
+          key: stryker-${{ matrix.shard }}-${{ runner.os }}-${{ hashFiles('src/queue.ts', 'src/tdlib_retry.ts', 'src/signal_schema.ts', 'src/trading_risk.ts', 'tests/test_queue.js', 'tests/test_tdlib_retry.js', 'tests/test_signal_parser.js', 'tests/test_trading_core.js', 'stryker.config.mjs', 'scripts/run_mutation_shards.js') }}
           restore-keys: stryker-${{ matrix.shard }}-${{ runner.os }}-
       - run: npm ci --no-audit --no-fund
       - run: npm run test:mutation -- ${{ matrix.shard }}
@@ -111,7 +129,7 @@ jobs:
           name: mutation-evidence-${{ matrix.shard }}-${{ github.sha }}
           path: |
             reports/mutation/${{ matrix.shard }}.json
-            reports/stryker-${{ matrix.shard }}-incremental.json
+            reports/stryker-${{ matrix.shard }}*-incremental.json
           if-no-files-found: error
           retention-days: 90
 
@@ -293,6 +311,23 @@ jobs:
     steps:
       - name: Checkout the exact release tag
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+      - name: Require a verified annotated tag on the default branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ref_json="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${GITHUB_REF_NAME}")"
+          test "$(jq -r '.object.type' <<<"${ref_json}")" = tag
+          tag_sha="$(jq -r '.object.sha' <<<"${ref_json}")"
+          tag_json="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_sha}")"
+          test "$(jq -r '.object.type' <<<"${tag_json}")" = commit
+          test "$(jq -r '.object.sha' <<<"${tag_json}")" = "${GITHUB_SHA}"
+          test "$(jq -r '.verification.verified' <<<"${tag_json}")" = true
+          test "$(jq -r '.verification.reason' <<<"${tag_json}")" = valid
+          default_branch="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')"
+          git fetch --no-tags origin "${default_branch}"
+          git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${default_branch}"
       - name: Verify repository governance controls
         env:
           GH_TOKEN: ${{ github.token }}

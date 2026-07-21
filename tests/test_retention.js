@@ -5,11 +5,14 @@ import path from 'node:path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import {
+  beginDatabaseMaintenance,
   closeDb,
   getDatabase,
   getDatabaseStorageStats,
   initDb,
-  pruneOperationalData
+  pruneOperationalData,
+  saveSignal,
+  withDatabaseTransaction
 } from '../src/db.js';
 import { ensureTradingDefaults } from '../src/trading_repository.js';
 import {
@@ -21,6 +24,51 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const NOW = Date.UTC(2030, 5, 1);
 const OLD = NOW - 91 * DAY_MS;
 const RECENT = NOW - DAY_MS;
+
+async function assertSerializedTransactionOwnership() {
+  let markTransactionStarted;
+  let releaseTransaction;
+  const transactionStarted = new Promise(resolve => { markTransactionStarted = resolve; });
+  const transactionBarrier = new Promise(resolve => { releaseTransaction = resolve; });
+  const rolledBack = withDatabaseTransaction(async database => {
+    await database.run(
+      `INSERT INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at)
+       VALUES ('transaction-owned', '-1001', 900, '<signal/>', '<signal/>', ?)`,
+      [NOW],
+    );
+    markTransactionStarted();
+    await transactionBarrier;
+    throw new Error('forced transaction rollback');
+  });
+  await transactionStarted;
+  let concurrentWriteCompleted = false;
+  const concurrentWrite = saveSignal(
+    'concurrent-survivor', '-1001', 901, '<signal/>', '<signal/>'
+  ).then(() => { concurrentWriteCompleted = true; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(concurrentWriteCompleted, false, 'A foreign write must wait for the active transaction owner.');
+  releaseTransaction();
+  await assert.rejects(rolledBack, /forced transaction rollback/);
+  await concurrentWrite;
+  assert.equal(
+    await getDatabase().get('SELECT id FROM signals WHERE id = ?', ['transaction-owned']),
+    undefined,
+    'The owner transaction must roll back its own write.',
+  );
+  assert.equal(
+    (await getDatabase().get('SELECT id FROM signals WHERE id = ?', ['concurrent-survivor']))?.id,
+    'concurrent-survivor',
+    'A queued foreign write must commit after the rollback instead of joining it.',
+  );
+  await getDatabase().run('DELETE FROM signals WHERE id = ?', ['concurrent-survivor']);
+
+  const capturedDatabaseHandle = getDatabase();
+  const maintenance = await beginDatabaseMaintenance('transaction regression test');
+  assert.throws(() => getDatabase(), /maintenance is active/);
+  await assert.rejects(capturedDatabaseHandle.get('SELECT 1'), /maintenance is active/);
+  maintenance.release();
+  assert.ok(getDatabase(), 'Releasing maintenance must restore database availability.');
+}
 
 async function seedRetentionRows(dbPath) {
   const database = await open({ filename: dbPath, driver: sqlite3.Database });
@@ -58,52 +106,57 @@ async function seedRetentionRows(dbPath) {
   await database.close();
 }
 
+async function seedTradingRetentionRows(database, strategyId) {
+  await database.run(
+    `INSERT INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at)
+     VALUES ('signal-trading-old', '-1001', 30, '<signal/>', '<signal/>', ?),
+            ('signal-trading-unknown', '-1001', 31, '<signal/>', '<signal/>', ?),
+            ('signal-trading-critical', '-1001', 32, '<signal/>', '<signal/>', ?)`,
+    [OLD, OLD, OLD]
+  );
+  for (const [id, source, status] of [
+    ['intent-old', 'signal-trading-old', 'completed'],
+    ['intent-unknown', 'signal-trading-unknown', 'unknown'],
+    ['intent-critical', 'signal-trading-critical', 'completed']
+  ]) {
+    await database.run(
+      `INSERT INTO trading_trade_intents (
+         id, source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
+         symbol, side, status, signal_json, created_at, updated_at
+       ) VALUES (?, ?, '-1001', ?, 'paper-default', 'paper', 'paper', 'BTCUSDT', 'LONG', ?, '{}', ?, ?)`,
+      [id, source, strategyId, status, OLD, OLD]
+    );
+  }
+  await database.run(
+    `INSERT INTO trading_risk_events (id, severity, code, account_id, intent_id, details_json, created_at)
+     VALUES ('risk-old', 'info', 'TEST', 'paper-default', 'intent-old', '{}', ?),
+            ('risk-critical', 'critical', 'TEST_CRITICAL', 'paper-default', 'intent-critical', '{}', ?)`,
+    [OLD, OLD]
+  );
+  await database.run(
+    `INSERT INTO trading_reconciliation_runs (id, account_id, status, started_at, completed_at)
+     VALUES ('reconcile-old', 'paper-default', 'succeeded', ?, ?)`, [OLD, OLD]
+  );
+  await database.run(
+    `INSERT INTO trading_paper_orders (
+       exchange_order_id, account_id, client_order_id, symbol, role, side, order_type, status,
+       quantity, filled_quantity, reduce_only, leverage, created_at, updated_at
+     ) VALUES ('paper-old', 'paper-default', 'paper-client-old', 'BTCUSDT', 'entry', 'buy', 'limit',
+               'filled', '1', '1', 0, 1, ?, ?)`, [OLD, OLD]
+  );
+}
+
 async function runTests() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forwarder-retention-'));
   const dbPath = path.join(root, 'retention.db');
   try {
     await initDb(dbPath);
     await ensureTradingDefaults(OLD);
+    await assertSerializedTransactionOwnership();
     await seedRetentionRows(dbPath);
     const database = getDatabase();
     const strategy = await database.get('SELECT id FROM trading_strategy_versions LIMIT 1');
-    await database.run(
-      `INSERT INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at)
-       VALUES ('signal-trading-old', '-1001', 30, '<signal/>', '<signal/>', ?),
-              ('signal-trading-unknown', '-1001', 31, '<signal/>', '<signal/>', ?),
-              ('signal-trading-critical', '-1001', 32, '<signal/>', '<signal/>', ?)`,
-      [OLD, OLD, OLD]
-    );
-    for (const [id, source, status] of [
-      ['intent-old', 'signal-trading-old', 'completed'],
-      ['intent-unknown', 'signal-trading-unknown', 'unknown'],
-      ['intent-critical', 'signal-trading-critical', 'completed']
-    ]) {
-      await database.run(
-        `INSERT INTO trading_trade_intents (
-           id, source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
-           symbol, side, status, signal_json, created_at, updated_at
-         ) VALUES (?, ?, '-1001', ?, 'paper-default', 'paper', 'paper', 'BTCUSDT', 'LONG', ?, '{}', ?, ?)`,
-        [id, source, strategy.id, status, OLD, OLD]
-      );
-    }
-    await database.run(
-      `INSERT INTO trading_risk_events (id, severity, code, account_id, intent_id, details_json, created_at)
-       VALUES ('risk-old', 'info', 'TEST', 'paper-default', 'intent-old', '{}', ?),
-              ('risk-critical', 'critical', 'TEST_CRITICAL', 'paper-default', 'intent-critical', '{}', ?)`,
-      [OLD, OLD]
-    );
-    await database.run(
-      `INSERT INTO trading_reconciliation_runs (id, account_id, status, started_at, completed_at)
-       VALUES ('reconcile-old', 'paper-default', 'succeeded', ?, ?)`, [OLD, OLD]
-    );
-    await database.run(
-      `INSERT INTO trading_paper_orders (
-         exchange_order_id, account_id, client_order_id, symbol, role, side, order_type, status,
-         quantity, filled_quantity, reduce_only, leverage, created_at, updated_at
-       ) VALUES ('paper-old', 'paper-default', 'paper-client-old', 'BTCUSDT', 'entry', 'buy', 'limit',
-                 'filled', '1', '1', 0, 1, ?, ?)`, [OLD, OLD]
-    );
+    await seedTradingRetentionRows(database, strategy.id);
 
     const result = await pruneOperationalData(90, 100, NOW);
     assert.deepEqual(result, {

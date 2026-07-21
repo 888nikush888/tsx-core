@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { RefreshCw, FileCode, AlertCircle, Inbox, ChevronDown, ChevronRight, Copy, Check, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/api"
+import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 import {
   Card,
   CardContent,
@@ -39,26 +40,23 @@ export function SignalsTab({ config }: { config?: any }) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  const fetchSignals = async () => {
+  const fetchSignals = async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await apiFetch(`${API_BASE}/api/processed-signals`)
+      const response = await apiFetch(`${API_BASE}/api/processed-signals`, { signal })
       if (!response.ok) throw new Error("Konnte Signale nicht laden.")
       const data = await response.json()
       setSignals(data.signals || [])
     } catch (err: any) {
+      if (signal?.aborted) return
       setError(err.message)
     } finally {
       setIsLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchSignals()
-    const interval = setInterval(fetchSignals, 5000)
-    return () => clearInterval(interval)
-  }, [])
+  useSerializedPolling((signal) => fetchSignals(signal), 5_000)
 
   const toggleExpand = (id: string) => {
     const next = new Set(expandedIds)
@@ -89,13 +87,13 @@ export function SignalsTab({ config }: { config?: any }) {
             Archiv aller erfolgreich extrahierten XML-Signale aus der SQLite-Datenbank (Aktualisiert alle 5s)
           </CardDescription>
         </div>
-        <Button onClick={fetchSignals} variant="outline" size="icon" disabled={isLoading}>
+        <Button onClick={() => void fetchSignals()} variant="outline" size="icon" disabled={isLoading} aria-label="Signale aktualisieren">
           <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
         </Button>
       </CardHeader>
       <CardContent>
         {error && (
-          <div className="flex items-center gap-2 p-4 text-red-500 bg-red-500/10 rounded-lg mb-4 text-sm">
+          <div role="alert" className="flex items-center gap-2 p-4 text-red-500 bg-red-500/10 rounded-lg mb-4 text-sm">
             <AlertCircle className="h-4 w-4" />
             <span>Fehler: {error}</span>
           </div>
@@ -141,16 +139,11 @@ export function SignalsTab({ config }: { config?: any }) {
 
                   return (
                     <React.Fragment key={sig.id}>
-                      <TableRow 
-                        onClick={() => toggleExpand(sig.id)} 
-                        className="cursor-pointer hover:bg-muted/30 transition-colors"
-                      >
+                      <TableRow className="hover:bg-muted/30 transition-colors">
                         <TableCell className="text-center p-2">
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 mx-auto text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 mx-auto text-muted-foreground" />
-                          )}
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label={isExpanded ? `Signal ${sig.id} einklappen` : `Signal ${sig.id} ausklappen`} aria-expanded={isExpanded} onClick={() => toggleExpand(sig.id)}>
+                            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                          </Button>
                         </TableCell>
                         <TableCell className="font-mono text-xs">{timeStr}</TableCell>
                         <TableCell className="text-xs truncate max-w-[240px]" title={sig.chat_id}>
@@ -165,6 +158,7 @@ export function SignalsTab({ config }: { config?: any }) {
                             variant="ghost" 
                             size="icon" 
                             className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:scale-90 transition-all"
+                            aria-label={`Delete signal ${sig.id}`}
                             onClick={async (e) => {
                               e.stopPropagation()
                               if (window.confirm("Dieses Signal wirklich aus der Datenbank löschen?")) {

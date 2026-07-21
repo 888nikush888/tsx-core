@@ -36,7 +36,11 @@ import type {
 } from './trading_types.js';
 
 type VerifiableAdapter = TradingExchangeAdapter & {
-  verifyAccount?: (account: TradingAccount) => Promise<{ verified: boolean; equity: string }>;
+  verifyAccount?: (account: TradingAccount) => Promise<{
+    verified: boolean;
+    equity: string;
+    externalAccountId: string;
+  }>;
 };
 
 const LIVE_CONFIRMATION = 'ENABLE LIVE TRADING';
@@ -51,6 +55,13 @@ function identifier(value: unknown, label: string, maximum = 128): string {
 
 function boolean(value: unknown, label: string): boolean {
   if (typeof value !== 'boolean') throw new Error(`${label} must be boolean.`);
+  return value;
+}
+
+function externalAccountIdentity(value: unknown): string {
+  if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) {
+    throw new Error('Exchange account verification did not return a stable external account identity.');
+  }
   return value;
 }
 
@@ -240,11 +251,72 @@ export class TradingWebControl {
   }
 
   async replaceAccountCredentials(payload: any): Promise<TradingAccount> {
-    const account = await this.requiredAccount(payload.id);
+    let account = await this.requiredAccount(payload.id);
     if (account.exchange === 'paper') throw new Error('Paper accounts do not have exchange credentials.');
+    const adapter = this.requiredAdapter(account.exchange);
+    if (!adapter.verifyAccount) throw new Error(`The ${account.exchange} adapter cannot verify credentials.`);
+
+    // Credential rotation is a maintenance operation, never a live-trading
+    // operation. Leave the global kill switch engaged for explicit operator
+    // review after a successful rotation.
+    await updateTradingRuntimeState({
+      executionEnabled: false,
+      killSwitchActive: true,
+      killSwitchReason: `Credential rotation requested for account ${account.id}`,
+    });
     await updateTradingAccountState(account.id, { status: 'unverified', enabled: false });
-    await this.credentials.set(account.id, this.credentialsFromPayload(account.exchange, payload.credentials));
-    return this.verifyAccount(account.id, true);
+    await this.engine.cancelOpenEntries(account.id);
+    await this.engine.reconcileAccount(account.id);
+    const oldState = await adapter.openState(account);
+    if (oldState.orders.length > 0 || oldState.positions.length > 0) {
+      throw new Error('Credentials cannot be replaced while the exchange account has open orders or positions.');
+    }
+
+    // Bind legacy rows to the old credentials before evaluating a candidate.
+    const oldVerification = await adapter.verifyAccount(account);
+    if (!oldVerification.verified) throw new Error('Exchange rejected existing account verification.');
+    const boundIdentity = externalAccountIdentity(oldVerification.externalAccountId);
+    if (account.externalAccountId && account.externalAccountId !== boundIdentity) {
+      throw new Error('Existing credentials resolve to a different external exchange account.');
+    }
+    account = await updateTradingAccountState(account.id, {
+      externalAccountId: boundIdentity,
+      status: 'unverified',
+      enabled: false,
+      error: null,
+      verifiedAt: Date.now(),
+    });
+
+    const candidateId = await this.credentials.stageCandidate(
+      this.credentialsFromPayload(account.exchange, payload.credentials),
+    );
+    try {
+      const candidate = { ...account, id: candidateId, credentialRef: 'managed-secret' };
+      const result = await adapter.verifyAccount(candidate);
+      if (!result.verified) throw new Error('Exchange rejected candidate account verification.');
+      const candidateIdentity = externalAccountIdentity(result.externalAccountId);
+      if (candidateIdentity !== boundIdentity) {
+        throw new Error('Candidate credentials belong to a different external exchange account.');
+      }
+      await this.credentials.promoteCandidate(candidateId, account.id);
+      return updateTradingAccountState(account.id, {
+        externalAccountId: boundIdentity,
+        status: 'ready',
+        enabled: false,
+        error: null,
+        verifiedAt: Date.now(),
+      });
+    } catch (error) {
+      await this.credentials.discardCandidate(candidateId).catch(() => undefined);
+      await updateTradingAccountState(account.id, {
+        externalAccountId: boundIdentity,
+        status: 'ready',
+        enabled: false,
+        error: error instanceof Error ? error.message : String(error),
+        verifiedAt: Date.now(),
+      });
+      throw error;
+    }
   }
 
   async verifyAccount(id: unknown, enableOnSuccess = false): Promise<TradingAccount> {
@@ -257,7 +329,12 @@ export class TradingWebControl {
     try {
       const result = await adapter.verifyAccount(account);
       if (!result.verified) throw new Error('Exchange rejected account verification.');
+      const externalAccountId = externalAccountIdentity(result.externalAccountId);
+      if (account.externalAccountId && account.externalAccountId !== externalAccountId) {
+        throw new Error('Credentials resolve to a different external exchange account.');
+      }
       return updateTradingAccountState(account.id, {
+        externalAccountId,
         status: 'ready',
         enabled: enableOnSuccess || account.enabled,
         error: null,

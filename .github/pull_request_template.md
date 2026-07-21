@@ -22,6 +22,7 @@
 | **Summe**                       |        |         |
 
 - Erforderliches Review-Level:
+- PR-Risk-Gate: automatisch / `RA-...` mit `gate: pr-risk:<HEAD-SHA>`
 - Rollback-Plan oder begründetes N/A:
 - Risikoakzeptanz-Record: keine / Link
 

@@ -61,7 +61,7 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
    docker compose up --build -d
    ```
 
-2. `http://127.0.0.1:8080` öffnen. Im normalen, ausschließlich auf Host-Loopback veröffentlichten Docker-Modus erzeugt und übernimmt das Programm den lokalen Admin-Zugang automatisch; es erscheint kein vorgeschalteter Bearer-Dialog.
+2. `http://127.0.0.1:8080` öffnen. Im normalen, ausschließlich auf Host-Loopback veröffentlichten Docker-Modus erzeugt der Server nach Origin- und Audit-Prüfung einmalig einen lokalen Admin-Token. Der Browser übernimmt ihn für die aktuelle Sitzung; der Klartext wird danach serverseitig nie wieder ausgegeben.
 3. Unter **Channels** die Telegram API ID, den 32-stelligen API Hash, mindestens einen Quellkanal und den Zielkanal eintragen. **Save Configuration** speichert Nicht-Secrets und write-only Secrets getrennt in persistenten Docker-Volumes. Die lokale `.env` wird von Docker Compose bewusst nicht eingelesen und kann diese Felder daher nicht mehr sperren.
 4. Falls der KI-Parser verwendet wird: unter **Parser** den OpenRouter-Key eintragen und Limits/Modelle prüfen. Das `default`-Template ist direkt editierbar; die serverseitigen Prompt-Injection- und Schema-Schutzregeln bleiben unveränderlich angehängt. Ohne KI-Parser ist kein OpenRouter-Key nötig.
 5. Auf dem Dashboard **Start Forwarder** anklicken. Telefon, Telegram-Code, E-Mail-Code und optionale 2FA werden ausschließlich im Web-Dialog abgefragt und nicht persistiert.
@@ -74,7 +74,7 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
    docker compose logs -f forwarder
    ```
 
-`healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Der lokale Browserzugang wird nach Container- und Browser-Neustarts automatisch aus dem persistenten Secret-Volume wiederhergestellt. Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System → API- und Bearer-Keys** erzeugt, rotiert oder deaktiviert und jeweils nur einmal angezeigt.
+`healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Der lokale Admin-Token bleibt zwar im Secret-Volume gültig, wird daraus aber niemals an den Browser zurückgegeben. Nach Verlust des Browser-Session-Storage muss der einmalig sicher gespeicherte Token erneut eingegeben oder über einen bereits authentifizierten Admin-Zugang rotiert werden. Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System → API- und Bearer-Keys** erzeugt, rotiert oder deaktiviert und jeweils nur einmal angezeigt.
 
 Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verkettete Audit-Logs und verifizierte lokale Backups. Sämtliche Runtime-/Enterprise-Parameter – OIDC, externe Origin, Remote-Audit, verschlüsselte Off-site-Backups, Retention, Kapazitätsgrenzen und Timeouts – werden unter **System → Vollständige Runtime- und Enterprise-Konfiguration** gespeichert und über **Container kontrolliert neu starten** aktiviert. Enterprise-Modus erzwingt OIDC, deaktiviert Local Trust und verlangt unveränderlichen Remote-Audit-Trail sowie verschlüsselte, rücklesbar verifizierte Off-host-Backups.
 

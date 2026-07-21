@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
-const supportedShards = ['queue', 'retry', 'schema'];
+const supportedShards = ['queue', 'retry', 'schema', 'trading-risk'];
 const argumentsList = process.argv.slice(2);
 const force = argumentsList.includes('--force');
 const requestedShards = argumentsList.filter(argument => argument !== '--force');

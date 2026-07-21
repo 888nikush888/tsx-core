@@ -11,17 +11,31 @@ import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import { TradingWebControl } from '../src/trading_web_control.js';
 
 class FakeOfficialAdapter {
-  constructor(exchange) { this.exchange = exchange; this.snapshotCalls = 0; }
-  remote = { orders: [], positions: [], fills: [], observedAt: Date.now() };
+  constructor(exchange) {
+    this.exchange = exchange;
+    this.snapshotCalls = 0;
+    this.externalAccountId = exchange === 'bybit' ? 'a'.repeat(64) : 'b'.repeat(64);
+    this.candidateExternalAccountId = null;
+    this.remote = {
+      orders: [], positions: [], fills: [], observedAt: Date.now(),
+      accountFingerprint: this.externalAccountId,
+    };
+  }
   verified = true;
   verificationError = null;
-  async verifyAccount() {
+  async verifyAccount(account) {
     if (this.verificationError) throw this.verificationError;
-    return { verified: this.verified, equity: '1000' };
+    return {
+      verified: this.verified,
+      equity: '1000',
+      externalAccountId: account.id.startsWith('candidate-')
+        ? (this.candidateExternalAccountId || this.externalAccountId)
+        : this.externalAccountId,
+    };
   }
   async accountSnapshot() {
     this.snapshotCalls += 1;
-    return { equity: '1000', availableBalance: '900', unrealizedPnl: '25', marginUsed: '100' };
+    return { equity: '1000', availableBalance: '900', unrealizedPnl: '25', marginUsed: '100', fundingPnlToday: '-1' };
   }
   async marketSnapshot(_account, symbol) {
     return { symbol, markPrice: '100', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now() };
@@ -154,6 +168,12 @@ try {
     id: live.id,
     credentials: { apiKey: 'replacement-api-key', apiSecret: 'replacement-api-secret' },
   });
+  bybit.candidateExternalAccountId = 'c'.repeat(64);
+  await assert.rejects(control.replaceAccountCredentials({
+    id: live.id,
+    credentials: { apiKey: 'wrong-account-key', apiSecret: 'wrong-account-secret' },
+  }), /different external exchange account/);
+  bybit.candidateExternalAccountId = null;
   assert.equal((await control.setAccountEnabled(live.id, false)).status, 'disabled');
   assert.equal((await control.setAccountEnabled(live.id, true)).status, 'ready');
   const removable = await control.createAccount({

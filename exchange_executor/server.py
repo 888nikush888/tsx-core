@@ -3,18 +3,21 @@ from __future__ import annotations
 import hmac
 import json
 import os
+import signal
 import sys
+import threading
 import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 from bybit_adapter import BybitAdapter
-from common import ExchangeContractError, account_request
+from common import ExchangeContractError, RequestDeadline, account_request
 from credentials import CredentialError, CredentialStore
 from hyperliquid_adapter import HyperliquidAdapter
 
 MAX_BODY_BYTES = 128 * 1024
+MAX_IN_FLIGHT_REQUESTS = 8
 
 
 class Application:
@@ -27,27 +30,35 @@ class Application:
         }
 
     def handle(self, path: str, payload: dict[str, Any]) -> Any:
+        deadline = RequestDeadline.from_payload(payload)
         account = account_request(payload)
         adapter = self.adapters[account["exchange"]]
         if path == "/v1/verify-account":
-            return adapter.verify(account)
+            return adapter.verify(account, deadline)
         if path == "/v1/account-snapshot":
-            return adapter.account_snapshot(account)
+            return adapter.account_snapshot(account, deadline)
         if path == "/v1/market-snapshot":
-            return adapter.market_snapshot(account, required_string(payload, "symbol"))
+            return adapter.market_snapshot(account, required_string(payload, "symbol"), deadline)
         if path == "/v1/submit-order":
             request = payload.get("request")
             if not isinstance(request, dict):
                 raise ExchangeContractError("request is required.")
-            return adapter.submit_order(account, request)
+            return adapter.submit_order(account, request, deadline)
+        if path == "/v1/submit-protected-entry":
+            entry = payload.get("entry")
+            protective_stop = payload.get("protectiveStop")
+            if not isinstance(entry, dict) or not isinstance(protective_stop, dict):
+                raise ExchangeContractError("entry and protectiveStop are required.")
+            return adapter.submit_protected_entry(account, entry, protective_stop, deadline)
         if path == "/v1/cancel-order":
             return adapter.cancel_order(
                 account,
                 required_string(payload, "clientOrderId"),
                 required_string(payload, "symbol"),
+                deadline,
             )
         if path == "/v1/open-state":
-            return adapter.open_state(account)
+            return adapter.open_state(account, deadline)
         raise ExchangeContractError("Unknown executor endpoint.")
 
 
@@ -74,12 +85,19 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path == "/healthz":
-            self._json(HTTPStatus.OK, {"status": "ok"})
+            draining = bool(getattr(self.server, "draining", False))
+            self._json(
+                HTTPStatus.SERVICE_UNAVAILABLE if draining else HTTPStatus.OK,
+                {"status": "draining" if draining else "ok"},
+            )
         else:
             self._json(HTTPStatus.NOT_FOUND, {"error": "Not found."})
 
     def do_POST(self) -> None:
         try:
+            if bool(getattr(self.server, "draining", False)):
+                self._json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "Executor is draining."})
+                return
             if not self._authenticated():
                 self._json(HTTPStatus.UNAUTHORIZED, {"error": "Unauthorized."})
                 return
@@ -110,21 +128,70 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            return
 
     def log_message(self, format_string: str, *args: Any) -> None:
         print(f"executor_http {format_string % args}", file=sys.stderr, flush=True)
+
+
+class BoundedThreadingHTTPServer(ThreadingHTTPServer):
+    daemon_threads = False
+    block_on_close = True
+    request_queue_size = MAX_IN_FLIGHT_REQUESTS
+
+    def __init__(self, server_address: tuple[str, int], handler_class: type[BaseHTTPRequestHandler]) -> None:
+        super().__init__(server_address, handler_class)
+        self.draining = False
+        self._request_slots = threading.BoundedSemaphore(MAX_IN_FLIGHT_REQUESTS)
+        self._drain_lock = threading.Lock()
+
+    def process_request(self, request: Any, client_address: Any) -> None:
+        if self.draining or not self._request_slots.acquire(blocking=False):
+            self.close_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self._request_slots.release()
+            raise
+
+    def process_request_thread(self, request: Any, client_address: Any) -> None:
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._request_slots.release()
+
+    def begin_draining(self) -> bool:
+        with self._drain_lock:
+            if self.draining:
+                return False
+            self.draining = True
+            return True
 
 
 def main() -> None:
     host = os.environ.get("EXECUTOR_HOST", "0.0.0.0")
     port = int(os.environ.get("EXECUTOR_PORT", "8090"))
     application = Application(os.environ.get("MANAGED_SECRET_DIR", "/app/secrets"))
-    server = ThreadingHTTPServer((host, port), Handler)
+    server = BoundedThreadingHTTPServer((host, port), Handler)
     server.application = application  # type: ignore[attr-defined]
-    server.daemon_threads = True
+
+    def request_shutdown(_signum: int, _frame: Any) -> None:
+        if not server.begin_draining():
+            return
+        threading.Thread(target=server.shutdown, name="executor-drain", daemon=False).start()
+
+    signal.signal(signal.SIGTERM, request_shutdown)
+    signal.signal(signal.SIGINT, request_shutdown)
     print(f"executor_listening host={host} port={port}", flush=True)
-    server.serve_forever(poll_interval=0.5)
+    try:
+        server.serve_forever(poll_interval=0.25)
+    finally:
+        server.begin_draining()
+        server.server_close()
 
 
 if __name__ == "__main__":

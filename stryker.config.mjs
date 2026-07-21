@@ -11,6 +11,10 @@ const shardDefinitions = {
     mutate: ['src/signal_schema.ts'],
     command: 'node --import tsx tests/test_signal_parser.js',
   },
+  'trading-risk': {
+    mutate: ['src/trading_risk.ts:45-146'],
+    command: 'node --import tsx tests/test_trading_core.js',
+  },
 };
 
 const shardName = process.env.STRYKER_SHARD || 'queue';
@@ -26,7 +30,7 @@ const config = {
   },
   coverageAnalysis: 'off',
   incremental: true,
-  incrementalFile: `reports/stryker-${shardName}-incremental.json`,
+  incrementalFile: `reports/stryker-${shardName}${shardName === 'trading-risk' ? '-sizing-v1' : ''}-incremental.json`,
   concurrency: 1,
   timeoutMS: 10_000,
   cleanTempDir: 'always',

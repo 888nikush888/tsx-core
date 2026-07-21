@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import time
+from decimal import Decimal
 from typing import Any
 
 from pybit.unified_trading import HTTP
 
 from common import (
     ExchangeContractError,
+    RequestDeadline,
     decimal_string,
+    external_account_id,
     map_bybit_status,
     optional_positive_decimal_string,
     response_list,
@@ -19,35 +22,96 @@ from credentials import CredentialStore
 class BybitAdapter:
     def __init__(self, credentials: CredentialStore) -> None:
         self.credentials = credentials
+        self._identity_cache: dict[str, str] = {}
 
-    def _client(self, account: dict[str, str]) -> HTTP:
+    def _client(self, account: dict[str, str], deadline: RequestDeadline | None = None) -> HTTP:
         secret = self.credentials.account(account["id"], "bybit")
         return HTTP(
             testnet=account["mode"] == "testnet",
             api_key=secret["apiKey"],
             api_secret=secret["apiSecret"],
             recv_window=5000,
-            timeout=10,
+            timeout=deadline.sdk_timeout_seconds() if deadline else 10,
             force_retry=False,
         )
 
-    def verify(self, account: dict[str, str]) -> dict[str, Any]:
-        snapshot = self.account_snapshot(account)
-        return {"verified": True, "equity": snapshot["equity"]}
+    def _external_account_id(
+        self,
+        account: dict[str, str],
+        client: HTTP,
+        deadline: RequestDeadline | None,
+    ) -> str:
+        secret = self.credentials.account(account["id"], "bybit")
+        cache_key = external_account_id("bybit-key", account["mode"], secret["apiKey"])
+        cached = self._identity_cache.get(cache_key)
+        if cached:
+            return cached
+        if deadline:
+            deadline.ensure(500)
+        response = client.get_api_key_information()
+        if not isinstance(response, dict) or response.get("retCode") != 0 or not isinstance(response.get("result"), dict):
+            raise ExchangeContractError("Bybit account identity query failed.")
+        result = response["result"]
+        uid = result.get("userID", result.get("userId", result.get("uid")))
+        if uid is None or str(uid).strip() == "":
+            raise ExchangeContractError("Bybit account identity response omitted the stable UID.")
+        identity = external_account_id("bybit", account["mode"], str(uid))
+        self._identity_cache[cache_key] = identity
+        return identity
 
-    def account_snapshot(self, account: dict[str, str]) -> dict[str, str]:
-        values = response_list(self._client(account).get_wallet_balance(accountType="UNIFIED"), "Bybit wallet balance")
+    def verify(self, account: dict[str, str], deadline: RequestDeadline | None = None) -> dict[str, Any]:
+        snapshot = self.account_snapshot(account, deadline)
+        client = self._client(account) if deadline is None else self._client(account, deadline)
+        identity = self._external_account_id(account, client, deadline)
+        return {
+            "verified": True,
+            "equity": snapshot["equity"],
+            "externalAccountId": identity,
+            "accountFingerprint": identity,
+        }
+
+    def account_snapshot(self, account: dict[str, str], deadline: RequestDeadline | None = None) -> dict[str, str]:
+        client = self._client(account) if deadline is None else self._client(account, deadline)
+        if deadline:
+            deadline.ensure(250)
+        values = response_list(client.get_wallet_balance(accountType="UNIFIED"), "Bybit wallet balance")
         if len(values) != 1:
             raise ExchangeContractError("Bybit returned an ambiguous wallet balance.")
+        now = int(time.time() * 1000)
+        funding = self._all_pages(
+            client.get_transaction_log,
+            "Bybit funding transaction log",
+            deadline=deadline,
+            max_pages=5,
+            max_items=250,
+            accountType="UNIFIED",
+            category="linear",
+            type="SETTLEMENT",
+            startTime=now - (now % 86_400_000),
+            endTime=now,
+            limit=50,
+        )
+        funding_pnl = sum(
+            (Decimal(signed_decimal_string(item.get("funding") or "0", "funding")) for item in funding),
+            Decimal("0"),
+        )
         return {
             "equity": decimal_string(values[0].get("totalEquity"), "totalEquity", positive=True),
             "availableBalance": decimal_string(values[0].get("totalAvailableBalance"), "totalAvailableBalance"),
             "unrealizedPnl": signed_decimal_string(values[0].get("totalPerpUPL", "0"), "totalPerpUPL"),
             "marginUsed": decimal_string(values[0].get("totalInitialMargin", "0"), "totalInitialMargin"),
+            "fundingPnlToday": signed_decimal_string(str(funding_pnl), "fundingPnlToday"),
         }
 
-    def market_snapshot(self, account: dict[str, str], symbol: str) -> dict[str, Any]:
-        client = self._client(account)
+    def market_snapshot(
+        self,
+        account: dict[str, str],
+        symbol: str,
+        deadline: RequestDeadline | None = None,
+    ) -> dict[str, Any]:
+        client = self._client(account) if deadline is None else self._client(account, deadline)
+        if deadline:
+            deadline.ensure(250)
         instruments = response_list(client.get_instruments_info(category="linear", symbol=symbol), "Bybit instrument info")
         tickers = response_list(client.get_tickers(category="linear", symbol=symbol), "Bybit ticker")
         if len(instruments) != 1 or len(tickers) != 1:
@@ -67,10 +131,17 @@ class BybitAdapter:
             "observedAt": int(time.time() * 1000),
         }
 
-    def submit_order(self, account: dict[str, str], request: dict[str, Any]) -> dict[str, Any]:
-        client = self._client(account)
+    def submit_order(
+        self,
+        account: dict[str, str],
+        request: dict[str, Any],
+        deadline: RequestDeadline | None = None,
+    ) -> dict[str, Any]:
+        client = self._client(account) if deadline is None else self._client(account, deadline)
         symbol = request["symbol"]
         if request["role"] == "entry":
+            if deadline:
+                deadline.ensure(500)
             leverage = str(request["leverage"])
             response = client.set_leverage(
                 category="linear", symbol=symbol, buyLeverage=leverage, sellLeverage=leverage
@@ -95,17 +166,90 @@ class BybitAdapter:
             arguments["triggerDirection"] = 2 if request["side"] == "sell" else 1
             arguments["triggerBy"] = "MarkPrice"
             arguments["closeOnTrigger"] = True
+        if request["role"] == "entry" and request["orderType"] == "market":
+            tolerance = Decimal(decimal_string(request.get("maxSlippagePercent"), "maxSlippagePercent", positive=True))
+            if tolerance < Decimal("0.01") or tolerance > Decimal("10"):
+                raise ExchangeContractError("maxSlippagePercent is outside Bybit's supported range.")
+            arguments["slippageToleranceType"] = "Percent"
+            arguments["slippageTolerance"] = decimal_string(str(tolerance), "maxSlippagePercent", positive=True)
+        attached_stop = request.get("providerProtectiveStop")
+        if request["role"] == "entry" and attached_stop is not None:
+            self._validate_protective_stop(request, attached_stop)
+            arguments["stopLoss"] = decimal_string(
+                attached_stop["triggerPrice"], "protectiveStop.triggerPrice", positive=True
+            )
+            arguments["tpslMode"] = "Partial"
+            arguments["slOrderType"] = "Market"
+            arguments["slTriggerBy"] = "MarkPrice"
+        if deadline:
+            deadline.ensure(500)
+            client = self._client(account, deadline)
         response = client.place_order(**arguments)
         if response.get("retCode") != 0:
             return self._result(request, "", "rejected", "0", None, response.get("retMsg"), response)
         order_id = str(response.get("result", {}).get("orderId", ""))
-        return self._confirm_order(client, request, order_id, response)
+        return self._confirm_order(client, request, order_id, response, deadline)
 
-    def _confirm_order(self, client: HTTP, request: dict[str, Any], order_id: str, raw: Any) -> dict[str, Any]:
+    def submit_protected_entry(
+        self,
+        account: dict[str, str],
+        entry: dict[str, Any],
+        protective_stop: dict[str, Any],
+        deadline: RequestDeadline | None = None,
+    ) -> dict[str, Any]:
+        protected_entry = {**entry, "providerProtectiveStop": protective_stop}
+        entry_result = self.submit_order(account, protected_entry, deadline)
+        if entry_result["status"] in {"open", "partially_filled", "filled"}:
+            stop_status = "open"
+            stop_error = None
+        elif entry_result["status"] in {"cancelled", "rejected"}:
+            stop_status = "cancelled"
+            stop_error = "Entry did not become active."
+        else:
+            stop_status = "unknown"
+            stop_error = "Attached stop acknowledgement is unknown with the entry outcome."
+        stop_result = self._result(
+            protective_stop,
+            f"attached:{entry_result.get('exchangeOrderId', '')}",
+            stop_status,
+            "0",
+            None,
+            stop_error,
+            {"providerManaged": True, "entryOrderId": entry_result.get("exchangeOrderId", "")},
+        )
+        return {"entry": entry_result, "protectiveStop": stop_result}
+
+    @staticmethod
+    def _validate_protective_stop(entry: dict[str, Any], stop: dict[str, Any]) -> None:
+        if entry.get("role") != "entry" or stop.get("role") != "stop_loss":
+            raise ExchangeContractError("Protected entry requires entry and stop_loss roles.")
+        if not bool(stop.get("reduceOnly")) or stop.get("orderType") != "stop_market":
+            raise ExchangeContractError("Protective stop must be a reduce-only stop-market order.")
+        if stop.get("symbol") != entry.get("symbol") or stop.get("accountId") != entry.get("accountId"):
+            raise ExchangeContractError("Protective stop must match the entry account and symbol.")
+        if stop.get("side") == entry.get("side"):
+            raise ExchangeContractError("Protective stop side must oppose the entry side.")
+        if decimal_string(stop.get("quantity"), "protectiveStop.quantity", positive=True) != decimal_string(
+            entry.get("quantity"), "entry.quantity", positive=True
+        ):
+            raise ExchangeContractError("Protective stop quantity must match the entry quantity.")
+
+    def _confirm_order(
+        self,
+        client: HTTP,
+        request: dict[str, Any],
+        order_id: str,
+        raw: Any,
+        deadline: RequestDeadline | None = None,
+    ) -> dict[str, Any]:
         for attempt in range(3):
             if attempt:
+                if deadline:
+                    deadline.ensure(250)
                 time.sleep(0.2)
             for method in (client.get_open_orders, client.get_order_history):
+                if deadline:
+                    deadline.ensure(250)
                 values = response_list(
                     method(category="linear", symbol=request["symbol"], orderLinkId=request["clientOrderId"], limit=1),
                     "Bybit order confirmation",
@@ -123,8 +267,16 @@ class BybitAdapter:
                     )
         return self._result(request, order_id, "unknown", "0", None, "Bybit acknowledgement was not confirmed.", raw)
 
-    def cancel_order(self, account: dict[str, str], client_order_id: str, symbol: str) -> dict[str, Any]:
-        client = self._client(account)
+    def cancel_order(
+        self,
+        account: dict[str, str],
+        client_order_id: str,
+        symbol: str,
+        deadline: RequestDeadline | None = None,
+    ) -> dict[str, Any]:
+        client = self._client(account) if deadline is None else self._client(account, deadline)
+        if deadline:
+            deadline.ensure(500)
         response = client.cancel_order(category="linear", symbol=symbol, orderLinkId=client_order_id)
         if response.get("retCode") != 0:
             return {
@@ -137,34 +289,63 @@ class BybitAdapter:
                 "raw": response,
             }
         request = {"symbol": symbol, "clientOrderId": client_order_id}
-        return self._confirm_order(client, request, str(response.get("result", {}).get("orderId", "")), response)
+        return self._confirm_order(
+            client, request, str(response.get("result", {}).get("orderId", "")), response, deadline
+        )
 
-    def open_state(self, account: dict[str, str]) -> dict[str, Any]:
-        client = self._client(account)
-        open_orders = self._all_pages(client.get_open_orders, "Bybit open orders", category="linear", settleCoin="USDT", limit=50)
-        history = self._all_pages(client.get_order_history, "Bybit order history", category="linear", settleCoin="USDT", limit=50)
+    def open_state(self, account: dict[str, str], deadline: RequestDeadline | None = None) -> dict[str, Any]:
+        client = self._client(account) if deadline is None else self._client(account, deadline)
+        identity = self._external_account_id(account, client, deadline)
+        window_start = int(time.time() * 1000) - 24 * 60 * 60 * 1000
+        open_orders = self._all_pages(
+            client.get_open_orders, "Bybit open orders", deadline=deadline,
+            category="linear", settleCoin="USDT", limit=50,
+        )
+        history = self._all_pages(
+            client.get_order_history, "Bybit order history", deadline=deadline,
+            category="linear", settleCoin="USDT", startTime=window_start, limit=50,
+        )
         orders_by_id = {
             str(order.get("orderLinkId") or f"orderId:{order.get('orderId')}"): order
             for order in [*history, *open_orders]
             if order.get("orderLinkId") or order.get("orderId")
         }
-        executions = self._all_pages(client.get_executions, "Bybit executions", category="linear", limit=100)
-        positions = self._all_pages(client.get_positions, "Bybit positions", category="linear", settleCoin="USDT", limit=200)
+        executions = self._all_pages(
+            client.get_executions, "Bybit executions", deadline=deadline,
+            category="linear", startTime=window_start, limit=100,
+        )
+        positions = self._all_pages(
+            client.get_positions, "Bybit positions", deadline=deadline,
+            category="linear", settleCoin="USDT", limit=200,
+        )
         return {
             "orders": [self._order_snapshot(order) for order in orders_by_id.values()],
             "positions": [self._position(position) for position in positions if DecimalValue(position.get("size")) > 0],
             "fills": [self._fill(execution) for execution in executions if execution.get("orderLinkId")],
             "observedAt": int(time.time() * 1000),
+            "accountFingerprint": identity,
         }
 
     @staticmethod
-    def _all_pages(method: Any, label: str, **arguments: Any) -> list[dict[str, Any]]:
+    def _all_pages(
+        method: Any,
+        label: str,
+        *,
+        deadline: RequestDeadline | None = None,
+        max_pages: int = 5,
+        max_items: int = 1_000,
+        **arguments: Any,
+    ) -> list[dict[str, Any]]:
         values: list[dict[str, Any]] = []
         cursor: str | None = None
         seen: set[str] = set()
-        for _ in range(20):
+        for _ in range(max_pages):
+            if deadline:
+                deadline.ensure(250)
             response = method(**arguments, **({"cursor": cursor} if cursor else {}))
             values.extend(response_list(response, label))
+            if len(values) > max_items:
+                raise ExchangeContractError(f"{label} exceeded the bounded item limit.")
             result = response.get("result", {})
             next_cursor = result.get("nextPageCursor") if isinstance(result, dict) else None
             if not next_cursor:

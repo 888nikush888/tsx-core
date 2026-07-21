@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { getDatabase } from './db.js';
+import { getDatabase, withDatabaseTransaction } from './db.js';
 import {
   createStrategyVersion,
   DEFAULT_STRATEGY_CONFIGURATION,
@@ -66,6 +66,7 @@ function accountFromRow(row: any): TradingAccount {
     status: row.status,
     enabled: boolean(row.enabled),
     credentialRef: row.credential_ref || null,
+    externalAccountId: row.external_account_id || null,
     lastVerifiedAt: row.last_verified_at === null ? null : Number(row.last_verified_at),
     lastError: row.last_error || null,
     createdAt: Number(row.created_at),
@@ -117,16 +118,7 @@ function intentFromRow(row: any): TradingIntent {
 }
 
 async function transaction<T>(operation: () => Promise<T>): Promise<T> {
-  const database = getDatabase();
-  await database.exec('BEGIN IMMEDIATE');
-  try {
-    const result = await operation();
-    await database.exec('COMMIT');
-    return result;
-  } catch (error) {
-    await database.exec('ROLLBACK').catch(() => undefined);
-    throw error;
-  }
+  return withDatabaseTransaction(() => operation());
 }
 
 async function insertStrategy(strategy: TradingStrategyVersion): Promise<void> {
@@ -291,15 +283,37 @@ export async function createTradingAccount(input: {
 
 export async function updateTradingAccountState(
   id: string,
-  state: { status: TradingAccountStatus; enabled: boolean; error?: string | null; verifiedAt?: number | null },
+  state: {
+    status: TradingAccountStatus;
+    enabled: boolean;
+    error?: string | null;
+    verifiedAt?: number | null;
+    externalAccountId?: string | null;
+  },
 ): Promise<TradingAccount> {
   if (!['unverified', 'ready', 'disabled', 'error'].includes(state.status)) throw new Error('Unsupported account status.');
   if (state.enabled && state.status !== 'ready') throw new Error('Only a verified ready account can be enabled.');
+  const updatesExternalAccountId = Object.prototype.hasOwnProperty.call(state, 'externalAccountId');
+  const externalAccountId = state.externalAccountId?.trim() || null;
+  if (externalAccountId && (externalAccountId.length > 256 || /[\x00-\x1f\x7f]/.test(externalAccountId))) {
+    throw new Error('External account identity must contain at most 256 printable characters.');
+  }
   const result = await getDatabase().run(
     `UPDATE trading_accounts
-     SET status = ?, enabled = ?, last_error = ?, last_verified_at = ?, updated_at = ?
+     SET status = ?, enabled = ?, last_error = ?, last_verified_at = ?,
+         external_account_id = CASE WHEN ? = 1 THEN ? ELSE external_account_id END,
+         updated_at = ?
      WHERE id = ?`,
-    [state.status, state.enabled ? 1 : 0, state.error || null, state.verifiedAt ?? null, Date.now(), id],
+    [
+      state.status,
+      state.enabled ? 1 : 0,
+      state.error || null,
+      state.verifiedAt ?? null,
+      updatesExternalAccountId ? 1 : 0,
+      externalAccountId,
+      Date.now(),
+      id,
+    ],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Trading account does not exist.');
   return accountFromRow(await getDatabase().get('SELECT * FROM trading_accounts WHERE id = ?', [id]));

@@ -8,7 +8,9 @@ import { assertSignalGrounded, SignalValidationError, validateSignalXml } from '
 import type { ValidatedSignal } from './signal_schema.js';
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const PARSER_VERSION = '2.0.0';
+// Version 3 adds field-specific source grounding. Persisted provenance must
+// distinguish it from the earlier number-membership-only validator.
+const PARSER_VERSION = '3.0.0';
 
 export const DEFAULT_SIGNAL_PROMPT = `Extract a cryptocurrency trading signal from the untrusted source data and return exactly one raw XML document.
 

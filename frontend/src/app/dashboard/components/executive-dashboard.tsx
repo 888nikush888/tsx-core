@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { apiFetch } from "@/lib/api"
+import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 import { ChartAreaInteractive, type MetricPoint } from "./chart-area-interactive"
 import {
   buildDashboardViewModel,
@@ -121,8 +122,8 @@ function StatusRow({ icon, label, detail, state }: { icon: ReactNode; label: str
   return <div className="flex items-center gap-3 py-3"><div className={`rounded-md border p-2 ${state === true ? statusStyle("good") : state === false ? statusStyle("bad") : statusStyle("neutral")}`}>{icon}</div><div className="min-w-0 flex-1"><p className="text-sm font-medium">{label}</p><p className="truncate text-xs text-muted-foreground">{detail}</p></div><HealthBadge value={state} good="Bereit" bad="Prüfen" /></div>
 }
 
-async function getJson(path: string): Promise<any> {
-  const response = await apiFetch(`${API_BASE}${path}`)
+async function getJson(path: string, signal?: AbortSignal): Promise<any> {
+  const response = await apiFetch(`${API_BASE}${path}`, { signal })
   if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`)
   return response.json()
 }
@@ -202,8 +203,9 @@ export function ExecutiveDashboard(props: ExecutiveDashboardProps) {
   const [refreshMessage, setRefreshMessage] = useState("Daten werden geladen")
   const mounted = useRef(true)
   const refreshInFlight = useRef<Promise<void> | null>(null)
+  const firstRefresh = useRef(true)
 
-  const refresh = useCallback(async (forcePortfolio = false) => {
+  const refresh = useCallback(async (forcePortfolio = false, signal?: AbortSignal) => {
     if (refreshInFlight.current) {
       if (!forcePortfolio) return
       await refreshInFlight.current
@@ -216,7 +218,8 @@ export function ExecutiveDashboard(props: ExecutiveDashboardProps) {
         ["portfolio", `/api/trading/portfolio${forcePortfolio ? "?refresh=true" : ""}`],
         ["outbox", "/api/outbox?status=pending,preparing,sending,failed,unknown"],
       ] as const
-      const results = await Promise.allSettled(endpoints.map(([, path]) => getJson(path)))
+      const results = await Promise.allSettled(endpoints.map(([, path]) => getJson(path, signal)))
+      if (signal?.aborted) return
       const next: DashboardDataInput = {}
       const failures: string[] = []
       results.forEach((result, index) => {
@@ -243,10 +246,13 @@ export function ExecutiveDashboard(props: ExecutiveDashboardProps) {
 
   useEffect(() => {
     mounted.current = true
-    void refresh(true)
-    const interval = globalThis.setInterval(() => void refresh(false), 10_000)
-    return () => { mounted.current = false; globalThis.clearInterval(interval) }
-  }, [refresh])
+    return () => { mounted.current = false }
+  }, [])
+  useSerializedPolling((signal) => {
+    const forcePortfolio = firstRefresh.current
+    firstRefresh.current = false
+    return refresh(forcePortfolio, signal)
+  }, 10_000)
 
   const rawAccounts = useMemo(
     () => Array.isArray(data.portfolio?.accounts) ? data.portfolio.accounts : [],

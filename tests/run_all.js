@@ -12,6 +12,7 @@ const allTests = [
   'test_config.js',
   'test_env.js',
   'test_secret_store.js',
+  'test_factory_reset_paths.js',
   'test_runtime_settings.js',
   'test_telegram_login.js',
   'test_tdlib_retry.js',

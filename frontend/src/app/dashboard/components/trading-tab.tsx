@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { cloneElement, isValidElement, useCallback, useId, useMemo, useState, type ReactNode } from "react"
 import { AlertTriangle, Ban, CheckCircle2, RefreshCw, Save, ShieldAlert, Trash2 } from "lucide-react"
 import { apiFetch } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 
 const API_BASE = window.location.origin
 const DEFAULT_CONFIGURATION = {
@@ -56,25 +57,22 @@ export function TradingTab({ config }: { config: any }) {
   const [busy, setBusy] = useState("")
   const [message, setMessage] = useState("")
 
-  const refresh = useCallback(async (quiet = false) => {
+  const refresh = useCallback(async (quiet = false, signal?: AbortSignal) => {
     if (!quiet) setBusy("refresh")
     try {
-      const response = await apiFetch(`${API_BASE}/api/trading`)
+      const response = await apiFetch(`${API_BASE}/api/trading`, { signal })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || "Trading-Daten konnten nicht geladen werden.")
       setData(payload)
     } catch (error) {
+      if (signal?.aborted) return
       setMessage(error instanceof Error ? error.message : "Trading-Daten konnten nicht geladen werden.")
     } finally {
       if (!quiet) setBusy("")
     }
   }, [])
 
-  useEffect(() => {
-    void refresh()
-    const timer = window.setInterval(() => void refresh(true), 3_000)
-    return () => window.clearInterval(timer)
-  }, [refresh])
+  useSerializedPolling((signal) => refresh(true, signal), 3_000)
 
   const run = async (name: string, operation: () => Promise<unknown>, success: string) => {
     setBusy(name); setMessage("")
@@ -91,7 +89,7 @@ export function TradingTab({ config }: { config: any }) {
   ]
   return <div className="space-y-5">
     <div className="flex flex-wrap gap-2">
-      {nav.map(([id, label]) => <Button key={id} variant={workspace === id ? "default" : "outline"} size="sm" onClick={() => setWorkspace(id)}>{label}</Button>)}
+      {nav.map(([id, label]) => <Button key={id} variant={workspace === id ? "default" : "outline"} size="sm" aria-pressed={workspace === id} onClick={() => setWorkspace(id)}>{label}</Button>)}
       <Button variant="ghost" size="sm" onClick={() => void refresh()} disabled={busy === "refresh"}><RefreshCw className="mr-2 h-4 w-4" />Aktualisieren</Button>
     </div>
     {message && <div role="status" className={`rounded-md border p-3 text-sm ${/fehl|refused|error|ungültig|nicht/i.test(message) ? "border-destructive/50 bg-destructive/5 text-destructive" : "border-primary/30 bg-primary/5"}`}>{message}</div>}
@@ -224,8 +222,22 @@ function Activity({ data, busy, run }: any) {
   <Card><CardHeader><CardTitle>Risk Events & Reconciliation</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Zeit</TableHead><TableHead>Schwere</TableHead><TableHead>Code</TableHead><TableHead>Konto</TableHead><TableHead>Status</TableHead><TableHead /></TableRow></TableHeader><TableBody>{data.activity.riskEvents.map((event: any) => <TableRow key={event.id}><TableCell>{time(event.createdAt)}</TableCell><TableCell><Badge variant={statusTone(event.severity) as any}>{event.severity}</Badge></TableCell><TableCell>{event.code}</TableCell><TableCell>{event.accountId || "–"}</TableCell><TableCell>{event.acknowledgedAt ? `bestätigt ${time(event.acknowledgedAt)}` : "offen"}</TableCell><TableCell>{!event.acknowledgedAt && <Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void run("ack-risk", () => mutate("/api/trading/risk/acknowledge", { id: event.id }), "Risk Event bestätigt.")}>Bestätigen</Button>}</TableCell></TableRow>)}</TableBody></Table><div className="mt-5 flex flex-wrap gap-2">{data.activity.reconciliations.slice(0, 10).map((item: any) => <Badge key={item.id} variant={statusTone(item.status) as any}>{item.accountId}: {item.status} · {time(item.completedAt)}</Badge>)}</div></CardContent></Card></div>
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) { return <div className="space-y-2"><Label>{label}</Label>{children}</div> }
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  const generatedId = useId()
+  if (!isValidElement<{ id?: string }>(children) || children.type === 'div') {
+    const labelId = `${generatedId}-label`
+    const groupedChildren = isValidElement(children)
+      ? cloneElement(children, { 'aria-labelledby': labelId } as Record<string, unknown>)
+      : children
+    return <div className="space-y-2"><span id={labelId} className="text-sm font-medium">{label}</span>{groupedChildren}</div>
+  }
+  const control = isValidElement<{ id?: string }>(children)
+    ? cloneElement(children, { id: children.props.id || generatedId })
+    : children
+  const controlId = isValidElement<{ id?: string }>(control) ? control.props.id : generatedId
+  return <div className="space-y-2"><Label htmlFor={controlId}>{label}</Label>{control}</div>
+}
 function Section({ title, children }: { title: string; children: ReactNode }) { return <div className="rounded-lg border p-4"><h3 className="mb-4 font-semibold">{title}</h3>{children}</div> }
 function NumberField({ label, value, onChange }: { label: string; value: string | number; onChange: (value: string) => void }) { return <Field label={label}><Input type="number" step="any" value={value} onChange={e => onChange(e.target.value)} /></Field> }
-function SwitchField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) { return <div className="flex h-full items-end gap-3 pb-2"><Switch checked={checked} onCheckedChange={onChange} /><Label>{label}</Label></div> }
-function SelectField({ label, value, options, onChange, disabled = false }: { label: string; value: string; options: Array<string | { value: string; label: string }>; onChange: (value: string) => void; disabled?: boolean }) { return <Field label={label}><Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger><SelectValue placeholder="Auswählen" /></SelectTrigger><SelectContent>{options.map(option => { const item = typeof option === "string" ? { value: option, label: option } : option; return <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem> })}</SelectContent></Select></Field> }
+function SwitchField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) { const id = useId(); return <div className="flex h-full items-end gap-3 pb-2"><Switch id={id} checked={checked} onCheckedChange={onChange} /><Label htmlFor={id}>{label}</Label></div> }
+function SelectField({ label, value, options, onChange, disabled = false }: { label: string; value: string; options: Array<string | { value: string; label: string }>; onChange: (value: string) => void; disabled?: boolean }) { const id = useId(); return <div className="space-y-2"><Label htmlFor={id}>{label}</Label><Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger id={id}><SelectValue placeholder="Auswählen" /></SelectTrigger><SelectContent>{options.map(option => { const item = typeof option === "string" ? { value: option, label: option } : option; return <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem> })}</SelectContent></Select></div> }

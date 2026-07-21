@@ -39,7 +39,7 @@ try {
   const token = await store.createDashboardAdminToken();
   assert.match(token, /^[a-f0-9]{64}$/);
   await assert.rejects(store.createDashboardAdminToken(), /already configured/);
-  assert.equal(await store.getOrCreateDashboardAdminToken(), token);
+  assert.equal(env.DASHBOARD_ADMIN_TOKEN, token, 'Token creation must publish only to the current process, never through a getter.');
   const rotatedAdmin = await store.rotateDashboardToken('admin');
   assert.match(rotatedAdmin, /^[a-f0-9]{64}$/);
   assert.notEqual(rotatedAdmin, token);
@@ -82,7 +82,7 @@ try {
     DASHBOARD_ADMIN_TOKEN: 'external-admin-token-0123456789abcdef0123456789abcdef'
   });
   await externalAdmin.initialize();
-  await assert.rejects(externalAdmin.getOrCreateDashboardAdminToken(), /externally managed administrator/);
+  await assert.rejects(externalAdmin.createDashboardAdminToken(), /already configured/);
   await assert.rejects(externalAdmin.rotateDashboardToken('admin'), /externally managed/);
 
   await reloaded.clear();
@@ -91,7 +91,7 @@ try {
 
   const automatic = new ManagedSecretStore(path.join(directory, 'automatic'), {});
   await automatic.initialize();
-  assert.match(await automatic.getOrCreateDashboardAdminToken(), /^[a-f0-9]{64}$/);
+  assert.match(await automatic.createDashboardAdminToken(), /^[a-f0-9]{64}$/);
 
   const transactionDirectory = path.join(directory, 'transaction-recovery');
   await mkdir(transactionDirectory, { recursive: true, mode: 0o700 });
@@ -101,7 +101,7 @@ try {
       telegramApiHash: 'd'.repeat(32),
       openRouterApiKey: 'transaction-test-key-1234567890',
     },
-  }));
+  }), { mode: 0o600 });
   const transactionRecoveredEnv = {};
   const transactionRecovered = new ManagedSecretStore(transactionDirectory, transactionRecoveredEnv);
   await transactionRecovered.initialize();
@@ -111,7 +111,7 @@ try {
 
   const invalidJournalDirectory = path.join(directory, 'invalid-journal-recovery');
   await mkdir(invalidJournalDirectory, { recursive: true, mode: 0o700 });
-  await writeFile(path.join(invalidJournalDirectory, '.managed-secret-transaction.json'), '{not-json');
+  await writeFile(path.join(invalidJournalDirectory, '.managed-secret-transaction.json'), '{not-json', { mode: 0o600 });
   const invalidJournalStore = new ManagedSecretStore(invalidJournalDirectory, {});
   await invalidJournalStore.initialize({ recoverInvalidManagedFiles: true });
   assert.equal(invalidJournalStore.recoveryStatus().length, 1);

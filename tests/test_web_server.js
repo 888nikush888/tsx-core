@@ -39,8 +39,8 @@ async function testAuthenticationAndReads(baseUrl) {
     method: 'POST',
     headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
   });
-  assert.strictEqual(response.status, 200, 'Trusted loopback startup must restore dashboard access without a bearer prompt');
-  assert.strictEqual((await response.json()).token, ADMIN_TOKEN);
+  assert.strictEqual(response.status, 409, 'Trusted loopback startup must never disclose an existing administrator token');
+  assert.equal(Object.hasOwn(await response.json(), 'token'), false);
   const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;
   try {
     process.env.DASHBOARD_ALLOWED_ORIGIN = 'https://dashboard.example.test';
@@ -158,7 +158,10 @@ async function testAuditedControl(baseUrl, controls) {
   });
   assert.strictEqual(response.status, 200, 'Authenticated administrator must be able to stop routing');
   assert.strictEqual(controls.stopCalls, 1);
-  assert.ok(controls.auditEvents.some(event => event.phase === 'authorized' && event.path === '/api/control'));
+  const controlEvents = controls.auditEvents.filter(event => event.path === '/api/control');
+  assert.ok(controlEvents.some(event => event.phase === 'authorized' && event.action === 'routing.control'));
+  assert.ok(controlEvents.some(event => event.phase === 'completed'
+    && event.action === 'routing.control' && event.outcome === 'succeeded' && event.statusCode === 200));
   controls.auditShouldFail = true;
   response = await fetch(`${baseUrl}/api/control`, {
     method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
