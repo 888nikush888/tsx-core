@@ -20,6 +20,7 @@ import { acquireProcessLock, type ProcessLock } from './process_lock.js';
 import { isDuplicateSignal, normalizeSignalXml } from './dupe_blocker.js';
 import {
   acknowledgeOutboxTask,
+  beginDatabaseMaintenance,
   claimOutboxTask,
   closeDb,
   completeOutboxTask,
@@ -66,6 +67,11 @@ import {
   managedRuntimeSettingsFromEnvironment,
   type ManagedRuntimeSettingsStore,
 } from './runtime_settings.js';
+import {
+  assertFactoryResetTarget,
+  clearFactoryResetTarget,
+  type FactoryResetBoundary,
+} from './factory_reset_paths.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -344,6 +350,7 @@ let metricsTracker: MetricsTracker | null = null;
 let backupScheduler: BackupScheduler | null = null;
 let offsiteBackupReplicator: BackupReplicator | null = null;
 let retentionScheduler: OperationalDataRetention | null = null;
+let activeMaintenanceOperation: string | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
 let processLock: ProcessLock | null = null;
@@ -1094,6 +1101,31 @@ async function stopScheduler(scheduler: { stop: () => Promise<void> } | null, la
   }
 }
 
+function beginApplicationMaintenance(operation: string): () => void {
+  if (activeMaintenanceOperation) {
+    throw new Error(`Maintenance operation '${activeMaintenanceOperation}' is already active.`);
+  }
+  activeMaintenanceOperation = operation;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    activeMaintenanceOperation = null;
+  };
+}
+
+async function stopSchedulerForMaintenance(
+  scheduler: { stop: () => Promise<void> } | null,
+  label: string,
+): Promise<void> {
+  if (!scheduler) return;
+  try {
+    await scheduler.stop();
+  } catch (error: any) {
+    throw new Error(`${label} could not be drained for maintenance.`, { cause: error });
+  }
+}
+
 async function stopRuntimeServices(): Promise<void> {
   await stopScheduler(backupScheduler, 'Laufendes Backup');
   await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
@@ -1237,7 +1269,7 @@ async function startBackupRuntime(runtime: RuntimeConfiguration): Promise<void> 
   await backupScheduler.start();
 }
 
-function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number): void {
+async function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number): Promise<void> {
   startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
     totalForwardedCountCallback: () => state.totalForwardedCount,
     getQueueStateCallback: () => ({
@@ -1262,30 +1294,10 @@ function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number):
       })
     });
     metricsTracker.start();
-  } catch (err: any) {
-    console.error(`[WARN] Konnte Metrics Tracker nicht initialisieren: ${err.message}`);
-  }
-}
-
-async function assertFactoryResetDirectory(directory: string): Promise<string> {
-  const root = path.resolve(directory);
-  const applicationRoot = path.resolve(process.cwd());
-  if (root === applicationRoot || !root.startsWith(`${applicationRoot}${path.sep}`)) {
-    throw new Error(`Factory reset refuses to erase a path outside the application root: ${root}`);
-  }
-  await fsPromises.mkdir(root, { recursive: true, mode: 0o700 });
-  const stats = await fsPromises.lstat(root);
-  if (!stats.isDirectory() || stats.isSymbolicLink()) {
-    throw new Error(`Factory reset path must be a real directory: ${root}`);
-  }
-  return root;
-}
-
-async function clearFactoryResetDirectory(directory: string): Promise<void> {
-  const root = await assertFactoryResetDirectory(directory);
-  const entries = await fsPromises.readdir(root);
-  for (const entry of entries) {
-    await fsPromises.rm(path.join(root, entry), { recursive: true, force: true });
+  } catch (error) {
+    metricsTracker = null;
+    await stopMetricsServer();
+    throw error;
   }
 }
 
@@ -1294,46 +1306,51 @@ async function performCompleteFactoryReset(
   secretStore: ManagedSecretStore,
   runtimeSettings: ManagedRuntimeSettingsStore
 ): Promise<void> {
+  const releaseApplicationMaintenance = beginApplicationMaintenance('factory-reset');
+  try {
+    await executeCompleteFactoryReset(runtime, secretStore, runtimeSettings);
+  } finally {
+    releaseApplicationMaintenance();
+  }
+}
+
+async function prepareFactoryResetTargets(
+  runtime: RuntimeConfiguration,
+  secretStore: ManagedSecretStore,
+): Promise<{ configPath: string; targets: Map<string, FactoryResetBoundary> }> {
   secretStore.assertClearable();
   const configPath = configurationPathFromEnvironment();
   const applicationRoot = path.resolve(process.cwd());
   if (!configPath.startsWith(`${applicationRoot}${path.sep}`)) {
     throw new Error(`Factory reset refuses to erase a configuration outside the application root: ${configPath}`);
   }
-  const logsDirectory = path.resolve(process.env.LOG_DIR || path.join(process.cwd(), 'logs'));
-  const configuredSignalsDirectory = path.resolve(runtime.config.xmlParsing?.signalsDir || path.join(process.cwd(), 'signals'));
-  const resetDirectories = [
-    process.env.MANAGED_SECRET_DIR || path.join(process.cwd(), 'secrets'),
-    process.env.TEMPLATES_DIR || path.resolve(__dirname, '../templates'),
-    path.join(process.cwd(), 'session_data'),
-    path.join(process.cwd(), 'session_files'),
-    configuredSignalsDirectory,
-    path.join(process.cwd(), 'signals'),
-    process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'),
-    logsDirectory,
+  const applicationBoundary: FactoryResetBoundary = { kind: 'application', applicationRoot };
+  const managedSecretRoot = secretStore.rootPath();
+  const resetDirectories: Array<{ directory: string; boundary: FactoryResetBoundary }> = [
+    {
+      directory: managedSecretRoot,
+      boundary: { kind: 'exact-managed-secret', configuredRoot: managedSecretRoot, applicationRoot },
+    },
+    { directory: process.env.TEMPLATES_DIR || path.resolve(__dirname, '../templates'), boundary: applicationBoundary },
+    { directory: path.join(process.cwd(), 'session_data'), boundary: applicationBoundary },
+    { directory: path.join(process.cwd(), 'session_files'), boundary: applicationBoundary },
+    {
+      directory: path.resolve(runtime.config.xmlParsing?.signalsDir || path.join(process.cwd(), 'signals')),
+      boundary: applicationBoundary,
+    },
+    { directory: path.join(process.cwd(), 'signals'), boundary: applicationBoundary },
+    { directory: process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'), boundary: applicationBoundary },
+    { directory: path.resolve(process.env.LOG_DIR || path.join(process.cwd(), 'logs')), boundary: applicationBoundary },
   ];
-  const targets = new Map<string, string>();
-  for (const directory of resetDirectories) {
-    const resolved = await assertFactoryResetDirectory(directory);
-    targets.set(resolved, resolved);
+  const targets = new Map<string, FactoryResetBoundary>();
+  for (const target of resetDirectories) {
+    const resolved = await assertFactoryResetTarget(target.directory, target.boundary);
+    targets.set(resolved, target.boundary);
   }
+  return { configPath, targets };
+}
 
-  await stopForwarding();
-  await stopScheduler(backupScheduler, 'Laufendes Backup');
-  await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
-  backupScheduler = null;
-  retentionScheduler = null;
-  metricsTracker?.stop();
-  metricsTracker = null;
-  deliveryTracker?.close('Factory reset.');
-  deliveryTracker = null;
-  await closeDb();
-  await secretStore.clear();
-  await runtimeSettings.reset();
-  await fsPromises.rm(configPath, { force: true });
-  for (const target of targets.values()) await clearFactoryResetDirectory(target);
-  await auditTrail?.resetLocal();
-
+function applyFactoryResetRuntimeState(runtime: RuntimeConfiguration): void {
   const candidateConfig = structuredClone(DEFAULT_CONFIG);
   writeConfigSync(candidateConfig);
   for (const key of Object.keys(runtime.config)) delete runtime.config[key];
@@ -1345,6 +1362,78 @@ async function performCompleteFactoryReset(
   state.processedSinceRestart = 0;
   state.resolvedSourceChatIds.clear();
   clearLogHistory();
+}
+
+async function recoverFailedFactoryReset(
+  databaseClosed: boolean,
+  backupStopped: boolean,
+  retentionStopped: boolean,
+  previousBackupScheduler: BackupScheduler | null,
+  previousRetentionScheduler: OperationalDataRetention | null,
+): Promise<void> {
+  if (databaseClosed) {
+    const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
+    await initDb(databasePath).catch(error => {
+      if (!String(error?.message || error).includes('already initialized')) throw error;
+    });
+  }
+  backupScheduler = previousBackupScheduler;
+  retentionScheduler = previousRetentionScheduler;
+  await Promise.all([
+    backupStopped && previousBackupScheduler ? previousBackupScheduler.start() : Promise.resolve(),
+    retentionStopped && previousRetentionScheduler ? previousRetentionScheduler.start() : Promise.resolve(),
+  ]);
+}
+
+async function executeCompleteFactoryReset(
+  runtime: RuntimeConfiguration,
+  secretStore: ManagedSecretStore,
+  runtimeSettings: ManagedRuntimeSettingsStore
+): Promise<void> {
+  const { configPath, targets } = await prepareFactoryResetTargets(runtime, secretStore);
+
+  const previousBackupScheduler = backupScheduler;
+  const previousRetentionScheduler = retentionScheduler;
+  let databaseMaintenance: Awaited<ReturnType<typeof beginDatabaseMaintenance>> | null = null;
+  let databaseClosed = false;
+  let backupStopped = false;
+  let retentionStopped = false;
+  let resetCompleted = false;
+  try {
+    await stopForwarding();
+    backupStopped = previousBackupScheduler !== null;
+    await stopSchedulerForMaintenance(previousBackupScheduler, 'Backup scheduler');
+    retentionStopped = previousRetentionScheduler !== null;
+    await stopSchedulerForMaintenance(previousRetentionScheduler, 'Data retention scheduler');
+    databaseMaintenance = await beginDatabaseMaintenance('factory reset');
+    await closeDb();
+    databaseClosed = true;
+    backupScheduler = null;
+    retentionScheduler = null;
+    metricsTracker?.stop();
+    metricsTracker = null;
+    deliveryTracker?.close('Factory reset.');
+    deliveryTracker = null;
+    await secretStore.clear();
+    await runtimeSettings.reset();
+    await fsPromises.rm(configPath, { force: true });
+    for (const [target, boundary] of targets) await clearFactoryResetTarget(target, boundary);
+    await auditTrail?.resetLocal();
+
+    applyFactoryResetRuntimeState(runtime);
+    resetCompleted = true;
+  } finally {
+    databaseMaintenance?.release();
+    if (!resetCompleted) {
+      await recoverFailedFactoryReset(
+        databaseClosed,
+        backupStopped,
+        retentionStopped,
+        previousBackupScheduler,
+        previousRetentionScheduler,
+      );
+    }
+  }
 }
 
 function backupDirectoryPath(): string {
@@ -1375,22 +1464,54 @@ async function recoverNamedOffsiteBackup(objectName: string): Promise<string> {
 
 async function restoreNamedBackup(artifactName: string) {
   const artifact = resolvedBackupArtifact(artifactName);
-  await verifyBackupArtifact(artifact);
-  await stopForwarding();
-  await stopScheduler(backupScheduler, 'Laufendes Backup');
-  await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
-  backupScheduler = null;
-  retentionScheduler = null;
-  await closeDb();
-  await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
-  return restoreBackupArtifact(
-    artifact,
-    databasePath,
-    configurationPathFromEnvironment(),
-    path.dirname(databasePath),
-    { allowCurrentProcessLock: true }
-  );
+  const releaseApplicationMaintenance = beginApplicationMaintenance('backup-restore');
+  const previousBackupScheduler = backupScheduler;
+  const previousRetentionScheduler = retentionScheduler;
+  let databaseMaintenance: Awaited<ReturnType<typeof beginDatabaseMaintenance>> | null = null;
+  let databaseClosed = false;
+  let backupStopped = false;
+  let retentionStopped = false;
+  let restored = false;
+  try {
+    await verifyBackupArtifact(artifact);
+    await stopForwarding();
+    backupStopped = previousBackupScheduler !== null;
+    await stopSchedulerForMaintenance(previousBackupScheduler, 'Backup scheduler');
+    retentionStopped = previousRetentionScheduler !== null;
+    await stopSchedulerForMaintenance(previousRetentionScheduler, 'Data retention scheduler');
+    databaseMaintenance = await beginDatabaseMaintenance('verified backup restore');
+    await closeDb();
+    databaseClosed = true;
+    await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
+    const result = await restoreBackupArtifact(
+      artifact,
+      databasePath,
+      configurationPathFromEnvironment(),
+      path.dirname(databasePath),
+      { allowCurrentProcessLock: true }
+    );
+    backupScheduler = null;
+    retentionScheduler = null;
+    restored = true;
+    return result;
+  } finally {
+    databaseMaintenance?.release();
+    releaseApplicationMaintenance();
+    if (!restored) {
+      if (databaseClosed) {
+        await initDb(databasePath).catch(error => {
+          if (!String(error?.message || error).includes('already initialized')) throw error;
+        });
+      }
+      backupScheduler = previousBackupScheduler;
+      retentionScheduler = previousRetentionScheduler;
+      await Promise.all([
+        backupStopped && previousBackupScheduler ? previousBackupScheduler.start() : Promise.resolve(),
+        retentionStopped && previousRetentionScheduler ? previousRetentionScheduler.start() : Promise.resolve(),
+      ]);
+    }
+  }
 }
 
 function startDashboardRuntime(
@@ -1513,14 +1634,26 @@ async function run() {
     return;
   }
   const { databasePath, retentionPolicy } = await initializeCoreRuntime();
-  startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
   startDashboardRuntime(runtime, secretStore, runtimeSettings);
+  let operationalGatesHealthy = true;
+  try {
+    await startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
+  } catch (error: any) {
+    operationalGatesHealthy = false;
+    addLog(`[CRITICAL] Monitoring runtime failed to initialize; automatic routing remains disabled: ${error.message}`);
+  }
   try {
     await startBackupRuntime(runtime);
   } catch (error: any) {
-    addLog(`[CRITICAL] Backup runtime failed to initialize; dashboard remains available for recovery: ${error.message}`);
+    operationalGatesHealthy = false;
+    addLog(`[CRITICAL] Backup runtime failed to initialize; automatic routing remains disabled: ${error.message}`);
   }
-  await runConfiguredMode(runtime);
+  if (operationalGatesHealthy) {
+    await runConfiguredMode(runtime);
+  } else {
+    state.connectionState = 'degraded';
+    addLog('[CRITICAL] One or more startup readiness gates failed; dashboard recovery remains available.');
+  }
 }
 run().catch(async err => {
   console.error("Kritischer Fehler:", err.message);

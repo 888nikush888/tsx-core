@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateDeploymentImages } from '../scripts/verify_deployment_images.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const workflow = await readFile(path.join(root, '.github', 'workflows', 'quality.yml'), 'utf8');
@@ -83,5 +84,10 @@ assert.match(dockerCompose, /^\s*restart:\s*unless-stopped\s*$/m);
 assert.match(dockerCompose, /^\s*stop_grace_period:\s*8m\s*$/m);
 assert.match(dockerCompose, /RUNTIME_SETTINGS_PATH:\s*"\/app\/config\/runtime-settings\.json"/);
 assert.match(dockerCompose, /"127\.0\.0\.1:\$\{HOST_WEB_PORT:-8080\}:8080"/);
+
+const releaseImage = `ghcr.io/example/forwarder@sha256:${'a'.repeat(64)}`;
+assert.deepEqual(validateDeploymentImages({ FORWARDER_IMAGE: releaseImage }), []);
+assert.ok(validateDeploymentImages({ FORWARDER_IMAGE: 'forwarder:latest' }).length > 0);
+assert.ok(validateDeploymentImages({}).length > 0);
 
 console.log('Supply-chain pinning policy tests passed.');

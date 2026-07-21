@@ -28,7 +28,7 @@ Architekturdetails stehen in [ARCHITECTURE.md](ARCHITECTURE.md), verbindliche Qu
 
 Für lokale Verifikation:
 
-- Node.js 20 und npm aus dem Lockfile-kompatiblen Toolchain-Stand;
+- Node.js 22 und npm 10.9 aus dem in `package.json` festgelegten Toolchain-Stand;
 - ein sauberer Checkout mit `package-lock.json` und `frontend/package-lock.json`;
 - keine produktiven Secrets im Repository oder in Shell-Historien;
 - für Containerverifikation ein laufender Docker-Engine-Dienst.
@@ -93,7 +93,9 @@ Regeln:
 
 ### Standalone-Docker
 
-Beim ersten Browseraufruf erzeugt der Server nach Origin- und Audit-Prüfung automatisch einen lokalen Admin-Zugang und übernimmt ihn in den Session Storage des Browsers. Da Compose das Dashboard ausschließlich auf Host-Loopback veröffentlicht, ist kein vorgeschalteter Bearer-Dialog erforderlich; nach Container- oder Browser-Neustart stellt `/api/local-session` den lokalen Zugang wieder her. Der Standalone-Modus vertraut allen lokalen Prozessen des dedizierten Single-User-Hosts; Shared Hosts verwenden Enterprise-OIDC ohne Local Trust. Telegram API Hash und OpenRouter-Key werden im Dashboard write-only gesetzt: Status und Quelle sind lesbar, der Wert selbst nie. Die lokale `.env` wird vom Standard-Compose nicht eingelesen.
+Host installations without `MANAGED_SECRET_DIR` place managed credentials below the operating-system state directory, outside the checkout; Compose continues to use the dedicated `/app/secrets` volume. Origin and `X-Requested-With` headers are request-integrity checks, not authentication.
+
+Beim ersten Browseraufruf erzeugt der Server nach Origin- und Audit-Prüfung einen lokalen Admin-Zugang und zeigt ihn genau einmal an. Der Browser hält ihn nur im Session Storage. Nach einem Browser-Neustart muss der gespeicherte Token erneut eingegeben oder durch eine bereits authentifizierte Administration rotiert werden; `/api/local-session` gibt einen vorhandenen Token niemals zurück. Telegram API Hash und OpenRouter-Key werden im Dashboard write-only gesetzt: Status und Quelle sind lesbar, der Wert selbst nie. Die lokale `.env` wird vom Standard-Compose nicht eingelesen.
 
 Ist eine verwaltete Konfiguration, Runtime-Einstellung oder Secret-Datei beschädigt, startet nur die Recovery-Control-Plane: Routing, Scheduler und Datenbankzugriffe bleiben aus. Das mitgelieferte Compose aktiviert dafür ausschließlich auf dem Host-Loopback einen Break-glass-Sessionpfad; dieser darf nie mit einem remote veröffentlichten Dashboard kombiniert werden. Er erlaubt nur Reparaturen an Konfiguration, Runtime-Einstellungen und verwalteten Secrets plus Neustart und schreibt dafür explizite kritische Recovery-Logs, weil die normale Audit-Kette in diesem Zustand nicht verfügbar sein kann.
 
@@ -195,10 +197,13 @@ Für ein echtes Release wird **nicht** das frei neu gebaute lokale Tag deployt. 
 
 ```bash
 export FORWARDER_IMAGE='ghcr.io/<owner>/<repo>@sha256:<digest>'
+npm run quality:deployment-images
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml pull
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d --no-build
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml images
 ```
+
+Copy the forwarder reference from the signed release manifest; a local tag or a missing digest is a failed deployment precondition.
 
 `FORWARDER_IMAGE` wird sowohl für den Forwarder als auch den Alert-Relay gesetzt. `--no-build` verhindert, dass der freigegebene Digest unbemerkt durch ein lokales Build ersetzt wird. Tag, Digest und Ausgabe von `docker compose images` werden im Deployment-Record festgehalten.
 

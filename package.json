@@ -1,8 +1,13 @@
 {
   "name": "telegram-tdlib-forwarder",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Telegram Channel Forwarder using TDLib",
   "type": "module",
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=22 <23",
+    "npm": ">=10.9 <11"
+  },
   "main": "dist/forwarder.js",
   "scripts": {
     "build": "tsc && npm run build --prefix frontend",
@@ -38,7 +43,10 @@
     "quality:github-governance": "node scripts/verify_github_governance.js",
     "quality:licenses": "node scripts/check_licenses.js",
     "quality:sbom": "node scripts/generate_sbom.js",
-    "quality:monitoring": "node scripts/check_monitoring.js"
+    "quality:monitoring": "node scripts/check_monitoring.js",
+    "quality:build-context": "node scripts/check_build_context.js",
+    "quality:dependencies": "node scripts/check_dependency_policy.js",
+    "quality:deployment-images": "node scripts/verify_deployment_images.js"
   },
   "keywords": [
     "telegram",
@@ -53,22 +61,22 @@
   },
   "dependencies": {
     "jose": "6.2.3",
-    "openai": "^6.46.0",
-    "prebuilt-tdlib": "^0.1008064.0",
-    "sqlite": "^5.1.1",
-    "sqlite3": "^6.0.1",
-    "tdl": "^8.1.0"
+    "openai": "6.46.0",
+    "prebuilt-tdlib": "0.1008064.0",
+    "sqlite": "5.1.1",
+    "sqlite3": "6.0.1",
+    "tdl": "8.1.0"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@stryker-mutator/core": "^9.6.1",
-    "@types/node": "^26.1.1",
-    "c8": "^11.0.0",
-    "eslint": "^10.6.0",
-    "globals": "^17.7.0",
-    "jscpd": "^5.0.12",
-    "tsx": "^4.23.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.63.0"
+    "@eslint/js": "10.0.1",
+    "@stryker-mutator/core": "9.6.1",
+    "@types/node": "26.1.1",
+    "c8": "11.0.0",
+    "eslint": "10.6.0",
+    "globals": "17.7.0",
+    "jscpd": "5.0.12",
+    "tsx": "4.23.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.63.0"
   }
 }

@@ -5,10 +5,17 @@ import path from 'node:path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import {
+  beginDatabaseMaintenance,
+  backupDatabase,
   closeDb,
+  getDatabase,
   getDatabaseStorageStats,
+  getOldestPendingOutboxAgeSeconds,
   initDb,
-  pruneOperationalData
+  pruneOperationalData,
+  saveSignal,
+  updateIncomingMessageStatus,
+  withDatabaseTransaction
 } from '../src/db.js';
 import {
   OperationalDataRetention,
@@ -19,6 +26,62 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const NOW = Date.UTC(2030, 5, 1);
 const OLD = NOW - 91 * DAY_MS;
 const RECENT = NOW - DAY_MS;
+
+async function assertSerializedTransactionOwnership() {
+  await assert.rejects(beginDatabaseMaintenance('   '), /requires a reason/);
+  await withDatabaseTransaction(async database => {
+    await withDatabaseTransaction(async nestedDatabase => {
+      assert.equal(nestedDatabase, database, 'Nested transactions must retain the same serialized owner.');
+      assert.ok(nestedDatabase.getDatabaseInstance(), 'Non-query database methods remain available to the owner.');
+    });
+  });
+  let markTransactionStarted;
+  let releaseTransaction;
+  const transactionStarted = new Promise(resolve => { markTransactionStarted = resolve; });
+  const transactionBarrier = new Promise(resolve => { releaseTransaction = resolve; });
+  const rolledBack = withDatabaseTransaction(async database => {
+    await database.run(
+      `INSERT INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at)
+       VALUES ('transaction-owned', '-1001', 900, '<signal/>', '<signal/>', ?)`,
+      [NOW],
+    );
+    markTransactionStarted();
+    await transactionBarrier;
+    throw new Error('forced transaction rollback');
+  });
+  await transactionStarted;
+  let concurrentWriteCompleted = false;
+  const concurrentWrite = saveSignal(
+    'concurrent-survivor', '-1001', 901, '<signal/>', '<signal/>'
+  ).then(() => { concurrentWriteCompleted = true; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(concurrentWriteCompleted, false, 'A foreign write must wait for the active transaction owner.');
+  releaseTransaction();
+  await assert.rejects(rolledBack, /forced transaction rollback/);
+  await concurrentWrite;
+  assert.equal(
+    await getDatabase().get('SELECT id FROM signals WHERE id = ?', ['transaction-owned']),
+    undefined,
+    'The owner transaction must roll back its own write.',
+  );
+  assert.equal(
+    (await getDatabase().get('SELECT id FROM signals WHERE id = ?', ['concurrent-survivor']))?.id,
+    'concurrent-survivor',
+    'A queued foreign write must commit after the rollback instead of joining it.',
+  );
+  await getDatabase().run('DELETE FROM signals WHERE id = ?', ['concurrent-survivor']);
+
+  const capturedDatabaseHandle = getDatabase();
+  const maintenance = await beginDatabaseMaintenance('transaction regression test');
+  assert.throws(() => getDatabase(), /maintenance is active/);
+  await assert.rejects(capturedDatabaseHandle.get('SELECT 1'), /maintenance is active/);
+  await assert.rejects(beginDatabaseMaintenance('overlap'), /already active/);
+  await assert.rejects(withDatabaseTransaction(async () => undefined), /maintenance is active/);
+  await assert.rejects(backupDatabase('maintenance-must-not-copy.db'), /maintenance is active/);
+  maintenance.release();
+  maintenance.release();
+  assert.ok(getDatabase(), 'Releasing maintenance must restore database availability.');
+}
 
 async function seedRetentionRows(dbPath) {
   const database = await open({ filename: dbPath, driver: sqlite3.Database });
@@ -61,7 +124,19 @@ async function runTests() {
   const dbPath = path.join(root, 'retention.db');
   try {
     await initDb(dbPath);
+    await assertSerializedTransactionOwnership();
     await seedRetentionRows(dbPath);
+    await getDatabase().run(
+      `INSERT INTO pending_tasks (id, type, chat_id, message_id, added_at, status, updated_at)
+       VALUES ('age-check', 'single', '-1001', 99, ?, 'pending', ?)`,
+      [OLD, OLD],
+    );
+    assert.equal(await getOldestPendingOutboxAgeSeconds(NOW), 91 * 24 * 60 * 60);
+    await assert.rejects(getOldestPendingOutboxAgeSeconds(-1), /non-negative safe integer/);
+    await getDatabase().run(`UPDATE pending_tasks SET added_at = ? WHERE id = 'age-check'`, [NOW + 1]);
+    assert.equal(await getOldestPendingOutboxAgeSeconds(NOW), 0, 'Future timestamps must fail closed to age zero.');
+    await getDatabase().run(`DELETE FROM pending_tasks WHERE id = 'age-check'`);
+    await updateIncomingMessageStatus('-1001', 13, 'processed');
 
     const result = await pruneOperationalData(90, 100, NOW);
     assert.deepEqual(result, {

@@ -3,8 +3,94 @@ import { open, Database } from 'sqlite';
 import path from 'path';
 import { copyFile, mkdir, rename, rm, stat } from 'fs/promises';
 import { createHash, randomUUID } from 'crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 let db: Database | null = null;
+let guardedDb: Database | null = null;
+
+class SerializedDatabaseAccess {
+  private tail: Promise<void> = Promise.resolve();
+  private readonly owner = new AsyncLocalStorage<symbol>();
+
+  isOwnedByCurrentOperation(): boolean {
+    return this.owner.getStore() !== undefined;
+  }
+
+  async execute<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.isOwnedByCurrentOperation()) return operation();
+    const operationOwner = Symbol('database-operation');
+    const result = this.tail.then(() => this.owner.run(operationOwner, operation));
+    this.tail = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  async drain(): Promise<void> {
+    await this.execute(async () => undefined);
+  }
+}
+
+const serializedDatabaseAccess = new SerializedDatabaseAccess();
+let databaseMaintenanceReason: string | null = null;
+const GUARDED_DATABASE_METHODS = new Set(['all', 'each', 'exec', 'get', 'run']);
+
+function createGuardedDatabase(database: Database): Database {
+  return new Proxy(database as any, {
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver);
+      if (typeof value !== 'function') return value;
+      if (!GUARDED_DATABASE_METHODS.has(String(property))) return value.bind(target);
+      return (...parameters: any[]) => {
+        if (databaseMaintenanceReason && !serializedDatabaseAccess.isOwnedByCurrentOperation()) {
+          return Promise.reject(new Error(`Database maintenance is active: ${databaseMaintenanceReason}`));
+        }
+        return serializedDatabaseAccess.execute(() => value.apply(target, parameters));
+      };
+    }
+  }) as Database;
+}
+
+export interface DatabaseMaintenanceLock {
+  release(): void;
+}
+
+export async function beginDatabaseMaintenance(reason: string): Promise<DatabaseMaintenanceLock> {
+  const normalized = reason.trim();
+  if (!normalized) throw new Error('Database maintenance requires a reason.');
+  if (databaseMaintenanceReason) {
+    throw new Error(`Database maintenance is already active: ${databaseMaintenanceReason}`);
+  }
+  databaseMaintenanceReason = normalized;
+  try {
+    await serializedDatabaseAccess.drain();
+  } catch (error) {
+    databaseMaintenanceReason = null;
+    throw error;
+  }
+  let released = false;
+  return {
+    release() {
+      if (released) return;
+      released = true;
+      databaseMaintenanceReason = null;
+    }
+  };
+}
+
+export const DATABASE_FEATURE_SET = [
+  'core-forwarding',
+  'durable-outbox',
+  'ai-provenance'
+] as const;
+
+export const REQUIRED_DATABASE_TABLES = [
+  'schema_migrations',
+  'signals',
+  'pending_tasks',
+  'media_group_buffer',
+  'forwarding_stats',
+  'incoming_messages',
+  'ai_usage_daily'
+] as const;
 
 export type OutboxStatus = 'pending' | 'preparing' | 'sending' | 'completed' | 'failed' | 'unknown';
 
@@ -187,6 +273,20 @@ function migrationChecksum(migration: SchemaMigration): string {
     .digest('hex');
 }
 
+export interface DatabaseMigrationDescriptor {
+  version: number;
+  name: string;
+  checksum: string;
+}
+
+export function expectedDatabaseMigrations(): DatabaseMigrationDescriptor[] {
+  return migrations.map(migration => ({
+    version: migration.version,
+    name: migration.name,
+    checksum: migrationChecksum(migration)
+  }));
+}
+
 async function applyMigration(database: Database, migration: SchemaMigration): Promise<void> {
   for (const column of migration.columns) {
     await ensureColumn(database, column.table, column.name, column.sqlDefinition);
@@ -297,26 +397,29 @@ export async function initDb(
     throw error;
   });
   await mkdir(path.dirname(resolvedDbPath), { recursive: true });
-  db = await open({
+  const openedDatabase = await open({
     filename: resolvedDbPath,
     driver: sqlite3.Database
   });
   try {
-    await db.exec(`
+    await openedDatabase.exec(`
       PRAGMA journal_mode = WAL;
       PRAGMA synchronous = FULL;
       PRAGMA busy_timeout = 5000;
       PRAGMA foreign_keys = ON;
     `);
-    await migrateDatabase(db, databaseExisted
+    await migrateDatabase(openedDatabase, databaseExisted
       ? async fromVersion => {
-          const snapshot = await createPreMigrationSnapshot(db!, resolvedDbPath, fromVersion);
+          const snapshot = await createPreMigrationSnapshot(openedDatabase, resolvedDbPath, fromVersion);
           console.log(`[INFO] Verified pre-migration database snapshot created: ${snapshot}`);
         }
       : undefined);
+    db = openedDatabase;
+    guardedDb = createGuardedDatabase(openedDatabase);
   } catch (error) {
-    await db.close().catch(() => {});
+    await openedDatabase.close().catch(() => {});
     db = null;
+    guardedDb = null;
     throw error;
   }
 }
@@ -327,13 +430,18 @@ export async function getSchemaVersion(): Promise<number> {
 }
 
 export async function closeDb(): Promise<void> {
-  if (!db) return;
-  await db.close();
-  db = null;
+  await serializedDatabaseAccess.execute(async () => {
+    if (!db) return;
+    const database = db;
+    db = null;
+    guardedDb = null;
+    await database.close();
+  });
 }
 
 export async function backupDatabase(destinationPath: string): Promise<void> {
-  await copyDatabase(getDb(), destinationPath);
+  if (databaseMaintenanceReason) throw new Error(`Database maintenance is active: ${databaseMaintenanceReason}`);
+  await serializedDatabaseAccess.execute(() => copyDatabase(rawDatabase(), destinationPath));
 }
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -419,12 +527,40 @@ export async function restorePreMigrationSnapshot(
   }
 }
 
-// Helper to make sure db is initialized
-function getDb(): Database {
-  if (!db) {
+export function getDatabase(): Database {
+  if (!guardedDb) {
     throw new Error("Database not initialized. Call initDb() first.");
   }
+  if (databaseMaintenanceReason && !serializedDatabaseAccess.isOwnedByCurrentOperation()) {
+    throw new Error(`Database maintenance is active: ${databaseMaintenanceReason}`);
+  }
+  return guardedDb;
+}
+
+const getDb = getDatabase;
+
+function rawDatabase(): Database {
+  if (!db) throw new Error('Database not initialized. Call initDb() first.');
   return db;
+}
+
+export async function withDatabaseTransaction<T>(
+  operation: (database: Database) => Promise<T>
+): Promise<T> {
+  if (serializedDatabaseAccess.isOwnedByCurrentOperation()) return operation(getDatabase());
+  if (databaseMaintenanceReason) throw new Error(`Database maintenance is active: ${databaseMaintenanceReason}`);
+  return serializedDatabaseAccess.execute(async () => {
+    const database = rawDatabase();
+    await database.exec('BEGIN IMMEDIATE');
+    try {
+      const result = await operation(getDatabase());
+      await database.exec('COMMIT');
+      return result;
+    } catch (error) {
+      await database.exec('ROLLBACK').catch(() => undefined);
+      throw error;
+    }
+  });
 }
 
 export async function getTotalForwardedCount(): Promise<number> {
@@ -613,11 +749,9 @@ export async function pruneOperationalData(
   }
   if (!Number.isSafeInteger(now) || now <= 0) throw new Error('Retention timestamp is invalid.');
 
-  const database = getDb();
   const cutoff = now - retentionDays * 24 * 60 * 60 * 1000;
   const cutoffDay = new Date(cutoff).toISOString().slice(0, 10);
-  await database.exec('BEGIN IMMEDIATE');
-  try {
+  const result = await withDatabaseTransaction(async database => {
     const incoming = await database.run(
       `DELETE FROM incoming_messages WHERE id IN (
          SELECT id FROM incoming_messages
@@ -655,18 +789,15 @@ export async function pruneOperationalData(
        )`,
       [cutoffDay, batchSize]
     );
-    await database.exec('COMMIT');
-    await database.exec('PRAGMA optimize');
     return retentionResult([
       incoming.changes,
       signals.changes,
       completed.changes,
       aiUsage.changes
     ]);
-  } catch (error) {
-    await database.exec('ROLLBACK').catch(() => undefined);
-    throw error;
-  }
+  });
+  await getDb().exec('PRAGMA optimize');
+  return result;
 }
 
 export async function isDatabaseHealthy(): Promise<boolean> {
@@ -996,15 +1127,16 @@ export async function getProcessedSignals(limit = 100): Promise<any[]> {
 }
 
 export async function clearDb(): Promise<void> {
-  const database = getDb();
-  await database.exec(`
-    DELETE FROM signals;
-    DELETE FROM pending_tasks;
-    DELETE FROM media_group_buffer;
-    DELETE FROM incoming_messages;
-    UPDATE forwarding_stats SET value = 0 WHERE key IN ('total_forwarded_count', 'last_forwarded_at');
-  `);
-  await database.exec('VACUUM;');
+  await withDatabaseTransaction(async database => {
+    await database.exec(`
+      DELETE FROM signals;
+      DELETE FROM pending_tasks;
+      DELETE FROM media_group_buffer;
+      DELETE FROM incoming_messages;
+      UPDATE forwarding_stats SET value = 0 WHERE key IN ('total_forwarded_count', 'last_forwarded_at');
+    `);
+  });
+  await getDb().exec('VACUUM;');
 }
 
 export async function deleteIncomingMessage(id: number): Promise<void> {

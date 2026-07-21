@@ -44,6 +44,7 @@ export function ModeToggle({ variant = "outline" }: ModeToggleProps) {
       size="icon"
       onClick={handleToggle}
       className="cursor-pointer relative overflow-hidden"
+      aria-label={isDarkMode ? "Light theme" : "Dark theme"}
     >
       {isDarkMode ? (
         <Sun className="h-[1.2rem] w-[1.2rem] transition-transform duration-300" />

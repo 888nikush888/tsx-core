@@ -16,6 +16,10 @@ session_files/
 signals/
 logs/
 backups/
+secrets/
+**/secrets/
+**/.managed-secret-transaction.json
+*.tgfb
 *.tsbuildinfo
 __pycache__/
 *.pyc

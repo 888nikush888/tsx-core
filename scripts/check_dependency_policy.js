@@ -1,0 +1,85 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const exactVersion = /^(?:\d+!)?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+
+function declaredDependencies(manifest) {
+  return { ...(manifest.dependencies || {}), ...(manifest.devDependencies || {}), ...(manifest.optionalDependencies || {}) };
+}
+
+function declaredDependencyViolations(name, dependency, version, lockedRoot, artifact) {
+  const violations = [];
+  if (!exactVersion.test(version)) violations.push(`${name}: ${dependency} must use an exact version, found ${version}`);
+  if (lockedRoot[dependency] !== version) violations.push(`${name}: lockfile declaration for ${dependency} differs from package manifest`);
+  if (!artifact?.version || artifact.version !== version) violations.push(`${name}: ${dependency}@${version} is not the exact locked artifact`);
+  return violations;
+}
+
+function lockedArtifactViolations(name, lockPath, artifact) {
+  if (!lockPath.includes('node_modules/') || artifact.link) return [];
+  const violations = [];
+  if (!artifact.integrity?.startsWith('sha512-')) violations.push(`${name}: ${lockPath} has no sha512 lock integrity`);
+  const externalResolution = typeof artifact.resolved === 'string'
+    && /^(?:git|https?):/i.test(artifact.resolved)
+    && !artifact.resolved.startsWith('https://registry.npmjs.org/');
+  if (externalResolution) violations.push(`${name}: ${lockPath} resolves outside the npm registry`);
+  return violations;
+}
+
+export function evaluateNpmDependencyPolicy(name, manifest, lock) {
+  const violations = [];
+  const lockedRoot = declaredDependencies(lock.packages?.[''] || {});
+  for (const [dependency, version] of Object.entries(declaredDependencies(manifest))) {
+    violations.push(...declaredDependencyViolations(
+      name, dependency, version, lockedRoot, lock.packages?.[`node_modules/${dependency}`],
+    ));
+  }
+  for (const [lockPath, artifact] of Object.entries(lock.packages || {})) {
+    violations.push(...lockedArtifactViolations(name, lockPath, artifact));
+  }
+  return violations;
+}
+
+export function evaluatePythonHashLock(requirementsIn, requirementsLock) {
+  const violations = [];
+  const direct = requirementsIn.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+  for (const requirement of direct) {
+    if (!/^[A-Za-z0-9_.-]+==[A-Za-z0-9_.+-]+$/.test(requirement)) violations.push(`python direct dependency is not exact: ${requirement}`);
+    if (!requirementsLock.toLowerCase().includes(`${requirement.toLowerCase()} \\`)) violations.push(`python lock is missing direct dependency ${requirement}`);
+  }
+  const blocks = requirementsLock.split(/\r?\n(?=[A-Za-z0-9_.-]+==)/);
+  for (const block of blocks) {
+    const first = block.match(/^([A-Za-z0-9_.-]+==[^\s\\]+)/)?.[1];
+    if (first && !/--hash=sha256:[a-f0-9]{64}/.test(block)) violations.push(`python lock artifact has no sha256 hash: ${first}`);
+  }
+  return violations;
+}
+
+const [manifest, lock, frontendManifest, frontendLock] = await Promise.all([
+  readFile(path.join(root, 'package.json'), 'utf8').then(JSON.parse),
+  readFile(path.join(root, 'package-lock.json'), 'utf8').then(JSON.parse),
+  readFile(path.join(root, 'frontend', 'package.json'), 'utf8').then(JSON.parse),
+  readFile(path.join(root, 'frontend', 'package-lock.json'), 'utf8').then(JSON.parse),
+]);
+const requirementsIn = await readFile(path.join(root, 'exchange_executor', 'requirements.in'), 'utf8')
+  .catch(error => error?.code === 'ENOENT' ? null : Promise.reject(error));
+const requirementsLock = requirementsIn === null
+  ? null
+  : await readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8');
+const violations = [
+  ...evaluateNpmDependencyPolicy('backend', manifest, lock),
+  ...evaluateNpmDependencyPolicy('frontend', frontendManifest, frontendLock),
+  ...(requirementsIn === null || requirementsLock === null
+    ? []
+    : evaluatePythonHashLock(requirementsIn, requirementsLock)),
+];
+if (manifest.packageManager !== 'npm@10.9.2') violations.push('backend packageManager must pin npm@10.9.2');
+for (const [name, value] of [['backend', manifest], ['frontend', frontendManifest]]) {
+  if (value.engines?.node !== '>=22 <23') violations.push(`${name} must constrain Node to major 22`);
+}
+if (violations.length > 0) {
+  for (const violation of violations) console.error(`DEPENDENCY POLICY VIOLATION: ${violation}`);
+  process.exitCode = 1;
+} else console.log('Dependency and build-tool policy passed.');

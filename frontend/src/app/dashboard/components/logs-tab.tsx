@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Terminal, RefreshCw, Pause, Play, Trash2, Copy, Check } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { apiFetch } from "@/lib/api"
+import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 
 const API_BASE = window.location.origin
 
@@ -15,22 +16,19 @@ export function LogsTab({ config }: any) {
   const [copied, setCopied] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = useCallback(async (signal?: AbortSignal) => {
     if (isPaused) return;
     try {
-      const res = await apiFetch(`${API_BASE}/api/logs`)
+      const res = await apiFetch(`${API_BASE}/api/logs`, { signal })
       const data = await res.json()
       setLogs(data.logs || [])
     } catch (e) {
+      if (signal?.aborted) return
       console.error("Failed to fetch logs", e)
     }
   }, [isPaused])
 
-  useEffect(() => {
-    void fetchLogs()
-    const interval = setInterval(fetchLogs, 3000)
-    return () => clearInterval(interval)
-  }, [fetchLogs])
+  useSerializedPolling((signal) => fetchLogs(signal), 3_000, !isPaused)
 
   useEffect(() => {
     if (bottomRef.current && !isPaused) {
@@ -127,33 +125,38 @@ export function LogsTab({ config }: any) {
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {/* Filter buttons */}
-          <div className="flex bg-muted/60 p-0.5 rounded-lg border text-xs font-medium mr-2">
+          <div className="flex bg-muted/60 p-0.5 rounded-lg border text-xs font-medium mr-2" role="group" aria-label="Log-Level filtern">
             <button 
               onClick={() => setFilter('all')} 
+              aria-pressed={filter === 'all'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'all' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Alle
             </button>
             <button 
               onClick={() => setFilter('success')} 
+              aria-pressed={filter === 'success'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'success' ? 'bg-background text-emerald-600 dark:text-emerald-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Erfolge
             </button>
             <button 
               onClick={() => setFilter('info')} 
+              aria-pressed={filter === 'info'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'info' ? 'bg-background text-sky-600 dark:text-sky-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Info
             </button>
             <button 
               onClick={() => setFilter('warn')} 
+              aria-pressed={filter === 'warn'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'warn' ? 'bg-background text-amber-600 dark:text-amber-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Warn
             </button>
             <button 
               onClick={() => setFilter('error')} 
+              aria-pressed={filter === 'error'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'error' ? 'bg-background text-rose-600 dark:text-rose-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Fehler
@@ -194,6 +197,8 @@ export function LogsTab({ config }: any) {
             className={`h-8 w-8 active:scale-95 transition-all ${isPaused ? "border-amber-500/50 text-amber-500 hover:bg-amber-500/10" : ""}`}
             onClick={() => setIsPaused(!isPaused)}
             title={isPaused ? "Auto-Scroll fortsetzen" : "Auto-Scroll pausieren"}
+            aria-label={isPaused ? "Auto-Scroll fortsetzen" : "Auto-Scroll pausieren"}
+            aria-pressed={isPaused}
           >
             {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
           </Button>
@@ -201,8 +206,9 @@ export function LogsTab({ config }: any) {
             variant="outline" 
             size="icon" 
             className="h-8 w-8 active:scale-95 transition-all"
-            onClick={fetchLogs}
+            onClick={() => void fetchLogs()}
             disabled={isPaused}
+            aria-label="Logs aktualisieren"
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
@@ -210,7 +216,7 @@ export function LogsTab({ config }: any) {
       </CardHeader>
       
       <CardContent className="p-0">
-        <div className="bg-zinc-950 dark:bg-zinc-950/80 border-t border-zinc-200 dark:border-zinc-800 text-zinc-300 p-4 h-[550px] overflow-y-auto font-mono text-xs leading-relaxed select-text">
+        <div role="log" aria-live="off" aria-label="System-Logs" className="bg-zinc-950 dark:bg-zinc-950/80 border-t border-zinc-200 dark:border-zinc-800 text-zinc-300 p-4 h-[550px] overflow-y-auto font-mono text-xs leading-relaxed select-text">
           {filteredLogs.length === 0 ? (
             <div className="flex h-full items-center justify-center text-zinc-500 italic select-none">
               {logs.length === 0 ? "Warte auf eingehende Logs..." : "Keine Einträge für den ausgewählten Filter."}

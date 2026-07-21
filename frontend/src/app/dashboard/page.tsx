@@ -15,6 +15,7 @@ import { SystemTab } from "./components/system-tab"
 import { MessagesTab } from "./components/messages-tab"
 import { SignalsTab } from "./components/signals-tab"
 import { apiFetch } from "@/lib/api"
+import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 
 const API_BASE = window.location.origin
 
@@ -63,91 +64,79 @@ export default function Page() {
   const [isSaving, setIsSaving] = useState(false)
   const [metricsHistory, setMetricsHistory] = useState<any[]>([])
 
+  useSerializedPolling(async (signal) => {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/status`, { signal })
+      if (!response.ok) throw new Error(`Status request failed with ${response.status}`)
+      const data = await response.json()
+      if (signal.aborted) return
+      setIsRunning(data.isRunning)
+      setConnectionState(data.connectionState)
+      setTotalForwardedCount(data.totalForwardedCount || 0)
+      setProcessedSinceRestart(data.processedSinceRestart || 0)
+      setForwardingEnabled(data.forwardingEnabled ?? true)
+      setForwardXmlToTarget(data.forwardXmlToTarget ?? false)
+      setQueue(data.queue || { running: 0, queued: 0, maxConcurrency: 2, paused: false })
+      setTelegramLogin(data.telegramLogin || { state: 'idle' })
+      if (data.startTime) {
+        const diffMs = Date.now() - new Date(data.startTime).getTime()
+        const hours = Math.floor(diffMs / (1000 * 60 * 60))
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+        setUptime(`${hours}h ${minutes}m`)
+      } else setUptime("Offline")
+    } catch (error) {
+      if (signal.aborted) return
+      console.error("Error fetching status:", error)
+      setConnectionState("error")
+    }
+  }, 3_000)
+
+  useSerializedPolling(async (signal) => {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/metrics-history`, { signal })
+      if (!response.ok) throw new Error(`Metrics request failed with ${response.status}`)
+      const data = await response.json()
+      if (!signal.aborted && data?.history) setMetricsHistory(data.history)
+    } catch (error) {
+      if (!signal.aborted) console.error("Error fetching metrics history:", error)
+    }
+  }, 5_000)
+
   useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const response = await apiFetch(`${API_BASE}/api/status`)
-        if (!response.ok) throw new Error(`Status request failed with ${response.status}`)
-        const data = await response.json()
-        setIsRunning(data.isRunning)
-        setConnectionState(data.connectionState)
-        setTotalForwardedCount(data.totalForwardedCount || 0)
-        setProcessedSinceRestart(data.processedSinceRestart || 0)
-        setForwardingEnabled(data.forwardingEnabled ?? true)
-        setForwardXmlToTarget(data.forwardXmlToTarget ?? false)
-        setQueue(data.queue || { running: 0, queued: 0, maxConcurrency: 2, paused: false })
-        setTelegramLogin(data.telegramLogin || { state: 'idle' })
-        
-        if (data.startTime) {
-          const start = new Date(data.startTime)
-          const now = new Date()
-          const diffMs = now.getTime() - start.getTime()
-          const hours = Math.floor(diffMs / (1000 * 60 * 60))
-          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-          setUptime(`${hours}h ${minutes}m`)
-        } else {
-          setUptime("Offline")
-        }
-      } catch (error) {
-        console.error("Error fetching status:", error)
-        setConnectionState("error")
-      }
-    }
-
-    const fetchMetricsHistory = async () => {
-      try {
-        const response = await apiFetch(`${API_BASE}/api/metrics-history`)
-        if (!response.ok) throw new Error(`Metrics request failed with ${response.status}`)
-        const data = await response.json()
-        if (data && data.history) {
-          setMetricsHistory(data.history)
-        }
-      } catch (error) {
-        console.error("Error fetching metrics history:", error)
-      }
-    }
-
+    const controller = new AbortController()
     const fetchConfig = async () => {
       try {
-        const res = await apiFetch(`${API_BASE}/api/config`)
+        const res = await apiFetch(`${API_BASE}/api/config`, { signal: controller.signal })
         if (!res.ok) throw new Error(`Config request failed with ${res.status}`)
         const data = await res.json()
+        if (controller.signal.aborted) return
         setConfig(data)
 
-        const secretsRes = await apiFetch(`${API_BASE}/api/secrets`)
+        const secretsRes = await apiFetch(`${API_BASE}/api/secrets`, { signal: controller.signal })
         if (!secretsRes.ok) throw new Error(`Secret status request failed with ${secretsRes.status}`)
         const secretData = await secretsRes.json()
-        setSecretStatus(secretData.secrets)
+        if (!controller.signal.aborted) setSecretStatus(secretData.secrets)
       } catch (e) {
-        console.error("Error fetching config:", e)
+        if (!controller.signal.aborted) console.error("Error fetching config:", e)
       }
     }
 
     const redirectRecoveryToSystem = async () => {
       try {
-        const response = await apiFetch(`${API_BASE}/api/recovery`)
+        const response = await apiFetch(`${API_BASE}/api/recovery`, { signal: controller.signal })
         const recovery = await response.json().catch(() => ({}))
-        if (!recovery.active || tab === "system") return
+        if (controller.signal.aborted || !recovery.active || tab === "system") return
         const next = new URLSearchParams(searchParams)
         next.set("tab", "system")
         setSearchParams(next)
       } catch (error) {
-        console.error("Error checking recovery mode:", error)
+        if (!controller.signal.aborted) console.error("Error checking recovery mode:", error)
       }
     }
 
-    fetchStatus()
-    fetchMetricsHistory()
-    fetchConfig()
-    redirectRecoveryToSystem()
-    
-    const statusInterval = setInterval(fetchStatus, 3000)
-    const metricsInterval = setInterval(fetchMetricsHistory, 5000)
-    
-    return () => {
-      clearInterval(statusInterval)
-      clearInterval(metricsInterval)
-    }
+    void fetchConfig()
+    void redirectRecoveryToSystem()
+    return () => controller.abort()
   }, [searchParams, setSearchParams, tab])
 
   const saveConfig = async () => {

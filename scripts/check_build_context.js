@@ -1,0 +1,53 @@
+import { execFileSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const requiredIgnores = [
+  '.git', '.env', '.env.*', 'config.json', 'node_modules', 'frontend/node_modules',
+  'secrets', '**/secrets', '**/.managed-secret-transaction.json', 'session_data',
+  'session_files', 'logs', 'backups', '*.tgfb',
+];
+const sensitiveTrackedPath = /(^|\/)(?:secrets?|session_data|session_files|backups)(?:\/|$)|(?:^|\/)\.env(?:\.|$)|\.tgfb$/i;
+
+export function evaluateBuildContext({ dockerignore, dockerfile, trackedFiles }) {
+  const rules = new Set(dockerignore.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')));
+  const violations = requiredIgnores.filter(rule => !rules.has(rule)).map(rule => `.dockerignore is missing ${rule}`);
+  const rootContextCopy = /^\s*(?:COPY|ADD)\s+(?:--\S+\s+)*(?:\.\/?\s+|\[\s*["']\.\/?["']\s*,)/mi;
+  if (rootContextCopy.test(dockerfile)) {
+    violations.push('Dockerfile must use an explicit COPY allowlist instead of copying or adding the workspace root');
+  }
+  for (const file of trackedFiles.map(value => value.replaceAll('\\', '/'))) {
+    if (file === '.env.example') continue;
+    if (sensitiveTrackedPath.test(file)) violations.push(`sensitive runtime path is tracked: ${file}`);
+  }
+  return violations;
+}
+
+if (path.resolve(process.argv[1] ?? '') === path.resolve(fileURLToPath(import.meta.url))) {
+  const [dockerignore, dockerfile] = await Promise.all([
+    readFile(path.join(root, '.dockerignore'), 'utf8'),
+    readFile(path.join(root, 'Dockerfile'), 'utf8'),
+  ]);
+  const executorDockerignore = await readFile(path.join(root, 'exchange_executor', '.dockerignore'), 'utf8')
+    .catch((error) => {
+      if (error?.code === 'ENOENT') return null;
+      throw error;
+    });
+  // Names only: the gate deliberately never opens possible secret files.
+  const trackedFiles = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
+  const violations = evaluateBuildContext({ dockerignore, dockerfile, trackedFiles });
+  if (executorDockerignore !== null) {
+    const executorRules = new Set(executorDockerignore.split(/\r?\n/).map(line => line.trim()).filter(Boolean));
+    for (const rule of ['.env', '.env.*', 'secrets', '**/secrets']) {
+      if (!executorRules.has(rule)) violations.push(`exchange_executor/.dockerignore is missing ${rule}`);
+    }
+  }
+  if (violations.length > 0) {
+    for (const violation of violations) console.error(`BUILD CONTEXT VIOLATION: ${violation}`);
+    process.exitCode = 1;
+  } else {
+    console.log('Build-context allowlist and tracked-path secret boundary passed.');
+  }
+}

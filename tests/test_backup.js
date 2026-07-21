@@ -37,6 +37,19 @@ async function createVerifiedArtifact(root, databasePath, backupRoot) {
   }, 1_700_000_000_000);
   const manifest = await verifyBackupArtifact(artifact);
   assert.strictEqual(manifest.version, 2);
+  assert.strictEqual(manifest.compatibility.application.id, 'telegram-tdlib-forwarder');
+  assert.match(manifest.compatibility.application.releaseVersion, /^\d+\.\d+\.\d+/);
+  assert.strictEqual(manifest.compatibility.application.dataModel, 'forwarding-core');
+  assert.ok(manifest.compatibility.database.schemaVersion >= 3);
+  assert.strictEqual(
+    manifest.compatibility.database.migrations.length,
+    manifest.compatibility.database.schemaVersion,
+    'The manifest must bind every applied migration.',
+  );
+  assert.deepStrictEqual(
+    [...manifest.compatibility.features].sort(),
+    ['ai-provenance', 'core-forwarding', 'durable-outbox'],
+  );
   assert.deepStrictEqual(manifest.recovery?.includedState, ['runtime-settings.json', 'templates/default - alt.txt', 'templates/default.xml', 'templates/nested/source.xml']);
   assert.deepStrictEqual(manifest.recovery?.excludedState, ['managed-secrets', 'tdlib-session-data', 'tdlib-session-files']);
   const backedUpConfig = JSON.parse(await readFile(path.join(artifact, 'config.json'), 'utf8'));
@@ -83,6 +96,22 @@ async function assertRestoredState(root, artifact, databasePath, configPath, sta
   await assert.rejects(readFile(path.join(recoveryRoot, 'templates', 'old.xml')), /ENOENT/);
 }
 
+function invalidManifestCases() {
+  return [
+    ['unsupported', manifest => { manifest.version = 3; }, /Unsupported or malformed/],
+    ['legacy', manifest => { manifest.version = 1; delete manifest.compatibility; }, /Unsupported or malformed/],
+    ['bad-date', manifest => { manifest.createdAt = 'not-a-date'; }, /invalid creation timestamp/],
+    ['invalid-count', manifest => { manifest.files = {}; }, /invalid number of files/],
+    ['bad-metadata', manifest => { delete manifest.files['config.json']; }, /missing required file 'config.json'/],
+    ['wrong-app', manifest => { manifest.compatibility.application.id = 'different-application'; }, /unsupported application/],
+    ['bad-release', manifest => { manifest.compatibility.application.releaseVersion = 'not-semver'; }, /unsupported application/],
+    ['wrong-data-model', manifest => { manifest.compatibility.application.dataModel = 'integrated-trading'; }, /unsupported application/],
+    ['wrong-schema', manifest => { manifest.compatibility.database.schemaVersion += 1; }, /schema version .* incompatible/],
+    ['wrong-features', manifest => { manifest.compatibility.features = ['core-forwarding']; }, /feature set is incompatible/],
+    ['wrong-migrations', manifest => { manifest.compatibility.database.migrations[0].checksum = '0'.repeat(64); }, /migration history does not match/]
+  ];
+}
+
 async function assertInvalidArtifacts(root, artifact, manifest, configPath, backupRoot) {
   const corruptArtifact = path.join(root, 'corrupt-backup');
   await cp(artifact, corruptArtifact, { recursive: true });
@@ -91,11 +120,7 @@ async function assertInvalidArtifacts(root, artifact, manifest, configPath, back
   await assert.rejects(verifyBackupArtifact(configPath), /must be a directory/);
   await assert.rejects(createBackupArtifact(backupRoot, {}, 0), /timestamp is invalid/);
   await assert.rejects(pruneBackupArtifacts(backupRoot, 0), /between 1 and 10000/);
-  for (const [name, mutate, expected] of [
-    ['unsupported', manifest => { manifest.version = 3; }, /Unsupported or malformed/],
-    ['bad-date', manifest => { manifest.createdAt = 'not-a-date'; }, /invalid creation timestamp/],
-    ['bad-metadata', manifest => { delete manifest.files['config.json']; }, /missing required file 'config.json'/]
-  ]) {
+  for (const [name, mutate, expected] of invalidManifestCases()) {
     const invalidArtifact = path.join(root, `invalid-${name}`);
     await cp(artifact, invalidArtifact, { recursive: true });
     const manifestPath = path.join(invalidArtifact, 'manifest.json');
@@ -108,6 +133,7 @@ async function assertInvalidArtifacts(root, artifact, manifest, configPath, back
   await cp(artifact, oversizedManifestArtifact, { recursive: true });
   await writeFile(path.join(oversizedManifestArtifact, 'manifest.json'), 'x'.repeat(64 * 1024 + 1), 'utf8');
   await assert.rejects(verifyBackupArtifact(oversizedManifestArtifact), /exceeds 64 KiB/);
+
 }
 
 async function assertArtifactNameValidation(root, artifact) {

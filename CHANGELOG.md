@@ -4,6 +4,24 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-21
+
+### Security
+
+- Existing dashboard administrator tokens are no longer recoverable through the unauthenticated local-session bootstrap route; managed secrets default outside the checkout and build contexts reject runtime secret paths.
+- Dashboard mutations persist secret-redacted semantic before/after outcomes before acknowledging success.
+- High-risk pull requests, unsigned or off-main release tags, unpinned executor deployments, dependency drift, and missing ownership now fail their respective release gates.
+
+### Changed
+
+- Frontend polling is serialized, abortable, and background-aware; keyboard and accessible-name coverage was added to dynamic controls.
+- Backup manifests now bind the complete application/database feature set and reject legacy or schema-incompatible restores.
+
+### Fixed
+
+- SQLite transactions, maintenance, backup, restore and retention now share one serialized ownership coordinator.
+- AI-parsed values must be uniquely grounded in the labelled source segment and reject conflicting pairs, sides and decoy values.
+
 ### Added
 
 - Vollständige Web-Control-Plane für Telegram-/OpenRouter-Secrets, Runtime-/Enterprise-Einstellungen, editierbare Default-Templates, Bearer-Key-Erzeugung, Monitoring-Secrets, lokale und verschlüsselte Off-site-Recovery sowie vollständigen Factory Reset.
