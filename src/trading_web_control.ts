@@ -9,6 +9,7 @@ import {
   createTradingStrategyDraft,
   deleteTradingAccount,
   deleteTradingRoute,
+  deleteTradingStrategyVersion,
   getTradingAccount,
   getTradingAnalytics,
   getTradingOverview,
@@ -212,6 +213,10 @@ export class TradingWebControl {
 
   archiveStrategy(id: unknown) {
     return archiveTradingStrategyVersion(identifier(id, 'Strategy version identifier', 64));
+  }
+
+  removeStrategy(id: unknown) {
+    return deleteTradingStrategyVersion(identifier(id, 'Strategy version identifier', 64));
   }
 
   async createAccount(payload: any): Promise<TradingAccount> {

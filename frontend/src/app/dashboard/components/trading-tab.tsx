@@ -35,10 +35,10 @@ function statusTone(status: string) {
   return "secondary"
 }
 
-async function mutate(path: string, body: unknown, method = "POST") {
+async function mutate(path: string, body: unknown, method = "POST", extraHeaders: Record<string, string> = {}) {
   const response = await apiFetch(`${API_BASE}${path}`, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...extraHeaders },
     body: JSON.stringify(body),
   })
   const payload = await response.json().catch(() => ({}))
@@ -78,8 +78,8 @@ export function TradingTab({ config }: { config: any }) {
 
   const run = async (name: string, operation: () => Promise<unknown>, success: string) => {
     setBusy(name); setMessage("")
-    try { await operation(); setMessage(success); await refresh(true) }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Aktion fehlgeschlagen.") }
+    try { await operation(); setMessage(success); await refresh(true); return true }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Aktion fehlgeschlagen."); return false }
     finally { setBusy("") }
   }
 
@@ -148,6 +148,20 @@ function Strategies({ data, busy, run }: any) {
   const newStrategy = () => { setSelected(""); setDraft({ name: "Neue Strategie", description: "", configuration: structuredClone(DEFAULT_CONFIGURATION), strategyId: undefined }) }
   const newVersion = () => { if (!current) return; setSelected(""); setDraft({ name: current.name, description: current.description, configuration: structuredClone(current.configuration), strategyId: current.strategyId }) }
   const save = () => run("save-strategy", () => mutate(current?.status === "draft" ? "/api/trading/strategies/update" : "/api/trading/strategies", current?.status === "draft" ? { id: current.id, ...draft } : draft), "Strategieentwurf gespeichert.")
+  const remove = async () => {
+    if (!current || !window.confirm(`Strategie "${current.name} v${current.version}" endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return
+    const removed = await run(
+      "delete-strategy",
+      () => mutate(
+        "/api/trading/strategies",
+        { id: current.id },
+        "DELETE",
+        { "X-Destructive-Confirmation": "delete-trading-strategy" },
+      ),
+      "Strategieversion endgültig gelöscht.",
+    )
+    if (removed) newStrategy()
+  }
   return <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
     <Card><CardHeader><CardTitle>Versionen</CardTitle><CardDescription>Publizierte Versionen sind unveränderlich und werden fest an Kanäle gebunden.</CardDescription></CardHeader><CardContent className="space-y-2"><Button className="w-full" onClick={newStrategy}>Neue Strategie</Button>{data.strategies.map((strategy: any) => <button key={strategy.id} onClick={() => selectStrategy(strategy)} className={`w-full rounded-md border p-3 text-left ${selected === strategy.id ? "border-primary bg-primary/5" : ""}`}><div className="flex justify-between gap-2"><span className="font-medium">{strategy.name} v{strategy.version}</span><Badge variant={statusTone(strategy.status) as any}>{strategy.status}</Badge></div><div className="mt-1 truncate text-xs text-muted-foreground">SHA {strategy.configurationSha256.slice(0, 12)}…</div></button>)}</CardContent></Card>
     <Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><div><CardTitle>Strategie-Editor</CardTitle><CardDescription>Alle Größen sind harte, validierte Verträge. Prozentwerte als Dezimalzahl.</CardDescription></div>{current?.status === "published" && <Button variant="outline" onClick={newVersion}>Neue Version aus v{current.version}</Button>}</div></CardHeader><CardContent className="space-y-6">
@@ -158,7 +172,8 @@ function Strategies({ data, busy, run }: any) {
       <Section title="Sizing"><div className="grid gap-4 md:grid-cols-3"><NumberField label="Risiko / Trade (%)" value={cfg.sizing.riskPerTradePercent} onChange={v => patch("sizing", "riskPerTradePercent", v)} /><NumberField label="Max. Notional" value={cfg.sizing.maxPositionNotional} onChange={v => patch("sizing", "maxPositionNotional", v)} /><NumberField label="Max. Leverage" value={cfg.sizing.maxLeverage} onChange={v => patch("sizing", "maxLeverage", Number(v))} /></div></Section>
       <Section title="Take Profit & Stop"><div className="grid gap-4 md:grid-cols-2"><Field label="TP-Allokationen (%) – Summe exakt 100"><Input value={cfg.exits.targetAllocationsPercent.join(", ")} onChange={e => patch("exits", "targetAllocationsPercent", e.target.value.split(",").map(v => v.trim()).filter(Boolean))} /></Field><NumberField label="Break-even nach Target (leer = aus)" value={cfg.exits.moveStopToBreakEvenAfterTarget ?? ""} onChange={v => patch("exits", "moveStopToBreakEvenAfterTarget", v === "" ? null : Number(v))} /><NumberField label="Trailing Stop % (leer = aus)" value={cfg.exits.trailingStopPercent ?? ""} onChange={v => patch("exits", "trailingStopPercent", v === "" ? null : v)} /><div className="flex items-center gap-2 text-sm"><CheckCircle2 className="h-4 w-4 text-primary" />Der letzte TP schließt den vollständigen Rest zwingend.</div></div></Section>
       <Section title="Harte Sicherheitslimits"><div className="grid gap-4 md:grid-cols-4"><NumberField label="Max. Positionen" value={cfg.safety.maxConcurrentPositions} onChange={v => patch("safety", "maxConcurrentPositions", Number(v))} /><NumberField label="Max. Tagesverlust" value={cfg.safety.maxDailyLoss} onChange={v => patch("safety", "maxDailyLoss", v)} /><NumberField label="Max. Slippage %" value={cfg.safety.maxSlippagePercent} onChange={v => patch("safety", "maxSlippagePercent", v)} /><NumberField label="Entry TTL (s)" value={cfg.safety.entryOrderTtlSeconds} onChange={v => patch("safety", "entryOrderTtlSeconds", Number(v))} /></div><div className="mt-3 flex items-center gap-2 text-sm"><CheckCircle2 className="h-4 w-4 text-primary" />Protective Stop ist zwingend und kann nicht deaktiviert werden.</div></Section>
-      <div className="flex flex-wrap gap-2"><Button onClick={() => void save()} disabled={Boolean(busy) || current?.status === "published" || current?.status === "archived"}><Save className="mr-2 h-4 w-4" />Entwurf speichern</Button>{current?.status === "draft" && <Button variant="outline" disabled={Boolean(busy)} onClick={() => void run("publish", () => mutate("/api/trading/strategies/publish", { id: current.id }), "Strategieversion publiziert.")}>Publizieren</Button>}{current?.status === "published" && <Button variant="outline" disabled={Boolean(busy)} onClick={() => void run("archive", () => mutate("/api/trading/strategies/archive", { id: current.id }), "Strategieversion archiviert.")}>Archivieren</Button>}</div>
+      {current && <p className="text-xs text-muted-foreground">Nur unbenutzte Versionen sind löschbar. Kanalrouten müssen vorher entfernt werden; Trade-Historie bleibt unveränderlich.</p>}
+      <div className="flex flex-wrap gap-2"><Button onClick={() => void save()} disabled={Boolean(busy) || current?.status === "published" || current?.status === "archived"}><Save className="mr-2 h-4 w-4" />Entwurf speichern</Button>{current?.status === "draft" && <Button variant="outline" disabled={Boolean(busy)} onClick={() => void run("publish", () => mutate("/api/trading/strategies/publish", { id: current.id }), "Strategieversion publiziert.")}>Publizieren</Button>}{current?.status === "published" && <Button variant="outline" disabled={Boolean(busy)} onClick={() => void run("archive", () => mutate("/api/trading/strategies/archive", { id: current.id }), "Strategieversion archiviert.")}>Archivieren</Button>}{current && <Button variant="destructive" disabled={Boolean(busy)} onClick={() => void remove()}><Trash2 className="mr-2 h-4 w-4" />Strategie löschen</Button>}</div>
     </CardContent></Card>
   </div>
 }

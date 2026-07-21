@@ -34,6 +34,8 @@ Unter **Trading → Strategien**:
 
 **Entwurf speichern** validiert alle Grenzen. **Publizieren** macht die Version immutable und routingfähig. Für Änderungen die publizierte Version auswählen und **Neue Version** erstellen. Bestehende Trades behalten die alte Version; neue Signale nutzen erst nach explizitem Routing-Wechsel die neue.
 
+**Strategie löschen** entfernt eine unbenutzte Version nach einer expliziten Bestätigung endgültig. Eine Kanalroute muss vorher unter **Kanal-Routing** entfernt werden; Versionen mit aufbewahrter Trade-Historie können aus Audit- und Recovery-Gründen nur archiviert, nicht gelöscht werden. Die letzte verbleibende Strategieversion ist nicht löschbar – zuerst eine Ersatzstrategie erstellen.
+
 Ein Plugin ist bewusst deklarativ. Die UI nimmt keinen ausführbaren Python-/JavaScript-Code an. Dadurch bleiben Rechte, Determinismus, Review, Rollback und Containerhärtung erhalten. Ein völlig neuer Algorithmus benötigt eine geprüfte Engine-/Schema-Version im Repository.
 
 ## 4. Exchange-Konto verbinden

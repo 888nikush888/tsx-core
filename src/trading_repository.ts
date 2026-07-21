@@ -680,6 +680,36 @@ export async function archiveTradingStrategyVersion(id: string): Promise<Trading
   return (await getTradingStrategyVersion(id))!;
 }
 
+export async function deleteTradingStrategyVersion(id: string): Promise<boolean> {
+  return transaction(async () => {
+    const existing = await getDatabase().get<{ id: string }>(
+      'SELECT id FROM trading_strategy_versions WHERE id = ?', [id],
+    );
+    if (!existing) return false;
+
+    const references = await getDatabase().get<any>(
+      `SELECT
+         (SELECT COUNT(*) FROM trading_routes WHERE strategy_version_id = ?) AS routes,
+         (SELECT COUNT(*) FROM trading_trade_intents WHERE strategy_version_id = ?) AS intents,
+         (SELECT COUNT(*) FROM trading_positions WHERE strategy_version_id = ?) AS positions,
+         (SELECT COUNT(*) FROM trading_strategy_versions) AS versions`,
+      [id, id, id],
+    );
+    if (Number(references?.intents || 0) > 0 || Number(references?.positions || 0) > 0) {
+      throw new Error('Strategy deletion is blocked because retained trade history references this version. Archive it instead.');
+    }
+    if (Number(references?.routes || 0) > 0) {
+      throw new Error('Strategy deletion requires all channel routes using this version to be removed first.');
+    }
+    if (Number(references?.versions || 0) <= 1) {
+      throw new Error('The final strategy version cannot be deleted. Create another strategy first.');
+    }
+
+    const result = await getDatabase().run('DELETE FROM trading_strategy_versions WHERE id = ?', [id]);
+    return Number(result.changes || 0) === 1;
+  });
+}
+
 export async function deleteTradingAccount(id: string): Promise<boolean> {
   if (id === 'paper-default') throw new Error('The default paper account cannot be deleted.');
   return transaction(async () => {

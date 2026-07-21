@@ -1107,6 +1107,14 @@ const publishTradingStrategyHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.publishStrategy(payload.id));
 const archiveTradingStrategyHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.archiveStrategy(payload.id));
+const deleteTradingStrategyHandler = (context: RequestContext) => {
+  if (!requireConfirmation(
+    context,
+    'delete-trading-strategy',
+    'Explicit trading strategy deletion confirmation required.',
+  )) return;
+  return tradingMutation(context, (control, payload) => control.removeStrategy(payload.id));
+};
 const createTradingAccountHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.createAccount(payload), 201);
 const replaceTradingCredentialsHandler = (context: RequestContext) =>
@@ -1178,6 +1186,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/strategies/update', updateTradingStrategyHandler],
   ['POST /api/trading/strategies/publish', publishTradingStrategyHandler],
   ['POST /api/trading/strategies/archive', archiveTradingStrategyHandler],
+  ['DELETE /api/trading/strategies', deleteTradingStrategyHandler],
   ['POST /api/trading/accounts', createTradingAccountHandler],
   ['POST /api/trading/accounts/credentials', replaceTradingCredentialsHandler],
   ['POST /api/trading/accounts/verify', verifyTradingAccountHandler],

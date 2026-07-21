@@ -86,6 +86,7 @@ async function testRequestValidation(baseUrl) {
     ['/api/backups/recover-offsite', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"objectName":"backup-2026-test.tgfb"}' }, 412],
     ['/api/backups/restore', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"backup-2026-test"}' }, 412],
     ['/api/restart', { method: 'POST', headers: mutationHeaders() }, 412],
+    ['/api/trading/strategies', { method: 'DELETE', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"id":"strategy"}' }, 412],
     ['/api/factory-reset', { method: 'POST', headers: mutationHeaders() }, 412]
   ];
   for (const [route, options, expectedStatus] of rejectedRouteCases) {
@@ -112,6 +113,32 @@ async function testRequestValidation(baseUrl) {
     method: 'DELETE', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'delete-processed-signal' })
   });
   assert.strictEqual(response.status, 200);
+}
+
+async function testTradingStrategyDeletion(baseUrl, appState) {
+  const removed = [];
+  const original = appState.tradingControl;
+  appState.tradingControl = {
+    removeStrategy: async id => {
+      removed.push(id);
+      return true;
+    }
+  };
+  try {
+    const response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'DELETE',
+      headers: mutationHeaders({
+        'Content-Type': 'application/json',
+        'X-Destructive-Confirmation': 'delete-trading-strategy'
+      }),
+      body: JSON.stringify({ id: 'strategy-delete' })
+    });
+    assert.strictEqual(response.status, 200, 'Confirmed strategy deletion must reach the trading control plane');
+    assert.strictEqual((await response.json()).result, true);
+    assert.deepStrictEqual(removed, ['strategy-delete']);
+  } finally {
+    appState.tradingControl = original;
+  }
 }
 
 async function testAuditedControl(baseUrl, controls) {
@@ -713,6 +740,7 @@ async function runTests() {
     await testAuthenticationAndReads(baseUrl);
     await testTelegramWebLogin(baseUrl);
     await testRequestValidation(baseUrl);
+    await testTradingStrategyDeletion(baseUrl, appState);
 
     await testAuditedControl(baseUrl, controls);
     await testMissingAuditFailsClosed(baseUrl, appState);

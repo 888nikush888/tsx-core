@@ -29,6 +29,7 @@ import {
   archiveTradingStrategyVersion,
   deleteTradingAccount,
   deleteTradingRoute,
+  deleteTradingStrategyVersion,
   ensureTradingDefaults,
   getTradingOverview,
   getTradingOperationalSnapshot,
@@ -245,6 +246,7 @@ async function testRepositoryRouting(defaults, accounts) {
   const routes = await listTradingRoutes();
   assert.equal(routes.length, 2, 'Two channels must route in parallel.');
   assert.notEqual(routes[0].strategyVersionId, routes[1].strategyVersionId);
+  await assert.rejects(deleteTradingStrategyVersion(published.id), /channel routes/);
 
   const validated = validateSignalXml(STANDARD_SIGNAL, 'default');
   assert.ok(validated.execution);
@@ -262,6 +264,7 @@ async function testRepositoryRouting(defaults, accounts) {
   });
   assert.equal(enabledIntent.status, 'pending');
   assert.equal(enabledIntent.strategyVersionId, published.id);
+  await assert.rejects(deleteTradingStrategyVersion(published.id), /retained trade history/);
 
   const overview = await getTradingOverview();
   assert.equal(overview.enabledRouteCount, 2);
@@ -301,6 +304,13 @@ async function runRepositoryTests() {
     assert.equal(defaults[0].status, 'published');
     assert.equal(accounts.length, 1);
     assert.equal(accounts[0].mode, 'paper');
+    await assert.rejects(deleteTradingStrategyVersion(defaults[0].id), /final strategy version/);
+    const deletable = await createTradingStrategyDraft({
+      name: 'Disposable strategy',
+      configuration: configuration(),
+    });
+    assert.equal(await deleteTradingStrategyVersion(deletable.id), true);
+    assert.equal(await deleteTradingStrategyVersion(deletable.id), false);
     await testRepositoryValidation(defaults, accounts);
     await testRepositoryRouting(defaults, accounts);
   } finally {

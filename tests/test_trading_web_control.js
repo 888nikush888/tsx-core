@@ -64,6 +64,13 @@ try {
   );
   await assert.rejects(control.setRuntime({ action: 'unsupported' }), /Unsupported trading runtime action/);
 
+  const deletable = await control.createStrategy({
+    name: 'Delete through control plane',
+    configuration: structuredClone(DEFAULT_STRATEGY_CONFIGURATION),
+  });
+  assert.equal(await control.removeStrategy(deletable.id), true);
+  assert.equal((await control.snapshot()).strategies.some(strategy => strategy.id === deletable.id), false);
+
   const second = await control.createStrategy({
     name: 'Parallel strategy',
     configuration: structuredClone(DEFAULT_STRATEGY_CONFIGURATION),
@@ -104,6 +111,7 @@ try {
   await control.setRoute({ channelId: '-100001', strategyVersionId: published[0].id, accountId: paperAccount.id, enabled: true });
   await control.setRoute({ channelId: '-100002', strategyVersionId: second.id, accountId: paperAccount.id, enabled: true });
   await control.setRoute({ channelId: '-100099', strategyVersionId: second.id, accountId: paperAccount.id, enabled: true });
+  await assert.rejects(control.removeStrategy(second.id), /channel routes/);
   assert.equal(await control.removeRoute('-100099'), true);
   assert.equal((await control.snapshot()).routes.length, 2, 'Independent channels must run distinct strategy versions in parallel.');
 
