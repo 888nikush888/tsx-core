@@ -12,7 +12,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from bybit_adapter import BybitAdapter
-from common import ExchangeContractError, decimal_string, map_bybit_status, signed_decimal_string
+from common import (
+    ExchangeContractError,
+    decimal_string,
+    map_bybit_status,
+    optional_positive_decimal_string,
+    signed_decimal_string,
+)
 from credentials import CredentialError, CredentialStore
 from hyperliquid_adapter import HyperliquidAdapter
 from server import Handler
@@ -29,6 +35,8 @@ class ContractTests(unittest.TestCase):
             signed_decimal_string("+1", "pnl")
         with self.assertRaises(ExchangeContractError):
             decimal_string("0", "price", positive=True)
+        self.assertIsNone(optional_positive_decimal_string("0.0", "triggerPx"))
+        self.assertEqual(optional_positive_decimal_string("1450.0", "triggerPx"), "1450")
 
     def test_status_mapping_is_fail_closed(self) -> None:
         self.assertEqual(map_bybit_status("Filled"), "filled")
@@ -165,6 +173,53 @@ class HyperliquidMappingTests(unittest.TestCase):
             "equity": "1500", "availableBalance": "1200",
             "unrealizedPnl": "5.5", "marginUsed": "300",
         })
+
+    def test_open_state_uses_latest_history_status_and_accepts_zero_trigger_sentinel(self) -> None:
+        cloid = "0x" + "1" * 32
+
+        class InfoStub:
+            @staticmethod
+            def open_orders(_address):
+                return []
+
+            @staticmethod
+            def historical_orders(_address):
+                order = {
+                    "coin": "ETH", "side": "B", "limitPx": "1657.8", "triggerPx": "0.0",
+                    "origSz": "1", "sz": "0", "oid": 42, "cloid": cloid, "reduceOnly": False,
+                }
+                return [
+                    {"order": order, "status": "filled", "statusTimestamp": 200},
+                    {"order": {**order, "sz": "1"}, "status": "open", "statusTimestamp": 100},
+                ]
+
+            @staticmethod
+            def user_fills(_address):
+                return []
+
+            @staticmethod
+            def user_state(_address):
+                return {"assetPositions": []}
+
+        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
+        adapter._clients = lambda _account: (InfoStub(), object(), "0xwallet")
+        state = adapter.open_state({})
+        self.assertEqual(len(state["orders"]), 1)
+        self.assertEqual(state["orders"][0]["status"], "filled")
+        self.assertIsNone(state["orders"][0]["triggerPrice"])
+
+    def test_current_open_order_overrides_terminal_history_and_unknown_status_fails_closed(self) -> None:
+        order = {
+            "coin": "ETH", "side": "A", "limitPx": "1500", "triggerPx": "0",
+            "origSz": "1", "sz": "1", "oid": 43, "cloid": None, "reduceOnly": False,
+        }
+        latest = HyperliquidAdapter._latest_orders(
+            [{"order": order, "status": "filled", "statusTimestamp": 200}],
+            [order],
+        )
+        self.assertEqual(latest["oid:43"]["status"], "open")
+        self.assertEqual(HyperliquidAdapter._map_order_status("badAloPxRejected"), "rejected")
+        self.assertEqual(HyperliquidAdapter._map_order_status("futureStatus"), "unknown")
 
 
 if __name__ == "__main__":

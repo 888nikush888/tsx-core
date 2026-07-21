@@ -10,7 +10,7 @@ from hyperliquid.info import Info
 from hyperliquid.utils import constants
 from hyperliquid.utils.types import Cloid
 
-from common import ExchangeContractError, decimal_string, signed_decimal_string
+from common import ExchangeContractError, decimal_string, optional_positive_decimal_string, signed_decimal_string
 from credentials import CredentialStore
 
 
@@ -152,16 +152,7 @@ class HyperliquidAdapter:
         info, _, address = self._clients(account)
         open_orders = info.open_orders(address)
         history = info.historical_orders(address)
-        order_records = [
-            {**record.get("order", {}), "status": record.get("status", "unknown")}
-            for record in history
-            if isinstance(record, dict) and isinstance(record.get("order"), dict)
-        ]
-        orders_by_cloid = {
-            str(order.get("cloid") or f"oid:{order.get('oid')}"): order
-            for order in [*order_records, *open_orders]
-            if isinstance(order, dict) and (order.get("cloid") or order.get("oid") is not None)
-        }
+        orders_by_cloid = self._latest_orders(history, open_orders)
         oid_to_cloid = {str(order.get("oid")): cloid for cloid, order in orders_by_cloid.items()}
         fills = info.user_fills(address)
         state = info.user_state(address)
@@ -176,9 +167,55 @@ class HyperliquidAdapter:
             "observedAt": int(time.time() * 1000),
         }
 
+    @classmethod
+    def _latest_orders(cls, history: Any, open_orders: Any) -> dict[str, dict[str, Any]]:
+        if not isinstance(history, list) or not isinstance(open_orders, list):
+            raise ExchangeContractError("Hyperliquid order history returned an invalid contract.")
+        latest: dict[str, dict[str, Any]] = {}
+        ranks: dict[str, tuple[int, int]] = {}
+        for record in history:
+            if not isinstance(record, dict) or not isinstance(record.get("order"), dict):
+                raise ExchangeContractError("Hyperliquid order history returned an invalid record.")
+            order = record["order"]
+            key = cls._order_key(order)
+            timestamp = record.get("statusTimestamp")
+            if not isinstance(timestamp, int) or timestamp < 0:
+                raise ExchangeContractError("Hyperliquid order history timestamp is invalid.")
+            status = cls._map_order_status(record.get("status"))
+            priority = {"open": 0, "unknown": 1, "cancelled": 2, "rejected": 3, "filled": 4}[status]
+            rank = (timestamp, priority)
+            if key not in ranks or rank > ranks[key]:
+                latest[key] = {**order, "status": record.get("status", "unknown"), "statusTimestamp": timestamp}
+                ranks[key] = rank
+        for order in open_orders:
+            if not isinstance(order, dict):
+                raise ExchangeContractError("Hyperliquid open orders returned an invalid record.")
+            latest[cls._order_key(order)] = {**order, "status": "open"}
+        return latest
+
+    @staticmethod
+    def _order_key(order: dict[str, Any]) -> str:
+        if order.get("cloid"):
+            return str(order["cloid"])
+        if order.get("oid") is not None:
+            return f"oid:{order['oid']}"
+        raise ExchangeContractError("Hyperliquid order has no identifier.")
+
+    @staticmethod
+    def _map_order_status(value: Any) -> str:
+        status = str(value or "").strip().lower()
+        if status == "open":
+            return "open"
+        if status == "filled":
+            return "filled"
+        if status == "canceled" or status.endswith("canceled") or status == "scheduledcancel":
+            return "cancelled"
+        if status == "rejected" or status.endswith("rejected"):
+            return "rejected"
+        return "unknown"
+
     def _order_snapshot(self, order: dict[str, Any]) -> dict[str, Any]:
-        status_text = str(order.get("status", "open")).lower()
-        status = "filled" if "fill" in status_text else "cancelled" if "cancel" in status_text else "open"
+        status = self._map_order_status(order.get("status"))
         side = "buy" if order.get("side") in {"B", "Buy"} else "sell"
         original = order.get("origSz", order.get("sz"))
         remaining = order.get("sz", "0")
@@ -195,8 +232,8 @@ class HyperliquidAdapter:
             "role": "entry",
             "side": side,
             "quantity": decimal_string(original, "order quantity", positive=True),
-            "price": decimal_string(order["limitPx"], "limitPx", positive=True) if order.get("limitPx") else None,
-            "triggerPrice": decimal_string(order["triggerPx"], "triggerPx", positive=True) if order.get("triggerPx") else None,
+            "price": optional_positive_decimal_string(order.get("limitPx"), "limitPx"),
+            "triggerPrice": optional_positive_decimal_string(order.get("triggerPx"), "triggerPx"),
             "reduceOnly": bool(order.get("reduceOnly")),
         }
 

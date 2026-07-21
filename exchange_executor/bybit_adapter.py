@@ -5,7 +5,14 @@ from typing import Any
 
 from pybit.unified_trading import HTTP
 
-from common import ExchangeContractError, decimal_string, map_bybit_status, response_list, signed_decimal_string
+from common import (
+    ExchangeContractError,
+    decimal_string,
+    map_bybit_status,
+    optional_positive_decimal_string,
+    response_list,
+    signed_decimal_string,
+)
 from credentials import CredentialStore
 
 
@@ -188,7 +195,7 @@ class BybitAdapter:
                 str(order.get("orderId", "")),
                 map_bybit_status(str(order.get("orderStatus", ""))),
                 decimal_string(order.get("cumExecQty", "0"), "cumExecQty"),
-                decimal_string(order["avgPrice"], "avgPrice", positive=True) if order.get("avgPrice") else None,
+                optional_positive_decimal_string(order.get("avgPrice"), "avgPrice"),
                 None,
                 order,
             ),
@@ -196,8 +203,8 @@ class BybitAdapter:
             "role": "entry",
             "side": side,
             "quantity": decimal_string(order.get("qty"), "qty", positive=True),
-            "price": decimal_string(order["price"], "price", positive=True) if order.get("price") else None,
-            "triggerPrice": decimal_string(order["triggerPrice"], "triggerPrice", positive=True) if order.get("triggerPrice") else None,
+            "price": optional_positive_decimal_string(order.get("price"), "price"),
+            "triggerPrice": optional_positive_decimal_string(order.get("triggerPrice"), "triggerPrice"),
             "reduceOnly": bool(order.get("reduceOnly")),
         }
 

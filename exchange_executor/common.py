@@ -24,6 +24,13 @@ def decimal_string(value: Any, label: str, *, positive: bool = False) -> str:
     return normalized or "0"
 
 
+def optional_positive_decimal_string(value: Any, label: str) -> str | None:
+    if value is None or value == "":
+        return None
+    normalized = decimal_string(value, label)
+    return normalized if normalized != "0" else None
+
+
 def signed_decimal_string(value: Any, label: str) -> str:
     if not isinstance(value, (str, int)) or isinstance(value, bool):
         raise ExchangeContractError(f"{label} must be a plain decimal string.")
