@@ -103,7 +103,7 @@ Im Notfall Kill-Switch aktivieren, Exchange read-only gegen Client Order IDs pr�
 - Bei jedem Start reconciliert der Trading-Worker alle aktivierten Konten, bevor er Pending Intents bearbeitet.
 - SQLite-Backups enthalten Strategien, Routen, Intents, Orders, Fills, Positionen und Risk Events. Exchange-Secrets sind absichtlich ausgeschlossen und müssen nach Restore neu bereitgestellt/verifiziert werden.
 - Factory Reset stoppt den Worker, storniert offene Entries und fragt jedes reale Konto ab. Solange Exchange/Executor nicht erreichbar ist oder Remote-Exposure besteht, wird der Reset verweigert. Nach sicherem Nullzustand werden Datenbank, Keys, interner Executor-Token und der gesamte übrige lokale Zustand entfernt.
-- DB-only Clear ist bei installiertem Trading deaktiviert, damit keine Credentials oder Exchange-Positionen verwaisen.
+- **Betriebsdaten leeren** stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie unreferenzierte Signale. Trading-Historie, Strategien, Konten, Exchange-Secrets und von Trades referenzierte Signale werden dabei bewusst nicht gelöscht.
 
 ## 9. Production-Freigabe
 

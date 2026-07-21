@@ -411,11 +411,17 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   assert.strictEqual(response.status, 412, 'Destructive operation must require action-specific confirmation');
   appState.state.isRunning = true;
   const destructiveHeaders = mutationHeaders({ 'X-Destructive-Confirmation': 'clear-database' });
+  const stopCallsBeforeClear = appState.controls.stopCalls;
+  const originalTradingControl = appState.tradingControl;
+  appState.tradingControl = {};
   response = await fetch(`${baseUrl}/api/clear-database`, { method: 'POST', headers: destructiveHeaders });
-  assert.strictEqual(response.status, 409, 'Database clear must be rejected while routing is active');
-  appState.state.isRunning = false;
-  response = await fetch(`${baseUrl}/api/clear-database`, { method: 'POST', headers: destructiveHeaders });
-  assert.strictEqual(response.status, 200, 'Confirmed administrator database clear must succeed against the isolated test database');
+  assert.strictEqual(response.status, 200, 'Confirmed operational data clear must stop routing and support installed trading');
+  const clearResult = await response.json();
+  assert.strictEqual(clearResult.routingStopped, true);
+  assert.strictEqual(typeof clearResult.cleared.retainedTradingSignals, 'number');
+  assert.strictEqual(appState.state.isRunning, false);
+  assert.strictEqual(appState.controls.stopCalls, stopCallsBeforeClear + 1);
+  appState.tradingControl = originalTradingControl;
   appState.state.isRunning = true;
   response = await fetch(`${baseUrl}/api/factory-reset`, {
     method: 'POST',

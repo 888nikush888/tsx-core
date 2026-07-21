@@ -18,6 +18,7 @@ describe("SystemTab enterprise control plane", () => {
     sessionStorage.clear()
     vi.restoreAllMocks()
     vi.spyOn(window, "prompt").mockReturnValue("RECOVER")
+    let clearAttempts = 0
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
       const url = String(input)
       requests.push({ url, init })
@@ -28,6 +29,21 @@ describe("SystemTab enterprise control plane", () => {
       if (url.endsWith("/api/secrets")) return response({ secrets: {} })
       if (url.endsWith("/api/backups/recover-offsite")) {
         return response({ artifactName: "backup-2026-recovered" }, 201)
+      }
+      if (url.endsWith("/api/clear-database")) {
+        clearAttempts += 1
+        if (clearAttempts === 1) return response({ error: "Routing konnte nicht sicher gestoppt werden." }, 409)
+        return response({
+          success: true,
+          routingStopped: true,
+          cleared: {
+            deletedIncomingMessages: 4,
+            deletedSignals: 3,
+            retainedTradingSignals: 2,
+            deletedPendingTasks: 1,
+            deletedMediaGroups: 1,
+          },
+        })
       }
       return response({})
     }))
@@ -64,5 +80,21 @@ describe("SystemTab enterprise control plane", () => {
     const input = await screen.findByLabelText(/backupEncryptionKey/)
     expect(input).toBeDisabled()
     await waitFor(() => expect(screen.getByText(/Eine Rotation würde bestehende Off-site-Backups unlesbar machen/)).toBeInTheDocument())
+  })
+
+  it("clears operational data with the guarded contract and surfaces exact outcomes", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true)
+    render(<SystemTab config={{}} secretStatus={{}} onSecretStatusChange={vi.fn()} />)
+    const button = await screen.findByRole("button", { name: "Betriebsdaten leeren" })
+
+    fireEvent.click(button)
+    expect(await screen.findByText("Routing konnte nicht sicher gestoppt werden.")).toBeInTheDocument()
+    fireEvent.click(button)
+    expect(await screen.findByText(/Betriebsdaten geleert: 4 Nachrichten, 3 unreferenzierte Signale/)).toBeInTheDocument()
+    expect(screen.getByText(/2 trade-verknüpfte Signale bleiben für Audit und Recovery erhalten/)).toBeInTheDocument()
+
+    const clearRequests = requests.filter(({ url }) => url.endsWith("/api/clear-database"))
+    expect(clearRequests).toHaveLength(2)
+    expect(new Headers(clearRequests[1]?.init.headers).get("X-Destructive-Confirmation")).toBe("clear-database")
   })
 })

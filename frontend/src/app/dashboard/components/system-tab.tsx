@@ -296,21 +296,30 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
   }
 
   const handleClearDatabase = async () => {
-    if (window.confirm("Bist du sicher? Dadurch werden alle abgefangenen Nachrichten, gesendeten Signale und Cache-Daten dauerhaft aus der Datenbank gelöscht. Dies kann nicht rückgängig gemacht werden!")) {
+    if (window.confirm("Betriebsdaten endgültig leeren? Das Routing wird sicher gestoppt. Nachrichten, unreferenzierte Signale und Queue-Daten werden gelöscht; Trading-Historie, Strategien, Konten und trade-verknüpfte Signale bleiben erhalten.")) {
+      setBusyAction("clear-database")
+      setMessage("")
       try {
         const res = await apiFetch(`${API_BASE}/api/clear-database`, {
           method: "POST",
           headers: { 'X-Destructive-Confirmation': 'clear-database' }
         })
-        if (res.ok) {
-          alert("Datenbank erfolgreich geleert!")
-          window.location.reload()
-        } else {
-          alert("Fehler beim Leeren der Datenbank.")
-        }
+        const payload = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(payload.error || `Datenbank konnte nicht geleert werden (${res.status}).`)
+        const cleared = payload.cleared || {}
+        const retained = Number(cleared.retainedTradingSignals || 0)
+        setMessage(
+          `Betriebsdaten geleert: ${Number(cleared.deletedIncomingMessages || 0)} Nachrichten, `
+          + `${Number(cleared.deletedSignals || 0)} unreferenzierte Signale und `
+          + `${Number(cleared.deletedPendingTasks || 0)} Queue-Einträge entfernt. `
+          + (retained > 0 ? `${retained} trade-verknüpfte Signale bleiben für Audit und Recovery erhalten. ` : "")
+          + "Routing bleibt gestoppt.",
+        )
       } catch (e) {
         console.error("Clear database failed", e)
-        alert("Fehler beim Leeren der Datenbank.")
+        setMessage(e instanceof Error ? e.message : "Datenbank konnte nicht geleert werden.")
+      } finally {
+        setBusyAction("")
       }
     }
   }
@@ -604,11 +613,11 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
 
           <div className="bg-muted/50 rounded-lg border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
-              <h4 className="font-medium text-sm text-destructive">Datenbank leeren</h4>
-              <p className="text-sm text-muted-foreground">Löscht alle erfassten Nachrichten, extrahierten XML-Signale und Queue-Daten unwiderruflich aus der SQLite-Datenbank.</p>
+              <h4 className="font-medium text-sm text-destructive">Betriebsdaten leeren</h4>
+              <p className="text-sm text-muted-foreground">Stoppt das Routing und löscht Nachrichten, unreferenzierte XML-Signale und Queue-Daten atomar. Trading-Historie, Strategien, Konten und zugehörige Signale bleiben erhalten.</p>
             </div>
-            <Button variant="outline" className="text-destructive border-destructive hover:bg-destructive/10" onClick={handleClearDatabase}>
-              Datenbank leeren
+            <Button variant="outline" className="text-destructive border-destructive hover:bg-destructive/10" disabled={Boolean(busyAction)} onClick={handleClearDatabase}>
+              Betriebsdaten leeren
             </Button>
           </div>
         </CardContent>

@@ -1037,20 +1037,21 @@ async function clearDatabaseHandler(context: RequestContext): Promise<void> {
     )
   )
     return;
-  if (context.appState.state.isRunning) {
-    sendJson(context.res, 409, {
-      error: 'Stop routing before clearing the database.',
+  try {
+    const routingStopped = Boolean(context.appState.state.isRunning);
+    if (routingStopped) await context.appState.stopForwarding();
+    if (context.appState.state.isRunning) {
+      throw new HttpError(409, 'Routing could not be stopped safely; no database data was deleted.');
+    }
+    const cleared = await clearDb();
+    addLog(`[INFO] request_id=${context.requestId} Operational SQLite data cleared through the web dashboard; retained_trading_signals=${cleared.retainedTradingSignals}.`);
+    sendJson(context.res, 200, {
+      success: true,
+      message: 'Operational database data cleared successfully; trading state was preserved.',
+      routingStopped,
+      cleared,
       requestId: context.requestId,
     });
-    return;
-  }
-  try {
-    if (context.appState.tradingControl) {
-      throw new HttpError(409, 'Database-only clearing is disabled while the integrated trading subsystem is installed. Use the complete Factory Reset to avoid orphaned exchange credentials or partial trading state.');
-    }
-    await clearDb();
-    addLog('[INFO] SQLite database cleared through the web dashboard.');
-    sendJson(context.res, 200, { success: true, message: 'Database cleared successfully.' });
   } catch (error) {
     sendError(context, error);
   }

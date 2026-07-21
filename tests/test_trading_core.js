@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {
+  clearDb,
   closeDb,
   getDatabase,
   initDb,
@@ -293,6 +294,47 @@ async function testRepositoryRouting(defaults, accounts) {
   assert.equal(await deleteTradingAccount(removableAccount.id), true);
 }
 
+async function testOperationalDatabaseClearPreservesTrading() {
+  const database = getDatabase();
+  await saveSignal('clear-unreferenced', '-100099', 99, STANDARD_SIGNAL, STANDARD_SIGNAL);
+  await database.run(
+    `INSERT INTO incoming_messages (chat_id, message_id, text, status, created_at)
+     VALUES ('-100099', 99, 'clear me', 'processed', ?)`,
+    [Date.now()],
+  );
+  await database.run(
+    `INSERT INTO pending_tasks (id, type, status, added_at, updated_at)
+     VALUES ('clear-task', 'message', 'completed', ?, ?)`,
+    [Date.now(), Date.now()],
+  );
+  await database.run(
+    `INSERT INTO media_group_buffer (group_id, from_chat_id, messages_json, added_at)
+     VALUES ('clear-media', '-100099', '[]', ?)`,
+    [Date.now()],
+  );
+  await database.run("UPDATE forwarding_stats SET value = 99 WHERE key = 'total_forwarded_count'");
+
+  const cleared = await clearDb();
+  assert.deepEqual(cleared, {
+    deletedIncomingMessages: 1,
+    deletedSignals: 1,
+    retainedTradingSignals: 2,
+    deletedPendingTasks: 1,
+    deletedMediaGroups: 1,
+  });
+  assert.equal((await database.get('SELECT COUNT(*) AS count FROM incoming_messages')).count, 0);
+  assert.equal((await database.get('SELECT COUNT(*) AS count FROM pending_tasks')).count, 0);
+  assert.equal((await database.get('SELECT COUNT(*) AS count FROM media_group_buffer')).count, 0);
+  assert.equal((await database.get('SELECT COUNT(*) AS count FROM signals')).count, 2);
+  assert.equal((await database.get('SELECT COUNT(*) AS count FROM trading_trade_intents')).count, 2);
+  assert.equal((await database.get('SELECT COUNT(*) AS count FROM trading_routes')).count, 2);
+  assert.ok((await database.get('SELECT COUNT(*) AS count FROM trading_strategy_versions')).count > 0);
+  assert.ok((await database.get('SELECT COUNT(*) AS count FROM trading_accounts')).count > 0);
+  assert.equal((await database.get(
+    "SELECT value FROM forwarding_stats WHERE key = 'total_forwarded_count'",
+  )).value, 0);
+}
+
 async function runRepositoryTests() {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-core-'));
   try {
@@ -313,6 +355,7 @@ async function runRepositoryTests() {
     assert.equal(await deleteTradingStrategyVersion(deletable.id), false);
     await testRepositoryValidation(defaults, accounts);
     await testRepositoryRouting(defaults, accounts);
+    await testOperationalDatabaseClearPreservesTrading();
   } finally {
     await closeDb();
     await rm(directory, { recursive: true, force: true });

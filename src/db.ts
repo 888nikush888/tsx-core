@@ -1343,34 +1343,45 @@ export async function getSignalDashboardAnalytics(now = Date.now()): Promise<{
   };
 }
 
-export async function clearDb(): Promise<void> {
+export interface DatabaseClearResult {
+  deletedIncomingMessages: number;
+  deletedSignals: number;
+  retainedTradingSignals: number;
+  deletedPendingTasks: number;
+  deletedMediaGroups: number;
+}
+
+export async function clearDb(): Promise<DatabaseClearResult> {
   const database = getDb();
-  await database.exec(`
-    DELETE FROM trading_fills;
-    DELETE FROM trading_orders;
-    DELETE FROM trading_positions;
-    DELETE FROM trading_reconciliation_runs;
-    DELETE FROM trading_risk_events;
-    DELETE FROM trading_trade_intents;
-    DELETE FROM trading_routes;
-    DELETE FROM trading_paper_fills;
-    DELETE FROM trading_paper_orders;
-    DELETE FROM trading_paper_positions;
-    DELETE FROM trading_paper_markets;
-    DELETE FROM trading_paper_accounts;
-    DELETE FROM trading_accounts;
-    DELETE FROM trading_strategy_versions;
-    UPDATE trading_runtime_state
-      SET execution_enabled = 0, live_trading_enabled = 0,
-          kill_switch_active = 0, kill_switch_reason = NULL, updated_at = 0
-      WHERE singleton_id = 1;
-    DELETE FROM signals;
-    DELETE FROM pending_tasks;
-    DELETE FROM media_group_buffer;
-    DELETE FROM incoming_messages;
-    UPDATE forwarding_stats SET value = 0 WHERE key IN ('total_forwarded_count', 'last_forwarded_at');
-  `);
-  await database.exec('VACUUM;');
+  await database.exec('BEGIN IMMEDIATE');
+  try {
+    const pendingTasks = await database.run('DELETE FROM pending_tasks');
+    const mediaGroups = await database.run('DELETE FROM media_group_buffer');
+    const incomingMessages = await database.run('DELETE FROM incoming_messages');
+    const signals = await database.run(
+      `DELETE FROM signals
+       WHERE NOT EXISTS (
+         SELECT 1 FROM trading_trade_intents AS intent
+         WHERE intent.source_signal_id = signals.id
+       )`,
+    );
+    await database.run(
+      `UPDATE forwarding_stats SET value = 0
+       WHERE key IN ('total_forwarded_count', 'last_forwarded_at')`,
+    );
+    const retained = await database.get<{ count: number }>('SELECT COUNT(*) AS count FROM signals');
+    await database.exec('COMMIT');
+    return {
+      deletedIncomingMessages: Number(incomingMessages.changes || 0),
+      deletedSignals: Number(signals.changes || 0),
+      retainedTradingSignals: Number(retained?.count || 0),
+      deletedPendingTasks: Number(pendingTasks.changes || 0),
+      deletedMediaGroups: Number(mediaGroups.changes || 0),
+    };
+  } catch (error) {
+    await database.exec('ROLLBACK').catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function deleteIncomingMessage(id: number): Promise<void> {
