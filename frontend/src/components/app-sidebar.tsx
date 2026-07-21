@@ -62,10 +62,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton size="lg" asChild className="h-16">
               <Link to="/dashboard" aria-label="ERB Asset Management Dashboard" className="group-data-[collapsible=icon]:justify-center">
-                <Logo variant="full" size={30} className="group-data-[collapsible=icon]:hidden" />
-                <Logo variant="mark" size={28} className="hidden group-data-[collapsible=icon]:inline-block" />
+                <Logo variant="full" size={44} className="group-data-[collapsible=icon]:hidden" />
+                <Logo variant="mark" size={32} className="hidden group-data-[collapsible=icon]:inline-block" />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
