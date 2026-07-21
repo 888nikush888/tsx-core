@@ -22,7 +22,13 @@ export class TradingRuntime {
   async start(): Promise<void> {
     if (!this.stopped) return;
     this.stopped = false;
-    await this.runOnce(true);
+    try {
+      await this.runOnce(true);
+    } catch (error) {
+      this.logger(
+        `[TRADING] Startup reconciliation failed; trading remains fail-closed and will retry: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     this.timer = setInterval(() => this.wake(), this.intervalMs);
     this.timer.unref();
   }

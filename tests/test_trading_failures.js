@@ -312,6 +312,30 @@ async function testRuntimeLifecycleAndDefaultFailureLogger(directory) {
   await closeDb();
 }
 
+async function testStartupReconciliationFailureKeepsControlPlaneAvailable(directory) {
+  await initDb(path.join(directory, 'startup-reconciliation.db'));
+  await ensureTradingDefaults();
+  await updateTradingRuntimeState({ executionEnabled: true });
+  const logs = [];
+  const engine = {
+    reconcileAccount: async () => { throw new Error('simulated unmanaged startup exposure'); },
+    cancelExpiredEntries: async () => 0,
+    processIntent: async () => undefined,
+  };
+  const runtime = new TradingRuntime(engine, 60_000, message => logs.push(message));
+
+  await runtime.start();
+
+  const state = await getTradingRuntimeState();
+  assert.equal(state.executionEnabled, false);
+  assert.equal(state.killSwitchActive, true);
+  assert.match(state.killSwitchReason, /Startup reconciliation failed/);
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /trading remains fail-closed and will retry/);
+  await runtime.stop();
+  await closeDb();
+}
+
 async function testUnmanagedExposureAndOperatorFlatten(directory) {
   const unmanaged = await setup(path.join(directory, 'unmanaged-exposure.db'));
   const unmanagedAdapter = wrappedAdapter(unmanaged.paper, (...args) => unmanaged.paper.submitOrder(...args));
@@ -350,6 +374,7 @@ async function run() {
     await testTrailingStopOnlyMovesTowardProfit(directory);
     await testPeriodicReconciliationFailureActivatesKillSwitch(directory);
     await testRuntimeLifecycleAndDefaultFailureLogger(directory);
+    await testStartupReconciliationFailureKeepsControlPlaneAvailable(directory);
     await testUnmanagedExposureAndOperatorFlatten(directory);
   } finally {
     await closeDb();
