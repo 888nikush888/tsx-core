@@ -63,14 +63,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center">
-                  <Logo size={28} className="text-black dark:text-white" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Forwarder</span>
-                  <span className="truncate text-xs">Admin Dashboard</span>
-                </div>
+              <Link to="/dashboard" aria-label="ERB Asset Management Dashboard" className="group-data-[collapsible=icon]:justify-center">
+                <Logo variant="full" size={30} className="group-data-[collapsible=icon]:hidden" />
+                <Logo variant="mark" size={28} className="hidden group-data-[collapsible=icon]:inline-block" />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -1,32 +1,56 @@
 import * as React from "react"
 
-interface LogoProps extends React.SVGProps<SVGSVGElement> {
+import { cn } from "@/lib/utils"
+
+const BRAND_ASSET = "/brand/erb-asset-management.png"
+
+type LogoVariant = "full" | "mark"
+
+interface LogoProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, "children"> {
   size?: number
+  variant?: LogoVariant
 }
 
-export function Logo({ size = 24, className, ...props }: LogoProps) {
+const FULL_CROP = {
+  aspectRatio: 1580 / 380,
+  imageWidth: `${(1674 / 1580) * 100}%`,
+  imageHeight: `${(909 / 380) * 100}%`,
+  left: `${(-55 / 1580) * 100}%`,
+  top: `${(-315 / 380) * 100}%`,
+}
+
+const MARK_CROP = {
+  aspectRatio: 240 / 225,
+  imageWidth: `${(1674 / 240) * 100}%`,
+  imageHeight: `${(909 / 225) * 100}%`,
+  left: `${(-55 / 240) * 100}%`,
+  top: `${(-315 / 225) * 100}%`,
+}
+
+export function Logo({ size = 30, variant = "full", className, style, ...props }: LogoProps) {
+  const crop = variant === "full" ? FULL_CROP : MARK_CROP
+  const width = variant === "full" ? size * crop.aspectRatio : size
+
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 100 100" 
-      fill="currentColor" 
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
+    <span
+      role="img"
+      aria-label="ERB Asset Management"
+      className={cn("relative inline-block shrink-0 overflow-hidden", className)}
+      style={{ width, height: size, ...style }}
       {...props}
     >
-      {/* Top border */}
-      <path d="M0,0 h100 v10 h-100 z" />
-      {/* Bottom border (ends at x=75) */}
-      <path d="M0,90 h75 v10 h-75 z" />
-      {/* Right border */}
-      <path d="M90,0 h10 v100 h-10 z" />
-      {/* Inner L-shape (horizontal) */}
-      <path d="M0,40 h50 v15 h-50 z" />
-      {/* Inner L-shape (vertical) */}
-      <path d="M40,0 h10 v55 h-10 z" />
-      {/* Right-middle vertical stripe */}
-      <path d="M65,0 h10 v100 h-10 z" />
-    </svg>
+      <img
+        src={BRAND_ASSET}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute max-w-none select-none dark:invert"
+        style={{
+          width: crop.imageWidth,
+          height: crop.imageHeight,
+          left: crop.left,
+          top: crop.top,
+        }}
+      />
+    </span>
   )
 }
