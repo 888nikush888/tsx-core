@@ -6,10 +6,23 @@ import { fileURLToPath } from 'url';
 import { closeDb, initDb } from '../src/db.js';
 import { normalizeSignalXml } from '../src/dupe_blocker.js';
 import { loadEnv } from '../src/env.js';
-import { parseSignalToXml } from '../src/signal_parser.js';
+import { classifyAiError, parseSignalToXml } from '../src/signal_parser.js';
 import { SignalValidationError } from '../src/signal_schema.js';
 
 const fixturePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'signal_golden_set.json');
+
+function boundedCaseDelay() {
+  const raw = process.env.AI_GOLDEN_CASE_DELAY_MS?.trim() || '5000';
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < 0 || value > 60_000) {
+    throw new Error('AI_GOLDEN_CASE_DELAY_MS must be an integer between 0 and 60000.');
+  }
+  return value;
+}
+
+function delay(milliseconds) {
+  return milliseconds <= 0 ? Promise.resolve() : new Promise(resolve => setTimeout(resolve, milliseconds));
+}
 
 async function runEvaluation() {
   loadEnv();
@@ -18,13 +31,14 @@ async function runEvaluation() {
   }
   const cases = JSON.parse(await readFile(fixturePath, 'utf8'));
   assert.ok(Array.isArray(cases) && cases.length >= 8, 'Golden set must contain at least eight cases.');
+  const caseDelayMs = boundedCaseDelay();
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'signal-golden-eval-'));
   const failures = [];
   const outcomes = [];
 
   await initDb(path.join(tempDir, 'eval.db'));
   try {
-    for (const testCase of cases) {
+    for (const [caseIndex, testCase] of cases.entries()) {
       try {
         const parsed = await parseSignalToXml(testCase.input, testCase.template);
         if (testCase.expectedReject) {
@@ -42,11 +56,23 @@ async function runEvaluation() {
       } catch (error) {
         if (testCase.expectedReject && error instanceof SignalValidationError) {
           outcomes.push({ id: testCase.id, passed: true, outcome: 'rejected', errorCode: error.name });
-          console.log(`PASS ${testCase.id} rejected=${error.message}`);
+          console.log(`PASS ${testCase.id} rejected=${error.name}`);
         } else {
-          failures.push(`${testCase.id}: ${error.message}`);
-          outcomes.push({ id: testCase.id, passed: false, outcome: 'error', errorCode: error.name || 'Error' });
+          const classification = classifyAiError(error);
+          const statusSuffix = classification.httpStatus ? ` status=${classification.httpStatus}` : '';
+          failures.push(`${testCase.id}: ${classification.code}${statusSuffix}`);
+          outcomes.push({
+            id: testCase.id,
+            passed: false,
+            outcome: 'error',
+            errorCode: classification.code,
+            retryable: classification.retryable,
+            ...(classification.httpStatus === undefined ? {} : { httpStatus: classification.httpStatus }),
+            ...(classification.providerCode === undefined ? {} : { providerCode: classification.providerCode })
+          });
         }
+      } finally {
+        if (caseIndex < cases.length - 1) await delay(caseDelayMs);
       }
     }
   } finally {
@@ -58,10 +84,11 @@ async function runEvaluation() {
   await mkdir(evidenceDirectory, { recursive: true });
   const evidencePath = path.join(evidenceDirectory, `ai-golden-${Date.now()}.json`);
   await writeFile(evidencePath, `${JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     executedAt: new Date().toISOString(),
     passed: failures.length === 0,
     caseCount: cases.length,
+    caseDelayMs,
     outcomes
   }, null, 2)}\n`, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
 

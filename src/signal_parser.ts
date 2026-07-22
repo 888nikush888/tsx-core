@@ -113,6 +113,26 @@ export class AiBudgetExceededError extends Error {
   }
 }
 
+export type AiErrorCode =
+  | 'aborted'
+  | 'budget_exhausted'
+  | 'invalid_model_output'
+  | 'rate_limited'
+  | 'provider_timeout'
+  | 'provider_unavailable'
+  | 'provider_authentication_failed'
+  | 'provider_permission_denied'
+  | 'provider_request_rejected'
+  | 'network_error'
+  | 'unexpected_error';
+
+export interface AiErrorClassification {
+  code: AiErrorCode;
+  retryable: boolean;
+  httpStatus?: number;
+  providerCode?: string;
+}
+
 const persistentBudget: AiBudget = {
   reserve: reserveAiUsage,
   commit: commitAiUsage
@@ -166,12 +186,73 @@ async function abortableDelay(delayMs: number, signal?: AbortSignal): Promise<vo
   });
 }
 
-function isRetryable(error: any): boolean {
-  if (error?.name === 'AbortError' || error instanceof AiBudgetExceededError) return false;
-  if (error instanceof SignalValidationError) return true;
-  const status = Number(error?.status);
-  if (Number.isFinite(status)) return status === 408 || status === 409 || status === 429 || status >= 500;
-  return ['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ENOTFOUND'].includes(String(error?.code));
+function safeProviderCode(error: any): string | undefined {
+  const value = String(error?.code || '').trim();
+  return /^[a-zA-Z0-9._-]{1,64}$/.test(value) ? value : undefined;
+}
+
+export function classifyAiError(error: unknown): AiErrorClassification {
+  const candidate = error as any;
+  const numericStatus = Number(candidate?.status);
+  const httpStatus = Number.isSafeInteger(numericStatus) && numericStatus >= 100 && numericStatus <= 599
+    ? numericStatus
+    : undefined;
+  const providerCode = safeProviderCode(candidate);
+  const result = (code: AiErrorCode, retryable: boolean): AiErrorClassification => ({
+    code,
+    retryable,
+    ...(httpStatus === undefined ? {} : { httpStatus }),
+    ...(providerCode === undefined ? {} : { providerCode })
+  });
+
+  if (candidate?.name === 'AbortError') return result('aborted', false);
+  if (candidate instanceof AiBudgetExceededError) return result('budget_exhausted', false);
+  if (candidate instanceof SignalValidationError) return result('invalid_model_output', true);
+  if (httpStatus === 429) return result('rate_limited', true);
+  if (httpStatus === 408 || /timeout/i.test(String(candidate?.name || ''))) {
+    return result('provider_timeout', true);
+  }
+  if (httpStatus === 409 || (httpStatus !== undefined && httpStatus >= 500)) {
+    return result('provider_unavailable', true);
+  }
+  if (httpStatus === 401) return result('provider_authentication_failed', false);
+  if (httpStatus === 403) return result('provider_permission_denied', false);
+  if (httpStatus !== undefined && httpStatus >= 400) return result('provider_request_rejected', false);
+  if (['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ENOTFOUND'].includes(providerCode || '')) {
+    return result('network_error', true);
+  }
+  return result('unexpected_error', false);
+}
+
+function headerValue(error: any, name: string): string | undefined {
+  const headers = error?.headers;
+  if (!headers) return undefined;
+  if (typeof headers.get === 'function') {
+    const value = headers.get(name);
+    return value === null || value === undefined ? undefined : String(value);
+  }
+  if (typeof headers === 'object') {
+    const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase());
+    return entry?.[1] === undefined ? undefined : String(entry[1]);
+  }
+  return undefined;
+}
+
+function retryAfterMilliseconds(error: unknown, now = Date.now()): number | undefined {
+  const raw = headerValue(error, 'retry-after')?.trim();
+  if (!raw) return undefined;
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds * 1_000);
+  const absolute = Date.parse(raw);
+  if (!Number.isFinite(absolute)) return undefined;
+  return Math.max(0, absolute - now);
+}
+
+function retryDelayMilliseconds(error: unknown, exponentialDelay: number, limits: AiLimits): number {
+  const providerDelay = retryAfterMilliseconds(error);
+  if (providerDelay === undefined) return exponentialDelay;
+  const providerDelayCap = Math.min(limits.requestTimeoutMs, 60_000);
+  return Math.max(exponentialDelay, Math.min(providerDelay, providerDelayCap));
 }
 
 function usageTokens(response: CompletionResult, fallback: number): { prompt: number; completion: number; total: number } {
@@ -399,9 +480,15 @@ export async function parseSignalToXml(
         return await runProviderAttempt(context, plan.model);
       } catch (error) {
         lastError = error;
-        if (!isRetryable(error)) throw error;
+        const classification = classifyAiError(error);
+        if (!classification.retryable) throw error;
         if (hasAnotherAttempt(planIndex, attempt, plans)) {
-          await abortableDelay(limits.backoffMs * 2 ** (attempt - 1), options.signal);
+          const exponentialDelay = limits.backoffMs * 2 ** (attempt - 1);
+          const delayMs = retryDelayMilliseconds(error, exponentialDelay, limits);
+          console.error(
+            `[XML-Parser WARN] category=${classification.code} status=${classification.httpStatus || 'none'} retry_in_ms=${delayMs}`
+          );
+          await abortableDelay(delayMs, options.signal);
         }
       }
     }

@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import {
   AiBudgetExceededError,
+  classifyAiError,
   parseSignalToXml,
   validateXmlStructure
 } from '../src/signal_parser.js';
@@ -299,10 +300,56 @@ async function testAiRetryAndInjection() {
   assert.deepStrictEqual(retryModels, ['test/primary', 'test/fallback']);
   assert.strictEqual(retryBudget.state.reserves.length, 2);
   assert.strictEqual(retryBudget.state.commits.length, 2);
+
+  const retryAfterModels = [];
+  const retryAfterStartedAt = Date.now();
+  await parseSignalToXml(
+    'LONG ETHUSDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x',
+    undefined,
+    { primaryModel: 'test/primary', fallbackModel: 'test/fallback' },
+    {
+      budget: memoryBudget(),
+      limits: { primaryAttempts: 1, fallbackAttempts: 1, backoffMs: 0 },
+      requestCompletion: async request => {
+        retryAfterModels.push(request.model);
+        if (retryAfterModels.length === 1) {
+          throw Object.assign(new Error('provider response must not be persisted'), {
+            status: 429,
+            code: 'rate_limit_exceeded',
+            headers: { get: name => name.toLowerCase() === 'retry-after' ? '0.02' : null }
+          });
+        }
+        return { choices: [{ finish_reason: 'stop', message: { content: STANDARD_LONG } }] };
+      }
+    }
+  );
+  assert.deepStrictEqual(retryAfterModels, ['test/primary', 'test/fallback']);
+  assert.ok(Date.now() - retryAfterStartedAt >= 10, 'Provider Retry-After must delay the retry');
   await assert.rejects(parseSignalToXml('valid input', undefined, { primaryModel: 'test/primary' }, {
     budget: memoryBudget(), limits: { primaryAttempts: 1, fallbackAttempts: 0 },
     requestCompletion: async () => ({ choices: [{ finish_reason: 'length', message: { content: STANDARD_LONG } }] })
   }), /did not finish cleanly/);
+}
+
+function testAiErrorClassification() {
+  assert.deepStrictEqual(classifyAiError(Object.assign(new Error('secret body'), {
+    status: 429,
+    code: 'rate_limit_exceeded'
+  })), {
+    code: 'rate_limited',
+    retryable: true,
+    httpStatus: 429,
+    providerCode: 'rate_limit_exceeded'
+  });
+  assert.deepStrictEqual(classifyAiError(Object.assign(new Error('no'), { status: 401 })), {
+    code: 'provider_authentication_failed', retryable: false, httpStatus: 401
+  });
+  assert.equal(classifyAiError(new SignalValidationError('bad output')).code, 'invalid_model_output');
+  assert.equal(classifyAiError(new AiBudgetExceededError()).code, 'budget_exhausted');
+  assert.equal(classifyAiError(Object.assign(new Error('reset'), { code: 'ECONNRESET' })).code, 'network_error');
+  assert.deepStrictEqual(classifyAiError(new Error('sensitive provider response')), {
+    code: 'unexpected_error', retryable: false
+  });
 }
 
 async function testAiBudgetAndAbort() {
@@ -375,6 +422,7 @@ async function runTests() {
   console.log('=== Running strict signal schema and AI boundary tests ===');
   await testStandardSchemaContracts();
   testDomainSchemas();
+  testAiErrorClassification();
   await testAiBoundary();
   console.log('ALL STRICT SIGNAL PARSER TESTS PASSED!');
 }
