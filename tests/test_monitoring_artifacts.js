@@ -18,6 +18,7 @@ for (const requiredAlert of [
   'ForwarderBackupUnhealthy',
   'ForwarderDiskCapacityUnsafe',
   'ForwarderAuditTrailUnhealthy',
+  'ForwarderClockDriftUnsafe',
   'ForwarderDeliverySuccessSloBurn',
   'ForwarderDeliveryLatencySloBurn',
   'ForwarderPendingTaskStale'

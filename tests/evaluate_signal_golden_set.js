@@ -26,9 +26,7 @@ async function runEvaluation() {
   try {
     for (const testCase of cases) {
       try {
-        const parsed = await parseSignalToXml(testCase.input, testCase.template, undefined, {
-          limits: { primaryAttempts: 1, fallbackAttempts: 0 }
-        });
+        const parsed = await parseSignalToXml(testCase.input, testCase.template);
         if (testCase.expectedReject) {
           failures.push(`${testCase.id}: unsafe/ambiguous input was accepted`);
           outcomes.push({ id: testCase.id, passed: false, outcome: 'unexpectedly-accepted', model: parsed.provenance.model, promptSha256: parsed.provenance.promptSha256 });

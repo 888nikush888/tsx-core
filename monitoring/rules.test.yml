@@ -14,6 +14,12 @@ tests:
         values: '1 1 1'
       - series: 'tg_forwarder_audit_healthy'
         values: '1 0 0'
+      - series: 'tg_forwarder_clock_healthy'
+        values: '1 0 0'
+      - series: 'tg_forwarder_clock_drift_milliseconds'
+        values: '0 1500 1500'
+      - series: 'tg_forwarder_clock_max_drift_milliseconds'
+        values: '1000 1000 1000'
     alert_rule_test:
       - eval_time: 1m
         alertname: ForwarderUnknownDelivery
@@ -42,6 +48,15 @@ tests:
             exp_annotations:
               summary: Control-plane audit persistence or remote delivery is unhealthy
               runbook: docs/runbooks/operations.md#audit-trail-ausfall
+      - eval_time: 1m
+        alertname: ForwarderClockDriftUnsafe
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: telegram-forwarder
+            exp_annotations:
+              summary: System clock drift exceeded the fail-closed safety limit
+              runbook: docs/runbooks/operations.md#clock-drift
 
   - interval: 1m
     input_series:

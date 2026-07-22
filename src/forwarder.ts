@@ -72,6 +72,7 @@ import {
   clearFactoryResetTarget,
   type FactoryResetBoundary,
 } from './factory_reset_paths.js';
+import { ClockGuard, clockDriftLimitFromEnvironment } from './clock_guard.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -225,6 +226,7 @@ async function executeScheduledOutboxTask(
     const context: OutboxExecutionContext = {
       signal,
       markSending: async () => {
+        assertRoutingClockHealthy();
         await markOutboxSending(task.id);
         if (!deliveryAttempted) {
           deliveryAttempted = true;
@@ -354,6 +356,8 @@ let activeMaintenanceOperation: string | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
 let processLock: ProcessLock | null = null;
+let routingClockGuard: ClockGuard | null = null;
+let routingClockFailureLogged = false;
 const state = {
   isRunning: false,
   connectionState: 'disconnected',
@@ -368,6 +372,28 @@ const telegramLogin = new TelegramLoginCoordinator((snapshot) => {
   if (snapshot.state === 'authenticating' && !state.isRunning) state.connectionState = 'connecting';
 });
 const deliverySlo = new DeliverySloTracker();
+
+function enforceRoutingClockHealth(clockGuard: ClockGuard) {
+  const snapshot = clockGuard.sample();
+  if (snapshot.healthy) return snapshot;
+  routingStopRequested = true;
+  state.isRunning = false;
+  state.connectionState = 'error';
+  forwardQueue.pause();
+  forwardQueue.clear();
+  forwardQueue.abortRunning('System clock drift exceeded the routing safety limit.');
+  if (!routingClockFailureLogged) {
+    routingClockFailureLogged = true;
+    addLog(`[CRITICAL] ${snapshot.reason || 'System clock drift is unsafe.'} Routing is latched off until restart.`);
+  }
+  return snapshot;
+}
+
+function assertRoutingClockHealthy(): void {
+  if (!routingClockGuard) throw new Error('Routing clock guard is not initialized.');
+  const snapshot = enforceRoutingClockHealth(routingClockGuard);
+  if (!snapshot.healthy) throw new Error(snapshot.reason || 'System clock drift is unsafe.');
+}
 
 async function recordForwardedMessages(amount = 1) {
   const forwardedAt = Date.now();
@@ -458,12 +484,14 @@ function auditMetricSnapshot(): Pick<OperationalMetrics,
 
 async function collectOperationalMetrics(
   databasePath: string,
-  minimumFreeBytes: number
+  minimumFreeBytes: number,
+  clockGuard: ClockGuard,
 ): Promise<OperationalMetrics> {
   const databaseHealthy = await isDatabaseHealthy();
   const diskAvailableBytes = await availableDiskBytes(databasePath);
   const diskCapacityHealthy = diskAvailableBytes >= minimumFreeBytes;
   const emptyOutbox = { pending: 0, preparing: 0, sending: 0, completed: 0, failed: 0, unknown: 0 };
+  const clock = enforceRoutingClockHealth(clockGuard);
   const base = {
     databaseHealthy,
     isRunning: state.isRunning,
@@ -473,6 +501,10 @@ async function collectOperationalMetrics(
     ...backupMetricSnapshot(),
     ...retentionMetricSnapshot(),
     ...auditMetricSnapshot(),
+    clockHealthy: clock.healthy,
+    clockDriftMilliseconds: clock.driftMilliseconds,
+    clockMaxDriftMilliseconds: clock.maxDriftMilliseconds,
+    clockCheckedAt: clock.checkedAt,
     diskAvailableBytes,
     diskCapacityHealthy,
     deliverySlo: deliverySlo.snapshot()
@@ -874,6 +906,7 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
 }
 
 async function routeIncomingMessage(message: any, config: any): Promise<void> {
+  assertRoutingClockHealthy();
   const chatId = String(message.chat_id);
   if (!state.resolvedSourceChatIds.has(chatId) || message.is_outgoing) return;
 
@@ -1059,6 +1092,7 @@ async function cleanupFailedRoutingStart(reason: string): Promise<boolean> {
 
 async function startForwardingNonInteractive(config) {
   if (forwardQueue.running > 0) throw new Error('Cannot start routing while previous queue tasks are still running.');
+  assertRoutingClockHealthy();
   applyQueueSettings(config);
   routingStopRequested = false;
   const { apiId, apiHash } = routingCredentials(config);
@@ -1228,7 +1262,8 @@ function loadRuntimeConfiguration(): RuntimeConfiguration {
   }
 }
 
-async function initializeCoreRuntime() {
+async function initializeCoreRuntime(clockGuard: ClockGuard) {
+  routingClockGuard = clockGuard;
   initializeDeliveryTracker();
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
   processLockPath = path.join(path.dirname(databasePath), '.process_active');
@@ -1269,7 +1304,11 @@ async function startBackupRuntime(runtime: RuntimeConfiguration): Promise<void> 
   await backupScheduler.start();
 }
 
-async function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number): Promise<void> {
+async function startMonitoringRuntime(
+  databasePath: string,
+  minimumFreeBytes: number,
+  clockGuard: ClockGuard,
+): Promise<void> {
   startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
     totalForwardedCountCallback: () => state.totalForwardedCount,
     getQueueStateCallback: () => ({
@@ -1279,7 +1318,8 @@ async function startMonitoringRuntime(databasePath: string, minimumFreeBytes: nu
     }),
     getOperationalMetricsCallback: () => collectOperationalMetrics(
       databasePath,
-      minimumFreeBytes
+      minimumFreeBytes,
+      clockGuard,
     )
   });
 
@@ -1624,6 +1664,7 @@ async function run() {
   const runtimeSettings = managedRuntimeSettingsFromEnvironment();
   await runtimeSettings.initialize({ recoverInvalidFile: true });
   runtimeSettings.applyToEnvironment();
+  const clockGuard = new ClockGuard(clockDriftLimitFromEnvironment());
   const secretStore = managedSecretStoreFromEnvironment();
   await secretStore.initialize({ recoverInvalidManagedFiles: true });
   const runtime = loadRuntimeConfiguration();
@@ -1633,11 +1674,11 @@ async function run() {
     startDashboardRuntime(runtime, secretStore, runtimeSettings);
     return;
   }
-  const { databasePath, retentionPolicy } = await initializeCoreRuntime();
+  const { databasePath, retentionPolicy } = await initializeCoreRuntime(clockGuard);
   startDashboardRuntime(runtime, secretStore, runtimeSettings);
   let operationalGatesHealthy = true;
   try {
-    await startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
+    await startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes, clockGuard);
   } catch (error: any) {
     operationalGatesHealthy = false;
     addLog(`[CRITICAL] Monitoring runtime failed to initialize; automatic routing remains disabled: ${error.message}`);

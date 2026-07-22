@@ -133,6 +133,40 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+  browser:
+    name: Browser and accessibility gate (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit, mobile-chromium]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - name: Install the pinned browser runtime
+        run: npx playwright install --with-deps ${{ matrix.project == 'mobile-chromium' && 'chromium' || matrix.project }}
+        working-directory: frontend
+      - name: Run real-browser and WCAG A/AA checks
+        run: npx playwright test --project=${{ matrix.project }}
+        working-directory: frontend
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: browser-evidence-${{ matrix.project }}-${{ github.sha }}
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: warn
+          retention-days: 30
+
   sast:
     name: CodeQL SAST
     runs-on: ubuntu-latest
@@ -270,7 +304,7 @@ jobs:
   release:
     name: Publish attested immutable release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [verify, mutation, sast, secrets, container]
+    needs: [verify, mutation, browser, sast, secrets, container]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

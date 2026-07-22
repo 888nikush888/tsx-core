@@ -1,7 +1,7 @@
 {
   "scope": "testable core modules; excludes the composition root and confirmation-gated maintenance CLI entrypoints",
-  "statements": 93.71,
+  "statements": 93.76,
   "branches": 80.39,
-  "functions": 98.37,
-  "lines": 93.71
+  "functions": 98.39,
+  "lines": 93.76
 }

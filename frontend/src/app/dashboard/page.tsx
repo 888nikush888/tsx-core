@@ -225,7 +225,7 @@ export default function Page() {
     content = (
       <>
         <div className="flex items-center justify-between px-4 lg:px-6">
-          <h2 className="text-2xl font-bold tracking-tight">System Status</h2>
+          <h1 className="text-2xl font-bold tracking-tight">System Status</h1>
           <Button 
             onClick={handleStartStop} 
             disabled={!isRunning && !routingConfigReady}
@@ -273,7 +273,7 @@ export default function Page() {
       <div className="px-4 lg:px-6 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h1 className="text-2xl font-bold tracking-tight">
               {tab === "channels" && "Kanalverwaltung"}
               {tab === "options" && "Optionen"}
               {tab === "filters" && "Filter & Reguläre Ausdrücke"}
@@ -282,7 +282,7 @@ export default function Page() {
               {tab === "system" && "System & Backup"}
               {tab === "messages" && "Nachrichten-Verlauf"}
               {tab === "signals" && "Signale-Datenbank"}
-            </h2>
+            </h1>
             <p className="text-muted-foreground mt-1">
               {tab === "channels" && "Manage your Telegram API credentials and channel routing."}
               {tab === "options" && "Configure how messages are copied and forwarded."}

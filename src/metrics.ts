@@ -30,6 +30,10 @@ export interface OperationalMetrics {
   auditHealthy: boolean;
   auditRemoteRequired: boolean;
   auditLastRemoteSuccessAt: number | null;
+  clockHealthy: boolean;
+  clockDriftMilliseconds: number;
+  clockMaxDriftMilliseconds: number;
+  clockCheckedAt: number;
 }
 
 interface MetricsState {
@@ -81,6 +85,7 @@ function isOperationallyReady(operational: OperationalMetrics): boolean {
     operational.retentionHealthy,
     operational.diskCapacityHealthy,
     operational.auditHealthy,
+    operational.clockHealthy,
     operational.oldestPendingOutboxAgeSeconds < 300
   ].every(Boolean);
 }
@@ -98,6 +103,10 @@ function readinessChecks(operational: OperationalMetrics): Record<string, boolea
     diskCapacity: operational.diskCapacityHealthy,
     audit: operational.auditHealthy,
     auditRemoteRequired: operational.auditRemoteRequired,
+    clock: operational.clockHealthy,
+    clockDriftMilliseconds: operational.clockDriftMilliseconds,
+    clockMaxDriftMilliseconds: operational.clockMaxDriftMilliseconds,
+    clockCheckedAt: operational.clockCheckedAt,
     oldestPendingOutboxAgeSeconds: operational.oldestPendingOutboxAgeSeconds
   };
 }
@@ -136,6 +145,10 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
     ...metric('tg_forwarder_audit_healthy', 'Whether the tamper-evident audit trail and required remote sink are healthy', 'gauge', asFlag(operational.auditHealthy)),
     ...metric('tg_forwarder_audit_remote_required', 'Whether remote audit delivery is required', 'gauge', asFlag(operational.auditRemoteRequired)),
     ...metric('tg_forwarder_audit_last_remote_success_timestamp_seconds', 'Unix time of the last successful remote audit delivery', 'gauge', timestampSeconds(operational.auditLastRemoteSuccessAt)),
+    ...metric('tg_forwarder_clock_healthy', 'Whether wall-clock progress agrees with the monotonic process clock', 'gauge', asFlag(operational.clockHealthy)),
+    ...metric('tg_forwarder_clock_drift_milliseconds', 'Observed wall-clock drift relative to the monotonic process clock', 'gauge', operational.clockDriftMilliseconds),
+    ...metric('tg_forwarder_clock_max_drift_milliseconds', 'Configured maximum safe wall-clock drift', 'gauge', operational.clockMaxDriftMilliseconds),
+    ...metric('tg_forwarder_clock_last_check_timestamp_seconds', 'Unix time of the latest clock-drift check', 'gauge', timestampSeconds(operational.clockCheckedAt)),
     ...metric('tg_forwarder_readiness', 'Whether all operational readiness checks currently pass', 'gauge', asFlag(isOperationallyReady(operational))),
     ...metric('tg_forwarder_outbox_oldest_pending_age_seconds', 'Age in seconds of the oldest pending, preparing or sending outbox task', 'gauge', operational.oldestPendingOutboxAgeSeconds),
     ...metric('tg_forwarder_ai_requests_today', 'AI provider requests reserved today (UTC)', 'gauge', operational.aiRequestsToday),

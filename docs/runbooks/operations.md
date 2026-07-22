@@ -23,6 +23,17 @@
 | Crash-Block-Datei vorhanden                   | Kritisch  | keine Lock-Löschung vor Ursachenklärung                                |
 | AI-Budget erschöpft / Schemafehleranstieg     | Hoch      | automatische AI-Verarbeitung fail closed lassen; Versionen vergleichen |
 
+## Clock Drift
+
+<a id="clock-drift"></a>
+
+1. `tg_forwarder_clock_drift_milliseconds` und `tg_forwarder_clock_max_drift_milliseconds` vergleichen. Ein ausgelöster Clock-Guard bleibt bis zum Prozessneustart gelatcht, setzt die Readiness auf rot und alarmiert sofort.
+2. Auf dem Container-Host den Status des autorisierten NTP-/Zeitdienstes und dessen letzte erfolgreiche Synchronisation prüfen. Zeitzone ist unerheblich; UTC-Systemzeit und monotone Uhr dürfen nicht springen.
+3. Keine Uhrzeit manuell zurückstellen, solange der Dienst läuft. Routing kontrolliert stoppen, dann Ursache und Host-Offset korrigieren und den Forwarder neu starten.
+4. Nach Neustart müssen Clock-Metrik und Readiness grün bleiben. Vor Wiederfreigabe des Routings den dokumentierten synthetischen Test abwarten.
+
+`CLOCK_MAX_DRIFT_MS` akzeptiert 100 bis 5000 Millisekunden und ist standardmäßig 1000. Der Guard erkennt Sprünge relativ zur monotonen Prozessuhr; die anfängliche absolute UTC-Synchronisation bleibt eine Host-/NTP-Vorbedingung und muss durch Infrastruktur-Monitoring belegt werden.
+
 ## Retention und Speicherdruck
 
 - `failed`, `unknown` und aktive Outbox-Zustände niemals zur Speichergewinnung löschen.

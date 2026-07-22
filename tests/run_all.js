@@ -22,6 +22,7 @@ const allTests = [
   'test_migration_cli.js',
   'test_delivery_tracker.js',
   'test_crash_guard.js',
+  'test_clock_guard.js',
   'test_backup.js',
   'test_backup_replication.js',
   'test_retention.js',

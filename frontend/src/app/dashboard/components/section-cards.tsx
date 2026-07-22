@@ -37,8 +37,8 @@ export function SectionCards({
             <Badge 
               variant="outline" 
               className={isRunning && parserEnabled
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-                : "bg-destructive/10 text-destructive border-destructive/20"}
+                ? "bg-emerald-500/10 text-emerald-800 border-emerald-500/20 dark:text-emerald-300"
+                : "bg-red-500/10 text-red-800 border-red-500/20 dark:text-red-300"}
             >
               <TrendingUp className="mr-1 size-3" />
               {isRunning ? (parserEnabled ? "Aktiv" : "Parser aus") : "Inaktiv"}
@@ -66,8 +66,8 @@ export function SectionCards({
             <Badge 
               variant="outline" 
               className={queueState.paused 
-                ? "bg-amber-500/10 text-amber-500 border-amber-500/20" 
-                : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"}
+                ? "bg-amber-500/10 text-amber-800 border-amber-500/20 dark:text-amber-300"
+                : "bg-emerald-500/10 text-emerald-800 border-emerald-500/20 dark:text-emerald-300"}
             >
               {queueState.paused ? <PauseCircle className="mr-1 size-3" /> : <ListOrdered className="mr-1 size-3" />}
               {queueState.paused ? "Pausiert" : "Wartend"}
@@ -95,8 +95,8 @@ export function SectionCards({
             <Badge 
               variant="outline" 
               className={isRunning 
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-                : "bg-destructive/10 text-destructive border-destructive/20"}
+                ? "bg-emerald-500/10 text-emerald-800 border-emerald-500/20 dark:text-emerald-300"
+                : "bg-red-500/10 text-red-800 border-red-500/20 dark:text-red-300"}
             >
               <Activity className="mr-1 size-3" />
               {isRunning ? "Online" : "Offline"}
@@ -124,8 +124,8 @@ export function SectionCards({
             <Badge 
               variant="outline" 
               className={connectionState === 'connected' 
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-                : "bg-destructive/10 text-destructive border-destructive/20"}
+                ? "bg-emerald-500/10 text-emerald-800 border-emerald-500/20 dark:text-emerald-300"
+                : "bg-red-500/10 text-red-800 border-red-500/20 dark:text-red-300"}
             >
               {connectionState === 'connected' ? <CheckCircle className="mr-1 size-3" /> : <AlertCircle className="mr-1 size-3" />}
               {connectionState === 'connected' ? "Bereit" : "Fehler"}
@@ -173,8 +173,8 @@ export function SectionCards({
             <Badge 
               variant="outline" 
               className={forwardingEnabled
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-                : "bg-destructive/10 text-destructive border-destructive/20"}
+                ? "bg-emerald-500/10 text-emerald-800 border-emerald-500/20 dark:text-emerald-300"
+                : "bg-red-500/10 text-red-800 border-red-500/20 dark:text-red-300"}
             >
               <TrendingUp className="mr-1 size-3" />
               {forwardingEnabled ? (forwardXmlToTarget ? "XML-Modus" : "Aktiv") : "Deaktiviert"}

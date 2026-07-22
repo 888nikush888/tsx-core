@@ -9,6 +9,8 @@ coverage-modules/
 reports/
 .stryker-incremental.json
 dist/
+frontend/playwright-report/
+frontend/test-results/
 coverage/
 scratch/
 session_data/
