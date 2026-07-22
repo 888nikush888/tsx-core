@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const frontend = path.resolve('frontend');
 const vitest = path.join(frontend, 'node_modules', 'vitest', 'vitest.mjs');
-const result = spawnSync(process.execPath, [vitest, 'run', '--environment', 'jsdom'], {
+const result = spawnSync(process.execPath, [vitest, 'run', '--environment', 'jsdom', 'tests'], {
   cwd: frontend,
   env: process.env,
   encoding: 'utf8',

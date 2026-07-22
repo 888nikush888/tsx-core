@@ -31,6 +31,10 @@ const HEALTHY_OPERATIONAL_METRICS = {
   auditHealthy: true,
   auditRemoteRequired: true,
   auditLastRemoteSuccessAt: 1_700_000_250_000,
+  clockHealthy: true,
+  clockDriftMilliseconds: 4,
+  clockMaxDriftMilliseconds: 1000,
+  clockCheckedAt: 1_700_000_255_000,
   tradingHealthy: true,
   tradingExecutionEnabled: true,
   tradingLiveEnabled: false,
@@ -106,6 +110,9 @@ async function runTests() {
   assert.match(metrics, /tg_forwarder_disk_capacity_healthy 1/);
   assert.match(metrics, /tg_forwarder_audit_healthy 1/);
   assert.match(metrics, /tg_forwarder_audit_last_remote_success_timestamp_seconds 1700000250/);
+  assert.match(metrics, /tg_forwarder_clock_healthy 1/);
+  assert.match(metrics, /tg_forwarder_clock_drift_milliseconds 4/);
+  assert.match(metrics, /tg_forwarder_clock_max_drift_milliseconds 1000/);
   assert.match(metrics, /tg_forwarder_trading_healthy 1/);
   assert.match(metrics, /tg_forwarder_trading_enabled_routes 2/);
   assert.match(metrics, /tg_forwarder_trading_open_positions 1/);
@@ -128,6 +135,10 @@ async function runTests() {
   operational = { ...operational, auditHealthy: true, tradingHealthy: false, tradingUnknownOrders: 1 };
   response = await fetch(`${baseUrl}/readyz`);
   assert.strictEqual(response.status, 503, 'Unknown trading outcomes must fail readiness');
+
+  operational = { ...operational, tradingHealthy: true, tradingUnknownOrders: 0, clockHealthy: false };
+  response = await fetch(`${baseUrl}/readyz`);
+  assert.strictEqual(response.status, 503, 'Unsafe clock drift must fail readiness');
 
   response = await fetch(`${baseUrl}/metrics`, { method: 'POST' });
   assert.strictEqual(response.status, 405);

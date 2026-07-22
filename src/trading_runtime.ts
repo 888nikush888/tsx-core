@@ -1,6 +1,7 @@
 import { getDatabase } from './db.js';
 import { updateTradingRuntimeState } from './trading_repository.js';
 import { TradingEngine } from './trading_engine.js';
+import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
 
 type RuntimeLogger = (message: string) => void;
 
@@ -15,6 +16,7 @@ export class TradingRuntime {
     private readonly engine: TradingEngine,
     private readonly intervalMs = 2_000,
     private readonly logger: RuntimeLogger = () => undefined,
+    private readonly clockGuard: ClockHealthMonitor = new ClockGuard(),
   ) {
     if (!Number.isSafeInteger(intervalMs) || intervalMs < 250 || intervalMs > 60_000) {
       throw new Error('Trading runtime interval must be between 250 and 60000 milliseconds.');
@@ -45,6 +47,7 @@ export class TradingRuntime {
   async enableEntries(): Promise<void> {
     if (this.stopped) throw new Error('Trading runtime is not running.');
     if (!this.protectionHealthy) throw new Error('Trading protection has not reached a healthy reconciliation latch.');
+    await this.assertEntryClockHealthy();
     const state = await getDatabase().get<{
       execution_enabled: number;
       kill_switch_active: number;
@@ -53,6 +56,18 @@ export class TradingRuntime {
       throw new Error('Trading entries cannot be enabled while execution is disabled or the kill switch is active.');
     }
     this.entriesEnabled = true;
+  }
+
+  private async assertEntryClockHealthy(): Promise<void> {
+    const clock = this.clockGuard.sample();
+    if (clock.healthy) return;
+    this.entriesEnabled = false;
+    await updateTradingRuntimeState({
+      executionEnabled: false,
+      killSwitchActive: true,
+      killSwitchReason: 'System clock drift exceeded the trading safety limit',
+    });
+    throw new Error(clock.reason || 'System clock drift is unsafe; trading entries are disabled.');
   }
 
   isProtectionHealthy(): boolean {
@@ -80,7 +95,10 @@ export class TradingRuntime {
     await this.captureEntryExpiryFailure(failures);
     if (failures.length > 0) await this.failProtectionCycle(startup, failures);
     this.protectionHealthy = true;
-    if (this.entriesEnabled) await this.processPendingEntries();
+    if (this.entriesEnabled) {
+      await this.assertEntryClockHealthy();
+      await this.processPendingEntries();
+    }
   }
 
   private async reconcileAccounts(startup: boolean): Promise<string[]> {

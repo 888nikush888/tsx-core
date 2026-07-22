@@ -60,8 +60,18 @@ async function assertGoldenSetGrounding() {
   }
 }
 
+async function assertRepositoryDefaultPromptContract() {
+  const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const prompt = await readFile(path.join(repositoryRoot, 'templates', 'default.txt'), 'utf8');
+  assert.doesNotMatch(prompt, /<margin>/i, 'The default prompt must not request schema-forbidden fields.');
+  assert.match(prompt, /entry_range>[\s\S]*?\(optional\)/i);
+  assert.match(prompt, /leverage>[\s\S]*?\(optional\)/i);
+  assert.match(prompt, /Omit optional elements when absent/i);
+}
+
 async function testStandardSchemaContracts() {
   await assertGoldenSetGrounding();
+  await assertRepositoryDefaultPromptContract();
 
   validateXmlStructure(STANDARD_LONG);
   assert.strictEqual(validateSignalXml(STANDARD_SHORT).action, 'SHORT');

@@ -19,6 +19,7 @@ import {
   quantizeDecimalDown,
 } from './trading_decimal.js';
 import { allocateTargetQuantities, createTradingPlan, TradingRiskError } from './trading_risk.js';
+import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
 import type {
   ExchangeOpenState,
   ExchangeOrderRequest,
@@ -556,7 +557,11 @@ export class TradingEngine {
   private readonly adapters = new Map<TradingExchange, TradingExchangeAdapter>();
   private readonly lastPeriodicReconciliationAt = new Map<string, number>();
 
-  constructor(adapters: TradingExchangeAdapter[], private readonly logger: TradingLogger = () => undefined) {
+  constructor(
+    adapters: TradingExchangeAdapter[],
+    private readonly logger: TradingLogger = () => undefined,
+    private readonly clockGuard: ClockHealthMonitor = new ClockGuard(),
+  ) {
     for (const adapter of adapters) this.adapters.set(adapter.exchange, adapter);
   }
 
@@ -570,10 +575,22 @@ export class TradingEngine {
     const intent = await getTradingIntent(intentId);
     if (!intent || intent.status !== 'pending') return;
     try {
+      await this.assertClockSafeForEntry();
       await this.executePendingIntent(intent);
     } catch (error: any) {
       await this.handleIntentFailure(intent, error);
     }
+  }
+
+  private async assertClockSafeForEntry(): Promise<void> {
+    const clock = this.clockGuard.sample();
+    if (clock.healthy) return;
+    await updateTradingRuntimeState({
+      executionEnabled: false,
+      killSwitchActive: true,
+      killSwitchReason: 'System clock drift exceeded the trading safety limit',
+    });
+    throw new TradingRiskError('CLOCK_DRIFT_UNSAFE', clock.reason || 'System clock drift is unsafe.');
   }
 
   async cancelOpenEntries(accountId?: string): Promise<number> {

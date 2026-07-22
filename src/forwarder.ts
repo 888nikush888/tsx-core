@@ -87,6 +87,7 @@ import {
 } from './trading_credentials.js';
 import { OfficialExchangeAdapter } from './official_exchange.js';
 import { TradingWebControl } from './trading_web_control.js';
+import { ClockGuard, clockDriftLimitFromEnvironment } from './clock_guard.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -475,7 +476,8 @@ function auditMetricSnapshot(): Pick<OperationalMetrics,
 
 async function collectOperationalMetrics(
   databasePath: string,
-  minimumFreeBytes: number
+  minimumFreeBytes: number,
+  clockGuard: ClockGuard,
 ): Promise<OperationalMetrics> {
   const databaseHealthy = await isDatabaseHealthy();
   const diskAvailableBytes = await availableDiskBytes(databasePath);
@@ -497,6 +499,7 @@ async function collectOperationalMetrics(
   };
   const reconciliationCurrent = !trading.executionEnabled
     || (trading.latestReconciliationAt !== null && Date.now() - trading.latestReconciliationAt <= 30_000);
+  const clock = clockGuard.sample();
   const base = {
     databaseHealthy,
     isRunning: state.isRunning,
@@ -506,10 +509,15 @@ async function collectOperationalMetrics(
     ...backupMetricSnapshot(),
     ...retentionMetricSnapshot(),
     ...auditMetricSnapshot(),
+    clockHealthy: clock.healthy,
+    clockDriftMilliseconds: clock.driftMilliseconds,
+    clockMaxDriftMilliseconds: clock.maxDriftMilliseconds,
+    clockCheckedAt: clock.checkedAt,
     diskAvailableBytes,
     diskCapacityHealthy,
     deliverySlo: deliverySlo.snapshot(),
-    tradingHealthy: !trading.killSwitchActive
+    tradingHealthy: clock.healthy
+      && !trading.killSwitchActive
       && trading.unknownOrders === 0
       && trading.unprotectedPositions === 0
       && reconciliationCurrent,
@@ -1291,7 +1299,7 @@ function loadRuntimeConfiguration(): RuntimeConfiguration {
   }
 }
 
-async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore) {
+async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore, clockGuard: ClockGuard) {
   initializeDeliveryTracker();
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
   processLockPath = path.join(path.dirname(databasePath), '.process_active');
@@ -1302,11 +1310,12 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore)
   await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
   await initDb();
   await ensureTradingDefaults();
-  const tradingEngine = composeTradingControl(tradingCredentials);
+  const tradingEngine = composeTradingControl(tradingCredentials, clockGuard);
   tradingRuntime = new TradingRuntime(
     tradingEngine,
     2_000,
     addLog,
+    clockGuard,
   );
   // Existing exposure is reconciled immediately, but pending entries remain
   // latched off until crash, retention, dashboard, monitoring and backup gates
@@ -1322,11 +1331,11 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore)
   return { databasePath, retentionPolicy };
 }
 
-function composeTradingControl(tradingCredentials: TradingCredentialStore): TradingEngine {
+function composeTradingControl(tradingCredentials: TradingCredentialStore, clockGuard: ClockGuard): TradingEngine {
   const paperAdapter = new PaperExchangeAdapter();
   const hyperliquidAdapter = new OfficialExchangeAdapter('hyperliquid', tradingCredentials);
   const bybitAdapter = new OfficialExchangeAdapter('bybit', tradingCredentials);
-  const tradingEngine = new TradingEngine([paperAdapter, hyperliquidAdapter, bybitAdapter], addLog);
+  const tradingEngine = new TradingEngine([paperAdapter, hyperliquidAdapter, bybitAdapter], addLog, clockGuard);
   tradingWebControl = new TradingWebControl(
     tradingCredentials,
     paperAdapter,
@@ -1357,7 +1366,11 @@ async function startBackupRuntime(runtime: RuntimeConfiguration): Promise<void> 
   await backupScheduler.start();
 }
 
-async function startMonitoringRuntime(databasePath: string, minimumFreeBytes: number): Promise<void> {
+async function startMonitoringRuntime(
+  databasePath: string,
+  minimumFreeBytes: number,
+  clockGuard: ClockGuard,
+): Promise<void> {
   startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
     totalForwardedCountCallback: () => state.totalForwardedCount,
     getQueueStateCallback: () => ({
@@ -1367,7 +1380,8 @@ async function startMonitoringRuntime(databasePath: string, minimumFreeBytes: nu
     }),
     getOperationalMetricsCallback: () => collectOperationalMetrics(
       databasePath,
-      minimumFreeBytes
+      minimumFreeBytes,
+      clockGuard,
     )
   });
 
@@ -1656,6 +1670,7 @@ async function run() {
   const runtimeSettings = managedRuntimeSettingsFromEnvironment();
   await runtimeSettings.initialize({ recoverInvalidFile: true });
   runtimeSettings.applyToEnvironment();
+  const clockGuard = new ClockGuard(clockDriftLimitFromEnvironment());
   const secretStore = managedSecretStoreFromEnvironment();
   await secretStore.initialize({ recoverInvalidManagedFiles: true });
   const tradingCredentials = tradingCredentialStoreFromEnvironment();
@@ -1667,18 +1682,18 @@ async function run() {
     try {
       await initDb();
       await ensureTradingDefaults();
-      composeTradingControl(tradingCredentials);
+      composeTradingControl(tradingCredentials, clockGuard);
     } catch (error: any) {
       addLog(`[CRITICAL] Trading safety state could not be loaded in recovery mode; factory reset remains blocked until database recovery: ${error.message}`);
     }
     startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
     return;
   }
-  const { databasePath, retentionPolicy } = await initializeCoreRuntime(tradingCredentials);
+  const { databasePath, retentionPolicy } = await initializeCoreRuntime(tradingCredentials, clockGuard);
   startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
   let operationalGatesHealthy = true;
   try {
-    await startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes);
+    await startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes, clockGuard);
   } catch (error: any) {
     operationalGatesHealthy = false;
     addLog(`[CRITICAL] Monitoring runtime failed to initialize; trading entries remain disabled: ${error.message}`);

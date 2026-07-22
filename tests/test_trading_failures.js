@@ -447,6 +447,43 @@ async function testProtectionOnlyStartupRequiresExplicitEntryEnable(directory) {
   await closeDb();
 }
 
+async function testClockDriftBlocksEveryEntryPath(directory) {
+  const unsafeClock = {
+    sample: () => ({
+      healthy: false,
+      driftMilliseconds: 1_500,
+      maxDriftMilliseconds: 1_000,
+      checkedAt: Date.now(),
+      reason: 'simulated unsafe clock drift',
+    }),
+  };
+  const direct = await setup(path.join(directory, 'clock-drift-direct.db'));
+  const engine = new TradingEngine([direct.paper], () => undefined, unsafeClock);
+  await engine.processIntent(direct.intent.id);
+  const blocked = await getTradingIntent(direct.intent.id);
+  assert.equal(blocked.status, 'blocked');
+  assert.equal(blocked.blockReason, 'CLOCK_DRIFT_UNSAFE');
+  assert.equal((await getTradingRuntimeState()).killSwitchActive, true);
+  await closeDb();
+
+  await initDb(path.join(directory, 'clock-drift-runtime.db'));
+  await ensureTradingDefaults();
+  await updateTradingRuntimeState({ executionEnabled: true });
+  const runtime = new TradingRuntime({
+    reconcileAccount: async () => undefined,
+    cancelExpiredEntries: async () => 0,
+    processIntent: async () => undefined,
+  }, 60_000, () => undefined, unsafeClock);
+  await runtime.startProtectionOnly();
+  await assert.rejects(runtime.enableEntries(), /simulated unsafe clock drift/);
+  const runtimeState = await getTradingRuntimeState();
+  assert.equal(runtimeState.executionEnabled, false);
+  assert.equal(runtimeState.killSwitchActive, true);
+  assert.match(runtimeState.killSwitchReason, /clock drift exceeded/i);
+  await runtime.stop();
+  await closeDb();
+}
+
 async function testAccountDailyRiskIncludesExistingLoss(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'account-daily-risk.db'));
   const now = Date.now();
@@ -603,6 +640,7 @@ async function run() {
     await testRuntimeIsolatesAccountFailures(directory);
     await testRemoteAccountIdentityBinding(directory);
     await testProtectionOnlyStartupRequiresExplicitEntryEnable(directory);
+    await testClockDriftBlocksEveryEntryPath(directory);
     await testAccountDailyRiskIncludesExistingLoss(directory);
     await testAccountDailyRiskIncludesFundingLoss(directory);
     await testRuntimeLifecycleAndDefaultFailureLogger(directory);

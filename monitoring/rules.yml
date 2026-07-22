@@ -131,6 +131,16 @@ groups:
           summary: Control-plane audit persistence or remote delivery is unhealthy
           runbook: docs/runbooks/operations.md#audit-trail-ausfall
 
+      - alert: ForwarderClockDriftUnsafe
+        expr: tg_forwarder_clock_healthy == 0 or tg_forwarder_clock_drift_milliseconds > tg_forwarder_clock_max_drift_milliseconds
+        for: 0m
+        labels:
+          severity: critical
+          service: telegram-forwarder
+        annotations:
+          summary: System clock drift exceeded the fail-closed safety limit
+          runbook: docs/runbooks/operations.md#clock-drift
+
       - alert: TradingUnknownOrder
         expr: tg_forwarder_trading_unknown_orders > 0
         for: 0m

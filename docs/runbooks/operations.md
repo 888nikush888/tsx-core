@@ -36,6 +36,17 @@
 
 Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaisen lassen. Factory Reset stoppt den Trading-Worker, storniert offene Entries, prüft jedes Nicht-Paper-Konto über das offizielle SDK und verweigert bei Order/Position oder nicht erreichbarer Exchange die Löschung. Danach werden DB, Strategie-/Routingzustand, alle Exchange-Key-Dateien und der interne Executor-Key entfernt; der neue Key wird nach Neustart automatisch vom bereits laufenden Sidecar akzeptiert. **Betriebsdaten leeren** ist davon getrennt: Es stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie nicht von Trades referenzierte Signale atomar. Trading-Historie, Strategien, Konten, Secrets und trade-referenzierte Signale bleiben unverändert erhalten.
 
+## Clock Drift
+
+<a id="clock-drift"></a>
+
+1. `tg_forwarder_clock_drift_milliseconds` und `tg_forwarder_clock_max_drift_milliseconds` vergleichen. Ein ausgelöster Clock-Guard bleibt bis zum Prozessneustart gelatcht und blockiert neue Trading-Entries; bestehende Positionen werden weiterhin reconciliert und geschützt.
+2. Auf dem Container-Host den Status des autorisierten NTP-/Zeitdienstes und dessen letzte erfolgreiche Synchronisation prüfen. Zeitzone ist unerheblich; UTC-Systemzeit und monotone Uhr dürfen nicht springen.
+3. Keine Uhrzeit manuell zurückstellen, solange der Dienst läuft. Erst Ursache und Host-Offset korrigieren, dann den Forwarder kontrolliert neu starten.
+4. Nach Neustart müssen Clock-Metrik und Readiness grün bleiben. Vor Wiederfreigabe von Trading eine erfolgreiche Exchange-Reconciliation und den dokumentierten synthetischen Test abwarten.
+
+`CLOCK_MAX_DRIFT_MS` akzeptiert 100 bis 5000 Millisekunden und ist standardmäßig 1000. Der Guard erkennt Sprünge relativ zur monotonen Prozessuhr; die anfängliche absolute UTC-Synchronisation bleibt eine Host-/NTP-Vorbedingung und muss durch Infrastruktur-Monitoring belegt werden.
+
 ## Retention und Speicherdruck
 
 - `failed`, `unknown` und aktive Outbox-Zustände niemals zur Speichergewinnung löschen.

@@ -30,6 +30,10 @@ export interface OperationalMetrics {
   auditHealthy: boolean;
   auditRemoteRequired: boolean;
   auditLastRemoteSuccessAt: number | null;
+  clockHealthy: boolean;
+  clockDriftMilliseconds: number;
+  clockMaxDriftMilliseconds: number;
+  clockCheckedAt: number;
   tradingHealthy: boolean;
   tradingExecutionEnabled: boolean;
   tradingLiveEnabled: boolean;
@@ -94,6 +98,7 @@ function isOperationallyReady(operational: OperationalMetrics): boolean {
     operational.retentionHealthy,
     operational.diskCapacityHealthy,
     operational.auditHealthy,
+    operational.clockHealthy,
     operational.tradingHealthy,
     operational.oldestPendingOutboxAgeSeconds < 300
   ].every(Boolean);
@@ -112,6 +117,10 @@ function readinessChecks(operational: OperationalMetrics): Record<string, boolea
     diskCapacity: operational.diskCapacityHealthy,
     audit: operational.auditHealthy,
     auditRemoteRequired: operational.auditRemoteRequired,
+    clock: operational.clockHealthy,
+    clockDriftMilliseconds: operational.clockDriftMilliseconds,
+    clockMaxDriftMilliseconds: operational.clockMaxDriftMilliseconds,
+    clockCheckedAt: operational.clockCheckedAt,
     trading: operational.tradingHealthy,
     tradingKillSwitchActive: operational.tradingKillSwitchActive,
     tradingUnknownOrders: operational.tradingUnknownOrders,
@@ -155,6 +164,10 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
     ...metric('tg_forwarder_audit_healthy', 'Whether the tamper-evident audit trail and required remote sink are healthy', 'gauge', asFlag(operational.auditHealthy)),
     ...metric('tg_forwarder_audit_remote_required', 'Whether remote audit delivery is required', 'gauge', asFlag(operational.auditRemoteRequired)),
     ...metric('tg_forwarder_audit_last_remote_success_timestamp_seconds', 'Unix time of the last successful remote audit delivery', 'gauge', timestampSeconds(operational.auditLastRemoteSuccessAt)),
+    ...metric('tg_forwarder_clock_healthy', 'Whether wall-clock progress agrees with the monotonic process clock', 'gauge', asFlag(operational.clockHealthy)),
+    ...metric('tg_forwarder_clock_drift_milliseconds', 'Observed wall-clock drift relative to the monotonic process clock', 'gauge', operational.clockDriftMilliseconds),
+    ...metric('tg_forwarder_clock_max_drift_milliseconds', 'Configured maximum safe wall-clock drift', 'gauge', operational.clockMaxDriftMilliseconds),
+    ...metric('tg_forwarder_clock_last_check_timestamp_seconds', 'Unix time of the latest clock-drift check', 'gauge', timestampSeconds(operational.clockCheckedAt)),
     ...metric('tg_forwarder_trading_healthy', 'Whether managed trading is reconciled and has no unresolved safety state', 'gauge', asFlag(operational.tradingHealthy)),
     ...metric('tg_forwarder_trading_execution_enabled', 'Whether automatic strategy execution is enabled', 'gauge', asFlag(operational.tradingExecutionEnabled)),
     ...metric('tg_forwarder_trading_live_enabled', 'Whether the one-time live trading gate is enabled', 'gauge', asFlag(operational.tradingLiveEnabled)),
