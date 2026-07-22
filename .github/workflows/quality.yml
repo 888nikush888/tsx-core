@@ -244,15 +244,17 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: prom/prometheus:v3.13.0-distroless@sha256:f3b6aae627d96e7ad8256cdf6de5953247735117c6f577383fadb42efeeea7bc
+          image-ref: prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80
           format: cyclonedx
           output: prometheus.cdx.json
           exit-code: '0'
       - name: Block Prometheus high and critical vulnerabilities
+        env:
+          TRIVY_VEX: monitoring/vex/prometheus-v3.13.1.openvex.json
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: prom/prometheus:v3.13.0-distroless@sha256:f3b6aae627d96e7ad8256cdf6de5953247735117c6f577383fadb42efeeea7bc
+          image-ref: prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80
           format: sarif
           output: prometheus-trivy.sarif
           severity: HIGH,CRITICAL
@@ -261,15 +263,17 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: prom/alertmanager:v0.32.1@sha256:51a825c2a40acc3e338fdd00d622e01ec090f72be2b3ea46be0839cd47a4d286
+          image-ref: prom/alertmanager:v0.33.1@sha256:9e082985f56f4c8c9f724e18f2288c6708f472e56a5286b8863d080434ea065d
           format: cyclonedx
           output: alertmanager.cdx.json
           exit-code: '0'
       - name: Block Alertmanager high and critical vulnerabilities
+        env:
+          TRIVY_VEX: monitoring/vex/alertmanager-v0.33.1.openvex.json
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: prom/alertmanager:v0.32.1@sha256:51a825c2a40acc3e338fdd00d622e01ec090f72be2b3ea46be0839cd47a4d286
+          image-ref: prom/alertmanager:v0.33.1@sha256:9e082985f56f4c8c9f724e18f2288c6708f472e56a5286b8863d080434ea065d
           format: sarif
           output: alertmanager-trivy.sarif
           severity: HIGH,CRITICAL

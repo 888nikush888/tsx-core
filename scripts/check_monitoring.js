@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const monitoring = path.join(root, 'monitoring');
-const prometheusImage = 'prom/prometheus:v3.13.0-distroless@sha256:f3b6aae627d96e7ad8256cdf6de5953247735117c6f577383fadb42efeeea7bc';
-const alertmanagerImage = 'prom/alertmanager:v0.32.1@sha256:51a825c2a40acc3e338fdd00d622e01ec090f72be2b3ea46be0839cd47a4d286';
+const prometheusImage = 'prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80';
+const alertmanagerImage = 'prom/alertmanager:v0.33.1@sha256:9e082985f56f4c8c9f724e18f2288c6708f472e56a5286b8863d080434ea065d';
 const mount = `type=bind,source=${monitoring},target=/etc/prometheus,readonly`;
 
 function run(image, entrypoint, args) {
