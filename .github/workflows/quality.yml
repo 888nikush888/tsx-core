@@ -357,17 +357,17 @@ jobs:
       - name: Require tag and package versions to match
         run: test "${GITHUB_REF_NAME}" = "v$(node -p "require('./package.json').version")"
       - name: Download scanned image candidate
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: release-image-${{ github.sha }}
           path: release-candidate
       - name: Download application SBOM evidence
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: quality-evidence-${{ github.sha }}
           path: application-evidence
       - name: Download container scan evidence
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: container-evidence-${{ github.sha }}
           path: container-evidence
