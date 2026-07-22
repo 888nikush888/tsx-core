@@ -37,8 +37,13 @@ const requiredContexts = [
   'Critical mutation gate (queue)',
   'Critical mutation gate (retry)',
   'Critical mutation gate (schema)',
+  'Browser and accessibility gate (chromium)',
+  'Browser and accessibility gate (firefox)',
+  'Browser and accessibility gate (webkit)',
+  'Browser and accessibility gate (mobile-chromium)',
   'CodeQL SAST',
   'Secret history scan',
+  'Dependency review',
   'Container build, SBOM, vulnerability scan'
 ];
 const governance = evaluateGithubGovernance({
