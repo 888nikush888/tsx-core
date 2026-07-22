@@ -347,6 +347,11 @@ function testAiErrorClassification() {
   assert.equal(classifyAiError(new SignalValidationError('bad output')).code, 'invalid_model_output');
   assert.equal(classifyAiError(new AiBudgetExceededError()).code, 'budget_exhausted');
   assert.equal(classifyAiError(Object.assign(new Error('reset'), { code: 'ECONNRESET' })).code, 'network_error');
+  assert.deepStrictEqual(classifyAiError(Object.assign(new Error('nested reset'), {
+    cause: { code: 'EAI_AGAIN', message: 'must remain redacted' }
+  })), {
+    code: 'network_error', retryable: true, providerCode: 'EAI_AGAIN'
+  });
   assert.deepStrictEqual(classifyAiError(new Error('sensitive provider response')), {
     code: 'unexpected_error', retryable: false
   });
