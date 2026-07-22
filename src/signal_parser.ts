@@ -187,41 +187,70 @@ async function abortableDelay(delayMs: number, signal?: AbortSignal): Promise<vo
 }
 
 function safeProviderCode(error: any): string | undefined {
-  const value = String(error?.code || '').trim();
+  const value = String(error?.code ?? error?.cause?.code ?? '').trim();
   return /^[a-zA-Z0-9._-]{1,64}$/.test(value) ? value : undefined;
+}
+
+type AiErrorCategory = Pick<AiErrorClassification, 'code' | 'retryable'>;
+
+const HTTP_STATUS_CATEGORIES = new Map<number, AiErrorCategory>([
+  [401, { code: 'provider_authentication_failed', retryable: false }],
+  [403, { code: 'provider_permission_denied', retryable: false }],
+  [408, { code: 'provider_timeout', retryable: true }],
+  [409, { code: 'provider_unavailable', retryable: true }],
+  [429, { code: 'rate_limited', retryable: true }]
+]);
+
+const NETWORK_ERROR_CODES = new Set(['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ENOTFOUND']);
+
+function validHttpStatus(candidate: any): number | undefined {
+  const numericStatus = Number(candidate?.status);
+  return Number.isSafeInteger(numericStatus) && numericStatus >= 100 && numericStatus <= 599
+    ? numericStatus
+    : undefined;
+}
+
+function intrinsicAiError(candidate: any): AiErrorCategory | undefined {
+  if (candidate?.name === 'AbortError') return { code: 'aborted', retryable: false };
+  if (candidate instanceof AiBudgetExceededError) return { code: 'budget_exhausted', retryable: false };
+  if (candidate instanceof SignalValidationError) return { code: 'invalid_model_output', retryable: true };
+  if (/timeout/i.test(String(candidate?.name ?? ''))) return { code: 'provider_timeout', retryable: true };
+  return undefined;
+}
+
+function httpAiError(httpStatus: number | undefined): AiErrorCategory | undefined {
+  const exact = httpStatus === undefined ? undefined : HTTP_STATUS_CATEGORIES.get(httpStatus);
+  if (exact) return exact;
+  if (httpStatus === undefined) return undefined;
+  if (httpStatus >= 500) return { code: 'provider_unavailable', retryable: true };
+  if (httpStatus >= 400) return { code: 'provider_request_rejected', retryable: false };
+  return undefined;
+}
+
+function networkAiError(providerCode: string | undefined): AiErrorCategory | undefined {
+  return providerCode && NETWORK_ERROR_CODES.has(providerCode)
+    ? { code: 'network_error', retryable: true }
+    : undefined;
 }
 
 export function classifyAiError(error: unknown): AiErrorClassification {
   const candidate = error as any;
-  const numericStatus = Number(candidate?.status);
-  const httpStatus = Number.isSafeInteger(numericStatus) && numericStatus >= 100 && numericStatus <= 599
-    ? numericStatus
-    : undefined;
+  const httpStatus = validHttpStatus(candidate);
   const providerCode = safeProviderCode(candidate);
-  const result = (code: AiErrorCode, retryable: boolean): AiErrorClassification => ({
-    code,
-    retryable,
+  const category = [
+    intrinsicAiError(candidate),
+    httpAiError(httpStatus),
+    networkAiError(providerCode)
+  ].find((entry): entry is AiErrorCategory => entry !== undefined) ?? {
+    code: 'unexpected_error',
+    retryable: false
+  };
+
+  return {
+    ...category,
     ...(httpStatus === undefined ? {} : { httpStatus }),
     ...(providerCode === undefined ? {} : { providerCode })
-  });
-
-  if (candidate?.name === 'AbortError') return result('aborted', false);
-  if (candidate instanceof AiBudgetExceededError) return result('budget_exhausted', false);
-  if (candidate instanceof SignalValidationError) return result('invalid_model_output', true);
-  if (httpStatus === 429) return result('rate_limited', true);
-  if (httpStatus === 408 || /timeout/i.test(String(candidate?.name || ''))) {
-    return result('provider_timeout', true);
-  }
-  if (httpStatus === 409 || (httpStatus !== undefined && httpStatus >= 500)) {
-    return result('provider_unavailable', true);
-  }
-  if (httpStatus === 401) return result('provider_authentication_failed', false);
-  if (httpStatus === 403) return result('provider_permission_denied', false);
-  if (httpStatus !== undefined && httpStatus >= 400) return result('provider_request_rejected', false);
-  if (['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ENOTFOUND'].includes(providerCode || '')) {
-    return result('network_error', true);
-  }
-  return result('unexpected_error', false);
+  };
 }
 
 function headerValue(error: any, name: string): string | undefined {
