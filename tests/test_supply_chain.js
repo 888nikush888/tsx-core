@@ -39,6 +39,9 @@ assert.doesNotMatch(
   workflow,
   /aquasecurity\/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8/
 );
+assert.match(stagingWorkflow, /timeout-minutes:\s*30/);
+assert.match(stagingWorkflow, /AI_GOLDEN_CASE_DELAY_MS:\s*'5000'/);
+assert.match(stagingWorkflow, /run:\s*npm run test:ai-eval/);
 
 assert.match(workflow, /shard:\s*\[queue, retry, schema\]/);
 assert.match(workflow, /npm run test:mutation -- \$\{\{ matrix\.shard \}\}/);

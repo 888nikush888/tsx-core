@@ -19,9 +19,10 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, staging]
     environment: staging
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       NON_INTERACTIVE: 'true'
+      AI_GOLDEN_CASE_DELAY_MS: '5000'
       TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
       TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
