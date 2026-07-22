@@ -21,7 +21,9 @@ export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
     maxLeverage: 3,
   },
   exits: {
+    targetAllocationMode: 'manual',
     targetAllocationsPercent: ['50', '50'],
+    stopLossMode: 'configured',
     moveStopToBreakEvenAfterTarget: 1,
     trailingStopPercent: null,
     closeRemainderAtLastTarget: true,
@@ -109,9 +111,13 @@ function validateSizing(input: unknown): StrategyConfiguration['sizing'] {
 function validateExits(input: unknown): StrategyConfiguration['exits'] {
   const value = object(input, 'exits');
   exactKeys(value, 'exits', [
-    'targetAllocationsPercent', 'moveStopToBreakEvenAfterTarget',
-    'trailingStopPercent', 'closeRemainderAtLastTarget',
+    'targetAllocationMode', 'targetAllocationsPercent', 'stopLossMode',
+    'moveStopToBreakEvenAfterTarget', 'trailingStopPercent', 'closeRemainderAtLastTarget',
   ]);
+  const targetAllocationMode = value.targetAllocationMode ?? 'manual';
+  if (!['manual', 'adaptive_halving'].includes(targetAllocationMode)) {
+    throw new Error('exits.targetAllocationMode must be manual or adaptive_halving.');
+  }
   if (!Array.isArray(value.targetAllocationsPercent) || value.targetAllocationsPercent.length < 1 || value.targetAllocationsPercent.length > 20) {
     throw new Error('Between one and twenty target allocations are required.');
   }
@@ -128,11 +134,17 @@ function validateExits(input: unknown): StrategyConfiguration['exits'] {
   const trailingStop = value.trailingStopPercent === null
     ? null
     : decimal(value.trailingStopPercent, { positive: true, max: '20' });
+  const stopLossMode = value.stopLossMode ?? 'configured';
+  if (!['configured', 'adaptive_targets'].includes(stopLossMode)) {
+    throw new Error('exits.stopLossMode must be configured or adaptive_targets.');
+  }
   if (value.closeRemainderAtLastTarget !== true) {
     throw new Error('Closing the full remainder at the last target is mandatory.');
   }
   return {
+    targetAllocationMode,
     targetAllocationsPercent: allocations,
+    stopLossMode,
     moveStopToBreakEvenAfterTarget: breakEvenTarget,
     trailingStopPercent: trailingStop,
     closeRemainderAtLastTarget: true,

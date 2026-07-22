@@ -5,13 +5,16 @@ import path from 'node:path';
 import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
 import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { TradingEngine } from '../src/trading_engine.js';
+import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import {
   createTradingIntent,
+  createTradingStrategyDraft,
   ensureTradingDefaults,
   getTradingAccount,
   getTradingIntent,
   listTradingAccounts,
   listTradingStrategies,
+  publishTradingStrategyVersion,
   setTradingRoute,
   updateTradingRuntimeState,
 } from '../src/trading_repository.js';
@@ -22,6 +25,15 @@ const SIGNAL = `<signal>
 <pair>BTCUSDT</pair>
 <entry_range><min>60000</min><max>61000</max></entry_range>
 <targets><target id="1">62000</target><target id="2">63000</target></targets>
+<stoploss>59000</stoploss>
+<leverage>3</leverage>
+</signal>`;
+
+const ADAPTIVE_SIGNAL = `<signal>
+<action>LONG</action>
+<pair>BTCUSDT</pair>
+<entry_range><min>60000</min><max>61000</max></entry_range>
+<targets><target id="1">62000</target><target id="2">63000</target><target id="3">64000</target><target id="4">65000</target></targets>
 <stoploss>59000</stoploss>
 <leverage>3</leverage>
 </signal>`;
@@ -54,6 +66,91 @@ async function setupIntent(paper) {
     signal: validated.execution,
   });
   return { account, intent };
+}
+
+async function setPaperMark(paper, accountId, markPrice) {
+  await paper.setMarket(accountId, {
+    symbol: 'BTCUSDT', markPrice, priceTick: '0.1', quantityStep: '0.001',
+    minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
+  });
+}
+
+async function testAdaptiveTargetAndStopManagement(databasePath) {
+  await initDb(databasePath);
+  const paper = new PaperExchangeAdapter();
+  await ensureTradingDefaults(1_700_000_100_000);
+  const [account] = await listTradingAccounts();
+  const configuration = structuredClone(DEFAULT_STRATEGY_CONFIGURATION);
+  configuration.exits.targetAllocationMode = 'adaptive_halving';
+  configuration.exits.stopLossMode = 'adaptive_targets';
+  const draft = await createTradingStrategyDraft({
+    name: 'Adaptive Blueprint exits',
+    configuration,
+  });
+  const strategy = await publishTradingStrategyVersion(draft.id, 1_700_000_100_100);
+  await setTradingRoute({
+    channelId: '-adaptive', strategyVersionId: strategy.id, accountId: account.id, enabled: true,
+  });
+  await updateTradingRuntimeState({ executionEnabled: true });
+  await setPaperMark(paper, account.id, '60000');
+  const validated = validateSignalXml(ADAPTIVE_SIGNAL, 'default');
+  await saveSignal('adaptive-signal', '-adaptive', 1, ADAPTIVE_SIGNAL, ADAPTIVE_SIGNAL);
+  const intent = await createTradingIntent({
+    sourceSignalId: 'adaptive-signal', channelId: '-adaptive', signal: validated.execution,
+  });
+  const engine = new TradingEngine([paper]);
+  await engine.processIntent(intent.id);
+
+  const plan = (await getTradingIntent(intent.id)).plan;
+  assert.deepEqual(plan.targetAllocationsPercent, ['50', '25', '12.5', '12.5']);
+  assert.equal(plan.stopLossMode, 'adaptive_targets');
+  assert.deepEqual(
+    plan.orders.filter(order => order.role === 'take_profit').map(order => order.quantity),
+    ['0.008', '0.004', '0.002', '0.002'],
+  );
+
+  await setPaperMark(paper, account.id, '62000');
+  await engine.reconcileAccount(account.id);
+  let remote = await paper.openState(account);
+  assert.equal(remote.positions[0].quantity, '0.008');
+  assert.equal(remote.orders.find(order => order.role === 'stop_loss' && order.status === 'open').triggerPrice, '60500');
+  let localPosition = await getDatabase().get('SELECT stop_price FROM trading_positions WHERE intent_id = ?', [intent.id]);
+  assert.equal(localPosition.stop_price, '60500', 'The web-visible position stop must reflect the active replacement stop.');
+
+  await setPaperMark(paper, account.id, '63000');
+  await engine.reconcileAccount(account.id);
+  remote = await paper.openState(account);
+  assert.equal(remote.positions[0].quantity, '0.004');
+  assert.equal(remote.orders.find(order => order.role === 'stop_loss' && order.status === 'open').triggerPrice, '60500');
+
+  await setPaperMark(paper, account.id, '64000');
+  await engine.reconcileAccount(account.id);
+  remote = await paper.openState(account);
+  assert.equal(remote.positions[0].quantity, '0.002');
+  assert.equal(remote.orders.find(order => order.role === 'stop_loss' && order.status === 'open').triggerPrice, '62000');
+  localPosition = await getDatabase().get('SELECT stop_price FROM trading_positions WHERE intent_id = ?', [intent.id]);
+  assert.equal(localPosition.stop_price, '62000');
+
+  const moves = await getDatabase().all(
+    `SELECT details_json FROM trading_risk_events
+     WHERE intent_id = ? AND code = 'STOP_LOSS_MOVED' ORDER BY rowid`,
+    [intent.id],
+  );
+  assert.equal(moves.length, 2, 'Only actual stop-price changes should be logged.');
+  assert.deepEqual(JSON.parse(moves[0].details_json), {
+    fromTrigger: '59000', toTrigger: '60500', filledTargets: 1,
+    reason: 'break_even_after_target', referenceTargetIndex: null,
+  });
+  assert.deepEqual(JSON.parse(moves[1].details_json), {
+    fromTrigger: '60500', toTrigger: '62000', filledTargets: 3,
+    reason: 'target_ladder_after_target', referenceTargetIndex: 1,
+  });
+
+  await setPaperMark(paper, account.id, '65000');
+  await engine.reconcileAccount(account.id);
+  remote = await paper.openState(account);
+  assert.equal(remote.positions.length, 0, 'The final adaptive target must close the complete remainder.');
+  assert.equal((await getTradingIntent(intent.id)).status, 'completed');
 }
 
 async function run() {
@@ -148,6 +245,9 @@ async function run() {
     const readyAccount = await getTradingAccount(account.id);
     const snapshot = await paper.accountSnapshot(readyAccount);
     assert.equal(snapshot.equity, '9992', 'Paper equity must include exact realized PnL and stop slippage.');
+
+    await closeDb();
+    await testAdaptiveTargetAndStopManagement(path.join(directory, 'adaptive.db'));
   } finally {
     await closeDb();
     await rm(directory, { recursive: true, force: true });

@@ -16,6 +16,7 @@ import type {
   TradingOverview,
   TradingRoute,
   TradingRuntimeState,
+  StrategyConfiguration,
   TradingStrategyVersion,
 } from './trading_types.js';
 
@@ -40,9 +41,10 @@ function parseJson<T>(value: unknown, label: string): T {
 }
 
 function strategyFromRow(row: any): TradingStrategyVersion {
-  const configuration = validateStrategyConfiguration(parseJson(row.configuration_json, 'strategy configuration'));
-  const hash = strategyConfigurationSha256(configuration);
+  const storedConfiguration = parseJson<StrategyConfiguration>(row.configuration_json, 'strategy configuration');
+  const hash = strategyConfigurationSha256(storedConfiguration);
   if (hash !== row.configuration_sha256) throw new Error(`Strategy version ${row.id} failed its integrity check.`);
+  const configuration = validateStrategyConfiguration(storedConfiguration);
   return {
     id: String(row.id),
     strategyId: String(row.strategy_id),

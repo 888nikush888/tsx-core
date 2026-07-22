@@ -20,9 +20,15 @@ import {
 } from '../src/trading_decimal.js';
 import {
   DEFAULT_STRATEGY_CONFIGURATION,
+  strategyConfigurationSha256,
   validateStrategyConfiguration,
 } from '../src/trading_strategy.js';
-import { allocateTargetQuantities, createTradingPlan } from '../src/trading_risk.js';
+import {
+  adaptiveStopLossDecision,
+  adaptiveTargetAllocations,
+  allocateTargetQuantities,
+  createTradingPlan,
+} from '../src/trading_risk.js';
 import {
   createTradingIntent,
   createTradingAccount,
@@ -34,6 +40,7 @@ import {
   ensureTradingDefaults,
   getTradingOverview,
   getTradingOperationalSnapshot,
+  getTradingStrategyVersion,
   listTradingAccounts,
   listTradingActivity,
   listTradingIntents,
@@ -89,6 +96,14 @@ function testDecimalAndStrategyContracts() {
   const invalidRemainderPolicy = configuration();
   invalidRemainderPolicy.exits.closeRemainderAtLastTarget = false;
   assert.throws(() => validateStrategyConfiguration(invalidRemainderPolicy), /full remainder.*mandatory/);
+  const legacyConfiguration = configuration();
+  delete legacyConfiguration.exits.targetAllocationMode;
+  delete legacyConfiguration.exits.stopLossMode;
+  const normalizedLegacy = validateStrategyConfiguration(legacyConfiguration);
+  assert.equal(normalizedLegacy.exits.targetAllocationMode, 'manual');
+  assert.equal(normalizedLegacy.exits.stopLossMode, 'configured');
+  invalidConfiguration(value => { value.exits.targetAllocationMode = 'unsupported'; }, /targetAllocationMode/);
+  invalidConfiguration(value => { value.exits.stopLossMode = 'unsupported'; }, /stopLossMode/);
   invalidConfiguration(value => { value.schemaVersion = 2; }, /Unsupported strategy schema/);
   invalidConfiguration(value => { value.unsupported = true; }, /unsupported fields/);
   invalidConfiguration(value => { value.allowedSignalSchemas = []; }, /supported executable signal schema/);
@@ -106,6 +121,12 @@ function testDecimalAndStrategyContracts() {
   invalidConfiguration(value => { value.safety.maxSlippagePercent = '6'; }, /must not exceed/);
   invalidConfiguration(value => { value.safety.entryOrderTtlSeconds = 9; }, /between 10 and 86400/);
 
+  assert.deepEqual(adaptiveTargetAllocations(1), ['100']);
+  assert.deepEqual(adaptiveTargetAllocations(3), ['50', '25', '25']);
+  assert.deepEqual(adaptiveTargetAllocations(4), ['50', '25', '12.5', '12.5']);
+  assert.deepEqual(adaptiveTargetAllocations(5), ['50', '25', '12.5', '6.25', '6.25']);
+  assert.throws(() => adaptiveTargetAllocations(0), /between one and twenty/);
+
 }
 
 function planInput(executable) {
@@ -119,6 +140,74 @@ function planInput(executable) {
       minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now(),
     },
   };
+}
+
+function testAdaptivePlanContracts() {
+  const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
+  const input = planInput(executable);
+  const legacyStrategy = configuration();
+  delete legacyStrategy.exits.targetAllocationMode;
+  delete legacyStrategy.exits.stopLossMode;
+  const legacyPlan = createTradingPlan({ ...input, strategy: legacyStrategy });
+  assert.equal(legacyPlan.targetAllocationMode, 'manual');
+  assert.equal(legacyPlan.stopLossMode, 'configured');
+  const invalidRuntimeMode = configuration();
+  invalidRuntimeMode.exits.targetAllocationMode = 'unsupported';
+  assert.throws(
+    () => createTradingPlan({ ...input, strategy: invalidRuntimeMode }),
+    /Unsupported target allocation mode/,
+  );
+  const adaptiveStrategy = configuration();
+  adaptiveStrategy.exits.targetAllocationMode = 'adaptive_halving';
+  adaptiveStrategy.exits.stopLossMode = 'adaptive_targets';
+  const adaptiveSignal = {
+    ...executable,
+    targets: ['62000', '63000', '64000', '65000', '66000'].map(price => ({ min: price, max: price })),
+  };
+  const adaptivePlan = createTradingPlan({ ...input, signal: adaptiveSignal, strategy: adaptiveStrategy });
+  assert.equal(adaptivePlan.targetAllocationMode, 'adaptive_halving');
+  assert.equal(adaptivePlan.stopLossMode, 'adaptive_targets');
+  assert.deepEqual(adaptivePlan.targetAllocationsPercent, ['50', '25', '12.5', '6.25', '6.25']);
+  assert.deepEqual(
+    adaptivePlan.orders.filter(order => order.role === 'take_profit').map(order => order.quantity),
+    ['0.008', '0.004', '0.002', '0.001', '0.001'],
+  );
+  assert.deepEqual(adaptiveStopLossDecision(adaptivePlan, 0), {
+    trigger: '59000', reason: 'initial', referenceTargetIndex: null,
+  });
+  assert.deepEqual(adaptiveStopLossDecision(adaptivePlan, 1), {
+    trigger: '60500', reason: 'break_even_after_target', referenceTargetIndex: null,
+  });
+  assert.equal(adaptiveStopLossDecision(adaptivePlan, 2).trigger, '60500');
+  assert.deepEqual(adaptiveStopLossDecision(adaptivePlan, 3), {
+    trigger: '62000', reason: 'target_ladder_after_target', referenceTargetIndex: 1,
+  });
+  assert.deepEqual(adaptiveStopLossDecision(adaptivePlan, 4), {
+    trigger: '63000', reason: 'target_ladder_after_target', referenceTargetIndex: 2,
+  });
+  assert.deepEqual(adaptiveStopLossDecision(adaptivePlan, 5), {
+    trigger: '63000', reason: 'final_target_complete', referenceTargetIndex: null,
+  });
+  const singleTargetPlan = createTradingPlan({
+    ...input,
+    strategy: adaptiveStrategy,
+    signal: { ...executable, targets: [{ min: '62000', max: '62000' }] },
+  });
+  assert.deepEqual(adaptiveStopLossDecision(singleTargetPlan, 1), {
+    trigger: '59000', reason: 'final_target_complete', referenceTargetIndex: null,
+  });
+  const adaptiveShortPlan = createTradingPlan({
+    ...input,
+    strategy: adaptiveStrategy,
+    signal: {
+      ...executable,
+      action: 'SHORT',
+      stopLoss: '62000',
+      targets: ['59000', '58000', '57000', '56000'].map(price => ({ min: price, max: price })),
+    },
+  });
+  assert.deepEqual(adaptiveShortPlan.targetAllocationsPercent, ['50', '25', '12.5', '12.5']);
+  assert.equal(adaptiveStopLossDecision(adaptiveShortPlan, 3).trigger, '59000');
 }
 
 function testTradingPlanContracts() {
@@ -226,6 +315,24 @@ function testTradingPlanContracts() {
 }
 
 async function testRepositoryValidation(defaults, accounts) {
+  const legacyDraft = await createTradingStrategyDraft({
+    name: 'Legacy exit configuration',
+    configuration: configuration(),
+  });
+  const legacyStoredConfiguration = configuration();
+  delete legacyStoredConfiguration.exits.targetAllocationMode;
+  delete legacyStoredConfiguration.exits.stopLossMode;
+  const legacyHash = strategyConfigurationSha256(legacyStoredConfiguration);
+  await getDatabase().run(
+    `UPDATE trading_strategy_versions SET configuration_json = ?, configuration_sha256 = ? WHERE id = ?`,
+    [JSON.stringify(legacyStoredConfiguration), legacyHash, legacyDraft.id],
+  );
+  const loadedLegacy = await getTradingStrategyVersion(legacyDraft.id);
+  assert.equal(loadedLegacy.configuration.exits.targetAllocationMode, 'manual');
+  assert.equal(loadedLegacy.configuration.exits.stopLossMode, 'configured');
+  assert.equal(loadedLegacy.configurationSha256, legacyHash, 'Normalization must not invalidate an immutable legacy hash.');
+  await deleteTradingStrategyVersion(legacyDraft.id);
+
   await assert.rejects(createTradingAccount({ name: '', exchange: 'paper', mode: 'paper' }), /name must contain/);
   await assert.rejects(createTradingAccount({ name: 'Bad exchange', exchange: 'unknown', mode: 'testnet', credentialRef: 'x' }), /Unsupported exchange/);
   await assert.rejects(createTradingAccount({ name: 'Bad mode', exchange: 'bybit', mode: 'paper', credentialRef: 'x' }), /Paper mode may only/);
@@ -425,6 +532,7 @@ async function runRepositoryTests() {
 }
 
 testDecimalAndStrategyContracts();
+testAdaptivePlanContracts();
 testTradingPlanContracts();
 await runRepositoryTests();
 console.log('Trading core tests passed.');

@@ -18,7 +18,12 @@ import {
   addDecimal,
   quantizeDecimalDown,
 } from './trading_decimal.js';
-import { allocateTargetQuantities, createTradingPlan, TradingRiskError } from './trading_risk.js';
+import {
+  adaptiveStopLossDecision,
+  allocateTargetQuantities,
+  createTradingPlan,
+  TradingRiskError,
+} from './trading_risk.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
 import type {
   ExchangeOpenState,
@@ -427,6 +432,17 @@ async function openLocalPosition(intent: TradingIntent, result: ExchangeOrderRes
 
 async function adjustedTakeProfits(intentId: string, plan: TradingPlan, quantity: string): Promise<PlannedOrder[]> {
   const takeProfits = plan.orders.filter(order => order.role === 'take_profit');
+  const states = await getDatabase().all<Array<{ client_order_id: string; status: string }>>(
+    `SELECT client_order_id, status FROM trading_orders
+     WHERE intent_id = ? AND role = 'take_profit'`,
+    [intentId],
+  );
+  if (states.length !== takeProfits.length) {
+    throw new Error('Take-profit order state does not match the immutable trade plan.');
+  }
+  if (states.some(state => state.status !== 'created')) {
+    return takeProfits;
+  }
   const quantities = allocateTargetQuantities(quantity, plan.targetAllocationsPercent, plan.quantityStep);
   const adjusted = takeProfits.map((order, index) => ({ ...order, quantity: quantities[index]! }));
   for (const order of adjusted) {
@@ -491,7 +507,30 @@ async function createReplacementStop(intent: TradingIntent, plan: TradingPlan, q
   return replacement;
 }
 
-async function desiredProtectiveTrigger(input: {
+type ProtectiveStopDecision = {
+  trigger: string;
+  reason: string;
+  referenceTargetIndex: number | null;
+};
+
+function stopImproves(side: 'LONG' | 'SHORT', candidate: string, current: string): boolean {
+  return side === 'LONG'
+    ? compareDecimal(candidate, current) > 0
+    : compareDecimal(candidate, current) < 0;
+}
+
+function configuredStopDecision(
+  plan: TradingPlan,
+  strategy: NonNullable<Awaited<ReturnType<typeof getTradingStrategyVersion>>>,
+  filledTargets: number,
+): ProtectiveStopDecision {
+  const breakEvenAt = strategy.configuration.exits.moveStopToBreakEvenAfterTarget;
+  return breakEvenAt !== null && filledTargets >= breakEvenAt
+    ? { trigger: plan.entryPrice, reason: 'configured_break_even', referenceTargetIndex: null }
+    : { trigger: plan.stopPrice, reason: 'initial', referenceTargetIndex: null };
+}
+
+async function desiredProtectiveStop(input: {
   adapter: TradingExchangeAdapter;
   account: TradingAccount;
   side: 'LONG' | 'SHORT';
@@ -500,19 +539,22 @@ async function desiredProtectiveTrigger(input: {
   strategy: NonNullable<Awaited<ReturnType<typeof getTradingStrategyVersion>>>;
   filledTargets: number;
   currentTrigger: string | null;
-}): Promise<string> {
-  const breakEvenAt = input.strategy.configuration.exits.moveStopToBreakEvenAfterTarget;
-  let trigger = breakEvenAt !== null && input.filledTargets >= breakEvenAt
-    ? input.plan.entryPrice
-    : input.plan.stopPrice;
-  if (input.currentTrigger) {
-    const currentImproves = input.side === 'LONG'
-      ? compareDecimal(input.currentTrigger, trigger) > 0
-      : compareDecimal(input.currentTrigger, trigger) < 0;
-    if (currentImproves) trigger = input.currentTrigger;
+}): Promise<ProtectiveStopDecision> {
+  const stopLossMode = input.plan.stopLossMode
+    ?? input.strategy.configuration.exits.stopLossMode
+    ?? 'configured';
+  if (!['configured', 'adaptive_targets'].includes(stopLossMode)) {
+    throw new TradingRiskError('INVALID_STOP_LOSS_MODE', 'Unsupported stop-loss management mode.');
   }
+  let decision: ProtectiveStopDecision = stopLossMode === 'adaptive_targets'
+    ? adaptiveStopLossDecision(input.plan, input.filledTargets)
+    : configuredStopDecision(input.plan, input.strategy, input.filledTargets);
+  if (input.currentTrigger && stopImproves(input.side, input.currentTrigger, decision.trigger)) {
+    decision = { trigger: input.currentTrigger, reason: 'existing_safer', referenceTargetIndex: null };
+  }
+  if (stopLossMode === 'adaptive_targets') return decision;
   const trailingPercent = input.strategy.configuration.exits.trailingStopPercent;
-  if (trailingPercent === null) return trigger;
+  if (trailingPercent === null) return decision;
   const market = await input.adapter.marketSnapshot(input.account, input.symbol);
   const distance = divideDecimal(multiplyDecimal(market.markPrice, trailingPercent), '100');
   const candidate = quantizeDecimalDown(
@@ -521,11 +563,9 @@ async function desiredProtectiveTrigger(input: {
       : addDecimal(market.markPrice, distance),
     market.priceTick,
   );
-  const improves = input.side === 'LONG'
-    ? compareDecimal(candidate, trigger) > 0
-    : compareDecimal(candidate, trigger) < 0;
-  if (improves) trigger = candidate;
-  return trigger;
+  return stopImproves(input.side, candidate, decision.trigger)
+    ? { trigger: candidate, reason: 'trailing_stop', referenceTargetIndex: null }
+    : decision;
 }
 
 function matchingActiveStops(
@@ -1292,7 +1332,7 @@ export class TradingEngine {
     const activeStops = matchingActiveStops(remote, intentOrderIds, local.symbol);
     const activeStop = safestActiveStop(activeStops, local.side);
     const protectiveQuantity = await requiredProtectiveQuantity(intent.id, plan, quantity);
-    const trigger = await desiredProtectiveTrigger({
+    const decision = await desiredProtectiveStop({
       adapter,
       account,
       side: local.side,
@@ -1302,10 +1342,29 @@ export class TradingEngine {
       filledTargets,
       currentTrigger: activeStop?.triggerPrice || null,
     });
-    const exactStop = activeStops.find(stop => stop.quantity === protectiveQuantity && stop.triggerPrice === trigger);
+    const exactStop = activeStops.find(stop => stop.quantity === protectiveQuantity && stop.triggerPrice === decision.trigger);
     const protectedStop = await this.activateProtectiveStop(
-      adapter, account, intent, plan, local.symbol, protectiveQuantity, trigger, exactStop,
+      adapter, account, intent, plan, local.symbol, protectiveQuantity, decision.trigger, exactStop,
     );
+    await getDatabase().run(
+      'UPDATE trading_positions SET stop_price = ?, updated_at = ? WHERE intent_id = ?',
+      [decision.trigger, remote.observedAt, intent.id],
+    );
+    if (activeStop?.triggerPrice && activeStop.triggerPrice !== decision.trigger) {
+      await riskEvent({
+        severity: 'info',
+        code: 'STOP_LOSS_MOVED',
+        accountId: account.id,
+        intentId: intent.id,
+        details: {
+          fromTrigger: activeStop.triggerPrice,
+          toTrigger: decision.trigger,
+          filledTargets,
+          reason: decision.reason,
+          referenceTargetIndex: decision.referenceTargetIndex,
+        },
+      });
+    }
     await this.cancelStaleProtectiveStops(account, adapter, intent, activeStops, protectedStop);
   }
 

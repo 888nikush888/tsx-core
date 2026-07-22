@@ -79,12 +79,6 @@ function assertStrategyAllows(signal: ExecutableSignal, strategy: StrategyConfig
   if (strategy.allowedSymbols.length > 0 && !strategy.allowedSymbols.includes(signal.symbol)) {
     throw new TradingRiskError('SYMBOL_BLOCKED', `Strategy does not allow ${signal.symbol}.`);
   }
-  if (strategy.exits.targetAllocationsPercent.length !== signal.targets.length) {
-    throw new TradingRiskError(
-      'TARGET_COUNT_MISMATCH',
-      `Strategy defines ${strategy.exits.targetAllocationsPercent.length} exits but the signal contains ${signal.targets.length} targets.`,
-    );
-  }
 }
 
 function riskDistance(signal: ExecutableSignal, price: string): string {
@@ -142,6 +136,70 @@ export function allocateTargetQuantities(quantity: string, allocations: string[]
   });
 }
 
+export function adaptiveTargetAllocations(targetCount: number): string[] {
+  if (!Number.isSafeInteger(targetCount) || targetCount < 1 || targetCount > 20) {
+    throw new TradingRiskError('INVALID_TARGET_COUNT', 'Adaptive target count must be between one and twenty.');
+  }
+  const allocations: string[] = [];
+  let remaining = '100';
+  for (let index = 0; index < targetCount - 1; index += 1) {
+    const allocation = divideDecimal(remaining, '2');
+    allocations.push(allocation);
+    remaining = subtractDecimal(remaining, allocation);
+  }
+  allocations.push(remaining);
+  return allocations;
+}
+
+export function resolveTargetAllocations(strategy: StrategyConfiguration, targetCount: number): string[] {
+  const mode = strategy.exits.targetAllocationMode ?? 'manual';
+  if (mode === 'adaptive_halving') return adaptiveTargetAllocations(targetCount);
+  if (mode !== 'manual') throw new TradingRiskError('INVALID_TARGET_ALLOCATION_MODE', 'Unsupported target allocation mode.');
+  if (strategy.exits.targetAllocationsPercent.length !== targetCount) {
+    throw new TradingRiskError(
+      'TARGET_COUNT_MISMATCH',
+      `Strategy defines ${strategy.exits.targetAllocationsPercent.length} exits but the signal contains ${targetCount} targets.`,
+    );
+  }
+  return [...strategy.exits.targetAllocationsPercent];
+}
+
+export interface AdaptiveStopLossDecision {
+  trigger: string;
+  reason: 'initial' | 'break_even_after_target' | 'target_ladder_after_target' | 'final_target_complete';
+  referenceTargetIndex: number | null;
+}
+
+export function adaptiveStopLossDecision(plan: TradingPlan, filledTargets: number): AdaptiveStopLossDecision {
+  const takeProfits = plan.orders
+    .filter(order => order.role === 'take_profit')
+    .sort((left, right) => Number(left.targetIndex) - Number(right.targetIndex));
+  const finalTargetComplete = filledTargets >= takeProfits.length;
+  const managedTargetCount = finalTargetComplete ? Math.max(0, takeProfits.length - 1) : filledTargets;
+  if (managedTargetCount <= 0) {
+    return {
+      trigger: plan.stopPrice,
+      reason: finalTargetComplete ? 'final_target_complete' : 'initial',
+      referenceTargetIndex: null,
+    };
+  }
+  const referenceTargetIndex = managedTargetCount - 2;
+  if (referenceTargetIndex <= 0) {
+    return {
+      trigger: plan.entryPrice,
+      reason: finalTargetComplete ? 'final_target_complete' : 'break_even_after_target',
+      referenceTargetIndex: null,
+    };
+  }
+  const reference = takeProfits.find(order => order.targetIndex === referenceTargetIndex);
+  if (!reference?.price) throw new TradingRiskError('MISSING_REFERENCE_TARGET', 'Adaptive stop reference target is missing.');
+  return {
+    trigger: reference.price,
+    reason: finalTargetComplete ? 'final_target_complete' : 'target_ladder_after_target',
+    referenceTargetIndex: finalTargetComplete ? null : referenceTargetIndex,
+  };
+}
+
 function plannedOrders(input: {
   intentId: string;
   signal: ExecutableSignal;
@@ -150,13 +208,14 @@ function plannedOrders(input: {
   entry: string;
   stop: string;
   quantity: string;
+  targetAllocations: string[];
 }): PlannedOrder[] {
   const openingSide = input.signal.action === 'LONG' ? 'buy' : 'sell';
   const closingSide = openingSide === 'buy' ? 'sell' : 'buy';
   const entryType = input.strategy.entry.orderType === 'market' || input.signal.entry.type === 'market' ? 'market' : 'limit';
   const targets = allocateTargetQuantities(
     input.quantity,
-    input.strategy.exits.targetAllocationsPercent,
+    input.targetAllocations,
     input.market.quantityStep,
   );
   const entry: PlannedOrder = {
@@ -209,6 +268,7 @@ export function createTradingPlan(input: {
   now?: number;
 }): TradingPlan {
   assertStrategyAllows(input.signal, input.strategy);
+  const targetAllocations = resolveTargetAllocations(input.strategy, input.signal.targets.length);
   const price = quantizedEntryPrice(input.signal, input.strategy, input.market);
   const stop = quantizedStopPrice(input.signal, input.market);
   const distance = riskDistance({ ...input.signal, stopLoss: stop }, price);
@@ -241,8 +301,10 @@ export function createTradingPlan(input: {
     entryOrderTtlSeconds: input.strategy.safety.entryOrderTtlSeconds,
     maxSlippagePercent: input.strategy.safety.maxSlippagePercent,
     quantityStep: input.market.quantityStep,
-    targetAllocationsPercent: [...input.strategy.exits.targetAllocationsPercent],
-    orders: plannedOrders({ ...input, entry: price, stop, quantity }),
+    targetAllocationMode: input.strategy.exits.targetAllocationMode ?? 'manual',
+    targetAllocationsPercent: targetAllocations,
+    stopLossMode: input.strategy.exits.stopLossMode ?? 'configured',
+    orders: plannedOrders({ ...input, entry: price, stop, quantity, targetAllocations }),
     createdAt: input.now ?? Date.now(),
   };
 }

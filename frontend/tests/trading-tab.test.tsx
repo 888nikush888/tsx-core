@@ -77,6 +77,9 @@ describe("Trading strategy control", () => {
         strategies = strategies.filter((strategy: any) => strategy.id !== "strategy-delete")
         return response({ success: true, result: true })
       }
+      if (url.endsWith("/api/trading/strategies/update") && init.method === "POST") {
+        return response({ success: true, result: JSON.parse(String(init.body)) })
+      }
       if (url.endsWith("/api/trading")) return response(snapshot(strategies))
       return response({}, 404)
     }))
@@ -99,5 +102,29 @@ describe("Trading strategy control", () => {
     expect(JSON.parse(String(request?.init.body))).toEqual({ id: "strategy-delete" })
     expect(new Headers(request?.init.headers).get("X-Destructive-Confirmation")).toBe("delete-trading-strategy")
     await waitFor(() => expect(screen.queryByRole("button", { name: /Delete me v1/ })).not.toBeInTheDocument())
+  })
+
+  it("controls adaptive TP allocation and SL movement independently and persists both modes", async () => {
+    render(<TradingTab config={{ sourceChannels: [] }} />)
+    fireEvent.click(await screen.findByRole("button", { name: "Strategien" }))
+    fireEvent.click(screen.getByRole("button", { name: /Delete me v1/ }))
+
+    const targetSwitch = screen.getByRole("switch", { name: "Adaptive TP-Staffelung (Halbierungsregel)" })
+    const stopSwitch = screen.getByRole("switch", { name: "Adaptives SL-Nachziehen nach TP-Stufen" })
+    expect(targetSwitch).not.toBeChecked()
+    expect(stopSwitch).not.toBeChecked()
+    fireEvent.click(targetSwitch)
+    fireEvent.click(stopSwitch)
+
+    expect(screen.getByText(/Jeder TP bis zum vorletzten schließt die Hälfte/)).toBeInTheDocument()
+    expect(screen.getByText(/Nach TP1 und TP2 wird der SL auf Break-even gesetzt/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Entwurf speichern" }))
+
+    await screen.findByText("Strategieentwurf gespeichert.")
+    const request = requests.find(({ url, init }) => url.endsWith("/api/trading/strategies/update") && init.method === "POST")
+    const body = JSON.parse(String(request?.init.body))
+    expect(body.configuration.exits.targetAllocationMode).toBe("adaptive_halving")
+    expect(body.configuration.exits.stopLossMode).toBe("adaptive_targets")
+    expect(body.configuration.exits.targetAllocationsPercent).toEqual(["100"])
   })
 })

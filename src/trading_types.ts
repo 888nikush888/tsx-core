@@ -4,6 +4,8 @@ export type TradingAccountStatus = 'unverified' | 'ready' | 'disabled' | 'error'
 export type TradingSide = 'LONG' | 'SHORT';
 export type TradingOrderSide = 'buy' | 'sell';
 export type TradingOrderType = 'market' | 'limit';
+export type TargetAllocationMode = 'manual' | 'adaptive_halving';
+export type StopLossMode = 'configured' | 'adaptive_targets';
 export type TradingIntentStatus =
   | 'pending'
   | 'planned'
@@ -59,7 +61,11 @@ export interface StrategyConfiguration {
     maxLeverage: number;
   };
   exits: {
+    /** Existing fixed percentages or Blueprint v4's dynamic half-of-remainder ladder. */
+    targetAllocationMode: TargetAllocationMode;
     targetAllocationsPercent: string[];
+    /** Existing break-even/trailing settings or the TP(i-2) Blueprint v4 ladder. */
+    stopLossMode: StopLossMode;
     moveStopToBreakEvenAfterTarget: number | null;
     trailingStopPercent: string | null;
     closeRemainderAtLastTarget: true;
@@ -185,7 +191,9 @@ export interface TradingPlan {
   entryOrderTtlSeconds: number;
   maxSlippagePercent: string;
   quantityStep: string;
+  targetAllocationMode: TargetAllocationMode;
   targetAllocationsPercent: string[];
+  stopLossMode: StopLossMode;
   orders: PlannedOrder[];
   createdAt: number;
 }
