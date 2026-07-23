@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { constantTimeStringEqual } from './secure_compare.js';
 
 interface LockPayload {
   pid: number;
@@ -63,7 +64,7 @@ async function releaseOwnedLock(lockPath: string, token: string): Promise<void> 
     if (error?.code === 'ENOENT') return;
     throw error;
   }
-  if (existing.token !== token) {
+  if (!constantTimeStringEqual(token, existing.token)) {
     throw new Error(`Process lock '${lockPath}' ownership changed; refusing to remove another process lock.`);
   }
   await fs.unlink(lockPath);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { once } from 'node:events';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { auditTrailFromEnvironment, EnterpriseAuditTrail } from '../src/audit_trail.js';
@@ -63,6 +63,21 @@ try {
   await writeFile(filePath, `${JSON.stringify({ ...records[0], event: { ...records[0].event, path: '/tampered' } })}\n`, 'utf8');
   const tampered = new EnterpriseAuditTrail({ filePath, remoteRequired: false });
   await assert.rejects(tampered.initialize(), /Audit chain verification failed/);
+
+  const auditTarget = path.join(testDirectory, 'audit-target.jsonl');
+  const auditLink = path.join(testDirectory, 'audit-link.jsonl');
+  await writeFile(auditTarget, '', 'utf8');
+  let auditLinkCreated = true;
+  try {
+    await symlink(auditTarget, auditLink, 'file');
+  } catch (error) {
+    if (!['EPERM', 'ENOTSUP'].includes(error?.code)) throw error;
+    auditLinkCreated = false;
+  }
+  if (auditLinkCreated) {
+    const linked = new EnterpriseAuditTrail({ filePath: auditLink, remoteRequired: false });
+    await assert.rejects(linked.initialize(), /not a symbolic link/);
+  }
 
   gatewayStatus = 503;
   const failing = new EnterpriseAuditTrail({

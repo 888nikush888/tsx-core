@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { createHash } from 'node:crypto';
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'fs/promises';
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import sqlite3 from 'sqlite3';
@@ -232,6 +232,21 @@ async function assertArtifactNameValidation(root, artifact) {
   invalidManifest.files['unexpected.txt'] = { sha256: '0'.repeat(64), size: 1 };
   await writeFile(manifestPath, JSON.stringify(invalidManifest), 'utf8');
   await assert.rejects(verifyBackupArtifact(invalidArtifact), /unsupported file name/);
+
+  const linkedArtifact = path.join(root, 'linked-artifact-manifest');
+  const manifestTarget = path.join(root, 'external-manifest.json');
+  await mkdir(linkedArtifact);
+  await cp(path.join(artifact, 'manifest.json'), manifestTarget);
+  let manifestLinkCreated = true;
+  try {
+    await symlink(manifestTarget, path.join(linkedArtifact, 'manifest.json'), 'file');
+  } catch (error) {
+    if (!['EPERM', 'ENOTSUP'].includes(error?.code)) throw error;
+    manifestLinkCreated = false;
+  }
+  if (manifestLinkCreated) {
+    await assert.rejects(verifyBackupArtifact(linkedArtifact), /not a symbolic link/);
+  }
 }
 
 async function assertRestoreRollback(root, artifact, databasePath, configPath, stateDir) {

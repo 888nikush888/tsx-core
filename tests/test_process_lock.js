@@ -25,7 +25,18 @@ try {
   await recovered.release();
   console.log('   -> OK');
 
-  console.log('3. Testing malformed locks fail closed...');
+  console.log('3. Testing ownership changes fail closed...');
+  const guarded = await acquireProcessLock(lockPath);
+  await writeFile(lockPath, JSON.stringify({
+    pid: process.pid,
+    startedAt: new Date().toISOString(),
+    token: 'ownership-changed-token-1234'
+  }), 'utf8');
+  await assert.rejects(guarded.release(), /ownership changed/);
+  await rm(lockPath, { force: true });
+  console.log('   -> OK');
+
+  console.log('4. Testing malformed locks fail closed...');
   await writeFile(lockPath, '{not-json', 'utf8');
   await assert.rejects(acquireProcessLock(lockPath), /cannot be interpreted safely/);
   console.log('   -> OK');

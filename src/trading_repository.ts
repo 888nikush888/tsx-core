@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
+import { constantTimeStringEqual } from './secure_compare.js';
 import {
   createStrategyVersion,
   DEFAULT_STRATEGY_CONFIGURATION,
@@ -44,7 +45,9 @@ function parseJson<T>(value: unknown, label: string): T {
 function strategyFromRow(row: any): TradingStrategyVersion {
   const storedConfiguration = parseJson<StrategyConfiguration>(row.configuration_json, 'strategy configuration');
   const hash = strategyConfigurationSha256(storedConfiguration);
-  if (hash !== row.configuration_sha256) throw new Error(`Strategy version ${row.id} failed its integrity check.`);
+  if (!constantTimeStringEqual(hash, row.configuration_sha256)) {
+    throw new Error(`Strategy version ${row.id} failed its integrity check.`);
+  }
   const configuration = validateStrategyConfiguration(storedConfiguration);
   return {
     id: String(row.id),

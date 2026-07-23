@@ -158,10 +158,38 @@ export interface DatabaseStorageStats {
   reusableBytes: number;
 }
 
+const MIGRATION_IDENTIFIER_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const MIGRATION_COLUMN_DEFINITIONS = new Set([
+  'TEXT',
+  'INTEGER',
+  "TEXT NOT NULL DEFAULT 'pending'",
+  'INTEGER NOT NULL DEFAULT 0',
+]);
+
+function quotedMigrationIdentifier(value: string, label: string): string {
+  if (!MIGRATION_IDENTIFIER_PATTERN.test(value)) {
+    throw new Error(`Database migration ${label} is not a safe SQLite identifier.`);
+  }
+  return `"${value}"`;
+}
+
+function validatedMigrationColumnDefinition(definition: string): string {
+  if (!MIGRATION_COLUMN_DEFINITIONS.has(definition)) {
+    throw new Error('Database migration column definition is not allowlisted.');
+  }
+  return definition;
+}
+
 async function ensureColumn(database: Database, table: string, column: string, definition: string): Promise<void> {
-  const columns = await database.all<Array<{ name: string }>>(`PRAGMA table_info(${table})`);
+  const quotedTable = quotedMigrationIdentifier(table, 'table');
+  const quotedColumn = quotedMigrationIdentifier(column, 'column');
+  const safeDefinition = validatedMigrationColumnDefinition(definition);
+  const columns = await database.all<Array<{ name: string }>>(
+    'SELECT name FROM pragma_table_info(?)',
+    [table],
+  );
   if (!columns.some(existing => existing.name === column)) {
-    await database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    await database.exec(`ALTER TABLE ${quotedTable} ADD COLUMN ${quotedColumn} ${safeDefinition}`);
   }
 }
 
@@ -1335,10 +1363,11 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P
   const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
   let rows: any[];
   if (statuses && statuses.length > 0) {
-    const placeholders = statuses.map(() => '?').join(', ');
     rows = await getDb().all(
-      `SELECT * FROM pending_tasks WHERE status IN (${placeholders}) ORDER BY added_at ASC LIMIT ?`,
-      [...statuses, safeLimit]
+      `SELECT * FROM pending_tasks
+       WHERE status IN (SELECT value FROM json_each(?))
+       ORDER BY added_at ASC LIMIT ?`,
+      [JSON.stringify(statuses), safeLimit]
     );
   } else {
     rows = await getDb().all(`SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?`, [safeLimit]);
@@ -1353,12 +1382,12 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P
 export async function listPendingOutboxTasksForScheduling(excludedTaskIds: string[] = [], limit = 100): Promise<OutboxTask[]> {
   const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
   const excluded = [...new Set(excludedTaskIds.filter(id => typeof id === 'string' && id.length > 0))].slice(0, 1000);
-  const exclusionClause = excluded.length > 0
-    ? ` AND id NOT IN (${excluded.map(() => '?').join(', ')})`
-    : '';
   const rows = await getDb().all(
-    `SELECT * FROM pending_tasks WHERE status = 'pending'${exclusionClause} ORDER BY added_at ASC, id ASC LIMIT ?`,
-    [...excluded, safeLimit]
+    `SELECT * FROM pending_tasks
+     WHERE status = 'pending'
+       AND id NOT IN (SELECT value FROM json_each(?))
+     ORDER BY added_at ASC, id ASC LIMIT ?`,
+    [JSON.stringify(excluded), safeLimit]
   );
   return rows.map(mapOutboxRow);
 }

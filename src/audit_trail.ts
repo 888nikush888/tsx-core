@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, open, rm, stat } from 'node:fs/promises';
+import { mkdir, lstat, open, rm, type FileHandle } from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { enterpriseMode } from './runtime_profile.js';
@@ -107,21 +107,36 @@ function verifiedRecord(line: string, previousHash: string, sequence: number): A
   return parsed;
 }
 
+async function verifiedRegularFileStats(filePath: string, handle: FileHandle) {
+  const [pathStats, handleStats] = await Promise.all([lstat(filePath), handle.stat()]);
+  const sameFile = pathStats.dev === handleStats.dev && pathStats.ino === handleStats.ino;
+  if (!pathStats.isFile() || pathStats.isSymbolicLink() || !handleStats.isFile() || !sameFile) {
+    throw new Error('Audit log path must reference the opened regular file, not a symbolic link.');
+  }
+  return handleStats;
+}
+
 async function* verifiedRecordsFromFile(filePath: string): AsyncGenerator<AuditRecord> {
-  const exists = await stat(filePath).then(() => true).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') return false;
+  const handle = await open(filePath, 'r').catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return null;
     throw error;
   });
-  if (!exists) return;
-  const lines = createInterface({ input: createReadStream(filePath, { encoding: 'utf8' }), crlfDelay: Infinity });
-  let previousHash = ZERO_HASH;
-  let sequence = 0;
-  for await (const line of lines) {
-    if (!line) continue;
-    const record = verifiedRecord(line, previousHash, sequence);
-    previousHash = record.hash;
-    sequence = record.sequence;
-    yield record;
+  if (!handle) return;
+  try {
+    await verifiedRegularFileStats(filePath, handle);
+    const input = createReadStream(filePath, { fd: handle.fd, autoClose: false, encoding: 'utf8' });
+    const lines = createInterface({ input, crlfDelay: Infinity });
+    let previousHash = ZERO_HASH;
+    let sequence = 0;
+    for await (const line of lines) {
+      if (!line) continue;
+      const record = verifiedRecord(line, previousHash, sequence);
+      previousHash = record.hash;
+      sequence = record.sequence;
+      yield record;
+    }
+  } finally {
+    await handle.close();
   }
 }
 
@@ -205,10 +220,6 @@ export class EnterpriseAuditTrail {
 
   private async recordSerial(event: AuditEvent): Promise<void> {
     validateEvent(event);
-    const currentSize = await stat(this.filePath).then(value => value.size).catch((error: NodeJS.ErrnoException) => {
-      if (error.code === 'ENOENT') return 0;
-      throw error;
-    });
     const unsigned: Omit<AuditRecord, 'hash'> = {
       schemaVersion: 1,
       sequence: this.sequence + 1,
@@ -218,12 +229,13 @@ export class EnterpriseAuditTrail {
     };
     const record: AuditRecord = { ...unsigned, hash: recordHash(unsigned) };
     const serialized = `${JSON.stringify(record)}\n`;
-    if (currentSize + Buffer.byteLength(serialized) > this.maximumLocalBytes) {
-      this.healthy = false;
-      throw new Error('Local audit trail reached its configured capacity; archive it before further mutations.');
-    }
     const handle = await open(this.filePath, 'a', 0o600);
     try {
+      const currentSize = (await verifiedRegularFileStats(this.filePath, handle)).size;
+      if (currentSize + Buffer.byteLength(serialized) > this.maximumLocalBytes) {
+        this.healthy = false;
+        throw new Error('Local audit trail reached its configured capacity; archive it before further mutations.');
+      }
       await handle.writeFile(serialized, 'utf8');
       await handle.sync();
     } finally {

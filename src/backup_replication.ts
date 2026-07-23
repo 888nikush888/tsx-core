@@ -84,7 +84,7 @@ async function* archiveChunks(artifactPath: string): AsyncGenerator<Buffer> {
   const files = await listBackupArtifactFiles(artifactPath);
   for (const fileName of [MANIFEST_FILE, ...files]) {
     const filePath = path.join(artifactPath, fileName);
-    const stats = await fs.stat(filePath);
+    const stats = await fs.lstat(filePath);
     if (!stats.isFile() || stats.size < 1 || !Number.isSafeInteger(stats.size)) {
       throw new Error(`Backup file '${fileName}' is not a non-empty regular file.`);
     }

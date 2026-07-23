@@ -13,6 +13,7 @@ import {
 } from './db.js';
 import { configurationPathFromEnvironment } from './config.js';
 import { validateRuntimeSettings } from './runtime_settings.js';
+import { constantTimeStringEqual } from './secure_compare.js';
 
 interface BackupReplicator {
   replicate(artifactPath: string): Promise<{
@@ -110,6 +111,7 @@ function containsForbiddenConfigKey(value: any): boolean {
 }
 
 async function sha256File(filePath: string): Promise<BackupFileMetadata> {
+  await assertRegularFile(filePath, 'Backup checksum input');
   const content = await fs.readFile(filePath);
   return {
     sha256: createHash('sha256').update(content).digest('hex'),
@@ -276,7 +278,7 @@ async function verifyStrategyConfigurationHashes(database: Database): Promise<vo
       throw new Error(`Backup strategy ${strategy.id} contains invalid configuration JSON.`, { cause: error });
     }
     const hash = createHash('sha256').update(normalized).digest('hex');
-    if (hash !== strategy.configuration_sha256) {
+    if (!constantTimeStringEqual(hash, strategy.configuration_sha256)) {
       throw new Error(`Backup strategy ${strategy.id} failed its configuration integrity check.`);
     }
   }
@@ -299,7 +301,8 @@ export async function verifySqliteDatabase(databasePath: string): Promise<void> 
 
 async function readBackupManifest(artifactPath: string): Promise<BackupManifest> {
   const manifestPath = path.join(artifactPath, MANIFEST_FILE);
-  const stats = await fs.stat(manifestPath);
+  await assertRegularFile(manifestPath, 'Backup manifest');
+  const stats = await fs.lstat(manifestPath);
   if (stats.size > 64 * 1024) throw new Error('Backup manifest exceeds 64 KiB.');
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as BackupManifest;
   if (manifest.version !== 2 || !manifest.createdAt || !manifest.files || typeof manifest.files !== 'object') {
@@ -329,14 +332,15 @@ async function verifyManifestFile(
   const target = artifactPath(artifactRoot, fileName);
   await assertRegularFile(target, `Backup file '${fileName}'`);
   const actual = await sha256File(target);
-  if (actual.sha256 !== expected.sha256 || actual.size !== expected.size) {
+  if (!constantTimeStringEqual(actual.sha256, expected.sha256) || actual.size !== expected.size) {
     throw new Error(`Backup checksum mismatch for '${fileName}'.`);
   }
 }
 
 async function verifyBackupConfig(artifactPath: string): Promise<void> {
   const configPath = path.join(artifactPath, CONFIG_FILE);
-  const stats = await fs.stat(configPath);
+  await assertRegularFile(configPath, 'Backup configuration');
+  const stats = await fs.lstat(configPath);
   if (stats.size > 1024 * 1024) throw new Error('Backup configuration exceeds 1 MiB.');
   const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
@@ -349,8 +353,10 @@ async function verifyBackupConfig(artifactPath: string): Promise<void> {
 
 export async function verifyBackupArtifact(artifactPath: string): Promise<BackupManifest> {
   const resolvedArtifact = path.resolve(artifactPath);
-  const artifactStats = await fs.stat(resolvedArtifact);
-  if (!artifactStats.isDirectory()) throw new Error('Backup artifact must be a directory.');
+  const artifactStats = await fs.lstat(resolvedArtifact);
+  if (!artifactStats.isDirectory() || artifactStats.isSymbolicLink()) {
+    throw new Error('Backup artifact must be a directory and must not be a symbolic link.');
+  }
   const manifest = await readBackupManifest(resolvedArtifact);
   const fileNames = Object.keys(manifest.files);
   if (fileNames.length < CORE_BACKUP_FILES.length || fileNames.length > MAX_BACKUP_STATE_FILES + CORE_BACKUP_FILES.length + 1) {
