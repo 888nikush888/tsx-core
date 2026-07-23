@@ -82,6 +82,17 @@ async function createProcessLock(lockPath: string, payload: LockPayload): Promis
   };
 }
 
+async function handleLockCollision(lockPath: string, error: any): Promise<void> {
+  if (error?.code !== 'EEXIST') throw error;
+  const existing = await readPayload(lockPath);
+  if (processIsActive(existing.pid)) throw new ProcessLockActiveError(lockPath, existing.pid);
+  try {
+    await reapStaleLock(lockPath);
+  } catch (reapError: any) {
+    if (reapError?.code !== 'ENOENT') throw reapError;
+  }
+}
+
 /** Acquires a filesystem lock, reaping only locks whose PID is definitely gone. */
 export async function acquireProcessLock(lockPath: string): Promise<ProcessLock> {
   await fs.mkdir(path.dirname(lockPath), { recursive: true });
@@ -91,14 +102,7 @@ export async function acquireProcessLock(lockPath: string): Promise<ProcessLock>
     try {
       return await createProcessLock(lockPath, payload);
     } catch (error: any) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await readPayload(lockPath);
-      if (processIsActive(existing.pid)) throw new ProcessLockActiveError(lockPath, existing.pid);
-      try {
-        await reapStaleLock(lockPath);
-      } catch (reapError: any) {
-        if (reapError?.code !== 'ENOENT') throw reapError;
-      }
+      await handleLockCollision(lockPath, error);
     }
   }
 }

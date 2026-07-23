@@ -39,13 +39,39 @@ function closesNestedQuantifier(pattern: string, index: number, openGroups: Rege
   return nextChar === '+' || nextChar === '*' || nextChar === '?' || nextChar === '{';
 }
 
+class NestedQuantifierScanner {
+  private readonly openGroups: RegexGroupState[] = [];
+  private inCharacterClass = false;
+
+  consume(pattern: string, index: number): boolean {
+    const char = pattern[index];
+    if (char === '[' && !this.inCharacterClass) {
+      this.inCharacterClass = true;
+      return false;
+    }
+    if (char === ']' && this.inCharacterClass) {
+      this.inCharacterClass = false;
+      return false;
+    }
+    if (this.inCharacterClass) return false;
+    if (char === '(') {
+      this.openGroups.push({ index, hasQuantifier: false, isSpecial: pattern[index + 1] === '?' });
+      return false;
+    }
+    if (char === ')') return closesNestedQuantifier(pattern, index, this.openGroups);
+    if ((char === '+' || char === '*' || char === '{') && this.openGroups.length > 0) {
+      this.openGroups.at(-1)!.hasQuantifier = true;
+    }
+    return false;
+  }
+}
+
 /**
  * Checks if a pattern contains nested quantifiers or dangerous alternation structures
  * that might result in exponential backtracking (ReDoS).
  */
 export function hasNestedQuantifiers(pattern: string): boolean {
-  const openParens: RegexGroupState[] = [];
-  let inCharacterClass = false;
+  const scanner = new NestedQuantifierScanner();
 
   for (let i = 0; i < pattern.length; i++) {
     const char = pattern[i];
@@ -53,30 +79,7 @@ export function hasNestedQuantifiers(pattern: string): boolean {
       i++;
       continue;
     }
-
-    if (char === '[' && !inCharacterClass) {
-      inCharacterClass = true;
-      continue;
-    }
-    if (char === ']' && inCharacterClass) {
-      inCharacterClass = false;
-      continue;
-    }
-
-    if (inCharacterClass) continue;
-
-    if (char === '(') {
-      const isSpecial = pattern[i + 1] === '?';
-      openParens.push({ index: i, hasQuantifier: false, isSpecial });
-      continue;
-    }
-    if (char === ')') {
-      if (closesNestedQuantifier(pattern, i, openParens)) return true;
-      continue;
-    }
-    if ((char === '+' || char === '*' || char === '{') && openParens.length > 0) {
-      openParens.at(-1)!.hasQuantifier = true;
-    }
+    if (scanner.consume(pattern, i)) return true;
   }
   return false;
 }

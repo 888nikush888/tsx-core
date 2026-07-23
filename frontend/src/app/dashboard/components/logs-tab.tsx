@@ -75,10 +75,10 @@ export function LogsTab({ config }: any) {
       }
     }
     const message = remaining
-      
+
     const level = rawLevel.toUpperCase()
     let levelColor = "text-zinc-400"
-      
+
     if (level.includes("SUCCESS")) {
       levelColor = "text-emerald-500 dark:text-emerald-400 font-semibold"
     } else if (level.includes("INFO")) {
@@ -90,7 +90,7 @@ export function LogsTab({ config }: any) {
     } else if (level.includes("TDLIB") || level.includes("STATUS")) {
       levelColor = "text-violet-500 dark:text-violet-400"
     }
-      
+
     return {
       timestamp,
       levelText: rawLevel,

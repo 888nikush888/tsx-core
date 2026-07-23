@@ -36,6 +36,7 @@ const WINDOWS: Array<{ value: DashboardWindow; label: string; short: string }> =
 
 type SetupStep = { label: string; complete: boolean }
 type QueueState = { running: number; queued: number; maxConcurrency: number; paused: boolean }
+type PnlTone = "neutral" | "positive" | "negative"
 
 interface ExecutiveDashboardProps {
   readonly isRunning: boolean
@@ -89,7 +90,7 @@ function statusStyle(tone: "good" | "warning" | "bad" | "neutral"): string {
   return "border-border bg-muted/40 text-muted-foreground"
 }
 
-function pnlTone(value: number): "neutral" | "positive" | "negative" {
+function pnlTone(value: number): PnlTone {
   if (value > 0) return "positive"
   if (value < 0) return "negative"
   return "neutral"
@@ -115,7 +116,7 @@ function pnlDotClass(value: number): string {
   return value < 0 ? "bg-destructive" : "bg-muted-foreground/40"
 }
 
-function metricToneClass(tone: "neutral" | "positive" | "negative"): string {
+function metricToneClass(tone: PnlTone): string {
   if (tone === "positive") return "text-emerald-700 dark:text-emerald-300"
   return tone === "negative" ? "text-red-700 dark:text-red-300" : ""
 }
@@ -163,7 +164,7 @@ function HealthBadge({ value, good = "Healthy", bad = "Störung" }: Readonly<{ v
 }
 
 function MetricCard({ label, value, detail, icon, tone = "neutral" }: Readonly<{
-  label: string; value: string; detail: string; icon: ReactNode; tone?: "neutral" | "positive" | "negative"
+  label: string; value: string; detail: string; icon: ReactNode; tone?: PnlTone
 }>) {
   return <Card className="overflow-hidden transition-colors hover:border-primary/30"><CardContent className="p-5">
     <div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className={`mt-2 truncate text-2xl font-semibold tabular-nums ${metricToneClass(tone)}`}>{value}</p></div><div className="rounded-lg border bg-muted/40 p-2.5 text-primary">{icon}</div></div>
