@@ -1,4 +1,4 @@
 # Official exchange SDKs only. Runtime dependencies are fully resolved and
 # hash-pinned in requirements.lock.
 hyperliquid-python-sdk==0.24.0
-pybit==5.16.0
+pybit==5.17.0
