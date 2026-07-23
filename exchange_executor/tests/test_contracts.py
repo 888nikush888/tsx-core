@@ -18,6 +18,7 @@ from common import (
     RequestDeadline,
     decimal_string,
     external_account_cache_key,
+    external_account_id,
     map_bybit_status,
     optional_positive_decimal_string,
     signed_decimal_string,
@@ -52,6 +53,14 @@ class ContractTests(unittest.TestCase):
         self.assertNotIn("high-entropy-api-key", first)
         with self.assertRaises(ExchangeContractError):
             external_account_cache_key("bybit-key", "mainnet", "")
+
+    def test_external_account_ids_are_keyed_and_domain_separated(self) -> None:
+        first = external_account_id("bybit", "mainnet", "public-account-123")
+        self.assertEqual(first, external_account_id("bybit", "mainnet", "public-account-123"))
+        self.assertNotEqual(first, external_account_id("bybit", "testnet", "public-account-123"))
+        self.assertNotIn("public-account-123", first)
+        with self.assertRaises(ExchangeContractError):
+            external_account_id("bybit", "mainnet", "")
 
     def test_executor_deadline_is_bounded_and_fail_closed(self) -> None:
         deadline = RequestDeadline.from_payload({"deadlineAt": int(time.time() * 1000) + 2_000})

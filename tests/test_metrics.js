@@ -64,6 +64,39 @@ const HEALTHY_OPERATIONAL_METRICS = {
   }
 };
 
+async function testMetricsTracker() {
+  let forwarded = 0;
+  const trackerCallbacks = {
+    totalForwardedCountCallback: () => forwarded,
+    getQueueStateCallback: () => ({ running: 1, queued: 2, maxConcurrency: 3, paused: false })
+  };
+  const tracker = new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 3 });
+  tracker.start();
+  forwarded = 2;
+  const sampleDeadline = Date.now() + 1_000;
+  while (tracker.getHistory().length < 3 && Date.now() < sampleDeadline) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  tracker.stop();
+  const history = tracker.getHistory();
+  assert.strictEqual(history.length, 3, 'History must enforce its configured memory bound');
+  assert.ok(history.some(point => point.processedDelta === 2));
+  assert.ok(history.every(point => point.cpuUsage >= 0 && point.memoryUsage > 0));
+  assert.ok(history.every(point => !('internetSpeed' in point)), 'Fabricated bandwidth must not be emitted');
+
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 9 }), /at least 10ms/);
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10.5 }), /at least 10ms/);
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 0 }), /between 1 and 10000/);
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 10_001 }), /between 1 and 10000/);
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 1.5 }), /between 1 and 10000/);
+
+  const defaultTracker = new MetricsTracker(trackerCallbacks);
+  defaultTracker.start();
+  defaultTracker.start();
+  defaultTracker.stop();
+  defaultTracker.stop();
+}
+
 async function runTests() {
   let operational = { ...HEALTHY_OPERATIONAL_METRICS };
   const server = startMetricsServer(0, {
@@ -143,41 +176,7 @@ async function runTests() {
   response = await fetch(`${baseUrl}/metrics`, { method: 'POST' });
   assert.strictEqual(response.status, 405);
   await stopMetricsServer();
-
-  let forwarded = 0;
-  const trackerCallbacks = {
-    totalForwardedCountCallback: () => forwarded,
-    getQueueStateCallback: () => ({ running: 1, queued: 2, maxConcurrency: 3, paused: false })
-  };
-  const tracker = new MetricsTracker({
-    ...trackerCallbacks,
-    intervalMs: 10,
-    maxPoints: 3
-  });
-  tracker.start();
-  forwarded = 2;
-  const sampleDeadline = Date.now() + 1_000;
-  while (tracker.getHistory().length < 3 && Date.now() < sampleDeadline) {
-    await new Promise(resolve => setTimeout(resolve, 10));
-  }
-  tracker.stop();
-  const history = tracker.getHistory();
-  assert.strictEqual(history.length, 3, 'History must enforce its configured memory bound');
-  assert.ok(history.some(point => point.processedDelta === 2));
-  assert.ok(history.every(point => point.cpuUsage >= 0 && point.memoryUsage > 0));
-  assert.ok(history.every(point => !('internetSpeed' in point)), 'Fabricated bandwidth must not be emitted');
-
-  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 9 }), /at least 10ms/);
-  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10.5 }), /at least 10ms/);
-  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 0 }), /between 1 and 10000/);
-  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 10_001 }), /between 1 and 10000/);
-  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 1.5 }), /between 1 and 10000/);
-
-  const defaultTracker = new MetricsTracker(trackerCallbacks);
-  defaultTracker.start();
-  defaultTracker.start();
-  defaultTracker.stop();
-  defaultTracker.stop();
+  await testMetricsTracker();
 
   console.log('ALL HONEST OBSERVABILITY TESTS PASSED!');
 }

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import hmac
 import time
 from decimal import Decimal, InvalidOperation
@@ -44,7 +43,11 @@ class RequestDeadline:
 def external_account_id(exchange: str, mode: str, stable_identifier: str) -> str:
     if not stable_identifier:
         raise ExchangeContractError("Exchange account identity is unavailable.")
-    return hashlib.sha256(f"{exchange}:{mode}:{stable_identifier}".encode("utf-8")).hexdigest()
+    return hmac.digest(
+        stable_identifier.encode("utf-8"),
+        f"external-account-id:v1:{exchange}:{mode}".encode("utf-8"),
+        "sha256",
+    ).hex()
 
 
 def external_account_cache_key(exchange: str, mode: str, secret_identifier: str) -> str:
