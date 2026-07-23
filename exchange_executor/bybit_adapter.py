@@ -10,6 +10,7 @@ from common import (
     ExchangeContractError,
     RequestDeadline,
     decimal_string,
+    external_account_cache_key,
     external_account_id,
     map_bybit_status,
     optional_positive_decimal_string,
@@ -42,7 +43,7 @@ class BybitAdapter:
         deadline: RequestDeadline | None,
     ) -> str:
         secret = self.credentials.account(account["id"], "bybit")
-        cache_key = external_account_id("bybit-key", account["mode"], secret["apiKey"])
+        cache_key = external_account_cache_key("bybit-key", account["mode"], secret["apiKey"])
         cached = self._identity_cache.get(cache_key)
         if cached:
             return cached

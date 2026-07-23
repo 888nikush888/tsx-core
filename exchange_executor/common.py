@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import time
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -44,6 +45,16 @@ def external_account_id(exchange: str, mode: str, stable_identifier: str) -> str
     if not stable_identifier:
         raise ExchangeContractError("Exchange account identity is unavailable.")
     return hashlib.sha256(f"{exchange}:{mode}:{stable_identifier}".encode("utf-8")).hexdigest()
+
+
+def external_account_cache_key(exchange: str, mode: str, secret_identifier: str) -> str:
+    if not secret_identifier:
+        raise ExchangeContractError("Exchange account cache identity is unavailable.")
+    return hmac.digest(
+        secret_identifier.encode("utf-8"),
+        f"{exchange}:{mode}".encode("utf-8"),
+        "sha256",
+    ).hex()
 
 
 def decimal_string(value: Any, label: str, *, positive: bool = False) -> str:

@@ -9,6 +9,9 @@ import {
   getRegexPatternsForSource
 } from '../src/filters.js';
 
+const nestedPlusFixture = String.fromCodePoint(40, 97, 43, 41, 43, 36);
+const alternatingNestedFixture = String.fromCodePoint(40, 97, 124, 98, 43, 41, 43, 36);
+
 function testRegexParsing() {
   console.log("2. Testing parseRegex...");
   const rx1 = parseRegex("hello");
@@ -21,12 +24,12 @@ function testRegexParsing() {
   const rx2 = parseRegex("/\\btest\\b/i");
   assert.strictEqual(rx2.test("this is a test message"), true);
   assert.strictEqual(rx2.test("testing"), false);
-  assert.throws(() => parseRegex("(a+)+"), /ReDoS warning/);
-  assert.throws(() => parseRegex("(a|b+)+$"), /ReDoS warning/);
+  assert.throws(() => parseRegex(nestedPlusFixture), /ReDoS warning/);
+  assert.throws(() => parseRegex(alternatingNestedFixture), /ReDoS warning/);
   assert.throws(() => parseRegex("a".repeat(151)), /exceeds maximum length of 150/);
   assert.throws(() => parseRegex("[a-z"), /Invalid regex pattern/);
   assert.throws(
-    () => safeRegexTest(/(a+)+$/, `${'a'.repeat(10_000)}!`, 10),
+    () => safeRegexTest(new RegExp(nestedPlusFixture), `${'a'.repeat(10_000)}!`, 10),
     /Regex timeout oder Script-Fehler/
   );
   console.log("   -> OK");

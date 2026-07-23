@@ -145,9 +145,12 @@ async function runTests() {
   await stopMetricsServer();
 
   let forwarded = 0;
-  const tracker = new MetricsTracker({
+  const trackerCallbacks = {
     totalForwardedCountCallback: () => forwarded,
-    getQueueStateCallback: () => ({ running: 1, queued: 2, maxConcurrency: 3, paused: false }),
+    getQueueStateCallback: () => ({ running: 1, queued: 2, maxConcurrency: 3, paused: false })
+  };
+  const tracker = new MetricsTracker({
+    ...trackerCallbacks,
     intervalMs: 10,
     maxPoints: 3
   });
@@ -163,6 +166,18 @@ async function runTests() {
   assert.ok(history.some(point => point.processedDelta === 2));
   assert.ok(history.every(point => point.cpuUsage >= 0 && point.memoryUsage > 0));
   assert.ok(history.every(point => !('internetSpeed' in point)), 'Fabricated bandwidth must not be emitted');
+
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 9 }), /at least 10ms/);
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10.5 }), /at least 10ms/);
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 0 }), /between 1 and 10000/);
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 10_001 }), /between 1 and 10000/);
+  assert.throws(() => new MetricsTracker({ ...trackerCallbacks, intervalMs: 10, maxPoints: 1.5 }), /between 1 and 10000/);
+
+  const defaultTracker = new MetricsTracker(trackerCallbacks);
+  defaultTracker.start();
+  defaultTracker.start();
+  defaultTracker.stop();
+  defaultTracker.stop();
 
   console.log('ALL HONEST OBSERVABILITY TESTS PASSED!');
 }
