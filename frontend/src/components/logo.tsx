@@ -7,8 +7,8 @@ const BRAND_ASSET = "/brand/erb-asset-management.png"
 type LogoVariant = "full" | "mark"
 
 interface LogoProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, "children"> {
-  size?: number
-  variant?: LogoVariant
+  readonly size?: number
+  readonly variant?: LogoVariant
 }
 
 const FULL_CROP = {

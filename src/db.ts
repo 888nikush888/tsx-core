@@ -1,8 +1,8 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
-import path from 'path';
-import { copyFile, mkdir, rename, rm, stat } from 'fs/promises';
-import { createHash, randomUUID } from 'crypto';
+import path from 'node:path';
+import { copyFile, mkdir, rename, rm, stat } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 let db: Database | null = null;
@@ -1177,8 +1177,9 @@ export async function findDuplicateSignal(
 
 function parseJsonField(value: unknown, field: string, taskId: string): any {
   if (value === null || value === undefined || value === '') return undefined;
+  if (typeof value !== 'string') throw new TypeError(`Outbox task ${taskId} has non-string ${field}.`);
   try {
-    return JSON.parse(String(value));
+    return JSON.parse(value);
   } catch (error: any) {
     throw new Error(`Outbox task ${taskId} has invalid ${field}: ${error.message}`, { cause: error });
   }
@@ -1289,7 +1290,11 @@ export async function completeOutboxTask(id: string, result?: any): Promise<void
 
 export async function failOutboxTask(id: string, error: unknown): Promise<OutboxStatus> {
   const database = getDb();
-  const message = (error instanceof Error ? error.message : String(error)).slice(0, 4000);
+  const message = (error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : 'Unknown outbox failure').slice(0, 4000);
   const row = await database.get<{ status: OutboxStatus }>(
     `UPDATE pending_tasks
      SET status = CASE WHEN status = 'sending' THEN 'unknown' ELSE 'failed' END,

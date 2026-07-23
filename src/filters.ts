@@ -2,6 +2,7 @@ import vm from 'vm';
 
 const regexCache = new Map<string, RegExp>();
 const MAX_REGEX_CACHE_SIZE = 100;
+type SourceChatId = string | number | null;
 
 /**
  * Safely tests a regular expression against text using Node.js vm module
@@ -70,7 +71,7 @@ export function hasNestedQuantifiers(pattern: string): boolean {
       if (closesNestedQuantifier(pattern, i, openParens)) return true;
     } else if (char === '+' || char === '*' || char === '{') {
       if (openParens.length > 0) {
-        openParens[openParens.length - 1]!.hasQuantifier = true;
+        openParens.at(-1)!.hasQuantifier = true;
       }
     }
   }
@@ -92,7 +93,7 @@ export function parseRegex(patternStr: string): RegExp {
   let pattern = trimmed;
   let flags = 'i';
 
-  const match = trimmed.match(/^\/(.+)\/([dgimsuy]*)$/);
+  const match = /^\/(.+)\/([dgimsuy]*)$/.exec(trimmed);
   if (match) {
     pattern = match[1]!;
     flags = match[2]!;
@@ -159,7 +160,7 @@ export function getMessageTextAndType(message: any): MessageTextAndType {
  * Uses per-source patterns from config.sourceFilters if available,
  * otherwise falls back to global filters.regexPatterns.
  */
-export function getRegexPatternsForSource(config: any, sourceChatId: string | number | null): string[] {
+export function getRegexPatternsForSource(config: any, sourceChatId: SourceChatId): string[] {
   if (sourceChatId && config?.sourceFilters) {
     const sourceId = String(sourceChatId);
     const sourceFilter = config.sourceFilters[sourceId];

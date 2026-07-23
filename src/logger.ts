@@ -35,7 +35,7 @@ export function maskPII<T>(text: T): T | string {
   if (typeof text !== 'string') return text;
   return text
     .replace(/\b0x[a-fA-F0-9]{40}\b/gi, '0x...[MASKED_EVM_ADDR]')
-    .replace(/\b(1|3)[a-km-zA-HJ-NP-Z1-9]{25,34}\b/g, '[MASKED_BTC_ADDR]')
+    .replace(/\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b/g, '[MASKED_BTC_ADDR]')
     .replace(/\bbc1[ac-hj-np-z0-9]{11,71}\b/gi, '[MASKED_BTC_ADDR]')
     .replace(/\+\d{1,4}[ \d-]{6,14}\b/g, '[MASKED_PHONE]');
 }
@@ -75,7 +75,11 @@ export async function initFileLogger(): Promise<void> {
 function reportLogWriteFailure(error: unknown): void {
   if (logWriteFailureReported) return;
   logWriteFailureReported = true;
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : 'Unknown persistent log write failure';
   console.error(`[ERROR] Persistent log write failed: ${message}`);
 }
 

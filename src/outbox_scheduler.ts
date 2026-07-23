@@ -61,7 +61,7 @@ export class DurableOutboxScheduler {
   }
 
   private async pump(): Promise<void> {
-    if (this.pumpPromise) {
+    if (this.pumpPromise !== null) {
       this.pumpRequested = true;
       return this.pumpPromise;
     }

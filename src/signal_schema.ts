@@ -61,11 +61,11 @@ function appendTextToken(token: string, stack: XmlNode[]): void {
   if (/[<>]/.test(token)) {
     throw new SignalValidationError('Unescaped angle brackets are forbidden in XML text.');
   }
-  stack[stack.length - 1]!.text += token;
+  stack.at(-1)!.text += token;
 }
 
 function createXmlNode(token: string): XmlNode {
-  const opening = token.match(/^<([a-z_]+)(?: id="([1-9]\d*)")?>$/);
+  const opening = /^<([a-z_]+)(?: id="([1-9]\d*)")?>$/.exec(token);
   if (!opening) throw new SignalValidationError(`Malformed or disallowed XML tag '${token}'.`);
   const node: XmlNode = {
     name: opening[1]!,
@@ -80,16 +80,16 @@ function createXmlNode(token: string): XmlNode {
 }
 
 function consumeTagToken(token: string, stack: XmlNode[], root: XmlNode | null): XmlNode | null {
-  const closing = token.match(/^<\/([a-z_]+)>$/);
+  const closing = /^<\/([a-z_]+)>$/.exec(token);
   if (closing) {
     const node = stack.pop();
-    if (!node || node.name !== closing[1]) {
+    if (node?.name !== closing[1]) {
       throw new SignalValidationError(`Mismatched closing tag '${closing[1]}'.`);
     }
     return root;
   }
   const node = createXmlNode(token);
-  if (stack.length > 0) stack[stack.length - 1]!.children.push(node);
+  if (stack.length > 0) stack.at(-1)!.children.push(node);
   else if (root) throw new SignalValidationError('Multiple XML root elements are forbidden.');
   else root = node;
   stack.push(node);
@@ -108,9 +108,9 @@ function parseXml(xml: string): XmlNode {
     root = consumeTagToken(token, stack, root);
   }
   if (stack.length > 0) {
-    throw new SignalValidationError(`Unclosed XML tag '${stack[stack.length - 1]!.name}'.`);
+    throw new SignalValidationError(`Unclosed XML tag '${stack.at(-1)!.name}'.`);
   }
-  if (!root || root.name !== 'signal') {
+  if (root?.name !== 'signal') {
     throw new SignalValidationError("Root tag must be 'signal' and properly closed.");
   }
   return root;
@@ -349,7 +349,7 @@ function validateLoma(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
   const action = actionValue(root);
   const pair = pairValue(root, true);
   const timeframe = leaf(required(root, 'timeframe'));
-  if (!/^(?:M|H|D|W)\d{1,3}(?:\/(?:M|H|D|W)\d{1,3})*$/.test(timeframe)) {
+  if (!/^[MHDW]\d{1,3}(?:\/[MHDW]\d{1,3})*$/.test(timeframe)) {
     throw new SignalValidationError(`Invalid timeframe '${timeframe}'.`);
   }
   const entry = range(required(root, 'entry_range'));
@@ -484,8 +484,8 @@ function sourceFieldNumbers(sourceText: string): Map<GroundingFieldKind, string[
 }
 
 function assertFieldGrounded(field: GroundingField, sourceFields: Map<GroundingFieldKind, string[]>): void {
-  const expected = [...new Set(field.values.map(canonicalDecimal))].sort();
-  const actual = [...new Set(sourceFields.get(field.kind) ?? [])].sort();
+  const expected = [...new Set(field.values.map(canonicalDecimal))].sort((left, right) => left.localeCompare(right));
+  const actual = [...new Set(sourceFields.get(field.kind) ?? [])].sort((left, right) => left.localeCompare(right));
   if (actual.length === 0) {
     throw new SignalValidationError(`Output field '${field.kind}' has no explicit source label and cannot be grounded.`);
   }

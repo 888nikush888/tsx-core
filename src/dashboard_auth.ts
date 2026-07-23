@@ -7,6 +7,7 @@ import {
 import { enterpriseMode } from './runtime_profile.js';
 
 export type DashboardRole = 'viewer' | 'admin';
+type AuthorizationHeader = string | string[] | undefined;
 
 export interface AuthenticatedActor {
   role: DashboardRole;
@@ -16,7 +17,7 @@ export interface AuthenticatedActor {
 export interface DashboardAuthenticator {
   readonly mode: 'token' | 'oidc';
   isConfigured(): boolean;
-  authenticate(authorization: string | string[] | undefined): Promise<AuthenticatedActor | null>;
+  authenticate(authorization: AuthorizationHeader): Promise<AuthenticatedActor | null>;
 }
 
 export interface OidcDashboardOptions {

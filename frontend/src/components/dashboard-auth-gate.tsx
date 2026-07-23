@@ -9,7 +9,7 @@ import { apiFetch, clearDashboardToken, onDashboardAuthRequired, setDashboardTok
 
 type AuthState = 'checking' | 'bootstrap' | 'recovery' | 'locked' | 'authenticated'
 
-export function DashboardAuthGate({ children }: { children: ReactNode }) {
+export function DashboardAuthGate({ children }: Readonly<{ children: ReactNode }>) {
   const [state, setState] = useState<AuthState>('checking')
   const [token, setToken] = useState('')
   const [error, setError] = useState('')

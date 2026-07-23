@@ -1,5 +1,5 @@
-import path from 'path';
-import { stat } from 'fs/promises';
+import path from 'node:path';
+import { stat } from 'node:fs/promises';
 import { createBackupArtifact, restoreBackupArtifact, verifyBackupArtifact } from './backup.js';
 import { configPath, readConfigSync } from './config.js';
 import { closeDb, initDb } from './db.js';
@@ -54,7 +54,9 @@ async function run(): Promise<void> {
   usage();
 }
 
-run().catch(error => {
+try {
+  await run();
+} catch (error: any) {
   console.error(`Backup command failed: ${error.message}`);
   process.exitCode = 1;
-});
+}

@@ -1,7 +1,7 @@
-import { createHash } from 'crypto';
-import { promises as fsPromises } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { createHash } from 'node:crypto';
+import { promises as fsPromises } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { OpenAI } from 'openai';
 import { closeDb, commitAiUsage, initDb, reserveAiUsage, type SignalProvenance } from './db.js';
 import { assertSignalGrounded, SignalValidationError, validateSignalXml } from './signal_schema.js';
@@ -253,16 +253,23 @@ export function classifyAiError(error: unknown): AiErrorClassification {
   };
 }
 
+function scalarHeaderValue(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value);
+  if (Array.isArray(value) && value.every(item => typeof item === 'string')) return value.join(', ');
+  return undefined;
+}
+
 function headerValue(error: any, name: string): string | undefined {
   const headers = error?.headers;
   if (!headers) return undefined;
   if (typeof headers.get === 'function') {
     const value = headers.get(name);
-    return value === null || value === undefined ? undefined : String(value);
+    return scalarHeaderValue(value);
   }
   if (typeof headers === 'object') {
     const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase());
-    return entry?.[1] === undefined ? undefined : String(entry[1]);
+    return scalarHeaderValue(entry?.[1]);
   }
   return undefined;
 }
@@ -569,8 +576,10 @@ if (isMain) {
     }
   };
 
-  runCli().catch((error: any) => {
+  try {
+    await runCli();
+  } catch (error: any) {
     console.error(`Signal parser failed: ${error.message}`);
     process.exitCode = error.message?.includes('OPENROUTER_API_KEY') ? 2 : 3;
-  });
+  }
 }

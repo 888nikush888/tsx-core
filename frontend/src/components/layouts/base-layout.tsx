@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sidebar"
 
 interface BaseLayoutProps {
-  children: React.ReactNode
+  readonly children: React.ReactNode
 }
 
 export function BaseLayout({ children }: BaseLayoutProps) {

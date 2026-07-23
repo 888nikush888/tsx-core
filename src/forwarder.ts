@@ -1,8 +1,8 @@
 import * as tdl from 'tdl';
 import { getTdjson } from 'prebuilt-tdlib';
-import { promises as fsPromises } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { promises as fsPromises } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   canonicalizeResolvedSources,
   configurationPathFromEnvironment,
@@ -101,7 +101,7 @@ process.on('uncaughtException', (error: any) => {
 });
 
 process.on('unhandledRejection', (reason: any) => {
-  if (reason && reason.message === 'Client was closed') {
+  if (reason?.message === 'Client was closed') {
     return; // Ignore expected connection close errors
   }
   const errMsg = `[FATAL REJECTION] Unbehandelte Rejection: ${reason?.stack || reason?.message || reason}`;
@@ -678,7 +678,7 @@ async function tryManualCopyFallback(message, context: OutboxExecutionContext) {
     formattedText = content.caption;
   }
   
-  if (formattedText && formattedText.text?.trim()) {
+  if (formattedText?.text?.trim()) {
     addLog(`[Forward Fallback] Kanal geschützt. Versuche Text manuell zu kopieren und zu senden...`);
     if (context.signal.aborted) throw new Error('Task aborted before manual-copy fallback.');
     const response = await invokeWithRetry(client, {
@@ -1562,7 +1562,7 @@ function startDashboardRuntime(
   runtimeSettings: ManagedRuntimeSettingsStore,
   tradingCredentials: TradingCredentialStore,
 ): void {
-  const webPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+  const webPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 8080;
   const runtimeRecovery = runtimeSettings.recoveryStatus();
   const secretRecovery = secretStore.recoveryStatus();
   const recoveryActive = Boolean(runtime.configurationRecoveryReason) || runtimeRecovery.active || secretRecovery.length > 0;
@@ -1717,8 +1717,10 @@ async function run() {
     addLog('[CRITICAL] Persisted trading execution was enabled, but one or more startup gates failed; entry processing remains disabled.');
   }
 }
-run().catch(async err => {
+try {
+  await run();
+} catch (err: any) {
   console.error("Kritischer Fehler:", err.message);
   await shutdown(1);
   process.exit(process.exitCode || 1);
-});
+}

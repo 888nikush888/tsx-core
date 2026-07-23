@@ -49,7 +49,7 @@ export class ClockGuard implements ClockHealthMonitor {
     this.baselineWallMilliseconds = this.wallClock();
     this.baselineMonotonicMilliseconds = this.monotonicClock();
     if (!Number.isFinite(this.baselineWallMilliseconds) || !Number.isFinite(this.baselineMonotonicMilliseconds)) {
-      throw new Error('Clock sources must return finite millisecond values.');
+      throw new TypeError('Clock sources must return finite millisecond values.');
     }
   }
 

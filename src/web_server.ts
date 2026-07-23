@@ -1,8 +1,8 @@
-import http from 'http';
-import { promises as fsPromises } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { randomUUID } from 'crypto';
+import http from 'node:http';
+import { promises as fsPromises } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import { writeConfigSync } from './config.js';
 import { addLog, getLogHistory } from './logger.js';
 import {
@@ -256,7 +256,8 @@ function safeAuditValue(value: unknown, depth = 0): unknown {
   if (Array.isArray(value)) {
     return value.slice(0, 100).map((item) => safeAuditValue(item, depth + 1));
   }
-  if (!value || typeof value !== 'object') return String(value);
+  if (typeof value === 'bigint') return value.toString();
+  if (!value || typeof value !== 'object') return '[UNSUPPORTED_VALUE]';
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>)
       .slice(0, 100)
@@ -1215,7 +1216,7 @@ async function tradingPortfolioHandler(context: RequestContext): Promise<void> {
 
 async function tradingMutation(
   context: RequestContext,
-  operation: (control: TradingWebControl, payload: any) => Promise<unknown> | unknown,
+  operation: (control: TradingWebControl, payload: any) => unknown,
   statusCode = 200,
 ): Promise<void> {
   try {

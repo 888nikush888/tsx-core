@@ -20,7 +20,9 @@ async function main(): Promise<void> {
   console.log(`Audit replay completed. records=${replayed}`);
 }
 
-main().catch(error => {
+try {
+  await main();
+} catch (error: any) {
   console.error(error.message);
   process.exitCode = 1;
-});
+}

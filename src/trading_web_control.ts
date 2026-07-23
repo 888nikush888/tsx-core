@@ -147,7 +147,7 @@ export class TradingWebControl {
     if (!forceRefresh && this.portfolioCache && this.portfolioCache.expiresAt > now) {
       return { ...this.portfolioCache.value, cached: true };
     }
-    if (this.portfolioRefresh) return this.portfolioRefresh;
+    if (this.portfolioRefresh !== null) return this.portfolioRefresh;
     this.portfolioRefresh = this.collectPortfolioSnapshot();
     try {
       const value = await this.portfolioRefresh;

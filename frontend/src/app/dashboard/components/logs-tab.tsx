@@ -53,7 +53,7 @@ export function LogsTab({ config }: any) {
   const parseLogLine = (line: string) => {
     // Formats source channel IDs with aliases first
     let displayLine = line
-    if (config && config.sourceAliases) {
+    if (config?.sourceAliases) {
       Object.entries(config.sourceAliases).forEach(([chId, alias]: any) => {
         displayLine = displayLine.replaceAll(chId, `${alias} (${chId})`)
       })
@@ -61,7 +61,7 @@ export function LogsTab({ config }: any) {
 
     // Match optional timestamp e.g. [13:22:25] and optional level e.g. [INFO]
     const regex = /^(\[\d{2}:\d{2}:\d{2}\])?\s*(\[[A-Z\s-]+\])?(.*)$/i
-    const match = displayLine.match(regex)
+    const match = regex.exec(displayLine)
     
     if (match) {
       const timestamp = match[1] || ""
@@ -125,36 +125,41 @@ export function LogsTab({ config }: any) {
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {/* Filter buttons */}
-          <div className="flex bg-muted/60 p-0.5 rounded-lg border text-xs font-medium mr-2" role="group" aria-label="Log-Level filtern">
-            <button 
+          <div className="flex bg-muted/60 p-0.5 rounded-lg border text-xs font-medium mr-2" role="toolbar" aria-label="Log-Level filtern">
+            <button
+              type="button"
               onClick={() => setFilter('all')} 
               aria-pressed={filter === 'all'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'all' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Alle
             </button>
-            <button 
+            <button
+              type="button"
               onClick={() => setFilter('success')} 
               aria-pressed={filter === 'success'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'success' ? 'bg-background text-emerald-600 dark:text-emerald-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Erfolge
             </button>
-            <button 
+            <button
+              type="button"
               onClick={() => setFilter('info')} 
               aria-pressed={filter === 'info'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'info' ? 'bg-background text-sky-600 dark:text-sky-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Info
             </button>
-            <button 
+            <button
+              type="button"
               onClick={() => setFilter('warn')} 
               aria-pressed={filter === 'warn'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'warn' ? 'bg-background text-amber-600 dark:text-amber-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Warn
             </button>
-            <button 
+            <button
+              type="button"
               onClick={() => setFilter('error')} 
               aria-pressed={filter === 'error'}
               className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'error' ? 'bg-background text-rose-600 dark:text-rose-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}

@@ -60,7 +60,7 @@ const chartConfig = {
   }
 } satisfies ChartConfig
 
-export function ChartAreaInteractive({ data = [] }: { data?: MetricPoint[] }) {
+export function ChartAreaInteractive({ data = [] }: Readonly<{ data?: MetricPoint[] }>) {
   const [category, setCategory] = React.useState<'activity' | 'system'>('activity')
   const [timeWindow, setTimeWindow] = React.useState<'10m' | '5m' | '1m'>('10m')
 

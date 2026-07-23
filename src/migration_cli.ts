@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import { loadEnv } from './env.js';
 import { restorePreMigrationSnapshot } from './db.js';
 
@@ -17,7 +17,9 @@ async function main(): Promise<void> {
   console.log('Start only the matching rollback image, then verify schema compatibility, outbox and readiness.');
 }
 
-main().catch(error => {
+try {
+  await main();
+} catch (error: any) {
   console.error(error.message);
   process.exitCode = 1;
-});
+}

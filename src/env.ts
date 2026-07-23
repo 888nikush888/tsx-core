@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const envPath = path.join(__dirname, '../.env');
@@ -61,7 +61,7 @@ export function validateTelegramApiId(): void {
   if (process.env['TELEGRAM_API_ID']) {
     const apiIdStr = process.env['TELEGRAM_API_ID'].trim();
     const parsed = Number(apiIdStr);
-    if (!Number.isSafeInteger(parsed) || isNaN(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || Number.isNaN(parsed) || parsed <= 0) {
       console.warn(`[WARN] TELEGRAM_API_ID in .env ("${apiIdStr}") is not a valid safe positive integer. Clearing from process.env.`);
       delete process.env['TELEGRAM_API_ID'];
     } else {

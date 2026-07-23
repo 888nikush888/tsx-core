@@ -1,6 +1,6 @@
-import { promises as fs } from 'fs';
-import { randomUUID } from 'crypto';
-import path from 'path';
+import { promises as fs } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 
 interface CrashCounter {
   count: number;

@@ -132,7 +132,7 @@ export class TelegramLoginCoordinator {
       this.update({ state: 'authenticating' });
       return this.snapshot();
     }
-    if (!this.pending || this.pending.kind !== prompt.kind) {
+    if (this.pending?.kind !== prompt.kind) {
       throw new Error('Telegram login prompt is no longer active.');
     }
     const answer = prompt.kind === 'name'

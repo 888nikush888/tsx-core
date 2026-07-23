@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { useTheme } from "@/hooks/use-theme"
 
 interface ModeToggleProps {
-  variant?: "outline" | "ghost" | "default"
+  readonly variant?: "outline" | "ghost" | "default"
 }
 
 export function ModeToggle({ variant = "outline" }: ModeToggleProps) {

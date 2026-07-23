@@ -15,7 +15,7 @@ export interface SidebarContextValue {
 
 export const SidebarContext = React.createContext<SidebarContextValue | null>(null)
 
-export function SidebarConfigProvider({ children }: { children: React.ReactNode }) {
+export function SidebarConfigProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [config, setConfig] = React.useState<SidebarConfig>({
     variant: "inset",
     collapsible: "offcanvas", 

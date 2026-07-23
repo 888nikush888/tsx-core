@@ -1,6 +1,6 @@
-import { createHash, randomUUID } from 'crypto';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { createHash, randomUUID } from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import {
@@ -209,8 +209,8 @@ function assertBackupFeatureCompatibility(
   compatibility: BackupManifest['compatibility'],
   expected: BackupManifest['compatibility'],
 ): void {
-  const actualFeatures = [...(compatibility.features || [])].sort();
-  const requiredFeatures = [...expected.features].sort();
+  const actualFeatures = [...(compatibility.features || [])].sort((left, right) => left.localeCompare(right));
+  const requiredFeatures = [...expected.features].sort((left, right) => left.localeCompare(right));
   if (JSON.stringify(actualFeatures) !== JSON.stringify(requiredFeatures)) {
     throw new Error(`Backup feature set is incompatible; required features: ${requiredFeatures.join(', ')}.`);
   }
@@ -306,7 +306,7 @@ async function readBackupManifest(artifactPath: string): Promise<BackupManifest>
     throw new Error('Unsupported or malformed backup manifest.');
   }
   if (Number.isNaN(Date.parse(manifest.createdAt))) {
-    throw new Error('Backup manifest has an invalid creation timestamp.');
+    throw new TypeError('Backup manifest has an invalid creation timestamp.');
   }
   assertManifestCompatibility(manifest);
   return manifest;
@@ -370,7 +370,7 @@ export async function verifyBackupArtifact(artifactPath: string): Promise<Backup
 /** Returns verified, path-safe artifact members for encryption or recovery tooling. */
 export async function listBackupArtifactFiles(artifactPath: string): Promise<string[]> {
   const manifest = await verifyBackupArtifact(artifactPath);
-  return Object.keys(manifest.files).sort();
+  return Object.keys(manifest.files).sort((left, right) => left.localeCompare(right));
 }
 
 function recoveryStateSources(): { runtimeSettings: string; templates: string } {
@@ -419,7 +419,7 @@ async function copyOptionalTemplates(source: string, artifactRoot: string, inclu
         continue;
       }
       if (!entry.isFile()) throw new Error(`Template source contains a non-regular file: ${relativeName}`);
-      const destinationName = `${TEMPLATES_DIRECTORY}/${relativeName.replace(/\\/g, '/')}`;
+      const destinationName = `${TEMPLATES_DIRECTORY}/${relativeName.replaceAll('\\', '/')}`;
       if (!isSupportedBackupArtifactFileName(destinationName)) throw new Error(`Template path is unsupported: ${relativeName}`);
       const stats = await fs.stat(sourcePath);
       if (stats.size > MAX_BACKUP_STATE_FILE_BYTES) throw new Error(`Template exceeds the backup state file limit: ${relativeName}`);
@@ -580,7 +580,7 @@ async function createRestorePlan(
   if ([targetDb, targetConfig].includes(runtimeTarget) || [targetDb, targetConfig].includes(templatesTarget)) {
     throw new Error('Recovery state targets must not overlap database or configuration targets.');
   }
-  const hasRuntimeSettings = Object.prototype.hasOwnProperty.call(manifest.files, RUNTIME_SETTINGS_FILE);
+  const hasRuntimeSettings = Object.hasOwn(manifest.files, RUNTIME_SETTINGS_FILE);
   const hasTemplates = Object.keys(manifest.files).some(fileName => fileName.startsWith(`${TEMPLATES_DIRECTORY}/`));
   return {
     artifact,
@@ -825,7 +825,7 @@ export class BackupScheduler {
   public async stop(): Promise<void> {
     if (this.interval) clearInterval(this.interval);
     this.interval = null;
-    if (this.activeRun) await this.activeRun;
+    if (this.activeRun !== null) await this.activeRun;
   }
 
   public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean } {
@@ -842,7 +842,7 @@ export class BackupScheduler {
   }
 
   public runNow(): Promise<string> {
-    if (this.activeRun) return Promise.reject(new Error('A backup is already running.'));
+    if (this.activeRun !== null) return Promise.reject(new Error('A backup is already running.'));
     this.status.running = true;
     const operation = (async () => {
       try {

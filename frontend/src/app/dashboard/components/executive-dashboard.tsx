@@ -38,21 +38,21 @@ type SetupStep = { label: string; complete: boolean }
 type QueueState = { running: number; queued: number; maxConcurrency: number; paused: boolean }
 
 interface ExecutiveDashboardProps {
-  isRunning: boolean
-  connectionState: string
-  totalForwardedCount: number
-  processedSinceRestart: number
-  forwardingEnabled: boolean
-  forwardXmlToTarget: boolean
-  uptime: string
-  queue: QueueState
-  parserEnabled: boolean
-  setupSteps: SetupStep[]
-  setupComplete: boolean
-  routingConfigReady: boolean
-  metricsHistory: MetricPoint[]
-  onToggleRouting: () => void | Promise<void>
-  onNavigate: (tab: string) => void
+  readonly isRunning: boolean
+  readonly connectionState: string
+  readonly totalForwardedCount: number
+  readonly processedSinceRestart: number
+  readonly forwardingEnabled: boolean
+  readonly forwardXmlToTarget: boolean
+  readonly uptime: string
+  readonly queue: QueueState
+  readonly parserEnabled: boolean
+  readonly setupSteps: SetupStep[]
+  readonly setupComplete: boolean
+  readonly routingConfigReady: boolean
+  readonly metricsHistory: MetricPoint[]
+  readonly onToggleRouting: () => void | Promise<void>
+  readonly onNavigate: (tab: string) => void
 }
 
 const performanceConfig = { pnl: { label: "Realisierter PnL", color: "var(--chart-1)" } } satisfies ChartConfig
@@ -104,21 +104,21 @@ function feeSummary(fees: Record<string, number>): string {
   return entries.map(([asset, value]) => `${number(value, 4)} ${asset}`).join(" · ")
 }
 
-function HealthBadge({ value, good = "Healthy", bad = "Störung" }: { value: boolean | null; good?: string; bad?: string }) {
+function HealthBadge({ value, good = "Healthy", bad = "Störung" }: Readonly<{ value: boolean | null; good?: string; bad?: string }>) {
   const tone = value === true ? "good" : value === false ? "bad" : "neutral"
   return <Badge variant="outline" className={statusStyle(tone)}>{value === null ? "Nicht verfügbar" : value ? good : bad}</Badge>
 }
 
-function MetricCard({ label, value, detail, icon, tone = "neutral" }: {
+function MetricCard({ label, value, detail, icon, tone = "neutral" }: Readonly<{
   label: string; value: string; detail: string; icon: ReactNode; tone?: "neutral" | "positive" | "negative"
-}) {
+}>) {
   return <Card className="overflow-hidden transition-colors hover:border-primary/30"><CardContent className="p-5">
     <div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className={`mt-2 truncate text-2xl font-semibold tabular-nums ${tone === "positive" ? "text-emerald-700 dark:text-emerald-300" : tone === "negative" ? "text-red-700 dark:text-red-300" : ""}`}>{value}</p></div><div className="rounded-lg border bg-muted/40 p-2.5 text-primary">{icon}</div></div>
     <p className="mt-4 text-xs leading-5 text-muted-foreground">{detail}</p>
   </CardContent></Card>
 }
 
-function StatusRow({ icon, label, detail, state }: { icon: ReactNode; label: string; detail: string; state: boolean | null }) {
+function StatusRow({ icon, label, detail, state }: Readonly<{ icon: ReactNode; label: string; detail: string; state: boolean | null }>) {
   return <div className="flex items-center gap-3 py-3"><div className={`rounded-md border p-2 ${state === true ? statusStyle("good") : state === false ? statusStyle("bad") : statusStyle("neutral")}`}>{icon}</div><div className="min-w-0 flex-1"><p className="text-sm font-medium">{label}</p><p className="truncate text-xs text-muted-foreground">{detail}</p></div><HealthBadge value={state} good="Bereit" bad="Prüfen" /></div>
 }
 
@@ -128,7 +128,7 @@ async function getJson(path: string, signal?: AbortSignal): Promise<any> {
   return response.json()
 }
 
-function PeriodOverview({ windows, selected, onSelect }: { windows: Record<DashboardWindow, WindowAnalyticsView>; selected: DashboardWindow; onSelect: (window: DashboardWindow) => void }) {
+function PeriodOverview({ windows, selected, onSelect }: Readonly<{ windows: Record<DashboardWindow, WindowAnalyticsView>; selected: DashboardWindow; onSelect: (window: DashboardWindow) => void }>) {
   return <section className="space-y-3"><div><h2 className="text-lg font-semibold">Performance nach Zeitraum</h2><p className="text-xs text-muted-foreground">Alle Zeiträume bleiben gleichzeitig sichtbar; der aktive Zeitraum steuert sämtliche Detailkarten.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
     {WINDOWS.map(item => { const value = windows[item.value]; return <button key={item.value} type="button" onClick={() => onSelect(item.value)} className={`rounded-xl border p-4 text-left transition-colors hover:border-primary/40 ${selected === item.value ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "bg-card"}`}>
       <div className="flex items-center justify-between"><span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{item.short}</span><span className={`h-2 w-2 rounded-full ${value.realizedPnl > 0 ? "bg-emerald-500" : value.realizedPnl < 0 ? "bg-destructive" : "bg-muted-foreground/40"}`} /></div>
@@ -138,7 +138,7 @@ function PeriodOverview({ windows, selected, onSelect }: { windows: Record<Dashb
   </div></section>
 }
 
-function AccountMatrix({ accounts, window }: { accounts: AccountAnalyticsView[]; window: DashboardWindow }) {
+function AccountMatrix({ accounts, window }: Readonly<{ accounts: AccountAnalyticsView[]; window: DashboardWindow }>) {
   return <Card className="min-w-0"><CardHeader><CardTitle>Exchange- & Account-Matrix</CardTitle><CardDescription>Paper, Hyperliquid und Bybit gemeinsam – mit echtem Kontosnapshot und separatem Drill-down je Konto.</CardDescription></CardHeader><CardContent className="min-w-0 overflow-x-auto"><Table><TableHeader><TableRow>
     <TableHead>Konto</TableHead><TableHead>Umgebung</TableHead><TableHead>Equity</TableHead><TableHead>Verfügbar</TableHead><TableHead>Margin</TableHead><TableHead>Unrealisiert</TableHead><TableHead>PnL</TableHead><TableHead>Trades</TableHead><TableHead>Win Rate</TableHead><TableHead>Volumen</TableHead><TableHead>Gebühren</TableHead><TableHead>Snapshot</TableHead>
   </TableRow></TableHeader><TableBody>{accounts.map(account => { const metrics = account.windows[window]; return <TableRow key={account.accountId}>
@@ -150,25 +150,25 @@ function AccountMatrix({ accounts, window }: { accounts: AccountAnalyticsView[];
   </TableRow> })}{accounts.length === 0 && <TableRow><TableCell colSpan={12} className="h-24 text-center text-muted-foreground">Für diesen Filter sind keine Trading-Konten vorhanden.</TableCell></TableRow>}</TableBody></Table></CardContent></Card>
 }
 
-function CapitalChart({ accounts }: { accounts: AccountAnalyticsView[] }) {
+function CapitalChart({ accounts }: Readonly<{ accounts: AccountAnalyticsView[] }>) {
   const data = accounts.filter(account => account.equity !== null).map(account => ({ name: account.name, equity: account.equity || 0, available: account.availableBalance || 0 }))
   return <Card><CardHeader><CardTitle>Kapitalverteilung</CardTitle><CardDescription>Equity und freie Mittel pro angebundenem Konto.</CardDescription></CardHeader><CardContent>{data.length > 0 ? <ChartContainer config={capitalConfig} className="h-[280px] w-full aspect-auto"><BarChart data={data}><CartesianGrid vertical={false} /><XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} /><YAxis tickLine={false} axisLine={false} tickFormatter={value => compact(Number(value))} width={55} /><ChartTooltip content={<ChartTooltipContent indicator="dot" />} /><Bar dataKey="equity" fill="var(--color-equity)" radius={[4, 4, 0, 0]} /><Bar dataKey="available" fill="var(--color-available)" radius={[4, 4, 0, 0]} /></BarChart></ChartContainer> : <EmptyState title="Keine Kontosnapshots" detail="Verifiziere ein Trading-Konto und aktualisiere anschließend das Dashboard." />}</CardContent></Card>
 }
 
-function PerformanceChart({ model }: { model: DashboardViewModel }) {
+function PerformanceChart({ model }: Readonly<{ model: DashboardViewModel }>) {
   return <Card><CardHeader><CardTitle>Kumulative Managed Performance</CardTitle><CardDescription>Persistierter realisierter PnL der letzten 200 sichtbaren Positionen im aktiven Account-Filter.</CardDescription></CardHeader><CardContent>{model.performance.length > 0 ? <ChartContainer config={performanceConfig} className="h-[280px] w-full aspect-auto"><AreaChart data={model.performance} margin={{ left: 4, right: 12 }}><defs><linearGradient id="fillPnl" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-pnl)" stopOpacity={0.35} /><stop offset="95%" stopColor="var(--color-pnl)" stopOpacity={0.03} /></linearGradient></defs><CartesianGrid vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} /><YAxis tickLine={false} axisLine={false} tickFormatter={value => compact(Number(value))} width={55} /><ReferenceLine y={0} stroke="var(--border)" /><ChartTooltip content={<ChartTooltipContent indicator="dot" />} /><Area dataKey="pnl" type="monotone" fill="url(#fillPnl)" stroke="var(--color-pnl)" strokeWidth={2} /></AreaChart></ChartContainer> : <EmptyState title="Noch keine realisierten Trades" detail="Die Performance-Kurve entsteht automatisch aus geschlossenen Managed Positionen." />}</CardContent></Card>
 }
 
-function EmptyState({ title, detail }: { title: string; detail: string }) {
+function EmptyState({ title, detail }: Readonly<{ title: string; detail: string }>) {
   return <div className="flex h-[280px] flex-col items-center justify-center rounded-lg border border-dashed text-center"><TrendingUp className="mb-3 h-8 w-8 text-muted-foreground" /><p className="font-medium">{title}</p><p className="mt-1 max-w-sm text-sm text-muted-foreground">{detail}</p></div>
 }
 
-function OperationalReadiness({ model, routingHealthy, uptime, connectionState }: { model: DashboardViewModel; routingHealthy: boolean; uptime: string; connectionState: string }) {
+function OperationalReadiness({ model, routingHealthy, uptime, connectionState }: Readonly<{ model: DashboardViewModel; routingHealthy: boolean; uptime: string; connectionState: string }>) {
   const tradingHealthy = !model.trading.killSwitchActive && model.trading.unknownOrderCount === 0 && model.trading.criticalRiskEvents === 0
   return <Card><CardHeader><CardTitle>Operational Readiness</CardTitle><CardDescription>Kontrollpunkte für sicheren Routing- und Trading-Betrieb.</CardDescription></CardHeader><CardContent className="divide-y"><StatusRow icon={routingHealthy ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />} label="Routing & Telegram" detail={`${connectionState} · Uptime ${uptime}`} state={routingHealthy} /><StatusRow icon={<ShieldCheck className="h-4 w-4" />} label="Trading Safety" detail={`${model.trading.unknownOrderCount} unknown Orders · ${model.trading.criticalRiskEvents} kritische Events`} state={tradingHealthy} /><StatusRow icon={<DatabaseBackup className="h-4 w-4" />} label="Backup" detail={dateTime(model.operations.backupLastSuccessAt)} state={model.operations.backupHealthy} /><StatusRow icon={<Layers3 className="h-4 w-4" />} label="Retention" detail={dateTime(model.operations.retentionLastSuccessAt)} state={model.operations.retentionHealthy} /><StatusRow icon={<Activity className="h-4 w-4" />} label="Audit Trail" detail={model.operations.auditRemoteRequired ? `Remote · ${dateTime(model.operations.auditLastRemoteSuccessAt)}` : "Lokale Audit-Kette"} state={model.operations.auditHealthy} /></CardContent></Card>
 }
 
-function DetailedStatistics({ model, window, onNavigate }: { model: DashboardViewModel; window: DashboardWindow; onNavigate: (tab: string) => void }) {
+function DetailedStatistics({ model, window, onNavigate }: Readonly<{ model: DashboardViewModel; window: DashboardWindow; onNavigate: (tab: string) => void }>) {
   const trading = model.windows[window]
   const signals = model.signalWindows[window]
   const completionRate = trading.intents > 0 ? trading.completedIntents / trading.intents * 100 : null
@@ -179,20 +179,20 @@ function DetailedStatistics({ model, window, onNavigate }: { model: DashboardVie
   </div>
 }
 
-function StatLine({ label, value, bad = false }: { label: string; value: string; bad?: boolean }) { return <div className="flex items-center justify-between border-b pb-3 text-sm"><span className="text-muted-foreground">{label}</span><span className={`font-semibold tabular-nums ${bad ? "text-destructive" : ""}`}>{value}</span></div> }
-function MiniStat({ label, value, bad = false }: { label: string; value: number; bad?: boolean }) { return <div><p className={`text-lg font-semibold tabular-nums ${bad ? "text-destructive" : ""}`}>{value}</p><p className="text-[11px] text-muted-foreground">{label}</p></div> }
-function MetricBox({ label, value }: { label: string; value: number }) { return <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p></div> }
+function StatLine({ label, value, bad = false }: Readonly<{ label: string; value: string; bad?: boolean }>) { return <div className="flex items-center justify-between border-b pb-3 text-sm"><span className="text-muted-foreground">{label}</span><span className={`font-semibold tabular-nums ${bad ? "text-destructive" : ""}`}>{value}</span></div> }
+function MiniStat({ label, value, bad = false }: Readonly<{ label: string; value: number; bad?: boolean }>) { return <div><p className={`text-lg font-semibold tabular-nums ${bad ? "text-destructive" : ""}`}>{value}</p><p className="text-[11px] text-muted-foreground">{label}</p></div> }
+function MetricBox({ label, value }: Readonly<{ label: string; value: number }>) { return <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p></div> }
 
-function PositionsAndRisk({ model }: { model: DashboardViewModel }) {
+function PositionsAndRisk({ model }: Readonly<{ model: DashboardViewModel }>) {
   return <div className="grid gap-4 xl:grid-cols-2"><Card><CardHeader><CardTitle>Offene Managed Positionen</CardTitle><CardDescription>Strategiegebundene Positionen im aktiven Account-Filter.</CardDescription></CardHeader><CardContent className="space-y-3">{model.activePositions.length === 0 && <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Keine offenen Managed Positionen.</div>}{model.activePositions.map((position: any) => <div key={position.id} className="flex items-center gap-3 rounded-lg border p-3"><div className={`rounded-md border px-2 py-1 text-xs font-semibold ${position.side === "LONG" ? statusStyle("good") : statusStyle("bad")}`}>{position.side}</div><div className="min-w-0 flex-1"><p className="font-medium">{position.symbol}</p><p className="truncate text-xs text-muted-foreground">{position.channelId} · {position.accountId}</p></div><div className="text-right"><p className="text-sm font-medium tabular-nums">{position.quantity}</p><p className="text-xs text-muted-foreground">Entry {position.averageEntryPrice || "–"} · Stop {position.stopPrice || "–"}</p></div></div>)}</CardContent></Card>
     <Card><CardHeader><CardTitle>Risk & Exception Feed</CardTitle><CardDescription>Aktuelle Trading-Abweichungen und Bestätigungsstatus.</CardDescription></CardHeader><CardContent>{model.recentRiskEvents.length === 0 ? <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-800 dark:text-emerald-300"><CheckCircle2 className="h-4 w-4" />Keine Risk Events im sichtbaren Fenster.</div> : <div className="divide-y">{model.recentRiskEvents.map((event: any) => <div key={event.id} className="flex items-start gap-3 py-3"><AlertTriangle className={`mt-0.5 h-4 w-4 ${event.severity === "critical" ? "text-red-700 dark:text-red-300" : "text-amber-700 dark:text-amber-300"}`} /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{event.code}</p><p className="text-xs text-muted-foreground">{event.accountId || "Systemweit"} · {dateTime(event.createdAt)}</p></div><Badge variant="outline" className={event.acknowledgedAt ? statusStyle("neutral") : statusStyle(event.severity === "critical" ? "bad" : "warning")}>{event.acknowledgedAt ? "Bestätigt" : "Offen"}</Badge></div>)}</div>}</CardContent></Card></div>
 }
 
-function ProgramActivity({ props, outboxCount }: { props: ExecutiveDashboardProps; outboxCount: number }) {
+function ProgramActivity({ props, outboxCount }: Readonly<{ props: ExecutiveDashboardProps; outboxCount: number }>) {
   return <Card><CardHeader><CardTitle>Program Activity</CardTitle><CardDescription>Laufzeit-, Queue- und Routing-Kennzahlen.</CardDescription></CardHeader><CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><ActivityBox icon={<Clock3 className="h-5 w-5" />} label="Service Uptime" value={props.uptime} /><ActivityBox icon={<Route className="h-5 w-5" />} label="Weitergeleitet gesamt" value={number(props.totalForwardedCount)} /><ActivityBox icon={<Activity className="h-5 w-5" />} label="Seit Neustart" value={number(props.processedSinceRestart)} /><ActivityBox icon={<Layers3 className="h-5 w-5" />} label="Queue" value={`${props.queue.running} aktiv · ${props.queue.queued} wartend`} /><div className="flex flex-wrap gap-2 sm:col-span-2 xl:col-span-4"><Badge variant="outline" className={statusStyle(props.parserEnabled ? "good" : "neutral")}>KI-Parser {props.parserEnabled ? "aktiv" : "aus"}</Badge><Badge variant="outline" className={statusStyle(props.forwardingEnabled ? "good" : "neutral")}>Weiterleitung {props.forwardingEnabled ? "aktiv" : "aus"}</Badge><Badge variant="outline">{props.forwardXmlToTarget ? "XML-Zielmodus" : "Original-Zielmodus"}</Badge><Badge variant="outline">Outbox offen: {outboxCount}</Badge></div></CardContent></Card>
 }
 
-function ActivityBox({ icon, label, value }: { icon: ReactNode; label: string; value: string }) { return <div className="rounded-lg border p-4"><div className="mb-3 text-primary">{icon}</div><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p></div> }
+function ActivityBox({ icon, label, value }: Readonly<{ icon: ReactNode; label: string; value: string }>) { return <div className="rounded-lg border p-4"><div className="mb-3 text-primary">{icon}</div><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p></div> }
 
 export function ExecutiveDashboard(props: ExecutiveDashboardProps) {
   const [data, setData] = useState<DashboardDataInput>({ messages: [], signals: [], outbox: [] })

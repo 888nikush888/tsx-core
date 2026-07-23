@@ -42,7 +42,7 @@ function assertObject(value: unknown, label: string): Record<string, any> {
 function assertOrderResult(value: unknown): ExchangeOrderResult {
   const result = assertObject(value, 'Exchange executor');
   if (typeof result.clientOrderId !== 'string' || typeof result.exchangeOrderId !== 'string') {
-    throw new Error('Exchange executor returned an invalid order identifier contract.');
+    throw new TypeError('Exchange executor returned an invalid order identifier contract.');
   }
   if (!['open', 'partially_filled', 'filled', 'cancelled', 'rejected', 'unknown'].includes(result.status)) {
     throw new Error('Exchange executor returned an invalid order status.');
@@ -76,7 +76,7 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
     );
     for (const field of ['equity', 'availableBalance', 'unrealizedPnl', 'marginUsed', 'fundingPnlToday']) {
       if (typeof result[field] !== 'string') {
-        throw new Error(`Exchange executor account snapshot omitted ${field}.`);
+        throw new TypeError(`Exchange executor account snapshot omitted ${field}.`);
       }
     }
     return result as TradingAccountSnapshot;
@@ -138,7 +138,7 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
   async openState(account: TradingAccount): Promise<ExchangeOpenState> {
     const state = assertObject(await this.post('/v1/open-state', { account: accountPayload(account) }), 'Exchange executor');
     if (!Array.isArray(state.orders) || !Array.isArray(state.positions) || !Array.isArray(state.fills)) {
-      throw new Error('Exchange executor returned an invalid open-state contract.');
+      throw new TypeError('Exchange executor returned an invalid open-state contract.');
     }
     if (typeof state.accountFingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(state.accountFingerprint)) {
       throw new Error('Exchange executor returned an invalid account fingerprint.');

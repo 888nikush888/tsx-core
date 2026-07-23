@@ -167,8 +167,10 @@ async function run() {
 }
 
 if (path.resolve(process.argv[1] || '') === path.resolve(modulePath)) {
-  run().catch(error => {
+  try {
+    await run();
+  } catch (error) {
     console.error(`STAGING E2E FAILED: ${error.message}`);
     process.exitCode = 1;
-  });
+  }
 }

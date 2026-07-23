@@ -1,7 +1,7 @@
-import { timingSafeEqual } from 'crypto';
-import http from 'http';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { timingSafeEqual } from 'node:crypto';
+import http from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { readFile } from 'node:fs/promises';
 import { loadEnv } from './env.js';
 import { validateRuntimeSettings } from './runtime_settings.js';
@@ -198,8 +198,10 @@ async function startFromEnvironment(): Promise<void> {
 }
 
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {
-  startFromEnvironment().catch((error) => {
+  try {
+    await startFromEnvironment();
+  } catch (error: any) {
     console.error(`[FATAL] Alert relay startup failed: ${error.message}`);
     process.exitCode = 1;
-  });
+  }
 }

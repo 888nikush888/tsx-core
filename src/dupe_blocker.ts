@@ -42,7 +42,7 @@ export async function isDuplicateSignal(
   }
 
   const match = await findDuplicateSignal(normalizedNew, cooldownHours, currentSignalId);
-  if (match && match.isDupe) {
+  if (match?.isDupe) {
     if (cooldownHours === 0) {
       return {
         isDupe: true,

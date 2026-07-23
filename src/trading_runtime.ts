@@ -52,7 +52,7 @@ export class TradingRuntime {
       execution_enabled: number;
       kill_switch_active: number;
     }>('SELECT execution_enabled, kill_switch_active FROM trading_runtime_state WHERE singleton_id = 1');
-    if (!state || state.execution_enabled !== 1 || state.kill_switch_active === 1) {
+    if (state?.execution_enabled !== 1 || state.kill_switch_active === 1) {
       throw new Error('Trading entries cannot be enabled while execution is disabled or the kill switch is active.');
     }
     this.entriesEnabled = true;
@@ -75,7 +75,7 @@ export class TradingRuntime {
   }
 
   wake(): void {
-    if (this.stopped || this.active) return;
+    if (this.stopped || this.active !== null) return;
     this.active = this.runOnce(false)
       .catch(error => this.logger(`[TRADING] Runtime cycle failed: ${error instanceof Error ? error.message : String(error)}`))
       .finally(() => { this.active = null; });
@@ -140,7 +140,7 @@ export class TradingRuntime {
     const state = await getDatabase().get<{ execution_enabled: number; kill_switch_active: number }>(
       'SELECT execution_enabled, kill_switch_active FROM trading_runtime_state WHERE singleton_id = 1',
     );
-    if (!state || state.execution_enabled !== 1 || state.kill_switch_active === 1) {
+    if (state?.execution_enabled !== 1 || state.kill_switch_active === 1) {
       this.entriesEnabled = false;
       return;
     }

@@ -124,7 +124,7 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
         method: "DELETE"
       })
       if (res.ok) {
-        const sourceTemplates = { ...(config.xmlParsing.sourceTemplates || {}) }
+        const sourceTemplates = { ...config.xmlParsing.sourceTemplates }
         Object.keys(sourceTemplates).forEach((channel) => {
           if (sourceTemplates[channel] === nameToDelete) delete sourceTemplates[channel]
         })
@@ -145,7 +145,7 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
     }
   }
 
-  if (!config || !config.xmlParsing) return null;
+  if (!config?.xmlParsing) return null;
 
   return (
     <div className="space-y-6">
@@ -198,7 +198,7 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
                 type="number"
                 placeholder="60000"
                 value={config.xmlParsing.timeout || 60000} 
-                onChange={(e) => handleXmlChange("timeout", parseInt(e.target.value) || 60000)} 
+                onChange={(e) => handleXmlChange("timeout", Number.parseInt(e.target.value, 10) || 60000)}
               />
               <p className="text-xs text-muted-foreground">Time before the parser gives up on a message.</p>
             </div>
@@ -307,6 +307,7 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
                       return (
                         <div key={name} className="flex items-center justify-between group">
                           <button
+                            type="button"
                             onClick={() => setSelectedTemplateName(name)}
                             className={`flex-1 text-left px-2 py-1.5 text-xs rounded-md transition-colors truncate ${isSelected ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}
                           >
@@ -423,7 +424,7 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
                       value={assignedTemplate}
                       onChange={(e) => {
                         const val = e.target.value;
-                        const newMappings = { ...(config.xmlParsing.sourceTemplates || {}) };
+                        const newMappings = { ...config.xmlParsing.sourceTemplates };
                         if (val === 'default') {
                           delete newMappings[ch];
                         } else {

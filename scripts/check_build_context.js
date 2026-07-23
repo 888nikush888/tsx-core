@@ -9,7 +9,7 @@ const requiredIgnores = [
   'secrets', '**/secrets', '**/.managed-secret-transaction.json', 'session_data',
   'session_files', 'logs', 'backups', '*.tgfb',
 ];
-const sensitiveTrackedPath = /(^|\/)(?:secrets?|session_data|session_files|backups)(?:\/|$)|(?:^|\/)\.env(?:\.|$)|\.tgfb$/i;
+const sensitiveTrackedPath = /(?:(^|\/)(?:secrets?|session_data|session_files|backups)(?:\/|$)|(?:^|\/)\.env(?:\.|$)|\.tgfb$)/i;
 
 export function evaluateBuildContext({ dockerignore, dockerfile, trackedFiles }) {
   const rules = new Set(dockerignore.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')));

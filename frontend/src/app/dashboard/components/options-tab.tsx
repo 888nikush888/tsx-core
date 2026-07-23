@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ShieldAlert, Zap, Settings2 } from "lucide-react"
 
 export function OptionsTab({ config, setConfig }: any) {
-  if (!config || !config.forwardOptions) return null;
+  if (!config?.forwardOptions) return null;
 
   const handleOptionChange = (key: string, value: any) => {
     setConfig({
@@ -21,7 +21,7 @@ export function OptionsTab({ config, setConfig }: any) {
     setConfig({
       ...config,
       dupeBlocker: {
-        ...(config.dupeBlocker || {}),
+        ...config.dupeBlocker,
         [key]: value
       }
     })
@@ -95,7 +95,7 @@ export function OptionsTab({ config, setConfig }: any) {
               min={1}
               max={100}
               value={config.forwardOptions.maxConcurrency ?? 2} 
-              onChange={(e) => handleOptionChange("maxConcurrency", parseInt(e.target.value) || 1)} 
+              onChange={(e) => handleOptionChange("maxConcurrency", Number.parseInt(e.target.value, 10) || 1)}
             />
             <p className="text-sm text-muted-foreground">How many messages to process simultaneously.</p>
           </div>
@@ -107,7 +107,7 @@ export function OptionsTab({ config, setConfig }: any) {
               min={0}
               max={86400}
               value={config.forwardOptions.queueTimeoutSeconds ?? 60} 
-              onChange={(e) => handleOptionChange("queueTimeoutSeconds", parseInt(e.target.value) || 60)} 
+              onChange={(e) => handleOptionChange("queueTimeoutSeconds", Number.parseInt(e.target.value, 10) || 60)}
             />
             <p className="text-sm text-muted-foreground">Max time a message can sit in the processing queue.</p>
           </div>
@@ -145,7 +145,7 @@ export function OptionsTab({ config, setConfig }: any) {
                 className="max-w-[200px]"
                 min={0}
                 value={config.dupeBlocker.cooldownHours ?? 24} 
-                onChange={(e) => handleDupeChange("cooldownHours", parseFloat(e.target.value) || 0)} 
+                onChange={(e) => handleDupeChange("cooldownHours", Number.parseFloat(e.target.value) || 0)}
               />
               <p className="text-sm text-muted-foreground">Time before a duplicate message is allowed again.</p>
             </div>

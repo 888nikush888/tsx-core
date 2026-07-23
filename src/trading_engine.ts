@@ -211,7 +211,7 @@ function assertExecutionPreconditions(
 ): asserts account is TradingAccount {
   if (runtime.killSwitchActive) throw new TradingRiskError('KILL_SWITCH_ACTIVE', 'Trading kill switch is active.');
   if (!runtime.executionEnabled) throw new TradingRiskError('EXECUTION_DISABLED', 'Trading execution is disabled.');
-  if (!account || account.status !== 'ready' || !account.enabled) {
+  if (account?.status !== 'ready' || !account.enabled) {
     throw new TradingRiskError('ACCOUNT_NOT_READY', 'Trading account is not ready.');
   }
   if (account.mode === 'live' && !runtime.liveTradingEnabled) {
@@ -222,7 +222,7 @@ function assertExecutionPreconditions(
 function assertPublishedStrategy(
   strategy: Awaited<ReturnType<typeof getTradingStrategyVersion>>,
 ): asserts strategy is NonNullable<Awaited<ReturnType<typeof getTradingStrategyVersion>>> {
-  if (!strategy || strategy.status !== 'published') {
+  if (strategy?.status !== 'published') {
     throw new TradingRiskError('STRATEGY_NOT_PUBLISHED', 'Strategy version is not published.');
   }
 }
@@ -315,7 +315,7 @@ function remoteStateDigest(remote: ExchangeOpenState): string {
       quantity: position.quantity,
       entry: position.averageEntryPrice,
     })).sort((left, right) => `${left.symbol}:${left.side}`.localeCompare(`${right.symbol}:${right.side}`)),
-    fillIds: remote.fills.map(fill => fill.exchangeFillId).sort(),
+    fillIds: remote.fills.map(fill => fill.exchangeFillId).sort((left, right) => left.localeCompare(right)),
   };
   return createHash('sha256').update(JSON.stringify(stable)).digest('hex');
 }
@@ -613,7 +613,7 @@ export class TradingEngine {
 
   async processIntent(intentId: string): Promise<void> {
     const intent = await getTradingIntent(intentId);
-    if (!intent || intent.status !== 'pending') return;
+    if (intent?.status !== 'pending') return;
     try {
       await this.assertClockSafeForEntry();
       await this.executePendingIntent(intent);
@@ -978,7 +978,7 @@ export class TradingEngine {
       });
       await riskEvent({
         severity: 'critical', code: 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION', accountId: account.id, intentId: intent.id,
-        details: { cause: cause instanceof Error ? cause.message : String(cause) },
+        details: { cause: cause instanceof Error ? cause.message : typeof cause === 'string' ? cause : 'Unknown failure' },
       });
     } catch (flattenError: any) {
       await updateTradingRuntimeState({

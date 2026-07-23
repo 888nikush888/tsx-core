@@ -5,11 +5,11 @@ import { ThemeProviderContext } from "@/contexts/theme-context"
 
 type Theme = "dark" | "light" | "system"
 
-type ThemeProviderProps = {
+type ThemeProviderProps = Readonly<{
   children: React.ReactNode
   defaultTheme?: Theme
   storageKey?: string
-}
+}>
 
 export function ThemeProvider({
   children,

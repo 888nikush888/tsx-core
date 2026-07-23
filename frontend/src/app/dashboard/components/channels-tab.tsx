@@ -73,7 +73,7 @@ export function ChannelsTab({
               type="number" 
               placeholder="e.g. 1234567"
               value={config.apiId || ''} 
-              onChange={(e) => setConfig({ ...config, apiId: parseInt(e.target.value) || 0 })} 
+              onChange={(e) => setConfig({ ...config, apiId: Number.parseInt(e.target.value, 10) || 0 })}
             />
           </div>
           <div className="space-y-2">
@@ -186,7 +186,7 @@ export function ChannelsTab({
                       placeholder="e.g. VIP Signals Group"
                       value={config.sourceAliases?.[ch] || ''}
                       onChange={(e) => {
-                        const newAliases = { ...(config.sourceAliases || {}) };
+                        const newAliases = { ...config.sourceAliases };
                         if (e.target.value.trim() === '') {
                           delete newAliases[ch];
                         } else {

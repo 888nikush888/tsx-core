@@ -9,8 +9,8 @@ const acceptanceDirectory = path.join(root, 'docs', 'risk-acceptances');
 
 const RISK_FACTORS = [
   { id: 'critical-domain', points: 5, label: 'Critical delivery, data, AI, trading or control-plane domain', matches: file => /^src\/(forwarder|db|signal_parser|signal_schema|delivery_tracker|backup|backup_replication|web_server|audit_trail|dashboard_auth|secret_store|telegram_login|trading_.+|paper_exchange|official_exchange)\.ts$/.test(file) || /^exchange_executor\/(?!tests\/)/.test(file) },
-  { id: 'auth-secrets', points: 5, label: 'Authentication, authorization or secret boundary', matches: file => /^src\/(dashboard_auth|web_server|env|audit_trail|runtime_profile|runtime_settings|secret_store|telegram_login|trading_credentials|official_exchange)\.ts$/.test(file) || /^exchange_executor\/(credentials|server)\.py$/.test(file) || /^\.github\/workflows\//.test(file) },
-  { id: 'ai-side-effect', points: 5, label: 'AI prompt, schema or automatic side effect', matches: file => /^src\/(signal_parser|signal_schema|forwarder|trading_engine|trading_runtime|trading_risk)\.ts$/.test(file) || /^templates\//.test(file) || /^exchange_executor\/(hyperliquid_adapter|bybit_adapter)\.py$/.test(file) },
+  { id: 'auth-secrets', points: 5, label: 'Authentication, authorization or secret boundary', matches: file => /^src\/(dashboard_auth|web_server|env|audit_trail|runtime_profile|runtime_settings|secret_store|telegram_login|trading_credentials|official_exchange)\.ts$/.test(file) || /^exchange_executor\/(credentials|server)\.py$/.test(file) || file.startsWith('.github/workflows/') },
+  { id: 'ai-side-effect', points: 5, label: 'AI prompt, schema or automatic side effect', matches: file => /^src\/(signal_parser|signal_schema|forwarder|trading_engine|trading_runtime|trading_risk)\.ts$/.test(file) || file.startsWith('templates/') || /^exchange_executor\/(hyperliquid_adapter|bybit_adapter)\.py$/.test(file) },
   { id: 'database', points: 4, label: 'Database, migration or persistent recovery', matches: file => /^src\/(db|migration_cli|backup|trading_repository|trading_engine)\.ts$/.test(file) },
   { id: 'concurrency', points: 4, label: 'Concurrency, retry, timeout, idempotency or shutdown', matches: file => /^src\/(queue|forwarder|delivery_tracker|tdlib_retry|trading_engine|trading_runtime|official_exchange)\.ts$/.test(file) },
   { id: 'contract', points: 3, label: 'HTTP, configuration or metrics contract', matches: file => /^src\/(web_server|metrics|config)\.ts$/.test(file) },
@@ -112,8 +112,10 @@ async function main() {
 }
 
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {
-  main().catch(error => {
+  try {
+    await main();
+  } catch (error) {
     console.error(error.message);
     process.exitCode = 1;
-  });
+  }
 }

@@ -138,8 +138,10 @@ async function run() {
 }
 
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {
-  run().catch(error => {
+  try {
+    await run();
+  } catch (error) {
     console.error(error.message);
     process.exitCode = 1;
-  });
+  }
 }

@@ -1,4 +1,4 @@
-import http from 'http';
+import http from 'node:http';
 import type { OutboxStatus } from './db.js';
 import type { DeliverySloSnapshot } from './slo_tracker.js';
 

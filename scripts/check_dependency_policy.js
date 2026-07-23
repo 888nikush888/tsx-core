@@ -6,7 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const exactVersion = /^(?:\d+!)?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 
 function declaredDependencies(manifest) {
-  return { ...(manifest.dependencies || {}), ...(manifest.devDependencies || {}), ...(manifest.optionalDependencies || {}) };
+  return { ...manifest.dependencies, ...manifest.devDependencies, ...manifest.optionalDependencies };
 }
 
 function declaredDependencyViolations(name, dependency, version, lockedRoot, artifact) {

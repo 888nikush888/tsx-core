@@ -1,7 +1,6 @@
-import fs from 'fs';
-import { promises as fsPromises } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs, { promises as fsPromises } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export function configurationPathFromEnvironment(env: NodeJS.ProcessEnv = process.env): string {

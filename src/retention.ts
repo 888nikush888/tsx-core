@@ -106,7 +106,7 @@ export class OperationalDataRetention {
   }
 
   async runNow(): Promise<void> {
-    if (this.running) return this.running;
+    if (this.running !== null) return this.running;
     this.running = this.execute();
     try {
       await this.running;

@@ -28,11 +28,11 @@ export function normalizeSignalWorkspace(value: string | null | undefined): Sign
   return WORKSPACES.some((workspace) => workspace.id === value) ? value as SignalWorkspace : "overview"
 }
 
-function Metric({ label, value, detail }: { label: string; value: string | number; detail: string }) {
+function Metric({ label, value, detail }: Readonly<{ label: string; value: string | number; detail: string }>) {
   return <Card><CardHeader className="pb-2"><CardDescription>{label}</CardDescription><CardTitle className="text-3xl">{value}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{detail}</CardContent></Card>
 }
 
-function Overview({ config, secretStatus }: { config: any; secretStatus: any }) {
+function Overview({ config, secretStatus }: Readonly<{ config: any; secretStatus: any }>) {
   const sources = Array.isArray(config?.sourceChannels) ? config.sourceChannels.length : 0
   const parserEnabled = Boolean(config?.xmlParsing?.enabled)
   const parserReady = !parserEnabled || Boolean(secretStatus?.openRouterApiKey?.configured)
@@ -65,11 +65,11 @@ function Overview({ config, secretStatus }: { config: any; secretStatus: any }) 
   </div>
 }
 
-function StatusRow({ label, ready, optional = false }: { label: string; ready: boolean; optional?: boolean }) {
+function StatusRow({ label, ready, optional = false }: Readonly<{ label: string; ready: boolean; optional?: boolean }>) {
   return <div className="flex items-center justify-between rounded-md border p-3"><span>{label}</span><Badge variant={ready ? "default" : "secondary"}>{ready ? "bereit" : optional ? "optional / aus" : "offen"}</Badge></div>
 }
 
-function WorkspaceHint({ title, text }: { title: string; text: string }) {
+function WorkspaceHint({ title, text }: Readonly<{ title: string; text: string }>) {
   return <div className="rounded-md border p-3"><div className="font-medium">{title}</div><div className="mt-1 text-xs text-muted-foreground">{text}</div></div>
 }
 
@@ -85,7 +85,7 @@ export function SignalCenterTab({
   onWorkspaceChange,
   onSave,
   isSaving,
-}: {
+}: Readonly<{
   config: any
   setConfig: (value: any) => void
   secretStatus: any
@@ -97,7 +97,7 @@ export function SignalCenterTab({
   onWorkspaceChange: (workspace: SignalWorkspace) => void
   onSave: () => Promise<void>
   isSaving: boolean
-}) {
+}>) {
   useEffect(() => {
     if (!WORKSPACES.some((item) => item.id === workspace)) onWorkspaceChange("overview")
   }, [onWorkspaceChange, workspace])

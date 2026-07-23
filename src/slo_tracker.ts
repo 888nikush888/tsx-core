@@ -19,7 +19,7 @@ export class DeliverySloTracker {
   private unknown = 0;
   private latencyCount = 0;
   private latencySumSeconds = 0;
-  private latencyBuckets = LATENCY_BUCKETS_SECONDS.map(le => ({ le, count: 0 }));
+  private readonly latencyBuckets = LATENCY_BUCKETS_SECONDS.map(le => ({ le, count: 0 }));
 
   recordAccepted(): void {
     this.accepted += 1;

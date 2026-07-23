@@ -6,7 +6,7 @@ import { XCircle, Regex, FileType, Info } from "lucide-react"
 export function FiltersTab({ config, setConfig }: any) {
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
 
-  if (!config || !config.filters) return null;
+  if (!config?.filters) return null;
 
   const handleFilterChange = (key: string, rawText: string) => {
     setConfig({
@@ -19,7 +19,7 @@ export function FiltersTab({ config, setConfig }: any) {
   }
 
   const handleSourceRegexChange = (source: string, rawText: string) => {
-    const newSourceFilters = { ...(config.sourceFilters || {}) };
+    const newSourceFilters = { ...config.sourceFilters };
     const patterns = rawText.split('\n').map(s => s.trim());
     
     if (patterns.length === 0 || (patterns.length === 1 && patterns[0] === '')) {
@@ -123,10 +123,11 @@ export function FiltersTab({ config, setConfig }: any) {
                     {config.sourceChannels.map((ch: string) => {
                       const alias = config.sourceAliases?.[ch];
                       const displayLabel = alias ? `${alias} (${ch})` : ch;
-                      const hasSpecific = config.sourceFilters && config.sourceFilters[ch] && config.sourceFilters[ch].regexPatterns && config.sourceFilters[ch].regexPatterns.length > 0;
+                      const hasSpecific = Boolean(config.sourceFilters?.[ch]?.regexPatterns?.length);
                       const isSelected = selectedSource === ch;
                       return (
                         <button
+                          type="button"
                           key={ch}
                           onClick={() => setSelectedSource(ch)}
                           className={`text-left px-2 py-1.5 text-xs rounded-md transition-colors truncate ${isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}

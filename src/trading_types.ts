@@ -137,7 +137,7 @@ export interface TradingIntent {
   side: TradingSide;
   status: TradingIntentStatus;
   signal: ExecutableSignal;
-  plan: unknown | null;
+  plan: unknown;
   blockReason: string | null;
   error: string | null;
   createdAt: number;

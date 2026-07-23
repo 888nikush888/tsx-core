@@ -33,7 +33,7 @@ interface ProcessedSignal {
   created_at: number;
 }
 
-export function SignalsTab({ config }: { config?: any }) {
+export function SignalsTab({ config }: Readonly<{ config?: any }>) {
   const [signals, setSignals] = useState<ProcessedSignal[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

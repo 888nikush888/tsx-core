@@ -268,7 +268,7 @@ export function buildDashboardViewModel(input: DashboardDataInput, selectedAccou
   const nominalEquity = accounts.reduce((sum, account) => sum + (account.equity || 0), 0)
   const availableBalance = accounts.reduce((sum, account) => sum + (account.availableBalance || 0), 0)
   const marginUsed = accounts.reduce((sum, account) => sum + (account.marginUsed || 0), 0)
-  const signalSource = { ...(input.signalAnalytics?.windows || {}) }
+  const signalSource = { ...input.signalAnalytics?.windows }
   const fallbackMessages = Array.isArray(input.messages) ? input.messages : []
   const fallbackSignals = Array.isArray(input.signals) ? input.signals : []
   if (!signalSource.all) {

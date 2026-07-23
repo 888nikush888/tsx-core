@@ -33,8 +33,9 @@ function nullableNumeric(value: unknown): number | null {
 }
 
 function parseJson<T>(value: unknown, label: string): T {
+  if (typeof value !== 'string') throw new TypeError(`Stored ${label} must be a JSON string.`);
   try {
-    return JSON.parse(String(value)) as T;
+    return JSON.parse(value) as T;
   } catch (error) {
     throw new Error(`Stored ${label} is invalid JSON.`, { cause: error });
   }
@@ -295,7 +296,7 @@ export async function updateTradingAccountState(
 ): Promise<TradingAccount> {
   if (!['unverified', 'ready', 'disabled', 'error'].includes(state.status)) throw new Error('Unsupported account status.');
   if (state.enabled && state.status !== 'ready') throw new Error('Only a verified ready account can be enabled.');
-  const updatesExternalAccountId = Object.prototype.hasOwnProperty.call(state, 'externalAccountId');
+  const updatesExternalAccountId = Object.hasOwn(state, 'externalAccountId');
   const externalAccountId = state.externalAccountId?.trim() || null;
   if (externalAccountId && (externalAccountId.length > 256 || /[\x00-\x1f\x7f]/.test(externalAccountId))) {
     throw new Error('External account identity must contain at most 256 printable characters.');
@@ -619,6 +620,9 @@ async function tradingAnalyticsWindow(since: number | null): Promise<Map<string,
   ]);
   const result = new Map<string, TradingWindowAnalytics>();
   const metrics = (accountId: unknown) => {
+    if (typeof accountId !== 'string' && typeof accountId !== 'number') {
+      throw new TypeError('Trading analytics account ID must be a string or number.');
+    }
     const id = String(accountId);
     const current = result.get(id) ?? emptyTradingWindow();
     result.set(id, current);

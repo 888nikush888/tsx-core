@@ -1,9 +1,9 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'crypto';
-import { createReadStream, createWriteStream, promises as fs } from 'fs';
-import path from 'path';
-import { Readable, Transform } from 'stream';
-import { pipeline } from 'stream/promises';
-import { createGunzip, createGzip } from 'zlib';
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createReadStream, createWriteStream, promises as fs } from 'node:fs';
+import path from 'node:path';
+import { Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import { createGunzip, createGzip } from 'node:zlib';
 import { isSupportedBackupArtifactFileName, listBackupArtifactFiles, verifyBackupArtifact } from './backup.js';
 import { enterpriseMode } from './runtime_profile.js';
 

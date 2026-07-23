@@ -16,7 +16,7 @@ export interface MetricsTrackerConfig {
 }
 
 export class MetricsTracker {
-  private history: MetricPoint[] = [];
+  private readonly history: MetricPoint[] = [];
   private intervalId: NodeJS.Timeout | null = null;
   private readonly totalForwardedCountCallback: () => number;
   private readonly getQueueStateCallback: () => { running: number; queued: number; maxConcurrency: number; paused: boolean };

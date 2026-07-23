@@ -54,11 +54,11 @@ async function mutate(path: string, body: unknown, method = "POST", extraHeaders
   return payload.result
 }
 
-function Metric({ label, value, detail }: { label: string; value: string | number; detail?: string }) {
+function Metric({ label, value, detail }: Readonly<{ label: string; value: string | number; detail?: string }>) {
   return <Card><CardHeader className="pb-2"><CardDescription>{label}</CardDescription><CardTitle className="text-3xl">{value}</CardTitle></CardHeader>{detail && <CardContent className="text-xs text-muted-foreground">{detail}</CardContent>}</Card>
 }
 
-export function TradingTab({ config }: { config: any }) {
+export function TradingTab({ config }: Readonly<{ config: any }>) {
   const [data, setData] = useState<Snapshot | null>(null)
   const [workspace, setWorkspace] = useState<Workspace>("overview")
   const [busy, setBusy] = useState("")
@@ -170,7 +170,7 @@ function Strategies({ data, busy, run }: any) {
     if (removed) newStrategy()
   }
   return <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
-    <Card><CardHeader><CardTitle>Versionen</CardTitle><CardDescription>Publizierte Versionen sind unveränderlich und werden fest an Kanäle gebunden.</CardDescription></CardHeader><CardContent className="space-y-2"><Button className="w-full" onClick={newStrategy}>Neue Strategie</Button>{data.strategies.map((strategy: any) => <button key={strategy.id} onClick={() => selectStrategy(strategy)} className={`w-full rounded-md border p-3 text-left ${selected === strategy.id ? "border-primary bg-primary/5" : ""}`}><div className="flex justify-between gap-2"><span className="font-medium">{strategy.name} v{strategy.version}</span><Badge variant={statusTone(strategy.status) as any}>{strategy.status}</Badge></div><div className="mt-1 truncate text-xs text-muted-foreground">SHA {strategy.configurationSha256.slice(0, 12)}…</div></button>)}</CardContent></Card>
+    <Card><CardHeader><CardTitle>Versionen</CardTitle><CardDescription>Publizierte Versionen sind unveränderlich und werden fest an Kanäle gebunden.</CardDescription></CardHeader><CardContent className="space-y-2"><Button className="w-full" onClick={newStrategy}>Neue Strategie</Button>{data.strategies.map((strategy: any) => <button type="button" key={strategy.id} onClick={() => selectStrategy(strategy)} className={`w-full rounded-md border p-3 text-left ${selected === strategy.id ? "border-primary bg-primary/5" : ""}`}><div className="flex justify-between gap-2"><span className="font-medium">{strategy.name} v{strategy.version}</span><Badge variant={statusTone(strategy.status) as any}>{strategy.status}</Badge></div><div className="mt-1 truncate text-xs text-muted-foreground">SHA {strategy.configurationSha256.slice(0, 12)}…</div></button>)}</CardContent></Card>
     <Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><div><CardTitle>Strategie-Editor</CardTitle><CardDescription>Alle Größen sind harte, validierte Verträge. Prozentwerte als Dezimalzahl.</CardDescription></div>{current?.status === "published" && <Button variant="outline" onClick={newVersion}>Neue Version aus v{current.version}</Button>}</div></CardHeader><CardContent className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2"><Field label="Name"><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></Field><Field label="Beschreibung"><Input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field></div>
       <div className="grid gap-4 md:grid-cols-2"><Field label="Erlaubte Signal-Schemas"><div className="flex flex-wrap gap-2">{["standard", "cryptodanielvip", "loma"].map(value => <Button key={value} type="button" size="sm" variant={cfg.allowedSignalSchemas.includes(value) ? "default" : "outline"} onClick={() => toggle("allowedSignalSchemas", value)}>{value}</Button>)}</div></Field><Field label="Erlaubte Richtungen"><div className="flex gap-2">{["LONG", "SHORT"].map(value => <Button key={value} type="button" size="sm" variant={cfg.allowedSides.includes(value) ? "default" : "outline"} onClick={() => toggle("allowedSides", value)}>{value}</Button>)}</div></Field></div>
@@ -254,7 +254,7 @@ function riskEventDetail(event: any) {
   return `${event.details?.fromTrigger || "–"} → ${event.details?.toTrigger || "–"} · ${reason}`
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children }: Readonly<{ label: string; children: ReactNode }>) {
   const generatedId = useId()
   if (!isValidElement<{ id?: string }>(children) || children.type === 'div') {
     const labelId = `${generatedId}-label`
@@ -269,7 +269,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   const controlId = isValidElement<{ id?: string }>(control) ? control.props.id : generatedId
   return <div className="space-y-2"><Label htmlFor={controlId}>{label}</Label>{control}</div>
 }
-function Section({ title, children }: { title: string; children: ReactNode }) { return <div className="rounded-lg border p-4"><h3 className="mb-4 font-semibold">{title}</h3>{children}</div> }
-function NumberField({ label, value, onChange }: { label: string; value: string | number; onChange: (value: string) => void }) { return <Field label={label}><Input type="number" step="any" value={value} onChange={e => onChange(e.target.value)} /></Field> }
-function SwitchField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) { const id = useId(); return <div className="flex h-full items-end gap-3 pb-2"><Switch id={id} checked={checked} onCheckedChange={onChange} /><Label htmlFor={id}>{label}</Label></div> }
-function SelectField({ label, value, options, onChange, disabled = false }: { label: string; value: string; options: Array<string | { value: string; label: string }>; onChange: (value: string) => void; disabled?: boolean }) { const id = useId(); return <div className="space-y-2"><Label htmlFor={id}>{label}</Label><Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger id={id}><SelectValue placeholder="Auswählen" /></SelectTrigger><SelectContent>{options.map(option => { const item = typeof option === "string" ? { value: option, label: option } : option; return <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem> })}</SelectContent></Select></div> }
+function Section({ title, children }: Readonly<{ title: string; children: ReactNode }>) { return <div className="rounded-lg border p-4"><h3 className="mb-4 font-semibold">{title}</h3>{children}</div> }
+function NumberField({ label, value, onChange }: Readonly<{ label: string; value: string | number; onChange: (value: string) => void }>) { return <Field label={label}><Input type="number" step="any" value={value} onChange={e => onChange(e.target.value)} /></Field> }
+function SwitchField({ label, checked, onChange }: Readonly<{ label: string; checked: boolean; onChange: (value: boolean) => void }>) { const id = useId(); return <div className="flex h-full items-end gap-3 pb-2"><Switch id={id} checked={checked} onCheckedChange={onChange} /><Label htmlFor={id}>{label}</Label></div> }
+function SelectField({ label, value, options, onChange, disabled = false }: Readonly<{ label: string; value: string; options: Array<string | { value: string; label: string }>; onChange: (value: string) => void; disabled?: boolean }>) { const id = useId(); return <div className="space-y-2"><Label htmlFor={id}>{label}</Label><Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger id={id}><SelectValue placeholder="Auswählen" /></SelectTrigger><SelectContent>{options.map(option => { const item = typeof option === "string" ? { value: option, label: option } : option; return <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem> })}</SelectContent></Select></div> }
