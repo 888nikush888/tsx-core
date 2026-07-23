@@ -180,13 +180,26 @@ jobs:
     permissions:
       actions: read
       contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: github/codeql-action/init@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d
         with:
           languages: javascript-typescript,python
-      - uses: github/codeql-action/analyze@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d
+      - name: Analyze without the unavailable private-repository upload
+        uses: github/codeql-action/analyze@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d
+        with:
+          upload: never
+          output: codeql-results
+      - name: Block every CodeQL finding
+        run: jq --slurp --exit-status '[.[].runs[]?.results[]?] | length == 0' codeql-results/*.sarif
+      - name: Upload CodeQL evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: codeql-evidence-${{ github.sha }}
+          path: codeql-results/
+          if-no-files-found: error
+          retention-days: 90
 
   secrets:
     name: Secret history scan

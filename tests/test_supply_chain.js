@@ -61,9 +61,14 @@ assert.match(mutationRunner, /timeout:\s*20 \* 60_000/);
 assert.match(workflow, /cron:\s*'17 3 \* \* 1'/);
 assert.match(
   workflow,
-  /sast:[\s\S]*?permissions:[\s\S]*?actions:\s*read[\s\S]*?security-events:\s*write/,
-  'CodeQL needs workflow metadata read access and SARIF upload access'
+  /sast:[\s\S]*?permissions:[\s\S]*?actions:\s*read[\s\S]*?contents:\s*read/,
+  'CodeQL needs workflow metadata and repository read access'
 );
+assert.match(workflow, /upload:\s*never/);
+assert.ok(
+  workflow.includes("jq --slurp --exit-status '[.[].runs[]?.results[]?] | length == 0' codeql-results/*.sarif")
+);
+assert.match(workflow, /name:\s*codeql-evidence-\$\{\{ github\.sha \}\}/);
 assert.doesNotMatch(workflow, /ignore-unfixed:\s*true/);
 assert.match(workflow, /retention-days:\s*90/);
 assert.match(workflow, /project:\s*\[chromium, firefox, webkit, mobile-chromium\]/);
