@@ -158,7 +158,7 @@ export interface DatabaseStorageStats {
   reusableBytes: number;
 }
 
-const MIGRATION_IDENTIFIER_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const MIGRATION_IDENTIFIER_PATTERN = /^[A-Za-z_]\w*$/;
 const MIGRATION_COLUMN_DEFINITIONS = new Set([
   'TEXT',
   'INTEGER',
