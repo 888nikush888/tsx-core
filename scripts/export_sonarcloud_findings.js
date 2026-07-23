@@ -122,12 +122,11 @@ export async function exportFindings({ environment = process.env, fetchImpl = fe
 const isDirectExecution = process.argv[1]
   && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 if (isDirectExecution) {
-  exportFindings()
-    .then(summary => {
-      console.log(`SonarCloud export complete: ${summary.openIssueCount} open issues, ${summary.toReviewHotspotCount} hotspots to review.`);
-    })
-    .catch(error => {
-      console.error(error instanceof Error ? error.message : String(error));
-      process.exitCode = 1;
-    });
+  try {
+    const summary = await exportFindings();
+    console.log(`SonarCloud export complete: ${summary.openIssueCount} open issues, ${summary.toReviewHotspotCount} hotspots to review.`);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }
