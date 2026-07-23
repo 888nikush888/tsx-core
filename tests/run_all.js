@@ -3,6 +3,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const testsDirectory = path.dirname(fileURLToPath(import.meta.url));
+const testEnvironment = {
+  ...process.env,
+  CONFIG_PATH: path.resolve(testsDirectory, '..', 'config.json.example'),
+};
 const allTests = [
   'test_modules.js',
   'test_logger_file.js',
@@ -66,7 +70,7 @@ for (const test of selectedTests) {
   }
   const result = spawnSync(process.execPath, ['--import', 'tsx', path.join(testsDirectory, test)], {
     cwd: path.join(testsDirectory, '..'),
-    env: process.env,
+    env: testEnvironment,
     stdio: 'inherit',
     shell: false,
     timeout: 120_000,

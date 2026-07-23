@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { applyEnvContent, resolveSecretFiles } from '../src/env.js';
+import { applyEnvContent, resolveSecretFiles, validateTelegramApiId } from '../src/env.js';
 
 const root = await mkdtemp(path.join(os.tmpdir(), 'forwarder-env-test-'));
 try {
@@ -33,6 +33,26 @@ try {
     () => resolveSecretFiles({ DASHBOARD_VIEWER_TOKEN_FILE: path.join(root, 'missing') }),
     /ENOENT/
   );
+
+  const emptyPath = path.join(root, 'empty-secret');
+  await writeFile(emptyPath, '', 'utf8');
+  assert.throws(
+    () => resolveSecretFiles({ ALERT_RELAY_TOKEN_FILE: emptyPath }),
+    /non-empty regular file/
+  );
+
+  const previousApiId = process.env.TELEGRAM_API_ID;
+  try {
+    process.env.TELEGRAM_API_ID = '-1';
+    validateTelegramApiId();
+    assert.equal(process.env.TELEGRAM_API_ID, undefined);
+    process.env.TELEGRAM_API_ID = ' 42 ';
+    validateTelegramApiId();
+    assert.equal(process.env.TELEGRAM_API_ID, '42');
+  } finally {
+    if (previousApiId === undefined) delete process.env.TELEGRAM_API_ID;
+    else process.env.TELEGRAM_API_ID = previousApiId;
+  }
 
   console.log('ALL FILE-BACKED SECRET TESTS PASSED!');
 } finally {

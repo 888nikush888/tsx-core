@@ -38,6 +38,11 @@ assert.equal(
   'all Trivy steps must use the known-safe action commit'
 );
 assert.equal((workflow.match(/^\s*version:\s*v0\.69\.3\s*$/gm) ?? []).length, 8);
+assert.equal(
+  (workflow.match(/^\s*limit-severities-for-sarif:\s*true\s*$/gm) ?? []).length,
+  4,
+  'every blocking SARIF scan must apply the HIGH/CRITICAL severity limit'
+);
 assert.doesNotMatch(workflow, /^\s*version:\s*latest\s*$/m);
 assert.doesNotMatch(
   workflow,
@@ -54,6 +59,11 @@ assert.match(strykerConfig, /cleanTempDir:\s*'always'/);
 assert.match(strykerConfig, /concurrency:\s*1/);
 assert.match(mutationRunner, /timeout:\s*20 \* 60_000/);
 assert.match(workflow, /cron:\s*'17 3 \* \* 1'/);
+assert.match(
+  workflow,
+  /sast:[\s\S]*?permissions:[\s\S]*?actions:\s*read[\s\S]*?security-events:\s*write/,
+  'CodeQL needs workflow metadata read access and SARIF upload access'
+);
 assert.doesNotMatch(workflow, /ignore-unfixed:\s*true/);
 assert.match(workflow, /retention-days:\s*90/);
 assert.match(workflow, /project:\s*\[chromium, firefox, webkit, mobile-chromium\]/);
