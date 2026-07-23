@@ -50,7 +50,6 @@ COPY --from=runtime-layout --chown=65532:65532 /runtime/app/ /app/
 COPY --from=production-dependencies --chown=65532:65532 /app/node_modules ./node_modules
 COPY --from=builder --chown=65532:65532 /app/dist ./dist
 COPY --from=builder --chown=65532:65532 /app/frontend/dist ./frontend/dist
-COPY --chown=65532:65532 templates/ ./templates/
 COPY --chown=65532:65532 config.json.example ./config/config.json
 
 USER 65532:65532
