@@ -125,8 +125,8 @@ if (isDirectExecution) {
   try {
     const summary = await exportFindings();
     console.log(`SonarCloud export complete: ${summary.openIssueCount} open issues, ${summary.toReviewHotspotCount} hotspots to review.`);
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+  } catch {
+    console.error('SonarCloud export failed.');
     process.exitCode = 1;
   }
 }
