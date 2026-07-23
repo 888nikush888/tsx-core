@@ -251,9 +251,9 @@ function Activity({ data, busy, run }: any) {
 function riskEventDetail(event: any) {
   if (event.code !== "STOP_LOSS_MOVED") return event.details?.message || "–"
   const reference = event.details?.referenceTargetIndex
-  const reason = reference
-    ? `TP${reference}`
-    : event.details?.reason === "trailing_stop" ? "Trailing Stop" : "Break-even"
+  let reason = "Break-even"
+  if (reference) reason = `TP${reference}`
+  else if (event.details?.reason === "trailing_stop") reason = "Trailing Stop"
   return `${event.details?.fromTrigger || "–"} → ${event.details?.toTrigger || "–"} · ${reason}`
 }
 

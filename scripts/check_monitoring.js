@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const monitoring = path.join(root, 'monitoring');
 const dockerExecutable = process.platform === 'win32'
-  ? 'C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe'
+  ? String.raw`C:\Program Files\Docker\Docker\resources\bin\docker.exe`
   : '/usr/bin/docker';
 const prometheusImage = 'prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80';
 const alertmanagerImage = 'prom/alertmanager:v0.33.1@sha256:9e082985f56f4c8c9f724e18f2288c6708f472e56a5286b8863d080434ea065d';

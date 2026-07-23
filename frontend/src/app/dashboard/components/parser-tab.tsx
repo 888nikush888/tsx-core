@@ -10,6 +10,11 @@ import { apiFetch } from "@/lib/api"
 
 const API_BASE = window.location.origin
 
+function openRouterSecretLabel(secretStatus: any): string {
+  if (!secretStatus?.configured) return "Not configured"
+  return secretStatus.source === "external" ? "Managed by deployment" : "Stored securely"
+}
+
 export function ParserTab({ config, setConfig, secretStatus, secretValue, setSecretValue }: any) {
   const [templates, setTemplates] = useState<Record<string, string>>({ default: "" })
   const [selectedTemplateName, setSelectedTemplateName] = useState<string>("default")
@@ -174,11 +179,7 @@ export function ParserTab({ config, setConfig, secretStatus, secretValue, setSec
 
           <div className="grid gap-4 md:grid-cols-2 pt-2">
             <div className="space-y-2">
-              <Label htmlFor="openRouterApiKey">OpenRouter API Key · {
-                secretStatus?.configured
-                  ? secretStatus.source === "external" ? "Managed by deployment" : "Stored securely"
-                  : "Not configured"
-              }</Label>
+              <Label htmlFor="openRouterApiKey">OpenRouter API Key · {openRouterSecretLabel(secretStatus)}</Label>
               <Input
                 id="openRouterApiKey"
                 type="password"

@@ -4,8 +4,9 @@ ARG DEBIAN_SNAPSHOT=20260713T150000Z
 
 FROM ${NODE_IMAGE} AS base
 ARG DEBIAN_SNAPSHOT
-RUN sed -ri "s|http://deb.debian.org/debian-security|https://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
-    && sed -ri "s|http://deb.debian.org/debian|https://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
+RUN sed -ri "s|deb.debian.org/debian-security|snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
+    && sed -ri "s|deb.debian.org/debian|snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
+    && sed -ri 's|^URIs: [^:]+://|URIs: https://|' /etc/apt/sources.list.d/debian.sources \
     && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot
 
 FROM base AS builder

@@ -41,12 +41,14 @@ function Overview({ config, secretStatus }: Readonly<{ config: any; secretStatus
     ...(config?.filters?.blockedKeywords || []),
     ...(config?.filters?.regexPatterns || []),
   ].filter((value) => String(value).trim()).length
+  let parserStatus = "aus"
+  if (parserEnabled) parserStatus = parserReady ? "bereit" : "Key fehlt"
 
   return <div className="space-y-5">
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <Metric label="Quellkanäle" value={sources} detail="Parallel überwachte Telegram-Kanäle" />
       <Metric label="Ziel-Routing" value={routeReady ? "bereit" : "offen"} detail="Quelle und Ziel vollständig konfiguriert" />
-      <Metric label="KI-Parser" value={parserEnabled ? (parserReady ? "bereit" : "Key fehlt") : "aus"} detail="Parser und OpenRouter-Zugang" />
+      <Metric label="KI-Parser" value={parserStatus} detail="Parser und OpenRouter-Zugang" />
       <Metric label="Globale Filter" value={filterCount} detail="Keywords und reguläre Ausdrücke" />
     </div>
     <div className="grid gap-4 lg:grid-cols-2">
@@ -66,7 +68,10 @@ function Overview({ config, secretStatus }: Readonly<{ config: any; secretStatus
 }
 
 function StatusRow({ label, ready, optional = false }: Readonly<{ label: string; ready: boolean; optional?: boolean }>) {
-  return <div className="flex items-center justify-between rounded-md border p-3"><span>{label}</span><Badge variant={ready ? "default" : "secondary"}>{ready ? "bereit" : optional ? "optional / aus" : "offen"}</Badge></div>
+  let status = "offen"
+  if (ready) status = "bereit"
+  else if (optional) status = "optional / aus"
+  return <div className="flex items-center justify-between rounded-md border p-3"><span>{label}</span><Badge variant={ready ? "default" : "secondary"}>{status}</Badge></div>
 }
 
 function WorkspaceHint({ title, text }: Readonly<{ title: string; text: string }>) {

@@ -46,7 +46,24 @@ function tokenizeXml(xml: string): { source: string; tokens: string[] } {
     throw new SignalValidationError('XML declarations, comments, entities, DTDs, and self-closing tags are forbidden.');
   }
 
-  const tokens = source.match(/<[^>]*>|[^<]+/g) || [];
+  const tokens: string[] = [];
+  let cursor = 0;
+  while (cursor < source.length) {
+    if (source[cursor] === '<') {
+      const end = source.indexOf('>', cursor + 1);
+      if (end < 0) throw new SignalValidationError('Malformed XML token sequence.');
+      tokens.push(source.slice(cursor, end + 1));
+      cursor = end + 1;
+      continue;
+    }
+    const end = source.indexOf('<', cursor);
+    if (end < 0) {
+      tokens.push(source.slice(cursor));
+      break;
+    }
+    tokens.push(source.slice(cursor, end));
+    cursor = end;
+  }
   if (tokens.join('') !== source) throw new SignalValidationError('Malformed XML token sequence.');
   return { source, tokens };
 }
@@ -181,7 +198,9 @@ function compareDecimals(left: string, right: string): number {
   const scale = Math.max(leftFraction.length, rightFraction.length);
   const leftValue = BigInt(leftInteger + leftFraction.padEnd(scale, '0'));
   const rightValue = BigInt(rightInteger + rightFraction.padEnd(scale, '0'));
-  return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0;
+  if (leftValue < rightValue) return -1;
+  if (leftValue > rightValue) return 1;
+  return 0;
 }
 
 function range(node: XmlNode): { min: string; max: string } {
@@ -210,30 +229,42 @@ function assertScalarGeometry(
   targets: string[],
   entry?: { min: string; max: string }
 ): void {
-  if (entry) {
-    if (action === 'LONG' && compareDecimals(stoploss, entry.min) >= 0) {
-      throw new SignalValidationError('LONG stoploss must be below the entry range.');
-    }
-    if (action === 'SHORT' && compareDecimals(stoploss, entry.max) <= 0) {
-      throw new SignalValidationError('SHORT stoploss must be above the entry range.');
-    }
-  }
+  assertStopGeometry(action, stoploss, entry);
+  let baseline = stoploss;
+  if (entry) baseline = action === 'LONG' ? entry.max : entry.min;
+  const boundaryLabel = entry ? 'the entry range' : 'stoploss';
+  targets.forEach((target, index) => assertTargetGeometry(action, target, index, targets, baseline, boundaryLabel));
+}
 
-  targets.forEach((target, index) => {
-    const baseline = entry ? (action === 'LONG' ? entry.max : entry.min) : stoploss;
-    if (action === 'LONG' && compareDecimals(target, baseline) <= 0) {
-      throw new SignalValidationError(`LONG target ${index + 1} must be above ${entry ? 'the entry range' : 'stoploss'}.`);
-    }
-    if (action === 'SHORT' && compareDecimals(target, baseline) >= 0) {
-      throw new SignalValidationError(`SHORT target ${index + 1} must be below ${entry ? 'the entry range' : 'stoploss'}.`);
-    }
-    if (index > 0) {
-      const order = compareDecimals(targets[index - 1]!, target);
-      if ((action === 'LONG' && order >= 0) || (action === 'SHORT' && order <= 0)) {
-        throw new SignalValidationError(`${action} targets must be strictly ordered away from entry.`);
-      }
-    }
-  });
+function assertStopGeometry(action: 'LONG' | 'SHORT', stoploss: string, entry?: { min: string; max: string }): void {
+  if (!entry) return;
+  if (action === 'LONG' && compareDecimals(stoploss, entry.min) >= 0) {
+    throw new SignalValidationError('LONG stoploss must be below the entry range.');
+  }
+  if (action === 'SHORT' && compareDecimals(stoploss, entry.max) <= 0) {
+    throw new SignalValidationError('SHORT stoploss must be above the entry range.');
+  }
+}
+
+function assertTargetGeometry(
+  action: 'LONG' | 'SHORT',
+  target: string,
+  index: number,
+  targets: string[],
+  baseline: string,
+  boundaryLabel: string,
+): void {
+  if (action === 'LONG' && compareDecimals(target, baseline) <= 0) {
+    throw new SignalValidationError(`LONG target ${index + 1} must be above ${boundaryLabel}.`);
+  }
+  if (action === 'SHORT' && compareDecimals(target, baseline) >= 0) {
+    throw new SignalValidationError(`SHORT target ${index + 1} must be below ${boundaryLabel}.`);
+  }
+  if (index === 0) return;
+  const order = compareDecimals(targets[index - 1]!, target);
+  if ((action === 'LONG' && order >= 0) || (action === 'SHORT' && order <= 0)) {
+    throw new SignalValidationError(`${action} targets must be strictly ordered away from entry.`);
+  }
 }
 
 function scalarExecution(input: {
@@ -429,13 +460,11 @@ export function validateSignalXml(xml: string, templateName?: string): Validated
   const normalizedXml = xml.trim();
   const root = parseXml(normalizedXml);
   const schema = schemaForTemplate(templateName);
-  const common = schema === 'cryptodanielvip'
-    ? validateCryptoDaniel(root)
-    : schema === 'loma'
-      ? validateLoma(root)
-      : schema === 'speculantca'
-        ? validateSpeculant(root)
-        : validateStandard(root);
+  let common: Omit<ValidatedSignal, 'xml' | 'schema'>;
+  if (schema === 'cryptodanielvip') common = validateCryptoDaniel(root);
+  else if (schema === 'loma') common = validateLoma(root);
+  else if (schema === 'speculantca') common = validateSpeculant(root);
+  else common = validateStandard(root);
   return { xml: normalizedXml, schema, ...common };
 }
 
@@ -443,7 +472,33 @@ function normalizedGroundingText(value: string): string {
   return value.normalize('NFKC').toLocaleUpperCase('en-US').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 }
 
-const GROUNDING_LABEL = /\b(ENTRY(?:\s+(?:RANGE|LIMIT|MARKET))?|AVERAGING|STOP\s*LOSS|STOPLOSS|STOP|SL|TARGETS|TARGET(?:\s+#?\d+(?=\s*:))?|TP(?:\s+#?\d+(?=\s*:))?|TAKE\s*PROFIT(?:\s+#?\d+(?=\s*:))?|LEVERAGE|RISK(?:\s*PERCENT)?)\b/giu;
+const GROUNDING_LABEL_PATTERNS = [
+  /\bENTRY(?:\s+(?:RANGE|LIMIT|MARKET))?\b/giu,
+  /\bAVERAGING\b/giu,
+  /\b(?:STOP\s*LOSS|STOPLOSS|STOP|SL)\b/giu,
+  /\bTARGETS\b/giu,
+  /\bTARGET(?:\s+#?\d+(?=\s*:))?\b/giu,
+  /\bTP(?:\s+#?\d+(?=\s*:))?\b/giu,
+  /\bTAKE\s*PROFIT(?:\s+#?\d+(?=\s*:))?\b/giu,
+  /\bLEVERAGE\b/giu,
+  /\bRISK(?:\s*PERCENT)?\b/giu,
+] as const;
+
+interface GroundingLabelMatch {
+  label: string;
+  index: number;
+}
+
+function groundingLabels(value: string): GroundingLabelMatch[] {
+  const labels = GROUNDING_LABEL_PATTERNS.flatMap(pattern =>
+    Array.from(value.matchAll(pattern), match => ({ label: match[0], index: match.index }))
+  ).sort((left, right) => left.index - right.index || right.label.length - left.label.length);
+  return labels.filter((label, index) => {
+    if (index === 0) return true;
+    const previous = labels[index - 1]!;
+    return label.index >= previous.index + previous.label.length;
+  });
+}
 
 function groundingKind(label: string): GroundingFieldKind {
   const normalized = label.replace(/\s+/g, ' ').trim().toUpperCase();
@@ -457,26 +512,64 @@ function groundingKind(label: string): GroundingFieldKind {
 
 function canonicalDecimal(value: string): string {
   const [integer = '0', fraction = ''] = value.split('.');
-  const normalizedInteger = integer.replace(/^0+(?=\d)/, '') || '0';
-  const normalizedFraction = fraction.replace(/0+$/, '');
+  let normalizedInteger = integer;
+  while (normalizedInteger.length > 1 && normalizedInteger.startsWith('0')) normalizedInteger = normalizedInteger.slice(1);
+  let normalizedFraction = fraction;
+  while (normalizedFraction.endsWith('0')) normalizedFraction = normalizedFraction.slice(0, -1);
   return normalizedFraction ? `${normalizedInteger}.${normalizedFraction}` : normalizedInteger;
 }
 
+function isDigit(value: string | undefined): boolean {
+  return value !== undefined && value >= '0' && value <= '9';
+}
+
+function isWordCharacter(value: string | undefined): boolean {
+  return value !== undefined && /[\p{L}\p{N}_]/u.test(value);
+}
+
+function isGroundingNumberStart(value: string, index: number): boolean {
+  if (!isDigit(value[index]) || isWordCharacter(value[index - 1])) return false;
+  return value[index - 1] !== '.' || !isDigit(value[index - 2]);
+}
+
+function scanGroundingNumber(value: string, start: number): { end: number; decimal?: string } {
+  let end = start;
+  if (value[end] === '0') end += 1;
+  else while (isDigit(value[end]) && end - start < 18) end += 1;
+  if (value[end] === '.' && isDigit(value[end + 1])) {
+    end += 1;
+    const fractionStart = end;
+    while (isDigit(value[end]) && end - fractionStart < 18) end += 1;
+  }
+  const suffixLength = ['x', 'X', '%'].includes(value[end] || '') ? 1 : 0;
+  const boundary = value[end + suffixLength];
+  const invalidBoundary = isWordCharacter(boundary) || (boundary === '.' && isDigit(value[end + suffixLength + 1]));
+  return invalidBoundary ? { end } : { end, decimal: canonicalDecimal(value.slice(start, end)) };
+}
+
 function numbersInGroundingClause(value: string): string[] {
-  return Array.from(
-    value.matchAll(/(?<![\p{L}\p{N}_])(?<!\d\.)(?:0|[1-9]\d{0,17})(?:\.\d{1,18})?(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu),
-    match => canonicalDecimal(match[0])
-  );
+  const values: string[] = [];
+  let cursor = 0;
+  while (cursor < value.length) {
+    if (!isGroundingNumberStart(value, cursor)) {
+      cursor += 1;
+      continue;
+    }
+    const scanned = scanGroundingNumber(value, cursor);
+    if (scanned.decimal) values.push(scanned.decimal);
+    cursor = Math.max(scanned.end, cursor + 1);
+  }
+  return values;
 }
 
 function sourceFieldNumbers(sourceText: string): Map<GroundingFieldKind, string[]> {
   const normalized = sourceText.normalize('NFKC');
-  const labels = Array.from(normalized.matchAll(GROUNDING_LABEL));
+  const labels = groundingLabels(normalized);
   const result = new Map<GroundingFieldKind, string[]>();
   labels.forEach((match, index) => {
-    const start = (match.index ?? 0) + match[0].length;
+    const start = match.index + match.label.length;
     const end = labels[index + 1]?.index ?? normalized.length;
-    const kind = groundingKind(match[0]);
+    const kind = groundingKind(match.label);
     const values = numbersInGroundingClause(normalized.slice(start, end));
     result.set(kind, [...(result.get(kind) ?? []), ...values]);
   });
@@ -502,12 +595,18 @@ function assertPairGrounded(signal: ValidatedSignal, sourceText: string): void {
     throw new SignalValidationError(`Pair '${signal.pair}' is not grounded in the source text.`);
   }
   if (!signal.execution) return;
-  const quotedPairs = new Set(
-    Array.from(
-      sourceText.normalize('NFKC').toUpperCase().matchAll(/\b([A-Z0-9]{2,12})\s*\/?\s*(USDT|USDC|USD|BTC|ETH)\b/g),
-      match => `${match[1]}${match[2]}`
-    )
-  );
+  const normalizedTokens = sourceText.normalize('NFKC').toUpperCase().match(/[A-Z0-9]+|\//g) || [];
+  const pairCandidates = normalizedTokens.flatMap((token, index) => {
+    if (token === '/') return [];
+    if (normalizedTokens[index + 1] === '/' && normalizedTokens[index + 2]) {
+      return [`${token}${normalizedTokens[index + 2]}`];
+    }
+    return [token];
+  });
+  const quoteAssets = ['USDT', 'USDC', 'USD', 'BTC', 'ETH'];
+  const quotedPairs = new Set(pairCandidates.filter(candidate =>
+    quoteAssets.some(quote => candidate.endsWith(quote) && candidate.length - quote.length >= 2 && candidate.length - quote.length <= 12)
+  ));
   if (quotedPairs.size > 1 || (quotedPairs.size === 1 && !quotedPairs.has(signal.pair))) {
     throw new SignalValidationError('Source text contains competing trading pairs and is ambiguous.');
   }

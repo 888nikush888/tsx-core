@@ -100,6 +100,11 @@ export interface TradingPortfolioSnapshot {
   cached: boolean;
 }
 
+function reportingCurrency(exchange: TradingExchange): 'QUOTE' | 'USDC' | 'USD' {
+  if (exchange === 'paper') return 'QUOTE';
+  return exchange === 'hyperliquid' ? 'USDC' : 'USD';
+}
+
 export class TradingWebControl {
   private readonly adapters = new Map<TradingExchange, VerifiableAdapter>();
   private portfolioCache: { value: TradingPortfolioSnapshot; expiresAt: number } | null = null;
@@ -169,8 +174,7 @@ export class TradingWebControl {
         mode: account.mode,
         enabled: account.enabled,
         status: account.status,
-        reportingCurrency: account.exchange === 'paper' ? 'QUOTE' as const
-          : account.exchange === 'hyperliquid' ? 'USDC' as const : 'USD' as const,
+        reportingCurrency: reportingCurrency(account.exchange),
       };
       if (!['ready', 'disabled'].includes(account.status)) {
         return { ...base, equity: null, availableBalance: null, unrealizedPnl: null, marginUsed: null, observedAt: null, error: 'Account is not verified.' };
@@ -396,36 +400,42 @@ export class TradingWebControl {
 
   async setRuntime(payload: any) {
     const action = identifier(payload.action, 'Runtime action', 40);
-    if (action === 'execution') {
-      const enabled = boolean(payload.enabled, 'Execution enabled state');
-      if (enabled) {
-        const overview = await getTradingOverview();
-        if (overview.runtime.killSwitchActive) throw new Error('Execution cannot start while the kill switch is active.');
-        if (overview.enabledRouteCount < 1) throw new Error('Execution requires at least one enabled channel route.');
-        await this.reconcileEnabledAccounts();
-      }
-      return updateTradingRuntimeState({ executionEnabled: enabled });
-    }
-    if (action === 'live') {
-      const enabled = boolean(payload.enabled, 'Live trading enabled state');
-      if (enabled) {
-        if (payload.confirmation !== LIVE_CONFIRMATION) throw new Error(`Live trading requires the exact confirmation '${LIVE_CONFIRMATION}'.`);
-        const live = (await listTradingAccounts()).filter(account => account.mode === 'live' && account.enabled && account.status === 'ready');
-        if (live.length < 1) throw new Error('Live trading requires at least one enabled, verified live account.');
-        for (const account of live) await this.engine.reconcileAccount(account.id);
-      }
-      return updateTradingRuntimeState({ liveTradingEnabled: enabled });
-    }
-    if (action === 'kill-switch') {
-      const active = boolean(payload.active, 'Kill switch state');
-      if (active) {
-        const reason = identifier(payload.reason, 'Kill switch reason', 300);
-        return updateTradingRuntimeState({ executionEnabled: false, killSwitchActive: true, killSwitchReason: reason });
-      }
-      await this.reconcileEnabledAccounts();
-      return updateTradingRuntimeState({ killSwitchActive: false, killSwitchReason: null });
-    }
+    if (action === 'execution') return this.setExecutionRuntime(payload);
+    if (action === 'live') return this.setLiveRuntime(payload);
+    if (action === 'kill-switch') return this.setKillSwitchRuntime(payload);
     throw new Error('Unsupported trading runtime action.');
+  }
+
+  private async setExecutionRuntime(payload: any) {
+    const enabled = boolean(payload.enabled, 'Execution enabled state');
+    if (enabled) {
+      const overview = await getTradingOverview();
+      if (overview.runtime.killSwitchActive) throw new Error('Execution cannot start while the kill switch is active.');
+      if (overview.enabledRouteCount < 1) throw new Error('Execution requires at least one enabled channel route.');
+      await this.reconcileEnabledAccounts();
+    }
+    return updateTradingRuntimeState({ executionEnabled: enabled });
+  }
+
+  private async setLiveRuntime(payload: any) {
+    const enabled = boolean(payload.enabled, 'Live trading enabled state');
+    if (enabled) {
+      if (payload.confirmation !== LIVE_CONFIRMATION) throw new Error(`Live trading requires the exact confirmation '${LIVE_CONFIRMATION}'.`);
+      const live = (await listTradingAccounts()).filter(account => account.mode === 'live' && account.enabled && account.status === 'ready');
+      if (live.length < 1) throw new Error('Live trading requires at least one enabled, verified live account.');
+      for (const account of live) await this.engine.reconcileAccount(account.id);
+    }
+    return updateTradingRuntimeState({ liveTradingEnabled: enabled });
+  }
+
+  private async setKillSwitchRuntime(payload: any) {
+    const active = boolean(payload.active, 'Kill switch state');
+    if (active) {
+      const reason = identifier(payload.reason, 'Kill switch reason', 300);
+      return updateTradingRuntimeState({ executionEnabled: false, killSwitchActive: true, killSwitchReason: reason });
+    }
+    await this.reconcileEnabledAccounts();
+    return updateTradingRuntimeState({ killSwitchActive: false, killSwitchReason: null });
   }
 
   async configurePaper(payload: any): Promise<void> {

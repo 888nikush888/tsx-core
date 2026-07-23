@@ -75,11 +75,9 @@ export async function initFileLogger(): Promise<void> {
 function reportLogWriteFailure(error: unknown): void {
   if (logWriteFailureReported) return;
   logWriteFailureReported = true;
-  const message = error instanceof Error
-    ? error.message
-    : typeof error === 'string'
-      ? error
-      : 'Unknown persistent log write failure';
+  let message = 'Unknown persistent log write failure';
+  if (error instanceof Error) message = error.message;
+  else if (typeof error === 'string') message = error;
   console.error(`[ERROR] Persistent log write failed: ${message}`);
 }
 

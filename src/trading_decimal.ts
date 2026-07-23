@@ -25,7 +25,8 @@ function format(coefficient: bigint, scale: number): string {
   const digits = coefficient.toString().padStart(scale + 1, '0');
   if (scale === 0) return digits;
   const integer = digits.slice(0, -scale);
-  const fraction = digits.slice(-scale).replace(/0+$/, '');
+  let fraction = digits.slice(-scale);
+  while (fraction.endsWith('0')) fraction = fraction.slice(0, -1);
   return fraction ? `${integer}.${fraction}` : integer;
 }
 
@@ -50,7 +51,9 @@ export function decimal(value: string, options: { positive?: boolean; max?: stri
 
 export function compareDecimal(left: string, right: string): number {
   const [leftValue, rightValue] = align(parse(left), parse(right));
-  return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0;
+  if (leftValue < rightValue) return -1;
+  if (leftValue > rightValue) return 1;
+  return 0;
 }
 
 export function addDecimal(left: string, right: string): string {

@@ -59,45 +59,44 @@ export function LogsTab({ config }: any) {
       })
     }
 
-    // Match optional timestamp e.g. [13:22:25] and optional level e.g. [INFO]
-    const regex = /^(\[\d{2}:\d{2}:\d{2}\])?\s*(\[[A-Z\s-]+\])?(.*)$/i
-    const match = regex.exec(displayLine)
-    
-    if (match) {
-      const timestamp = match[1] || ""
-      const rawLevel = match[2] || ""
-      const message = match[3] || ""
-      
-      const level = rawLevel.toUpperCase()
-      let levelColor = "text-zinc-400"
-      
-      if (level.includes("SUCCESS")) {
-        levelColor = "text-emerald-500 dark:text-emerald-400 font-semibold"
-      } else if (level.includes("INFO")) {
-        levelColor = "text-sky-500 dark:text-sky-400"
-      } else if (level.includes("WARN")) {
-        levelColor = "text-amber-500 dark:text-amber-400 font-medium"
-      } else if (level.includes("ERROR") || level.includes("FATAL")) {
-        levelColor = "text-rose-500 dark:text-rose-400 font-semibold"
-      } else if (level.includes("TDLIB") || level.includes("STATUS")) {
-        levelColor = "text-violet-500 dark:text-violet-400"
-      }
-      
-      return {
-        timestamp,
-        levelText: rawLevel,
-        levelColor,
-        message,
-        isParsed: true
+    let remaining = displayLine.trimStart()
+    let timestamp = ""
+    if (/^\[\d{2}:\d{2}:\d{2}\]/.test(remaining)) {
+      timestamp = remaining.slice(0, 10)
+      remaining = remaining.slice(10).trimStart()
+    }
+    let rawLevel = ""
+    if (remaining.startsWith("[")) {
+      const closingBracket = remaining.indexOf("]")
+      const candidate = closingBracket < 0 ? "" : remaining.slice(0, closingBracket + 1)
+      if (/^\[[A-Z -]+\]$/i.test(candidate)) {
+        rawLevel = candidate
+        remaining = remaining.slice(candidate.length)
       }
     }
-    
+    const message = remaining
+      
+    const level = rawLevel.toUpperCase()
+    let levelColor = "text-zinc-400"
+      
+    if (level.includes("SUCCESS")) {
+      levelColor = "text-emerald-500 dark:text-emerald-400 font-semibold"
+    } else if (level.includes("INFO")) {
+      levelColor = "text-sky-500 dark:text-sky-400"
+    } else if (level.includes("WARN")) {
+      levelColor = "text-amber-500 dark:text-amber-400 font-medium"
+    } else if (level.includes("ERROR") || level.includes("FATAL")) {
+      levelColor = "text-rose-500 dark:text-rose-400 font-semibold"
+    } else if (level.includes("TDLIB") || level.includes("STATUS")) {
+      levelColor = "text-violet-500 dark:text-violet-400"
+    }
+      
     return {
-      timestamp: "",
-      levelText: "",
-      levelColor: "",
-      message: displayLine,
-      isParsed: false
+      timestamp,
+      levelText: rawLevel,
+      levelColor,
+      message,
+      isParsed: Boolean(timestamp || rawLevel)
     }
   }
 

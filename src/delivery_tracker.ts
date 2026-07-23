@@ -52,7 +52,9 @@ export class TelegramDeliveryTracker {
   }
 
   public async waitForResult(result: any, signal?: AbortSignal): Promise<ConfirmedDelivery> {
-    const messages = Array.isArray(result?.messages) ? result.messages : result?.id !== undefined ? [result] : [];
+    let messages: any[] = [];
+    if (Array.isArray(result?.messages)) messages = result.messages;
+    else if (result?.id !== undefined) messages = [result];
     if (messages.length === 0) {
       throw new Error('Telegram send returned no destination messages to confirm.');
     }

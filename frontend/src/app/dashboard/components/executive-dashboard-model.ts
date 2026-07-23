@@ -152,7 +152,7 @@ function windowView(source: any): WindowAnalyticsView {
     losses: finiteNumber(source?.losses),
     breakeven: finiteNumber(source?.breakeven),
     winRatePercent: closedTrades > 0 ? wins / closedTrades * 100 : null,
-    profitFactor: grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Number.POSITIVE_INFINITY : null,
+    profitFactor: profitFactor(grossProfit, grossLoss),
     fills: finiteNumber(source?.fills),
     volume: finiteNumber(source?.volume),
     fees: Object.fromEntries(Object.entries(source?.fees || {}).map(([asset, value]) => [asset, finiteNumber(value)])),
@@ -186,11 +186,14 @@ function aggregateWindows(accounts: AccountAnalyticsView[]): Record<DashboardWin
       for (const [asset, value] of Object.entries(current.fees)) result.fees[asset] = (result.fees[asset] || 0) + value
     }
     result.winRatePercent = result.closedTrades > 0 ? result.wins / result.closedTrades * 100 : null
-    result.profitFactor = result.grossLoss > 0
-      ? result.grossProfit / result.grossLoss
-      : result.grossProfit > 0 ? Number.POSITIVE_INFINITY : null
+    result.profitFactor = profitFactor(result.grossProfit, result.grossLoss)
     return [window, result]
   })) as Record<DashboardWindow, WindowAnalyticsView>
+}
+
+function profitFactor(grossProfit: number, grossLoss: number): number | null {
+  if (grossLoss > 0) return grossProfit / grossLoss
+  return grossProfit > 0 ? Number.POSITIVE_INFINITY : null
 }
 
 function signalWindow(source: any): SignalWindowView {
@@ -207,6 +210,49 @@ function signalWindow(source: any): SignalWindowView {
     extractionRatePercent: messages > 0 ? signals / messages * 100 : null,
     processingRatePercent: messages > 0 ? processed / messages * 100 : null,
   }
+}
+
+function signalAnalyticsSource(input: DashboardDataInput): Record<string, any> {
+  const source = { ...input.signalAnalytics?.windows }
+  if (source.all) return source
+  const messages = Array.isArray(input.messages) ? input.messages : []
+  const signals = Array.isArray(input.signals) ? input.signals : []
+  const countStatus = (status: string) => messages.filter((item: any) => item.status === status).length
+  source.all = {
+    messages: messages.length,
+    processed: countStatus("processed"),
+    filtered: countStatus("filtered"),
+    duplicates: countStatus("duplicate"),
+    failed: countStatus("failed"),
+    signals: signals.length,
+  }
+  return source
+}
+
+function performanceSeries(positions: any[], accountSelection: Set<string> | null) {
+  const closedPositions = positions
+    .filter((position: any) => position.status === "closed" && (!accountSelection || accountSelection.has(String(position.accountId))))
+    .sort((a: any, b: any) => finiteNumber(a.closedAt || a.updatedAt) - finiteNumber(b.closedAt || b.updatedAt))
+  let cumulativePnl = 0
+  return closedPositions.map((position: any) => {
+    cumulativePnl += finiteNumber(position.realizedPnl)
+    const timestamp = finiteNumber(position.closedAt || position.updatedAt)
+    return {
+      timestamp,
+      label: timestamp > 0 ? new Date(timestamp).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) : "–",
+      pnl: Number(cumulativePnl.toFixed(8)),
+    }
+  })
+}
+
+function latestReconciliation(reconciliations: any[], accountSelection: Set<string> | null): number | null {
+  return reconciliations
+    .filter((run: any) => run.status === "succeeded" && (!accountSelection || accountSelection.has(String(run.accountId))))
+    .reduce((latest: number | null, run: any) => {
+      const completedAt = nullableTimestamp(run.completedAt)
+      if (completedAt === null) return latest
+      return latest === null || completedAt > latest ? completedAt : latest
+    }, null)
 }
 
 export function buildDashboardViewModel(input: DashboardDataInput, selectedAccountIds?: string[]): DashboardViewModel {
@@ -251,33 +297,12 @@ export function buildDashboardViewModel(input: DashboardDataInput, selectedAccou
   const activePositions = positions.filter((position: any) => (
     position.status !== "closed" && (!accountSelection || accountSelection.has(String(position.accountId)))
   ))
-  const closedPositions = positions
-    .filter((position: any) => position.status === "closed" && (!accountSelection || accountSelection.has(String(position.accountId))))
-    .sort((a: any, b: any) => finiteNumber(a.closedAt || a.updatedAt) - finiteNumber(b.closedAt || b.updatedAt))
-  let cumulativePnl = 0
-  const performance = closedPositions.map((position: any) => {
-    cumulativePnl += finiteNumber(position.realizedPnl)
-    const timestamp = finiteNumber(position.closedAt || position.updatedAt)
-    return {
-      timestamp,
-      label: timestamp > 0 ? new Date(timestamp).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) : "–",
-      pnl: Number(cumulativePnl.toFixed(8)),
-    }
-  })
+  const performance = performanceSeries(positions, accountSelection)
 
   const nominalEquity = accounts.reduce((sum, account) => sum + (account.equity || 0), 0)
   const availableBalance = accounts.reduce((sum, account) => sum + (account.availableBalance || 0), 0)
   const marginUsed = accounts.reduce((sum, account) => sum + (account.marginUsed || 0), 0)
-  const signalSource = { ...input.signalAnalytics?.windows }
-  const fallbackMessages = Array.isArray(input.messages) ? input.messages : []
-  const fallbackSignals = Array.isArray(input.signals) ? input.signals : []
-  if (!signalSource.all) {
-    const statuses = (status: string) => fallbackMessages.filter((item: any) => item.status === status).length
-    signalSource.all = {
-      messages: fallbackMessages.length, processed: statuses("processed"), filtered: statuses("filtered"),
-      duplicates: statuses("duplicate"), failed: statuses("failed"), signals: fallbackSignals.length,
-    }
-  }
+  const signalSource = signalAnalyticsSource(input)
   const operations = input.operations || {}
   const backup = operations.backup || {}
   const retention = operations.retention || {}
@@ -286,12 +311,7 @@ export function buildDashboardViewModel(input: DashboardDataInput, selectedAccou
   const visibleRoutes = routes.filter((route: any) => !accountSelection || accountSelection.has(String(route.accountId)))
   const visibleIntents = intents.filter((intent: any) => !accountSelection || accountSelection.has(String(intent.accountId)))
   const visibleOrders = orders.filter((order: any) => !accountSelection || accountSelection.has(String(order.accountId)))
-  const latestScopedReconciliation = reconciliations
-    .filter((run: any) => run.status === "succeeded" && (!accountSelection || accountSelection.has(String(run.accountId))))
-    .reduce((latest: number | null, run: any) => {
-      const completedAt = nullableTimestamp(run.completedAt)
-      return completedAt !== null && (latest === null || completedAt > latest) ? completedAt : latest
-    }, null)
+  const latestScopedReconciliation = latestReconciliation(reconciliations, accountSelection)
 
   return {
     finance: {

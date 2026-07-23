@@ -153,7 +153,12 @@ export class TelegramLoginCoordinator {
     }
     if (kind === 'emailAddress') {
       const email = singleLine(value, 'Email address', 254);
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Email address is invalid.');
+      const at = email.indexOf('@');
+      const domain = email.slice(at + 1);
+      const invalidWhitespace = [...email].some(character => character.trim() === '');
+      if (at < 1 || at !== email.lastIndexOf('@') || invalidWhitespace || !domain.includes('.') || domain.startsWith('.') || domain.endsWith('.')) {
+        throw new Error('Email address is invalid.');
+      }
       return email;
     }
     if (kind === 'password') return singleLine(value, 'Two-step verification password', 256);

@@ -1290,11 +1290,10 @@ export async function completeOutboxTask(id: string, result?: any): Promise<void
 
 export async function failOutboxTask(id: string, error: unknown): Promise<OutboxStatus> {
   const database = getDb();
-  const message = (error instanceof Error
-    ? error.message
-    : typeof error === 'string'
-      ? error
-      : 'Unknown outbox failure').slice(0, 4000);
+  let message = 'Unknown outbox failure';
+  if (error instanceof Error) message = error.message;
+  else if (typeof error === 'string') message = error;
+  message = message.slice(0, 4000);
   const row = await database.get<{ status: OutboxStatus }>(
     `UPDATE pending_tasks
      SET status = CASE WHEN status = 'sending' THEN 'unknown' ELSE 'failed' END,

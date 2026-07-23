@@ -401,13 +401,34 @@ async function copyOptionalRuntimeSettings(source: string, artifactRoot: string,
   included.push(RUNTIME_SETTINGS_FILE);
 }
 
+async function copyTemplateFile(
+  sourcePath: string,
+  relativeName: string,
+  artifactRoot: string,
+  included: string[],
+  state: { totalBytes: number },
+): Promise<void> {
+  const destinationName = `${TEMPLATES_DIRECTORY}/${relativeName.replaceAll('\\', '/')}`;
+  if (!isSupportedBackupArtifactFileName(destinationName)) throw new Error(`Template path is unsupported: ${relativeName}`);
+  const stats = await fs.stat(sourcePath);
+  if (stats.size > MAX_BACKUP_STATE_FILE_BYTES) throw new Error(`Template exceeds the backup state file limit: ${relativeName}`);
+  state.totalBytes += stats.size;
+  if (state.totalBytes > MAX_BACKUP_STATE_BYTES) throw new Error('Templates exceed the total backup state size limit.');
+  if (included.length >= MAX_BACKUP_STATE_FILES) throw new Error('Templates exceed the backup state file count limit.');
+  const destination = artifactPath(artifactRoot, destinationName);
+  await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
+  await fs.copyFile(sourcePath, destination, fs.constants.COPYFILE_EXCL);
+  await fs.chmod(destination, 0o600);
+  included.push(destinationName);
+}
+
 async function copyOptionalTemplates(source: string, artifactRoot: string, included: string[]): Promise<void> {
   const exists = await fileExists(source);
   if (!exists) return;
   const root = path.resolve(source);
   const rootEntry = await fs.lstat(root);
   if (!rootEntry.isDirectory() || rootEntry.isSymbolicLink()) throw new Error('Templates source must be a real directory, not a symbolic link.');
-  let totalBytes = 0;
+  const state = { totalBytes: 0 };
   const visit = async (directory: string, relative = ''): Promise<void> => {
     const entries = await fs.readdir(directory, { withFileTypes: true });
     for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
@@ -419,18 +440,7 @@ async function copyOptionalTemplates(source: string, artifactRoot: string, inclu
         continue;
       }
       if (!entry.isFile()) throw new Error(`Template source contains a non-regular file: ${relativeName}`);
-      const destinationName = `${TEMPLATES_DIRECTORY}/${relativeName.replaceAll('\\', '/')}`;
-      if (!isSupportedBackupArtifactFileName(destinationName)) throw new Error(`Template path is unsupported: ${relativeName}`);
-      const stats = await fs.stat(sourcePath);
-      if (stats.size > MAX_BACKUP_STATE_FILE_BYTES) throw new Error(`Template exceeds the backup state file limit: ${relativeName}`);
-      totalBytes += stats.size;
-      if (totalBytes > MAX_BACKUP_STATE_BYTES) throw new Error('Templates exceed the total backup state size limit.');
-      if (included.length >= MAX_BACKUP_STATE_FILES) throw new Error('Templates exceed the backup state file count limit.');
-      const destination = artifactPath(artifactRoot, destinationName);
-      await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
-      await fs.copyFile(sourcePath, destination, fs.constants.COPYFILE_EXCL);
-      await fs.chmod(destination, 0o600);
-      included.push(destinationName);
+      await copyTemplateFile(sourcePath, relativeName, artifactRoot, included, state);
     }
   };
   await visit(root);

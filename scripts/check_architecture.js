@@ -59,8 +59,7 @@ function findCycle(graph) {
   return undefined;
 }
 
-export async function analyzeArchitecture() {
-  const files = await listTypeScriptFiles(sourceRoot);
+async function buildImportGraph(files) {
   const graph = new Map(files.map((file) => [moduleName(file), []]));
   const violations = [];
   const importPattern = /(?:\bfrom\s*|\bimport\s*\(\s*)['"](\.[^'"]+)['"]/g;
@@ -81,9 +80,11 @@ export async function analyzeArchitecture() {
       graph.get(moduleName(file)).push(dependency);
     }
   }
+  return { graph, violations };
+}
 
-  const cycle = findCycle(graph);
-  if (cycle) violations.push(`circular dependency: ${cycle.join(' -> ')}`);
+function architectureLayerViolations(graph) {
+  const violations = [];
 
   const entryPoints = new Set(['forwarder.ts', 'backup_cli.ts']);
   const coreModules = new Set([
@@ -133,7 +134,16 @@ export async function analyzeArchitecture() {
         violations.push(`db.ts must not import internal module ${dependency}`);
     }
   }
+  return violations;
+}
 
+export async function analyzeArchitecture() {
+  const files = await listTypeScriptFiles(sourceRoot);
+  const { graph, violations } = await buildImportGraph(files);
+
+  const cycle = findCycle(graph);
+  if (cycle) violations.push(`circular dependency: ${cycle.join(' -> ')}`);
+  violations.push(...architectureLayerViolations(graph));
   return { graph, violations };
 }
 

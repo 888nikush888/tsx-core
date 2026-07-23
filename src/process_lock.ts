@@ -55,6 +55,33 @@ async function reapStaleLock(lockPath: string): Promise<void> {
   await fs.rm(stalePath, { force: true });
 }
 
+async function releaseOwnedLock(lockPath: string, token: string): Promise<void> {
+  let existing: LockPayload;
+  try {
+    existing = await readPayload(lockPath);
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') return;
+    throw error;
+  }
+  if (existing.token !== token) {
+    throw new Error(`Process lock '${lockPath}' ownership changed; refusing to remove another process lock.`);
+  }
+  await fs.unlink(lockPath);
+}
+
+async function createProcessLock(lockPath: string, payload: LockPayload): Promise<ProcessLock> {
+  const handle = await fs.open(lockPath, 'wx', 0o600);
+  try {
+    await handle.writeFile(JSON.stringify(payload), 'utf8');
+  } finally {
+    await handle.close();
+  }
+  return {
+    path: lockPath,
+    release: () => releaseOwnedLock(lockPath, payload.token),
+  };
+}
+
 /** Acquires a filesystem lock, reaping only locks whose PID is definitely gone. */
 export async function acquireProcessLock(lockPath: string): Promise<ProcessLock> {
   await fs.mkdir(path.dirname(lockPath), { recursive: true });
@@ -62,28 +89,7 @@ export async function acquireProcessLock(lockPath: string): Promise<ProcessLock>
 
   for (;;) {
     try {
-      const handle = await fs.open(lockPath, 'wx', 0o600);
-      try {
-        await handle.writeFile(JSON.stringify(payload), 'utf8');
-      } finally {
-        await handle.close();
-      }
-      return {
-        path: lockPath,
-        release: async () => {
-          let existing: LockPayload;
-          try {
-            existing = await readPayload(lockPath);
-          } catch (error: any) {
-            if (error?.code === 'ENOENT') return;
-            throw error;
-          }
-          if (existing.token !== payload.token) {
-            throw new Error(`Process lock '${lockPath}' ownership changed; refusing to remove another process lock.`);
-          }
-          await fs.unlink(lockPath);
-        }
-      };
+      return await createProcessLock(lockPath, payload);
     } catch (error: any) {
       if (error?.code !== 'EEXIST') throw error;
       const existing = await readPayload(lockPath);

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const gitExecutable = process.platform === 'win32'
-  ? 'C:\\Program Files\\Git\\cmd\\git.exe'
+  ? String.raw`C:\Program Files\Git\cmd\git.exe`
   : '/usr/bin/git';
 const requiredIgnores = [
   '.git', '.env', '.env.*', 'config.json', 'node_modules', 'frontend/node_modules',
@@ -22,8 +22,22 @@ function isSensitiveTrackedPath(file) {
 export function evaluateBuildContext({ dockerignore, dockerfile, trackedFiles }) {
   const rules = new Set(dockerignore.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')));
   const violations = requiredIgnores.filter(rule => !rules.has(rule)).map(rule => `.dockerignore is missing ${rule}`);
-  const rootContextCopy = /^\s*(?:COPY|ADD)\s+(?:--\S+\s+)*(?:\.\/?\s+|\[\s*["']\.\/?["']\s*,)/mi;
-  if (rootContextCopy.test(dockerfile)) {
+  const copiesWorkspaceRoot = dockerfile.split(/\r?\n/).some((line) => {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('COPY ') && !trimmed.startsWith('ADD ')) return false;
+    const argumentText = trimmed.slice(trimmed.indexOf(' ') + 1).trim();
+    if (argumentText.startsWith('[')) {
+      try {
+        const values = JSON.parse(argumentText);
+        return values.slice(0, -1).some(value => value === '.' || value === './');
+      } catch {
+        return true;
+      }
+    }
+    const values = argumentText.split(/\s+/).filter(value => !value.startsWith('--'));
+    return values.slice(0, -1).some(value => value === '.' || value === './');
+  });
+  if (copiesWorkspaceRoot) {
     violations.push('Dockerfile must use an explicit COPY allowlist instead of copying or adding the workspace root');
   }
   for (const file of trackedFiles.map(value => value.replaceAll('\\', '/'))) {

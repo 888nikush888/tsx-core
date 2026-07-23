@@ -5,20 +5,36 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
+  const containerRef = React.useRef<HTMLElement>(null)
+  const handleScrollKey = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+    event.preventDefault()
+    containerRef.current?.scrollBy({
+      left: event.key === "ArrowLeft" ? -160 : 160,
+      behavior: "smooth",
+    })
+  }
+
   return (
-    <div
+    <section
+      ref={containerRef}
       data-slot="table-container"
-      role="region"
       aria-label="Scrollable data table"
-      tabIndex={0}
       className="relative w-full overflow-x-auto"
     >
+      <button
+        type="button"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-xs focus:shadow"
+        onKeyDown={handleScrollKey}
+      >
+        Use left and right arrow keys to scroll the table
+      </button>
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
         {...props}
       />
-    </div>
+    </section>
   )
 }
 

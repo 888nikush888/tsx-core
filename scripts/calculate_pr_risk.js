@@ -7,7 +7,7 @@ import { validateRiskAcceptance } from './check_risk_acceptances.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const acceptanceDirectory = path.join(root, 'docs', 'risk-acceptances');
 const gitExecutable = process.platform === 'win32'
-  ? 'C:\\Program Files\\Git\\cmd\\git.exe'
+  ? String.raw`C:\Program Files\Git\cmd\git.exe`
   : '/usr/bin/git';
 
 const RISK_FACTORS = [
@@ -46,9 +46,15 @@ function frontMatterFields(content) {
   if (!match) return {};
   return Object.fromEntries(match[1]
     .split(/\r?\n/)
-    .map(line => line.match(/^([a-z-]+):\s*(.+?)\s*$/))
+    .map(line => {
+      const separator = line.indexOf(':');
+      if (separator < 1) return null;
+      const key = line.slice(0, separator).trim();
+      const value = line.slice(separator + 1).trim();
+      return /^[a-z-]+$/.test(key) && value ? [key, value] : null;
+    })
     .filter(Boolean)
-    .map(item => [item[1], item[2]]));
+  );
 }
 
 export function evaluatePrRiskGate(evaluation, head, acceptances = []) {

@@ -138,19 +138,34 @@ class BybitAdapter:
         deadline: RequestDeadline | None = None,
     ) -> dict[str, Any]:
         client = self._client(account) if deadline is None else self._client(account, deadline)
-        symbol = request["symbol"]
-        if request["role"] == "entry":
-            if deadline:
-                deadline.ensure(500)
-            leverage = str(request["leverage"])
-            response = client.set_leverage(
-                category="linear", symbol=symbol, buyLeverage=leverage, sellLeverage=leverage
-            )
-            if response.get("retCode") not in {0, 110043}:
-                raise ExchangeContractError(f"Bybit leverage update failed: {response.get('retMsg')}")
+        self._configure_entry_leverage(client, request, deadline)
+        arguments = self._order_arguments(request)
+        if deadline:
+            deadline.ensure(500)
+            client = self._client(account, deadline)
+        response = client.place_order(**arguments)
+        if response.get("retCode") != 0:
+            return self._result(request, "", "rejected", "0", None, response.get("retMsg"), response)
+        order_id = str(response.get("result", {}).get("orderId", ""))
+        return self._confirm_order(client, request, order_id, response, deadline)
+
+    @staticmethod
+    def _configure_entry_leverage(client: HTTP, request: dict[str, Any], deadline: RequestDeadline | None) -> None:
+        if request["role"] != "entry":
+            return
+        if deadline:
+            deadline.ensure(500)
+        leverage = str(request["leverage"])
+        response = client.set_leverage(
+            category="linear", symbol=request["symbol"], buyLeverage=leverage, sellLeverage=leverage
+        )
+        if response.get("retCode") not in {0, 110043}:
+            raise ExchangeContractError(f"Bybit leverage update failed: {response.get('retMsg')}")
+
+    def _order_arguments(self, request: dict[str, Any]) -> dict[str, Any]:
         arguments: dict[str, Any] = {
             "category": "linear",
-            "symbol": symbol,
+            "symbol": request["symbol"],
             "side": "Buy" if request["side"] == "buy" else "Sell",
             "orderType": "Market" if request["orderType"] in {"market", "stop_market"} else "Limit",
             "qty": decimal_string(request["quantity"], "quantity", positive=True),
@@ -166,29 +181,31 @@ class BybitAdapter:
             arguments["triggerDirection"] = 2 if request["side"] == "sell" else 1
             arguments["triggerBy"] = "MarkPrice"
             arguments["closeOnTrigger"] = True
-        if request["role"] == "entry" and request["orderType"] == "market":
-            tolerance = Decimal(decimal_string(request.get("maxSlippagePercent"), "maxSlippagePercent", positive=True))
-            if tolerance < Decimal("0.01") or tolerance > Decimal("10"):
-                raise ExchangeContractError("maxSlippagePercent is outside Bybit's supported range.")
-            arguments["slippageToleranceType"] = "Percent"
-            arguments["slippageTolerance"] = decimal_string(str(tolerance), "maxSlippagePercent", positive=True)
+        self._add_market_slippage(arguments, request)
+        self._add_protective_stop(arguments, request)
+        return arguments
+
+    @staticmethod
+    def _add_market_slippage(arguments: dict[str, Any], request: dict[str, Any]) -> None:
+        if request["role"] != "entry" or request["orderType"] != "market":
+            return
+        tolerance = Decimal(decimal_string(request.get("maxSlippagePercent"), "maxSlippagePercent", positive=True))
+        if tolerance < Decimal("0.01") or tolerance > Decimal("10"):
+            raise ExchangeContractError("maxSlippagePercent is outside Bybit's supported range.")
+        arguments["slippageToleranceType"] = "Percent"
+        arguments["slippageTolerance"] = decimal_string(str(tolerance), "maxSlippagePercent", positive=True)
+
+    def _add_protective_stop(self, arguments: dict[str, Any], request: dict[str, Any]) -> None:
         attached_stop = request.get("providerProtectiveStop")
-        if request["role"] == "entry" and attached_stop is not None:
-            self._validate_protective_stop(request, attached_stop)
-            arguments["stopLoss"] = decimal_string(
-                attached_stop["triggerPrice"], "protectiveStop.triggerPrice", positive=True
-            )
-            arguments["tpslMode"] = "Partial"
-            arguments["slOrderType"] = "Market"
-            arguments["slTriggerBy"] = "MarkPrice"
-        if deadline:
-            deadline.ensure(500)
-            client = self._client(account, deadline)
-        response = client.place_order(**arguments)
-        if response.get("retCode") != 0:
-            return self._result(request, "", "rejected", "0", None, response.get("retMsg"), response)
-        order_id = str(response.get("result", {}).get("orderId", ""))
-        return self._confirm_order(client, request, order_id, response, deadline)
+        if request["role"] != "entry" or attached_stop is None:
+            return
+        self._validate_protective_stop(request, attached_stop)
+        arguments["stopLoss"] = decimal_string(
+            attached_stop["triggerPrice"], "protectiveStop.triggerPrice", positive=True
+        )
+        arguments["tpslMode"] = "Partial"
+        arguments["slOrderType"] = "Market"
+        arguments["slTriggerBy"] = "MarkPrice"
 
     def submit_protected_entry(
         self,
@@ -243,29 +260,48 @@ class BybitAdapter:
         deadline: RequestDeadline | None = None,
     ) -> dict[str, Any]:
         for attempt in range(3):
-            if attempt:
-                if deadline:
-                    deadline.ensure(250)
-                time.sleep(0.2)
+            self._wait_for_confirmation_attempt(attempt, deadline)
             for method in (client.get_open_orders, client.get_order_history):
-                if deadline:
-                    deadline.ensure(250)
-                values = response_list(
-                    method(category="linear", symbol=request["symbol"], orderLinkId=request["clientOrderId"], limit=1),
-                    "Bybit order confirmation",
-                )
-                if values:
-                    order = values[0]
-                    return self._result(
-                        request,
-                        str(order.get("orderId") or order_id),
-                        map_bybit_status(str(order.get("orderStatus", ""))),
-                        decimal_string(order.get("cumExecQty", "0"), "cumExecQty"),
-                        decimal_string(order["avgPrice"], "avgPrice", positive=True) if order.get("avgPrice") else None,
-                        str(order.get("rejectReason")) if order.get("rejectReason") not in {None, "EC_NoError"} else None,
-                        order,
-                    )
+                confirmed = self._confirmation_from_method(method, request, order_id, deadline)
+                if confirmed:
+                    return confirmed
         return self._result(request, order_id, "unknown", "0", None, "Bybit acknowledgement was not confirmed.", raw)
+
+    @staticmethod
+    def _wait_for_confirmation_attempt(attempt: int, deadline: RequestDeadline | None) -> None:
+        if not attempt:
+            return
+        if deadline:
+            deadline.ensure(250)
+        time.sleep(0.2)
+
+    def _confirmation_from_method(
+        self,
+        method: Any,
+        request: dict[str, Any],
+        order_id: str,
+        deadline: RequestDeadline | None,
+    ) -> dict[str, Any] | None:
+        if deadline:
+            deadline.ensure(250)
+        values = response_list(
+            method(category="linear", symbol=request["symbol"], orderLinkId=request["clientOrderId"], limit=1),
+            "Bybit order confirmation",
+        )
+        if not values:
+            return None
+        order = values[0]
+        average_price = decimal_string(order["avgPrice"], "avgPrice", positive=True) if order.get("avgPrice") else None
+        reject_reason = str(order.get("rejectReason")) if order.get("rejectReason") not in {None, "EC_NoError"} else None
+        return self._result(
+            request,
+            str(order.get("orderId") or order_id),
+            map_bybit_status(str(order.get("orderStatus", ""))),
+            decimal_string(order.get("cumExecQty", "0"), "cumExecQty"),
+            average_price,
+            reject_reason,
+            order,
+        )
 
     def cancel_order(
         self,

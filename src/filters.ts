@@ -57,7 +57,8 @@ export function hasNestedQuantifiers(pattern: string): boolean {
     if (char === '[' && !inCharacterClass) {
       inCharacterClass = true;
       continue;
-    } else if (char === ']' && inCharacterClass) {
+    }
+    if (char === ']' && inCharacterClass) {
       inCharacterClass = false;
       continue;
     }
@@ -67,12 +68,14 @@ export function hasNestedQuantifiers(pattern: string): boolean {
     if (char === '(') {
       const isSpecial = pattern[i + 1] === '?';
       openParens.push({ index: i, hasQuantifier: false, isSpecial });
-    } else if (char === ')') {
+      continue;
+    }
+    if (char === ')') {
       if (closesNestedQuantifier(pattern, i, openParens)) return true;
-    } else if (char === '+' || char === '*' || char === '{') {
-      if (openParens.length > 0) {
-        openParens.at(-1)!.hasQuantifier = true;
-      }
+      continue;
+    }
+    if ((char === '+' || char === '*' || char === '{') && openParens.length > 0) {
+      openParens.at(-1)!.hasQuantifier = true;
     }
   }
   return false;

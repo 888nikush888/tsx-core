@@ -90,7 +90,61 @@ function statusStyle(tone: "good" | "warning" | "bad" | "neutral"): string {
 }
 
 function pnlTone(value: number): "neutral" | "positive" | "negative" {
-  return value > 0 ? "positive" : value < 0 ? "negative" : "neutral"
+  if (value > 0) return "positive"
+  if (value < 0) return "negative"
+  return "neutral"
+}
+
+function booleanTone(value: boolean | null): "good" | "bad" | "neutral" {
+  if (value === true) return "good"
+  return value === false ? "bad" : "neutral"
+}
+
+function booleanLabel(value: boolean | null, good: string, bad: string): string {
+  if (value === null) return "Nicht verfügbar"
+  return value ? good : bad
+}
+
+function pnlTextClass(value: number): string {
+  if (value > 0) return "text-emerald-700 dark:text-emerald-300"
+  return value < 0 ? "text-red-700 dark:text-red-300" : ""
+}
+
+function pnlDotClass(value: number): string {
+  if (value > 0) return "bg-emerald-500"
+  return value < 0 ? "bg-destructive" : "bg-muted-foreground/40"
+}
+
+function metricToneClass(tone: "neutral" | "positive" | "negative"): string {
+  if (tone === "positive") return "text-emerald-700 dark:text-emerald-300"
+  return tone === "negative" ? "text-red-700 dark:text-red-300" : ""
+}
+
+function accountTone(account: AccountAnalyticsView): "good" | "bad" | "neutral" {
+  if (account.error) return "bad"
+  return account.enabled ? "good" : "neutral"
+}
+
+function riskEventTone(event: any): string {
+  if (event.acknowledgedAt) return statusStyle("neutral")
+  return statusStyle(event.severity === "critical" ? "bad" : "warning")
+}
+
+function refreshStatus(failures: string[], accountErrors: number, updatedAt: number): string {
+  if (failures.length > 0) return `Teilweise veraltet: ${failures.join(", ")}`
+  if (accountErrors > 0) return `Aktualisiert · ${accountErrors} Konto/Konten nicht erreichbar`
+  return `Vollständig aktualisiert · ${dateTime(updatedAt)}`
+}
+
+function operatingStatus(criticalIssues: number, healthy: boolean): { tone: "good" | "warning" | "bad"; label: string } {
+  if (criticalIssues > 0) return { tone: "bad", label: `${criticalIssues} kritische Hinweise` }
+  if (healthy) return { tone: "good", label: "System operativ" }
+  return { tone: "warning", label: "System eingeschränkt" }
+}
+
+function profitFactorLabel(value: number | null): string {
+  if (value === null) return "–"
+  return Number.isFinite(value) ? number(value, 2) : "∞"
 }
 
 function modeLabel(account: { exchange: string; mode: string }): string {
@@ -105,21 +159,20 @@ function feeSummary(fees: Record<string, number>): string {
 }
 
 function HealthBadge({ value, good = "Healthy", bad = "Störung" }: Readonly<{ value: boolean | null; good?: string; bad?: string }>) {
-  const tone = value === true ? "good" : value === false ? "bad" : "neutral"
-  return <Badge variant="outline" className={statusStyle(tone)}>{value === null ? "Nicht verfügbar" : value ? good : bad}</Badge>
+  return <Badge variant="outline" className={statusStyle(booleanTone(value))}>{booleanLabel(value, good, bad)}</Badge>
 }
 
 function MetricCard({ label, value, detail, icon, tone = "neutral" }: Readonly<{
   label: string; value: string; detail: string; icon: ReactNode; tone?: "neutral" | "positive" | "negative"
 }>) {
   return <Card className="overflow-hidden transition-colors hover:border-primary/30"><CardContent className="p-5">
-    <div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className={`mt-2 truncate text-2xl font-semibold tabular-nums ${tone === "positive" ? "text-emerald-700 dark:text-emerald-300" : tone === "negative" ? "text-red-700 dark:text-red-300" : ""}`}>{value}</p></div><div className="rounded-lg border bg-muted/40 p-2.5 text-primary">{icon}</div></div>
+    <div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className={`mt-2 truncate text-2xl font-semibold tabular-nums ${metricToneClass(tone)}`}>{value}</p></div><div className="rounded-lg border bg-muted/40 p-2.5 text-primary">{icon}</div></div>
     <p className="mt-4 text-xs leading-5 text-muted-foreground">{detail}</p>
   </CardContent></Card>
 }
 
 function StatusRow({ icon, label, detail, state }: Readonly<{ icon: ReactNode; label: string; detail: string; state: boolean | null }>) {
-  return <div className="flex items-center gap-3 py-3"><div className={`rounded-md border p-2 ${state === true ? statusStyle("good") : state === false ? statusStyle("bad") : statusStyle("neutral")}`}>{icon}</div><div className="min-w-0 flex-1"><p className="text-sm font-medium">{label}</p><p className="truncate text-xs text-muted-foreground">{detail}</p></div><HealthBadge value={state} good="Bereit" bad="Prüfen" /></div>
+  return <div className="flex items-center gap-3 py-3"><div className={`rounded-md border p-2 ${statusStyle(booleanTone(state))}`}>{icon}</div><div className="min-w-0 flex-1"><p className="text-sm font-medium">{label}</p><p className="truncate text-xs text-muted-foreground">{detail}</p></div><HealthBadge value={state} good="Bereit" bad="Prüfen" /></div>
 }
 
 async function getJson(path: string, signal?: AbortSignal): Promise<any> {
@@ -131,8 +184,8 @@ async function getJson(path: string, signal?: AbortSignal): Promise<any> {
 function PeriodOverview({ windows, selected, onSelect }: Readonly<{ windows: Record<DashboardWindow, WindowAnalyticsView>; selected: DashboardWindow; onSelect: (window: DashboardWindow) => void }>) {
   return <section className="space-y-3"><div><h2 className="text-lg font-semibold">Performance nach Zeitraum</h2><p className="text-xs text-muted-foreground">Alle Zeiträume bleiben gleichzeitig sichtbar; der aktive Zeitraum steuert sämtliche Detailkarten.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
     {WINDOWS.map(item => { const value = windows[item.value]; return <button key={item.value} type="button" onClick={() => onSelect(item.value)} className={`rounded-xl border p-4 text-left transition-colors hover:border-primary/40 ${selected === item.value ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "bg-card"}`}>
-      <div className="flex items-center justify-between"><span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{item.short}</span><span className={`h-2 w-2 rounded-full ${value.realizedPnl > 0 ? "bg-emerald-500" : value.realizedPnl < 0 ? "bg-destructive" : "bg-muted-foreground/40"}`} /></div>
-      <p className={`mt-2 text-2xl font-semibold tabular-nums ${value.realizedPnl > 0 ? "text-emerald-700 dark:text-emerald-300" : value.realizedPnl < 0 ? "text-red-700 dark:text-red-300" : ""}`}>{signed(value.realizedPnl)}</p>
+      <div className="flex items-center justify-between"><span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{item.short}</span><span className={`h-2 w-2 rounded-full ${pnlDotClass(value.realizedPnl)}`} /></div>
+      <p className={`mt-2 text-2xl font-semibold tabular-nums ${pnlTextClass(value.realizedPnl)}`}>{signed(value.realizedPnl)}</p>
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs"><div><p className="text-muted-foreground">Trades</p><p className="font-medium tabular-nums">{value.closedTrades}</p></div><div><p className="text-muted-foreground">Win Rate</p><p className="font-medium tabular-nums">{percent(value.winRatePercent)}</p></div><div><p className="text-muted-foreground">Volumen</p><p className="font-medium tabular-nums">{compact(value.volume)}</p></div></div>
     </button> })}
   </div></section>
@@ -143,10 +196,10 @@ function AccountMatrix({ accounts, window }: Readonly<{ accounts: AccountAnalyti
     <TableHead>Konto</TableHead><TableHead>Umgebung</TableHead><TableHead>Equity</TableHead><TableHead>Verfügbar</TableHead><TableHead>Margin</TableHead><TableHead>Unrealisiert</TableHead><TableHead>PnL</TableHead><TableHead>Trades</TableHead><TableHead>Win Rate</TableHead><TableHead>Volumen</TableHead><TableHead>Gebühren</TableHead><TableHead>Snapshot</TableHead>
   </TableRow></TableHeader><TableBody>{accounts.map(account => { const metrics = account.windows[window]; return <TableRow key={account.accountId}>
     <TableCell><div className="min-w-36"><p className="font-medium">{account.name}</p><p className="text-xs text-muted-foreground">{account.exchange} · {account.reportingCurrency}</p>{account.error && <p className="mt-1 max-w-48 text-xs text-destructive">{account.error}</p>}</div></TableCell>
-    <TableCell><Badge variant="outline" className={statusStyle(account.error ? "bad" : account.enabled ? "good" : "neutral")}>{modeLabel(account)}</Badge></TableCell>
+    <TableCell><Badge variant="outline" className={statusStyle(accountTone(account))}>{modeLabel(account)}</Badge></TableCell>
     <TableCell className="font-medium tabular-nums">{account.equity === null ? "–" : number(account.equity, 2)}</TableCell><TableCell className="tabular-nums">{account.availableBalance === null ? "–" : number(account.availableBalance, 2)}</TableCell><TableCell className="tabular-nums">{account.marginUsed === null ? "–" : number(account.marginUsed, 2)}</TableCell>
-    <TableCell className={`tabular-nums ${(account.unrealizedPnl || 0) > 0 ? "text-emerald-700 dark:text-emerald-300" : (account.unrealizedPnl || 0) < 0 ? "text-red-700 dark:text-red-300" : ""}`}>{account.unrealizedPnl === null ? "–" : signed(account.unrealizedPnl)}</TableCell>
-    <TableCell className={`font-medium tabular-nums ${metrics.realizedPnl > 0 ? "text-emerald-700 dark:text-emerald-300" : metrics.realizedPnl < 0 ? "text-red-700 dark:text-red-300" : ""}`}>{signed(metrics.realizedPnl)}</TableCell><TableCell className="tabular-nums">{metrics.closedTrades}</TableCell><TableCell className="tabular-nums">{percent(metrics.winRatePercent)}</TableCell><TableCell className="tabular-nums">{number(metrics.volume, 2)}</TableCell><TableCell className="min-w-32 text-xs tabular-nums">{feeSummary(metrics.fees)}</TableCell><TableCell className="min-w-32 text-xs text-muted-foreground">{account.error ? "Fehler" : dateTime(account.observedAt)}</TableCell>
+    <TableCell className={`tabular-nums ${pnlTextClass(account.unrealizedPnl || 0)}`}>{account.unrealizedPnl === null ? "–" : signed(account.unrealizedPnl)}</TableCell>
+    <TableCell className={`font-medium tabular-nums ${pnlTextClass(metrics.realizedPnl)}`}>{signed(metrics.realizedPnl)}</TableCell><TableCell className="tabular-nums">{metrics.closedTrades}</TableCell><TableCell className="tabular-nums">{percent(metrics.winRatePercent)}</TableCell><TableCell className="tabular-nums">{number(metrics.volume, 2)}</TableCell><TableCell className="min-w-32 text-xs tabular-nums">{feeSummary(metrics.fees)}</TableCell><TableCell className="min-w-32 text-xs text-muted-foreground">{account.error ? "Fehler" : dateTime(account.observedAt)}</TableCell>
   </TableRow> })}{accounts.length === 0 && <TableRow><TableCell colSpan={12} className="h-24 text-center text-muted-foreground">Für diesen Filter sind keine Trading-Konten vorhanden.</TableCell></TableRow>}</TableBody></Table></CardContent></Card>
 }
 
@@ -185,7 +238,7 @@ function MetricBox({ label, value }: Readonly<{ label: string; value: number }>)
 
 function PositionsAndRisk({ model }: Readonly<{ model: DashboardViewModel }>) {
   return <div className="grid gap-4 xl:grid-cols-2"><Card><CardHeader><CardTitle>Offene Managed Positionen</CardTitle><CardDescription>Strategiegebundene Positionen im aktiven Account-Filter.</CardDescription></CardHeader><CardContent className="space-y-3">{model.activePositions.length === 0 && <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Keine offenen Managed Positionen.</div>}{model.activePositions.map((position: any) => <div key={position.id} className="flex items-center gap-3 rounded-lg border p-3"><div className={`rounded-md border px-2 py-1 text-xs font-semibold ${position.side === "LONG" ? statusStyle("good") : statusStyle("bad")}`}>{position.side}</div><div className="min-w-0 flex-1"><p className="font-medium">{position.symbol}</p><p className="truncate text-xs text-muted-foreground">{position.channelId} · {position.accountId}</p></div><div className="text-right"><p className="text-sm font-medium tabular-nums">{position.quantity}</p><p className="text-xs text-muted-foreground">Entry {position.averageEntryPrice || "–"} · Stop {position.stopPrice || "–"}</p></div></div>)}</CardContent></Card>
-    <Card><CardHeader><CardTitle>Risk & Exception Feed</CardTitle><CardDescription>Aktuelle Trading-Abweichungen und Bestätigungsstatus.</CardDescription></CardHeader><CardContent>{model.recentRiskEvents.length === 0 ? <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-800 dark:text-emerald-300"><CheckCircle2 className="h-4 w-4" />Keine Risk Events im sichtbaren Fenster.</div> : <div className="divide-y">{model.recentRiskEvents.map((event: any) => <div key={event.id} className="flex items-start gap-3 py-3"><AlertTriangle className={`mt-0.5 h-4 w-4 ${event.severity === "critical" ? "text-red-700 dark:text-red-300" : "text-amber-700 dark:text-amber-300"}`} /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{event.code}</p><p className="text-xs text-muted-foreground">{event.accountId || "Systemweit"} · {dateTime(event.createdAt)}</p></div><Badge variant="outline" className={event.acknowledgedAt ? statusStyle("neutral") : statusStyle(event.severity === "critical" ? "bad" : "warning")}>{event.acknowledgedAt ? "Bestätigt" : "Offen"}</Badge></div>)}</div>}</CardContent></Card></div>
+    <Card><CardHeader><CardTitle>Risk & Exception Feed</CardTitle><CardDescription>Aktuelle Trading-Abweichungen und Bestätigungsstatus.</CardDescription></CardHeader><CardContent>{model.recentRiskEvents.length === 0 ? <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-800 dark:text-emerald-300"><CheckCircle2 className="h-4 w-4" />Keine Risk Events im sichtbaren Fenster.</div> : <div className="divide-y">{model.recentRiskEvents.map((event: any) => <div key={event.id} className="flex items-start gap-3 py-3"><AlertTriangle className={`mt-0.5 h-4 w-4 ${event.severity === "critical" ? "text-red-700 dark:text-red-300" : "text-amber-700 dark:text-amber-300"}`} /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{event.code}</p><p className="text-xs text-muted-foreground">{event.accountId || "Systemweit"} · {dateTime(event.createdAt)}</p></div><Badge variant="outline" className={riskEventTone(event)}>{event.acknowledgedAt ? "Bestätigt" : "Offen"}</Badge></div>)}</div>}</CardContent></Card></div>
 }
 
 function ProgramActivity({ uptime, totalForwardedCount, processedSinceRestart, queue, parserEnabled, forwardingEnabled, forwardXmlToTarget, outboxCount }: Readonly<Pick<ExecutiveDashboardProps, "uptime" | "totalForwardedCount" | "processedSinceRestart" | "queue" | "parserEnabled" | "forwardingEnabled" | "forwardXmlToTarget"> & { outboxCount: number }>) {
@@ -237,7 +290,7 @@ export function ExecutiveDashboard(props: ExecutiveDashboardProps) {
       const updatedAt = Date.now()
       setData(current => ({ ...current, ...next }))
       setLastUpdated(updatedAt)
-      setRefreshMessage(failures.length > 0 ? `Teilweise veraltet: ${failures.join(", ")}` : accountErrors > 0 ? `Aktualisiert · ${accountErrors} Konto/Konten nicht erreichbar` : `Vollständig aktualisiert · ${dateTime(updatedAt)}`)
+      setRefreshMessage(refreshStatus(failures, accountErrors, updatedAt))
       setRefreshing(false)
     })()
     refreshInFlight.current = operation
@@ -268,6 +321,7 @@ export function ExecutiveDashboard(props: ExecutiveDashboardProps) {
   const routingHealthy = props.isRunning && props.connectionState === "connected" && !props.queue.paused
   const tradingHealthy = !model.trading.killSwitchActive && model.trading.unknownOrderCount === 0 && model.trading.criticalRiskEvents === 0
   const criticalIssues = [model.trading.killSwitchActive, model.trading.unknownOrderCount > 0, model.trading.criticalRiskEvents > 0, model.operations.backupHealthy === false, model.operations.auditHealthy === false].filter(Boolean).length
+  const systemStatus = operatingStatus(criticalIssues, routingHealthy && tradingHealthy)
   const scopeOptions = [
     { value: "all", label: "Alle Konten zusammen" },
     ...["hyperliquid", "bybit", "paper"].filter(exchange => rawAccounts.some((account: any) => account.exchange === exchange)).map(exchange => ({ value: `exchange:${exchange}`, label: `${exchange === "paper" ? "Paper" : exchange[0].toUpperCase() + exchange.slice(1)} gesamt` })),
@@ -277,14 +331,14 @@ export function ExecutiveDashboard(props: ExecutiveDashboardProps) {
   const returnPercent = model.finance.nominalEquity > 0 ? current.realizedPnl / model.finance.nominalEquity * 100 : null
 
   return <div className="space-y-6 px-4 pb-10 lg:px-6">
-    <section className="relative overflow-hidden rounded-xl border bg-card p-5 shadow-sm md:p-6"><div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-primary/10 to-transparent" /><div className="relative space-y-5"><div className="flex flex-col gap-5 2xl:flex-row 2xl:items-center 2xl:justify-between"><div><div className="mb-2 flex flex-wrap items-center gap-2"><Badge variant="outline" className={statusStyle(criticalIssues > 0 ? "bad" : routingHealthy && tradingHealthy ? "good" : "warning")}>{criticalIssues > 0 ? `${criticalIssues} kritische Hinweise` : routingHealthy && tradingHealthy ? "System operativ" : "System eingeschränkt"}</Badge><span className="text-xs text-muted-foreground">Live Portfolio · {dateTime(model.finance.observedAt)}</span></div><h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Executive Trading & Operations</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">Vollständige Finanz-, Exchange-, Trading-, Signal- und Betriebsanalyse mit gemeinsamem sowie kontoindividuellem Drill-down.</p></div><div className="flex flex-wrap items-center gap-2"><div className="mr-1 text-right text-xs text-muted-foreground"><div>{refreshMessage}</div><div>Lokale Daten 10s · Exchange-Snapshots 60s oder manuell</div></div><Button variant="outline" onClick={() => void refresh(true)} disabled={refreshing}><RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Aktualisiere …" : "Alles aktualisieren"}</Button><Button onClick={() => void props.onToggleRouting()} disabled={!props.isRunning && !props.routingConfigReady} className={props.isRunning ? "bg-red-600 text-white hover:bg-red-500" : ""}>{props.isRunning ? <><Square className="mr-2 h-4 w-4 fill-current" />Routing stoppen</> : <><Play className="mr-2 h-4 w-4 fill-current" />Routing starten</>}</Button></div></div>
+    <section className="relative overflow-hidden rounded-xl border bg-card p-5 shadow-sm md:p-6"><div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-primary/10 to-transparent" /><div className="relative space-y-5"><div className="flex flex-col gap-5 2xl:flex-row 2xl:items-center 2xl:justify-between"><div><div className="mb-2 flex flex-wrap items-center gap-2"><Badge variant="outline" className={statusStyle(systemStatus.tone)}>{systemStatus.label}</Badge><span className="text-xs text-muted-foreground">Live Portfolio · {dateTime(model.finance.observedAt)}</span></div><h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Executive Trading & Operations</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">Vollständige Finanz-, Exchange-, Trading-, Signal- und Betriebsanalyse mit gemeinsamem sowie kontoindividuellem Drill-down.</p></div><div className="flex flex-wrap items-center gap-2"><div className="mr-1 text-right text-xs text-muted-foreground"><div>{refreshMessage}</div><div>Lokale Daten 10s · Exchange-Snapshots 60s oder manuell</div></div><Button variant="outline" onClick={() => void refresh(true)} disabled={refreshing}><RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Aktualisiere …" : "Alles aktualisieren"}</Button><Button onClick={() => void props.onToggleRouting()} disabled={!props.isRunning && !props.routingConfigReady} className={props.isRunning ? "bg-red-600 text-white hover:bg-red-500" : ""}>{props.isRunning ? <><Square className="mr-2 h-4 w-4 fill-current" />Routing stoppen</> : <><Play className="mr-2 h-4 w-4 fill-current" />Routing starten</>}</Button></div></div>
       <div className="flex flex-col gap-3 border-t pt-4 lg:flex-row lg:items-center lg:justify-between"><ToggleGroup type="single" value={timeWindow} onValueChange={value => value && setTimeWindow(value as DashboardWindow)} variant="outline" className="justify-start">{WINDOWS.map(item => <ToggleGroupItem key={item.value} value={item.value}>{item.short}</ToggleGroupItem>)}</ToggleGroup><Select value={scope} onValueChange={setScope}><SelectTrigger className="w-full lg:w-[320px]" aria-label="Portfolio-Filter"><SelectValue /></SelectTrigger><SelectContent>{scopeOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select></div>
     </div></section>
 
     {!props.setupComplete && <Card className="border-primary/30 bg-primary/5"><CardContent className="p-5"><div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><p className="font-semibold">Inbetriebnahme · {props.setupSteps.filter(step => step.complete).length}/{props.setupSteps.length} abgeschlossen</p><div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">{props.setupSteps.map(step => <span key={step.label} className="flex items-center gap-1.5">{step.complete ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <span className="h-4 w-4 rounded-full border" />}{step.label}</span>)}</div></div><Button variant="outline" onClick={() => props.onNavigate("signals")}>Setup öffnen<ArrowRight className="ml-2 h-4 w-4" /></Button></div></CardContent></Card>}
 
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-lg font-semibold">Finanzübersicht · {periodLabel}</h2><p className="text-xs text-muted-foreground">Gesamtsicht = nominale Addition von Bybit-USD, Hyperliquid-USDC und Paper-Quote; keine FX- oder Stablecoin-Paritätsgarantie.</p></div><div className="flex flex-wrap gap-2"><Badge variant="outline">Scope: {scopeOptions.find(option => option.value === scope)?.label}</Badge><Badge variant="outline">Währungen: {model.finance.reportingCurrencies.join(" + ") || "–"}</Badge>{model.finance.accountErrors > 0 && <Badge variant="outline" className={statusStyle("bad")}>{model.finance.accountErrors} Konto-Fehler</Badge>}</div></div>
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"><MetricCard label="Nominale Equity" value={number(model.finance.nominalEquity, 2)} detail={`${number(model.finance.exchangeEquity, 2)} Exchange · ${number(model.finance.paperEquity, 2)} Paper`} icon={<WalletCards className="h-5 w-5" />} /><MetricCard label="Verfügbar" value={number(model.finance.availableBalance, 2)} detail={`${number(model.finance.utilizationPercent, 1)} % Kapital gebunden`} icon={<CircleDollarSign className="h-5 w-5" />} /><MetricCard label={`Realisierter PnL · ${periodLabel}`} value={signed(current.realizedPnl)} detail={`Nominale Rendite ${percent(returnPercent)}`} icon={current.realizedPnl >= 0 ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownRight className="h-5 w-5" />} tone={pnlTone(current.realizedPnl)} /><MetricCard label="Unrealisierter PnL" value={signed(model.finance.unrealizedPnl)} detail="Live aus offiziellen Exchange-Kontosnapshots" icon={<TrendingUp className="h-5 w-5" />} tone={pnlTone(model.finance.unrealizedPnl)} /><MetricCard label={`Volumen · ${periodLabel}`} value={number(current.volume, 2)} detail={`${current.fills} Fills · ${current.closedTrades} geschlossene Trades`} icon={<BriefcaseBusiness className="h-5 w-5" />} /><MetricCard label="Margin Used" value={number(model.finance.marginUsed, 2)} detail={`Profit Factor ${current.profitFactor === null ? "–" : Number.isFinite(current.profitFactor) ? number(current.profitFactor, 2) : "∞"}`} icon={<Gauge className="h-5 w-5" />} /></div>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"><MetricCard label="Nominale Equity" value={number(model.finance.nominalEquity, 2)} detail={`${number(model.finance.exchangeEquity, 2)} Exchange · ${number(model.finance.paperEquity, 2)} Paper`} icon={<WalletCards className="h-5 w-5" />} /><MetricCard label="Verfügbar" value={number(model.finance.availableBalance, 2)} detail={`${number(model.finance.utilizationPercent, 1)} % Kapital gebunden`} icon={<CircleDollarSign className="h-5 w-5" />} /><MetricCard label={`Realisierter PnL · ${periodLabel}`} value={signed(current.realizedPnl)} detail={`Nominale Rendite ${percent(returnPercent)}`} icon={current.realizedPnl >= 0 ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownRight className="h-5 w-5" />} tone={pnlTone(current.realizedPnl)} /><MetricCard label="Unrealisierter PnL" value={signed(model.finance.unrealizedPnl)} detail="Live aus offiziellen Exchange-Kontosnapshots" icon={<TrendingUp className="h-5 w-5" />} tone={pnlTone(model.finance.unrealizedPnl)} /><MetricCard label={`Volumen · ${periodLabel}`} value={number(current.volume, 2)} detail={`${current.fills} Fills · ${current.closedTrades} geschlossene Trades`} icon={<BriefcaseBusiness className="h-5 w-5" />} /><MetricCard label="Margin Used" value={number(model.finance.marginUsed, 2)} detail={`Profit Factor ${profitFactorLabel(current.profitFactor)}`} icon={<Gauge className="h-5 w-5" />} /></div>
 
     <PeriodOverview windows={model.windows} selected={timeWindow} onSelect={setTimeWindow} />
     <AccountMatrix accounts={model.accounts} window={timeWindow} />

@@ -145,7 +145,9 @@ export class OidcDashboardAuthenticator implements DashboardAuthenticator {
       });
       if (!Number.isSafeInteger(payload.exp) || typeof payload.sub !== 'string' || payload.sub.length < 1 || payload.sub.length > 256) return null;
       const roles = claimRoles(payload[this.roleClaim]);
-      const role = roles.includes(this.adminRole) ? 'admin' : roles.includes(this.viewerRole) ? 'viewer' : null;
+      let role: DashboardRole | null = null;
+      if (roles.includes(this.adminRole)) role = 'admin';
+      else if (roles.includes(this.viewerRole)) role = 'viewer';
       if (!role) return null;
       const subject = `${this.issuer}\n${payload.sub}`;
       const id = `oidc:${createHash('sha256').update(subject).digest('hex').slice(0, 32)}`;

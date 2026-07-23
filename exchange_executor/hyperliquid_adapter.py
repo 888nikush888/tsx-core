@@ -105,8 +105,7 @@ class HyperliquidAdapter:
             if deadline:
                 deadline.ensure(250)
             page = info.user_funding_history(address, cursor, end_time)
-            if not isinstance(page, list) or any(not isinstance(row, dict) for row in page):
-                raise ExchangeContractError("Hyperliquid funding history returned an invalid contract.")
+            HyperliquidAdapter._validate_funding_page(page)
             rows.extend(page)
             if len(rows) > 2_500:
                 raise ExchangeContractError("Hyperliquid funding history exceeded the bounded item limit.")
@@ -121,6 +120,11 @@ class HyperliquidAdapter:
         else:
             raise ExchangeContractError("Hyperliquid funding history exceeded the bounded pagination limit.")
         return rows
+
+    @staticmethod
+    def _validate_funding_page(page: Any) -> None:
+        if not isinstance(page, list) or any(not isinstance(row, dict) for row in page):
+            raise ExchangeContractError("Hyperliquid funding history returned an invalid contract.")
 
     def market_snapshot(
         self,
@@ -163,33 +167,9 @@ class HyperliquidAdapter:
         coin = self._coin(request["symbol"])
         is_buy = request["side"] == "buy"
         cloid = Cloid.from_str(request["clientOrderId"])
-        if request["role"] == "entry":
-            if deadline:
-                deadline.ensure(500)
-            leverage_response = exchange.update_leverage(int(request["leverage"]), coin, is_cross=True)
-            if leverage_response.get("status") != "ok":
-                raise ExchangeContractError("Hyperliquid leverage update failed.")
+        self._configure_entry_leverage(exchange, coin, request, deadline)
         quantity = float(decimal_string(request["quantity"], "quantity", positive=True))
-        if request["orderType"] == "limit":
-            price = float(decimal_string(request["price"], "price", positive=True))
-            order_type = {"limit": {"tif": "Alo" if request.get("postOnly") else "Gtc"}}
-        elif request["orderType"] == "stop_market":
-            price = float(decimal_string(request["triggerPrice"], "triggerPrice", positive=True))
-            order_type = {"trigger": {"triggerPx": price, "isMarket": True, "tpsl": "sl"}}
-        else:
-            if deadline:
-                deadline.ensure(500)
-            mark = Decimal(str(info.all_mids()[coin]))
-            slippage = Decimal("1")
-            if request["role"] == "entry":
-                slippage = Decimal(decimal_string(
-                    request.get("maxSlippagePercent"), "maxSlippagePercent", positive=True
-                ))
-            if slippage > Decimal("10"):
-                raise ExchangeContractError("maxSlippagePercent exceeds the provider-side safety cap.")
-            multiplier = slippage / Decimal("100")
-            price = float(mark * (Decimal("1") + multiplier if is_buy else Decimal("1") - multiplier))
-            order_type = {"limit": {"tif": "Ioc"}}
+        price, order_type = self._price_and_order_type(info, coin, is_buy, request, deadline)
         if deadline:
             deadline.ensure(500)
             _, exchange, _ = self._clients(account, deadline)
@@ -204,6 +184,44 @@ class HyperliquidAdapter:
         )
         return self._order_result(request["clientOrderId"], response)
 
+    @staticmethod
+    def _configure_entry_leverage(exchange: Any, coin: str, request: dict[str, Any], deadline: RequestDeadline | None) -> None:
+        if request["role"] != "entry":
+            return
+        if deadline:
+            deadline.ensure(500)
+        leverage_response = exchange.update_leverage(int(request["leverage"]), coin, is_cross=True)
+        if leverage_response.get("status") != "ok":
+            raise ExchangeContractError("Hyperliquid leverage update failed.")
+
+    @staticmethod
+    def _price_and_order_type(
+        info: Any,
+        coin: str,
+        is_buy: bool,
+        request: dict[str, Any],
+        deadline: RequestDeadline | None,
+    ) -> tuple[float, dict[str, Any]]:
+        if request["orderType"] == "limit":
+            price = float(decimal_string(request["price"], "price", positive=True))
+            return price, {"limit": {"tif": "Alo" if request.get("postOnly") else "Gtc"}}
+        if request["orderType"] == "stop_market":
+            price = float(decimal_string(request["triggerPrice"], "triggerPrice", positive=True))
+            return price, {"trigger": {"triggerPx": price, "isMarket": True, "tpsl": "sl"}}
+        if deadline:
+            deadline.ensure(500)
+        mark = Decimal(str(info.all_mids()[coin]))
+        slippage = Decimal("1")
+        if request["role"] == "entry":
+            slippage = Decimal(decimal_string(
+                request.get("maxSlippagePercent"), "maxSlippagePercent", positive=True
+            ))
+        if slippage > Decimal("10"):
+            raise ExchangeContractError("maxSlippagePercent exceeds the provider-side safety cap.")
+        multiplier = slippage / Decimal("100")
+        adjustment = Decimal("1") + multiplier if is_buy else Decimal("1") - multiplier
+        return float(mark * adjustment), {"limit": {"tif": "Ioc"}}
+
     def submit_protected_entry(
         self,
         account: dict[str, str],
@@ -215,28 +233,10 @@ class HyperliquidAdapter:
         info, exchange, _ = self._clients(account, deadline)
         coin = self._coin(entry["symbol"])
         is_buy = entry["side"] == "buy"
-        if deadline:
-            deadline.ensure(500)
-        leverage_response = exchange.update_leverage(int(entry["leverage"]), coin, is_cross=True)
-        if leverage_response.get("status") != "ok":
-            raise ExchangeContractError("Hyperliquid leverage update failed.")
+        self._configure_entry_leverage(exchange, coin, entry, deadline)
 
         entry_quantity = float(decimal_string(entry["quantity"], "entry.quantity", positive=True))
-        if entry["orderType"] == "limit":
-            entry_price = float(decimal_string(entry["price"], "entry.price", positive=True))
-            entry_type = {"limit": {"tif": "Alo" if entry.get("postOnly") else "Gtc"}}
-        else:
-            if deadline:
-                deadline.ensure(500)
-            mark = Decimal(str(info.all_mids()[coin]))
-            slippage = Decimal(decimal_string(
-                entry.get("maxSlippagePercent"), "maxSlippagePercent", positive=True
-            ))
-            if slippage > Decimal("10"):
-                raise ExchangeContractError("maxSlippagePercent exceeds the provider-side safety cap.")
-            multiplier = slippage / Decimal("100")
-            entry_price = float(mark * (Decimal("1") + multiplier if is_buy else Decimal("1") - multiplier))
-            entry_type = {"limit": {"tif": "Ioc"}}
+        entry_price, entry_type = self._price_and_order_type(info, coin, is_buy, entry, deadline)
 
         stop_price = float(decimal_string(
             protective_stop["triggerPrice"], "protectiveStop.triggerPrice", positive=True

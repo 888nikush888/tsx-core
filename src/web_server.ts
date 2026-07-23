@@ -343,14 +343,16 @@ function installMutationAuditBarrier(context: RequestContext): void {
     if (finalizing) return response;
     finalizing = true;
     const originalStatus = response.statusCode;
-    const callbackFunction = typeof encodingOrCallback === 'function'
-      ? encodingOrCallback
-      : typeof callback === 'function' ? callback : undefined;
+    let callbackFunction: (() => void) | undefined;
+    if (typeof encodingOrCallback === 'function') callbackFunction = encodingOrCallback as () => void;
+    else if (typeof callback === 'function') callbackFunction = callback as () => void;
     let responsePayload: unknown;
     if (typeof chunk === 'string') {
       try { responsePayload = JSON.parse(chunk); } catch { responsePayload = '[NON_JSON_RESPONSE]'; }
     }
-    const outcome = originalStatus < 400 ? 'succeeded' : originalStatus < 500 ? 'rejected' : 'failed';
+    let outcome: 'succeeded' | 'rejected' | 'failed' = 'failed';
+    if (originalStatus < 400) outcome = 'succeeded';
+    else if (originalStatus < 500) outcome = 'rejected';
     void trail.record({
       phase: 'completed',
       action: audit.action,

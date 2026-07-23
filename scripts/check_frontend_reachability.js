@@ -48,8 +48,7 @@ async function resolveLocal(importer, specifier) {
   ]);
 }
 
-export async function analyzeFrontend() {
-  const files = await listCode(sourceRoot);
+async function buildFrontendGraph(files) {
   const graph = new Map(files.map((file) => [file, []]));
   const externalByFile = new Map(files.map((file) => [file, []]));
   const violations = [];
@@ -71,6 +70,23 @@ export async function analyzeFrontend() {
       }
     }
   }
+  return { graph, externalByFile, violations };
+}
+
+function dependencyViolations(productionPackages, usedPackages, availablePackages) {
+  const violations = [];
+  for (const dependency of productionPackages) {
+    if (!usedPackages.has(dependency)) violations.push(`unused frontend production dependency: ${dependency}`);
+  }
+  for (const dependency of usedPackages) {
+    if (!availablePackages.has(dependency)) violations.push(`undeclared frontend dependency: ${dependency}`);
+  }
+  return violations;
+}
+
+export async function analyzeFrontend() {
+  const files = await listCode(sourceRoot);
+  const { graph, externalByFile, violations } = await buildFrontendGraph(files);
 
   const entryPoint = path.join(sourceRoot, 'main.tsx');
   const reachable = new Set();
@@ -94,12 +110,7 @@ export async function analyzeFrontend() {
     ...productionPackages,
     ...Object.keys(manifest.devDependencies ?? {}),
   ]);
-  for (const dependency of productionPackages) {
-    if (!usedPackages.has(dependency)) violations.push(`unused frontend production dependency: ${dependency}`);
-  }
-  for (const dependency of usedPackages) {
-    if (!availablePackages.has(dependency)) violations.push(`undeclared frontend dependency: ${dependency}`);
-  }
+  violations.push(...dependencyViolations(productionPackages, usedPackages, availablePackages));
 
   return { files, reachable, usedPackages, violations };
 }

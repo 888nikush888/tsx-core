@@ -12,13 +12,11 @@ export function normalizeSignalXml(xmlString: string): string {
     .replace(/<\?xml[^?]*\?>\s*/gi, '')
     // Remove leading/trailing whitespace
     .trim()
-    // Collapse all whitespace between tags to nothing
-    .replace(/>\s+</g, '><')
-    // Remove leading/trailing whitespace within tags (between > and text, text and <)
-    .replace(/>\s+/g, '>')
-    .replace(/\s+</g, '<')
-    // Normalize internal whitespace in text content
+    // Normalize whitespace before removing the single spaces adjacent to tags.
     .replace(/\s+/g, ' ')
+    .replaceAll('> <', '><')
+    .replaceAll('> ', '>')
+    .replaceAll(' <', '<')
     .trim();
   return normalized;
 }

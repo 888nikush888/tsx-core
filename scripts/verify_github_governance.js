@@ -63,8 +63,13 @@ function environmentResults(environments) {
 }
 
 export function evaluateGithubGovernance({ repository, protection, environments, codeowners, codeownerErrors }) {
+  const hasOwnerRule = codeowners.split(/\r?\n/).some(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return false;
+    return trimmed.split(/\s+/).slice(1).some(value => value.startsWith('@') && value.length > 1);
+  });
   const checks = [
-    check('CODEOWNERS exists and contains an owner rule', /^(?!#).*\s+@[^\s]+/m.test(codeowners), codeowners ? 'present' : 'missing'),
+    check('CODEOWNERS exists and contains an owner rule', hasOwnerRule, codeowners ? 'present' : 'missing'),
     check('CODEOWNERS has no platform parse errors', Array.isArray(codeownerErrors) && codeownerErrors.length === 0, codeownerErrors),
     ...statusCheckResults(protection),
     ...reviewResults(protection),

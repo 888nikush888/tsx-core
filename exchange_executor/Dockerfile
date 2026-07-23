@@ -22,7 +22,7 @@ WORKDIR /app
 RUN addgroup --system --gid 65532 executor \
     && adduser --system --uid 65532 --ingroup executor --no-create-home --home /nonexistent executor
 COPY --from=dependencies /install /usr/local
-COPY --chown=65532:65532 --chmod=0444 *.py ./
+COPY --chown=0:0 --chmod=0444 *.py ./
 
 USER 65532:65532
 EXPOSE 8090

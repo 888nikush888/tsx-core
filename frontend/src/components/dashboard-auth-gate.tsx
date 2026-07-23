@@ -9,6 +9,36 @@ import { apiFetch, clearDashboardToken, onDashboardAuthRequired, setDashboardTok
 
 type AuthState = 'checking' | 'bootstrap' | 'recovery' | 'locked' | 'authenticated'
 
+interface AccessInspection {
+  state: AuthState
+  recoveryToken?: string
+  error?: string
+}
+
+async function inspectDashboardAccess(): Promise<AccessInspection> {
+  const bootstrapResponse = await apiFetch('/api/bootstrap/status')
+  const bootstrap = await bootstrapResponse.json().catch(() => ({}))
+  if (!bootstrapResponse.ok) throw new Error(bootstrap.error || 'Could not inspect dashboard setup.')
+  if (!bootstrap.required) {
+    const response = await apiFetch('/api/status')
+    if (!response.ok) throw new Error(response.status === 503 ? 'Dashboard authentication is not configured on the server.' : 'The saved token is no longer valid.')
+    return { state: 'authenticated' }
+  }
+  if (!bootstrap.recoveryBootstrap) {
+    return {
+      state: bootstrap.available ? 'bootstrap' : 'locked',
+      error: bootstrap.available ? '' : 'Managed secret storage is unavailable on the server.',
+    }
+  }
+  const localSessionResponse = await apiFetch('/api/local-session', { method: 'POST' })
+  const localSession = await localSessionResponse.json().catch(() => ({}))
+  if (!localSessionResponse.ok || typeof localSession.token !== 'string') {
+    throw new Error(localSession.error || 'Recovery startup could not create a one-time access token.')
+  }
+  setDashboardToken(localSession.token)
+  return { state: 'recovery', recoveryToken: localSession.token }
+}
+
 export function DashboardAuthGate({ children }: Readonly<{ children: ReactNode }>) {
   const [state, setState] = useState<AuthState>('checking')
   const [token, setToken] = useState('')
@@ -20,28 +50,10 @@ export function DashboardAuthGate({ children }: Readonly<{ children: ReactNode }
 
   const validateStoredToken = async () => {
     try {
-      const bootstrapResponse = await apiFetch('/api/bootstrap/status')
-      const bootstrap = await bootstrapResponse.json().catch(() => ({}))
-      if (!bootstrapResponse.ok) throw new Error(bootstrap.error || 'Could not inspect dashboard setup.')
-      if (bootstrap.required) {
-        if (bootstrap.recoveryBootstrap) {
-          const localSessionResponse = await apiFetch('/api/local-session', { method: 'POST' })
-          const localSession = await localSessionResponse.json().catch(() => ({}))
-          if (!localSessionResponse.ok || typeof localSession.token !== 'string') {
-            throw new Error(localSession.error || 'Recovery startup could not create a one-time access token.')
-          }
-          setDashboardToken(localSession.token)
-          setRecoveryToken(localSession.token)
-          setState('recovery')
-          return
-        }
-        setError(bootstrap.available ? '' : 'Managed secret storage is unavailable on the server.')
-        setState(bootstrap.available ? 'bootstrap' : 'locked')
-        return
-      }
-      const response = await apiFetch('/api/status')
-      if (!response.ok) throw new Error(response.status === 503 ? 'Dashboard authentication is not configured on the server.' : 'The saved token is no longer valid.')
-      setState('authenticated')
+      const inspection = await inspectDashboardAccess()
+      setRecoveryToken(inspection.recoveryToken || '')
+      setError(inspection.error || '')
+      setState(inspection.state)
     } catch (authError) {
       clearDashboardToken()
       setError(authError instanceof Error ? authError.message : 'Authentication failed.')

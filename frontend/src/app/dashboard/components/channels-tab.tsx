@@ -48,9 +48,12 @@ export function ChannelsTab({
     }
   }
 
-  const secretLabel = secretStatus?.configured
-    ? secretStatus.source === "external" ? "Managed by the deployment environment" : "Stored securely"
-    : "Required before first connection"
+  let secretLabel = "Required before first connection"
+  if (secretStatus?.configured) {
+    secretLabel = secretStatus.source === "external"
+      ? "Managed by the deployment environment"
+      : "Stored securely"
+  }
 
   return (
     <div className="space-y-6">

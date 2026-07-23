@@ -582,7 +582,10 @@ function emptyTradingWindow(): TradingWindowAnalytics {
 function dashboardDecimal(value: unknown): string {
   const parsed = Number(value ?? 0);
   if (!Number.isFinite(parsed)) throw new Error('Trading analytics produced a non-finite decimal.');
-  return parsed.toFixed(8).replace(/\.?0+$/, '') || '0';
+  let formatted = parsed.toFixed(8);
+  while (formatted.endsWith('0')) formatted = formatted.slice(0, -1);
+  if (formatted.endsWith('.')) formatted = formatted.slice(0, -1);
+  return formatted || '0';
 }
 
 async function tradingAnalyticsWindow(since: number | null): Promise<Map<string, TradingWindowAnalytics>> {

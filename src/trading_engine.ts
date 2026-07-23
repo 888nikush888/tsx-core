@@ -977,9 +977,12 @@ export class TradingEngine {
         killSwitchActive: true,
         killSwitchReason: `Emergency flatten for intent ${intent.id} awaits exchange reconciliation`,
       });
+      let causeMessage = 'Unknown failure';
+      if (cause instanceof Error) causeMessage = cause.message;
+      else if (typeof cause === 'string') causeMessage = cause;
       await riskEvent({
         severity: 'critical', code: 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION', accountId: account.id, intentId: intent.id,
-        details: { cause: cause instanceof Error ? cause.message : typeof cause === 'string' ? cause : 'Unknown failure' },
+        details: { cause: causeMessage },
       });
     } catch (flattenError: any) {
       await updateTradingRuntimeState({
