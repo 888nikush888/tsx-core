@@ -9,9 +9,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build --configLoader runner",
     "lint": "oxlint",
-    "test": "vitest run --environment jsdom tests",
+    "test": "vitest run --configLoader runner --environment jsdom tests",
     "test:e2e": "playwright test",
     "preview": "vite preview"
   },

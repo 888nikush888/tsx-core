@@ -176,8 +176,11 @@ function actionValue(node: XmlNode): 'LONG' | 'SHORT' {
 function pairValue(node: XmlNode, requireQuoteAsset: boolean): string {
   const pair = leaf(required(node, 'pair'));
   const genericPair = /^[A-Z0-9]{2,20}$/.test(pair) && /[A-Z]/.test(pair);
-  const quotedPair = /^(?=.{5,20}$)[A-Z0-9]+(?:USDT|USDC|USD|BTC|ETH|EUR)$/.test(pair);
-  if (!(requireQuoteAsset ? quotedPair : genericPair)) {
+  const quotedPair = /^(?=.{5,20}$)[A-Z0-9]+(?:USDT|USDC|USD)$/.test(pair);
+  if (requireQuoteAsset && !quotedPair) {
+    throw new SignalValidationError(`Pair '${pair}' must use the USD, USDC, or USDT quote asset.`);
+  }
+  if (!requireQuoteAsset && !genericPair) {
     throw new SignalValidationError(`Pair '${pair}' is not a normalized uppercase trading symbol.`);
   }
   return pair;
@@ -589,6 +592,35 @@ function assertFieldGrounded(field: GroundingField, sourceFields: Map<GroundingF
   }
 }
 
+const GROUNDING_QUOTE_ASSETS = ['USDT', 'USDC', 'USD'];
+const GROUNDING_PAIR_CONNECTORS = new Set(['AND', 'OR', 'UND', 'ODER', 'VERSUS', 'VS']);
+
+function isQuotedPairCandidate(candidate: string): boolean {
+  return GROUNDING_QUOTE_ASSETS.some(quote => {
+    if (!candidate.endsWith(quote)) return false;
+    const base = candidate.slice(0, -quote.length);
+    return base.length >= 2 && base.length <= 12 && /^[A-Z0-9]+$/.test(base) && /[A-Z]/.test(base);
+  });
+}
+
+function pairCandidates(tokens: string[], expectedPair: string): string[] {
+  const candidates: string[] = [];
+  tokens.forEach((token, index) => {
+    if (token === '/') return;
+    if (isQuotedPairCandidate(token)) candidates.push(token);
+    const slashSeparated = tokens[index + 1] === '/';
+    const quote = slashSeparated ? tokens[index + 2] : tokens[index + 1];
+    if (!quote || !GROUNDING_QUOTE_ASSETS.includes(quote)) return;
+    const candidate = `${token}${quote}`;
+    if (!isQuotedPairCandidate(candidate)) return;
+    const connector = tokens[index - 1];
+    if (slashSeparated || candidate === expectedPair || GROUNDING_PAIR_CONNECTORS.has(connector)) {
+      candidates.push(candidate);
+    }
+  });
+  return candidates;
+}
+
 function assertPairGrounded(signal: ValidatedSignal, sourceText: string): void {
   const compactSource = sourceText.normalize('NFKC').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (!compactSource.includes(signal.pair)) {
@@ -596,17 +628,7 @@ function assertPairGrounded(signal: ValidatedSignal, sourceText: string): void {
   }
   if (!signal.execution) return;
   const normalizedTokens = sourceText.normalize('NFKC').toUpperCase().match(/[A-Z0-9]+|\//g) || [];
-  const pairCandidates = normalizedTokens.flatMap((token, index) => {
-    if (token === '/') return [];
-    if (normalizedTokens[index + 1] === '/' && normalizedTokens[index + 2]) {
-      return [`${token}${normalizedTokens[index + 2]}`];
-    }
-    return [token];
-  });
-  const quoteAssets = ['USDT', 'USDC', 'USD', 'BTC', 'ETH'];
-  const quotedPairs = new Set(pairCandidates.filter(candidate =>
-    quoteAssets.some(quote => candidate.endsWith(quote) && candidate.length - quote.length >= 2 && candidate.length - quote.length <= 12)
-  ));
+  const quotedPairs = new Set(pairCandidates(normalizedTokens, signal.pair));
   if (quotedPairs.size > 1 || (quotedPairs.size === 1 && !quotedPairs.has(signal.pair))) {
     throw new SignalValidationError('Source text contains competing trading pairs and is ambiguous.');
   }

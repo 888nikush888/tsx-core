@@ -44,6 +44,7 @@
     "quality:github-governance": "node scripts/verify_github_governance.js",
     "quality:licenses": "node scripts/check_licenses.js",
     "quality:sbom": "node scripts/generate_sbom.js",
+    "quality:sonar-export": "node scripts/export_sonarcloud_findings.js",
     "quality:monitoring": "node scripts/check_monitoring.js",
     "quality:build-context": "node scripts/check_build_context.js",
     "quality:dependencies": "node scripts/check_dependency_policy.js",

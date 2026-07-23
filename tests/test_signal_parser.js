@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import {
   AiBudgetExceededError,
+  DEFAULT_SIGNAL_PROMPT,
   classifyAiError,
   parseSignalToXml,
   validateXmlStructure
@@ -63,11 +64,54 @@ async function assertGoldenSetGrounding() {
 
 async function assertRepositoryDefaultPromptContract() {
   const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const prompt = await readFile(path.join(repositoryRoot, 'templates', 'default.txt'), 'utf8');
-  assert.doesNotMatch(prompt, /<margin>/i, 'The default prompt must not request schema-forbidden fields.');
-  assert.match(prompt, /entry_range>[\s\S]*?\(optional\)/i);
-  assert.match(prompt, /leverage>[\s\S]*?\(optional\)/i);
-  assert.match(prompt, /Omit optional elements when absent/i);
+  const prompts = [DEFAULT_SIGNAL_PROMPT];
+  try {
+    prompts.push(await readFile(path.join(repositoryRoot, 'templates', 'default.txt'), 'utf8'));
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+  for (const prompt of prompts) {
+    assert.doesNotMatch(prompt, /<margin>/i, 'The default prompt must not request schema-forbidden fields.');
+    assert.match(prompt, /entry_range>[\s\S]*?\(optional\)/i);
+    assert.match(prompt, /leverage>[\s\S]*?\(optional\)/i);
+    assert.match(prompt, /Omit optional elements when absent/i);
+  }
+}
+
+function assertSpacedPairGrounding() {
+  const spacedPairSignal = 'LONG ETH USDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x';
+  assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(STANDARD_LONG), spacedPairSignal));
+  const slashPairSignal = 'LONG ETH / USDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x';
+  assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(STANDARD_LONG), slashPairSignal));
+  assert.throws(
+    () => assertSignalGrounded(
+      validateSignalXml(STANDARD_LONG),
+      'LONG ETH USDT or BTC USDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x'
+    ),
+    /competing trading pairs/
+  );
+  assert.throws(
+    () => assertSignalGrounded(
+      validateSignalXml(STANDARD_LONG),
+      'LONG ETH/USDT or BTC/USDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x'
+    ),
+    /competing trading pairs/
+  );
+  const collateralProse = 'LONG ETH USDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x; use BTC as collateral';
+  assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(STANDARD_LONG), collateralProse));
+
+  for (const [pair, pairSource] of [['ETHUSDC', 'ETH USDC'], ['ETHUSD', 'ETH USD']]) {
+    const usdSignal = STANDARD_LONG.replaceAll('ETHUSDT', pair);
+    const source = `LONG ${pairSource} entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x`;
+    assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(usdSignal), source));
+    assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(usdSignal), source.replace(pairSource, pairSource.replace(' ', '/'))));
+  }
+}
+
+function assertUsdQuoteOnly() {
+  for (const pair of ['BTCEUR', 'ETHBTC', 'SOLETH']) {
+    assertInvalid(standard({ pair }), undefined, /must use the USD, USDC, or USDT quote asset/);
+  }
 }
 
 async function testStandardSchemaContracts() {
@@ -108,6 +152,8 @@ async function testStandardSchemaContracts() {
     ),
     /competing trading pairs/
   );
+  assertSpacedPairGrounding();
+  assertUsdQuoteOnly();
 
   const invalidStandard = [
     ['numeric suffix', standard({ targets: '<target id="1">95abc</target>' }), /plain decimal/],

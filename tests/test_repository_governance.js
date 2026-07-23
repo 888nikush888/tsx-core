@@ -1,7 +1,33 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
+import path from 'node:path';
 import { riskLevel, scorePullRequest } from '../scripts/calculate_pr_risk.js';
 import { evaluateGithubGovernance } from '../scripts/verify_github_governance.js';
+
+const EXCLUDED_ENCODING_DIRECTORIES = new Set(['.git', 'coverage', 'coverage-modules', 'dist', 'node_modules', 'reports']);
+const ANALYZED_TEXT_EXTENSIONS = new Set([
+  '.css', '.html', '.in', '.js', '.json', '.lock', '.md', '.mjs', '.properties',
+  '.py', '.sh', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml'
+]);
+const ANALYZED_TEXT_BASENAMES = new Set([
+  '.dockerignore', '.env.example', '.gitignore', 'config.json.example', 'Dockerfile', 'LICENSE', 'Makefile'
+]);
+
+function isAnalyzedTextFile(fileName) {
+  return ANALYZED_TEXT_BASENAMES.has(fileName)
+    || ANALYZED_TEXT_EXTENSIONS.has(path.extname(fileName).toLowerCase());
+}
+
+async function assertUtf8Tree(directory) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.isDirectory() && EXCLUDED_ENCODING_DIRECTORIES.has(entry.name)) continue;
+    const filePath = path.join(directory, entry.name);
+    if (entry.isDirectory()) await assertUtf8Tree(filePath);
+    if (!entry.isFile() || !isAnalyzedTextFile(entry.name)) continue;
+    const content = new TextDecoder('utf-8', { fatal: true }).decode(await readFile(filePath));
+    assert.doesNotMatch(content, /\uFFFD|\u00C3.|\u00E2\u20AC|\u00C2.|\u00F0\u0178/, `${filePath} contains damaged Unicode text.`);
+  }
+}
 
 assert.equal(riskLevel(4), 'standard-review');
 assert.equal(riskLevel(5), 'senior-review');
@@ -81,11 +107,13 @@ const governance = evaluateGithubGovernance({
 });
 assert.equal(governance.passed, true);
 
-const [dependabot, workflow, securityPolicy, sonarCloud] = await Promise.all([
+const [dependabot, workflow, securityPolicy, sonarCloud, editorConfig, gitAttributes] = await Promise.all([
   readFile('.github/dependabot.yml', 'utf8'),
   readFile('.github/workflows/quality.yml', 'utf8'),
   readFile('SECURITY.md', 'utf8'),
-  readFile('.sonarcloud.properties', 'utf8')
+  readFile('.sonarcloud.properties', 'utf8'),
+  readFile('.editorconfig', 'utf8'),
+  readFile('.gitattributes', 'utf8')
 ]);
 for (const ecosystem of ['npm', 'github-actions', 'docker']) {
   assert.match(dependabot, new RegExp(`package-ecosystem: ${ecosystem}`));
@@ -96,6 +124,11 @@ assert.match(securityPolicy, /Private Vulnerability Reporting/);
 assert.match(sonarCloud, /^sonar\.sourceEncoding=UTF-8$/m);
 assert.match(sonarCloud, /^sonar\.python\.version=3\.12$/m);
 assert.match(sonarCloud, /^sonar\.tests=tests,frontend\/tests,frontend\/e2e,exchange_executor\/tests,monitoring\/rules\.test\.yml$/m);
-assert.match(sonarCloud, /^sonar\.exclusions=tests\/\*\*,frontend\/tests\/\*\*,frontend\/e2e\/\*\*,exchange_executor\/tests\/\*\*,monitoring\/rules\.test\.yml$/m);
+assert.match(sonarCloud, /^sonar\.exclusions=tests,frontend\/tests,frontend\/e2e,exchange_executor\/tests,monitoring\/rules\.test\.yml$/m);
+assert.doesNotMatch(sonarCloud, /[*?]/, 'Automatic-analysis paths must not use wildcard patterns.');
+assert.match(editorConfig, /^charset = utf-8$/m);
+assert.match(editorConfig, /^end_of_line = lf$/m);
+assert.match(gitAttributes, /^\* text=auto$/m);
+await assertUtf8Tree('.');
 
 console.log('Repository governance and PR-risk tests passed.');

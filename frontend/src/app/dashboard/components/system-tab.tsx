@@ -385,7 +385,7 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
       {recovery.active && (
         <Card className="border-destructive/60">
           <CardHeader>
-            <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /><CardTitle>GeschÃ¼tzter Reparaturmodus aktiv</CardTitle></div>
+            <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /><CardTitle>Geschützter Reparaturmodus aktiv</CardTitle></div>
             <CardDescription>Routing, Backups und sonstige Steuerungsaktionen bleiben deaktiviert. Korrigiere die markierte Konfiguration, Managed Secrets bzw. Runtime-Einstellungen und starte den Container danach kontrolliert neu.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">

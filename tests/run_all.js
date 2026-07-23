@@ -47,6 +47,7 @@ const allTests = [
   'test_trading_web_control.js',
   'test_supply_chain.js',
   'test_repository_governance.js',
+  'test_sonarcloud_export.js',
   'test_architecture.js',
   'test_risk_acceptances.js',
   'test_frontend_quality.js',
