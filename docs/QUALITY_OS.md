@@ -25,7 +25,7 @@ Fehlt der Contract für einen kritischen Pfad, ist Correctness nicht beweisbar u
 | Backup/Off-site-Recovery/Restore | Verifiziertes Artefakt oder valider `.tgfb`-Name; unveränderlicher AES-Key; Bestätigung | GCM-/Checksum-/SQLite-verifiziertes lokales Artefakt und atomarer Restore | Vor Quiesce verifizieren; vorherigen Zustand bewahren; Runtime-Einstellungen/Templates werden mitgesichert, Secrets/TDLib absichtlich nicht; Download und Expansion begrenzen | Backup-Gateway, Dateiersatz, Restart | Korruption = kein Quiesce bzw. Rollback | Backup-Status, Objektname, Audit | `test_backup.js`, `test_backup_replication.js`, `test_web_server.js`, Docker-Restore-Smoke | Data Owner + SRE |
 | Vollständiger Factory Reset | Admin, exakte Bestätigung, alle Pfade/Secret-Quellen vorab löschbar | Sicherer Erststart mit Default-Konfiguration | Preflight vor Stilllegung; lokaler Zustand einschließlich Audit wird entfernt; AES-Key-Löschung bewirkt Crypto-Erasure | Stop, Volume-/Key-Löschung, Restart | Preflight-Fehler = keine Stilllegung; Unterbrechung bleibt fail closed | Remote-Audit, Reset-Status, Bootstrap | `test_secret_store.js`, `test_web_server.js`, Docker-Reset-Smoke | Security + Data Owner |
 | Enterprise-Control-Plane | OIDC mit getrennten Rollen, exakter Origin, Remote-Audit, Incident-Relay und Off-site-Backup | Rollenbegrenzte UI/API | Kein Local Trust; Mutationen seriell; Audit vor Exit geflusht | Identity-/Audit-/Alert-/Backup-Aufrufe | Fehlende Integration blockiert Mutation/Startup | Audit, Alerts, SLO | `test_dashboard_auth.js`, `test_audit_trail.js`, `test_alert_relay.js`, `frontend/tests/system-tab.test.tsx` | Security + SRE |
-| Automatisches Futures-Trading | Strikt validiertes ausführbares Signal, publizierte Strategieversion, aktivierte Kanalroute und verifiziertes Konto | Idempotenter Entry plus reduce-only TP/SL oder blockierter Intent | Dezimalstrings; ein Owner je Konto/Symbol; Protective Stop zwingend; kein Blind-Retry; Live separat freigegeben | Hyperliquid/Bybit Order und persistierter Trade-Zustand | Unknown, fremde Exposure, Stop-Fehler oder Reconcile-Ausfall = Kill-Switch/fail closed; kein HIL pro Trade | Trading-Metriken, Risk Events, Orders/Fills/Positionen, Audit | `test_trading_core.js`, `test_trading_engine.js`, `test_trading_failures.js`, `test_official_exchange.js`, `test_trading_web_control.js` | Trading Domain + Security + SRE |
+| Automatisches Futures-Trading | Strikt validiertes ausführbares Signal mit aktiver Schema-Profil-ID und USD/USDC/USDT-Quote, publizierte Strategieversion, aktivierte Kanalroute und verifiziertes Konto | Idempotenter Entry plus manuelle oder adaptive reduce-only TP/SL-Staffel oder blockierter Intent | Dezimalstrings; ein Owner je Konto/Symbol; Protective Stop zwingend; adaptiver Stop nur in Gewinnrichtung; letzter TP schließt Rest; kein Blind-Retry; Live separat freigegeben | Hyperliquid/Bybit Order und persistierter Trade-Zustand | Unbekanntes/deaktiviertes Profil, Unknown Order, fremde Exposure, Stop-Fehler oder Reconcile-Ausfall = kein Trade beziehungsweise Kill-Switch/fail closed; kein HIL pro Trade | Trading-Metriken, Risk Events einschließlich SL-Grund/Referenz-TP, Orders/Fills/Positionen, Audit | `test_signal_parser.js`, `test_trading_core.js`, `test_trading_engine.js`, `test_trading_failures.js`, `test_official_exchange.js`, `test_trading_web_control.js`, `test_web_server.js`, `frontend/tests/trading-tab.test.tsx` | Trading Domain + Security + SRE |
 
 ## PR-Risikowert
 
@@ -64,6 +64,7 @@ Jeder zutreffende Faktor wird einmal addiert. `scripts/calculate_pr_risk.js` ber
 | Duplicate Ratio <5 %                              | Fail                          | Fail     | Fail                      |
 | Complexity-/Längen-Budget (kein Wachstum)         | Fail                          | Fail     | Fail                      |
 | Architekturregeln und Zyklen                      | Fail                          | Fail     | Fail                      |
+| Browser-/Accessibility-Matrix (4 Browserprofile) | Fail                          | Fail     | Fail                      |
 | Dependency-Audit ab Moderate                      | Fail                          | Fail     | Fail                      |
 | Lizenz-Allowlist                                  | Fail                          | Fail     | Fail                      |
 | Secret-History-Scan                               | Fail                          | Fail     | Fail                      |
@@ -83,7 +84,22 @@ Vor Veröffentlichung validiert `scripts/verify_github_governance.js` Branch Pro
 
 Das in `quality-baseline.json` geratchete Budget steht bei null ESLint-Warnungen sowie null Complexity-, Nesting- und Funktionslängen-Hotspots. `npm run quality:complexity` blockiert jede neue Warnung oder Budgetabweichung. Das Budget darf nie erhöht werden, außer über einen gültigen zeitlich befristeten Risikoakzeptanz-Record.
 
-`npm run test:coverage` erzwingt zusätzlich mindestens 80 Prozent je Datei für die besonders kritischen Zustellungs-, Retry-, Schema-, Backup- und SLO-Module. `npm run test:coverage:modules` misst alle testbaren Kernmodule und blockiert jede Unterschreitung von `coverage-baseline.json`. Ausgenommen sind ausschließlich die Composition Root `forwarder.ts` und die bestätigungspflichtigen Wartungsprogramme `*_cli.ts`; deren Verdrahtung wird durch Build, Contract-Tests und den echten Staging-E2E-Lauf validiert, nicht als Unit-Coverage ausgegeben.
+`npm run test:coverage` erzwingt zusätzlich mindestens 80 Prozent je Datei für die besonders kritischen Zustellungs-, Retry-, Schema-, Backup- und SLO-Module. `npm run test:coverage:modules` misst alle testbaren Kernmodule und blockiert jede Unterschreitung von `coverage-baseline.json`. Der am 23.07.2026 in der kanonischen Node-22-CI bestätigte Ratchet liegt bei 93,88 % Statements, 81,87 % Branches, 98,51 % Functions und 93,88 % Lines. Ausgenommen sind ausschließlich die Composition Root `forwarder.ts` und die bestätigungspflichtigen Wartungsprogramme `*_cli.ts`; deren Verdrahtung wird durch Build, Contract-Tests und den echten Staging-E2E-Lauf validiert, nicht als Unit-Coverage ausgegeben.
+
+### Externe Codeanalyse
+
+`.sonarcloud.properties` setzt UTF-8, Python 3.12 und disjunkte Produktions-/Testpfade. Damit überschneiden sich `sonar.sources` und `sonar.tests` nicht, und testbezogene Regeln werden auf `tests`, `frontend/tests`, `frontend/e2e`, `exchange_executor/tests` und `monitoring/rules.test.yml` angewendet. Eine Änderung der Verzeichnisstruktur muss diese Datei im selben Commit aktualisieren.
+
+SonarQube-Cloud-Funde können revisionsgebunden und read-only exportiert werden:
+
+```bash
+SONAR_TOKEN='from-secret-store' \
+SONAR_PROJECT_KEY='owner_project' \
+SONAR_EXPECTED_REVISION='40-character-commit' \
+npm run quality:sonar-export
+```
+
+Der Token gehört ausschließlich in einen Secret Store beziehungsweise eine kurzlebige Prozessumgebung und niemals in Repository, Dokumentation, Shell-Historie oder Log. Aikido-, Sonar- und andere externe Findings werden auf tatsächliche Erreichbarkeit und Substanz geprüft; ein False Positive benötigt nachvollziehbare Evidenz, aber kein Finding darf pauschal ausgeblendet werden. Die verpflichtenden Repository-Gates bleiben unabhängig davon bestehen.
 
 ## Gate-Ausnahmen
 
@@ -96,6 +112,8 @@ Für kritische Änderungen muss der PR diese Kette vollständig verlinken:
 `Requirement → Acceptance Criteria → ADR → Commit/PR → Review → Testfall → Build/SBOM → Deployment → SLO/Alert → Incident → Regressionstest`
 
 Jede fehlende Kante wird als `TRACEABILITY GAP` markiert. Ein Incident wird erst geschlossen, wenn Ursache, Datenumfang, sichere Wiederholung und Regressionstest dokumentiert sind.
+
+Benutzer-, API-, Betriebs- oder Sicherheitsverhalten gilt erst dann als dokumentiert, wenn mindestens `README.md`, der zuständige Fachleitfaden, betroffene Runbook-Schritte, ADR/Architektur bei Vertragsänderungen und `CHANGELOG.md` konsistent sind. Historische ADR-Entscheidungen werden nicht umgeschrieben, sondern durch eine datierte Ergänzung oder einen neuen ADR fortgeführt.
 
 ## Release Engineering
 

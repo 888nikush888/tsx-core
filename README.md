@@ -1,12 +1,21 @@
 # Telegram Forwarder mit TDLib (Enterprise Edition)
 
-Ein leistungsstarker, robuster und vollständig nach **TypeScript** migrierter Telegram-Nachrichten-Weiterleiter auf Basis der offiziellen **TDLib** (Telegram Database Library). Dieses Tool läuft unter Node.js und leitet Nachrichten aus Quellkanälen automatisch an einen Zielkanal weiter.
+Eine robuste **TypeScript-Control-Plane** für Telegram-Nachrichtenweiterleitung auf Basis der offiziellen **TDLib** (Telegram Database Library), ergänzt um ein internes Python-Sidecar ausschließlich für die offiziellen Hyperliquid-/Bybit-SDKs. Der Node.js-Dienst leitet Nachrichten aus Quellkanälen automatisch an einen Zielkanal weiter und kann validierte Signale kontrolliert in Trades überführen.
 
 Es ist für den **Docker-Betrieb als daemonisierten Hintergrunddienst (Service)** optimiert, bietet integrierte **Prometheus-Metriken**, strukturierte **JSON-Logs** und speichert Zustände ausfallsicher in einer **SQLite-Datenbank**.
 
 Die vollständige, verbindliche Anleitung für Installation, Konfiguration, Nutzung, Production-Release, Recovery und alle noch extern zu erbringenden Enterprise-Nachweise steht in [`docs/PRODUCTION_GUIDE.md`](docs/PRODUCTION_GUIDE.md).
 
-Die vollständige Trading-Einrichtung für Strategien, paralleles Kanal-Routing, Hyperliquid/Bybit, TP/SL-Lifecycle und Notfälle steht in [`docs/TRADING_GUIDE.md`](docs/TRADING_GUIDE.md).
+Die vollständige Trading-Einrichtung für selbst verwaltete Signal-Schemas, paralleles Kanal-Routing, Hyperliquid/Bybit, adaptive TP-Staffelung, SL-Nachziehen und Notfälle steht in [`docs/TRADING_GUIDE.md`](docs/TRADING_GUIDE.md).
+
+Weitere verbindliche Dokumente:
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) – Komponenten, Trust Boundaries und Zustandsflüsse;
+- [`docs/QUALITY_OS.md`](docs/QUALITY_OS.md) – Tests, Security- und Release-Gates;
+- [`docs/runbooks/operations.md`](docs/runbooks/operations.md) – Störung, Reconciliation, Restore und Rollback;
+- [`docs/GITHUB_GOVERNANCE.md`](docs/GITHUB_GOVERNANCE.md) – erforderliche Repository-Regeln und aktuell offene Plattformkontrollen;
+- [`docs/TRADING_BLUEPRINT_V4_GAP_ANALYSIS.md`](docs/TRADING_BLUEPRINT_V4_GAP_ANALYSIS.md) – aktueller Abgleich mit dem Trading-Blueprint;
+- [`SECURITY.md`](SECURITY.md) und [`CHANGELOG.md`](CHANGELOG.md) – Support-/Meldeweg und Versionshistorie.
 
 ---
 
@@ -26,10 +35,16 @@ Damit das Projekt übersichtlich bleibt, sind die Dateien klar aufgeteilt:
 │   ├── metrics.ts            # Prometheus-Metriken und Healthcheck HTTP-Server
 │   ├── queue.ts              # Concurrency-Queue für asynchrone Nachrichtenweiterleitung
 │   ├── signal_parser.ts      # TS-Modul zur KI-XML-Signalextraktion via OpenRouter
-│   └── web_server.ts         # Authentifizierte Web-Control-Plane
+│   ├── signal_schema.ts      # Strikte XML-, Grounding- und USD-Quote-Validierung
+│   ├── trading_*.ts          # Strategien, Schema-Profile, Risiko, Orders und Reconciliation
+│   └── web_server.ts         # Authentifizierte Web-Control-Plane und API
+├── frontend/                 # React/Vite Dashboard einschließlich Trading Builder
+├── exchange_executor/        # Internes Python-Sidecar für offizielle Exchange-SDKs
+├── docs/                     # Architektur-, Betriebs-, Trading- und Governance-Dokumentation
+├── monitoring/               # Prometheus, Alertmanager, Regeln und VEX-Nachweise
 ├── templates/                # Vorlagen für die KI-Signalextraktion
-├── tests/                    # Unit- und Integrationstests (TypeScript/Node.js)
-├── .env.example              # Vorlage für API-Schlüssel und Einstellungen
+├── tests/                    # Unit-, Integrations-, Contract- und Systemtests
+├── .env.example              # Referenz für Source-Dev/Orchestrator-Overrides
 ├── config.json.example       # Vorlage für die Kanal-Konfiguration
 ├── Dockerfile                # Multi-Stage Dockerfile (Build & Production-Runner)
 ├── docker-compose.yml        # Docker-Compose Konfiguration zur Orchestrierung
@@ -62,8 +77,8 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
    ```
 
 2. `http://127.0.0.1:8080` öffnen. Im normalen, ausschließlich auf Host-Loopback veröffentlichten Docker-Modus erzeugt der Server nach Origin- und Audit-Prüfung einmalig einen lokalen Admin-Token. Der Browser übernimmt ihn für die aktuelle Sitzung; der Klartext wird danach serverseitig nie wieder ausgegeben.
-3. Unter **Channels** die Telegram API ID, den 32-stelligen API Hash, mindestens einen Quellkanal und den Zielkanal eintragen. **Save Configuration** speichert Nicht-Secrets und write-only Secrets getrennt in persistenten Docker-Volumes. Die lokale `.env` wird von Docker Compose bewusst nicht eingelesen und kann diese Felder daher nicht mehr sperren.
-4. Falls der KI-Parser verwendet wird: unter **Parser** den OpenRouter-Key eintragen und Limits/Modelle prüfen. Das `default`-Template ist direkt editierbar; die serverseitigen Prompt-Injection- und Schema-Schutzregeln bleiben unveränderlich angehängt. Ohne KI-Parser ist kein OpenRouter-Key nötig.
+3. Unter **Signale & Nachrichten → Kanäle** die Telegram API ID, den 32-stelligen API Hash, mindestens einen Quellkanal und den Zielkanal eintragen. **Konfiguration speichern** speichert Nicht-Secrets und write-only Secrets getrennt in persistenten Docker-Volumes. Die lokale `.env` wird von Docker Compose bewusst nicht eingelesen und kann diese Felder daher nicht mehr sperren.
+4. Falls der KI-Parser verwendet wird: unter **Signale & Nachrichten → KI-Parser** den OpenRouter-Key eintragen und Limits/Modelle prüfen. Das `default`-Template ist direkt editierbar; die serverseitigen Prompt-Injection- und Schema-Schutzregeln bleiben unveränderlich angehängt. Ohne KI-Parser ist kein OpenRouter-Key nötig.
 5. Auf dem Dashboard **Start Forwarder** anklicken. Telefon, Telegram-Code, E-Mail-Code und optionale 2FA werden ausschließlich im Web-Dialog abgefragt und nicht persistiert.
 6. Betriebszustand prüfen:
 
@@ -74,20 +89,22 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
    docker compose logs -f forwarder
    ```
 
-`healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Der lokale Admin-Token bleibt zwar im Secret-Volume gültig, wird daraus aber niemals an den Browser zurückgegeben. Nach Verlust des Browser-Session-Storage muss der einmalig sicher gespeicherte Token erneut eingegeben oder über einen bereits authentifizierten Admin-Zugang rotiert werden. Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System → API- und Bearer-Keys** erzeugt, rotiert oder deaktiviert und jeweils nur einmal angezeigt.
+`healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Der lokale Admin-Token bleibt zwar im Secret-Volume gültig, wird daraus aber niemals an den Browser zurückgegeben. Nach Verlust des Browser-Session-Storage muss der einmalig sicher gespeicherte Token erneut eingegeben oder über einen bereits authentifizierten Admin-Zugang rotiert werden. Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System & Backup → API- und Bearer-Keys** erzeugt, rotiert oder deaktiviert und jeweils nur einmal angezeigt.
 
-Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verkettete Audit-Logs und verifizierte lokale Backups. Sämtliche Runtime-/Enterprise-Parameter – OIDC, externe Origin, Remote-Audit, verschlüsselte Off-site-Backups, Retention, Kapazitätsgrenzen und Timeouts – werden unter **System → Vollständige Runtime- und Enterprise-Konfiguration** gespeichert und über **Container kontrolliert neu starten** aktiviert. Enterprise-Modus erzwingt OIDC, deaktiviert Local Trust und verlangt unveränderlichen Remote-Audit-Trail sowie verschlüsselte, rücklesbar verifizierte Off-host-Backups.
+Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verkettete Audit-Logs und verifizierte lokale Backups. Sämtliche Runtime-/Enterprise-Parameter – OIDC, externe Origin, Remote-Audit, verschlüsselte Off-site-Backups, Retention, Kapazitätsgrenzen und Timeouts – werden unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** gespeichert und über **Container kontrolliert neu starten** aktiviert. Enterprise-Modus erzwingt OIDC, deaktiviert Local Trust und verlangt unveränderlichen Remote-Audit-Trail sowie verschlüsselte, rücklesbar verifizierte Off-host-Backups.
 
 ### Trading vollständig im Web einrichten
 
 1. Unter **Trading → Paper-Märkte** zunächst Equity und Marktmetadaten für `paper-default` konfigurieren. Paper/Testnet sind der sichere Standard.
-2. Unter **Trading → Strategien** die erlaubten Signal-Schema-Profile selbst anlegen/verwalten/löschen und danach einen Entwurf mit Schemas/Symbolen, Entry, risikobasiertem Sizing, TP-Allokationen, Break-even-/Trailing-Regel und harten Limits speichern und publizieren. Profile aktiver Kanalrouten sind gegen Änderung und Löschung geschützt; unbekannte oder deaktivierte Profile bleiben fail-closed. Publizierte Strategieversionen sind immutable; Änderungen erfolgen als neue Version.
+2. Unter **Trading → Strategien** die erlaubten Signal-Schema-Profile selbst anlegen, bearbeiten, aktivieren/deaktivieren oder löschen und danach einen Strategieentwurf speichern und publizieren. Die adaptive TP-Halbierungsstaffel funktioniert automatisch mit 1 bis 20 Signal-Targets; das adaptive SL-Nachziehen setzt nach TP1/TP2 Break-even und danach den Stop auf TP(i-2). Alternativ bleiben manuelle TP-Prozente sowie konfiguriertes Break-even/Prozent-Trailing verfügbar. Profile aktiver Kanalrouten sind gegen Änderung und Löschung geschützt; unbekannte oder deaktivierte Profile bleiben fail-closed. Publizierte Strategieversionen sind immutable; Änderungen erfolgen als neue Version.
 3. Unter **Trading → Börsenkonten** Hyperliquid oder Bybit wählen, Testnet/Live bestimmen und die Keys eingeben. Die UI zeigt danach nur Konfigurations- und Verifikationsstatus; Keys werden nie zurückgelesen. Hyperliquid erwartet einen dedizierten API-Wallet Private Key plus Master-Wallet-Adresse, Bybit einen API-Key mit ausschließlich erforderlichen Futures-Handelsrechten. Withdrawal-Rechte sind nicht erforderlich und dürfen nicht vergeben werden.
 4. Unter **Trading → Kanal-Routing** jeden Telegram-Quellkanal genau einer publizierten Strategieversion und einem aktivierten Konto zuordnen. Kanal A, B und C können gleichzeitig unterschiedliche Strategien/Konten ausführen; dasselbe Konto/Symbol bleibt exklusiv bei einer aktiven Position.
 5. Unter **Trading → Betrieb** zuerst reconciliieren und dann die automatische Ausführung aktivieren. Für Echtgeld muss einmal exakt `ENABLE LIVE TRADING` bestätigt werden. Danach läuft die freigegebene Strategie ohne Approval pro Einzeltrade.
 6. **Trades & Risiko** zeigt Intents, Positionen, Entries, TP/SL/Flatten-Orders, Fills, Risk Events und Reconciliation. Unknown Orders, fremde Positionen oder fehlender Protective Stop aktivieren fail-closed die Sperre und machen `/readyz` rot.
 
 Die Anwendung führt keinen beliebigen in der UI eingegebenen Code aus. „Plugins“ sind strikt validierte, versionierte deklarative Strategien; ein neuer grundlegend anderer Algorithmus benötigt eine getestete Engine-Version. Exchange-Zugriffe laufen ausschließlich über das interne Sidecar mit den offiziellen SDKs `hyperliquid-python-sdk` und `pybit`; das Sidecar besitzt keinen Host-Port.
+
+Ausführbare Signale müssen immer gegen `USD`, `USDC` oder `USDT` notiert sein. Andere Quote-Assets oder uneindeutige Paare werden vor dem Erzeugen eines Trade Intents abgewiesen.
 
 ### Zustellgarantie und Recovery
 
@@ -110,7 +127,7 @@ Nach drei unerwarteten Abbrüchen innerhalb von fünf Minuten legt der Dienst `s
 
 Beim Prozessstart und danach spätestens alle 15 Minuten erstellt der Dienst unter `BACKUP_DIR` ein atomar veröffentlichtes Backup-Artefakt. Es enthält einen konsistenten SQLite-Online-Backup-Snapshot, die nicht geheime Konfiguration und ein SHA-256-/Größenmanifest. Jedes Artefakt wird vor Veröffentlichung mit Checksummen, `PRAGMA integrity_check`, Pflicht-Tabellen und Secret-Feld-Prüfung verifiziert; ein fehlgeschlagenes Backup setzt Readiness und `tg_forwarder_backup_healthy` auf Fehler. Standardmäßig werden 672 Artefakte (sieben Tage bei 15 Minuten) aufbewahrt.
 
-Im Web unter **System → Enterprise Operations** können Operatoren Backups sofort erzeugen, vorhandene Artefakte auswählen, vollständig verifizieren und nach Eingabe von `RESTORE` wiederherstellen. Der Dienst stoppt dabei Routing und Scheduler, schließt SQLite, bewahrt den ersetzten DB-/Config-Stand als Rollback auf und startet den Container kontrolliert neu. Die folgenden Befehle bleiben nur als Break-glass-Alternative erhalten.
+Im Web unter **System & Backup → Enterprise Operations** können Operatoren Backups sofort erzeugen, vorhandene Artefakte auswählen, vollständig verifizieren und nach Eingabe von `RESTORE` wiederherstellen. Der Dienst stoppt dabei Routing und Scheduler, schließt SQLite, bewahrt den ersetzten DB-/Config-Stand als Rollback auf und startet den Container kontrolliert neu. Die folgenden Befehle bleiben nur als Break-glass-Alternative erhalten.
 
 Manuelle Prüfung und Wiederherstellung im Docker-Betrieb (`<artifact-name>` durch den Verzeichnisnamen im Backup-Volume ersetzen):
 
@@ -129,11 +146,11 @@ docker compose up -d
 
 Restore verweigert die Ausführung, solange `.process_active` oder `.routing_active` im State-Verzeichnis existiert. Ein nach hartem Prozessabbruch veralteter Lock darf erst entfernt werden, nachdem auf Betriebssystemebene bestätigt wurde, dass kein Forwarder-Prozess mehr läuft und die Outbox reconciled ist. Bestehende DB und Konfiguration werden nicht gelöscht, sondern als `.pre-restore-*` für einen unmittelbaren Rollback erhalten.
 
-Die Backup-Artefakte enthalten Nachrichten-, Signal- und damit potenziell personenbezogene Daten. Im Enterprise-Modus ist Off-host-Replikation deshalb zwingend. Das Web-Feld `backupOffsiteUrlTemplate` bezeichnet einen HTTPS-Objektendpunkt, der authentifizierte `PUT`- und `GET`-Anfragen auf demselben, durch `{artifact}` parametrisierten Pfad unterstützt; Bearer-Token und 32-Byte-AES-Schlüssel werden unter **System → Enterprise-Secrets** write-only gespeichert.
+Die Backup-Artefakte enthalten Nachrichten-, Signal- und damit potenziell personenbezogene Daten. Im Enterprise-Modus ist Off-host-Replikation deshalb zwingend. Das Web-Feld `backupOffsiteUrlTemplate` bezeichnet einen HTTPS-Objektendpunkt, der authentifizierte `PUT`- und `GET`-Anfragen auf demselben, durch `{artifact}` parametrisierten Pfad unterstützt; Bearer-Token und 32-Byte-AES-Schlüssel werden unter **System & Backup → Enterprise-Secrets** write-only gespeichert.
 
 Jedes lokale Artefakt wird vor dem Upload geprüft, als begrenztes internes Archiv mit AES-256-GCM verschlüsselt und hochgeladen. Anschließend lädt der Dienst exakt dieses Objekt wieder herunter, vergleicht SHA-256 und Länge, authentifiziert und entschlüsselt es und führt erneut SQLite-Integritäts-, Tabellen-, Manifest- und Secret-Prüfungen aus. Erst dann gilt das Backup als erfolgreich und Readiness bleibt grün. Der Verschlüsselungsschlüssel muss getrennt vom Backup-Store aufbewahrt werden; ein lokales Verzeichnis oder ein nicht zurücklesbarer Upload erfüllt Disaster Recovery nicht.
 
-Nach Verlust des lokalen Backup-Volumes wird der im Backup-/Audit-Status vermerkte `.tgfb`-Objektname unter **System → Enterprise Operations → Off-site-Backup abrufen** eingegeben. Die Control Plane lädt, entschlüsselt und verifiziert das Objekt und stellt es erst danach in der lokalen Restore-Auswahl bereit. Der AES-Schlüssel ist nach der ersten Speicherung absichtlich unveränderlich; eine Rotation ohne Keyring würde ältere Generationen zerstören.
+Nach Verlust des lokalen Backup-Volumes wird der im Backup-/Audit-Status vermerkte `.tgfb`-Objektname unter **System & Backup → Enterprise Operations → Off-site-Backup abrufen** eingegeben. Die Control Plane lädt, entschlüsselt und verifiziert das Objekt und stellt es erst danach in der lokalen Restore-Auswahl bereit. Der AES-Schlüssel ist nach der ersten Speicherung absichtlich unveränderlich; eine Rotation ohne Keyring würde ältere Generationen zerstören.
 
 ### Daten-Retention und Kapazität
 
@@ -160,7 +177,7 @@ Das Kommando verweigert aktive Prozess-/Routing-Locks, prüft den Snapshot und b
 
 Die Signalverarbeitung arbeitet ohne Human-in-the-loop. Ein Ergebnis darf jedoch nur automatisch weitergeleitet werden, wenn es exakt dem für die Quelle festgelegten Schema entspricht und alle Zahlen-, Wertebereichs-, Reihenfolge- und LONG/SHORT-Geometrieprüfungen besteht. Markdown, XML-Deklarationen, unbekannte Tags, nicht sequenzielle Targets, abgeschnittene Modellantworten und Text außerhalb des XML-Dokuments werden fail-closed abgewiesen; unbekannte oder nicht lesbare Template-Dateien fallen nicht still auf den Standardprompt zurück.
 
-Da die vollständige Quellnachricht an OpenRouter übertragen wird, muss der Operator einmalig im Parser-Tab **Externe Datenverarbeitung freigegeben** aktivieren und damit Data-Owner-Freigabe, Rechtsgrundlage und Providervertrag für sämtliche konfigurierten Quellen bestätigen. Ohne diese Konfigurationsfreigabe bleiben AI-Aufrufe und daraus folgende Side Effects blockiert; eine Laufzeitfreigabe pro Nachricht gibt es weiterhin nicht.
+Da die vollständige Quellnachricht an OpenRouter übertragen wird, muss der Operator einmalig unter **Signale & Nachrichten → KI-Parser** die Option **Externe Datenverarbeitung freigegeben** aktivieren und damit Data-Owner-Freigabe, Rechtsgrundlage und Providervertrag für sämtliche konfigurierten Quellen bestätigen. Ohne diese Konfigurationsfreigabe bleiben AI-Aufrufe und daraus folgende Side Effects blockiert; eine Laufzeitfreigabe pro Nachricht gibt es weiterhin nicht.
 
 `xmlParsing.aiLimits` begrenzt Eingabelänge, Ausgabetokens, sichtbare Primär-/Fallback-Versuche, Request-Timeout, Backoff sowie Requests und reservierte Tokens pro UTC-Tag. Die SDK-internen Retries sind deaktiviert. Das Tagesbudget wird vor jedem Provider-Aufruf atomar in SQLite reserviert; ein abgebrochener oder hinsichtlich der Provider-Nutzung unklarer Aufruf wird konservativ mit seiner Reservierung verbucht. Ein Prozessabbruch kann deshalb bis zum nächsten UTC-Tag Kapazität blockieren, gibt aber nie unbewiesen Budget frei.
 
@@ -189,13 +206,13 @@ docker volume ls --filter name=cb2_forwarder
 
 Dashboard und Metriken werden ausschließlich auf Host-Loopback veröffentlicht; externer Zugriff benötigt einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
 
-Incident-URL, internes Relay-Token und Incident-Gateway-Token werden vollständig im Web unter **System → Runtime-/Enterprise-Konfiguration** beziehungsweise **Enterprise-Secrets** gesetzt. Danach startet `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d` den Monitoring-Stack; Alertmanager und Relay lesen ausschließlich die verwalteten Config-/Secret-Volumes, nicht `.env` oder Host-Secret-Dateien. Prometheus und Alertmanager sind per unveränderlichem Multi-Arch-Digest gepinnt, speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
+Incident-URL, internes Relay-Token und Incident-Gateway-Token werden vollständig im Web unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** beziehungsweise **Enterprise-Secrets** gesetzt. Danach startet `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d` den Monitoring-Stack; Alertmanager und Relay lesen ausschließlich die verwalteten Config-/Secret-Volumes, nicht `.env` oder Host-Secret-Dateien. Prometheus und Alertmanager sind per unveränderlichem Multi-Arch-Digest gepinnt, speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
 
 ---
 
 ## 📊 Monitoring & Log-Konfiguration
 
-Diese Parameter werden im Docker-Standardbetrieb unter **System → Vollständige Runtime- und Enterprise-Konfiguration** gesetzt; die lokale `.env` wird nicht in den Container injiziert:
+Diese Parameter werden im Docker-Standardbetrieb unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** gesetzt; die lokale `.env` wird nicht in den Container injiziert:
 
 ```env
 # Schaltet die Logausgabe auf strukturiertes JSON um (perfekt für Docker/Kubernetes)
@@ -242,9 +259,18 @@ Der Tag-Release in `quality.yml` prüft über die GitHub-API, dass für exakt de
 
 ## 🧪 Tests ausführen
 
-Das Projekt enthält eine umfangreiche Testsuite für alle Komponenten:
+Für Quellcode-Verifikation werden Node.js 22 und npm 10.9 verwendet. Der vollständige lokale Kernlauf lautet:
 
 ```bash
-# Führt die gesamte Testsuite (Unit- und Integrationstests) aus
+npm ci --no-audit --no-fund
+npm ci --prefix frontend --no-audit --no-fund
+npm run typecheck
+npm run lint
+npm run lint:frontend
 npm test
+npm run test:coverage
+npm run test:coverage:modules
+npm run build
 ```
+
+Mutation, Browsermatrix, Container/SBOM/Vulnerability, Secret-History und CodeQL laufen zusätzlich im GitHub Quality Workflow. Die vollständige Gate-Matrix und kontextabhängigen Befehle stehen in [`docs/QUALITY_OS.md`](docs/QUALITY_OS.md) und [`docs/PRODUCTION_GUIDE.md`](docs/PRODUCTION_GUIDE.md).

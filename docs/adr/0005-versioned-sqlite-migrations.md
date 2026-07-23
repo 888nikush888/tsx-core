@@ -25,3 +25,5 @@ Ein Binary-Rollback darf das Schema nur dann unverändert weiterverwenden, wenn 
 - Neuere, manipulierte oder nicht zusammenhängende Historien blockieren den Start.
 - Vor Legacy-Migration existiert ein per `PRAGMA integrity_check` verifizierter Snapshot.
 - Restore verweigert aktive Prozess-/Routing-Locks, bewahrt den ersetzten Zustand und kann erneut auf die aktuelle Version migriert werden.
+
+Die derzeitige `LATEST_SCHEMA_VERSION` ist 7. Migration 7 ergänzt additiv das persistente Verzeichnis `trading_signal_schemas` und legt die drei geprüften Standardprofile an; vorhandene Inbox-/Outbox- und Trading-Daten bleiben erhalten. Künftige Versionsänderungen aktualisieren diese Zahl nur zusammen mit Migrationstest und Downgrade-Plan.

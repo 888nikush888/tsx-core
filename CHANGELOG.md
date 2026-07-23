@@ -4,6 +4,32 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+### Added
+
+- Benutzerverwaltete Trading-Signal-Schema-Profile mit vollständigem Create/Update/Enable/Disable/Delete-Workflow in Web-UI und API; aktive Kanalrouten schützen verwendete Profile vor Änderung oder Löschung.
+- Adaptive TP-Halbierungsstaffel für 1 bis 20 Signal-Targets sowie adaptives SL-Nachziehen: nach TP1/TP2 Break-even, danach TP(i-2), ausschließlich in Gewinnrichtung.
+- Multi-Exchange-Portfolioanalyse mit Konto-/Börsenfilter, 24h/7d/30d/Gesamt-Kennzahlen und klar getrennter nominaler USD-/USDC-/USDT-Sicht.
+- Einheitliches **Signale & Nachrichten** Control Center und Browser-/Accessibility-Gates für Chromium, Firefox, WebKit und Mobile Chromium.
+
+### Changed
+
+- Ausführbare Trading-Signale akzeptieren ausschließlich normalisierte Paare mit `USD`, `USDC` oder `USDT` als Quote-Asset.
+- SonarCloud analysiert Produktions- und Testpfade ohne Überlappung, mit festgelegter Python-Version und UTF-8-Quellkodierung.
+- Der Factory Reset stellt Konfiguration und Runtime-Templates reproduzierbar auf die integrierten Defaults zurück und räumt verwalteten Trading-/Secret-Zustand nur nach erfolgreichem Exposure-Preflight auf.
+- Monitoring-Images und GitHub Actions wurden aktualisiert; binäre Erreichbarkeitsnachweise für verbleibende Monitoring-Funde liegen als versionsgebundene OpenVEX-Dokumente vor.
+
+### Fixed
+
+- **Betriebsdaten leeren** bewahrt Trading-Historie, Strategien, Konten, Exchange-Secrets und von Trades referenzierte Signale.
+- Strategieversionen können nur ohne aktive Route beziehungsweise aufbewahrte Trade-Historie sicher gelöscht werden.
+- Exchange-Order-Historie, Trading-Safety-Halt, Clock-Drift-Gates und Recovery-Pfade bleiben nach Fehlern fail-closed und nachvollziehbar.
+- Sonar-, CodeQL- und Aikido-Funde in Audit-, Backup-, Datenbank-, Process-Lock-, Executor- und Vergleichspfaden wurden behoben und mit Regressionstests abgesichert.
+
+### Security
+
+- Schutz vor Symlink-/Junction-Ausbruch, manipulierten Backup-/Audit-Dateien, unsicheren Vergleichen und ungebundenen Exchange-/DB-Zuständen wurde verschärft.
+- CodeQL, Secret-History, Container-SBOM/Vulnerability Scan und vier kritische Mutation-Gates laufen im verpflichtenden Quality-Workflow.
+
 ## [2.0.0] - 2026-07-21
 
 ### Security

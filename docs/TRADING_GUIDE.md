@@ -22,20 +22,76 @@ docker compose ps
 
 Paper ist kein Profitabilitätsnachweis: Latenz, Orderbuch, Funding, Liquidation, Teilausführungsdynamik und reale Gebühren sind nur begrenzt abgebildet. Es beweist Zustandsmaschine, Sizing, TP/SL und Recovery, nicht Marktperformance.
 
-## 3. Strategie/Plugin erstellen
+## 3. Signal-Schemas und Strategie/Plugin erstellen
 
 Unter **Trading → Strategien**:
 
-- **Signal-Schema-Profile:** Profile direkt im oberen Verwaltungsbereich anlegen, bearbeiten, aktivieren/deaktivieren oder nach expliziter Bestätigung löschen. Jedes Profil besitzt eine unveränderliche Kennung, einen Anzeigenamen, ein Parser-Template und einen geprüften ausführbaren XML-Vertrag (`standard`, `cryptodanielvip` oder `loma`).
+- **Signal-Schema-Profile:** Profile direkt im oberen Verwaltungsbereich anlegen, bearbeiten, aktivieren/deaktivieren oder nach expliziter Bestätigung löschen. Jedes Profil besitzt eine unveränderliche Kennung, einen Anzeigenamen, ein Parser-Template und einen geprüften ausführbaren XML-Vertrag (`standard`, `cryptodanielvip` oder `loma`). Die drei gleichnamigen Standardprofile werden bei der Datenbankmigration angelegt, können aber wie eigene Profile verwaltet werden.
 - **Signalvertrag:** erlaubte XML-Schemas, Symbole (leer = jedes normalisierte Symbol) und LONG/SHORT.
 - **Entry:** Market oder Limit, Preiswahl innerhalb der Signal-Range, Post-only und Timeout.
 - **Sizing:** Risiko pro Trade in Prozent der Equity, maximales Positionsnotional und maximaler Hebel. Signalhebel und Exchange-Maximum können nur weiter begrenzen.
-- **Exits:** Prozent je Signal-Target; die Summe muss exakt 100 sein und der letzte TP schließt den vollständigen Rest. Optional Break-even nach TP n und ein Trailing-Prozent, das den Stop nur in Gewinnrichtung verschiebt. Protective Stop ist immer zwingend.
+- **Exits:** manuelle Prozentwerte oder adaptive TP-Halbierungsstaffel; konfigurierbares Break-even/Prozent-Trailing oder adaptives SL-Nachziehen nach erreichten TP-Stufen. Der letzte TP schließt immer den vollständigen Rest. Ein Protective Stop ist zwingend.
 - **Safety:** maximale gleichzeitige Positionen je Strategieversion, absoluter maximaler UTC-Tagesverlust, Slippage-Grenze und Entry-TTL.
 
 **Entwurf speichern** validiert alle Grenzen. **Publizieren** macht die Version immutable und routingfähig. Für Änderungen die publizierte Version auswählen und **Neue Version** erstellen. Bestehende Trades behalten die alte Version; neue Signale nutzen erst nach explizitem Routing-Wechsel die neue.
 
 Nur aktive Schema-Profile können in neuen Strategien verwendet werden. Ein Profil, das eine aktivierte Kanalroute verwendet, kann weder verändert noch gelöscht werden. Ein unbekanntes, deaktiviertes oder gelöschtes Profil bleibt zur Laufzeit fail-closed und erzeugt keinen ausführbaren Trade.
+
+### Signal-Schema-Profile sicher verwalten
+
+Ein Profil ist eine deklarative Zuordnung und kein frei ausführbares Schema: Die Kennung darf nach dem Anlegen nicht geändert werden, das Parser-Template bestimmt den Prompt für die Telegram-Quelle, und der XML-Vertrag bestimmt die serverseitige Validierung. Eigene Profile dürfen deshalb nur auf einen der drei geprüften Verträge verweisen; beliebiger XML-, Python- oder JavaScript-Code wird nicht ausgeführt.
+
+Das wirksame Profil wird zur Laufzeit über das der Telegram-Quelle zugeordnete Parser-Template ermittelt. Für jedes aktiv verwendete Template sollte genau ein aktives Profil existieren. Vor einer Änderung an einem gerouteten Profil zuerst eine Ersatzstrategieversion mit dem neuen Profil publizieren, die Kanalroute umstellen und anschließend das alte Profil bearbeiten, deaktivieren oder löschen.
+
+Die authentifizierte Admin-API entspricht den UI-Aktionen. Mutationen benötigen zusätzlich zum Admin-Bearer `X-Requested-With: forwarder-dashboard`; die Löschung verlangt außerdem die unten genannte destruktive Bestätigung:
+
+| Aktion | Methode und Pfad | Zusatzbedingung |
+| --- | --- | --- |
+| Gesamten Trading-Snapshot einschließlich Profile lesen | `GET /api/trading` | Viewer oder Admin |
+| Profil anlegen | `POST /api/trading/signal-schemas` | Admin; Body mit `id`, `name`, `description`, `parserSchema`, `templateName`, `enabled` |
+| Profil bearbeiten/aktivieren/deaktivieren | `POST /api/trading/signal-schemas/update` | Admin; Body zusätzlich mit unveränderlicher `id`; keine aktive Route darf das Profil verwenden |
+| Profil löschen | `DELETE /api/trading/signal-schemas` | Admin; Body `{"id":"..."}` und `X-Destructive-Confirmation: delete-trading-signal-schema` |
+
+| Feld | Vertrag |
+| --- | --- |
+| `id` | 1 bis 40 Zeichen; beginnt mit `a-z`, danach nur `a-z`, `0-9`, `_` oder `-`; wird kleingeschrieben und bleibt nach Erstellung unveränderlich |
+| `name` | 1 bis 80 Zeichen |
+| `description` | optional, höchstens 500 Zeichen |
+| `parserSchema` | exakt `standard`, `cryptodanielvip` oder `loma` |
+| `templateName` | 1 bis 64 Zeichen aus Buchstaben, Ziffern, `_` oder `-`; muss zum quellspezifisch ausgewählten Parser-Template passen |
+| `enabled` | echter JSON-Boolean, kein String |
+
+Fehlerhafte oder bereits vorhandene Kennungen werden abgewiesen; unbekannte oder deaktivierte Profile führen nicht zu einem Fallback-Trade.
+
+### Ausschließlich USD-notierte Signalpaare
+
+Ausführbare Signale werden immer gegen eine USD-Quote gehandelt. Zulässig sind normalisierte Symbole mit `USD`, `USDC` oder `USDT` am Ende, beispielsweise `BTCUSD`, `ETHUSDC` und `SOLUSDT`. Paare wie `BTCEUR`, fehlende Quotes oder uneindeutige Paare werden vor jeder Trading-Nebenwirkung abgewiesen. Die gemeinsame Portfolioansicht addiert diese Quotes nur nominal und ist keine FX- oder Stablecoin-Paritätsbewertung.
+
+### Adaptive TP-Staffelung
+
+Bei **Adaptive TP-Staffelung (Halbierungsregel)** passt sich die Allokation automatisch an jedes Signal mit 1 bis 20 Targets an. Jeder TP bis zum vorletzten schließt die Hälfte des verbleibenden Volumens; der letzte TP schließt den gesamten Rest:
+
+| Anzahl TPs | Allokation |
+| ---: | --- |
+| 1 | `100 %` |
+| 2 | `50 % / 50 %` |
+| 3 | `50 % / 25 % / 25 %` |
+| 4 | `50 % / 25 % / 12,5 % / 12,5 %` |
+| 5 | `50 % / 25 % / 12,5 % / 6,25 % / 6,25 %` |
+
+Damit funktionieren Signale mit wechselnder TP-Anzahl ohne separate Strategieversion. Im manuellen Modus muss die Prozentliste dagegen exakt so viele Einträge wie das Signal Targets enthalten und exakt 100 Prozent ergeben; andernfalls wird der Trade blockiert. Exchange-Schrittweiten werden beim Planen berücksichtigt, und eine auf null gerundete TP-Menge wird abgewiesen.
+
+### Adaptives SL-Nachziehen
+
+Bei **Adaptives SL-Nachziehen nach TP-Stufen** gilt die Blueprint-Leiter:
+
+- vor TP1 bleibt der ursprüngliche Stop bestehen;
+- nach TP1 und TP2 liegt der Stop auf Break-even, also dem geplanten Entry;
+- nach TP3 wird der Stop auf TP1 nachgezogen, nach TP4 auf TP2, allgemein nach `TP n` auf `TP (n-2)`;
+- der Stop wird niemals in Verlust- beziehungsweise Gegenrichtung verschoben;
+- nach dem letzten TP ist die Position geschlossen; ein verbliebener Schutz wird im Reconciliation-Lauf nur noch sicher abgewickelt.
+
+Im Modus **Konfiguriert** gelten stattdessen der frei wählbare Break-even-Schwellwert und optional das prozentuale Trailing. Die prozentuale Trailing-Regel wird im adaptiven TP-Stufenmodus nicht zusätzlich ausgeführt. Jede Stop-Ersetzung legt zuerst den neuen reduce-only Schutz an und entfernt erst danach veraltete Stops.
 
 **Strategie löschen** entfernt eine unbenutzte Version nach einer expliziten Bestätigung endgültig. Eine Kanalroute muss vorher unter **Kanal-Routing** entfernt werden; Versionen mit aufbewahrter Trade-Historie können aus Audit- und Recovery-Gründen nur archiviert, nicht gelöscht werden. Die letzte verbleibende Strategieversion ist nicht löschbar – zuerst eine Ersatzstrategie erstellen.
 
@@ -80,7 +136,7 @@ Unter **Trading → Betrieb**:
 ```text
 validiertes XML → Kanalroute → immutable Strategie → Risk/Capacity
 → persistierter Plan → idempotenter Entry → bestätigter Protective Stop
-→ TP-Staffel → Fill-Reconciliation → Stop auf Restmenge/Break-even
+→ TP-Staffel → Fill-Reconciliation → Stop auf Restmenge/Break-even/TP-Leiter
 → Position geschlossen + realisierter PnL
 ```
 
@@ -112,7 +168,7 @@ Im Notfall Kill-Switch aktivieren, Exchange read-only gegen Client Order IDs pr�
 
 Live bleibt **NO-GO**, bis zusätzlich zu allen normalen Enterprise-Gates folgende reale Nachweise vorliegen:
 
-- Hyperliquid- und Bybit-Testnet: Entry, mehrere TP-Fills, Stop-Resize, Break-even, Cancel, Timeout/Unknown und Neustart-Reconciliation.
+- Hyperliquid- und Bybit-Testnet: Entry, Signale mit 1/2/3/5 TPs, adaptive Allokation, mehrere TP-Fills, Stop-Resize, Break-even, TP(i-2)-Nachziehen, Cancel, Timeout/Unknown und Neustart-Reconciliation.
 - Exchange-separates Subkonto, minimale API-Rechte, IP-Allowlist und dokumentierte Key-Rotation.
 - Staging-Last mit parallelen Kanälen und Symbolkonflikt-Test.
 - Alarmzustellung für Unknown Order, ungeschützte Position, Kill-Switch und stale Reconciliation.

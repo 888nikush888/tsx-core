@@ -6,13 +6,13 @@ PR risk records use the commit-bound gate `pr-risk:<40-character-head-sha>`. The
 
 ```markdown
 ---
-id: RA-20260713-example
-owner: service-owner
-approver: security-owner
-created: 2026-07-13
-expires: 2026-07-20
-scope: exact components, versions, and commit SHA
-gate: pr-risk:<40-character-head-sha>
+id: RA-<YYYYMMDD>-<slug>
+owner: <responsible-owner>
+approver: <different-security-or-domain-approver>
+created: <YYYY-MM-DD>
+expires: <YYYY-MM-DD, at most 30 days after created>
+scope: <exact components, versions, and commit SHA>
+gate: <affected-gate or pr-risk:40-character-head-sha>
 ---
 
 ## Risk

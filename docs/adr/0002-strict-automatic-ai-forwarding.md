@@ -14,3 +14,5 @@ Es gibt keinen Runtime-Human-in-the-loop. Automatische Weiterleitung ist nur nac
 ## Konsequenzen
 
 Unklare oder abweichende Antworten werden verworfen. Modell-/Prompt-/Template-Releases benötigen ein Live-Golden-Set mit adversarial Cases; Qualitätsabfall ist ein Release-Blocker.
+
+Seit der Trading-Erweiterung verbindet ein persistentes, im Web verwaltbares Schema-Profil das quellspezifische Parser-Template mit einem geprüften ausführbaren XML-Vertrag. Dies ändert die Sicherheitsentscheidung nicht: Profile erlauben keinen beliebigen Code oder neuen Vertragsparser, unbekannte/deaktivierte Profile erzeugen keinen Trade, und ausführbare Paare müssen mit `USD`, `USDC` oder `USDT` notiert sein.

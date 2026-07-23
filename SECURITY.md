@@ -2,7 +2,12 @@
 
 ## Supported versions
 
-Security fixes are provided for the latest released `1.x` version only. A release that reaches end of support remains blocked from production deployment.
+| Version | Supported |
+| --- | --- |
+| latest `2.x` release | Yes |
+| `1.x` and older | No |
+
+Security fixes are provided only for the latest released `2.x` version and the current default branch until the next release. An end-of-support version remains blocked from production deployment.
 
 ## Reporting a vulnerability
 

@@ -65,6 +65,8 @@ npm run quality:release
 npm run quality:risk-acceptances
 npm run quality:licenses
 npm run quality:sbom
+npm run quality:build-context
+npm run quality:dependencies
 ```
 
 Zusätzlich müssen Backend und Frontend ohne bekannte Moderate-/High-/Critical-Produktionslücke sein:
@@ -74,11 +76,11 @@ npm audit --omit=dev --audit-level=moderate
 npm audit --prefix frontend --omit=dev --audit-level=moderate
 ```
 
-`npm run quality:monitoring` benötigt einen laufenden Docker-Engine-Dienst, weil die gepinnten Prometheus-/Alertmanager-Werkzeuge in Containern ausgeführt werden. Das Container-Image selbst und seine nativen Imports werden im Workflow `.github/workflows/quality.yml` gebaut, gescannt und attestiert. Fehlende lokale Container-Unterstützung ist kein Pass; die CI-Evidenz bleibt Pflicht.
+`npm run quality:monitoring` benötigt einen laufenden Docker-Engine-Dienst, weil die gepinnten Prometheus-/Alertmanager-Werkzeuge in Containern ausgeführt werden. `npm run test:browser` benötigt die Playwright-Browser. `npm run quality:github-governance` benötigt `GITHUB_REPOSITORY` und ein berechtigtes `GH_TOKEN`; `npm run quality:deployment-images` benötigt die freigegebenen Image-Digests. Das Container-Image selbst und seine nativen Imports werden im Workflow `.github/workflows/quality.yml` gebaut, gescannt und attestiert. Fehlende lokale Container-/Browser-/GitHub-Unterstützung ist kein Pass; die entsprechende CI- oder Plattform-Evidenz bleibt Pflicht.
 
 ## 4. Nicht geheime Anwendungskonfiguration
 
-Im normalen Docker-Betrieb wird keine Host-Datei vorbereitet. Compose initialisiert `forwarder_config`; das Dashboard schreibt die validierte Konfiguration atomar nach `/app/config/config.json`. Unter **Channels** werden API ID, Quellen und Ziel gepflegt, unter **Options** und **Filters** die Routingregeln und unter **Parser** Modelle, Budgets und Templates. Der Import/Export im Bereich **System** enthält ausschließlich Nicht-Secrets.
+Im normalen Docker-Betrieb wird keine Host-Datei vorbereitet. Compose initialisiert `forwarder_config`; das Dashboard schreibt die validierte Konfiguration atomar nach `/app/config/config.json`. Unter **Signale & Nachrichten → Kanäle** werden API ID, Quellen und Ziel gepflegt, unter **Verarbeitung** und **Filter** die Routingregeln und unter **KI-Parser** Modelle, Budgets und Templates. Der Import/Export im Bereich **System & Backup** enthält ausschließlich Nicht-Secrets.
 
 Regeln:
 
@@ -93,17 +95,17 @@ Regeln:
 
 ### Standalone-Docker
 
-Host installations without `MANAGED_SECRET_DIR` place managed credentials below the operating-system state directory, outside the checkout; Compose continues to use the dedicated `/app/secrets` volume. Origin and `X-Requested-With` headers are request-integrity checks, not authentication.
+Host-Installationen ohne `MANAGED_SECRET_DIR` speichern verwaltete Zugangsdaten unterhalb des Betriebssystem-State-Verzeichnisses außerhalb des Checkouts; Compose verwendet weiterhin das dedizierte Volume `/app/secrets`. Origin und `X-Requested-With` sind Request-Integritätsprüfungen und keine Authentifizierung.
 
 Beim ersten Browseraufruf erzeugt der Server nach Origin- und Audit-Prüfung einen lokalen Admin-Zugang und zeigt ihn genau einmal an. Der Browser hält ihn nur im Session Storage. Nach einem Browser-Neustart muss der gespeicherte Token erneut eingegeben oder durch eine bereits authentifizierte Administration rotiert werden; `/api/local-session` gibt einen vorhandenen Token niemals zurück. Telegram API Hash und OpenRouter-Key werden im Dashboard write-only gesetzt: Status und Quelle sind lesbar, der Wert selbst nie. Die lokale `.env` wird vom Standard-Compose nicht eingelesen.
 
 Ist eine verwaltete Konfiguration, Runtime-Einstellung oder Secret-Datei beschädigt, startet nur die Recovery-Control-Plane: Routing, Scheduler und Datenbankzugriffe bleiben aus. Das mitgelieferte Compose aktiviert dafür ausschließlich auf dem Host-Loopback einen Break-glass-Sessionpfad; dieser darf nie mit einem remote veröffentlichten Dashboard kombiniert werden. Er erlaubt nur Reparaturen an Konfiguration, Runtime-Einstellungen und verwalteten Secrets plus Neustart und schreibt dafür explizite kritische Recovery-Logs, weil die normale Audit-Kette in diesem Zustand nicht verfügbar sein kann.
 
-Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System → API- und Bearer-Keys** serverseitig erzeugt, rotiert oder deaktiviert. Der Klartext wird genau einmal angezeigt; eine Admin-Rotation ersetzt sofort den aktiven Browserzugang.
+Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System & Backup → API- und Bearer-Keys** serverseitig erzeugt, rotiert oder deaktiviert. Der Klartext wird genau einmal angezeigt; eine Admin-Rotation ersetzt sofort den aktiven Browserzugang.
 
 ### Enterprise-Modus
 
-Der Enterprise-Modus wird unter **System → Vollständige Runtime- und Enterprise-Konfiguration** vorbereitet. Dort werden OIDC, externe Origin, Remote-Audit, Incident-Webhook, Off-site-Backup, Retention, Kapazitätsgrenzen und Timeouts atomar in `forwarder_config` gespeichert. Audit-, Alert- und Backup-Tokens sowie der AES-Schlüssel werden getrennt unter **Enterprise-Secrets** write-only gespeichert. **Container kontrolliert neu starten** aktiviert die Konfiguration.
+Der Enterprise-Modus wird unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** vorbereitet. Dort werden OIDC, externe Origin, Remote-Audit, Incident-Webhook, Off-site-Backup, Retention, Kapazitätsgrenzen und Timeouts atomar in `forwarder_config` gespeichert. Audit-, Alert- und Backup-Tokens sowie der AES-Schlüssel werden getrennt unter **Enterprise-Secrets** write-only gespeichert. **Container kontrolliert neu starten** aktiviert die Konfiguration.
 
 Der Validator erzwingt für Enterprise-Modus OIDC, deaktivierten Local Trust, Remote-Audit und Off-site-Backup. Die entsprechende frühere Environment-Darstellung lautet nur noch zur Feldzuordnung:
 
@@ -131,7 +133,7 @@ Vor dem Speichern von `enterpriseMode=true` müssen `auditWebhookToken`, `backup
 
 Die TDLib-Anmeldung findet vollständig im Dashboard statt und ist eine Account-Bootstrap-Aktion, keine inhaltliche Human-in-the-loop-Freigabe für Nachrichten:
 
-1. Unter **Channels** Telegram API ID und API Hash sowie Quelle und Ziel speichern.
+1. Unter **Signale & Nachrichten → Kanäle** Telegram API ID und API Hash sowie Quelle und Ziel speichern.
 2. Im Dashboard **Start Forwarder** wählen.
 3. Die angeforderte Telefonnummer im internationalen Format eingeben.
 4. Telegram-/E-Mail-Code und bei Bedarf das 2FA-Passwort im jeweils angezeigten Web-Prompt eingeben oder die Anmeldung auf einem bereits angemeldeten Gerät bestätigen.
@@ -162,7 +164,24 @@ docker compose down
 
 `docker compose down -v` löscht die persistenten Volumes und ist ausschließlich für einen bewusst bestätigten Total-Reset zulässig. Für normale Updates darf `-v` nie verwendet werden.
 
-Der bevorzugte anwendungsweite Total-Reset befindet sich unter **System → Factory Reset** und verlangt die Eingabe `RESET`. Vor der Stilllegung prüft er sämtliche Pfade und Secret-Quellen. Danach löscht er Konfiguration, alle verwalteten Secrets/Bearer-Keys, Runtime-Einstellungen, Templates, TDLib-Sitzung, Datenbank, Session-Dateien, Signale, Logs, lokale Audit-Kette und Backups und startet in den integrierten Erststart. Das Löschen des AES-Schlüssels bewirkt Crypto-Erasure verbleibender Off-site-Objekte. Ein externer Enterprise-Audit-Empfänger bewahrt bereits zugestellte Reset-Evidenz unabhängig von der lokalen Installation.
+Der bevorzugte anwendungsweite Total-Reset befindet sich unter **System & Backup → Factory Reset** und verlangt die Eingabe `RESET`. Vor der Stilllegung prüft er sämtliche Pfade und Secret-Quellen. Danach löscht er Konfiguration, alle verwalteten Secrets/Bearer-Keys, Runtime-Einstellungen, Templates, TDLib-Sitzung, Datenbank, Session-Dateien, Signale, Logs, lokale Audit-Kette und Backups und startet in den integrierten Erststart. Das Löschen des AES-Schlüssels bewirkt Crypto-Erasure verbleibender Off-site-Objekte. Ein externer Enterprise-Audit-Empfänger bewahrt bereits zugestellte Reset-Evidenz unabhängig von der lokalen Installation.
+
+Der Reset betrifft konkret:
+
+| Zustand | Ergebnis nach dem Reset |
+| --- | --- |
+| `/app/config/config.json` | wird aus `DEFAULT_CONFIG` neu erzeugt; Quellen, Ziel, Filter, Parser-Freigabe, Modelle, Templates-Zuordnung und Limits stehen wieder auf Werkseinstellung |
+| `runtime-settings.json` | wird auf `DEFAULT_RUNTIME_SETTINGS` gesetzt; Standalone/Token/Local-Trust, Zeit-, Backup-, Retention-, Audit- und Kapazitätswerte erhalten ihre Defaults |
+| Managed-Secret-Store | Telegram API Hash, OpenRouter-Key, Admin-/Viewer-Keys, Audit-/Alert-/Backup-Tokens und AES-Schlüssel werden entfernt |
+| Trading-Credential-Store | Hyperliquid-/Bybit-Zugangsdaten und interner Executor-Key werden entfernt |
+| `templates/` | alle lokalen Template-Overrides werden geleert; der eingebaute Default-Prompt greift wieder |
+| `session_data/` | SQLite einschließlich Inbox/Outbox, Signalen, Budgets, Migrationen, Schema-Profilen, Strategien, Routen, Intents, Orders, Fills, Positionen und Risk Events sowie Lock-/Crash-Zustand wird entfernt |
+| `session_files/` | TDLib-Dateien und lokale Telegram-Sitzung werden entfernt; eine erneute Anmeldung ist erforderlich |
+| konfiguriertes Signalverzeichnis und `signals/` | gespeicherte XML-Signale werden entfernt |
+| `backups/` | lokale Backup-Artefakte werden entfernt |
+| `logs/` und lokale Audit-Kette | lokale Logs und Audit-Evidenz werden entfernt; bereits extern persistierte Audit-Records bleiben erhalten |
+
+Vor dem Löschen stoppt die Anwendung Trading, storniert offene Entries, prüft alle realen Exchange-Konten und verweigert den Reset bei nicht erreichbarer Exchange oder verbleibender Exposure. Extern gemountete, nicht durch die Anwendung löschbare Secrets blockieren den Preflight. Off-site-Backup-Objekte werden nicht remote gelöscht; ohne den entfernten AES-Schlüssel sind sie kryptografisch nicht mehr lesbar.
 
 Status prüfen:
 
@@ -220,7 +239,7 @@ Nach dem ersten Start müssen innerhalb des freigegebenen Wartungsfensters gepr�
 
 ## 9. Dashboard und API sicher bedienen
 
-Viewer dürfen Status, redigierte Konfiguration, Logs, Metrikhistorie und Outbox lesen. Nur Admins dürfen mutieren. Browser-Mutationen benötigen zusätzlich den Dashboard-Request-Header; destruktive oder duplikatgefährdete Aktionen benötigen einen aktionsspezifischen Bestätigungsheader.
+Viewer dürfen Status, redigierte Konfiguration, Logs, Metrikhistorie und Outbox lesen. Nur Admins dürfen mutieren. Browser-/API-Mutationen benötigen zusätzlich `X-Requested-With: forwarder-dashboard`; destruktive oder duplikatgefährdete Aktionen benötigen einen aktionsspezifischen `X-Destructive-Confirmation`-Header.
 
 Ungeklärte Outbox-Einträge abrufen:
 
@@ -241,7 +260,7 @@ Es gibt absichtlich keinen automatischen Retry für `unknown`, weil das Duplikat
 
 Vor jedem Provideraufruf greifen Zeichen-, Token-, Request-, Tagesbudget-, Timeout-, Retry- und Backoff-Grenzen. Akzeptiert wird nur exakt gültiges XML mit erlaubten Werten, lückenlosen Targets und konsistenter LONG-/SHORT-Geometrie. Providerfehler, Timeouts, unbekannte Templates, Schemaabweichungen und Budgetüberschreitungen führen zu keiner Weiterleitung.
 
-Vor Aktivierung muss im Parser-Tab **Externe Datenverarbeitung freigegeben** gesetzt werden. Diese administrative Freigabe bestätigt für alle konfigurierten Quellen Rechtsgrundlage, Data-Owner-Zustimmung, Provider-/DPA-Vertrag, Region und Retention, weil die vollständige Telegram-Nachricht an OpenRouter übertragen wird. Sie ist kein Human-in-the-loop im Nachrichtenpfad; fehlt sie, blockiert der Dienst jeden AI-Aufruf fail closed.
+Vor Aktivierung muss unter **Signale & Nachrichten → KI-Parser** die Option **Externe Datenverarbeitung freigegeben** gesetzt werden. Diese administrative Freigabe bestätigt für alle konfigurierten Quellen Rechtsgrundlage, Data-Owner-Zustimmung, Provider-/DPA-Vertrag, Region und Retention, weil die vollständige Telegram-Nachricht an OpenRouter übertragen wird. Sie ist kein Human-in-the-loop im Nachrichtenpfad; fehlt sie, blockiert der Dienst jeden AI-Aufruf fail closed.
 
 Jede Änderung an Modell, Prompt, Template, Schema oder Parser benötigt:
 
@@ -268,7 +287,7 @@ Verbindliche Alarmgrenzen, Crash-Loop-Ablauf und konkrete API-Schritte stehen in
 
 ## 12. Backup, Restore und Rollback
 
-Der bevorzugte Ablauf liegt unter **System → Enterprise Operations**: Backup erzeugen, Artefakt auswählen, **Backup verifizieren**, anschließend **Backup wiederherstellen** und `RESTORE` eingeben. Die Control Plane stoppt Routing und Hintergrundjobs, schließt SQLite, erhält den vorherigen DB-/Config-Stand für Rollback und startet den Container neu. Die folgenden CLI-Kommandos sind ausschließlich der Break-glass-Pfad, falls das Dashboard selbst nicht erreichbar ist.
+Der bevorzugte Ablauf liegt unter **System & Backup → Enterprise Operations**: Backup erzeugen, Artefakt auswählen, **Backup verifizieren**, anschließend **Backup wiederherstellen** und `RESTORE` eingeben. Die Control Plane stoppt Routing und Hintergrundjobs, schließt SQLite, erhält den vorherigen DB-/Config-Stand für Rollback und startet den Container neu. Die folgenden CLI-Kommandos sind ausschließlich der Break-glass-Pfad, falls das Dashboard selbst nicht erreichbar ist.
 
 Backup erstellen und prüfen:
 
@@ -317,18 +336,18 @@ Ein Gate darf nur über einen gültigen, höchstens 30 Tage laufenden Record unt
 
 ## Trading-Betrieb
 
-Die vollständige Web-Anleitung für Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, Live-Gate, TP/SL-Lifecycle und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading ist Teil derselben Datenbank-, Audit-, Backup-, Monitoring- und Release-Grenze. Der Release veröffentlicht und attestiert deshalb zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor.
+Die vollständige Web-Anleitung für selbst verwaltete Signal-Schema-Profile, ausschließlich USD/USDC/USDT-notierte Paare, Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, adaptive TP-Staffelung, SL-Nachziehen, Live-Gate und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading ist Teil derselben Datenbank-, Audit-, Backup-, Monitoring- und Release-Grenze. Der Release veröffentlicht und attestiert deshalb zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor.
 
 ## 14. Enterprise-Nachweise und aktuelle offene Punkte
 
-Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Die folgenden Punkte hängen von realen Identitäten, Infrastruktur oder verstrichener Betriebszeit ab und dürfen nicht durch Beispieldaten ersetzt werden:
+Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Der Plattformstatus wurde zuletzt am 23.07.2026 gegen das private Repository `888nikush888/telegram-tdlib-forwarder-private` geprüft. Die folgenden Punkte hängen von realen Identitäten, Tarif-/Plattformfunktionen, Infrastruktur oder verstrichener Betriebszeit ab und dürfen nicht durch Beispieldaten ersetzt werden:
 
 | Nachweis | Aktueller Repository-/Workspace-Status | Für Production-GO erforderlich |
 | --- | --- | --- |
-| GitHub-Remote und reale CODEOWNERS | **NICHT VERIFIZIERT**: Im lokalen Repository ist kein Remote konfiguriert; reale Owner können nicht abgeleitet werden. | Remote einrichten, auflösbare Benutzer/Teams in `.github/CODEOWNERS`, fehlerfreie GitHub-Auswertung |
-| Branch Protection und Security-Features | **NICHT VERIFIZIERT** ohne GitHub-Repository und berechtigtes Token | `npm run quality:github-governance` muss alle Reviews, Required Checks, Adminschutz, Dependency Graph, Secret Scanning und Push Protection belegen |
-| Geschützte Environments und Runner | **NICHT VERIFIZIERT** | Getrennte `staging`- und `production-observer`-Environments/Runner mit minimalen Rechten |
-| Container-Build und -Scan | Lokaler Build, Native-Import und non-root-Image wurden am 2026-07-16 verifiziert; der abschließende HIGH/CRITICAL-Scan ist pro Release-Commit erneut auszuführen. | Erfolgreicher CI-Build, Native-Import-Test, non-root-Prüfung, HIGH/CRITICAL-Scan und Container-SBOM |
+| GitHub-Remote und reale CODEOWNERS | Private GitHub-Remote und Default-Branch `main` sind verifiziert. Das eingecheckte CODEOWNERS verwendet jedoch nicht existente `@enterprise/*`-Teams; GitHub meldet mehrere „Unknown owner“-Fehler. | Alle Platzhalter durch reale Benutzer/Teams mit Repository-Schreibrecht ersetzen; `/codeowners/errors` muss leer sein |
+| Branch Protection und Security-Features | **NICHT ERFÜLLT**: Die Branch-Protection-API antwortet für dieses private Repository mit HTTP 403 und verlangt GitHub Pro oder ein öffentliches Repository. `quality:github-governance` bleibt dadurch rot; Security-and-analysis ist nicht als vollständig aktiviert belegt. | Geeigneten GitHub-Tarif/Organisation verwenden und alle 13 Required Checks, zwei Reviews, CODEOWNERS, Adminschutz, Dependency Graph, Secret Scanning und Push Protection aktivieren |
+| Geschützte Environments und Runner | `staging` existiert; `production-observer` fehlt. Reale getrennte Runner sind nicht nachgewiesen. | `production-observer` ergänzen und beide Environments/Runner mit minimalen Rechten und dokumentierten Ownern betreiben |
+| Container-Build und -Scan | Der GitHub-Workflow für Commit `8f7e0ba` hat Container-Build, Native-Import, SBOM und Vulnerability Scan erfolgreich abgeschlossen. Ein Release-Tag wurde dabei nicht publiziert. | Derselbe Nachweis muss für den exakten Release-Commit vorliegen; anschließend nur den attestierten Digest veröffentlichen/deployen |
 | OIDC und TLS-Proxy | **NICHT VERIFIZIERT**: keine reale Issuer-/Proxy-Evidenz im Repository | Signatur-/Rollen-/Origin-Negativtests gegen Staging, TLS-Konfiguration und Header-Stripping belegen |
 | Unveränderlicher Audit-Empfänger | **NICHT VERIFIZIERT** | Reale Vorabpersistenz, idempotenter Replay, Retention und Alarm bei Ausfall nachweisen |
 | Verschlüsselter Off-host-Backup-Store | **NICHT VERIFIZIERT** | Reales PUT/GET, unabhängiger Schlüssel, Download/Decrypt/Restore und gemessenes RPO/RTO belegen |
@@ -337,7 +356,7 @@ Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Die fo
 | Live-AI-Golden-Set des Release-Commits | Muss pro KI-relevantem Release neu belegt werden | Erfolgreiches `npm run test:ai-eval` auf Staging mit freigegebenem Provider/Modell |
 | Reale Restore-/Rollback-Übung | Lokale automatisierte Tests ersetzen keine Infrastrukturübung | Off-host-Restore und vorheriger Image-Digest mit Datenabgleich und gemessener Dauer |
 | 30-Tage-Stabilität und SLO | **NICHT VERIFIZIERT**, solange kein vollständiges reales Messfenster vorliegt | `npm run ops:soak`: mindestens 30 Tage, 99,5 %, mindestens 100 Versuche, keine `unknown`, P95 und Ressourcenlimits eingehalten |
-| Hyperliquid-/Bybit-Testnet-Lifecycle | **NICHT VERIFIZIERT** ohne reale isolierte Testnet-Konten | Je Exchange Entry, TP-Teilfills, Stop-Resize/Break-even, Cancel, Timeout/Unknown, Neustart-Reconciliation und Notfall-Flatten belegen |
+| Hyperliquid-/Bybit-Testnet-Lifecycle | **NICHT VERIFIZIERT** ohne reale isolierte Testnet-Konten | Je Exchange Entry, 1/2/3/5-TP-Signale, adaptive Allokation, Stop-Resize/Break-even/TP(i-2), Cancel, Timeout/Unknown, Neustart-Reconciliation und Notfall-Flatten belegen |
 | Trading-Key-/Subkonto-Isolation | **NICHT VERIFIZIERT** ohne reale Exchange-Konfiguration | Dediziertes Subkonto, minimale Trading-Rechte ohne Withdrawal, IP-Allowlist, Rotation und Owner belegen |
 | Trading 30-Tage-Soak und Live-Canary | **NICHT VERIFIZIERT** ohne verstrichene Betriebszeit | 30 Tage Paper/Testnet ohne Unknown/Unprotected/Drift, danach begrenzter Live-Canary mit Max-Notional und Kill-Switch-Übung |
 

@@ -21,3 +21,5 @@ TDLib-Anforderungen für Telefonnummer, Code, E-Mail, 2FA und Gerätebestätigun
 - Telegram-Codes und 2FA-Passwörter erscheinen weder in Statusantworten noch in Persistenz oder Logs.
 - Container-Neuerstellung erhält alle benannten Volumes; `docker compose down -v` ist als destruktiver Total-Reset dokumentiert.
 - Enterprise-Gates können durch den Standalone-Komfortmodus nicht umgangen werden.
+
+ADR 0009 konkretisiert den später hinzugefügten bevorzugten anwendungsweiten Factory Reset. `docker compose down -v` bleibt lediglich der grobe Docker-Volume-Reset; für den Normalbetrieb ist die vorab geprüfte Web-Aktion unter **System & Backup → Factory Reset** maßgeblich.

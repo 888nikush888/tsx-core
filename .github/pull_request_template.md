@@ -35,6 +35,8 @@
 - [ ] Build/SBOM verlinkt
 - [ ] Staging-/E2E-Evidenz oder begründetes N/A
 - [ ] Monitoring, Runbook und Changelog konsistent
+- [ ] README/Fachleitfaden, UI-Bezeichnungen und API-/Konfigurationsbeispiele entsprechen dem ausgeführten Code
+- [ ] Bei Strategie-, Parser- oder Schemaänderungen sind USD-Quote-Regel, TP-/SL-Modi und Fail-closed-Verhalten dokumentiert und getestet
 - [ ] Traceability-Kette vollständig
 
 ## Daten- und Betriebsfolgen

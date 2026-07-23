@@ -30,11 +30,20 @@
 1. In **Trading → Betrieb** prüfen, ob Kill-Switch, Unknown Orders, ungeschützte Positionen oder veralteter Abgleich gemeldet sind. Keine Order manuell erneut senden und keine lokale Zeile löschen.
 2. Exchange-Weboberfläche read-only gegen Konto, Symbol, Client Order ID, Menge und reduce-only Status vergleichen. Withdrawal-/Transfer-Funktionen sind für diese Untersuchung nie erforderlich.
 3. Bei offener managed Position sicherstellen, dass exakt ein gültiger Protective Stop über die vollständige Restmenge existiert. Bei fehlendem Schutz **Notfall-Flatten** mit der angezeigten exakten Phrase ausführen; die Anwendung deaktiviert vorher neue Entries und sendet nur reduce-only.
-4. Ein unbekannter Submit-/Cancel-Ausgang wird nicht blind wiederholt. Erst Exchange-Historie und Fills belegen. Danach **Jetzt reconciliieren**; der Reconciler übernimmt bestätigte Orders/Fills, verkleinert den Stop nach TP-Teilfills und setzt ihn entsprechend der Strategie auf Break-even.
+4. Ein unbekannter Submit-/Cancel-Ausgang wird nicht blind wiederholt. Erst Exchange-Historie und Fills belegen. Danach **Jetzt reconciliieren**; der Reconciler übernimmt bestätigte Orders/Fills, verkleinert den Stop nach TP-Teilfills und setzt ihn entsprechend der Strategie auf konfiguriertes Break-even/Trailing oder – im adaptiven Modus – nach TP1/TP2 auf Break-even und danach auf TP(i-2).
 5. Fremde Orders oder Positionen auf demselben API-Konto gelten als unmanaged Exposure. Entweder außerhalb des Systems nach Vier-Augen-Betriebsprozess schließen oder ein separates ausschließlich diesem System gehörendes Exchange-Subkonto verwenden. Der Kill-Switch bleibt bis zu einer erfolgreichen Null-/Managed-Reconciliation aktiv.
 6. Vor Aufheben der Sperre Datenumfang, betroffene Kanäle/Strategieversionen und Ursache dokumentieren. **Abgleichen und Sperre aufheben** führt nochmals alle aktivierten Konten gegen die Exchange; erst Erfolg entfernt die Sperre.
 
 Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaisen lassen. Factory Reset stoppt den Trading-Worker, storniert offene Entries, prüft jedes Nicht-Paper-Konto über das offizielle SDK und verweigert bei Order/Position oder nicht erreichbarer Exchange die Löschung. Danach werden DB, Strategie-/Routingzustand, alle Exchange-Key-Dateien und der interne Executor-Key entfernt; der neue Key wird nach Neustart automatisch vom bereits laufenden Sidecar akzeptiert. **Betriebsdaten leeren** ist davon getrennt: Es stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie nicht von Trades referenzierte Signale atomar. Trading-Historie, Strategien, Konten, Secrets und trade-referenzierte Signale bleiben unverändert erhalten.
+
+## Signal-Schema-Profil ändern oder löschen
+
+1. Unter **Trading → Strategien** Profil-ID, Parser-Template, ausführbaren Vertrag und alle Strategieversionen erfassen, die das Profil erlauben.
+2. Verwendet eine aktive Kanalroute das Profil, zuerst ein Ersatzprofil anlegen, eine neue Strategieversion damit speichern und publizieren und die Route bewusst umstellen. Bestehende Trades behalten ihre immutable alte Strategieversion.
+3. Das Ersatzprofil mit einer kontrollierten Paper-Nachricht prüfen. Das Signal muss ein eindeutiges `USD`-, `USDC`- oder `USDT`-Paar liefern; Parser-Provenance, Intent, TP-Allokationen und Stop-Modus kontrollieren.
+4. Erst wenn keine aktive Route das alte Profil verwendet, dieses bearbeiten, deaktivieren oder löschen. Der Server blockiert die Aktion andernfalls; diese Sperre wird nicht durch DB-Eingriffe umgangen.
+5. Löschen erfordert Admin-Rechte und `X-Destructive-Confirmation: delete-trading-signal-schema`. Ein unbekanntes, deaktiviertes oder gelöschtes Profil bleibt fail-closed und erzeugt keinen Trade.
+6. Nach der Änderung Trading-Snapshot, Kanalrouten, `/readyz`, Audit-Record und einen Paper-Intent prüfen. Bei unerwartetem Parser-/Schema-Mismatch Route deaktivieren und nicht auf einen anderen Vertrag zurückfallen.
 
 ## Clock Drift
 
