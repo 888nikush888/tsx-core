@@ -20,6 +20,7 @@ import {
 } from '../src/trading_decimal.js';
 import {
   DEFAULT_STRATEGY_CONFIGURATION,
+  signalSchemaIdentifier,
   strategyConfigurationSha256,
   validateStrategyConfiguration,
 } from '../src/trading_strategy.js';
@@ -112,8 +113,11 @@ function testDecimalAndStrategyContracts() {
   invalidConfiguration(value => { value.schemaVersion = 2; }, /Unsupported strategy schema/);
   invalidConfiguration(value => { value.unsupported = true; }, /unsupported fields/);
   invalidConfiguration(value => { value.allowedSignalSchemas = []; }, /executable signal schema/);
+  invalidConfiguration(value => { value.allowedSignalSchemas = 'standard'; }, /array of strings/);
+  invalidConfiguration(value => { value.allowedSignalSchemas = ['standard', 7]; }, /array of strings/);
   invalidConfiguration(value => { value.allowedSignalSchemas = ['standard', 'STANDARD']; }, /duplicates/);
   invalidConfiguration(value => { value.allowedSignalSchemas = ['bad schema']; }, /identifier/);
+  assert.throws(() => signalSchemaIdentifier(undefined), /identifier is invalid/);
   invalidConfiguration(value => { value.allowedSymbols = ['BTC-USDT']; }, /invalid normalized symbol/);
   invalidConfiguration(value => { value.allowedSides = []; }, /LONG and\/or SHORT/);
   invalidConfiguration(value => { value.entry.orderType = 'stop'; }, /market or limit/);
@@ -395,6 +399,40 @@ async function testSignalSchemaRepository() {
     builtIns.map(schema => schema.id).sort(),
     ['cryptodanielvip', 'loma', 'standard'],
   );
+  assert.equal((await getTradingSignalSchemaForTemplate()).id, 'standard');
+  const validSchemaInput = {
+    name: 'Validation profile', description: '', parserSchema: 'standard',
+    templateName: 'validation-template', enabled: true,
+  };
+  await assert.rejects(
+    createTradingSignalSchema({ id: 'invalid-name', ...validSchemaInput, name: '' }),
+    /name must contain/,
+  );
+  await assert.rejects(
+    createTradingSignalSchema({ id: 'invalid-description', ...validSchemaInput, description: 'x'.repeat(501) }),
+    /description must not exceed/,
+  );
+  await assert.rejects(
+    createTradingSignalSchema({ id: 'invalid-template', ...validSchemaInput, templateName: 'bad template' }),
+    /template name is invalid/,
+  );
+  await assert.rejects(
+    createTradingSignalSchema({ id: 'invalid-contract', ...validSchemaInput, parserSchema: 'unknown' }),
+    /parser contract is unsupported/,
+  );
+  await assert.rejects(
+    createTradingSignalSchema({ id: 'invalid-state', ...validSchemaInput, enabled: 'yes' }),
+    /enabled state must be boolean/,
+  );
+  await assert.rejects(
+    updateTradingSignalSchema('missing-schema', validSchemaInput),
+    /does not exist/,
+  );
+  const disabledCreated = await createTradingSignalSchema({
+    id: 'disabled-profile', ...validSchemaInput, templateName: 'disabled-template', enabled: false,
+  });
+  assert.equal(disabledCreated.enabled, false);
+  await deleteTradingSignalSchema(disabledCreated.id);
 
   const created = await createTradingSignalSchema({
     id: 'desk-alpha',
