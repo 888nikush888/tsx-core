@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { OpenAI } from 'openai';
 import { closeDb, commitAiUsage, initDb, reserveAiUsage, type SignalProvenance } from './db.js';
 import { assertSignalGrounded, SignalValidationError, validateSignalXml } from './signal_schema.js';
-import type { ValidatedSignal } from './signal_schema.js';
+import type { ExecutableSignalSchemaSelection, ValidatedSignal } from './signal_schema.js';
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 // Version 3 adds field-specific source grounding. Persisted provenance must
@@ -78,6 +78,8 @@ interface CompletionResult {
 
 export interface ParseSignalOptions {
   signal?: AbortSignal;
+  /** Undefined preserves legacy direct-call behavior; null deliberately disables trading execution. */
+  executableSchema?: ExecutableSignalSchemaSelection | null;
   limits?: Partial<AiLimits>;
   budget?: AiBudget;
   requestCompletion?: (
@@ -99,6 +101,7 @@ interface AttemptContext {
   prompt: string;
   promptSha256: string;
   templateName: string;
+  executableSchema?: ExecutableSignalSchemaSelection | null;
   limits: AiLimits;
   tokenAllowance: number;
   budget: AiBudget;
@@ -424,7 +427,7 @@ function validatedCompletion(
   if (typeof content !== 'string' || !content.trim()) {
     throw new SignalValidationError('AI response content is empty.');
   }
-  const validated = validateSignalXml(content.trim(), context.templateName);
+  const validated = validateSignalXml(content.trim(), context.templateName, context.executableSchema);
   assertSignalGrounded(validated, context.messageText);
   const actualModel = response.model || requestedModel;
   console.error(
@@ -501,6 +504,7 @@ export async function parseSignalToXml(
     prompt,
     promptSha256: createHash('sha256').update(prompt, 'utf8').digest('hex'),
     templateName: effectiveTemplate,
+    executableSchema: options.executableSchema,
     limits,
     tokenAllowance: Buffer.byteLength(prompt + text, 'utf8') + limits.maxOutputTokens,
     budget: options.budget || persistentBudget,

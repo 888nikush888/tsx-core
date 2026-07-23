@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { TradingTab } from "@/app/dashboard/components/trading-tab"
 
@@ -21,9 +21,10 @@ const configuration = {
   safety: { maxConcurrentPositions: 1, maxDailyLoss: "100", maxSlippagePercent: "0.5", entryOrderTtlSeconds: 900, requireProtectiveStop: true },
 }
 
-function snapshot(strategies: unknown[]) {
+function snapshot(strategies: unknown[], signalSchemas: unknown[] = []) {
   return {
     strategies,
+    signalSchemas,
     accounts: [],
     routes: [],
     analytics: { generatedAt: Date.now(), accounts: [] },
@@ -70,9 +71,27 @@ describe("Trading strategy control", () => {
         configurationSha256: "b".repeat(64),
       },
     ]
+    let signalSchemas: any[] = [
+      { id: "standard", name: "Standard", description: "", parserSchema: "standard", templateName: "default", enabled: true },
+    ]
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
       const url = String(input)
       requests.push({ url, init })
+      if (url.endsWith("/api/trading/signal-schemas") && init.method === "POST") {
+        const schema = JSON.parse(String(init.body))
+        signalSchemas.push(schema)
+        return response({ success: true, result: schema }, 201)
+      }
+      if (url.endsWith("/api/trading/signal-schemas/update") && init.method === "POST") {
+        const schema = JSON.parse(String(init.body))
+        signalSchemas = signalSchemas.map(item => item.id === schema.id ? schema : item)
+        return response({ success: true, result: schema })
+      }
+      if (url.endsWith("/api/trading/signal-schemas") && init.method === "DELETE") {
+        const { id } = JSON.parse(String(init.body))
+        signalSchemas = signalSchemas.filter(schema => schema.id !== id)
+        return response({ success: true, result: true })
+      }
       if (url.endsWith("/api/trading/strategies") && init.method === "DELETE") {
         strategies = strategies.filter((strategy: any) => strategy.id !== "strategy-delete")
         return response({ success: true, result: true })
@@ -80,7 +99,7 @@ describe("Trading strategy control", () => {
       if (url.endsWith("/api/trading/strategies/update") && init.method === "POST") {
         return response({ success: true, result: JSON.parse(String(init.body)) })
       }
-      if (url.endsWith("/api/trading")) return response(snapshot(strategies))
+      if (url.endsWith("/api/trading")) return response(snapshot(strategies, signalSchemas))
       return response({}, 404)
     }))
   })
@@ -126,5 +145,34 @@ describe("Trading strategy control", () => {
     expect(body.configuration.exits.targetAllocationMode).toBe("adaptive_halving")
     expect(body.configuration.exits.stopLossMode).toBe("adaptive_targets")
     expect(body.configuration.exits.targetAllocationsPercent).toEqual(["100"])
+  })
+
+  it("creates, edits and deletes an allowed signal schema profile", async () => {
+    render(<TradingTab config={{ sourceChannels: [] }} />)
+    fireEvent.click(await screen.findByRole("button", { name: "Strategien" }))
+
+    fireEvent.change(screen.getByLabelText("Kennung"), { target: { value: "desk-alpha" } })
+    fireEvent.change(screen.getByLabelText("Anzeigename"), { target: { value: "Desk Alpha" } })
+    fireEvent.change(screen.getByLabelText("Parser-Template"), { target: { value: "desk-alpha-template" } })
+    fireEvent.click(screen.getByRole("button", { name: "Schema anlegen" }))
+    await screen.findByText("Signal-Schema angelegt.")
+    expect(screen.getByText("Desk Alpha", { selector: "span" })).toBeInTheDocument()
+
+    let card = screen.getByText("Desk Alpha", { selector: "span" }).closest(".rounded-md")
+    expect(card).not.toBeNull()
+    fireEvent.click(within(card as HTMLElement).getByRole("button", { name: "Bearbeiten" }))
+    fireEvent.change(screen.getByLabelText("Anzeigename"), { target: { value: "Desk Alpha bearbeitet" } })
+    fireEvent.click(screen.getByRole("button", { name: "Schema speichern" }))
+    await screen.findByText("Signal-Schema aktualisiert.")
+
+    card = screen.getByText("Desk Alpha bearbeitet", { selector: "span" }).closest(".rounded-md")
+    fireEvent.click(within(card as HTMLElement).getByRole("button", { name: "Löschen" }))
+    await screen.findByText("Signal-Schema gelöscht.")
+    await waitFor(() => expect(screen.queryByText("Desk Alpha bearbeitet", { selector: "span" })).not.toBeInTheDocument())
+
+    const createRequest = requests.find(({ url, init }) => url.endsWith("/api/trading/signal-schemas") && init.method === "POST")
+    const deleteRequest = requests.find(({ url, init }) => url.endsWith("/api/trading/signal-schemas") && init.method === "DELETE")
+    expect(JSON.parse(String(createRequest?.init.body)).id).toBe("desk-alpha")
+    expect(new Headers(deleteRequest?.init.headers).get("X-Destructive-Confirmation")).toBe("delete-trading-signal-schema")
   })
 })

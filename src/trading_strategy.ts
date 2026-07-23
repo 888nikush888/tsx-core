@@ -3,6 +3,16 @@ import { compareDecimal, decimal, sumDecimals } from './trading_decimal.js';
 import type { StrategyConfiguration, TradingStrategyVersion } from './trading_types.js';
 
 const SYMBOL_PATTERN = /^[A-Z0-9]{2,20}$/;
+export const SIGNAL_SCHEMA_ID_PATTERN = /^[a-z][a-z0-9_-]{0,39}$/;
+
+export function signalSchemaIdentifier(value: unknown, label = 'Signal schema identifier'): string {
+  if (typeof value !== 'string') throw new Error(`${label} is invalid.`);
+  const normalized = value.trim().toLowerCase();
+  if (!SIGNAL_SCHEMA_ID_PATTERN.test(normalized)) {
+    throw new Error(`${label} must start with a lowercase letter and contain only lowercase letters, numbers, '_' or '-'.`);
+  }
+  return normalized;
+}
 
 export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
   schemaVersion: 1,
@@ -67,17 +77,19 @@ function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
   'schemaVersion' | 'allowedSignalSchemas' | 'allowedSymbols' | 'allowedSides'
 > {
   if (value.schemaVersion !== 1) throw new Error('Unsupported strategy schema version.');
-  const schemas = uniqueStrings(value.allowedSignalSchemas, 'allowedSignalSchemas').map(item => item.toLowerCase());
-  if (schemas.length < 1 || schemas.some(schema => !['standard', 'cryptodanielvip', 'loma'].includes(schema))) {
-    throw new Error('At least one supported executable signal schema is required.');
+  if (!Array.isArray(value.allowedSignalSchemas) || value.allowedSignalSchemas.some(schema => typeof schema !== 'string')) {
+    throw new Error('allowedSignalSchemas must be an array of strings.');
   }
+  const schemas = value.allowedSignalSchemas.map(schema => signalSchemaIdentifier(schema));
+  if (schemas.length < 1) throw new Error('At least one executable signal schema is required.');
+  if (new Set(schemas).size !== schemas.length) throw new Error('allowedSignalSchemas must not contain duplicates.');
   const symbols = uniqueStrings(value.allowedSymbols, 'allowedSymbols');
   if (symbols.some(symbol => !SYMBOL_PATTERN.test(symbol))) throw new Error('allowedSymbols contains an invalid normalized symbol.');
   const sides = uniqueStrings(value.allowedSides, 'allowedSides');
   if (sides.length < 1 || sides.some(side => side !== 'LONG' && side !== 'SHORT')) throw new Error('allowedSides must contain LONG and/or SHORT.');
   return {
     schemaVersion: 1,
-    allowedSignalSchemas: schemas as StrategyConfiguration['allowedSignalSchemas'],
+    allowedSignalSchemas: schemas,
     allowedSymbols: symbols,
     allowedSides: sides as StrategyConfiguration['allowedSides'],
   };

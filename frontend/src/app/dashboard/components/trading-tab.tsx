@@ -138,6 +138,72 @@ function Overview({ data, busy, run }: any) {
   </div>
 }
 
+const EMPTY_SIGNAL_SCHEMA = { id: "", name: "", description: "", parserSchema: "standard", templateName: "", enabled: true }
+
+function SignalSchemaManager({ data, busy, run }: any) {
+  const [editingId, setEditingId] = useState("")
+  const [form, setForm] = useState<any>({ ...EMPTY_SIGNAL_SCHEMA })
+  const signalSchemas = Array.isArray(data.signalSchemas) ? data.signalSchemas : []
+  const edit = (schema: any) => {
+    setEditingId(schema.id)
+    setForm({
+      id: schema.id,
+      name: schema.name,
+      description: schema.description,
+      parserSchema: schema.parserSchema,
+      templateName: schema.templateName,
+      enabled: schema.enabled,
+    })
+  }
+  const reset = () => { setEditingId(""); setForm({ ...EMPTY_SIGNAL_SCHEMA }) }
+  const save = async () => {
+    const saved = await run(
+      "save-signal-schema",
+      () => mutate(
+        editingId ? "/api/trading/signal-schemas/update" : "/api/trading/signal-schemas",
+        editingId ? { ...form, id: editingId } : form,
+      ),
+      editingId ? "Signal-Schema aktualisiert." : "Signal-Schema angelegt.",
+    )
+    if (saved) reset()
+  }
+  const remove = async (schema: any) => {
+    if (!window.confirm(`Signal-Schema "${schema.name}" endgültig löschen? Aktive Kanalrouten müssen es vorher freigeben.`)) return
+    const removed = await run(
+      "delete-signal-schema",
+      () => mutate(
+        "/api/trading/signal-schemas",
+        { id: schema.id },
+        "DELETE",
+        { "X-Destructive-Confirmation": "delete-trading-signal-schema" },
+      ),
+      "Signal-Schema gelöscht.",
+    )
+    if (removed && editingId === schema.id) reset()
+  }
+  return <Card>
+    <CardHeader><CardTitle>Erlaubte Signal-Schemas verwalten</CardTitle><CardDescription>Eigene Schema-Profile verknüpfen ein Parser-Template mit einem geprüften ausführbaren XML-Vertrag. Unbekannte oder deaktivierte Profile lösen niemals einen Trade aus.</CardDescription></CardHeader>
+    <CardContent className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,1fr)]">
+      <div className="grid content-start gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+        {signalSchemas.map((schema: any) => <div key={schema.id} className={`rounded-md border p-3 ${editingId === schema.id ? "border-primary bg-primary/5" : ""}`}>
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-medium">{schema.name}</span><Badge variant={schema.enabled ? "default" : "secondary"}>{schema.enabled ? "aktiv" : "aus"}</Badge></div><p className="mt-1 break-all text-xs text-muted-foreground">{schema.id} · Template {schema.templateName} · Vertrag {schema.parserSchema}</p></div></div>
+          {schema.description && <p className="mt-2 text-sm text-muted-foreground">{schema.description}</p>}
+          <div className="mt-3 flex gap-2"><Button type="button" size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => edit(schema)}>Bearbeiten</Button><Button type="button" size="sm" variant="destructive" disabled={Boolean(busy)} onClick={() => void remove(schema)}><Trash2 className="mr-2 h-4 w-4" />Löschen</Button></div>
+        </div>)}
+        {signalSchemas.length === 0 && <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">Noch keine Signal-Schemas vorhanden. Ohne aktives Schema bleibt Trading fail-closed.</div>}
+      </div>
+      <div className="space-y-4 rounded-md border p-4">
+        <div className="flex items-center justify-between gap-3"><div><div className="font-medium">{editingId ? `Schema ${editingId} bearbeiten` : "Neues Schema anlegen"}</div><p className="text-xs text-muted-foreground">Die Kennung wird in Strategieversionen gespeichert und ist nach dem Anlegen unveränderlich.</p></div>{editingId && <Button type="button" size="sm" variant="ghost" onClick={reset}>Abbrechen</Button>}</div>
+        <div className="grid gap-4 sm:grid-cols-2"><Field label="Kennung"><Input value={form.id} disabled={Boolean(editingId)} onChange={event => setForm({ ...form, id: event.target.value.toLowerCase() })} placeholder="mein-schema" /></Field><Field label="Anzeigename"><Input value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} /></Field></div>
+        <div className="grid gap-4 sm:grid-cols-2"><SelectField label="Ausführbarer XML-Vertrag" value={form.parserSchema} options={[{ value: "standard", label: "Standard" }, { value: "cryptodanielvip", label: "CryptoDaniel VIP" }, { value: "loma", label: "Loma" }]} onChange={parserSchema => setForm({ ...form, parserSchema })} /><Field label="Parser-Template"><Input value={form.templateName} onChange={event => setForm({ ...form, templateName: event.target.value })} placeholder="default oder eigener Template-Name" /></Field></div>
+        <Field label="Beschreibung"><Input value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /></Field>
+        <SwitchField label="Für neue Signale und Strategien aktiv" checked={form.enabled} onChange={enabled => setForm({ ...form, enabled })} />
+        <Button type="button" disabled={Boolean(busy) || !form.name.trim() || !form.templateName.trim() || (!editingId && !form.id.trim())} onClick={() => void save()}><Save className="mr-2 h-4 w-4" />{editingId ? "Schema speichern" : "Schema anlegen"}</Button>
+      </div>
+    </CardContent>
+  </Card>
+}
+
 function Strategies({ data, busy, run }: any) {
   const [selected, setSelected] = useState("")
   const current = data.strategies.find((item: any) => item.id === selected)
@@ -149,9 +215,16 @@ function Strategies({ data, busy, run }: any) {
   const cfg = draft.configuration
   const targetAllocationMode = cfg.exits.targetAllocationMode ?? "manual"
   const stopLossMode = cfg.exits.stopLossMode ?? "configured"
+  const availableSchemas = (Array.isArray(data.signalSchemas) ? data.signalSchemas : []).filter((schema: any) => schema.enabled)
+  const schemaOptions = [...availableSchemas, ...cfg.allowedSignalSchemas.filter((id: string) => !availableSchemas.some((schema: any) => schema.id === id)).map((id: string) => ({ id, name: id, enabled: false }))]
   const patch = (section: string, field: string, value: unknown) => setDraft((old: any) => ({ ...old, configuration: { ...old.configuration, [section]: { ...old.configuration[section], [field]: value } } }))
   const toggle = (field: "allowedSignalSchemas" | "allowedSides", value: string) => setDraft((old: any) => { const list = old.configuration[field]; return { ...old, configuration: { ...old.configuration, [field]: list.includes(value) ? list.filter((item: string) => item !== value) : [...list, value] } } })
-  const newStrategy = () => { setSelected(""); setDraft({ name: "Neue Strategie", description: "", configuration: structuredClone(DEFAULT_CONFIGURATION), strategyId: undefined }) }
+  const newStrategy = () => {
+    const configuration = structuredClone(DEFAULT_CONFIGURATION)
+    configuration.allowedSignalSchemas = availableSchemas.map((schema: any) => schema.id)
+    setSelected("")
+    setDraft({ name: "Neue Strategie", description: "", configuration, strategyId: undefined })
+  }
   const newVersion = () => {
     if (!current) return
     setSelected("")
@@ -172,11 +245,13 @@ function Strategies({ data, busy, run }: any) {
     )
     if (removed) newStrategy()
   }
-  return <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
+  return <div className="space-y-5">
+    <SignalSchemaManager data={data} busy={busy} run={run} />
+    <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
     <Card><CardHeader><CardTitle>Versionen</CardTitle><CardDescription>Publizierte Versionen sind unveränderlich und werden fest an Kanäle gebunden.</CardDescription></CardHeader><CardContent className="space-y-2"><Button className="w-full" onClick={newStrategy}>Neue Strategie</Button>{data.strategies.map((strategy: any) => <button type="button" key={strategy.id} onClick={() => selectStrategy(strategy)} className={`w-full rounded-md border p-3 text-left ${selected === strategy.id ? "border-primary bg-primary/5" : ""}`}><div className="flex justify-between gap-2"><span className="font-medium">{strategy.name} v{strategy.version}</span><Badge variant={statusTone(strategy.status) as any}>{strategy.status}</Badge></div><div className="mt-1 truncate text-xs text-muted-foreground">SHA {strategy.configurationSha256.slice(0, 12)}…</div></button>)}</CardContent></Card>
     <Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><div><CardTitle>Strategie-Editor</CardTitle><CardDescription>Alle Größen sind harte, validierte Verträge. Prozentwerte als Dezimalzahl.</CardDescription></div>{current?.status === "published" && <Button variant="outline" onClick={newVersion}>Neue Version aus v{current.version}</Button>}</div></CardHeader><CardContent className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2"><Field label="Name"><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></Field><Field label="Beschreibung"><Input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field></div>
-      <div className="grid gap-4 md:grid-cols-2"><Field label="Erlaubte Signal-Schemas"><div className="flex flex-wrap gap-2">{["standard", "cryptodanielvip", "loma"].map(value => <Button key={value} type="button" size="sm" variant={cfg.allowedSignalSchemas.includes(value) ? "default" : "outline"} onClick={() => toggle("allowedSignalSchemas", value)}>{value}</Button>)}</div></Field><Field label="Erlaubte Richtungen"><div className="flex gap-2">{["LONG", "SHORT"].map(value => <Button key={value} type="button" size="sm" variant={cfg.allowedSides.includes(value) ? "default" : "outline"} onClick={() => toggle("allowedSides", value)}>{value}</Button>)}</div></Field></div>
+      <div className="grid gap-4 md:grid-cols-2"><Field label="Erlaubte Signal-Schemas"><div className="flex flex-wrap gap-2">{schemaOptions.map((schema: any) => <Button key={schema.id} type="button" size="sm" variant={cfg.allowedSignalSchemas.includes(schema.id) ? "default" : "outline"} onClick={() => toggle("allowedSignalSchemas", schema.id)}>{schema.name}{!schema.enabled ? " (nicht verfügbar)" : ""}</Button>)}</div></Field><Field label="Erlaubte Richtungen"><div className="flex gap-2">{["LONG", "SHORT"].map(value => <Button key={value} type="button" size="sm" variant={cfg.allowedSides.includes(value) ? "default" : "outline"} onClick={() => toggle("allowedSides", value)}>{value}</Button>)}</div></Field></div>
       <Field label="Erlaubte Symbole (Komma; leer = alle validen Symbole)"><Input value={cfg.allowedSymbols.join(", ")} onChange={(e) => setDraft((old: any) => ({ ...old, configuration: { ...old.configuration, allowedSymbols: e.target.value.split(",").map(v => v.trim().toUpperCase()).filter(Boolean) } }))} placeholder="BTC, ETH" /></Field>
       <Section title="Entry"><div className="grid gap-4 md:grid-cols-4"><SelectField label="Ordertyp" value={cfg.entry.orderType} options={["limit", "market"]} onChange={v => patch("entry", "orderType", v)} /><SelectField label="Range-Preis" value={cfg.entry.rangePrice} options={["near", "midpoint", "far"]} onChange={v => patch("entry", "rangePrice", v)} /><NumberField label="Timeout (s)" value={cfg.entry.timeoutSeconds} onChange={v => patch("entry", "timeoutSeconds", Number(v))} /><SwitchField label="Post-only" checked={cfg.entry.postOnly} onChange={v => patch("entry", "postOnly", v)} /></div></Section>
       <Section title="Sizing"><div className="grid gap-4 md:grid-cols-3"><NumberField label="Risiko / Trade (%)" value={cfg.sizing.riskPerTradePercent} onChange={v => patch("sizing", "riskPerTradePercent", v)} /><NumberField label="Max. Notional" value={cfg.sizing.maxPositionNotional} onChange={v => patch("sizing", "maxPositionNotional", v)} /><NumberField label="Max. Leverage" value={cfg.sizing.maxLeverage} onChange={v => patch("sizing", "maxLeverage", Number(v))} /></div></Section>
@@ -199,6 +274,7 @@ function Strategies({ data, busy, run }: any) {
       {current && <p className="text-xs text-muted-foreground">Nur unbenutzte Versionen sind löschbar. Kanalrouten müssen vorher entfernt werden; Trade-Historie bleibt unveränderlich.</p>}
       <div className="flex flex-wrap gap-2"><Button onClick={() => void save()} disabled={Boolean(busy) || current?.status === "published" || current?.status === "archived"}><Save className="mr-2 h-4 w-4" />Entwurf speichern</Button>{current?.status === "draft" && <Button variant="outline" disabled={Boolean(busy)} onClick={() => void run("publish", () => mutate("/api/trading/strategies/publish", { id: current.id }), "Strategieversion publiziert.")}>Publizieren</Button>}{current?.status === "published" && <Button variant="outline" disabled={Boolean(busy)} onClick={() => void run("archive", () => mutate("/api/trading/strategies/archive", { id: current.id }), "Strategieversion archiviert.")}>Archivieren</Button>}{current && <Button variant="destructive" disabled={Boolean(busy)} onClick={() => void remove()}><Trash2 className="mr-2 h-4 w-4" />Strategie löschen</Button>}</div>
     </CardContent></Card>
+    </div>
   </div>
 }
 

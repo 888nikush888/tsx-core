@@ -32,24 +32,29 @@ import {
 import {
   createTradingIntent,
   createTradingAccount,
+  createTradingSignalSchema,
   createTradingStrategyDraft,
   archiveTradingStrategyVersion,
   deleteTradingAccount,
   deleteTradingRoute,
+  deleteTradingSignalSchema,
   deleteTradingStrategyVersion,
   ensureTradingDefaults,
   getTradingOverview,
   getTradingOperationalSnapshot,
+  getTradingSignalSchemaForTemplate,
   getTradingStrategyVersion,
   listTradingAccounts,
   listTradingActivity,
   listTradingIntents,
   listTradingRoutes,
+  listTradingSignalSchemas,
   listTradingStrategies,
   publishTradingStrategyVersion,
   setTradingRoute,
   updateTradingRuntimeState,
   updateTradingAccountState,
+  updateTradingSignalSchema,
   updateTradingStrategyDraft,
 } from '../src/trading_repository.js';
 import { validateSignalXml } from '../src/signal_schema.js';
@@ -106,8 +111,9 @@ function testDecimalAndStrategyContracts() {
   invalidConfiguration(value => { value.exits.stopLossMode = 'unsupported'; }, /stopLossMode/);
   invalidConfiguration(value => { value.schemaVersion = 2; }, /Unsupported strategy schema/);
   invalidConfiguration(value => { value.unsupported = true; }, /unsupported fields/);
-  invalidConfiguration(value => { value.allowedSignalSchemas = []; }, /supported executable signal schema/);
+  invalidConfiguration(value => { value.allowedSignalSchemas = []; }, /executable signal schema/);
   invalidConfiguration(value => { value.allowedSignalSchemas = ['standard', 'STANDARD']; }, /duplicates/);
+  invalidConfiguration(value => { value.allowedSignalSchemas = ['bad schema']; }, /identifier/);
   invalidConfiguration(value => { value.allowedSymbols = ['BTC-USDT']; }, /invalid normalized symbol/);
   invalidConfiguration(value => { value.allowedSides = []; }, /LONG and\/or SHORT/);
   invalidConfiguration(value => { value.entry.orderType = 'stop'; }, /market or limit/);
@@ -383,6 +389,64 @@ async function testRepositoryValidation(defaults, accounts) {
   await deleteTradingAccount(secondExternal.id);
 }
 
+async function testSignalSchemaRepository() {
+  const builtIns = await listTradingSignalSchemas();
+  assert.deepEqual(
+    builtIns.map(schema => schema.id).sort(),
+    ['cryptodanielvip', 'loma', 'standard'],
+  );
+
+  const created = await createTradingSignalSchema({
+    id: 'desk-alpha',
+    name: 'Desk Alpha',
+    description: 'Custom profile using the audited standard contract.',
+    parserSchema: 'standard',
+    templateName: 'desk-alpha-template',
+    enabled: true,
+  }, 1_700_000_000_010);
+  assert.equal(created.id, 'desk-alpha');
+  assert.equal((await getTradingSignalSchemaForTemplate('DESK-ALPHA-TEMPLATE')).id, 'desk-alpha');
+  await assert.rejects(createTradingSignalSchema({
+    id: 'desk-beta', name: 'Desk Beta', parserSchema: 'standard',
+    templateName: 'DESK-ALPHA-TEMPLATE', enabled: true,
+  }), /UNIQUE constraint failed/);
+
+  const customConfiguration = configuration();
+  customConfiguration.allowedSignalSchemas = ['desk-alpha'];
+  const customDraft = await createTradingStrategyDraft({
+    name: 'Custom schema strategy',
+    configuration: customConfiguration,
+  });
+  assert.deepEqual(customDraft.configuration.allowedSignalSchemas, ['desk-alpha']);
+
+  const disabled = await updateTradingSignalSchema('desk-alpha', {
+    name: 'Desk Alpha',
+    description: 'Temporarily disabled.',
+    parserSchema: 'standard',
+    templateName: 'desk-alpha-template',
+    enabled: false,
+  }, 1_700_000_000_020);
+  assert.equal(disabled.enabled, false);
+  assert.equal(await getTradingSignalSchemaForTemplate('desk-alpha-template'), null);
+  await assert.rejects(publishTradingStrategyVersion(customDraft.id), /unavailable signal schemas: desk-alpha/);
+  await deleteTradingStrategyVersion(customDraft.id);
+  await assert.rejects(createTradingStrategyDraft({
+    name: 'Unavailable schema strategy',
+    configuration: customConfiguration,
+  }), /unavailable signal schemas: desk-alpha/);
+
+  await updateTradingSignalSchema('desk-alpha', {
+    name: 'Desk Alpha v2',
+    description: 'Enabled again.',
+    parserSchema: 'loma',
+    templateName: 'desk-alpha-v2',
+    enabled: true,
+  }, 1_700_000_000_030);
+  assert.equal((await getTradingSignalSchemaForTemplate('desk-alpha-v2')).parserSchema, 'loma');
+  assert.equal(await deleteTradingSignalSchema('desk-alpha'), true);
+  assert.equal(await deleteTradingSignalSchema('desk-alpha'), false);
+}
+
 async function testRepositoryRouting(defaults, accounts) {
   const draft = await createTradingStrategyDraft({
     name: 'Second channel strategy',
@@ -413,6 +477,10 @@ async function testRepositoryRouting(defaults, accounts) {
   await setTradingRoute({
     channelId: '-100002', strategyVersionId: published.id, accountId: accounts[0].id, enabled: true,
   });
+  await assert.rejects(updateTradingSignalSchema('standard', {
+    name: 'Standard edited', description: '', parserSchema: 'standard', templateName: 'default', enabled: true,
+  }), /enabled route uses it/);
+  await assert.rejects(deleteTradingSignalSchema('standard'), /enabled route uses it/);
   const routes = await listTradingRoutes();
   assert.equal(routes.length, 2, 'Two channels must route in parallel.');
   assert.notEqual(routes[0].strategyVersionId, routes[1].strategyVersionId);
@@ -522,6 +590,7 @@ async function runRepositoryTests() {
     });
     assert.equal(await deleteTradingStrategyVersion(deletable.id), true);
     assert.equal(await deleteTradingStrategyVersion(deletable.id), false);
+    await testSignalSchemaRepository();
     await testRepositoryValidation(defaults, accounts);
     await testRepositoryRouting(defaults, accounts);
     await testOperationalDatabaseClearPreservesTrading();

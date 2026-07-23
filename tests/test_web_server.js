@@ -87,6 +87,7 @@ async function testRequestValidation(baseUrl) {
     ['/api/backups/restore', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"backup-2026-test"}' }, 412],
     ['/api/restart', { method: 'POST', headers: mutationHeaders() }, 412],
     ['/api/trading/strategies', { method: 'DELETE', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"id":"strategy"}' }, 412],
+    ['/api/trading/signal-schemas', { method: 'DELETE', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"id":"schema"}' }, 412],
     ['/api/factory-reset', { method: 'POST', headers: mutationHeaders() }, 412]
   ];
   for (const [route, options, expectedStatus] of rejectedRouteCases) {
@@ -136,6 +137,44 @@ async function testTradingStrategyDeletion(baseUrl, appState) {
     assert.strictEqual(response.status, 200, 'Confirmed strategy deletion must reach the trading control plane');
     assert.strictEqual((await response.json()).result, true);
     assert.deepStrictEqual(removed, ['strategy-delete']);
+  } finally {
+    appState.tradingControl = original;
+  }
+}
+
+async function testTradingSignalSchemaControl(baseUrl, appState) {
+  const calls = [];
+  const original = appState.tradingControl;
+  appState.tradingControl = {
+    createSignalSchema: async payload => { calls.push(['create', payload.id]); return payload; },
+    updateSignalSchema: async payload => { calls.push(['update', payload.id]); return payload; },
+    removeSignalSchema: async id => { calls.push(['delete', id]); return true; },
+  };
+  try {
+    let response = await fetch(`${baseUrl}/api/trading/signal-schemas`, {
+      method: 'POST',
+      headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ id: 'desk-alpha' }),
+    });
+    assert.strictEqual(response.status, 201);
+    response = await fetch(`${baseUrl}/api/trading/signal-schemas/update`, {
+      method: 'POST',
+      headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ id: 'desk-alpha' }),
+    });
+    assert.strictEqual(response.status, 200);
+    response = await fetch(`${baseUrl}/api/trading/signal-schemas`, {
+      method: 'DELETE',
+      headers: mutationHeaders({
+        'Content-Type': 'application/json',
+        'X-Destructive-Confirmation': 'delete-trading-signal-schema',
+      }),
+      body: JSON.stringify({ id: 'desk-alpha' }),
+    });
+    assert.strictEqual(response.status, 200);
+    assert.deepStrictEqual(calls, [
+      ['create', 'desk-alpha'], ['update', 'desk-alpha'], ['delete', 'desk-alpha'],
+    ]);
   } finally {
     appState.tradingControl = original;
   }
@@ -750,6 +789,7 @@ async function runTests() {
     await testTelegramWebLogin(baseUrl);
     await testRequestValidation(baseUrl);
     await testTradingStrategyDeletion(baseUrl, appState);
+    await testTradingSignalSchemaControl(baseUrl, appState);
 
     await testAuditedControl(baseUrl, controls);
     await testMissingAuditFailsClosed(baseUrl, appState);

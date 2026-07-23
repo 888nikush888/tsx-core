@@ -51,6 +51,7 @@ import type { OutboxTask, SignalProvenance } from './db.js';
 import { startMetricsServer, stopMetricsServer, type OperationalMetrics } from './metrics.js';
 import { startWebServer, stopWebServer } from './web_server.js';
 import { parseSignalToXml, type AiLimits, type ParsedSignal } from './signal_parser.js';
+import type { ExecutableSignalSchemaSelection } from './signal_schema.js';
 import { MetricsTracker } from './metrics_tracker.js';
 import { TelegramDeliveryTracker } from './delivery_tracker.js';
 import { checkCrashLoopFiles } from './crash_guard.js';
@@ -75,6 +76,7 @@ import {
 import {
   createTradingIntent,
   ensureTradingDefaults,
+  getTradingSignalSchemaForTemplate,
   getTradingOperationalSnapshot,
   getTradingRuntimeState,
 } from './trading_repository.js';
@@ -578,7 +580,8 @@ async function parseSignalNative(
   templateName: string | null = null,
   models: { primaryModel?: string; fallbackModel?: string } = {},
   signal: AbortSignal | null = null,
-  limits?: Partial<AiLimits>
+  limits?: Partial<AiLimits>,
+  executableSchema?: ExecutableSignalSchemaSelection | null,
 ): Promise<ParsedSignal> {
   if (signal?.aborted) throw new Error('Task aborted');
   const effectiveTimeout = timeoutMs || DEFAULT_PARSER_TIMEOUT_MS;
@@ -594,7 +597,8 @@ async function parseSignalNative(
   try {
     return await parseSignalToXml(text, templateName || undefined, models, {
       signal: controller.signal,
-      limits
+      limits,
+      executableSchema,
     });
   } catch (error: any) {
     if (timedOut) throw new Error(`Parser Timeout (${effectiveTimeout}ms)`, { cause: error });
@@ -777,6 +781,7 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
     const sourceId = String(message.chat_id);
     const sourceTemplates = xmlParsing.sourceTemplates || {};
     const templateName = sourceTemplates[sourceId];
+    const configuredSchema = await getTradingSignalSchemaForTemplate(templateName);
     
     const parsedSignal = await parseSignalNative(
       text,
@@ -787,7 +792,8 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
         fallbackModel: xmlParsing.fallbackModel
       },
       context.signal,
-      xmlParsing.aiLimits
+      xmlParsing.aiLimits,
+      configuredSchema ? { id: configuredSchema.id, parserSchema: configuredSchema.parserSchema } : null,
     );
     addLog(`[XML-Parser SUCCESS] Paket ${message.id} erfolgreich analysiert.`);
     

@@ -5,10 +5,12 @@ import { TradingEngine } from './trading_engine.js';
 import {
   acknowledgeTradingRiskEvent,
   archiveTradingStrategyVersion,
+  createTradingSignalSchema,
   createTradingAccount,
   createTradingStrategyDraft,
   deleteTradingAccount,
   deleteTradingRoute,
+  deleteTradingSignalSchema,
   deleteTradingStrategyVersion,
   getTradingAccount,
   getTradingAnalytics,
@@ -17,11 +19,13 @@ import {
   listTradingActivity,
   listTradingIntents,
   listTradingRoutes,
+  listTradingSignalSchemas,
   listTradingStrategies,
   publishTradingStrategyVersion,
   setTradingRoute,
   updateTradingAccountState,
   updateTradingRuntimeState,
+  updateTradingSignalSchema,
   updateTradingStrategyDraft,
 } from './trading_repository.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
@@ -69,6 +73,7 @@ export interface TradingWebSnapshot {
   overview: Awaited<ReturnType<typeof getTradingOverview>>;
   analytics: Awaited<ReturnType<typeof getTradingAnalytics>>;
   strategies: Awaited<ReturnType<typeof listTradingStrategies>>;
+  signalSchemas: Awaited<ReturnType<typeof listTradingSignalSchemas>>;
   accounts: Array<Omit<TradingAccount, 'credentialRef'> & {
     credentials: Awaited<ReturnType<TradingCredentialStore['status']>>;
   }>;
@@ -121,10 +126,11 @@ export class TradingWebControl {
   }
 
   async snapshot(): Promise<TradingWebSnapshot> {
-    const [overview, analytics, strategies, accounts, routes, intents, activity] = await Promise.all([
+    const [overview, analytics, strategies, signalSchemas, accounts, routes, intents, activity] = await Promise.all([
       getTradingOverview(),
       getTradingAnalytics(),
       listTradingStrategies(),
+      listTradingSignalSchemas(),
       listTradingAccounts(),
       listTradingRoutes(),
       listTradingIntents(200),
@@ -134,6 +140,7 @@ export class TradingWebControl {
       overview,
       analytics,
       strategies,
+      signalSchemas,
       accounts: await Promise.all(accounts.map(async ({ credentialRef: _credentialRef, ...account }) => ({
         ...account,
         credentials: account.exchange === 'paper'
@@ -232,6 +239,31 @@ export class TradingWebControl {
 
   removeStrategy(id: unknown) {
     return deleteTradingStrategyVersion(identifier(id, 'Strategy version identifier', 64));
+  }
+
+  createSignalSchema(payload: any) {
+    return createTradingSignalSchema({
+      id: payload.id,
+      name: payload.name,
+      description: payload.description,
+      parserSchema: payload.parserSchema,
+      templateName: payload.templateName,
+      enabled: payload.enabled,
+    });
+  }
+
+  updateSignalSchema(payload: any) {
+    return updateTradingSignalSchema(identifier(payload.id, 'Signal schema identifier', 40), {
+      name: payload.name,
+      description: payload.description,
+      parserSchema: payload.parserSchema,
+      templateName: payload.templateName,
+      enabled: payload.enabled,
+    });
+  }
+
+  removeSignalSchema(id: unknown) {
+    return deleteTradingSignalSchema(identifier(id, 'Signal schema identifier', 40));
   }
 
   async createAccount(payload: any): Promise<TradingAccount> {

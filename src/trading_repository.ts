@@ -4,11 +4,13 @@ import { constantTimeStringEqual } from './secure_compare.js';
 import {
   createStrategyVersion,
   DEFAULT_STRATEGY_CONFIGURATION,
+  signalSchemaIdentifier,
   strategyConfigurationSha256,
   validateStrategyConfiguration,
 } from './trading_strategy.js';
 import type {
   ExecutableSignal,
+  ExecutableSignalSchemaContract,
   TradingAccount,
   TradingAccountMode,
   TradingAccountStatus,
@@ -19,6 +21,7 @@ import type {
   TradingRuntimeState,
   StrategyConfiguration,
   TradingStrategyVersion,
+  TradingSignalSchema,
 } from './trading_types.js';
 
 function boolean(value: unknown): boolean {
@@ -177,6 +180,79 @@ export async function ensureTradingDefaults(now = Date.now()): Promise<void> {
   });
 }
 
+export async function listTradingSignalSchemas(): Promise<TradingSignalSchema[]> {
+  const rows = await getDatabase().all<any[]>(
+    'SELECT * FROM trading_signal_schemas ORDER BY enabled DESC, name, id',
+  );
+  return rows.map(signalSchemaFromRow);
+}
+
+export async function getTradingSignalSchemaForTemplate(templateName?: string): Promise<TradingSignalSchema | null> {
+  const normalized = templateName?.trim() || 'default';
+  const row = await getDatabase().get(
+    'SELECT * FROM trading_signal_schemas WHERE template_name = ? COLLATE NOCASE AND enabled = 1',
+    [normalized],
+  );
+  return row ? signalSchemaFromRow(row) : null;
+}
+
+export async function createTradingSignalSchema(input: {
+  id: unknown;
+  name: unknown;
+  description?: unknown;
+  parserSchema: unknown;
+  templateName: unknown;
+  enabled: unknown;
+}, now = Date.now()): Promise<TradingSignalSchema> {
+  const validated = signalSchemaInput(input, true);
+  await getDatabase().run(
+    `INSERT INTO trading_signal_schemas (
+       id, name, description, parser_schema, template_name, enabled, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      validated.id, validated.name, validated.description, validated.parserSchema,
+      validated.templateName, validated.enabled ? 1 : 0, now, now,
+    ],
+  );
+  const row = await getDatabase().get('SELECT * FROM trading_signal_schemas WHERE id = ?', [validated.id]);
+  return signalSchemaFromRow(row);
+}
+
+export async function updateTradingSignalSchema(id: string, input: {
+  name: unknown;
+  description?: unknown;
+  parserSchema: unknown;
+  templateName: unknown;
+  enabled: unknown;
+}, now = Date.now()): Promise<TradingSignalSchema> {
+  const normalizedId = signalSchemaIdentifier(id);
+  const validated = signalSchemaInput(input, false);
+  return transaction(async () => {
+    await assertSignalSchemaNotActivelyRouted(normalizedId);
+    const result = await getDatabase().run(
+      `UPDATE trading_signal_schemas
+       SET name = ?, description = ?, parser_schema = ?, template_name = ?, enabled = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        validated.name, validated.description, validated.parserSchema, validated.templateName,
+        validated.enabled ? 1 : 0, now, normalizedId,
+      ],
+    );
+    if (Number(result.changes || 0) !== 1) throw new Error('Signal schema does not exist.');
+    const row = await getDatabase().get('SELECT * FROM trading_signal_schemas WHERE id = ?', [normalizedId]);
+    return signalSchemaFromRow(row);
+  });
+}
+
+export async function deleteTradingSignalSchema(id: string): Promise<boolean> {
+  const normalizedId = signalSchemaIdentifier(id);
+  return transaction(async () => {
+    await assertSignalSchemaNotActivelyRouted(normalizedId);
+    const result = await getDatabase().run('DELETE FROM trading_signal_schemas WHERE id = ?', [normalizedId]);
+    return Number(result.changes || 0) === 1;
+  });
+}
+
 export async function listTradingStrategies(): Promise<TradingStrategyVersion[]> {
   const rows = await getDatabase().all<any[]>('SELECT * FROM trading_strategy_versions ORDER BY name, version DESC');
   return rows.map(strategyFromRow);
@@ -204,6 +280,7 @@ export async function createTradingStrategyDraft(input: {
       version = Number(latest.version) + 1;
     }
     const strategy = createStrategyVersion({ ...input, version });
+    await assertSignalSchemasAvailable(strategy.configuration);
     await insertStrategy(strategy);
     return strategy;
   });
@@ -215,6 +292,7 @@ export async function updateTradingStrategyDraft(id: string, input: {
   configuration: unknown;
 }): Promise<TradingStrategyVersion> {
   const configuration = validateStrategyConfiguration(input.configuration);
+  await assertSignalSchemasAvailable(configuration);
   const name = input.name?.trim();
   const description = input.description?.trim() || '';
   if (!name || name.length > 80) throw new Error('Strategy name must contain between 1 and 80 characters.');
@@ -230,6 +308,9 @@ export async function updateTradingStrategyDraft(id: string, input: {
 }
 
 export async function publishTradingStrategyVersion(id: string, now = Date.now()): Promise<TradingStrategyVersion> {
+  const existing = await getTradingStrategyVersion(id);
+  if (!existing || existing.status !== 'draft') throw new Error('Only an existing draft strategy version can be published.');
+  await assertSignalSchemasAvailable(existing.configuration);
   const result = await getDatabase().run(
     `UPDATE trading_strategy_versions SET status = 'published', published_at = ?
      WHERE id = ? AND status = 'draft'`,
@@ -339,11 +420,15 @@ export async function setTradingRoute(input: {
   const channelId = input.channelId?.trim();
   if (!channelId || channelId.length > 128) throw new Error('A valid channel identifier is required.');
   await transaction(async () => {
-    const strategy = await getDatabase().get<{ status: string }>(
-      'SELECT status FROM trading_strategy_versions WHERE id = ?',
+    const strategy = await getDatabase().get<{ status: string; configuration_json: string }>(
+      'SELECT status, configuration_json FROM trading_strategy_versions WHERE id = ?',
       [input.strategyVersionId],
     );
     if (strategy?.status !== 'published') throw new Error('Routes must pin a published immutable strategy version.');
+    const configuration = validateStrategyConfiguration(
+      parseJson(strategy.configuration_json, 'strategy configuration'),
+    );
+    await assertSignalSchemasAvailable(configuration);
     const account = await getDatabase().get<{ status: string; enabled: number }>(
       'SELECT status, enabled FROM trading_accounts WHERE id = ?',
       [input.accountId],
@@ -423,6 +508,13 @@ export async function createTradingIntent(input: {
     else if (boolean(route.kill_switch_active)) blockReason = 'KILL_SWITCH_ACTIVE';
     else if (!boolean(route.execution_enabled)) blockReason = 'EXECUTION_DISABLED';
     else if (route.mode === 'live' && !boolean(route.live_trading_enabled)) blockReason = 'LIVE_TRADING_DISABLED';
+    const signalSchema = await getDatabase().get<{ enabled: number }>(
+      'SELECT enabled FROM trading_signal_schemas WHERE id = ?',
+      [input.signal.schema],
+    );
+    if (!blockReason && (!signalSchema || !boolean(signalSchema.enabled))) {
+      blockReason = 'SIGNAL_SCHEMA_UNAVAILABLE';
+    }
     if (blockReason) status = 'blocked';
     const id = randomUUID();
     const now = Date.now();
@@ -589,6 +681,82 @@ function dashboardDecimal(value: unknown): string {
   while (formatted.endsWith('0')) formatted = formatted.slice(0, -1);
   if (formatted.endsWith('.')) formatted = formatted.slice(0, -1);
   return formatted || '0';
+}
+
+function signalSchemaFromRow(row: any): TradingSignalSchema {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    description: String(row.description || ''),
+    parserSchema: row.parser_schema,
+    templateName: String(row.template_name),
+    enabled: boolean(row.enabled),
+    createdAt: Number(row.created_at),
+    updatedAt: Number(row.updated_at),
+  };
+}
+
+function signalSchemaInput(input: {
+  id?: unknown;
+  name?: unknown;
+  description?: unknown;
+  parserSchema?: unknown;
+  templateName?: unknown;
+  enabled?: unknown;
+}, requireId: boolean): {
+  id?: string;
+  name: string;
+  description: string;
+  parserSchema: ExecutableSignalSchemaContract;
+  templateName: string;
+  enabled: boolean;
+} {
+  const id = requireId ? signalSchemaIdentifier(input.id) : undefined;
+  const name = typeof input.name === 'string' ? input.name.trim() : '';
+  const description = typeof input.description === 'string' ? input.description.trim() : '';
+  const templateName = typeof input.templateName === 'string' ? input.templateName.trim() : '';
+  if (!name || name.length > 80) throw new Error('Signal schema name must contain between 1 and 80 characters.');
+  if (description.length > 500) throw new Error('Signal schema description must not exceed 500 characters.');
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(templateName)) throw new Error('Signal schema template name is invalid.');
+  if (!['standard', 'cryptodanielvip', 'loma'].includes(String(input.parserSchema))) {
+    throw new Error('Signal schema parser contract is unsupported.');
+  }
+  if (typeof input.enabled !== 'boolean') throw new Error('Signal schema enabled state must be boolean.');
+  return {
+    id,
+    name,
+    description,
+    parserSchema: input.parserSchema as ExecutableSignalSchemaContract,
+    templateName,
+    enabled: input.enabled,
+  };
+}
+
+async function assertSignalSchemasAvailable(configuration: StrategyConfiguration): Promise<void> {
+  const rows = await getDatabase().all<Array<{ id: string; enabled: number }>>(
+    `SELECT id, enabled FROM trading_signal_schemas
+     WHERE id IN (SELECT value FROM json_each(?))`,
+    [JSON.stringify(configuration.allowedSignalSchemas)],
+  );
+  const available = new Set(rows.filter(row => boolean(row.enabled)).map(row => row.id));
+  const unavailable = configuration.allowedSignalSchemas.filter(id => !available.has(id));
+  if (unavailable.length > 0) {
+    throw new Error(`Strategy references unavailable signal schemas: ${unavailable.join(', ')}.`);
+  }
+}
+
+async function assertSignalSchemaNotActivelyRouted(id: string): Promise<void> {
+  const route = await getDatabase().get<{ count: number }>(
+    `SELECT COUNT(*) AS count
+     FROM trading_routes AS route
+     JOIN trading_strategy_versions AS strategy ON strategy.id = route.strategy_version_id
+     JOIN json_each(strategy.configuration_json, '$.allowedSignalSchemas') AS schema
+     WHERE route.enabled = 1 AND schema.value = ?`,
+    [id],
+  );
+  if (Number(route?.count || 0) > 0) {
+    throw new Error('Signal schema cannot be changed or deleted while an enabled route uses it.');
+  }
 }
 
 async function tradingAnalyticsWindow(since: number | null): Promise<Map<string, TradingWindowAnalytics>> {

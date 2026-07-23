@@ -6,6 +6,7 @@ export type TradingOrderSide = 'buy' | 'sell';
 export type TradingOrderType = 'market' | 'limit';
 export type TargetAllocationMode = 'manual' | 'adaptive_halving';
 export type StopLossMode = 'configured' | 'adaptive_targets';
+export type ExecutableSignalSchemaContract = 'standard' | 'cryptodanielvip' | 'loma';
 export type TradingIntentStatus =
   | 'pending'
   | 'planned'
@@ -33,7 +34,8 @@ export interface DecimalRange {
 }
 
 export interface ExecutableSignal {
-  schema: 'standard' | 'cryptodanielvip' | 'loma';
+  /** User-managed schema profile identifier. */
+  schema: string;
   action: TradingSide;
   symbol: string;
   entry: { type: 'market' } | ({ type: 'range' } & DecimalRange);
@@ -46,7 +48,7 @@ export interface ExecutableSignal {
 
 export interface StrategyConfiguration {
   schemaVersion: 1;
-  allowedSignalSchemas: Array<'standard' | 'cryptodanielvip' | 'loma'>;
+  allowedSignalSchemas: string[];
   allowedSymbols: string[];
   allowedSides: TradingSide[];
   entry: {
@@ -77,6 +79,17 @@ export interface StrategyConfiguration {
     entryOrderTtlSeconds: number;
     requireProtectiveStop: true;
   };
+}
+
+export interface TradingSignalSchema {
+  id: string;
+  name: string;
+  description: string;
+  parserSchema: ExecutableSignalSchemaContract;
+  templateName: string;
+  enabled: boolean;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface TradingStrategyVersion {

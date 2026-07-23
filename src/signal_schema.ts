@@ -1,6 +1,11 @@
-import type { ExecutableSignal } from './trading_types.js';
+import type { ExecutableSignal, ExecutableSignalSchemaContract } from './trading_types.js';
 
-export type SignalSchemaName = 'standard' | 'cryptodanielvip' | 'loma' | 'speculantca';
+export type SignalSchemaName = string;
+
+export interface ExecutableSignalSchemaSelection {
+  id: string;
+  parserSchema: ExecutableSignalSchemaContract;
+}
 
 interface XmlNode {
   name: string;
@@ -456,18 +461,25 @@ export function schemaForTemplate(templateName?: string): SignalSchemaName {
   return 'standard';
 }
 
-export function validateSignalXml(xml: string, templateName?: string): ValidatedSignal {
+export function validateSignalXml(
+  xml: string,
+  templateName?: string,
+  executableSchema?: ExecutableSignalSchemaSelection | null,
+): ValidatedSignal {
   if (typeof xml !== 'string') {
     throw new SignalValidationError('Signal XML must be a non-empty string no larger than 64 KiB.');
   }
   const normalizedXml = xml.trim();
   const root = parseXml(normalizedXml);
-  const schema = schemaForTemplate(templateName);
+  const parserSchema = executableSchema?.parserSchema ?? schemaForTemplate(templateName);
+  const schema = executableSchema?.id ?? parserSchema;
   let common: Omit<ValidatedSignal, 'xml' | 'schema'>;
-  if (schema === 'cryptodanielvip') common = validateCryptoDaniel(root);
-  else if (schema === 'loma') common = validateLoma(root);
-  else if (schema === 'speculantca') common = validateSpeculant(root);
+  if (parserSchema === 'cryptodanielvip') common = validateCryptoDaniel(root);
+  else if (parserSchema === 'loma') common = validateLoma(root);
+  else if (parserSchema === 'speculantca') common = validateSpeculant(root);
   else common = validateStandard(root);
+  if (executableSchema === null) delete common.execution;
+  else if (common.execution) common.execution = { ...common.execution, schema };
   return { xml: normalizedXml, schema, ...common };
 }
 

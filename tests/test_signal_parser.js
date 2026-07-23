@@ -218,6 +218,17 @@ async function testStandardSchemaContracts() {
 }
 
 function testDomainSchemas() {
+  const custom = validateSignalXml(STANDARD_LONG, 'desk-alpha-template', {
+    id: 'desk-alpha', parserSchema: 'standard',
+  });
+  assert.strictEqual(custom.schema, 'desk-alpha');
+  assert.strictEqual(custom.execution.schema, 'desk-alpha');
+  assert.strictEqual(
+    validateSignalXml(STANDARD_LONG, 'unregistered-template', null).execution,
+    undefined,
+    'An unregistered or disabled schema profile must remain non-executable.',
+  );
+
   const cryptoMarket = '<signal><action>SHORT</action><pair>HYPEUSDT</pair><entry_type>MARKET</entry_type><averaging>64.856</averaging><targets><target id="1">60.822</target></targets><stoploss>69.4</stoploss><risk_percent>1</risk_percent></signal>';
   const cryptoLimit = '<signal><action>LONG</action><pair>SOLUSDT</pair><entry_type>LIMIT</entry_type><entry_range><min>100</min><max>101</max></entry_range><targets><target id="1">105</target></targets><stoploss>98</stoploss></signal>';
   assert.strictEqual(validateSignalXml(cryptoMarket, 'cryptodanielvip').schema, 'cryptodanielvip');

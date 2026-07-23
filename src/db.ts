@@ -84,7 +84,8 @@ export const DATABASE_FEATURE_SET = [
   'durable-outbox',
   'ai-provenance',
   'integrated-trading-control-plane',
-  'isolated-paper-exchange-state'
+  'isolated-paper-exchange-state',
+  'managed-trading-signal-schemas'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -95,6 +96,7 @@ export const REQUIRED_DATABASE_TABLES = [
   'forwarding_stats',
   'incoming_messages',
   'ai_usage_daily',
+  'trading_signal_schemas',
   'trading_strategy_versions',
   'trading_accounts',
   'trading_routes',
@@ -559,6 +561,31 @@ const migrations: SchemaMigration[] = [
         CREATE UNIQUE INDEX IF NOT EXISTS uq_trading_external_account_identity
           ON trading_accounts(exchange, mode, external_account_id)
           WHERE external_account_id IS NOT NULL;
+      `
+  },
+  {
+    version: 7,
+    name: 'managed_trading_signal_schemas',
+    columns: [],
+    sql: `
+        CREATE TABLE IF NOT EXISTS trading_signal_schemas (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80),
+          description TEXT NOT NULL DEFAULT '' CHECK(length(description) <= 500),
+          parser_schema TEXT NOT NULL CHECK(parser_schema IN ('standard', 'cryptodanielvip', 'loma')),
+          template_name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+          enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0, 1)),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        INSERT OR IGNORE INTO trading_signal_schemas (
+          id, name, description, parser_schema, template_name, enabled, created_at, updated_at
+        ) VALUES
+          ('standard', 'Standard', 'Standard XML trading signal contract.', 'standard', 'default', 1, CAST(strftime('%s','now') AS INTEGER) * 1000, CAST(strftime('%s','now') AS INTEGER) * 1000),
+          ('cryptodanielvip', 'CryptoDaniel VIP', 'CryptoDaniel VIP executable XML contract.', 'cryptodanielvip', 'cryptodanielvip', 1, CAST(strftime('%s','now') AS INTEGER) * 1000, CAST(strftime('%s','now') AS INTEGER) * 1000),
+          ('loma', 'Loma', 'Loma executable XML contract.', 'loma', 'loma', 1, CAST(strftime('%s','now') AS INTEGER) * 1000, CAST(strftime('%s','now') AS INTEGER) * 1000);
+        CREATE INDEX IF NOT EXISTS idx_trading_signal_schemas_enabled
+          ON trading_signal_schemas(enabled, name);
       `
   }
 ];

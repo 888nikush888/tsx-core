@@ -26,6 +26,7 @@ Paper ist kein Profitabilitätsnachweis: Latenz, Orderbuch, Funding, Liquidation
 
 Unter **Trading → Strategien**:
 
+- **Signal-Schema-Profile:** Profile direkt im oberen Verwaltungsbereich anlegen, bearbeiten, aktivieren/deaktivieren oder nach expliziter Bestätigung löschen. Jedes Profil besitzt eine unveränderliche Kennung, einen Anzeigenamen, ein Parser-Template und einen geprüften ausführbaren XML-Vertrag (`standard`, `cryptodanielvip` oder `loma`).
 - **Signalvertrag:** erlaubte XML-Schemas, Symbole (leer = jedes normalisierte Symbol) und LONG/SHORT.
 - **Entry:** Market oder Limit, Preiswahl innerhalb der Signal-Range, Post-only und Timeout.
 - **Sizing:** Risiko pro Trade in Prozent der Equity, maximales Positionsnotional und maximaler Hebel. Signalhebel und Exchange-Maximum können nur weiter begrenzen.
@@ -33,6 +34,8 @@ Unter **Trading → Strategien**:
 - **Safety:** maximale gleichzeitige Positionen je Strategieversion, absoluter maximaler UTC-Tagesverlust, Slippage-Grenze und Entry-TTL.
 
 **Entwurf speichern** validiert alle Grenzen. **Publizieren** macht die Version immutable und routingfähig. Für Änderungen die publizierte Version auswählen und **Neue Version** erstellen. Bestehende Trades behalten die alte Version; neue Signale nutzen erst nach explizitem Routing-Wechsel die neue.
+
+Nur aktive Schema-Profile können in neuen Strategien verwendet werden. Ein Profil, das eine aktivierte Kanalroute verwendet, kann weder verändert noch gelöscht werden. Ein unbekanntes, deaktiviertes oder gelöschtes Profil bleibt zur Laufzeit fail-closed und erzeugt keinen ausführbaren Trade.
 
 **Strategie löschen** entfernt eine unbenutzte Version nach einer expliziten Bestätigung endgültig. Eine Kanalroute muss vorher unter **Kanal-Routing** entfernt werden; Versionen mit aufbewahrter Trade-Historie können aus Audit- und Recovery-Gründen nur archiviert, nicht gelöscht werden. Die letzte verbleibende Strategieversion ist nicht löschbar – zuerst eine Ersatzstrategie erstellen.
 

@@ -59,6 +59,10 @@ try {
 
   const initial = await control.snapshot();
   assert.equal(initial.accounts.length, 1);
+  assert.deepEqual(
+    initial.signalSchemas.map(schema => schema.id).sort(),
+    ['cryptodanielvip', 'loma', 'standard'],
+  );
   assert.equal(initial.analytics.accounts.length, 1);
   assert.equal('credentialRef' in initial.accounts[0], false, 'Credential references must not reach the browser.');
   assert.equal(initial.confirmations.live, 'ENABLE LIVE TRADING');
@@ -71,6 +75,27 @@ try {
   assert.throws(() => control.createStrategy({
     name: '', configuration: structuredClone(DEFAULT_STRATEGY_CONFIGURATION),
   }), /Strategy name is invalid/);
+  const customSchema = await control.createSignalSchema({
+    id: 'web-desk',
+    name: 'Web Desk',
+    description: 'Created through the Web control plane.',
+    parserSchema: 'standard',
+    templateName: 'web-desk-template',
+    enabled: true,
+  });
+  assert.equal(customSchema.id, 'web-desk');
+  const editedSchema = await control.updateSignalSchema({
+    ...customSchema,
+    name: 'Web Desk edited',
+    description: 'Updated through the Web control plane.',
+    parserSchema: 'cryptodanielvip',
+    templateName: 'web-desk-v2',
+    enabled: false,
+  });
+  assert.equal(editedSchema.enabled, false);
+  assert.equal(editedSchema.parserSchema, 'cryptodanielvip');
+  assert.equal((await control.snapshot()).signalSchemas.some(schema => schema.id === 'web-desk'), true);
+  assert.equal(await control.removeSignalSchema('web-desk'), true);
   await assert.rejects(control.setRuntime({ action: 'execution', enabled: true }), /at least one enabled channel route/);
   await assert.rejects(
     control.setRuntime({ action: 'live', enabled: true, confirmation: 'ENABLE LIVE TRADING' }),
