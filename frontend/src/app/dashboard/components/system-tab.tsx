@@ -335,7 +335,7 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bundle, null, 2))
       const downloadAnchorNode = document.createElement('a')
       downloadAnchorNode.setAttribute("href", dataStr)
-      downloadAnchorNode.setAttribute("download", `cb2_backup_${new Date().toISOString().slice(0, 10)}.json`)
+      downloadAnchorNode.setAttribute("download", `tsx_core_backup_${new Date().toISOString().slice(0, 10)}.json`)
       document.body.appendChild(downloadAnchorNode)
       downloadAnchorNode.click()
       downloadAnchorNode.remove()

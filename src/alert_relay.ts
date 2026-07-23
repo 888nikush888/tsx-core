@@ -122,7 +122,7 @@ async function deliverAlert(options: AlertRelayOptions, timeoutMs: number, body:
       Authorization: `Bearer ${options.webhookToken}`,
       'Content-Type': 'application/json',
       'Content-Length': String(body.length),
-      'X-Alert-Source': 'telegram-forwarder'
+      'X-Alert-Source': 'tsx-core'
     },
     body: body.toString('utf8'),
     redirect: 'error',

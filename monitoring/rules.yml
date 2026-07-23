@@ -1,12 +1,12 @@
 groups:
-  - name: telegram-forwarder-safety
+  - name: tsx-core-safety
     rules:
       - alert: ForwarderMetricsMissing
-        expr: up{job="telegram-forwarder"} == 0
+        expr: up{job="tsx-core"} == 0
         for: 1m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Forwarder metrics endpoint is unreachable
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -16,7 +16,7 @@ groups:
         for: 0m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: A Telegram delivery has an unknown outcome
           runbook: docs/runbooks/operations.md#unknown-zustellung
@@ -26,7 +26,7 @@ groups:
         for: 5m
         labels:
           severity: high
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: A retryable Telegram delivery remains failed
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -36,7 +36,7 @@ groups:
         for: 1m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Forwarder SQLite health check is failing
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -46,7 +46,7 @@ groups:
         for: 2m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Active forwarding lost its Telegram connection
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -56,7 +56,7 @@ groups:
         for: 1m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Local or off-host backup verification is unhealthy
           runbook: docs/runbooks/operations.md#backup-restore-und-rollback
@@ -66,7 +66,7 @@ groups:
         for: 5m
         labels:
           severity: high
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Data retention is unhealthy or cannot clear its bounded backlog
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -76,7 +76,7 @@ groups:
         for: 1m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Operational storage is below the configured safety reserve
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -86,7 +86,7 @@ groups:
         for: 5m
         labels:
           severity: high
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: More than 100 forwarding jobs have remained queued
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -96,7 +96,7 @@ groups:
         for: 5m
         labels:
           severity: high
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Confirmed delivery success is below the 99.5 percent SLO
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -106,7 +106,7 @@ groups:
         for: 5m
         labels:
           severity: high
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Accepted-to-confirmed delivery P95 exceeds 60 seconds
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -116,7 +116,7 @@ groups:
         for: 1m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: An outbox task has remained pending for at least five minutes
           runbook: docs/runbooks/operations.md#alarm-triage
@@ -126,7 +126,7 @@ groups:
         for: 1m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Control-plane audit persistence or remote delivery is unhealthy
           runbook: docs/runbooks/operations.md#audit-trail-ausfall
@@ -136,7 +136,7 @@ groups:
         for: 0m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: System clock drift exceeded the fail-closed safety limit
           runbook: docs/runbooks/operations.md#clock-drift
@@ -146,7 +146,7 @@ groups:
         for: 0m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: A trading order has an unknown exchange outcome
           runbook: docs/runbooks/operations.md#trading-notfall-und-reconciliation
@@ -156,7 +156,7 @@ groups:
         for: 0m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: A managed position has no confirmed protective stop
           runbook: docs/runbooks/operations.md#trading-notfall-und-reconciliation
@@ -166,7 +166,7 @@ groups:
         for: 0m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Trading is fail-closed behind the kill switch
           runbook: docs/runbooks/operations.md#trading-notfall-und-reconciliation
@@ -176,7 +176,7 @@ groups:
         for: 1m
         labels:
           severity: critical
-          service: telegram-forwarder
+          service: tsx-core
         annotations:
           summary: Exchange reconciliation is stale while execution is enabled
           runbook: docs/runbooks/operations.md#trading-notfall-und-reconciliation

@@ -22,7 +22,7 @@ const response = await fetch(target, {
     labels: {
       alertname: 'EnterpriseSyntheticAlert',
       severity: 'critical',
-      service: 'telegram-forwarder',
+      service: 'tsx-core',
       correlation_id: correlationId
     },
     annotations: {

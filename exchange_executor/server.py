@@ -81,7 +81,7 @@ def load_token_with_retry(credentials: CredentialStore) -> str:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "cb2-exchange-executor"
+    server_version = "tsx-core-exchange-executor"
 
     def do_GET(self) -> None:
         if self.path == "/healthz":

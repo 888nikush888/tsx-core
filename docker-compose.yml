@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     # Local tags are development-only. Production must validate and pass both
     # independently released image digests with quality:deployment-images.
-    image: ${FORWARDER_IMAGE:-telegram-tdlib-forwarder:local}
+    image: ${FORWARDER_IMAGE:-tsx-core:local}
     init: true
     restart: unless-stopped
     stop_grace_period: 8m
@@ -68,7 +68,7 @@ services:
     build:
       context: ./exchange_executor
       dockerfile: Dockerfile
-    image: ${EXCHANGE_EXECUTOR_IMAGE:-cb2-exchange-executor:local}
+    image: ${EXCHANGE_EXECUTOR_IMAGE:-tsx-core-exchange-executor:local}
     init: true
     restart: unless-stopped
     stop_grace_period: 30s

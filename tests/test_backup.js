@@ -48,7 +48,7 @@ async function createVerifiedArtifact(root, databasePath, backupRoot) {
   }, 1_700_000_000_000);
   const manifest = await verifyBackupArtifact(artifact);
   assert.strictEqual(manifest.version, 2);
-  assert.strictEqual(manifest.compatibility.application.id, 'telegram-tdlib-forwarder');
+  assert.strictEqual(manifest.compatibility.application.id, 'tsx-core');
   assert.match(manifest.compatibility.application.releaseVersion, /^\d+\.\d+\.\d+/);
   assert.strictEqual(manifest.compatibility.application.dataModel, 'integrated-trading');
   assert.ok(manifest.compatibility.database.schemaVersion >= 6);
@@ -249,6 +249,16 @@ async function assertArtifactNameValidation(root, artifact) {
   }
 }
 
+async function assertLegacyBrandCompatibility(root, artifact) {
+  const legacyArtifact = path.join(root, 'legacy-brand-backup');
+  await cp(artifact, legacyArtifact, { recursive: true });
+  const manifestPath = path.join(legacyArtifact, 'manifest.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  manifest.compatibility.application.id = 'telegram-tdlib-forwarder';
+  await writeFile(manifestPath, JSON.stringify(manifest), 'utf8');
+  await verifyBackupArtifact(legacyArtifact);
+}
+
 async function assertRestoreRollback(root, artifact, databasePath, configPath, stateDir) {
   await assert.rejects(
     restoreBackupArtifact(artifact, databasePath, configPath, stateDir, {
@@ -415,6 +425,7 @@ async function runTests() {
     const { artifact, manifest } = await createVerifiedArtifact(root, databasePath, backupRoot);
     await assertRestoredState(root, artifact, databasePath, configPath, stateDir);
     await assertInvalidArtifacts(root, artifact, manifest, configPath, backupRoot);
+    await assertLegacyBrandCompatibility(root, artifact);
     await assertArtifactNameValidation(root, artifact);
     await assertRestoreRollback(root, artifact, databasePath, configPath, stateDir);
     await assertBackupWithoutOptionalRecoveryState(root, databasePath, backupRoot);

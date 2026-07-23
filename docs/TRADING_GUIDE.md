@@ -1,4 +1,4 @@
-# Trading: vollständige Einrichtung und Nutzung
+# TSX Core – Trading: vollständige Einrichtung und Nutzung
 
 ## Sicherheitsmodell in einem Satz
 

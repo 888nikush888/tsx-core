@@ -1,6 +1,6 @@
-# Telegram Forwarder mit TDLib (Enterprise Edition)
+# TSX Core
 
-Eine robuste **TypeScript-Control-Plane** für Telegram-Nachrichtenweiterleitung auf Basis der offiziellen **TDLib** (Telegram Database Library), ergänzt um ein internes Python-Sidecar ausschließlich für die offiziellen Hyperliquid-/Bybit-SDKs. Der Node.js-Dienst leitet Nachrichten aus Quellkanälen automatisch an einen Zielkanal weiter und kann validierte Signale kontrolliert in Trades überführen.
+**TSX Core** ist eine robuste TypeScript-Control-Plane für Telegram-Nachrichtenweiterleitung auf Basis der offiziellen **TDLib** (Telegram Database Library), ergänzt um ein internes Python-Sidecar ausschließlich für die offiziellen Hyperliquid-/Bybit-SDKs. Der Node.js-Dienst leitet Nachrichten aus Quellkanälen automatisch an einen Zielkanal weiter und kann validierte Signale kontrolliert in Trades überführen.
 
 Es ist für den **Docker-Betrieb als daemonisierten Hintergrunddienst (Service)** optimiert, bietet integrierte **Prometheus-Metriken**, strukturierte **JSON-Logs** und speichert Zustände ausfallsicher in einer **SQLite-Datenbank**.
 
@@ -201,7 +201,7 @@ docker compose logs --tail=200 forwarder
 docker compose down
 
 # Volumes niemals mit -v löschen, sofern kein bewusst bestätigter Total-Reset beabsichtigt ist.
-docker volume ls --filter name=cb2_forwarder
+docker volume ls --filter name=tsx-core_forwarder
 ```
 
 Dashboard und Metriken werden ausschließlich auf Host-Loopback veröffentlicht; externer Zugriff benötigt einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.

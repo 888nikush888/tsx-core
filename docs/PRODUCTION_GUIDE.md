@@ -1,4 +1,4 @@
-# Production- und Enterprise-Betriebsanleitung
+# TSX Core – Production- und Enterprise-Betriebsanleitung
 
 ## Zweck und verbindlicher Status
 
@@ -116,11 +116,11 @@ Der Validator erzwingt für Enterprise-Modus OIDC, deaktivierten Local Trust, Re
   "dashboardLocalTrust": false,
   "dashboardAllowedOrigin": "https://forwarder.example.com",
   "oidcIssuer": "https://identity.example/realms/operations",
-  "oidcAudience": "telegram-forwarder",
+  "oidcAudience": "tsx-core",
   "oidcJwksUrl": "https://identity.example/realms/operations/protocol/openid-connect/certs",
   "auditWebhookUrl": "https://audit.example/v1/records",
   "auditRemoteRequired": true,
-  "backupOffsiteUrlTemplate": "https://backup.example/telegram-forwarder/{artifact}",
+  "backupOffsiteUrlTemplate": "https://backup.example/tsx-core/{artifact}",
   "backupOffsiteRequired": true,
   "backupOffsiteMaxRecoveryBytes": 2147483648,
   "backupOffsiteRetentionDays": 30
@@ -340,7 +340,7 @@ Die vollständige Web-Anleitung für selbst verwaltete Signal-Schema-Profile, au
 
 ## 14. Enterprise-Nachweise und aktuelle offene Punkte
 
-Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Der Plattformstatus wurde zuletzt am 23.07.2026 gegen das private Repository `888nikush888/telegram-tdlib-forwarder-private` geprüft. Die folgenden Punkte hängen von realen Identitäten, Tarif-/Plattformfunktionen, Infrastruktur oder verstrichener Betriebszeit ab und dürfen nicht durch Beispieldaten ersetzt werden:
+Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Der Plattformstatus wurde zuletzt am 23.07.2026 gegen das private Repository `888nikush888/tsx-core` geprüft. Die folgenden Punkte hängen von realen Identitäten, Tarif-/Plattformfunktionen, Infrastruktur oder verstrichener Betriebszeit ab und dürfen nicht durch Beispieldaten ersetzt werden:
 
 | Nachweis | Aktueller Repository-/Workspace-Status | Für Production-GO erforderlich |
 | --- | --- | --- |

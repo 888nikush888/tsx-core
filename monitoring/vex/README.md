@@ -6,7 +6,7 @@ statements, not broad vulnerability ignores.
 
 Each `not_affected` statement is backed by a `govulncheck v1.6.0 -mode binary`
 scan of the corresponding release binary. The scanner found no vulnerable
-symbols for the listed Trivy HIGH findings. CB2 additionally exposes both
+symbols for the listed Trivy HIGH findings. TSX Core additionally exposes both
 monitoring UIs on host loopback only, feeds Prometheus fixed-name numeric metrics,
 uses repository-controlled alert labels, configures only HTTP webhook delivery,
 and enables no gRPC, xDS, or SSH endpoint.

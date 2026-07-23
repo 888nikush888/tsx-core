@@ -46,7 +46,7 @@ services:
       - alert-relay
 
   alert-relay:
-    image: ${FORWARDER_IMAGE:-telegram-tdlib-forwarder:local}
+    image: ${FORWARDER_IMAGE:-tsx-core:local}
     command: [dist/alert_relay.js]
     restart: unless-stopped
     read_only: true

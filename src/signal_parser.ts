@@ -367,7 +367,7 @@ function createCompletionClient(apiKey: string, limits: AiLimits): RequestComple
     timeout: limits.requestTimeoutMs,
     defaultHeaders: {
       'HTTP-Referer': 'http://localhost:8080',
-      'X-Title': 'Telegram Forwarder',
+      'X-Title': 'TSX Core',
     },
   });
   return async (request, requestOptions) =>

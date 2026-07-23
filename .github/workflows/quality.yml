@@ -238,21 +238,21 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Build immutable candidate
-        run: docker build --tag telegram-tdlib-forwarder:${{ github.sha }} .
+        run: docker build --tag tsx-core:${{ github.sha }} .
       - name: Build official exchange executor
-        run: docker build --tag cb2-exchange-executor:${{ github.sha }} exchange_executor
+        run: docker build --tag tsx-core-exchange-executor:${{ github.sha }} exchange_executor
       - name: Verify runtime native modules and non-root user
         run: |
-          test "$(docker image inspect telegram-tdlib-forwarder:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
-          docker run --rm --entrypoint /nodejs/bin/node telegram-tdlib-forwarder:${{ github.sha }} -e "Promise.all([import('sqlite3'),import('tdl'),import('prebuilt-tdlib')]).then(()=>console.log('native-import-ok')).catch(error=>{console.error(error);process.exit(1)})"
-          test "$(docker image inspect cb2-exchange-executor:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
-          docker run --rm --entrypoint python cb2-exchange-executor:${{ github.sha }} -c "from importlib.metadata import version; assert version('hyperliquid-python-sdk') == '0.24.0'; assert version('pybit') == '5.16.0'"
-          docker run --rm -e PYTHONPATH=/app -v "$PWD/exchange_executor/tests:/tests:ro" --entrypoint python cb2-exchange-executor:${{ github.sha }} -m unittest discover -s /tests -v
+          test "$(docker image inspect tsx-core:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
+          docker run --rm --entrypoint /nodejs/bin/node tsx-core:${{ github.sha }} -e "Promise.all([import('sqlite3'),import('tdl'),import('prebuilt-tdlib')]).then(()=>console.log('native-import-ok')).catch(error=>{console.error(error);process.exit(1)})"
+          test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
+          docker run --rm --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -c "from importlib.metadata import version; assert version('hyperliquid-python-sdk') == '0.24.0'; assert version('pybit') == '5.16.0'"
+          docker run --rm -e PYTHONPATH=/app -v "$PWD/exchange_executor/tests:/tests:ro" --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -m unittest discover -s /tests -v
       - name: Generate container SBOM
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: telegram-tdlib-forwarder:${{ github.sha }}
+          image-ref: tsx-core:${{ github.sha }}
           format: cyclonedx
           output: container.cdx.json
           exit-code: '0'
@@ -260,7 +260,7 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: telegram-tdlib-forwarder:${{ github.sha }}
+          image-ref: tsx-core:${{ github.sha }}
           format: sarif
           output: trivy.sarif
           severity: HIGH,CRITICAL
@@ -270,7 +270,7 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: cb2-exchange-executor:${{ github.sha }}
+          image-ref: tsx-core-exchange-executor:${{ github.sha }}
           format: cyclonedx
           output: exchange-executor.cdx.json
           exit-code: '0'
@@ -278,7 +278,7 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: cb2-exchange-executor:${{ github.sha }}
+          image-ref: tsx-core-exchange-executor:${{ github.sha }}
           format: sarif
           output: exchange-executor-trivy.sarif
           severity: HIGH,CRITICAL
@@ -327,8 +327,8 @@ jobs:
       - name: Preserve the scanned release candidate
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          docker save telegram-tdlib-forwarder:${{ github.sha }} | zstd -T0 -3 -o release-image.tar.zst
-          docker save cb2-exchange-executor:${{ github.sha }} | zstd -T0 -3 -o release-executor-image.tar.zst
+          docker save tsx-core:${{ github.sha }} | zstd -T0 -3 -o release-image.tar.zst
+          docker save tsx-core-exchange-executor:${{ github.sha }} | zstd -T0 -3 -o release-executor-image.tar.zst
       - name: Upload release candidate
         if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -433,10 +433,10 @@ jobs:
           image_name="ghcr.io/${GITHUB_REPOSITORY,,}"
           executor_image_name="${image_name}-exchange-executor"
           printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
-          docker tag "telegram-tdlib-forwarder:${GITHUB_SHA}" "${image_name}:${GITHUB_REF_NAME}"
-          docker tag "telegram-tdlib-forwarder:${GITHUB_SHA}" "${image_name}:sha-${GITHUB_SHA}"
-          docker tag "cb2-exchange-executor:${GITHUB_SHA}" "${executor_image_name}:${GITHUB_REF_NAME}"
-          docker tag "cb2-exchange-executor:${GITHUB_SHA}" "${executor_image_name}:sha-${GITHUB_SHA}"
+          docker tag "tsx-core:${GITHUB_SHA}" "${image_name}:${GITHUB_REF_NAME}"
+          docker tag "tsx-core:${GITHUB_SHA}" "${image_name}:sha-${GITHUB_SHA}"
+          docker tag "tsx-core-exchange-executor:${GITHUB_SHA}" "${executor_image_name}:${GITHUB_REF_NAME}"
+          docker tag "tsx-core-exchange-executor:${GITHUB_SHA}" "${executor_image_name}:sha-${GITHUB_SHA}"
           docker push "${image_name}:${GITHUB_REF_NAME}"
           docker push "${image_name}:sha-${GITHUB_SHA}"
           docker push "${executor_image_name}:${GITHUB_REF_NAME}"

@@ -11,7 +11,7 @@ alerting:
         - targets: [alertmanager:9093]
 
 scrape_configs:
-  - job_name: telegram-forwarder
+  - job_name: tsx-core
     metrics_path: /metrics
     static_configs:
       - targets: [forwarder:9100]

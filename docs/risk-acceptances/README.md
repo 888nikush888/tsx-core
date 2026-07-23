@@ -1,4 +1,4 @@
-# Time-bounded risk acceptances
+# TSX Core – Time-bounded risk acceptances
 
 Only files named `RA-<YYYYMMDD>-<slug>.md` are records. Copy the template, replace every value, and remove the record after remediation. A record may remain active for at most 30 days; expired or incomplete records fail CI.
 

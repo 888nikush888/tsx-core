@@ -88,7 +88,7 @@ async function githubJson(pathSegments, token, query = {}) {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${token}`,
       'X-GitHub-Api-Version': '2026-03-10',
-      'User-Agent': 'telegram-forwarder-quality-gate'
+      'User-Agent': 'tsx-core-quality-gate'
     },
     signal: AbortSignal.timeout(15_000)
   });

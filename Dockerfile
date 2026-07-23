@@ -39,7 +39,7 @@ RUN mkdir -p /runtime/app/config /runtime/app/secrets /runtime/app/templates \
     && chown -R 65532:65532 /runtime/app
 
 FROM ${RUNTIME_IMAGE} AS runner
-LABEL org.opencontainers.image.title="Telegram TDLib Forwarder" \
+LABEL org.opencontainers.image.title="TSX Core" \
       org.opencontainers.image.source="local-workspace" \
       org.opencontainers.image.base.name="gcr.io/distroless/nodejs22-debian13" \
       org.opencontainers.image.base.digest="sha256:773a62fbe24a3f8c8b24b16fd59154627f8b406737bc906f83bf1732bc8907dd"

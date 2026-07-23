@@ -1,4 +1,4 @@
-# Architektur und Fitness Functions
+# TSX Core – Architektur und Fitness Functions
 
 ## Systemkontext
 

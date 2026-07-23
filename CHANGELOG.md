@@ -1,4 +1,4 @@
-# Changelog
+# TSX Core – Changelog
 
 Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folgt Keep a Changelog; Versionen folgen Semantic Versioning.
 
@@ -6,6 +6,7 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ### Added
 
+- Projektweite Umbenennung zu **TSX Core** einschließlich Web-UI, Container-Metadaten, Monitoring, Dokumentation und des vom Projekteigentümer gelieferten Logos.
 - Benutzerverwaltete Trading-Signal-Schema-Profile mit vollständigem Create/Update/Enable/Disable/Delete-Workflow in Web-UI und API; aktive Kanalrouten schützen verwendete Profile vor Änderung oder Löschung.
 - Adaptive TP-Halbierungsstaffel für 1 bis 20 Signal-Targets sowie adaptives SL-Nachziehen: nach TP1/TP2 Break-even, danach TP(i-2), ausschließlich in Gewinnrichtung.
 - Multi-Exchange-Portfolioanalyse mit Konto-/Börsenfilter, 24h/7d/30d/Gesamt-Kennzahlen und klar getrennter nominaler USD-/USDC-/USDT-Sicht.

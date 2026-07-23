@@ -1,7 +1,7 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
   "@id": "urn:uuid:a6cc7750-3fb3-43d8-bc17-bac00298739e",
-  "author": "CB2 security review",
+  "author": "TSX Core security review",
   "role": "Document Creator",
   "timestamp": "2026-07-22T16:50:38+02:00",
   "last_updated": "2026-07-22T16:50:38+02:00",
@@ -20,7 +20,7 @@
       "products": [{ "@id": "pkg:golang/golang.org/x/crypto@v0.51.0" }],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; CB2 configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
+      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; TSX Core configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
       "action_statement": "Retain the webhook-only notifier contract and remove this statement when an upstream release built with golang.org/x/crypto v0.52.0 or newer is pinned."
     },
     {
@@ -28,7 +28,7 @@
       "products": [{ "@id": "pkg:golang/golang.org/x/crypto@v0.51.0" }],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; CB2 configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
+      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; TSX Core configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
       "action_statement": "Retain the webhook-only notifier contract and remove this statement when an upstream release built with golang.org/x/crypto v0.52.0 or newer is pinned."
     },
     {
@@ -36,7 +36,7 @@
       "products": [{ "@id": "pkg:golang/golang.org/x/crypto@v0.51.0" }],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; CB2 configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
+      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; TSX Core configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
       "action_statement": "Retain the webhook-only notifier contract and remove this statement when an upstream release built with golang.org/x/crypto v0.52.0 or newer is pinned."
     },
     {
@@ -44,7 +44,7 @@
       "products": [{ "@id": "pkg:golang/golang.org/x/crypto@v0.51.0" }],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; CB2 configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
+      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; TSX Core configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
       "action_statement": "Retain the webhook-only notifier contract and remove this statement when an upstream release built with golang.org/x/crypto v0.52.0 or newer is pinned."
     },
     {
@@ -52,7 +52,7 @@
       "products": [{ "@id": "pkg:golang/golang.org/x/crypto@v0.51.0" }],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; CB2 configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
+      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; TSX Core configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
       "action_statement": "Retain the webhook-only notifier contract and remove this statement when an upstream release built with golang.org/x/crypto v0.52.0 or newer is pinned."
     },
     {
@@ -60,7 +60,7 @@
       "products": [{ "@id": "pkg:golang/golang.org/x/crypto@v0.51.0" }],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; CB2 configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
+      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; TSX Core configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
       "action_statement": "Retain the webhook-only notifier contract and remove this statement when an upstream release built with golang.org/x/crypto v0.52.0 or newer is pinned."
     },
     {
@@ -68,7 +68,7 @@
       "products": [{ "@id": "pkg:golang/golang.org/x/crypto@v0.51.0" }],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; CB2 configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
+      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; TSX Core configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
       "action_statement": "Retain the webhook-only notifier contract and remove this statement when an upstream release built with golang.org/x/crypto v0.52.0 or newer is pinned."
     },
     {
@@ -76,7 +76,7 @@
       "products": [{ "@id": "pkg:golang/golang.org/x/crypto@v0.51.0" }],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; CB2 configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
+      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; TSX Core configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
       "action_statement": "Retain the webhook-only notifier contract and remove this statement when an upstream release built with golang.org/x/crypto v0.52.0 or newer is pinned."
     },
     {
@@ -84,7 +84,7 @@
       "products": [{ "@id": "pkg:golang/golang.org/x/crypto@v0.51.0" }],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; CB2 configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
+      "impact_statement": "govulncheck v1.6.0 found no affected SSH symbols in the Alertmanager v0.33.1 binary; TSX Core configures webhook delivery only and enables no SSH server, client, certificate, agent, or known-hosts path.",
       "action_statement": "Retain the webhook-only notifier contract and remove this statement when an upstream release built with golang.org/x/crypto v0.52.0 or newer is pinned."
     },
     {

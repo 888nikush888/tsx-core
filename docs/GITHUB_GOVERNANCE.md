@@ -1,4 +1,4 @@
-# GitHub Repository Governance
+# TSX Core – GitHub Repository Governance
 
 ## Verbindlicher Zielzustand
 
@@ -15,7 +15,7 @@ Diese Einstellungen können nicht ohne nachgewiesene Owner-Identität sicher erf
 
 ## Aktuell verifizierter Plattformstatus
 
-Stand 23.07.2026 für das private Repository `888nikush888/telegram-tdlib-forwarder-private`:
+Stand 23.07.2026 für das private Repository `888nikush888/tsx-core`:
 
 | Kontrolle | Status |
 | --- | --- |

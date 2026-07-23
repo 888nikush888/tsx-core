@@ -1,4 +1,4 @@
-# Trading-Blueprint v4.0: Implementierungsabgleich
+# TSX Core – Trading-Blueprint v4.0: Implementierungsabgleich
 
 Stand: 23.07.2026
 
@@ -86,6 +86,6 @@ Für Option 1 oder 2 sind mindestens notwendig: Strategie-Schema v2 mit Migratio
 | Duplicate Gate | 0,24 % duplizierte TypeScript-Zeilen, Ziel < 5 % |
 | Browser-/Accessibility-Gate | Chromium, Firefox, WebKit und Mobile Chromium bestanden |
 | Security-/Supply-Chain-Gates | CodeQL, Secret-History, Container-SBOM und Vulnerability Scan bestanden |
-| GitHub Quality Workflow | [Run 30002905392](https://github.com/888nikush888/telegram-tdlib-forwarder-private/actions/runs/30002905392) für Commit `8f7e0ba` erfolgreich |
+| GitHub Quality Workflow | [Run 30002905392](https://github.com/888nikush888/tsx-core/actions/runs/30002905392) für Commit `8f7e0ba` erfolgreich |
 
 Eine Live-Exchange-Verifikation wurde nicht ausgeführt; sie wäre für diesen Dokumentationsabgleich eine unnötige externe Handelsaktion. Aussagen über reales Fill-, Cross-Margin- und Ausfallverhalten bleiben bis zu Testnet- und Reconciliation-Evidence **NICHT VERIFIZIERT**.

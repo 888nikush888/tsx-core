@@ -31,7 +31,11 @@ const CORE_BACKUP_FILES = [DATABASE_FILE, CONFIG_FILE] as const;
 const MAX_BACKUP_STATE_FILES = 256;
 const MAX_BACKUP_STATE_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_BACKUP_STATE_BYTES = 20 * 1024 * 1024;
-const BACKUP_APPLICATION_ID = 'telegram-tdlib-forwarder';
+const BACKUP_APPLICATION_ID = 'tsx-core';
+const SUPPORTED_BACKUP_APPLICATION_IDS = new Set<string>([
+  BACKUP_APPLICATION_ID,
+  'telegram-tdlib-forwarder',
+]);
 const BACKUP_APPLICATION_RELEASE = '2.0.0';
 const BACKUP_DATA_MODEL = 'integrated-trading';
 const FORBIDDEN_CONFIG_KEYS = new Set([
@@ -185,7 +189,7 @@ function assertBackupApplicationCompatibility(
 ): void {
   if (
     !compatibility
-    || compatibility.application?.id !== expected.application.id
+    || !SUPPORTED_BACKUP_APPLICATION_IDS.has(compatibility.application?.id || '')
     || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(compatibility.application?.releaseVersion || '')
     || compatibility.application?.dataModel !== expected.application.dataModel
   ) {

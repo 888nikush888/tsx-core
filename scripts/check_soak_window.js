@@ -27,7 +27,7 @@ const THRESHOLDS = Object.freeze({
 
 export function soakQueries(window = WINDOW) {
   return {
-    scrapeCount: `sum(count_over_time(up{job="telegram-forwarder"}[${window}]))`,
+    scrapeCount: `sum(count_over_time(up{job="tsx-core"}[${window}]))`,
     availability: `avg(avg_over_time(tg_forwarder_readiness[${window}]))`,
     attempts: `sum(increase(tg_forwarder_delivery_attempts_total[${window}]))`,
     deliverySuccess: `sum(increase(tg_forwarder_delivery_confirmed_total[${window}])) / clamp_min(sum(increase(tg_forwarder_delivery_attempts_total[${window}])), 1)`,

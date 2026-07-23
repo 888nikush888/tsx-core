@@ -13,7 +13,7 @@ let outgoingStatus = 204;
 let deliveredBody = null;
 const receiver = http.createServer(async (request, response) => {
   assert.equal(request.headers.authorization, `Bearer ${outgoingToken}`);
-  assert.equal(request.headers['x-alert-source'], 'telegram-forwarder');
+  assert.equal(request.headers['x-alert-source'], 'tsx-core');
   const chunks = [];
   for await (const chunk of request) chunks.push(Buffer.from(chunk));
   deliveredBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));

@@ -1,4 +1,4 @@
-# Quality Operating System
+# TSX Core – Quality Operating System
 
 ## Ziel und Geltungsbereich
 

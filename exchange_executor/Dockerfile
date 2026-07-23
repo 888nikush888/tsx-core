@@ -8,7 +8,7 @@ COPY requirements.lock ./requirements.lock
 RUN python -m pip install --require-hashes --prefix=/install -r requirements.lock
 
 FROM ${PYTHON_IMAGE} AS runner
-LABEL org.opencontainers.image.title="CB2 Official Exchange Executor" \
+LABEL org.opencontainers.image.title="TSX Core Exchange Executor" \
       org.opencontainers.image.source="local-workspace" \
       org.opencontainers.image.base.name="python:3.12-alpine3.23" \
       org.opencontainers.image.base.digest="sha256:601d3d3797e90e2534782e69c85fafb7971b43f24c7b1b079b7e48dd435e458d"

@@ -1,4 +1,4 @@
-# Security Policy
+# TSX Core Security Policy
 
 ## Supported versions
 
