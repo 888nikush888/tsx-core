@@ -5,7 +5,7 @@ import { spawn } from 'child_process';
 import assert from 'assert';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const configPath = path.join(__dirname, '../config.json');
+const configPath = path.join(__dirname, '../config.json.example');
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
 function parseSignalWithPython(text, customEnv = {}) {
