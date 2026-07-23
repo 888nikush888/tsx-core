@@ -6,8 +6,11 @@ FROM ${NODE_IMAGE} AS base
 ARG DEBIAN_SNAPSHOT
 RUN sed -ri "s|deb.debian.org/debian-security|snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
     && sed -ri "s|deb.debian.org/debian|snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
-    && sed -ri 's|^URIs: [^:]+://|URIs: https://|' /etc/apt/sources.list.d/debian.sources \
-    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot
+    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && sed -ri 's|^URIs: [^:]+://|URIs: https://|' /etc/apt/sources.list.d/debian.sources
 
 FROM base AS builder
 WORKDIR /app
