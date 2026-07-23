@@ -81,10 +81,11 @@ const governance = evaluateGithubGovernance({
 });
 assert.equal(governance.passed, true);
 
-const [dependabot, workflow, securityPolicy] = await Promise.all([
+const [dependabot, workflow, securityPolicy, sonarCloud] = await Promise.all([
   readFile('.github/dependabot.yml', 'utf8'),
   readFile('.github/workflows/quality.yml', 'utf8'),
-  readFile('SECURITY.md', 'utf8')
+  readFile('SECURITY.md', 'utf8'),
+  readFile('.sonarcloud.properties', 'utf8')
 ]);
 for (const ecosystem of ['npm', 'github-actions', 'docker']) {
   assert.match(dependabot, new RegExp(`package-ecosystem: ${ecosystem}`));
@@ -92,5 +93,9 @@ for (const ecosystem of ['npm', 'github-actions', 'docker']) {
 assert.match(workflow, /calculate_pr_risk\.js/);
 assert.match(workflow, /verify_github_governance\.js/);
 assert.match(securityPolicy, /Private Vulnerability Reporting/);
+assert.match(sonarCloud, /^sonar\.sourceEncoding=UTF-8$/m);
+assert.match(sonarCloud, /^sonar\.python\.version=3\.12$/m);
+assert.match(sonarCloud, /^sonar\.tests=tests,frontend\/tests,frontend\/e2e,exchange_executor\/tests,monitoring\/rules\.test\.yml$/m);
+assert.match(sonarCloud, /^sonar\.exclusions=tests\/\*\*,frontend\/tests\/\*\*,frontend\/e2e\/\*\*,exchange_executor\/tests\/\*\*,monitoring\/rules\.test\.yml$/m);
 
 console.log('Repository governance and PR-risk tests passed.');
