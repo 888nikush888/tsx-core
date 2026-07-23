@@ -1,4 +1,4 @@
-import vm from 'vm';
+import vm from 'node:vm';
 
 const regexCache = new Map<string, RegExp>();
 const MAX_REGEX_CACHE_SIZE = 100;

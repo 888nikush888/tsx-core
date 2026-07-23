@@ -262,7 +262,7 @@ export function isValidTargetChannel(channel: unknown): boolean {
   if (!clean) return false;
   
   const isNumeric = /^-?\d+$/.test(clean);
-  const isUsername = /^@[a-zA-Z0-9_]{5,32}$/.test(clean);
+  const isUsername = /^@\w{5,32}$/.test(clean);
   return isNumeric || isUsername;
 }
 

@@ -109,7 +109,7 @@ class Handler(BaseHTTPRequestHandler):
                 raise ExchangeContractError("Request body must be an object.")
             result = self.server.application.handle(self.path, payload)  # type: ignore[attr-defined]
             self._json(HTTPStatus.OK, result)
-        except (CredentialError, ExchangeContractError, json.JSONDecodeError, ValueError) as error:
+        except ValueError as error:
             self._json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
         except Exception as error:  # SDK/network errors are not exposed with secret-bearing details.
             print(f"executor_error type={type(error).__name__}", file=sys.stderr, flush=True)
@@ -125,6 +125,7 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()

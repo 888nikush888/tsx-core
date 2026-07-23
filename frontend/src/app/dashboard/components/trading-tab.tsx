@@ -31,7 +31,6 @@ const DEFAULT_CONFIGURATION = {
 }
 
 type Workspace = "overview" | "strategies" | "routing" | "accounts" | "paper" | "activity"
-type Snapshot = any
 
 function time(value: number | null | undefined) {
   return value ? new Date(value).toLocaleString("de-DE") : "–"
@@ -59,7 +58,7 @@ function Metric({ label, value, detail }: Readonly<{ label: string; value: strin
 }
 
 export function TradingTab({ config }: Readonly<{ config: any }>) {
-  const [data, setData] = useState<Snapshot | null>(null)
+  const [data, setData] = useState<any>(null)
   const [workspace, setWorkspace] = useState<Workspace>("overview")
   const [busy, setBusy] = useState("")
   const [message, setMessage] = useState("")
@@ -99,7 +98,7 @@ export function TradingTab({ config }: Readonly<{ config: any }>) {
       {nav.map(([id, label]) => <Button key={id} variant={workspace === id ? "default" : "outline"} size="sm" aria-pressed={workspace === id} onClick={() => setWorkspace(id)}>{label}</Button>)}
       <Button variant="ghost" size="sm" onClick={() => void refresh()} disabled={busy === "refresh"}><RefreshCw className="mr-2 h-4 w-4" />Aktualisieren</Button>
     </div>
-    {message && <div role="status" className={`rounded-md border p-3 text-sm ${/fehl|refused|error|ungültig|nicht/i.test(message) ? "border-destructive/50 bg-destructive/5 text-destructive" : "border-primary/30 bg-primary/5"}`}>{message}</div>}
+    {message && <output className={`block rounded-md border p-3 text-sm ${/fehl|refused|error|ungültig|nicht/i.test(message) ? "border-destructive/50 bg-destructive/5 text-destructive" : "border-primary/30 bg-primary/5"}`}>{message}</output>}
     {workspace === "overview" && <Overview data={data} busy={busy} run={run} />}
     {workspace === "strategies" && <Strategies data={data} busy={busy} run={run} />}
     {workspace === "routing" && <Routing data={data} config={config} busy={busy} run={run} />}
@@ -153,7 +152,11 @@ function Strategies({ data, busy, run }: any) {
   const patch = (section: string, field: string, value: unknown) => setDraft((old: any) => ({ ...old, configuration: { ...old.configuration, [section]: { ...old.configuration[section], [field]: value } } }))
   const toggle = (field: "allowedSignalSchemas" | "allowedSides", value: string) => setDraft((old: any) => { const list = old.configuration[field]; return { ...old, configuration: { ...old.configuration, [field]: list.includes(value) ? list.filter((item: string) => item !== value) : [...list, value] } } })
   const newStrategy = () => { setSelected(""); setDraft({ name: "Neue Strategie", description: "", configuration: structuredClone(DEFAULT_CONFIGURATION), strategyId: undefined }) }
-  const newVersion = () => { if (!current) return; setSelected(""); setDraft({ name: current.name, description: current.description, configuration: structuredClone(current.configuration), strategyId: current.strategyId }) }
+  const newVersion = () => {
+    if (!current) return
+    setSelected("")
+    setDraft({ name: current.name, description: current.description, configuration: structuredClone(current.configuration), strategyId: current.strategyId })
+  }
   const save = () => run("save-strategy", () => mutate(current?.status === "draft" ? "/api/trading/strategies/update" : "/api/trading/strategies", current?.status === "draft" ? { id: current.id, ...draft } : draft), "Strategieentwurf gespeichert.")
   const remove = async () => {
     if (!current || !window.confirm(`Strategie "${current.name} v${current.version}" endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return

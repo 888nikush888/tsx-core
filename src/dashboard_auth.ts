@@ -32,7 +32,7 @@ export interface OidcDashboardOptions {
   allowHttpLoopback?: boolean;
 }
 
-function bearerToken(authorization: string | string[] | undefined): string | null {
+function bearerToken(authorization: AuthorizationHeader): string | null {
   if (typeof authorization !== 'string' || authorization.length > 16 * 1024) return null;
   return /^Bearer ([^\s]+)$/.exec(authorization)?.[1] ?? null;
 }
@@ -147,7 +147,8 @@ export class OidcDashboardAuthenticator implements DashboardAuthenticator {
       const roles = claimRoles(payload[this.roleClaim]);
       const role = roles.includes(this.adminRole) ? 'admin' : roles.includes(this.viewerRole) ? 'viewer' : null;
       if (!role) return null;
-      const id = `oidc:${createHash('sha256').update(`${this.issuer}\n${payload.sub}`).digest('hex').slice(0, 32)}`;
+      const subject = `${this.issuer}\n${payload.sub}`;
+      const id = `oidc:${createHash('sha256').update(subject).digest('hex').slice(0, 32)}`;
       return { role, id };
     } catch {
       return null;

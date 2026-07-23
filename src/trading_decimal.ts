@@ -136,5 +136,8 @@ export function addSignedDecimal(left: string, right: string): string {
 export function signedDifference(left: string, right: string): string {
   const order = compareDecimal(left, right);
   if (order === 0) return '0';
-  return order > 0 ? subtractDecimal(left, right) : `-${subtractDecimal(right, left)}`;
+  const greater = order > 0 ? left : right;
+  const lesser = order > 0 ? right : left;
+  const difference = subtractDecimal(greater, lesser);
+  return order > 0 ? difference : `-${difference}`;
 }

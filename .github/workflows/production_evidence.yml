@@ -26,7 +26,9 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild sqlite3 --build-from-source
       - run: npm run ops:soak
       - name: Upload 30-day evidence
         if: always()

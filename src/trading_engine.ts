@@ -59,7 +59,8 @@ class ReconciliationMismatchError extends Error {
 }
 
 function replacementStopId(intentId: string, quantity: string, trigger: string): string {
-  return `0x${createHash('sha256').update(`${intentId}:stop:${quantity}:${trigger}`).digest('hex').slice(0, 32)}`;
+  const identity = `${intentId}:stop:${quantity}:${trigger}`;
+  return `0x${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
 }
 
 async function transaction<T>(operation: () => Promise<T>): Promise<T> {
@@ -994,8 +995,8 @@ export class TradingEngine {
     }
   }
 
-  async reconcileAccount(accountId: string, options: ReconciliationOptions = { force: true }): Promise<void> {
-    const force = options.force !== false;
+  async reconcileAccount(accountId: string, options?: ReconciliationOptions): Promise<void> {
+    const force = options?.force !== false;
     const now = Date.now();
     if (!force) {
       const inMemory = this.lastPeriodicReconciliationAt.get(accountId) || 0;
@@ -1343,9 +1344,16 @@ export class TradingEngine {
       currentTrigger: activeStop?.triggerPrice || null,
     });
     const exactStop = activeStops.find(stop => stop.quantity === protectiveQuantity && stop.triggerPrice === decision.trigger);
-    const protectedStop = await this.activateProtectiveStop(
-      adapter, account, intent, plan, local.symbol, protectiveQuantity, decision.trigger, exactStop,
-    );
+    const protectedStop = await this.activateProtectiveStop({
+      adapter,
+      account,
+      intent,
+      plan,
+      symbol: local.symbol,
+      quantity: protectiveQuantity,
+      trigger: decision.trigger,
+      existing: exactStop,
+    });
     await getDatabase().run(
       'UPDATE trading_positions SET stop_price = ?, updated_at = ? WHERE intent_id = ?',
       [decision.trigger, remote.observedAt, intent.id],
@@ -1368,16 +1376,17 @@ export class TradingEngine {
     await this.cancelStaleProtectiveStops(account, adapter, intent, activeStops, protectedStop);
   }
 
-  private async activateProtectiveStop(
-    adapter: TradingExchangeAdapter,
-    account: TradingAccount,
-    intent: TradingIntent,
-    plan: TradingPlan,
-    symbol: string,
-    quantity: string,
-    trigger: string,
-    existing: ActiveStop | undefined,
-  ): Promise<ActiveStop> {
+  private async activateProtectiveStop(input: {
+    adapter: TradingExchangeAdapter;
+    account: TradingAccount;
+    intent: TradingIntent;
+    plan: TradingPlan;
+    symbol: string;
+    quantity: string;
+    trigger: string;
+    existing: ActiveStop | undefined;
+  }): Promise<ActiveStop> {
+    const { adapter, account, intent, plan, symbol, quantity, trigger, existing } = input;
     if (existing) return existing;
     try {
       const replacement = await createReplacementStop(intent, plan, quantity, trigger);

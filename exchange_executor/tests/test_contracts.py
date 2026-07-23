@@ -47,10 +47,12 @@ class ContractTests(unittest.TestCase):
     def test_executor_deadline_is_bounded_and_fail_closed(self) -> None:
         deadline = RequestDeadline.from_payload({"deadlineAt": int(time.time() * 1000) + 2_000})
         self.assertGreater(deadline.remaining_ms(), 0)
+        expired_deadline = {"deadlineAt": int(time.time() * 1000) - 1}
         with self.assertRaises(ExchangeContractError):
-            RequestDeadline.from_payload({"deadlineAt": int(time.time() * 1000) - 1})
+            RequestDeadline.from_payload(expired_deadline)
+        excessive_deadline = {"deadlineAt": int(time.time() * 1000) + 60_000}
         with self.assertRaises(ExchangeContractError):
-            RequestDeadline.from_payload({"deadlineAt": int(time.time() * 1000) + 60_000})
+            RequestDeadline.from_payload(excessive_deadline)
 
     def test_credential_file_contract(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -4,12 +4,20 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const gitExecutable = process.platform === 'win32'
+  ? 'C:\\Program Files\\Git\\cmd\\git.exe'
+  : '/usr/bin/git';
 const requiredIgnores = [
   '.git', '.env', '.env.*', 'config.json', 'node_modules', 'frontend/node_modules',
   'secrets', '**/secrets', '**/.managed-secret-transaction.json', 'session_data',
   'session_files', 'logs', 'backups', '*.tgfb',
 ];
-const sensitiveTrackedPath = /(?:(^|\/)(?:secrets?|session_data|session_files|backups)(?:\/|$)|(?:^|\/)\.env(?:\.|$)|\.tgfb$)/i;
+const sensitiveDirectory = /(^|\/)(?:secrets?|session_data|session_files|backups)(?:\/|$)/i;
+const environmentFile = /(^|\/)\.env(?:\.|$)/i;
+
+function isSensitiveTrackedPath(file) {
+  return sensitiveDirectory.test(file) || environmentFile.test(file) || file.toLowerCase().endsWith('.tgfb');
+}
 
 export function evaluateBuildContext({ dockerignore, dockerfile, trackedFiles }) {
   const rules = new Set(dockerignore.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')));
@@ -20,7 +28,7 @@ export function evaluateBuildContext({ dockerignore, dockerfile, trackedFiles })
   }
   for (const file of trackedFiles.map(value => value.replaceAll('\\', '/'))) {
     if (file === '.env.example') continue;
-    if (sensitiveTrackedPath.test(file)) violations.push(`sensitive runtime path is tracked: ${file}`);
+    if (isSensitiveTrackedPath(file)) violations.push(`sensitive runtime path is tracked: ${file}`);
   }
   return violations;
 }
@@ -32,7 +40,7 @@ if (path.resolve(process.argv[1] ?? '') === path.resolve(fileURLToPath(import.me
     readFile(path.join(root, 'exchange_executor', '.dockerignore'), 'utf8'),
   ]);
   // Names only: the gate deliberately never opens possible secret files.
-  const trackedFiles = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
+  const trackedFiles = execFileSync(gitExecutable, ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
   const violations = evaluateBuildContext({ dockerignore, dockerfile, trackedFiles });
   const executorRules = new Set(executorDockerignore.split(/\r?\n/).map(line => line.trim()).filter(Boolean));
   for (const rule of ['.env', '.env.*', 'secrets', '**/secrets']) {

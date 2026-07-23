@@ -349,46 +349,39 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      try {
-        const content = event.target?.result as string
-        const bundle = JSON.parse(content)
+    try {
+      const content = await file.text()
+      const bundle = JSON.parse(content)
 
-        if (!bundle.config) {
-          throw new Error('Invalid backup file. Missing "config" section.')
-        }
-
-        if (window.confirm("WARNING: This will overwrite your current configuration. Continue?")) {
-          const res = await apiFetch(`${API_BASE}/api/import`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bundle)
-          })
-
-          if (res.ok) {
-            alert("Configuration imported successfully! Reloading...")
-            window.location.reload()
-          } else {
-            const data = await res.json()
-            alert("Import failed: " + data.error)
-          }
-        }
-      } catch (err: any) {
-        alert("Failed to parse import file: " + err.message)
+      if (!bundle.config) {
+        throw new Error('Invalid backup file. Missing "config" section.')
       }
-      
-      // Reset input
-      if (e.target) {
-        e.target.value = ''
+
+      if (window.confirm("WARNING: This will overwrite your current configuration. Continue?")) {
+        const res = await apiFetch(`${API_BASE}/api/import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bundle)
+        })
+
+        if (res.ok) {
+          alert("Configuration imported successfully! Reloading...")
+          window.location.reload()
+        } else {
+          const data = await res.json()
+          alert("Import failed: " + data.error)
+        }
       }
+    } catch (err: any) {
+      alert("Failed to parse import file: " + err.message)
+    } finally {
+      e.target.value = ''
     }
-    reader.readAsText(file)
   }
 
   return (
     <div className="space-y-6">
-      {message && <div role="status" className="rounded-lg border bg-muted/40 p-3 text-sm">{message}</div>}
+      {message && <output className="block rounded-lg border bg-muted/40 p-3 text-sm">{message}</output>}
       {recovery.active && (
         <Card className="border-destructive/60">
           <CardHeader>

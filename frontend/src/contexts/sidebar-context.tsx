@@ -25,9 +25,10 @@ export function SidebarConfigProvider({ children }: Readonly<{ children: React.R
   const updateConfig = React.useCallback((newConfig: Partial<SidebarConfig>) => {
     setConfig(prev => ({ ...prev, ...newConfig }))
   }, [])
+  const contextValue = React.useMemo(() => ({ config, updateConfig }), [config, updateConfig])
 
   return (
-    <SidebarContext.Provider value={{ config, updateConfig }}>
+    <SidebarContext.Provider value={contextValue}>
       {children}
     </SidebarContext.Provider>
   )

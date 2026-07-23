@@ -31,7 +31,9 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild sqlite3 --build-from-source
       - run: npm run test:staging-e2e
       - name: Upload synthetic evidence
         if: always()

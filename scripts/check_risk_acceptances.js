@@ -36,7 +36,7 @@ export function validateRiskAcceptance(content, now = new Date()) {
   }
 
   for (const section of requiredSections) {
-    if (!new RegExp(`^## ${section}\\s*$`, 'm').test(content))
+    if (!new RegExp(String.raw`^## ${section}\s*$`, 'm').test(content))
       errors.push(`missing section: ${section}`);
   }
   return errors;

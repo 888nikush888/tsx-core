@@ -110,6 +110,7 @@ export function LogsTab({ config }: any) {
     if (filter === 'error') return upper.includes('[ERROR]') || upper.includes('[FATAL]')
     return true
   })
+  const logOccurrences = new Map<string, number>()
 
   return (
     <Card className="w-full shadow-lg border-zinc-200 dark:border-zinc-800">
@@ -229,9 +230,11 @@ export function LogsTab({ config }: any) {
           ) : (
             filteredLogs.map((log, idx) => {
               const { timestamp, levelText, levelColor, message, isParsed } = parseLogLine(log)
+              const occurrence = (logOccurrences.get(log) || 0) + 1
+              logOccurrences.set(log, occurrence)
               
               return (
-                <div key={idx} className="flex py-0.5 hover:bg-zinc-900/40 px-1.5 rounded-sm transition-colors group">
+                <div key={`${log}-${occurrence}`} className="flex py-0.5 hover:bg-zinc-900/40 px-1.5 rounded-sm transition-colors group">
                   <span className="w-8 shrink-0 text-zinc-600 select-none text-[10px] pr-2 text-right border-r border-zinc-800 mr-3">
                     {idx + 1}
                   </span>

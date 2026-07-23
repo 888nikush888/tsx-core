@@ -148,7 +148,7 @@ export class TelegramLoginCoordinator {
   private validateString(kind: TelegramLoginPromptKind, value: unknown): string {
     if (kind === 'phoneNumber') {
       const phone = singleLine(value, 'Phone number', 20);
-      if (!/^\+?[0-9]{5,15}$/.test(phone)) throw new Error('Phone number must use international digits.');
+      if (!/^\+?\d{5,15}$/.test(phone)) throw new Error('Phone number must use international digits.');
       return phone;
     }
     if (kind === 'emailAddress') {

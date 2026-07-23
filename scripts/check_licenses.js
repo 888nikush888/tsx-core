@@ -82,7 +82,7 @@ export function evaluatePythonLockedRequirements(directContent, lockedContent) {
     }
   }
   for (const requirement of requirements) {
-    const match = requirement.match(/^([A-Za-z0-9_.-]+)==([A-Za-z0-9_.+-]+)$/);
+    const match = /^([A-Za-z0-9_.-]+)==([A-Za-z0-9_.+-]+)$/.exec(requirement);
     const artifact = `${match[1]}@${match[2]}`;
     const license = pythonPolicy.get(artifact);
     inventory.push({ ecosystem: 'pypi', application: 'exchange-executor', artifact, scope: 'production', license: license || null });

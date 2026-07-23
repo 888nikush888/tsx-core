@@ -6,6 +6,9 @@ import { validateRiskAcceptance } from './check_risk_acceptances.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const acceptanceDirectory = path.join(root, 'docs', 'risk-acceptances');
+const gitExecutable = process.platform === 'win32'
+  ? 'C:\\Program Files\\Git\\cmd\\git.exe'
+  : '/usr/bin/git';
 
 const RISK_FACTORS = [
   { id: 'critical-domain', points: 5, label: 'Critical delivery, data, AI, trading or control-plane domain', matches: file => /^src\/(forwarder|db|signal_parser|signal_schema|delivery_tracker|backup|backup_replication|web_server|audit_trail|dashboard_auth|secret_store|telegram_login|trading_.+|paper_exchange|official_exchange)\.ts$/.test(file) || /^exchange_executor\/(?!tests\/)/.test(file) },
@@ -80,7 +83,7 @@ async function loadRiskAcceptances(now = new Date()) {
 }
 
 function gitChanges(base, head) {
-  const output = execFileSync('git', ['diff', '--numstat', `${base}...${head}`], { encoding: 'utf8' });
+  const output = execFileSync(gitExecutable, ['diff', '--numstat', `${base}...${head}`], { encoding: 'utf8' });
   return output.trim().split('\n').filter(Boolean).map(line => {
     const [added, deleted, ...nameParts] = line.split('\t');
     return {

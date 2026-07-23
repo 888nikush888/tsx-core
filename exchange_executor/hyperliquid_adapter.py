@@ -111,14 +111,16 @@ class HyperliquidAdapter:
             if len(rows) > 2_500:
                 raise ExchangeContractError("Hyperliquid funding history exceeded the bounded item limit.")
             if len(page) < 500:
-                return rows
+                break
             last_time = page[-1].get("time")
             if not isinstance(last_time, int) or last_time < cursor:
                 raise ExchangeContractError("Hyperliquid funding history pagination did not advance.")
             cursor = last_time + 1
             if cursor > end_time:
-                return rows
-        raise ExchangeContractError("Hyperliquid funding history exceeded the bounded pagination limit.")
+                break
+        else:
+            raise ExchangeContractError("Hyperliquid funding history exceeded the bounded pagination limit.")
+        return rows
 
     def market_snapshot(
         self,

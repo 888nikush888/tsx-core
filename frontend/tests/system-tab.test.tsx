@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { SystemTab } from "@/app/dashboard/components/system-tab"
 
@@ -79,7 +79,7 @@ describe("SystemTab enterprise control plane", () => {
     />)
     const input = await screen.findByLabelText(/backupEncryptionKey/)
     expect(input).toBeDisabled()
-    await waitFor(() => expect(screen.getByText(/Eine Rotation würde bestehende Off-site-Backups unlesbar machen/)).toBeInTheDocument())
+    expect(await screen.findByText(/Eine Rotation würde bestehende Off-site-Backups unlesbar machen/)).toBeInTheDocument()
   })
 
   it("clears operational data with the guarded contract and surfaces exact outcomes", async () => {

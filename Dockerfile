@@ -4,7 +4,8 @@ ARG DEBIAN_SNAPSHOT=20260713T150000Z
 
 FROM ${NODE_IMAGE} AS base
 ARG DEBIAN_SNAPSHOT
-RUN sed -ri "s|http://deb.debian.org/debian-security|http://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|g; s|http://deb.debian.org/debian|http://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
+RUN sed -ri "s|http://deb.debian.org/debian-security|https://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
+    && sed -ri "s|http://deb.debian.org/debian|https://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
     && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot
 
 FROM base AS builder
@@ -23,7 +24,7 @@ COPY package.json package-lock.json ./
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential python3 \
     && rm -rf /var/lib/apt/lists/* \
-    && npm ci --omit=dev --no-audit --no-fund \
+    && npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
     && npm rebuild sqlite3 --build-from-source \
     && npm cache clean --force
 

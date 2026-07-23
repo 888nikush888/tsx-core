@@ -1,4 +1,4 @@
-ARG PYTHON_IMAGE=python:3.12-alpine3.23@sha256:601d3d3797e90e2534782e69c85fafb7971b43f24c7b1b079b7e48dd435e458d
+ARG PYTHON_IMAGE=python@sha256:601d3d3797e90e2534782e69c85fafb7971b43f24c7b1b079b7e48dd435e458d
 
 FROM ${PYTHON_IMAGE} AS dependencies
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -22,7 +22,7 @@ WORKDIR /app
 RUN addgroup --system --gid 65532 executor \
     && adduser --system --uid 65532 --ingroup executor --no-create-home --home /nonexistent executor
 COPY --from=dependencies /install /usr/local
-COPY --chown=65532:65532 *.py ./
+COPY --chown=65532:65532 --chmod=0444 *.py ./
 
 USER 65532:65532
 EXPOSE 8090

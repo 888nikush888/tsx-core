@@ -16,7 +16,12 @@ concurrency:
 
 jobs:
   staging:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'main')
     runs-on: [self-hosted, staging]
     environment: staging
     timeout-minutes: 30
@@ -35,12 +40,15 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
       - name: Configure pinned Node major
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild sqlite3 --build-from-source
       - name: Verify Telegram source-to-target exactly once
         run: npm run test:staging-e2e
       - name: Verify live AI golden set

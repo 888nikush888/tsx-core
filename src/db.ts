@@ -770,7 +770,7 @@ async function rollbackMigrationRestore(
   if (preserved.previousDatabase && await pathExists(preserved.previousDatabase)) {
     await rename(preserved.previousDatabase, target);
   }
-  for (const sidecar of preserved.sidecars.reverse()) {
+  for (const sidecar of preserved.sidecars.slice().reverse()) {
     if (await pathExists(sidecar.preserved)) await rename(sidecar.preserved, sidecar.original);
   }
   await rm(temporary, { force: true });

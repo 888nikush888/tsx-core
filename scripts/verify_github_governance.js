@@ -74,8 +74,11 @@ export function evaluateGithubGovernance({ repository, protection, environments,
   return { passed: checks.every(item => item.passed), checks };
 }
 
-async function githubJson(endpoint, token) {
-  const response = await fetch(`https://api.github.com${endpoint}`, {
+async function githubJson(pathSegments, token, query = {}) {
+  const encodedPath = pathSegments.map(segment => encodeURIComponent(segment)).join('/');
+  const url = new URL(encodedPath, 'https://api.github.com/');
+  for (const [name, value] of Object.entries(query)) url.searchParams.set(name, String(value));
+  const response = await fetch(url, {
     headers: {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${token}`,
@@ -84,7 +87,7 @@ async function githubJson(endpoint, token) {
     },
     signal: AbortSignal.timeout(15_000)
   });
-  if (!response.ok) throw new Error(`GitHub governance query ${endpoint} failed with HTTP ${response.status}.`);
+  if (!response.ok) throw new Error(`GitHub governance query failed with HTTP ${response.status}.`);
   return response.json();
 }
 
@@ -94,12 +97,14 @@ async function main() {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repositoryName) || token.length < 20) {
     throw new Error('GITHUB_REPOSITORY and GH_TOKEN are required for the repository governance gate.');
   }
-  const repository = await githubJson(`/repos/${repositoryName}`, token);
-  const branch = encodeURIComponent(repository.default_branch);
+  const [owner, repositorySlug] = repositoryName.split('/');
+  const repositoryPath = ['repos', owner, repositorySlug];
+  const repository = await githubJson(repositoryPath, token);
+  const branch = repository.default_branch;
   const [protection, environments, codeownerErrors] = await Promise.all([
-    githubJson(`/repos/${repositoryName}/branches/${branch}/protection`, token),
-    githubJson(`/repos/${repositoryName}/environments?per_page=100`, token),
-    githubJson(`/repos/${repositoryName}/codeowners/errors?ref=${branch}`, token)
+    githubJson([...repositoryPath, 'branches', branch, 'protection'], token),
+    githubJson([...repositoryPath, 'environments'], token, { per_page: '100' }),
+    githubJson([...repositoryPath, 'codeowners', 'errors'], token, { ref: branch })
   ]);
   const codeowners = await readFile(path.resolve('.github', 'CODEOWNERS'), 'utf8').catch(error => {
     if (error.code === 'ENOENT') return '';
@@ -116,8 +121,8 @@ async function main() {
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {
   try {
     await main();
-  } catch (error) {
-    console.error(error.message);
+  } catch {
+    console.error('GitHub governance gate failed.');
     process.exitCode = 1;
   }
 }

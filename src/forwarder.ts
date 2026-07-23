@@ -626,8 +626,8 @@ async function resolveChatId(identifier) {
           const supergroupId = Number(idStr.slice(4));
           const chat = await invokeWithRetry(client, { _: 'createSupergroupChat', supergroup_id: supergroupId, force: false });
           return String(chat.id);
-        } catch (e2) { 
-          addLog(`[DEBUG] Supergroup-Fallback für ${idStr} fehlgeschlagen: ${e2.message}`); 
+        } catch (error_) {
+          addLog(`[DEBUG] Supergroup-Fallback für ${idStr} fehlgeschlagen: ${error_.message}`);
         }
       }
     }

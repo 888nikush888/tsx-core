@@ -40,8 +40,10 @@ jobs:
             frontend/package-lock.json
       - name: Install locked dependencies
         run: |
-          npm ci --no-audit --no-fund
-          npm ci --prefix frontend --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild sqlite3 --build-from-source
+          npm ci --prefix frontend --ignore-scripts --no-audit --no-fund
+          npm rebuild --prefix frontend esbuild
       - name: Dependency vulnerability gates
         run: |
           npm audit --audit-level=moderate
@@ -120,7 +122,9 @@ jobs:
           path: reports/stryker-${{ matrix.shard }}*-incremental.json
           key: stryker-${{ matrix.shard }}-${{ runner.os }}-${{ hashFiles('src/queue.ts', 'src/tdlib_retry.ts', 'src/signal_schema.ts', 'src/trading_risk.ts', 'tests/test_queue.js', 'tests/test_tdlib_retry.js', 'tests/test_signal_parser.js', 'tests/test_trading_core.js', 'stryker.config.mjs', 'scripts/run_mutation_shards.js') }}
           restore-keys: stryker-${{ matrix.shard }}-${{ runner.os }}-
-      - run: npm ci --no-audit --no-fund
+      - run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild sqlite3 --build-from-source
       - run: npm run test:mutation -- ${{ matrix.shard }}
       - name: Upload mutation evidence
         if: always()
@@ -148,7 +152,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci --no-audit --no-fund
+      - run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild esbuild
         working-directory: frontend
       - name: Install the pinned browser runtime
         run: npx playwright install --with-deps ${{ matrix.project == 'mobile-chromium' && 'chromium' || matrix.project }}

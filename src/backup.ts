@@ -138,7 +138,7 @@ function isSafeTemplatePathSegment(segment: string): boolean {
     && segment !== '.'
     && segment !== '..'
     && segment === segment.trim()
-    && !/[\\/\0<>:"|?*\x00-\x1f]/.test(segment);
+    && !/[\\/<>:"|?*\x00-\x1f]/.test(segment);
 }
 
 function artifactPath(artifactRoot: string, fileName: string): string {
@@ -678,7 +678,8 @@ async function preserveCurrentFiles(plan: RestorePlan, progress: RestoreProgress
   for (const suffix of ['-wal', '-shm']) {
     const original = `${plan.targetDb}${suffix}`;
     if (await fileExists(original)) {
-      const preserved = `${plan.previousDb || `${plan.targetDb}.pre-restore-${plan.restoreId}`}${suffix}`;
+      const preservationBase = plan.previousDb || `${plan.targetDb}.pre-restore-${plan.restoreId}`;
+      const preserved = `${preservationBase}${suffix}`;
       await fs.rename(original, preserved);
       progress.movedSidecars.push({ original, preserved });
     }
@@ -740,7 +741,7 @@ async function restorePreservedFiles(plan: RestorePlan, progress: RestoreProgres
   if (plan.templates?.previous && (await fileExists(plan.templates.previous))) {
     await fs.rename(plan.templates.previous, plan.templates.target);
   }
-  for (const sidecar of progress.movedSidecars.reverse()) {
+  for (const sidecar of progress.movedSidecars.slice().reverse()) {
     if (await fileExists(sidecar.preserved)) await fs.rename(sidecar.preserved, sidecar.original);
   }
 }

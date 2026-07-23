@@ -10,8 +10,8 @@ function coreReleaseViolations(manifest, changelog, license) {
     violations.push('package version is not valid Semantic Versioning');
   }
   if (manifest.license !== 'MIT') violations.push('package license must be MIT');
-  const escapedVersion = String(manifest.version).replaceAll('.', '\\.');
-  if (!new RegExp(`^## \\[${escapedVersion}\\] - \\d{4}-\\d{2}-\\d{2}$`, 'm').test(changelog)) {
+  const escapedVersion = String(manifest.version).replaceAll('.', String.raw`\.`);
+  if (!new RegExp(String.raw`^## \[${escapedVersion}\] - \d{4}-\d{2}-\d{2}$`, 'm').test(changelog)) {
     violations.push(`CHANGELOG has no dated section for ${manifest.version}`);
   }
   if (!license.startsWith('MIT License\n')) violations.push('LICENSE is not an MIT license text');

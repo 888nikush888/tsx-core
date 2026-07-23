@@ -487,7 +487,7 @@ async function authenticateApiRequest(
 }
 
 function firstConfigured(...values: Array<string | undefined>): string {
-  return values.find((value) => Boolean(value)) ?? '';
+  return values.find(Boolean) ?? '';
 }
 
 function statusHandler({ res, appState }: RequestContext): void {

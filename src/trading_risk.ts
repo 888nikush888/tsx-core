@@ -27,7 +27,8 @@ export class TradingRiskError extends Error {
 }
 
 function clientOrderId(intentId: string, role: PlannedOrder['role'], index = 0): string {
-  return `0x${createHash('sha256').update(`${intentId}:${role}:${index}`).digest('hex').slice(0, 32)}`;
+  const identity = `${intentId}:${role}:${index}`;
+  return `0x${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
 }
 
 function entryPrice(signal: ExecutableSignal, strategy: StrategyConfiguration, market: TradingMarketSnapshot): string {

@@ -320,7 +320,7 @@ class BybitAdapter:
         )
         return {
             "orders": [self._order_snapshot(order) for order in orders_by_id.values()],
-            "positions": [self._position(position) for position in positions if DecimalValue(position.get("size")) > 0],
+            "positions": [self._position(position) for position in positions if decimal_value(position.get("size")) > 0],
             "fills": [self._fill(execution) for execution in executions if execution.get("orderLinkId")],
             "observedAt": int(time.time() * 1000),
             "accountFingerprint": identity,
@@ -413,6 +413,6 @@ class BybitAdapter:
         }
 
 
-def DecimalValue(value: Any):
+def decimal_value(value: Any):
     from decimal import Decimal
     return Decimal(str(value or "0"))

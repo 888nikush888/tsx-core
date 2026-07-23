@@ -34,7 +34,7 @@ export function maskPII<T>(text: T): T;
 export function maskPII<T>(text: T): T | string {
   if (typeof text !== 'string') return text;
   return text
-    .replace(/\b0x[a-fA-F0-9]{40}\b/gi, '0x...[MASKED_EVM_ADDR]')
+    .replace(/\b0x[a-f0-9]{40}\b/gi, '0x...[MASKED_EVM_ADDR]')
     .replace(/\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b/g, '[MASKED_BTC_ADDR]')
     .replace(/\bbc1[ac-hj-np-z0-9]{11,71}\b/gi, '[MASKED_BTC_ADDR]')
     .replace(/\+\d{1,4}[ \d-]{6,14}\b/g, '[MASKED_PHONE]');
@@ -132,9 +132,10 @@ export function addLog(message: string, context: LogContext = {}): void {
   logHistory = [...logHistory.slice(-(MAX_LOG_ENTRIES - 1)), displayLine];
   const structured = buildStructuredLogEntry(now.toISOString(), cleanMessage, context);
   console.log(process.env.JSON_LOGGING === 'true' ? JSON.stringify(structured) : displayLine);
+  const contextSuffix = Object.keys(context).length ? ` ${JSON.stringify(sanitizeLogContext(context))}` : '';
   const persistentLine = process.env.JSON_LOGGING === 'true'
     ? JSON.stringify(structured)
-    : `[${now.toISOString()}] ${cleanMessage}${Object.keys(context).length ? ` ${JSON.stringify(sanitizeLogContext(context))}` : ''}`;
+    : `[${now.toISOString()}] ${cleanMessage}${contextSuffix}`;
   writeToLogFile(persistentLine);
 }
 
