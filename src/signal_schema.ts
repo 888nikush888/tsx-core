@@ -1,7 +1,5 @@
 import type { ExecutableSignal, ExecutableSignalSchemaContract } from './trading_types.js';
 
-export type SignalSchemaName = string;
-
 export interface ExecutableSignalSchemaSelection {
   id: string;
   parserSchema: ExecutableSignalSchemaContract;
@@ -16,7 +14,7 @@ interface XmlNode {
 
 export interface ValidatedSignal {
   xml: string;
-  schema: SignalSchemaName;
+  schema: string;
   action: 'LONG' | 'SHORT';
   pair: string;
   groundingNumbers: string[];
@@ -453,7 +451,7 @@ function validateSpeculant(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema
   return { action, pair, groundingNumbers: [], groundingFields: [], groundingComment: comment };
 }
 
-export function schemaForTemplate(templateName?: string): SignalSchemaName {
+export function schemaForTemplate(templateName?: string): string {
   const normalized = (templateName || 'default').trim().toLowerCase();
   if (normalized === 'cryptodanielvip') return 'cryptodanielvip';
   if (normalized === 'loma') return 'loma';

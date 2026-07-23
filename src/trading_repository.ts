@@ -309,7 +309,7 @@ export async function updateTradingStrategyDraft(id: string, input: {
 
 export async function publishTradingStrategyVersion(id: string, now = Date.now()): Promise<TradingStrategyVersion> {
   const existing = await getTradingStrategyVersion(id);
-  if (!existing || existing.status !== 'draft') throw new Error('Only an existing draft strategy version can be published.');
+  if (existing?.status !== 'draft') throw new Error('Only an existing draft strategy version can be published.');
   await assertSignalSchemasAvailable(existing.configuration);
   const result = await getDatabase().run(
     `UPDATE trading_strategy_versions SET status = 'published', published_at = ?
@@ -715,10 +715,11 @@ function signalSchemaInput(input: {
   const name = typeof input.name === 'string' ? input.name.trim() : '';
   const description = typeof input.description === 'string' ? input.description.trim() : '';
   const templateName = typeof input.templateName === 'string' ? input.templateName.trim() : '';
+  const parserSchema = input.parserSchema;
   if (!name || name.length > 80) throw new Error('Signal schema name must contain between 1 and 80 characters.');
   if (description.length > 500) throw new Error('Signal schema description must not exceed 500 characters.');
   if (!/^[a-zA-Z0-9_-]{1,64}$/.test(templateName)) throw new Error('Signal schema template name is invalid.');
-  if (!['standard', 'cryptodanielvip', 'loma'].includes(String(input.parserSchema))) {
+  if (parserSchema !== 'standard' && parserSchema !== 'cryptodanielvip' && parserSchema !== 'loma') {
     throw new Error('Signal schema parser contract is unsupported.');
   }
   if (typeof input.enabled !== 'boolean') throw new Error('Signal schema enabled state must be boolean.');
@@ -726,7 +727,7 @@ function signalSchemaInput(input: {
     id,
     name,
     description,
-    parserSchema: input.parserSchema as ExecutableSignalSchemaContract,
+    parserSchema,
     templateName,
     enabled: input.enabled,
   };
