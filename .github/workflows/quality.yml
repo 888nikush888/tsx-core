@@ -59,7 +59,7 @@ jobs:
         run: node scripts/calculate_pr_risk.js "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
       - name: Preserve PR-risk decision evidence
         if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: pr-risk-evidence-${{ github.event.pull_request.head.sha }}
           path: reports/pr-risk/
@@ -89,7 +89,7 @@ jobs:
         run: npm run quality:sbom
       - name: Upload verification evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: quality-evidence-${{ github.sha }}
           path: |
@@ -128,7 +128,7 @@ jobs:
       - run: npm run test:mutation -- ${{ matrix.shard }}
       - name: Upload mutation evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: mutation-evidence-${{ matrix.shard }}-${{ github.sha }}
           path: |
@@ -164,7 +164,7 @@ jobs:
         working-directory: frontend
       - name: Upload browser failure evidence
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: browser-evidence-${{ matrix.project }}-${{ github.sha }}
           path: |
@@ -194,7 +194,7 @@ jobs:
         run: jq --slurp --exit-status '[.[].runs[]?.results[]?] | length == 0' codeql-results/*.sarif
       - name: Upload CodeQL evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: codeql-evidence-${{ github.sha }}
           path: codeql-results/
@@ -331,7 +331,7 @@ jobs:
           docker save tsx-core-exchange-executor:${{ github.sha }} | zstd -T0 -3 -o release-executor-image.tar.zst
       - name: Upload release candidate
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: release-image-${{ github.sha }}
           path: |
@@ -342,7 +342,7 @@ jobs:
           retention-days: 7
       - name: Upload container evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: container-evidence-${{ github.sha }}
           path: |
