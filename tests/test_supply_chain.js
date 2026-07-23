@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateDeploymentImages } from '../scripts/verify_deployment_images.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const workflow = await readFile(path.join(root, '.github', 'workflows', 'quality.yml'), 'utf8');
@@ -119,5 +120,13 @@ const executorService = dockerCompose.slice(
 assert.ok(executorService.length > 0, 'compose must define the exchange executor service');
 assert.doesNotMatch(executorService, /^\s+ports:/m);
 assert.match(dockerCompose, /forwarder_secrets:\/app\/secrets:ro/);
+
+const releaseImages = {
+  FORWARDER_IMAGE: `ghcr.io/example/forwarder@sha256:${'a'.repeat(64)}`,
+  EXCHANGE_EXECUTOR_IMAGE: `ghcr.io/example/exchange-executor@sha256:${'b'.repeat(64)}`,
+};
+assert.deepEqual(validateDeploymentImages(releaseImages), []);
+assert.ok(validateDeploymentImages({ ...releaseImages, FORWARDER_IMAGE: 'forwarder:latest' }).length > 0);
+assert.ok(validateDeploymentImages({}).length > 0);
 
 console.log('Supply-chain pinning policy tests passed.');
