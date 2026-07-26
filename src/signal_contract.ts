@@ -14,6 +14,8 @@ const FIELD_TYPES = new Set<SignalContractFieldType>(['text', 'decimal', 'intege
 const ENTRY_MODES = new Set<SignalContractEntryMode>(['optional_range', 'required_range', 'typed']);
 const TARGET_SHAPES = new Set<SignalContractTargetShape>(['scalar', 'range']);
 const UNSUPPORTED_LOOKAROUNDS = ['(?=', '(?!', '(?<=', '(?<!'] as const;
+const BACKSLASH = String.fromCodePoint(92);
+const NUMERIC_BACKREFERENCE_DIGITS = new Set('123456789');
 
 function record(value: unknown, label: string): Record<string, any> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -66,17 +68,17 @@ function strings(value: unknown, label: string, maximum = 20): string[] {
 }
 
 function hasNumericBackreference(pattern: string): boolean {
-  for (let index = 0; index < pattern.length - 1; index += 1) {
-    const current = pattern.charCodeAt(index);
-    const following = pattern.charCodeAt(index + 1);
-    if (current === 92 && following >= 49 && following <= 57) return true;
+  let followsBackslash = false;
+  for (const character of pattern) {
+    if (followsBackslash && NUMERIC_BACKREFERENCE_DIGITS.has(character)) return true;
+    followsBackslash = character === BACKSLASH;
   }
   return false;
 }
 
 function hasUnsupportedPatternConstruct(pattern: string): boolean {
   return hasNumericBackreference(pattern)
-    || pattern.includes('\\k<')
+    || pattern.includes(String.raw`\k<`)
     || UNSUPPORTED_LOOKAROUNDS.some(token => pattern.includes(token))
     || /[*+]\s*[*+{]/.test(pattern)
     || /\{\d+(?:,\d*)?\}\s*[*+{]/.test(pattern);
