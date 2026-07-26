@@ -14,7 +14,6 @@ const FIELD_TYPES = new Set<SignalContractFieldType>(['text', 'decimal', 'intege
 const ENTRY_MODES = new Set<SignalContractEntryMode>(['optional_range', 'required_range', 'typed']);
 const TARGET_SHAPES = new Set<SignalContractTargetShape>(['scalar', 'range']);
 const UNSUPPORTED_LOOKAROUNDS = ['(?=', '(?!', '(?<=', '(?<!'] as const;
-const NUMERIC_BACKREFERENCE_PATTERN = new RegExp(String.raw`\\[1-9]`, 'u');
 
 function record(value: unknown, label: string): Record<string, any> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -66,8 +65,17 @@ function strings(value: unknown, label: string, maximum = 20): string[] {
   return normalized;
 }
 
+function hasNumericBackreference(pattern: string): boolean {
+  for (let index = 0; index < pattern.length - 1; index += 1) {
+    const current = pattern.charCodeAt(index);
+    const following = pattern.charCodeAt(index + 1);
+    if (current === 92 && following >= 49 && following <= 57) return true;
+  }
+  return false;
+}
+
 function hasUnsupportedPatternConstruct(pattern: string): boolean {
-  return NUMERIC_BACKREFERENCE_PATTERN.test(pattern)
+  return hasNumericBackreference(pattern)
     || pattern.includes('\\k<')
     || UNSUPPORTED_LOOKAROUNDS.some(token => pattern.includes(token))
     || /[*+]\s*[*+{]/.test(pattern)
