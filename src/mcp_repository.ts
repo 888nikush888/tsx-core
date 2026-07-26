@@ -158,6 +158,17 @@ function json(value: unknown, label: string): string {
   return serialized;
 }
 
+function boundedError(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (value instanceof Error) return value.message.slice(0, 2_000);
+  if (typeof value === 'string') return value.slice(0, 2_000);
+  try {
+    return (JSON.stringify(value) || 'Unknown error.').slice(0, 2_000);
+  } catch {
+    return 'Unknown error.';
+  }
+}
+
 function parsed(value: unknown): any {
   if (typeof value !== 'string') return null;
   try {
@@ -343,7 +354,7 @@ export async function authenticateMcpToken(value: unknown): Promise<Authenticate
      FROM mcp_agents WHERE token_sha256 = ?`,
     [digest],
   );
-  if (!row || !row.enabled || !constantTimeDigestMatch(digest, String(row.tokenSha256))) return null;
+  if (!row?.enabled || !constantTimeDigestMatch(digest, String(row.tokenSha256))) return null;
   return { ...mappedAgent(row), tokenSha256: String(row.tokenSha256) };
 }
 
@@ -434,9 +445,7 @@ export async function recordMcpAgentAction(input: {
   startedAt: number;
 }): Promise<void> {
   const completedAt = Date.now();
-  const error = input.error === undefined || input.error === null
-    ? null
-    : String(input.error).slice(0, 2_000);
+  const error = boundedError(input.error);
   await getDatabase().run(
     `INSERT INTO mcp_agent_actions (
        id, agent_id, session_id, tool_name, permission, outcome,
@@ -496,14 +505,18 @@ export async function enqueueMcpControlRequest(input: {
   if (!CONTROL_ACTIONS.has(input.action)) throw new Error('MCP control action is invalid.');
   const id = randomUUID();
   const createdAt = Date.now();
+  const agentId = identifier(input.agentId, 'MCP agent identifier', 64);
+  const sessionId = input.sessionId
+    ? identifier(input.sessionId, 'MCP session identifier', 128)
+    : null;
   await getDatabase().run(
     `INSERT INTO mcp_control_requests (
        id, agent_id, session_id, action, payload_json, status, created_at
      ) VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
     [
       id,
-      identifier(input.agentId, 'MCP agent identifier', 64),
-      input.sessionId ? identifier(input.sessionId, 'MCP session identifier', 128) : null,
+      agentId,
+      sessionId,
       input.action,
       json(input.payload ?? {}, 'MCP control payload'),
       createdAt,
@@ -511,8 +524,8 @@ export async function enqueueMcpControlRequest(input: {
   );
   return {
     id,
-    agentId: String(input.agentId),
-    sessionId: input.sessionId ? String(input.sessionId) : null,
+    agentId,
+    sessionId,
     action: input.action,
     payload: input.payload ?? {},
     status: 'pending',
@@ -588,7 +601,7 @@ export async function completeMcpControlRequest(
     [
       succeeded ? 'succeeded' : 'failed',
       succeeded ? json(outcome.result, 'MCP control result') : null,
-      succeeded ? null : String(outcome.error).slice(0, 2_000),
+      succeeded ? null : boundedError(outcome.error),
       completedAt,
       id,
     ],
@@ -669,7 +682,7 @@ export async function recordMcpEventDelivery(input: {
       input.eventType,
       input.status,
       Date.now(),
-      input.error === undefined ? null : String(input.error).slice(0, 2_000),
+      boundedError(input.error),
     ],
   );
 }

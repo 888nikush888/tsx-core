@@ -97,6 +97,16 @@ function formattedDate(value: number | null): string {
   return value ? new Date(value).toLocaleString("de-DE") : "Noch nie"
 }
 
+function agentConnectionLabel(connected: boolean, enabled: boolean): string {
+  if (connected) return "verbunden"
+  return enabled ? "bereit" : "deaktiviert"
+}
+
+function sessionConnectionLabel(connected: boolean, disconnectedAt: number | null): string {
+  if (connected) return "verbunden"
+  return disconnectedAt ? "beendet" : "inaktiv"
+}
+
 function ToggleGrid({ values, selected, labels, onChange }: Readonly<{
   values: string[]
   selected: string[]
@@ -246,13 +256,14 @@ export function McpAgentsTab() {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {snapshot.agents.map(agent => {
             const connected = activeSessions.some(session => session.agentId === agent.id)
+            const connectionLabel = agentConnectionLabel(connected, agent.enabled)
             return <button
               type="button"
               key={agent.id}
               onClick={() => { setSelectedId(agent.id); setIssuedToken(""); setMessage("") }}
               className={`rounded-md border p-4 text-left transition-colors ${selectedId === agent.id ? "bg-foreground text-background" : "hover:bg-muted"}`}
             >
-              <div className="flex items-center justify-between gap-2"><strong>{agent.name}</strong><span className="flex items-center gap-2 text-xs"><span className={`h-2 w-2 rounded-full ${connected ? "bg-current" : "border border-current"}`} />{connected ? "verbunden" : agent.enabled ? "bereit" : "deaktiviert"}</span></div>
+              <div className="flex items-center justify-between gap-2"><strong>{agent.name}</strong><span className="flex items-center gap-2 text-xs"><span className={`h-2 w-2 rounded-full ${connected ? "bg-current" : "border border-current"}`} />{connectionLabel}</span></div>
               <div className="mt-2 font-mono text-xs opacity-70">{agent.tokenPrefix}…</div>
               <div className="mt-1 text-xs opacity-70">{agent.permissions.length} Rechte · zuletzt {formattedDate(agent.lastSeenAt)}</div>
             </button>
@@ -280,7 +291,7 @@ export function McpAgentsTab() {
           <div><strong>Einmal sichtbarer Agenten-Token</strong><p className="text-sm text-muted-foreground">Jetzt in den Secret Store des Agenten kopieren. TSX Core speichert ausschließlich den Hash.</p></div>
           <div className="flex gap-2"><Textarea readOnly value={issuedToken} className="min-h-20 font-mono text-xs" /><Button variant="outline" onClick={() => void copyToken()} aria-label="Token kopieren"><Copy className="h-4 w-4" /></Button></div>
         </div>}
-        {message && <p className="rounded-md border px-3 py-2 text-sm" role="status">{message}</p>}
+        {message && <output className="block rounded-md border px-3 py-2 text-sm">{message}</output>}
       </CardContent>
     </Card>
 
@@ -290,7 +301,8 @@ export function McpAgentsTab() {
         {snapshot.sessions.slice(0, 100).map(session => {
           const agent = snapshot.agents.find(item => item.id === session.agentId)
           const connected = activeSessions.some(item => item.id === session.id)
-          return <TableRow key={session.id}><TableCell>{agent?.name || session.agentId}</TableCell><TableCell>{session.clientName} <span className="text-muted-foreground">{session.clientVersion}</span></TableCell><TableCell>{formattedDate(session.connectedAt)}</TableCell><TableCell>{formattedDate(session.lastSeenAt)}</TableCell><TableCell><Badge variant="outline">{connected ? "verbunden" : session.disconnectedAt ? "beendet" : "inaktiv"}</Badge></TableCell></TableRow>
+          const connectionLabel = sessionConnectionLabel(connected, session.disconnectedAt)
+          return <TableRow key={session.id}><TableCell>{agent?.name || session.agentId}</TableCell><TableCell>{session.clientName} <span className="text-muted-foreground">{session.clientVersion}</span></TableCell><TableCell>{formattedDate(session.connectedAt)}</TableCell><TableCell>{formattedDate(session.lastSeenAt)}</TableCell><TableCell><Badge variant="outline">{connectionLabel}</Badge></TableCell></TableRow>
         })}
         {snapshot.sessions.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Keine Sitzungen vorhanden.</TableCell></TableRow>}
       </TableBody></Table></CardContent>

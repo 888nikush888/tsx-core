@@ -13,6 +13,7 @@ const SAFE_PATTERN_LIMIT = 160;
 const FIELD_TYPES = new Set<SignalContractFieldType>(['text', 'decimal', 'integer', 'boolean']);
 const ENTRY_MODES = new Set<SignalContractEntryMode>(['optional_range', 'required_range', 'typed']);
 const TARGET_SHAPES = new Set<SignalContractTargetShape>(['scalar', 'range']);
+const UNSUPPORTED_LOOKAROUNDS = ['(?=', '(?!', '(?<=', '(?<!'] as const;
 
 function record(value: unknown, label: string): Record<string, any> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -64,10 +65,18 @@ function strings(value: unknown, label: string, maximum = 20): string[] {
   return normalized;
 }
 
+function hasUnsupportedPatternConstruct(pattern: string): boolean {
+  return /\\[1-9]/.test(pattern)
+    || pattern.includes('\\k<')
+    || UNSUPPORTED_LOOKAROUNDS.some(token => pattern.includes(token))
+    || /[*+]\s*[*+{]/.test(pattern)
+    || /\{\d+(?:,\d*)?\}\s*[*+{]/.test(pattern);
+}
+
 function safePattern(value: unknown, label: string): string | undefined {
   if (value === undefined || value === null || value === '') return undefined;
   const pattern = text(value, label, SAFE_PATTERN_LIMIT);
-  if (/\\[1-9]|\\k<|\(\?[=!<]|(?:\*|\+|\{\d+(?:,\d*)?\})(?:\s*)(?:\*|\+|\{)/.test(pattern)) {
+  if (hasUnsupportedPatternConstruct(pattern)) {
     throw new Error(`${label} contains unsupported high-risk regular-expression constructs.`);
   }
   try {
@@ -198,7 +207,7 @@ export function validateSignalContractDefinition(input: unknown): SignalContract
     leveragePath: optionalPath(value.leveragePath, 'leveragePath'),
     riskPercentPath: optionalPath(value.riskPercentPath, 'riskPercentPath'),
     averagingPricePath: optionalPath(value.averagingPricePath, 'averagingPricePath'),
-    additionalFields: value.additionalFields.map(additionalField),
+    additionalFields: value.additionalFields.map((field, index) => additionalField(field, index)),
     geometry: booleanRecord(value.geometry, 'geometry', [
       'stopOnLossSide', 'targetsOnProfitSide', 'orderedTargets', 'orderedRanges',
     ]),
@@ -338,7 +347,7 @@ export const BUILTIN_SIGNAL_CONTRACTS: ReadonlyArray<{
         type: 'text',
         required: true,
         allowedValues: [],
-        pattern: '^[MHDW]\\d{1,3}(?:/[MHDW]\\d{1,3})*$',
+        pattern: String.raw`^[MHDW]\d{1,3}(?:/[MHDW]\d{1,3})*$`,
       }],
       geometry: { ...GEOMETRY },
       grounding: { ...GROUNDING },

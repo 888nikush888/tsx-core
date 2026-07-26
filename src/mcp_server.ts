@@ -45,7 +45,7 @@ const MAXIMUM_TOOL_RESULT_BYTES = 512 * 1024;
 const AUTH_WINDOW_MS = 60_000;
 const AUTH_MAXIMUM_FAILURES = 20;
 
-type ToolHandler = (input: any, sessionId?: string) => Promise<unknown> | unknown;
+type ToolHandler = (input: any, sessionId?: string) => Promise<unknown>;
 type SessionRuntime = {
   agentId: string;
   transport: StreamableHTTPServerTransport;
@@ -63,7 +63,13 @@ let maintenanceTimer: NodeJS.Timeout | null = null;
 let maintenanceCheckBusy = false;
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  try {
+    return JSON.stringify(error) || 'Unknown MCP server error.';
+  } catch {
+    return 'Unknown MCP server error.';
+  }
 }
 
 function integerFromEnvironment(name: string, fallback: number, minimum: number, maximum: number): number {
@@ -564,7 +570,7 @@ async function handleExistingSession(
   res: any,
 ): Promise<void> {
   const runtime = sessions.get(sessionId);
-  if (!runtime || runtime.agentId !== agent.id) {
+  if (runtime?.agentId !== agent.id) {
     res.status(404).json({ jsonrpc: '2.0', error: { code: -32001, message: 'MCP session is invalid.' }, id: null });
     return;
   }
@@ -613,7 +619,7 @@ async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res:
   };
   await server.connect(transport);
   await transport.handleRequest(req, res, req.body);
-  if (sessionRegistration) await sessionRegistration;
+  if (sessionRegistration !== null) await sessionRegistration;
 }
 
 async function handleMcpRequest(req: any, res: any): Promise<void> {

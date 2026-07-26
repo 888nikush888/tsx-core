@@ -1,6 +1,10 @@
-import type { ExecutableSignal, ExecutableSignalSchemaContract } from './trading_types.js';
+import type {
+  ExecutableSignal,
+  ExecutableSignalSchemaContract,
+  SignalContractAdditionalField,
+  SignalContractDefinition,
+} from './trading_types.js';
 import { validateSignalContractDefinition } from './signal_contract.js';
-import type { SignalContractAdditionalField, SignalContractDefinition } from './trading_types.js';
 
 export interface ExecutableSignalSchemaSelection {
   id: string;

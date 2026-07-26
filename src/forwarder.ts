@@ -1240,6 +1240,13 @@ async function stopSchedulerForMaintenance(
   }
 }
 
+async function restartSchedulerAfterFailedMaintenance(
+  stopped: boolean,
+  scheduler: { start: () => Promise<void> | void } | null,
+): Promise<void> {
+  if (stopped && scheduler) await scheduler.start();
+}
+
 async function stopRuntimeServices(): Promise<void> {
   await stopScheduler(mcpControlBridge, 'MCP control bridge');
   mcpControlBridge = null;
@@ -1615,10 +1622,10 @@ async function restoreNamedBackup(artifactName: string) {
       databaseMaintenance?.release();
       releaseApplicationMaintenance();
       await Promise.all([
-        retentionStopped && previousRetentionScheduler ? previousRetentionScheduler.start() : Promise.resolve(),
-        backupStopped && previousBackupScheduler ? previousBackupScheduler.start() : Promise.resolve(),
-        tradingStopped && previousTradingRuntime ? previousTradingRuntime.start() : Promise.resolve(),
-        mcpBridgeStopped && previousMcpControlBridge ? previousMcpControlBridge.start() : Promise.resolve(),
+        restartSchedulerAfterFailedMaintenance(retentionStopped, previousRetentionScheduler),
+        restartSchedulerAfterFailedMaintenance(backupStopped, previousBackupScheduler),
+        restartSchedulerAfterFailedMaintenance(tradingStopped, previousTradingRuntime),
+        restartSchedulerAfterFailedMaintenance(mcpBridgeStopped, previousMcpControlBridge),
       ]);
     }
   }

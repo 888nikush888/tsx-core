@@ -206,6 +206,16 @@ try {
     upsertChannelRiskPolicy(policyInput('invalid-manual-state', { manuallyBlocked: 'yes' })),
     /must be boolean/,
   );
+  await assert.rejects(
+    upsertChannelRiskPolicy(policyInput('invalid-loss-threshold', { lossThresholdPercent: {} })),
+    /must be a decimal number/,
+  );
+  const numericThresholdPolicy = await upsertChannelRiskPolicy(policyInput('numeric-thresholds', {
+    lossThresholdPercent: 1,
+    profitThresholdPercent: 2,
+  }));
+  assert.equal(numericThresholdPolicy.lossThresholdPercent, '1');
+  assert.equal(numericThresholdPolicy.profitThresholdPercent, '2');
   const baseline = await resolveEffectiveChannelRisk({
     channelId: 'unconfigured-channel',
     strategy: strategyConfiguration,

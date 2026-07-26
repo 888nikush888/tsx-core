@@ -76,8 +76,8 @@ function Metric({ label, value: metricValue, detail }: Readonly<{ label: string;
 }
 
 function signalSummary(xml: string): { action: string; pair: string } {
-  const action = xml.match(/<action>([^<]+)<\/action>/i)?.[1]?.trim() || "–"
-  const pair = xml.match(/<pair>([^<]+)<\/pair>/i)?.[1]?.trim() || "–"
+  const action = /<action>([^<]+)<\/action>/i.exec(xml)?.[1]?.trim() || "–"
+  const pair = /<pair>([^<]+)<\/pair>/i.exec(xml)?.[1]?.trim() || "–"
   return { action, pair }
 }
 

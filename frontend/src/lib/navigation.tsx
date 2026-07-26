@@ -24,7 +24,12 @@ const NavigationContext = React.createContext<NavigationContextValue | null>(nul
 function normalizeBasename(value: string) {
   const trimmed = value.trim()
   if (!trimmed || trimmed === "/") return ""
-  return `/${trimmed.replace(/^\/+|\/+$/g, "")}`
+  let start = 0
+  while (trimmed[start] === "/") start += 1
+  let end = trimmed.length
+  while (end > start && trimmed[end - 1] === "/") end -= 1
+  const normalized = trimmed.slice(start, end)
+  return normalized ? `/${normalized}` : ""
 }
 
 function logicalLocation(basename: string): NavigationLocation {
@@ -100,7 +105,8 @@ export function useSearchParams(): [
     const current = new URLSearchParams(location.search)
     const next = typeof update === "function" ? update(current) : update
     const query = next.toString()
-    navigate(`${location.pathname}${query ? `?${query}` : ""}`, options)
+    const search = query ? `?${query}` : ""
+    navigate(location.pathname + search, options)
   }, [location.pathname, location.search, navigate])
   return [searchParams, setSearchParams]
 }

@@ -223,6 +223,17 @@ export function SignalContractManager({ data, busy, run }: Readonly<{ data: any;
       },
     }))
   }
+  const removeAdditionalField = (index: number) => {
+    setForm((current: any) => ({
+      ...current,
+      definition: {
+        ...current.definition,
+        additionalFields: current.definition.additionalFields.filter(
+          (_field: any, fieldIndex: number) => fieldIndex !== index,
+        ),
+      },
+    }))
+  }
 
   return <div className="space-y-5">
     <Card>
@@ -299,7 +310,7 @@ export function SignalContractManager({ data, busy, run }: Readonly<{ data: any;
             <SelectField label="Typ" value={field.type} options={["text", "decimal", "integer", "boolean"].map(value => ({ value, label: value }))} onChange={value => updateAdditionalField(index, "type", value)} />
             <TextField label="Erlaubte Werte" value={field.allowedValues.join(",")} onChange={value => updateAdditionalField(index, "allowedValues", value.split(",").map(item => item.trim()).filter(Boolean))} />
             <TextField label="Sicheres Muster" value={field.pattern || ""} onChange={value => updateAdditionalField(index, "pattern", value)} />
-            <div className="flex items-end gap-2"><Toggle label="Pflicht" checked={field.required} onChange={value => updateAdditionalField(index, "required", value)} /><Button size="icon" variant="ghost" onClick={() => setForm((current: any) => ({ ...current, definition: { ...current.definition, additionalFields: current.definition.additionalFields.filter((_: any, fieldIndex: number) => fieldIndex !== index) } }))}><Trash2 className="h-4 w-4" /></Button></div>
+            <div className="flex items-end gap-2"><Toggle label="Pflicht" checked={field.required} onChange={value => updateAdditionalField(index, "required", value)} /><Button size="icon" variant="ghost" onClick={() => removeAdditionalField(index)}><Trash2 className="h-4 w-4" /></Button></div>
           </div>)}
         </section>
 

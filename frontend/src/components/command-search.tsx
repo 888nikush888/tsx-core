@@ -122,6 +122,14 @@ interface CommandSearchProps {
   readonly onOpenChange: (open: boolean) => void
 }
 
+function contractKeywords(contract: any): string {
+  const versions = Array.isArray(contract.versions) ? contract.versions : []
+  const versionKeywords = versions
+    .map((version: any) => `v${version.version} ${version.status}`)
+    .join(" ")
+  return [String(contract.id), versionKeywords].filter(Boolean).join(" ")
+}
+
 export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   const navigate = useNavigate()
   const commandRef = React.useRef<HTMLDivElement>(null)
@@ -135,7 +143,7 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
       .then(data => {
         const contracts: SearchItem[] = (data.signalContracts || []).map((contract: any) => ({
           title: `Vertrag: ${contract.name}`,
-          keywords: `${contract.id} ${(contract.versions || []).map((version: any) => `v${version.version} ${version.status}`).join(" ")}`,
+          keywords: contractKeywords(contract),
           url: `/dashboard?tab=trading&workspace=contracts&contract=${encodeURIComponent(contract.id)}`,
           group: "Verträge",
           icon: FileJson2,

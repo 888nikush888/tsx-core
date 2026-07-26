@@ -282,8 +282,14 @@ function aggregate(map: Map<string, PerformanceAggregate>, key: string): Perform
   return value;
 }
 
+function dimensionValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return value.toString();
+  return 'unknown';
+}
+
 function channelAggregate(map: Map<string, PerformanceAggregate>, id: unknown): PerformanceAggregate {
-  return aggregate(map, String(id));
+  return aggregate(map, dimensionValue(id));
 }
 
 function exchangeAggregate(
@@ -291,7 +297,7 @@ function exchangeAggregate(
   name: unknown,
   mode: unknown,
 ): PerformanceAggregate {
-  return aggregate(map, `${String(name)}/${String(mode)}`);
+  return aggregate(map, `${dimensionValue(name)}/${dimensionValue(mode)}`);
 }
 
 function aggregatePositions(rows: any[], channels: Map<string, PerformanceAggregate>): void {
@@ -454,7 +460,7 @@ export async function getChannelPerformanceAnalytics(
       .sort((left, right) => finite(right.realizedPnl) - finite(left.realizedPnl)),
     exchanges: [...exchanges.values()]
       .map(presentedAggregate)
-      .sort((left, right) => String(left.id).localeCompare(String(right.id))),
+      .sort((left, right) => dimensionValue(left.id).localeCompare(dimensionValue(right.id))),
     equity: equityPerformance(equityPoints),
   };
 }

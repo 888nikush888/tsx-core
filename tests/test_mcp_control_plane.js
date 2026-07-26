@@ -58,6 +58,13 @@ try {
     permissions: [],
   });
   assert.deepEqual(defaultAgent.agent.eventSubscriptions, []);
+  const updatedDefaultAgent = await updateMcpAgent({
+    id: defaultAgent.agent.id,
+    name: 'Default subscriptions',
+    permissions: [],
+    enabled: true,
+  });
+  assert.deepEqual(updatedDefaultAgent.eventSubscriptions, []);
 
   const session = await connectMcpSession({
     id: 'mcp-session-test',
@@ -214,6 +221,52 @@ try {
     startedAt: Date.now(),
   });
   assert.equal((await listMcpAgentActions())[0].sessionId, null);
+  await recordMcpAgentAction({
+    agentId: created.agent.id,
+    toolName: 'tsx_error_instance',
+    permission: 'system.read',
+    outcome: 'failed',
+    request: {},
+    error: new Error('typed action error'),
+    startedAt: Date.now(),
+  });
+  await recordMcpAgentAction({
+    agentId: created.agent.id,
+    toolName: 'tsx_error_object',
+    permission: 'system.read',
+    outcome: 'failed',
+    request: {},
+    error: { code: 'structured-action-error' },
+    startedAt: Date.now(),
+  });
+  const circularError = {};
+  circularError.self = circularError;
+  await recordMcpAgentAction({
+    agentId: created.agent.id,
+    toolName: 'tsx_error_circular',
+    permission: 'system.read',
+    outcome: 'failed',
+    request: {},
+    error: circularError,
+    startedAt: Date.now(),
+  });
+  await recordMcpAgentAction({
+    agentId: created.agent.id,
+    toolName: 'tsx_error_symbol',
+    permission: 'system.read',
+    outcome: 'failed',
+    request: {},
+    error: Symbol('non-serializable-error'),
+    startedAt: Date.now(),
+  });
+  const persistedErrors = await getDatabase().all(
+    `SELECT tool_name AS toolName, error FROM mcp_agent_actions
+     WHERE tool_name LIKE 'tsx_error_%'`,
+  );
+  assert.equal(persistedErrors.find(row => row.toolName === 'tsx_error_instance')?.error, 'typed action error');
+  assert.equal(persistedErrors.find(row => row.toolName === 'tsx_error_object')?.error, '{"code":"structured-action-error"}');
+  assert.equal(persistedErrors.find(row => row.toolName === 'tsx_error_circular')?.error, 'Unknown error.');
+  assert.equal(persistedErrors.find(row => row.toolName === 'tsx_error_symbol')?.error, 'Unknown error.');
 
   await assert.rejects(
     enqueueMcpControlRequest({ agentId: created.agent.id, action: 'invalid-action' }),

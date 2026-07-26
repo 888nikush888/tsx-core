@@ -44,6 +44,14 @@ function integer(value: unknown, label: string, minimum: number, maximum: number
   return Number(value);
 }
 
+function decimalInput(value: unknown, label: string, maximum: string): string {
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    throw new Error(`${label} must be a decimal number.`);
+  }
+  const serialized = typeof value === 'string' ? value : value.toString();
+  return decimal(serialized, { positive: true, max: maximum });
+}
+
 function identifier(value: unknown, label = 'Channel identifier'): string {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > 128 || /[\r\n\0]/.test(value)) {
     throw new Error(`${label} is invalid.`);
@@ -153,7 +161,7 @@ function normalizedRiskPolicy(
   }
   const version = Number(existing?.policy_version || 0) + 1;
   const manuallyBlocked = input.manuallyBlocked ?? Boolean(existing?.manually_blocked);
-  const blocked = manuallyBlocked ? true : false;
+  const blocked = manuallyBlocked;
   const blockReason = manuallyBlocked ? 'Manually blocked by operator' : null;
   return {
     channelId,
@@ -162,8 +170,8 @@ function normalizedRiskPolicy(
     currentTier,
     lookbackWeeks: integer(input.lookbackWeeks, 'Risk lookback weeks', 1, 12),
     minimumClosedTrades: integer(input.minimumClosedTrades, 'Minimum closed trades', 1, 1_000),
-    lossThresholdPercent: decimal(String(input.lossThresholdPercent), { positive: true, max: '100' }),
-    profitThresholdPercent: decimal(String(input.profitThresholdPercent), { positive: true, max: '100' }),
+    lossThresholdPercent: decimalInput(input.lossThresholdPercent, 'Loss threshold percent', '100'),
+    profitThresholdPercent: decimalInput(input.profitThresholdPercent, 'Profit threshold percent', '100'),
     weakChannelAction: input.weakChannelAction,
     weakWeeksBeforeBlock: integer(input.weakWeeksBeforeBlock, 'Weak weeks before block', 1, 52),
     manuallyBlocked,

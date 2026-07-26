@@ -27,7 +27,13 @@ const ACTION_PERMISSIONS: Record<McpControlAction, McpPermission> = {
 };
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  try {
+    return JSON.stringify(error) || 'Unknown MCP control error.';
+  } catch {
+    return 'Unknown MCP control error.';
+  }
 }
 
 function payloadObject(request: McpControlRequest): Record<string, any> {
@@ -53,7 +59,7 @@ export class McpControlBridge {
   }
 
   async start(): Promise<void> {
-    if (this.worker) return;
+    if (this.worker !== null) return;
     const recovered = await recoverInterruptedMcpControlRequests();
     if (recovered > 0) this.log(`[WARN] ${recovered} interrupted MCP control request(s) marked failed.`);
     this.abortController = new AbortController();
@@ -165,7 +171,7 @@ export class McpControlBridge {
     }
   }
 
-  private executeAuthorized(request: McpControlRequest): unknown | Promise<unknown> {
+  private async executeAuthorized(request: McpControlRequest): Promise<unknown> {
     const payload = payloadObject(request);
     switch (request.action) {
       case 'contracts.create':

@@ -1015,7 +1015,7 @@ async function publishedContractVersion(contractVersionId: string): Promise<{ co
     'SELECT contract_id, status FROM trading_signal_contract_versions WHERE id = ?',
     [contractVersionId],
   );
-  if (!version || version.status !== 'published') {
+  if (version?.status !== 'published') {
     throw new Error('Signal schema must reference a published signal contract version.');
   }
   return version;
