@@ -9,7 +9,7 @@ const shardDefinitions = {
   },
   schema: {
     mutate: ['src/signal_schema.ts'],
-    command: 'node --import tsx tests/test_signal_parser.js',
+    command: 'node --import tsx tests/test_signal_parser.js && node --import tsx tests/test_signal_contract_validation.js',
   },
   'trading-risk': {
     mutate: ['src/trading_risk.ts:45-146'],

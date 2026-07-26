@@ -23,3 +23,5 @@ TDLib-Anforderungen für Telefonnummer, Code, E-Mail, 2FA und Gerätebestätigun
 - Enterprise-Gates können durch den Standalone-Komfortmodus nicht umgangen werden.
 
 ADR 0009 konkretisiert den später hinzugefügten bevorzugten anwendungsweiten Factory Reset. `docker compose down -v` bleibt lediglich der grobe Docker-Volume-Reset; für den Normalbetrieb ist die vorab geprüfte Web-Aktion unter **System & Backup → Factory Reset** maßgeblich.
+
+Ergänzung 26.07.2026: Der Web-first-Standard startet weiterhin genau `forwarder` und `exchange-executor`. Der unabhängige MCP-Dienst ist absichtlich nicht Teil des Defaultstarts und wird nur über `docker compose --profile mcp …` aktiviert.

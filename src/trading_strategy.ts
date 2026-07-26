@@ -15,7 +15,7 @@ export function signalSchemaIdentifier(value: unknown, label = 'Signal schema id
 }
 
 export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   allowedSignalSchemas: ['standard', 'cryptodanielvip', 'loma'],
   allowedSymbols: [],
   allowedSides: ['LONG', 'SHORT'],
@@ -27,6 +27,7 @@ export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
   },
   sizing: {
     riskPerTradePercent: '1',
+    maxAdaptiveRiskPercent: '1',
     maxPositionNotional: '1000',
     maxLeverage: 3,
   },
@@ -76,7 +77,7 @@ function exactKeys(value: Record<string, any>, name: string, keys: string[]): vo
 function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
   'schemaVersion' | 'allowedSignalSchemas' | 'allowedSymbols' | 'allowedSides'
 > {
-  if (value.schemaVersion !== 1) throw new Error('Unsupported strategy schema version.');
+  if (value.schemaVersion !== 1 && value.schemaVersion !== 2) throw new Error('Unsupported strategy schema version.');
   if (!Array.isArray(value.allowedSignalSchemas) || value.allowedSignalSchemas.some(schema => typeof schema !== 'string')) {
     throw new Error('allowedSignalSchemas must be an array of strings.');
   }
@@ -88,7 +89,7 @@ function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
   const sides = uniqueStrings(value.allowedSides, 'allowedSides');
   if (sides.length < 1 || sides.some(side => side !== 'LONG' && side !== 'SHORT')) throw new Error('allowedSides must contain LONG and/or SHORT.');
   return {
-    schemaVersion: 1,
+    schemaVersion: value.schemaVersion,
     allowedSignalSchemas: schemas,
     allowedSymbols: symbols,
     allowedSides: sides as StrategyConfiguration['allowedSides'],
@@ -110,11 +111,21 @@ function validateEntry(input: unknown): StrategyConfiguration['entry'] {
   };
 }
 
-function validateSizing(input: unknown): StrategyConfiguration['sizing'] {
+function validateSizing(input: unknown, schemaVersion: 1 | 2): StrategyConfiguration['sizing'] {
   const value = object(input, 'sizing');
-  exactKeys(value, 'sizing', ['riskPerTradePercent', 'maxPositionNotional', 'maxLeverage']);
+  exactKeys(value, 'sizing', [
+    'riskPerTradePercent', 'maxAdaptiveRiskPercent', 'maxPositionNotional', 'maxLeverage',
+  ]);
+  const riskPerTradePercent = decimal(value.riskPerTradePercent, { positive: true, max: '10' });
+  const maxAdaptiveRiskPercent = schemaVersion === 1
+    ? undefined
+    : decimal(value.maxAdaptiveRiskPercent, { positive: true, max: '10' });
+  if (maxAdaptiveRiskPercent && compareDecimal(maxAdaptiveRiskPercent, riskPerTradePercent) < 0) {
+    throw new Error('sizing.maxAdaptiveRiskPercent must not be below the baseline risk.');
+  }
   return {
-    riskPerTradePercent: decimal(value.riskPerTradePercent, { positive: true, max: '10' }),
+    riskPerTradePercent,
+    ...(maxAdaptiveRiskPercent ? { maxAdaptiveRiskPercent } : {}),
     maxPositionNotional: decimal(value.maxPositionNotional, { positive: true }),
     maxLeverage: integer(value.maxLeverage, 'sizing.maxLeverage', 1, 50),
   };
@@ -185,10 +196,11 @@ export function validateStrategyConfiguration(input: unknown): StrategyConfigura
     'schemaVersion', 'allowedSignalSchemas', 'allowedSymbols', 'allowedSides',
     'entry', 'sizing', 'exits', 'safety',
   ]);
+  const access = validateAccess(value);
   return {
-    ...validateAccess(value),
+    ...access,
     entry: validateEntry(value.entry),
-    sizing: validateSizing(value.sizing),
+    sizing: validateSizing(value.sizing, access.schemaVersion),
     exits: validateExits(value.exits),
     safety: validateSafety(value.safety),
   };

@@ -266,6 +266,7 @@ export function createTradingPlan(input: {
   strategy: StrategyConfiguration;
   account: TradingAccountSnapshot;
   market: TradingMarketSnapshot;
+  effectiveRiskPercent?: string;
   now?: number;
 }): TradingPlan {
   assertStrategyAllows(input.signal, input.strategy);
@@ -273,9 +274,14 @@ export function createTradingPlan(input: {
   const price = quantizedEntryPrice(input.signal, input.strategy, input.market);
   const stop = quantizedStopPrice(input.signal, input.market);
   const distance = riskDistance({ ...input.signal, stopLoss: stop }, price);
-  const configuredRisk = input.signal.suggestedRiskPercent
-    ? minDecimal(input.strategy.sizing.riskPerTradePercent, input.signal.suggestedRiskPercent)
+  const adaptiveCeiling = input.strategy.sizing.maxAdaptiveRiskPercent
+    ?? input.strategy.sizing.riskPerTradePercent;
+  const selectedRisk = input.effectiveRiskPercent
+    ? minDecimal(decimal(input.effectiveRiskPercent, { positive: true, max: '10' }), adaptiveCeiling)
     : input.strategy.sizing.riskPerTradePercent;
+  const configuredRisk = input.signal.suggestedRiskPercent
+    ? minDecimal(selectedRisk, input.signal.suggestedRiskPercent)
+    : selectedRisk;
   const riskAmount = divideDecimal(multiplyDecimal(input.account.equity, configuredRisk), '100');
   const leverage = selectedLeverage(input.signal, input.strategy, input.market);
   const quantity = positionQuantity({

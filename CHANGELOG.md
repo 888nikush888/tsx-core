@@ -11,6 +11,12 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Adaptive TP-Halbierungsstaffel für 1 bis 20 Signal-Targets sowie adaptives SL-Nachziehen: nach TP1/TP2 Break-even, danach TP(i-2), ausschließlich in Gewinnrichtung.
 - Multi-Exchange-Portfolioanalyse mit Konto-/Börsenfilter, 24h/7d/30d/Gesamt-Kennzahlen und klar getrennter nominaler USD-/USDC-/USDT-Sicht.
 - Einheitliches **Signale & Nachrichten** Control Center und Browser-/Accessibility-Gates für Chromium, Firefox, WebKit und Mobile Chromium.
+- Vollständiges, versioniertes CRUD für deklarative Signalverträge mit visuellem Builder, Geometry-/Grounding-Regeln, Vorschau, Duplikation und frei verknüpfbaren Schema-Profilen.
+- Getrenntes Live-Cockpit und Analytics-Labor mit Equity/Drawdown, Tages-/Wochenwerten, Kanalranking, Slippage-/Exchange-Vergleich, Execution-Funnel/-Latenz und Erwartungswert-Rechner.
+- Kanalbezogenes dynamisches Risiko mit festen, beobachtenden oder automatisch angewendeten Stufen, wöchentlicher Performance-Evaluation, manueller Sperre/Fixierung und Weak-Channel-Aktionen.
+- Virtuelle, zusammenhängende Live-Log-Konsole mit Cursor/Ringpuffer und Text-/Regex-Suche sowie globale dynamische `Strg+K`/`⌘K`-Command-Palette.
+- Tailscale-Serve-Identity-Modus mit sichtbarem Remote-Status und sicherem Setup-Script, das Funnel deaktiviert.
+- Optionaler unabhängiger MCP-Streamable-HTTP-Dienst mit gehashten Einmal-Tokens, dauerhaften Minimalrechten, Agenten-/Sitzungs-/Aktions-UI, Ereignis-Push und auditierter Kontrollbrücke.
 
 ### Changed
 
@@ -18,6 +24,8 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - SonarCloud analysiert Produktions- und Testpfade ohne Überlappung, mit festgelegter Python-Version und UTF-8-Quellkodierung.
 - Der Factory Reset stellt Konfiguration und Runtime-Templates reproduzierbar auf die integrierten Defaults zurück und räumt verwalteten Trading-/Secret-Zustand nur nach erfolgreichem Exposure-Preflight auf.
 - Monitoring-Images und GitHub Actions wurden aktualisiert; binäre Erreichbarkeitsnachweise für verbleibende Monitoring-Funde liegen als versionsgebundene OpenVEX-Dokumente vor.
+- Die operative Oberfläche verwendet ein minimalistisches monochromes TSX-Core-Design; Farbe ist keine alleinige Statuscodierung.
+- Der normale Compose-Stack bleibt bei Forwarder plus Exchange-Executor; MCP wird ausschließlich über das Profil `mcp` als dritter Prozess aktiviert.
 
 ### Fixed
 
@@ -25,11 +33,14 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Strategieversionen können nur ohne aktive Route beziehungsweise aufbewahrte Trade-Historie sicher gelöscht werden.
 - Exchange-Order-Historie, Trading-Safety-Halt, Clock-Drift-Gates und Recovery-Pfade bleiben nach Fehlern fail-closed und nachvollziehbar.
 - Sonar-, CodeQL- und Aikido-Funde in Audit-, Backup-, Datenbank-, Process-Lock-, Executor- und Vergleichspfaden wurden behoben und mit Regressionstests abgesichert.
+- Factory Reset und Restore quiescen nun auch interne und unabhängige MCP-Zugriffe über einen gemeinsamen Wartungsmarker, bevor SQLite ersetzt oder gelöscht wird.
 
 ### Security
 
 - Schutz vor Symlink-/Junction-Ausbruch, manipulierten Backup-/Audit-Dateien, unsicheren Vergleichen und ungebundenen Exchange-/DB-Zuständen wurde verschärft.
 - CodeQL, Secret-History, Container-SBOM/Vulnerability Scan und vier kritische Mutation-Gates laufen im verpflichtenden Quality-Workflow.
+- MCP-Agenten besitzen keine Exchange-Secrets oder direkten Adapter; jede Mutation prüft aktuelle Rechte erneut und benötigt einen erfolgreichen Vorab-Audit-Record sowie die bestehende Trading-Sicherheitslogik.
+- Dashboard, Metriken und MCP bleiben Host-Loopback-only; Tailscale Serve ist tailnet-intern und Funnel für diese Endpunkte ausdrücklich verboten.
 
 ## [2.0.0] - 2026-07-21
 

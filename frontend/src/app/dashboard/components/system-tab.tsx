@@ -66,6 +66,17 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
     setRuntimeSettings((current: any) => ({ ...current, [name]: value }))
   }
 
+  const updateAuthenticationMode = (mode: string) => {
+    setRuntimeSettings((current: any) => ({
+      ...current,
+      dashboardAuthMode: mode,
+      ...(mode === "tailscale" ? {
+        dashboardLocalTrust: false,
+        tailscaleServeTrustedProxy: true,
+      } : {}),
+    }))
+  }
+
   const toggleEnterpriseMode = (enabled: boolean) => {
     setRuntimeSettings((current: any) => ({
       ...current,
@@ -443,6 +454,7 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
               {[
                 ["enterpriseMode", "Enterprise-Modus"],
                 ["dashboardLocalTrust", "Integrierter lokaler Start"],
+                ["tailscaleServeTrustedProxy", "Tailscale-Serve-Proxy vertrauen"],
                 ["auditRemoteRequired", "Remote-Audit verpflichtend"],
                 ["backupOffsiteRequired", "Off-site-Backup verpflichtend"],
                 ["jsonLogging", "JSON-Logging"],
@@ -457,13 +469,16 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="dashboardAuthMode">Dashboard-Authentifizierung</Label>
-                <select id="dashboardAuthMode" className="h-9 w-full rounded-md border bg-background px-3 text-sm" value={runtimeSettings.dashboardAuthMode} onChange={(event) => updateRuntimeSetting("dashboardAuthMode", event.target.value)}>
+                <select id="dashboardAuthMode" className="h-9 w-full rounded-md border bg-background px-3 text-sm" value={runtimeSettings.dashboardAuthMode} onChange={(event) => updateAuthenticationMode(event.target.value)}>
                   <option value="token">Lokale Bearer-Keys</option>
                   <option value="oidc">OIDC</option>
+                  <option value="tailscale">Tailscale Serve Identity</option>
                 </select>
               </div>
               {[
                 ["dashboardAllowedOrigin", "Erlaubte externe Dashboard-Origin"],
+                ["tailscaleAdminUsers", "Tailscale Admin-Logins (Komma)"],
+                ["tailscaleViewerUsers", "Tailscale Viewer-Logins (Komma)"],
                 ["oidcIssuer", "OIDC Issuer"],
                 ["oidcAudience", "OIDC Audience"],
                 ["oidcJwksUrl", "OIDC JWKS URL"],

@@ -8,6 +8,8 @@ Die vollständige, verbindliche Anleitung für Installation, Konfiguration, Nutz
 
 Die vollständige Trading-Einrichtung für selbst verwaltete Signal-Schemas, paralleles Kanal-Routing, Hyperliquid/Bybit, adaptive TP-Staffelung, SL-Nachziehen und Notfälle steht in [`docs/TRADING_GUIDE.md`](docs/TRADING_GUIDE.md).
 
+Die Einrichtung des optionalen, eigenständigen MCP-Dienstes, der Agenten-Tokens, dauerhaften Berechtigungen und Ereignis-Abonnements steht in [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md).
+
 Weitere verbindliche Dokumente:
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) – Komponenten, Trust Boundaries und Zustandsflüsse;
@@ -35,8 +37,10 @@ Damit das Projekt übersichtlich bleibt, sind die Dateien klar aufgeteilt:
 │   ├── metrics.ts            # Prometheus-Metriken und Healthcheck HTTP-Server
 │   ├── queue.ts              # Concurrency-Queue für asynchrone Nachrichtenweiterleitung
 │   ├── signal_parser.ts      # TS-Modul zur KI-XML-Signalextraktion via OpenRouter
-│   ├── signal_schema.ts      # Strikte XML-, Grounding- und USD-Quote-Validierung
-│   ├── trading_*.ts          # Strategien, Schema-Profile, Risiko, Orders und Reconciliation
+│   ├── signal_schema.ts      # Dynamische XML-, Grounding- und USD-Quote-Validierung
+│   ├── signal_contract.ts    # Deklarativer, versionierter Signalvertrags-Interpreter
+│   ├── trading_*.ts          # Strategien, Kanalrisiko, Telemetrie, Orders und Reconciliation
+│   ├── mcp_*.ts              # Agentenidentitäten, Kontrollbrücke und MCP-Server
 │   └── web_server.ts         # Authentifizierte Web-Control-Plane und API
 ├── frontend/                 # React/Vite Dashboard einschließlich Trading Builder
 ├── exchange_executor/        # Internes Python-Sidecar für offizielle Exchange-SDKs
@@ -63,6 +67,9 @@ Das System wurde auf Enterprise-Niveau gehoben und nutzt moderne Best Practices:
 2. **Prometheus HTTP-Server**: Liefert Metriken (`/metrics`) über Systemdurchsatz und Queue-Zustände sowie Healthchecks (`/healthz`) für Container-Orchestratoren auf Port `9100`.
 3. **Structured JSON Logging**: Im Container-Betrieb gibt der Service strukturierte JSON-Meldungen direkt an `stdout` aus, um sie in Log-Aggregatoren wie Kibana, Splunk oder Datadog einzulesen.
 4. **Multi-Stage Docker Pipeline**: Der Compiler läuft in einer Build-Stufe. Das produktive Docker-Image enthält nur die kompilierten Dateien und native Produktivabhängigkeiten – sicher, gehärtet und klein.
+5. **Dynamische Signalverträge**: Verträge sind versionierte SQLite-Datensätze. Der visuelle Builder verwaltet XML-Pfade, Feldtypen, Entry-/Target-Form, Geometrie und Quelltext-Erdung ohne ausführbaren Benutzer-Code.
+6. **Cockpit und Labor**: Das Dashboard zeigt im Cockpit nur Live-Sicherheit, Positionen, PnL und Signalstrom. Equity, Drawdown, Kanalqualität, Slippage, Latenz und Simulation liegen im separaten Analytics-Bereich.
+7. **Agenten-Control-Plane**: Ein optionaler MCP-Dienst verwendet pro Agent gehashte Tokens und dauerhaft verwaltete Minimalrechte. Schreibaktionen laufen nicht direkt gegen SQLite oder Exchanges, sondern über die auditierte TSX-Core-Kontrollbrücke.
 
 ---
 
@@ -96,7 +103,7 @@ Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verket
 ### Trading vollständig im Web einrichten
 
 1. Unter **Trading → Paper-Märkte** zunächst Equity und Marktmetadaten für `paper-default` konfigurieren. Paper/Testnet sind der sichere Standard.
-2. Unter **Trading → Strategien** die erlaubten Signal-Schema-Profile selbst anlegen, bearbeiten, aktivieren/deaktivieren oder löschen und danach einen Strategieentwurf speichern und publizieren. Die adaptive TP-Halbierungsstaffel funktioniert automatisch mit 1 bis 20 Signal-Targets; das adaptive SL-Nachziehen setzt nach TP1/TP2 Break-even und danach den Stop auf TP(i-2). Alternativ bleiben manuelle TP-Prozente sowie konfiguriertes Break-even/Prozent-Trailing verfügbar. Profile aktiver Kanalrouten sind gegen Änderung und Löschung geschützt; unbekannte oder deaktivierte Profile bleiben fail-closed. Publizierte Strategieversionen sind immutable; Änderungen erfolgen als neue Version.
+2. Unter **Trading → Verträge** Signalverträge visuell erstellen, duplizieren, als Entwurf bearbeiten, mit XML und Quelltext testen und anschließend publizieren. Danach unter **Trading → Strategien** ein Signal-Schema-Profil mit einem beliebigen publizierten Vertrag und Parser-Template verknüpfen und die Strategie publizieren. Aktive Profile schützen ihren Vertrag gegen Archivierung; unbekannte, deaktivierte oder nicht publizierte Verknüpfungen bleiben fail-closed. Die adaptive TP-Halbierungsstaffel funktioniert automatisch mit 1 bis 20 Signal-Targets; das adaptive SL-Nachziehen setzt nach TP1/TP2 Break-even und danach den Stop auf TP(i-2).
 3. Unter **Trading → Börsenkonten** Hyperliquid oder Bybit wählen, Testnet/Live bestimmen und die Keys eingeben. Die UI zeigt danach nur Konfigurations- und Verifikationsstatus; Keys werden nie zurückgelesen. Hyperliquid erwartet einen dedizierten API-Wallet Private Key plus Master-Wallet-Adresse, Bybit einen API-Key mit ausschließlich erforderlichen Futures-Handelsrechten. Withdrawal-Rechte sind nicht erforderlich und dürfen nicht vergeben werden.
 4. Unter **Trading → Kanal-Routing** jeden Telegram-Quellkanal genau einer publizierten Strategieversion und einem aktivierten Konto zuordnen. Kanal A, B und C können gleichzeitig unterschiedliche Strategien/Konten ausführen; dasselbe Konto/Symbol bleibt exklusiv bei einer aktiven Position.
 5. Unter **Trading → Betrieb** zuerst reconciliieren und dann die automatische Ausführung aktivieren. Für Echtgeld muss einmal exakt `ENABLE LIVE TRADING` bestätigt werden. Danach läuft die freigegebene Strategie ohne Approval pro Einzeltrade.
@@ -105,6 +112,28 @@ Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verket
 Die Anwendung führt keinen beliebigen in der UI eingegebenen Code aus. „Plugins“ sind strikt validierte, versionierte deklarative Strategien; ein neuer grundlegend anderer Algorithmus benötigt eine getestete Engine-Version. Exchange-Zugriffe laufen ausschließlich über das interne Sidecar mit den offiziellen SDKs `hyperliquid-python-sdk` und `pybit`; das Sidecar besitzt keinen Host-Port.
 
 Ausführbare Signale müssen immer gegen `USD`, `USDC` oder `USDT` notiert sein. Andere Quote-Assets oder uneindeutige Paare werden vor dem Erzeugen eines Trade Intents abgewiesen.
+
+### Bedienoberfläche
+
+- **Cockpit**: Kill-Switch, Execution-/Live-/Paper-Zustand, aktive Positionen mit PnL, letzter Signalstrom und Notfallaktionen.
+- **Analytics**: Equity-Kurve, Drawdown, tägliche/wöchentliche Auswertung, Kanalranking, Slippage-/Exchange-Vergleich, Signal-zu-Ausführungs-Latenz und Erwartungswert-Simulation.
+- **Dynamisches Kanalrisiko**: je Telegram-Kanal `fixed`, `shadow` oder `automatic`, gestaffelte Risikoprozentwerte, Lookback, Mindest-Trades, Gewinn-/Verlustschwellen, automatische Reduktion/Sperre sowie manuelle Sperre/Stufenfixierung. Die Strategieobergrenze und alle globalen Safety-Gates bleiben zwingend.
+- **Logs**: zusammenhängender Live-Terminalstrom mit 20.000 Zeilen Ringpuffer, Freitext-/Regex-Suche und virtueller Darstellung; keine Level-Filter zerreißen Abläufe.
+- **Command Palette**: `Strg+K` beziehungsweise `⌘K` öffnet Navigation, Verträge, Kanäle, Positionen und erlaubte Schnellaktionen.
+- **Monochrom-Design**: Status wird durch Text, Punkte, Konturen und invertierte Auswahlzustände vermittelt, nicht ausschließlich durch Farbe.
+
+### Sicherer Remote-Zugriff und MCP
+
+Für WLAN/VPN ist **Tailscale Serve** der bevorzugte Weg. Dashboard und MCP bleiben auf Host-Loopback; Serve veröffentlicht sie nur im Tailnet. **Tailscale Funnel ist verboten**, weil es einen öffentlichen Internet-Endpunkt erzeugt. Im Dashboard-Authentifizierungsmodus `tailscale` akzeptiert TSX Core ausschließlich die von einem ausdrücklich vertrauten lokalen Serve-Proxy gelieferten Identitätsheader und ordnet Login-Adressen einer Admin- oder Viewer-Allowlist zu. `scripts/configure_tailscale_serve.ps1` deaktiviert Funnel für den Zielport und richtet Serve auf den Loopback-Dienst ein.
+
+Der MCP-Dienst ist optional und startet nicht im normalen Zwei-Service-Stack:
+
+```bash
+docker compose --profile mcp up --build -d
+curl --fail http://127.0.0.1:8091/healthz
+```
+
+Unter **MCP-Agenten** wird für jeden Agenten ein Token genau einmal ausgegeben. TSX Core speichert nur SHA-256, zeigt aktive Sitzungen und protokolliert jeden Tool-Aufruf. Rechte und Ereignis-Abonnements gelten dauerhaft, bis ein Admin sie ändert, den Agenten deaktiviert oder den Token rotiert. Details und Client-Beispiel: [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md).
 
 ### Zustellgarantie und Recovery
 
@@ -189,6 +218,8 @@ Vor einem Modell-, Prompt- oder Template-Release muss mit Staging-Zugang `npm ru
 
 Der Container läuft als unprivilegierter Benutzer mit schreibgeschütztem Root-Dateisystem, ohne Linux-Capabilities und mit CPU-, RAM-, PID- und Log-Grenzen. Compose initialisiert benannte Volumes für Konfiguration, Secrets, Templates, TDLib-Sitzung, SQLite, Signale, Logs und Backups; Updates und normale Container-Neuerstellungen erhalten diese Daten.
 
+Der Standardstart erzeugt genau zwei Services: `forwarder` besitzt Telegram, Dashboard, Trading-Zustand und Sicherheitslogik; `exchange-executor` kapselt die offiziellen Python-SDKs und besitzt keinen Host-Port. Diese Prozessgrenze hält native Exchange-Abhängigkeiten und deren Credentials aus der Node-Control-Plane heraus. `mcp-server` ist ein dritter, unabhängiger Dienst, wird aber ausschließlich mit dem Compose-Profil `mcp` gestartet und teilt nur das SQLite-State-Volume. Er besitzt weder Telegram- noch Exchange-Secrets.
+
 ```bash
 # Start oder Update
 docker compose up --build -d
@@ -204,7 +235,7 @@ docker compose down
 docker volume ls --filter name=tsx-core_forwarder
 ```
 
-Dashboard und Metriken werden ausschließlich auf Host-Loopback veröffentlicht; externer Zugriff benötigt einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
+Dashboard, Metriken und der optionale MCP-Port werden ausschließlich auf Host-Loopback veröffentlicht. Externer Zugriff erfolgt bevorzugt über Tailscale Serve oder alternativ einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
 
 Incident-URL, internes Relay-Token und Incident-Gateway-Token werden vollständig im Web unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** beziehungsweise **Enterprise-Secrets** gesetzt. Danach startet `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d` den Monitoring-Stack; Alertmanager und Relay lesen ausschließlich die verwalteten Config-/Secret-Volumes, nicht `.env` oder Host-Secret-Dateien. Prometheus und Alertmanager sind per unveränderlichem Multi-Arch-Digest gepinnt, speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
 

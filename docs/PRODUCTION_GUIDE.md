@@ -16,9 +16,10 @@ Die wichtigsten Oberflächen sind:
 
 | Oberfläche | Standard | Zweck | Produktionsgrenze |
 | --- | --- | --- | --- |
-| Web-Dashboard/API | `127.0.0.1:8080` | Status, Konfiguration, Outbox, kontrollierte Aktionen | Nur über TLS-/OIDC-Proxy remote erreichbar |
+| Web-Dashboard/API | `127.0.0.1:8080` | Cockpit, Analytics, Verträge, Konfiguration und kontrollierte Aktionen | Bevorzugt Tailscale Serve im Tailnet; Enterprise alternativ/zusätzlich TLS/OIDC |
+| MCP Streamable HTTP | `127.0.0.1:8091` | optionale Agenten-Tools, Events und Kontrollanforderungen | eigenes Compose-Profil, Bearer pro Agent, niemals Funnel |
 | Prometheus | `127.0.0.1:9100` | `/metrics`, `/healthz`, `/readyz` | Nur intern oder über read-only Monitoring-Zugriff |
-| SQLite | `session_data/forwarder.db` | Inbox, Outbox, Signale, Budgets, Migrationen | Nie live kopieren oder manuell bearbeiten |
+| SQLite | `session_data/forwarder.db` | Inbox/Outbox, Verträge, Trading, Kanalrisiko, Telemetrie, MCP und Migrationen | Nie live kopieren oder manuell bearbeiten |
 | Audit-Kette | `logs/audit-chain.jsonl` | Manipulationsnachweis mutierender API-Aufrufe | Produktion verlangt unveränderlichen Off-host-Empfänger |
 | Backups | `backups/` plus Off-host-Store | Verifizierte, verschlüsselte Wiederherstellung | Lokales Verzeichnis allein erfüllt DR nicht |
 
@@ -36,7 +37,7 @@ Für lokale Verifikation:
 Für Produktion zusätzlich:
 
 - Linux-Host oder vergleichbare Containerplattform; das distroless Image läuft als UID/GID `65532:65532`, benannte Docker-Volumes werden vom Image passend initialisiert;
-- TLS-Reverse-Proxy und OIDC-Provider;
+- Tailscale mit MagicDNS/HTTPS für den bevorzugten tailnet-internen Remote-Zugriff oder ein gehärteter TLS-Reverse-Proxy und OIDC-Provider;
 - unveränderlicher externer Audit-Empfänger;
 - authentifizierter, rücklesbarer Off-host-Objektspeicher und davon getrennt verwalteter AES-Schlüssel;
 - Prometheus, Alertmanager, Incident-Empfänger und benannter On-Call;
@@ -103,6 +104,16 @@ Ist eine verwaltete Konfiguration, Runtime-Einstellung oder Secret-Datei beschä
 
 Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System & Backup → API- und Bearer-Keys** serverseitig erzeugt, rotiert oder deaktiviert. Der Klartext wird genau einmal angezeigt; eine Admin-Rotation ersetzt sofort den aktiven Browserzugang.
 
+### Tailscale Serve
+
+Für WLAN/VPN ist Tailscale Serve der bevorzugte Remote-Pfad. Das Dashboard bleibt auf `127.0.0.1`; der Tailscale-Daemon terminiert Tailnet-HTTPS und setzt verifizierte Identitätsheader. Unter **System & Backup** wird `dashboardAuthMode=tailscale`, `dashboardLocalTrust=false`, `tailscaleServeTrustedProxy=true`, die exakte `https://…ts.net`-Origin und mindestens ein Admin-Login gespeichert. TSX Core ignoriert nicht erlaubte Logins und vertraut Headern nur in dieser expliziten Konfiguration.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\configure_tailscale_serve.ps1
+```
+
+Das Script prüft den Tailnet-Status, deaktiviert Funnel für den HTTPS-Port und proxyt ausschließlich auf Host-Loopback. **Funnel darf für Dashboard oder MCP niemals aktiviert werden.** Für den MCP-Port kann derselbe Ablauf mit `-DashboardPort 8091 -HttpsPort 8443` verwendet werden; der MCP-Bearer bleibt zwingend. Enterprise-Modus erzwingt weiterhin OIDC und die externen Audit-/Backup-Gates.
+
 ### Enterprise-Modus
 
 Der Enterprise-Modus wird unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** vorbereitet. Dort werden OIDC, externe Origin, Remote-Audit, Incident-Webhook, Off-site-Backup, Retention, Kapazitätsgrenzen und Timeouts atomar in `forwarder_config` gespeichert. Audit-, Alert- und Backup-Tokens sowie der AES-Schlüssel werden getrennt unter **Enterprise-Secrets** write-only gespeichert. **Container kontrolliert neu starten** aktiviert die Konfiguration.
@@ -156,6 +167,13 @@ docker compose ps
 docker compose logs --tail=200 forwarder
 ```
 
+Der Standard startet zwei Services: `forwarder` und den intern-only `exchange-executor`. Der optionale, secret-arme MCP-Prozess ist ein dritter Service und wird nur bewusst gestartet:
+
+```bash
+docker compose --profile mcp up --build -d
+curl --fail http://127.0.0.1:8091/healthz
+```
+
 Kontrollierter Stopp ohne Datenlöschung:
 
 ```bash
@@ -164,7 +182,7 @@ docker compose down
 
 `docker compose down -v` löscht die persistenten Volumes und ist ausschließlich für einen bewusst bestätigten Total-Reset zulässig. Für normale Updates darf `-v` nie verwendet werden.
 
-Der bevorzugte anwendungsweite Total-Reset befindet sich unter **System & Backup → Factory Reset** und verlangt die Eingabe `RESET`. Vor der Stilllegung prüft er sämtliche Pfade und Secret-Quellen. Danach löscht er Konfiguration, alle verwalteten Secrets/Bearer-Keys, Runtime-Einstellungen, Templates, TDLib-Sitzung, Datenbank, Session-Dateien, Signale, Logs, lokale Audit-Kette und Backups und startet in den integrierten Erststart. Das Löschen des AES-Schlüssels bewirkt Crypto-Erasure verbleibender Off-site-Objekte. Ein externer Enterprise-Audit-Empfänger bewahrt bereits zugestellte Reset-Evidenz unabhängig von der lokalen Installation.
+Der bevorzugte anwendungsweite Total-Reset befindet sich unter **System & Backup → Factory Reset** und verlangt die Eingabe `RESET`. Vor der Stilllegung prüft er sämtliche Pfade und Secret-Quellen. MCP-Kontrollbrücke und unabhängiger MCP-Dienst werden über einen gemeinsamen Wartungsmarker gestoppt, bevor SQLite geschlossen wird. Danach löscht der Reset Konfiguration, alle verwalteten Secrets/Bearer-Keys, Runtime-Einstellungen, Templates, TDLib-Sitzung, Datenbank, Session-Dateien, Signale, Logs, lokale Audit-Kette und Backups und startet in den integrierten Erststart. Das Löschen des AES-Schlüssels bewirkt Crypto-Erasure verbleibender Off-site-Objekte. Ein externer Enterprise-Audit-Empfänger bewahrt bereits zugestellte Reset-Evidenz unabhängig von der lokalen Installation.
 
 Der Reset betrifft konkret:
 
@@ -175,7 +193,7 @@ Der Reset betrifft konkret:
 | Managed-Secret-Store | Telegram API Hash, OpenRouter-Key, Admin-/Viewer-Keys, Audit-/Alert-/Backup-Tokens und AES-Schlüssel werden entfernt |
 | Trading-Credential-Store | Hyperliquid-/Bybit-Zugangsdaten und interner Executor-Key werden entfernt |
 | `templates/` | alle lokalen Template-Overrides werden geleert; der eingebaute Default-Prompt greift wieder |
-| `session_data/` | SQLite einschließlich Inbox/Outbox, Signalen, Budgets, Migrationen, Schema-Profilen, Strategien, Routen, Intents, Orders, Fills, Positionen und Risk Events sowie Lock-/Crash-Zustand wird entfernt |
+| `session_data/` | SQLite einschließlich Inbox/Outbox, Signalen, Budgets, Migrationen, Signalverträgen/-profilen, Strategien, Kanalrisiko/-evaluationen, Equity-/Execution-Telemetrie, MCP-Agenten/-Sitzungen/-Aktionen/-Requests, Routen, Intents, Orders, Fills, Positionen und Risk Events sowie Lock-/Crash-Zustand wird entfernt |
 | `session_files/` | TDLib-Dateien und lokale Telegram-Sitzung werden entfernt; eine erneute Anmeldung ist erforderlich |
 | konfiguriertes Signalverzeichnis und `signals/` | gespeicherte XML-Signale werden entfernt |
 | `backups/` | lokale Backup-Artefakte werden entfernt |
@@ -225,6 +243,8 @@ docker compose -f docker-compose.yml -f docker-compose.monitoring.yml images
 
 Production deployment treats the forwarder and exchange executor as one release unit with two independent digests. Copy both references from the signed release manifest; a local tag or a missing executor digest is a failed deployment precondition.
 
+Der MCP-Dienst verwendet dasselbe attestierte `FORWARDER_IMAGE`, aber einen anderen Entry Point. Wenn er eingesetzt wird, muss auch `docker compose --profile mcp …` gegen exakt diesen Digest geprüft werden. Er fügt kein drittes Release-Image hinzu.
+
 `FORWARDER_IMAGE` wird sowohl für den Forwarder als auch den Alert-Relay gesetzt. `--no-build` verhindert, dass der freigegebene Digest unbemerkt durch ein lokales Build ersetzt wird. Tag, Digest und Ausgabe von `docker compose images` werden im Deployment-Record festgehalten.
 
 Nach dem ersten Start müssen innerhalb des freigegebenen Wartungsfensters geprüft werden:
@@ -255,6 +275,8 @@ Eine `unknown`-Zustellung wird zuerst im Zielkanal reconciled:
 - weiterhin unklar: Eintrag bleibt `unknown`, Routing gegebenenfalls stoppen und eskalieren.
 
 Es gibt absichtlich keinen automatischen Retry für `unknown`, weil das Duplikatrisiko nicht beweisbar ist. Diese Operator-Reconciliation ist Incident-Handling und keine inhaltliche Freigabe jedes normalen KI-Signals.
+
+Der Dashboard-Tab **MCP-Agenten** ist ebenfalls admin-gesteuert. Agenten-Tokens werden nur einmal ausgegeben und ausschließlich gehasht gespeichert; Rechteänderung, Deaktivierung und Rotation wirken auf aktive Sitzungen. MCP-Schreibaktionen umgehen weder `TradingWebControl` noch Audit, Kill-Switch, Reconciliation, Protective Stops oder managed-position ownership. Verbindliche Einrichtung, Rechte, Tools, Ereignisse und Incident-Ablauf stehen in [MCP_GUIDE.md](MCP_GUIDE.md).
 
 ## 10. Automatische KI-Verarbeitung ohne Human-in-the-loop
 
@@ -336,7 +358,7 @@ Ein Gate darf nur über einen gültigen, höchstens 30 Tage laufenden Record unt
 
 ## Trading-Betrieb
 
-Die vollständige Web-Anleitung für selbst verwaltete Signal-Schema-Profile, ausschließlich USD/USDC/USDT-notierte Paare, Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, adaptive TP-Staffelung, SL-Nachziehen, Live-Gate und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading ist Teil derselben Datenbank-, Audit-, Backup-, Monitoring- und Release-Grenze. Der Release veröffentlicht und attestiert deshalb zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor.
+Die vollständige Web-Anleitung für visuell verwaltete Signalverträge, frei verknüpfbare Schema-Profile, ausschließlich USD/USDC/USDT-notierte Paare, dynamisches Kanalrisiko, Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, adaptive TP-Staffelung, SL-Nachziehen, Cockpit/Analytics, Live-Gate und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading ist Teil derselben Datenbank-, Audit-, Backup-, Monitoring- und Release-Grenze. Der Release veröffentlicht und attestiert deshalb zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor.
 
 ## 14. Enterprise-Nachweise und aktuelle offene Punkte
 

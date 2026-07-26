@@ -1,8 +1,12 @@
 import type { ExecutableSignal, ExecutableSignalSchemaContract } from './trading_types.js';
+import { validateSignalContractDefinition } from './signal_contract.js';
+import type { SignalContractAdditionalField, SignalContractDefinition } from './trading_types.js';
 
 export interface ExecutableSignalSchemaSelection {
   id: string;
   parserSchema: ExecutableSignalSchemaContract;
+  contractVersionId?: string;
+  contractDefinition?: SignalContractDefinition;
 }
 
 interface XmlNode {
@@ -20,6 +24,7 @@ export interface ValidatedSignal {
   groundingNumbers: string[];
   groundingFields: GroundingField[];
   groundingComment?: string;
+  groundingPolicy?: { action: boolean; pair: boolean };
   execution?: ExecutableSignal;
 }
 
@@ -451,6 +456,325 @@ function validateSpeculant(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema
   return { action, pair, groundingNumbers: [], groundingFields: [], groundingComment: comment };
 }
 
+function pathNodes(root: XmlNode, path: string): XmlNode[] {
+  let current = [root];
+  for (const segment of path.split('.')) {
+    current = current.flatMap(node => children(node, segment));
+  }
+  return current;
+}
+
+function pathNode(root: XmlNode, path: string, requiredValue: boolean): XmlNode | undefined {
+  const matches = pathNodes(root, path);
+  if (matches.length > 1) throw new SignalValidationError(`Contract path '${path}' must resolve at most once.`);
+  if (requiredValue && matches.length !== 1) {
+    throw new SignalValidationError(`Required contract path '${path}' must appear exactly once.`);
+  }
+  return matches[0];
+}
+
+function pathLeaf(root: XmlNode, path: string, requiredValue: boolean): string | undefined {
+  const node = pathNode(root, path, requiredValue);
+  return node ? leaf(node) : undefined;
+}
+
+function addDeclaredPath(map: Map<string, Set<string>>, path: string): void {
+  const segments = path.split('.');
+  let parent = '';
+  for (const segment of segments) {
+    const allowed = map.get(parent) ?? new Set<string>();
+    allowed.add(segment);
+    map.set(parent, allowed);
+    parent = parent ? `${parent}.${segment}` : segment;
+  }
+}
+
+function declaredStructure(definition: SignalContractDefinition): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>();
+  const paths = [
+    definition.actionPath,
+    definition.pairPath,
+    definition.entry.typePath,
+    definition.entry.minimumPath,
+    definition.entry.maximumPath,
+    definition.targets.containerPath,
+    definition.stopLossPath,
+    definition.leveragePath,
+    definition.riskPercentPath,
+    definition.averagingPricePath,
+    ...definition.additionalFields.map(field => field.path),
+  ].filter((value): value is string => Boolean(value));
+  for (const path of paths) addDeclaredPath(map, path);
+  const targetContainer = definition.targets.containerPath;
+  const targetAllowed = map.get(targetContainer) ?? new Set<string>();
+  targetAllowed.add(definition.targets.itemTag);
+  map.set(targetContainer, targetAllowed);
+  if (definition.targets.shape === 'range') {
+    addDeclaredPath(map, `${targetContainer}.${definition.targets.itemTag}.${definition.targets.minimumPath}`);
+    addDeclaredPath(map, `${targetContainer}.${definition.targets.itemTag}.${definition.targets.maximumPath}`);
+  }
+  return map;
+}
+
+function assertDeclaredNode(node: XmlNode, path: string, structure: Map<string, Set<string>>): void {
+  const allowed = structure.get(path) ?? new Set<string>();
+  if (node.children.length > 0 && node.text.trim()) {
+    throw new SignalValidationError(`Mixed text is not allowed inside '${node.name}'.`);
+  }
+  for (const child of node.children) {
+    if (!allowed.has(child.name)) throw new SignalValidationError(`Unknown tag '${child.name}' in '${node.name}'.`);
+    const childPath = path ? `${path}.${child.name}` : child.name;
+    assertDeclaredNode(child, childPath, structure);
+  }
+}
+
+function contractDecimal(root: XmlNode, path: string, requiredValue: boolean): string | undefined {
+  const node = pathNode(root, path, requiredValue);
+  return node ? decimal(node, path) : undefined;
+}
+
+function validateAdditionalFieldText(field: SignalContractAdditionalField, value: string): void {
+  if (field.allowedValues.length > 0 && !field.allowedValues.includes(value)) {
+    throw new SignalValidationError(`Contract path '${field.path}' contains an unsupported value.`);
+  }
+  if (field.maximumLength !== undefined && value.length > field.maximumLength) {
+    throw new SignalValidationError(`Contract path '${field.path}' exceeds its maximum length.`);
+  }
+  if (field.pattern && !new RegExp(field.pattern, 'u').test(value)) {
+    throw new SignalValidationError(`Contract path '${field.path}' does not match its required pattern.`);
+  }
+}
+
+function validateAdditionalFieldType(field: SignalContractAdditionalField, value: string): void {
+  if (field.type === 'boolean' && value !== 'true' && value !== 'false') {
+    throw new SignalValidationError(`Contract path '${field.path}' must be true or false.`);
+  }
+  if (field.type === 'integer' && !/^(?:0|[1-9]\d{0,17})$/.test(value)) {
+    throw new SignalValidationError(`Contract path '${field.path}' must be an unsigned integer.`);
+  }
+}
+
+function validateAdditionalDecimal(root: XmlNode, field: SignalContractAdditionalField): void {
+  const normalized = decimal(pathNode(root, field.path, true)!, field.path);
+  if (field.minimum && compareDecimals(normalized, field.minimum) < 0) {
+    throw new SignalValidationError(`Contract path '${field.path}' is below its minimum.`);
+  }
+  if (field.maximum && compareDecimals(normalized, field.maximum) > 0) {
+    throw new SignalValidationError(`Contract path '${field.path}' exceeds its maximum.`);
+  }
+}
+
+function validateAdditionalField(root: XmlNode, field: SignalContractAdditionalField): void {
+  const value = pathLeaf(root, field.path, field.required);
+  if (value === undefined) return;
+  validateAdditionalFieldText(field, value);
+  validateAdditionalFieldType(field, value);
+  if (field.type === 'decimal') validateAdditionalDecimal(root, field);
+}
+
+function contractEntry(
+  root: XmlNode,
+  definition: SignalContractDefinition,
+): { min: string; max: string } | undefined {
+  let rangeRequired = definition.entry.mode === 'required_range';
+  if (definition.entry.mode === 'typed') {
+    const type = pathLeaf(root, definition.entry.typePath!, true)!;
+    if (definition.entry.marketValues.includes(type)) rangeRequired = false;
+    else if (definition.entry.rangeValues.includes(type)) rangeRequired = true;
+    else throw new SignalValidationError(`Entry type '${type}' is not allowed by the contract.`);
+  }
+  const minimum = contractDecimal(root, definition.entry.minimumPath, rangeRequired);
+  const maximum = contractDecimal(root, definition.entry.maximumPath, rangeRequired);
+  if ((minimum === undefined) !== (maximum === undefined)) {
+    throw new SignalValidationError('Entry range minimum and maximum must either both be present or both be absent.');
+  }
+  if (definition.entry.mode === 'typed' && !rangeRequired && minimum !== undefined) {
+    throw new SignalValidationError('Market entry must omit its entry range.');
+  }
+  if (minimum === undefined || maximum === undefined) return undefined;
+  if (compareDecimals(minimum, maximum) > 0) {
+    throw new SignalValidationError('Entry range minimum must not exceed maximum.');
+  }
+  return { min: minimum, max: maximum };
+}
+
+function targetItemRange(item: XmlNode, definition: SignalContractDefinition): { min: string; max: string } {
+  if (definition.targets.shape === 'scalar') {
+    const value = decimal(item, 'target');
+    return { min: value, max: value };
+  }
+  const minimum = contractDecimal(item, definition.targets.minimumPath, true)!;
+  const maximum = contractDecimal(item, definition.targets.maximumPath, true)!;
+  if (compareDecimals(minimum, maximum) > 0) {
+    throw new SignalValidationError('Target range minimum must not exceed maximum.');
+  }
+  return { min: minimum, max: maximum };
+}
+
+function contractTargets(root: XmlNode, definition: SignalContractDefinition): Array<{ min: string; max: string }> {
+  const container = pathNode(root, definition.targets.containerPath, true)!;
+  const items = children(container, definition.targets.itemTag);
+  if (items.length < definition.targets.minimumItems || items.length > definition.targets.maximumItems) {
+    throw new SignalValidationError(
+      `Targets must contain between ${definition.targets.minimumItems} and ${definition.targets.maximumItems} items.`,
+    );
+  }
+  return items.map((item, index) => {
+    if (definition.targets.sequentialIds && item.id !== index + 1) {
+      throw new SignalValidationError('Target ids must be sequential and start at 1.');
+    }
+    return targetItemRange(item, definition);
+  });
+}
+
+function assertContractGeometry(
+  definition: SignalContractDefinition,
+  action: 'LONG' | 'SHORT',
+  entry: { min: string; max: string } | undefined,
+  stopLoss: string,
+  targets: Array<{ min: string; max: string }>,
+): void {
+  const baselineMinimum = entry?.min ?? targets[0]!.min;
+  const baselineMaximum = entry?.max ?? targets[0]!.max;
+  if (definition.geometry.stopOnLossSide) {
+    if (action === 'LONG' && compareDecimals(stopLoss, baselineMinimum) >= 0) {
+      throw new SignalValidationError('LONG stoploss must be below the entry range.');
+    }
+    if (action === 'SHORT' && compareDecimals(stopLoss, baselineMaximum) <= 0) {
+      throw new SignalValidationError('SHORT stoploss must be above the entry range.');
+    }
+  }
+  targets.forEach((target, index) => {
+    if (definition.geometry.orderedRanges && compareDecimals(target.min, target.max) > 0) {
+      throw new SignalValidationError(`Target ${index + 1} range is inverted.`);
+    }
+    if (definition.geometry.targetsOnProfitSide && entry) {
+      if (action === 'LONG' && compareDecimals(target.min, baselineMaximum) <= 0) {
+        throw new SignalValidationError(`LONG target ${index + 1} must be above entry.`);
+      }
+      if (action === 'SHORT' && compareDecimals(target.max, baselineMinimum) >= 0) {
+        throw new SignalValidationError(`SHORT target ${index + 1} must be below entry.`);
+      }
+    }
+    if (!definition.geometry.orderedTargets || index === 0) return;
+    const previous = targets[index - 1]!;
+    if (action === 'LONG' && compareDecimals(target.min, previous.max) <= 0) {
+      throw new SignalValidationError('LONG targets must be strictly ordered away from entry.');
+    }
+    if (action === 'SHORT' && compareDecimals(target.max, previous.min) >= 0) {
+      throw new SignalValidationError('SHORT targets must be strictly ordered away from entry.');
+    }
+  });
+}
+
+type DynamicOptionalValues = {
+  leverage: string | undefined;
+  risk: string | undefined;
+  averaging: string | undefined;
+};
+
+function dynamicAction(root: XmlNode, definition: SignalContractDefinition): 'LONG' | 'SHORT' {
+  const action = pathLeaf(root, definition.actionPath, true);
+  if (action !== 'LONG' && action !== 'SHORT') {
+    throw new SignalValidationError("Action must be 'LONG' or 'SHORT'.");
+  }
+  return action;
+}
+
+function dynamicOptionalValues(root: XmlNode, definition: SignalContractDefinition): DynamicOptionalValues {
+  const leverage = definition.leveragePath
+    ? pathLeaf(root, definition.leveragePath, false)
+    : undefined;
+  if (leverage && (!/^[1-9]\d{0,2}$/.test(leverage) || Number(leverage) > 125)) {
+    throw new SignalValidationError('Leverage must be an integer between 1 and 125.');
+  }
+  const risk = definition.riskPercentPath
+    ? contractDecimal(root, definition.riskPercentPath, false)
+    : undefined;
+  if (risk && compareDecimals(risk, '100') > 0) {
+    throw new SignalValidationError('risk_percent must not exceed 100.');
+  }
+  const averaging = definition.averagingPricePath
+    ? contractDecimal(root, definition.averagingPricePath, false)
+    : undefined;
+  return { leverage, risk, averaging };
+}
+
+function dynamicGroundingNumbers(
+  definition: SignalContractDefinition,
+  entry: { min: string; max: string } | undefined,
+  targets: Array<{ min: string; max: string }>,
+  stopLoss: string,
+  optional: DynamicOptionalValues,
+): string[] {
+  const values: string[] = [];
+  if (definition.grounding.entry && entry) values.push(entry.min, entry.max);
+  if (definition.grounding.targets) values.push(...targets.flatMap(target => [target.min, target.max]));
+  if (definition.grounding.stopLoss) values.push(stopLoss);
+  if (definition.grounding.leverage && optional.leverage) values.push(optional.leverage);
+  if (definition.grounding.riskPercent && optional.risk) values.push(optional.risk);
+  if (definition.grounding.averagingPrice && optional.averaging) values.push(optional.averaging);
+  return values;
+}
+
+function dynamicGroundingFields(
+  definition: SignalContractDefinition,
+  entry: { min: string; max: string } | undefined,
+  targets: Array<{ min: string; max: string }>,
+  stopLoss: string,
+  optional: DynamicOptionalValues,
+): GroundingField[] {
+  const fields: GroundingField[] = [];
+  if (definition.grounding.entry && entry) fields.push({ kind: 'entry', values: [entry.min, entry.max] });
+  if (definition.grounding.targets) {
+    fields.push({ kind: 'target', values: targets.flatMap(target => [target.min, target.max]) });
+  }
+  if (definition.grounding.stopLoss) fields.push({ kind: 'stop', values: [stopLoss] });
+  if (definition.grounding.leverage && optional.leverage) {
+    fields.push({ kind: 'leverage', values: [optional.leverage] });
+  }
+  if (definition.grounding.riskPercent && optional.risk) fields.push({ kind: 'risk', values: [optional.risk] });
+  if (definition.grounding.averagingPrice && optional.averaging) {
+    fields.push({ kind: 'averaging', values: [optional.averaging] });
+  }
+  return fields;
+}
+
+function validateDynamicContract(
+  root: XmlNode,
+  input: SignalContractDefinition,
+): Omit<ValidatedSignal, 'xml' | 'schema'> {
+  const definition = validateSignalContractDefinition(input);
+  assertDeclaredNode(root, '', declaredStructure(definition));
+  const action = dynamicAction(root, definition);
+  const pairNode = pathNode(root, definition.pairPath, true)!;
+  const pair = pairValue({ ...root, children: [{ ...pairNode, name: 'pair' }] }, true);
+  const entry = contractEntry(root, definition);
+  const targets = contractTargets(root, definition);
+  const stopLoss = contractDecimal(root, definition.stopLossPath, true)!;
+  const optional = dynamicOptionalValues(root, definition);
+  for (const field of definition.additionalFields) validateAdditionalField(root, field);
+  assertContractGeometry(definition, action, entry, stopLoss, targets);
+  return {
+    action,
+    pair,
+    groundingNumbers: dynamicGroundingNumbers(definition, entry, targets, stopLoss, optional),
+    groundingFields: dynamicGroundingFields(definition, entry, targets, stopLoss, optional),
+    groundingPolicy: { action: definition.grounding.action, pair: definition.grounding.pair },
+    execution: {
+      schema: 'dynamic',
+      action,
+      symbol: pair,
+      entry: entry ? { type: 'range', ...entry } : { type: 'market' },
+      targets,
+      stopLoss,
+      suggestedLeverage: optional.leverage ? Number(optional.leverage) : undefined,
+      suggestedRiskPercent: optional.risk,
+      averagingPrice: optional.averaging,
+    },
+  };
+}
+
 export function schemaForTemplate(templateName?: string): string {
   const normalized = (templateName || 'default').trim().toLowerCase();
   if (normalized === 'cryptodanielvip') return 'cryptodanielvip';
@@ -472,7 +796,8 @@ export function validateSignalXml(
   const parserSchema = executableSchema?.parserSchema ?? schemaForTemplate(templateName);
   const schema = executableSchema?.id ?? parserSchema;
   let common: Omit<ValidatedSignal, 'xml' | 'schema'>;
-  if (parserSchema === 'cryptodanielvip') common = validateCryptoDaniel(root);
+  if (executableSchema?.contractDefinition) common = validateDynamicContract(root, executableSchema.contractDefinition);
+  else if (parserSchema === 'cryptodanielvip') common = validateCryptoDaniel(root);
   else if (parserSchema === 'loma') common = validateLoma(root);
   else if (parserSchema === 'speculantca') common = validateSpeculant(root);
   else common = validateStandard(root);
@@ -682,8 +1007,8 @@ export function assertSignalGrounded(signal: ValidatedSignal, sourceText: string
   if (typeof sourceText !== 'string' || !sourceText.trim()) {
     throw new SignalValidationError('Signal source text is empty and cannot ground an AI result.');
   }
-  assertPairGrounded(signal, sourceText);
-  assertActionGrounded(signal, sourceText);
+  if (signal.groundingPolicy?.pair !== false) assertPairGrounded(signal, sourceText);
+  if (signal.groundingPolicy?.action !== false) assertActionGrounded(signal, sourceText);
   assertNumbersGrounded(signal, sourceText);
   const sourceFields = sourceFieldNumbers(sourceText);
   for (const field of signal.groundingFields) assertFieldGrounded(field, sourceFields);

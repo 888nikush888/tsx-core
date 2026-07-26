@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rm } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { closeDb, initDb } from '../src/db.js';
+import { authenticateMcpToken } from '../src/mcp_repository.js';
 import { startWebServer, stopWebServer } from '../src/web_server.js';
 import { ManagedSecretStore } from '../src/secret_store.js';
 import { ManagedRuntimeSettingsStore } from '../src/runtime_settings.js';
@@ -178,6 +179,78 @@ async function testTradingSignalSchemaControl(baseUrl, appState) {
   } finally {
     appState.tradingControl = original;
   }
+}
+
+async function testMcpAgentAdministration(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 403, 'MCP agent inventory must be restricted to administrators');
+
+  response = await fetch(`${baseUrl}/api/mcp/agents`, {
+    method: 'POST',
+    headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'forwarder-dashboard',
+    }),
+    body: JSON.stringify({ name: 'viewer-agent', permissions: ['system.read'] }),
+  });
+  assert.strictEqual(response.status, 403, 'Viewer must not provision MCP credentials');
+
+  response = await fetch(`${baseUrl}/api/mcp/agents`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      name: 'operator-agent',
+      permissions: ['system.read', 'positions.read'],
+      eventSubscriptions: ['signal_received'],
+    }),
+  });
+  assert.strictEqual(response.status, 201, 'Administrator must be able to provision an MCP agent');
+  const created = await response.json();
+  assert.match(created.token, /^tsx_mcp_[A-Za-z0-9_-]{40,}$/);
+  assert.equal(Object.hasOwn(created.agent, 'tokenSha256'), false, 'MCP token digest must not reach the dashboard');
+  assert.ok(await authenticateMcpToken(created.token), 'The one-time token must authenticate until rotated');
+
+  response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  const snapshot = await response.json();
+  assert.ok(snapshot.agents.some(agent => agent.id === created.agent.id));
+  assert.equal(JSON.stringify(snapshot).includes(created.token), false, 'MCP snapshot must not redisclose a token');
+  assert.equal(JSON.stringify(snapshot).includes('tokenSha256'), false, 'MCP snapshot must not expose token digests');
+
+  response = await fetch(`${baseUrl}/api/mcp/agents/update`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      id: created.agent.id,
+      name: 'operator-agent',
+      permissions: ['system.read'],
+      eventSubscriptions: [],
+      enabled: true,
+    }),
+  });
+  assert.strictEqual(response.status, 200, 'Administrator must be able to replace permanent MCP permissions');
+  assert.deepStrictEqual((await response.json()).agent.permissions, ['system.read']);
+
+  response = await fetch(`${baseUrl}/api/mcp/agents/rotate`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: created.agent.id }),
+  });
+  assert.strictEqual(response.status, 412, 'MCP token rotation must require explicit confirmation');
+
+  response = await fetch(`${baseUrl}/api/mcp/agents/rotate`, {
+    method: 'POST',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'rotate-mcp-agent-token',
+    }),
+    body: JSON.stringify({ id: created.agent.id }),
+  });
+  assert.strictEqual(response.status, 200);
+  const rotated = await response.json();
+  assert.notStrictEqual(rotated.token, created.token);
+  assert.strictEqual(await authenticateMcpToken(created.token), null, 'Rotation must revoke the old MCP token immediately');
+  assert.ok(await authenticateMcpToken(rotated.token), 'The replacement MCP token must authenticate');
 }
 
 async function testAuditedControl(baseUrl, controls) {
@@ -790,6 +863,7 @@ async function runTests() {
     await testRequestValidation(baseUrl);
     await testTradingStrategyDeletion(baseUrl, appState);
     await testTradingSignalSchemaControl(baseUrl, appState);
+    await testMcpAgentAdministration(baseUrl);
 
     await testAuditedControl(baseUrl, controls);
     await testMissingAuditFailsClosed(baseUrl, appState);

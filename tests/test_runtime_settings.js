@@ -57,7 +57,7 @@ try {
   assert.throws(() => validateRuntimeSettings(null), /JSON object/);
   assert.throws(() => validateRuntimeSettings([]), /JSON object/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, enterpriseMode: 'true' }), /true or false/);
-  assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, dashboardAuthMode: 'basic' }), /token or oidc/);
+  assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, dashboardAuthMode: 'basic' }), /token, oidc or tailscale/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, dashboardLocalTrust: 'yes' }), /true or false/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, auditRemoteRequired: 'yes' }), /true or false/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, backupOffsiteRequired: 'yes' }), /true or false/);
@@ -77,6 +77,29 @@ try {
     validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, dashboardAllowedOrigin: 'http://127.0.0.1:8080' })
       .dashboardAllowedOrigin,
     'http://127.0.0.1:8080'
+  );
+  const tailscale = validateRuntimeSettings({
+    ...DEFAULT_RUNTIME_SETTINGS,
+    dashboardAuthMode: 'tailscale',
+    dashboardLocalTrust: false,
+    tailscaleServeTrustedProxy: true,
+    dashboardAllowedOrigin: 'https://tsx-core.example-tailnet.ts.net',
+    tailscaleAdminUsers: 'Operator@Example.com',
+    tailscaleViewerUsers: 'observer@example.com',
+  });
+  assert.equal(tailscale.tailscaleAdminUsers, 'operator@example.com');
+  assert.equal(tailscale.dashboardAllowedOrigin, 'https://tsx-core.example-tailnet.ts.net');
+  assert.throws(
+    () => validateRuntimeSettings({ ...tailscale, tailscaleServeTrustedProxy: false }),
+    /trusted Serve proxy/,
+  );
+  assert.throws(
+    () => validateRuntimeSettings({ ...tailscale, dashboardAllowedOrigin: 'https://dashboard.example.com' }),
+    /\*\.ts\.net/,
+  );
+  assert.throws(
+    () => validateRuntimeSettings({ ...tailscale, tailscaleViewerUsers: 'operator@example.com' }),
+    /both administrator and viewer/,
   );
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, oidcRoleClaim: 'invalid claim' }), /roleClaim/i);
   assert.throws(

@@ -25,6 +25,8 @@ import {
   TradingRiskError,
 } from './trading_risk.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
+import { resolveEffectiveChannelRisk } from './trading_channel_risk.js';
+import { recordTradingEquitySnapshot, recordTradingExecutionEvent } from './trading_telemetry.js';
 import type {
   ExchangeOpenState,
   ExchangeOrderRequest,
@@ -749,12 +751,22 @@ export class TradingEngine {
       adapter.accountSnapshot(account),
       adapter.marketSnapshot(account, intent.symbol),
     ]);
+    await recordTradingEquitySnapshot(account.id, accountSnapshot);
+    const channelRisk = await resolveEffectiveChannelRisk({
+      channelId: intent.channelId,
+      strategy: strategy.configuration,
+      currentEquity: accountSnapshot.equity,
+    });
+    if (channelRisk.blocked) {
+      throw new TradingRiskError('CHANNEL_BLOCKED', channelRisk.reason);
+    }
     const plan = createTradingPlan({
       intentId: intent.id,
       signal: intent.signal,
       strategy: strategy.configuration,
       account: accountSnapshot,
       market,
+      effectiveRiskPercent: channelRisk.riskPercent,
     });
     await assertCapacity(
       intent,
@@ -768,6 +780,15 @@ export class TradingEngine {
     const entry = plan.orders.find(order => order.role === 'entry')!;
     const protectiveStop = plan.orders.find(order => order.role === 'stop_loss')!;
     await setIntentState(intent.id, 'submitting', { plan });
+    await recordTradingExecutionEvent({
+      eventType: 'submit_started',
+      intentId: intent.id,
+      channelId: intent.channelId,
+      accountId: intent.accountId,
+      exchange: intent.exchange,
+      mode: intent.mode,
+      details: { symbol: intent.symbol, effectiveRiskPercent: channelRisk.riskPercent },
+    });
     const protectedResult = await submitTrackedProtectedEntry({
       adapter,
       account,
@@ -777,6 +798,37 @@ export class TradingEngine {
       stop: protectiveStop,
     });
     const entryResult = protectedResult.entry;
+    await recordTradingExecutionEvent({
+      eventType: 'exchange_ack',
+      intentId: intent.id,
+      channelId: intent.channelId,
+      accountId: intent.accountId,
+      exchange: intent.exchange,
+      mode: intent.mode,
+      details: { status: entryResult.status, symbol: intent.symbol },
+    });
+    if (entryResult.filledQuantity !== '0') {
+      await recordTradingExecutionEvent({
+        eventType: 'first_fill',
+        intentId: intent.id,
+        channelId: intent.channelId,
+        accountId: intent.accountId,
+        exchange: intent.exchange,
+        mode: intent.mode,
+        details: { status: entryResult.status, symbol: intent.symbol },
+      });
+    }
+    if (entryResult.status === 'filled') {
+      await recordTradingExecutionEvent({
+        eventType: 'fully_filled',
+        intentId: intent.id,
+        channelId: intent.channelId,
+        accountId: intent.accountId,
+        exchange: intent.exchange,
+        mode: intent.mode,
+        details: { symbol: intent.symbol },
+      });
+    }
     await this.validateProtectedEntryOutcome(
       adapter, account, intent, plan, protectiveStop, protectedResult,
     );
@@ -1181,17 +1233,45 @@ export class TradingEngine {
     }
     for (const fill of remote.fills) {
       const localOrder = await getDatabase().get<any>(
-        'SELECT id FROM trading_orders WHERE account_id = ? AND client_order_id = ?',
+        `SELECT id, intent_id, role, status FROM trading_orders
+         WHERE account_id = ? AND client_order_id = ?`,
         [account.id, fill.clientOrderId],
       );
       if (!localOrder) continue;
-      await getDatabase().run(
+      const inserted = await getDatabase().run(
         `INSERT OR IGNORE INTO trading_fills (
            id, order_id, account_id, exchange_fill_id, price, quantity,
            fee, fee_asset, filled_at, raw_json
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [randomUUID(), localOrder.id, account.id, fill.exchangeFillId, fill.price, fill.quantity, fill.fee, fill.feeAsset, fill.filledAt, JSON.stringify(fill.raw)],
       );
+      if (Number(inserted.changes || 0) === 1 && localOrder.role === 'entry') {
+        const intent = await getTradingIntent(localOrder.intent_id);
+        if (intent) {
+          await recordTradingExecutionEvent({
+            eventType: 'first_fill',
+            occurredAt: fill.filledAt,
+            intentId: intent.id,
+            channelId: intent.channelId,
+            accountId: intent.accountId,
+            exchange: intent.exchange,
+            mode: intent.mode,
+            details: { symbol: intent.symbol },
+          });
+          if (localOrder.status === 'filled') {
+            await recordTradingExecutionEvent({
+              eventType: 'fully_filled',
+              occurredAt: fill.filledAt,
+              intentId: intent.id,
+              channelId: intent.channelId,
+              accountId: intent.accountId,
+              exchange: intent.exchange,
+              mode: intent.mode,
+              details: { symbol: intent.symbol },
+            });
+          }
+        }
+      }
     }
   }
 
@@ -1245,6 +1325,19 @@ export class TradingEngine {
       [realizedPnl, remote.observedAt, remote.observedAt, local.id],
     );
     await setIntentState(local.intent_id, 'completed');
+    const intent = await getTradingIntent(local.intent_id);
+    if (intent) {
+      await recordTradingExecutionEvent({
+        eventType: 'position_closed',
+        occurredAt: remote.observedAt,
+        intentId: intent.id,
+        channelId: intent.channelId,
+        accountId: intent.accountId,
+        exchange: intent.exchange,
+        mode: intent.mode,
+        details: { symbol: intent.symbol, realizedPnl },
+      });
+    }
   }
 
   private async reconcileOpenRemotePosition(

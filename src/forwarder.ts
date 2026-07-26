@@ -90,6 +90,13 @@ import {
 import { OfficialExchangeAdapter } from './official_exchange.js';
 import { TradingWebControl } from './trading_web_control.js';
 import { ClockGuard, clockDriftLimitFromEnvironment } from './clock_guard.js';
+import { recordTradingExecutionEvent } from './trading_telemetry.js';
+import { McpControlBridge } from './mcp_control_bridge.js';
+import {
+  beginMcpSharedMaintenance,
+  clearMcpMaintenanceMarker,
+  operationalDatabasePath,
+} from './mcp_maintenance.js';
 
 process.on('uncaughtException', (error: any) => {
   const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
@@ -370,6 +377,7 @@ let offsiteBackupReplicator: BackupReplicator | null = null;
 let retentionScheduler: OperationalDataRetention | null = null;
 let tradingRuntime: TradingRuntime | null = null;
 let tradingWebControl: TradingWebControl | null = null;
+let mcpControlBridge: McpControlBridge | null = null;
 let activeMaintenanceOperation: string | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
@@ -779,6 +787,13 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
   const forwardXml = shouldForwardToTelegram && xmlParsing.forwardXmlToTarget;
   try {
     const sourceId = String(message.chat_id);
+    const signalReceivedAt = Date.now();
+    await recordTradingExecutionEvent({
+      eventType: 'signal_received',
+      occurredAt: signalReceivedAt,
+      channelId: sourceId,
+      details: { telegramMessageId: String(message.id) },
+    });
     const sourceTemplates = xmlParsing.sourceTemplates || {};
     const templateName = sourceTemplates[sourceId];
     const configuredSchema = await getTradingSignalSchemaForTemplate(templateName);
@@ -793,8 +808,22 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
       },
       context.signal,
       xmlParsing.aiLimits,
-      configuredSchema ? { id: configuredSchema.id, parserSchema: configuredSchema.parserSchema } : null,
+      configuredSchema ? {
+        id: configuredSchema.id,
+        parserSchema: configuredSchema.parserSchema,
+        contractVersionId: configuredSchema.contractVersionId,
+        contractDefinition: configuredSchema.contractDefinition,
+      } : null,
     );
+    await recordTradingExecutionEvent({
+      eventType: 'signal_validated',
+      channelId: sourceId,
+      details: {
+        telegramMessageId: String(message.id),
+        schema: parsedSignal.signal.schema,
+        contractVersionId: configuredSchema?.contractVersionId ?? null,
+      },
+    });
     addLog(`[XML-Parser SUCCESS] Paket ${message.id} erfolgreich analysiert.`);
     
     const signalId = await checkDuplicateAndSave(
@@ -813,6 +842,15 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
         signal: parsedSignal.signal.execution,
       });
       if (intent) {
+        await recordTradingExecutionEvent({
+          eventType: 'intent_created',
+          intentId: intent.id,
+          channelId: intent.channelId,
+          accountId: intent.accountId,
+          exchange: intent.exchange,
+          mode: intent.mode,
+          details: { symbol: intent.symbol, status: intent.status, signalReceivedAt },
+        });
         addLog(`[TRADING] intent=${intent.id} channel=${sourceId} status=${intent.status} symbol=${intent.symbol}`);
       }
     } else {
@@ -1203,6 +1241,8 @@ async function stopSchedulerForMaintenance(
 }
 
 async function stopRuntimeServices(): Promise<void> {
+  await stopScheduler(mcpControlBridge, 'MCP control bridge');
+  mcpControlBridge = null;
   await stopScheduler(tradingRuntime, 'Trading Runtime');
   await stopScheduler(backupScheduler, 'Laufendes Backup');
   await stopScheduler(retentionScheduler, 'Laufende Daten-Retention');
@@ -1317,6 +1357,10 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore,
   await initDb();
   await ensureTradingDefaults();
   const tradingEngine = composeTradingControl(tradingCredentials, clockGuard);
+  if (!tradingWebControl || !auditTrail) throw new Error('MCP control dependencies are unavailable.');
+  mcpControlBridge = new McpControlBridge(tradingWebControl, auditTrail, addLog);
+  await mcpControlBridge.start();
+  await clearMcpMaintenanceMarker(databasePath);
   tradingRuntime = new TradingRuntime(
     tradingEngine,
     2_000,
@@ -1445,6 +1489,8 @@ async function performCompleteFactoryReset(
     targets.set(resolved, target.boundary);
   }
 
+  await stopScheduler(mcpControlBridge, 'MCP control bridge');
+  mcpControlBridge = null;
   await stopScheduler(tradingRuntime, 'Trading Runtime');
   tradingRuntime = null;
   await tradingWebControl.assertFactoryResetSafe();
@@ -1457,12 +1503,19 @@ async function performCompleteFactoryReset(
   metricsTracker = null;
   deliveryTracker?.close('Factory reset.');
   deliveryTracker = null;
+  const sharedMcpMaintenance = await beginMcpSharedMaintenance('factory reset', operationalDatabasePath());
   await closeDb();
   await tradingCredentials.clear();
   await secretStore.clear();
   await runtimeSettings.reset();
   await fsPromises.rm(configPath, { force: true });
-  for (const [target, boundary] of targets) await clearFactoryResetTarget(target, boundary);
+  const maintenanceMarker = path.resolve(sharedMcpMaintenance.markerPath);
+  for (const [target, boundary] of targets) {
+    const preserve = path.dirname(maintenanceMarker) === path.resolve(target)
+      ? [path.basename(maintenanceMarker)]
+      : [];
+    await clearFactoryResetTarget(target, boundary, preserve);
+  }
   await auditTrail?.resetLocal();
 
   const candidateConfig = structuredClone(DEFAULT_CONFIG);
@@ -1509,6 +1562,7 @@ async function restoreNamedBackup(artifactName: string) {
   const artifact = resolvedBackupArtifact(artifactName);
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
   const previousTradingRuntime = tradingRuntime;
+  const previousMcpControlBridge = mcpControlBridge;
   const previousBackupScheduler = backupScheduler;
   const previousRetentionScheduler = retentionScheduler;
   let databaseMaintenance: Awaited<ReturnType<typeof beginDatabaseMaintenance>> | null = null;
@@ -1517,9 +1571,13 @@ async function restoreNamedBackup(artifactName: string) {
   let tradingStopped = false;
   let backupStopped = false;
   let retentionStopped = false;
+  let mcpBridgeStopped = false;
+  let sharedMcpMaintenance: Awaited<ReturnType<typeof beginMcpSharedMaintenance>> | null = null;
   try {
     await verifyBackupArtifact(artifact);
     await stopForwarding();
+    mcpBridgeStopped = previousMcpControlBridge !== null;
+    await stopSchedulerForMaintenance(previousMcpControlBridge, 'MCP control bridge');
     tradingStopped = previousTradingRuntime !== null;
     await stopSchedulerForMaintenance(previousTradingRuntime, 'Trading Runtime');
     if (!tradingWebControl) throw new Error('Backup restore requires initialized trading safety controls.');
@@ -1528,6 +1586,7 @@ async function restoreNamedBackup(artifactName: string) {
     await stopSchedulerForMaintenance(previousBackupScheduler, 'Backup scheduler');
     retentionStopped = previousRetentionScheduler !== null;
     await stopSchedulerForMaintenance(previousRetentionScheduler, 'Data retention scheduler');
+    sharedMcpMaintenance = await beginMcpSharedMaintenance('verified backup restore', databasePath);
     databaseMaintenance = await beginDatabaseMaintenance('verified backup restore');
     closeAttempted = true;
     await closeDb();
@@ -1540,12 +1599,14 @@ async function restoreNamedBackup(artifactName: string) {
       { allowCurrentProcessLock: true }
     );
     tradingRuntime = null;
+    mcpControlBridge = null;
     backupScheduler = null;
     retentionScheduler = null;
     restored = true;
     return result;
   } finally {
     if (!restored) {
+      await sharedMcpMaintenance?.release();
       if (closeAttempted) {
         await initDb(databasePath).catch(error => {
           if (!String(error?.message || error).includes('already initialized')) throw error;
@@ -1557,6 +1618,7 @@ async function restoreNamedBackup(artifactName: string) {
         retentionStopped && previousRetentionScheduler ? previousRetentionScheduler.start() : Promise.resolve(),
         backupStopped && previousBackupScheduler ? previousBackupScheduler.start() : Promise.resolve(),
         tradingStopped && previousTradingRuntime ? previousTradingRuntime.start() : Promise.resolve(),
+        mcpBridgeStopped && previousMcpControlBridge ? previousMcpControlBridge.start() : Promise.resolve(),
       ]);
     }
   }

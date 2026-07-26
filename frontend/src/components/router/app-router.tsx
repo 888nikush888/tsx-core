@@ -1,30 +1,22 @@
 "use client"
 
-import { Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
-import { routes, type RouteConfig } from '@/config/routes'
+import { lazy, Suspense, useEffect } from 'react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useLocation, useNavigate } from '@/lib/navigation'
 
-function renderRoutes(routeConfigs: RouteConfig[]) {
-  return routeConfigs.map((route, index) => (
-    <Route
-      key={route.path + index}
-      path={route.path}
-      element={
-        <Suspense fallback={<LoadingSpinner />}>
-          {route.element}
-        </Suspense>
-      }
-    >
-      {route.children && renderRoutes(route.children)}
-    </Route>
-  ))
-}
+const Dashboard = lazy(() => import('@/app/dashboard/page'))
 
 export function AppRouter() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (location.pathname !== '/dashboard') navigate('/dashboard', { replace: true })
+  }, [location.pathname, navigate])
+
   return (
-    <Routes>
-      {renderRoutes(routes)}
-    </Routes>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Dashboard />
+    </Suspense>
   )
 }

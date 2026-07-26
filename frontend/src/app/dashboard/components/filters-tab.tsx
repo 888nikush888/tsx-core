@@ -42,7 +42,7 @@ export function FiltersTab({ config, setConfig }: any) {
         
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2 text-red-600 dark:text-red-500">
+            <div className="flex items-center gap-2 font-medium text-foreground">
               <XCircle className="h-5 w-5" />
               <CardTitle>Blocked Keywords</CardTitle>
             </div>

@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react"
 import { BaseLayout } from "@/components/layouts/base-layout"
-import { useSearchParams } from "react-router-dom"
+import { useSearchParams } from "@/lib/navigation"
 
 import { LogsTab } from "./components/logs-tab"
 import { SystemTab } from "./components/system-tab"
 import { normalizeSignalWorkspace, SignalCenterTab, type SignalWorkspace } from "./components/signal-center-tab"
 import { TradingTab } from "./components/trading-tab"
-import { ExecutiveDashboard } from "./components/executive-dashboard"
+import { AnalyticsTab } from "./components/analytics-tab"
+import { CockpitDashboard } from "./components/cockpit-dashboard"
+import { McpAgentsTab } from "./components/mcp-agents-tab"
 import { apiFetch } from "@/lib/api"
 import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 
@@ -242,7 +244,7 @@ export default function Page() {
   let content = null
   if (tab === "dashboard") {
     content = (
-      <ExecutiveDashboard
+      <CockpitDashboard
         isRunning={isRunning}
         connectionState={connectionState}
         totalForwardedCount={totalForwardedCount}
@@ -270,17 +272,21 @@ export default function Page() {
               {tab === "logs" && "System Logs"}
               {tab === "system" && "System & Backup"}
               {tab === "trading" && "Trading Control Center"}
+              {tab === "analytics" && "Analytics"}
+              {tab === "mcp" && "MCP-Agenten"}
             </h2>
             <p className="text-muted-foreground mt-1">
               {isSignalCenter && "Nachrichten, extrahierte Signale, Kanäle, Verarbeitung, Filter und KI-Parser an einem Ort."}
               {tab === "logs" && "Live terminal output from the backend daemon."}
               {tab === "system" && "Export data and reset the application."}
               {tab === "trading" && "Strategien, Kanal-Routing, Börsenkonten, Positionen und Risikosteuerung an einem Ort."}
+              {tab === "analytics" && "Equity, Drawdown, Kanalqualität, Slippage, Ausführungslatenz und Risikosimulation."}
+              {tab === "mcp" && "Agenten, dauerhafte Berechtigungen, Ereignis-Abonnements, Sitzungen und Aktionsverlauf."}
             </p>
           </div>
         </div>
 
-        <div className={`pb-10 mx-auto md:mx-0 w-full ${tab === "logs" || isSignalCenter || tab === "trading" ? "max-w-none" : "max-w-5xl"}`}>
+        <div className={`pb-10 mx-auto md:mx-0 w-full ${tab === "logs" || isSignalCenter || tab === "trading" || tab === "analytics" || tab === "mcp" ? "max-w-none" : "max-w-5xl"}`}>
           {isSignalCenter && <SignalCenterTab
             config={config}
             setConfig={setConfig}
@@ -297,6 +303,8 @@ export default function Page() {
           {tab === "logs" && <LogsTab config={config} />}
           {tab === "system" && <SystemTab config={config} secretStatus={secretStatus} onSecretStatusChange={setSecretStatus} />}
           {tab === "trading" && <TradingTab config={config} />}
+          {tab === "analytics" && <AnalyticsTab />}
+          {tab === "mcp" && <McpAgentsTab />}
         </div>
       </div>
     )

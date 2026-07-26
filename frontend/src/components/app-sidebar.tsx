@@ -6,9 +6,11 @@ import {
   TerminalSquare,
   Shield,
   FileCode,
-  ChartCandlestick
+  ChartCandlestick,
+  ChartNoAxesCombined,
+  Bot,
 } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link } from "@/lib/navigation"
 import { Logo } from "@/components/logo"
 import { NavMain } from "@/components/nav-main"
 import {
@@ -40,6 +42,16 @@ const data = {
           title: "Trading",
           url: "/dashboard?tab=trading",
           icon: ChartCandlestick,
+        },
+        {
+          title: "Analytics",
+          url: "/dashboard?tab=analytics",
+          icon: ChartNoAxesCombined,
+        },
+        {
+          title: "MCP-Agenten",
+          url: "/dashboard?tab=mcp",
+          icon: Bot,
         },
         {
           title: "Logs",

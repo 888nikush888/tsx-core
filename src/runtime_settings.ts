@@ -3,9 +3,12 @@ import path from 'node:path';
 
 export interface RuntimeSettings {
   enterpriseMode: boolean;
-  dashboardAuthMode: 'token' | 'oidc';
+  dashboardAuthMode: 'token' | 'oidc' | 'tailscale';
   dashboardLocalTrust: boolean;
   dashboardAllowedOrigin: string;
+  tailscaleServeTrustedProxy: boolean;
+  tailscaleAdminUsers: string;
+  tailscaleViewerUsers: string;
   oidcIssuer: string;
   oidcAudience: string;
   oidcJwksUrl: string;
@@ -49,6 +52,9 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
   dashboardAuthMode: 'token',
   dashboardLocalTrust: true,
   dashboardAllowedOrigin: '',
+  tailscaleServeTrustedProxy: false,
+  tailscaleAdminUsers: '',
+  tailscaleViewerUsers: '',
   oidcIssuer: '',
   oidcAudience: '',
   oidcJwksUrl: '',
@@ -90,6 +96,7 @@ const KEYS = new Set(Object.keys(DEFAULT_RUNTIME_SETTINGS));
 const BOOLEAN_SETTING_NAMES = [
   'enterpriseMode',
   'dashboardLocalTrust',
+  'tailscaleServeTrustedProxy',
   'auditRemoteRequired',
   'backupOffsiteRequired',
   'jsonLogging',
@@ -158,8 +165,45 @@ function validateBooleanSettings(settings: RuntimeSettingsRecord): void {
 }
 
 function validatedDashboardAuthMode(value: unknown): RuntimeSettings['dashboardAuthMode'] {
-  if (value !== 'token' && value !== 'oidc') throw new Error('dashboardAuthMode must be token or oidc.');
+  if (value !== 'token' && value !== 'oidc' && value !== 'tailscale') {
+    throw new Error('dashboardAuthMode must be token, oidc or tailscale.');
+  }
   return value;
+}
+
+function tailscaleUsers(value: unknown, name: string, required = false): string {
+  const normalized = text(value, name, 4_096);
+  const users = normalized.split(',').map(item => item.trim().toLocaleLowerCase('en-US')).filter(Boolean);
+  if (required && users.length === 0) throw new Error(`${name} must contain at least one Tailscale login.`);
+  if (users.some(user => !/^[^\s,\0]{1,254}$/.test(user))) throw new Error(`${name} contains an invalid Tailscale login.`);
+  if (new Set(users).size !== users.length) throw new Error(`${name} must not contain duplicate Tailscale logins.`);
+  return users.join(',');
+}
+
+function validateTailscaleProfile(
+  settings: RuntimeSettingsRecord,
+  dashboardAuthMode: RuntimeSettings['dashboardAuthMode'],
+  dashboardAllowedOrigin: string,
+): { adminUsers: string; viewerUsers: string } {
+  const required = dashboardAuthMode === 'tailscale';
+  if (required) {
+    if (settings.tailscaleServeTrustedProxy !== true) {
+      throw new Error('Tailscale identity mode requires the explicit trusted Serve proxy boundary.');
+    }
+    if (settings.dashboardLocalTrust !== false) throw new Error('Tailscale identity mode must disable trusted local dashboard startup.');
+    if (!dashboardAllowedOrigin) throw new Error('Tailscale identity mode requires dashboardAllowedOrigin.');
+    const origin = new URL(dashboardAllowedOrigin);
+    if (origin.protocol !== 'https:' || !origin.hostname.endsWith('.ts.net')) {
+      throw new Error('Tailscale identity mode requires an HTTPS *.ts.net dashboard origin.');
+    }
+  }
+  const adminUsers = tailscaleUsers(settings.tailscaleAdminUsers, 'tailscaleAdminUsers', required);
+  const viewerUsers = tailscaleUsers(settings.tailscaleViewerUsers, 'tailscaleViewerUsers');
+  const admins = new Set(adminUsers.split(',').filter(Boolean));
+  if (viewerUsers.split(',').filter(Boolean).some(user => admins.has(user))) {
+    throw new Error('A Tailscale login cannot be both administrator and viewer.');
+  }
+  return { adminUsers, viewerUsers };
 }
 
 function validateEnterpriseProfile(
@@ -224,6 +268,8 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
   validateEnterpriseProfile(merged, enterprise, dashboardAuthMode);
   const backupUrl = validatedBackupUrl(merged, enterprise);
   const oidc = validatedOidcSettings(merged, enterprise, dashboardAuthMode);
+  const dashboardAllowedOrigin = webOrigin(merged.dashboardAllowedOrigin);
+  const tailscale = validateTailscaleProfile(merged, dashboardAuthMode, dashboardAllowedOrigin);
   if (merged.oidcAdminRole === merged.oidcViewerRole) {
     throw new Error('oidcAdminRole and oidcViewerRole must be different.');
   }
@@ -232,7 +278,10 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
     enterpriseMode: enterprise,
     dashboardAuthMode,
     dashboardLocalTrust: merged.dashboardLocalTrust as boolean,
-    dashboardAllowedOrigin: webOrigin(merged.dashboardAllowedOrigin),
+    dashboardAllowedOrigin,
+    tailscaleServeTrustedProxy: merged.tailscaleServeTrustedProxy as boolean,
+    tailscaleAdminUsers: tailscale.adminUsers,
+    tailscaleViewerUsers: tailscale.viewerUsers,
     oidcIssuer: oidc.issuer,
     oidcAudience: oidc.audience,
     oidcJwksUrl: oidc.jwksUrl,
@@ -268,6 +317,9 @@ const ENVIRONMENT_MAPPING: Record<keyof RuntimeSettings, string> = {
   dashboardAuthMode: 'DASHBOARD_AUTH_MODE',
   dashboardLocalTrust: 'DASHBOARD_LOCAL_TRUST',
   dashboardAllowedOrigin: 'DASHBOARD_ALLOWED_ORIGIN',
+  tailscaleServeTrustedProxy: 'TAILSCALE_SERVE_TRUSTED_PROXY',
+  tailscaleAdminUsers: 'TAILSCALE_ADMIN_USERS',
+  tailscaleViewerUsers: 'TAILSCALE_VIEWER_USERS',
   oidcIssuer: 'DASHBOARD_OIDC_ISSUER',
   oidcAudience: 'DASHBOARD_OIDC_AUDIENCE',
   oidcJwksUrl: 'DASHBOARD_OIDC_JWKS_URL',

@@ -130,10 +130,16 @@ assert.match(hyperliquidAdapter, /from hyperliquid\.info import Info/);
 assert.match(bybitAdapter, /from pybit\.unified_trading import HTTP/);
 const executorService = dockerCompose.slice(
   dockerCompose.indexOf('\n  exchange-executor:'),
-  dockerCompose.indexOf('\nvolumes:'),
+  dockerCompose.indexOf('\n  mcp-server:'),
 );
 assert.ok(executorService.length > 0, 'compose must define the exchange executor service');
 assert.doesNotMatch(executorService, /^\s+ports:/m);
+const mcpService = dockerCompose.slice(
+  dockerCompose.indexOf('\n  mcp-server:'),
+  dockerCompose.indexOf('\nvolumes:'),
+);
+assert.match(mcpService, /profiles:\s*\["mcp"\]/, 'MCP must remain an opt-in service profile');
+assert.match(mcpService, /"127\.0\.0\.1:\$\{HOST_MCP_PORT:-8091\}:8091"/);
 assert.match(dockerCompose, /forwarder_secrets:\/app\/secrets:ro/);
 
 const releaseImages = {

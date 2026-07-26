@@ -4,13 +4,17 @@ import type { TradingCredentialStore, TradingCredentials } from './trading_crede
 import { TradingEngine } from './trading_engine.js';
 import {
   acknowledgeTradingRiskEvent,
+  archiveSignalContractVersion,
   archiveTradingStrategyVersion,
+  createSignalContract,
+  createSignalContractDraftVersion,
   createTradingSignalSchema,
   createTradingAccount,
   createTradingStrategyDraft,
   deleteTradingAccount,
   deleteTradingRoute,
   deleteTradingSignalSchema,
+  deleteSignalContractDraft,
   deleteTradingStrategyVersion,
   getTradingAccount,
   getTradingAnalytics,
@@ -20,14 +24,32 @@ import {
   listTradingIntents,
   listTradingRoutes,
   listTradingSignalSchemas,
+  listSignalContracts,
   listTradingStrategies,
   publishTradingStrategyVersion,
+  publishSignalContractVersion,
   setTradingRoute,
   updateTradingAccountState,
   updateTradingRuntimeState,
   updateTradingSignalSchema,
+  updateSignalContractDraft,
   updateTradingStrategyDraft,
+  duplicateSignalContract,
 } from './trading_repository.js';
+import { assertSignalGrounded, validateSignalXml } from './signal_schema.js';
+import { validateSignalContractDefinition } from './signal_contract.js';
+import {
+  deleteChannelRiskPolicy,
+  listChannelRiskEvaluations,
+  listChannelRiskPolicies,
+  upsertChannelRiskPolicy,
+} from './trading_channel_risk.js';
+import {
+  getTradingExecutionAnalytics,
+  getChannelPerformanceAnalytics,
+  listTradingEquityPoints,
+  recordTradingEquitySnapshot,
+} from './trading_telemetry.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
 import type {
   ExchangeOpenState,
@@ -74,6 +96,12 @@ export interface TradingWebSnapshot {
   analytics: Awaited<ReturnType<typeof getTradingAnalytics>>;
   strategies: Awaited<ReturnType<typeof listTradingStrategies>>;
   signalSchemas: Awaited<ReturnType<typeof listTradingSignalSchemas>>;
+  signalContracts: Awaited<ReturnType<typeof listSignalContracts>>;
+  channelRiskPolicies: Awaited<ReturnType<typeof listChannelRiskPolicies>>;
+  channelRiskEvaluations: Awaited<ReturnType<typeof listChannelRiskEvaluations>>;
+  executionAnalytics: Awaited<ReturnType<typeof getTradingExecutionAnalytics>>;
+  channelAnalytics: Awaited<ReturnType<typeof getChannelPerformanceAnalytics>>;
+  equityHistory: Awaited<ReturnType<typeof listTradingEquityPoints>>;
   accounts: Array<Omit<TradingAccount, 'credentialRef'> & {
     credentials: Awaited<ReturnType<TradingCredentialStore['status']>>;
   }>;
@@ -126,11 +154,20 @@ export class TradingWebControl {
   }
 
   async snapshot(): Promise<TradingWebSnapshot> {
-    const [overview, analytics, strategies, signalSchemas, accounts, routes, intents, activity] = await Promise.all([
+    const [
+      overview, analytics, strategies, signalSchemas, signalContracts, channelRiskPolicies,
+      channelRiskEvaluations, executionAnalytics, channelAnalytics, equityHistory, accounts, routes, intents, activity,
+    ] = await Promise.all([
       getTradingOverview(),
       getTradingAnalytics(),
       listTradingStrategies(),
       listTradingSignalSchemas(),
+      listSignalContracts(),
+      listChannelRiskPolicies(),
+      listChannelRiskEvaluations(),
+      getTradingExecutionAnalytics(),
+      getChannelPerformanceAnalytics(),
+      listTradingEquityPoints(),
       listTradingAccounts(),
       listTradingRoutes(),
       listTradingIntents(200),
@@ -141,6 +178,12 @@ export class TradingWebControl {
       analytics,
       strategies,
       signalSchemas,
+      signalContracts,
+      channelRiskPolicies,
+      channelRiskEvaluations,
+      executionAnalytics,
+      channelAnalytics,
+      equityHistory,
       accounts: await Promise.all(accounts.map(async ({ credentialRef: _credentialRef, ...account }) => ({
         ...account,
         credentials: account.exchange === 'paper'
@@ -188,13 +231,15 @@ export class TradingWebControl {
       }
       try {
         const snapshot = await this.requiredAdapter(account.exchange).accountSnapshot(account);
+        const snapshotObservedAt = Date.now();
+        await recordTradingEquitySnapshot(account.id, snapshot, snapshotObservedAt);
         return {
           ...base,
           equity: decimal(snapshot.equity, { positive: true }),
           availableBalance: decimal(snapshot.availableBalance),
           unrealizedPnl: snapshot.unrealizedPnl ? signedDecimal(snapshot.unrealizedPnl) : '0',
           marginUsed: snapshot.marginUsed ? decimal(snapshot.marginUsed) : '0',
-          observedAt: Date.now(),
+          observedAt: snapshotObservedAt,
           error: null,
         };
       } catch (error: any) {
@@ -247,6 +292,7 @@ export class TradingWebControl {
       name: payload.name,
       description: payload.description,
       parserSchema: payload.parserSchema,
+      contractVersionId: payload.contractVersionId,
       templateName: payload.templateName,
       enabled: payload.enabled,
     });
@@ -257,6 +303,7 @@ export class TradingWebControl {
       name: payload.name,
       description: payload.description,
       parserSchema: payload.parserSchema,
+      contractVersionId: payload.contractVersionId,
       templateName: payload.templateName,
       enabled: payload.enabled,
     });
@@ -264,6 +311,72 @@ export class TradingWebControl {
 
   removeSignalSchema(id: unknown) {
     return deleteTradingSignalSchema(identifier(id, 'Signal schema identifier', 40));
+  }
+
+  createSignalContract(payload: any) {
+    return createSignalContract({
+      id: payload.id,
+      name: payload.name,
+      description: payload.description,
+      definition: payload.definition,
+    });
+  }
+
+  createSignalContractVersion(payload: any) {
+    return createSignalContractDraftVersion(payload.contractId, payload.sourceVersionId);
+  }
+
+  updateSignalContract(payload: any) {
+    return updateSignalContractDraft({
+      contractId: payload.contractId,
+      versionId: payload.versionId,
+      name: payload.name,
+      description: payload.description,
+      definition: payload.definition,
+    });
+  }
+
+  duplicateSignalContract(payload: any) {
+    return duplicateSignalContract({
+      sourceVersionId: payload.sourceVersionId,
+      id: payload.id,
+      name: payload.name,
+      description: payload.description,
+    });
+  }
+
+  publishSignalContract(versionId: unknown) {
+    return publishSignalContractVersion(versionId);
+  }
+
+  archiveSignalContract(versionId: unknown) {
+    return archiveSignalContractVersion(versionId);
+  }
+
+  removeSignalContractDraft(versionId: unknown) {
+    return deleteSignalContractDraft(versionId);
+  }
+
+  validateSignalContract(payload: any) {
+    const definition = validateSignalContractDefinition(payload.definition);
+    if (typeof payload.xml !== 'string') throw new Error('Signal XML must be a string.');
+    const validated = validateSignalXml(
+      payload.xml,
+      undefined,
+      { id: 'contract-preview', parserSchema: 'standard', contractDefinition: definition },
+    );
+    if (typeof payload.sourceText === 'string' && payload.sourceText.trim()) {
+      assertSignalGrounded(validated, payload.sourceText);
+    }
+    return validated;
+  }
+
+  setChannelRiskPolicy(payload: any) {
+    return upsertChannelRiskPolicy(payload);
+  }
+
+  removeChannelRiskPolicy(channelId: unknown) {
+    return deleteChannelRiskPolicy(channelId);
   }
 
   async createAccount(payload: any): Promise<TradingAccount> {

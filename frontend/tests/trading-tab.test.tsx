@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { TradingTab } from "@/app/dashboard/components/trading-tab"
+import { NavigationProvider } from "@/lib/navigation"
 
 function response(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -39,6 +40,10 @@ function snapshot(strategies: unknown[], signalSchemas: unknown[] = []) {
     activity: { intents: [], positions: [], orders: [], fills: [], riskEvents: [], reconciliationRuns: [], paperMarkets: [] },
     confirmations: { live: "ENABLE LIVE TRADING", emergencyFlatten: "EMERGENCY FLATTEN ALL" },
   }
+}
+
+function renderTradingTab() {
+  return render(<NavigationProvider><TradingTab config={{ sourceChannels: [] }} /></NavigationProvider>)
 }
 
 describe("Trading strategy control", () => {
@@ -108,7 +113,7 @@ describe("Trading strategy control", () => {
 
   it("deletes a selected strategy only after confirmation and sends the destructive API contract", async () => {
     vi.mocked(window.confirm).mockReturnValueOnce(false).mockReturnValueOnce(true)
-    render(<TradingTab config={{ sourceChannels: [] }} />)
+    renderTradingTab()
     fireEvent.click(await screen.findByRole("button", { name: "Strategien" }))
     fireEvent.click(screen.getByRole("button", { name: /Delete me v1/ }))
     fireEvent.click(screen.getByRole("button", { name: "Strategie löschen" }))
@@ -124,7 +129,7 @@ describe("Trading strategy control", () => {
   })
 
   it("controls adaptive TP allocation and SL movement independently and persists both modes", async () => {
-    render(<TradingTab config={{ sourceChannels: [] }} />)
+    renderTradingTab()
     fireEvent.click(await screen.findByRole("button", { name: "Strategien" }))
     fireEvent.click(screen.getByRole("button", { name: /Delete me v1/ }))
 
@@ -148,7 +153,7 @@ describe("Trading strategy control", () => {
   })
 
   it("creates, edits and deletes an allowed signal schema profile", async () => {
-    render(<TradingTab config={{ sourceChannels: [] }} />)
+    renderTradingTab()
     fireEvent.click(await screen.findByRole("button", { name: "Strategien" }))
 
     fireEvent.change(screen.getByLabelText("Kennung"), { target: { value: "desk-alpha" } })

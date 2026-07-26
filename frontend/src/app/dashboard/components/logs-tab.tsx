@@ -1,271 +1,172 @@
-"use client"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Check, Copy, Pause, Play, RefreshCw, Search, Terminal, Trash2 } from "lucide-react"
 
-import { useCallback, useEffect, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Terminal, RefreshCw, Pause, Play, Trash2, Copy, Check } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { apiFetch } from "@/lib/api"
 import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 
 const API_BASE = window.location.origin
+const MAX_CLIENT_LINES = 20_000
+const ROW_HEIGHT = 24
+const VIEWPORT_HEIGHT = 600
+const OVERSCAN = 20
 
-export function LogsTab({ config }: any) {
-  const [logs, setLogs] = useState<string[]>([])
-  const [isPaused, setIsPaused] = useState(false)
-  const [filter, setFilter] = useState<'all' | 'info' | 'success' | 'warn' | 'error'>('all')
+interface LogEntry {
+  cursor: number
+  line: string
+}
+
+interface ParsedLine {
+  timestamp: string
+  level: string
+  message: string
+}
+
+export function parseConsoleLine(line: string): ParsedLine {
+  let remaining = line.trimStart()
+  let timestamp = ""
+  if (/^\[\d{1,2}:\d{2}:\d{2}(?:\s[AP]M)?\]/i.test(remaining)) {
+    const end = remaining.indexOf("]") + 1
+    timestamp = remaining.slice(0, end)
+    remaining = remaining.slice(end).trimStart()
+  }
+  let level = ""
+  if (remaining.startsWith("[")) {
+    const end = remaining.indexOf("]")
+    const candidate = end < 0 ? "" : remaining.slice(0, end + 1)
+    if (/^\[[A-Z -]+\]$/i.test(candidate)) {
+      level = candidate
+      remaining = remaining.slice(candidate.length).trimStart()
+    }
+  }
+  return { timestamp, level, message: remaining }
+}
+
+function aliasLine(line: string, aliases: Record<string, unknown> | undefined): string {
+  let result = line
+  for (const [channelId, alias] of Object.entries(aliases || {})) {
+    result = result.replaceAll(channelId, `${String(alias)} (${channelId})`)
+  }
+  return result
+}
+
+export function LogsTab({ config }: Readonly<{ config?: any }>) {
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [paused, setPaused] = useState(false)
+  const [query, setQuery] = useState("")
+  const [regexMode, setRegexMode] = useState(false)
   const [copied, setCopied] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [scrollTop, setScrollTop] = useState(0)
+  const [dropped, setDropped] = useState(false)
+  const cursorRef = useRef(0)
+  const viewportRef = useRef<HTMLDivElement>(null)
 
   const fetchLogs = useCallback(async (signal?: AbortSignal) => {
-    if (isPaused) return;
+    if (paused) return
     try {
-      const res = await apiFetch(`${API_BASE}/api/logs`, { signal })
-      const data = await res.json()
-      setLogs(data.logs || [])
-    } catch (e) {
-      if (signal?.aborted) return
-      console.error("Failed to fetch logs", e)
+      const response = await apiFetch(`${API_BASE}/api/logs?after=${cursorRef.current}&limit=2000`, { signal })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.error || `Log-Stream fehlgeschlagen (${response.status}).`)
+      const incoming: LogEntry[] = Array.isArray(payload.entries)
+        ? payload.entries
+        : (payload.logs || []).map((line: string, index: number) => ({ cursor: cursorRef.current + index + 1, line }))
+      if (incoming.length > 0) {
+        setLogs(previous => [...previous, ...incoming].slice(-MAX_CLIENT_LINES))
+      }
+      cursorRef.current = Number(payload.nextCursor || incoming.at(-1)?.cursor || cursorRef.current)
+      if (payload.dropped) setDropped(true)
+    } catch (cause) {
+      if (!signal?.aborted) console.error("Log-Stream konnte nicht aktualisiert werden.", cause)
     }
-  }, [isPaused])
+  }, [paused])
 
-  useSerializedPolling((signal) => fetchLogs(signal), 3_000, !isPaused)
+  useSerializedPolling(signal => fetchLogs(signal), 750, !paused)
+
+  const matcher = useMemo(() => {
+    if (!query) return { test: () => true, error: "" }
+    if (!regexMode) {
+      const normalized = query.toLocaleLowerCase("de-DE")
+      return { test: (line: string) => line.toLocaleLowerCase("de-DE").includes(normalized), error: "" }
+    }
+    try {
+      const expression = new RegExp(query, "iu")
+      return { test: (line: string) => expression.test(line), error: "" }
+    } catch (cause) {
+      return { test: () => false, error: cause instanceof Error ? cause.message : "Ungültiger regulärer Ausdruck." }
+    }
+  }, [query, regexMode])
+
+  const visibleLogs = useMemo(
+    () => logs
+      .map(entry => ({ ...entry, line: aliasLine(entry.line, config?.sourceAliases) }))
+      .filter(entry => matcher.test(entry.line)),
+    [config?.sourceAliases, logs, matcher],
+  )
+  const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN)
+  const visibleCount = Math.ceil(VIEWPORT_HEIGHT / ROW_HEIGHT) + OVERSCAN * 2
+  const end = Math.min(visibleLogs.length, start + visibleCount)
+  const windowed = visibleLogs.slice(start, end)
 
   useEffect(() => {
-    if (bottomRef.current && !isPaused) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" })
-    }
-  }, [logs, isPaused, filter])
+    if (paused || query || !viewportRef.current) return
+    viewportRef.current.scrollTop = viewportRef.current.scrollHeight
+  }, [logs, paused, query])
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(logs.join("\n"))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("Failed to copy logs:", err)
-    }
+  const copy = async () => {
+    await navigator.clipboard.writeText(visibleLogs.map(entry => entry.line).join("\n"))
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 2_000)
   }
 
-  const handleClearLocal = () => {
+  const clearLocal = () => {
     setLogs([])
+    setDropped(false)
+    setScrollTop(0)
   }
 
-  const parseLogLine = (line: string) => {
-    // Formats source channel IDs with aliases first
-    let displayLine = line
-    if (config?.sourceAliases) {
-      Object.entries(config.sourceAliases).forEach(([chId, alias]: any) => {
-        displayLine = displayLine.replaceAll(chId, `${alias} (${chId})`)
-      })
-    }
-
-    let remaining = displayLine.trimStart()
-    let timestamp = ""
-    if (/^\[\d{2}:\d{2}:\d{2}\]/.test(remaining)) {
-      timestamp = remaining.slice(0, 10)
-      remaining = remaining.slice(10).trimStart()
-    }
-    let rawLevel = ""
-    if (remaining.startsWith("[")) {
-      const closingBracket = remaining.indexOf("]")
-      const candidate = closingBracket < 0 ? "" : remaining.slice(0, closingBracket + 1)
-      if (/^\[[A-Z -]+\]$/i.test(candidate)) {
-        rawLevel = candidate
-        remaining = remaining.slice(candidate.length)
-      }
-    }
-    const message = remaining
-
-    const level = rawLevel.toUpperCase()
-    let levelColor = "text-zinc-400"
-
-    if (level.includes("SUCCESS")) {
-      levelColor = "text-emerald-500 dark:text-emerald-400 font-semibold"
-    } else if (level.includes("INFO")) {
-      levelColor = "text-sky-500 dark:text-sky-400"
-    } else if (level.includes("WARN")) {
-      levelColor = "text-amber-500 dark:text-amber-400 font-medium"
-    } else if (level.includes("ERROR") || level.includes("FATAL")) {
-      levelColor = "text-rose-500 dark:text-rose-400 font-semibold"
-    } else if (level.includes("TDLIB") || level.includes("STATUS")) {
-      levelColor = "text-violet-500 dark:text-violet-400"
-    }
-
-    return {
-      timestamp,
-      levelText: rawLevel,
-      levelColor,
-      message,
-      isParsed: Boolean(timestamp || rawLevel)
-    }
-  }
-
-  const filteredLogs = logs.filter(log => {
-    if (filter === 'all') return true
-    const upper = log.toUpperCase()
-    if (filter === 'info') return upper.includes('[INFO]')
-    if (filter === 'success') return upper.includes('[SUCCESS]')
-    if (filter === 'warn') return upper.includes('[WARN]')
-    if (filter === 'error') return upper.includes('[ERROR]') || upper.includes('[FATAL]')
-    return true
-  })
-  const logOccurrences = new Map<string, number>()
-
-  return (
-    <Card className="w-full shadow-lg border-zinc-200 dark:border-zinc-800">
-      <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between pb-4 space-y-4 md:space-y-0">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <Terminal className="h-5 w-5 text-muted-foreground" />
-            <span>System-Terminal</span>
-          </CardTitle>
-          <CardDescription>
-            Live-Ausgabe des Hintergrund-Daemons und Routing-Meldungen (Aktualisiert alle 3s)
-          </CardDescription>
+  return <Card className="w-full overflow-hidden">
+    <CardHeader className="gap-4 border-b">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div><CardTitle className="flex items-center gap-2"><Terminal className="h-5 w-5" />System-Konsole</CardTitle><CardDescription>Kontinuierlicher, cursorbasierter Live-Stream. Keine Level werden ausgeblendet oder aus ihrem Ablauf gerissen.</CardDescription></div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" disabled={visibleLogs.length === 0} onClick={() => void copy()}>{copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}{copied ? "Kopiert" : "Sichtbares kopieren"}</Button>
+          <Button variant="outline" size="sm" onClick={clearLocal}><Trash2 className="mr-2 h-4 w-4" />Lokal leeren</Button>
+          <Button variant="outline" size="sm" aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? <Play className="mr-2 h-4 w-4" /> : <Pause className="mr-2 h-4 w-4" />}{paused ? "Fortsetzen" : "Pausieren"}</Button>
+          <Button variant="outline" size="icon" disabled={paused} aria-label="Logs aktualisieren" onClick={() => void fetchLogs()}><RefreshCw className="h-4 w-4" /></Button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          {/* Filter buttons */}
-          <div className="flex bg-muted/60 p-0.5 rounded-lg border text-xs font-medium mr-2" role="toolbar" aria-label="Log-Level filtern">
-            <button
-              type="button"
-              onClick={() => setFilter('all')} 
-              aria-pressed={filter === 'all'}
-              className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'all' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Alle
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter('success')} 
-              aria-pressed={filter === 'success'}
-              className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'success' ? 'bg-background text-emerald-600 dark:text-emerald-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Erfolge
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter('info')} 
-              aria-pressed={filter === 'info'}
-              className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'info' ? 'bg-background text-sky-600 dark:text-sky-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Info
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter('warn')} 
-              aria-pressed={filter === 'warn'}
-              className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'warn' ? 'bg-background text-amber-600 dark:text-amber-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Warn
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter('error')} 
-              aria-pressed={filter === 'error'}
-              className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'error' ? 'bg-background text-rose-600 dark:text-rose-400 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Fehler
-            </button>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Logs durchsuchen" className="pl-9 font-mono" value={query} onChange={event => setQuery(event.target.value)} placeholder={regexMode ? "Regulärer Ausdruck …" : "Text, Symbol, Modul oder Fehlermeldung …"} /></div>
+        <Button variant={regexMode ? "default" : "outline"} aria-pressed={regexMode} onClick={() => setRegexMode(value => !value)}>Regex</Button>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><span>{visibleLogs.length.toLocaleString("de-DE")} sichtbar · {logs.length.toLocaleString("de-DE")} im lokalen Puffer · Cursor {cursorRef.current}</span>{paused && <BadgeLike>Stream pausiert</BadgeLike>}{matcher.error && <span role="alert">Regex: {matcher.error}</span>}{dropped && <span role="alert">Der Serverpuffer wurde zwischenzeitlich überschrieben; der Stream setzt an der ältesten verfügbaren Zeile fort.</span>}</div>
+    </CardHeader>
+    <CardContent className="p-0">
+      <div
+        ref={viewportRef}
+        role="log"
+        aria-label="System-Logs"
+        aria-live="off"
+        onScroll={event => setScrollTop(event.currentTarget.scrollTop)}
+        className="relative h-[600px] overflow-auto bg-black font-mono text-xs text-zinc-200"
+      >
+        {visibleLogs.length === 0 ? <div className="flex h-full items-center justify-center text-zinc-500">{logs.length === 0 ? "Warte auf Log-Einträge …" : "Keine Treffer im vollständigen Stream."}</div> : <div style={{ height: visibleLogs.length * ROW_HEIGHT, position: "relative" }}>{windowed.map((entry, offset) => {
+          const parsed = parseConsoleLine(entry.line)
+          const row = start + offset
+          return <div key={entry.cursor} className="absolute left-0 right-0 grid grid-cols-[4rem_auto_auto_minmax(0,1fr)] items-baseline gap-2 border-b border-white/5 px-3 hover:bg-white/5" style={{ height: ROW_HEIGHT, transform: `translateY(${row * ROW_HEIGHT}px)` }}>
+            <span className="select-none text-right text-zinc-600">{entry.cursor}</span>
+            <span className="whitespace-nowrap text-zinc-500">{parsed.timestamp}</span>
+            <span className="whitespace-nowrap font-semibold text-zinc-300">{parsed.level}</span>
+            <span className="truncate whitespace-pre" title={parsed.message}>{parsed.message}</span>
           </div>
+        })}</div>}
+      </div>
+    </CardContent>
+  </Card>
+}
 
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleCopy} 
-            className="gap-1.5 h-8 text-xs active:scale-95 transition-all"
-            disabled={logs.length === 0}
-          >
-            {copied ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-                <span>Kopiert</span>
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" />
-                <span>Kopieren</span>
-              </>
-            )}
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleClearLocal} 
-            className="gap-1.5 h-8 text-xs active:scale-95 transition-all"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            <span>Leeren</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className={`h-8 w-8 active:scale-95 transition-all ${isPaused ? "border-amber-500/50 text-amber-500 hover:bg-amber-500/10" : ""}`}
-            onClick={() => setIsPaused(!isPaused)}
-            title={isPaused ? "Auto-Scroll fortsetzen" : "Auto-Scroll pausieren"}
-            aria-label={isPaused ? "Auto-Scroll fortsetzen" : "Auto-Scroll pausieren"}
-            aria-pressed={isPaused}
-          >
-            {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-8 w-8 active:scale-95 transition-all"
-            onClick={() => void fetchLogs()}
-            disabled={isPaused}
-            aria-label="Logs aktualisieren"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="p-0">
-        <div role="log" aria-live="off" aria-label="System-Logs" className="bg-zinc-950 dark:bg-zinc-950/80 border-t border-zinc-200 dark:border-zinc-800 text-zinc-300 p-4 h-[550px] overflow-y-auto font-mono text-xs leading-relaxed select-text">
-          {filteredLogs.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-zinc-500 italic select-none">
-              {logs.length === 0 ? "Warte auf eingehende Logs..." : "Keine Einträge für den ausgewählten Filter."}
-            </div>
-          ) : (
-            filteredLogs.map((log, idx) => {
-              const { timestamp, levelText, levelColor, message, isParsed } = parseLogLine(log)
-              const occurrence = (logOccurrences.get(log) || 0) + 1
-              logOccurrences.set(log, occurrence)
-              
-              return (
-                <div key={`${log}-${occurrence}`} className="flex py-0.5 hover:bg-zinc-900/40 px-1.5 rounded-sm transition-colors group">
-                  <span className="w-8 shrink-0 text-zinc-600 select-none text-[10px] pr-2 text-right border-r border-zinc-800 mr-3">
-                    {idx + 1}
-                  </span>
-                  
-                  {isParsed ? (
-                    <div className="flex flex-wrap gap-x-1.5 items-baseline">
-                      {timestamp && (
-                        <span className="text-zinc-500 select-none font-mono">
-                          {timestamp}
-                        </span>
-                      )}
-                      {levelText && (
-                        <span className={`${levelColor} select-none`}>
-                          {levelText}
-                        </span>
-                      )}
-                      <span className="text-zinc-200 whitespace-pre-wrap break-all">
-                        {message}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-zinc-200 whitespace-pre-wrap break-all">
-                      {message}
-                    </span>
-                  )}
-                </div>
-              )
-            })
-          )}
-          <div ref={bottomRef} />
-        </div>
-      </CardContent>
-    </Card>
-  )
+function BadgeLike({ children }: Readonly<{ children: string }>) {
+  return <span className="rounded-md border px-2 py-0.5 text-foreground">{children}</span>
 }

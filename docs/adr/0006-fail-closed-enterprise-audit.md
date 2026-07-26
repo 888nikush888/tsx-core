@@ -21,3 +21,5 @@ Actor-IDs werden aus dem Credential nur als gekürzter SHA-256-Fingerprint abgel
 - Fehlender oder ablehnender Produktions-Sink blockiert die Mutation vor ihrer Nebenwirkung.
 - Abschlussstatus und Request-ID sind extern korrelierbar, ohne Secrets oder Payload zu persistieren.
 - Audit-Ausfall ist Readiness- und Alert-relevant; lokales Wachstum ist hart begrenzt.
+
+Ergänzung 26.07.2026: MCP-Schreibaktionen verwenden dieselbe Kette. Die Forwarder-Brücke muss `authorized` erfolgreich persistieren, bevor sie `TradingWebControl` aufruft, und schreibt danach `completed`; Agent, Sitzung und Kontrollanforderung bleiben zusätzlich in SQLite korrelierbar.

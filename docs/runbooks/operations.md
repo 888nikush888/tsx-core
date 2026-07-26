@@ -34,16 +34,27 @@
 5. Fremde Orders oder Positionen auf demselben API-Konto gelten als unmanaged Exposure. Entweder außerhalb des Systems nach Vier-Augen-Betriebsprozess schließen oder ein separates ausschließlich diesem System gehörendes Exchange-Subkonto verwenden. Der Kill-Switch bleibt bis zu einer erfolgreichen Null-/Managed-Reconciliation aktiv.
 6. Vor Aufheben der Sperre Datenumfang, betroffene Kanäle/Strategieversionen und Ursache dokumentieren. **Abgleichen und Sperre aufheben** führt nochmals alle aktivierten Konten gegen die Exchange; erst Erfolg entfernt die Sperre.
 
-Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaisen lassen. Factory Reset stoppt den Trading-Worker, storniert offene Entries, prüft jedes Nicht-Paper-Konto über das offizielle SDK und verweigert bei Order/Position oder nicht erreichbarer Exchange die Löschung. Danach werden DB, Strategie-/Routingzustand, alle Exchange-Key-Dateien und der interne Executor-Key entfernt; der neue Key wird nach Neustart automatisch vom bereits laufenden Sidecar akzeptiert. **Betriebsdaten leeren** ist davon getrennt: Es stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie nicht von Trades referenzierte Signale atomar. Trading-Historie, Strategien, Konten, Secrets und trade-referenzierte Signale bleiben unverändert erhalten.
+Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaisen lassen. Factory Reset stoppt MCP-Brücke und Trading-Worker, signalisiert dem unabhängigen MCP-Prozess ein gemeinsames Wartungsfenster, storniert offene Entries, prüft jedes Nicht-Paper-Konto über das offizielle SDK und verweigert bei Order/Position oder nicht erreichbarer Exchange die Löschung. Danach werden DB einschließlich Verträgen, Kanalrisiko, Analytics und MCP-Agenten, Strategie-/Routingzustand, alle Exchange-Key-Dateien und der interne Executor-Key entfernt; der neue Key wird nach Neustart automatisch vom bereits laufenden Sidecar akzeptiert. **Betriebsdaten leeren** ist davon getrennt: Es stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie nicht von Trades referenzierte Signale atomar. Trading-Historie, Strategien, Konten, Secrets und trade-referenzierte Signale bleiben unverändert erhalten.
 
-## Signal-Schema-Profil ändern oder löschen
+## Signalvertrag oder Schema-Profil ändern
 
-1. Unter **Trading → Strategien** Profil-ID, Parser-Template, ausführbaren Vertrag und alle Strategieversionen erfassen, die das Profil erlauben.
-2. Verwendet eine aktive Kanalroute das Profil, zuerst ein Ersatzprofil anlegen, eine neue Strategieversion damit speichern und publizieren und die Route bewusst umstellen. Bestehende Trades behalten ihre immutable alte Strategieversion.
-3. Das Ersatzprofil mit einer kontrollierten Paper-Nachricht prüfen. Das Signal muss ein eindeutiges `USD`-, `USDC`- oder `USDT`-Paar liefern; Parser-Provenance, Intent, TP-Allokationen und Stop-Modus kontrollieren.
-4. Erst wenn keine aktive Route das alte Profil verwendet, dieses bearbeiten, deaktivieren oder löschen. Der Server blockiert die Aktion andernfalls; diese Sperre wird nicht durch DB-Eingriffe umgangen.
-5. Löschen erfordert Admin-Rechte und `X-Destructive-Confirmation: delete-trading-signal-schema`. Ein unbekanntes, deaktiviertes oder gelöschtes Profil bleibt fail-closed und erzeugt keinen Trade.
-6. Nach der Änderung Trading-Snapshot, Kanalrouten, `/readyz`, Audit-Record und einen Paper-Intent prüfen. Bei unerwartetem Parser-/Schema-Mismatch Route deaktivieren und nicht auf einen anderen Vertrag zurückfallen.
+1. Unter **Trading → Verträge** Vertrags-ID, Version, Status, Definition-Hash und alle verknüpften Schema-Profile erfassen. Publizierte Definitionen nie in SQLite bearbeiten.
+2. Änderung als neuen Entwurf aus der gewünschten Version erstellen oder Vertrag duplizieren. XML-Pfade, Feldtypen, Entry-/Target-Form, Geometrie und Quelltext-Erdung im visuellen Builder vollständig prüfen.
+3. Den Entwurf mit kontrolliertem XML und ursprünglichem Telegram-Text validieren; anschließend publizieren. Erst danach ein Ersatzprofil mit passendem Parser-Template und neuer `contractVersionId` anlegen beziehungsweise umstellen.
+4. Verwendet eine aktive Kanalroute das Profil, zuerst eine neue Strategieversion mit dem Ersatzprofil publizieren und die Route bewusst umstellen. Bestehende Trades behalten ihre immutable alte Strategieversion.
+5. Das Ersatzprofil mit einer Paper-Nachricht prüfen. Das Signal muss ein eindeutiges `USD`-, `USDC`- oder `USDT`-Paar liefern; Provenance, Geometrie, Intent, Kanalrisiko, TP-Allokationen und Stop-Modus kontrollieren.
+6. Erst wenn kein aktiviertes Profil mehr auf die alte Vertragsversion verweist, diese archivieren. Nur Entwürfe können gelöscht werden (`delete-signal-contract-draft`); Profillöschung verwendet `delete-trading-signal-schema`.
+7. Nach der Änderung Trading-Snapshot, Kanalrouten, `/readyz`, Audit-Record, `contract_changed`-Event und Paper-Intent prüfen. Bei Mismatch Route deaktivieren; kein stiller Fallback auf einen anderen Vertrag.
+
+## MCP-Agent kompromittiert oder fehlerhaft
+
+1. Unter **MCP-Agenten** den Agenten sofort deaktivieren. Dadurch werden Tokenverwendung und aktive Sitzungen widerrufen; Historie bleibt erhalten.
+2. Im Cockpit Kill-Switch, offene Positionen, unbekannte Orders und letzte Reconciliation prüfen. Bei unklarer Exchange-Wirkung niemals denselben Tool-Aufruf blind wiederholen.
+3. Agenten-Aktionen, Sitzung, `mcp_control_request`-ID, hashverkettete Audit-Records und passende Trading-Execution-Events sichern. Token oder Request-Secrets nicht in Tickets kopieren.
+4. Falls `trading.kill_switch`, `trading.cancel_entries` oder `trading.flatten` verwendet wurde, Exchange read-only gegen Client Order IDs und Fills prüfen und anschließend über einen menschlichen Admin reconciliieren.
+5. Ursache beheben, Rechte auf das Minimum reduzieren und Token rotieren. Alte Tokens können nicht wieder aktiviert werden.
+
+Bei Backup-Restore, Migration-Rollback oder Factory Reset stoppt TSX Core die interne MCP-Brücke und setzt im gemeinsamen SQLite-Volume `.mcp-maintenance`. Der unabhängige MCP-Dienst muss daraufhin seine Sitzungen und den DB-Handle schließen. Ein Dienst, der den Marker ignoriert oder während des Wartungsfensters neu startet, bleibt ungesund und darf nicht manuell am Marker vorbeigestartet werden.
 
 ## Clock Drift
 
@@ -105,6 +116,8 @@ docker compose up -d
 ```
 
 Vor Restore Dienst stoppen, Locks und Outbox dokumentieren, Backup aus unabhängigem Ziel holen und Prüfergebnis archivieren. Das Artefakt stellt DB, nicht geheime Konfiguration, Runtime-Einstellungen und Templates wieder her; verwaltete Secrets sowie TDLib-Sessiondaten sind nicht enthalten und werden getrennt re-provisioniert. Danach `readyz`, Tabellen/Counts und einen synthetischen E2E-Flow prüfen. Bei Abweichung Dienst stoppen und die erhaltenen `.pre-restore-*`-Dateien gemäß Restore-Ausgabe zurückrollen. TDLib-Reauthentifizierung ist ein separater Recovery-Schritt.
+
+Wenn das MCP-Profil verwendet wird, immer den gesamten Compose-Stack einschließlich `mcp-server` stoppen. Nach Restore jeden Agenten-Token rotieren, Rechte und Ereignis-Abonnements gegen den Restore-Zeitpunkt prüfen und erst dann `docker compose --profile mcp up -d` verwenden.
 
 ## Release und Rollback
 

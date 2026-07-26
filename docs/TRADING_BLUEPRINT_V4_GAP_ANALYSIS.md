@@ -1,6 +1,6 @@
 # TSX Core – Trading-Blueprint v4.0: Implementierungsabgleich
 
-Stand: 23.07.2026
+Stand: 26.07.2026
 
 ## Scope und Urteil
 
@@ -8,7 +8,7 @@ Geprüft wurde die Handelsausführung aus `Blueprint_Signal_Automatisierung_v4 -
 
 **Urteil: TEILWEISE UMGESETZT.** Die adaptive TP-Halbierungsstaffel und das TP-basierte SL-Nachziehen aus dem Blueprint sind inzwischen implementiert, in der Web-UI vollständig schaltbar und deterministisch getestet. Signale mit 1 bis 20 TPs werden automatisch aufgeteilt; nach TP1/TP2 liegt der Stop auf Break-even und danach auf TP(i-2), ohne jemals in Gegenrichtung verschoben zu werden.
 
-Der Blueprint ist trotzdem noch kein vollständig nachgewiesener Ist-Zustand: Fixed-Capital-Sizing, 50/50-Scale-In mit zwei Entry-Orders, ATR-Timeout, kontoweite Positions-/Drawdown-Automaten, Bybit-Cross-Margin-Verifikation und Zombie-Candle-Warnungen fehlen ganz oder weichen materiell ab. Für einen Live-Release mit dem Anspruch „Blueprint v4.0 vollständig umgesetzt“ gilt deshalb weiterhin **NO-GO**. Das ist keine Aussage gegen Paper-Trading mit der dokumentierten aktuellen Strategie-Engine.
+Der Blueprint ist trotzdem noch kein vollständig nachgewiesener Ist-Zustand: Fixed-Capital-Sizing, 50/50-Scale-In mit zwei Entry-Orders, ATR-Timeout, kontoweite Positions-/Drawdown-Automaten, Bybit-Cross-Margin-Verifikation und Zombie-Candle-Warnungen fehlen ganz oder weichen materiell ab. Die am 26.07.2026 ergänzten dynamischen Verträge, kanalbezogene Performance-Gewichtung, Analytics, Cockpit/Logs/Command-Palette, Tailscale und MCP ändern diese bewusst getrennten Blueprint-Lücken nicht. Für einen Live-Release mit dem Anspruch „Blueprint v4.0 vollständig umgesetzt“ gilt deshalb weiterhin **NO-GO**. Das ist keine Aussage gegen Paper-Trading mit der dokumentierten aktuellen Strategie-Engine.
 
 ## Anforderungsmatrix
 
@@ -36,23 +36,30 @@ Legende: **Ja** = vollständig im Code und durch automatisierte Tests nachgewies
 
 Der aktuelle Stand ergänzt den Blueprint um weitere fail-closed Kontrollen:
 
-- **Selbst verwaltete Signal-Schema-Profile:** Unter **Trading → Strategien** können Profile erstellt, bearbeitet, aktiviert/deaktiviert und nach Bestätigung gelöscht werden. Eine unveränderliche Profil-ID verbindet ein Parser-Template mit einem der geprüften ausführbaren XML-Verträge `standard`, `cryptodanielvip` oder `loma`.
-- **Routenschutz:** Ein Profil, das eine aktive Kanalroute verwendet, kann weder geändert noch gelöscht werden. Unbekannte oder deaktivierte Profile erzeugen keinen Trade.
+- **Dynamische Signalverträge:** Unter **Trading → Verträge** können beliebige deklarative Verträge erstellt, dupliziert, als Entwurf bearbeitet/getestet, publiziert, archiviert und als Entwurf gelöscht werden. Geometrie und Quelltext-Erdung sind pro Vertrag steuerbar; publizierte Versionen bleiben immutable.
+- **Frei verknüpfte Schema-Profile:** Eine unveränderliche Profil-ID verbindet ein Parser-Template mit jeder publizierten Vertragsversion. `standard`, `cryptodanielvip` und `loma` sind initiale Datenbausteine, keine feste Runtime-Allowlist.
+- **Routenschutz:** Ein Profil, das eine aktive Kanalroute verwendet, kann weder geändert noch gelöscht werden; eine von einem aktivierten Profil verwendete Vertragsversion kann nicht archiviert werden. Unbekannte oder deaktivierte Profile erzeugen keinen Trade.
 - **USD-Quote-Pflicht:** Ausführbare Symbole müssen mit `USD`, `USDC` oder `USDT` enden. Andere oder mehrdeutige Paare werden vor dem Trade Intent abgewiesen.
+- **Dynamisches Kanalrisiko:** `fixed`, `shadow` und `automatic` bewerten geschlossene Trades je Kanal, staffeln Risiko wöchentlich und können schwache Quellen reduzieren oder blockieren. Manuelle Sperre/Stufenfixierung und globale Safety-Gates haben Vorrang.
+- **Execution-Telemetrie:** Persistierte Ereignisse messen die Kette von Signalempfang über Exchange-Ack/First Fill bis Positionsschluss und speisen Latenz-/Funnel-Auswertung.
+- **Tailnet und Agenten:** Tailscale Serve ermöglicht Remote-Zugriff ohne öffentlichen Port; der optionale MCP-Dienst besitzt gehashte Agenten-Tokens, dauerhafte Rechte, Ereignis-Push und eine auditierte Kontrollbrücke.
 - **Manueller Alternativmodus:** Für Strategien, die nicht die Blueprint-Staffel verwenden, bleiben exakt summierte TP-Prozente sowie konfiguriertes Break-even und Prozent-Trailing verfügbar.
 - **Immutability:** Publizierte Strategieversionen bleiben unveränderlich; Profil-/Strategieänderungen werden erst nach bewusstem Routing-Wechsel für neue Signale wirksam.
 
 ## Web-UI-Abdeckung
 
-Das Trading Control Center deckt die heute vorhandene Engine ab:
+Die Web-Oberfläche deckt die heute vorhandene Engine ab:
 
-- Betriebszustand, Execution/Live-Freigabe und Kill-Switch;
-- Schema-Profile erstellen, verwalten, aktivieren/deaktivieren und löschen;
+- Live-Cockpit mit Betriebszustand, Execution/Live/Paper, Kill-Switch, Positionen, PnL, Signalstrom und Notfallaktionen;
+- visueller Vertrags-Builder und vollständige Vertragsversionierung;
+- Schema-Profile frei mit publizierten Verträgen verknüpfen, aktivieren/deaktivieren und löschen;
 - Strategie erstellen, bearbeiten, versionieren und publizieren;
 - adaptive oder manuelle TP-Allokation sowie adaptives oder konfiguriertes SL-Management;
-- genau eine Strategie-/Kontoroute je Kanal, mehrere Kanäle parallel;
+- genau eine Strategie-/Kontoroute je Kanal, mehrere Kanäle parallel und vollständige dynamische Kanalrisikopolice;
 - Paper-, Hyperliquid- und Bybit-Konten sowie Credential-Verwaltung;
-- Paper-Märkte, Portfolioanalyse, Trades, Orders, Positionen, Risk Events und Reconciliation.
+- dediziertes Analytics-Labor für Equity, Drawdown, Kanalranking, Slippage, Exchange-Ausführung, Latenz und Erwartungswert;
+- virtuelle, durchgehende Log-Konsole mit Text-/Regex-Suche, globale Command Palette und monochromes UI;
+- MCP-Agentenverwaltung mit Rechten, Ereignissen, Sitzungen, Einmal-Token und Aktionen.
 
 Es kann keine Funktion konfigurieren, die im Domain-Schema nicht existiert. Insbesondere fehlen weiterhin Controls für Capital-Prozent, Margin-Puffer, globale Positions-/Drawdown-Limits, Soft-Warnschwelle, ATR-Referenz, 50/50-Scale-In und Zombie-Candles. Ein bloßes Formular ohne Engine-, Persistenz- und Testunterstützung wäre Scheinfunktion und wurde deshalb nicht hinzugefügt.
 
@@ -70,22 +77,23 @@ Die offenen Punkte ändern Handelslogik, Strategie-Public-Contract und Persisten
 2. **Exakter Blueprint v4.0.** Zusätzlich ungecapptes Signal-Leverage und fehlenden Sanity-Check übernehmen. Das entspricht dem Papier enger, erhöht aber Liquidations-, Daten- und Missbrauchsrisiko erheblich und wird nicht empfohlen.
 3. **Aktuelle Risk Engine behalten.** Die implementierte adaptive TP-/SL-Logik und das bestehende risikobasierte Sizing beibehalten. Das ist sicherer, erfüllt aber den vollständigen Blueprint-Anspruch nicht.
 
-Für Option 1 oder 2 sind mindestens notwendig: Strategie-Schema v2 mit Migration, versionierter Trading-Plan v2, Multi-Entry-Ordermodell, kontoweiter Risk-State/Equity-High-Water-Mark, neue Reconciliation-Regeln, Web-UI-Controls sowie deterministische Paper-, Adapter-, Neustart- und Teilfill-Regressionstests.
+Für Option 1 oder 2 sind mindestens notwendig: eine neue rückwärtskompatible Strategie-/Plan-Version oberhalb des heutigen Schemas v2, Multi-Entry-Ordermodell, kontoweiter Risk-State/Equity-High-Water-Mark, neue Reconciliation-Regeln, Web-UI-Controls sowie deterministische Paper-, Adapter-, Neustart- und Teilfill-Regressionstests.
 
 ## Verifikation des aktuellen Stands
 
 | Prüfung | Ergebnis |
 |---|---|
-| Frontend-Komponententests | 6 Dateien / 14 Tests bestanden |
-| Vollständige Repository-Test-Suite | 51/51 Testdateien bestanden |
+| Frontend-Komponententests | 7 Dateien / 15 Tests bestanden |
+| MCP-Protokoll und Kontrollbrücke | Streamable-HTTP-Handshake, Bearer, Rechte, Persistenz, Audit-Brücke, Event-Retry und Wartungsstopp bestanden |
+| Vollständige Repository-Test-Suite | siehe aktueller lokaler/CI-Release-Gate-Lauf für exakt diesen Commit |
 | Root- und Frontend-Lint | bestanden |
 | TypeScript-Typecheck und Produktionsbuild | bestanden |
 | Kritische Coverage | 97,74 % Statements, 87,63 % Branches, 100 % Functions, 97,74 % Lines |
 | Kernmodul-Coverage-Ratchet in Node-22-CI | 93,88 % Statements, 81,87 % Branches, 98,51 % Functions, 93,88 % Lines |
-| Architektur- und Complexity-Gate | 46 Module, 0 Zyklen; 0 Warnungen/Verstöße |
-| Duplicate Gate | 0,24 % duplizierte TypeScript-Zeilen, Ziel < 5 % |
+| Architektur- und Complexity-Gate | ausführbare Ratchets; 0 Zyklen und 0 neue Warnungen/Verstöße erforderlich |
+| Duplicate Gate | ausführbares Ziel < 5 % |
 | Browser-/Accessibility-Gate | Chromium, Firefox, WebKit und Mobile Chromium bestanden |
 | Security-/Supply-Chain-Gates | CodeQL, Secret-History, Container-SBOM und Vulnerability Scan bestanden |
-| GitHub Quality Workflow | [Run 30002905392](https://github.com/888nikush888/tsx-core/actions/runs/30002905392) für Commit `8f7e0ba` erfolgreich |
+| GitHub Quality Workflow | muss nach Veröffentlichung für den finalen Commit erneut grün sein; frühere Runs sind keine Evidenz für diese Änderung |
 
 Eine Live-Exchange-Verifikation wurde nicht ausgeführt; sie wäre für diesen Dokumentationsabgleich eine unnötige externe Handelsaktion. Aussagen über reales Fill-, Cross-Margin- und Ausfallverhalten bleiben bis zu Testnet- und Reconciliation-Evidence **NICHT VERIFIZIERT**.

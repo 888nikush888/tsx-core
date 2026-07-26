@@ -1,4 +1,5 @@
-import { cloneElement, isValidElement, useCallback, useId, useMemo, useState, type ReactNode } from "react"
+import { cloneElement, isValidElement, useCallback, useEffect, useId, useMemo, useState, type ReactNode } from "react"
+import { useSearchParams } from "@/lib/navigation"
 import { AlertTriangle, Ban, CheckCircle2, RefreshCw, Save, ShieldAlert, Trash2 } from "lucide-react"
 import { apiFetch } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
@@ -10,15 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useSerializedPolling } from "@/hooks/use-serialized-polling"
+import { ChannelRiskManager } from "./channel-risk-manager"
+import { SignalContractManager } from "./signal-contract-manager"
 
 const API_BASE = window.location.origin
 const DEFAULT_CONFIGURATION = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   allowedSignalSchemas: ["standard", "cryptodanielvip", "loma"],
   allowedSymbols: [],
   allowedSides: ["LONG", "SHORT"],
   entry: { orderType: "limit", rangePrice: "midpoint", postOnly: false, timeoutSeconds: 10 },
-  sizing: { riskPerTradePercent: "1", maxPositionNotional: "1000", maxLeverage: 3 },
+  sizing: { riskPerTradePercent: "1", maxAdaptiveRiskPercent: "1", maxPositionNotional: "1000", maxLeverage: 3 },
   exits: {
     targetAllocationMode: "manual",
     targetAllocationsPercent: ["50", "50"],
@@ -30,7 +33,12 @@ const DEFAULT_CONFIGURATION = {
   safety: { maxConcurrentPositions: 1, maxDailyLoss: "100", maxSlippagePercent: "0.5", entryOrderTtlSeconds: 900, requireProtectiveStop: true },
 }
 
-type Workspace = "overview" | "strategies" | "routing" | "accounts" | "paper" | "activity"
+type Workspace = "overview" | "contracts" | "strategies" | "routing" | "accounts" | "paper" | "activity"
+const WORKSPACES = new Set<Workspace>(["overview", "contracts", "strategies", "routing", "accounts", "paper", "activity"])
+
+function tradingWorkspace(value: string | null): Workspace {
+  return value && WORKSPACES.has(value as Workspace) ? value as Workspace : "overview"
+}
 
 function time(value: number | null | undefined) {
   return value ? new Date(value).toLocaleString("de-DE") : "–"
@@ -58,10 +66,25 @@ function Metric({ label, value, detail }: Readonly<{ label: string; value: strin
 }
 
 export function TradingTab({ config }: Readonly<{ config: any }>) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedWorkspace = searchParams.get("workspace")
   const [data, setData] = useState<any>(null)
-  const [workspace, setWorkspace] = useState<Workspace>("overview")
+  const [workspace, setWorkspace] = useState<Workspace>(() => tradingWorkspace(requestedWorkspace))
   const [busy, setBusy] = useState("")
   const [message, setMessage] = useState("")
+
+  useEffect(() => setWorkspace(tradingWorkspace(requestedWorkspace)), [requestedWorkspace])
+
+  const selectWorkspace = (nextWorkspace: Workspace) => {
+    setWorkspace(nextWorkspace)
+    const next = new URLSearchParams(searchParams)
+    if (nextWorkspace === "overview") next.delete("workspace")
+    else next.set("workspace", nextWorkspace)
+    next.delete("contract")
+    next.delete("channel")
+    next.delete("position")
+    setSearchParams(next)
+  }
 
   const refresh = useCallback(async (quiet = false, signal?: AbortSignal) => {
     if (!quiet) setBusy("refresh")
@@ -90,16 +113,17 @@ export function TradingTab({ config }: Readonly<{ config: any }>) {
   if (!data) return <Card><CardContent className="flex min-h-64 items-center justify-center text-muted-foreground">Trading-Control-Plane wird geladen…</CardContent></Card>
 
   const nav: Array<[Workspace, string]> = [
-    ["overview", "Betrieb"], ["strategies", "Strategien"], ["routing", "Kanal-Routing"],
+    ["overview", "Betrieb"], ["contracts", "Verträge"], ["strategies", "Strategien"], ["routing", "Kanal-Routing"],
     ["accounts", "Börsenkonten"], ["paper", "Paper-Märkte"], ["activity", "Trades & Risiko"],
   ]
   return <div className="space-y-5">
     <div className="flex flex-wrap gap-2">
-      {nav.map(([id, label]) => <Button key={id} variant={workspace === id ? "default" : "outline"} size="sm" aria-pressed={workspace === id} onClick={() => setWorkspace(id)}>{label}</Button>)}
+      {nav.map(([id, label]) => <Button key={id} variant={workspace === id ? "default" : "outline"} size="sm" aria-pressed={workspace === id} onClick={() => selectWorkspace(id)}>{label}</Button>)}
       <Button variant="ghost" size="sm" onClick={() => void refresh()} disabled={busy === "refresh"}><RefreshCw className="mr-2 h-4 w-4" />Aktualisieren</Button>
     </div>
     {message && <output className={`block rounded-md border p-3 text-sm ${/fehl|refused|error|ungültig|nicht/i.test(message) ? "border-destructive/50 bg-destructive/5 text-destructive" : "border-primary/30 bg-primary/5"}`}>{message}</output>}
     {workspace === "overview" && <Overview data={data} busy={busy} run={run} />}
+    {workspace === "contracts" && <SignalContractManager data={data} busy={busy} run={run} />}
     {workspace === "strategies" && <Strategies data={data} busy={busy} run={run} />}
     {workspace === "routing" && <Routing data={data} config={config} busy={busy} run={run} />}
     {workspace === "accounts" && <Accounts data={data} busy={busy} run={run} />}
@@ -138,19 +162,24 @@ function Overview({ data, busy, run }: any) {
   </div>
 }
 
-const EMPTY_SIGNAL_SCHEMA = { id: "", name: "", description: "", parserSchema: "standard", templateName: "", enabled: true }
+const EMPTY_SIGNAL_SCHEMA = { id: "", name: "", description: "", contractVersionId: "standard:v1", templateName: "", enabled: true }
 
 function SignalSchemaManager({ data, busy, run }: any) {
   const [editingId, setEditingId] = useState("")
   const [form, setForm] = useState<any>({ ...EMPTY_SIGNAL_SCHEMA })
   const signalSchemas = Array.isArray(data.signalSchemas) ? data.signalSchemas : []
+  const contractOptions = (Array.isArray(data.signalContracts) ? data.signalContracts : []).flatMap((contract: any) =>
+    contract.versions
+      .filter((version: any) => version.status === "published")
+      .map((version: any) => ({ value: version.id, label: `${contract.name} · v${version.version}` })),
+  )
   const edit = (schema: any) => {
     setEditingId(schema.id)
     setForm({
       id: schema.id,
       name: schema.name,
       description: schema.description,
-      parserSchema: schema.parserSchema,
+      contractVersionId: schema.contractVersionId,
       templateName: schema.templateName,
       enabled: schema.enabled,
     })
@@ -186,7 +215,7 @@ function SignalSchemaManager({ data, busy, run }: any) {
     <CardContent className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,1fr)]">
       <div className="grid content-start gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
         {signalSchemas.map((schema: any) => <div key={schema.id} className={`rounded-md border p-3 ${editingId === schema.id ? "border-primary bg-primary/5" : ""}`}>
-          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-medium">{schema.name}</span><Badge variant={schema.enabled ? "default" : "secondary"}>{schema.enabled ? "aktiv" : "aus"}</Badge></div><p className="mt-1 break-all text-xs text-muted-foreground">{schema.id} · Template {schema.templateName} · Vertrag {schema.parserSchema}</p></div></div>
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-medium">{schema.name}</span><Badge variant={schema.enabled ? "default" : "secondary"}>{schema.enabled ? "aktiv" : "aus"}</Badge></div><p className="mt-1 break-all text-xs text-muted-foreground">{schema.id} · Template {schema.templateName} · Vertrag {schema.contractVersionId}</p></div></div>
           {schema.description && <p className="mt-2 text-sm text-muted-foreground">{schema.description}</p>}
           <div className="mt-3 flex gap-2"><Button type="button" size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => edit(schema)}>Bearbeiten</Button><Button type="button" size="sm" variant="destructive" disabled={Boolean(busy)} onClick={() => void remove(schema)}><Trash2 className="mr-2 h-4 w-4" />Löschen</Button></div>
         </div>)}
@@ -195,7 +224,7 @@ function SignalSchemaManager({ data, busy, run }: any) {
       <div className="space-y-4 rounded-md border p-4">
         <div className="flex items-center justify-between gap-3"><div><div className="font-medium">{editingId ? `Schema ${editingId} bearbeiten` : "Neues Schema anlegen"}</div><p className="text-xs text-muted-foreground">Die Kennung wird in Strategieversionen gespeichert und ist nach dem Anlegen unveränderlich.</p></div>{editingId && <Button type="button" size="sm" variant="ghost" onClick={reset}>Abbrechen</Button>}</div>
         <div className="grid gap-4 sm:grid-cols-2"><Field label="Kennung"><Input value={form.id} disabled={Boolean(editingId)} onChange={event => setForm({ ...form, id: event.target.value.toLowerCase() })} placeholder="mein-schema" /></Field><Field label="Anzeigename"><Input value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} /></Field></div>
-        <div className="grid gap-4 sm:grid-cols-2"><SelectField label="Ausführbarer XML-Vertrag" value={form.parserSchema} options={[{ value: "standard", label: "Standard" }, { value: "cryptodanielvip", label: "CryptoDaniel VIP" }, { value: "loma", label: "Loma" }]} onChange={parserSchema => setForm({ ...form, parserSchema })} /><Field label="Parser-Template"><Input value={form.templateName} onChange={event => setForm({ ...form, templateName: event.target.value })} placeholder="default oder eigener Template-Name" /></Field></div>
+        <div className="grid gap-4 sm:grid-cols-2"><SelectField label="Veröffentlichte Vertragsversion" value={form.contractVersionId} options={contractOptions} onChange={contractVersionId => setForm({ ...form, contractVersionId })} /><Field label="Parser-Template"><Input value={form.templateName} onChange={event => setForm({ ...form, templateName: event.target.value })} placeholder="default oder eigener Template-Name" /></Field></div>
         <Field label="Beschreibung"><Input value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /></Field>
         <SwitchField label="Für neue Signale und Strategien aktiv" checked={form.enabled} onChange={enabled => setForm({ ...form, enabled })} />
         <Button type="button" disabled={Boolean(busy) || !form.name.trim() || !form.templateName.trim() || (!editingId && !form.id.trim())} onClick={() => void save()}><Save className="mr-2 h-4 w-4" />{editingId ? "Schema speichern" : "Schema anlegen"}</Button>
@@ -227,8 +256,13 @@ function Strategies({ data, busy, run }: any) {
   }
   const newVersion = () => {
     if (!current) return
+    const configuration = structuredClone(current.configuration)
+    if (configuration.schemaVersion === 1) {
+      configuration.schemaVersion = 2
+      configuration.sizing.maxAdaptiveRiskPercent = configuration.sizing.riskPerTradePercent
+    }
     setSelected("")
-    setDraft({ name: current.name, description: current.description, configuration: structuredClone(current.configuration), strategyId: current.strategyId })
+    setDraft({ name: current.name, description: current.description, configuration, strategyId: current.strategyId })
   }
   const save = () => run("save-strategy", () => mutate(current?.status === "draft" ? "/api/trading/strategies/update" : "/api/trading/strategies", current?.status === "draft" ? { id: current.id, ...draft } : draft), "Strategieentwurf gespeichert.")
   const remove = async () => {
@@ -254,7 +288,7 @@ function Strategies({ data, busy, run }: any) {
       <div className="grid gap-4 md:grid-cols-2"><Field label="Erlaubte Signal-Schemas"><div className="flex flex-wrap gap-2">{schemaOptions.map((schema: any) => <Button key={schema.id} type="button" size="sm" variant={cfg.allowedSignalSchemas.includes(schema.id) ? "default" : "outline"} onClick={() => toggle("allowedSignalSchemas", schema.id)}>{schema.name}{!schema.enabled ? " (nicht verfügbar)" : ""}</Button>)}</div></Field><Field label="Erlaubte Richtungen"><div className="flex gap-2">{["LONG", "SHORT"].map(value => <Button key={value} type="button" size="sm" variant={cfg.allowedSides.includes(value) ? "default" : "outline"} onClick={() => toggle("allowedSides", value)}>{value}</Button>)}</div></Field></div>
       <Field label="Erlaubte Symbole (Komma; leer = alle validen Symbole)"><Input value={cfg.allowedSymbols.join(", ")} onChange={(e) => setDraft((old: any) => ({ ...old, configuration: { ...old.configuration, allowedSymbols: e.target.value.split(",").map(v => v.trim().toUpperCase()).filter(Boolean) } }))} placeholder="BTC, ETH" /></Field>
       <Section title="Entry"><div className="grid gap-4 md:grid-cols-4"><SelectField label="Ordertyp" value={cfg.entry.orderType} options={["limit", "market"]} onChange={v => patch("entry", "orderType", v)} /><SelectField label="Range-Preis" value={cfg.entry.rangePrice} options={["near", "midpoint", "far"]} onChange={v => patch("entry", "rangePrice", v)} /><NumberField label="Timeout (s)" value={cfg.entry.timeoutSeconds} onChange={v => patch("entry", "timeoutSeconds", Number(v))} /><SwitchField label="Post-only" checked={cfg.entry.postOnly} onChange={v => patch("entry", "postOnly", v)} /></div></Section>
-      <Section title="Sizing"><div className="grid gap-4 md:grid-cols-3"><NumberField label="Risiko / Trade (%)" value={cfg.sizing.riskPerTradePercent} onChange={v => patch("sizing", "riskPerTradePercent", v)} /><NumberField label="Max. Notional" value={cfg.sizing.maxPositionNotional} onChange={v => patch("sizing", "maxPositionNotional", v)} /><NumberField label="Max. Leverage" value={cfg.sizing.maxLeverage} onChange={v => patch("sizing", "maxLeverage", Number(v))} /></div></Section>
+      <Section title="Sizing"><div className="grid gap-4 md:grid-cols-4"><NumberField label="Basisrisiko / Trade (%)" value={cfg.sizing.riskPerTradePercent} onChange={v => patch("sizing", "riskPerTradePercent", v)} /><NumberField label="Max. adaptives Risiko (%)" value={cfg.sizing.maxAdaptiveRiskPercent ?? cfg.sizing.riskPerTradePercent} onChange={v => patch("sizing", "maxAdaptiveRiskPercent", v)} /><NumberField label="Max. Notional" value={cfg.sizing.maxPositionNotional} onChange={v => patch("sizing", "maxPositionNotional", v)} /><NumberField label="Max. Leverage" value={cfg.sizing.maxLeverage} onChange={v => patch("sizing", "maxLeverage", Number(v))} /></div>{cfg.schemaVersion === 1 && <p className="mt-3 text-xs text-muted-foreground">Diese unveränderte Altversion verwendet nur das Basisrisiko. „Neue Version“ aktualisiert sie auf das adaptive Schema v2.</p>}</Section>
       <Section title="Take Profit & Stop"><div className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           <SwitchField label="Adaptive TP-Staffelung (Halbierungsregel)" checked={targetAllocationMode === "adaptive_halving"} onChange={enabled => patch("exits", "targetAllocationMode", enabled ? "adaptive_halving" : "manual")} />
@@ -286,7 +320,7 @@ function Routing({ data, config, busy, run }: any) {
   const [form, setForm] = useState({ channelId: "", strategyVersionId: "", accountId: "", enabled: true })
   const published = data.strategies.filter((strategy: any) => strategy.status === "published")
   const accounts = data.accounts.filter((account: any) => account.status === "ready" && account.enabled)
-  return <div className="space-y-5"><Card><CardHeader><CardTitle>Kanal → Strategie → Konto</CardTitle><CardDescription>Jeder Kanal besitzt exakt eine aktive Strategieversion. Andere Kanäle laufen parallel und unabhängig.</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-4">
+  return <div className="space-y-5"><ChannelRiskManager data={data} channels={channels} busy={busy} run={run} /><Card><CardHeader><CardTitle>Kanal → Strategie → Konto</CardTitle><CardDescription>Jeder Kanal besitzt exakt eine aktive Strategieversion. Andere Kanäle laufen parallel und unabhängig.</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-4">
     <Field label="Telegram-Kanal"><Input list="trading-channels" value={form.channelId} onChange={e => setForm({ ...form, channelId: e.target.value })} placeholder="Kanal-ID" /><datalist id="trading-channels">{channels.map((channel: any) => <option key={channel.id} value={channel.id}>{channel.name}</option>)}</datalist></Field>
     <SelectField label="Publizierte Strategie" value={form.strategyVersionId} options={published.map((s: any) => ({ value: s.id, label: `${s.name} v${s.version}` }))} onChange={value => setForm({ ...form, strategyVersionId: value })} />
     <SelectField label="Ausführungskonto" value={form.accountId} options={accounts.map((a: any) => ({ value: a.id, label: `${a.name} · ${a.exchange}/${a.mode}` }))} onChange={value => setForm({ ...form, accountId: value })} />

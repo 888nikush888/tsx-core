@@ -5,10 +5,16 @@ import { fileURLToPath } from 'node:url';
 const LOG_DIRECTORY = path.resolve(
   process.env.LOG_DIR?.trim() || path.join(path.dirname(fileURLToPath(import.meta.url)), '../logs')
 );
-const MAX_LOG_ENTRIES = 30;
+const MAX_LOG_ENTRIES = 20_000;
 const LOG_RETENTION_DAYS = 14;
 
-let logHistory: string[] = [];
+interface MemoryLogEntry {
+  cursor: number;
+  line: string;
+}
+
+let logHistory: MemoryLogEntry[] = [];
+let logCursor = 0;
 let logFileReady = false;
 let logFilePath: string | null = null;
 let logWriteFailureReported = false;
@@ -127,7 +133,9 @@ export function addLog(message: string, context: LogContext = {}): void {
   const now = new Date();
   const cleanMessage = stripAnsi(maskPII(message));
   const displayLine = `[${now.toLocaleTimeString()}] ${cleanMessage}`;
-  logHistory = [...logHistory.slice(-(MAX_LOG_ENTRIES - 1)), displayLine];
+  logCursor += 1;
+  logHistory.push({ cursor: logCursor, line: displayLine });
+  if (logHistory.length > MAX_LOG_ENTRIES) logHistory.splice(0, logHistory.length - MAX_LOG_ENTRIES);
   const structured = buildStructuredLogEntry(now.toISOString(), cleanMessage, context);
   console.log(process.env.JSON_LOGGING === 'true' ? JSON.stringify(structured) : displayLine);
   const contextSuffix = Object.keys(context).length ? ` ${JSON.stringify(sanitizeLogContext(context))}` : '';
@@ -138,7 +146,26 @@ export function addLog(message: string, context: LogContext = {}): void {
 }
 
 export function getLogHistory(): string[] {
-  return [...logHistory];
+  return logHistory.map(entry => entry.line);
+}
+
+export function getLogEntries(afterCursor = 0, limit = 1_000): {
+  entries: MemoryLogEntry[];
+  nextCursor: number;
+  dropped: boolean;
+} {
+  if (!Number.isSafeInteger(afterCursor) || afterCursor < 0) throw new Error('Log cursor is invalid.');
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 2_000) throw new Error('Log page limit is invalid.');
+  const earliestCursor = logHistory[0]?.cursor ?? logCursor + 1;
+  const dropped = afterCursor > 0 && afterCursor < earliestCursor - 1;
+  const entries = afterCursor === 0
+    ? logHistory.slice(-limit)
+    : logHistory.filter(entry => entry.cursor > afterCursor).slice(0, limit);
+  return {
+    entries: entries.map(entry => ({ ...entry })),
+    nextCursor: entries.at(-1)?.cursor ?? Math.max(afterCursor, logCursor),
+    dropped,
+  };
 }
 
 export function clearLogHistory(): void {

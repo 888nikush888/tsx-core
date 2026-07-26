@@ -7,6 +7,12 @@ export type TradingOrderType = 'market' | 'limit';
 export type TargetAllocationMode = 'manual' | 'adaptive_halving';
 export type StopLossMode = 'configured' | 'adaptive_targets';
 export type ExecutableSignalSchemaContract = 'standard' | 'cryptodanielvip' | 'loma';
+export type SignalContractVersionStatus = 'draft' | 'published' | 'archived';
+export type SignalContractEntryMode = 'optional_range' | 'required_range' | 'typed';
+export type SignalContractTargetShape = 'scalar' | 'range';
+export type SignalContractFieldType = 'text' | 'decimal' | 'integer' | 'boolean';
+export type ChannelRiskMode = 'fixed' | 'shadow' | 'automatic';
+export type WeakChannelAction = 'none' | 'reduce' | 'block';
 export type TradingIntentStatus =
   | 'pending'
   | 'planned'
@@ -47,7 +53,7 @@ export interface ExecutableSignal {
 }
 
 export interface StrategyConfiguration {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   allowedSignalSchemas: string[];
   allowedSymbols: string[];
   allowedSides: TradingSide[];
@@ -59,6 +65,7 @@ export interface StrategyConfiguration {
   };
   sizing: {
     riskPerTradePercent: string;
+    maxAdaptiveRiskPercent?: string;
     maxPositionNotional: string;
     maxLeverage: number;
   };
@@ -86,10 +93,144 @@ export interface TradingSignalSchema {
   name: string;
   description: string;
   parserSchema: ExecutableSignalSchemaContract;
+  contractVersionId: string;
+  contractDefinition: SignalContractDefinition;
   templateName: string;
   enabled: boolean;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface SignalContractAdditionalField {
+  path: string;
+  type: SignalContractFieldType;
+  required: boolean;
+  allowedValues: string[];
+  minimum?: string;
+  maximum?: string;
+  maximumLength?: number;
+  pattern?: string;
+}
+
+export interface SignalContractDefinition {
+  schemaVersion: 1;
+  rootTag: 'signal';
+  actionPath: string;
+  pairPath: string;
+  entry: {
+    mode: SignalContractEntryMode;
+    typePath?: string;
+    marketValues: string[];
+    rangeValues: string[];
+    minimumPath: string;
+    maximumPath: string;
+  };
+  targets: {
+    containerPath: string;
+    itemTag: string;
+    shape: SignalContractTargetShape;
+    minimumPath: string;
+    maximumPath: string;
+    minimumItems: number;
+    maximumItems: number;
+    sequentialIds: boolean;
+  };
+  stopLossPath: string;
+  leveragePath?: string;
+  riskPercentPath?: string;
+  averagingPricePath?: string;
+  additionalFields: SignalContractAdditionalField[];
+  geometry: {
+    stopOnLossSide: boolean;
+    targetsOnProfitSide: boolean;
+    orderedTargets: boolean;
+    orderedRanges: boolean;
+  };
+  grounding: {
+    action: boolean;
+    pair: boolean;
+    entry: boolean;
+    targets: boolean;
+    stopLoss: boolean;
+    leverage: boolean;
+    riskPercent: boolean;
+    averagingPrice: boolean;
+  };
+}
+
+export interface SignalContractVersion {
+  id: string;
+  contractId: string;
+  version: number;
+  status: SignalContractVersionStatus;
+  definition: SignalContractDefinition;
+  definitionSha256: string;
+  createdAt: number;
+  publishedAt: number | null;
+  archivedAt: number | null;
+}
+
+export interface SignalContract {
+  id: string;
+  name: string;
+  description: string;
+  archived: boolean;
+  versions: SignalContractVersion[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ChannelRiskTier {
+  riskPercent: string;
+}
+
+export interface ChannelRiskPolicy {
+  channelId: string;
+  mode: ChannelRiskMode;
+  tiers: ChannelRiskTier[];
+  currentTier: number;
+  lookbackWeeks: number;
+  minimumClosedTrades: number;
+  lossThresholdPercent: string;
+  profitThresholdPercent: string;
+  weakChannelAction: WeakChannelAction;
+  weakWeeksBeforeBlock: number;
+  manuallyBlocked: boolean;
+  blocked: boolean;
+  blockReason: string | null;
+  lockedTier: number | null;
+  policyVersion: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ChannelRiskEvaluation {
+  id: string;
+  channelId: string;
+  policyVersion: number;
+  weekStartedAt: number;
+  weekEndedAt: number;
+  closedTrades: number;
+  wins: number;
+  losses: number;
+  realizedPnl: string;
+  startingEquity: string;
+  returnPercent: string;
+  previousTier: number;
+  recommendedTier: number;
+  appliedTier: number;
+  action: 'hold' | 'increase' | 'decrease' | 'block';
+  reason: string;
+  createdAt: number;
+}
+
+export interface TradingEquityPoint {
+  accountId: string;
+  equity: string;
+  availableBalance: string;
+  unrealizedPnl: string;
+  marginUsed: string;
+  observedAt: number;
 }
 
 export interface TradingStrategyVersion {

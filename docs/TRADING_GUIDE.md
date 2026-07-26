@@ -22,12 +22,21 @@ docker compose ps
 
 Paper ist kein Profitabilitätsnachweis: Latenz, Orderbuch, Funding, Liquidation, Teilausführungsdynamik und reale Gebühren sind nur begrenzt abgebildet. Es beweist Zustandsmaschine, Sizing, TP/SL und Recovery, nicht Marktperformance.
 
-## 3. Signal-Schemas und Strategie/Plugin erstellen
+## 3. Signalverträge, Schema-Profile und Strategien erstellen
+
+Unter **Trading → Verträge**:
+
+- **Vertrag erstellen oder duplizieren:** Kennung, Name und Beschreibung festlegen; `standard`, `cryptodanielvip` und `loma` sind nur initiale Beispiele und keine feste Laufzeit-Allowlist.
+- **Visueller Vertrags-Builder:** XML-Pfade für Aktion, Paar, Entry, Targets, Stop-Loss sowie optionale Leverage-/Risiko-/Averaging-Felder; Entry-Modus, scalar/range Targets, 1 bis 20 Targets, sequenzielle IDs und bis zu 30 zusätzliche typisierte Felder.
+- **Geometrie:** Stop auf der Verlustseite, Targets auf der Gewinnseite, geordnete Targets und geordnete Ranges für LONG und SHORT getrennt durch die Signalrichtung erzwingen.
+- **Quelltext-Erdung:** pro Kernfeld bestimmen, ob der extrahierte Wert in der ursprünglichen Telegram-Nachricht nachweisbar sein muss.
+- **Vorschau:** XML plus Originaltext gegen genau den noch nicht publizierten Entwurf testen.
+- **Versionen:** Nur Entwürfe sind editier- oder löschbar. Publizieren macht die Definition samt SHA-256 immutable. Für Änderungen aus einer vorhandenen Version einen neuen Entwurf erzeugen. Eine von einem aktivierten Profil verwendete Version kann nicht archiviert werden.
 
 Unter **Trading → Strategien**:
 
-- **Signal-Schema-Profile:** Profile direkt im oberen Verwaltungsbereich anlegen, bearbeiten, aktivieren/deaktivieren oder nach expliziter Bestätigung löschen. Jedes Profil besitzt eine unveränderliche Kennung, einen Anzeigenamen, ein Parser-Template und einen geprüften ausführbaren XML-Vertrag (`standard`, `cryptodanielvip` oder `loma`). Die drei gleichnamigen Standardprofile werden bei der Datenbankmigration angelegt, können aber wie eigene Profile verwaltet werden.
-- **Signalvertrag:** erlaubte XML-Schemas, Symbole (leer = jedes normalisierte Symbol) und LONG/SHORT.
+- **Signal-Schema-Profile:** Profile anlegen, bearbeiten, aktivieren/deaktivieren oder nach expliziter Bestätigung löschen. Jedes Profil besitzt eine unveränderliche Kennung, einen Anzeigenamen, ein Parser-Template und `contractVersionId` als frei wählbare Verknüpfung zu einer publizierten Vertragsversion.
+- **Signalvertrag in der Strategie:** erlaubte Schema-Profil-IDs, Symbole (leer = jedes normalisierte Symbol) und LONG/SHORT.
 - **Entry:** Market oder Limit, Preiswahl innerhalb der Signal-Range, Post-only und Timeout.
 - **Sizing:** Risiko pro Trade in Prozent der Equity, maximales Positionsnotional und maximaler Hebel. Signalhebel und Exchange-Maximum können nur weiter begrenzen.
 - **Exits:** manuelle Prozentwerte oder adaptive TP-Halbierungsstaffel; konfigurierbares Break-even/Prozent-Trailing oder adaptives SL-Nachziehen nach erreichten TP-Stufen. Der letzte TP schließt immer den vollständigen Rest. Ein Protective Stop ist zwingend.
@@ -37,31 +46,38 @@ Unter **Trading → Strategien**:
 
 Nur aktive Schema-Profile können in neuen Strategien verwendet werden. Ein Profil, das eine aktivierte Kanalroute verwendet, kann weder verändert noch gelöscht werden. Ein unbekanntes, deaktiviertes oder gelöschtes Profil bleibt zur Laufzeit fail-closed und erzeugt keinen ausführbaren Trade.
 
-### Signal-Schema-Profile sicher verwalten
+### Verträge und Signal-Schema-Profile sicher verwalten
 
-Ein Profil ist eine deklarative Zuordnung und kein frei ausführbares Schema: Die Kennung darf nach dem Anlegen nicht geändert werden, das Parser-Template bestimmt den Prompt für die Telegram-Quelle, und der XML-Vertrag bestimmt die serverseitige Validierung. Eigene Profile dürfen deshalb nur auf einen der drei geprüften Verträge verweisen; beliebiger XML-, Python- oder JavaScript-Code wird nicht ausgeführt.
+Ein Vertrag ist ausschließlich deklarativ. Pfade sind auf ein bis vier kleingeschriebene XML-Segmente begrenzt, Feldtypen und Strukturen stammen aus festen Interpreter-Primitiven, und risikoreiche Regex-Konstrukte werden abgewiesen. Der Builder akzeptiert weder XML-Schema-Code noch Python oder JavaScript. Dadurch kann ein Benutzer beliebige fachliche Verträge modellieren, ohne den Container- oder Exchange-Berechtigungsraum zu erweitern.
 
-Das wirksame Profil wird zur Laufzeit über das der Telegram-Quelle zugeordnete Parser-Template ermittelt. Für jedes aktiv verwendete Template sollte genau ein aktives Profil existieren. Vor einer Änderung an einem gerouteten Profil zuerst eine Ersatzstrategieversion mit dem neuen Profil publizieren, die Kanalroute umstellen und anschließend das alte Profil bearbeiten, deaktivieren oder löschen.
+Ein Profil bleibt die deklarative Zuordnung zwischen quellspezifischem Parser-Template und publiziertem Vertrag. Das wirksame Profil wird zur Laufzeit über das der Telegram-Quelle zugeordnete Parser-Template ermittelt. Für jedes aktiv verwendete Template sollte genau ein aktives Profil existieren. Vor einer Änderung an einem gerouteten Profil zuerst eine Ersatzstrategieversion mit dem neuen Profil publizieren, die Kanalroute umstellen und anschließend das alte Profil bearbeiten, deaktivieren oder löschen.
 
 Die authentifizierte Admin-API entspricht den UI-Aktionen. Mutationen benötigen zusätzlich zum Admin-Bearer `X-Requested-With: forwarder-dashboard`; die Löschung verlangt außerdem die unten genannte destruktive Bestätigung:
 
 | Aktion | Methode und Pfad | Zusatzbedingung |
 | --- | --- | --- |
-| Gesamten Trading-Snapshot einschließlich Profile lesen | `GET /api/trading` | Viewer oder Admin |
-| Profil anlegen | `POST /api/trading/signal-schemas` | Admin; Body mit `id`, `name`, `description`, `parserSchema`, `templateName`, `enabled` |
+| Trading-Snapshot einschließlich Verträgen/Profile lesen | `GET /api/trading` | Viewer oder Admin |
+| Vertrag anlegen | `POST /api/trading/signal-contracts` | Admin; Metadaten plus deklarative `definition`; Ergebnis ist `v1` als Entwurf |
+| Vertragsentwurf aktualisieren | `POST /api/trading/signal-contracts/update` | Admin; `contractId`, `versionId`, Metadaten und vollständige Definition |
+| Neue Version / Duplikat | `POST /api/trading/signal-contracts/versions` / `duplicate` | Admin; Quelle bleibt unverändert |
+| Vertrag publizieren / archivieren | `POST …/publish` / `archive` | Admin; Archivierung nur ohne aktiviertes Profil |
+| Vertragsentwurf löschen | `DELETE /api/trading/signal-contracts/drafts` | Admin plus `X-Destructive-Confirmation: delete-signal-contract-draft` |
+| Vertrag in Vorschau validieren | `POST /api/trading/signal-contracts/validate` | Admin; keine Persistenz |
+| Profil anlegen | `POST /api/trading/signal-schemas` | Admin; Body mit `id`, `name`, `description`, `contractVersionId`, `templateName`, `enabled` |
 | Profil bearbeiten/aktivieren/deaktivieren | `POST /api/trading/signal-schemas/update` | Admin; Body zusätzlich mit unveränderlicher `id`; keine aktive Route darf das Profil verwenden |
 | Profil löschen | `DELETE /api/trading/signal-schemas` | Admin; Body `{"id":"..."}` und `X-Destructive-Confirmation: delete-trading-signal-schema` |
 
-| Feld | Vertrag |
+| Profilfeld | Vertrag |
 | --- | --- |
 | `id` | 1 bis 40 Zeichen; beginnt mit `a-z`, danach nur `a-z`, `0-9`, `_` oder `-`; wird kleingeschrieben und bleibt nach Erstellung unveränderlich |
 | `name` | 1 bis 80 Zeichen |
 | `description` | optional, höchstens 500 Zeichen |
-| `parserSchema` | exakt `standard`, `cryptodanielvip` oder `loma` |
+| `contractVersionId` | Kennung einer vorhandenen publizierten Vertragsversion, beispielsweise `desk-alpha:v3` |
+| `parserSchema` | wird aus dem verknüpften Vertrag abgeleitet und dient nur der rückwärtskompatiblen Anzeige |
 | `templateName` | 1 bis 64 Zeichen aus Buchstaben, Ziffern, `_` oder `-`; muss zum quellspezifisch ausgewählten Parser-Template passen |
 | `enabled` | echter JSON-Boolean, kein String |
 
-Fehlerhafte oder bereits vorhandene Kennungen werden abgewiesen; unbekannte oder deaktivierte Profile führen nicht zu einem Fallback-Trade.
+Fehlerhafte oder bereits vorhandene Kennungen, unpublizierte Verträge und ungültige Definitionen werden abgewiesen. Unbekannte oder deaktivierte Profile führen nicht zu einem Fallback-Trade.
 
 ### Ausschließlich USD-notierte Signalpaare
 
@@ -125,6 +141,20 @@ Kanal C → Strategie Gamma v7 → Hyperliquid Live
 
 Eine Kanal-ID besitzt genau eine Route. Beliebig viele unterschiedliche Kanäle können parallel laufen. Eine aktive Position besitzt jedoch exklusiv `(account, symbol)`: Zwei Strategien dürfen auf demselben Konto nicht gleichzeitig dieselbe Coin-Position steuern. Für getrennte gleichzeitige BTC-Strategien separate Exchange-Subkonten verwenden.
 
+### Dynamisches Risiko je Quellkanal
+
+Unter **Trading → Kanal-Routing → Dynamisches Kanalrisiko** erhält jeder Quellkanal eine eigene Police:
+
+- `fixed`: aktuelle oder manuell fixierte Stufe bleibt konstant;
+- `shadow`: wöchentliche Performance erzeugt eine Empfehlung, ändert das Trade-Risiko aber nicht;
+- `automatic`: Verlustwochen reduzieren stufenweise, Gewinnwochen erhöhen stufenweise;
+- `weakChannelAction`: nur staffeln, zusätzlich reduzieren oder nach der konfigurierten Anzahl schwacher Wochen blockieren;
+- `manuallyBlocked` und `lockedTier`: unmittelbarer Operator-Vorrang.
+
+Die Auswertung verwendet nur abgeschlossene managed Trades des Kanals und speichert Zeitraum, Trades, Wins, Losses, realisierten PnL, Return, vorige/empfohlene/angewendete Stufe, Entscheidung und Begründung. Lookback, Mindestzahl geschlossener Trades, Gewinn-/Verlustschwellen und Risikostufen sind vollständig im Web steuerbar. Trefferquote, Win/Loss, Slippage und PnL-Beitrag erscheinen im Analytics-Kanalranking.
+
+Das wirksame Risiko ist stets das Minimum aus Strategie-Risiko, optionalem Signal-Cap und Kanalpolice. Automatik kann keine Strategie- oder globale Sicherheitsgrenze erhöhen, keine manuelle Sperre aufheben und keinen Kill-Switch umgehen.
+
 ## 6. Ausführung aktivieren
 
 Unter **Trading → Betrieb**:
@@ -144,15 +174,16 @@ Ein Stop-Submit-Fehler nach gefülltem Entry löst automatisch einen reduce-only
 
 Eine Teilfüllung wird sofort mit einem reduce-only Stop bis zur maximal noch möglichen Entry-Menge geschützt. Solange der Entry weiter offen ist, werden noch keine TPs platziert. Sobald der Entry vollständig gefüllt oder mit Teilfüllung storniert ist, skaliert die Reconciliation Stop und sämtliche TP-Mengen exakt auf die tatsächlich bestehende Position.
 
-## 7. Dashboard und Notfall
+## 7. Cockpit, Analytics, Logs und Notfall
 
-- **Executive Dashboard:** Der Portfolio-Filter zeigt alle Konten nominal zusammen, eine einzelne Börse oder ein einzelnes Konto. Paper, Hyperliquid Testnet/Mainnet und Bybit Testnet/Mainnet bleiben in der Account-Matrix getrennt erkennbar.
-- **Zeiträume:** `24h`, `7 Tage`, `30 Tage` und `Gesamt` steuern PnL, Trades, Win Rate, Profit Factor, Volumen, Fills, Gebühren, Intents und Risk Events. Alle vier PnL-Zeiträume bleiben gleichzeitig sichtbar.
+- **Cockpit:** zeigt ausschließlich System-/Sicherheitsstatus, Kill-Switch, Execution-/Live-/Paper-Zustand, aktive Positionen mit PnL, kompakten Signalstrom und Notfallaktionen.
+- **Analytics:** enthält Equity-/Drawdown-Verlauf, tägliche/wöchentliche Auswertung, Kanalranking, Treffer-/Win-Loss-/Slippage-/PnL-Beitrag, Exchange-Vergleich, Ausführungslatenzen und Erwartungswert-Simulation.
+- **Dynamisches Kanalrisiko:** `fixed` hält die gewählte Stufe, `shadow` berechnet nur Empfehlungen, `automatic` wendet wöchentliche Stufenänderungen an. Anhaltend schwache Kanäle können reduziert oder blockiert werden; manuelle Sperre und Stufenfixierung bleiben möglich.
 - **Datenherkunft:** Equity, verfügbarer Saldo, Margin und unrealisierter PnL kommen über die offiziellen Exchange-SDKs. Realisierter PnL und historische Kennzahlen kommen aus den vom System persistierten Managed Trades; externe/manuelle Trades werden nicht fälschlich als Managed Performance ausgegeben.
-- **Aktualisierung:** Das Dashboard lädt lokale Statistiken alle zehn Sekunden. Exchange-Snapshots werden 60 Sekunden gecacht; **Alles aktualisieren** erzwingt sofort eine neue Abfrage aller angebundenen Konten und zeigt Teilfehler je Konto an.
+- **Aktualisierung:** Das Cockpit lädt lokale Zustände regelmäßig. Exchange-Snapshots werden 60 Sekunden gecacht; ein expliziter Abgleich erzwingt eine neue Abfrage der angebundenen Konten und zeigt Teilfehler je Konto.
 - **Nominale Gesamtsicht:** Die gemeinsame Equity addiert Bybit-USD, Hyperliquid-USDC und Paper-Quote nominal. Sie ist keine FX-Bewertung und garantiert keine Stablecoin-Parität; für belastbare Bewertung immer zusätzlich den Konto-Drill-down verwenden.
-- **Betrieb:** offene Positionen, aktive Routen, laufende Intents, Unknown Orders und letzter Abgleich.
-- **Trades & Risiko:** Positionen mit Ursprungskanal/Strategie, Orderrollen, Fillmengen, Risk Events und Reconciliation-Runs.
+- **Logs:** ein ununterbrochener, virtueller Terminalstrom mit Freitext- und sicherer Regex-Suche; keine Level-Filter zerreißen zusammengehörige Abläufe.
+- **Command Palette:** `Strg+K`/`⌘K` durchsucht Navigation, Verträge, Kanäle und Positionen und bietet den erlaubten Exchange-Abgleich als Schnellaktion.
 - Prometheus: `tg_forwarder_trading_*`. Unknown Orders, ungeschützte Positionen, Kill-Switch oder >30 Sekunden alter Abgleich bei aktiver Execution machen `/readyz` rot und lösen kritische Alerts aus.
 
 Im Notfall Kill-Switch aktivieren, Exchange read-only gegen Client Order IDs prüfen und bei fehlendem Schutz exakt `FLATTEN MANAGED POSITIONS` eingeben. Nur managed Positionen werden reduce-only geschlossen; fremde Exposure wird nie still übernommen. Unknown Submit-/Cancel-Ausgänge nie blind wiederholen. Der vollständige Ablauf steht in `runbooks/operations.md#trading-notfall-und-reconciliation`.
@@ -160,8 +191,8 @@ Im Notfall Kill-Switch aktivieren, Exchange read-only gegen Client Order IDs pr�
 ## 8. Neustart, Backup, Restore, Factory Reset
 
 - Bei jedem Start reconciliert der Trading-Worker alle aktivierten Konten, bevor er Pending Intents bearbeitet.
-- SQLite-Backups enthalten Strategien, Routen, Intents, Orders, Fills, Positionen und Risk Events. Exchange-Secrets sind absichtlich ausgeschlossen und müssen nach Restore neu bereitgestellt/verifiziert werden.
-- Factory Reset stoppt den Worker, storniert offene Entries und fragt jedes reale Konto ab. Solange Exchange/Executor nicht erreichbar ist oder Remote-Exposure besteht, wird der Reset verweigert. Nach sicherem Nullzustand werden Datenbank, Keys, interner Executor-Token und der gesamte übrige lokale Zustand entfernt.
+- SQLite-Backups enthalten Signalverträge/Profile, Strategien, Kanalrisiko und Evaluationen, Equity-/Execution-Telemetrie, MCP-Agenten samt Hash/Rechten/Historie, Routen, Intents, Orders, Fills, Positionen und Risk Events. Klartext-Agenten- und Exchange-Secrets sind absichtlich ausgeschlossen beziehungsweise nie vorhanden und müssen nach Restore neu provisioniert oder rotiert werden.
+- Factory Reset stoppt MCP-Kontrollbrücke und Trading-Worker, storniert offene Entries und fragt jedes reale Konto ab. Solange Exchange/Executor nicht erreichbar ist oder Remote-Exposure besteht, wird der Reset verweigert. Nach sicherem Nullzustand werden Datenbank einschließlich Verträgen, Kanalrisiko, Analytics und MCP-Agenten, Keys, interner Executor-Token und der gesamte übrige lokale Zustand entfernt.
 - **Betriebsdaten leeren** stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie unreferenzierte Signale. Trading-Historie, Strategien, Konten, Exchange-Secrets und von Trades referenzierte Signale werden dabei bewusst nicht gelöscht.
 
 ## 9. Production-Freigabe

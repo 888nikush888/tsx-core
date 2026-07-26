@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from "@/lib/navigation"
 import { Command as CommandPrimitive } from "cmdk"
 import {
   Search,
@@ -11,11 +11,18 @@ import {
   Inbox,
   Database,
   ChartCandlestick,
+  Activity,
+  FileJson2,
+  Radio,
+  Bot,
   type LucideIcon,
 } from "lucide-react"
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { apiFetch } from "@/lib/api"
+
+const API_BASE = window.location.origin
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
@@ -103,9 +110,11 @@ CommandItem.displayName = CommandPrimitive.Item.displayName
 
 interface SearchItem {
   title: string
-  url: string
+  url?: string
   group: string
   icon?: LucideIcon
+  keywords?: string
+  action?: () => Promise<void>
 }
 
 interface CommandSearchProps {
@@ -116,6 +125,60 @@ interface CommandSearchProps {
 export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   const navigate = useNavigate()
   const commandRef = React.useRef<HTMLDivElement>(null)
+  const [tradingItems, setTradingItems] = React.useState<SearchItem[]>([])
+
+  React.useEffect(() => {
+    if (!open) return
+    const controller = new AbortController()
+    void apiFetch(`${API_BASE}/api/trading`, { signal: controller.signal })
+      .then(async response => response.ok ? response.json() : Promise.reject(new Error("Trading-Suche nicht verfügbar.")))
+      .then(data => {
+        const contracts: SearchItem[] = (data.signalContracts || []).map((contract: any) => ({
+          title: `Vertrag: ${contract.name}`,
+          keywords: `${contract.id} ${(contract.versions || []).map((version: any) => `v${version.version} ${version.status}`).join(" ")}`,
+          url: `/dashboard?tab=trading&workspace=contracts&contract=${encodeURIComponent(contract.id)}`,
+          group: "Verträge",
+          icon: FileJson2,
+        }))
+        const channels = new Map<string, string>()
+        for (const channel of data.configuredChannels || []) channels.set(String(channel.id), String(channel.name))
+        for (const route of data.routes || []) if (!channels.has(String(route.channelId))) channels.set(String(route.channelId), String(route.channelId))
+        const channelItems: SearchItem[] = [...channels].map(([id, name]) => ({
+          title: `Kanal: ${name}`,
+          keywords: id,
+          url: `/dashboard?tab=trading&workspace=routing&channel=${encodeURIComponent(id)}`,
+          group: "Kanäle",
+          icon: Radio,
+        }))
+        const positions: SearchItem[] = (data.activity?.positions || [])
+          .filter((position: any) => position.status !== "closed")
+          .map((position: any) => ({
+            title: `Position: ${position.symbol} ${position.side}`,
+            keywords: `${position.id} ${position.channelId} ${position.accountId}`,
+            url: `/dashboard?tab=trading&workspace=activity&position=${encodeURIComponent(position.id)}`,
+            group: "Positionen",
+            icon: ChartCandlestick,
+          }))
+        setTradingItems([...contracts, ...channelItems, ...positions])
+      })
+      .catch(error => {
+        if (error?.name !== "AbortError") setTradingItems([])
+      })
+    return () => controller.abort()
+  }, [open])
+
+  const reconcile = async () => {
+    const response = await apiFetch(`${API_BASE}/api/trading/reconcile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    })
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}))
+      throw new Error(payload.error || "Exchange-Abgleich fehlgeschlagen.")
+    }
+    navigate("/dashboard")
+  }
 
   const searchItems: SearchItem[] = [
     { title: "Dashboard", url: "/dashboard", group: "Apps", icon: LayoutDashboard },
@@ -127,8 +190,16 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
     { title: "Filter & Regex", url: "/dashboard?tab=signals&workspace=filters", group: "Signale", icon: Settings },
     { title: "KI-Parser", url: "/dashboard?tab=signals&workspace=parser", group: "Signale", icon: Settings },
     { title: "Trading Control Center", url: "/dashboard?tab=trading", group: "Apps", icon: ChartCandlestick },
+    { title: "Trading Analytics", url: "/dashboard?tab=analytics", group: "Apps", icon: ChartCandlestick },
+    { title: "MCP-Agenten verwalten", url: "/dashboard?tab=mcp", group: "Apps", icon: Bot },
+    { title: "Signal-Verträge verwalten", url: "/dashboard?tab=trading&workspace=contracts", group: "Trading", icon: FileJson2 },
+    { title: "Kanal-Risiko verwalten", url: "/dashboard?tab=trading&workspace=routing", group: "Trading", icon: Radio },
+    { title: "Aktive Positionen anzeigen", url: "/dashboard?tab=trading&workspace=activity", group: "Trading", icon: Activity },
+    { title: "Jetzt mit Börsen abgleichen", group: "Aktionen", icon: Activity, action: reconcile },
+    { title: "Notfallaktionen öffnen", url: "/dashboard", group: "Aktionen", icon: Shield },
     { title: "System Logs", url: "/dashboard?tab=logs", group: "System", icon: Settings },
     { title: "System & Backup", url: "/dashboard?tab=system", group: "System", icon: Shield },
+    ...tradingItems,
   ]
 
   const groupedItems = searchItems.reduce((acc, item) => {
@@ -139,9 +210,14 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
     return acc
   }, {} as Record<string, SearchItem[]>)
 
-  const handleSelect = (url: string) => {
-    navigate(url)
-    onOpenChange(false)
+  const handleSelect = async (item: SearchItem) => {
+    try {
+      if (item.action) await item.action()
+      else if (item.url) navigate(item.url)
+      onOpenChange(false)
+    } catch (error) {
+      console.error("Command-Palette-Aktion fehlgeschlagen.", error)
+    }
     // Bounce effect like Vercel
     if (commandRef.current) {
       commandRef.current.style.transform = 'scale(0.96)'
@@ -170,9 +246,9 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
                   const Icon = item.icon
                   return (
                     <CommandItem
-                      key={item.url}
-                      value={item.title}
-                      onSelect={() => handleSelect(item.url)}
+                      key={`${group}-${item.title}`}
+                      value={`${item.title} ${item.keywords || ""}`}
+                      onSelect={() => void handleSelect(item)}
                     >
                       {Icon && <Icon className="mr-2 h-4 w-4" />}
                       {item.title}

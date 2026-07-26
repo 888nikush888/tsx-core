@@ -73,9 +73,15 @@ export async function assertFactoryResetTarget(
 export async function clearFactoryResetTarget(
   directory: string,
   boundary: FactoryResetBoundary,
+  preserveNames: readonly string[] = [],
 ): Promise<void> {
   const root = await assertFactoryResetTarget(directory, boundary);
+  const preserved = new Set(preserveNames);
+  if ([...preserved].some(name => !/^[a-z0-9._-]{1,80}$/i.test(name))) {
+    throw new Error('Factory reset preserve name is invalid.');
+  }
   for (const entry of await fs.readdir(root)) {
+    if (preserved.has(entry)) continue;
     const target = path.join(root, entry);
     const stats = await fs.lstat(target);
     if (stats.isSymbolicLink()) await fs.unlink(target);

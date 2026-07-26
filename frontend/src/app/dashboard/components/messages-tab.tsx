@@ -63,13 +63,13 @@ export function MessagesTab() {
       case 'received':
         return <Badge variant="outline" className="border-gray-500 text-gray-500 dark:border-gray-400 dark:text-gray-400 bg-gray-500/10">Abgefangen</Badge>
       case 'filtered':
-        return <Badge variant="outline" className="border-amber-500 text-amber-500 bg-amber-500/10">Gefiltert</Badge>
+        return <Badge variant="outline">Gefiltert</Badge>
       case 'duplicate':
-        return <Badge variant="outline" className="border-yellow-500 text-yellow-500 bg-yellow-500/10">Duplikat</Badge>
+        return <Badge variant="outline">Duplikat</Badge>
       case 'processed':
-        return <Badge variant="outline" className="border-emerald-500 text-emerald-500 bg-emerald-500/10">Weitergeleitet</Badge>
+        return <Badge>Weitergeleitet</Badge>
       case 'failed':
-        return <Badge variant="outline" className="border-rose-500 text-rose-500 bg-rose-500/10">Fehler</Badge>
+        return <Badge variant="secondary">Fehler</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -90,7 +90,7 @@ export function MessagesTab() {
       </CardHeader>
       <CardContent>
         {error && (
-          <div role="alert" className="flex items-center gap-2 p-4 text-red-500 bg-red-500/10 rounded-lg mb-4 text-sm">
+          <div role="alert" className="mb-4 flex items-center gap-2 rounded-lg border p-4 text-sm">
             <AlertCircle className="h-4 w-4" />
             <span>Fehler: {error}</span>
           </div>

@@ -51,11 +51,15 @@ try {
   assert.equal(output.length, 35);
   assert.equal(JSON.parse(output[0]).level, 'WARN');
   const history = logger.getLogHistory();
-  assert.equal(history.length, 30);
-  assert.equal(history.some(line => line.includes('event 0 ')), false);
+  assert.equal(history.length, 35);
+  assert.equal(history.some(line => line.includes('event 0 ')), true);
   assert.equal(history.at(-1).includes('event 34'), true);
   history.length = 0;
-  assert.equal(logger.getLogHistory().length, 30, 'History getter must return a defensive copy');
+  assert.equal(logger.getLogHistory().length, 35, 'History getter must return a defensive copy');
+  const firstPage = logger.getLogEntries(0, 10);
+  assert.equal(firstPage.entries.length, 10);
+  assert.equal(firstPage.entries.at(-1).line.includes('event 34'), true);
+  assert.equal(logger.getLogEntries(firstPage.nextCursor, 10).entries.length, 0);
   logger.clearLogHistory();
   assert.deepEqual(logger.getLogHistory(), []);
 

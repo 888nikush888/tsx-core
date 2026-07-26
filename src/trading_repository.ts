@@ -2,6 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import { constantTimeStringEqual } from './secure_compare.js';
 import {
+  BUILTIN_SIGNAL_CONTRACTS,
+  signalContractDefinitionSha256,
+  validateSignalContractDefinition,
+} from './signal_contract.js';
+import { recordTradingExecutionEvent } from './trading_telemetry.js';
+import {
   createStrategyVersion,
   DEFAULT_STRATEGY_CONFIGURATION,
   signalSchemaIdentifier,
@@ -20,6 +26,8 @@ import type {
   TradingRoute,
   TradingRuntimeState,
   StrategyConfiguration,
+  SignalContract,
+  SignalContractVersion,
   TradingStrategyVersion,
   TradingSignalSchema,
 } from './trading_types.js';
@@ -153,6 +161,28 @@ async function insertStrategy(strategy: TradingStrategyVersion): Promise<void> {
 
 export async function ensureTradingDefaults(now = Date.now()): Promise<void> {
   await transaction(async () => {
+    for (const contract of BUILTIN_SIGNAL_CONTRACTS) {
+      const versionId = `${contract.id}:v1`;
+      const definition = validateSignalContractDefinition(contract.definition);
+      await getDatabase().run(
+        `INSERT OR IGNORE INTO trading_signal_contracts (
+           id, name, description, archived, created_at, updated_at
+         ) VALUES (?, ?, ?, 0, ?, ?)`,
+        [contract.id, contract.name, contract.description, now, now],
+      );
+      await getDatabase().run(
+        `INSERT OR IGNORE INTO trading_signal_contract_versions (
+           id, contract_id, version, status, definition_json, definition_sha256,
+           created_at, published_at, archived_at
+         ) VALUES (?, ?, 1, 'published', ?, ?, ?, ?, NULL)`,
+        [versionId, contract.id, JSON.stringify(definition), signalContractDefinitionSha256(definition), now, now],
+      );
+      await getDatabase().run(
+        `UPDATE trading_signal_schemas SET contract_version_id = ?
+         WHERE id = ? AND contract_version_id IS NULL`,
+        [versionId, contract.id],
+      );
+    }
     const strategyCount = await getDatabase().get<{ count: number }>('SELECT COUNT(*) AS count FROM trading_strategy_versions');
     if (Number(strategyCount?.count || 0) === 0) {
       const strategy = createStrategyVersion({
@@ -180,9 +210,221 @@ export async function ensureTradingDefaults(now = Date.now()): Promise<void> {
   });
 }
 
+function contractMetadata(input: { name: unknown; description?: unknown }): { name: string; description: string } {
+  const name = typeof input.name === 'string' ? input.name.trim() : '';
+  const description = typeof input.description === 'string' ? input.description.trim() : '';
+  if (!name || name.length > 80) throw new Error('Signal contract name must contain between 1 and 80 characters.');
+  if (description.length > 500) throw new Error('Signal contract description must not exceed 500 characters.');
+  return { name, description };
+}
+
+function contractVersionIdentifier(value: unknown, label = 'Signal contract version identifier'): string {
+  if (typeof value !== 'string' || !/^[a-z][a-z0-9_-]{0,39}:v[1-9]\d{0,8}$/.test(value.trim())) {
+    throw new Error(`${label} is invalid.`);
+  }
+  return value.trim();
+}
+
+export async function listSignalContracts(): Promise<SignalContract[]> {
+  const [contracts, versions] = await Promise.all([
+    getDatabase().all<any[]>('SELECT * FROM trading_signal_contracts ORDER BY archived, name, id'),
+    getDatabase().all<any[]>('SELECT * FROM trading_signal_contract_versions ORDER BY contract_id, version DESC'),
+  ]);
+  const byContract = new Map<string, SignalContractVersion[]>();
+  for (const row of versions) {
+    const version = contractVersionFromRow(row);
+    byContract.set(version.contractId, [...(byContract.get(version.contractId) ?? []), version]);
+  }
+  return contracts.map(row => ({
+    id: String(row.id),
+    name: String(row.name),
+    description: String(row.description || ''),
+    archived: boolean(row.archived),
+    versions: byContract.get(String(row.id)) ?? [],
+    createdAt: Number(row.created_at),
+    updatedAt: Number(row.updated_at),
+  }));
+}
+
+export async function createSignalContract(input: {
+  id: unknown;
+  name: unknown;
+  description?: unknown;
+  definition: unknown;
+}, now = Date.now()): Promise<SignalContract> {
+  const id = signalSchemaIdentifier(input.id, 'Signal contract identifier');
+  const metadata = contractMetadata(input);
+  const definition = validateSignalContractDefinition(input.definition);
+  return transaction(async () => {
+    await getDatabase().run(
+      `INSERT INTO trading_signal_contracts (
+         id, name, description, archived, created_at, updated_at
+       ) VALUES (?, ?, ?, 0, ?, ?)`,
+      [id, metadata.name, metadata.description, now, now],
+    );
+    await getDatabase().run(
+      `INSERT INTO trading_signal_contract_versions (
+         id, contract_id, version, status, definition_json, definition_sha256,
+         created_at, published_at, archived_at
+       ) VALUES (?, ?, 1, 'draft', ?, ?, ?, NULL, NULL)`,
+      [`${id}:v1`, id, JSON.stringify(definition), signalContractDefinitionSha256(definition), now],
+    );
+    return (await listSignalContracts()).find(contract => contract.id === id)!;
+  });
+}
+
+export async function createSignalContractDraftVersion(
+  contractId: unknown,
+  sourceVersionId: unknown,
+  now = Date.now(),
+): Promise<SignalContractVersion> {
+  const id = signalSchemaIdentifier(contractId, 'Signal contract identifier');
+  const sourceId = contractVersionIdentifier(sourceVersionId);
+  return transaction(async () => {
+    const sourceRow = await getDatabase().get<any>(
+      'SELECT * FROM trading_signal_contract_versions WHERE id = ? AND contract_id = ?',
+      [sourceId, id],
+    );
+    if (!sourceRow) throw new Error('Source signal contract version does not exist.');
+    const existingDraft = await getDatabase().get(
+      `SELECT id FROM trading_signal_contract_versions WHERE contract_id = ? AND status = 'draft'`,
+      [id],
+    );
+    if (existingDraft) throw new Error('Signal contract already has an editable draft version.');
+    const latest = await getDatabase().get<{ version: number }>(
+      'SELECT MAX(version) AS version FROM trading_signal_contract_versions WHERE contract_id = ?',
+      [id],
+    );
+    const version = Number(latest?.version || 0) + 1;
+    const definition = contractVersionFromRow(sourceRow).definition;
+    const versionId = `${id}:v${version}`;
+    await getDatabase().run(
+      `INSERT INTO trading_signal_contract_versions (
+         id, contract_id, version, status, definition_json, definition_sha256,
+         created_at, published_at, archived_at
+       ) VALUES (?, ?, ?, 'draft', ?, ?, ?, NULL, NULL)`,
+      [versionId, id, version, JSON.stringify(definition), signalContractDefinitionSha256(definition), now],
+    );
+    return contractVersionFromRow(await getDatabase().get(
+      'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
+      [versionId],
+    ));
+  });
+}
+
+export async function updateSignalContractDraft(input: {
+  contractId: unknown;
+  versionId: unknown;
+  name: unknown;
+  description?: unknown;
+  definition: unknown;
+}, now = Date.now()): Promise<SignalContractVersion> {
+  const contractId = signalSchemaIdentifier(input.contractId, 'Signal contract identifier');
+  const versionId = contractVersionIdentifier(input.versionId);
+  const metadata = contractMetadata(input);
+  const definition = validateSignalContractDefinition(input.definition);
+  return transaction(async () => {
+    const result = await getDatabase().run(
+      `UPDATE trading_signal_contract_versions
+       SET definition_json = ?, definition_sha256 = ?
+       WHERE id = ? AND contract_id = ? AND status = 'draft'`,
+      [JSON.stringify(definition), signalContractDefinitionSha256(definition), versionId, contractId],
+    );
+    if (Number(result.changes || 0) !== 1) throw new Error('Only an existing draft contract version can be edited.');
+    await getDatabase().run(
+      'UPDATE trading_signal_contracts SET name = ?, description = ?, updated_at = ? WHERE id = ?',
+      [metadata.name, metadata.description, now, contractId],
+    );
+    return contractVersionFromRow(await getDatabase().get(
+      'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
+      [versionId],
+    ));
+  });
+}
+
+export async function publishSignalContractVersion(versionId: unknown, now = Date.now()): Promise<SignalContractVersion> {
+  const id = contractVersionIdentifier(versionId);
+  const result = await getDatabase().run(
+    `UPDATE trading_signal_contract_versions SET status = 'published', published_at = ?
+     WHERE id = ? AND status = 'draft'`,
+    [now, id],
+  );
+  if (Number(result.changes || 0) !== 1) throw new Error('Only an existing draft contract version can be published.');
+  return contractVersionFromRow(await getDatabase().get(
+    'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
+    [id],
+  ));
+}
+
+export async function archiveSignalContractVersion(versionId: unknown, now = Date.now()): Promise<SignalContractVersion> {
+  const id = contractVersionIdentifier(versionId);
+  const used = await getDatabase().get<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM trading_signal_schemas
+     WHERE contract_version_id = ? AND enabled = 1`,
+    [id],
+  );
+  if (Number(used?.count || 0) > 0) {
+    throw new Error('Enabled signal schema profiles must be moved before archiving this contract version.');
+  }
+  const result = await getDatabase().run(
+    `UPDATE trading_signal_contract_versions SET status = 'archived', archived_at = ?
+     WHERE id = ? AND status = 'published'`,
+    [now, id],
+  );
+  if (Number(result.changes || 0) !== 1) throw new Error('Only a published contract version can be archived.');
+  return contractVersionFromRow(await getDatabase().get(
+    'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
+    [id],
+  ));
+}
+
+export async function deleteSignalContractDraft(versionId: unknown): Promise<boolean> {
+  const id = contractVersionIdentifier(versionId);
+  return transaction(async () => {
+    const row = await getDatabase().get<{ contract_id: string; status: string }>(
+      'SELECT contract_id, status FROM trading_signal_contract_versions WHERE id = ?',
+      [id],
+    );
+    if (!row) return false;
+    if (row.status !== 'draft') throw new Error('Published or archived contract versions cannot be deleted.');
+    await getDatabase().run('DELETE FROM trading_signal_contract_versions WHERE id = ?', [id]);
+    const remaining = await getDatabase().get<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM trading_signal_contract_versions WHERE contract_id = ?',
+      [row.contract_id],
+    );
+    if (Number(remaining?.count || 0) === 0) {
+      await getDatabase().run('DELETE FROM trading_signal_contracts WHERE id = ?', [row.contract_id]);
+    }
+    return true;
+  });
+}
+
+export async function duplicateSignalContract(input: {
+  sourceVersionId: unknown;
+  id: unknown;
+  name: unknown;
+  description?: unknown;
+}, now = Date.now()): Promise<SignalContract> {
+  const sourceId = contractVersionIdentifier(input.sourceVersionId);
+  const source = await getDatabase().get<any>(
+    'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
+    [sourceId],
+  );
+  if (!source) throw new Error('Source signal contract version does not exist.');
+  return createSignalContract({
+    id: input.id,
+    name: input.name,
+    description: input.description,
+    definition: contractVersionFromRow(source).definition,
+  }, now);
+}
+
 export async function listTradingSignalSchemas(): Promise<TradingSignalSchema[]> {
   const rows = await getDatabase().all<any[]>(
-    'SELECT * FROM trading_signal_schemas ORDER BY enabled DESC, name, id',
+    `SELECT schema.*, version.definition_json, version.definition_sha256
+     FROM trading_signal_schemas AS schema
+     JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
+     ORDER BY schema.enabled DESC, schema.name, schema.id`,
   );
   return rows.map(signalSchemaFromRow);
 }
@@ -190,7 +432,11 @@ export async function listTradingSignalSchemas(): Promise<TradingSignalSchema[]>
 export async function getTradingSignalSchemaForTemplate(templateName?: string): Promise<TradingSignalSchema | null> {
   const normalized = templateName?.trim() || 'default';
   const row = await getDatabase().get(
-    'SELECT * FROM trading_signal_schemas WHERE template_name = ? COLLATE NOCASE AND enabled = 1',
+    `SELECT schema.*, version.definition_json, version.definition_sha256
+     FROM trading_signal_schemas AS schema
+     JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
+     WHERE schema.template_name = ? COLLATE NOCASE AND schema.enabled = 1
+       AND version.status = 'published'`,
     [normalized],
   );
   return row ? signalSchemaFromRow(row) : null;
@@ -200,46 +446,61 @@ export async function createTradingSignalSchema(input: {
   id: unknown;
   name: unknown;
   description?: unknown;
-  parserSchema: unknown;
+  parserSchema?: unknown;
+  contractVersionId?: unknown;
   templateName: unknown;
   enabled: unknown;
 }, now = Date.now()): Promise<TradingSignalSchema> {
-  const validated = signalSchemaInput(input, true);
+  const validated = await signalSchemaInput(input, true);
   await getDatabase().run(
     `INSERT INTO trading_signal_schemas (
-       id, name, description, parser_schema, template_name, enabled, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       id, name, description, parser_schema, contract_version_id, template_name, enabled, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       validated.id, validated.name, validated.description, validated.parserSchema,
-      validated.templateName, validated.enabled ? 1 : 0, now, now,
+      validated.contractVersionId, validated.templateName, validated.enabled ? 1 : 0, now, now,
     ],
   );
-  const row = await getDatabase().get('SELECT * FROM trading_signal_schemas WHERE id = ?', [validated.id]);
+  const row = await getDatabase().get(
+    `SELECT schema.*, version.definition_json, version.definition_sha256
+     FROM trading_signal_schemas AS schema
+     JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
+     WHERE schema.id = ?`,
+    [validated.id],
+  );
   return signalSchemaFromRow(row);
 }
 
 export async function updateTradingSignalSchema(id: string, input: {
   name: unknown;
   description?: unknown;
-  parserSchema: unknown;
+  parserSchema?: unknown;
+  contractVersionId?: unknown;
   templateName: unknown;
   enabled: unknown;
 }, now = Date.now()): Promise<TradingSignalSchema> {
   const normalizedId = signalSchemaIdentifier(id);
-  const validated = signalSchemaInput(input, false);
+  const validated = await signalSchemaInput(input, false);
   return transaction(async () => {
     await assertSignalSchemaNotActivelyRouted(normalizedId);
     const result = await getDatabase().run(
       `UPDATE trading_signal_schemas
-       SET name = ?, description = ?, parser_schema = ?, template_name = ?, enabled = ?, updated_at = ?
+       SET name = ?, description = ?, parser_schema = ?, contract_version_id = ?,
+           template_name = ?, enabled = ?, updated_at = ?
        WHERE id = ?`,
       [
-        validated.name, validated.description, validated.parserSchema, validated.templateName,
+        validated.name, validated.description, validated.parserSchema, validated.contractVersionId, validated.templateName,
         validated.enabled ? 1 : 0, now, normalizedId,
       ],
     );
     if (Number(result.changes || 0) !== 1) throw new Error('Signal schema does not exist.');
-    const row = await getDatabase().get('SELECT * FROM trading_signal_schemas WHERE id = ?', [normalizedId]);
+    const row = await getDatabase().get(
+      `SELECT schema.*, version.definition_json, version.definition_sha256
+       FROM trading_signal_schemas AS schema
+       JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
+       WHERE schema.id = ?`,
+      [normalizedId],
+    );
     return signalSchemaFromRow(row);
   });
 }
@@ -480,6 +741,13 @@ export async function updateTradingRuntimeState(input: Partial<Pick<TradingRunti
        kill_switch_reason = ?, updated_at = ? WHERE singleton_id = 1`,
     [next.executionEnabled ? 1 : 0, next.liveTradingEnabled ? 1 : 0, next.killSwitchActive ? 1 : 0, next.killSwitchReason, next.updatedAt],
   );
+  if (!current.killSwitchActive && next.killSwitchActive) {
+    await recordTradingExecutionEvent({
+      eventType: 'kill_switch_activated',
+      occurredAt: next.updatedAt,
+      details: { reason: next.killSwitchReason || 'unspecified' },
+    });
+  }
   return getTradingRuntimeState();
 }
 
@@ -684,11 +952,18 @@ function dashboardDecimal(value: unknown): string {
 }
 
 function signalSchemaFromRow(row: any): TradingSignalSchema {
+  const definition = validateSignalContractDefinition(parseJson(row.definition_json, 'signal contract definition'));
+  const definitionHash = signalContractDefinitionSha256(definition);
+  if (!constantTimeStringEqual(definitionHash, String(row.definition_sha256))) {
+    throw new Error(`Signal schema ${row.id} references a contract that failed its integrity check.`);
+  }
   return {
     id: String(row.id),
     name: String(row.name),
     description: String(row.description || ''),
     parserSchema: row.parser_schema,
+    contractVersionId: String(row.contract_version_id),
+    contractDefinition: definition,
     templateName: String(row.template_name),
     enabled: boolean(row.enabled),
     createdAt: Number(row.created_at),
@@ -696,38 +971,92 @@ function signalSchemaFromRow(row: any): TradingSignalSchema {
   };
 }
 
-function signalSchemaInput(input: {
+function contractVersionFromRow(row: any): SignalContractVersion {
+  const definition = validateSignalContractDefinition(parseJson(row.definition_json, 'signal contract definition'));
+  const hash = signalContractDefinitionSha256(definition);
+  if (!constantTimeStringEqual(hash, String(row.definition_sha256))) {
+    throw new Error(`Signal contract version ${row.id} failed its integrity check.`);
+  }
+  return {
+    id: String(row.id),
+    contractId: String(row.contract_id),
+    version: Number(row.version),
+    status: row.status,
+    definition,
+    definitionSha256: hash,
+    createdAt: Number(row.created_at),
+    publishedAt: row.published_at === null ? null : Number(row.published_at),
+    archivedAt: row.archived_at === null ? null : Number(row.archived_at),
+  };
+}
+
+function signalSchemaText(input: {
+  name?: unknown;
+  description?: unknown;
+  templateName?: unknown;
+}): { name: string; description: string; templateName: string } {
+  const name = typeof input.name === 'string' ? input.name.trim() : '';
+  const description = typeof input.description === 'string' ? input.description.trim() : '';
+  const templateName = typeof input.templateName === 'string' ? input.templateName.trim() : '';
+  if (!name || name.length > 80) throw new Error('Signal schema name must contain between 1 and 80 characters.');
+  if (description.length > 500) throw new Error('Signal schema description must not exceed 500 characters.');
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(templateName)) throw new Error('Signal schema template name is invalid.');
+  return { name, description, templateName };
+}
+
+function requestedParserContract(value: unknown): ExecutableSignalSchemaContract | undefined {
+  if (value === undefined) return undefined;
+  if (value === 'standard' || value === 'cryptodanielvip' || value === 'loma') return value;
+  throw new Error('Signal schema parser contract is unsupported.');
+}
+
+async function publishedContractVersion(contractVersionId: string): Promise<{ contract_id: string }> {
+  const version = await getDatabase().get<{ contract_id: string; status: string }>(
+    'SELECT contract_id, status FROM trading_signal_contract_versions WHERE id = ?',
+    [contractVersionId],
+  );
+  if (!version || version.status !== 'published') {
+    throw new Error('Signal schema must reference a published signal contract version.');
+  }
+  return version;
+}
+
+function executableParserContract(contractId: string): ExecutableSignalSchemaContract {
+  if (contractId === 'cryptodanielvip' || contractId === 'loma') return contractId;
+  return 'standard';
+}
+
+async function signalSchemaInput(input: {
   id?: unknown;
   name?: unknown;
   description?: unknown;
   parserSchema?: unknown;
+  contractVersionId?: unknown;
   templateName?: unknown;
   enabled?: unknown;
-}, requireId: boolean): {
+}, requireId: boolean): Promise<{
   id?: string;
   name: string;
   description: string;
   parserSchema: ExecutableSignalSchemaContract;
+  contractVersionId: string;
   templateName: string;
   enabled: boolean;
-} {
+}> {
   const id = requireId ? signalSchemaIdentifier(input.id) : undefined;
-  const name = typeof input.name === 'string' ? input.name.trim() : '';
-  const description = typeof input.description === 'string' ? input.description.trim() : '';
-  const templateName = typeof input.templateName === 'string' ? input.templateName.trim() : '';
-  const parserSchema = input.parserSchema;
-  if (!name || name.length > 80) throw new Error('Signal schema name must contain between 1 and 80 characters.');
-  if (description.length > 500) throw new Error('Signal schema description must not exceed 500 characters.');
-  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(templateName)) throw new Error('Signal schema template name is invalid.');
-  if (parserSchema !== 'standard' && parserSchema !== 'cryptodanielvip' && parserSchema !== 'loma') {
-    throw new Error('Signal schema parser contract is unsupported.');
-  }
+  const { name, description, templateName } = signalSchemaText(input);
+  const requestedParserSchema = requestedParserContract(input.parserSchema);
   if (typeof input.enabled !== 'boolean') throw new Error('Signal schema enabled state must be boolean.');
+  const contractVersionId = input.contractVersionId
+    ? contractVersionIdentifier(input.contractVersionId)
+    : `${requestedParserSchema ?? 'standard'}:v1`;
+  const version = await publishedContractVersion(contractVersionId);
   return {
     id,
     name,
     description,
-    parserSchema,
+    parserSchema: executableParserContract(version.contract_id),
+    contractVersionId,
     templateName,
     enabled: input.enabled,
   };

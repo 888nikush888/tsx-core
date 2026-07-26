@@ -26,6 +26,8 @@ services:
       MANAGED_SECRET_DIR: "/app/secrets"
       TEMPLATES_DIR: "/app/templates"
       EXCHANGE_EXECUTOR_URL: "http://exchange-executor:8090"
+      # Browser-visible address of the optional MCP profile.
+      MCP_ENDPOINT_URL: "${MCP_ENDPOINT_URL:-http://127.0.0.1:8091/mcp}"
     volumes:
       - forwarder_config:/app/config
       - forwarder_secrets:/app/secrets
@@ -36,6 +38,8 @@ services:
       - forwarder_logs:/app/logs
       - forwarder_backups:/app/backups
     ports:
+      # Tailscale Serve runs on the Docker host and proxies this loopback-only
+      # port. Do not replace 127.0.0.1 with 0.0.0.0 and never enable Funnel.
       - "127.0.0.1:${HOST_WEB_PORT:-8080}:8080"
       - "127.0.0.1:${HOST_METRICS_PORT:-9100}:9100"
     read_only: true
@@ -99,6 +103,57 @@ services:
       interval: 30s
       timeout: 5s
       start_period: 45s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  mcp-server:
+    profiles: ["mcp"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${FORWARDER_IMAGE:-tsx-core:local}
+    command: ["dist/mcp_server.js"]
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      forwarder:
+        condition: service_healthy
+    environment:
+      MCP_HOST: "0.0.0.0"
+      MCP_PORT: "8091"
+      MCP_ALLOWED_HOSTS: "${MCP_ALLOWED_HOSTS:-localhost,127.0.0.1,mcp-server}"
+      MCP_ALLOWED_ORIGINS: "${MCP_ALLOWED_ORIGINS:-}"
+      FORWARDER_DB_PATH: "/app/session_data/forwarder.db"
+    volumes:
+      - forwarder_session_data:/app/session_data
+    ports:
+      # Loopback-only. Tailscale Serve may publish this inside the tailnet;
+      # never use Funnel for the MCP endpoint.
+      - "127.0.0.1:${HOST_MCP_PORT:-8091}:8091"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: ${MCP_MEMORY_LIMIT:-384m}
+    cpus: ${MCP_CPU_LIMIT:-0.5}
+    healthcheck:
+      test:
+        - CMD
+        - /nodejs/bin/node
+        - -e
+        - "fetch('http://127.0.0.1:8091/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
       retries: 3
     logging:
       driver: json-file

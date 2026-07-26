@@ -3,7 +3,8 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
 import {
   dashboardAuthenticatorFromEnvironment,
   EnvironmentTokenAuthenticator,
-  OidcDashboardAuthenticator
+  OidcDashboardAuthenticator,
+  TailscaleServeAuthenticator,
 } from '../src/dashboard_auth.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
@@ -79,6 +80,28 @@ try {
     .sign(privateKey);
   assert.equal(await authenticator.authenticate(`Bearer ${missingExpiry}`), null, 'Tokens without an expiry must fail closed.');
 
+  const tailscale = new TailscaleServeAuthenticator({
+    adminUsers: 'operator@example.com',
+    viewerUsers: 'observer@example.com',
+  });
+  assert.equal(tailscale.isConfigured(), true);
+  const tailscaleAdmin = await tailscale.authenticate(undefined, {
+    'tailscale-user-login': 'Operator@Example.com',
+    'tailscale-user-name': 'TSX Operator',
+  });
+  assert.equal(tailscaleAdmin?.role, 'admin');
+  assert.equal(tailscaleAdmin?.identity?.login, 'operator@example.com');
+  assert.match(tailscaleAdmin?.id || '', /^tailscale:[a-f0-9]{32}$/);
+  assert.equal((await tailscale.authenticate(undefined, {
+    'tailscale-user-login': 'observer@example.com',
+  }))?.role, 'viewer');
+  assert.equal(await tailscale.authenticate(undefined, {
+    'tailscale-user-login': 'unknown@example.com',
+  }), null);
+  assert.equal(await tailscale.authenticate(undefined, {
+    'tailscale-user-login': ['operator@example.com'],
+  }), null, 'Duplicated proxy identity headers must fail closed.');
+
   process.env = { ...savedEnvironment, NODE_ENV: 'production', ENTERPRISE_MODE: 'true' };
   delete process.env.DASHBOARD_AUTH_MODE;
   delete process.env.DASHBOARD_OIDC_ISSUER;
@@ -86,6 +109,13 @@ try {
   process.env = { ...savedEnvironment, NODE_ENV: 'production', ENTERPRISE_MODE: 'false' };
   delete process.env.DASHBOARD_AUTH_MODE;
   assert.equal(dashboardAuthenticatorFromEnvironment().mode, 'token', 'Standalone Docker must support web bootstrap.');
+  process.env.DASHBOARD_AUTH_MODE = 'tailscale';
+  process.env.TAILSCALE_SERVE_TRUSTED_PROXY = 'true';
+  process.env.DASHBOARD_ALLOWED_ORIGIN = 'https://tsx-core.example-tailnet.ts.net';
+  process.env.TAILSCALE_ADMIN_USERS = 'operator@example.com';
+  assert.equal(dashboardAuthenticatorFromEnvironment().mode, 'tailscale');
+  process.env.TAILSCALE_SERVE_TRUSTED_PROXY = 'false';
+  assert.throws(() => dashboardAuthenticatorFromEnvironment(), /TRUSTED_PROXY/);
 
   console.log('Dashboard token and OIDC authentication tests passed.');
 } finally {

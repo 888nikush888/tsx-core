@@ -8,16 +8,22 @@ import { enterpriseMode } from './runtime_profile.js';
 
 export type DashboardRole = 'viewer' | 'admin';
 type AuthorizationHeader = string | string[] | undefined;
+type RequestHeaders = Record<string, string | string[] | undefined>;
 
 export interface AuthenticatedActor {
   role: DashboardRole;
   id: string;
+  identity?: {
+    provider: 'tailscale';
+    login: string;
+    name: string | null;
+  };
 }
 
 export interface DashboardAuthenticator {
-  readonly mode: 'token' | 'oidc';
+  readonly mode: 'token' | 'oidc' | 'tailscale';
   isConfigured(): boolean;
-  authenticate(authorization: AuthorizationHeader): Promise<AuthenticatedActor | null>;
+  authenticate(authorization: AuthorizationHeader, headers?: RequestHeaders): Promise<AuthenticatedActor | null>;
 }
 
 export interface OidcDashboardOptions {
@@ -158,11 +164,68 @@ export class OidcDashboardAuthenticator implements DashboardAuthenticator {
   }
 }
 
-export function dashboardAuthenticatorFromEnvironment(): DashboardAuthenticator {
-  const defaultMode = enterpriseMode() ? 'oidc' : 'token';
-  const mode = process.env.DASHBOARD_AUTH_MODE?.trim().toLowerCase() || defaultMode;
-  if (mode === 'token') return new EnvironmentTokenAuthenticator();
-  if (mode !== 'oidc') throw new Error('DASHBOARD_AUTH_MODE must be token or oidc.');
+function identityUsers(value: string | undefined): Set<string> {
+  return new Set((value || '')
+    .split(',')
+    .map(item => item.trim().toLocaleLowerCase('en-US'))
+    .filter(item => /^[^\s,\0]{1,254}$/.test(item)));
+}
+
+function singleHeader(headers: RequestHeaders | undefined, name: string): string | null {
+  const value = headers?.[name];
+  if (typeof value !== 'string' || !value.trim() || value.length > 2_048 || /[\r\n\0]/.test(value)) return null;
+  return value.trim();
+}
+
+export class TailscaleServeAuthenticator implements DashboardAuthenticator {
+  readonly mode = 'tailscale' as const;
+  private readonly administrators: Set<string>;
+  private readonly viewers: Set<string>;
+
+  constructor(options: { adminUsers: string; viewerUsers?: string }) {
+    this.administrators = identityUsers(options.adminUsers);
+    this.viewers = identityUsers(options.viewerUsers);
+  }
+
+  isConfigured(): boolean {
+    return this.administrators.size > 0;
+  }
+
+  async authenticate(
+    _authorization: AuthorizationHeader,
+    headers?: RequestHeaders,
+  ): Promise<AuthenticatedActor | null> {
+    const loginHeader = singleHeader(headers, 'tailscale-user-login');
+    if (!loginHeader) return null;
+    const login = loginHeader.toLocaleLowerCase('en-US');
+    let role: DashboardRole | null = null;
+    if (this.administrators.has(login)) role = 'admin';
+    else if (this.viewers.has(login)) role = 'viewer';
+    if (!role) return null;
+    const name = singleHeader(headers, 'tailscale-user-name');
+    return {
+      role,
+      id: `tailscale:${createHash('sha256').update(login).digest('hex').slice(0, 32)}`,
+      identity: { provider: 'tailscale', login, name },
+    };
+  }
+}
+
+function tailscaleAuthenticatorFromEnvironment(): DashboardAuthenticator {
+  if (process.env.TAILSCALE_SERVE_TRUSTED_PROXY?.trim().toLowerCase() !== 'true') {
+    throw new Error('Tailscale dashboard authentication requires TAILSCALE_SERVE_TRUSTED_PROXY=true.');
+  }
+  const origin = new URL(process.env.DASHBOARD_ALLOWED_ORIGIN || '');
+  if (origin.protocol !== 'https:' || !origin.hostname.endsWith('.ts.net') || origin.pathname !== '/') {
+    throw new Error('Tailscale dashboard authentication requires an HTTPS *.ts.net DASHBOARD_ALLOWED_ORIGIN.');
+  }
+  return new TailscaleServeAuthenticator({
+    adminUsers: process.env.TAILSCALE_ADMIN_USERS || '',
+    viewerUsers: process.env.TAILSCALE_VIEWER_USERS || '',
+  });
+}
+
+function oidcAuthenticatorFromEnvironment(): DashboardAuthenticator {
   return new OidcDashboardAuthenticator({
     issuer: process.env.DASHBOARD_OIDC_ISSUER || '',
     audience: process.env.DASHBOARD_OIDC_AUDIENCE || '',
@@ -170,6 +233,15 @@ export function dashboardAuthenticatorFromEnvironment(): DashboardAuthenticator 
     adminRole: process.env.DASHBOARD_OIDC_ADMIN_ROLE || 'forwarder-admin',
     viewerRole: process.env.DASHBOARD_OIDC_VIEWER_ROLE || 'forwarder-viewer',
     roleClaim: process.env.DASHBOARD_OIDC_ROLE_CLAIM || 'roles',
-    maxTokenAgeSeconds: Number(process.env.DASHBOARD_OIDC_MAX_TOKEN_AGE_SECONDS || 3_600)
+    maxTokenAgeSeconds: Number(process.env.DASHBOARD_OIDC_MAX_TOKEN_AGE_SECONDS || 3_600),
   });
+}
+
+export function dashboardAuthenticatorFromEnvironment(): DashboardAuthenticator {
+  const defaultMode = enterpriseMode() ? 'oidc' : 'token';
+  const mode = process.env.DASHBOARD_AUTH_MODE?.trim().toLowerCase() || defaultMode;
+  if (mode === 'token') return new EnvironmentTokenAuthenticator();
+  if (mode === 'tailscale') return tailscaleAuthenticatorFromEnvironment();
+  if (mode !== 'oidc') throw new Error('DASHBOARD_AUTH_MODE must be token, oidc or tailscale.');
+  return oidcAuthenticatorFromEnvironment();
 }

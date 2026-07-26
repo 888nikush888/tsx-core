@@ -59,15 +59,19 @@
   "author": "",
   "license": "MIT",
   "overrides": {
+    "@hono/node-server": "2.0.12",
+    "brace-expansion": "5.0.8",
     "qs": "6.15.3"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
     "jose": "6.2.3",
     "openai": "6.46.0",
     "prebuilt-tdlib": "0.1008064.0",
     "sqlite": "5.1.1",
     "sqlite3": "6.0.1",
-    "tdl": "8.1.0"
+    "tdl": "8.1.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -14,6 +14,7 @@ try {
   await mkdir(applicationRoot, { recursive: true });
   await mkdir(externalRoot, { recursive: true });
   await writeFile(path.join(externalRoot, 'dashboard_admin_token'), 'secret');
+  await writeFile(path.join(externalRoot, '.mcp-maintenance'), 'maintenance');
 
   const exactBoundary = {
     kind: 'exact-managed-secret',
@@ -21,8 +22,17 @@ try {
     applicationRoot,
   };
   assert.equal(await assertFactoryResetTarget(externalRoot, exactBoundary), await realpath(externalRoot));
-  await clearFactoryResetTarget(externalRoot, exactBoundary);
+  await clearFactoryResetTarget(externalRoot, exactBoundary, ['.mcp-maintenance']);
   await assert.rejects(readFile(path.join(externalRoot, 'dashboard_admin_token')), /ENOENT/);
+  assert.equal(
+    await readFile(path.join(externalRoot, '.mcp-maintenance'), 'utf8'),
+    'maintenance',
+    'Factory reset must be able to preserve the cross-process MCP maintenance marker.',
+  );
+  await assert.rejects(
+    clearFactoryResetTarget(externalRoot, exactBoundary, ['../unsafe']),
+    /preserve name is invalid/,
+  );
 
   await assert.rejects(
     assertFactoryResetTarget(path.join(directory, 'state'), exactBoundary),

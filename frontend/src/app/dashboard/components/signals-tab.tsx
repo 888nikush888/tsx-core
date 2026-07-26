@@ -93,7 +93,7 @@ export function SignalsTab({ config }: Readonly<{ config?: any }>) {
       </CardHeader>
       <CardContent>
         {error && (
-          <div role="alert" className="flex items-center gap-2 p-4 text-red-500 bg-red-500/10 rounded-lg mb-4 text-sm">
+          <div role="alert" className="mb-4 flex items-center gap-2 rounded-lg border p-4 text-sm">
             <AlertCircle className="h-4 w-4" />
             <span>Fehler: {error}</span>
           </div>
@@ -201,7 +201,7 @@ export function SignalsTab({ config }: Readonly<{ config?: any }>) {
                                 >
                                   {copiedId === sig.id ? (
                                     <>
-                                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                                      <Check className="h-3.5 w-3.5" />
                                       <span>Kopiert</span>
                                     </>
                                   ) : (
@@ -212,7 +212,7 @@ export function SignalsTab({ config }: Readonly<{ config?: any }>) {
                                   )}
                                 </Button>
                               </div>
-                              <pre className="p-4 bg-muted/50 dark:bg-muted/30 border rounded-lg font-mono text-xs overflow-x-auto whitespace-pre select-all text-emerald-600 dark:text-emerald-400">
+                              <pre className="overflow-x-auto whitespace-pre rounded-lg border bg-muted/50 p-4 font-mono text-xs text-foreground select-all dark:bg-muted/30">
                                 {sig.xml_content}
                               </pre>
                             </div>

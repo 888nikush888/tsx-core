@@ -77,8 +77,22 @@ test('keyboard authentication unlocks the responsive dashboard without WCAG A/AA
   await token.fill(TOKEN)
   await token.press('Enter')
 
-  await expect(page.getByRole('heading', { name: 'Executive Trading & Operations' })).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  await expect(page.getByRole('heading', { name: 'Live-Cockpit' })).toBeVisible()
+  const overflowingElements = await page.locator('body *').evaluateAll(elements => {
+    const viewportWidth = document.documentElement.clientWidth
+    if (document.documentElement.scrollWidth <= viewportWidth) return []
+    return elements
+      .filter(element => element.getBoundingClientRect().right > viewportWidth + 1)
+      .slice(0, 10)
+      .map(element => ({
+        tag: element.tagName.toLowerCase(),
+        className: element.getAttribute('class'),
+        text: element.textContent?.trim().slice(0, 80),
+        right: Math.round(element.getBoundingClientRect().right),
+        viewportWidth,
+      }))
+  })
+  expect(overflowingElements).toEqual([])
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze()

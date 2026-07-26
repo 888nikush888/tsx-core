@@ -33,6 +33,8 @@ import {
 import {
   createTradingIntent,
   createTradingAccount,
+  createSignalContract,
+  createSignalContractDraftVersion,
   createTradingSignalSchema,
   createTradingStrategyDraft,
   archiveTradingStrategyVersion,
@@ -40,6 +42,7 @@ import {
   deleteTradingRoute,
   deleteTradingSignalSchema,
   deleteTradingStrategyVersion,
+  deleteSignalContractDraft,
   ensureTradingDefaults,
   getTradingOverview,
   getTradingOperationalSnapshot,
@@ -50,15 +53,25 @@ import {
   listTradingIntents,
   listTradingRoutes,
   listTradingSignalSchemas,
+  listSignalContracts,
   listTradingStrategies,
   publishTradingStrategyVersion,
+  publishSignalContractVersion,
   setTradingRoute,
   updateTradingRuntimeState,
   updateTradingAccountState,
   updateTradingSignalSchema,
+  updateSignalContractDraft,
   updateTradingStrategyDraft,
 } from '../src/trading_repository.js';
 import { validateSignalXml } from '../src/signal_schema.js';
+import { BUILTIN_SIGNAL_CONTRACTS } from '../src/signal_contract.js';
+import {
+  deleteChannelRiskPolicy,
+  listChannelRiskEvaluations,
+  resolveEffectiveChannelRisk,
+  upsertChannelRiskPolicy,
+} from '../src/trading_channel_risk.js';
 
 const STANDARD_SIGNAL = `<signal>
 <action>LONG</action>
@@ -72,7 +85,11 @@ const STANDARD_SIGNAL = `<signal>
 function configuration(risk = '1') {
   return structuredClone({
     ...DEFAULT_STRATEGY_CONFIGURATION,
-    sizing: { ...DEFAULT_STRATEGY_CONFIGURATION.sizing, riskPerTradePercent: risk },
+    sizing: {
+      ...DEFAULT_STRATEGY_CONFIGURATION.sizing,
+      riskPerTradePercent: risk,
+      maxAdaptiveRiskPercent: risk,
+    },
   });
 }
 
@@ -110,7 +127,8 @@ function testDecimalAndStrategyContracts() {
   assert.equal(normalizedLegacy.exits.stopLossMode, 'configured');
   invalidConfiguration(value => { value.exits.targetAllocationMode = 'unsupported'; }, /targetAllocationMode/);
   invalidConfiguration(value => { value.exits.stopLossMode = 'unsupported'; }, /stopLossMode/);
-  invalidConfiguration(value => { value.schemaVersion = 2; }, /Unsupported strategy schema/);
+  invalidConfiguration(value => { value.schemaVersion = 3; }, /Unsupported strategy schema/);
+  invalidConfiguration(value => { value.sizing.maxAdaptiveRiskPercent = '0.5'; }, /must not be below/);
   invalidConfiguration(value => { value.unsupported = true; }, /unsupported fields/);
   invalidConfiguration(value => { value.allowedSignalSchemas = []; }, /executable signal schema/);
   invalidConfiguration(value => { value.allowedSignalSchemas = 'standard'; }, /array of strings/);
@@ -393,6 +411,121 @@ async function testRepositoryValidation(defaults, accounts) {
   await deleteTradingAccount(secondExternal.id);
 }
 
+async function testDynamicContracts() {
+  const standardDefinition = structuredClone(
+    BUILTIN_SIGNAL_CONTRACTS.find(contract => contract.id === 'standard').definition,
+  );
+  const seededContracts = await listSignalContracts();
+  assert.deepEqual(
+    seededContracts.map(contract => contract.id).sort(),
+    ['cryptodanielvip', 'loma', 'standard'],
+  );
+
+  const created = await createSignalContract({
+    id: 'desk-alpha',
+    name: 'Desk Alpha',
+    description: 'Test contract',
+    definition: standardDefinition,
+  }, 1_700_000_100_000);
+  assert.equal(created.versions[0].status, 'draft');
+  await assert.rejects(
+    createTradingSignalSchema({
+      id: 'desk-alpha',
+      name: 'Desk Alpha',
+      description: '',
+      contractVersionId: 'desk-alpha:v1',
+      templateName: 'desk-alpha',
+      enabled: true,
+    }),
+    /published signal contract/,
+  );
+  const published = await publishSignalContractVersion('desk-alpha:v1', 1_700_000_101_000);
+  assert.equal(published.status, 'published');
+  const profile = await createTradingSignalSchema({
+    id: 'desk-alpha',
+    name: 'Desk Alpha',
+    description: '',
+    contractVersionId: published.id,
+    templateName: 'desk-alpha',
+    enabled: true,
+  });
+  assert.equal(profile.contractVersionId, published.id);
+  const validated = validateSignalXml(STANDARD_SIGNAL, profile.templateName, {
+    id: profile.id,
+    parserSchema: profile.parserSchema,
+    contractVersionId: profile.contractVersionId,
+    contractDefinition: profile.contractDefinition,
+  });
+  assert.equal(validated.execution.schema, 'desk-alpha');
+  assert.equal(validated.execution.symbol, 'BTCUSDT');
+  await assert.rejects(
+    updateSignalContractDraft({
+      contractId: 'desk-alpha',
+      versionId: published.id,
+      name: 'Tampered',
+      description: '',
+      definition: standardDefinition,
+    }),
+    /Only an existing draft/,
+  );
+  const next = await createSignalContractDraftVersion('desk-alpha', published.id);
+  assert.equal(next.version, 2);
+  assert.equal(await deleteSignalContractDraft(next.id), true);
+  assert.equal(await deleteTradingSignalSchema(profile.id), true);
+}
+
+async function testChannelRiskPolicies() {
+  const fixed = await upsertChannelRiskPolicy({
+    channelId: '-100-risk',
+    mode: 'fixed',
+    tiers: [{ riskPercent: '0.5' }, { riskPercent: '1' }, { riskPercent: '1.5' }],
+    currentTier: 1,
+    lookbackWeeks: 4,
+    minimumClosedTrades: 5,
+    lossThresholdPercent: '1',
+    profitThresholdPercent: '1',
+    weakChannelAction: 'reduce',
+    weakWeeksBeforeBlock: 3,
+  });
+  assert.equal(fixed.policyVersion, 1);
+  const fixedDecision = await resolveEffectiveChannelRisk({
+    channelId: fixed.channelId,
+    strategy: configuration(),
+    currentEquity: '10000',
+  });
+  assert.equal(fixedDecision.riskPercent, '1');
+  assert.equal(fixedDecision.blocked, false);
+
+  const blocked = await upsertChannelRiskPolicy({
+    channelId: fixed.channelId,
+    mode: 'automatic',
+    tiers: fixed.tiers,
+    currentTier: 1,
+    lookbackWeeks: 4,
+    minimumClosedTrades: 5,
+    lossThresholdPercent: '1',
+    profitThresholdPercent: '1',
+    weakChannelAction: 'block',
+    weakWeeksBeforeBlock: 2,
+    manuallyBlocked: true,
+  });
+  assert.equal(blocked.policyVersion, 2);
+  const blockedDecision = await resolveEffectiveChannelRisk({
+    channelId: blocked.channelId,
+    strategy: configuration(),
+    currentEquity: '10000',
+  });
+  assert.equal(blockedDecision.blocked, true);
+  assert.match(blockedDecision.reason, /Manually blocked/);
+  assert.equal((await listChannelRiskEvaluations()).length, 0);
+  assert.equal(await deleteChannelRiskPolicy(blocked.channelId), true);
+}
+
+async function testDynamicContractsAndChannelRisk() {
+  await testDynamicContracts();
+  await testChannelRiskPolicies();
+}
+
 async function testSignalSchemaRepository() {
   const builtIns = await listTradingSignalSchemas();
   assert.deepEqual(
@@ -629,6 +762,7 @@ async function runRepositoryTests() {
     assert.equal(await deleteTradingStrategyVersion(deletable.id), true);
     assert.equal(await deleteTradingStrategyVersion(deletable.id), false);
     await testSignalSchemaRepository();
+    await testDynamicContractsAndChannelRisk();
     await testRepositoryValidation(defaults, accounts);
     await testRepositoryRouting(defaults, accounts);
     await testOperationalDatabaseClearPreservesTrading();

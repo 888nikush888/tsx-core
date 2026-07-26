@@ -85,7 +85,10 @@ export const DATABASE_FEATURE_SET = [
   'ai-provenance',
   'integrated-trading-control-plane',
   'isolated-paper-exchange-state',
-  'managed-trading-signal-schemas'
+  'managed-trading-signal-schemas',
+  'versioned-signal-contracts',
+  'channel-risk-and-execution-analytics',
+  'mcp-agent-control-plane'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -97,6 +100,17 @@ export const REQUIRED_DATABASE_TABLES = [
   'incoming_messages',
   'ai_usage_daily',
   'trading_signal_schemas',
+  'trading_signal_contracts',
+  'trading_signal_contract_versions',
+  'trading_channel_risk_policies',
+  'trading_channel_risk_evaluations',
+  'trading_equity_snapshots',
+  'trading_execution_events',
+  'mcp_agents',
+  'mcp_agent_sessions',
+  'mcp_agent_actions',
+  'mcp_control_requests',
+  'mcp_event_deliveries',
   'trading_strategy_versions',
   'trading_accounts',
   'trading_routes',
@@ -586,6 +600,211 @@ const migrations: SchemaMigration[] = [
           ('loma', 'Loma', 'Loma executable XML contract.', 'loma', 'loma', 1, CAST(strftime('%s','now') AS INTEGER) * 1000, CAST(strftime('%s','now') AS INTEGER) * 1000);
         CREATE INDEX IF NOT EXISTS idx_trading_signal_schemas_enabled
           ON trading_signal_schemas(enabled, name);
+      `
+  },
+  {
+    version: 8,
+    name: 'versioned_dynamic_signal_contracts',
+    columns: [
+      { table: 'trading_signal_schemas', name: 'contract_version_id', sqlDefinition: 'TEXT' }
+    ],
+    sql: `
+        CREATE TABLE IF NOT EXISTS trading_signal_contracts (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80),
+          description TEXT NOT NULL DEFAULT '' CHECK(length(description) <= 500),
+          archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0, 1)),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS trading_signal_contract_versions (
+          id TEXT PRIMARY KEY,
+          contract_id TEXT NOT NULL REFERENCES trading_signal_contracts(id) ON DELETE RESTRICT,
+          version INTEGER NOT NULL CHECK(version > 0),
+          status TEXT NOT NULL CHECK(status IN ('draft', 'published', 'archived')),
+          definition_json TEXT NOT NULL,
+          definition_sha256 TEXT NOT NULL CHECK(length(definition_sha256) = 64),
+          created_at INTEGER NOT NULL,
+          published_at INTEGER,
+          archived_at INTEGER,
+          UNIQUE(contract_id, version)
+        );
+        CREATE INDEX IF NOT EXISTS idx_signal_contract_versions
+          ON trading_signal_contract_versions(contract_id, status, version);
+        CREATE INDEX IF NOT EXISTS idx_signal_schema_contract_version
+          ON trading_signal_schemas(contract_version_id);
+        CREATE TRIGGER IF NOT EXISTS trg_signal_contract_version_immutable
+        BEFORE UPDATE ON trading_signal_contract_versions
+        WHEN OLD.status IN ('published', 'archived') AND (
+          NEW.contract_id <> OLD.contract_id OR NEW.version <> OLD.version OR
+          NEW.definition_json <> OLD.definition_json OR
+          NEW.definition_sha256 <> OLD.definition_sha256 OR
+          NEW.created_at <> OLD.created_at OR NEW.published_at IS NOT OLD.published_at
+        )
+        BEGIN
+          SELECT RAISE(ABORT, 'published signal contract versions are immutable');
+        END;
+      `
+  },
+  {
+    version: 9,
+    name: 'channel_risk_equity_and_execution_analytics',
+    columns: [],
+    sql: `
+        CREATE TABLE IF NOT EXISTS trading_channel_risk_policies (
+          channel_id TEXT PRIMARY KEY,
+          mode TEXT NOT NULL CHECK(mode IN ('fixed', 'shadow', 'automatic')),
+          tiers_json TEXT NOT NULL,
+          current_tier INTEGER NOT NULL CHECK(current_tier >= 0),
+          lookback_weeks INTEGER NOT NULL CHECK(lookback_weeks BETWEEN 1 AND 12),
+          minimum_closed_trades INTEGER NOT NULL CHECK(minimum_closed_trades BETWEEN 1 AND 1000),
+          loss_threshold_percent TEXT NOT NULL,
+          profit_threshold_percent TEXT NOT NULL,
+          weak_channel_action TEXT NOT NULL CHECK(weak_channel_action IN ('none', 'reduce', 'block')),
+          weak_weeks_before_block INTEGER NOT NULL CHECK(weak_weeks_before_block BETWEEN 1 AND 52),
+          manually_blocked INTEGER NOT NULL DEFAULT 0 CHECK(manually_blocked IN (0, 1)),
+          blocked INTEGER NOT NULL DEFAULT 0 CHECK(blocked IN (0, 1)),
+          block_reason TEXT,
+          locked_tier INTEGER,
+          policy_version INTEGER NOT NULL CHECK(policy_version > 0),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS trading_channel_risk_evaluations (
+          id TEXT PRIMARY KEY,
+          channel_id TEXT NOT NULL,
+          policy_version INTEGER NOT NULL,
+          week_started_at INTEGER NOT NULL,
+          week_ended_at INTEGER NOT NULL,
+          closed_trades INTEGER NOT NULL,
+          wins INTEGER NOT NULL,
+          losses INTEGER NOT NULL,
+          realized_pnl TEXT NOT NULL,
+          starting_equity TEXT NOT NULL,
+          return_percent TEXT NOT NULL,
+          previous_tier INTEGER NOT NULL,
+          recommended_tier INTEGER NOT NULL,
+          applied_tier INTEGER NOT NULL,
+          action TEXT NOT NULL CHECK(action IN ('hold', 'increase', 'decrease', 'block')),
+          reason TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          UNIQUE(channel_id, policy_version, week_started_at)
+        );
+        CREATE TABLE IF NOT EXISTS trading_equity_snapshots (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          equity TEXT NOT NULL,
+          available_balance TEXT NOT NULL,
+          unrealized_pnl TEXT NOT NULL,
+          margin_used TEXT NOT NULL,
+          observed_at INTEGER NOT NULL,
+          bucket_minute INTEGER NOT NULL,
+          UNIQUE(account_id, bucket_minute)
+        );
+        CREATE TABLE IF NOT EXISTS trading_execution_events (
+          id TEXT PRIMARY KEY,
+          intent_id TEXT REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+          channel_id TEXT,
+          account_id TEXT REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          exchange TEXT,
+          mode TEXT,
+          event_type TEXT NOT NULL CHECK(event_type IN (
+            'signal_received', 'signal_validated', 'intent_created', 'submit_started',
+            'exchange_ack', 'first_fill', 'fully_filled', 'position_closed',
+            'kill_switch_activated', 'contract_changed', 'risk_policy_changed'
+          )),
+          occurred_at INTEGER NOT NULL,
+          details_json TEXT NOT NULL,
+          correlation_id TEXT,
+          UNIQUE(intent_id, event_type)
+        );
+        CREATE INDEX IF NOT EXISTS idx_channel_risk_evaluation_week
+          ON trading_channel_risk_evaluations(channel_id, week_started_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_equity_snapshots_account_time
+          ON trading_equity_snapshots(account_id, observed_at);
+        CREATE INDEX IF NOT EXISTS idx_execution_events_channel_time
+          ON trading_execution_events(channel_id, occurred_at);
+        CREATE INDEX IF NOT EXISTS idx_execution_events_intent_time
+          ON trading_execution_events(intent_id, occurred_at);
+      `
+  },
+  {
+    version: 10,
+    name: 'mcp_agent_control_plane',
+    columns: [],
+    sql: `
+        CREATE TABLE IF NOT EXISTS mcp_agents (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80),
+          token_sha256 TEXT NOT NULL UNIQUE CHECK(length(token_sha256) = 64),
+          token_prefix TEXT NOT NULL CHECK(length(token_prefix) BETWEEN 8 AND 24),
+          permissions_json TEXT NOT NULL,
+          event_subscriptions_json TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0, 1)),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          last_seen_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS mcp_agent_sessions (
+          id TEXT PRIMARY KEY,
+          agent_id TEXT NOT NULL REFERENCES mcp_agents(id) ON DELETE RESTRICT,
+          client_name TEXT NOT NULL,
+          client_version TEXT NOT NULL,
+          connected_at INTEGER NOT NULL,
+          last_seen_at INTEGER NOT NULL,
+          disconnected_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS mcp_agent_actions (
+          id TEXT PRIMARY KEY,
+          agent_id TEXT NOT NULL REFERENCES mcp_agents(id) ON DELETE RESTRICT,
+          session_id TEXT REFERENCES mcp_agent_sessions(id) ON DELETE RESTRICT,
+          tool_name TEXT NOT NULL,
+          permission TEXT NOT NULL,
+          outcome TEXT NOT NULL CHECK(outcome IN ('succeeded', 'rejected', 'failed')),
+          request_json TEXT NOT NULL,
+          result_json TEXT,
+          error TEXT,
+          started_at INTEGER NOT NULL,
+          completed_at INTEGER NOT NULL,
+          duration_ms INTEGER NOT NULL CHECK(duration_ms >= 0)
+        );
+        CREATE TABLE IF NOT EXISTS mcp_control_requests (
+          id TEXT PRIMARY KEY,
+          agent_id TEXT NOT NULL REFERENCES mcp_agents(id) ON DELETE RESTRICT,
+          session_id TEXT REFERENCES mcp_agent_sessions(id) ON DELETE RESTRICT,
+          action TEXT NOT NULL CHECK(action IN (
+            'contracts.create', 'contracts.update', 'contracts.publish',
+            'contracts.archive', 'contracts.delete_draft',
+            'risk.update', 'risk.delete', 'trading.reconcile',
+            'trading.cancel_entries', 'trading.kill_switch', 'trading.flatten'
+          )),
+          payload_json TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'succeeded', 'failed')),
+          result_json TEXT,
+          error TEXT,
+          created_at INTEGER NOT NULL,
+          started_at INTEGER,
+          completed_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS mcp_event_deliveries (
+          id TEXT PRIMARY KEY,
+          source_event_id TEXT NOT NULL REFERENCES trading_execution_events(id) ON DELETE RESTRICT,
+          agent_id TEXT NOT NULL REFERENCES mcp_agents(id) ON DELETE RESTRICT,
+          session_id TEXT REFERENCES mcp_agent_sessions(id) ON DELETE RESTRICT,
+          event_type TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('delivered', 'failed')),
+          delivered_at INTEGER NOT NULL,
+          error TEXT,
+          UNIQUE(source_event_id, agent_id, session_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_mcp_sessions_agent_state
+          ON mcp_agent_sessions(agent_id, disconnected_at, last_seen_at);
+        CREATE INDEX IF NOT EXISTS idx_mcp_actions_agent_time
+          ON mcp_agent_actions(agent_id, completed_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_mcp_control_requests_state
+          ON mcp_control_requests(status, created_at);
+        CREATE INDEX IF NOT EXISTS idx_mcp_event_delivery_agent
+          ON mcp_event_deliveries(agent_id, delivered_at DESC);
       `
   }
 ];

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { writeConfigSync } from './config.js';
-import { addLog, getLogHistory } from './logger.js';
+import { addLog, getLogEntries } from './logger.js';
 import {
   getIncomingMessages,
   getProcessedSignals,
@@ -24,6 +24,12 @@ import type { TelegramLoginSnapshot } from './telegram_login.js';
 import type { ManagedRuntimeSettingsStore } from './runtime_settings.js';
 import { DEFAULT_SIGNAL_PROMPT } from './signal_parser.js';
 import type { TradingWebControl } from './trading_web_control.js';
+import {
+  createMcpAgent,
+  mcpDashboardSnapshot,
+  rotateMcpAgentToken,
+  updateMcpAgent,
+} from './mcp_repository.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TEMPLATES_DIR = path.join(__dirname, '../templates');
@@ -121,6 +127,7 @@ interface RequestContext {
   requestId: string;
   parsedUrl: URL;
   appState: WebServerState;
+  actor?: AuthenticatedActor;
   mutationAudit?: MutationAuditContext;
 }
 
@@ -473,12 +480,16 @@ async function authenticateApiRequest(
     sendJson(res, 503, { error: 'Dashboard authentication is not configured.', requestId });
     return null;
   }
-  const actor = await authenticator.authenticate(context.req.headers.authorization);
+  const actor = await authenticator.authenticate(
+    context.req.headers.authorization,
+    context.req.headers as Record<string, string | string[] | undefined>,
+  );
   if (!actor) {
     res.setHeader('WWW-Authenticate', 'Bearer realm="forwarder-dashboard"');
     sendJson(res, 401, { error: 'Valid dashboard bearer token required.', requestId });
     return null;
   }
+  context.actor = actor;
   res.setHeader('X-Authenticated-Role', actor.role);
   if (method === 'GET') return actor;
   if (actor.role !== 'admin') {
@@ -572,8 +583,39 @@ async function postSecretsHandler(context: RequestContext): Promise<void> {
   }
 }
 
-function logsHandler({ res }: RequestContext): void {
-  sendJson(res, 200, { logs: getLogHistory() });
+function logsHandler(context: RequestContext): void {
+  const afterValue = context.parsedUrl.searchParams.get('after') ?? '0';
+  const limitValue = context.parsedUrl.searchParams.get('limit') ?? '1000';
+  if (!/^\d+$/.test(afterValue) || !/^\d+$/.test(limitValue)) {
+    sendJson(context.res, 400, { error: 'Log cursor and limit must be unsigned integers.' });
+    return;
+  }
+  try {
+    const page = getLogEntries(Number(afterValue), Number(limitValue));
+    sendJson(context.res, 200, {
+      entries: page.entries,
+      logs: page.entries.map(entry => entry.line),
+      nextCursor: page.nextCursor,
+      dropped: page.dropped,
+    });
+  } catch (error) {
+    sendError(context, error instanceof Error ? new HttpError(400, error.message) : error);
+  }
+}
+
+function accessStatusHandler(context: RequestContext): void {
+  const actor = context.actor!;
+  sendJson(context.res, 200, {
+    mode: actor.identity?.provider ?? 'bearer',
+    role: actor.role,
+    actorId: actor.id,
+    identity: actor.identity ?? null,
+    remoteAccess: {
+      provider: actor.identity?.provider ?? null,
+      connected: actor.identity?.provider === 'tailscale',
+      origin: process.env.DASHBOARD_ALLOWED_ORIGIN?.trim() || null,
+    },
+  });
 }
 
 function metricsHistoryHandler({ res, appState }: RequestContext): void {
@@ -1258,6 +1300,32 @@ const deleteTradingSignalSchemaHandler = (context: RequestContext) => {
   )) return;
   return tradingMutation(context, (control, payload) => control.removeSignalSchema(payload.id));
 };
+const createSignalContractHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.createSignalContract(payload), 201);
+const createSignalContractVersionHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.createSignalContractVersion(payload), 201);
+const updateSignalContractHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.updateSignalContract(payload));
+const duplicateSignalContractHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.duplicateSignalContract(payload), 201);
+const publishSignalContractHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.publishSignalContract(payload.versionId));
+const archiveSignalContractHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.archiveSignalContract(payload.versionId));
+const deleteSignalContractDraftHandler = (context: RequestContext) => {
+  if (!requireConfirmation(
+    context,
+    'delete-signal-contract-draft',
+    'Explicit signal contract draft deletion confirmation required.',
+  )) return;
+  return tradingMutation(context, (control, payload) => control.removeSignalContractDraft(payload.versionId));
+};
+const validateSignalContractHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.validateSignalContract(payload));
+const setChannelRiskPolicyHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.setChannelRiskPolicy(payload));
+const deleteChannelRiskPolicyHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.removeChannelRiskPolicy(payload.channelId));
 const createTradingAccountHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.createAccount(payload), 201);
 const replaceTradingCredentialsHandler = (context: RequestContext) =>
@@ -1285,8 +1353,84 @@ const emergencyFlattenHandler = (context: RequestContext) =>
 const acknowledgeTradingRiskHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.acknowledgeRisk(payload.id));
 
+function configuredMcpEndpoint(): string | null {
+  const value = process.env.MCP_ENDPOINT_URL?.trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function mcpSnapshotHandler(context: RequestContext): Promise<void> {
+  if (context.actor?.role !== 'admin') {
+    sendJson(context.res, 403, { error: 'Administrator role required.', requestId: context.requestId });
+    return;
+  }
+  try {
+    sendJson(context.res, 200, {
+      ...await mcpDashboardSnapshot(),
+      endpoint: configuredMcpEndpoint(),
+    });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function createMcpAgentHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 64 * 1024);
+    const result = await createMcpAgent(payload);
+    sendJson(context.res, 201, {
+      success: true,
+      ...result,
+      tokenNotice: 'This token is shown once. Store it in the agent secret store now.',
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function updateMcpAgentHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 64 * 1024);
+    sendJson(context.res, 200, {
+      success: true,
+      agent: await updateMcpAgent(payload),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function rotateMcpAgentTokenHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(
+    context,
+    'rotate-mcp-agent-token',
+    'Explicit MCP agent token rotation confirmation required.',
+  )) return;
+  try {
+    const payload = await readJsonBody(context.req, 8 * 1024);
+    const result = await rotateMcpAgentToken(payload.id);
+    sendJson(context.res, 200, {
+      success: true,
+      ...result,
+      tokenNotice: 'The previous token and active sessions are revoked. This replacement token is shown once.',
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
 const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/status', statusHandler],
+  ['GET /api/access', accessStatusHandler],
   ['GET /api/logs', logsHandler],
   ['GET /api/metrics-history', metricsHistoryHandler],
   ['GET /api/incoming-messages', incomingMessagesHandler],
@@ -1333,6 +1477,16 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/signal-schemas', createTradingSignalSchemaHandler],
   ['POST /api/trading/signal-schemas/update', updateTradingSignalSchemaHandler],
   ['DELETE /api/trading/signal-schemas', deleteTradingSignalSchemaHandler],
+  ['POST /api/trading/signal-contracts', createSignalContractHandler],
+  ['POST /api/trading/signal-contracts/versions', createSignalContractVersionHandler],
+  ['POST /api/trading/signal-contracts/update', updateSignalContractHandler],
+  ['POST /api/trading/signal-contracts/duplicate', duplicateSignalContractHandler],
+  ['POST /api/trading/signal-contracts/publish', publishSignalContractHandler],
+  ['POST /api/trading/signal-contracts/archive', archiveSignalContractHandler],
+  ['DELETE /api/trading/signal-contracts/drafts', deleteSignalContractDraftHandler],
+  ['POST /api/trading/signal-contracts/validate', validateSignalContractHandler],
+  ['POST /api/trading/channel-risk', setChannelRiskPolicyHandler],
+  ['DELETE /api/trading/channel-risk', deleteChannelRiskPolicyHandler],
   ['POST /api/trading/accounts', createTradingAccountHandler],
   ['POST /api/trading/accounts/credentials', replaceTradingCredentialsHandler],
   ['POST /api/trading/accounts/verify', verifyTradingAccountHandler],
@@ -1346,6 +1500,10 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/cancel-entries', cancelTradingEntriesHandler],
   ['POST /api/trading/emergency-flatten', emergencyFlattenHandler],
   ['POST /api/trading/risk/acknowledge', acknowledgeTradingRiskHandler],
+  ['GET /api/mcp', mcpSnapshotHandler],
+  ['POST /api/mcp/agents', createMcpAgentHandler],
+  ['POST /api/mcp/agents/update', updateMcpAgentHandler],
+  ['POST /api/mcp/agents/rotate', rotateMcpAgentTokenHandler],
 ]);
 
 function bootstrapStatusHandler(

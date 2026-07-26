@@ -21,3 +21,5 @@ Es gibt keinen OIDC-Client-Secret im Forwarder. Ein TLS-/OIDC-Proxy darf ein Acc
 - Enterprise-Modus fällt ohne vollständige OIDC-Konfiguration beim Start aus.
 - Browser speichert Access-Tokens höchstens im `sessionStorage`; ein Proxy-Modus benötigt dort kein Token.
 - Audit-Records unterscheiden IdP-Subjects stabil, ohne das rohe Subject zu persistieren.
+
+Ergänzung 26.07.2026: ADR 0011 ergänzt Tailscale Serve Identity für den Standalone-/Tailnet-Betrieb. Enterprise-Modus erzwingt weiterhin OIDC; MCP verwendet unabhängig von Dashboard-OIDC/Tailscale eigene gehashte Agenten-Bearer und dauerhafte Minimalrechte.

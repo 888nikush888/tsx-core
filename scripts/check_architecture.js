@@ -86,7 +86,13 @@ async function buildImportGraph(files) {
 function architectureLayerViolations(graph) {
   const violations = [];
 
-  const entryPoints = new Set(['forwarder.ts', 'backup_cli.ts']);
+  const entryPoints = new Set([
+    'forwarder.ts',
+    'mcp_server.ts',
+    'backup_cli.ts',
+    'migration_cli.ts',
+    'audit_cli.ts',
+  ]);
   const coreModules = new Set([
     'config.ts',
     'crash_guard.ts',

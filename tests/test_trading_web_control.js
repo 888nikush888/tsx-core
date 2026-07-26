@@ -7,6 +7,7 @@ import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { TradingCredentialStore } from '../src/trading_credentials.js';
 import { TradingEngine } from '../src/trading_engine.js';
 import { ensureTradingDefaults } from '../src/trading_repository.js';
+import { BUILTIN_SIGNAL_CONTRACTS } from '../src/signal_contract.js';
 import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import { TradingWebControl } from '../src/trading_web_control.js';
 
@@ -88,7 +89,7 @@ try {
     ...customSchema,
     name: 'Web Desk edited',
     description: 'Updated through the Web control plane.',
-    parserSchema: 'cryptodanielvip',
+    contractVersionId: 'cryptodanielvip:v1',
     templateName: 'web-desk-v2',
     enabled: false,
   });
@@ -96,6 +97,57 @@ try {
   assert.equal(editedSchema.parserSchema, 'cryptodanielvip');
   assert.equal((await control.snapshot()).signalSchemas.some(schema => schema.id === 'web-desk'), true);
   assert.equal(await control.removeSignalSchema('web-desk'), true);
+  const contractDefinition = structuredClone(
+    BUILTIN_SIGNAL_CONTRACTS.find(contract => contract.id === 'standard').definition,
+  );
+  const webContract = await control.createSignalContract({
+    id: 'web-contract',
+    name: 'Web Contract',
+    description: 'Managed through the Web control plane.',
+    definition: contractDefinition,
+  });
+  const webContractDraft = webContract.versions[0];
+  await control.updateSignalContract({
+    contractId: webContract.id,
+    versionId: webContractDraft.id,
+    name: 'Web Contract edited',
+    description: 'Updated through the Web control plane.',
+    definition: contractDefinition,
+  });
+  const preview = control.validateSignalContract({
+    definition: contractDefinition,
+    xml: '<signal><action>LONG</action><pair>BTCUSD</pair><entry_range><min>100</min><max>101</max></entry_range><targets><target id="1">110</target></targets><stoploss>90</stoploss></signal>',
+    sourceText: 'LONG BTCUSD entry 100 101 target 110 stop 90',
+  });
+  assert.equal(preview.execution.symbol, 'BTCUSD');
+  const publishedContract = await control.publishSignalContract(webContractDraft.id);
+  const nextContractDraft = await control.createSignalContractVersion({
+    contractId: webContract.id,
+    sourceVersionId: publishedContract.id,
+  });
+  assert.equal(await control.removeSignalContractDraft(nextContractDraft.id), true);
+  const duplicatedContract = await control.duplicateSignalContract({
+    sourceVersionId: publishedContract.id,
+    id: 'web-contract-copy',
+    name: 'Web Contract Copy',
+    description: 'Duplicated through the Web control plane.',
+  });
+  assert.equal(await control.removeSignalContractDraft(duplicatedContract.versions[0].id), true);
+  assert.equal((await control.archiveSignalContract(publishedContract.id)).status, 'archived');
+  const channelPolicy = await control.setChannelRiskPolicy({
+    channelId: '-100-web-risk',
+    mode: 'fixed',
+    tiers: [{ riskPercent: '0.5' }, { riskPercent: '1' }],
+    currentTier: 0,
+    lookbackWeeks: 2,
+    minimumClosedTrades: 3,
+    lossThresholdPercent: '1',
+    profitThresholdPercent: '1',
+    weakChannelAction: 'reduce',
+    weakWeeksBeforeBlock: 2,
+  });
+  assert.equal(channelPolicy.channelId, '-100-web-risk');
+  assert.equal(await control.removeChannelRiskPolicy(channelPolicy.channelId), true);
   await assert.rejects(control.setRuntime({ action: 'execution', enabled: true }), /at least one enabled channel route/);
   await assert.rejects(
     control.setRuntime({ action: 'live', enabled: true, confirmation: 'ENABLE LIVE TRADING' }),
