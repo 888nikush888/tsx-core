@@ -46,7 +46,7 @@ function integer(value: unknown, label: string, minimum: number, maximum: number
 
 function decimalInput(value: unknown, label: string, maximum: string): string {
   if (typeof value !== 'string' && typeof value !== 'number') {
-    throw new Error(`${label} must be a decimal number.`);
+    throw new TypeError(`${label} must be a decimal number.`);
   }
   const serialized = typeof value === 'string' ? value : value.toString();
   return decimal(serialized, { positive: true, max: maximum });
