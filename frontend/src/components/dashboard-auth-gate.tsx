@@ -15,6 +15,13 @@ interface AccessInspection {
   error?: string
 }
 
+interface BootstrapInspection {
+  required?: boolean
+  available?: boolean
+  localSessionAvailable?: boolean
+  recoveryBootstrap?: boolean
+}
+
 async function createLocalSession(): Promise<AccessInspection | null> {
   const response = await apiFetch('/api/local-session', { method: 'POST' })
   const payload = await response.json().catch(() => ({}))
@@ -29,22 +36,23 @@ async function createLocalSession(): Promise<AccessInspection | null> {
   return { state: 'authenticated' }
 }
 
-async function inspectDashboardAccess(): Promise<AccessInspection> {
-  const bootstrapResponse = await apiFetch('/api/bootstrap/status')
-  const bootstrap = await bootstrapResponse.json().catch(() => ({}))
-  if (!bootstrapResponse.ok) throw new Error(bootstrap.error || 'Could not inspect dashboard setup.')
-  if (!bootstrap.required) {
-    if (getDashboardToken()) {
-      const response = await apiFetch('/api/status')
-      if (response.ok) return { state: 'authenticated' }
-      clearDashboardToken()
-    }
-    if (bootstrap.localSessionAvailable) {
-      const localSession = await createLocalSession()
-      if (localSession) return localSession
-    }
-    return { state: 'locked', error: 'Für den Remote-Zugriff ist ein gültiger Bearer-Token oder eine konfigurierte Identität erforderlich.' }
+async function inspectConfiguredAccess(bootstrap: BootstrapInspection): Promise<AccessInspection> {
+  if (getDashboardToken()) {
+    const response = await apiFetch('/api/status')
+    if (response.ok) return { state: 'authenticated' }
+    clearDashboardToken()
   }
+  if (bootstrap.localSessionAvailable) {
+    const localSession = await createLocalSession()
+    if (localSession) return localSession
+  }
+  return {
+    state: 'locked',
+    error: 'Für den Remote-Zugriff ist ein gültiger Bearer-Token oder eine konfigurierte Identität erforderlich.',
+  }
+}
+
+async function inspectFirstAccess(bootstrap: BootstrapInspection): Promise<AccessInspection> {
   if (bootstrap.localSessionAvailable || bootstrap.recoveryBootstrap) {
     const localSession = await createLocalSession()
     if (localSession) return localSession
@@ -53,6 +61,15 @@ async function inspectDashboardAccess(): Promise<AccessInspection> {
     state: bootstrap.available ? 'bootstrap' : 'locked',
     error: bootstrap.available ? '' : 'Managed secret storage is unavailable on the server.',
   }
+}
+
+async function inspectDashboardAccess(): Promise<AccessInspection> {
+  const bootstrapResponse = await apiFetch('/api/bootstrap/status')
+  const bootstrap: BootstrapInspection & { error?: string } = await bootstrapResponse.json().catch(() => ({}))
+  if (!bootstrapResponse.ok) throw new Error(bootstrap.error || 'Could not inspect dashboard setup.')
+  return bootstrap.required
+    ? inspectFirstAccess(bootstrap)
+    : inspectConfiguredAccess(bootstrap)
 }
 
 export function DashboardAuthGate({ children }: Readonly<{ children: ReactNode }>) {
