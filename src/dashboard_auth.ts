@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import {
   createRemoteJWKSet,
   jwtVerify,
@@ -24,6 +24,7 @@ export interface DashboardAuthenticator {
   readonly mode: 'token' | 'oidc' | 'tailscale';
   isConfigured(): boolean;
   authenticate(authorization: AuthorizationHeader, headers?: RequestHeaders): Promise<AuthenticatedActor | null>;
+  issueLocalAdminSession?(): { token: string; expiresInSeconds: number };
 }
 
 export interface OidcDashboardOptions {
@@ -61,6 +62,23 @@ function tokenActorId(token: string): string {
 
 export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
   readonly mode = 'token' as const;
+  private readonly localAdminSessions = new Map<string, number>();
+
+  issueLocalAdminSession(): { token: string; expiresInSeconds: number } {
+    const expiresInSeconds = 12 * 60 * 60;
+    const now = Date.now();
+    for (const [digest, expiresAt] of this.localAdminSessions) {
+      if (expiresAt <= now) this.localAdminSessions.delete(digest);
+    }
+    while (this.localAdminSessions.size >= 64) {
+      const oldest = this.localAdminSessions.keys().next().value;
+      if (typeof oldest !== 'string') break;
+      this.localAdminSessions.delete(oldest);
+    }
+    const token = `tsx_local_${randomBytes(32).toString('base64url')}`;
+    this.localAdminSessions.set(createHash('sha256').update(token).digest('hex'), now + expiresInSeconds * 1_000);
+    return { token, expiresInSeconds };
+  }
 
   isConfigured(): boolean {
     const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
@@ -76,6 +94,12 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
     if (adminToken && safeTokenEquals(token, adminToken)) return { role: 'admin', id };
     const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
     if (viewerToken && safeTokenEquals(token, viewerToken)) return { role: 'viewer', id };
+    const localSessionDigest = createHash('sha256').update(token).digest('hex');
+    const localSessionExpiresAt = this.localAdminSessions.get(localSessionDigest);
+    if (localSessionExpiresAt && localSessionExpiresAt > Date.now()) {
+      return { role: 'admin', id: `local-session:${localSessionDigest.slice(0, 16)}` };
+    }
+    if (localSessionExpiresAt) this.localAdminSessions.delete(localSessionDigest);
     return null;
   }
 }

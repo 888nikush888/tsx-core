@@ -10,6 +10,7 @@ import {
   completeMcpControlRequest,
   connectMcpSession,
   createMcpAgent,
+  deleteMcpAgent,
   disconnectMcpSession,
   enqueueMcpControlRequest,
   getMcpControlRequest,
@@ -321,6 +322,11 @@ try {
   assert.equal(disabled.enabled, false);
   assert.equal(await authenticateMcpToken(rotated.token), null);
   assert.equal((await listMcpAgents()).length, 2, 'Disabled agents are retained for audit history.');
+  assert.equal(await deleteMcpAgent(created.agent.id), true);
+  assert.equal((await listMcpAgents()).some(agent => agent.id === created.agent.id), false);
+  assert.equal((await listMcpSessions()).find(item => item.id === session.id)?.disconnectedAt !== null, true);
+  assert.match((await listMcpAgentActions())[0].agentName, /^Gelöschter MCP-Agent /);
+  await assert.rejects(deleteMcpAgent(created.agent.id), /does not exist/);
   console.log('MCP control-plane tests passed.');
 } finally {
   await closeDb();

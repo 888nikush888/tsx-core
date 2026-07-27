@@ -26,12 +26,25 @@ function mutationHeaders(extra = {}) {
 async function testAuthenticationAndReads(baseUrl) {
   let response = await fetch(`${baseUrl}/api/bootstrap/status`);
   assert.strictEqual(response.status, 200, 'Bootstrap status must be available before authentication');
-  assert.deepStrictEqual(await response.json(), { mode: 'token', required: true, available: true });
+  assert.deepStrictEqual(await response.json(), {
+    mode: 'token',
+    required: true,
+    available: true,
+    localSessionAvailable: false,
+  });
   response = await fetch(`${baseUrl}/api/status`);
   assert.strictEqual(response.status, 503, 'Missing server token must fail closed');
   process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;
   process.env.DASHBOARD_VIEWER_TOKEN = VIEWER_TOKEN;
   process.env.DASHBOARD_LOCAL_TRUST = 'true';
+  response = await fetch(`${baseUrl}/api/bootstrap/status`);
+  assert.strictEqual(response.status, 200);
+  assert.deepStrictEqual(await response.json(), {
+    mode: 'token',
+    required: false,
+    available: false,
+    localSessionAvailable: true,
+  });
   response = await fetch(`${baseUrl}/api/local-session`, {
     method: 'POST', headers: { 'X-Requested-With': 'forwarder-dashboard' }
   });
@@ -40,8 +53,13 @@ async function testAuthenticationAndReads(baseUrl) {
     method: 'POST',
     headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
   });
-  assert.strictEqual(response.status, 409, 'Trusted loopback startup must never disclose an existing administrator token');
-  assert.equal(Object.hasOwn(await response.json(), 'token'), false);
+  assert.strictEqual(response.status, 201, 'Trusted loopback startup must issue a short-lived local session');
+  const localSession = await response.json();
+  assert.match(localSession.token, /^tsx_local_[A-Za-z0-9_-]{40,}$/);
+  assert.strictEqual(localSession.generatedAdminToken, false);
+  assert.notStrictEqual(localSession.token, ADMIN_TOKEN, 'Local startup must not disclose the durable administrator token');
+  response = await fetch(`${baseUrl}/api/status`, { headers: headers(localSession.token) });
+  assert.strictEqual(response.status, 200, 'The ephemeral local session must authenticate immediately');
   const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;
   try {
     process.env.DASHBOARD_ALLOWED_ORIGIN = 'https://dashboard.example.test';
@@ -251,6 +269,27 @@ async function testMcpAgentAdministration(baseUrl) {
   assert.notStrictEqual(rotated.token, created.token);
   assert.strictEqual(await authenticateMcpToken(created.token), null, 'Rotation must revoke the old MCP token immediately');
   assert.ok(await authenticateMcpToken(rotated.token), 'The replacement MCP token must authenticate');
+
+  response = await fetch(`${baseUrl}/api/mcp/agents`, {
+    method: 'DELETE',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: created.agent.id }),
+  });
+  assert.strictEqual(response.status, 412, 'MCP agent deletion must require explicit confirmation');
+
+  response = await fetch(`${baseUrl}/api/mcp/agents`, {
+    method: 'DELETE',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'delete-mcp-agent',
+    }),
+    body: JSON.stringify({ id: created.agent.id }),
+  });
+  assert.strictEqual(response.status, 200, 'Administrator must be able to delete an MCP agent');
+  assert.strictEqual((await response.json()).deleted, true);
+  assert.strictEqual(await authenticateMcpToken(rotated.token), null, 'Deleting an MCP agent must revoke its token immediately');
+  response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual((await response.json()).agents.some(agent => agent.id === created.agent.id), false);
 }
 
 async function testAuditedControl(baseUrl, controls) {
@@ -675,6 +714,14 @@ async function testLocalStartupFirstRun(testDir, appState) {
     const address = firstRunServer.address();
     assert.ok(address && typeof address === 'object');
     const baseUrl = `http://127.0.0.1:${address.port}`;
+    const bootstrapStatus = await fetch(`${baseUrl}/api/bootstrap/status`);
+    assert.strictEqual(bootstrapStatus.status, 200);
+    assert.deepStrictEqual(await bootstrapStatus.json(), {
+      mode: 'token',
+      required: true,
+      available: true,
+      localSessionAvailable: true,
+    });
     const response = await fetch(`${baseUrl}/api/local-session`, {
       method: 'POST',
       headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
@@ -682,6 +729,7 @@ async function testLocalStartupFirstRun(testDir, appState) {
     const localStartup = await response.json();
     assert.strictEqual(response.status, 201, 'First local startup must issue a browser session without requiring a bearer token');
     assert.match(localStartup.token, /^[a-f0-9]{64}$/);
+    assert.strictEqual(localStartup.generatedAdminToken, true);
     const authenticated = await fetch(`${baseUrl}/api/status`, { headers: headers(localStartup.token) });
     assert.strictEqual(authenticated.status, 200, 'The first-run local session must authenticate immediately');
   } finally {
@@ -782,6 +830,7 @@ async function testRecoveryLocalStartup(testDir, appState) {
     });
     const recoveryPayload = await response.json();
     assert.strictEqual(response.status, 201, `Recovery mode must provide a loopback-only session without a bearer prompt: ${recoveryPayload.error || 'unknown error'}`);
+    assert.strictEqual(recoveryPayload.generatedAdminToken, true);
     const { token } = recoveryPayload;
     assert.match(token, /^[a-f0-9]{64}$/);
     const status = await fetch(`${baseUrl}/api/recovery`, { headers: headers(token) });

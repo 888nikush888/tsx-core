@@ -6,6 +6,7 @@ import {
   TerminalSquare,
   Shield,
   FileCode,
+  FileJson2,
   ChartCandlestick,
   ChartNoAxesCombined,
   Bot,
@@ -42,6 +43,11 @@ const data = {
           title: "Trading",
           url: "/dashboard?tab=trading",
           icon: ChartCandlestick,
+        },
+        {
+          title: "XML-Verträge",
+          url: "/dashboard?tab=trading&workspace=contracts",
+          icon: FileJson2,
         },
         {
           title: "Analytics",

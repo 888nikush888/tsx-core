@@ -36,7 +36,9 @@ Relevante Orchestrator-Parameter:
 4. **Agent erstellen** wählen.
 5. Den einmal angezeigten `tsx_mcp_…`-Token sofort in den Secret Store des Agenten kopieren.
 
-TSX Core speichert nur SHA-256 und ein nicht geheimes Präfix. Der Token kann nicht wieder angezeigt oder rekonstruiert werden. **Token rotieren** widerruft den bisherigen Token und alle aktiven Sitzungen. **Agent aktiv** ausschalten widerruft ebenfalls alle Sitzungen; der Datensatz und die Aktionshistorie bleiben für Audit-Zwecke erhalten.
+TSX Core speichert nur SHA-256 und ein nicht geheimes Präfix. Der Token kann nicht wieder angezeigt oder rekonstruiert werden. **Token rotieren** widerruft den bisherigen Token und alle aktiven Sitzungen. **Agent aktiv** ausschalten widerruft ebenfalls alle Sitzungen; der Datensatz bleibt administrierbar. **Agent löschen** widerruft Token, Rechte, aktive Sitzungen und noch wartende Kontrollanforderungen sofort und entfernt den Agenten aus dem aktiven Inventar. Referenzierte Sicherheits- und Aktionshistorie bleibt unter einer anonymisierten Tombstone-Kennung erhalten, damit Löschen nicht zur Audit-Manipulation wird.
+
+Die entsprechende Admin-API verwendet `DELETE /api/mcp/agents` mit `{"id":"…"}` und verlangt zusätzlich `X-Destructive-Confirmation: delete-mcp-agent`.
 
 Der MCP-Client sendet auf jeder Anfrage:
 
@@ -62,7 +64,7 @@ Die Protokollversion wird beim MCP-Handshake ausgehandelt. Clients dürfen keine
 | `trading.kill_switch` | Kill-Switch setzen oder nach erfolgreicher Reconciliation lösen |
 | `trading.flatten` | Kill-Switch setzen und managed Positionen reduce-only glattstellen |
 
-Rechte gelten dauerhaft, bis ein Dashboard-Admin sie ändert oder den Agenten deaktiviert. Bei jedem Tool-Aufruf liest der Server den aktuellen Agentenstatus erneut. Bereits verbundene Sitzungen behalten deshalb keine entzogenen Rechte.
+Rechte gelten dauerhaft, bis ein Dashboard-Admin sie ändert, den Agenten deaktiviert oder löscht. Bei jedem Tool-Aufruf liest der Server den aktuellen Agentenstatus erneut. Bereits verbundene Sitzungen behalten deshalb keine entzogenen Rechte.
 
 ## Tools
 
@@ -115,7 +117,7 @@ Danach den ausgegebenen MagicDNS-Host in `MCP_ALLOWED_HOSTS`, die HTTPS-Adresse 
 
 Bei verdächtigem Agentenverhalten:
 
-1. Agent im Dashboard sofort deaktivieren.
+1. Agent im Dashboard sofort deaktivieren oder bei endgültigem Widerruf über **Agent löschen** entfernen.
 2. Kill-Switch und offene Positionen im Cockpit prüfen.
 3. MCP-Sitzungen, Agenten-Aktionen, Audit-Kette und Trading-Events anhand der Request-/Agenten-ID sichern.
 4. Exchange-Zustand read-only reconciliieren; unbekannte Ausgänge nicht blind wiederholen.

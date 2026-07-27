@@ -19,6 +19,37 @@ try {
   assert.deepEqual((await tokenAuthenticator.authenticate(`Bearer ${ADMIN_TOKEN}`))?.role, 'admin');
   assert.deepEqual((await tokenAuthenticator.authenticate(`Bearer ${VIEWER_TOKEN}`))?.role, 'viewer');
   assert.equal(await tokenAuthenticator.authenticate('Bearer invalid'), null);
+  const localSession = tokenAuthenticator.issueLocalAdminSession();
+  assert.match(localSession.token, /^tsx_local_[A-Za-z0-9_-]{40,}$/);
+  assert.equal(localSession.expiresInSeconds, 12 * 60 * 60);
+  const localActor = await tokenAuthenticator.authenticate(`Bearer ${localSession.token}`);
+  assert.equal(localActor?.role, 'admin');
+  assert.match(localActor?.id || '', /^local-session:[a-f0-9]{16}$/);
+
+  const originalNow = Date.now;
+  let currentTime = 1_000_000;
+  Date.now = () => currentTime;
+  try {
+    const expiringAuthenticator = new EnvironmentTokenAuthenticator();
+    const expiredDuringAuthentication = expiringAuthenticator.issueLocalAdminSession();
+    expiringAuthenticator.issueLocalAdminSession();
+    currentTime += expiredDuringAuthentication.expiresInSeconds * 1_000 + 1;
+    assert.equal(
+      await expiringAuthenticator.authenticate(`Bearer ${expiredDuringAuthentication.token}`),
+      null
+    );
+    const activeSession = expiringAuthenticator.issueLocalAdminSession();
+    assert.equal(
+      (await expiringAuthenticator.authenticate(`Bearer ${activeSession.token}`))?.role,
+      'admin'
+    );
+    for (let index = 0; index < 65; index += 1) {
+      expiringAuthenticator.issueLocalAdminSession();
+    }
+  } finally {
+    Date.now = originalNow;
+  }
+
   process.env.DASHBOARD_VIEWER_TOKEN = ADMIN_TOKEN;
   assert.equal(tokenAuthenticator.isConfigured(), false, 'Shared admin/viewer credentials must fail closed.');
 

@@ -26,6 +26,7 @@ import { DEFAULT_SIGNAL_PROMPT } from './signal_parser.js';
 import type { TradingWebControl } from './trading_web_control.js';
 import {
   createMcpAgent,
+  deleteMcpAgent,
   mcpDashboardSnapshot,
   rotateMcpAgentToken,
   updateMcpAgent,
@@ -1428,6 +1429,24 @@ async function rotateMcpAgentTokenHandler(context: RequestContext): Promise<void
   }
 }
 
+async function deleteMcpAgentHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(
+    context,
+    'delete-mcp-agent',
+    'Explicit MCP agent deletion confirmation required.',
+  )) return;
+  try {
+    const payload = await readJsonBody(context.req, 8 * 1024);
+    sendJson(context.res, 200, {
+      success: true,
+      deleted: await deleteMcpAgent(payload.id),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
 const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/status', statusHandler],
   ['GET /api/access', accessStatusHandler],
@@ -1504,6 +1523,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/mcp/agents', createMcpAgentHandler],
   ['POST /api/mcp/agents/update', updateMcpAgentHandler],
   ['POST /api/mcp/agents/rotate', rotateMcpAgentTokenHandler],
+  ['DELETE /api/mcp/agents', deleteMcpAgentHandler],
 ]);
 
 function bootstrapStatusHandler(
@@ -1511,10 +1531,14 @@ function bootstrapStatusHandler(
   authenticator: DashboardAuthenticator
 ): void {
   const required = authenticator.mode === 'token' && !authenticator.isConfigured();
+  const localSessionAvailable = authenticator.mode === 'token'
+    && Boolean(context.appState.secretStore)
+    && (localDashboardStartupEnabled() || isRecoveryLocalSessionBootstrap(context));
   sendJson(context.res, 200, {
     mode: authenticator.mode,
     required,
     available: required && Boolean(context.appState.secretStore),
+    localSessionAvailable,
     ...(required && context.appState.recovery?.allowLoopbackLocalSession === true
       ? { recoveryBootstrap: true }
       : {}),
@@ -1606,7 +1630,20 @@ async function localSessionHandler(
     const secretStore = requireLocalSessionSecretStore(context, authenticator);
     const tokenWasConfigured = authenticator.isConfigured();
     if (tokenWasConfigured) {
-      throw new HttpError(409, 'Local-session bootstrap never discloses an existing administrator token. Use the saved token or rotate it through an authenticated session.');
+      if (!authenticator.issueLocalAdminSession) {
+        throw new HttpError(409, 'Integrated local sessions are unavailable for this authentication mode.');
+      }
+      const session = authenticator.issueLocalAdminSession();
+      addLog(`[SECURITY] request_id=${context.requestId} Ephemeral local dashboard session initialized.`);
+      sendJson(context.res, 201, {
+        token: session.token,
+        role: 'admin',
+        localStartup: true,
+        generatedAdminToken: false,
+        expiresInSeconds: session.expiresInSeconds,
+        requestId: context.requestId,
+      });
+      return;
     }
     const actor: AuthenticatedActor = { role: 'admin', id: 'startup:local-browser' };
     if (!(await authorizeLocalSessionInitialization(context, actor, tokenWasConfigured))) return;
@@ -1616,6 +1653,7 @@ async function localSessionHandler(
       token,
       role: 'admin',
       localStartup: true,
+      generatedAdminToken: true,
       requestId: context.requestId,
     });
   } catch (error) {

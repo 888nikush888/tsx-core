@@ -48,7 +48,7 @@ Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaise
 
 ## MCP-Agent kompromittiert oder fehlerhaft
 
-1. Unter **MCP-Agenten** den Agenten sofort deaktivieren. Dadurch werden Tokenverwendung und aktive Sitzungen widerrufen; Historie bleibt erhalten.
+1. Unter **MCP-Agenten** den Agenten sofort deaktivieren. Bei endgültigem Widerruf anschließend **Agent löschen** verwenden; dadurch werden Token, Rechte, aktive Sitzungen und noch wartende Kontrollanforderungen widerrufen und der Agent aus dem aktiven Inventar entfernt. Die anonymisierte Audit-Historie bleibt erhalten.
 2. Im Cockpit Kill-Switch, offene Positionen, unbekannte Orders und letzte Reconciliation prüfen. Bei unklarer Exchange-Wirkung niemals denselben Tool-Aufruf blind wiederholen.
 3. Agenten-Aktionen, Sitzung, `mcp_control_request`-ID, hashverkettete Audit-Records und passende Trading-Execution-Events sichern. Token oder Request-Secrets nicht in Tickets kopieren.
 4. Falls `trading.kill_switch`, `trading.cancel_entries` oder `trading.flatten` verwendet wurde, Exchange read-only gegen Client Order IDs und Fills prüfen und anschließend über einen menschlichen Admin reconciliieren.

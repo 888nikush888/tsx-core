@@ -22,10 +22,39 @@ const configuration = {
   safety: { maxConcurrentPositions: 1, maxDailyLoss: "100", maxSlippagePercent: "0.5", entryOrderTtlSeconds: 900, requireProtectiveStop: true },
 }
 
-function snapshot(strategies: unknown[], signalSchemas: unknown[] = []) {
+const contractDefinition = {
+  schemaVersion: 1,
+  rootTag: "signal",
+  actionPath: "action",
+  pairPath: "pair",
+  entry: {
+    mode: "optional_range",
+    marketValues: [],
+    rangeValues: [],
+    minimumPath: "entry_range.min",
+    maximumPath: "entry_range.max",
+  },
+  targets: {
+    containerPath: "targets",
+    itemTag: "target",
+    shape: "scalar",
+    minimumPath: "min",
+    maximumPath: "max",
+    minimumItems: 1,
+    maximumItems: 20,
+    sequentialIds: true,
+  },
+  stopLossPath: "stoploss",
+  geometry: { stopOnLossSide: true, targetsOnProfitSide: true, orderedTargets: true, orderedRanges: true },
+  grounding: { action: true, pair: true, entry: true, targets: true, stopLoss: true, leverage: false, riskPercent: false, averagingPrice: false },
+  additionalFields: [],
+}
+
+function snapshot(strategies: unknown[], signalSchemas: unknown[] = [], signalContracts: unknown[] = []) {
   return {
     strategies,
     signalSchemas,
+    signalContracts,
     accounts: [],
     routes: [],
     analytics: { generatedAt: Date.now(), accounts: [] },
@@ -79,6 +108,18 @@ describe("Trading strategy control", () => {
     let signalSchemas: any[] = [
       { id: "standard", name: "Standard", description: "", parserSchema: "standard", templateName: "default", enabled: true },
     ]
+    let signalContracts: any[] = [{
+      id: "desk-contract",
+      name: "Desk Contract",
+      description: "Editable XML contract",
+      versions: [{
+        id: "desk-contract:v1",
+        contractId: "desk-contract",
+        version: 1,
+        status: "draft",
+        definition: contractDefinition,
+      }],
+    }]
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
       const url = String(input)
       requests.push({ url, init })
@@ -104,7 +145,14 @@ describe("Trading strategy control", () => {
       if (url.endsWith("/api/trading/strategies/update") && init.method === "POST") {
         return response({ success: true, result: JSON.parse(String(init.body)) })
       }
-      if (url.endsWith("/api/trading")) return response(snapshot(strategies, signalSchemas))
+      if (url.endsWith("/api/trading/signal-contracts/drafts") && init.method === "DELETE") {
+        const { versionId } = JSON.parse(String(init.body))
+        signalContracts = signalContracts
+          .map(contract => ({ ...contract, versions: contract.versions.filter((version: any) => version.id !== versionId) }))
+          .filter(contract => contract.versions.length > 0)
+        return response({ success: true, result: true })
+      }
+      if (url.endsWith("/api/trading")) return response(snapshot(strategies, signalSchemas, signalContracts))
       return response({}, 404)
     }))
   })
@@ -179,5 +227,22 @@ describe("Trading strategy control", () => {
     const deleteRequest = requests.find(({ url, init }) => url.endsWith("/api/trading/signal-schemas") && init.method === "DELETE")
     expect(JSON.parse(String(createRequest?.init.body)).id).toBe("desk-alpha")
     expect(new Headers(deleteRequest?.init.headers).get("X-Destructive-Confirmation")).toBe("delete-trading-signal-schema")
+  })
+
+  it("exposes the XML contract workspace and deletes a selected draft through its destructive API", async () => {
+    renderTradingTab()
+    fireEvent.click(await screen.findByRole("button", { name: "Verträge" }))
+
+    expect(screen.getByText("Versionierte Signalverträge")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Neuer Vertrag" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /v1.*draft/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Entwurf löschen" }))
+
+    await screen.findByText("Vertragsentwurf gelöscht.")
+    await waitFor(() => expect(screen.queryByText("Desk Contract")).not.toBeInTheDocument())
+    const request = requests.find(({ url, init }) =>
+      url.endsWith("/api/trading/signal-contracts/drafts") && init.method === "DELETE")
+    expect(JSON.parse(String(request?.init.body))).toEqual({ versionId: "desk-contract:v1" })
+    expect(new Headers(request?.init.headers).get("X-Destructive-Confirmation")).toBe("delete-signal-contract-draft")
   })
 })

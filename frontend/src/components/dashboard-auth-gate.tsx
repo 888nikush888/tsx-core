@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Logo } from '@/components/logo'
-import { apiFetch, clearDashboardToken, onDashboardAuthRequired, setDashboardToken } from '@/lib/api'
+import { apiFetch, clearDashboardToken, getDashboardToken, onDashboardAuthRequired, setDashboardToken } from '@/lib/api'
 
 type AuthState = 'checking' | 'bootstrap' | 'recovery' | 'locked' | 'authenticated'
 
@@ -15,28 +15,44 @@ interface AccessInspection {
   error?: string
 }
 
+async function createLocalSession(): Promise<AccessInspection | null> {
+  const response = await apiFetch('/api/local-session', { method: 'POST' })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || typeof payload.token !== 'string') {
+    if (response.status === 403 || response.status === 409) return null
+    throw new Error(payload.error || 'Local dashboard access could not be initialized.')
+  }
+  setDashboardToken(payload.token)
+  if (payload.generatedAdminToken === true) {
+    return { state: 'recovery', recoveryToken: payload.token }
+  }
+  return { state: 'authenticated' }
+}
+
 async function inspectDashboardAccess(): Promise<AccessInspection> {
   const bootstrapResponse = await apiFetch('/api/bootstrap/status')
   const bootstrap = await bootstrapResponse.json().catch(() => ({}))
   if (!bootstrapResponse.ok) throw new Error(bootstrap.error || 'Could not inspect dashboard setup.')
   if (!bootstrap.required) {
-    const response = await apiFetch('/api/status')
-    if (!response.ok) throw new Error(response.status === 503 ? 'Dashboard authentication is not configured on the server.' : 'The saved token is no longer valid.')
-    return { state: 'authenticated' }
-  }
-  if (!bootstrap.recoveryBootstrap) {
-    return {
-      state: bootstrap.available ? 'bootstrap' : 'locked',
-      error: bootstrap.available ? '' : 'Managed secret storage is unavailable on the server.',
+    if (getDashboardToken()) {
+      const response = await apiFetch('/api/status')
+      if (response.ok) return { state: 'authenticated' }
+      clearDashboardToken()
     }
+    if (bootstrap.localSessionAvailable) {
+      const localSession = await createLocalSession()
+      if (localSession) return localSession
+    }
+    return { state: 'locked', error: 'Für den Remote-Zugriff ist ein gültiger Bearer-Token oder eine konfigurierte Identität erforderlich.' }
   }
-  const localSessionResponse = await apiFetch('/api/local-session', { method: 'POST' })
-  const localSession = await localSessionResponse.json().catch(() => ({}))
-  if (!localSessionResponse.ok || typeof localSession.token !== 'string') {
-    throw new Error(localSession.error || 'Recovery startup could not create a one-time access token.')
+  if (bootstrap.localSessionAvailable || bootstrap.recoveryBootstrap) {
+    const localSession = await createLocalSession()
+    if (localSession) return localSession
   }
-  setDashboardToken(localSession.token)
-  return { state: 'recovery', recoveryToken: localSession.token }
+  return {
+    state: bootstrap.available ? 'bootstrap' : 'locked',
+    error: bootstrap.available ? '' : 'Managed secret storage is unavailable on the server.',
+  }
 }
 
 export function DashboardAuthGate({ children }: Readonly<{ children: ReactNode }>) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Bot, Copy, KeyRound, Plus, RefreshCw, Save } from "lucide-react"
+import { Bot, Copy, KeyRound, Plus, RefreshCw, Save, Trash2 } from "lucide-react"
 import { apiFetch } from "@/lib/api"
 import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 import { Badge } from "@/components/ui/badge"
@@ -193,9 +193,14 @@ export function McpAgentsTab() {
     }
   }
 
-  const request = async (path: string, body: unknown, headers?: Record<string, string>) => {
+  const request = async (
+    path: string,
+    body: unknown,
+    headers?: Record<string, string>,
+    method = "POST",
+  ) => {
     const response = await apiFetch(`${API_BASE}${path}`, {
-      method: "POST",
+      method,
       headers: { "Content-Type": "application/json", ...headers },
       body: JSON.stringify(body),
     })
@@ -229,6 +234,25 @@ export function McpAgentsTab() {
       "Token rotiert. Ersatz-Token jetzt sicher hinterlegen.",
     )
     if (result?.token) setIssuedToken(result.token)
+  }
+
+  const remove = async () => {
+    if (!selected || !window.confirm(`MCP-Agent „${selected.name}“ endgültig löschen? Token, Rechte und aktive Sitzungen werden sofort widerrufen; die anonymisierte Audit-Historie bleibt erhalten.`)) return
+    const result = await execute(
+      "delete",
+      () => request(
+        "/api/mcp/agents",
+        { id: selected.id },
+        { "X-Destructive-Confirmation": "delete-mcp-agent" },
+        "DELETE",
+      ),
+      "Agent gelöscht. Token, Rechte und aktive Sitzungen wurden widerrufen.",
+    )
+    if (result?.deleted) {
+      setSelectedId("")
+      setIssuedToken("")
+      setForm({ name: "", permissions: [], eventSubscriptions: [], enabled: true })
+    }
   }
 
   const copyToken = async () => {
@@ -285,6 +309,7 @@ export function McpAgentsTab() {
         <div className="flex flex-wrap gap-2">
           <Button disabled={Boolean(busy) || !form.name.trim()} onClick={() => void save()}><Save className="mr-2 h-4 w-4" />{selected ? "Änderungen speichern" : "Agent erstellen"}</Button>
           {selected && <Button variant="outline" disabled={Boolean(busy)} onClick={() => void rotate()}><KeyRound className="mr-2 h-4 w-4" />Token rotieren</Button>}
+          {selected && <Button variant="destructive" disabled={Boolean(busy)} onClick={() => void remove()}><Trash2 className="mr-2 h-4 w-4" />Agent löschen</Button>}
           <Button variant="ghost" disabled={Boolean(busy)} onClick={() => void refresh()}><RefreshCw className="mr-2 h-4 w-4" />Aktualisieren</Button>
         </div>
         {issuedToken && <div className="space-y-2 rounded-md border p-4">

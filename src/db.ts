@@ -88,7 +88,8 @@ export const DATABASE_FEATURE_SET = [
   'managed-trading-signal-schemas',
   'versioned-signal-contracts',
   'channel-risk-and-execution-analytics',
-  'mcp-agent-control-plane'
+  'mcp-agent-control-plane',
+  'mcp-agent-retirement'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -805,6 +806,22 @@ const migrations: SchemaMigration[] = [
           ON mcp_control_requests(status, created_at);
         CREATE INDEX IF NOT EXISTS idx_mcp_event_delivery_agent
           ON mcp_event_deliveries(agent_id, delivered_at DESC);
+      `
+  },
+  {
+    version: 11,
+    name: 'mcp_agent_retirement',
+    columns: [
+      {
+        table: 'mcp_agents',
+        name: 'deleted_at',
+        sqlDefinition: 'INTEGER',
+      },
+    ],
+    sql: `
+        CREATE INDEX IF NOT EXISTS idx_mcp_agents_active
+          ON mcp_agents(name COLLATE NOCASE, created_at)
+          WHERE deleted_at IS NULL;
       `
   }
 ];

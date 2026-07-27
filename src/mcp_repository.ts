@@ -283,7 +283,9 @@ export async function listMcpAgents(): Promise<McpAgent[]> {
     `SELECT id, name, token_prefix AS tokenPrefix, permissions_json AS permissionsJson,
             event_subscriptions_json AS eventSubscriptionsJson, enabled,
             created_at AS createdAt, updated_at AS updatedAt, last_seen_at AS lastSeenAt
-     FROM mcp_agents ORDER BY name COLLATE NOCASE, created_at`,
+     FROM mcp_agents
+     WHERE deleted_at IS NULL
+     ORDER BY name COLLATE NOCASE, created_at`,
   );
   return rows.map(mappedAgent);
 }
@@ -303,7 +305,7 @@ export async function updateMcpAgent(input: {
   const now = Date.now();
   const result = await getDatabase().run(
     `UPDATE mcp_agents SET name = ?, permissions_json = ?, event_subscriptions_json = ?,
-       enabled = ?, updated_at = ? WHERE id = ?`,
+       enabled = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`,
     [
       name,
       json(grantedPermissions, 'MCP permissions'),
@@ -331,7 +333,7 @@ export async function rotateMcpAgentToken(idValue: unknown): Promise<{ agent: Mc
   const now = Date.now();
   const result = await getDatabase().run(
     `UPDATE mcp_agents SET token_sha256 = ?, token_prefix = ?, updated_at = ?
-     WHERE id = ?`,
+     WHERE id = ? AND deleted_at IS NULL`,
     [tokenDigest(token), token.slice(0, 16), now, id],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('MCP agent does not exist.');
@@ -344,6 +346,43 @@ export async function rotateMcpAgentToken(idValue: unknown): Promise<{ agent: Mc
   return { agent: agents.find(agent => agent.id === id)!, token };
 }
 
+export async function deleteMcpAgent(idValue: unknown): Promise<boolean> {
+  const id = identifier(idValue, 'MCP agent identifier', 64);
+  const now = Date.now();
+  const revokedToken = generatedToken();
+  return withDatabaseTransaction(async database => {
+    const result = await database.run(
+      `UPDATE mcp_agents
+       SET name = ?, token_sha256 = ?, token_prefix = ?,
+           permissions_json = '[]', event_subscriptions_json = '[]',
+           enabled = 0, updated_at = ?, last_seen_at = NULL, deleted_at = ?
+       WHERE id = ? AND deleted_at IS NULL`,
+      [
+        `Gelöschter MCP-Agent ${id.slice(0, 8)}`,
+        tokenDigest(revokedToken),
+        `deleted_${id.slice(0, 8)}`,
+        now,
+        now,
+        id,
+      ],
+    );
+    if (Number(result.changes || 0) !== 1) throw new Error('MCP agent does not exist.');
+    await database.run(
+      `UPDATE mcp_agent_sessions
+       SET disconnected_at = COALESCE(disconnected_at, ?)
+       WHERE agent_id = ? AND disconnected_at IS NULL`,
+      [now, id],
+    );
+    await database.run(
+      `UPDATE mcp_control_requests
+       SET status = 'failed', error = 'MCP agent was deleted by an administrator.', completed_at = ?
+       WHERE agent_id = ? AND status IN ('pending', 'running')`,
+      [now, id],
+    );
+    return true;
+  });
+}
+
 export async function authenticateMcpToken(value: unknown): Promise<AuthenticatedMcpAgent | null> {
   if (typeof value !== 'string' || !value.startsWith(TOKEN_PREFIX) || value.length > 128) return null;
   const digest = tokenDigest(value);
@@ -351,7 +390,7 @@ export async function authenticateMcpToken(value: unknown): Promise<Authenticate
     `SELECT id, name, token_sha256 AS tokenSha256, token_prefix AS tokenPrefix,
             permissions_json AS permissionsJson, event_subscriptions_json AS eventSubscriptionsJson,
             enabled, created_at AS createdAt, updated_at AS updatedAt, last_seen_at AS lastSeenAt
-     FROM mcp_agents WHERE token_sha256 = ?`,
+     FROM mcp_agents WHERE token_sha256 = ? AND deleted_at IS NULL`,
     [digest],
   );
   if (!row?.enabled || !constantTimeDigestMatch(digest, String(row.tokenSha256))) return null;
@@ -699,9 +738,10 @@ export async function mcpDashboardSnapshot(): Promise<{
     listMcpSessions(),
     listMcpAgentActions(),
   ]);
+  const visibleAgentIds = new Set(agents.map(agent => agent.id));
   return {
     agents,
-    sessions,
+    sessions: sessions.filter(session => visibleAgentIds.has(session.agentId)),
     actions: actions.map(({ request: _request, result: _result, ...action }) => action),
     permissions: MCP_PERMISSIONS,
     eventTypes: TRADING_EVENT_TYPES,

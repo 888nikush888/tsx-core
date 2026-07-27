@@ -29,6 +29,9 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ### Fixed
 
+- Lokaler Docker-Zugriff erzeugt den Admin-Token beim Erststart automatisch und verwendet bei späteren Browser-Sitzungen kurzlebige lokale Session-Tokens, statt erneut einen Bearer-Token abzufragen.
+- XML-Verträge sind über einen eigenen Sidebar-Eintrag direkt erreichbar; Erstellen, Versionieren, Bearbeiten, Duplizieren und Löschen von Entwürfen bleiben vollständig in der Web-UI steuerbar.
+- MCP-Agenten können nach expliziter Bestätigung gelöscht werden; Token, Rechte, Sitzungen und wartende Kontrollanforderungen werden sofort widerrufen, während anonymisierte Audit-Referenzen erhalten bleiben.
 - **Betriebsdaten leeren** bewahrt Trading-Historie, Strategien, Konten, Exchange-Secrets und von Trades referenzierte Signale.
 - Strategieversionen können nur ohne aktive Route beziehungsweise aufbewahrte Trade-Historie sicher gelöscht werden.
 - Exchange-Order-Historie, Trading-Safety-Halt, Clock-Drift-Gates und Recovery-Pfade bleiben nach Fehlern fail-closed und nachvollziehbar.
