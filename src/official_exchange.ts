@@ -247,7 +247,7 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
     return assertStreamBatch(await this.post('/v1/stream-events', {
       account: accountPayload(account),
       cursor,
-      symbols: [...new Set(symbols)].sort(),
+      symbols: [...new Set(symbols)].sort((left, right) => left.localeCompare(right)),
     }, 5_000));
   }
 

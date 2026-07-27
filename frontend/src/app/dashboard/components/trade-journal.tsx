@@ -181,7 +181,7 @@ export function TradeJournal({ data }: Readonly<{ data: JournalDashboardData }>)
   const channels = [...new Set([
     ...(data.configuredChannels || []).map(channel => String(channel.id)),
     ...entries.map(entry => entry.channelId),
-  ])].sort()
+  ])].sort((left, right) => left.localeCompare(right))
 
   return <div className="space-y-5">
     <Card>

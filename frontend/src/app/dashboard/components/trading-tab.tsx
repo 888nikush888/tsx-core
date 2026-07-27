@@ -51,6 +51,12 @@ function statusTone(status: string) {
   return "secondary"
 }
 
+function exchangeStreamTone(status: string): "default" | "secondary" | "destructive" {
+  if (status === "healthy") return "default"
+  if (status === "starting") return "secondary"
+  return "destructive"
+}
+
 async function mutate(path: string, body: unknown, method = "POST", extraHeaders: Record<string, string> = {}) {
   const response = await apiFetch(`${API_BASE}${path}`, {
     method,
@@ -148,7 +154,7 @@ function Overview({ data, busy, run }: any) {
       <Metric label="Letzter Abgleich" value={time(data.overview.latestReconciliationAt)} />
     </div>
     <Card><CardHeader><CardTitle>Exchange WebSockets</CardTitle><CardDescription>Private Order-, Fill- und Positionsereignisse sowie aktive Preis-/Kerzenstreams. REST-Reconciliation bleibt die autoritative Absicherung.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2">
-      {(data.exchangeStreams || []).map((stream: any) => <Badge key={stream.accountId} variant={stream.status === "healthy" ? "default" : stream.status === "starting" ? "secondary" : "destructive"}>{stream.accountName}: {stream.status} · Cursor {stream.cursor}{stream.gapCount ? ` · ${stream.gapCount} Gap(s)` : ""}</Badge>)}
+      {(data.exchangeStreams || []).map((stream: any) => <Badge key={stream.accountId} variant={exchangeStreamTone(stream.status)}>{stream.accountName}: {stream.status} · Cursor {stream.cursor}{stream.gapCount ? ` · ${stream.gapCount} Gap(s)` : ""}</Badge>)}
       {(data.exchangeStreams || []).length === 0 && <span className="text-sm text-muted-foreground">Noch kein aktives Bybit- oder Hyperliquid-Konto gestreamt.</span>}
     </CardContent></Card>
     {(runtime.killSwitchActive || data.overview.unknownOrderCount > 0) && <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-destructive"><div className="flex items-center gap-2 font-semibold"><ShieldAlert className="h-5 w-5" />Trading fail-closed</div><p className="mt-1 text-sm">{runtime.killSwitchReason || `${data.overview.unknownOrderCount} Order(s) mit unbekanntem Ausgang.`}</p></div>}

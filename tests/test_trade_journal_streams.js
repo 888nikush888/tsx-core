@@ -87,8 +87,8 @@ try {
     `INSERT INTO trading_fills (
        id, order_id, account_id, exchange_fill_id, price, quantity,
        fee, fee_asset, filled_at, raw_json
-     ) VALUES ('journal-fill', 'journal-order', ?, 'fill-journal',
-               '60000', '0.1', '1.25', 'USDT', ?, '{}')`,
+      ) VALUES ('journal-fill', 'journal-order', ?, 'fill-journal',
+                '60000', '0.1', '1.0000', 'USDT', ?, '{}')`,
     [paper.id, Date.now() - 8_000],
   );
   await getDatabase().run(
@@ -103,11 +103,12 @@ try {
   let journal = await listTradeJournal({ symbol: 'BTCUSDT' });
   assert.equal(journal.length, 1);
   assert.equal(journal[0].position.realizedPnl, '125.50');
-  assert.equal(journal[0].fees.USDT, '1.25');
+  assert.equal(journal[0].fees.USDT, '1');
   assert.equal(journal[0].signal.schemaProfileId, 'standard');
   assert.equal(journal[0].signal.contractVersionId, 'standard:v1');
   assert.doesNotMatch(journal[0].signal.sourceExcerpt, /170 1234567|0x111111/);
   assert.match(journal[0].signal.sourceExcerpt, /MASKED_PHONE|MASKED_EVM_ADDR/);
+  assert.equal((await listTradeJournal({ reviewed: false })).length, 1);
 
   await updateTradeJournalReview({
     intentId: intent.id,
@@ -186,6 +187,17 @@ try {
   await recordExchangeStreamFailure(bybit.id, new Error('socket offline'));
   stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
   assert.match(stream.lastError, /socket offline/);
+  await recordExchangeStreamFailure(bybit.id, 'plain stream failure');
+  stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
+  assert.equal(stream.lastError, 'plain stream failure');
+  await recordExchangeStreamFailure(bybit.id, { reason: 'provider disconnected' });
+  stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
+  assert.match(stream.lastError, /provider disconnected/);
+  const cyclicFailure = {};
+  cyclicFailure.self = cyclicFailure;
+  await recordExchangeStreamFailure(bybit.id, cyclicFailure);
+  stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
+  assert.equal(stream.lastError, 'Unknown exchange stream error.');
   assert.deepEqual(await listActiveExchangeStreamSymbols(bybit.id), []);
   await assert.rejects(
     persistExchangeStreamBatch(paper, {

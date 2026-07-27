@@ -1134,7 +1134,7 @@ export async function approveMcpProposal(idValue: unknown, actorValue: unknown):
   const id = identifier(idValue, 'MCP proposal identifier', 64);
   const actor = identifier(actorValue, 'Proposal decision actor', 128);
   const current = await getMcpProposal(id);
-  if (!current || current.status !== 'pending' || current.expiresAt <= Date.now()) {
+  if (current?.status !== 'pending' || current.expiresAt <= Date.now()) {
     throw new Error('Only a non-expired pending MCP proposal can be approved.');
   }
   const preflight = await preflightMcpAction(current.action, current.payload);

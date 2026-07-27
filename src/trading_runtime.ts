@@ -177,7 +177,7 @@ export class TradingRuntime {
         await recordExchangeStreamFailure(account.id, error);
         const message = error instanceof Error ? error.message : String(error);
         const previous = this.streamFailureLogState.get(account.id);
-        if (!previous || previous.message !== message || Date.now() - previous.loggedAt >= 30_000) {
+        if (previous?.message !== message || Date.now() - (previous?.loggedAt ?? 0) >= 30_000) {
           this.logger(
             `[TRADING] Exchange WebSocket degraded for ${account.id}; REST reconciliation remains authoritative: ${message}`,
           );

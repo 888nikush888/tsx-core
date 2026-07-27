@@ -123,6 +123,12 @@ function formattedDate(value: number | null): string {
   return value ? new Date(value).toLocaleString("de-DE") : "Noch nie"
 }
 
+function proposalStatusTone(status: string): "secondary" | "destructive" | "outline" {
+  if (status === "pending") return "secondary"
+  if (status === "failed" || status === "rejected") return "destructive"
+  return "outline"
+}
+
 function agentConnectionLabel(connected: boolean, enabled: boolean): string {
   if (connected) return "verbunden"
   return enabled ? "bereit" : "deaktiviert"
@@ -376,7 +382,7 @@ export function McpAgentsTab() {
           <TableCell>{formattedDate(proposal.requestedAt)}<div className="text-xs text-muted-foreground">bis {formattedDate(proposal.expiresAt)}</div></TableCell>
           <TableCell>{proposal.agentName}<div className="font-mono text-xs text-muted-foreground">{proposal.action}</div></TableCell>
           <TableCell className="max-w-xl"><ul className="space-y-1 text-xs">{proposal.preflight.impact.map(item => <li key={item}>{item}</li>)}</ul>{proposal.error && <div className="mt-1 text-xs text-destructive">{proposal.error}</div>}</TableCell>
-          <TableCell><Badge variant={proposal.status === "pending" ? "secondary" : proposal.status === "failed" || proposal.status === "rejected" ? "destructive" : "outline"}>{proposal.status}</Badge></TableCell>
+          <TableCell><Badge variant={proposalStatusTone(proposal.status)}>{proposal.status}</Badge></TableCell>
           <TableCell>{proposal.status === "pending" && <div className="flex gap-1"><Button size="sm" disabled={Boolean(busy)} onClick={() => void approveProposal(proposal)}><CheckCircle2 className="mr-1 h-4 w-4" />Freigeben</Button><Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void rejectProposal(proposal)}><XCircle className="mr-1 h-4 w-4" />Ablehnen</Button></div>}</TableCell>
         </TableRow>)}
         {snapshot.proposals.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Keine MCP-Anträge vorhanden.</TableCell></TableRow>}

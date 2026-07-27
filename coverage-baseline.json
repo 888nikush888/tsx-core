@@ -1,7 +1,7 @@
 {
   "scope": "testable core modules in a clean Node.js 22 CI checkout; excludes the composition root and confirmation-gated maintenance CLI entrypoints",
   "statements": 94.81,
-  "branches": 82.9,
+  "branches": 82.91,
   "functions": 98.76,
   "lines": 94.81
 }

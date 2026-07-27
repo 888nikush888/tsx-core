@@ -42,16 +42,9 @@ class Application:
         if path == "/v1/market-snapshot":
             return adapter.market_snapshot(account, required_string(payload, "symbol"), deadline)
         if path == "/v1/submit-order":
-            request = payload.get("request")
-            if not isinstance(request, dict):
-                raise ExchangeContractError("request is required.")
-            return adapter.submit_order(account, request, deadline)
+            return self._submit_order(adapter, account, payload, deadline)
         if path == "/v1/submit-protected-entry":
-            entry = payload.get("entry")
-            protective_stop = payload.get("protectiveStop")
-            if not isinstance(entry, dict) or not isinstance(protective_stop, dict):
-                raise ExchangeContractError("entry and protectiveStop are required.")
-            return adapter.submit_protected_entry(account, entry, protective_stop, deadline)
+            return self._submit_protected_entry(adapter, account, payload, deadline)
         if path == "/v1/cancel-order":
             return adapter.cancel_order(
                 account,
@@ -62,12 +55,30 @@ class Application:
         if path == "/v1/open-state":
             return adapter.open_state(account, deadline)
         if path == "/v1/stream-events":
-            cursor = payload.get("cursor")
-            symbols = payload.get("symbols")
-            if not isinstance(cursor, int) or not isinstance(symbols, list):
-                raise ExchangeContractError("cursor and symbols are required.")
-            return self.streams.poll(account, cursor, symbols)
+            return self._stream_events(account, payload)
         raise ExchangeContractError("Unknown executor endpoint.")
+
+    @staticmethod
+    def _submit_order(adapter: Any, account: dict[str, Any], payload: dict[str, Any], deadline: RequestDeadline) -> Any:
+        request = payload.get("request")
+        if not isinstance(request, dict):
+            raise ExchangeContractError("request is required.")
+        return adapter.submit_order(account, request, deadline)
+
+    @staticmethod
+    def _submit_protected_entry(adapter: Any, account: dict[str, Any], payload: dict[str, Any], deadline: RequestDeadline) -> Any:
+        entry = payload.get("entry")
+        protective_stop = payload.get("protectiveStop")
+        if not isinstance(entry, dict) or not isinstance(protective_stop, dict):
+            raise ExchangeContractError("entry and protectiveStop are required.")
+        return adapter.submit_protected_entry(account, entry, protective_stop, deadline)
+
+    def _stream_events(self, account: dict[str, Any], payload: dict[str, Any]) -> Any:
+        cursor = payload.get("cursor")
+        symbols = payload.get("symbols")
+        if not isinstance(cursor, int) or not isinstance(symbols, list):
+            raise ExchangeContractError("cursor and symbols are required.")
+        return self.streams.poll(account, cursor, symbols)
 
     def close(self) -> None:
         self.streams.close()

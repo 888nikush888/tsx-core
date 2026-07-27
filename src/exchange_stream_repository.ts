@@ -11,7 +11,16 @@ const MAXIMUM_EVENT_JSON_BYTES = 64 * 1024;
 const MAXIMUM_RETAINED_EVENTS_PER_ACCOUNT = 5_000;
 
 function boundedError(value: unknown): string {
-  const message = value instanceof Error ? value.message : String(value);
+  let message: string;
+  if (value instanceof Error) message = value.message;
+  else if (typeof value === 'string') message = value;
+  else {
+    try {
+      message = JSON.stringify(value) || 'Unknown exchange stream error.';
+    } catch {
+      message = 'Unknown exchange stream error.';
+    }
+  }
   return message.replace(/[\r\n\0]+/g, ' ').slice(0, 500);
 }
 

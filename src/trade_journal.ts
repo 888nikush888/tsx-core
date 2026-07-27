@@ -97,12 +97,11 @@ function timestampRange(input: TradeJournalFilters): { from?: number; to?: numbe
   return { from, to };
 }
 
-function journalLimit(value: unknown): number {
-  const limit = value ?? 200;
-  if (!Number.isSafeInteger(limit) || Number(limit) < 1 || Number(limit) > MAXIMUM_JOURNAL_ROWS) {
+function journalLimit(value: unknown = 200): number {
+  if (!Number.isSafeInteger(value) || Number(value) < 1 || Number(value) > MAXIMUM_JOURNAL_ROWS) {
     throw new Error(`Journal limit must be between 1 and ${MAXIMUM_JOURNAL_ROWS}.`);
   }
-  return Number(limit);
+  return Number(value);
 }
 
 function journalSymbol(value: unknown): string | undefined {
@@ -182,9 +181,16 @@ function feeTotals(fills: Array<Record<string, unknown>>): Record<string, string
     const digits = (negative ? -value : value).toString().padStart(scale + 1, '0');
     const formatted = scale === 0
       ? digits
-      : `${digits.slice(0, -scale)}.${digits.slice(-scale)}`.replace(/\.?0+$/, '');
+      : trimDecimalZeros(`${digits.slice(0, -scale)}.${digits.slice(-scale)}`);
     return [asset, `${negative ? '-' : ''}${formatted || '0'}`];
   }));
+}
+
+function trimDecimalZeros(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 48) end -= 1;
+  if (end > 0 && value.charCodeAt(end - 1) === 46) end -= 1;
+  return value.slice(0, end);
 }
 
 function placeholders(values: string[]): string {
@@ -344,7 +350,10 @@ async function loadJournalRelations(database: Database, rows: JournalRow[]): Pro
 }
 
 function nullableString(value: unknown): string | null {
-  return value === null || value === undefined ? null : String(value);
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value);
+  return JSON.stringify(value) || null;
 }
 
 function nullableNumber(value: unknown): number | null {
@@ -497,7 +506,7 @@ function safeSpreadsheetCell(value: unknown): string {
 }
 
 function csvCell(value: unknown): string {
-  return `"${safeSpreadsheetCell(value).replace(/"/g, '""')}"`;
+  return `"${safeSpreadsheetCell(value).replaceAll('"', '""')}"`;
 }
 
 export function tradeJournalCsv(entries: TradeJournalEntry[]): string {

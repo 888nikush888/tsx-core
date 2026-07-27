@@ -462,7 +462,7 @@ function registerExtendedReadTools(server: McpServer, agentId: string): void {
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async ({ proposalId }) => {
     const proposal = await getMcpProposal(proposalId);
-    if (!proposal || proposal.agentId !== agentId) throw new Error('MCP proposal does not exist.');
+    if (proposal?.agentId !== agentId) throw new Error('MCP proposal does not exist.');
     return proposal;
   });
 }
