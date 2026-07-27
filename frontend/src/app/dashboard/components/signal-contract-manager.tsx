@@ -136,6 +136,8 @@ export function SignalContractManager({ data, busy, run }: Readonly<{ data: any;
   const [previewResult, setPreviewResult] = useState("")
   const selectedContract = contracts.find((contract: any) => contract.id === contractId)
   const selectedVersion = selectedContract?.versions.find((version: any) => version.id === versionId)
+  const referencingProfiles = (Array.isArray(data.signalSchemas) ? data.signalSchemas : [])
+    .filter((schema: any) => schema.contractVersionId === versionId)
   const publishedVersions = useMemo(
     () => contracts.flatMap((contract: any) => contract.versions.filter((version: any) => version.status === "published")),
     [contracts],
@@ -233,6 +235,34 @@ export function SignalContractManager({ data, busy, run }: Readonly<{ data: any;
         ),
       },
     }))
+  }
+  const deletePublishedVersion = async () => {
+    if (!window.confirm("Diese veröffentlichte Vertragsversion endgültig löschen? Das ist nur möglich, wenn kein Signal-Schema-Profil mehr darauf verweist.")) return
+    const deleted = await run(
+      "delete-contract-version",
+      () => mutate(
+        "/api/trading/signal-contracts/versions",
+        { versionId },
+        "DELETE",
+        { "X-Destructive-Confirmation": "delete-signal-contract-version" },
+      ),
+      "Vertragsversion endgültig gelöscht.",
+    )
+    if (deleted) createNew()
+  }
+  const deleteDraft = async () => {
+    if (!window.confirm("Diesen unveröffentlichten Vertragsentwurf endgültig löschen?")) return
+    const deleted = await run(
+      "delete-contract",
+      () => mutate(
+        "/api/trading/signal-contracts/drafts",
+        { versionId },
+        "DELETE",
+        { "X-Destructive-Confirmation": "delete-signal-contract-draft" },
+      ),
+      "Vertragsentwurf gelöscht.",
+    )
+    if (deleted) createNew()
   }
 
   return <div className="space-y-5">
@@ -342,11 +372,12 @@ export function SignalContractManager({ data, busy, run }: Readonly<{ data: any;
             void run("duplicate-contract", () => mutate("/api/trading/signal-contracts/duplicate", { sourceVersionId: versionId, id, name: `${form.name} Kopie`, description: form.description }), "Vertrag dupliziert.")
           }}><Copy className="mr-2 h-4 w-4" />Duplizieren</Button>}
           {selectedVersion?.status === "published" && <Button variant="outline" disabled={Boolean(busy)} onClick={() => void run("archive-contract", () => mutate("/api/trading/signal-contracts/archive", { versionId }), "Vertragsversion archiviert.")}>Archivieren</Button>}
-          {selectedVersion?.status === "draft" && <Button variant="destructive" disabled={Boolean(busy)} onClick={() => {
-            if (!window.confirm("Diesen unveröffentlichten Vertragsentwurf endgültig löschen?")) return
-            void run("delete-contract", () => mutate("/api/trading/signal-contracts/drafts", { versionId }, "DELETE", { "X-Destructive-Confirmation": "delete-signal-contract-draft" }), "Vertragsentwurf gelöscht.")
-          }}><Trash2 className="mr-2 h-4 w-4" />Entwurf löschen</Button>}
+          {(selectedVersion?.status === "published" || selectedVersion?.status === "archived") && <Button variant="destructive" disabled={Boolean(busy)} onClick={() => void deletePublishedVersion()}><Trash2 className="mr-2 h-4 w-4" />Vertragsversion löschen</Button>}
+          {selectedVersion?.status === "draft" && <Button variant="destructive" disabled={Boolean(busy)} onClick={() => void deleteDraft()}><Trash2 className="mr-2 h-4 w-4" />Entwurf löschen</Button>}
         </div>
+        {selectedVersion && referencingProfiles.length > 0 && <p className="text-xs text-muted-foreground">
+          Verknüpft mit {referencingProfiles.length} Signal-Schema-Profil(en): {referencingProfiles.map((schema: any) => schema.name).join(", ")}. Vor dem endgültigen Löschen diese Profile umstellen oder löschen.
+        </p>}
         <p className="text-xs text-muted-foreground">{publishedVersions.length} veröffentlichte Vertragsversion(en) können mit Schema-Profilen verknüpft werden.</p>
       </CardContent>
     </Card>

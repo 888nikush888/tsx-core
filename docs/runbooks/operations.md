@@ -43,7 +43,7 @@ Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaise
 3. Den Entwurf mit kontrolliertem XML und ursprünglichem Telegram-Text validieren; anschließend publizieren. Erst danach ein Ersatzprofil mit passendem Parser-Template und neuer `contractVersionId` anlegen beziehungsweise umstellen.
 4. Verwendet eine aktive Kanalroute das Profil, zuerst eine neue Strategieversion mit dem Ersatzprofil publizieren und die Route bewusst umstellen. Bestehende Trades behalten ihre immutable alte Strategieversion.
 5. Das Ersatzprofil mit einer Paper-Nachricht prüfen. Das Signal muss ein eindeutiges `USD`-, `USDC`- oder `USDT`-Paar liefern; Provenance, Geometrie, Intent, Kanalrisiko, TP-Allokationen und Stop-Modus kontrollieren.
-6. Erst wenn kein aktiviertes Profil mehr auf die alte Vertragsversion verweist, diese archivieren. Nur Entwürfe können gelöscht werden (`delete-signal-contract-draft`); Profillöschung verwendet `delete-trading-signal-schema`.
+6. Erst wenn kein aktiviertes Profil mehr auf die alte Vertragsversion verweist, diese archivieren. Entwürfe verwenden `delete-signal-contract-draft`. Publizierte oder archivierte Versionen können mit `delete-signal-contract-version` endgültig gelöscht werden, nachdem sämtliche – auch deaktivierte – Schema-Profile umgestellt oder gelöscht wurden; Profillöschung verwendet `delete-trading-signal-schema`.
 7. Nach der Änderung Trading-Snapshot, Kanalrouten, `/readyz`, Audit-Record, `contract_changed`-Event und Paper-Intent prüfen. Bei Mismatch Route deaktivieren; kein stiller Fallback auf einen anderen Vertrag.
 
 ## MCP-Agent kompromittiert oder fehlerhaft

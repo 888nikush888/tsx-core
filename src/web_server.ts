@@ -1321,6 +1321,14 @@ const deleteSignalContractDraftHandler = (context: RequestContext) => {
   )) return;
   return tradingMutation(context, (control, payload) => control.removeSignalContractDraft(payload.versionId));
 };
+const deleteSignalContractVersionHandler = (context: RequestContext) => {
+  if (!requireConfirmation(
+    context,
+    'delete-signal-contract-version',
+    'Explicit published signal contract deletion confirmation required.',
+  )) return;
+  return tradingMutation(context, (control, payload) => control.removeSignalContractVersion(payload.versionId));
+};
 const validateSignalContractHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.validateSignalContract(payload));
 const setChannelRiskPolicyHandler = (context: RequestContext) =>
@@ -1502,6 +1510,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/signal-contracts/duplicate', duplicateSignalContractHandler],
   ['POST /api/trading/signal-contracts/publish', publishSignalContractHandler],
   ['POST /api/trading/signal-contracts/archive', archiveSignalContractHandler],
+  ['DELETE /api/trading/signal-contracts/versions', deleteSignalContractVersionHandler],
   ['DELETE /api/trading/signal-contracts/drafts', deleteSignalContractDraftHandler],
   ['POST /api/trading/signal-contracts/validate', validateSignalContractHandler],
   ['POST /api/trading/channel-risk', setChannelRiskPolicyHandler],

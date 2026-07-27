@@ -378,23 +378,54 @@ export async function archiveSignalContractVersion(versionId: unknown, now = Dat
   ));
 }
 
+async function signalContractVersionDeletionTarget(
+  id: string,
+): Promise<{ contractId: string; status: string } | null> {
+  const row = await getDatabase().get<{ contract_id: string; status: string }>(
+    'SELECT contract_id, status FROM trading_signal_contract_versions WHERE id = ?',
+    [id],
+  );
+  return row ? { contractId: row.contract_id, status: row.status } : null;
+}
+
+async function removeSignalContractVersionRecord(id: string, contractId: string): Promise<void> {
+  await getDatabase().run('DELETE FROM trading_signal_contract_versions WHERE id = ?', [id]);
+  const remaining = await getDatabase().get<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM trading_signal_contract_versions WHERE contract_id = ?',
+    [contractId],
+  );
+  if (Number(remaining?.count || 0) === 0) {
+    await getDatabase().run('DELETE FROM trading_signal_contracts WHERE id = ?', [contractId]);
+  }
+}
+
 export async function deleteSignalContractDraft(versionId: unknown): Promise<boolean> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
-    const row = await getDatabase().get<{ contract_id: string; status: string }>(
-      'SELECT contract_id, status FROM trading_signal_contract_versions WHERE id = ?',
-      [id],
-    );
+    const row = await signalContractVersionDeletionTarget(id);
     if (!row) return false;
     if (row.status !== 'draft') throw new Error('Published or archived contract versions cannot be deleted.');
-    await getDatabase().run('DELETE FROM trading_signal_contract_versions WHERE id = ?', [id]);
-    const remaining = await getDatabase().get<{ count: number }>(
-      'SELECT COUNT(*) AS count FROM trading_signal_contract_versions WHERE contract_id = ?',
-      [row.contract_id],
-    );
-    if (Number(remaining?.count || 0) === 0) {
-      await getDatabase().run('DELETE FROM trading_signal_contracts WHERE id = ?', [row.contract_id]);
+    await removeSignalContractVersionRecord(id, row.contractId);
+    return true;
+  });
+}
+
+export async function deleteSignalContractVersion(versionId: unknown): Promise<boolean> {
+  const id = contractVersionIdentifier(versionId);
+  return transaction(async () => {
+    const row = await signalContractVersionDeletionTarget(id);
+    if (!row) return false;
+    if (row.status === 'draft') {
+      throw new Error('Draft contract versions must be deleted through the draft deletion action.');
     }
+    const references = await getDatabase().get<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM trading_signal_schemas WHERE contract_version_id = ?',
+      [id],
+    );
+    if (Number(references?.count || 0) > 0) {
+      throw new Error('Signal schema profiles must be moved or deleted before deleting this contract version.');
+    }
+    await removeSignalContractVersionRecord(id, row.contractId);
     return true;
   });
 }

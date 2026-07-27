@@ -119,6 +119,17 @@ describe("Trading strategy control", () => {
         status: "draft",
         definition: contractDefinition,
       }],
+    }, {
+      id: "published-contract",
+      name: "Published Contract",
+      description: "Published XML contract",
+      versions: [{
+        id: "published-contract:v1",
+        contractId: "published-contract",
+        version: 1,
+        status: "published",
+        definition: contractDefinition,
+      }],
     }]
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
       const url = String(input)
@@ -146,6 +157,13 @@ describe("Trading strategy control", () => {
         return response({ success: true, result: JSON.parse(String(init.body)) })
       }
       if (url.endsWith("/api/trading/signal-contracts/drafts") && init.method === "DELETE") {
+        const { versionId } = JSON.parse(String(init.body))
+        signalContracts = signalContracts
+          .map(contract => ({ ...contract, versions: contract.versions.filter((version: any) => version.id !== versionId) }))
+          .filter(contract => contract.versions.length > 0)
+        return response({ success: true, result: true })
+      }
+      if (url.endsWith("/api/trading/signal-contracts/versions") && init.method === "DELETE") {
         const { versionId } = JSON.parse(String(init.body))
         signalContracts = signalContracts
           .map(contract => ({ ...contract, versions: contract.versions.filter((version: any) => version.id !== versionId) }))
@@ -244,5 +262,24 @@ describe("Trading strategy control", () => {
       url.endsWith("/api/trading/signal-contracts/drafts") && init.method === "DELETE")
     expect(JSON.parse(String(request?.init.body))).toEqual({ versionId: "desk-contract:v1" })
     expect(new Headers(request?.init.headers).get("X-Destructive-Confirmation")).toBe("delete-signal-contract-draft")
+  })
+
+  it("deletes an unreferenced published contract version after explicit confirmation", async () => {
+    vi.mocked(window.confirm).mockReturnValue(true)
+    renderTradingTab()
+    fireEvent.click(await screen.findByRole("button", { name: "Verträge" }))
+
+    const card = screen.getByText("Published Contract").closest(".rounded-md")
+    expect(card).not.toBeNull()
+    fireEvent.click(within(card as HTMLElement).getByRole("button", { name: /v1.*published/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Vertragsversion löschen" }))
+
+    await screen.findByText("Vertragsversion endgültig gelöscht.")
+    await waitFor(() => expect(screen.queryByText("Published Contract")).not.toBeInTheDocument())
+    const request = requests.find(({ url, init }) =>
+      url.endsWith("/api/trading/signal-contracts/versions") && init.method === "DELETE")
+    expect(window.confirm).toHaveBeenCalledOnce()
+    expect(JSON.parse(String(request?.init.body))).toEqual({ versionId: "published-contract:v1" })
+    expect(new Headers(request?.init.headers).get("X-Destructive-Confirmation")).toBe("delete-signal-contract-version")
   })
 })

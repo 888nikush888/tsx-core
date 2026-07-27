@@ -31,7 +31,7 @@ Unter dem eigenen Sidebar-Punkt **XML-Verträge** oder alternativ **Trading → 
 - **Geometrie:** Stop auf der Verlustseite, Targets auf der Gewinnseite, geordnete Targets und geordnete Ranges für LONG und SHORT getrennt durch die Signalrichtung erzwingen.
 - **Quelltext-Erdung:** pro Kernfeld bestimmen, ob der extrahierte Wert in der ursprünglichen Telegram-Nachricht nachweisbar sein muss.
 - **Vorschau:** XML plus Originaltext gegen genau den noch nicht publizierten Entwurf testen.
-- **Versionen:** Nur Entwürfe sind editier- oder löschbar. Publizieren macht die Definition samt SHA-256 immutable. Für Änderungen aus einer vorhandenen Version einen neuen Entwurf erzeugen. Eine von einem aktivierten Profil verwendete Version kann nicht archiviert werden.
+- **Versionen:** Nur Entwürfe sind editierbar. Publizieren macht die Definition samt SHA-256 immutable. Für Änderungen aus einer vorhandenen Version einen neuen Entwurf erzeugen. Eine von einem aktivierten Profil verwendete Version kann nicht archiviert werden. Entwürfe sowie nicht referenzierte publizierte oder archivierte Versionen können nach expliziter Bestätigung endgültig gelöscht werden.
 
 Unter **Trading → Strategien**:
 
@@ -62,6 +62,7 @@ Die authentifizierte Admin-API entspricht den UI-Aktionen. Mutationen benötigen
 | Neue Version / Duplikat | `POST /api/trading/signal-contracts/versions` / `duplicate` | Admin; Quelle bleibt unverändert |
 | Vertrag publizieren / archivieren | `POST …/publish` / `archive` | Admin; Archivierung nur ohne aktiviertes Profil |
 | Vertragsentwurf löschen | `DELETE /api/trading/signal-contracts/drafts` | Admin plus `X-Destructive-Confirmation: delete-signal-contract-draft` |
+| Publizierte/archivierte Vertragsversion löschen | `DELETE /api/trading/signal-contracts/versions` | Admin plus `X-Destructive-Confirmation: delete-signal-contract-version`; nur ohne irgendein referenzierendes Schema-Profil |
 | Vertrag in Vorschau validieren | `POST /api/trading/signal-contracts/validate` | Admin; keine Persistenz |
 | Profil anlegen | `POST /api/trading/signal-schemas` | Admin; Body mit `id`, `name`, `description`, `contractVersionId`, `templateName`, `enabled` |
 | Profil bearbeiten/aktivieren/deaktivieren | `POST /api/trading/signal-schemas/update` | Admin; Body zusätzlich mit unveränderlicher `id`; keine aktive Route darf das Profil verwenden |

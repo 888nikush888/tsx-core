@@ -134,6 +134,8 @@ try {
   });
   assert.equal(await control.removeSignalContractDraft(duplicatedContract.versions[0].id), true);
   assert.equal((await control.archiveSignalContract(publishedContract.id)).status, 'archived');
+  assert.equal(await control.removeSignalContractVersion(publishedContract.id), true);
+  assert.equal((await control.snapshot()).signalContracts.some(contract => contract.id === webContract.id), false);
   const channelPolicy = await control.setChannelRiskPolicy({
     channelId: '-100-web-risk',
     mode: 'fixed',

@@ -43,6 +43,7 @@ import {
   deleteTradingSignalSchema,
   deleteTradingStrategyVersion,
   deleteSignalContractDraft,
+  deleteSignalContractVersion,
   ensureTradingDefaults,
   getTradingOverview,
   getTradingOperationalSnapshot,
@@ -468,10 +469,23 @@ async function testDynamicContracts() {
     }),
     /Only an existing draft/,
   );
+  await updateTradingSignalSchema(profile.id, {
+    name: profile.name,
+    description: profile.description,
+    contractVersionId: profile.contractVersionId,
+    templateName: profile.templateName,
+    enabled: false,
+  });
+  await assert.rejects(
+    deleteSignalContractVersion(published.id),
+    /Signal schema profiles must be moved or deleted/,
+  );
   const next = await createSignalContractDraftVersion('desk-alpha', published.id);
   assert.equal(next.version, 2);
   assert.equal(await deleteSignalContractDraft(next.id), true);
   assert.equal(await deleteTradingSignalSchema(profile.id), true);
+  assert.equal(await deleteSignalContractVersion(published.id), true);
+  assert.equal((await listSignalContracts()).some(contract => contract.id === 'desk-alpha'), false);
 }
 
 async function testChannelRiskPolicies() {

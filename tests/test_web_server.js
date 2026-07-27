@@ -199,6 +199,38 @@ async function testTradingSignalSchemaControl(baseUrl, appState) {
   }
 }
 
+async function testPublishedSignalContractDeletion(baseUrl, appState) {
+  const removed = [];
+  const original = appState.tradingControl;
+  appState.tradingControl = {
+    removeSignalContractVersion: async versionId => {
+      removed.push(versionId);
+      return true;
+    },
+  };
+  try {
+    let response = await fetch(`${baseUrl}/api/trading/signal-contracts/versions`, {
+      method: 'DELETE',
+      headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ versionId: 'desk-alpha:v1' }),
+    });
+    assert.strictEqual(response.status, 412, 'Published contract deletion must require explicit confirmation');
+    response = await fetch(`${baseUrl}/api/trading/signal-contracts/versions`, {
+      method: 'DELETE',
+      headers: mutationHeaders({
+        'Content-Type': 'application/json',
+        'X-Destructive-Confirmation': 'delete-signal-contract-version',
+      }),
+      body: JSON.stringify({ versionId: 'desk-alpha:v1' }),
+    });
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual((await response.json()).result, true);
+    assert.deepStrictEqual(removed, ['desk-alpha:v1']);
+  } finally {
+    appState.tradingControl = original;
+  }
+}
+
 async function testMcpAgentAdministration(baseUrl) {
   let response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 403, 'MCP agent inventory must be restricted to administrators');
@@ -912,6 +944,7 @@ async function runTests() {
     await testRequestValidation(baseUrl);
     await testTradingStrategyDeletion(baseUrl, appState);
     await testTradingSignalSchemaControl(baseUrl, appState);
+    await testPublishedSignalContractDeletion(baseUrl, appState);
     await testMcpAgentAdministration(baseUrl);
 
     await testAuditedControl(baseUrl, controls);

@@ -15,6 +15,7 @@ import {
   deleteTradingRoute,
   deleteTradingSignalSchema,
   deleteSignalContractDraft,
+  deleteSignalContractVersion,
   deleteTradingStrategyVersion,
   getTradingAccount,
   getTradingAnalytics,
@@ -355,6 +356,10 @@ export class TradingWebControl {
 
   removeSignalContractDraft(versionId: unknown) {
     return deleteSignalContractDraft(versionId);
+  }
+
+  removeSignalContractVersion(versionId: unknown) {
+    return deleteSignalContractVersion(versionId);
   }
 
   validateSignalContract(payload: any) {

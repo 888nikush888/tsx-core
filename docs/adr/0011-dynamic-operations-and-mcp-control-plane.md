@@ -26,6 +26,8 @@ TSX Core besaß geprüfte, aber fest benannte Signalverträge, eine analytisch �
 
 - Fachliche Signalvarianten erfordern keine neue Parserklasse, solange sie durch die deklarativen Primitiven ausdrückbar sind.
 - Vertrag, Profil und Strategie bleiben getrennte Versionierungs- und Freigabeobjekte.
+
+Ergänzung 27.07.2026: Publizierte Definitionen bleiben unveränderlich, dürfen aber nach expliziter Bestätigung endgültig gelöscht werden, wenn kein aktiviertes oder deaktiviertes Signal-Schema-Profil mehr auf die Version verweist. Die Referenzprüfung verhindert gebrochene Laufzeit- und Verwaltungsverknüpfungen; Löschversuche bleiben auditiert.
 - Kanalautomatik kann Risiko reduzieren oder innerhalb der konfigurierten Stufen erhöhen, aber keine Strategie-/Systemgrenze überschreiten.
 - Der normale Stack bleibt bei zwei Services; MCP ist ein bewusst aktiviertes drittes Compose-Profil und verwendet dasselbe attestierte Node-Image.
 - MCP-Agenten erhalten keine Exchange-Secrets und keinen direkten Exchange-Adapter. Jede Mutation ist sowohl in der Agenten-Historie als auch in der Enterprise-Audit-Kette nachvollziehbar.
