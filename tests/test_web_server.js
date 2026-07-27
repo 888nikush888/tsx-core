@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { closeDb, initDb } from '../src/db.js';
-import { authenticateMcpToken } from '../src/mcp_repository.js';
+import { authenticateMcpToken, createMcpProposal } from '../src/mcp_repository.js';
 import { startWebServer, stopWebServer } from '../src/web_server.js';
 import { ManagedSecretStore } from '../src/secret_store.js';
 import { ManagedRuntimeSettingsStore } from '../src/runtime_settings.js';
@@ -281,6 +281,8 @@ async function testMcpAgentAdministration(baseUrl) {
   assert.strictEqual(response.status, 200, 'Administrator must be able to replace permanent MCP permissions');
   assert.deepStrictEqual((await response.json()).agent.permissions, ['system.read']);
 
+  await testMcpProposalAdministration(baseUrl, created.agent.id);
+
   response = await fetch(`${baseUrl}/api/mcp/agents/rotate`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
@@ -322,6 +324,70 @@ async function testMcpAgentAdministration(baseUrl) {
   assert.strictEqual(await authenticateMcpToken(rotated.token), null, 'Deleting an MCP agent must revoke its token immediately');
   response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual((await response.json()).agents.some(agent => agent.id === created.agent.id), false);
+}
+
+async function testMcpProposalAdministration(baseUrl, agentId) {
+  const approvedProposal = await createMcpProposal({
+    agentId,
+    action: 'risk.update',
+    payload: { channelId: '-web-approved' },
+  });
+  let response = await fetch(`${baseUrl}/api/mcp/proposals/approve`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: approvedProposal.id }),
+  });
+  assert.strictEqual(response.status, 412, 'MCP proposal approval must require explicit confirmation');
+  response = await fetch(`${baseUrl}/api/mcp/proposals/approve`, {
+    method: 'POST',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'approve-mcp-proposal',
+    }),
+    body: JSON.stringify({ id: approvedProposal.id }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).proposal.status, 'approved');
+
+  const rejectedProposal = await createMcpProposal({
+    agentId,
+    action: 'risk.delete',
+    payload: { channelId: '-web-rejected' },
+  });
+  response = await fetch(`${baseUrl}/api/mcp/proposals/reject`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: rejectedProposal.id, reason: 'Operator test rejection' }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).proposal.status, 'rejected');
+}
+
+async function testTradeJournalApi(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/trading/journal`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  assert.deepStrictEqual((await response.json()).entries, []);
+
+  response = await fetch(`${baseUrl}/api/trading/journal/export?format=csv`, {
+    headers: headers(VIEWER_TOKEN),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.match(response.headers.get('content-disposition') || '', /attachment; filename="tsx-core-trade-journal-/);
+  assert.strictEqual(response.headers.get('cache-control'), 'no-store');
+  assert.strictEqual(response.headers.get('x-content-type-options'), 'nosniff');
+  assert.match(await response.text(), /intent_id/);
+
+  response = await fetch(`${baseUrl}/api/trading/journal/export?format=xml`, {
+    headers: headers(VIEWER_TOKEN),
+  });
+  assert.strictEqual(response.status, 400);
+
+  response = await fetch(`${baseUrl}/api/trading/journal`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ intentId: 'missing', tags: [], reviewed: true }),
+  });
+  assert.strictEqual(response.status, 503, 'Failed audited journal mutations must fail closed');
 }
 
 async function testAuditedControl(baseUrl, controls) {
@@ -946,6 +1012,7 @@ async function runTests() {
     await testTradingSignalSchemaControl(baseUrl, appState);
     await testPublishedSignalContractDeletion(baseUrl, appState);
     await testMcpAgentAdministration(baseUrl);
+    await testTradeJournalApi(baseUrl);
 
     await testAuditedControl(baseUrl, controls);
     await testMissingAuditFailsClosed(baseUrl, appState);

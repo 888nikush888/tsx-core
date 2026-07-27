@@ -89,7 +89,8 @@ export const DATABASE_FEATURE_SET = [
   'versioned-signal-contracts',
   'channel-risk-and-execution-analytics',
   'mcp-agent-control-plane',
-  'mcp-agent-retirement'
+  'mcp-agent-retirement',
+  'exchange-streams-mcp-approvals-trade-journal'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -112,6 +113,7 @@ export const REQUIRED_DATABASE_TABLES = [
   'mcp_agent_actions',
   'mcp_control_requests',
   'mcp_event_deliveries',
+  'mcp_agent_proposals',
   'trading_strategy_versions',
   'trading_accounts',
   'trading_routes',
@@ -122,6 +124,9 @@ export const REQUIRED_DATABASE_TABLES = [
   'trading_positions',
   'trading_risk_events',
   'trading_reconciliation_runs',
+  'trading_exchange_events',
+  'trading_exchange_stream_state',
+  'trading_journal_entries',
   'trading_paper_accounts',
   'trading_paper_markets',
   'trading_paper_orders',
@@ -823,6 +828,74 @@ const migrations: SchemaMigration[] = [
           ON mcp_agents(name COLLATE NOCASE, created_at)
           WHERE deleted_at IS NULL;
       `
+  },
+  {
+    version: 12,
+    name: 'exchange_streams_mcp_approvals_trade_journal',
+    columns: [],
+    sql: `
+        CREATE TABLE IF NOT EXISTS trading_exchange_events (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          exchange TEXT NOT NULL CHECK(exchange IN ('hyperliquid', 'bybit')),
+          mode TEXT NOT NULL CHECK(mode IN ('testnet', 'live')),
+          event_key TEXT NOT NULL CHECK(length(event_key) = 64),
+          event_type TEXT NOT NULL CHECK(event_type IN (
+            'order', 'execution', 'position', 'market', 'candle', 'stream_status'
+          )),
+          symbol TEXT,
+          sequence INTEGER,
+          occurred_at INTEGER NOT NULL,
+          received_at INTEGER NOT NULL,
+          payload_json TEXT NOT NULL,
+          UNIQUE(account_id, event_key)
+        );
+        CREATE TABLE IF NOT EXISTS trading_exchange_stream_state (
+          account_id TEXT PRIMARY KEY REFERENCES trading_accounts(id) ON DELETE CASCADE,
+          status TEXT NOT NULL CHECK(status IN ('starting', 'healthy', 'degraded', 'stopped')),
+          cursor INTEGER NOT NULL DEFAULT 0 CHECK(cursor >= 0),
+          gap_count INTEGER NOT NULL DEFAULT 0 CHECK(gap_count >= 0),
+          last_event_at INTEGER,
+          last_poll_at INTEGER,
+          last_error TEXT,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS trading_journal_entries (
+          intent_id TEXT PRIMARY KEY REFERENCES trading_trade_intents(id) ON DELETE CASCADE,
+          notes TEXT NOT NULL DEFAULT '' CHECK(length(notes) <= 10000),
+          tags_json TEXT NOT NULL DEFAULT '[]',
+          rating INTEGER CHECK(rating IS NULL OR rating BETWEEN 1 AND 5),
+          reviewed INTEGER NOT NULL DEFAULT 0 CHECK(reviewed IN (0, 1)),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS mcp_agent_proposals (
+          id TEXT PRIMARY KEY,
+          agent_id TEXT NOT NULL REFERENCES mcp_agents(id) ON DELETE RESTRICT,
+          session_id TEXT REFERENCES mcp_agent_sessions(id) ON DELETE RESTRICT,
+          action TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          preflight_json TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN (
+            'pending', 'approved', 'rejected', 'executing', 'completed', 'failed', 'expired'
+          )),
+          requested_at INTEGER NOT NULL,
+          expires_at INTEGER NOT NULL,
+          decided_at INTEGER,
+          decided_by TEXT,
+          executed_at INTEGER,
+          result_json TEXT,
+          error TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_exchange_events_account_time
+          ON trading_exchange_events(account_id, received_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_exchange_events_type_time
+          ON trading_exchange_events(event_type, received_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_journal_review
+          ON trading_journal_entries(reviewed, updated_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_mcp_proposals_state
+          ON mcp_agent_proposals(status, requested_at);
+      `
   }
 ];
 
@@ -1321,6 +1394,10 @@ async function pruneTradingData(database: Database, cutoff: number, batchSize: n
          WHERE risk.intent_id = trading_trade_intents.id
            AND risk.severity = 'critical' AND risk.acknowledged_at IS NULL
        )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_journal_entries AS journal
+         WHERE journal.intent_id = trading_trade_intents.id
+       )
      ORDER BY updated_at ASC LIMIT ?`,
     [cutoff, batchSize]
   );
@@ -1346,6 +1423,13 @@ async function pruneTradingData(database: Database, cutoff: number, batchSize: n
        ORDER BY updated_at ASC LIMIT ?
      )`,
     [cutoff, batchSize]
+  );
+  await database.run(
+    `DELETE FROM trading_exchange_events WHERE id IN (
+       SELECT id FROM trading_exchange_events
+       WHERE received_at < ? ORDER BY received_at ASC LIMIT ?
+     )`,
+    [cutoff, batchSize],
   );
   return [intents.changes, reconciliations.changes, paperOrders.changes];
 }

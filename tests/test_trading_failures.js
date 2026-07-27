@@ -557,6 +557,74 @@ async function testRuntimeLifecycleAndDefaultFailureLogger(directory) {
   await closeDb();
 }
 
+async function waitForCondition(predicate, message) {
+  const deadline = Date.now() + 3_000;
+  while (Date.now() < deadline) {
+    if (await predicate()) return;
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  throw new Error(message);
+}
+
+async function testExchangeStreamAcceleratesAuthoritativeReconciliation(directory) {
+  await initDb(path.join(directory, 'runtime-exchange-stream.db'));
+  await ensureTradingDefaults();
+  const account = await createTradingAccount({
+    name: 'Stream Bybit', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-stream',
+  });
+  await updateTradingAccountState(account.id, {
+    status: 'ready', enabled: true, verifiedAt: Date.now(), externalAccountId: 'stream-account',
+  });
+  const reconciliations = [];
+  let emitted = false;
+  const engine = {
+    reconcileAccount: async (accountId, options) => { reconciliations.push([accountId, options?.force]); },
+    cancelExpiredEntries: async () => 0,
+    processIntent: async () => undefined,
+    pollAccountStream: async () => {
+      if (emitted) return null;
+      emitted = true;
+      const now = Date.now();
+      return {
+        account: { ...account, status: 'ready', enabled: true },
+        batch: {
+          events: [{
+            cursor: 1,
+            eventKey: 'c'.repeat(64),
+            eventType: 'order',
+            symbol: 'BTCUSDT',
+            sequence: 1,
+            occurredAt: now,
+            receivedAt: now,
+            payload: { orderId: 'stream-order' },
+          }],
+          nextCursor: 1,
+          gap: false,
+          health: { status: 'healthy', startedAt: now, lastEventAt: now, lastError: null },
+        },
+      };
+    },
+  };
+  const runtime = new TradingRuntime(engine, 60_000);
+  await runtime.startProtectionOnly();
+  await waitForCondition(async () => {
+    const event = await getDatabase().get(
+      'SELECT id FROM trading_exchange_events WHERE account_id = ?', [account.id],
+    );
+    return Boolean(event) && reconciliations.some(([id, force]) => id === account.id && force === true);
+  }, 'WebSocket state event did not trigger authoritative forced reconciliation.');
+  assert.ok(
+    reconciliations.some(([id, force]) => id === account.id && force === true),
+    'State-bearing stream events must accelerate a forced REST reconciliation.',
+  );
+  await runtime.stop();
+  const streamState = await getDatabase().get(
+    'SELECT status FROM trading_exchange_stream_state WHERE account_id = ?', [account.id],
+  );
+  assert.equal(streamState.status, 'stopped');
+  await closeDb();
+}
+
 async function testStartupReconciliationFailureKeepsControlPlaneAvailable(directory) {
   await initDb(path.join(directory, 'startup-reconciliation.db'));
   await ensureTradingDefaults();
@@ -644,6 +712,7 @@ async function run() {
     await testAccountDailyRiskIncludesExistingLoss(directory);
     await testAccountDailyRiskIncludesFundingLoss(directory);
     await testRuntimeLifecycleAndDefaultFailureLogger(directory);
+    await testExchangeStreamAcceleratesAuthoritativeReconciliation(directory);
     await testStartupReconciliationFailureKeepsControlPlaneAvailable(directory);
     await testUnmanagedExposureAndOperatorFlatten(directory);
   } finally {

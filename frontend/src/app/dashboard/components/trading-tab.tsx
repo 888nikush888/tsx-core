@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 import { ChannelRiskManager } from "./channel-risk-manager"
 import { SignalContractManager } from "./signal-contract-manager"
+import { TradeJournal } from "./trade-journal"
 
 const API_BASE = window.location.origin
 const DEFAULT_CONFIGURATION = {
@@ -33,8 +34,8 @@ const DEFAULT_CONFIGURATION = {
   safety: { maxConcurrentPositions: 1, maxDailyLoss: "100", maxSlippagePercent: "0.5", entryOrderTtlSeconds: 900, requireProtectiveStop: true },
 }
 
-type Workspace = "overview" | "contracts" | "strategies" | "routing" | "accounts" | "paper" | "activity"
-const WORKSPACES = new Set<Workspace>(["overview", "contracts", "strategies", "routing", "accounts", "paper", "activity"])
+type Workspace = "overview" | "contracts" | "strategies" | "routing" | "accounts" | "paper" | "activity" | "journal"
+const WORKSPACES = new Set<Workspace>(["overview", "contracts", "strategies", "routing", "accounts", "paper", "activity", "journal"])
 
 function tradingWorkspace(value: string | null): Workspace {
   return value && WORKSPACES.has(value as Workspace) ? value as Workspace : "overview"
@@ -114,7 +115,7 @@ export function TradingTab({ config }: Readonly<{ config: any }>) {
 
   const nav: Array<[Workspace, string]> = [
     ["overview", "Betrieb"], ["contracts", "Verträge"], ["strategies", "Strategien"], ["routing", "Kanal-Routing"],
-    ["accounts", "Börsenkonten"], ["paper", "Paper-Märkte"], ["activity", "Trades & Risiko"],
+    ["accounts", "Börsenkonten"], ["paper", "Paper-Märkte"], ["activity", "Trades & Risiko"], ["journal", "Trade Journal"],
   ]
   return <div className="space-y-5">
     <div className="flex flex-wrap gap-2">
@@ -129,6 +130,7 @@ export function TradingTab({ config }: Readonly<{ config: any }>) {
     {workspace === "accounts" && <Accounts data={data} busy={busy} run={run} />}
     {workspace === "paper" && <Paper data={data} busy={busy} run={run} />}
     {workspace === "activity" && <Activity data={data} busy={busy} run={run} />}
+    {workspace === "journal" && <TradeJournal data={data} />}
   </div>
 }
 
@@ -145,6 +147,10 @@ function Overview({ data, busy, run }: any) {
       <Metric label="Unklare Orders" value={data.overview.unknownOrderCount} />
       <Metric label="Letzter Abgleich" value={time(data.overview.latestReconciliationAt)} />
     </div>
+    <Card><CardHeader><CardTitle>Exchange WebSockets</CardTitle><CardDescription>Private Order-, Fill- und Positionsereignisse sowie aktive Preis-/Kerzenstreams. REST-Reconciliation bleibt die autoritative Absicherung.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2">
+      {(data.exchangeStreams || []).map((stream: any) => <Badge key={stream.accountId} variant={stream.status === "healthy" ? "default" : stream.status === "starting" ? "secondary" : "destructive"}>{stream.accountName}: {stream.status} · Cursor {stream.cursor}{stream.gapCount ? ` · ${stream.gapCount} Gap(s)` : ""}</Badge>)}
+      {(data.exchangeStreams || []).length === 0 && <span className="text-sm text-muted-foreground">Noch kein aktives Bybit- oder Hyperliquid-Konto gestreamt.</span>}
+    </CardContent></Card>
     {(runtime.killSwitchActive || data.overview.unknownOrderCount > 0) && <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-destructive"><div className="flex items-center gap-2 font-semibold"><ShieldAlert className="h-5 w-5" />Trading fail-closed</div><p className="mt-1 text-sm">{runtime.killSwitchReason || `${data.overview.unknownOrderCount} Order(s) mit unbekanntem Ausgang.`}</p></div>}
     <div className="grid gap-4 lg:grid-cols-2">
       <Card><CardHeader><CardTitle>Ausführung</CardTitle><CardDescription>Neue Signale werden nur bei aktivierter Ausführung verarbeitet. Live bleibt separat gesperrt.</CardDescription></CardHeader><CardContent className="space-y-4">

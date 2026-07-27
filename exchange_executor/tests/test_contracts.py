@@ -26,9 +26,36 @@ from common import (
 from credentials import CredentialError, CredentialStore
 from hyperliquid_adapter import HyperliquidAdapter
 from server import Handler
+from stream_hub import AccountStream, _canonical_payload, _event_type, _symbol
 
 
 class ContractTests(unittest.TestCase):
+    def test_websocket_events_are_normalized_and_cursor_gaps_fail_safe(self) -> None:
+        stream = AccountStream(
+            {"id": "account-stream", "exchange": "bybit", "mode": "testnet"},
+            {"apiKey": "test-key", "apiSecret": "test-secret"},
+            "a" * 64,
+        )
+        message = {
+            "topic": "execution",
+            "creationTime": 1_700_000_000_000,
+            "data": [{"symbol": "BTCUSDT", "execId": "fill-1", "seq": 7}],
+        }
+        stream._ingest("execution", message)
+        stream._ingest("execution", message)
+        batch = stream.poll(0)
+        self.assertEqual([event["cursor"] for event in batch["events"]], [1, 2])
+        self.assertEqual(batch["events"][0]["eventKey"], batch["events"][1]["eventKey"])
+        self.assertEqual(batch["events"][0]["eventType"], "execution")
+        self.assertEqual(batch["events"][0]["symbol"], "BTCUSDT")
+        self.assertTrue(stream.poll(99)["gap"])
+        self.assertEqual(_event_type("orderUpdates"), "order")
+        self.assertEqual(_event_type("webData2"), "position")
+        self.assertEqual(_symbol("hyperliquid", "ETH"), "ETHUSDC")
+        truncated, digest = _canonical_payload({"value": "x" * (70 * 1024)})
+        self.assertTrue(truncated["truncated"])
+        self.assertEqual(truncated["sha256"], digest)
+
     def test_plain_decimals_only(self) -> None:
         self.assertEqual(decimal_string("1.2300", "price", positive=True), "1.23")
         self.assertEqual(signed_decimal_string("-12.3400", "pnl"), "-12.34")

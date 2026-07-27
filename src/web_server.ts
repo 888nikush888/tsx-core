@@ -25,12 +25,20 @@ import type { ManagedRuntimeSettingsStore } from './runtime_settings.js';
 import { DEFAULT_SIGNAL_PROMPT } from './signal_parser.js';
 import type { TradingWebControl } from './trading_web_control.js';
 import {
+  approveMcpProposal,
   createMcpAgent,
   deleteMcpAgent,
   mcpDashboardSnapshot,
+  rejectMcpProposal,
   rotateMcpAgentToken,
   updateMcpAgent,
 } from './mcp_repository.js';
+import {
+  listTradeJournal,
+  tradeJournalCsv,
+  updateTradeJournalReview,
+  type TradeJournalFilters,
+} from './trade_journal.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TEMPLATES_DIR = path.join(__dirname, '../templates');
@@ -602,6 +610,21 @@ function logsHandler(context: RequestContext): void {
   } catch (error) {
     sendError(context, error instanceof Error ? new HttpError(400, error.message) : error);
   }
+}
+
+function sendDownload(
+  res: http.ServerResponse,
+  contentType: string,
+  filename: string,
+  content: string,
+): void {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', `${contentType}; charset=utf-8`);
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.end(content);
 }
 
 function accessStatusHandler(context: RequestContext): void {
@@ -1374,6 +1397,67 @@ function configuredMcpEndpoint(): string | null {
   }
 }
 
+function journalFilters(context: RequestContext): TradeJournalFilters {
+  const query = context.parsedUrl.searchParams;
+  const timestamp = (name: string): number | undefined => {
+    const value = query.get(name);
+    if (!value) return undefined;
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed) || parsed < 0) throw new HttpError(400, `${name} is invalid.`);
+    return parsed;
+  };
+  const reviewedValue = query.get('reviewed');
+  if (reviewedValue && reviewedValue !== 'true' && reviewedValue !== 'false') {
+    throw new HttpError(400, 'reviewed must be true or false.');
+  }
+  const limitValue = query.get('limit');
+  return {
+    from: timestamp('from'),
+    to: timestamp('to'),
+    accountId: query.get('accountId') || undefined,
+    channelId: query.get('channelId') || undefined,
+    symbol: query.get('symbol') || undefined,
+    status: query.get('status') || undefined,
+    reviewed: reviewedValue ? reviewedValue === 'true' : undefined,
+    limit: limitValue ? Number(limitValue) : undefined,
+  };
+}
+
+async function tradingJournalHandler(context: RequestContext): Promise<void> {
+  try {
+    sendJson(context.res, 200, {
+      entries: await listTradeJournal(journalFilters(context)),
+      redacted: true,
+    });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
+  }
+}
+
+async function tradingJournalExportHandler(context: RequestContext): Promise<void> {
+  try {
+    const entries = await listTradeJournal(journalFilters(context));
+    const date = new Date().toISOString().slice(0, 10);
+    const format = context.parsedUrl.searchParams.get('format') || 'json';
+    if (format === 'csv') {
+      sendDownload(context.res, 'text/csv', `tsx-core-trade-journal-${date}.csv`, tradeJournalCsv(entries));
+      return;
+    }
+    if (format !== 'json') throw new HttpError(400, 'Journal export format must be json or csv.');
+    sendDownload(
+      context.res,
+      'application/json',
+      `tsx-core-trade-journal-${date}.json`,
+      JSON.stringify({ exportedAt: Date.now(), redacted: true, entries }, null, 2),
+    );
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
+  }
+}
+
+const updateTradingJournalHandler = (context: RequestContext) =>
+  tradingMutation(context, (_control, payload) => updateTradeJournalReview(payload));
+
 async function mcpSnapshotHandler(context: RequestContext): Promise<void> {
   if (context.actor?.role !== 'admin') {
     sendJson(context.res, 403, { error: 'Administrator role required.', requestId: context.requestId });
@@ -1455,6 +1539,41 @@ async function deleteMcpAgentHandler(context: RequestContext): Promise<void> {
   }
 }
 
+async function approveMcpProposalHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(
+    context,
+    'approve-mcp-proposal',
+    'Explicit MCP proposal approval confirmation required.',
+  )) return;
+  try {
+    const payload = await readJsonBody(context.req, 8 * 1024);
+    sendJson(context.res, 200, {
+      success: true,
+      proposal: await approveMcpProposal(payload.id, context.actor?.id || 'dashboard:admin'),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function rejectMcpProposalHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 16 * 1024);
+    sendJson(context.res, 200, {
+      success: true,
+      proposal: await rejectMcpProposal(
+        payload.id,
+        context.actor?.id || 'dashboard:admin',
+        payload.reason,
+      ),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
 const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/status', statusHandler],
   ['GET /api/access', accessStatusHandler],
@@ -1496,6 +1615,9 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/backups/restore', restoreBackupHandler],
   ['GET /api/trading', tradingSnapshotHandler],
   ['GET /api/trading/portfolio', tradingPortfolioHandler],
+  ['GET /api/trading/journal', tradingJournalHandler],
+  ['GET /api/trading/journal/export', tradingJournalExportHandler],
+  ['POST /api/trading/journal', updateTradingJournalHandler],
   ['POST /api/trading/strategies', createTradingStrategyHandler],
   ['POST /api/trading/strategies/update', updateTradingStrategyHandler],
   ['POST /api/trading/strategies/publish', publishTradingStrategyHandler],
@@ -1533,6 +1655,8 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/mcp/agents/update', updateMcpAgentHandler],
   ['POST /api/mcp/agents/rotate', rotateMcpAgentTokenHandler],
   ['DELETE /api/mcp/agents', deleteMcpAgentHandler],
+  ['POST /api/mcp/proposals/approve', approveMcpProposalHandler],
+  ['POST /api/mcp/proposals/reject', rejectMcpProposalHandler],
 ]);
 
 function bootstrapStatusHandler(

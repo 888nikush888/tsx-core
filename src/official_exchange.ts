@@ -4,6 +4,8 @@ import type {
   ExchangeOpenState,
   ExchangeOrderRequest,
   ExchangeOrderResult,
+  ExchangeStreamBatch,
+  ExchangeStreamEventType,
   TradingAccount,
   TradingAccountSnapshot,
   TradingExchangeAdapter,
@@ -48,6 +50,63 @@ function assertOrderResult(value: unknown): ExchangeOrderResult {
     throw new Error('Exchange executor returned an invalid order status.');
   }
   return result as ExchangeOrderResult;
+}
+
+const STREAM_EVENT_TYPES = new Set<ExchangeStreamEventType>([
+  'order',
+  'execution',
+  'position',
+  'market',
+  'candle',
+  'stream_status',
+]);
+
+function isSafeIntegerAtLeast(value: unknown, minimum: number): boolean {
+  return Number.isSafeInteger(value) && Number(value) >= minimum;
+}
+
+function isNullableTimestamp(value: unknown): boolean {
+  return value === null || isSafeIntegerAtLeast(value, 0);
+}
+
+function isNullableSequence(value: unknown): boolean {
+  return value === null || Number.isSafeInteger(value);
+}
+
+function isNullableSymbol(value: unknown): boolean {
+  return value === null || (typeof value === 'string' && value.length <= 40);
+}
+
+function assertStreamHealth(value: unknown): void {
+  const health = assertObject(value, 'Exchange stream health');
+  const statusValid = ['starting', 'healthy', 'degraded', 'stopped'].includes(health.status);
+  const errorValid = health.lastError === null || typeof health.lastError === 'string';
+  if (!statusValid || !isNullableTimestamp(health.startedAt)
+    || !isNullableTimestamp(health.lastEventAt) || !errorValid) {
+    throw new Error('Exchange executor returned invalid stream health.');
+  }
+}
+
+function assertStreamEvent(value: unknown): void {
+  const event = assertObject(value, 'Exchange stream event');
+  const keyValid = typeof event.eventKey === 'string' && /^[a-f0-9]{64}$/.test(event.eventKey);
+  const typeValid = STREAM_EVENT_TYPES.has(event.eventType);
+  if (!isSafeIntegerAtLeast(event.cursor, 1) || !keyValid || !typeValid
+    || !isNullableSymbol(event.symbol) || !isNullableSequence(event.sequence)
+    || !isSafeIntegerAtLeast(event.occurredAt, 0) || !isSafeIntegerAtLeast(event.receivedAt, 0)) {
+    throw new Error('Exchange executor returned an invalid stream event.');
+  }
+}
+
+function assertStreamBatch(value: unknown): ExchangeStreamBatch {
+  const batch = assertObject(value, 'Exchange stream');
+  const eventsValid = Array.isArray(batch.events);
+  if (!eventsValid || !isSafeIntegerAtLeast(batch.nextCursor, 0) || typeof batch.gap !== 'boolean') {
+    throw new Error('Exchange executor returned an invalid stream batch contract.');
+  }
+  assertStreamHealth(batch.health);
+  batch.events.forEach(assertStreamEvent);
+  return batch as ExchangeStreamBatch;
 }
 
 export class OfficialExchangeAdapter implements TradingExchangeAdapter {
@@ -173,6 +232,23 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
       };
     });
     return state as ExchangeOpenState;
+  }
+
+  async streamEvents(
+    account: TradingAccount,
+    cursor: number,
+    symbols: string[],
+  ): Promise<ExchangeStreamBatch> {
+    if (!Number.isSafeInteger(cursor) || cursor < 0) throw new Error('Exchange stream cursor is invalid.');
+    if (!Array.isArray(symbols) || symbols.length > 100
+      || symbols.some(symbol => !/^[A-Z0-9]{2,30}(?:USD|USDC|USDT)$/.test(symbol))) {
+      throw new Error('Exchange stream symbols must be bounded USD pairs.');
+    }
+    return assertStreamBatch(await this.post('/v1/stream-events', {
+      account: accountPayload(account),
+      cursor,
+      symbols: [...new Set(symbols)].sort(),
+    }, 5_000));
   }
 
   private async post(endpoint: string, payload: unknown, timeoutMs = 12_000): Promise<unknown> {

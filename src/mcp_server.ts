@@ -9,11 +9,14 @@ import { closeDb, getDatabase, initDb } from './db.js';
 import { loadEnv } from './env.js';
 import {
   getTradingOverview,
+  getTradingAnalytics,
   listSignalContracts,
   listTradingActivity,
   listTradingAccounts,
   listTradingIntents,
   listTradingRoutes,
+  listTradingSignalSchemas,
+  listTradingStrategies,
 } from './trading_repository.js';
 import { listChannelRiskEvaluations, listChannelRiskPolicies } from './trading_channel_risk.js';
 import { getTradingExecutionAnalytics } from './trading_telemetry.js';
@@ -21,20 +24,30 @@ import {
   agentHasPermission,
   authenticateMcpToken,
   connectMcpSession,
+  createMcpProposal,
   disconnectMcpSession,
   enqueueMcpControlRequest,
+  getMcpProposal,
   listMcpAgents,
+  listMcpProposals,
   listPendingMcpEvents,
+  preflightMcpAction,
   recordMcpAgentAction,
   recordMcpEventDelivery,
   touchMcpSession,
   waitForMcpControlRequest,
+  waitForMcpProposal,
   type AuthenticatedMcpAgent,
   type McpAgent,
   type McpAgentSession,
   type McpControlAction,
+  type McpProposalAction,
   type McpPermission,
 } from './mcp_repository.js';
+import { listExchangeStreamStates } from './exchange_stream_repository.js';
+import { listTradeJournal } from './trade_journal.js';
+import { validateSignalContractDefinition } from './signal_contract.js';
+import { assertSignalGrounded, validateSignalXml } from './signal_schema.js';
 import {
   databaseFileIdentity,
   mcpMaintenanceActive,
@@ -44,6 +57,27 @@ import {
 const MAXIMUM_TOOL_RESULT_BYTES = 512 * 1024;
 const AUTH_WINDOW_MS = 60_000;
 const AUTH_MAXIMUM_FAILURES = 20;
+const PROPOSAL_ACTION_VALUES = [
+  'contracts.create_version',
+  'contracts.duplicate',
+  'contracts.publish',
+  'contracts.archive',
+  'contracts.delete_draft',
+  'contracts.delete_version',
+  'schemas.create',
+  'schemas.update',
+  'schemas.delete',
+  'strategies.create',
+  'strategies.update',
+  'strategies.publish',
+  'strategies.archive',
+  'strategies.delete',
+  'routes.set',
+  'routes.delete',
+  'risk.update',
+  'risk.delete',
+  'trading.release_kill_switch',
+] as const;
 
 type ToolHandler = (input: any, sessionId?: string) => Promise<unknown>;
 type SessionRuntime = {
@@ -254,7 +288,41 @@ function enqueueControl(
     });
 }
 
-function registerReadTools(server: McpServer, agentId: string): void {
+async function enqueueProposal(
+  agentId: string,
+  sessionId: string | undefined,
+  action: McpProposalAction,
+  payload: unknown,
+): Promise<unknown> {
+  const proposal = await createMcpProposal({
+    agentId,
+    sessionId,
+    action,
+    payload,
+    autoApprove: true,
+  });
+  if (proposal.status === 'pending') {
+    return {
+      proposalId: proposal.id,
+      status: proposal.status,
+      requiresApproval: true,
+      expiresAt: proposal.expiresAt,
+      preflight: proposal.preflight,
+    };
+  }
+  const completed = await waitForMcpProposal(proposal.id, 45_000);
+  if (completed.status !== 'completed') {
+    throw new Error(completed.error || `TSX Core proposal ended with ${completed.status}.`);
+  }
+  return {
+    proposalId: completed.id,
+    status: completed.status,
+    requiresApproval: false,
+    result: completed.result,
+  };
+}
+
+function registerCoreReadTools(server: McpServer, agentId: string): void {
   registerTool(server, agentId, 'tsx_system_status', 'system.read', {
     title: 'TSX Core system status',
     description: 'Reads execution safety state, route/account counts and current execution latency metrics.',
@@ -269,6 +337,26 @@ function registerReadTools(server: McpServer, agentId: string): void {
     description: 'Lists the reusable, versioned XML signal contracts and their definitions.',
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, () => listSignalContracts());
+
+  registerTool(server, agentId, 'tsx_contract_validate', 'contracts.read', {
+    title: 'Validate contract and XML sample',
+    description: 'Validates a draft contract definition, an XML sample and optional Telegram source grounding without saving changes.',
+    inputSchema: {
+      definition: z.record(z.string(), z.unknown()),
+      xml: z.string().min(1).max(64 * 1024),
+      sourceText: z.string().max(64 * 1024).optional(),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async ({ definition, xml, sourceText }) => {
+    const contractDefinition = validateSignalContractDefinition(definition);
+    const validated = validateSignalXml(
+      xml,
+      undefined,
+      { id: 'mcp-contract-preview', parserSchema: 'standard', contractDefinition },
+    );
+    if (sourceText?.trim()) assertSignalGrounded(validated, sourceText);
+    return validated;
+  });
 
   registerTool(server, agentId, 'tsx_positions_list', 'positions.read', {
     title: 'List managed positions',
@@ -306,6 +394,82 @@ function registerReadTools(server: McpServer, agentId: string): void {
     };
   });
 
+  registerTool(server, agentId, 'tsx_signal_schemas_list', 'contracts.read', {
+    title: 'List signal schema profiles',
+    description: 'Lists user-managed parser profiles and their pinned signal-contract versions.',
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, () => listTradingSignalSchemas());
+}
+
+function registerExtendedReadTools(server: McpServer, agentId: string): void {
+  registerTool(server, agentId, 'tsx_strategies_list', 'strategies.read', {
+    title: 'List strategy versions',
+    description: 'Lists draft, published and archived strategy versions including immutable hashes.',
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, () => listTradingStrategies());
+
+  registerTool(server, agentId, 'tsx_routes_list', 'routes.read', {
+    title: 'List channel routes',
+    description: 'Lists Telegram channel to strategy/account routing.',
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, () => listTradingRoutes());
+
+  registerTool(server, agentId, 'tsx_analytics', 'analytics.read', {
+    title: 'Read trading analytics',
+    description: 'Reads performance, execution latency and exchange WebSocket health.',
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async () => ({
+    performance: await getTradingAnalytics(),
+    execution: await getTradingExecutionAnalytics(),
+    exchangeStreams: await listExchangeStreamStates(),
+  }));
+
+  registerTool(server, agentId, 'tsx_trade_journal', 'journal.read', {
+    title: 'Read redacted trade journal',
+    description: 'Reads trade provenance, fills, fees, PnL and operator reviews with Telegram PII redacted.',
+    inputSchema: {
+      accountId: z.string().min(1).max(64).optional(),
+      channelId: z.string().min(1).max(128).optional(),
+      symbol: z.string().min(2).max(40).optional(),
+      status: z.enum(['pending', 'planned', 'submitting', 'monitoring', 'completed', 'blocked', 'failed', 'unknown']).optional(),
+      reviewed: z.boolean().optional(),
+      limit: z.number().int().min(1).max(200).default(100),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, input => listTradeJournal(input));
+
+  registerTool(server, agentId, 'tsx_preflight', 'system.read', {
+    title: 'Preflight a controlled change',
+    description: 'Calculates current blockers, impact and human-approval requirements without mutating TSX Core.',
+    inputSchema: {
+      action: z.enum(PROPOSAL_ACTION_VALUES),
+      payload: z.record(z.string(), z.unknown()),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, ({ action, payload }) => preflightMcpAction(action, payload));
+
+  registerTool(server, agentId, 'tsx_proposals_list', 'system.read', {
+    title: 'List this agent proposals',
+    description: 'Lists persistent approval requests and completed controlled changes for this agent.',
+    inputSchema: { limit: z.number().int().min(1).max(200).default(100) },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async ({ limit }) => (await listMcpProposals(limit)).filter(proposal => proposal.agentId === agentId));
+
+  registerTool(server, agentId, 'tsx_proposal_status', 'system.read', {
+    title: 'Read proposal status',
+    description: 'Reads one persistent proposal after operator approval, rejection or execution.',
+    inputSchema: { proposalId: z.string().min(1).max(64) },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async ({ proposalId }) => {
+    const proposal = await getMcpProposal(proposalId);
+    if (!proposal || proposal.agentId !== agentId) throw new Error('MCP proposal does not exist.');
+    return proposal;
+  });
+}
+
+function registerReadTools(server: McpServer, agentId: string): void {
+  registerCoreReadTools(server, agentId);
+  registerExtendedReadTools(server, agentId);
 }
 
 function registerControlTool(
@@ -323,6 +487,24 @@ function registerControlTool(
     permission,
     config,
     (input, sessionId) => enqueueControl(agentId, sessionId, action, input),
+  );
+}
+
+function registerProposalTool(
+  server: McpServer,
+  agentId: string,
+  name: string,
+  permission: McpPermission,
+  action: McpProposalAction,
+  config: any,
+): void {
+  registerTool(
+    server,
+    agentId,
+    name,
+    permission,
+    config,
+    (input, sessionId) => enqueueProposal(agentId, sessionId, action, input),
   );
 }
 
@@ -350,28 +532,54 @@ function registerContractTools(server: McpServer, agentId: string): void {
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   });
-  registerControlTool(server, agentId, 'tsx_contract_publish', 'contracts.write', 'contracts.publish', {
+  registerProposalTool(server, agentId, 'tsx_contract_publish', 'contracts.write', 'contracts.publish', {
     title: 'Publish signal contract',
     description: 'Publishes a validated draft contract version.',
     inputSchema: { versionId: z.string().min(1).max(64) },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   });
-  registerControlTool(server, agentId, 'tsx_contract_archive', 'contracts.write', 'contracts.archive', {
+  registerProposalTool(server, agentId, 'tsx_contract_archive', 'contracts.write', 'contracts.archive', {
     title: 'Archive signal contract',
     description: 'Archives a published signal contract version.',
     inputSchema: { versionId: z.string().min(1).max(64) },
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   });
-  registerControlTool(server, agentId, 'tsx_contract_delete_draft', 'contracts.write', 'contracts.delete_draft', {
+  registerProposalTool(server, agentId, 'tsx_contract_delete_draft', 'contracts.write', 'contracts.delete_draft', {
     title: 'Delete contract draft',
     description: 'Permanently deletes a draft contract version.',
+    inputSchema: { versionId: z.string().min(1).max(64) },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_contract_create_version', 'contracts.write', 'contracts.create_version', {
+    title: 'Create contract draft version',
+    description: 'Copies a selected contract version into the next editable draft version.',
+    inputSchema: {
+      contractId: z.string().min(1).max(40),
+      sourceVersionId: z.string().min(1).max(64),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_contract_duplicate', 'contracts.write', 'contracts.duplicate', {
+    title: 'Duplicate signal contract',
+    description: 'Creates a new independent contract and v1 draft from an existing version.',
+    inputSchema: {
+      sourceVersionId: z.string().min(1).max(64),
+      id: z.string().min(1).max(40),
+      name: z.string().min(1).max(80),
+      description: z.string().max(500).default(''),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_contract_delete_version', 'contracts.write', 'contracts.delete_version', {
+    title: 'Delete published or archived contract version',
+    description: 'Requests operator approval to permanently delete an unreferenced version.',
     inputSchema: { versionId: z.string().min(1).max(64) },
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   });
 }
 
 function registerRiskTools(server: McpServer, agentId: string): void {
-  registerControlTool(server, agentId, 'tsx_risk_policy_update', 'risk.write', 'risk.update', {
+  registerProposalTool(server, agentId, 'tsx_risk_policy_update', 'risk.write', 'risk.update', {
     title: 'Update channel risk policy',
     description: 'Creates or updates adaptive risk settings for one source channel.',
     inputSchema: {
@@ -390,9 +598,93 @@ function registerRiskTools(server: McpServer, agentId: string): void {
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   });
-  registerControlTool(server, agentId, 'tsx_risk_policy_delete', 'risk.write', 'risk.delete', {
+  registerProposalTool(server, agentId, 'tsx_risk_policy_delete', 'risk.write', 'risk.delete', {
     title: 'Delete channel risk policy',
     description: 'Deletes the adaptive risk policy for one source channel.',
+    inputSchema: { channelId: z.string().min(1).max(128) },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  });
+}
+
+function registerConfigurationTools(server: McpServer, agentId: string): void {
+  const schemaInput = {
+    id: z.string().min(1).max(40),
+    name: z.string().min(1).max(80),
+    description: z.string().max(500).default(''),
+    parserSchema: z.enum(['standard', 'cryptodanielvip', 'loma']),
+    contractVersionId: z.string().min(1).max(64),
+    templateName: z.string().min(1).max(128),
+    enabled: z.boolean(),
+  };
+  registerProposalTool(server, agentId, 'tsx_signal_schema_create', 'contracts.write', 'schemas.create', {
+    title: 'Create signal schema profile',
+    description: 'Creates a user-managed parser/profile binding to a published XML contract version.',
+    inputSchema: schemaInput,
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_signal_schema_update', 'contracts.write', 'schemas.update', {
+    title: 'Update signal schema profile',
+    description: 'Requests approval to update a parser/profile binding when no active route depends on it.',
+    inputSchema: schemaInput,
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_signal_schema_delete', 'contracts.write', 'schemas.delete', {
+    title: 'Delete signal schema profile',
+    description: 'Requests approval to permanently delete an unused signal schema profile.',
+    inputSchema: { id: z.string().min(1).max(40) },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  });
+
+  const strategyDraftInput = {
+    strategyId: z.string().min(1).max(64).optional(),
+    name: z.string().min(1).max(80),
+    description: z.string().max(500).default(''),
+    configuration: z.record(z.string(), z.unknown()),
+  };
+  registerProposalTool(server, agentId, 'tsx_strategy_create', 'strategies.write', 'strategies.create', {
+    title: 'Create strategy draft',
+    description: 'Creates an unrouted editable strategy or next draft version.',
+    inputSchema: strategyDraftInput,
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_strategy_update', 'strategies.write', 'strategies.update', {
+    title: 'Update strategy draft',
+    description: 'Updates an existing unpublished strategy draft.',
+    inputSchema: {
+      id: z.string().min(1).max(64),
+      name: z.string().min(1).max(80),
+      description: z.string().max(500).default(''),
+      configuration: z.record(z.string(), z.unknown()),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  for (const [name, action, title, destructive] of [
+    ['tsx_strategy_publish', 'strategies.publish', 'Publish strategy version', false],
+    ['tsx_strategy_archive', 'strategies.archive', 'Archive strategy version', true],
+    ['tsx_strategy_delete', 'strategies.delete', 'Delete strategy version', true],
+  ] as const) {
+    registerProposalTool(server, agentId, name, 'strategies.write', action, {
+      title,
+      description: 'Creates a persistent operator approval request for this strategy lifecycle change.',
+      inputSchema: { id: z.string().min(1).max(64) },
+      annotations: { readOnlyHint: false, destructiveHint: destructive, openWorldHint: false },
+    });
+  }
+
+  registerProposalTool(server, agentId, 'tsx_route_set', 'routes.write', 'routes.set', {
+    title: 'Set channel route',
+    description: 'Requests approval to bind a Telegram channel to a published strategy and verified account.',
+    inputSchema: {
+      channelId: z.string().min(1).max(128),
+      strategyVersionId: z.string().min(1).max(64),
+      accountId: z.string().min(1).max(64),
+      enabled: z.boolean(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_route_delete', 'routes.write', 'routes.delete', {
+    title: 'Delete channel route',
+    description: 'Requests approval to stop future automatic trading for a source channel.',
     inputSchema: { channelId: z.string().min(1).max(128) },
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   });
@@ -411,7 +703,7 @@ function registerTradingTools(server: McpServer, agentId: string): void {
     inputSchema: { accountId: z.string().min(1).max(64).optional() },
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
   });
-  registerControlTool(server, agentId, 'tsx_set_kill_switch', 'trading.kill_switch', 'trading.kill_switch', {
+  registerTool(server, agentId, 'tsx_set_kill_switch', 'trading.kill_switch', {
     title: 'Set kill switch',
     description: 'Activates or deactivates the trading kill switch. Deactivation reconciles enabled accounts first.',
     inputSchema: {
@@ -419,6 +711,12 @@ function registerTradingTools(server: McpServer, agentId: string): void {
       reason: z.string().min(1).max(300).optional(),
     },
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
+  }, ({ active, reason }, sessionId) => {
+    if (active) {
+      if (!reason) throw new Error('Kill-switch activation requires a reason.');
+      return enqueueControl(agentId, sessionId, 'trading.kill_switch', { active, reason });
+    }
+    return enqueueProposal(agentId, sessionId, 'trading.release_kill_switch', {});
   });
   registerControlTool(server, agentId, 'tsx_emergency_flatten', 'trading.flatten', 'trading.flatten', {
     title: 'Emergency flatten',
@@ -432,6 +730,7 @@ function registerTools(server: McpServer, agentId: string): void {
   registerReadTools(server, agentId);
   registerContractTools(server, agentId);
   registerRiskTools(server, agentId);
+  registerConfigurationTools(server, agentId);
   registerTradingTools(server, agentId);
 }
 
@@ -506,6 +805,7 @@ async function shutdown(): Promise<void> {
   await new Promise<void>(resolve => {
     if (!httpServer) return resolve();
     httpServer.close(() => resolve());
+    httpServer.closeAllConnections();
   });
   await closeDb().catch(() => undefined);
 }
@@ -662,11 +962,11 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity: 
     ]).then(async ([maintenance, identity]) => {
       if (!maintenance && identity === initialDatabaseIdentity) return;
       console.error('[CRITICAL] MCP service is closing for TSX Core database maintenance or replacement.');
-      await shutdown();
+      // A database replacement is a fail-stop boundary. Waiting for a broken
+      // transport here could keep the old database handle alive indefinitely.
       process.exit(1);
     }).catch(async () => {
       console.error('[CRITICAL] MCP service lost the operational database path and is closing.');
-      await shutdown();
       process.exit(1);
     }).finally(() => {
       maintenanceCheckBusy = false;

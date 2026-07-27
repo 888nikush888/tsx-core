@@ -2,15 +2,26 @@ import { getDatabase } from './db.js';
 import { updateTradingRuntimeState } from './trading_repository.js';
 import { TradingEngine } from './trading_engine.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
+import {
+  listActiveExchangeStreamSymbols,
+  markExchangeStreamsStopped,
+  persistExchangeStreamBatch,
+  recordExchangeStreamFailure,
+} from './exchange_stream_repository.js';
 
 type RuntimeLogger = (message: string) => void;
 
 export class TradingRuntime {
   private timer: NodeJS.Timeout | null = null;
+  private streamTimer: NodeJS.Timeout | null = null;
   private active: Promise<void> | null = null;
+  private streamActive: Promise<void> | null = null;
   private stopped = true;
   private entriesEnabled = false;
   private protectionHealthy = false;
+  private readonly streamCursors = new Map<string, number>();
+  private readonly streamDirtyAccounts = new Set<string>();
+  private readonly streamFailureLogState = new Map<string, { message: string; loggedAt: number }>();
 
   constructor(
     private readonly engine: TradingEngine,
@@ -38,6 +49,10 @@ export class TradingRuntime {
     }
     this.timer = setInterval(() => this.wake(), this.intervalMs);
     this.timer.unref();
+    const streamIntervalMs = Math.max(250, Math.min(1_000, Math.floor(this.intervalMs / 2)));
+    this.streamTimer = setInterval(() => this.wakeStreams(), streamIntervalMs);
+    this.streamTimer.unref();
+    this.wakeStreams();
   }
 
   async startProtectionOnly(): Promise<void> {
@@ -86,8 +101,15 @@ export class TradingRuntime {
     this.entriesEnabled = false;
     this.protectionHealthy = false;
     if (this.timer) clearInterval(this.timer);
+    if (this.streamTimer) clearInterval(this.streamTimer);
     this.timer = null;
+    this.streamTimer = null;
     await this.active;
+    await this.streamActive;
+    this.streamCursors.clear();
+    this.streamDirtyAccounts.clear();
+    this.streamFailureLogState.clear();
+    await markExchangeStreamsStopped();
   }
 
   private async runOnce(startup: boolean): Promise<void> {
@@ -108,12 +130,62 @@ export class TradingRuntime {
     const failures: string[] = [];
     for (const account of accounts) {
       try {
-        await this.engine.reconcileAccount(account.id, { force: startup });
+        const streamTriggered = this.streamDirtyAccounts.delete(account.id);
+        await this.engine.reconcileAccount(account.id, { force: startup || streamTriggered });
       } catch (error: any) {
         failures.push(`${account.id}: ${error?.message || String(error)}`);
       }
     }
     return failures;
+  }
+
+  private wakeStreams(): void {
+    if (this.stopped || this.streamActive !== null) return;
+    this.streamActive = this.pollExchangeStreams()
+      .catch(error => this.logger(
+        `[TRADING] Exchange WebSocket polling failed without bypassing REST protection: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      ))
+      .finally(() => { this.streamActive = null; });
+  }
+
+  private async pollExchangeStreams(): Promise<void> {
+    const accounts = await getDatabase().all<Array<{ id: string }>>(
+      `SELECT id FROM trading_accounts
+       WHERE enabled = 1 AND status = 'ready' AND exchange <> 'paper'
+       ORDER BY created_at`,
+    );
+    let requiresWake = false;
+    for (const account of accounts) {
+      try {
+        const symbols = await listActiveExchangeStreamSymbols(account.id);
+        const result = await this.engine.pollAccountStream(
+          account.id,
+          this.streamCursors.get(account.id) ?? 0,
+          symbols,
+        );
+        if (!result) continue;
+        const persisted = await persistExchangeStreamBatch(result.account, result.batch);
+        this.streamFailureLogState.delete(account.id);
+        this.streamCursors.set(account.id, result.batch.nextCursor);
+        if (persisted.stateChanges > 0 || persisted.gap) {
+          this.streamDirtyAccounts.add(account.id);
+          requiresWake = true;
+        }
+      } catch (error) {
+        await recordExchangeStreamFailure(account.id, error);
+        const message = error instanceof Error ? error.message : String(error);
+        const previous = this.streamFailureLogState.get(account.id);
+        if (!previous || previous.message !== message || Date.now() - previous.loggedAt >= 30_000) {
+          this.logger(
+            `[TRADING] Exchange WebSocket degraded for ${account.id}; REST reconciliation remains authoritative: ${message}`,
+          );
+          this.streamFailureLogState.set(account.id, { message, loggedAt: Date.now() });
+        }
+      }
+    }
+    if (requiresWake) this.wake();
   }
 
   private async captureEntryExpiryFailure(failures: string[]): Promise<void> {

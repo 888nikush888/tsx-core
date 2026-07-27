@@ -1,10 +1,14 @@
 import type { EnterpriseAuditTrail } from './audit_trail.js';
 import {
   agentHasPermission,
+  claimNextApprovedMcpProposal,
   claimNextMcpControlRequest,
+  completeMcpProposal,
   completeMcpControlRequest,
   listMcpAgents,
+  recoverInterruptedMcpProposals,
   recoverInterruptedMcpControlRequests,
+  type McpAgentProposal,
   type McpControlAction,
   type McpControlRequest,
   type McpPermission,
@@ -25,6 +29,14 @@ const ACTION_PERMISSIONS: Record<McpControlAction, McpPermission> = {
   'trading.kill_switch': 'trading.kill_switch',
   'trading.flatten': 'trading.flatten',
 };
+
+function proposalPermission(action: McpAgentProposal['action']): McpPermission {
+  if (action.startsWith('contracts.') || action.startsWith('schemas.')) return 'contracts.write';
+  if (action.startsWith('strategies.')) return 'strategies.write';
+  if (action.startsWith('routes.')) return 'routes.write';
+  if (action.startsWith('risk.')) return 'risk.write';
+  return 'trading.kill_switch';
+}
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -62,6 +74,8 @@ export class McpControlBridge {
     if (this.worker !== null) return;
     const recovered = await recoverInterruptedMcpControlRequests();
     if (recovered > 0) this.log(`[WARN] ${recovered} interrupted MCP control request(s) marked failed.`);
+    const recoveredProposals = await recoverInterruptedMcpProposals();
+    if (recoveredProposals > 0) this.log(`[WARN] ${recoveredProposals} interrupted MCP proposal(s) marked failed.`);
     this.abortController = new AbortController();
     this.worker = this.run(this.abortController.signal);
     this.log('[INFO] MCP control bridge started.');
@@ -82,6 +96,11 @@ export class McpControlBridge {
           await this.execute(request);
           continue;
         }
+        const proposal = await claimNextApprovedMcpProposal();
+        if (proposal) {
+          await this.executeProposal(proposal);
+          continue;
+        }
       } catch (error) {
         this.log(`[ERROR] MCP control bridge polling failed: ${errorMessage(error)}`, {
           event: 'mcp_control_bridge_error',
@@ -95,6 +114,96 @@ export class McpControlBridge {
         }, { once: true });
       });
     }
+  }
+
+  private async executeProposal(proposal: McpAgentProposal): Promise<void> {
+    const startedAt = Date.now();
+    const auditAction = `mcp.proposal.${proposal.action}`;
+    const actorId = `mcp:${proposal.agentId}`;
+    try {
+      const agent = (await listMcpAgents()).find(candidate => candidate.id === proposal.agentId);
+      const permission = proposalPermission(proposal.action);
+      if (!agent || !agentHasPermission(agent, permission)) {
+        throw new Error('MCP agent is disabled, missing, or no longer has the required proposal permission.');
+      }
+      await this.auditTrail.record({
+        phase: 'authorized',
+        action: auditAction,
+        requestId: proposal.id,
+        actorId,
+        actorRole: 'admin',
+        method: 'MCP',
+        path: proposal.action,
+        target: { action: proposal.action, payload: proposal.payload, decidedBy: proposal.decidedBy },
+      });
+      const result = await this.executeAuthorizedProposal(proposal);
+      await this.auditTrail.record({
+        phase: 'completed',
+        action: auditAction,
+        requestId: proposal.id,
+        actorId,
+        actorRole: 'admin',
+        method: 'MCP',
+        path: proposal.action,
+        statusCode: 200,
+        target: { action: proposal.action },
+        after: { result },
+        outcome: 'succeeded',
+      });
+      await completeMcpProposal(proposal.id, { result: result ?? null });
+      this.log(`[AUDIT] request_id=${proposal.id} action=${auditAction} actor=${actorId} outcome=succeeded`, {
+        request_id: proposal.id,
+        event: 'mcp_proposal_completed',
+        duration_ms: Date.now() - startedAt,
+      });
+    } catch (error) {
+      const message = errorMessage(error);
+      await this.auditTrail.record({
+        phase: 'completed',
+        action: auditAction,
+        requestId: proposal.id,
+        actorId,
+        actorRole: 'admin',
+        method: 'MCP',
+        path: proposal.action,
+        statusCode: 409,
+        target: { action: proposal.action },
+        after: { error: message },
+        outcome: 'failed',
+      }).catch(() => undefined);
+      await completeMcpProposal(proposal.id, { error: message }).catch(() => undefined);
+      this.log(`[WARN] request_id=${proposal.id} MCP proposal ${proposal.action} failed: ${message}`, {
+        request_id: proposal.id,
+        event: 'mcp_proposal_failed',
+        duration_ms: Date.now() - startedAt,
+      });
+    }
+  }
+
+  private executeAuthorizedProposal(proposal: McpAgentProposal): unknown {
+    const payload = proposal.payload as Record<string, any>;
+    const handlers: Record<McpAgentProposal['action'], () => unknown> = {
+      'contracts.create_version': () => this.control.createSignalContractVersion(payload),
+      'contracts.duplicate': () => this.control.duplicateSignalContract(payload),
+      'contracts.publish': () => this.control.publishSignalContract(payload.versionId),
+      'contracts.archive': () => this.control.archiveSignalContract(payload.versionId),
+      'contracts.delete_draft': () => this.control.removeSignalContractDraft(payload.versionId),
+      'contracts.delete_version': () => this.control.removeSignalContractVersion(payload.versionId),
+      'schemas.create': () => this.control.createSignalSchema(payload),
+      'schemas.update': () => this.control.updateSignalSchema(payload),
+      'schemas.delete': () => this.control.removeSignalSchema(payload.id),
+      'strategies.create': () => this.control.createStrategy(payload),
+      'strategies.update': () => this.control.updateStrategy(payload),
+      'strategies.publish': () => this.control.publishStrategy(payload.id),
+      'strategies.archive': () => this.control.archiveStrategy(payload.id),
+      'strategies.delete': () => this.control.removeStrategy(payload.id),
+      'routes.set': () => this.control.setRoute(payload),
+      'routes.delete': () => this.control.removeRoute(payload.channelId),
+      'risk.update': () => this.control.setChannelRiskPolicy(payload),
+      'risk.delete': () => this.control.removeChannelRiskPolicy(payload.channelId),
+      'trading.release_kill_switch': () => this.control.setRuntime({ action: 'kill-switch', active: false }),
+    };
+    return handlers[proposal.action]();
   }
 
   private async execute(request: McpControlRequest): Promise<void> {

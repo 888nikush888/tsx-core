@@ -1,0 +1,203 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
+import {
+  ensureTradingDefaults,
+  listTradingAccounts,
+  listTradingStrategies,
+  setTradingRoute,
+  createTradingIntent,
+} from '../src/trading_repository.js';
+import { validateSignalXml } from '../src/signal_schema.js';
+import {
+  listActiveExchangeStreamSymbols,
+  listExchangeStreamStates,
+  persistExchangeStreamBatch,
+  recordExchangeStreamFailure,
+} from '../src/exchange_stream_repository.js';
+import {
+  listTradeJournal,
+  tradeJournalCsv,
+  updateTradeJournalReview,
+} from '../src/trade_journal.js';
+
+const XML = `<signal>
+<action>LONG</action>
+<pair>BTCUSDT</pair>
+<entry_range><min>60000</min><max>61000</max></entry_range>
+<targets><target id="1">62000</target><target id="2">63000</target></targets>
+<stoploss>59000</stoploss>
+<leverage>3</leverage>
+</signal>`;
+
+const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-journal-streams-'));
+try {
+  await initDb(path.join(directory, 'forwarder.db'));
+  await ensureTradingDefaults();
+  const strategy = (await listTradingStrategies()).find(item => item.status === 'published');
+  const paper = (await listTradingAccounts()).find(account => account.id === 'paper-default');
+  await setTradingRoute({
+    channelId: '-journal-channel',
+    strategyVersionId: strategy.id,
+    accountId: paper.id,
+    enabled: true,
+  });
+  await saveSignal('journal-signal', '-journal-channel', 42, XML, XML);
+  await getDatabase().run(
+    `UPDATE signals SET template_name = 'default', schema_name = 'standard',
+       prompt_sha256 = ?, model = 'test/model', provider_request_id = 'provider-42',
+       parser_version = '2' WHERE id = 'journal-signal'`,
+    ['a'.repeat(64)],
+  );
+  await getDatabase().run(
+    `INSERT INTO incoming_messages (
+       chat_id, message_id, sender, text, type, status, created_at
+     ) VALUES ('-journal-channel', 42, 'Alice', ?, 'text', 'processed', ?)`,
+    ['Call +49 170 1234567 and wallet 0x1111111111111111111111111111111111111111', Date.now()],
+  );
+  const executable = validateSignalXml(XML, 'default').execution;
+  const intent = await createTradingIntent({
+    sourceSignalId: 'journal-signal',
+    channelId: '-journal-channel',
+    signal: executable,
+  });
+  await getDatabase().run(
+    `INSERT INTO trading_positions (
+       id, intent_id, account_id, strategy_version_id, channel_id, symbol,
+       side, status, quantity, average_entry_price, stop_price, realized_pnl,
+       opened_at, closed_at, updated_at
+     ) VALUES ('journal-position', ?, ?, ?, '-journal-channel', 'BTCUSDT',
+               'LONG', 'closed', '0', '60000', '59000', '125.50', ?, ?, ?)`,
+    [intent.id, paper.id, strategy.id, Date.now() - 10_000, Date.now(), Date.now()],
+  );
+  await getDatabase().run(
+    `INSERT INTO trading_orders (
+       id, intent_id, account_id, client_order_id, exchange_order_id, role,
+       side, order_type, status, price, trigger_price, quantity,
+       filled_quantity, reduce_only, request_json, response_json,
+       created_at, updated_at
+     ) VALUES ('journal-order', ?, ?, 'client-journal', 'exchange-journal',
+               'entry', 'buy', 'limit', 'filled', '60000', NULL, '0.1',
+               '0.1', 0, '{}', '{}', ?, ?)`,
+    [intent.id, paper.id, Date.now() - 9_000, Date.now() - 8_000],
+  );
+  await getDatabase().run(
+    `INSERT INTO trading_fills (
+       id, order_id, account_id, exchange_fill_id, price, quantity,
+       fee, fee_asset, filled_at, raw_json
+     ) VALUES ('journal-fill', 'journal-order', ?, 'fill-journal',
+               '60000', '0.1', '1.25', 'USDT', ?, '{}')`,
+    [paper.id, Date.now() - 8_000],
+  );
+  await getDatabase().run(
+    `INSERT INTO trading_execution_events (
+       id, intent_id, channel_id, account_id, exchange, mode,
+       event_type, occurred_at, details_json
+     ) VALUES ('journal-event', ?, '-journal-channel', ?, 'paper', 'paper',
+               'first_fill', ?, '{}')`,
+    [intent.id, paper.id, Date.now() - 8_000],
+  );
+
+  let journal = await listTradeJournal({ symbol: 'BTCUSDT' });
+  assert.equal(journal.length, 1);
+  assert.equal(journal[0].position.realizedPnl, '125.50');
+  assert.equal(journal[0].fees.USDT, '1.25');
+  assert.equal(journal[0].signal.schemaProfileId, 'standard');
+  assert.equal(journal[0].signal.contractVersionId, 'standard:v1');
+  assert.doesNotMatch(journal[0].signal.sourceExcerpt, /170 1234567|0x111111/);
+  assert.match(journal[0].signal.sourceExcerpt, /MASKED_PHONE|MASKED_EVM_ADDR/);
+
+  await updateTradeJournalReview({
+    intentId: intent.id,
+    notes: '=HYPERLINK("https://invalid")',
+    tags: ['breakout', 'reviewed'],
+    rating: 4,
+    reviewed: true,
+  });
+  journal = await listTradeJournal({ reviewed: true });
+  assert.deepEqual(journal[0].review.tags, ['breakout', 'reviewed']);
+  assert.equal(journal[0].review.rating, 4);
+  assert.match(tradeJournalCsv(journal), /"'=HYPERLINK/);
+  await assert.rejects(listTradeJournal({ symbol: 'BTCEUR' }), /USD pair/);
+  await assert.rejects(listTradeJournal({ from: 20, to: 10 }), /must not be after/);
+  await assert.rejects(listTradeJournal({ limit: 0 }), /limit must be between/);
+  await assert.rejects(listTradeJournal({ status: 'settled' }), /status is invalid/);
+  await assert.rejects(listTradeJournal({ accountId: 'bad\naccount' }), /identifier is invalid/);
+  assert.equal((await listTradeJournal({
+    intentId: intent.id,
+    accountId: paper.id,
+    channelId: '-journal-channel',
+    status: journal[0].status,
+    from: 0,
+    to: Date.now() + 1_000,
+  })).length, 1);
+  await assert.rejects(updateTradeJournalReview({
+    intentId: intent.id,
+    notes: '',
+    tags: ['x'],
+    rating: 6,
+    reviewed: true,
+  }), /between 1 and 5/);
+
+  await getDatabase().run(
+    `INSERT INTO trading_accounts (
+       id, name, exchange, mode, status, enabled, credential_ref,
+       last_verified_at, last_error, created_at, updated_at
+     ) VALUES ('bybit-stream', 'Bybit stream', 'bybit', 'testnet', 'ready', 1,
+               'managed:bybit-stream', ?, NULL, ?, ?)`,
+    [Date.now(), Date.now(), Date.now()],
+  );
+  const bybit = (await listTradingAccounts()).find(account => account.id === 'bybit-stream');
+  const event = {
+    cursor: 1,
+    eventKey: 'b'.repeat(64),
+    eventType: 'execution',
+    symbol: 'BTCUSDT',
+    sequence: 7,
+    occurredAt: Date.now(),
+    receivedAt: Date.now(),
+    payload: { topic: 'execution', orderId: 'provider-order' },
+  };
+  const first = await persistExchangeStreamBatch(bybit, {
+    events: [event],
+    nextCursor: 1,
+    gap: false,
+    health: { status: 'healthy', startedAt: Date.now(), lastEventAt: Date.now(), lastError: null },
+  });
+  const duplicate = await persistExchangeStreamBatch(bybit, {
+    events: [{ ...event, cursor: 2 }],
+    nextCursor: 2,
+    gap: false,
+    health: { status: 'healthy', startedAt: Date.now(), lastEventAt: Date.now(), lastError: null },
+  });
+  assert.equal(first.inserted, 1);
+  assert.equal(duplicate.inserted, 0);
+  await persistExchangeStreamBatch(bybit, {
+    events: [],
+    nextCursor: 4,
+    gap: true,
+    health: { status: 'healthy', startedAt: Date.now(), lastEventAt: Date.now(), lastError: null },
+  });
+  let stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
+  assert.equal(stream.status, 'degraded');
+  assert.equal(stream.gapCount, 1);
+  await recordExchangeStreamFailure(bybit.id, new Error('socket offline'));
+  stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
+  assert.match(stream.lastError, /socket offline/);
+  assert.deepEqual(await listActiveExchangeStreamSymbols(bybit.id), []);
+  await assert.rejects(
+    persistExchangeStreamBatch(paper, {
+      events: [],
+      nextCursor: 0,
+      gap: false,
+      health: { status: 'healthy', startedAt: null, lastEventAt: null, lastError: null },
+    }),
+    /Paper accounts/,
+  );
+  console.log('Trade journal and exchange stream persistence tests passed.');
+} finally {
+  await closeDb();
+  await rm(directory, { recursive: true, force: true });
+}

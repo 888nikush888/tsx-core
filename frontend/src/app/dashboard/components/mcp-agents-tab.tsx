@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Bot, Copy, KeyRound, Plus, RefreshCw, Save, Trash2 } from "lucide-react"
+import { Bot, CheckCircle2, Copy, KeyRound, Plus, RefreshCw, Save, Trash2, XCircle } from "lucide-react"
 import { apiFetch } from "@/lib/api"
 import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 import { Badge } from "@/components/ui/badge"
@@ -47,10 +47,29 @@ type Action = {
   durationMs: number
 }
 
+type Proposal = {
+  id: string
+  agentId: string
+  agentName: string
+  action: string
+  status: string
+  requestedAt: number
+  expiresAt: number
+  preflight: {
+    requiresApproval: boolean
+    allowed: boolean
+    blockers: string[]
+    impact: string[]
+    checkedAt: number
+  }
+  error: string | null
+}
+
 type Snapshot = {
   agents: Agent[]
   sessions: Session[]
   actions: Action[]
+  proposals: Proposal[]
   permissions: string[]
   eventTypes: string[]
   endpoint: string | null
@@ -60,6 +79,7 @@ const EMPTY: Snapshot = {
   agents: [],
   sessions: [],
   actions: [],
+  proposals: [],
   permissions: [],
   eventTypes: [],
   endpoint: null,
@@ -71,8 +91,14 @@ const PERMISSION_LABELS: Record<string, string> = {
   "positions.read": "Positionen lesen",
   "signals.read": "Signale lesen",
   "risk.read": "Risiko lesen",
+  "strategies.read": "Strategien lesen",
+  "routes.read": "Kanal-Routen lesen",
+  "analytics.read": "Analytics lesen",
+  "journal.read": "Trade Journal lesen",
   "contracts.write": "Verträge ändern",
   "risk.write": "Risiko ändern",
+  "strategies.write": "Strategien ändern",
+  "routes.write": "Kanal-Routen ändern",
   "trading.reconcile": "Börsenabgleich starten",
   "trading.cancel_entries": "Entry-Orders stornieren",
   "trading.kill_switch": "Kill-Switch steuern",
@@ -139,7 +165,7 @@ export function McpAgentsTab() {
     const response = await apiFetch(`${API_BASE}/api/mcp`, { signal })
     const payload = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(payload.error || "MCP-Status konnte nicht geladen werden.")
-    setSnapshot(payload)
+    setSnapshot({ ...EMPTY, ...payload, proposals: payload.proposals || [] })
   }
 
   useSerializedPolling(async signal => {
@@ -171,7 +197,7 @@ export function McpAgentsTab() {
     setMessage("")
     setForm({
       name: "",
-      permissions: ["system.read", "contracts.read", "positions.read", "signals.read", "risk.read"],
+      permissions: ["system.read", "contracts.read", "positions.read", "signals.read", "risk.read", "strategies.read", "routes.read", "analytics.read", "journal.read"],
       eventSubscriptions: ["signal_received", "exchange_ack", "first_fill", "position_closed", "kill_switch_activated"],
       enabled: true,
     })
@@ -261,6 +287,29 @@ export function McpAgentsTab() {
     setMessage("Token in die Zwischenablage kopiert.")
   }
 
+  const approveProposal = async (proposal: Proposal) => {
+    if (!window.confirm(`MCP-Antrag „${proposal.action}“ von ${proposal.agentName} nach erneuter Preflight-Prüfung freigeben?`)) return
+    await execute(
+      `approve-${proposal.id}`,
+      () => request(
+        "/api/mcp/proposals/approve",
+        { id: proposal.id },
+        { "X-Destructive-Confirmation": "approve-mcp-proposal" },
+      ),
+      "MCP-Antrag freigegeben und zur kontrollierten Ausführung eingeplant.",
+    )
+  }
+
+  const rejectProposal = async (proposal: Proposal) => {
+    const reason = window.prompt("Ablehnungsgrund", "Vom Operator abgelehnt.")
+    if (reason === null) return
+    await execute(
+      `reject-${proposal.id}`,
+      () => request("/api/mcp/proposals/reject", { id: proposal.id, reason }),
+      "MCP-Antrag abgelehnt.",
+    )
+  }
+
   const activeSessions = snapshot.sessions.filter(session =>
     session.disconnectedAt === null && Date.now() - session.lastSeenAt < 15_000)
 
@@ -318,6 +367,20 @@ export function McpAgentsTab() {
         </div>}
         {message && <output className="block rounded-md border px-3 py-2 text-sm">{message}</output>}
       </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader><CardTitle>Freigabewarteschlange</CardTitle><CardDescription>Veröffentlichungen, Löschungen, Routing-, Risiko- und Kill-Switch-Freigaben werden erst nach erneuter Prüfung und menschlicher Bestätigung ausgeführt.</CardDescription></CardHeader>
+      <CardContent><Table><TableHeader><TableRow><TableHead>Zeit</TableHead><TableHead>Agent / Aktion</TableHead><TableHead>Auswirkung</TableHead><TableHead>Status</TableHead><TableHead /></TableRow></TableHeader><TableBody>
+        {snapshot.proposals.slice(0, 100).map(proposal => <TableRow key={proposal.id}>
+          <TableCell>{formattedDate(proposal.requestedAt)}<div className="text-xs text-muted-foreground">bis {formattedDate(proposal.expiresAt)}</div></TableCell>
+          <TableCell>{proposal.agentName}<div className="font-mono text-xs text-muted-foreground">{proposal.action}</div></TableCell>
+          <TableCell className="max-w-xl"><ul className="space-y-1 text-xs">{proposal.preflight.impact.map(item => <li key={item}>{item}</li>)}</ul>{proposal.error && <div className="mt-1 text-xs text-destructive">{proposal.error}</div>}</TableCell>
+          <TableCell><Badge variant={proposal.status === "pending" ? "secondary" : proposal.status === "failed" || proposal.status === "rejected" ? "destructive" : "outline"}>{proposal.status}</Badge></TableCell>
+          <TableCell>{proposal.status === "pending" && <div className="flex gap-1"><Button size="sm" disabled={Boolean(busy)} onClick={() => void approveProposal(proposal)}><CheckCircle2 className="mr-1 h-4 w-4" />Freigeben</Button><Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void rejectProposal(proposal)}><XCircle className="mr-1 h-4 w-4" />Ablehnen</Button></div>}</TableCell>
+        </TableRow>)}
+        {snapshot.proposals.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Keine MCP-Anträge vorhanden.</TableCell></TableRow>}
+      </TableBody></Table></CardContent>
     </Card>
 
     <Card>

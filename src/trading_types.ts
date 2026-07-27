@@ -405,6 +405,39 @@ export interface ExchangeOpenState {
   observedAt: number;
 }
 
+export type ExchangeStreamEventType =
+  | 'order'
+  | 'execution'
+  | 'position'
+  | 'market'
+  | 'candle'
+  | 'stream_status';
+
+export interface ExchangeStreamEvent {
+  cursor: number;
+  eventKey: string;
+  eventType: ExchangeStreamEventType;
+  symbol: string | null;
+  sequence: number | null;
+  occurredAt: number;
+  receivedAt: number;
+  payload: unknown;
+}
+
+export interface ExchangeStreamHealth {
+  status: 'starting' | 'healthy' | 'degraded' | 'stopped';
+  startedAt: number | null;
+  lastEventAt: number | null;
+  lastError: string | null;
+}
+
+export interface ExchangeStreamBatch {
+  events: ExchangeStreamEvent[];
+  nextCursor: number;
+  gap: boolean;
+  health: ExchangeStreamHealth;
+}
+
 export interface TradingExchangeAdapter {
   readonly exchange: TradingExchange;
   accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot>;
@@ -422,6 +455,16 @@ export interface TradingExchangeAdapter {
   ): Promise<{ entry: ExchangeOrderResult; protectiveStop: ExchangeOrderResult }>;
   cancelOrder(account: TradingAccount, clientOrderId: string): Promise<ExchangeOrderResult>;
   openState(account: TradingAccount): Promise<ExchangeOpenState>;
+  /**
+   * Reads normalized events from the official provider WebSocket stream.
+   * The cursor is account-local and gaps must always trigger authoritative
+   * REST reconciliation before the events influence trading state.
+   */
+  streamEvents?(
+    account: TradingAccount,
+    cursor: number,
+    symbols: string[],
+  ): Promise<ExchangeStreamBatch>;
 }
 
 export interface TradingOverview {

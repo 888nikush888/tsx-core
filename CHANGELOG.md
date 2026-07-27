@@ -17,6 +17,9 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Virtuelle, zusammenhängende Live-Log-Konsole mit Cursor/Ringpuffer und Text-/Regex-Suche sowie globale dynamische `Strg+K`/`⌘K`-Command-Palette.
 - Tailscale-Serve-Identity-Modus mit sichtbarem Remote-Status und sicherem Setup-Script, das Funnel deaktiviert.
 - Optionaler unabhängiger MCP-Streamable-HTTP-Dienst mit gehashten Einmal-Tokens, dauerhaften Minimalrechten, Agenten-/Sitzungs-/Aktions-UI, Ereignis-Push und auditierter Kontrollbrücke.
+- Native private und öffentliche Bybit-/Hyperliquid-WebSocket-Streams über die offiziellen SDKs; zustandsändernde Events beschleunigen eine erzwungene REST-Reconciliation, ohne selbst autoritativen Trading-Zustand zu erzeugen.
+- Vollständiges Trade Journal unter **Trading → Journal** mit Strategie-/Vertrags-Provenienz, Orders, Fills, Gebühren, PnL, Timeline, Notizen, Tags, Bewertung sowie PII-redigiertem CSV-/JSON-Export.
+- MCP-Parität für Verträge, Signal-Schema-Profile, Strategien, Routen, Kanalrisiko, Analytics und Trade Journal einschließlich Preflight und persistenter, im Dashboard freizugebender Änderungsvorschläge.
 
 ### Changed
 

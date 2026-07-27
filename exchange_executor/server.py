@@ -15,6 +15,7 @@ from bybit_adapter import BybitAdapter
 from common import ExchangeContractError, RequestDeadline, account_request
 from credentials import CredentialError, CredentialStore
 from hyperliquid_adapter import HyperliquidAdapter
+from stream_hub import ExchangeStreamHub
 
 MAX_BODY_BYTES = 128 * 1024
 MAX_IN_FLIGHT_REQUESTS = 8
@@ -28,6 +29,7 @@ class Application:
             "hyperliquid": HyperliquidAdapter(self.credentials),
             "bybit": BybitAdapter(self.credentials),
         }
+        self.streams = ExchangeStreamHub(self.credentials)
 
     def handle(self, path: str, payload: dict[str, Any]) -> Any:
         deadline = RequestDeadline.from_payload(payload)
@@ -59,7 +61,16 @@ class Application:
             )
         if path == "/v1/open-state":
             return adapter.open_state(account, deadline)
+        if path == "/v1/stream-events":
+            cursor = payload.get("cursor")
+            symbols = payload.get("symbols")
+            if not isinstance(cursor, int) or not isinstance(symbols, list):
+                raise ExchangeContractError("cursor and symbols are required.")
+            return self.streams.poll(account, cursor, symbols)
         raise ExchangeContractError("Unknown executor endpoint.")
+
+    def close(self) -> None:
+        self.streams.close()
 
 
 def required_string(payload: dict[str, Any], name: str) -> str:
@@ -193,6 +204,7 @@ def main() -> None:
     finally:
         server.begin_draining()
         server.server_close()
+        application.close()
 
 
 if __name__ == "__main__":

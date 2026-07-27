@@ -130,6 +130,12 @@ Ein Plugin ist bewusst deklarativ. Die UI nimmt keinen ausführbaren Python-/Jav
 
 Secrets werden atomar als Modus `0600` im Secret-Volume gespeichert, nur read-only in den Executor gemountet und nie an Browser/API zurückgegeben. **Keys ersetzen** deaktiviert das Konto, überschreibt die Secret-Datei und verifiziert erneut. Löschen wird verweigert, solange Route, Historie, Order oder Position besteht.
 
+### Exchange-WebSockets und REST-Autorität
+
+Das Sidecar öffnet je aktiviertem Nicht-Paper-Konto private Order-, Execution- und Positions-Streams. Zusätzlich werden für aktuell relevante USD-/USDC-/USDT-Symbole öffentliche Ticker und 1-Minuten-Kerzen abonniert. Bybit verwendet die offiziellen V5-WebSocket-Klassen aus `pybit`, Hyperliquid die Abonnements des offiziellen Python-SDKs. Credentials bleiben dabei ausschließlich im Sidecar.
+
+WebSocket-Ereignisse sind ein Beschleuniger, keine zweite Wahrheit: Order-, Fill- oder Positionsereignisse markieren das Konto als geändert und lösen sofort eine erzwungene REST-Reconciliation aus. Erst dieser Snapshot darf Orders, Fills oder Positionen im Trading-Kern ändern. Cursor-Lücken, Überläufe oder Socket-Fehler setzen den sichtbaren Streamstatus auf `degraded`; die periodische REST-Schutzschleife läuft weiter und bleibt fail-closed. Doppelte Events werden über stabile Event-Schlüssel ignoriert, Payloads sind begrenzt und pro Konto bleiben höchstens 5.000 Events erhalten.
+
 ## 5. Mehrere Kanäle parallel routen
 
 Unter **Trading → Kanal-Routing** für jeden Quellkanal auswählen:
@@ -182,6 +188,8 @@ Eine Teilfüllung wird sofort mit einem reduce-only Stop bis zur maximal noch m�
 - **Dynamisches Kanalrisiko:** `fixed` hält die gewählte Stufe, `shadow` berechnet nur Empfehlungen, `automatic` wendet wöchentliche Stufenänderungen an. Anhaltend schwache Kanäle können reduziert oder blockiert werden; manuelle Sperre und Stufenfixierung bleiben möglich.
 - **Datenherkunft:** Equity, verfügbarer Saldo, Margin und unrealisierter PnL kommen über die offiziellen Exchange-SDKs. Realisierter PnL und historische Kennzahlen kommen aus den vom System persistierten Managed Trades; externe/manuelle Trades werden nicht fälschlich als Managed Performance ausgegeben.
 - **Aktualisierung:** Das Cockpit lädt lokale Zustände regelmäßig. Exchange-Snapshots werden 60 Sekunden gecacht; ein expliziter Abgleich erzwingt eine neue Abfrage der angebundenen Konten und zeigt Teilfehler je Konto.
+- **WebSocket-Status:** Trading zeigt je Exchange-Konto `starting`, `healthy`, `degraded` oder `stopped`, Cursor, Lücken, letztes Ereignis und letzten Fehler. Ein grüner Streamstatus ersetzt niemals den REST-Abgleich.
+- **Trade Journal:** unter **Trading → Journal** nach Konto, Kanal, USD-Paar, Status und Review-Zustand filtern. Jeder Eintrag verbindet immutable Strategie-/Vertrags-Hashes, Signal-Provenienz, Plan, Position, Orders, Fills, Gebühren, Ausführungstimeline und PnL. Operatoren pflegen Notizen, bis zu 20 Tags, Bewertung 1–5 und Review-Status. CSV-/JSON-Export redigiert Telefonnummern, Adressen und weitere Telegram-PII; der Chat wird nur als kurzer SHA-256-Fingerprint ausgegeben und CSV-Formeln werden neutralisiert.
 - **Nominale Gesamtsicht:** Die gemeinsame Equity addiert Bybit-USD, Hyperliquid-USDC und Paper-Quote nominal. Sie ist keine FX-Bewertung und garantiert keine Stablecoin-Parität; für belastbare Bewertung immer zusätzlich den Konto-Drill-down verwenden.
 - **Logs:** ein ununterbrochener, virtueller Terminalstrom mit Freitext- und sicherer Regex-Suche; keine Level-Filter zerreißen zusammengehörige Abläufe.
 - **Command Palette:** `Strg+K`/`⌘K` durchsucht Navigation, Verträge, Kanäle und Positionen und bietet den erlaubten Exchange-Abgleich als Schnellaktion.
@@ -192,7 +200,7 @@ Im Notfall Kill-Switch aktivieren, Exchange read-only gegen Client Order IDs pr�
 ## 8. Neustart, Backup, Restore, Factory Reset
 
 - Bei jedem Start reconciliert der Trading-Worker alle aktivierten Konten, bevor er Pending Intents bearbeitet.
-- SQLite-Backups enthalten Signalverträge/Profile, Strategien, Kanalrisiko und Evaluationen, Equity-/Execution-Telemetrie, MCP-Agenten samt Hash/Rechten/Historie, Routen, Intents, Orders, Fills, Positionen und Risk Events. Klartext-Agenten- und Exchange-Secrets sind absichtlich ausgeschlossen beziehungsweise nie vorhanden und müssen nach Restore neu provisioniert oder rotiert werden.
+- SQLite-Backups enthalten Signalverträge/Profile, Strategien, Kanalrisiko und Evaluationen, Equity-/Execution-Telemetrie, Exchange-Streamstatus/-Events, Trade-Journal-Reviews, MCP-Agenten samt Hash/Rechten/Historie/Vorschlägen, Routen, Intents, Orders, Fills, Positionen und Risk Events. Klartext-Agenten- und Exchange-Secrets sind absichtlich ausgeschlossen beziehungsweise nie vorhanden und müssen nach Restore neu provisioniert oder rotiert werden.
 - Factory Reset stoppt MCP-Kontrollbrücke und Trading-Worker, storniert offene Entries und fragt jedes reale Konto ab. Solange Exchange/Executor nicht erreichbar ist oder Remote-Exposure besteht, wird der Reset verweigert. Nach sicherem Nullzustand werden Datenbank einschließlich Verträgen, Kanalrisiko, Analytics und MCP-Agenten, Keys, interner Executor-Token und der gesamte übrige lokale Zustand entfernt.
 - **Betriebsdaten leeren** stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie unreferenzierte Signale. Trading-Historie, Strategien, Konten, Exchange-Secrets und von Trades referenzierte Signale werden dabei bewusst nicht gelöscht.
 
@@ -201,6 +209,7 @@ Im Notfall Kill-Switch aktivieren, Exchange read-only gegen Client Order IDs pr�
 Live bleibt **NO-GO**, bis zusätzlich zu allen normalen Enterprise-Gates folgende reale Nachweise vorliegen:
 
 - Hyperliquid- und Bybit-Testnet: Entry, Signale mit 1/2/3/5 TPs, adaptive Allokation, mehrere TP-Fills, Stop-Resize, Break-even, TP(i-2)-Nachziehen, Cancel, Timeout/Unknown und Neustart-Reconciliation.
+- Private WebSocket-Disconnects, Cursor-Lücke und Event-Duplikate auf beiden Testnets; in jedem Fall muss REST autoritativ bleiben und Schutz-Reconciliation weiterlaufen.
 - Exchange-separates Subkonto, minimale API-Rechte, IP-Allowlist und dokumentierte Key-Rotation.
 - Staging-Last mit parallelen Kanälen und Symbolkonflikt-Test.
 - Alarmzustellung für Unknown Order, ungeschützte Position, Kill-Switch und stale Reconciliation.

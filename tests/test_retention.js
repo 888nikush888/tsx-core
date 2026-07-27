@@ -201,7 +201,8 @@ async function runTests() {
     });
     const messages = [];
     const scheduler = new OperationalDataRetention(policy, message => messages.push(message), () => NOW);
-    await scheduler.runNow();
+    await scheduler.start();
+    await assert.rejects(() => scheduler.start(), /already running/);
     assert.equal(scheduler.getStatus().healthy, true);
     assert.ok(messages.some(message => message.includes('Operational retention deleted')));
     await scheduler.stop();

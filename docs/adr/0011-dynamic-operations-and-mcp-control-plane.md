@@ -21,6 +21,9 @@ TSX Core besaß geprüfte, aber fest benannte Signalverträge, eine analytisch �
 9. MCP läuft optional als unabhängiger Prozess über Streamable HTTP. Jeder Agent besitzt einen nur einmal ausgegebenen Token, dessen SHA-256, dauerhafte Minimalrechte und Event-Abonnements persistiert werden. Read-Tools greifen begrenzt auf Repositories zu. Write-Tools erzeugen Kontrollanforderungen; ausschließlich die Forwarder-Brücke darf nach erneuter Rechteprüfung, erfolgreichem Vorab-Audit und über `TradingWebControl` Nebenwirkungen ausführen.
 10. Dashboard, MCP und Analytics bleiben an die Quote-Invariante `USD`/`USDC`/`USDT` gebunden. Bestehende TP-/SL-/Exchange-Sicherheitslogik wird nicht abgeschwächt.
 11. Factory Reset und Restore koordinieren beide SQLite-Prozesse über einen gemeinsamen Wartungsmarker. Der MCP-Prozess schließt bei Marker, fehlendem Pfad oder Dateiaustausch fail-closed und startet erst gegen die vom Forwarder verifizierte neue Datenbank.
+12. Exchange-WebSockets aus den offiziellen SDKs beschleunigen nur die Erkennung. Private Order-/Execution-/Positionsereignisse lösen eine erzwungene REST-Reconciliation aus; ausschließlich deren Snapshot ist autoritativ. Cursor-Lücken und Streamfehler degradieren sichtbar, dürfen die periodische Schutz-Reconciliation aber nicht ersetzen oder abschalten.
+13. MCP erhält fachliche Parität für Verträge, Profile, Strategien, Routen, Risiko, Analytics und Journal. Preflight ist nebenwirkungsfrei. Sensible Mutationen werden als persistente, ablaufende Vorschläge mit expliziter Admin-Freigabe modelliert; Secret-, Factory-Reset- und Live-Enable-Tools bleiben ausgeschlossen.
+14. Das Trade Journal wird aus immutable Trading-Provenienz abgeleitet. Nur menschliche Reviews werden separat mutiert; Telegram-PII wird beim Lesen/Export redigiert und CSV-Formeln werden neutralisiert.
 
 ## Folgen
 
@@ -33,9 +36,12 @@ Ergänzung 27.07.2026: Publizierte Definitionen bleiben unveränderlich, dürfen
 - MCP-Agenten erhalten keine Exchange-Secrets und keinen direkten Exchange-Adapter. Jede Mutation ist sowohl in der Agenten-Historie als auch in der Enterprise-Audit-Kette nachvollziehbar.
 - Tailnet-Zugriff beseitigt nicht die Anwendungsauthentifizierung des MCP-Dienstes.
 - Backups enthalten Verträge, Risiko-/Analytics- und MCP-Zustand einschließlich Token-Hashes, aber keine Klartext-Tokens oder Exchange-Secrets.
+- WebSocket-Ereignisse sind begrenzt und dedupliziert; sie sind Diagnose-/Beschleunigungsdaten, kein Exchange-Ledger.
+- Freigegebene MCP-Vorschläge behalten Entscheidung und Ergebnis dauerhaft. Unterbrochene Ausführung wird fehlgeschlagen statt automatisch wiederholt.
+- Journal-Reviews verlängern bewusst die Aufbewahrung der zugehörigen Trade-Provenienz und gehören in Restore-/Datenschutzprüfungen.
 
 ## Verifikation und Rollback
 
-Akzeptanz verlangt Datenbankmigrations-/Restore-Tests, Vertrags-/Grounding-/Geometrie-Regression, Kanalrisiko- und Telemetrietests, Cockpit-/Analytics-/Log-/Palette-Frontendtests, Tailscale-Authentifizierungstests, MCP-Repository-/Brücken-/Protokolltests, Dependency-Audit und alle bestehenden Trading-Safety-Gates.
+Akzeptanz verlangt Datenbankmigrations-/Restore-Tests, Vertrags-/Grounding-/Geometrie-Regression, Kanalrisiko- und Telemetrietests, Cockpit-/Analytics-/Log-/Palette-/Journal-Frontendtests, Tailscale-Authentifizierungstests, WebSocket-Deduplizierungs-/Lücken-/REST-Autoritätsnachweise, MCP-Repository-/Preflight-/Freigabe-/Brücken-/Protokolltests, Dependency-Audit und alle bestehenden Trading-Safety-Gates.
 
 Rollback verwendet den vorherigen Image-Digest und bei inkompatibler Persistenz ausschließlich den automatisch erzeugten Pre-Migration-Snapshot. Vor Restore werden Forwarder und MCP gestoppt. Token-Hashes aus einem Restore dürfen nicht als fortdauernde Vertrauensannahme gelten; Agenten-Tokens werden anschließend rotiert.

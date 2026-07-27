@@ -33,6 +33,10 @@ flowchart LR
   TC --> EX["Internal official-SDK executor"]
   EX --> HL["Hyperliquid official API"]
   EX --> BY["Bybit V5 official API"]
+  HL --> WS["Normalized bounded WebSocket event stream"]
+  BY --> WS
+  WS --> TC
+  TC --> J["Trade Journal + redacted export"]
   A["MCP Agent"] --> MS["Optional loopback MCP service"]
   MS --> DB
   MS --> CQ["Persistent MCP control requests"]
@@ -52,9 +56,9 @@ Trust Boundaries liegen an Telegram/TDLib, der externen KI-API, OIDC/JWKS bezieh
 | Core | `queue.ts`, `filters.ts`, `signal_schema.ts`, `signal_contract.ts`, `tdlib_retry.ts`, `delivery_tracker.ts`, `dashboard_auth.ts`, `crash_guard.ts`, `metrics_tracker.ts` | deterministische Regeln, Vertragsinterpreter und Zustandsmaschinen |
 | State/Config | `db.ts`, `config.ts`, `env.ts`, `runtime_settings.ts`, `secret_store.ts` | persistente Verträge, Migrationen und Konfigurationsgrenzen |
 | Adapter | `signal_parser.ts`, `web_server.ts`, `metrics.ts`, `logger.ts`, `backup.ts`, `backup_replication.ts`, `retention.ts`, `audit_trail.ts` | externe Provider, HTTP, Operator und Filesystem |
-| Trading | `trading_types.ts`, `trading_strategy.ts`, `trading_risk.ts`, `trading_channel_risk.ts`, `trading_telemetry.ts`, `trading_engine.ts`, `trading_repository.ts`, `trading_runtime.ts`, `trading_web_control.ts`, `trading_credentials.ts` | Verträge/Profile, adaptive Kanalgewichtung, Telemetrie, exakte Planung, Lifecycle und Reconciliation |
-| Agenten | `mcp_repository.ts`, `mcp_control_bridge.ts`, `mcp_server.ts` | gehashte Agentenidentitäten, dauerhafte Minimalrechte, Streamable HTTP, Ereignis-Push und auditierte Befehlsübergabe |
-| Exchange | `official_exchange.ts`, `paper_exchange.ts`, `exchange_executor/` | Paper-Simulation und offizielle Hyperliquid-/Bybit-SDK-Grenze |
+| Trading | `trading_types.ts`, `trading_strategy.ts`, `trading_risk.ts`, `trading_channel_risk.ts`, `trading_telemetry.ts`, `trading_engine.ts`, `trading_repository.ts`, `trading_runtime.ts`, `trading_web_control.ts`, `trading_credentials.ts`, `trade_journal.ts` | Verträge/Profile, adaptive Kanalgewichtung, Telemetrie, exakte Planung, Lifecycle, Reconciliation und Journal |
+| Agenten | `mcp_repository.ts`, `mcp_control_bridge.ts`, `mcp_server.ts` | gehashte Agentenidentitäten, dauerhafte Minimalrechte, Preflight/Freigabe-Vorschläge, Streamable HTTP, Ereignis-Push und auditierte Befehlsübergabe |
+| Exchange | `official_exchange.ts`, `exchange_stream_repository.ts`, `paper_exchange.ts`, `exchange_executor/` | Paper-Simulation, offizielle Hyperliquid-/Bybit-SDK-Grenze sowie deduplizierte Streambeschleunigung |
 
 Erlaubte Richtung: `Entry Point → Adapter → Core/State`. Core importiert keine Adapter oder Entry Points. Kein Modul außerhalb des Composition Root importiert einen Entry Point. `db.ts` importiert kein internes Modul. Zirkuläre Imports sind verboten.
 
@@ -85,6 +89,10 @@ Trading-Signale werden nach persistierter Signalvalidierung über eine immutable
 
 Teilgefüllte Entries werden bis zur maximal möglichen Entry-Menge geschützt; nach terminaler Füllung werden Stop und TPs exakt auf die reale Position skaliert. Der Reconciler gleicht Orders, Fills und Positionen mit der Exchange ab, passt den Stop an die Restmenge an und verschiebt ihn unabhängig vom Modus nur in Gewinnrichtung. Unbekannte Orderausgänge oder nicht vom System verwaltete Exchange-Exposure sperren neue Entries global.
 
+Private Exchange-WebSockets liefern normalisierte Order-, Execution- und Positionsereignisse; öffentliche Ticker/Kerzen dienen der Beobachtung. Die Streams besitzen pro Konto einen begrenzten Cursorpuffer. Event-Schlüssel deduplizieren Wiederholungen, Cursor-Lücken markieren den Zustand als degradiert. Ein zustandsrelevantes Ereignis darf ausschließlich eine erzwungene REST-Reconciliation vorziehen; es darf niemals direkt den persistierten Order-/Fill-/Positionszustand mutieren. Periodische REST-Reconciliation bleibt auch bei Socket-Ausfall aktiv und autoritativ.
+
+Das Trade Journal ist eine abgeleitete, read-mostly Sicht über Intents, Signal-/Vertrags-/Strategie-Provenienz, Positionen, Orders, Fills und Execution Events. Nur Review-Notizen, Tags, Bewertung und Review-Status werden separat gespeichert. Exporte hashen Chat-Identitäten, redigieren Quelltext-PII und neutralisieren Tabellenformeln. Ein vorhandener manueller Review schützt die zugehörige Trade-Historie vor operativer Standard-Retention.
+
 Je Quellkanal kann eine feste, beobachtende oder automatische Risikopolice hinterlegt werden. Wöchentliche, aus geschlossenen managed Trades berechnete Evaluationen empfehlen beziehungsweise setzen eine Risikostufe, reduzieren schwache Kanäle oder blockieren sie nach der konfigurierten Serie. Manuelle Sperre und Stufenfixierung haben Vorrang. Das resultierende Kanalrisiko kann die Strategie nur weiter begrenzen, niemals globale Caps, Protective-Stop-Pflicht, Kill-Switch oder Exchange-Reconciliation aufheben.
 
 ## MCP-Kontrollfluss
@@ -92,7 +100,9 @@ Je Quellkanal kann eine feste, beobachtende oder automatische Risikopolice hinte
 ```text
 Bearer-Token -> SHA-256-Agentenprüfung -> aktuelles dauerhaftes Recht
   -> read-only Tool: begrenzte Repository-Abfrage
-  -> write Tool: persistente mcp_control_request
+  -> ungefährliche Entwurfsänderung: Preflight -> auto-genehmigter persistenter Vorschlag
+  -> sensible Konfigurationsänderung: Preflight -> wartender Vorschlag -> Admin-Freigabe
+  -> unmittelbare Notfallaktion: persistente mcp_control_request
      -> Forwarder-Bridge prüft Agent/Recht erneut
      -> Vorab-Audit muss erfolgreich sein
      -> bestehende TradingWebControl-Sicherheitslogik
@@ -100,7 +110,7 @@ Bearer-Token -> SHA-256-Agentenprüfung -> aktuelles dauerhaftes Recht
      -> MCP-Antwort und Agenten-Aktionshistorie
 ```
 
-Der MCP-Prozess darf keine Exchange-Adapter instanziieren. Pro Sitzung werden Clientname, Version, Verbindungs-/Heartbeat-Zeit und Ende erfasst. Wichtige persistierte Trading-Events werden anhand der Agenten-Abonnements als MCP-Logging-Nachrichten aktiv versendet und pro Ereignis/Agent/Sitzung dedupliziert. Fehlgeschlagene Zustellungen bleiben retryfähig.
+Der MCP-Prozess darf keine Exchange-Adapter instanziieren. Pro Sitzung werden Clientname, Version, Verbindungs-/Heartbeat-Zeit und Ende erfasst. Vorschläge sind 24 Stunden gültig, werden atomar geclaimt und behalten Preflight, Entscheider, Ergebnis und Fehler dauerhaft. Nach Prozessabbruch werden laufende Vorschläge als fehlgeschlagen markiert und nicht automatisch erneut ausgeführt. Wichtige persistierte Trading-Events werden anhand der Agenten-Abonnements als MCP-Logging-Nachrichten aktiv versendet und pro Ereignis/Agent/Sitzung dedupliziert. Fehlgeschlagene Zustellungen bleiben retryfähig.
 
 ## Versionsregeln
 

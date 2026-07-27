@@ -31,6 +31,7 @@ import type {
   ExchangeOpenState,
   ExchangeOrderRequest,
   ExchangeOrderResult,
+  ExchangeStreamBatch,
   PlannedOrder,
   TradingAccount,
   TradingExchange,
@@ -1338,6 +1339,21 @@ export class TradingEngine {
         details: { symbol: intent.symbol, realizedPnl },
       });
     }
+  }
+
+  async pollAccountStream(
+    accountId: string,
+    cursor: number,
+    symbols: string[],
+  ): Promise<{ account: TradingAccount; batch: ExchangeStreamBatch } | null> {
+    const account = await getTradingAccount(accountId);
+    if (!account) throw new Error('Trading account does not exist.');
+    const stream = this.adapter(account.exchange).streamEvents;
+    if (!stream || account.exchange === 'paper') return null;
+    return {
+      account,
+      batch: await stream.call(this.adapter(account.exchange), account, cursor, symbols),
+    };
   }
 
   private async reconcileOpenRemotePosition(

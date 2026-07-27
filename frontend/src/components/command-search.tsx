@@ -203,6 +203,7 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
     { title: "Signal-Verträge verwalten", url: "/dashboard?tab=trading&workspace=contracts", group: "Trading", icon: FileJson2 },
     { title: "Kanal-Risiko verwalten", url: "/dashboard?tab=trading&workspace=routing", group: "Trading", icon: Radio },
     { title: "Aktive Positionen anzeigen", url: "/dashboard?tab=trading&workspace=activity", group: "Trading", icon: Activity },
+    { title: "Trade Journal öffnen", url: "/dashboard?tab=trading&workspace=journal", group: "Trading", icon: Activity },
     { title: "Jetzt mit Börsen abgleichen", group: "Aktionen", icon: Activity, action: reconcile },
     { title: "Notfallaktionen öffnen", url: "/dashboard", group: "Aktionen", icon: Shield },
     { title: "System Logs", url: "/dashboard?tab=logs", group: "System", icon: Settings },

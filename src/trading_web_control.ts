@@ -52,6 +52,7 @@ import {
   recordTradingEquitySnapshot,
 } from './trading_telemetry.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
+import { listExchangeStreamStates } from './exchange_stream_repository.js';
 import type {
   ExchangeOpenState,
   StrategyConfiguration,
@@ -109,6 +110,7 @@ export interface TradingWebSnapshot {
   routes: Awaited<ReturnType<typeof listTradingRoutes>>;
   intents: Awaited<ReturnType<typeof listTradingIntents>>;
   activity: Awaited<ReturnType<typeof listTradingActivity>>;
+  exchangeStreams: Awaited<ReturnType<typeof listExchangeStreamStates>>;
   confirmations: { live: string; emergencyFlatten: string };
 }
 
@@ -158,6 +160,7 @@ export class TradingWebControl {
     const [
       overview, analytics, strategies, signalSchemas, signalContracts, channelRiskPolicies,
       channelRiskEvaluations, executionAnalytics, channelAnalytics, equityHistory, accounts, routes, intents, activity,
+      exchangeStreams,
     ] = await Promise.all([
       getTradingOverview(),
       getTradingAnalytics(),
@@ -173,6 +176,7 @@ export class TradingWebControl {
       listTradingRoutes(),
       listTradingIntents(200),
       listTradingActivity(200),
+      listExchangeStreamStates(),
     ]);
     return {
       overview,
@@ -194,6 +198,7 @@ export class TradingWebControl {
       routes,
       intents,
       activity,
+      exchangeStreams,
       confirmations: { live: LIVE_CONFIRMATION, emergencyFlatten: FLATTEN_CONFIRMATION },
     };
   }

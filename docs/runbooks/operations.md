@@ -56,6 +56,21 @@ Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaise
 
 Bei Backup-Restore, Migration-Rollback oder Factory Reset stoppt TSX Core die interne MCP-Brücke und setzt im gemeinsamen SQLite-Volume `.mcp-maintenance`. Der unabhängige MCP-Dienst muss daraufhin seine Sitzungen und den DB-Handle schließen. Ein Dienst, der den Marker ignoriert oder während des Wartungsfensters neu startet, bleibt ungesund und darf nicht manuell am Marker vorbeigestartet werden.
 
+## MCP-Vorschlag prüfen
+
+1. In **MCP-Agenten → Freigabe-Warteschlange** Agent, Aktion, Ablaufzeit, Payload, Preflight-Blocker und Wirkungsbeschreibung prüfen. Unbekannte oder nicht mehr benötigte Vorschläge ablehnen.
+2. Vor Routing-, Risiko-, Strategie- oder Vertragsänderungen aktive Routen und Positionen gegenprüfen. Die Freigabe bestätigt nur die konkrete persistierte Payload; sie erweitert keine Agentenrechte.
+3. Genehmigen verlangt die explizite destruktive Bestätigung. Die Brücke prüft den Agenten und sein aktuelles Recht bei Ausführung nochmals. Entzogene Rechte, neue Referenzen oder inzwischen ungültiger Zustand müssen zum Fehler führen.
+4. Nach Ausführung `proposalId`, Agenten-Aktion, `authorized`/`completed`-Audit-Records und den fachlichen Zielzustand gemeinsam prüfen. `failed` oder nach Neustart unterbrochene Vorschläge niemals blind duplizieren; Ursache und mögliche Teilwirkung zuerst reconciliieren.
+
+## Exchange-WebSocket degradiert
+
+1. Unter **Trading → Betrieb** Konto, Streamstatus, Cursor/Lückenzähler, letztes Ereignis und Fehler sichern. Keine Streamzeile manuell aus SQLite löschen.
+2. Prüfen, ob die periodische REST-Reconciliation weiterhin erfolgreich und jünger als 30 Sekunden ist. WebSocket-Ausfall allein darf sie nicht stoppen; schlägt auch REST fehl, Trading bleibt beziehungsweise wird fail-closed gesperrt.
+3. Bei Cursor-Lücke sofort **Jetzt reconciliieren** verwenden und Remote Orders/Fills/Positionen mit den managed Client-IDs vergleichen. Der WebSocket-Payload ist niemals autoritativer Wiederherstellungsbeleg.
+4. Sidecar-/SDK-Netzwerk, Credential-Status und Exchange-Statusseite prüfen. Nach Wiederverbindung muss der Cursor fortlaufen, der Status `healthy` werden und ein zustandsänderndes Testevent eine erzwungene REST-Reconciliation auslösen.
+5. Wiederholte identische Events sind erwartbar und werden über den Event-Schlüssel dedupliziert. Bei dauerhaft wachsendem Lückenzähler Live-Entries deaktiviert lassen und eskalieren.
+
 ## Clock Drift
 
 <a id="clock-drift"></a>
@@ -74,6 +89,7 @@ Bei Backup-Restore, Migration-Rollback oder Factory Reset stoppt TSX Core die in
 - Bei Backlog zunächst Ursache und Nachrichtenrate bestimmen; Batchgröße nur innerhalb der validierten Grenzen und nach Lasttest erhöhen.
 - Bei vollem Datenträger Routing sauber stoppen. Keine DB-, WAL- oder SHM-Datei manuell entfernen.
 - Änderungen der Retention müssen Data Owner, Backup-Aufbewahrung, Rechtsgrundlage und Restore-Tests gemeinsam berücksichtigen.
+- Manuell reviewte Journal-Trades werden von der Standardbereinigung nicht entfernt. Exchange-Stream-Rohereignisse sind pro Konto auf die jüngsten 5.000 begrenzt; Journal-Export ist kein Backup-Ersatz.
 
 ## Timeout oder Provider-Ausfall
 

@@ -4,32 +4,40 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { McpControlBridge } from '../src/mcp_control_bridge.js';
+import { ensureTradingDefaults } from '../src/trading_repository.js';
 import {
+  approveMcpProposal,
   authenticateMcpToken,
   claimNextMcpControlRequest,
   completeMcpControlRequest,
   connectMcpSession,
   createMcpAgent,
+  createMcpProposal,
   deleteMcpAgent,
   disconnectMcpSession,
   enqueueMcpControlRequest,
   getMcpControlRequest,
+  listMcpProposals,
   listMcpAgentActions,
   listMcpAgents,
   listMcpSessions,
   listPendingMcpEvents,
+  preflightMcpAction,
   recordMcpAgentAction,
   recordMcpEventDelivery,
   recoverInterruptedMcpControlRequests,
+  rejectMcpProposal,
   rotateMcpAgentToken,
   touchMcpSession,
   updateMcpAgent,
   waitForMcpControlRequest,
+  waitForMcpProposal,
 } from '../src/mcp_repository.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-mcp-control-'));
 try {
   await initDb(path.join(directory, 'forwarder.db'));
+  await ensureTradingDefaults();
   await assert.rejects(
     createMcpAgent({ name: '', permissions: [] }),
     /name is invalid/,
@@ -125,15 +133,47 @@ try {
   assert.equal(mappedEvent?.channelId, 'channel-1');
 
   const calls = [];
+  await getDatabase().run(
+    `INSERT INTO trading_signal_contracts (
+       id, name, description, archived, created_at, updated_at
+     ) VALUES ('agent-contract', 'Agent contract', '', 0, ?, ?)`,
+    [Date.now(), Date.now()],
+  );
+  await getDatabase().run(
+    `INSERT INTO trading_signal_contract_versions (
+       id, contract_id, version, status, definition_json, definition_sha256,
+       created_at
+     ) VALUES ('agent-contract:v1', 'agent-contract', 1, 'draft', '{}', ?, ?)`,
+    ['a'.repeat(64), Date.now()],
+  );
   const fakeControl = {
     createSignalContract(payload) {
       calls.push(['create', payload]);
       return { id: payload.id || 'generated-contract' };
     },
     updateSignalContract() { throw new Error('contract update rejected'); },
-    publishSignalContract() {},
+    publishSignalContract(versionId) {
+      calls.push(['publish', versionId]);
+      return { id: versionId, status: 'published' };
+    },
     archiveSignalContract() {},
     removeSignalContractDraft() {},
+    removeSignalContractVersion() {},
+    createSignalContractVersion() {},
+    duplicateSignalContract() {},
+    createSignalSchema(payload) {
+      calls.push(['schema', payload]);
+      return { id: payload.id };
+    },
+    updateSignalSchema() {},
+    removeSignalSchema() {},
+    createStrategy() {},
+    updateStrategy() {},
+    publishStrategy() {},
+    archiveStrategy() {},
+    removeStrategy() {},
+    setRoute() {},
+    removeRoute() {},
     setChannelRiskPolicy() {},
     removeChannelRiskPolicy() {},
     reconcile() {},
@@ -181,6 +221,92 @@ try {
   });
   assert.equal((await waitForMcpControlRequest(flattenRequest.id, 5_000)).status, 'succeeded');
   assert.equal(calls[1][1].confirmation, 'FLATTEN MANAGED POSITIONS');
+
+  const blockedPreflight = await preflightMcpAction('contracts.publish', { versionId: 'missing:v1' });
+  assert.equal(blockedPreflight.allowed, false);
+  const paperAccount = await getDatabase().get(
+    "SELECT id FROM trading_accounts WHERE exchange = 'paper' LIMIT 1",
+  );
+  const publishedStrategy = await getDatabase().get(
+    "SELECT id FROM trading_strategy_versions WHERE status = 'published' LIMIT 1",
+  );
+  await getDatabase().run(
+    `INSERT OR REPLACE INTO trading_routes (
+       channel_id, strategy_version_id, account_id, enabled, created_at, updated_at
+     ) VALUES ('-mcp-preflight', ?, ?, 1, ?, ?)`,
+    [publishedStrategy.id, paperAccount.id, Date.now(), Date.now()],
+  );
+  const preflightCases = [
+    ['contracts.duplicate', { sourceVersionId: 'standard:v1', id: 'fresh-contract' }, true],
+    ['contracts.duplicate', { sourceVersionId: 'missing:v1', id: 'agent-contract' }, false],
+    ['contracts.create_version', { sourceVersionId: 'agent-contract:v1' }, false],
+    ['contracts.publish', { versionId: 'agent-contract:v1' }, true],
+    ['contracts.archive', { versionId: 'agent-contract:v1' }, false],
+    ['contracts.delete_draft', { versionId: 'agent-contract:v1' }, true],
+    ['contracts.delete_version', { versionId: 'agent-contract:v1' }, false],
+    ['contracts.publish', { versionId: 'standard:v1' }, false],
+    ['contracts.archive', { versionId: 'standard:v1' }, false],
+    ['schemas.create', { id: 'standard' }, false],
+    ['schemas.update', { id: 'missing-schema' }, false],
+    ['schemas.delete', { id: 'standard' }, false],
+    ['strategies.create', { name: 'Preflight draft' }, true],
+    ['strategies.update', { id: publishedStrategy.id }, false],
+    ['strategies.publish', { id: publishedStrategy.id }, false],
+    ['strategies.archive', { id: publishedStrategy.id }, false],
+    ['strategies.delete', { id: publishedStrategy.id }, false],
+    ['routes.delete', { channelId: '-mcp-preflight' }, true],
+    ['routes.set', {
+      channelId: '-mcp-route', strategyVersionId: publishedStrategy.id,
+      accountId: paperAccount.id, enabled: true,
+    }, true],
+    ['routes.set', {
+      channelId: '-mcp-missing-route', strategyVersionId: 'missing-strategy',
+      accountId: 'missing-account', enabled: true,
+    }, false],
+    ['risk.update', { channelId: '-mcp-risk' }, true],
+    ['risk.delete', { channelId: '-mcp-risk' }, true],
+    ['trading.release_kill_switch', {}, false],
+  ];
+  for (const [action, payload, allowed] of preflightCases) {
+    assert.equal((await preflightMcpAction(action, payload)).allowed, allowed, `${action} preflight`);
+  }
+  await getDatabase().run(
+    "UPDATE trading_runtime_state SET kill_switch_active = 1 WHERE singleton_id = 1",
+  );
+  assert.equal((await preflightMcpAction('trading.release_kill_switch', {})).allowed, true);
+  await assert.rejects(preflightMcpAction('invalid-proposal', {}), /action is invalid/);
+  await assert.rejects(preflightMcpAction('risk.update', null), /payload must be an object/);
+  const proposal = await createMcpProposal({
+    agentId: created.agent.id,
+    sessionId: session.id,
+    action: 'contracts.publish',
+    payload: { versionId: 'agent-contract:v1' },
+    autoApprove: true,
+  });
+  assert.equal(proposal.status, 'pending', 'Publishing always requires a human decision.');
+  assert.equal(proposal.preflight.requiresApproval, true);
+  await approveMcpProposal(proposal.id, 'dashboard:test-admin');
+  assert.equal((await waitForMcpProposal(proposal.id, 5_000)).status, 'completed');
+  assert.deepEqual(calls.find(call => call[0] === 'publish'), ['publish', 'agent-contract:v1']);
+
+  const rejectedProposal = await createMcpProposal({
+    agentId: created.agent.id,
+    action: 'contracts.publish',
+    payload: { versionId: 'agent-contract:v1' },
+  });
+  await rejectMcpProposal(rejectedProposal.id, 'dashboard:test-admin', 'Not in this release.');
+  assert.equal((await waitForMcpProposal(rejectedProposal.id, 1_000)).status, 'rejected');
+  assert.ok((await listMcpProposals()).some(item => item.id === rejectedProposal.id));
+
+  const automaticDraft = await createMcpProposal({
+    agentId: created.agent.id,
+    action: 'schemas.create',
+    payload: { id: 'agent-schema' },
+    autoApprove: true,
+  });
+  assert.equal(automaticDraft.status, 'approved');
+  assert.equal((await waitForMcpProposal(automaticDraft.id, 5_000)).status, 'completed');
+  assert.deepEqual(calls.find(call => call[0] === 'schema'), ['schema', { id: 'agent-schema' }]);
   await bridge.stop();
 
   const circular = {};
@@ -221,7 +347,10 @@ try {
     request: null,
     startedAt: Date.now(),
   });
-  assert.equal((await listMcpAgentActions())[0].sessionId, null);
+  assert.equal(
+    (await listMcpAgentActions()).find(action => action.toolName === 'tsx_no_session')?.sessionId,
+    null,
+  );
   await recordMcpAgentAction({
     agentId: created.agent.id,
     toolName: 'tsx_error_instance',

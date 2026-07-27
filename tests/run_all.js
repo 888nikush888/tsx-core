@@ -52,6 +52,7 @@ const allTests = [
   'test_official_exchange.js',
   'test_trading_web_control.js',
   'test_trading_analytics.js',
+  'test_trade_journal_streams.js',
   'test_mcp_control_plane.js',
   'test_mcp_server.js',
   'test_supply_chain.js',

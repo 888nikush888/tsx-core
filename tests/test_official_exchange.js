@@ -143,6 +143,47 @@ try {
   assert.equal(protectedPayload.protectiveStop.role, 'stop_loss');
   assert.equal(protectedPayload.protectiveStop.reduceOnly, true);
 
+  const streamNow = Date.now();
+  nextResponse = { body: {
+    events: [{
+      cursor: 1,
+      eventKey: 'd'.repeat(64),
+      eventType: 'execution',
+      symbol: 'BTCUSDT',
+      sequence: 7,
+      occurredAt: streamNow,
+      receivedAt: streamNow,
+      payload: { orderId: 'stream-order' },
+    }],
+    nextCursor: 1,
+    gap: false,
+    health: { status: 'healthy', startedAt: streamNow, lastEventAt: streamNow, lastError: null },
+  } };
+  const stream = await adapter.streamEvents(account, 0, ['BTCUSDT', 'BTCUSDT']);
+  assert.equal(stream.events[0].eventType, 'execution');
+  const streamRequest = JSON.parse(requests.at(-1).body);
+  assert.deepEqual(streamRequest.symbols, ['BTCUSDT'], 'Stream symbols must be deduplicated and sorted.');
+  await assert.rejects(adapter.streamEvents(account, -1, []), /cursor is invalid/);
+  await assert.rejects(adapter.streamEvents(account, 0, ['BTCEUR']), /bounded USD pairs/);
+
+  nextResponse = { body: { events: {}, nextCursor: 0, gap: false, health: {} } };
+  await assert.rejects(adapter.streamEvents(account, 0, []), /invalid stream batch contract/);
+  nextResponse = { body: {
+    events: [], nextCursor: 0, gap: false,
+    health: { status: 'unknown', startedAt: null, lastEventAt: null, lastError: null },
+  } };
+  await assert.rejects(adapter.streamEvents(account, 0, []), /invalid stream health/);
+  nextResponse = { body: {
+    events: [{
+      cursor: 0, eventKey: 'bad', eventType: 'other', symbol: 'TOO-LONG', sequence: {},
+      occurredAt: -1, receivedAt: -1, payload: null,
+    }],
+    nextCursor: 1,
+    gap: true,
+    health: { status: 'degraded', startedAt: null, lastEventAt: null, lastError: 'gap' },
+  } };
+  await assert.rejects(adapter.streamEvents(account, 0, []), /invalid stream event/);
+
   process.env.EXCHANGE_EXECUTOR_URL = 'https://executor.invalid';
   assert.throws(() => new OfficialExchangeAdapter('bybit', credentials), /plain internal HTTP origin/);
   process.env.EXCHANGE_EXECUTOR_URL = `http://127.0.0.1:${server.address().port}`;

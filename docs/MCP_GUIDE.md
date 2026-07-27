@@ -2,9 +2,9 @@
 
 ## Zweck und Sicherheitsgrenze
 
-Der optionale TSX-Core-MCP-Server stellt Systemstatus, Signalverträge, Positionen, Signale, Kanalrisiko und ausdrücklich freigegebene Kontrollaktionen über **Model Context Protocol / Streamable HTTP** bereit. Er ist ein eigener Prozess und kann mit unterschiedlichen MCP-fähigen Agenten-Frameworks kombiniert werden.
+Der optionale TSX-Core-MCP-Server stellt Systemstatus, Signalverträge, Signal-Schema-Profile, Strategien, Routen, Positionen, Signale, Kanalrisiko, Analytics, Exchange-Stream-Status, Trade Journal und ausdrücklich freigegebene Kontrollaktionen über **Model Context Protocol / Streamable HTTP** bereit. Er ist ein eigener Prozess und kann mit unterschiedlichen MCP-fähigen Agenten-Frameworks kombiniert werden.
 
-Der MCP-Server besitzt keine Telegram-, Dashboard- oder Exchange-Secrets. Lesezugriffe verwenden die gemeinsame SQLite-Datenbank. Schreibzugriffe werden als persistente Kontrollanforderung an den laufenden `forwarder` übergeben. Erst dessen Kontrollbrücke prüft den Agenten erneut, schreibt den Vorab-Audit-Record und ruft dieselbe `TradingWebControl`-Sicherheitslogik wie das Web-Dashboard auf. Ein Agent kann deshalb keine Exchange-Aktion durch direktes Ändern einer Datenbankzeile auslösen.
+Der MCP-Server besitzt keine Telegram-, Dashboard- oder Exchange-Secrets. Lesezugriffe verwenden die gemeinsame SQLite-Datenbank. Schreibzugriffe werden als persistente Kontrollanforderung oder Änderungsvorschlag an den laufenden `forwarder` übergeben. Erst dessen Kontrollbrücke prüft Agent, aktuellen Status und Rechte erneut, schreibt den Vorab-Audit-Record und ruft dieselbe `TradingWebControl`-Sicherheitslogik wie das Web-Dashboard auf. Ein Agent kann deshalb keine Exchange-Aktion durch direktes Ändern einer Datenbankzeile auslösen.
 
 ## Dienst starten
 
@@ -57,8 +57,14 @@ Die Protokollversion wird beim MCP-Handshake ausgehandelt. Clients dürfen keine
 | `positions.read` | managed Positionen, Orders und Fills lesen |
 | `signals.read` | jüngste Trade-Intents lesen |
 | `risk.read` | Kanalrisiko, Auswertungen, Konten ohne Credential-Referenz und Routen lesen |
+| `strategies.read` | versionierte Strategien lesen |
+| `routes.read` | Kanalrouten lesen |
+| `analytics.read` | Performance, Ausführungslatenzen und Exchange-Stream-Gesundheit lesen |
+| `journal.read` | PII-redigiertes Trade Journal lesen |
 | `contracts.write` | Vertragsentwurf erstellen/ändern/publizieren/archivieren/löschen |
 | `risk.write` | kanalbezogene Risikopolice erstellen/ändern/löschen |
+| `strategies.write` | Strategieentwürfe erstellen/ändern/publizieren/archivieren/löschen |
+| `routes.write` | Kanalrouten setzen oder entfernen |
 | `trading.reconcile` | Exchange-Abgleich anfordern |
 | `trading.cancel_entries` | managed Entry-Orders stornieren |
 | `trading.kill_switch` | Kill-Switch setzen oder nach erfolgreicher Reconciliation lösen |
@@ -72,17 +78,28 @@ Lese-Tools:
 
 - `tsx_system_status`
 - `tsx_contracts_list`
+- `tsx_contract_validate`
 - `tsx_positions_list`
 - `tsx_signals_list`
 - `tsx_risk_status`
+- `tsx_signal_schemas_list`
+- `tsx_strategies_list`
+- `tsx_routes_list`
+- `tsx_analytics`
+- `tsx_trade_journal`
+- `tsx_preflight`
+- `tsx_proposals_list`
+- `tsx_proposal_status`
 
 Schreib- und Kontroll-Tools:
 
-- `tsx_contract_create`
-- `tsx_contract_update`
+- `tsx_contract_create`, `tsx_contract_update`, `tsx_contract_create_version`, `tsx_contract_duplicate`
 - `tsx_contract_publish`
 - `tsx_contract_archive`
-- `tsx_contract_delete_draft`
+- `tsx_contract_delete_draft`, `tsx_contract_delete_version`
+- `tsx_signal_schema_create`, `tsx_signal_schema_update`, `tsx_signal_schema_delete`
+- `tsx_strategy_create`, `tsx_strategy_update`, `tsx_strategy_publish`, `tsx_strategy_archive`, `tsx_strategy_delete`
+- `tsx_route_set`, `tsx_route_delete`
 - `tsx_risk_policy_update`
 - `tsx_risk_policy_delete`
 - `tsx_reconcile`
@@ -91,6 +108,14 @@ Schreib- und Kontroll-Tools:
 - `tsx_emergency_flatten`
 
 Jeder Aufruf erzeugt einen Eintrag unter **MCP-Agenten → Agenten-Aktionen** mit Agent, Sitzung, Tool, benötigtem Recht, Ergebnis und Dauer. Schreibende Aufrufe erzeugen zusätzlich `authorized` und `completed` in der hashverketteten Enterprise-Audit-Kette. Requests und Ergebnisse sind größenbegrenzt; Tokens und Credentials werden nicht aufgezeichnet.
+
+## Preflight und Freigabe-Warteschlange
+
+`tsx_preflight` prüft eine Änderung ohne Persistenz oder Nebenwirkung gegen den aktuellen Datenbestand. Es liefert Blocker, erwartete Wirkung und die Information, ob menschliche Freigabe nötig ist. Sichere Entwurfsaktionen können nach erfolgreichem Preflight automatisch freigegeben werden. Publizieren, Archivieren, Löschen, Profiländerungen, Strategie-Lifecycle, Routing, Risikoänderungen und das Lösen des Kill-Switches erzeugen dagegen einen 24 Stunden gültigen, persistenten Vorschlag.
+
+Der Agent erhält sofort `proposalId`, Status, Ablaufzeit und Preflight-Ergebnis. Ein Admin genehmigt oder verwirft den Vorschlag unter **MCP-Agenten → Freigabe-Warteschlange**. Erst nach Genehmigung claimt die Forwarder-Brücke den Vorschlag atomar, prüft die inzwischen gültigen Rechte erneut und führt ihn auditiert aus. Nach Neustart werden unterbrochene Ausführungen als fehlgeschlagen markiert; sie werden nie blind wiederholt. `tsx_proposal_status` und `tsx_proposals_list` liefern den dauerhaften Ausgang.
+
+Sofortige Notfallaktionen bleiben bewusst getrennt: Reconciliation, Stornieren managed Entries, Aktivieren des Kill-Switches und reduce-only Flatten benötigen das jeweilige dauerhafte Recht und laufen direkt durch die auditierte Kontrollbrücke. Das Lösen des Kill-Switches ist stets freigabepflichtig. Tools für Secrets, Factory Reset oder das Aktivieren von Live-Trading existieren nicht.
 
 ## Ereignis-Benachrichtigungen
 
