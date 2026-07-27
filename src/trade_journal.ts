@@ -188,8 +188,8 @@ function feeTotals(fills: Array<Record<string, unknown>>): Record<string, string
 
 function trimDecimalZeros(value: string): string {
   let end = value.length;
-  while (end > 0 && value.charCodeAt(end - 1) === 48) end -= 1;
-  if (end > 0 && value.charCodeAt(end - 1) === 46) end -= 1;
+  while (end > 0 && value.codePointAt(end - 1) === 48) end -= 1;
+  if (end > 0 && value.codePointAt(end - 1) === 46) end -= 1;
   return value.slice(0, end);
 }
 
