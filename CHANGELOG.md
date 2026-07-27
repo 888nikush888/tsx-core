@@ -31,7 +31,7 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 - Publizierte oder archivierte XML-Vertragsversionen können nach expliziter Bestätigung endgültig gelöscht werden, sobald kein Signal-Schema-Profil mehr darauf verweist.
 - Lokaler Docker-Zugriff erzeugt den Admin-Token beim Erststart automatisch und verwendet bei späteren Browser-Sitzungen kurzlebige lokale Session-Tokens, statt erneut einen Bearer-Token abzufragen.
-- XML-Verträge sind über einen eigenen Sidebar-Eintrag direkt erreichbar; Erstellen, Versionieren, Bearbeiten, Duplizieren und Löschen von Entwürfen bleiben vollständig in der Web-UI steuerbar.
+- XML-Verträge werden ohne redundanten Sidebar-Eintrag zentral unter **Trading → Verträge** verwaltet; Erstellen, Versionieren, Bearbeiten, Duplizieren und Löschen bleiben vollständig in der Web-UI steuerbar.
 - MCP-Agenten können nach expliziter Bestätigung gelöscht werden; Token, Rechte, Sitzungen und wartende Kontrollanforderungen werden sofort widerrufen, während anonymisierte Audit-Referenzen erhalten bleiben.
 - **Betriebsdaten leeren** bewahrt Trading-Historie, Strategien, Konten, Exchange-Secrets und von Trades referenzierte Signale.
 - Strategieversionen können nur ohne aktive Route beziehungsweise aufbewahrte Trade-Historie sicher gelöscht werden.

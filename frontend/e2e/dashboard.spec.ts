@@ -91,7 +91,8 @@ test('local startup unlocks the responsive dashboard without a bearer prompt or 
   if ((page.viewportSize()?.width ?? 0) < 768) {
     await page.locator('[data-sidebar="trigger"]').click()
   }
-  await expect(page.getByRole('link', { name: 'XML-Verträge' })).toHaveAttribute('href', '/dashboard?tab=trading&workspace=contracts')
+  await expect(page.getByRole('link', { name: 'Trading' })).toHaveAttribute('href', '/dashboard?tab=trading')
+  await expect(page.getByRole('link', { name: 'XML-Verträge' })).toHaveCount(0)
   const overflowingElements = await page.locator('body *').evaluateAll(elements => {
     const viewportWidth = document.documentElement.clientWidth
     if (document.documentElement.scrollWidth <= viewportWidth) return []

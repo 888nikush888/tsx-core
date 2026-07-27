@@ -24,7 +24,7 @@ Paper ist kein Profitabilitätsnachweis: Latenz, Orderbuch, Funding, Liquidation
 
 ## 3. Signalverträge, Schema-Profile und Strategien erstellen
 
-Unter dem eigenen Sidebar-Punkt **XML-Verträge** oder alternativ **Trading → Verträge**:
+Unter **Trading → Verträge**:
 
 - **Vertrag erstellen oder duplizieren:** Kennung, Name und Beschreibung festlegen; `standard`, `cryptodanielvip` und `loma` sind nur initiale Beispiele und keine feste Laufzeit-Allowlist.
 - **Visueller Vertrags-Builder:** XML-Pfade für Aktion, Paar, Entry, Targets, Stop-Loss sowie optionale Leverage-/Risiko-/Averaging-Felder; Entry-Modus, scalar/range Targets, 1 bis 20 Targets, sequenzielle IDs und bis zu 30 zusätzliche typisierte Felder.
