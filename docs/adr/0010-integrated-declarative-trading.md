@@ -26,3 +26,5 @@ Strategie-, Vertrags- und Schema-Profiländerungen sind reproduzierbar, auditier
 Die Profilverwaltung und adaptiven TP-/SL-Modi wurden am 22./23.07.2026 als additive Konkretisierung dieser Entscheidung umgesetzt. Der weiterhin offene Gesamtvergleich zum ursprünglichen Blueprint steht in `docs/TRADING_BLUEPRINT_V4_GAP_ANALYSIS.md`.
 
 Ergänzung 26.07.2026: ADR 0011 erweitert den ausführbaren Vertragsraum um benutzerverwaltete deklarative Vertragsversionen und ergänzt Kanalrisiko, Execution-Telemetrie sowie die auditierte MCP-Kontrollbrücke. Die in diesem ADR festgelegte alleinige Positionshoheit, offizielle SDK-Grenze und fail-closed Trading-Sicherheit bleiben unverändert.
+
+Ergänzung 28.07.2026: Die frühere feste USD-/USDC-/USDT-Quote-Vorgabe wird durch eine versionierte Symbolrichtlinie der Strategie ersetzt: **alle**, **keine** oder eine explizite Allowlist. Bei **alle** bleibt die Marktverfügbarkeitsprüfung des offiziellen Börsenadapters vor jeder Order zwingend; unbekannte Märkte lösen keine Trading-Nebenwirkung aus.

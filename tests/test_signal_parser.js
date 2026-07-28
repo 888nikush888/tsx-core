@@ -108,10 +108,11 @@ function assertSpacedPairGrounding() {
   }
 }
 
-function assertUsdQuoteOnly() {
+function assertAnyNormalizedPair() {
   for (const pair of ['BTCEUR', 'ETHBTC', 'SOLETH']) {
-    assertInvalid(standard({ pair }), undefined, /must use the USD, USDC, or USDT quote asset/);
+    assert.equal(validateSignalXml(standard({ pair })).pair, pair);
   }
+  assertInvalid(standard({ pair: 'btc-eur' }), undefined, /normalized uppercase trading symbol/);
 }
 
 async function testStandardSchemaContracts() {
@@ -153,7 +154,7 @@ async function testStandardSchemaContracts() {
     /competing trading pairs/
   );
   assertSpacedPairGrounding();
-  assertUsdQuoteOnly();
+  assertAnyNormalizedPair();
 
   const invalidStandard = [
     ['numeric suffix', standard({ targets: '<target id="1">95abc</target>' }), /plain decimal/],

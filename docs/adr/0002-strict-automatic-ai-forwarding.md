@@ -18,3 +18,5 @@ Unklare oder abweichende Antworten werden verworfen. Modell-/Prompt-/Template-Re
 Seit der Trading-Erweiterung verbindet ein persistentes, im Web verwaltbares Schema-Profil das quellspezifische Parser-Template mit einem geprüften ausführbaren XML-Vertrag. Dies ändert die Sicherheitsentscheidung nicht: Profile erlauben keinen beliebigen Code oder neuen Vertragsparser, unbekannte/deaktivierte Profile erzeugen keinen Trade, und ausführbare Paare müssen mit `USD`, `USDC` oder `USDT` notiert sein.
 
 Ergänzung 26.07.2026: ADR 0011 ersetzt die frühere Beschränkung auf fest benannte Vertragsparser durch einen generischen, weiterhin rein deklarativen und begrenzten Vertragsinterpreter. Die Fail-closed-, Grounding- und USD-Quote-Entscheidung dieses ADR bleibt unverändert.
+
+Ergänzung 28.07.2026: Die feste USD-Quote-Entscheidung wird durch die versionierte Symbolrichtlinie der Trading-Strategie ersetzt. XML und Grounding akzeptieren weiterhin nur normalisierte Symbole; die Auswahl **alle**, **keine** oder Allowlist wird vor jeder Trading-Nebenwirkung geprüft, und bei **alle** prüft der Börsenadapter die Marktverfügbarkeit.

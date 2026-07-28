@@ -77,7 +77,10 @@ function assertStrategyAllows(signal: ExecutableSignal, strategy: StrategyConfig
   if (!strategy.allowedSides.includes(signal.action)) {
     throw new TradingRiskError('SIDE_BLOCKED', `Strategy does not allow ${signal.action} positions.`);
   }
-  if (strategy.allowedSymbols.length > 0 && !strategy.allowedSymbols.includes(signal.symbol)) {
+  if (strategy.symbolPolicy === 'none') {
+    throw new TradingRiskError('SYMBOL_BLOCKED', 'Strategy does not allow any symbols.');
+  }
+  if (strategy.symbolPolicy === 'allowlist' && !strategy.allowedSymbols.includes(signal.symbol)) {
     throw new TradingRiskError('SYMBOL_BLOCKED', `Strategy does not allow ${signal.symbol}.`);
   }
 }

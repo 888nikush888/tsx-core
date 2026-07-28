@@ -15,8 +15,9 @@ export function signalSchemaIdentifier(value: unknown, label = 'Signal schema id
 }
 
 export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   allowedSignalSchemas: ['standard', 'cryptodanielvip', 'loma'],
+  symbolPolicy: 'all',
   allowedSymbols: [],
   allowedSides: ['LONG', 'SHORT'],
   entry: {
@@ -75,9 +76,11 @@ function exactKeys(value: Record<string, any>, name: string, keys: string[]): vo
 }
 
 function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
-  'schemaVersion' | 'allowedSignalSchemas' | 'allowedSymbols' | 'allowedSides'
+  'schemaVersion' | 'allowedSignalSchemas' | 'symbolPolicy' | 'allowedSymbols' | 'allowedSides'
 > {
-  if (value.schemaVersion !== 1 && value.schemaVersion !== 2) throw new Error('Unsupported strategy schema version.');
+  if (value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3) {
+    throw new Error('Unsupported strategy schema version.');
+  }
   if (!Array.isArray(value.allowedSignalSchemas) || value.allowedSignalSchemas.some(schema => typeof schema !== 'string')) {
     throw new Error('allowedSignalSchemas must be an array of strings.');
   }
@@ -86,11 +89,26 @@ function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
   if (new Set(schemas).size !== schemas.length) throw new Error('allowedSignalSchemas must not contain duplicates.');
   const symbols = uniqueStrings(value.allowedSymbols, 'allowedSymbols');
   if (symbols.some(symbol => !SYMBOL_PATTERN.test(symbol))) throw new Error('allowedSymbols contains an invalid normalized symbol.');
+  const legacySymbolPolicy = symbols.length > 0 ? 'allowlist' : 'all';
+  const symbolPolicy = value.schemaVersion === 3 ? value.symbolPolicy : value.symbolPolicy ?? legacySymbolPolicy;
+  if (!['all', 'none', 'allowlist'].includes(symbolPolicy)) {
+    throw new Error('symbolPolicy must be all, none, or allowlist.');
+  }
+  if (value.schemaVersion !== 3 && symbolPolicy !== legacySymbolPolicy) {
+    throw new Error('Legacy strategy schemas may only use their derived symbolPolicy.');
+  }
+  if (symbolPolicy === 'allowlist' && symbols.length === 0) {
+    throw new Error('symbolPolicy allowlist requires at least one allowed symbol.');
+  }
+  if (symbolPolicy !== 'allowlist' && symbols.length > 0) {
+    throw new Error('allowedSymbols must be empty unless symbolPolicy is allowlist.');
+  }
   const sides = uniqueStrings(value.allowedSides, 'allowedSides');
   if (sides.length < 1 || sides.some(side => side !== 'LONG' && side !== 'SHORT')) throw new Error('allowedSides must contain LONG and/or SHORT.');
   return {
     schemaVersion: value.schemaVersion,
     allowedSignalSchemas: schemas,
+    symbolPolicy: symbolPolicy as StrategyConfiguration['symbolPolicy'],
     allowedSymbols: symbols,
     allowedSides: sides as StrategyConfiguration['allowedSides'],
   };
@@ -111,7 +129,7 @@ function validateEntry(input: unknown): StrategyConfiguration['entry'] {
   };
 }
 
-function validateSizing(input: unknown, schemaVersion: 1 | 2): StrategyConfiguration['sizing'] {
+function validateSizing(input: unknown, schemaVersion: 1 | 2 | 3): StrategyConfiguration['sizing'] {
   const value = object(input, 'sizing');
   exactKeys(value, 'sizing', [
     'riskPerTradePercent', 'maxAdaptiveRiskPercent', 'maxPositionNotional', 'maxLeverage',
@@ -192,10 +210,14 @@ function validateSafety(input: unknown): StrategyConfiguration['safety'] {
 
 export function validateStrategyConfiguration(input: unknown): StrategyConfiguration {
   const value = object(input, 'Strategy configuration');
-  exactKeys(value, 'Strategy configuration', [
-    'schemaVersion', 'allowedSignalSchemas', 'allowedSymbols', 'allowedSides',
+  if (value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3) {
+    throw new Error('Unsupported strategy schema version.');
+  }
+  const keys = [
+    'schemaVersion', 'allowedSignalSchemas', 'symbolPolicy', 'allowedSymbols', 'allowedSides',
     'entry', 'sizing', 'exits', 'safety',
-  ]);
+  ];
+  exactKeys(value, 'Strategy configuration', keys);
   const access = validateAccess(value);
   return {
     ...access,

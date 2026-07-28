@@ -164,8 +164,16 @@ try {
   assert.equal(stream.events[0].eventType, 'execution');
   const streamRequest = JSON.parse(requests.at(-1).body);
   assert.deepEqual(streamRequest.symbols, ['BTCUSDT'], 'Stream symbols must be deduplicated and sorted.');
+  nextResponse = { body: {
+    events: [], nextCursor: 1, gap: false,
+    health: { status: 'healthy', startedAt: streamNow, lastEventAt: streamNow, lastError: null },
+  } };
+  await adapter.streamEvents(account, 0, ['BTCEUR']);
+  assert.deepEqual(JSON.parse(requests.at(-1).body).symbols, ['BTCEUR']);
+  nextResponse = { status: 422, body: { error: 'Bybit symbol BTCEUR is unavailable.' } };
+  await assert.rejects(adapter.marketSnapshot(account, 'BTCEUR'), /422.*BTCEUR is unavailable/);
   await assert.rejects(adapter.streamEvents(account, -1, []), /cursor is invalid/);
-  await assert.rejects(adapter.streamEvents(account, 0, ['BTCEUR']), /bounded USD pairs/);
+  await assert.rejects(adapter.streamEvents(account, 0, ['BTC-EUR']), /bounded normalized symbols/);
 
   nextResponse = { body: { events: {}, nextCursor: 0, gap: false, health: {} } };
   await assert.rejects(adapter.streamEvents(account, 0, []), /invalid stream batch contract/);

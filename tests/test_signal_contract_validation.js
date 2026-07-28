@@ -170,7 +170,7 @@ const typedInvalidCases = [
   [marketXml.replace('<leverage>5</leverage>', '<leverage>126</leverage>'), /between 1 and 125/],
   [marketXml.replace('<risk>1.5</risk>', '<risk>101</risk>'), /must not exceed 100/],
   [marketXml.replace('<action>LONG</action>', '<action>HOLD</action>'), /LONG.*SHORT/],
-  [marketXml.replace('<pair>ETHUSD</pair>', '<pair>ethusd</pair>'), /quote asset/],
+  [marketXml.replace('<pair>ETHUSD</pair>', '<pair>ethusd</pair>'), /normalized uppercase trading symbol/],
   [marketXml.replace('<stoploss>90</stoploss>', '<stoploss>90</stoploss><stoploss>89</stoploss>'), /at most once/],
   [marketXml.replace('</signal>', '<unknown>1</unknown></signal>'), /Unknown tag/],
 ];

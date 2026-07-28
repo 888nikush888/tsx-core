@@ -185,14 +185,10 @@ function actionValue(node: XmlNode): 'LONG' | 'SHORT' {
   return action;
 }
 
-function pairValue(node: XmlNode, requireQuoteAsset: boolean): string {
+function pairValue(node: XmlNode): string {
   const pair = leaf(required(node, 'pair'));
   const genericPair = /^[A-Z0-9]{2,20}$/.test(pair) && /[A-Z]/.test(pair);
-  const quotedPair = /^(?=.{5,20}$)[A-Z0-9]+(?:USDT|USDC|USD)$/.test(pair);
-  if (requireQuoteAsset && !quotedPair) {
-    throw new SignalValidationError(`Pair '${pair}' must use the USD, USDC, or USDT quote asset.`);
-  }
-  if (!requireQuoteAsset && !genericPair) {
+  if (!genericPair) {
     throw new SignalValidationError(`Pair '${pair}' is not a normalized uppercase trading symbol.`);
   }
   return pair;
@@ -309,7 +305,7 @@ function scalarExecution(input: {
 function validateStandard(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
   assertAllowedChildren(root, ['action', 'pair', 'entry_range', 'targets', 'stoploss', 'leverage']);
   const action = actionValue(root);
-  const pair = pairValue(root, true);
+  const pair = pairValue(root);
   const entryNode = optional(root, 'entry_range');
   const entry = entryNode ? range(entryNode) : undefined;
   const targets = scalarTargets(required(root, 'targets'));
@@ -360,7 +356,7 @@ function cryptodanielRisk(root: XmlNode): string | undefined {
 function validateCryptoDaniel(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
   assertAllowedChildren(root, ['action', 'pair', 'entry_type', 'entry_range', 'averaging', 'targets', 'stoploss', 'risk_percent']);
   const action = actionValue(root);
-  const pair = pairValue(root, true);
+  const pair = pairValue(root);
   const entryType = leaf(required(root, 'entry_type'));
   if (entryType !== 'MARKET' && entryType !== 'LIMIT') throw new SignalValidationError("entry_type must be 'MARKET' or 'LIMIT'.");
   const entry = cryptodanielEntry(root, entryType);
@@ -393,7 +389,7 @@ function validateCryptoDaniel(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'sch
 function validateLoma(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
   assertAllowedChildren(root, ['pair', 'timeframe', 'action', 'entry_range', 'stoploss', 'targets']);
   const action = actionValue(root);
-  const pair = pairValue(root, true);
+  const pair = pairValue(root);
   const timeframe = leaf(required(root, 'timeframe'));
   if (!/^[MHDW]\d{1,3}(?:\/[MHDW]\d{1,3})*$/.test(timeframe)) {
     throw new SignalValidationError(`Invalid timeframe '${timeframe}'.`);
@@ -448,7 +444,7 @@ function validateSpeculant(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema
   assertAllowedChildren(root, ['type', 'action', 'pair', 'conviction', 'timeframe', 'comment', 'risk_warning']);
   if (leaf(required(root, 'type')) !== 'MANIPULATION') throw new SignalValidationError("type must be 'MANIPULATION'.");
   const action = actionValue(root);
-  const pair = pairValue(root, false);
+  const pair = pairValue(root);
   const conviction = leaf(required(root, 'conviction'));
   if (!['HIGH', 'MEDIUM', 'LOW'].includes(conviction)) throw new SignalValidationError('conviction must be HIGH, MEDIUM, or LOW.');
   const timeframe = leaf(required(root, 'timeframe'));
@@ -752,7 +748,7 @@ function validateDynamicContract(
   assertDeclaredNode(root, '', declaredStructure(definition));
   const action = dynamicAction(root, definition);
   const pairNode = pathNode(root, definition.pairPath, true)!;
-  const pair = pairValue({ ...root, children: [{ ...pairNode, name: 'pair' }] }, true);
+  const pair = pairValue({ ...root, children: [{ ...pairNode, name: 'pair' }] });
   const entry = contractEntry(root, definition);
   const targets = contractTargets(root, definition);
   const stopLoss = contractDecimal(root, definition.stopLossPath, true)!;
@@ -931,29 +927,48 @@ function assertFieldGrounded(field: GroundingField, sourceFields: Map<GroundingF
   }
 }
 
-const GROUNDING_QUOTE_ASSETS = ['USDT', 'USDC', 'USD'];
+const COMMON_QUOTE_ASSETS = ['USDT', 'USDC', 'USD'];
 const GROUNDING_PAIR_CONNECTORS = new Set(['AND', 'OR', 'UND', 'ODER', 'VERSUS', 'VS']);
+const GROUNDING_NON_PAIR_TOKENS = new Set([
+  'LONG', 'SHORT', 'BUY', 'SELL', 'CALL', 'PUT', 'ENTRY', 'RANGE', 'LIMIT', 'MARKET',
+  'AVERAGING', 'TARGET', 'TARGETS', 'TAKE', 'PROFIT', 'STOP', 'STOPLOSS', 'LEVERAGE',
+  'RISK', 'PERCENT', 'TIMEFRAME', 'SIGNAL', 'TRADE', 'TRADING', 'NONE',
+]);
 
-function isQuotedPairCandidate(candidate: string): boolean {
-  return GROUNDING_QUOTE_ASSETS.some(quote => {
-    if (!candidate.endsWith(quote)) return false;
-    const base = candidate.slice(0, -quote.length);
-    return base.length >= 2 && base.length <= 12 && /^[A-Z0-9]+$/.test(base) && /[A-Z]/.test(base);
-  });
+function isPairCandidate(candidate: string): boolean {
+  return /^[A-Z0-9]{5,20}$/.test(candidate)
+    && /[A-Z]/.test(candidate)
+    && !GROUNDING_NON_PAIR_TOKENS.has(candidate)
+    && !/^TARGET\d*$/.test(candidate)
+    && !/^TP\d*$/.test(candidate);
+}
+
+function isPairBaseCandidate(candidate: string): boolean {
+  return /^[A-Z][A-Z0-9]{1,11}$/.test(candidate)
+    && !GROUNDING_NON_PAIR_TOKENS.has(candidate)
+    && !/^TARGET\d*$/.test(candidate)
+    && !/^TP\d*$/.test(candidate);
 }
 
 function pairCandidates(tokens: string[], expectedPair: string): string[] {
+  const inferredQuoteSuffixes = new Set<string>(COMMON_QUOTE_ASSETS);
+  for (let length = 3; length <= Math.min(6, expectedPair.length - 2); length += 1) {
+    inferredQuoteSuffixes.add(expectedPair.slice(-length));
+  }
+  const relatedCandidate = (candidate: string) => candidate === expectedPair
+    || [...inferredQuoteSuffixes].some(quote => candidate.endsWith(quote) && candidate.length > quote.length);
   const candidates: string[] = [];
   tokens.forEach((token, index) => {
     if (token === '/') return;
-    if (isQuotedPairCandidate(token)) candidates.push(token);
+    if (isPairCandidate(token) && relatedCandidate(token)) candidates.push(token);
     const slashSeparated = tokens[index + 1] === '/';
     const quote = slashSeparated ? tokens[index + 2] : tokens[index + 1];
-    if (!quote || !GROUNDING_QUOTE_ASSETS.includes(quote)) return;
+    if (!quote || !/^[A-Z0-9]{2,12}$/.test(token) || !/^[A-Z0-9]{2,12}$/.test(quote)) return;
     const candidate = `${token}${quote}`;
-    if (!isQuotedPairCandidate(candidate)) return;
+    if (!isPairCandidate(candidate)) return;
     const connector = tokens[index - 1];
-    if (slashSeparated || candidate === expectedPair || GROUNDING_PAIR_CONNECTORS.has(connector)) {
+    if (slashSeparated || candidate === expectedPair
+      || (GROUNDING_PAIR_CONNECTORS.has(connector) && isPairBaseCandidate(token))) {
       candidates.push(candidate);
     }
   });
