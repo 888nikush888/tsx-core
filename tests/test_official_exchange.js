@@ -6,7 +6,8 @@ import path from 'node:path';
 import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { OfficialExchangeAdapter } from '../src/official_exchange.js';
 import { TradingCredentialStore } from '../src/trading_credentials.js';
-import { createTradingAccount, ensureTradingDefaults, listTradingStrategies } from '../src/trading_repository.js';
+import { createTradingAccount, listTradingStrategies } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'official-exchange-'));
 const credentials = new TradingCredentialStore(directory);
@@ -16,7 +17,7 @@ const requests = [];
 const externalAccountId = 'a'.repeat(64);
 let nextResponse;
 await initDb(path.join(directory, 'forwarder.db'));
-await ensureTradingDefaults();
+await seedTradingFixtures();
 
 const server = http.createServer((request, response) => {
   let body = '';

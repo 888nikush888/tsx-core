@@ -4,10 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
 import {
-  ensureTradingDefaults,
   listTradingAccounts,
   listTradingStrategies,
 } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import {
   getChannelPerformanceAnalytics,
@@ -87,7 +87,7 @@ function policyInput(channelId, overrides = {}) {
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-trading-analytics-'));
 try {
   await initDb(path.join(directory, 'forwarder.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   const account = (await listTradingAccounts())[0];
   const strategy = (await listTradingStrategies()).find(candidate => candidate.status === 'published');
   assert.ok(account && strategy);

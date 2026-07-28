@@ -11,7 +11,7 @@ Der Docker-Standardbetrieb las weiterhin `.env`, markierte dadurch Dashboard-Sec
 ## Entscheidung
 
 - Das Standard-Compose liest keine `.env` ein und veröffentlicht Dashboard sowie Metriken ausschließlich auf Host-Loopback.
-- `DASHBOARD_LOCAL_TRUST` wird im Standalone-Profil aktiviert. Ein Origin- und Header-geschützter lokaler Session-Endpunkt erzeugt den verwalteten Admin-Zugang beim Erststart automatisch. Wenn dieser bereits existiert, erzeugt der Endpunkt stattdessen einen separaten, höchstens zwölf Stunden gültigen In-Memory-Session-Token und legt den dauerhaften Admin-Token nicht erneut offen. Browser halten beide Tokenarten nur im Session Storage. Dieser Modus vertraut ausdrücklich allen lokalen Prozessen des dedizierten Single-User-Hosts und ist kein Remote-/Shared-Host-Sicherheitsmodell.
+- `DASHBOARD_LOCAL_TRUST` wird im Standalone-Profil aktiviert. Beim Erststart bleibt der lokale Session-Endpunkt gesperrt, bis der Operator die sichtbare Bootstrap-Aktion ausführt, den serverseitig erzeugten Admin-Bearer einmalig erhält und dessen Speicherung bestätigt. Erst wenn dieser dauerhafte Zugang existiert, erzeugt der Session-Endpunkt einen separaten, höchstens zwölf Stunden gültigen In-Memory-Session-Token und legt den dauerhaften Admin-Token nicht erneut offen. Browser halten beide Tokenarten nur im Session Storage. Dieser Modus vertraut ausdrücklich allen lokalen Prozessen des dedizierten Single-User-Hosts und ist kein Remote-/Shared-Host-Sicherheitsmodell.
 - Das mitgelieferte Compose aktiviert zusätzlich `DASHBOARD_RECOVERY_LOCAL_TRUST` nur hinter seiner festen Host-Loopback-Portfreigabe. Bei beschädigter Konfiguration, Runtime-Einstellung oder Secret-Datei bleibt ausschließlich eine Repair-Plane für diese drei Zustände und einen Neustart aktiv; ihre bewusst unauditierten Mutationen werden als kritisch geloggt. Diese Ausnahme ist für remote veröffentlichte oder Enterprise-OIDC-Dashboards verboten.
 - Admin- und Viewer-Bearer-Keys werden serverseitig erzeugt, write-only persistiert und nach Erzeugung genau einmal angezeigt.
 - Alle nicht geheimen Runtime-/Enterprise-Parameter werden atomar in `runtime-settings.json` gespeichert und erst nach kontrolliertem Neustart aktiviert. Enterprise-Modus erzwingt OIDC, deaktiviert Local Trust und verlangt Remote-Audit und Off-site-Backup.
@@ -20,7 +20,9 @@ Der Docker-Standardbetrieb las weiterhin `.env`, markierte dadurch Dashboard-Sec
 
 ## Konsequenzen
 
-Der normale Docker-Erststart, spätere lokale Browser-Sitzungen und die lokal begrenzte Recovery benötigen weder `.env` noch manuelle Bearer-Eingabe. Extern gemountete Orchestrator-Secrets bleiben möglich, sind dann aber im Web schreibgeschützt. Remote-Zugriff und Enterprise-OIDC benötigen weiterhin einen TLS-/Identity-Provider außerhalb dieses Containers.
+Der normale Docker-Erststart benötigt weder `.env` noch einen vom Benutzer erfundenen Bearer-Wert, macht die Erzeugung und einmalige Ausgabe des serverseitigen Tokens aber ausdrücklich sichtbar. Spätere lokale Browser-Sitzungen und die lokal begrenzte Recovery benötigen keine erneute Bearer-Eingabe. Extern gemountete Orchestrator-Secrets bleiben möglich, sind dann aber im Web schreibgeschützt. Remote-Zugriff und Enterprise-OIDC benötigen weiterhin einen TLS-/Identity-Provider außerhalb dieses Containers.
+
+Ergänzung 28.07.2026: Die Auslieferung erzeugt keine fachlichen Beispieldaten mehr. Eine neue oder vollständig zurückgesetzte Installation besitzt weder Verträge/Profile/Strategien noch Konten, Paper-Guthaben, Routen oder MCP-Agenten. Benannte Docker-Volumes bleiben als installationsbezogener Zustand ausdrücklich von GitHub-Checkout und Image getrennt.
 
 ## Abnahme und Traceability
 

@@ -10,7 +10,7 @@ import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { McpControlBridge } from '../src/mcp_control_bridge.js';
 import { createMcpAgent } from '../src/mcp_repository.js';
 import { beginMcpSharedMaintenance } from '../src/mcp_maintenance.js';
-import { ensureTradingDefaults } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 
 async function availablePort() {
   return new Promise((resolve, reject) => {
@@ -48,7 +48,7 @@ let bridge;
 let serverOutput = '';
 try {
   await initDb(databasePath);
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   const { token } = await createMcpAgent({
     name: 'Protocol test agent',
     permissions: [

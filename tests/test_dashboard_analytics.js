@@ -4,7 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { closeDb, getDatabase, getSignalDashboardAnalytics, initDb } from '../src/db.js';
-import { ensureTradingDefaults, getTradingAnalytics, listTradingAccounts, listTradingStrategies } from '../src/trading_repository.js';
+import { getTradingAnalytics, listTradingAccounts, listTradingStrategies } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'dashboard-analytics-'));
 const now = 2_000_000_000_000;
@@ -13,7 +14,7 @@ const old = now - 40 * 24 * 60 * 60 * 1_000;
 
 try {
   await initDb(path.join(directory, 'forwarder.db'));
-  await ensureTradingDefaults(now - 1_000);
+  await seedTradingFixtures(now - 1_000);
   const database = getDatabase();
   const [account] = await listTradingAccounts();
   const [strategy] = await listTradingStrategies();

@@ -1,15 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import { constantTimeStringEqual } from './secure_compare.js';
-import {
-  BUILTIN_SIGNAL_CONTRACTS,
-  signalContractDefinitionSha256,
-  validateSignalContractDefinition,
-} from './signal_contract.js';
+import { signalContractDefinitionSha256, validateSignalContractDefinition } from './signal_contract.js';
+import { decimal } from './trading_decimal.js';
 import { recordTradingExecutionEvent } from './trading_telemetry.js';
 import {
   createStrategyVersion,
-  DEFAULT_STRATEGY_CONFIGURATION,
   signalSchemaIdentifier,
   strategyConfigurationSha256,
   validateStrategyConfiguration,
@@ -157,57 +153,6 @@ async function insertStrategy(strategy: TradingStrategyVersion): Promise<void> {
       strategy.publishedAt,
     ],
   );
-}
-
-export async function ensureTradingDefaults(now = Date.now()): Promise<void> {
-  await transaction(async () => {
-    for (const contract of BUILTIN_SIGNAL_CONTRACTS) {
-      const versionId = `${contract.id}:v1`;
-      const definition = validateSignalContractDefinition(contract.definition);
-      await getDatabase().run(
-        `INSERT OR IGNORE INTO trading_signal_contracts (
-           id, name, description, archived, created_at, updated_at
-         ) VALUES (?, ?, ?, 0, ?, ?)`,
-        [contract.id, contract.name, contract.description, now, now],
-      );
-      await getDatabase().run(
-        `INSERT OR IGNORE INTO trading_signal_contract_versions (
-           id, contract_id, version, status, definition_json, definition_sha256,
-           created_at, published_at, archived_at
-         ) VALUES (?, ?, 1, 'published', ?, ?, ?, ?, NULL)`,
-        [versionId, contract.id, JSON.stringify(definition), signalContractDefinitionSha256(definition), now, now],
-      );
-      await getDatabase().run(
-        `UPDATE trading_signal_schemas SET contract_version_id = ?
-         WHERE id = ? AND contract_version_id IS NULL`,
-        [versionId, contract.id],
-      );
-    }
-    const strategyCount = await getDatabase().get<{ count: number }>('SELECT COUNT(*) AS count FROM trading_strategy_versions');
-    if (Number(strategyCount?.count || 0) === 0) {
-      const strategy = createStrategyVersion({
-        version: 1,
-        name: 'Adaptive Signal',
-        description: 'Safe default strategy using signal entries, mandatory protective stops and staged take profits.',
-        configuration: DEFAULT_STRATEGY_CONFIGURATION,
-        now,
-      });
-      await insertStrategy({ ...strategy, status: 'published', publishedAt: now });
-    }
-    await getDatabase().run(
-      `INSERT OR IGNORE INTO trading_accounts (
-         id, name, exchange, mode, status, enabled, credential_ref,
-         last_verified_at, last_error, created_at, updated_at
-       ) VALUES ('paper-default', 'Paper Trading', 'paper', 'paper', 'ready', 1, NULL, ?, NULL, ?, ?)`,
-      [now, now, now],
-    );
-    await getDatabase().run(
-      `INSERT OR IGNORE INTO trading_paper_accounts (
-         account_id, equity, available_balance, realized_pnl, updated_at
-       ) VALUES ('paper-default', '10000', '10000', '0', ?)`,
-      [now],
-    );
-  });
 }
 
 function contractMetadata(input: { name: unknown; description?: unknown }): { name: string; description: string } {
@@ -622,7 +567,8 @@ function validateTradingAccountInput(input: {
   exchange: TradingExchange;
   mode: TradingAccountMode;
   credentialRef?: string;
-}): { name: string; paper: boolean; credentialRef: string | null } {
+  initialBalance?: unknown;
+}): { name: string; paper: boolean; credentialRef: string | null; initialBalance: string | null } {
   const name = input.name?.trim();
   if (!name || name.length > 80) throw new Error('Account name must contain between 1 and 80 characters.');
   if (!['paper', 'hyperliquid', 'bybit'].includes(input.exchange)) throw new Error('Unsupported exchange.');
@@ -631,7 +577,12 @@ function validateTradingAccountInput(input: {
   if (paper !== (input.mode === 'paper')) throw new Error('Paper mode may only be used with the paper exchange.');
   const credentialRef = input.credentialRef?.trim() || null;
   if (!paper && !credentialRef) throw new Error('Exchange accounts require a credential reference.');
-  return { name, paper, credentialRef };
+  if (!paper && input.initialBalance !== undefined) throw new Error('Only paper accounts accept an initial balance.');
+  if (paper && (input.initialBalance === undefined || input.initialBalance === null || input.initialBalance === '')) {
+    throw new Error('Paper accounts require an explicitly entered initial balance.');
+  }
+  const initialBalance = paper ? decimal(String(input.initialBalance), { positive: true }) : null;
+  return { name, paper, credentialRef, initialBalance };
 }
 
 export async function createTradingAccount(input: {
@@ -639,24 +590,27 @@ export async function createTradingAccount(input: {
   exchange: TradingExchange;
   mode: TradingAccountMode;
   credentialRef?: string;
+  initialBalance?: unknown;
 }, now = Date.now()): Promise<TradingAccount> {
-  const { name, paper, credentialRef } = validateTradingAccountInput(input);
+  const { name, paper, credentialRef, initialBalance } = validateTradingAccountInput(input);
   const id = randomUUID();
-  await getDatabase().run(
-    `INSERT INTO trading_accounts (
-       id, name, exchange, mode, status, enabled, credential_ref,
-       last_verified_at, last_error, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
-    [id, name, input.exchange, input.mode, paper ? 'ready' : 'unverified', paper ? 1 : 0, credentialRef, paper ? now : null, now, now],
-  );
-  if (paper) {
+  await transaction(async () => {
     await getDatabase().run(
-      `INSERT INTO trading_paper_accounts (
-         account_id, equity, available_balance, realized_pnl, updated_at
-       ) VALUES (?, '10000', '10000', '0', ?)`,
-      [id, now],
+      `INSERT INTO trading_accounts (
+         id, name, exchange, mode, status, enabled, credential_ref,
+         last_verified_at, last_error, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+      [id, name, input.exchange, input.mode, paper ? 'ready' : 'unverified', paper ? 1 : 0, credentialRef, paper ? now : null, now, now],
     );
-  }
+    if (paper) {
+      await getDatabase().run(
+        `INSERT INTO trading_paper_accounts (
+           account_id, equity, available_balance, realized_pnl, updated_at
+         ) VALUES (?, ?, ?, '0', ?)`,
+        [id, initialBalance, initialBalance, now],
+      );
+    }
+  });
   return accountFromRow(await getDatabase().get('SELECT * FROM trading_accounts WHERE id = ?', [id]));
 }
 
@@ -1246,8 +1200,7 @@ export async function deleteTradingStrategyVersion(id: string): Promise<boolean>
       `SELECT
          (SELECT COUNT(*) FROM trading_routes WHERE strategy_version_id = ?) AS routes,
          (SELECT COUNT(*) FROM trading_trade_intents WHERE strategy_version_id = ?) AS intents,
-         (SELECT COUNT(*) FROM trading_positions WHERE strategy_version_id = ?) AS positions,
-         (SELECT COUNT(*) FROM trading_strategy_versions) AS versions`,
+         (SELECT COUNT(*) FROM trading_positions WHERE strategy_version_id = ?) AS positions`,
       [id, id, id],
     );
     if (Number(references?.intents || 0) > 0 || Number(references?.positions || 0) > 0) {
@@ -1256,17 +1209,12 @@ export async function deleteTradingStrategyVersion(id: string): Promise<boolean>
     if (Number(references?.routes || 0) > 0) {
       throw new Error('Strategy deletion requires all channel routes using this version to be removed first.');
     }
-    if (Number(references?.versions || 0) <= 1) {
-      throw new Error('The final strategy version cannot be deleted. Create another strategy first.');
-    }
-
     const result = await getDatabase().run('DELETE FROM trading_strategy_versions WHERE id = ?', [id]);
     return Number(result.changes || 0) === 1;
   });
 }
 
 export async function deleteTradingAccount(id: string): Promise<boolean> {
-  if (id === 'paper-default') throw new Error('The default paper account cannot be deleted.');
   return transaction(async () => {
     const references = await getDatabase().get<any>(
       `SELECT

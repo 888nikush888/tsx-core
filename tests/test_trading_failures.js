@@ -10,7 +10,6 @@ import {
   createTradingAccount,
   createTradingStrategyDraft,
   createTradingIntent,
-  ensureTradingDefaults,
   getTradingRuntimeState,
   getTradingIntent,
   listTradingAccounts,
@@ -20,6 +19,7 @@ import {
   updateTradingRuntimeState,
   updateTradingAccountState,
 } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 import { validateSignalXml } from '../src/signal_schema.js';
 import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 
@@ -27,7 +27,7 @@ const SIGNAL = '<signal><action>LONG</action><pair>ETHUSDT</pair><entry_range><m
 
 async function setup(databasePath, trailingStopPercent = null) {
   await initDb(databasePath);
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   const paper = new PaperExchangeAdapter();
   const [account] = await listTradingAccounts();
   let [strategy] = await listTradingStrategies();
@@ -303,7 +303,7 @@ async function testTrailingStopOnlyMovesTowardProfit(directory) {
 
 async function testPeriodicReconciliationFailureActivatesKillSwitch(directory) {
   await initDb(path.join(directory, 'periodic-reconciliation.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   await updateTradingRuntimeState({ executionEnabled: true });
   const engine = {
     reconcileAccount: async () => { throw new Error('simulated periodic exchange outage'); },
@@ -321,7 +321,7 @@ async function testPeriodicReconciliationFailureActivatesKillSwitch(directory) {
 
 async function testEntryExpiryFailureActivatesKillSwitch(directory) {
   await initDb(path.join(directory, 'entry-expiry-failure.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   await updateTradingRuntimeState({ executionEnabled: true });
   const engine = {
     reconcileAccount: async () => undefined,
@@ -336,7 +336,7 @@ async function testEntryExpiryFailureActivatesKillSwitch(directory) {
 
 async function testRuntimeIsolatesAccountFailures(directory) {
   await initDb(path.join(directory, 'runtime-account-isolation.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   const first = (await listTradingAccounts())[0];
   await getDatabase().run(
     `INSERT INTO trading_accounts (
@@ -398,7 +398,7 @@ async function testStopReplacementCancellationFailsClosed(directory) {
 
 async function testRemoteAccountIdentityBinding(directory) {
   await initDb(path.join(directory, 'remote-account-identity.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   const boundIdentity = 'a'.repeat(64);
   const account = await createTradingAccount({
     name: 'Bound Bybit', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
@@ -467,7 +467,7 @@ async function testClockDriftBlocksEveryEntryPath(directory) {
   await closeDb();
 
   await initDb(path.join(directory, 'clock-drift-runtime.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   await updateTradingRuntimeState({ executionEnabled: true });
   const runtime = new TradingRuntime({
     reconcileAccount: async () => undefined,
@@ -537,7 +537,7 @@ async function testAccountDailyRiskIncludesFundingLoss(directory) {
 
 async function testRuntimeLifecycleAndDefaultFailureLogger(directory) {
   await initDb(path.join(directory, 'runtime-lifecycle.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   let reconciliations = 0;
   const engine = {
     reconcileAccount: async () => {
@@ -568,7 +568,7 @@ async function waitForCondition(predicate, message) {
 
 async function testExchangeStreamAcceleratesAuthoritativeReconciliation(directory) {
   await initDb(path.join(directory, 'runtime-exchange-stream.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   const account = await createTradingAccount({
     name: 'Stream Bybit', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-stream',
   });
@@ -627,7 +627,7 @@ async function testExchangeStreamAcceleratesAuthoritativeReconciliation(director
 
 async function testStartupReconciliationFailureKeepsControlPlaneAvailable(directory) {
   await initDb(path.join(directory, 'startup-reconciliation.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   await updateTradingRuntimeState({ executionEnabled: true });
   const logs = [];
   const engine = {

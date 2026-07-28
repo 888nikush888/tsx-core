@@ -16,6 +16,14 @@ import {
 const root = await mkdtemp(path.join(os.tmpdir(), 'forwarder-config-'));
 
 try {
+  const distributionConfig = validateConfig(JSON.parse(await readFile(path.resolve('config.json.example'), 'utf8')));
+  assert.deepEqual(distributionConfig.sourceChannels, []);
+  assert.equal(distributionConfig.targetChannel, '');
+  assert.deepEqual(distributionConfig.sourceFilters, {});
+  assert.deepEqual(distributionConfig.sourceAliases, {});
+  assert.deepEqual(distributionConfig.xmlParsing.sourceTemplates, {});
+  assert.equal(distributionConfig.xmlParsing.enabled, false);
+
   assert.equal(configurationPathFromEnvironment({ CONFIG_PATH: './persistent/config.json' }), path.resolve('persistent/config.json'));
   const syncPath = path.join(root, 'sync.json');
   const syncConfig = structuredClone(DEFAULT_CONFIG);

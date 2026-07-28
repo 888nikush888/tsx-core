@@ -14,7 +14,7 @@ import {
   saveSignal,
   withDatabaseTransaction
 } from '../src/db.js';
-import { ensureTradingDefaults } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 import {
   OperationalDataRetention,
   retentionPolicyFromEnvironment
@@ -151,7 +151,7 @@ async function runTests() {
   const dbPath = path.join(root, 'retention.db');
   try {
     await initDb(dbPath);
-    await ensureTradingDefaults(OLD);
+    await seedTradingFixtures(OLD);
     await assertSerializedTransactionOwnership();
     await seedRetentionRows(dbPath);
     const database = getDatabase();

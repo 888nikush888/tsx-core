@@ -896,6 +896,87 @@ const migrations: SchemaMigration[] = [
         CREATE INDEX IF NOT EXISTS idx_mcp_proposals_state
           ON mcp_agent_proposals(status, requested_at);
       `
+  },
+  {
+    version: 13,
+    name: 'empty_factory_distribution',
+    columns: [],
+    sql: `
+        DELETE FROM trading_strategy_versions
+        WHERE name = 'Adaptive Signal'
+          AND description = 'Safe default strategy using signal entries, mandatory protective stops and staged take profits.'
+          AND status = 'published'
+          AND version = 1
+          AND configuration_sha256 = '188df2aed035a99eee664358730d99ba465d7833ec135d66dadaabe4cb96f488'
+          AND NOT EXISTS (SELECT 1 FROM trading_routes WHERE strategy_version_id = trading_strategy_versions.id)
+          AND NOT EXISTS (SELECT 1 FROM trading_trade_intents WHERE strategy_version_id = trading_strategy_versions.id)
+          AND NOT EXISTS (SELECT 1 FROM trading_positions WHERE strategy_version_id = trading_strategy_versions.id);
+
+        DELETE FROM trading_signal_schemas
+        WHERE (
+          (id = 'standard' AND name = 'Standard' AND parser_schema = 'standard'
+            AND template_name = 'default' AND (contract_version_id IS NULL OR contract_version_id = 'standard:v1'))
+          OR (id = 'cryptodanielvip' AND name = 'CryptoDaniel VIP' AND parser_schema = 'cryptodanielvip'
+            AND template_name = 'cryptodanielvip' AND (contract_version_id IS NULL OR contract_version_id = 'cryptodanielvip:v1'))
+          OR (id = 'loma' AND name = 'Loma' AND parser_schema = 'loma'
+            AND template_name = 'loma' AND (contract_version_id IS NULL OR contract_version_id = 'loma:v1'))
+        )
+          AND NOT EXISTS (
+            SELECT 1 FROM trading_strategy_versions AS strategy,
+              json_each(strategy.configuration_json, '$.allowedSignalSchemas') AS schema_id
+            WHERE schema_id.value = trading_signal_schemas.id
+          );
+
+        DELETE FROM trading_signal_contract_versions
+        WHERE (
+          (id = 'standard:v1' AND contract_id = 'standard'
+            AND definition_sha256 = '475af6f7e9d0d5d7da051e63659ca4f419c38a87d2cd7443bcdab295ec3f77f1')
+          OR (id = 'cryptodanielvip:v1' AND contract_id = 'cryptodanielvip'
+            AND definition_sha256 = 'f9b0cf2a5c2c2a899b882338a5fd8ebd6cb0804d68f194bd2552aa115e82c4c9')
+          OR (id = 'loma:v1' AND contract_id = 'loma'
+            AND definition_sha256 = 'ed8bf6bf3eeda55daceef96bc0c9966b66e39086f7e384f08bf453f8e111f293')
+        )
+          AND status = 'published'
+          AND NOT EXISTS (
+            SELECT 1 FROM trading_signal_schemas
+            WHERE contract_version_id = trading_signal_contract_versions.id
+          );
+
+        DELETE FROM trading_signal_contracts
+        WHERE (
+          (id = 'standard' AND name = 'Standard')
+          OR (id = 'cryptodanielvip' AND name = 'CryptoDaniel VIP')
+          OR (id = 'loma' AND name = 'Loma')
+        )
+          AND NOT EXISTS (
+            SELECT 1 FROM trading_signal_contract_versions
+            WHERE contract_id = trading_signal_contracts.id
+          );
+
+        DELETE FROM trading_accounts
+        WHERE id = 'paper-default'
+          AND name = 'Paper Trading'
+          AND exchange = 'paper'
+          AND mode = 'paper'
+          AND EXISTS (
+            SELECT 1 FROM trading_paper_accounts
+            WHERE account_id = 'paper-default' AND equity = '10000'
+              AND available_balance = '10000' AND realized_pnl = '0'
+          )
+          AND NOT EXISTS (SELECT 1 FROM trading_paper_markets WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_paper_orders WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_paper_fills WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_paper_positions WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_routes WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_trade_intents WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_orders WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_fills WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_positions WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_risk_events WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_reconciliation_runs WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_equity_snapshots WHERE account_id = 'paper-default')
+          AND NOT EXISTS (SELECT 1 FROM trading_execution_events WHERE account_id = 'paper-default');
+      `
   }
 ];
 

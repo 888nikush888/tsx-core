@@ -11,14 +11,11 @@ docker compose up --build -d
 docker compose ps
 ```
 
-Öffne `http://127.0.0.1:8080`. Der lokale Standard veröffentlicht nur Host-Loopback und integriert die Admin-Session automatisch. Das interne `exchange-executor`-Sidecar besitzt keinen Host-Port. Für externe/mehrbenutzerfähige Enterprise-Nutzung zuerst OIDC und einen TLS-Reverse-Proxy gemäß `PRODUCTION_GUIDE.md` aktivieren.
+Öffne `http://127.0.0.1:8080`, wähle beim ersten Aufruf **Create secure dashboard** und sichere den genau einmal angezeigten Admin-Bearer-Token. Erst danach sind automatische kurzlebige lokale Sitzungen zulässig. Der lokale Standard veröffentlicht nur Host-Loopback. Das interne `exchange-executor`-Sidecar besitzt keinen Host-Port. Für externe/mehrbenutzerfähige Enterprise-Nutzung zuerst OIDC und einen TLS-Reverse-Proxy gemäß `PRODUCTION_GUIDE.md` aktivieren.
 
-## 2. Immer zuerst Paper
+## 2. Leerer Start und optionales Paper Trading
 
-1. **Trading → Paper-Märkte** öffnen.
-2. `paper-default`, Equity und Available Balance setzen.
-3. Für jedes erwartete Symbol Mark Price, Price Tick, Quantity Step, Minimum Quantity, Minimum Notional und Max Leverage aus realistischen Testdaten setzen.
-4. Speichern. Eine Mark-Price-Änderung wertet offene Paper-Orders deterministisch aus und erzeugt Fills.
+Eine neue Installation enthält keine Konten und keine Startbilanz. Für Paper Trading unter **Trading → Börsenkonten** ausdrücklich die Exchange `paper` wählen, einen Namen und eine selbst bestimmte positive Startbilanz eingeben. Erst dadurch wird ein Paper-Konto angelegt. Anschließend unter **Trading → Paper-Märkte** für jedes erwartete Symbol Mark Price, Price Tick, Quantity Step, Minimum Quantity, Minimum Notional und Max Leverage aus realistischen Testdaten setzen. Eine Mark-Price-Änderung wertet offene Paper-Orders deterministisch aus und erzeugt Fills.
 
 Paper ist kein Profitabilitätsnachweis: Latenz, Orderbuch, Funding, Liquidation, Teilausführungsdynamik und reale Gebühren sind nur begrenzt abgebildet. Es beweist Zustandsmaschine, Sizing, TP/SL und Recovery, nicht Marktperformance.
 
@@ -26,7 +23,7 @@ Paper ist kein Profitabilitätsnachweis: Latenz, Orderbuch, Funding, Liquidation
 
 Unter **Trading → Verträge**:
 
-- **Vertrag erstellen oder duplizieren:** Kennung, Name und Beschreibung festlegen; `standard`, `cryptodanielvip` und `loma` sind nur initiale Beispiele und keine feste Laufzeit-Allowlist.
+- **Vertrag erstellen oder duplizieren:** Kennung, Name und Beschreibung festlegen. Es werden keine Beispielverträge ausgeliefert; der Operator beginnt mit einer leeren Vertragsliste.
 - **Visueller Vertrags-Builder:** XML-Pfade für Aktion, Paar, Entry, Targets, Stop-Loss sowie optionale Leverage-/Risiko-/Averaging-Felder; Entry-Modus, scalar/range Targets, 1 bis 20 Targets, sequenzielle IDs und bis zu 30 zusätzliche typisierte Felder.
 - **Geometrie:** Stop auf der Verlustseite, Targets auf der Gewinnseite, geordnete Targets und geordnete Ranges für LONG und SHORT getrennt durch die Signalrichtung erzwingen.
 - **Quelltext-Erdung:** pro Kernfeld bestimmen, ob der extrahierte Wert in der ursprünglichen Telegram-Nachricht nachweisbar sein muss.

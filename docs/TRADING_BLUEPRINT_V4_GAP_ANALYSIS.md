@@ -37,7 +37,7 @@ Legende: **Ja** = vollständig im Code und durch automatisierte Tests nachgewies
 Der aktuelle Stand ergänzt den Blueprint um weitere fail-closed Kontrollen:
 
 - **Dynamische Signalverträge:** Unter **Trading → Verträge** können beliebige deklarative Verträge erstellt, dupliziert, als Entwurf bearbeitet/getestet, publiziert, archiviert und als Entwurf gelöscht werden. Geometrie und Quelltext-Erdung sind pro Vertrag steuerbar; publizierte Versionen bleiben immutable.
-- **Frei verknüpfte Schema-Profile:** Eine unveränderliche Profil-ID verbindet ein Parser-Template mit jeder publizierten Vertragsversion. `standard`, `cryptodanielvip` und `loma` sind initiale Datenbausteine, keine feste Runtime-Allowlist.
+- **Frei verknüpfte Schema-Profile:** Eine unveränderliche Profil-ID verbindet ein Parser-Template mit jeder publizierten Vertragsversion. Die Auslieferungsdatenbank bleibt leer; vorhandene Parser-Primitiven sind ausschließlich Engine-Fähigkeiten und keine vorinstallierten Verträge oder Profile.
 - **Routenschutz:** Ein Profil, das eine aktive Kanalroute verwendet, kann weder geändert noch gelöscht werden; eine von einem aktivierten Profil verwendete Vertragsversion kann nicht archiviert werden. Unbekannte oder deaktivierte Profile erzeugen keinen Trade.
 - **USD-Quote-Pflicht:** Ausführbare Symbole müssen mit `USD`, `USDC` oder `USDT` enden. Andere oder mehrdeutige Paare werden vor dem Trade Intent abgewiesen.
 - **Dynamisches Kanalrisiko:** `fixed`, `shadow` und `automatic` bewerten geschlossene Trades je Kanal, staffeln Risiko wöchentlich und können schwache Quellen reduzieren oder blockieren. Manuelle Sperre/Stufenfixierung und globale Safety-Gates haben Vorrang.

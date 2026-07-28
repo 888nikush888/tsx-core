@@ -397,6 +397,7 @@ export class TradingWebControl {
       exchange,
       mode,
       credentialRef: exchange === 'paper' ? undefined : 'managed-secret',
+      initialBalance: exchange === 'paper' ? payload.initialBalance : undefined,
     });
     if (exchange === 'paper') return account;
     try {

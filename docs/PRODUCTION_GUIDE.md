@@ -98,7 +98,7 @@ Regeln:
 
 Host-Installationen ohne `MANAGED_SECRET_DIR` speichern verwaltete Zugangsdaten unterhalb des Betriebssystem-State-Verzeichnisses außerhalb des Checkouts; Compose verwendet weiterhin das dedizierte Volume `/app/secrets`. Origin und `X-Requested-With` sind Request-Integritätsprüfungen und keine Authentifizierung.
 
-Beim ersten Browseraufruf erzeugt der Server nach Origin- und Audit-Prüfung den dauerhaften lokalen Admin-Zugang automatisch und zeigt ihn genau einmal an. Der Browser hält diesen Erststart-Token nur im Session Storage. Bei späteren Browser-Sitzungen erzeugt `/api/local-session` automatisch einen separaten, höchstens zwölf Stunden gültigen In-Memory-Session-Token; der vorhandene dauerhafte Admin-Token wird dabei niemals zurückgegeben. Dieser Komfortpfad ist strikt auf das mitgelieferte Host-Loopback-Compose mit `DASHBOARD_LOCAL_TRUST=true` begrenzt. Remote-, Shared-Host-, Tailscale- und Enterprise-Zugriffe erhalten ihn nicht. Telegram API Hash und OpenRouter-Key werden im Dashboard write-only gesetzt: Status und Quelle sind lesbar, der Wert selbst nie. Die lokale `.env` wird vom Standard-Compose nicht eingelesen.
+Beim ersten Browseraufruf ist noch keine lokale Sitzung zulässig. Der Operator wählt bewusst **Create secure dashboard**; erst danach erzeugt der Server nach Origin- und Audit-Prüfung den dauerhaften lokalen Admin-Bearer und zeigt ihn genau einmal an. Der Browser hält diesen Erststart-Token nur im Session Storage. Bei späteren Browser-Sitzungen erzeugt `/api/local-session` automatisch einen separaten, höchstens zwölf Stunden gültigen In-Memory-Session-Token; der vorhandene dauerhafte Admin-Token wird dabei niemals zurückgegeben. Dieser Komfortpfad ist strikt auf das mitgelieferte Host-Loopback-Compose mit `DASHBOARD_LOCAL_TRUST=true` begrenzt. Remote-, Shared-Host-, Tailscale- und Enterprise-Zugriffe erhalten ihn nicht. Telegram API Hash und OpenRouter-Key werden im Dashboard write-only gesetzt: Status und Quelle sind lesbar, der Wert selbst nie. Die lokale `.env` wird vom Standard-Compose nicht eingelesen.
 
 Ist eine verwaltete Konfiguration, Runtime-Einstellung oder Secret-Datei beschädigt, startet nur die Recovery-Control-Plane: Routing, Scheduler und Datenbankzugriffe bleiben aus. Das mitgelieferte Compose aktiviert dafür ausschließlich auf dem Host-Loopback einen Break-glass-Sessionpfad; dieser darf nie mit einem remote veröffentlichten Dashboard kombiniert werden. Er erlaubt nur Reparaturen an Konfiguration, Runtime-Einstellungen und verwalteten Secrets plus Neustart und schreibt dafür explizite kritische Recovery-Logs, weil die normale Audit-Kette in diesem Zustand nicht verfügbar sein kann.
 
@@ -182,6 +182,8 @@ docker compose down
 
 `docker compose down -v` löscht die persistenten Volumes und ist ausschließlich für einen bewusst bestätigten Total-Reset zulässig. Für normale Updates darf `-v` nie verwendet werden.
 
+GitHub-Checkout und Container-Image enthalten keine Laufzeitdaten. Benannte Docker-Volumes sind jedoch hostseitiger Zustand und werden bei einem erneuten Download oder Image-Neubau absichtlich weiterverwendet. Alte Inhalte nach einem vermeintlichen Neu-Download belegen daher kein Seed im Repository. Ein wirklicher leerer Neuaufbau erfordert den geprüften Web-Factory-Reset oder – nur bei ausdrücklich akzeptiertem vollständigem Datenverlust – `docker compose down -v` vor dem Neustart.
+
 Der bevorzugte anwendungsweite Total-Reset befindet sich unter **System & Backup → Factory Reset** und verlangt die Eingabe `RESET`. Vor der Stilllegung prüft er sämtliche Pfade und Secret-Quellen. MCP-Kontrollbrücke und unabhängiger MCP-Dienst werden über einen gemeinsamen Wartungsmarker gestoppt, bevor SQLite geschlossen wird. Danach löscht der Reset Konfiguration, alle verwalteten Secrets/Bearer-Keys, Runtime-Einstellungen, Templates, TDLib-Sitzung, Datenbank, Session-Dateien, Signale, Logs, lokale Audit-Kette und Backups und startet in den integrierten Erststart. Das Löschen des AES-Schlüssels bewirkt Crypto-Erasure verbleibender Off-site-Objekte. Ein externer Enterprise-Audit-Empfänger bewahrt bereits zugestellte Reset-Evidenz unabhängig von der lokalen Installation.
 
 Der Reset betrifft konkret:
@@ -198,6 +200,8 @@ Der Reset betrifft konkret:
 | konfiguriertes Signalverzeichnis und `signals/` | gespeicherte XML-Signale werden entfernt |
 | `backups/` | lokale Backup-Artefakte werden entfernt |
 | `logs/` und lokale Audit-Kette | lokale Logs und Audit-Evidenz werden entfernt; bereits extern persistierte Audit-Records bleiben erhalten |
+
+Nach dem Neustart werden ausschließlich Schema und deaktivierter Runtime-Sicherheitszustand angelegt. Signalverträge, Signal-Schema-Profile, Strategien, Konten, Paper-Bilanz/-Märkte, Routen, Trades, Journal und MCP-Agenten bleiben leer. Es existiert insbesondere kein `paper-default` und kein voreingestelltes Guthaben.
 
 Vor dem Löschen stoppt die Anwendung Trading, storniert offene Entries, prüft alle realen Exchange-Konten und verweigert den Reset bei nicht erreichbarer Exchange oder verbleibender Exposure. Extern gemountete, nicht durch die Anwendung löschbare Secrets blockieren den Preflight. Off-site-Backup-Objekte werden nicht remote gelöscht; ohne den entfernten AES-Schlüssel sind sie kryptografisch nicht mehr lesbar.
 
