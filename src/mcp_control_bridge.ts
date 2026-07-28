@@ -5,6 +5,8 @@ import {
   claimNextMcpControlRequest,
   completeMcpProposal,
   completeMcpControlRequest,
+  assertMcpRuntimeActive,
+  getMcpRuntimeState,
   listMcpAgents,
   recoverInterruptedMcpProposals,
   recoverInterruptedMcpControlRequests,
@@ -90,16 +92,21 @@ export class McpControlBridge {
 
   private async run(signal: AbortSignal): Promise<void> {
     while (!signal.aborted) {
+      let delayMs = this.pollIntervalMs;
       try {
-        const request = await claimNextMcpControlRequest();
-        if (request) {
-          await this.execute(request);
-          continue;
-        }
-        const proposal = await claimNextApprovedMcpProposal();
-        if (proposal) {
-          await this.executeProposal(proposal);
-          continue;
+        if ((await getMcpRuntimeState()).mode === 'active') {
+          const request = await claimNextMcpControlRequest();
+          if (request) {
+            await this.execute(request);
+            continue;
+          }
+          const proposal = await claimNextApprovedMcpProposal();
+          if (proposal) {
+            await this.executeProposal(proposal);
+            continue;
+          }
+        } else {
+          delayMs = 1_000;
         }
       } catch (error) {
         this.log(`[ERROR] MCP control bridge polling failed: ${errorMessage(error)}`, {
@@ -107,7 +114,7 @@ export class McpControlBridge {
         });
       }
       await new Promise<void>(resolve => {
-        const timeout = setTimeout(resolve, this.pollIntervalMs);
+        const timeout = setTimeout(resolve, delayMs);
         signal.addEventListener('abort', () => {
           clearTimeout(timeout);
           resolve();
@@ -121,6 +128,7 @@ export class McpControlBridge {
     const auditAction = `mcp.proposal.${proposal.action}`;
     const actorId = `mcp:${proposal.agentId}`;
     try {
+      await assertMcpRuntimeActive();
       const agent = (await listMcpAgents()).find(candidate => candidate.id === proposal.agentId);
       const permission = proposalPermission(proposal.action);
       if (!agent || !agentHasPermission(agent, permission)) {
@@ -136,6 +144,7 @@ export class McpControlBridge {
         path: proposal.action,
         target: { action: proposal.action, payload: proposal.payload, decidedBy: proposal.decidedBy },
       });
+      await assertMcpRuntimeActive();
       const result = await this.executeAuthorizedProposal(proposal);
       await this.auditTrail.record({
         phase: 'completed',
@@ -211,6 +220,7 @@ export class McpControlBridge {
     const auditAction = `mcp.${request.action}`;
     const actorId = `mcp:${request.agentId}`;
     try {
+      await assertMcpRuntimeActive();
       const agent = (await listMcpAgents()).find(candidate => candidate.id === request.agentId);
       const requiredPermission = ACTION_PERMISSIONS[request.action];
       if (!agent || !agentHasPermission(agent, requiredPermission)) {
@@ -226,6 +236,7 @@ export class McpControlBridge {
         path: request.action,
         target: { action: request.action, payload: request.payload },
       });
+      await assertMcpRuntimeActive();
       const result = await this.executeAuthorized(request);
       await this.auditTrail.record({
         phase: 'completed',

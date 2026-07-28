@@ -8,7 +8,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { McpControlBridge } from '../src/mcp_control_bridge.js';
-import { createMcpAgent } from '../src/mcp_repository.js';
+import { createMcpAgent, setMcpRuntimeMode } from '../src/mcp_repository.js';
 import { beginMcpSharedMaintenance } from '../src/mcp_maintenance.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 
@@ -37,6 +37,17 @@ async function waitForHealth(url, child) {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   throw new Error('MCP server did not become healthy.');
+}
+
+async function waitForRuntimeMode(url, child, expectedMode) {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) throw new Error(`MCP server exited with code ${child.exitCode}.`);
+    const response = await fetch(url);
+    if (response.ok && (await response.json()).mode === expectedMode) return;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  throw new Error(`MCP server did not enter ${expectedMode} mode.`);
 }
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-mcp-server-'));
@@ -75,7 +86,20 @@ try {
   child.stdout.on('data', chunk => { serverOutput += chunk.toString(); });
   child.stderr.on('data', chunk => { serverOutput += chunk.toString(); });
   await waitForHealth(`http://127.0.0.1:${port}/healthz`, child);
+  let health = await fetch(`http://127.0.0.1:${port}/healthz`).then(response => response.json());
+  assert.equal(health.mode, 'disabled');
+  assert.equal(health.acceptingConnections, false);
+  const disabledRequest = await fetch(`http://127.0.0.1:${port}/mcp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer tsx_mcp_invalid' },
+    body: '{}',
+  });
+  assert.equal(disabledRequest.status, 503, 'Factory-default MCP endpoint must reject all clients before authentication.');
   await initDb(databasePath);
+  await setMcpRuntimeMode('active', 'test:protocol');
+  await waitForRuntimeMode(`http://127.0.0.1:${port}/healthz`, child, 'active');
+  health = await fetch(`http://127.0.0.1:${port}/healthz`).then(response => response.json());
+  assert.equal(health.acceptingConnections, true);
   bridge = new McpControlBridge(
     {
       setRuntime(payload) {

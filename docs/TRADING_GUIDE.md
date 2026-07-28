@@ -77,9 +77,15 @@ Die authentifizierte Admin-API entspricht den UI-Aktionen. Mutationen benötigen
 
 Fehlerhafte oder bereits vorhandene Kennungen, unpublizierte Verträge und ungültige Definitionen werden abgewiesen. Unbekannte oder deaktivierte Profile führen nicht zu einem Fallback-Trade.
 
-### Ausschließlich USD-notierte Signalpaare
+### Handelbare Symbole pro Strategie
 
-Ausführbare Signale werden immer gegen eine USD-Quote gehandelt. Zulässig sind normalisierte Symbole mit `USD`, `USDC` oder `USDT` am Ende, beispielsweise `BTCUSD`, `ETHUSDC` und `SOLUSDT`. Paare wie `BTCEUR`, fehlende Quotes oder uneindeutige Paare werden vor jeder Trading-Nebenwirkung abgewiesen. Die gemeinsame Portfolioansicht addiert diese Quotes nur nominal und ist keine FX- oder Stablecoin-Paritätsbewertung.
+Im Strategie-Editor legt **Handelbare Symbole** die Regel für jede Kanalroute fest:
+
+- **Alle** akzeptiert jedes normalisierte Symbol aus einem Signal, etwa `BTCUSDT`, `BTCEUR`, `ETHBTC` oder `XAUUSD`. Die ausgewählte Börse prüft vor der Order verbindlich, ob der Markt existiert und mit dem Konto handelbar ist; unbekannte oder nicht verfügbare Symbole werden ohne Order abgewiesen.
+- **Keine** blockiert jedes Symbol. Das ist ein expliziter, revisionssicherer Handelsstopp für die Strategie, ohne die Kanalroute entfernen zu müssen.
+- **Nur bestimmte Symbole** akzeptiert ausschließlich die kommagetrennte Allowlist. Die Einträge müssen normalisierte Großbuchstaben-/Ziffernsymbole sein, zum Beispiel `BTCUSDT, ETHBTC, BTCEUR`.
+
+Frühere Strategieversionen bleiben lesbar: Eine leere alte Symbol-Liste entspricht **Alle**, eine gefüllte alte Liste entspricht **Nur bestimmte Symbole**. Die Portfolioansicht fasst verschiedene Quote-Assets nicht als garantierte FX-Bewertung zusammen.
 
 ### Adaptive TP-Staffelung
 
@@ -186,7 +192,7 @@ Eine Teilfüllung wird sofort mit einem reduce-only Stop bis zur maximal noch m�
 - **Datenherkunft:** Equity, verfügbarer Saldo, Margin und unrealisierter PnL kommen über die offiziellen Exchange-SDKs. Realisierter PnL und historische Kennzahlen kommen aus den vom System persistierten Managed Trades; externe/manuelle Trades werden nicht fälschlich als Managed Performance ausgegeben.
 - **Aktualisierung:** Das Cockpit lädt lokale Zustände regelmäßig. Exchange-Snapshots werden 60 Sekunden gecacht; ein expliziter Abgleich erzwingt eine neue Abfrage der angebundenen Konten und zeigt Teilfehler je Konto.
 - **WebSocket-Status:** Trading zeigt je Exchange-Konto `starting`, `healthy`, `degraded` oder `stopped`, Cursor, Lücken, letztes Ereignis und letzten Fehler. Ein grüner Streamstatus ersetzt niemals den REST-Abgleich.
-- **Trade Journal:** unter **Trading → Journal** nach Konto, Kanal, USD-Paar, Status und Review-Zustand filtern. Jeder Eintrag verbindet immutable Strategie-/Vertrags-Hashes, Signal-Provenienz, Plan, Position, Orders, Fills, Gebühren, Ausführungstimeline und PnL. Operatoren pflegen Notizen, bis zu 20 Tags, Bewertung 1–5 und Review-Status. CSV-/JSON-Export redigiert Telefonnummern, Adressen und weitere Telegram-PII; der Chat wird nur als kurzer SHA-256-Fingerprint ausgegeben und CSV-Formeln werden neutralisiert.
+- **Trade Journal:** unter **Trading → Journal** nach Konto, Kanal, normalisiertem Symbol, Status und Review-Zustand filtern. Jeder Eintrag verbindet immutable Strategie-/Vertrags-Hashes, Signal-Provenienz, Plan, Position, Orders, Fills, Gebühren, Ausführungstimeline und PnL. Operatoren pflegen Notizen, bis zu 20 Tags, Bewertung 1–5 und Review-Status. CSV-/JSON-Export redigiert Telefonnummern, Adressen und weitere Telegram-PII; der Chat wird nur als kurzer SHA-256-Fingerprint ausgegeben und CSV-Formeln werden neutralisiert.
 - **Nominale Gesamtsicht:** Die gemeinsame Equity addiert Bybit-USD, Hyperliquid-USDC und Paper-Quote nominal. Sie ist keine FX-Bewertung und garantiert keine Stablecoin-Parität; für belastbare Bewertung immer zusätzlich den Konto-Drill-down verwenden.
 - **Logs:** ein ununterbrochener, virtueller Terminalstrom mit Freitext- und sicherer Regex-Suche; keine Level-Filter zerreißen zusammengehörige Abläufe.
 - **Command Palette:** `Strg+K`/`⌘K` durchsucht Navigation, Verträge, Kanäle und Positionen und bietet den erlaubten Exchange-Abgleich als Schnellaktion.
@@ -197,8 +203,8 @@ Im Notfall Kill-Switch aktivieren, Exchange read-only gegen Client Order IDs pr�
 ## 8. Neustart, Backup, Restore, Factory Reset
 
 - Bei jedem Start reconciliert der Trading-Worker alle aktivierten Konten, bevor er Pending Intents bearbeitet.
-- SQLite-Backups enthalten Signalverträge/Profile, Strategien, Kanalrisiko und Evaluationen, Equity-/Execution-Telemetrie, Exchange-Streamstatus/-Events, Trade-Journal-Reviews, MCP-Agenten samt Hash/Rechten/Historie/Vorschlägen, Routen, Intents, Orders, Fills, Positionen und Risk Events. Klartext-Agenten- und Exchange-Secrets sind absichtlich ausgeschlossen beziehungsweise nie vorhanden und müssen nach Restore neu provisioniert oder rotiert werden.
-- Factory Reset stoppt MCP-Kontrollbrücke und Trading-Worker, storniert offene Entries und fragt jedes reale Konto ab. Solange Exchange/Executor nicht erreichbar ist oder Remote-Exposure besteht, wird der Reset verweigert. Nach sicherem Nullzustand werden Datenbank einschließlich Verträgen, Kanalrisiko, Analytics und MCP-Agenten, Keys, interner Executor-Token und der gesamte übrige lokale Zustand entfernt.
+- SQLite-Backups enthalten Signalverträge/Profile, Strategien, Kanalrisiko und Evaluationen, Equity-/Execution-Telemetrie, Exchange-Streamstatus/-Events, Trade-Journal-Reviews, den persistenten MCP-Modus, MCP-Agenten samt Hash/Rechten/Historie/Vorschlägen, Routen, Intents, Orders, Fills, Positionen und Risk Events. Klartext-Agenten- und Exchange-Secrets sind absichtlich ausgeschlossen beziehungsweise nie vorhanden und müssen nach Restore neu provisioniert oder rotiert werden.
+- Factory Reset stoppt MCP-Kontrollbrücke und Trading-Worker, storniert offene Entries und fragt jedes reale Konto ab. Solange Exchange/Executor nicht erreichbar ist oder Remote-Exposure besteht, wird der Reset verweigert. Nach sicherem Nullzustand werden Datenbank einschließlich MCP-Modus, Verträgen, Kanalrisiko, Analytics und MCP-Agenten, Keys, interner Executor-Token und der gesamte übrige lokale Zustand entfernt; der Neuaufbau startet MCP wieder `disabled`.
 - **Betriebsdaten leeren** stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie unreferenzierte Signale. Trading-Historie, Strategien, Konten, Exchange-Secrets und von Trades referenzierte Signale werden dabei bewusst nicht gelöscht.
 
 ## 9. Production-Freigabe

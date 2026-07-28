@@ -16,6 +16,7 @@ import {
   deleteMcpAgent,
   disconnectMcpSession,
   enqueueMcpControlRequest,
+  getMcpRuntimeState,
   getMcpControlRequest,
   listMcpProposals,
   listMcpAgentActions,
@@ -28,6 +29,7 @@ import {
   recoverInterruptedMcpControlRequests,
   rejectMcpProposal,
   rotateMcpAgentToken,
+  setMcpRuntimeMode,
   touchMcpSession,
   updateMcpAgent,
   waitForMcpControlRequest,
@@ -35,9 +37,19 @@ import {
 } from '../src/mcp_repository.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-mcp-control-'));
+const databasePath = path.join(directory, 'forwarder.db');
 try {
-  await initDb(path.join(directory, 'forwarder.db'));
+  await initDb(databasePath);
   await seedTradingFixtures();
+  assert.equal((await getMcpRuntimeState()).mode, 'disabled', 'Factory-default MCP runtime must be disabled.');
+  await assert.rejects(
+    connectMcpSession({ id: 'disabled-session', agentId: 'missing-agent' }),
+    /runtime is not active/,
+  );
+  await setMcpRuntimeMode('active', 'test:setup');
+  await closeDb();
+  await initDb(databasePath);
+  assert.equal((await getMcpRuntimeState()).mode, 'active', 'MCP runtime mode must survive database restarts.');
   await assert.rejects(
     createMcpAgent({ name: '', permissions: [] }),
     /name is invalid/,
@@ -308,6 +320,39 @@ try {
   assert.equal((await waitForMcpProposal(automaticDraft.id, 5_000)).status, 'completed');
   assert.deepEqual(calls.find(call => call[0] === 'schema'), ['schema', { id: 'agent-schema' }]);
   await bridge.stop();
+
+  const pausedSession = await connectMcpSession({
+    id: 'mcp-paused-session',
+    agentId: defaultAgent.agent.id,
+  });
+  const pausedRequest = await enqueueMcpControlRequest({
+    agentId: defaultAgent.agent.id,
+    action: 'trading.reconcile',
+    payload: {},
+  });
+  const pausedProposal = await createMcpProposal({
+    agentId: defaultAgent.agent.id,
+    action: 'schemas.create',
+    payload: { id: 'paused-schema' },
+    autoApprove: true,
+  });
+  assert.equal(pausedProposal.status, 'approved');
+  const standby = await setMcpRuntimeMode('standby', 'dashboard:test-admin');
+  assert.equal(standby.previousMode, 'active');
+  assert.ok(standby.disconnectedSessions >= 1);
+  assert.ok((await listMcpSessions()).find(item => item.id === pausedSession.id)?.disconnectedAt);
+  assert.equal(await claimNextMcpControlRequest(), null, 'Standby must pause control execution.');
+  await assert.rejects(
+    enqueueMcpControlRequest({ agentId: defaultAgent.agent.id, action: 'trading.reconcile' }),
+    /runtime is not active/,
+  );
+  const disabledRuntime = await setMcpRuntimeMode('disabled', 'dashboard:test-admin');
+  assert.equal(disabledRuntime.cancelledControlRequests, 1);
+  assert.equal(disabledRuntime.cancelledProposals, 1);
+  assert.equal((await getMcpControlRequest(pausedRequest.id))?.status, 'failed');
+  assert.equal((await listMcpProposals()).find(item => item.id === pausedProposal.id)?.status, 'failed');
+  await assert.rejects(setMcpRuntimeMode('invalid', 'test'), /must be active, standby, or disabled/);
+  await setMcpRuntimeMode('active', 'test:resume');
 
   const circular = {};
   circular.self = circular;

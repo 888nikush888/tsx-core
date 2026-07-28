@@ -31,6 +31,7 @@ import {
   mcpDashboardSnapshot,
   rejectMcpProposal,
   rotateMcpAgentToken,
+  setMcpRuntimeMode,
   updateMcpAgent,
 } from './mcp_repository.js';
 import {
@@ -291,6 +292,7 @@ function semanticMutationAction(method: string, url: string): string {
     '/api/control': 'routing.control',
     '/api/telegram-login': 'telegram.authentication.update',
     '/api/runtime-settings': 'runtime.settings.update',
+    '/api/mcp/runtime': 'mcp.runtime.update',
     '/api/factory-reset': 'system.factory-reset',
     '/api/restart': 'system.restart',
     '/api/access-tokens': 'access-token.rotate',
@@ -1473,6 +1475,29 @@ async function mcpSnapshotHandler(context: RequestContext): Promise<void> {
   }
 }
 
+async function updateMcpRuntimeHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 8 * 1024);
+    if (payload.mode === 'active' && !requireConfirmation(
+      context,
+      'set-mcp-runtime-active',
+      'Explicit MCP runtime activation confirmation required.',
+    )) return;
+    if (payload.mode === 'disabled' && !requireConfirmation(
+      context,
+      'set-mcp-runtime-disabled',
+      'Explicit MCP runtime disable confirmation required.',
+    )) return;
+    sendJson(context.res, 200, {
+      success: true,
+      ...await setMcpRuntimeMode(payload.mode, context.actor?.id || 'dashboard:admin'),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
 async function createMcpAgentHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req, 64 * 1024);
@@ -1651,6 +1676,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/emergency-flatten', emergencyFlattenHandler],
   ['POST /api/trading/risk/acknowledge', acknowledgeTradingRiskHandler],
   ['GET /api/mcp', mcpSnapshotHandler],
+  ['POST /api/mcp/runtime', updateMcpRuntimeHandler],
   ['POST /api/mcp/agents', createMcpAgentHandler],
   ['POST /api/mcp/agents/update', updateMcpAgentHandler],
   ['POST /api/mcp/agents/rotate', rotateMcpAgentTokenHandler],

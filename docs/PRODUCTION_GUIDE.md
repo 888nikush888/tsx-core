@@ -17,7 +17,7 @@ Die wichtigsten Oberflächen sind:
 | Oberfläche | Standard | Zweck | Produktionsgrenze |
 | --- | --- | --- | --- |
 | Web-Dashboard/API | `127.0.0.1:8080` | Cockpit, Analytics, Verträge, Konfiguration und kontrollierte Aktionen | Bevorzugt Tailscale Serve im Tailnet; Enterprise alternativ/zusätzlich TLS/OIDC |
-| MCP Streamable HTTP | `127.0.0.1:8091` | optionale Agenten-Tools, Events und Kontrollanforderungen | eigenes Compose-Profil, Bearer pro Agent, niemals Funnel |
+| MCP Streamable HTTP | `127.0.0.1:8091` | persistent schaltbare Agenten-Tools, Events und Kontrollanforderungen | Standarddienst, Werkseinstellung `disabled`, Bearer pro Agent, niemals Funnel |
 | Prometheus | `127.0.0.1:9100` | `/metrics`, `/healthz`, `/readyz` | Nur intern oder über read-only Monitoring-Zugriff |
 | SQLite | `session_data/forwarder.db` | Inbox/Outbox, Verträge, Trading, Kanalrisiko, Telemetrie, MCP und Migrationen | Nie live kopieren oder manuell bearbeiten |
 | Audit-Kette | `logs/audit-chain.jsonl` | Manipulationsnachweis mutierender API-Aufrufe | Produktion verlangt unveränderlichen Off-host-Empfänger |
@@ -167,12 +167,14 @@ docker compose ps
 docker compose logs --tail=200 forwarder
 ```
 
-Der Standard startet zwei Services: `forwarder` und den intern-only `exchange-executor`. Der optionale, secret-arme MCP-Prozess ist ein dritter Service und wird nur bewusst gestartet:
+Der Standard startet drei Services: `forwarder`, den intern-only `exchange-executor` und den secret-armen `mcp-server`. Der MCP-Prozess läuft für Healthcheck und schnelle Aktivierung mit, seine Agentenschnittstelle bleibt bei Erststart und Factory Reset persistent `disabled`:
 
 ```bash
-docker compose --profile mcp up --build -d
+docker compose up --build -d
 curl --fail http://127.0.0.1:8091/healthz
 ```
+
+Der Operator wählt unter **MCP-Agenten → MCP-Server** `active`, `standby` oder `disabled`. Standby trennt Sitzungen und pausiert noch nicht gestartete Arbeit. Disabled trennt Sitzungen und verwirft zusätzlich noch nicht gestartete Kontrollanforderungen beziehungsweise bereits genehmigte Vorschläge. Moduswechsel werden persistent auditiert; der MCP-Prozess erhält keinen Docker-Socket und kann sich nicht selbst orchestrieren.
 
 Kontrollierter Stopp ohne Datenlöschung:
 
@@ -195,13 +197,13 @@ Der Reset betrifft konkret:
 | Managed-Secret-Store | Telegram API Hash, OpenRouter-Key, Admin-/Viewer-Keys, Audit-/Alert-/Backup-Tokens und AES-Schlüssel werden entfernt |
 | Trading-Credential-Store | Hyperliquid-/Bybit-Zugangsdaten und interner Executor-Key werden entfernt |
 | `templates/` | alle lokalen Template-Overrides werden geleert; der eingebaute Default-Prompt greift wieder |
-| `session_data/` | SQLite einschließlich Inbox/Outbox, Signalen, Budgets, Migrationen, Signalverträgen/-profilen, Strategien, Kanalrisiko/-evaluationen, Equity-/Execution-Telemetrie, MCP-Agenten/-Sitzungen/-Aktionen/-Requests, Routen, Intents, Orders, Fills, Positionen und Risk Events sowie Lock-/Crash-Zustand wird entfernt |
+| `session_data/` | SQLite einschließlich Inbox/Outbox, Signalen, Budgets, Migrationen, Signalverträgen/-profilen, Strategien, Kanalrisiko/-evaluationen, Equity-/Execution-Telemetrie, MCP-Modus/-Agenten/-Sitzungen/-Aktionen/-Requests, Routen, Intents, Orders, Fills, Positionen und Risk Events sowie Lock-/Crash-Zustand wird entfernt |
 | `session_files/` | TDLib-Dateien und lokale Telegram-Sitzung werden entfernt; eine erneute Anmeldung ist erforderlich |
 | konfiguriertes Signalverzeichnis und `signals/` | gespeicherte XML-Signale werden entfernt |
 | `backups/` | lokale Backup-Artefakte werden entfernt |
 | `logs/` und lokale Audit-Kette | lokale Logs und Audit-Evidenz werden entfernt; bereits extern persistierte Audit-Records bleiben erhalten |
 
-Nach dem Neustart werden ausschließlich Schema und deaktivierter Runtime-Sicherheitszustand angelegt. Signalverträge, Signal-Schema-Profile, Strategien, Konten, Paper-Bilanz/-Märkte, Routen, Trades, Journal und MCP-Agenten bleiben leer. Es existiert insbesondere kein `paper-default` und kein voreingestelltes Guthaben.
+Nach dem Neustart werden ausschließlich Schema sowie deaktivierter Trading- und MCP-Runtime-Sicherheitszustand angelegt. Signalverträge, Signal-Schema-Profile, Strategien, Konten, Paper-Bilanz/-Märkte, Routen, Trades, Journal und MCP-Agenten bleiben leer. Es existiert insbesondere kein `paper-default` und kein voreingestelltes Guthaben.
 
 Vor dem Löschen stoppt die Anwendung Trading, storniert offene Entries, prüft alle realen Exchange-Konten und verweigert den Reset bei nicht erreichbarer Exchange oder verbleibender Exposure. Extern gemountete, nicht durch die Anwendung löschbare Secrets blockieren den Preflight. Off-site-Backup-Objekte werden nicht remote gelöscht; ohne den entfernten AES-Schlüssel sind sie kryptografisch nicht mehr lesbar.
 
@@ -247,7 +249,7 @@ docker compose -f docker-compose.yml -f docker-compose.monitoring.yml images
 
 Production deployment treats the forwarder and exchange executor as one release unit with two independent digests. Copy both references from the signed release manifest; a local tag or a missing executor digest is a failed deployment precondition.
 
-Der MCP-Dienst verwendet dasselbe attestierte `FORWARDER_IMAGE`, aber einen anderen Entry Point. Wenn er eingesetzt wird, muss auch `docker compose --profile mcp …` gegen exakt diesen Digest geprüft werden. Er fügt kein drittes Release-Image hinzu.
+Der MCP-Dienst verwendet dasselbe attestierte `FORWARDER_IMAGE`, aber einen anderen Entry Point. Der Standard-Deploy muss deshalb auch den laufenden `mcp-server` gegen exakt diesen Digest prüfen. Er fügt kein drittes Release-Image hinzu.
 
 `FORWARDER_IMAGE` wird sowohl für den Forwarder als auch den Alert-Relay gesetzt. `--no-build` verhindert, dass der freigegebene Digest unbemerkt durch ein lokales Build ersetzt wird. Tag, Digest und Ausgabe von `docker compose images` werden im Deployment-Record festgehalten.
 
@@ -362,7 +364,7 @@ Ein Gate darf nur über einen gültigen, höchstens 30 Tage laufenden Record unt
 
 ## Trading-Betrieb
 
-Die vollständige Web-Anleitung für visuell verwaltete Signalverträge, frei verknüpfbare Schema-Profile, ausschließlich USD/USDC/USDT-notierte Paare, dynamisches Kanalrisiko, Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, adaptive TP-Staffelung, SL-Nachziehen, Cockpit/Analytics, Live-Gate und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading ist Teil derselben Datenbank-, Audit-, Backup-, Monitoring- und Release-Grenze. Der Release veröffentlicht und attestiert deshalb zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor.
+Die vollständige Web-Anleitung für visuell verwaltete Signalverträge, frei verknüpfbare Schema-Profile, pro Strategie wählbare Symbolregeln (alle, keine oder Allowlist), dynamisches Kanalrisiko, Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, adaptive TP-Staffelung, SL-Nachziehen, Cockpit/Analytics, Live-Gate und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading ist Teil derselben Datenbank-, Audit-, Backup-, Monitoring- und Release-Grenze. Der Release veröffentlicht und attestiert deshalb zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor.
 
 ## 14. Enterprise-Nachweise und aktuelle offene Punkte
 

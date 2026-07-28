@@ -8,7 +8,7 @@ Die vollständige, verbindliche Anleitung für Installation, Konfiguration, Nutz
 
 Die vollständige Trading-Einrichtung für selbst verwaltete Signal-Schemas, paralleles Kanal-Routing, Hyperliquid/Bybit, adaptive TP-Staffelung, SL-Nachziehen und Notfälle steht in [`docs/TRADING_GUIDE.md`](docs/TRADING_GUIDE.md).
 
-Die Einrichtung des optionalen, eigenständigen MCP-Dienstes, der Agenten-Tokens, dauerhaften Berechtigungen und Ereignis-Abonnements steht in [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md).
+Die Einrichtung des eigenständigen MCP-Dienstes, seiner persistenten Betriebsmodi, der Agenten-Tokens, dauerhaften Berechtigungen und Ereignis-Abonnements steht in [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md).
 
 Weitere verbindliche Dokumente:
 
@@ -37,7 +37,7 @@ Damit das Projekt übersichtlich bleibt, sind die Dateien klar aufgeteilt:
 │   ├── metrics.ts            # Prometheus-Metriken und Healthcheck HTTP-Server
 │   ├── queue.ts              # Concurrency-Queue für asynchrone Nachrichtenweiterleitung
 │   ├── signal_parser.ts      # TS-Modul zur KI-XML-Signalextraktion via OpenRouter
-│   ├── signal_schema.ts      # Dynamische XML-, Grounding- und USD-Quote-Validierung
+│   ├── signal_schema.ts      # Dynamische XML-, Grounding- und Symbol-Validierung
 │   ├── signal_contract.ts    # Deklarativer, versionierter Signalvertrags-Interpreter
 │   ├── trading_*.ts          # Strategien, Kanalrisiko, Telemetrie, Orders und Reconciliation
 │   ├── mcp_*.ts              # Agentenidentitäten, Kontrollbrücke und MCP-Server
@@ -69,7 +69,7 @@ Das System wurde auf Enterprise-Niveau gehoben und nutzt moderne Best Practices:
 4. **Multi-Stage Docker Pipeline**: Der Compiler läuft in einer Build-Stufe. Das produktive Docker-Image enthält nur die kompilierten Dateien und native Produktivabhängigkeiten – sicher, gehärtet und klein.
 5. **Dynamische Signalverträge**: Verträge sind versionierte SQLite-Datensätze. Der visuelle Builder verwaltet XML-Pfade, Feldtypen, Entry-/Target-Form, Geometrie und Quelltext-Erdung ohne ausführbaren Benutzer-Code.
 6. **Cockpit und Labor**: Das Dashboard zeigt im Cockpit nur Live-Sicherheit, Positionen, PnL und Signalstrom. Equity, Drawdown, Kanalqualität, Slippage, Latenz und Simulation liegen im separaten Analytics-Bereich.
-7. **Agenten-Control-Plane**: Ein optionaler MCP-Dienst verwendet pro Agent gehashte Tokens und dauerhaft verwaltete Minimalrechte. Schreibaktionen laufen nicht direkt gegen SQLite oder Exchanges, sondern über die auditierte TSX-Core-Kontrollbrücke.
+7. **Agenten-Control-Plane**: Ein separater, standardmäßig mitgestarteter MCP-Dienst verwendet pro Agent gehashte Tokens und dauerhaft verwaltete Minimalrechte. Sein persistenter Modus ist ab Werk `disabled`; Schreibaktionen laufen nicht direkt gegen SQLite oder Exchanges, sondern über die auditierte TSX-Core-Kontrollbrücke.
 
 ---
 
@@ -104,7 +104,7 @@ Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verket
 
 ### Leerer Auslieferungszustand und vorhandene Docker-Volumes
 
-Repository und Container-Image liefern ausschließlich Programmfunktionen und leere Tabellen aus. Beim echten Erststart sind Ausführung und Live-Trading deaktiviert; Kanäle, Konten, Paper-Bilanzen/-Märkte, Verträge, Signal-Schema-Profile, Strategien, Routen, Trades, Journal und MCP-Agenten sind leer. Auch `config.json.example` enthält keine Beispielkanäle und aktiviert den KI-Parser nicht.
+Repository und Container-Image liefern ausschließlich Programmfunktionen und leere Tabellen aus. Beim echten Erststart sind Ausführung, Live-Trading und der MCP-Laufzeitmodus deaktiviert; Kanäle, Konten, Paper-Bilanzen/-Märkte, Verträge, Signal-Schema-Profile, Strategien, Routen, Trades, Journal und MCP-Agenten sind leer. Auch `config.json.example` enthält keine Beispielkanäle und aktiviert den KI-Parser nicht.
 
 Benannte Docker-Volumes gehören nicht zum GitHub-Download und überleben einen neuen Download, `git pull`, Image-Neubau sowie `docker compose down`. Wenn beim Start einer erneut heruntergeladenen Kopie alte Inhalte oder ein bereits vorhandener Admin-Token erscheinen, stammt dieser Zustand aus einem weiterverwendeten Docker-Volume und nicht aus GitHub. Für einen sicheren Total-Reset bevorzugt **System & Backup → Factory Reset** verwenden. Nur wenn der alte Dienst nicht mehr bedienbar ist und sämtliche lokalen Daten ausdrücklich verworfen werden sollen:
 
@@ -128,7 +128,7 @@ Private Order-, Execution- und Positions-WebSockets sowie öffentliche Ticker-/K
 
 Die Anwendung führt keinen beliebigen in der UI eingegebenen Code aus. „Plugins“ sind strikt validierte, versionierte deklarative Strategien; ein neuer grundlegend anderer Algorithmus benötigt eine getestete Engine-Version. Exchange-Zugriffe laufen ausschließlich über das interne Sidecar mit den offiziellen SDKs `hyperliquid-python-sdk` und `pybit`; das Sidecar besitzt keinen Host-Port.
 
-Ausführbare Signale müssen immer gegen `USD`, `USDC` oder `USDT` notiert sein. Andere Quote-Assets oder uneindeutige Paare werden vor dem Erzeugen eines Trade Intents abgewiesen.
+Die Strategie bestimmt pro Kanalroute, ob **alle**, **keine** oder nur eine explizite Liste normalisierter Symbole gehandelt werden darf. Bei **Alle** entscheidet die ausgewählte Börse verbindlich über Marktverfügbarkeit; unbekannte oder nicht handelbare Symbole werden vor einer Order abgewiesen.
 
 ### Bedienoberfläche
 
@@ -144,14 +144,14 @@ Ausführbare Signale müssen immer gegen `USD`, `USDC` oder `USDT` notiert sein.
 
 Für WLAN/VPN ist **Tailscale Serve** der bevorzugte Weg. Dashboard und MCP bleiben auf Host-Loopback; Serve veröffentlicht sie nur im Tailnet. **Tailscale Funnel ist verboten**, weil es einen öffentlichen Internet-Endpunkt erzeugt. Im Dashboard-Authentifizierungsmodus `tailscale` akzeptiert TSX Core ausschließlich die von einem ausdrücklich vertrauten lokalen Serve-Proxy gelieferten Identitätsheader und ordnet Login-Adressen einer Admin- oder Viewer-Allowlist zu. `scripts/configure_tailscale_serve.ps1` deaktiviert Funnel für den Zielport und richtet Serve auf den Loopback-Dienst ein.
 
-Der MCP-Dienst ist optional und startet nicht im normalen Zwei-Service-Stack:
+Der MCP-Dienst startet automatisch als dritter, gehärteter Service. Seine fachliche Schnittstelle ist bei einer neuen oder zurückgesetzten Installation jedoch sicher **deaktiviert**:
 
 ```bash
-docker compose --profile mcp up --build -d
+docker compose up --build -d
 curl --fail http://127.0.0.1:8091/healthz
 ```
 
-Unter **MCP-Agenten** wird für jeden Agenten ein Token genau einmal ausgegeben. TSX Core speichert nur SHA-256, zeigt aktive Sitzungen und protokolliert jeden Tool-Aufruf. Rechte und Ereignis-Abonnements gelten dauerhaft, bis ein Admin sie ändert, den Agenten deaktiviert, löscht oder den Token rotiert. Vertrags-, Profil-, Strategie-, Routing- und Risikoänderungen erhalten vorab einen Preflight; sicherheitsrelevante Varianten landen als persistente Vorschläge in der Freigabe-Warteschlange und werden erst nach expliziter Admin-Entscheidung ausgeführt. **Agent löschen** widerruft Token, Rechte, Sitzungen und wartende Kontrollanforderungen sofort; die anonymisierte Audit-Historie bleibt erhalten. Details und Client-Beispiel: [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md).
+Unter **MCP-Agenten** schaltet der Admin den persistenten Servermodus auf **Aktiv**, **Standby** oder **Deaktiviert**. Aktiv nimmt Sitzungen und Tool-Aufrufe an. Standby beendet Sitzungen und pausiert Warteschlangen bei laufendem, schnell reaktivierbarem Dienst. Deaktiviert beendet Sitzungen und verwirft zusätzlich noch nicht gestartete freigegebene Aktionen. Jeder Moduswechsel wird auditiert und überlebt Container-Neustarts. Für jeden Agenten wird ein Token genau einmal ausgegeben. TSX Core speichert nur SHA-256, zeigt aktive Sitzungen und protokolliert jeden Tool-Aufruf. Rechte und Ereignis-Abonnements gelten dauerhaft, bis ein Admin sie ändert, den Agenten deaktiviert, löscht oder den Token rotiert. Vertrags-, Profil-, Strategie-, Routing- und Risikoänderungen erhalten vorab einen Preflight; sicherheitsrelevante Varianten landen als persistente Vorschläge in der Freigabe-Warteschlange und werden erst nach expliziter Admin-Entscheidung ausgeführt. **Agent löschen** widerruft Token, Rechte, Sitzungen und wartende Kontrollanforderungen sofort; die anonymisierte Audit-Historie bleibt erhalten. Details und Client-Beispiel: [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md).
 
 ### Zustellgarantie und Recovery
 
@@ -236,7 +236,7 @@ Vor einem Modell-, Prompt- oder Template-Release muss mit Staging-Zugang `npm ru
 
 Der Container läuft als unprivilegierter Benutzer mit schreibgeschütztem Root-Dateisystem, ohne Linux-Capabilities und mit CPU-, RAM-, PID- und Log-Grenzen. Compose initialisiert benannte Volumes für Konfiguration, Secrets, Templates, TDLib-Sitzung, SQLite, Signale, Logs und Backups; Updates und normale Container-Neuerstellungen erhalten diese Daten.
 
-Der Standardstart erzeugt genau zwei Services: `forwarder` besitzt Telegram, Dashboard, Trading-Zustand und Sicherheitslogik; `exchange-executor` kapselt die offiziellen Python-SDKs und besitzt keinen Host-Port. Diese Prozessgrenze hält native Exchange-Abhängigkeiten und deren Credentials aus der Node-Control-Plane heraus. `mcp-server` ist ein dritter, unabhängiger Dienst, wird aber ausschließlich mit dem Compose-Profil `mcp` gestartet und teilt nur das SQLite-State-Volume. Er besitzt weder Telegram- noch Exchange-Secrets.
+Der Standardstart erzeugt genau drei Services: `forwarder` besitzt Telegram, Dashboard, Trading-Zustand und Sicherheitslogik; `exchange-executor` kapselt die offiziellen Python-SDKs und besitzt keinen Host-Port; `mcp-server` stellt den unabhängig schaltbaren Agenten-Endpunkt bereit. Diese Prozessgrenzen halten native Exchange-Abhängigkeiten und deren Credentials aus der Node-Control-Plane heraus. Der MCP-Dienst teilt nur das SQLite-State-Volume, besitzt weder Telegram- noch Exchange-Secrets und bleibt in der Werkseinstellung logisch deaktiviert.
 
 ```bash
 # Start oder Update
@@ -253,7 +253,7 @@ docker compose down
 docker volume ls --filter name=tsx-core_forwarder
 ```
 
-Dashboard, Metriken und der optionale MCP-Port werden ausschließlich auf Host-Loopback veröffentlicht. Externer Zugriff erfolgt bevorzugt über Tailscale Serve oder alternativ einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
+Dashboard, Metriken und der MCP-Port werden ausschließlich auf Host-Loopback veröffentlicht. Externer Zugriff erfolgt bevorzugt über Tailscale Serve oder alternativ einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; der persistente MCP-Modus bleibt dabei erhalten und wird beim Factory Reset wieder auf `disabled` gesetzt. Die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
 
 Incident-URL, internes Relay-Token und Incident-Gateway-Token werden vollständig im Web unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** beziehungsweise **Enterprise-Secrets** gesetzt. Danach startet `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d` den Monitoring-Stack; Alertmanager und Relay lesen ausschließlich die verwalteten Config-/Secret-Volumes, nicht `.env` oder Host-Secret-Dateien. Prometheus und Alertmanager sind per unveränderlichem Multi-Arch-Digest gepinnt, speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
 

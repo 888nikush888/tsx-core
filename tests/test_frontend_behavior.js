@@ -15,5 +15,5 @@ const result = spawnSync(process.execPath, [vitest, 'run', '--configLoader', 'ru
 
 assert.ifError(result.error);
 assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-assert.match(result.stdout, /20 passed/);
+assert.match(result.stdout, /22 passed/);
 console.log('Frontend enterprise behavior tests passed.');

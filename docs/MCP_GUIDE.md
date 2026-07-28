@@ -2,21 +2,31 @@
 
 ## Zweck und Sicherheitsgrenze
 
-Der optionale TSX-Core-MCP-Server stellt Systemstatus, Signalverträge, Signal-Schema-Profile, Strategien, Routen, Positionen, Signale, Kanalrisiko, Analytics, Exchange-Stream-Status, Trade Journal und ausdrücklich freigegebene Kontrollaktionen über **Model Context Protocol / Streamable HTTP** bereit. Er ist ein eigener Prozess und kann mit unterschiedlichen MCP-fähigen Agenten-Frameworks kombiniert werden.
+Der TSX-Core-MCP-Server stellt Systemstatus, Signalverträge, Signal-Schema-Profile, Strategien, Routen, Positionen, Signale, Kanalrisiko, Analytics, Exchange-Stream-Status, Trade Journal und ausdrücklich freigegebene Kontrollaktionen über **Model Context Protocol / Streamable HTTP** bereit. Er ist ein eigener Prozess, startet mit dem normalen Compose-Stack und kann mit unterschiedlichen MCP-fähigen Agenten-Frameworks kombiniert werden. Seine fachliche Schnittstelle ist in der Werkseinstellung deaktiviert.
 
 Der MCP-Server besitzt keine Telegram-, Dashboard- oder Exchange-Secrets. Lesezugriffe verwenden die gemeinsame SQLite-Datenbank. Schreibzugriffe werden als persistente Kontrollanforderung oder Änderungsvorschlag an den laufenden `forwarder` übergeben. Erst dessen Kontrollbrücke prüft Agent, aktuellen Status und Rechte erneut, schreibt den Vorab-Audit-Record und ruft dieselbe `TradingWebControl`-Sicherheitslogik wie das Web-Dashboard auf. Ein Agent kann deshalb keine Exchange-Aktion durch direktes Ändern einer Datenbankzeile auslösen.
 
-## Dienst starten
+## Dienst starten und Betriebsmodus wählen
 
-Der normale Stack bleibt bei zwei Services. MCP wird als optionales Compose-Profil ergänzt:
+Der normale Stack startet `forwarder`, `exchange-executor` und `mcp-server` gemeinsam:
 
 ```bash
-docker compose --profile mcp up --build -d
-docker compose --profile mcp ps
+docker compose up --build -d
+docker compose ps
 curl --fail http://127.0.0.1:8091/healthz
 ```
 
-Der Endpunkt ist standardmäßig `http://127.0.0.1:8091/mcp`. Die Host-Portfreigabe ist absichtlich Loopback-only. `mcp-server` wartet auf einen gesunden `forwarder`, teilt ausschließlich `forwarder_session_data` und besitzt ein schreibgeschütztes Root-Dateisystem ohne Linux-Capabilities.
+Der Endpunkt ist standardmäßig `http://127.0.0.1:8091/mcp`. Die Host-Portfreigabe ist absichtlich Loopback-only. `mcp-server` wartet auf einen gesunden `forwarder`, teilt ausschließlich `forwarder_session_data` und besitzt ein schreibgeschütztes Root-Dateisystem ohne Linux-Capabilities. Er erhält weder den Docker-Socket noch Telegram- oder Exchange-Secrets.
+
+Der Healthcheck bleibt in allen drei Betriebsmodi grün, solange Prozess und Datenbank gesund sind. Seine JSON-Antwort enthält `mode`, `acceptingConnections` und `activeSessions`. Der MCP-Endpunkt selbst antwortet außerhalb von `active` mit HTTP 503.
+
+| Modus | Verhalten | Warteschlangen |
+|---|---|---|
+| `active` | Neue Agentensitzungen, Tools und Ereignis-Push sind erlaubt. | Kontrollanforderungen und genehmigte Vorschläge werden ausgeführt. |
+| `standby` | Bestehende Sitzungen werden beendet; der Dienst und Healthcheck bleiben für schnelle Reaktivierung aktiv. | Noch nicht gestartete Anforderungen und Vorschläge bleiben persistent pausiert. |
+| `disabled` | Werkseinstellung. Bestehende Sitzungen werden beendet und der MCP-Endpunkt verweigert alle Agenten. | Noch nicht gestartete Kontrollanforderungen und bereits genehmigte, noch nicht gestartete Vorschläge werden als fehlgeschlagen abgeschlossen. Offene menschliche Vorschläge bleiben als Audit-/Entscheidungsbestand erhalten. |
+
+Der Modus wird unter **MCP-Agenten → MCP-Server** gewählt, in SQLite gespeichert, auditiert und nach Container-/Host-Neustarts wieder angewendet. Das Aktivieren und vollständige Deaktivieren benötigen eine zusätzliche ausdrückliche Bestätigung. Ein Wechsel aus `active` unterbricht keine bereits in der eigentlichen Trading-Nebenwirkung befindliche Operation; die Kontrollbrücke prüft den Modus jedoch beim Claim, vor dem Audit und unmittelbar vor der Nebenwirkung erneut, sodass das Race-Fenster auf bereits laufende atomare Operationen begrenzt bleibt.
 
 Relevante Orchestrator-Parameter:
 
@@ -26,6 +36,7 @@ Relevante Orchestrator-Parameter:
 | `MCP_ENDPOINT_URL` | Adresse, die das Dashboard dem Operator zeigt |
 | `MCP_ALLOWED_HOSTS` | exakte Hostnamen ohne Port; DNS-Rebinding-Schutz |
 | `MCP_ALLOWED_ORIGINS` | kommagetrennte, exakte Browser-Origins; leer weist Browser-Origin-Aufrufe ab |
+| `MCP_RUNTIME_POLL_MS` | Reaktionszeit des MCP-Prozesses auf persistente Moduswechsel, Standard `500` ms |
 | `MCP_MEMORY_LIMIT`, `MCP_CPU_LIMIT` | Containergrenzen |
 
 ## Agent anlegen
@@ -148,4 +159,4 @@ Bei verdächtigem Agentenverhalten:
 4. Exchange-Zustand read-only reconciliieren; unbekannte Ausgänge nicht blind wiederholen.
 5. Erst nach Ursachenklärung Rechte minimal neu vergeben und einen neuen Token ausstellen.
 
-Vor Backup-Restore, Migration-Rollback oder Factory Reset den MCP-Profil-Dienst gemeinsam mit dem Forwarder stoppen. Backups enthalten Agenten, Rechte, Sitzungs-/Aktionshistorie und Kontrollanforderungen, aber niemals Klartext-Tokens. Nach Restore müssen Agenten-Tokens vorsorglich rotiert werden.
+Vor Backup-Restore oder Migration-Rollback den gesamten Compose-Stack einschließlich `mcp-server` stoppen. Der integrierte Factory Reset koordiniert den MCP-Prozess über den gemeinsamen Wartungsmarker selbst. Backups enthalten den persistenten MCP-Modus, Agenten, Rechte, Sitzungs-/Aktionshistorie und Kontrollanforderungen, aber niemals Klartext-Tokens. Nach Restore müssen Agenten-Tokens vorsorglich rotiert und der wiederhergestellte Modus vor einer Freigabe geprüft werden. Ein Factory Reset erzeugt erneut `disabled` und keine Agenten.

@@ -34,7 +34,7 @@
 5. Fremde Orders oder Positionen auf demselben API-Konto gelten als unmanaged Exposure. Entweder außerhalb des Systems nach Vier-Augen-Betriebsprozess schließen oder ein separates ausschließlich diesem System gehörendes Exchange-Subkonto verwenden. Der Kill-Switch bleibt bis zu einer erfolgreichen Null-/Managed-Reconciliation aktiv.
 6. Vor Aufheben der Sperre Datenumfang, betroffene Kanäle/Strategieversionen und Ursache dokumentieren. **Abgleichen und Sperre aufheben** führt nochmals alle aktivierten Konten gegen die Exchange; erst Erfolg entfernt die Sperre.
 
-Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaisen lassen. Factory Reset stoppt MCP-Brücke und Trading-Worker, signalisiert dem unabhängigen MCP-Prozess ein gemeinsames Wartungsfenster, storniert offene Entries, prüft jedes Nicht-Paper-Konto über das offizielle SDK und verweigert bei Order/Position oder nicht erreichbarer Exchange die Löschung. Danach werden DB einschließlich Verträgen, Kanalrisiko, Analytics und MCP-Agenten, Strategie-/Routingzustand, alle Exchange-Key-Dateien und der interne Executor-Key entfernt; der neue Key wird nach Neustart automatisch vom bereits laufenden Sidecar akzeptiert. **Betriebsdaten leeren** ist davon getrennt: Es stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie nicht von Trades referenzierte Signale atomar. Trading-Historie, Strategien, Konten, Secrets und trade-referenzierte Signale bleiben unverändert erhalten.
+Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaisen lassen. Factory Reset stoppt MCP-Brücke und Trading-Worker, signalisiert dem unabhängigen MCP-Prozess ein gemeinsames Wartungsfenster, storniert offene Entries, prüft jedes Nicht-Paper-Konto über das offizielle SDK und verweigert bei Order/Position oder nicht erreichbarer Exchange die Löschung. Danach werden DB einschließlich MCP-Modus, Verträgen, Kanalrisiko, Analytics und MCP-Agenten, Strategie-/Routingzustand, alle Exchange-Key-Dateien und der interne Executor-Key entfernt; der neue Key wird nach Neustart automatisch vom bereits laufenden Sidecar akzeptiert und der neue MCP-Modus ist `disabled`. **Betriebsdaten leeren** ist davon getrennt: Es stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie nicht von Trades referenzierte Signale atomar. Trading-Historie, Strategien, Konten, Secrets und trade-referenzierte Signale bleiben unverändert erhalten.
 
 ## Signalvertrag oder Schema-Profil ändern
 
@@ -48,7 +48,7 @@ Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaise
 
 ## MCP-Agent kompromittiert oder fehlerhaft
 
-1. Unter **MCP-Agenten** den Agenten sofort deaktivieren. Bei endgültigem Widerruf anschließend **Agent löschen** verwenden; dadurch werden Token, Rechte, aktive Sitzungen und noch wartende Kontrollanforderungen widerrufen und der Agent aus dem aktiven Inventar entfernt. Die anonymisierte Audit-Historie bleibt erhalten.
+1. Bei unklarem Umfang unter **MCP-Agenten → MCP-Server** zuerst `disabled` wählen; dadurch werden alle Sitzungen getrennt und noch nicht gestartete freigegebene MCP-Arbeit verworfen. Danach den betroffenen Agenten deaktivieren. Bei endgültigem Widerruf **Agent löschen** verwenden; dadurch werden Token, Rechte, aktive Sitzungen und noch wartende Kontrollanforderungen widerrufen und der Agent aus dem aktiven Inventar entfernt. Die anonymisierte Audit-Historie bleibt erhalten.
 2. Im Cockpit Kill-Switch, offene Positionen, unbekannte Orders und letzte Reconciliation prüfen. Bei unklarer Exchange-Wirkung niemals denselben Tool-Aufruf blind wiederholen.
 3. Agenten-Aktionen, Sitzung, `mcp_control_request`-ID, hashverkettete Audit-Records und passende Trading-Execution-Events sichern. Token oder Request-Secrets nicht in Tickets kopieren.
 4. Falls `trading.kill_switch`, `trading.cancel_entries` oder `trading.flatten` verwendet wurde, Exchange read-only gegen Client Order IDs und Fills prüfen und anschließend über einen menschlichen Admin reconciliieren.
@@ -133,7 +133,7 @@ docker compose up -d
 
 Vor Restore Dienst stoppen, Locks und Outbox dokumentieren, Backup aus unabhängigem Ziel holen und Prüfergebnis archivieren. Das Artefakt stellt DB, nicht geheime Konfiguration, Runtime-Einstellungen und Templates wieder her; verwaltete Secrets sowie TDLib-Sessiondaten sind nicht enthalten und werden getrennt re-provisioniert. Danach `readyz`, Tabellen/Counts und einen synthetischen E2E-Flow prüfen. Bei Abweichung Dienst stoppen und die erhaltenen `.pre-restore-*`-Dateien gemäß Restore-Ausgabe zurückrollen. TDLib-Reauthentifizierung ist ein separater Recovery-Schritt.
 
-Wenn das MCP-Profil verwendet wird, immer den gesamten Compose-Stack einschließlich `mcp-server` stoppen. Nach Restore jeden Agenten-Token rotieren, Rechte und Ereignis-Abonnements gegen den Restore-Zeitpunkt prüfen und erst dann `docker compose --profile mcp up -d` verwenden.
+Immer den gesamten Compose-Stack einschließlich `mcp-server` stoppen. Nach Restore jeden Agenten-Token rotieren, Rechte, Ereignis-Abonnements und den wiederhergestellten persistenten MCP-Modus gegen den Restore-Zeitpunkt prüfen. Danach mit `docker compose up -d` starten und MCP erst nach dieser Prüfung im Dashboard aktivieren; für eine ungeklärte Restore-Lage zuerst `disabled` setzen.
 
 ## Release und Rollback
 

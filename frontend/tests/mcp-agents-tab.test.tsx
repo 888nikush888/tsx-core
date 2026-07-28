@@ -9,6 +9,7 @@ describe("McpAgentsTab", () => {
     sessionStorage.clear()
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
       endpoint: "http://127.0.0.1:8091/mcp",
+      runtime: { mode: "active", updatedAt: Date.now(), updatedBy: "test" },
       permissions: ["system.read", "contracts.write", "trading.flatten"],
       eventTypes: ["signal_received", "position_closed"],
       agents: [{
@@ -78,6 +79,7 @@ describe("McpAgentsTab", () => {
       }
       return new Response(JSON.stringify({
         endpoint: "http://127.0.0.1:8091/mcp",
+        runtime: { mode: "active", updatedAt: Date.now(), updatedBy: "test" },
         permissions: ["system.read"],
         eventTypes: ["signal_received"],
         agents: deleted ? [] : [{
@@ -106,5 +108,51 @@ describe("McpAgentsTab", () => {
     expect(requests).toHaveLength(1)
     expect(requests[0].body).toEqual({ id: "agent-1" })
     expect(requests[0].headers.get("X-Destructive-Confirmation")).toBe("delete-mcp-agent")
+  })
+
+  it("persists active, standby and disabled server modes with the required confirmations", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true)
+    confirm.mockClear()
+    let mode: "active" | "standby" | "disabled" = "disabled"
+    const runtimeRequests: Array<{ mode: string; confirmation: string | null }> = []
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init: RequestInit = {}) => {
+      if (init.method === "POST") {
+        const body = JSON.parse(String(init.body))
+        mode = body.mode
+        runtimeRequests.push({
+          mode,
+          confirmation: new Headers(init.headers).get("X-Destructive-Confirmation"),
+        })
+        return new Response(JSON.stringify({
+          success: true,
+          runtime: { mode, updatedAt: Date.now(), updatedBy: "dashboard:test" },
+        }), { status: 200, headers: { "Content-Type": "application/json" } })
+      }
+      return new Response(JSON.stringify({
+        endpoint: "http://127.0.0.1:8091/mcp",
+        runtime: { mode, updatedAt: Date.now(), updatedBy: "dashboard:test" },
+        permissions: [],
+        eventTypes: [],
+        agents: [],
+        sessions: [],
+        actions: [],
+        proposals: [],
+      }), { status: 200, headers: { "Content-Type": "application/json" } })
+    }))
+
+    render(<McpAgentsTab />)
+    fireEvent.click(await screen.findByRole("button", { name: /^Aktiv/ }))
+    await screen.findByText("MCP-Server ist aktiv und nimmt Agentenverbindungen an.")
+    fireEvent.click(screen.getByRole("button", { name: /^Standby/ }))
+    await screen.findByText("MCP-Server ist im Standby; Sitzungen und Ausführung sind pausiert.")
+    fireEvent.click(screen.getByRole("button", { name: /^Deaktiviert/ }))
+    await screen.findByText("MCP-Server ist deaktiviert; Sitzungen wurden getrennt.")
+
+    expect(runtimeRequests).toEqual([
+      { mode: "active", confirmation: "set-mcp-runtime-active" },
+      { mode: "standby", confirmation: null },
+      { mode: "disabled", confirmation: "set-mcp-runtime-disabled" },
+    ])
+    expect(confirm).toHaveBeenCalledTimes(2)
   })
 })

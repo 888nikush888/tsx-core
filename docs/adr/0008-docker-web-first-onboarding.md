@@ -24,4 +24,6 @@ TDLib-Anforderungen für Telefonnummer, Code, E-Mail, 2FA und Gerätebestätigun
 
 ADR 0009 konkretisiert den später hinzugefügten bevorzugten anwendungsweiten Factory Reset. `docker compose down -v` bleibt lediglich der grobe Docker-Volume-Reset; für den Normalbetrieb ist die vorab geprüfte Web-Aktion unter **System & Backup → Factory Reset** maßgeblich.
 
-Ergänzung 26.07.2026: Der Web-first-Standard startet weiterhin genau `forwarder` und `exchange-executor`. Der unabhängige MCP-Dienst ist absichtlich nicht Teil des Defaultstarts und wird nur über `docker compose --profile mcp …` aktiviert.
+Ergänzung 26.07.2026 (durch die folgende Ergänzung ersetzt): Der Web-first-Standard startete zunächst nur `forwarder` und `exchange-executor`; MCP war ein separates Compose-Profil.
+
+Ergänzung 28.07.2026: Der unabhängige `mcp-server` gehört nun zum Defaultstart, damit Healthcheck, Restart-Policy und Bedienung einheitlich sind. Seine persistente Fachschnittstelle bleibt bei Erststart und Factory Reset `disabled` und wird ausschließlich über die authentifizierte, auditierte Web-Control-Plane aktiviert oder in Standby versetzt. Der Container erhält keinen Docker-Socket.
