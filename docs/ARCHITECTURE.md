@@ -37,7 +37,7 @@ flowchart LR
   BY --> WS
   WS --> TC
   TC --> J["Trade Journal + redacted export"]
-  A["MCP Agent"] --> MS["Optional loopback MCP service"]
+  A["MCP Agent"] --> MS["Runtime-gated loopback MCP service"]
   MS --> DB
   MS --> CQ["Persistent MCP control requests"]
   CQ --> MB["Audited MCP control bridge"]
@@ -83,7 +83,7 @@ Konfiguration und Runtime-Einstellungen werden atomar via temporärer Datei, `fs
 
 ## Trading-Zustandsfluss
 
-Ein Signalvertrag ist ein eigenständiger, versionierter SQLite-Baustein. Seine deklarative Definition beschreibt XML-Pfade und Typen, Entry-/Target-Form, Zusatzfelder, Long-/Short-Geometrie und die gegen die Telegram-Quelle zu erdenden Werte. Entwürfe sind editier- und löschbar; publizierte Versionen bleiben immutable, können archiviert und ohne verbleibende Schema-Profilreferenz nach expliziter Bestätigung endgültig gelöscht werden. Ein benutzerverwaltetes Signal-Schema-Profil verbindet Parser-Template und Vertrag frei miteinander. Unbekannte, deaktivierte oder nicht publizierte Verknüpfungen sind fail-closed. Der XML-Validator akzeptiert für ausführbare Signale ausschließlich normalisierte Symbole mit `USD`, `USDC` oder `USDT` als Quote-Asset.
+Ein Signalvertrag ist ein eigenständiger, versionierter SQLite-Baustein. Seine deklarative Definition beschreibt XML-Pfade und Typen, Entry-/Target-Form, Zusatzfelder, Long-/Short-Geometrie und die gegen die Telegram-Quelle zu erdenden Werte. Entwürfe sind editier- und löschbar; publizierte Versionen bleiben immutable, können archiviert und ohne verbleibende Schema-Profilreferenz nach expliziter Bestätigung endgültig gelöscht werden. Ein benutzerverwaltetes Signal-Schema-Profil verbindet Parser-Template und Vertrag frei miteinander. Unbekannte, deaktivierte oder nicht publizierte Verknüpfungen sind fail-closed. Der XML-Validator akzeptiert für ausführbare Signale normalisierte Großbuchstaben-/Ziffernsymbole; die Strategie bestimmt pro Kanalroute **alle**, **keine** oder eine explizite Allowlist. Die Börsenadapter prüfen die Marktverfügbarkeit vor jeder Order.
 
 Trading-Signale werden nach persistierter Signalvalidierung über eine immutable Kanalroute in einen Trade Intent überführt. Der Intent wird exakt einmal geplant, jede Order besitzt eine deterministische Client-ID, und eine Position wird gemeinsam mit Entry, TP-Staffel und zwingendem Stop persistiert. Im adaptiven TP-Modus halbiert jeder TP bis zum vorletzten das verbleibende Volumen; der letzte schließt den Rest. Im adaptiven SL-Modus folgt nach TP1/TP2 Break-even und danach TP(i-2). Der konfigurierte Alternativmodus verwendet feste TP-Prozente, einen Break-even-Schwellwert und optionales Prozent-Trailing.
 
@@ -98,19 +98,19 @@ Je Quellkanal kann eine feste, beobachtende oder automatische Risikopolice hinte
 ## MCP-Kontrollfluss
 
 ```text
-Bearer-Token -> SHA-256-Agentenprüfung -> aktuelles dauerhaftes Recht
+persistenter MCP-Modus `active` -> Bearer-Token -> SHA-256-Agentenprüfung -> aktuelles dauerhaftes Recht
   -> read-only Tool: begrenzte Repository-Abfrage
   -> ungefährliche Entwurfsänderung: Preflight -> auto-genehmigter persistenter Vorschlag
   -> sensible Konfigurationsänderung: Preflight -> wartender Vorschlag -> Admin-Freigabe
   -> unmittelbare Notfallaktion: persistente mcp_control_request
-     -> Forwarder-Bridge prüft Agent/Recht erneut
+     -> Forwarder-Bridge prüft Runtime/Agent/Recht erneut
      -> Vorab-Audit muss erfolgreich sein
      -> bestehende TradingWebControl-Sicherheitslogik
      -> Abschluss-Audit + persistentes Ergebnis
      -> MCP-Antwort und Agenten-Aktionshistorie
 ```
 
-Der MCP-Prozess darf keine Exchange-Adapter instanziieren. Pro Sitzung werden Clientname, Version, Verbindungs-/Heartbeat-Zeit und Ende erfasst. Vorschläge sind 24 Stunden gültig, werden atomar geclaimt und behalten Preflight, Entscheider, Ergebnis und Fehler dauerhaft. Nach Prozessabbruch werden laufende Vorschläge als fehlgeschlagen markiert und nicht automatisch erneut ausgeführt. Wichtige persistierte Trading-Events werden anhand der Agenten-Abonnements als MCP-Logging-Nachrichten aktiv versendet und pro Ereignis/Agent/Sitzung dedupliziert. Fehlgeschlagene Zustellungen bleiben retryfähig.
+Der MCP-Prozess darf keine Exchange-Adapter instanziieren und erhält keinen Docker-Socket. Er startet mit dem Standard-Stack; ein persistenter Singleton-Modus erlaubt `active`, `standby` oder `disabled` und ist ab Werk deaktiviert. Beide nicht aktiven Modi trennen Sitzungen und blockieren neue Claims; Standby bewahrt wartende Arbeit, Disabled schließt noch nicht gestartete Kontrollanforderungen und bereits genehmigte Vorschläge fehlgeschlagen ab. Pro Sitzung werden Clientname, Version, Verbindungs-/Heartbeat-Zeit und Ende erfasst. Vorschläge sind 24 Stunden gültig, werden atomar geclaimt und behalten Preflight, Entscheider, Ergebnis und Fehler dauerhaft. Nach Prozessabbruch werden laufende Vorschläge als fehlgeschlagen markiert und nicht automatisch erneut ausgeführt. Wichtige persistierte Trading-Events werden anhand der Agenten-Abonnements als MCP-Logging-Nachrichten aktiv versendet und pro Ereignis/Agent/Sitzung dedupliziert. Fehlgeschlagene Zustellungen bleiben retryfähig.
 
 ## Versionsregeln
 

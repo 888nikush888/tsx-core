@@ -90,7 +90,8 @@ export const DATABASE_FEATURE_SET = [
   'channel-risk-and-execution-analytics',
   'mcp-agent-control-plane',
   'mcp-agent-retirement',
-  'exchange-streams-mcp-approvals-trade-journal'
+  'exchange-streams-mcp-approvals-trade-journal',
+  'persistent-mcp-runtime-modes'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -111,6 +112,7 @@ export const REQUIRED_DATABASE_TABLES = [
   'mcp_agents',
   'mcp_agent_sessions',
   'mcp_agent_actions',
+  'mcp_runtime_state',
   'mcp_control_requests',
   'mcp_event_deliveries',
   'mcp_agent_proposals',
@@ -976,6 +978,24 @@ const migrations: SchemaMigration[] = [
           AND NOT EXISTS (SELECT 1 FROM trading_reconciliation_runs WHERE account_id = 'paper-default')
           AND NOT EXISTS (SELECT 1 FROM trading_equity_snapshots WHERE account_id = 'paper-default')
           AND NOT EXISTS (SELECT 1 FROM trading_execution_events WHERE account_id = 'paper-default');
+      `
+  },
+  {
+    version: 14,
+    name: 'persistent_mcp_runtime_modes',
+    columns: [],
+    sql: `
+        CREATE TABLE IF NOT EXISTS mcp_runtime_state (
+          singleton_id INTEGER PRIMARY KEY CHECK(singleton_id = 1),
+          mode TEXT NOT NULL DEFAULT 'disabled' CHECK(mode IN ('active', 'standby', 'disabled')),
+          updated_at INTEGER NOT NULL,
+          updated_by TEXT NOT NULL CHECK(length(updated_by) BETWEEN 1 AND 128)
+        );
+        INSERT OR IGNORE INTO mcp_runtime_state (
+          singleton_id, mode, updated_at, updated_by
+        ) VALUES (
+          1, 'disabled', CAST(strftime('%s','now') AS INTEGER) * 1000, 'system:factory-default'
+        );
       `
   }
 ];

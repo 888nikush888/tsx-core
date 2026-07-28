@@ -22,12 +22,14 @@ import { listChannelRiskEvaluations, listChannelRiskPolicies } from './trading_c
 import { getTradingExecutionAnalytics } from './trading_telemetry.js';
 import {
   agentHasPermission,
+  assertMcpRuntimeActive,
   authenticateMcpToken,
   connectMcpSession,
   createMcpProposal,
   disconnectMcpSession,
   enqueueMcpControlRequest,
   getMcpProposal,
+  getMcpRuntimeState,
   listMcpAgents,
   listMcpProposals,
   listPendingMcpEvents,
@@ -43,6 +45,7 @@ import {
   type McpControlAction,
   type McpProposalAction,
   type McpPermission,
+  type McpRuntimeMode,
 } from './mcp_repository.js';
 import { listExchangeStreamStates } from './exchange_stream_repository.js';
 import { listTradeJournal } from './trade_journal.js';
@@ -95,6 +98,9 @@ let httpServer: Server | null = null;
 let shuttingDown = false;
 let maintenanceTimer: NodeJS.Timeout | null = null;
 let maintenanceCheckBusy = false;
+let runtimeModeTimer: NodeJS.Timeout | null = null;
+let runtimeModeCheckBusy = false;
+let currentRuntimeMode: McpRuntimeMode = 'disabled';
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -215,6 +221,7 @@ function actionSummary(value: unknown): unknown {
 }
 
 async function currentAgent(agentId: string): Promise<McpAgent> {
+  await assertMcpRuntimeActive();
   const agent = (await listMcpAgents()).find(candidate => candidate.id === agentId);
   if (!agent?.enabled) throw new Error('MCP agent is disabled or no longer exists.');
   return agent;
@@ -744,7 +751,7 @@ function createServer(agent: AuthenticatedMcpAgent): McpServer {
 }
 
 async function pumpNotifications(runtime: SessionRuntime): Promise<void> {
-  if (!runtime.session || shuttingDown || runtime.notificationBusy) return;
+  if (!runtime.session || shuttingDown || currentRuntimeMode !== 'active' || runtime.notificationBusy) return;
   runtime.notificationBusy = true;
   try {
     if (!await touchMcpSession(runtime.session.id, runtime.agentId)) return;
@@ -789,6 +796,23 @@ async function closeSession(sessionId: string): Promise<void> {
   sessions.delete(sessionId);
   if (runtime.notificationTimer) clearInterval(runtime.notificationTimer);
   await disconnectMcpSession(sessionId, runtime.agentId).catch(() => undefined);
+  await runtime.transport.close().catch(() => undefined);
+}
+
+async function applyRuntimeMode(mode: McpRuntimeMode): Promise<void> {
+  if (currentRuntimeMode === mode) return;
+  const previousMode = currentRuntimeMode;
+  currentRuntimeMode = mode;
+  if (mode !== 'active') {
+    await Promise.all([...sessions.keys()].map(sessionId => closeSession(sessionId)));
+  }
+  console.log(`[AUDIT] MCP runtime mode changed in service: ${previousMode} -> ${mode}`);
+}
+
+async function synchronizeRuntimeMode(): Promise<McpRuntimeMode> {
+  const state = await getMcpRuntimeState();
+  await applyRuntimeMode(state.mode);
+  return state.mode;
 }
 
 async function shutdown(): Promise<void> {
@@ -796,6 +820,8 @@ async function shutdown(): Promise<void> {
   shuttingDown = true;
   if (maintenanceTimer) clearInterval(maintenanceTimer);
   maintenanceTimer = null;
+  if (runtimeModeTimer) clearInterval(runtimeModeTimer);
+  runtimeModeTimer = null;
   for (const [sessionId, runtime] of sessions) {
     if (runtime.notificationTimer) clearInterval(runtime.notificationTimer);
     await runtime.transport.close().catch(() => undefined);
@@ -838,9 +864,15 @@ function configureHealthCheck(app: any): void {
   app.get('/healthz', async (_req: any, res: any) => {
     try {
       await getDatabase().get('SELECT 1');
-      res.status(200).json({ status: 'ok' });
+      const mode = await synchronizeRuntimeMode();
+      res.status(200).json({
+        status: 'ok',
+        mode,
+        acceptingConnections: mode === 'active',
+        activeSessions: sessions.size,
+      });
     } catch {
-      res.status(503).json({ status: 'unhealthy' });
+      res.status(503).json({ status: 'unhealthy', mode: currentRuntimeMode });
     }
   });
 }
@@ -923,6 +955,21 @@ async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res:
 }
 
 async function handleMcpRequest(req: any, res: any): Promise<void> {
+  const mode = await synchronizeRuntimeMode();
+  if (mode !== 'active') {
+    res.setHeader('Retry-After', mode === 'standby' ? '5' : '60');
+    res.status(503).json({
+      jsonrpc: '2.0',
+      error: {
+        code: mode === 'standby' ? -32004 : -32005,
+        message: mode === 'standby'
+          ? 'MCP runtime is in standby. Enable active mode in the TSX Core dashboard.'
+          : 'MCP runtime is disabled. Enable it in the TSX Core dashboard.',
+      },
+      id: req.body?.id ?? null,
+    });
+    return;
+  }
   const agent = await authenticateRequest(req, res);
   if (!agent) return;
   const requestedSession = typeof req.headers['mcp-session-id'] === 'string'
@@ -975,6 +1022,20 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity: 
   maintenanceTimer.unref();
 }
 
+function startRuntimeModeMonitor(): void {
+  const intervalMs = integerFromEnvironment('MCP_RUNTIME_POLL_MS', 500, 250, 5_000);
+  runtimeModeTimer = setInterval(() => {
+    if (runtimeModeCheckBusy || shuttingDown) return;
+    runtimeModeCheckBusy = true;
+    void synchronizeRuntimeMode().catch(error => {
+      console.error(`[WARN] MCP runtime mode check failed: ${errorMessage(error)}`);
+    }).finally(() => {
+      runtimeModeCheckBusy = false;
+    });
+  }, intervalMs);
+  runtimeModeTimer.unref();
+}
+
 async function main(): Promise<void> {
   loadEnv();
   const host = configuredHost();
@@ -982,14 +1043,16 @@ async function main(): Promise<void> {
   const origins = allowedOrigins();
   const databasePath = operationalDatabasePath();
   const initialDatabaseIdentity = await initializeOperationalDatabase(databasePath);
+  currentRuntimeMode = (await getMcpRuntimeState()).mode;
   const app = createMcpExpressApp({ host, allowedHosts: allowedHosts(host) });
   configureHttpSecurity(app, origins);
   configureHealthCheck(app);
   configureMcpRoute(app);
   httpServer = app.listen(port, host, () => {
-    console.log(`[INFO] TSX Core MCP server listening on http://${host}:${port}/mcp`);
+    console.log(`[INFO] TSX Core MCP server listening on http://${host}:${port}/mcp (mode: ${currentRuntimeMode})`);
   });
   startMaintenanceMonitor(databasePath, initialDatabaseIdentity);
+  startRuntimeModeMonitor();
 }
 
 process.on('SIGINT', () => void shutdown().finally(() => process.exit(0)));

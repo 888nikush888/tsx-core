@@ -235,6 +235,38 @@ async function testMcpAgentAdministration(baseUrl) {
   let response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 403, 'MCP agent inventory must be restricted to administrators');
 
+  response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).runtime.mode, 'disabled', 'MCP must ship disabled by default');
+
+  response = await fetch(`${baseUrl}/api/mcp/runtime`, {
+    method: 'POST',
+    headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'forwarder-dashboard',
+    }),
+    body: JSON.stringify({ mode: 'active' }),
+  });
+  assert.strictEqual(response.status, 403, 'Viewer must not change the MCP runtime mode');
+
+  response = await fetch(`${baseUrl}/api/mcp/runtime`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ mode: 'active' }),
+  });
+  assert.strictEqual(response.status, 412, 'MCP activation must require explicit confirmation');
+
+  response = await fetch(`${baseUrl}/api/mcp/runtime`, {
+    method: 'POST',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'set-mcp-runtime-active',
+    }),
+    body: JSON.stringify({ mode: 'active' }),
+  });
+  assert.strictEqual(response.status, 200, 'Administrator must be able to activate MCP explicitly');
+  assert.strictEqual((await response.json()).state.mode, 'active');
+
   response = await fetch(`${baseUrl}/api/mcp/agents`, {
     method: 'POST',
     headers: headers(VIEWER_TOKEN, {
@@ -324,6 +356,32 @@ async function testMcpAgentAdministration(baseUrl) {
   assert.strictEqual(await authenticateMcpToken(rotated.token), null, 'Deleting an MCP agent must revoke its token immediately');
   response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual((await response.json()).agents.some(agent => agent.id === created.agent.id), false);
+
+  response = await fetch(`${baseUrl}/api/mcp/runtime`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ mode: 'standby' }),
+  });
+  assert.strictEqual(response.status, 200, 'Administrator must be able to place MCP in standby');
+  assert.strictEqual((await response.json()).state.mode, 'standby');
+
+  response = await fetch(`${baseUrl}/api/mcp/runtime`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ mode: 'disabled' }),
+  });
+  assert.strictEqual(response.status, 412, 'Disabling MCP must require explicit confirmation');
+
+  response = await fetch(`${baseUrl}/api/mcp/runtime`, {
+    method: 'POST',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'set-mcp-runtime-disabled',
+    }),
+    body: JSON.stringify({ mode: 'disabled' }),
+  });
+  assert.strictEqual(response.status, 200, 'Administrator must be able to disable MCP explicitly');
+  assert.strictEqual((await response.json()).state.mode, 'disabled');
 }
 
 async function testMcpProposalAdministration(baseUrl, agentId) {

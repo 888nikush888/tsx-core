@@ -26,7 +26,7 @@ services:
       MANAGED_SECRET_DIR: "/app/secrets"
       TEMPLATES_DIR: "/app/templates"
       EXCHANGE_EXECUTOR_URL: "http://exchange-executor:8090"
-      # Browser-visible address of the optional MCP profile.
+      # Browser-visible address of the independently gated MCP service.
       MCP_ENDPOINT_URL: "${MCP_ENDPOINT_URL:-http://127.0.0.1:8091/mcp}"
     volumes:
       - forwarder_config:/app/config
@@ -111,7 +111,6 @@ services:
         max-file: "5"
 
   mcp-server:
-    profiles: ["mcp"]
     build:
       context: .
       dockerfile: Dockerfile
@@ -128,6 +127,7 @@ services:
       MCP_PORT: "8091"
       MCP_ALLOWED_HOSTS: "${MCP_ALLOWED_HOSTS:-localhost,127.0.0.1,mcp-server}"
       MCP_ALLOWED_ORIGINS: "${MCP_ALLOWED_ORIGINS:-}"
+      MCP_RUNTIME_POLL_MS: "${MCP_RUNTIME_POLL_MS:-500}"
       FORWARDER_DB_PATH: "/app/session_data/forwarder.db"
     volumes:
       - forwarder_session_data:/app/session_data

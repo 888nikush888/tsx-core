@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Bot, CheckCircle2, Copy, KeyRound, Plus, RefreshCw, Save, Trash2, XCircle } from "lucide-react"
+import { Bot, CheckCircle2, Copy, KeyRound, Moon, Plus, Power, PowerOff, RefreshCw, Save, Trash2, XCircle } from "lucide-react"
 import { apiFetch } from "@/lib/api"
 import { useSerializedPolling } from "@/hooks/use-serialized-polling"
 import { Badge } from "@/components/ui/badge"
@@ -66,6 +66,11 @@ type Proposal = {
 }
 
 type Snapshot = {
+  runtime: {
+    mode: "active" | "standby" | "disabled"
+    updatedAt: number | null
+    updatedBy: string
+  }
   agents: Agent[]
   sessions: Session[]
   actions: Action[]
@@ -76,6 +81,7 @@ type Snapshot = {
 }
 
 const EMPTY: Snapshot = {
+  runtime: { mode: "disabled", updatedAt: null, updatedBy: "system:factory-default" },
   agents: [],
   sessions: [],
   actions: [],
@@ -129,10 +135,33 @@ function proposalStatusTone(status: string): "secondary" | "destructive" | "outl
   return "outline"
 }
 
-function agentConnectionLabel(connected: boolean, enabled: boolean): string {
+function agentConnectionLabel(connected: boolean, enabled: boolean, runtimeMode: Snapshot["runtime"]["mode"]): string {
+  if (runtimeMode === "standby") return "Server im Standby"
+  if (runtimeMode === "disabled") return "Server deaktiviert"
   if (connected) return "verbunden"
   return enabled ? "bereit" : "deaktiviert"
 }
+
+const RUNTIME_MODES = [
+  {
+    mode: "active" as const,
+    label: "Aktiv",
+    description: "Agenten dürfen neue Sitzungen öffnen, Tools aufrufen und Ereignisse empfangen.",
+    icon: Power,
+  },
+  {
+    mode: "standby" as const,
+    label: "Standby",
+    description: "Sitzungen werden beendet und Warteschlangen pausiert; der Dienst bleibt schnell erreichbar.",
+    icon: Moon,
+  },
+  {
+    mode: "disabled" as const,
+    label: "Deaktiviert",
+    description: "Werkseinstellung: keine Agentenverbindung; noch nicht gestartete Aktionen werden verworfen.",
+    icon: PowerOff,
+  },
+]
 
 function sessionConnectionLabel(connected: boolean, disconnectedAt: number | null): string {
   if (connected) return "verbunden"
@@ -171,7 +200,12 @@ export function McpAgentsTab() {
     const response = await apiFetch(`${API_BASE}/api/mcp`, { signal })
     const payload = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(payload.error || "MCP-Status konnte nicht geladen werden.")
-    setSnapshot({ ...EMPTY, ...payload, proposals: payload.proposals || [] })
+    setSnapshot({
+      ...EMPTY,
+      ...payload,
+      runtime: { ...EMPTY.runtime, ...(payload.runtime || {}) },
+      proposals: payload.proposals || [],
+    })
   }
 
   useSerializedPolling(async signal => {
@@ -239,6 +273,26 @@ export function McpAgentsTab() {
     const payload = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(payload.error || `MCP-Anfrage fehlgeschlagen (${response.status}).`)
     return payload
+  }
+
+  const setRuntimeMode = async (mode: Snapshot["runtime"]["mode"]) => {
+    if (mode === snapshot.runtime.mode) return
+    if (mode === "active" && !window.confirm("MCP aktivieren? Konfigurierte Agenten können sich danach mit ihren Tokens verbinden und freigegebene Tools verwenden.")) return
+    if (mode === "disabled" && !window.confirm("MCP vollständig deaktivieren? Aktive Sitzungen werden getrennt und noch nicht gestartete MCP-Aktionen verworfen.")) return
+    const headers = mode === "active"
+      ? { "X-Destructive-Confirmation": "set-mcp-runtime-active" }
+      : mode === "disabled"
+        ? { "X-Destructive-Confirmation": "set-mcp-runtime-disabled" }
+        : undefined
+    await execute(
+      `runtime-${mode}`,
+      () => request("/api/mcp/runtime", { mode }, headers),
+      mode === "active"
+        ? "MCP-Server ist aktiv und nimmt Agentenverbindungen an."
+        : mode === "standby"
+          ? "MCP-Server ist im Standby; Sitzungen und Ausführung sind pausiert."
+          : "MCP-Server ist deaktiviert; Sitzungen wurden getrennt.",
+    )
   }
 
   const save = async () => {
@@ -316,10 +370,52 @@ export function McpAgentsTab() {
     )
   }
 
-  const activeSessions = snapshot.sessions.filter(session =>
+  const activeSessions = snapshot.runtime.mode === "active" ? snapshot.sessions.filter(session =>
     session.disconnectedAt === null && Date.now() - session.lastSeenAt < 15_000)
+    : []
 
   return <div className="space-y-6">
+    <Card>
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2"><Power className="h-5 w-5" />MCP-Server</CardTitle>
+            <CardDescription>Der Dienst startet automatisch mit TSX Core. Dieser persistente Modus bestimmt, ob Agenten tatsächlich arbeiten dürfen.</CardDescription>
+          </div>
+          <Badge variant="outline">{RUNTIME_MODES.find(item => item.mode === snapshot.runtime.mode)?.label}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 lg:grid-cols-3">
+          {RUNTIME_MODES.map(item => {
+            const Icon = item.icon
+            const selectedMode = snapshot.runtime.mode === item.mode
+            return <button
+              key={item.mode}
+              type="button"
+              aria-pressed={selectedMode}
+              disabled={Boolean(busy)}
+              onClick={() => void setRuntimeMode(item.mode)}
+              className={`rounded-md border p-4 text-left transition-colors disabled:opacity-50 ${selectedMode ? "bg-foreground text-background" : "hover:bg-muted"}`}
+            >
+              <span className="flex items-center gap-2 font-medium"><Icon className="h-4 w-4" />{item.label}</span>
+              <span className="mt-2 block text-sm opacity-70">{item.description}</span>
+            </button>
+          })}
+        </div>
+        <div className="grid gap-3 text-sm md:grid-cols-2">
+          <div className="rounded-md border p-3">
+            <span className="text-muted-foreground">MCP-Endpunkt</span>
+            <div className="mt-1 break-all font-mono">{snapshot.endpoint || "Nicht veröffentlicht – MCP_ENDPOINT_URL konfigurieren."}</div>
+          </div>
+          <div className="rounded-md border p-3">
+            <span className="text-muted-foreground">Letzte Modusänderung</span>
+            <div className="mt-1">{formattedDate(snapshot.runtime.updatedAt)} · <span className="font-mono text-xs">{snapshot.runtime.updatedBy}</span></div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -328,14 +424,10 @@ export function McpAgentsTab() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-md border p-3 text-sm">
-          <span className="text-muted-foreground">MCP-Endpunkt</span>
-          <div className="mt-1 break-all font-mono">{snapshot.endpoint || "Nicht veröffentlicht – MCP_ENDPOINT_URL konfigurieren."}</div>
-        </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {snapshot.agents.map(agent => {
             const connected = activeSessions.some(session => session.agentId === agent.id)
-            const connectionLabel = agentConnectionLabel(connected, agent.enabled)
+            const connectionLabel = agentConnectionLabel(connected, agent.enabled, snapshot.runtime.mode)
             return <button
               type="button"
               key={agent.id}
@@ -383,7 +475,7 @@ export function McpAgentsTab() {
           <TableCell>{proposal.agentName}<div className="font-mono text-xs text-muted-foreground">{proposal.action}</div></TableCell>
           <TableCell className="max-w-xl"><ul className="space-y-1 text-xs">{proposal.preflight.impact.map(item => <li key={item}>{item}</li>)}</ul>{proposal.error && <div className="mt-1 text-xs text-destructive">{proposal.error}</div>}</TableCell>
           <TableCell><Badge variant={proposalStatusTone(proposal.status)}>{proposal.status}</Badge></TableCell>
-          <TableCell>{proposal.status === "pending" && <div className="flex gap-1"><Button size="sm" disabled={Boolean(busy)} onClick={() => void approveProposal(proposal)}><CheckCircle2 className="mr-1 h-4 w-4" />Freigeben</Button><Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void rejectProposal(proposal)}><XCircle className="mr-1 h-4 w-4" />Ablehnen</Button></div>}</TableCell>
+          <TableCell>{proposal.status === "pending" && <div className="flex gap-1"><Button size="sm" disabled={Boolean(busy) || snapshot.runtime.mode !== "active"} onClick={() => void approveProposal(proposal)}><CheckCircle2 className="mr-1 h-4 w-4" />Freigeben</Button><Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void rejectProposal(proposal)}><XCircle className="mr-1 h-4 w-4" />Ablehnen</Button></div>}</TableCell>
         </TableRow>)}
         {snapshot.proposals.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Keine MCP-Anträge vorhanden.</TableCell></TableRow>}
       </TableBody></Table></CardContent>

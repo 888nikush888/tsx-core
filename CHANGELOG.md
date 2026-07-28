@@ -16,19 +16,20 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Kanalbezogenes dynamisches Risiko mit festen, beobachtenden oder automatisch angewendeten Stufen, wöchentlicher Performance-Evaluation, manueller Sperre/Fixierung und Weak-Channel-Aktionen.
 - Virtuelle, zusammenhängende Live-Log-Konsole mit Cursor/Ringpuffer und Text-/Regex-Suche sowie globale dynamische `Strg+K`/`⌘K`-Command-Palette.
 - Tailscale-Serve-Identity-Modus mit sichtbarem Remote-Status und sicherem Setup-Script, das Funnel deaktiviert.
-- Optionaler unabhängiger MCP-Streamable-HTTP-Dienst mit gehashten Einmal-Tokens, dauerhaften Minimalrechten, Agenten-/Sitzungs-/Aktions-UI, Ereignis-Push und auditierter Kontrollbrücke.
+- Unabhängiger MCP-Streamable-HTTP-Dienst mit gehashten Einmal-Tokens, dauerhaften Minimalrechten, Agenten-/Sitzungs-/Aktions-UI, Ereignis-Push und auditierter Kontrollbrücke.
+- Persistente, vollständig im Dashboard steuerbare MCP-Betriebsmodi `active`, `standby` und `disabled` mit sicherer Werkseinstellung, Sitzungsentzug, Queue-Pause/-Widerruf und sichtbarem Modusstatus.
 - Native private und öffentliche Bybit-/Hyperliquid-WebSocket-Streams über die offiziellen SDKs; zustandsändernde Events beschleunigen eine erzwungene REST-Reconciliation, ohne selbst autoritativen Trading-Zustand zu erzeugen.
 - Vollständiges Trade Journal unter **Trading → Journal** mit Strategie-/Vertrags-Provenienz, Orders, Fills, Gebühren, PnL, Timeline, Notizen, Tags, Bewertung sowie PII-redigiertem CSV-/JSON-Export.
 - MCP-Parität für Verträge, Signal-Schema-Profile, Strategien, Routen, Kanalrisiko, Analytics und Trade Journal einschließlich Preflight und persistenter, im Dashboard freizugebender Änderungsvorschläge.
 
 ### Changed
 
-- Ausführbare Trading-Signale akzeptieren ausschließlich normalisierte Paare mit `USD`, `USDC` oder `USDT` als Quote-Asset.
+- Strategien steuern handelbare normalisierte Symbole jetzt explizit als **alle**, **keine** oder Allowlist. Bei **alle** bestätigt der Börsenadapter die Marktverfügbarkeit vor einer Order.
 - SonarCloud analysiert Produktions- und Testpfade ohne Überlappung, mit festgelegter Python-Version und UTF-8-Quellkodierung.
 - Der Factory Reset stellt Konfiguration und Runtime-Templates reproduzierbar auf die integrierten Defaults zurück und räumt verwalteten Trading-/Secret-Zustand nur nach erfolgreichem Exposure-Preflight auf.
 - Monitoring-Images und GitHub Actions wurden aktualisiert; binäre Erreichbarkeitsnachweise für verbleibende Monitoring-Funde liegen als versionsgebundene OpenVEX-Dokumente vor.
 - Die operative Oberfläche verwendet ein minimalistisches monochromes TSX-Core-Design; Farbe ist keine alleinige Statuscodierung.
-- Der normale Compose-Stack bleibt bei Forwarder plus Exchange-Executor; MCP wird ausschließlich über das Profil `mcp` als dritter Prozess aktiviert.
+- Der normale Compose-Stack startet Forwarder, Exchange-Executor und den gehärteten MCP-Prozess gemeinsam; die Agentenschnittstelle bleibt bis zur auditierten Aktivierung logisch `disabled` und benötigt keinen Docker-Socket.
 - Neue Installationen und Factory Resets liefern einen fachlich vollständig leeren Zustand: keine Beispielkanäle, Verträge/Profile/Strategien, Konten, Paper-Bilanz/-Märkte, Routen oder MCP-Agenten; Paper-Konten verlangen eine explizite Startbilanz.
 
 ### Fixed

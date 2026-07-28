@@ -22,7 +22,10 @@ export const MCP_PERMISSIONS = [
   'trading.flatten',
 ] as const;
 
+export const MCP_RUNTIME_MODES = ['active', 'standby', 'disabled'] as const;
+
 export type McpPermission = typeof MCP_PERMISSIONS[number];
+export type McpRuntimeMode = typeof MCP_RUNTIME_MODES[number];
 export type McpControlAction =
   | 'contracts.create'
   | 'contracts.update'
@@ -153,7 +156,22 @@ export interface McpTradingEvent {
   correlationId: string | null;
 }
 
+export interface McpRuntimeState {
+  mode: McpRuntimeMode;
+  updatedAt: number;
+  updatedBy: string;
+}
+
+export interface McpRuntimeTransition {
+  previousMode: McpRuntimeMode;
+  state: McpRuntimeState;
+  disconnectedSessions: number;
+  cancelledControlRequests: number;
+  cancelledProposals: number;
+}
+
 const PERMISSION_SET = new Set<string>(MCP_PERMISSIONS);
+const RUNTIME_MODE_SET = new Set<string>(MCP_RUNTIME_MODES);
 const EVENT_SET = new Set<string>(TRADING_EVENT_TYPES);
 const CONTROL_ACTIONS = new Set<McpControlAction>([
   'contracts.create',
@@ -258,6 +276,100 @@ function boundedError(value: unknown): string | null {
   } catch {
     return 'Unknown error.';
   }
+}
+
+function runtimeMode(value: unknown): McpRuntimeMode {
+  if (typeof value !== 'string' || !RUNTIME_MODE_SET.has(value)) {
+    throw new Error('MCP runtime mode must be active, standby, or disabled.');
+  }
+  return value as McpRuntimeMode;
+}
+
+async function runtimeStateFrom(database: any): Promise<McpRuntimeState> {
+  const row = await database.get(
+    `SELECT mode, updated_at AS updatedAt, updated_by AS updatedBy
+     FROM mcp_runtime_state WHERE singleton_id = 1`,
+  );
+  if (!row) throw new Error('MCP runtime state is unavailable.');
+  return {
+    mode: runtimeMode(row.mode),
+    updatedAt: Number(row.updatedAt),
+    updatedBy: String(row.updatedBy),
+  };
+}
+
+async function assertRuntimeActiveFrom(database: any): Promise<void> {
+  if ((await runtimeStateFrom(database)).mode !== 'active') {
+    throw new Error('MCP runtime is not active. Enable it in the dashboard before using agents or actions.');
+  }
+}
+
+export async function getMcpRuntimeState(): Promise<McpRuntimeState> {
+  return runtimeStateFrom(getDatabase());
+}
+
+export async function assertMcpRuntimeActive(): Promise<void> {
+  await assertRuntimeActiveFrom(getDatabase());
+}
+
+export async function setMcpRuntimeMode(
+  modeValue: unknown,
+  actorValue: unknown,
+): Promise<McpRuntimeTransition> {
+  const mode = runtimeMode(modeValue);
+  const actor = identifier(actorValue, 'MCP runtime actor', 128);
+  return withDatabaseTransaction(async database => {
+    const previous = await runtimeStateFrom(database);
+    if (previous.mode === mode) {
+      return {
+        previousMode: previous.mode,
+        state: previous,
+        disconnectedSessions: 0,
+        cancelledControlRequests: 0,
+        cancelledProposals: 0,
+      };
+    }
+    const now = Date.now();
+    await database.run(
+      `UPDATE mcp_runtime_state SET mode = ?, updated_at = ?, updated_by = ?
+       WHERE singleton_id = 1`,
+      [mode, now, actor],
+    );
+    let disconnectedSessions = 0;
+    let cancelledControlRequests = 0;
+    let cancelledProposals = 0;
+    if (mode !== 'active') {
+      const disconnected = await database.run(
+        `UPDATE mcp_agent_sessions SET disconnected_at = COALESCE(disconnected_at, ?)
+         WHERE disconnected_at IS NULL`,
+        [now],
+      );
+      disconnectedSessions = Number(disconnected.changes || 0);
+    }
+    if (mode === 'disabled') {
+      const requests = await database.run(
+        `UPDATE mcp_control_requests
+         SET status = 'failed', error = 'MCP runtime was disabled by an administrator.', completed_at = ?
+         WHERE status = 'pending'`,
+        [now],
+      );
+      cancelledControlRequests = Number(requests.changes || 0);
+      const proposals = await database.run(
+        `UPDATE mcp_agent_proposals
+         SET status = 'failed', error = 'MCP runtime was disabled by an administrator.', executed_at = ?
+         WHERE status = 'approved'`,
+        [now],
+      );
+      cancelledProposals = Number(proposals.changes || 0);
+    }
+    return {
+      previousMode: previous.mode,
+      state: { mode, updatedAt: now, updatedBy: actor },
+      disconnectedSessions,
+      cancelledControlRequests,
+      cancelledProposals,
+    };
+  });
 }
 
 function parsed(value: unknown): any {
@@ -537,13 +649,16 @@ export async function connectMcpSession(input: {
     ? identifier(input.clientVersion, 'MCP client version', 80)
     : 'unknown';
   const now = Date.now();
-  await getDatabase().run(
-    `INSERT INTO mcp_agent_sessions (
-       id, agent_id, client_name, client_version, connected_at, last_seen_at
-     ) VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, agentId, clientName, clientVersion, now, now],
-  );
-  await getDatabase().run(`UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?`, [now, agentId]);
+  await withDatabaseTransaction(async database => {
+    await assertRuntimeActiveFrom(database);
+    await database.run(
+      `INSERT INTO mcp_agent_sessions (
+         id, agent_id, client_name, client_version, connected_at, last_seen_at
+       ) VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, agentId, clientName, clientVersion, now, now],
+    );
+    await database.run(`UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?`, [now, agentId]);
+  });
   return { id, agentId, clientName, clientVersion, connectedAt: now, lastSeenAt: now, disconnectedAt: null };
 }
 
@@ -553,7 +668,8 @@ export async function touchMcpSession(idValue: unknown, agentIdValue: unknown): 
   const now = Date.now();
   const result = await getDatabase().run(
     `UPDATE mcp_agent_sessions SET last_seen_at = ?
-     WHERE id = ? AND agent_id = ? AND disconnected_at IS NULL`,
+     WHERE id = ? AND agent_id = ? AND disconnected_at IS NULL
+       AND EXISTS (SELECT 1 FROM mcp_runtime_state WHERE singleton_id = 1 AND mode = 'active')`,
     [now, id, agentId],
   );
   if (Number(result.changes || 0) === 1) {
@@ -669,19 +785,22 @@ export async function enqueueMcpControlRequest(input: {
   const sessionId = input.sessionId
     ? identifier(input.sessionId, 'MCP session identifier', 128)
     : null;
-  await getDatabase().run(
-    `INSERT INTO mcp_control_requests (
-       id, agent_id, session_id, action, payload_json, status, created_at
-     ) VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
-    [
-      id,
-      agentId,
-      sessionId,
-      input.action,
-      json(input.payload ?? {}, 'MCP control payload'),
-      createdAt,
-    ],
-  );
+  await withDatabaseTransaction(async database => {
+    await assertRuntimeActiveFrom(database);
+    await database.run(
+      `INSERT INTO mcp_control_requests (
+         id, agent_id, session_id, action, payload_json, status, created_at
+       ) VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
+      [
+        id,
+        agentId,
+        sessionId,
+        input.action,
+        json(input.payload ?? {}, 'MCP control payload'),
+        createdAt,
+      ],
+    );
+  });
   return {
     id,
     agentId,
@@ -733,13 +852,15 @@ export async function claimNextMcpControlRequest(): Promise<McpControlRequest | 
               payload_json AS payloadJson, status, result_json AS resultJson,
               error, created_at AS createdAt, started_at AS startedAt, completed_at AS completedAt
        FROM mcp_control_requests WHERE status = 'pending'
+         AND EXISTS (SELECT 1 FROM mcp_runtime_state WHERE singleton_id = 1 AND mode = 'active')
        ORDER BY created_at, id LIMIT 1`,
     );
     if (!row) return null;
     const startedAt = Date.now();
     const update = await database.run(
       `UPDATE mcp_control_requests SET status = 'running', started_at = ?
-       WHERE id = ? AND status = 'pending'`,
+       WHERE id = ? AND status = 'pending'
+         AND EXISTS (SELECT 1 FROM mcp_runtime_state WHERE singleton_id = 1 AND mode = 'active')`,
       [startedAt, row.id],
     );
     if (Number(update.changes || 0) !== 1) return null;
@@ -1060,25 +1181,28 @@ export async function createMcpProposal(input: {
   const autoApprove = input.autoApprove === true && !preflight.requiresApproval;
   const id = randomUUID();
   const now = Date.now();
-  await getDatabase().run(
-    `INSERT INTO mcp_agent_proposals (
-       id, agent_id, session_id, action, payload_json, preflight_json,
-       status, requested_at, expires_at, decided_at, decided_by
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      agentId,
-      sessionId,
-      action,
-      json(payload, 'MCP proposal payload'),
-      json(preflight, 'MCP proposal preflight'),
-      autoApprove ? 'approved' : 'pending',
-      now,
-      now + 24 * 60 * 60 * 1_000,
-      autoApprove ? now : null,
-      autoApprove ? `mcp:${agentId}` : null,
-    ],
-  );
+  await withDatabaseTransaction(async database => {
+    await assertRuntimeActiveFrom(database);
+    await database.run(
+      `INSERT INTO mcp_agent_proposals (
+         id, agent_id, session_id, action, payload_json, preflight_json,
+         status, requested_at, expires_at, decided_at, decided_by
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        agentId,
+        sessionId,
+        action,
+        json(payload, 'MCP proposal payload'),
+        json(preflight, 'MCP proposal preflight'),
+        autoApprove ? 'approved' : 'pending',
+        now,
+        now + 24 * 60 * 60 * 1_000,
+        autoApprove ? now : null,
+        autoApprove ? `mcp:${agentId}` : null,
+      ],
+    );
+  });
   return (await getMcpProposal(id))!;
 }
 
@@ -1131,6 +1255,7 @@ export async function listMcpProposals(limit = 200): Promise<McpAgentProposal[]>
 }
 
 export async function approveMcpProposal(idValue: unknown, actorValue: unknown): Promise<McpAgentProposal> {
+  await assertMcpRuntimeActive();
   const id = identifier(idValue, 'MCP proposal identifier', 64);
   const actor = identifier(actorValue, 'Proposal decision actor', 128);
   const current = await getMcpProposal(id);
@@ -1143,7 +1268,8 @@ export async function approveMcpProposal(idValue: unknown, actorValue: unknown):
   const result = await getDatabase().run(
     `UPDATE mcp_agent_proposals
      SET status = 'approved', preflight_json = ?, decided_at = ?, decided_by = ?
-     WHERE id = ? AND status = 'pending' AND expires_at > ?`,
+     WHERE id = ? AND status = 'pending' AND expires_at > ?
+       AND EXISTS (SELECT 1 FROM mcp_runtime_state WHERE singleton_id = 1 AND mode = 'active')`,
     [json(preflight, 'MCP proposal preflight'), now, actor, id, now],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('MCP proposal approval lost a concurrent decision race.');
@@ -1176,12 +1302,15 @@ export async function claimNextApprovedMcpProposal(): Promise<McpAgentProposal |
   return withDatabaseTransaction(async database => {
     const row = await database.get<{ id: string }>(
       `SELECT id FROM mcp_agent_proposals
-       WHERE status = 'approved' ORDER BY decided_at, requested_at, id LIMIT 1`,
+       WHERE status = 'approved'
+         AND EXISTS (SELECT 1 FROM mcp_runtime_state WHERE singleton_id = 1 AND mode = 'active')
+       ORDER BY decided_at, requested_at, id LIMIT 1`,
     );
     if (!row) return null;
     const result = await database.run(
       `UPDATE mcp_agent_proposals SET status = 'executing'
-       WHERE id = ? AND status = 'approved'`,
+       WHERE id = ? AND status = 'approved'
+         AND EXISTS (SELECT 1 FROM mcp_runtime_state WHERE singleton_id = 1 AND mode = 'active')`,
       [row.id],
     );
     if (Number(result.changes || 0) !== 1) return null;
@@ -1303,6 +1432,7 @@ export async function recordMcpEventDelivery(input: {
 }
 
 export async function mcpDashboardSnapshot(): Promise<{
+  runtime: McpRuntimeState;
   agents: McpAgent[];
   sessions: McpAgentSession[];
   actions: Array<Omit<McpAgentAction, 'request' | 'result'>>;
@@ -1310,7 +1440,8 @@ export async function mcpDashboardSnapshot(): Promise<{
   permissions: readonly McpPermission[];
   eventTypes: readonly TradingEventType[];
 }> {
-  const [agents, sessions, actions, proposals] = await Promise.all([
+  const [runtime, agents, sessions, actions, proposals] = await Promise.all([
+    getMcpRuntimeState(),
     listMcpAgents(),
     listMcpSessions(),
     listMcpAgentActions(),
@@ -1318,6 +1449,7 @@ export async function mcpDashboardSnapshot(): Promise<{
   ]);
   const visibleAgentIds = new Set(agents.map(agent => agent.id));
   return {
+    runtime,
     agents,
     sessions: sessions.filter(session => visibleAgentIds.has(session.agentId)),
     actions: actions.map(({ request: _request, result: _result, ...action }) => action),

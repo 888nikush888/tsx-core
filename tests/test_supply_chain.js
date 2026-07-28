@@ -138,7 +138,9 @@ const mcpService = dockerCompose.slice(
   dockerCompose.indexOf('\n  mcp-server:'),
   dockerCompose.indexOf('\nvolumes:'),
 );
-assert.match(mcpService, /profiles:\s*\["mcp"\]/, 'MCP must remain an opt-in service profile');
+assert.doesNotMatch(mcpService, /profiles:/, 'MCP must start with the default stack and be gated by its runtime mode');
+assert.match(mcpService, /condition:\s*service_healthy/);
+assert.match(mcpService, /MCP_RUNTIME_POLL_MS:/);
 assert.match(mcpService, /"127\.0\.0\.1:\$\{HOST_MCP_PORT:-8091\}:8091"/);
 assert.match(dockerCompose, /forwarder_secrets:\/app\/secrets:ro/);
 

@@ -11,7 +11,7 @@ Das Dashboard kann Routing, Konfiguration, Outbox und Datenbank beeinflussen. Di
 
 Dashboard und Metriken binden standardmäßig an Loopback. `/api/*` verlangt konstante Bearer-Token-Prüfung mit `admin`/`viewer`; mutierende und destruktive Aktionen sind rollen- und bestätigungsgebunden. Remote-Zugriff erfolgt nur über einen TLS-Reverse-Proxy mit exakter Origin-Allowlist.
 
-Ergänzung 26.07.2026: ADR 0011 bestimmt Tailscale Serve als bevorzugten Standalone-Remote-Pfad. Loopback bleibt bestehen; Serve veröffentlicht nur im Tailnet und Funnel ist verboten. Der optionale MCP-Port folgt derselben Netzwerkgrenze, verlangt aber unabhängig davon immer einen Agenten-Bearer.
+Ergänzung 26.07.2026, aktualisiert 28.07.2026: ADR 0011 bestimmt Tailscale Serve als bevorzugten Standalone-Remote-Pfad. Loopback bleibt bestehen; Serve veröffentlicht nur im Tailnet und Funnel ist verboten. Der standardmäßig gebundene MCP-Port folgt derselben Netzwerkgrenze; Agentenzugriff verlangt zusätzlich den aktiven Runtime-Modus und immer einen Agenten-Bearer.
 
 ## Konsequenzen
 
