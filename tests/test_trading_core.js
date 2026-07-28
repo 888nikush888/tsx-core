@@ -44,7 +44,6 @@ import {
   deleteTradingStrategyVersion,
   deleteSignalContractDraft,
   deleteSignalContractVersion,
-  ensureTradingDefaults,
   getTradingOverview,
   getTradingOperationalSnapshot,
   getTradingSignalSchemaForTemplate,
@@ -65,6 +64,7 @@ import {
   updateSignalContractDraft,
   updateTradingStrategyDraft,
 } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 import { validateSignalXml } from '../src/signal_schema.js';
 import { BUILTIN_SIGNAL_CONTRACTS } from '../src/signal_contract.js';
 import {
@@ -699,7 +699,7 @@ async function testRepositoryRouting(defaults, accounts) {
   assert.equal(operational.latestReconciliationAt, null);
   await assert.rejects(archiveTradingStrategyVersion(published.id), /active routed strategy/);
   await assert.rejects(deleteTradingRoute('-100002'), /active or unresolved trades/);
-  await assert.rejects(deleteTradingAccount('paper-default'), /default paper account/);
+  await assert.rejects(deleteTradingAccount('paper-default'), /all routes/);
 
   const removableAccount = await createTradingAccount({
     name: 'Referenced account', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
@@ -761,14 +761,22 @@ async function runRepositoryTests() {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-core-'));
   try {
     await initDb(path.join(directory, 'forwarder.db'));
-    await ensureTradingDefaults(1_700_000_000_000);
+    assert.deepEqual(await listTradingStrategies(), []);
+    assert.deepEqual(await listTradingAccounts(), []);
+    assert.deepEqual(await listTradingSignalSchemas(), []);
+    assert.deepEqual(await listSignalContracts(), []);
+    assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_paper_accounts')).count, 0);
+    await assert.rejects(
+      createTradingAccount({ name: 'Explicit paper', exchange: 'paper', mode: 'paper' }),
+      /explicitly entered initial balance/,
+    );
+    await seedTradingFixtures(1_700_000_000_000);
     const defaults = await listTradingStrategies();
     const accounts = await listTradingAccounts();
     assert.equal(defaults.length, 1);
     assert.equal(defaults[0].status, 'published');
     assert.equal(accounts.length, 1);
     assert.equal(accounts[0].mode, 'paper');
-    await assert.rejects(deleteTradingStrategyVersion(defaults[0].id), /final strategy version/);
     const deletable = await createTradingStrategyDraft({
       name: 'Disposable strategy',
       configuration: configuration(),

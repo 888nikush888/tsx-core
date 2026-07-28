@@ -6,7 +6,7 @@ import { closeDb, initDb } from '../src/db.js';
 import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { TradingCredentialStore } from '../src/trading_credentials.js';
 import { TradingEngine } from '../src/trading_engine.js';
-import { ensureTradingDefaults } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 import { BUILTIN_SIGNAL_CONTRACTS } from '../src/signal_contract.js';
 import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import { TradingWebControl } from '../src/trading_web_control.js';
@@ -49,7 +49,7 @@ class FakeOfficialAdapter {
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-web-control-'));
 try {
   await initDb(path.join(directory, 'forwarder.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   const credentials = new TradingCredentialStore(path.join(directory, 'secrets'));
   await credentials.initialize();
   const paper = new PaperExchangeAdapter();
@@ -194,7 +194,13 @@ try {
     channelId: '-invalid', strategyVersionId: published[0].id,
     accountId: paperAccount.id, enabled: 'yes',
   }), /must be boolean/);
-  const extraPaper = await control.createAccount({ name: 'Extra Paper', exchange: 'paper', mode: 'paper' });
+  await assert.rejects(
+    control.createAccount({ name: 'Implicit Paper', exchange: 'paper', mode: 'paper' }),
+    /explicitly entered initial balance/,
+  );
+  const extraPaper = await control.createAccount({
+    name: 'Extra Paper', exchange: 'paper', mode: 'paper', initialBalance: '25000',
+  });
   assert.equal((await control.verifyAccount(extraPaper.id)).status, 'ready');
   await assert.rejects(
     control.replaceAccountCredentials({ id: extraPaper.id, credentials: {} }),

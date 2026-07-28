@@ -75,7 +75,6 @@ import {
 } from './runtime_settings.js';
 import {
   createTradingIntent,
-  ensureTradingDefaults,
   getTradingSignalSchemaForTemplate,
   getTradingOperationalSnapshot,
   getTradingRuntimeState,
@@ -1362,7 +1361,6 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore,
   await auditTrail.initialize();
   await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
   await initDb();
-  await ensureTradingDefaults();
   const tradingEngine = composeTradingControl(tradingCredentials, clockGuard);
   if (!tradingWebControl || !auditTrail) throw new Error('MCP control dependencies are unavailable.');
   mcpControlBridge = new McpControlBridge(tradingWebControl, auditTrail, addLog);
@@ -1756,7 +1754,6 @@ async function run() {
     addLog('[CRITICAL] Managed settings or secrets are invalid. Routing and background operations remain disabled until repaired in the dashboard and restarted.');
     try {
       await initDb();
-      await ensureTradingDefaults();
       composeTradingControl(tradingCredentials, clockGuard);
     } catch (error: any) {
       addLog(`[CRITICAL] Trading safety state could not be loaded in recovery mode; factory reset remains blocked until database recovery: ${error.message}`);

@@ -818,18 +818,30 @@ async function testLocalStartupFirstRun(testDir, appState) {
       mode: 'token',
       required: true,
       available: true,
-      localSessionAvailable: true,
+      localSessionAvailable: false,
     });
-    const response = await fetch(`${baseUrl}/api/local-session`, {
+    let response = await fetch(`${baseUrl}/api/local-session`, {
+      method: 'POST',
+      headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
+    });
+    assert.strictEqual(response.status, 409, 'First local startup must not bypass the visible administrator-token bootstrap');
+    response = await fetch(`${baseUrl}/api/bootstrap`, {
       method: 'POST',
       headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
     });
     const localStartup = await response.json();
-    assert.strictEqual(response.status, 201, 'First local startup must issue a browser session without requiring a bearer token');
+    assert.strictEqual(response.status, 201, 'First local startup must visibly issue a one-time administrator token');
     assert.match(localStartup.token, /^[a-f0-9]{64}$/);
-    assert.strictEqual(localStartup.generatedAdminToken, true);
     const authenticated = await fetch(`${baseUrl}/api/status`, { headers: headers(localStartup.token) });
-    assert.strictEqual(authenticated.status, 200, 'The first-run local session must authenticate immediately');
+    assert.strictEqual(authenticated.status, 200, 'The displayed first-run token must authenticate immediately');
+    response = await fetch(`${baseUrl}/api/local-session`, {
+      method: 'POST',
+      headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
+    });
+    const session = await response.json();
+    assert.strictEqual(response.status, 201, 'Local convenience sessions may start only after visible bootstrap');
+    assert.strictEqual(session.generatedAdminToken, false);
+    assert.notStrictEqual(session.token, localStartup.token, 'A local session must not redisclose the durable token');
   } finally {
     await stopWebServer();
     if (previousAdminToken === undefined) delete process.env.DASHBOARD_ADMIN_TOKEN;

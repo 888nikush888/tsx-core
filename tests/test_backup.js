@@ -14,7 +14,7 @@ import {
   verifyBackupArtifact
 } from '../src/backup.js';
 import { DEFAULT_RUNTIME_SETTINGS } from '../src/runtime_settings.js';
-import { ensureTradingDefaults } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 import {
   closeDb,
   enqueueOutboxTask,
@@ -26,7 +26,7 @@ import {
 
 async function createVerifiedArtifact(root, databasePath, backupRoot) {
   await initDb(databasePath);
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   await enqueueOutboxTask({ id: 'before-backup', type: 'single', chatId: '-1001', messageId: 1, addedAt: 1 });
   await saveSignal('signal-before', '-1001', 1, '<signal/>', '<signal/>');
   await getDatabase().run(

@@ -9,7 +9,6 @@ import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import {
   createTradingIntent,
   createTradingStrategyDraft,
-  ensureTradingDefaults,
   getTradingAccount,
   getTradingIntent,
   listTradingAccounts,
@@ -18,6 +17,7 @@ import {
   setTradingRoute,
   updateTradingRuntimeState,
 } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 import { validateSignalXml } from '../src/signal_schema.js';
 
 const SIGNAL = `<signal>
@@ -39,7 +39,7 @@ const ADAPTIVE_SIGNAL = `<signal>
 </signal>`;
 
 async function setupIntent(paper) {
-  await ensureTradingDefaults(1_700_000_000_000);
+  await seedTradingFixtures(1_700_000_000_000);
   const [account] = await listTradingAccounts();
   const [strategy] = await listTradingStrategies();
   await setTradingRoute({
@@ -78,7 +78,7 @@ async function setPaperMark(paper, accountId, markPrice) {
 async function testAdaptiveTargetAndStopManagement(databasePath) {
   await initDb(databasePath);
   const paper = new PaperExchangeAdapter();
-  await ensureTradingDefaults(1_700_000_100_000);
+  await seedTradingFixtures(1_700_000_100_000);
   const [account] = await listTradingAccounts();
   const configuration = structuredClone(DEFAULT_STRATEGY_CONFIGURATION);
   configuration.exits.targetAllocationMode = 'adaptive_halving';

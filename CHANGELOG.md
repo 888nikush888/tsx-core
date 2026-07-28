@@ -29,11 +29,12 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Monitoring-Images und GitHub Actions wurden aktualisiert; binäre Erreichbarkeitsnachweise für verbleibende Monitoring-Funde liegen als versionsgebundene OpenVEX-Dokumente vor.
 - Die operative Oberfläche verwendet ein minimalistisches monochromes TSX-Core-Design; Farbe ist keine alleinige Statuscodierung.
 - Der normale Compose-Stack bleibt bei Forwarder plus Exchange-Executor; MCP wird ausschließlich über das Profil `mcp` als dritter Prozess aktiviert.
+- Neue Installationen und Factory Resets liefern einen fachlich vollständig leeren Zustand: keine Beispielkanäle, Verträge/Profile/Strategien, Konten, Paper-Bilanz/-Märkte, Routen oder MCP-Agenten; Paper-Konten verlangen eine explizite Startbilanz.
 
 ### Fixed
 
 - Publizierte oder archivierte XML-Vertragsversionen können nach expliziter Bestätigung endgültig gelöscht werden, sobald kein Signal-Schema-Profil mehr darauf verweist.
-- Lokaler Docker-Zugriff erzeugt den Admin-Token beim Erststart automatisch und verwendet bei späteren Browser-Sitzungen kurzlebige lokale Session-Tokens, statt erneut einen Bearer-Token abzufragen.
+- Lokaler Docker-Zugriff sperrt die Komfortsession bis zur sichtbaren Erststartaktion, zeigt den serverseitig erzeugten dauerhaften Admin-Bearer genau einmal an und verwendet erst bei späteren Browser-Sitzungen kurzlebige lokale Session-Tokens.
 - XML-Verträge werden ohne redundanten Sidebar-Eintrag zentral unter **Trading → Verträge** verwaltet; Erstellen, Versionieren, Bearbeiten, Duplizieren und Löschen bleiben vollständig in der Web-UI steuerbar.
 - MCP-Agenten können nach expliziter Bestätigung gelöscht werden; Token, Rechte, Sitzungen und wartende Kontrollanforderungen werden sofort widerrufen, während anonymisierte Audit-Referenzen erhalten bleiben.
 - **Betriebsdaten leeren** bewahrt Trading-Historie, Strategien, Konten, Exchange-Secrets und von Trades referenzierte Signale.

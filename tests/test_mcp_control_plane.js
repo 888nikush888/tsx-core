@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { McpControlBridge } from '../src/mcp_control_bridge.js';
-import { ensureTradingDefaults } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 import {
   approveMcpProposal,
   authenticateMcpToken,
@@ -37,7 +37,7 @@ import {
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-mcp-control-'));
 try {
   await initDb(path.join(directory, 'forwarder.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   await assert.rejects(
     createMcpAgent({ name: '', permissions: [] }),
     /name is invalid/,

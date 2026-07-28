@@ -1,37 +1,27 @@
 {
   "apiId": 0,
-  "sourceChannels": [
-    "@quell_kanal_1",
-    "-1001234567890"
-  ],
-  "targetChannel": "@ziel_kanal",
+  "sourceChannels": [],
+  "targetChannel": "",
   "forwardOptions": {
     "sendCopy": false,
     "removeCaption": false
   },
   "filters": {
-    "allowedKeywords": [],
     "blockedKeywords": [],
     "allowedTypes": [],
     "regexPatterns": []
   },
-  "sourceFilters": {
-    "@quell_kanal_1": {
-      "regexPatterns": [
-        "(LONG|SHORT)",
-        "Entry:\\s*\\d"
-      ]
-    }
-  },
+  "sourceFilters": {},
+  "sourceAliases": {},
   "xmlParsing": {
-    "enabled": true,
+    "enabled": false,
     "externalDataPolicyAccepted": false,
     "saveToFile": true,
     "forwardXmlToTarget": false,
     "signalsDir": "./signals",
     "primaryModel": "google/gemini-flash-1.5",
     "fallbackModel": "anthropic/claude-3-haiku",
-    "timeout": 60000,
+    "sourceTemplates": {},
     "aiLimits": {
       "maxInputChars": 12000,
       "maxOutputTokens": 1200,

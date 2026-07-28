@@ -4,12 +4,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
 import {
-  ensureTradingDefaults,
   listTradingAccounts,
   listTradingStrategies,
   setTradingRoute,
   createTradingIntent,
 } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 import { validateSignalXml } from '../src/signal_schema.js';
 import {
   listActiveExchangeStreamSymbols,
@@ -35,7 +35,7 @@ const XML = `<signal>
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-journal-streams-'));
 try {
   await initDb(path.join(directory, 'forwarder.db'));
-  await ensureTradingDefaults();
+  await seedTradingFixtures();
   const strategy = (await listTradingStrategies()).find(item => item.status === 'published');
   const paper = (await listTradingAccounts()).find(account => account.id === 'paper-default');
   await setTradingRoute({

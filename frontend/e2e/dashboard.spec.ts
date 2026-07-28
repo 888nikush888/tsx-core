@@ -16,8 +16,12 @@ async function mockDashboardApi(page: Page, firstRun = false) {
       await json(route, {
         required: firstRun,
         available: true,
-        localSessionAvailable: true,
+        localSessionAvailable: !firstRun,
       })
+      return
+    }
+    if (url.pathname === '/api/bootstrap') {
+      await json(route, { token: TOKEN, recoveryLocation: 'secrets/dashboard_admin_token' }, 201)
       return
     }
     if (url.pathname === '/api/local-session') {
@@ -114,10 +118,12 @@ test('local startup unlocks the responsive dashboard without a bearer prompt or 
   expect(results.violations).toEqual([])
 })
 
-test('first local startup generates and displays the administrator recovery token automatically', async ({ page }) => {
+test('first local startup visibly generates and displays the administrator recovery token', async ({ page }) => {
   await mockDashboardApi(page, true)
   await page.goto('/')
 
+  await expect(page.getByRole('heading', { name: 'Secure your dashboard' })).toBeVisible()
+  await page.getByRole('button', { name: 'Create secure dashboard' }).click()
   await expect(page.getByRole('heading', { name: 'Save your recovery token' })).toBeVisible()
   await expect(page.getByTestId('recovery-token')).toHaveText(TOKEN)
   await expect(page.getByLabel('Bearer token')).toHaveCount(0)

@@ -1665,6 +1665,7 @@ function bootstrapStatusHandler(
 ): void {
   const required = authenticator.mode === 'token' && !authenticator.isConfigured();
   const localSessionAvailable = authenticator.mode === 'token'
+    && authenticator.isConfigured()
     && Boolean(context.appState.secretStore)
     && (localDashboardStartupEnabled() || isRecoveryLocalSessionBootstrap(context));
   sendJson(context.res, 200, {
@@ -1777,6 +1778,9 @@ async function localSessionHandler(
         requestId: context.requestId,
       });
       return;
+    }
+    if (!isRecoveryLocalSessionBootstrap(context)) {
+      throw new HttpError(409, 'Create and save the administrator token before starting a local session.');
     }
     const actor: AuthenticatedActor = { role: 'admin', id: 'startup:local-browser' };
     if (!(await authorizeLocalSessionInitialization(context, actor, tokenWasConfigured))) return;
