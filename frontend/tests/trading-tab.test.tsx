@@ -82,7 +82,6 @@ describe("Trading strategy control", () => {
     requests.length = 0
     sessionStorage.clear()
     vi.restoreAllMocks()
-    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: () => undefined })
     vi.spyOn(window, "confirm").mockReturnValue(true)
     let strategies: unknown[] = [
       {
@@ -217,26 +216,6 @@ describe("Trading strategy control", () => {
     expect(body.configuration.exits.targetAllocationMode).toBe("adaptive_halving")
     expect(body.configuration.exits.stopLossMode).toBe("adaptive_targets")
     expect(body.configuration.exits.targetAllocationsPercent).toEqual(["100"])
-  })
-
-  it("lets a strategy block all symbols or allow an explicit cross-quote allowlist", async () => {
-    renderTradingTab()
-    fireEvent.click(await screen.findByRole("button", { name: "Strategien" }))
-    fireEvent.click(screen.getByRole("button", { name: /Delete me v1/ }))
-
-    fireEvent.click(screen.getByLabelText("Symbolauswahl"))
-    fireEvent.click(await screen.findByRole("option", { name: "Nur bestimmte Symbole" }))
-    fireEvent.change(screen.getByLabelText("Erlaubte Symbole (Komma-getrennt)"), {
-      target: { value: "ethbtc, btceur" },
-    })
-    fireEvent.click(screen.getByRole("button", { name: "Entwurf speichern" }))
-
-    await screen.findByText("Strategieentwurf gespeichert.")
-    const request = requests.find(({ url, init }) => url.endsWith("/api/trading/strategies/update") && init.method === "POST")
-    const body = JSON.parse(String(request?.init.body))
-    expect(body.configuration.schemaVersion).toBe(3)
-    expect(body.configuration.symbolPolicy).toBe("allowlist")
-    expect(body.configuration.allowedSymbols).toEqual(["ETHBTC", "BTCEUR"])
   })
 
   it("creates, edits and deletes an allowed signal schema profile", async () => {

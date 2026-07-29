@@ -121,8 +121,7 @@ try {
   assert.deepEqual(journal[0].review.tags, ['breakout', 'reviewed']);
   assert.equal(journal[0].review.rating, 4);
   assert.match(tradeJournalCsv(journal), /"'=HYPERLINK/);
-  assert.deepEqual(await listTradeJournal({ symbol: 'BTCEUR' }), []);
-  await assert.rejects(listTradeJournal({ symbol: 'BTC/EUR' }), /normalized symbol/);
+  await assert.rejects(listTradeJournal({ symbol: 'BTCEUR' }), /USD pair/);
   await assert.rejects(listTradeJournal({ from: 20, to: 10 }), /must not be after/);
   await assert.rejects(listTradeJournal({ limit: 0 }), /limit must be between/);
   await assert.rejects(listTradeJournal({ status: 'settled' }), /status is invalid/);

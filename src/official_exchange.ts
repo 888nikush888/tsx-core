@@ -241,8 +241,8 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
   ): Promise<ExchangeStreamBatch> {
     if (!Number.isSafeInteger(cursor) || cursor < 0) throw new Error('Exchange stream cursor is invalid.');
     if (!Array.isArray(symbols) || symbols.length > 100
-      || symbols.some(symbol => !/^[A-Z0-9]{2,30}$/.test(symbol))) {
-      throw new Error('Exchange stream symbols must be bounded normalized symbols.');
+      || symbols.some(symbol => !/^[A-Z0-9]{2,30}(?:USD|USDC|USDT)$/.test(symbol))) {
+      throw new Error('Exchange stream symbols must be bounded USD pairs.');
     }
     return assertStreamBatch(await this.post('/v1/stream-events', {
       account: accountPayload(account),

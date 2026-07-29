@@ -4,8 +4,6 @@ export type TradingAccountStatus = 'unverified' | 'ready' | 'disabled' | 'error'
 export type TradingSide = 'LONG' | 'SHORT';
 export type TradingOrderSide = 'buy' | 'sell';
 export type TradingOrderType = 'market' | 'limit';
-/** Controls which normalized exchange symbols a strategy may execute. */
-export type SymbolPolicy = 'all' | 'none' | 'allowlist';
 export type TargetAllocationMode = 'manual' | 'adaptive_halving';
 export type StopLossMode = 'configured' | 'adaptive_targets';
 export type ExecutableSignalSchemaContract = 'standard' | 'cryptodanielvip' | 'loma';
@@ -55,14 +53,8 @@ export interface ExecutableSignal {
 }
 
 export interface StrategyConfiguration {
-  schemaVersion: 1 | 2 | 3;
+  schemaVersion: 1 | 2;
   allowedSignalSchemas: string[];
-  /**
-   * `all` delegates market availability to the selected exchange, `none`
-   * blocks every symbol, and `allowlist` restricts execution to
-   * `allowedSymbols`.
-   */
-  symbolPolicy: SymbolPolicy;
   allowedSymbols: string[];
   allowedSides: TradingSide[];
   entry: {

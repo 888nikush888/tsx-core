@@ -17,9 +17,8 @@ import { TradeJournal } from "./trade-journal"
 
 const API_BASE = window.location.origin
 const DEFAULT_CONFIGURATION = {
-  schemaVersion: 3,
+  schemaVersion: 2,
   allowedSignalSchemas: [],
-  symbolPolicy: "all",
   allowedSymbols: [],
   allowedSides: ["LONG", "SHORT"],
   entry: { orderType: "limit", rangePrice: "midpoint", postOnly: false, timeoutSeconds: 10 },
@@ -258,7 +257,6 @@ function Strategies({ data, busy, run }: any) {
     setDraft({ name: strategy.name, description: strategy.description, configuration: structuredClone(strategy.configuration), strategyId: strategy.strategyId })
   }
   const cfg = draft.configuration
-  const symbolPolicy = cfg.symbolPolicy ?? (cfg.allowedSymbols.length > 0 ? "allowlist" : "all")
   const targetAllocationMode = cfg.exits.targetAllocationMode ?? "manual"
   const stopLossMode = cfg.exits.stopLossMode ?? "configured"
   const availableSchemas = (Array.isArray(data.signalSchemas) ? data.signalSchemas : []).filter((schema: any) => schema.enabled)
@@ -277,10 +275,6 @@ function Strategies({ data, busy, run }: any) {
     if (configuration.schemaVersion === 1) {
       configuration.schemaVersion = 2
       configuration.sizing.maxAdaptiveRiskPercent = configuration.sizing.riskPerTradePercent
-    }
-    if (configuration.schemaVersion < 3) {
-      configuration.schemaVersion = 3
-      configuration.symbolPolicy = configuration.allowedSymbols.length > 0 ? "allowlist" : "all"
     }
     setSelected("")
     setDraft({ name: current.name, description: current.description, configuration, strategyId: current.strategyId })
@@ -307,9 +301,9 @@ function Strategies({ data, busy, run }: any) {
     <Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><div><CardTitle>Strategie-Editor</CardTitle><CardDescription>Alle Größen sind harte, validierte Verträge. Prozentwerte als Dezimalzahl.</CardDescription></div>{current?.status === "published" && <Button variant="outline" onClick={newVersion}>Neue Version aus v{current.version}</Button>}</div></CardHeader><CardContent className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2"><Field label="Name"><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></Field><Field label="Beschreibung"><Input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field></div>
       <div className="grid gap-4 md:grid-cols-2"><Field label="Erlaubte Signal-Schemas"><div className="flex flex-wrap gap-2">{schemaOptions.map((schema: any) => <Button key={schema.id} type="button" size="sm" variant={cfg.allowedSignalSchemas.includes(schema.id) ? "default" : "outline"} onClick={() => toggle("allowedSignalSchemas", schema.id)}>{schema.name}{!schema.enabled ? " (nicht verfügbar)" : ""}</Button>)}</div></Field><Field label="Erlaubte Richtungen"><div className="flex gap-2">{["LONG", "SHORT"].map(value => <Button key={value} type="button" size="sm" variant={cfg.allowedSides.includes(value) ? "default" : "outline"} onClick={() => toggle("allowedSides", value)}>{value}</Button>)}</div></Field></div>
-      <Section title="Handelbare Symbole"><div className="grid gap-4 md:grid-cols-2"><SelectField label="Symbolauswahl" value={symbolPolicy} options={[{ value: "all", label: "Alle – Börse prüft Verfügbarkeit" }, { value: "none", label: "Keine – alle Signale blockieren" }, { value: "allowlist", label: "Nur bestimmte Symbole" }]} onChange={symbolPolicy => setDraft((old: any) => ({ ...old, configuration: { ...old.configuration, schemaVersion: 3, symbolPolicy, allowedSymbols: symbolPolicy === "allowlist" ? old.configuration.allowedSymbols : [] } }))} />{symbolPolicy === "allowlist" && <Field label="Erlaubte Symbole (Komma-getrennt)"><Input value={cfg.allowedSymbols.join(", ")} onChange={(e) => setDraft((old: any) => ({ ...old, configuration: { ...old.configuration, schemaVersion: 3, symbolPolicy: "allowlist", allowedSymbols: e.target.value.split(",").map(v => v.trim().toUpperCase()).filter(Boolean) } }))} placeholder="BTCUSDT, ETHBTC, XAUUSD" /></Field>}</div><p className="mt-3 text-xs text-muted-foreground">„Alle“ entfernt keine Börsenprüfung: nicht vorhandene oder für das Konto nicht handelbare Märkte werden weiterhin vor dem Auftrag abgelehnt.</p></Section>
+      <Field label="Erlaubte Symbole (Komma; leer = alle validen Symbole)"><Input value={cfg.allowedSymbols.join(", ")} onChange={(e) => setDraft((old: any) => ({ ...old, configuration: { ...old.configuration, allowedSymbols: e.target.value.split(",").map(v => v.trim().toUpperCase()).filter(Boolean) } }))} placeholder="BTC, ETH" /></Field>
       <Section title="Entry"><div className="grid gap-4 md:grid-cols-4"><SelectField label="Ordertyp" value={cfg.entry.orderType} options={["limit", "market"]} onChange={v => patch("entry", "orderType", v)} /><SelectField label="Range-Preis" value={cfg.entry.rangePrice} options={["near", "midpoint", "far"]} onChange={v => patch("entry", "rangePrice", v)} /><NumberField label="Timeout (s)" value={cfg.entry.timeoutSeconds} onChange={v => patch("entry", "timeoutSeconds", Number(v))} /><SwitchField label="Post-only" checked={cfg.entry.postOnly} onChange={v => patch("entry", "postOnly", v)} /></div></Section>
-      <Section title="Sizing"><div className="grid gap-4 md:grid-cols-4"><NumberField label="Basisrisiko / Trade (%)" value={cfg.sizing.riskPerTradePercent} onChange={v => patch("sizing", "riskPerTradePercent", v)} /><NumberField label="Max. adaptives Risiko (%)" value={cfg.sizing.maxAdaptiveRiskPercent ?? cfg.sizing.riskPerTradePercent} onChange={v => patch("sizing", "maxAdaptiveRiskPercent", v)} /><NumberField label="Max. Notional" value={cfg.sizing.maxPositionNotional} onChange={v => patch("sizing", "maxPositionNotional", v)} /><NumberField label="Max. Leverage" value={cfg.sizing.maxLeverage} onChange={v => patch("sizing", "maxLeverage", Number(v))} /></div>{cfg.schemaVersion === 1 && <p className="mt-3 text-xs text-muted-foreground">Diese unveränderte Altversion verwendet nur das Basisrisiko. „Neue Version“ aktualisiert sie auf das aktuelle Schema.</p>}</Section>
+      <Section title="Sizing"><div className="grid gap-4 md:grid-cols-4"><NumberField label="Basisrisiko / Trade (%)" value={cfg.sizing.riskPerTradePercent} onChange={v => patch("sizing", "riskPerTradePercent", v)} /><NumberField label="Max. adaptives Risiko (%)" value={cfg.sizing.maxAdaptiveRiskPercent ?? cfg.sizing.riskPerTradePercent} onChange={v => patch("sizing", "maxAdaptiveRiskPercent", v)} /><NumberField label="Max. Notional" value={cfg.sizing.maxPositionNotional} onChange={v => patch("sizing", "maxPositionNotional", v)} /><NumberField label="Max. Leverage" value={cfg.sizing.maxLeverage} onChange={v => patch("sizing", "maxLeverage", Number(v))} /></div>{cfg.schemaVersion === 1 && <p className="mt-3 text-xs text-muted-foreground">Diese unveränderte Altversion verwendet nur das Basisrisiko. „Neue Version“ aktualisiert sie auf das adaptive Schema v2.</p>}</Section>
       <Section title="Take Profit & Stop"><div className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           <SwitchField label="Adaptive TP-Staffelung (Halbierungsregel)" checked={targetAllocationMode === "adaptive_halving"} onChange={enabled => patch("exits", "targetAllocationMode", enabled ? "adaptive_halving" : "manual")} />

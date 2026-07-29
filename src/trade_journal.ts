@@ -107,8 +107,8 @@ function journalLimit(value: unknown = 200): number {
 function journalSymbol(value: unknown): string | undefined {
   if (typeof value !== 'string' || !value.trim()) return undefined;
   const symbol = value.trim().toUpperCase();
-  if (!/^[A-Z0-9]{2,30}$/.test(symbol)) {
-    throw new Error('Journal symbol must be a normalized symbol.');
+  if (!/^[A-Z0-9]{2,30}(?:USD|USDC|USDT)$/.test(symbol)) {
+    throw new Error('Journal symbol must be a normalized USD pair.');
   }
   return symbol;
 }

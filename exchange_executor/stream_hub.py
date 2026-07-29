@@ -387,11 +387,11 @@ class ExchangeStreamHub:
                 not isinstance(symbol, str)
                 or len(symbol) > 40
                 or not symbol.isalnum()
-                or symbol != symbol.upper()
+                or not symbol.endswith(("USD", "USDC", "USDT"))
                 for symbol in symbols
             )
         ):
-            raise ExchangeContractError("symbols must contain at most 100 normalized symbols.")
+            raise ExchangeContractError("symbols must contain at most 100 normalized USD pairs.")
         secret = self.credentials.account(account["id"], account["exchange"])
         fingerprint = self._credential_fingerprint(account, secret)
         with self._lock:
