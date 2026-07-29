@@ -155,8 +155,10 @@ function validateTargets(value: unknown): SignalContractDefinition['targets'] {
     'minimumItems', 'maximumItems', 'sequentialIds',
   ]);
   if (!TARGET_SHAPES.has(targets.shape)) throw new Error('targets.shape is invalid.');
-  const minimumItems = integer(targets.minimumItems, 'targets.minimumItems', 1, 20);
-  const maximumItems = integer(targets.maximumItems, 'targets.maximumItems', minimumItems, 20);
+  const minimumItems = integer(targets.minimumItems, 'targets.minimumItems', 1, Number.MAX_SAFE_INTEGER);
+  const maximumItems = targets.maximumItems === null
+    ? null
+    : integer(targets.maximumItems, 'targets.maximumItems', minimumItems, Number.MAX_SAFE_INTEGER);
   return {
     containerPath: pathValue(targets.containerPath, 'targets.containerPath'),
     itemTag: pathValue(targets.itemTag, 'targets.itemTag'),
@@ -281,7 +283,7 @@ export const BUILTIN_SIGNAL_CONTRACTS: ReadonlyArray<{
         minimumPath: 'min',
         maximumPath: 'max',
         minimumItems: 1,
-        maximumItems: 20,
+        maximumItems: null,
         sequentialIds: true,
       },
       stopLossPath: 'stoploss',
@@ -315,7 +317,7 @@ export const BUILTIN_SIGNAL_CONTRACTS: ReadonlyArray<{
         minimumPath: 'min',
         maximumPath: 'max',
         minimumItems: 1,
-        maximumItems: 20,
+        maximumItems: null,
         sequentialIds: true,
       },
       stopLossPath: 'stoploss',
@@ -349,7 +351,7 @@ export const BUILTIN_SIGNAL_CONTRACTS: ReadonlyArray<{
         minimumPath: 'min',
         maximumPath: 'max',
         minimumItems: 1,
-        maximumItems: 20,
+        maximumItems: null,
         sequentialIds: true,
       },
       stopLossPath: 'stoploss',

@@ -47,7 +47,7 @@ rejects(value => {
   value.entry.rangeValues = ['LIMIT'];
 }, /must not contain duplicates/);
 rejects(value => { value.targets.shape = 'points'; }, /targets.shape/);
-rejects(value => { value.targets.minimumItems = 0; }, /between 1 and 20/);
+rejects(value => { value.targets.minimumItems = 0; }, /between 1 and/);
 rejects(value => { value.targets.sequentialIds = 'yes'; }, /must be boolean/);
 rejects(value => { value.stopLossPath = value.actionPath; }, /paths must be unique/);
 rejects(value => { value.geometry.stopOnLossSide = 'yes'; }, /must be boolean/);
@@ -85,6 +85,18 @@ const validatedSignal = validateSignalXml(xml, undefined, {
   parserSchema: 'standard',
   contractDefinition: validatedDefinition,
 });
+const unboundedTargetsXml = `<signal>
+<action>LONG</action><pair>BTCUSD</pair>
+<entry_range><min>100</min><max>101</max></entry_range>
+<targets>${Array.from({ length: 25 }, (_, index) => `<target id="${index + 1}">${110 + index}</target>`).join('')}</targets>
+<stoploss>90</stoploss>
+</signal>`;
+const unboundedDefinition = validateSignalContractDefinition(standard());
+assert.equal(validateSignalXml(unboundedTargetsXml, undefined, {
+  id: 'validation-contract',
+  parserSchema: 'standard',
+  contractDefinition: unboundedDefinition,
+}).execution.targets.length, 25);
 assert.deepEqual(validatedSignal.execution, {
   schema: 'validation-contract',
   action: 'LONG',
@@ -207,7 +219,7 @@ const invalidRangeCases = [
   [shortRangeXml.replace('<min>80</min><max>81</max>', '<min>92</min><max>93</max>'), /strictly ordered/],
   [shortRangeXml.replace('<stoploss>110</stoploss>', '<stoploss>100</stoploss>'), /above the entry range/],
   [shortRangeXml.replace('<min>90</min><max>91</max>', '<min>101</min><max>102</max>'), /below entry/],
-  [shortRangeXml.replace('<target id="2"><min>80</min><max>81</max></target>', ''), /between 2 and 2/],
+  [shortRangeXml.replace('<target id="2"><min>80</min><max>81</max></target>', ''), /at least 2 items/],
   [shortRangeXml.replace('target id="2"', 'target id="3"'), /sequential/],
 ];
 for (const [candidate, pattern] of invalidRangeCases) {

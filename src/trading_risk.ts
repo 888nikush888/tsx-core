@@ -141,13 +141,19 @@ export function allocateTargetQuantities(quantity: string, allocations: string[]
 }
 
 export function adaptiveTargetAllocations(targetCount: number): string[] {
-  if (!Number.isSafeInteger(targetCount) || targetCount < 1 || targetCount > 20) {
-    throw new TradingRiskError('INVALID_TARGET_COUNT', 'Adaptive target count must be between one and twenty.');
+  if (!Number.isSafeInteger(targetCount) || targetCount < 1) {
+    throw new TradingRiskError('INVALID_TARGET_COUNT', 'Adaptive target count must be at least one.');
   }
   const allocations: string[] = [];
   let remaining = '100';
+  const minimumAllocation = '0.000000000000000001';
   for (let index = 0; index < targetCount - 1; index += 1) {
-    const allocation = divideDecimal(remaining, '2');
+    const remainingTargets = targetCount - index - 1;
+    const reservedForFollowingTargets = multiplyDecimal(minimumAllocation, String(remainingTargets));
+    const halfRemaining = divideDecimal(remaining, '2');
+    const allocation = compareDecimal(halfRemaining, reservedForFollowingTargets) >= 0
+      ? halfRemaining
+      : minimumAllocation;
     allocations.push(allocation);
     remaining = subtractDecimal(remaining, allocation);
   }

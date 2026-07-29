@@ -17,6 +17,7 @@ import {
   midpointDecimal,
   multiplyDecimal,
   subtractDecimal,
+  sumDecimals,
 } from '../src/trading_decimal.js';
 import {
   DEFAULT_STRATEGY_CONFIGURATION,
@@ -157,7 +158,7 @@ function testDecimalAndStrategyContracts() {
   invalidConfiguration(value => { value.entry.orderType = 'market'; value.entry.postOnly = true; }, /cannot be post-only/);
   invalidConfiguration(value => { value.entry.timeoutSeconds = 31; }, /between 2 and 30/);
   invalidConfiguration(value => { value.sizing.maxLeverage = 0; }, /between 1 and 50/);
-  invalidConfiguration(value => { value.exits.targetAllocationsPercent = '100'; }, /one and twenty/);
+  invalidConfiguration(value => { value.exits.targetAllocationsPercent = '100'; }, /At least one target allocation/);
   invalidConfiguration(value => { value.exits.trailingStopPercent = '21'; }, /must not exceed/);
   invalidConfiguration(value => { value.safety.maxSlippagePercent = '6'; }, /must not exceed/);
   invalidConfiguration(value => { value.safety.entryOrderTtlSeconds = 9; }, /between 10 and 86400/);
@@ -166,7 +167,15 @@ function testDecimalAndStrategyContracts() {
   assert.deepEqual(adaptiveTargetAllocations(3), ['50', '25', '25']);
   assert.deepEqual(adaptiveTargetAllocations(4), ['50', '25', '12.5', '12.5']);
   assert.deepEqual(adaptiveTargetAllocations(5), ['50', '25', '12.5', '6.25', '6.25']);
-  assert.throws(() => adaptiveTargetAllocations(0), /between one and twenty/);
+  const manyTargetAllocations = adaptiveTargetAllocations(25);
+  assert.equal(manyTargetAllocations.length, 25);
+  assert.ok(manyTargetAllocations.every(allocation => compareDecimal(allocation, '0') > 0));
+  assert.equal(sumDecimals(manyTargetAllocations), '100');
+  assert.throws(() => adaptiveTargetAllocations(0), /at least one/);
+
+  const manualManyTargets = configuration();
+  manualManyTargets.exits.targetAllocationsPercent = [...Array(20).fill('1'), '80'];
+  assert.equal(validateStrategyConfiguration(manualManyTargets).exits.targetAllocationsPercent.length, 21);
 
 }
 

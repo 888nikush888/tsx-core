@@ -159,8 +159,8 @@ function validateExits(input: unknown): StrategyConfiguration['exits'] {
   if (!['manual', 'adaptive_halving'].includes(targetAllocationMode)) {
     throw new Error('exits.targetAllocationMode must be manual or adaptive_halving.');
   }
-  if (!Array.isArray(value.targetAllocationsPercent) || value.targetAllocationsPercent.length < 1 || value.targetAllocationsPercent.length > 20) {
-    throw new Error('Between one and twenty target allocations are required.');
+  if (!Array.isArray(value.targetAllocationsPercent) || value.targetAllocationsPercent.length < 1) {
+    throw new Error('At least one target allocation is required.');
   }
   const allocations = value.targetAllocationsPercent.map(allocation => decimal(allocation, { positive: true, max: '100' }));
   if (compareDecimal(sumDecimals(allocations), '100') !== 0) throw new Error('Target allocations must total exactly 100 percent.');
