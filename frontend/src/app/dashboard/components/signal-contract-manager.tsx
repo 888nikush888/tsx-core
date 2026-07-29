@@ -30,7 +30,7 @@ const EMPTY_DEFINITION = {
     minimumPath: "min",
     maximumPath: "max",
     minimumItems: 1,
-    maximumItems: null,
+    maximumItems: 20,
     sequentialIds: true,
   },
   stopLossPath: "stoploss",
@@ -328,7 +328,7 @@ export function SignalContractManager({ data, busy, run }: Readonly<{ data: any;
             ]} onChange={value => patchDefinition("targets", "shape", value)} />
             <TextField label="Target-Min-Pfad" value={form.definition.targets.minimumPath} onChange={value => patchDefinition("targets", "minimumPath", value)} />
             <TextField label="Target-Max-Pfad" value={form.definition.targets.maximumPath} onChange={value => patchDefinition("targets", "maximumPath", value)} />
-            <Field label="Anzahl Targets (Min. / Max.; leer = unbegrenzt)"><div className="grid grid-cols-2 gap-2"><Input type="number" min={1} value={form.definition.targets.minimumItems} onChange={event => patchDefinition("targets", "minimumItems", Number(event.target.value))} /><Input type="number" min={form.definition.targets.minimumItems} value={form.definition.targets.maximumItems ?? ""} placeholder="unbegrenzt" onChange={event => patchDefinition("targets", "maximumItems", event.target.value === "" ? null : Number(event.target.value))} /></div></Field>
+            <Field label="Anzahl Targets"><div className="grid grid-cols-2 gap-2"><Input type="number" min={1} max={20} value={form.definition.targets.minimumItems} onChange={event => patchDefinition("targets", "minimumItems", Number(event.target.value))} /><Input type="number" min={1} max={20} value={form.definition.targets.maximumItems} onChange={event => patchDefinition("targets", "maximumItems", Number(event.target.value))} /></div></Field>
           </div>
           <Toggle label="Sequenzielle Target-IDs erzwingen" checked={form.definition.targets.sequentialIds} onChange={value => patchDefinition("targets", "sequentialIds", value)} />
         </section>

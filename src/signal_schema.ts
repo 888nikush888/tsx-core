@@ -225,8 +225,8 @@ function range(node: XmlNode): { min: string; max: string } {
 function scalarTargets(node: XmlNode): string[] {
   assertAllowedChildren(node, ['target']);
   const targetNodes = children(node, 'target');
-  if (targetNodes.length < 1) {
-    throw new SignalValidationError('Targets must contain at least one target element.');
+  if (targetNodes.length < 1 || targetNodes.length > 20) {
+    throw new SignalValidationError('Targets must contain between 1 and 20 target elements.');
   }
   return targetNodes.map((target, index) => {
     if (target.id !== index + 1) throw new SignalValidationError('Target ids must be sequential and start at 1.');
@@ -399,7 +399,7 @@ function validateLoma(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
   const targetsNode = required(root, 'targets');
   assertAllowedChildren(targetsNode, ['target']);
   const targetNodes = children(targetsNode, 'target');
-  if (targetNodes.length < 1) throw new SignalValidationError('Targets must contain at least one target element.');
+  if (targetNodes.length < 1 || targetNodes.length > 20) throw new SignalValidationError('Targets must contain between 1 and 20 target elements.');
   const targets = targetNodes.map((target, index) => {
     if (target.id !== index + 1) throw new SignalValidationError('Target ids must be sequential and start at 1.');
     return range(target);
@@ -614,10 +614,7 @@ function targetItemRange(item: XmlNode, definition: SignalContractDefinition): {
 function contractTargets(root: XmlNode, definition: SignalContractDefinition): Array<{ min: string; max: string }> {
   const container = pathNode(root, definition.targets.containerPath, true)!;
   const items = children(container, definition.targets.itemTag);
-  if (items.length < definition.targets.minimumItems) {
-    throw new SignalValidationError(`Targets must contain at least ${definition.targets.minimumItems} items.`);
-  }
-  if (definition.targets.maximumItems !== null && items.length > definition.targets.maximumItems) {
+  if (items.length < definition.targets.minimumItems || items.length > definition.targets.maximumItems) {
     throw new SignalValidationError(
       `Targets must contain between ${definition.targets.minimumItems} and ${definition.targets.maximumItems} items.`,
     );

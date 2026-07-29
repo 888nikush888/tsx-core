@@ -155,11 +155,6 @@ async function testStandardSchemaContracts() {
   );
   assertSpacedPairGrounding();
   assertAnyNormalizedPair();
-  const manyTargets = Array.from(
-    { length: 25 },
-    (_, index) => `<target id="${index + 1}">${95 + index}</target>`,
-  ).join('');
-  assert.strictEqual(validateSignalXml(standard({ targets: manyTargets })).execution.targets.length, 25);
 
   const invalidStandard = [
     ['numeric suffix', standard({ targets: '<target id="1">95abc</target>' }), /plain decimal/],

@@ -140,8 +140,7 @@ export interface SignalContractDefinition {
     minimumPath: string;
     maximumPath: string;
     minimumItems: number;
-    /** `null` means that the contract accepts any number of targets. */
-    maximumItems: number | null;
+    maximumItems: number;
     sequentialIds: boolean;
   };
   stopLossPath: string;
