@@ -64,10 +64,10 @@
     "qs": "6.15.3"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.29.0",
-    "jose": "6.2.3",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "jose": "6.2.5",
     "openai": "6.46.0",
-    "prebuilt-tdlib": "0.1008064.0",
+    "prebuilt-tdlib": "0.1008066.0",
     "sqlite": "5.1.1",
     "sqlite3": "6.0.1",
     "tdl": "8.1.0",
