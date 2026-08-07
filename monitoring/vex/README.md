@@ -1,8 +1,10 @@
 # Monitoring image VEX policy
 
 These OpenVEX documents apply only to the exact Go package versions embedded in
-the digest-pinned Prometheus and Alertmanager images. They are exploitability
-statements, not broad vulnerability ignores.
+the corresponding digest-pinned monitoring image. They are exploitability
+statements, not broad vulnerability ignores. Prometheus v3.13.2 needs no VEX:
+its upstream security release includes the fixed `golang.org/x/text` v0.39.0 and
+`google.golang.org/grpc` v1.82.1 dependencies.
 
 Each `not_affected` statement is backed by a `govulncheck v1.6.0 -mode binary`
 scan of the corresponding release binary. The scanner found no vulnerable

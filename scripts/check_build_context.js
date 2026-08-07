@@ -9,7 +9,7 @@ const gitExecutable = process.platform === 'win32'
   : '/usr/bin/git';
 const requiredIgnores = [
   '.git', '.env', '.env.*', 'config.json', 'node_modules', 'frontend/node_modules',
-  'secrets', '**/secrets', '**/.managed-secret-transaction.json', 'session_data',
+  'secrets', '**/secrets', '**/.managed-secret-transaction.json', 'session_data', 'tmp',
   'session_files', 'logs', 'backups', '*.tgfb',
 ];
 const sensitiveDirectory = /(^|\/)(?:secrets?|session_data|session_files|backups)(?:\/|$)/i;

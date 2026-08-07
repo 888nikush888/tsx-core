@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [prometheus, rules, alertmanager, compose, applicationCompose, checker, workflow, prometheusVex, alertmanagerVex] = await Promise.all([
+const [prometheus, rules, alertmanager, compose, applicationCompose, checker, workflow, alertmanagerVex] = await Promise.all([
   readFile('monitoring/prometheus.yml', 'utf8'),
   readFile('monitoring/rules.yml', 'utf8'),
   readFile('monitoring/alertmanager.yml', 'utf8'),
@@ -9,9 +9,9 @@ const [prometheus, rules, alertmanager, compose, applicationCompose, checker, wo
   readFile('docker-compose.yml', 'utf8'),
   readFile('scripts/check_monitoring.js', 'utf8'),
   readFile('.github/workflows/quality.yml', 'utf8'),
-  readFile('monitoring/vex/prometheus-v3.13.1.openvex.json', 'utf8').then(JSON.parse),
   readFile('monitoring/vex/alertmanager-v0.33.1.openvex.json', 'utf8').then(JSON.parse)
 ]);
+const prometheusImage = 'prom/prometheus:v3.13.2-distroless@sha256:64f71bb84e03c855948418b0fc5dea53e9543d8e3fc9931598f583805507f05e';
 
 assert.match(prometheus, /alertmanager:9093/);
 assert.match(prometheus, /forwarder:9100/);
@@ -32,7 +32,9 @@ for (const requiredAlert of [
 ]) assert.match(rules, new RegExp(`alert: ${requiredAlert}`));
 assert.match(alertmanager, /credentials_file:\s*\/app\/secrets\/alert_relay_token/);
 assert.match(alertmanager, /send_resolved:\s*true/);
-assert.match(compose, /prom\/prometheus:v3\.13\.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80/);
+assert.ok(compose.includes(prometheusImage));
+assert.ok(checker.includes(prometheusImage));
+assert.equal(workflow.split(prometheusImage).length - 1, 2, 'SBOM and blocking scan must use the release image');
 assert.match(compose, /prom\/alertmanager:v0\.33\.1@sha256:9e082985f56f4c8c9f724e18f2288c6708f472e56a5286b8863d080434ea065d/);
 assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
 assert.match(applicationCompose, /image:\s*\$\{FORWARDER_IMAGE:-tsx-core:local\}/);
@@ -46,11 +48,10 @@ assert.match(compose, /127\.0\.0\.1:\$\{HOST_PROMETHEUS_PORT:-9090\}:9090/);
 assert.match(checker, /promtool.*check/s);
 assert.match(checker, /promtool.*test/s);
 assert.match(checker, /amtool.*check-config/s);
-assert.match(workflow, /TRIVY_VEX:\s*monitoring\/vex\/prometheus-v3\.13\.1\.openvex\.json/);
+assert.doesNotMatch(workflow, /TRIVY_VEX:\s*monitoring\/vex\/prometheus-/);
 assert.match(workflow, /TRIVY_VEX:\s*monitoring\/vex\/alertmanager-v0\.33\.1\.openvex\.json/);
 
 for (const [document, expectedProduct, expectedVulnerabilities] of [
-  [prometheusVex, 'pkg:golang/google.golang.org/grpc@v1.81.1', ['GHSA-hrxh-6v49-42gf']],
   [alertmanagerVex, null, [
     'CVE-2026-39822', 'CVE-2026-39828', 'CVE-2026-39829', 'CVE-2026-39830',
     'CVE-2026-39831', 'CVE-2026-39832', 'CVE-2026-39835', 'CVE-2026-42508',

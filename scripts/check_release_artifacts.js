@@ -14,7 +14,7 @@ function coreReleaseViolations(manifest, changelog, license) {
   if (!new RegExp(String.raw`^## \[${escapedVersion}\] - \d{4}-\d{2}-\d{2}$`, 'm').test(changelog)) {
     violations.push(`CHANGELOG has no dated section for ${manifest.version}`);
   }
-  if (!license.startsWith('MIT License\n')) violations.push('LICENSE is not an MIT license text');
+  if (!/^MIT License\r?\n/.test(license)) violations.push('LICENSE is not an MIT license text');
   if (!license.includes('THE SOFTWARE IS PROVIDED "AS IS"')) violations.push('LICENSE is missing the MIT warranty disclaimer');
   return violations;
 }

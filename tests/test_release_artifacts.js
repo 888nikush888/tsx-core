@@ -7,6 +7,7 @@ const valid = {
   license: 'MIT License\nTHE SOFTWARE IS PROVIDED "AS IS"',
 };
 assert.deepEqual(validateReleaseArtifacts(valid), []);
+assert.deepEqual(validateReleaseArtifacts({ ...valid, license: valid.license.replaceAll('\n', '\r\n') }), []);
 assert.ok(
   validateReleaseArtifacts({ ...valid, manifest: { version: 'latest', license: 'MIT' } }).includes(
     'package version is not valid Semantic Versioning'

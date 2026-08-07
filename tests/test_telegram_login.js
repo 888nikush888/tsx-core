@@ -29,6 +29,23 @@ const namePromise = login.getName();
 coordinator.submit({ firstName: 'Alice', lastName: 'Example' });
 assert.deepEqual(await namePromise, { firstName: 'Alice', lastName: 'Example' });
 
+const emailPromise = login.getEmailAddress();
+assert.equal(coordinator.snapshot().prompt.kind, 'emailAddress');
+assert.throws(() => coordinator.submit({ value: 'bad @example.com' }), /Email address is invalid/);
+coordinator.submit({ value: 'alice@example.com' });
+assert.equal(await emailPromise, 'alice@example.com');
+
+const emailCodePromise = login.getEmailCode();
+assert.equal(coordinator.snapshot().prompt.kind, 'emailCode');
+assert.throws(() => coordinator.submit(null), /must be an object/);
+assert.throws(() => coordinator.submit({ value: '\n' }), /Verification code is invalid/);
+coordinator.submit({ value: 'email-12345' });
+assert.equal(await emailCodePromise, 'email-12345');
+
+login.confirmOnAnotherDevice('https://invalid.example');
+assert.equal(coordinator.snapshot().state, 'failed');
+assert.match(coordinator.snapshot().error, /invalid confirmation link/);
+
 login.confirmOnAnotherDevice('tg://login?token=one-time');
 assert.equal(coordinator.snapshot().prompt.kind, 'otherDeviceConfirmation');
 coordinator.submit({});

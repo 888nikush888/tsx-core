@@ -92,6 +92,59 @@ async function testAuthenticationAndReads(baseUrl) {
   }
 }
 
+async function testOperatorReadContracts(baseUrl, appState) {
+  let response = await fetch(`${baseUrl}/api/access`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  const access = await response.json();
+  assert.strictEqual(access.mode, 'bearer');
+  assert.strictEqual(access.role, 'viewer');
+  assert.deepStrictEqual(access.remoteAccess, { provider: null, connected: false, origin: null });
+
+  response = await fetch(`${baseUrl}/api/secrets`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  assert.ok(response.headers.get('cache-control')?.includes('no-store'));
+  assert.ok((await response.json()).secrets, 'Secret inventory must expose status metadata without secret values.');
+
+  const originalChannels = appState.config.sourceChannels;
+  const originalTradingControl = appState.tradingControl;
+  appState.config.sourceChannels = [
+    { id: '-1001', name: 'Desk One' },
+    { channelId: '-1002', title: 'Desk Two' },
+    '-1003',
+  ];
+  appState.tradingControl = {
+    snapshot: async () => ({ strategies: [], positions: [] }),
+    portfolioSnapshot: async refresh => ({ refresh, positions: [] }),
+  };
+  try {
+    response = await fetch(`${baseUrl}/api/trading`, { headers: headers(VIEWER_TOKEN) });
+    assert.strictEqual(response.status, 200);
+    const trading = await response.json();
+    assert.deepStrictEqual(trading.configuredChannels, [
+      { id: '-1001', name: 'Desk One' },
+      { id: '-1002', name: 'Desk Two' },
+      { id: '-1003', name: '-1003' },
+    ]);
+    response = await fetch(`${baseUrl}/api/trading/portfolio?refresh=true`, { headers: headers(VIEWER_TOKEN) });
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual((await response.json()).refresh, true);
+  } finally {
+    appState.config.sourceChannels = originalChannels;
+    appState.tradingControl = originalTradingControl;
+  }
+
+  response = await fetch(`${baseUrl}/api/outbox?status=not-a-status`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 400, 'Unknown outbox filters must be rejected.');
+  const originalOutboxReader = appState.getOutboxTasks;
+  appState.getOutboxTasks = undefined;
+  try {
+    response = await fetch(`${baseUrl}/api/outbox`, { headers: headers(VIEWER_TOKEN) });
+    assert.strictEqual(response.status, 503, 'Unavailable outbox inspection must fail explicitly.');
+  } finally {
+    appState.getOutboxTasks = originalOutboxReader;
+  }
+}
+
 async function testRequestValidation(baseUrl) {
   const rejectedRouteCases = [
     ['/api/incoming-messages', { method: 'DELETE', headers: mutationHeaders() }, 400],
@@ -231,7 +284,7 @@ async function testPublishedSignalContractDeletion(baseUrl, appState) {
   }
 }
 
-async function testMcpAgentAdministration(baseUrl) {
+async function activateMcpRuntime(baseUrl) {
   let response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 403, 'MCP agent inventory must be restricted to administrators');
 
@@ -266,8 +319,10 @@ async function testMcpAgentAdministration(baseUrl) {
   });
   assert.strictEqual(response.status, 200, 'Administrator must be able to activate MCP explicitly');
   assert.strictEqual((await response.json()).state.mode, 'active');
+}
 
-  response = await fetch(`${baseUrl}/api/mcp/agents`, {
+async function createAndConfigureMcpAgent(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/mcp/agents`, {
     method: 'POST',
     headers: headers(VIEWER_TOKEN, {
       'Content-Type': 'application/json',
@@ -314,8 +369,11 @@ async function testMcpAgentAdministration(baseUrl) {
   assert.deepStrictEqual((await response.json()).agent.permissions, ['system.read']);
 
   await testMcpProposalAdministration(baseUrl, created.agent.id);
+  return created;
+}
 
-  response = await fetch(`${baseUrl}/api/mcp/agents/rotate`, {
+async function rotateMcpAgentCredential(baseUrl, created) {
+  let response = await fetch(`${baseUrl}/api/mcp/agents/rotate`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ id: created.agent.id }),
@@ -335,8 +393,11 @@ async function testMcpAgentAdministration(baseUrl) {
   assert.notStrictEqual(rotated.token, created.token);
   assert.strictEqual(await authenticateMcpToken(created.token), null, 'Rotation must revoke the old MCP token immediately');
   assert.ok(await authenticateMcpToken(rotated.token), 'The replacement MCP token must authenticate');
+  return rotated;
+}
 
-  response = await fetch(`${baseUrl}/api/mcp/agents`, {
+async function removeMcpAgent(baseUrl, created, rotated) {
+  let response = await fetch(`${baseUrl}/api/mcp/agents`, {
     method: 'DELETE',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ id: created.agent.id }),
@@ -356,8 +417,10 @@ async function testMcpAgentAdministration(baseUrl) {
   assert.strictEqual(await authenticateMcpToken(rotated.token), null, 'Deleting an MCP agent must revoke its token immediately');
   response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual((await response.json()).agents.some(agent => agent.id === created.agent.id), false);
+}
 
-  response = await fetch(`${baseUrl}/api/mcp/runtime`, {
+async function disableMcpRuntime(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/mcp/runtime`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ mode: 'standby' }),
@@ -382,6 +445,14 @@ async function testMcpAgentAdministration(baseUrl) {
   });
   assert.strictEqual(response.status, 200, 'Administrator must be able to disable MCP explicitly');
   assert.strictEqual((await response.json()).state.mode, 'disabled');
+}
+
+async function testMcpAgentAdministration(baseUrl) {
+  await activateMcpRuntime(baseUrl);
+  const created = await createAndConfigureMcpAgent(baseUrl);
+  const rotated = await rotateMcpAgentCredential(baseUrl, created);
+  await removeMcpAgent(baseUrl, created, rotated);
+  await disableMcpRuntime(baseUrl);
 }
 
 async function testMcpProposalAdministration(baseUrl, agentId) {
@@ -1076,6 +1147,7 @@ async function runTests() {
 
     await testBootstrap(baseUrl);
     await testAuthenticationAndReads(baseUrl);
+    await testOperatorReadContracts(baseUrl, appState);
     await testTelegramWebLogin(baseUrl);
     await testRequestValidation(baseUrl);
     await testTradingStrategyDeletion(baseUrl, appState);

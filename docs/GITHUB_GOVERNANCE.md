@@ -49,6 +49,8 @@ Owner-Änderungen erfolgen über einen PR und benötigen Review eines bereits g�
 
 Dependabot öffnet wöchentlich getrennte Updates für Backend, Frontend, GitHub Actions und Docker. Jeder PR durchläuft unverändert alle Gates; Major-Updates werden nicht gruppiert. Sicherheitsmeldungen werden ausschließlich nach `SECURITY.md` privat behandelt. Ein automatisches Update ist kein Freigabenachweis und darf Quality-, Staging- oder Rollback-Gates nicht umgehen.
 
+Der Check **Dependency review** verwendet die GitHub-Dependency-Graph-Diffprüfung, wenn GitHub sie für das Repository bereitstellt. Für private Repositories ohne gebuchtes GitHub Code Security bleibt der Check verpflichtend und führt stattdessen beide Moderate-Audits sowie die Lockfile-/Dependency-Policy aus. Damit wird eine nicht verfügbare Plattformfunktion nicht als Sicherheitsfreigabe missverstanden oder pauschal übersprungen.
+
 ## Verifikation
 
 Innerhalb eines GitHub Actions Release-Jobs:

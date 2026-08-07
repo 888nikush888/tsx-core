@@ -571,18 +571,35 @@ function validateTradingAccountInput(input: {
 }): { name: string; paper: boolean; credentialRef: string | null; initialBalance: string | null } {
   const name = input.name?.trim();
   if (!name || name.length > 80) throw new Error('Account name must contain between 1 and 80 characters.');
-  if (!['paper', 'hyperliquid', 'bybit'].includes(input.exchange)) throw new Error('Unsupported exchange.');
-  if (!['paper', 'testnet', 'live'].includes(input.mode)) throw new Error('Unsupported account mode.');
-  const paper = input.exchange === 'paper';
-  if (paper !== (input.mode === 'paper')) throw new Error('Paper mode may only be used with the paper exchange.');
+  const paper = validateTradingAccountType(input.exchange, input.mode);
+  const credentialRef = validateTradingAccountCredentials(input, paper);
+  const initialBalance = validateTradingAccountBalance(input.initialBalance, paper);
+  return { name, paper, credentialRef, initialBalance };
+}
+
+function validateTradingAccountType(exchange: TradingExchange, mode: TradingAccountMode): boolean {
+  if (!['paper', 'hyperliquid', 'bybit'].includes(exchange)) throw new Error('Unsupported exchange.');
+  if (!['paper', 'testnet', 'live'].includes(mode)) throw new Error('Unsupported account mode.');
+  const paper = exchange === 'paper';
+  if (paper !== (mode === 'paper')) throw new Error('Paper mode may only be used with the paper exchange.');
+  return paper;
+}
+
+function validateTradingAccountCredentials(
+  input: { credentialRef?: string; initialBalance?: unknown },
+  paper: boolean,
+): string | null {
   const credentialRef = input.credentialRef?.trim() || null;
   if (!paper && !credentialRef) throw new Error('Exchange accounts require a credential reference.');
   if (!paper && input.initialBalance !== undefined) throw new Error('Only paper accounts accept an initial balance.');
-  if (paper && (input.initialBalance === undefined || input.initialBalance === null || input.initialBalance === '')) {
+  return credentialRef;
+}
+
+function validateTradingAccountBalance(initialBalance: unknown, paper: boolean): string | null {
+  if (paper && (initialBalance === undefined || initialBalance === null || initialBalance === '')) {
     throw new Error('Paper accounts require an explicitly entered initial balance.');
   }
-  const initialBalance = paper ? decimal(String(input.initialBalance), { positive: true }) : null;
-  return { name, paper, credentialRef, initialBalance };
+  return paper ? decimal(String(initialBalance), { positive: true }) : null;
 }
 
 export async function createTradingAccount(input: {

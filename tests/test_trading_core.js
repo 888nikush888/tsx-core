@@ -386,6 +386,20 @@ async function testRepositoryValidation(defaults, accounts) {
   const firstExternal = await createTradingAccount({
     name: 'Identity-bound account', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
   });
+  await assert.rejects(
+    updateTradingAccountState(firstExternal.id, {
+      status: 'ready', enabled: true, externalAccountId: `bybit:testnet:${'x'.repeat(243)}`,
+    }),
+    /at most 256 printable characters/,
+    'External exchange identities must enforce the documented length boundary.',
+  );
+  await assert.rejects(
+    updateTradingAccountState(firstExternal.id, {
+      status: 'ready', enabled: true, externalAccountId: 'bybit:testnet:account\n123',
+    }),
+    /at most 256 printable characters/,
+    'External exchange identities must reject control characters.',
+  );
   const bound = await updateTradingAccountState(firstExternal.id, {
     status: 'ready', enabled: true, verifiedAt: Date.now(), externalAccountId: 'bybit:testnet:account-123',
   });

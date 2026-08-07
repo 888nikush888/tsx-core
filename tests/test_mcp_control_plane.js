@@ -64,7 +64,7 @@ try {
   );
   const created = await createMcpAgent({
     name: 'Test operator',
-    permissions: ['system.read', 'contracts.write', 'trading.flatten'],
+    permissions: ['system.read', 'contracts.write', 'risk.write', 'trading.flatten'],
     eventSubscriptions: ['signal_received', 'position_closed'],
   });
   assert.match(created.token, /^tsx_mcp_[A-Za-z0-9_-]{40,}$/);
@@ -187,7 +187,9 @@ try {
     setRoute() {},
     removeRoute() {},
     setChannelRiskPolicy() {},
-    removeChannelRiskPolicy() {},
+    removeChannelRiskPolicy(channelId) {
+      if (channelId === '-failing-risk') throw new Error('risk deletion rejected');
+    },
     reconcile() {},
     cancelEntries() {},
     setRuntime() {},
@@ -319,6 +321,18 @@ try {
   assert.equal(automaticDraft.status, 'approved');
   assert.equal((await waitForMcpProposal(automaticDraft.id, 5_000)).status, 'completed');
   assert.deepEqual(calls.find(call => call[0] === 'schema'), ['schema', { id: 'agent-schema' }]);
+
+  const failedProposal = await createMcpProposal({
+    agentId: created.agent.id,
+    action: 'risk.delete',
+    payload: { channelId: '-failing-risk' },
+  });
+  assert.equal(failedProposal.status, 'pending');
+  await approveMcpProposal(failedProposal.id, 'dashboard:test-admin');
+  const failedProposalResult = await waitForMcpProposal(failedProposal.id, 5_000);
+  assert.equal(failedProposalResult.status, 'failed');
+  assert.match(failedProposalResult.error, /risk deletion rejected/);
+  assert.ok(auditEvents.some(event => event.requestId === failedProposal.id && event.outcome === 'failed'));
   await bridge.stop();
 
   const pausedSession = await connectMcpSession({

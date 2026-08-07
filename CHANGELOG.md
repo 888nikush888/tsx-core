@@ -34,6 +34,8 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ### Fixed
 
+- Der verpflichtende Dependency-Review-Check besitzt für private Repositories ohne GitHub Code Security einen fail-closed Audit-/Lockfile-Fallback, statt an einer nicht verfügbaren Plattformfunktion zu scheitern.
+- Die Quality-OS-Gates sind wieder vollständig freigabefähig: Frontend-Testinventar, Modul-Coverage und Komplexitätsbudgets wurden mit fachlichen Regressionstests korrigiert und die Windows-Lizenzprüfung akzeptiert LF sowie CRLF.
 - Publizierte oder archivierte XML-Vertragsversionen können nach expliziter Bestätigung endgültig gelöscht werden, sobald kein Signal-Schema-Profil mehr darauf verweist.
 - Lokaler Docker-Zugriff sperrt die Komfortsession bis zur sichtbaren Erststartaktion, zeigt den serverseitig erzeugten dauerhaften Admin-Bearer genau einmal an und verwendet erst bei späteren Browser-Sitzungen kurzlebige lokale Session-Tokens.
 - XML-Verträge werden ohne redundanten Sidebar-Eintrag zentral unter **Trading → Verträge** verwaltet; Erstellen, Versionieren, Bearbeiten, Duplizieren und Löschen bleiben vollständig in der Web-UI steuerbar.
@@ -46,6 +48,8 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ### Security
 
+- Verwundbare transitive Node-Abhängigkeiten wurden auf abgesicherte Versionen angehoben; Backend- und Frontend-Audit-Gates melden keine Schwachstellen mehr.
+- Prometheus wurde auf das digest-gepinnte Security-Release 3.13.2 aktualisiert; die frühere VEX-Ausnahme entfällt, weil die korrigierten `x/text`- und gRPC-Versionen direkt im Image enthalten sind.
 - Schutz vor Symlink-/Junction-Ausbruch, manipulierten Backup-/Audit-Dateien, unsicheren Vergleichen und ungebundenen Exchange-/DB-Zuständen wurde verschärft.
 - CodeQL, Secret-History, Container-SBOM/Vulnerability Scan und vier kritische Mutation-Gates laufen im verpflichtenden Quality-Workflow.
 - MCP-Agenten besitzen keine Exchange-Secrets oder direkten Adapter; jede Mutation prüft aktuelle Rechte erneut und benötigt einen erfolgreichen Vorab-Audit-Record sowie die bestehende Trading-Sicherheitslogik.

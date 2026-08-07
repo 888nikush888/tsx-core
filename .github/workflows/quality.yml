@@ -224,9 +224,26 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+      - name: Review the dependency-graph diff when GitHub provides it
+        if: github.event.repository.private == false
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
         with:
           fail-on-severity: moderate
+      - name: Configure pinned Node for the private-repository fallback
+        if: github.event.repository.private
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - name: Enforce private-repository dependency evidence
+        if: github.event.repository.private
+        run: |
+          npm audit --audit-level=moderate
+          npm audit --prefix frontend --audit-level=moderate
+          npm run quality:dependencies
 
   container:
     name: Container build, SBOM, vulnerability scan
@@ -288,17 +305,15 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80
+          image-ref: prom/prometheus:v3.13.2-distroless@sha256:64f71bb84e03c855948418b0fc5dea53e9543d8e3fc9931598f583805507f05e
           format: cyclonedx
           output: prometheus.cdx.json
           exit-code: '0'
       - name: Block Prometheus high and critical vulnerabilities
-        env:
-          TRIVY_VEX: monitoring/vex/prometheus-v3.13.1.openvex.json
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           version: v0.69.3
-          image-ref: prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80
+          image-ref: prom/prometheus:v3.13.2-distroless@sha256:64f71bb84e03c855948418b0fc5dea53e9543d8e3fc9931598f583805507f05e
           format: sarif
           output: prometheus-trivy.sarif
           severity: HIGH,CRITICAL

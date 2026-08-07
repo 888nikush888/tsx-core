@@ -13,6 +13,7 @@ frontend/playwright-report/
 frontend/test-results/
 coverage/
 scratch/
+tmp/
 session_data/
 session_files/
 signals/

@@ -74,6 +74,8 @@ assert.match(workflow, /retention-days:\s*90/);
 assert.match(workflow, /project:\s*\[chromium, firefox, webkit, mobile-chromium\]/);
 assert.match(workflow, /playwright install --with-deps/);
 assert.match(workflow, /playwright test --project=\$\{\{ matrix\.project \}\}/);
+assert.match(workflow, /github\.event\.repository\.private == false[\s\S]*?actions\/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294/);
+assert.match(workflow, /github\.event\.repository\.private[\s\S]*?npm audit --audit-level=moderate[\s\S]*?npm audit --prefix frontend --audit-level=moderate[\s\S]*?npm run quality:dependencies/);
 assert.match(workflow, /needs:\s*\[verify, mutation, browser, sast, secrets, container\]/);
 assert.match(workflow, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/);
 assert.match(workflow, /actions\/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0/);

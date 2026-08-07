@@ -9,6 +9,7 @@ dist
 frontend/dist
 coverage
 scratch
+tmp
 session_data
 session_files
 signals
