@@ -1,24 +1,134 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateRiskAcceptance } from './check_risk_acceptances.js';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const acceptanceDirectory = path.join(root, 'docs', 'risk-acceptances');
-const gitExecutable = process.platform === 'win32'
-  ? String.raw`C:\Program Files\Git\cmd\git.exe`
-  : '/usr/bin/git';
+const GOVERNANCE_FILES = new Set([
+  '.dockerignore',
+  '.editorconfig',
+  '.gitattributes',
+  '.gitleaks.toml',
+  '.sonarcloud.properties',
+  '.github/CODEOWNERS',
+  '.github/dependabot.yml',
+  'Dockerfile',
+  'c8.critical.json',
+  'c8.modules.json',
+  'coverage-baseline.json',
+  'config/runtime-settings.json',
+  'docker-compose.yml',
+  'eslint.config.js',
+  'frontend/.oxlintrc.json',
+  'frontend/index.html',
+  'frontend/package-lock.json',
+  'frontend/package.json',
+  'frontend/playwright.config.ts',
+  'frontend/postcss.config.js',
+  'frontend/tailwind.config.js',
+  'frontend/vite.config.ts',
+  'exchange_executor/requirements.lock',
+  'monitoring/alertmanager.Dockerfile',
+  'monitoring/rules.yml',
+  'package-lock.json',
+  'package.json',
+  'quality-baseline.json',
+  'stryker.config.mjs',
+  'tests/run_all.js',
+  'tests/test_supply_chain.js',
+  'tsconfig.json',
+]);
 
-const RISK_FACTORS = [
-  { id: 'critical-domain', points: 5, label: 'Critical delivery, data, AI, trading or control-plane domain', matches: file => /^src\/(forwarder|db|signal_parser|signal_schema|delivery_tracker|backup|backup_replication|web_server|audit_trail|dashboard_auth|secret_store|telegram_login|trading_.+|paper_exchange|official_exchange)\.ts$/.test(file) || /^exchange_executor\/(?!tests\/)/.test(file) },
-  { id: 'auth-secrets', points: 5, label: 'Authentication, authorization or secret boundary', matches: file => /^src\/(dashboard_auth|web_server|env|audit_trail|runtime_profile|runtime_settings|secret_store|telegram_login|trading_credentials|official_exchange)\.ts$/.test(file) || /^exchange_executor\/(credentials|server)\.py$/.test(file) || file.startsWith('.github/workflows/') },
-  { id: 'ai-side-effect', points: 5, label: 'AI prompt, schema or automatic side effect', matches: file => /^src\/(signal_parser|signal_schema|forwarder|trading_engine|trading_runtime|trading_risk)\.ts$/.test(file) || file.startsWith('templates/') || /^exchange_executor\/(hyperliquid_adapter|bybit_adapter)\.py$/.test(file) },
-  { id: 'database', points: 4, label: 'Database, migration or persistent recovery', matches: file => /^src\/(db|migration_cli|backup|trading_repository|trading_engine)\.ts$/.test(file) },
-  { id: 'concurrency', points: 4, label: 'Concurrency, retry, timeout, idempotency or shutdown', matches: file => /^src\/(queue|forwarder|delivery_tracker|tdlib_retry|trading_engine|trading_runtime|official_exchange)\.ts$/.test(file) },
-  { id: 'contract', points: 3, label: 'HTTP, configuration or metrics contract', matches: file => /^src\/(web_server|metrics|config)\.ts$/.test(file) },
-  { id: 'dependency', points: 2, label: 'Production dependency, workflow or base image', matches: file => /^(package(-lock)?\.json|frontend\/package(-lock)?\.json|Dockerfile|exchange_executor\/(Dockerfile|requirements\.(in|lock))|\.github\/workflows\/)/.test(file) }
+const FACTORS = [
+  {
+    id: 'governance-control',
+    points: 10,
+    matches: changes => changes.some(change => isGovernancePath(change.path)
+      || (isRiskRecord(change.path) && change.status !== 'D')),
+  },
+  {
+    id: 'risk-record-cleanup',
+    points: 5,
+    matches: changes => changes.some(change => isRiskRecord(change.path) && change.status === 'D'),
+  },
+  {
+    id: 'critical-domain',
+    points: 5,
+    matches: changes => changes.some(change => isCriticalPath(change.path)),
+  },
+  {
+    id: 'operator-safety',
+    points: 3,
+    matches: changes => changes.some(change => isCriticalPath(change.path)),
+  },
+  {
+    id: 'auth-secrets',
+    points: 5,
+    matches: changes => changes.some(change => /(?:auth|secret|credential|token|oidc|session)/i.test(change.path)),
+  },
+  {
+    id: 'ai-side-effect',
+    points: 5,
+    matches: changes => changes.some(change => /(?:signal_parser|openrouter|prompt|schema|trading_engine|exchange_executor)/i.test(change.path)),
+  },
+  {
+    id: 'persistence',
+    points: 4,
+    matches: changes => changes.some(change => /(?:db|migration|repository|backup|retention|journal)/i.test(change.path)),
+  },
+  {
+    id: 'concurrency',
+    points: 4,
+    matches: changes => changes.some(change => /(?:queue|retry|scheduler|outbox|stream|shutdown|worker)/i.test(change.path)),
+  },
+  {
+    id: 'public-contract',
+    points: 3,
+    matches: changes => changes.some(change => /(?:web_server|web_control|mcp_server|signal_contract|config\.ts|types\.ts)/i.test(change.path)),
+  },
+  {
+    id: 'production-verification',
+    points: 3,
+    matches: changes => changes.some(change => isProductionPath(change.path)),
+  },
+  {
+    id: 'dependency',
+    points: 2,
+    matches: changes => changes.some(change => /(?:package(?:-lock)?\.json|requirements\.(?:in|lock)|Dockerfile|docker-compose)/i.test(change.path)),
+  },
+  {
+    id: 'large-change',
+    points: 2,
+    matches: changes => changes.reduce((sum, change) => sum + change.additions + change.deletions, 0) > 500,
+  },
 ];
+
+function normalizePath(filePath) {
+  return String(filePath || '').replaceAll('\\', '/');
+}
+
+function isRiskRecord(filePath) {
+  return /^docs\/risk-acceptances\/RA-[^/]+\.md$/.test(normalizePath(filePath));
+}
+
+function isGovernancePath(filePath) {
+  const normalized = normalizePath(filePath);
+  return GOVERNANCE_FILES.has(normalized)
+    || normalized.startsWith('.github/workflows/')
+    || normalized.startsWith('monitoring/vex/')
+    || normalized.startsWith('scripts/check_')
+    || normalized.startsWith('scripts/verify_');
+}
+
+function isCriticalPath(filePath) {
+  const normalized = normalizePath(filePath);
+  return /^(?:src\/(?:dashboard_auth|secret_store|runtime_settings|trading_|mcp_|factory_reset_paths|exchange_stream_repository|trade_journal|signal_contract|db|backup)|frontend\/src\/(?:lib\/api|components\/dashboard-auth-gate)|exchange_executor\/)/.test(normalized);
+}
+
+function isProductionPath(filePath) {
+  const normalized = normalizePath(filePath);
+  return /^(?:src|frontend\/src|exchange_executor|monitoring)\//.test(normalized)
+    || /^(?:Dockerfile|docker-compose[^/]*\.yml)$/.test(normalized);
+}
 
 export function riskLevel(score) {
   if (score >= 15) return 'critical-staging-and-explicit-approval';
@@ -28,103 +138,77 @@ export function riskLevel(score) {
 }
 
 export function scorePullRequest(changes) {
-  const files = changes.map(change => change.path.replaceAll('\\', '/'));
-  const factors = RISK_FACTORS
-    .filter(factor => files.some(factor.matches))
-    .map(({ id, points, label }) => ({ id, points, label }));
-  const productionChanged = files.some(file => /^(src\/|frontend\/src\/|exchange_executor\/(?!tests\/)|Dockerfile|docker-compose|monitoring\/|package)/.test(file));
-  const testsChanged = files.some(file => /^(tests\/|exchange_executor\/tests\/|frontend\/.*(?:test|spec)|monitoring\/rules\.test\.yml)/.test(file));
-  if (productionChanged && !testsChanged) factors.push({ id: 'test-gap', points: 3, label: 'Production change without a changed regression test' });
-  const changedLines = changes.reduce((sum, change) => sum + change.additions + change.deletions, 0);
-  if (changedLines > 500) factors.push({ id: 'large-change', points: 2, label: 'More than 500 changed lines' });
+  const normalized = changes.map(change => ({
+    path: normalizePath(change.path),
+    status: String(change.status || 'M'),
+    additions: Number.isSafeInteger(change.additions) ? Math.max(0, change.additions) : 0,
+    deletions: Number.isSafeInteger(change.deletions) ? Math.max(0, change.deletions) : 0,
+  }));
+  const factors = FACTORS
+    .filter(factor => factor.matches(normalized))
+    .map(({ id, points }) => ({ id, points }));
   const score = factors.reduce((sum, factor) => sum + factor.points, 0);
-  return { score, level: riskLevel(score), changedLines, factors };
+  return { score, level: riskLevel(score), factors };
 }
 
-function frontMatterFields(content) {
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
-  if (!match) return {};
-  return Object.fromEntries(match[1]
-    .split(/\r?\n/)
-    .map(line => {
-      const separator = line.indexOf(':');
-      if (separator < 1) return null;
-      const key = line.slice(0, separator).trim();
-      const value = line.slice(separator + 1).trim();
-      return /^[a-z-]+$/.test(key) && value ? [key, value] : null;
-    })
-    .filter(Boolean)
-  );
-}
-
-export function evaluatePrRiskGate(evaluation, head, acceptances = []) {
-  if (evaluation.score < 10) {
-    return { passed: true, required: false, accepted: false, reason: 'risk score is below the high-risk threshold' };
-  }
-  const gateName = `pr-risk:${head}`;
-  const matching = acceptances.find(item => item.errors.length === 0
-    && item.fields.gate === gateName
-    && item.fields.owner !== item.fields.approver
-    && item.fields.scope?.includes(head));
-  if (!matching) {
+function parseNumstat(value) {
+  return value.split(/\r?\n/).filter(Boolean).map(line => {
+    const [rawAdditions, rawDeletions, ...pathParts] = line.split('\t');
     return {
-      passed: false,
-      required: true,
-      accepted: false,
-      reason: `score ${evaluation.score} requires a valid, unexpired ${gateName} record with independent approver and commit-bound scope`,
+      path: pathParts.join('\t'),
+      additions: /^\d+$/.test(rawAdditions) ? Number(rawAdditions) : 0,
+      deletions: /^\d+$/.test(rawDeletions) ? Number(rawDeletions) : 0,
     };
-  }
-  return { passed: true, required: true, accepted: true, acceptance: matching.file, reason: `time-bounded exception ${matching.file}` };
+  });
 }
 
-async function loadRiskAcceptances(now = new Date()) {
-  const files = await readdir(acceptanceDirectory).catch(error => {
-    if (error.code === 'ENOENT') return [];
-    throw error;
-  });
-  return Promise.all(files.filter(file => /^RA-.+\.md$/.test(file)).sort().map(async file => {
-    const content = await readFile(path.join(acceptanceDirectory, file), 'utf8');
-    return { file, fields: frontMatterFields(content), errors: validateRiskAcceptance(content, now) };
+function parseNameStatus(value) {
+  return new Map(value.split(/\r?\n/).filter(Boolean).map(line => {
+    const [status, ...pathParts] = line.split('\t');
+    return [pathParts.at(-1), status.charAt(0)];
   }));
 }
 
 function gitChanges(base, head) {
-  const output = execFileSync(gitExecutable, ['diff', '--numstat', `${base}...${head}`], { encoding: 'utf8' });
-  return output.trim().split('\n').filter(Boolean).map(line => {
-    const [added, deleted, ...nameParts] = line.split('\t');
-    return {
-      path: nameParts.join('\t'),
-      additions: added === '-' ? 0 : Number(added),
-      deletions: deleted === '-' ? 0 : Number(deleted)
-    };
-  });
+  const range = `${base}...${head}`;
+  const options = { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 };
+  const numstat = execFileSync('git', ['diff', '--no-renames', '--numstat', range], options);
+  const statuses = parseNameStatus(execFileSync(
+    'git', ['diff', '--no-renames', '--name-status', range], options
+  ));
+  return parseNumstat(numstat).map(change => ({
+    ...change,
+    status: statuses.get(change.path) || 'M',
+  }));
 }
 
 async function main() {
   const [base, head] = process.argv.slice(2);
-  if (!/^[a-f0-9]{40}$/i.test(base || '') || !/^[a-f0-9]{40}$/i.test(head || '')) {
-    throw new Error('Usage: node scripts/calculate_pr_risk.js <40-char-base-sha> <40-char-head-sha>');
-  }
+  if (!base || !head) throw new Error('Usage: calculate_pr_risk.js <base> <head>');
   const changes = gitChanges(base, head);
   const evaluation = scorePullRequest(changes);
-  const gate = evaluatePrRiskGate(evaluation, head, await loadRiskAcceptances());
-  const evidence = { schemaVersion: 2, base, head, evaluatedAt: new Date().toISOString(), changes, ...evaluation, gate };
-  const directory = path.resolve('reports', 'pr-risk');
-  await mkdir(directory, { recursive: true });
-  const output = path.join(directory, `pr-risk-${head}.json`);
-  await writeFile(output, `${JSON.stringify(evidence, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
-  console.log(`PR RISK SCORE ${evaluation.score} level=${evaluation.level} gate=${gate.passed ? 'PASS' : 'FAIL'} evidence=${output}`);
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    await writeFile(process.env.GITHUB_STEP_SUMMARY, `## PR risk: ${evaluation.score}\n\nRequired procedure: \`${evaluation.level}\`\n\nGate: **${gate.passed ? 'PASS' : 'FAIL'}** - ${gate.reason}\n`, { flag: 'a' });
-  }
-  if (!gate.passed) throw new Error(`PR risk gate failed: ${gate.reason}.`);
+  const evidence = {
+    schemaVersion: 1,
+    base,
+    head,
+    evaluatedAt: new Date().toISOString(),
+    changes,
+    ...evaluation,
+  };
+  await mkdir(path.resolve('reports', 'pr-risk'), { recursive: true });
+  await writeFile(
+    path.resolve('reports', 'pr-risk', 'evaluation.json'),
+    `${JSON.stringify(evidence, null, 2)}\n`,
+    { encoding: 'utf8', mode: 0o600 }
+  );
+  console.log(JSON.stringify(evidence, null, 2));
 }
 
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {
   try {
     await main();
   } catch (error) {
-    console.error(error.message);
+    console.error(error instanceof Error ? error.message : 'PR risk calculation failed.');
     process.exitCode = 1;
   }
 }

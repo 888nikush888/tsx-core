@@ -7,28 +7,65 @@ owner: service-owner
 approver: security-owner
 created: 2026-07-01
 expires: 2026-07-20
-scope: example
+scope: exact component
 gate: example-gate
 ---
 ## Risk
-Example risk.
+Concrete failure scenario.
 ## Evidence
-Example evidence.
+Exact test and scan evidence.
 ## Compensating controls
-Example controls.
+Named temporary control.
 ## Exit criteria
-Example exit criteria.
+Measurable remediation condition.
 `;
 
-assert.deepEqual(validateRiskAcceptance(validRecord, new Date('2026-07-13T00:00:00Z')), []);
+const now = new Date('2026-07-13T00:00:00Z');
+assert.deepEqual(validateRiskAcceptance(validRecord, now), []);
+assert.ok(validateRiskAcceptance('invalid', now).includes('missing YAML front matter'));
 assert.ok(
-  validateRiskAcceptance(validRecord, new Date('2026-07-21T00:00:00Z')).includes(
-    'risk acceptance is expired'
-  )
+  validateRiskAcceptance(validRecord, new Date('2026-07-21T00:00:00Z'))
+    .includes('risk acceptance is expired')
 );
-assert.ok(validateRiskAcceptance('invalid').includes('missing YAML front matter'));
+assert.ok(
+  validateRiskAcceptance(validRecord, new Date('2026-07-19T12:00:00Z'))
+    .includes('risk acceptance must retain at least 24 hours of validity')
+);
 
-const repositoryRecords = await checkRiskAcceptances(new Date('2026-07-13T00:00:00Z'));
+const futureRecord = validRecord
+  .replace('created: 2026-07-01', 'created: 2099-01-01')
+  .replace('expires: 2026-07-20', 'expires: 2099-01-20');
+assert.ok(validateRiskAcceptance(futureRecord, now).includes('created must not be in the future'));
+
+const tooLongRecord = validRecord.replace('expires: 2026-07-20', 'expires: 2026-08-20');
+assert.ok(validateRiskAcceptance(tooLongRecord, now).includes('acceptance duration must not exceed 30 days'));
+
+const sameIdentity = validRecord.replace('approver: security-owner', 'approver: service-owner');
+assert.ok(validateRiskAcceptance(sameIdentity, now).includes('owner and approver must differ'));
+
+const emptySections = validRecord.replace(
+  /(?:Concrete failure scenario|Exact test and scan evidence|Named temporary control|Measurable remediation condition)\./g,
+  ''
+);
+for (const section of ['Risk', 'Evidence', 'Compensating controls', 'Exit criteria']) {
+  assert.ok(
+    validateRiskAcceptance(emptySections, now).includes(`section must contain concrete content: ${section}`)
+  );
+}
+
+const placeholderSections = validRecord
+  .replace('Concrete failure scenario.', 'TBD')
+  .replace('Exact test and scan evidence.', '<!-- add evidence -->')
+  .replace('Named temporary control.', '[ ]')
+  .replace('Measurable remediation condition.', 'N/A');
+assert.equal(
+  validateRiskAcceptance(placeholderSections, now)
+    .filter(error => error.startsWith('section must contain concrete content:')).length,
+  4
+);
+
+const repositoryRecords = await checkRiskAcceptances(new Date('2026-08-09T00:00:00Z'));
 assert.deepEqual(repositoryRecords.violations, []);
+assert.deepEqual(repositoryRecords.files, []);
 
 console.log('Risk-acceptance governance tests passed.');

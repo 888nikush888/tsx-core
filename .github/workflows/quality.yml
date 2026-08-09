@@ -1,8 +1,6 @@
 name: Quality OS
 
 on:
-  pull_request:
-  merge_group:
   push:
     branches: [main]
     tags: ['v*']
@@ -27,11 +25,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout pinned source
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
       - name: Configure pinned Node major
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -52,19 +50,6 @@ jobs:
         run: |
           npm run quality:licenses
           npm run quality:dependencies
-      - name: Calculate evidence-based PR risk
-        id: pr_risk
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        run: node scripts/calculate_pr_risk.js "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
-      - name: Preserve PR-risk decision evidence
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: pr-risk-evidence-${{ github.event.pull_request.head.sha }}
-          path: reports/pr-risk/
-          if-no-files-found: error
-          retention-days: 90
       - name: Static and type gates
         run: |
           npm run lint
@@ -89,7 +74,7 @@ jobs:
         run: npm run quality:sbom
       - name: Upload verification evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: quality-evidence-${{ github.sha }}
           path: |
@@ -98,10 +83,6 @@ jobs:
             reports/
           if-no-files-found: error
           retention-days: 90
-      - name: Enforce high-risk PR decision
-        if: always() && github.event_name == 'pull_request'
-        run: test "${{ steps.pr_risk.outcome }}" = success
-
   mutation:
     name: Critical mutation gate (${{ matrix.shard }})
     runs-on: ubuntu-latest
@@ -111,13 +92,13 @@ jobs:
       matrix:
         shard: [queue, retry, schema, trading-risk]
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - name: Restore mutation baseline
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: reports/stryker-${{ matrix.shard }}*-incremental.json
           key: stryker-${{ matrix.shard }}-${{ runner.os }}-${{ hashFiles('src/queue.ts', 'src/tdlib_retry.ts', 'src/signal_schema.ts', 'src/trading_risk.ts', 'tests/test_queue.js', 'tests/test_tdlib_retry.js', 'tests/test_signal_parser.js', 'tests/test_trading_core.js', 'stryker.config.mjs', 'scripts/run_mutation_shards.js') }}
@@ -128,7 +109,7 @@ jobs:
       - run: npm run test:mutation -- ${{ matrix.shard }}
       - name: Upload mutation evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: mutation-evidence-${{ matrix.shard }}-${{ github.sha }}
           path: |
@@ -146,8 +127,8 @@ jobs:
       matrix:
         project: [chromium, firefox, webkit, mobile-chromium]
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -164,7 +145,7 @@ jobs:
         working-directory: frontend
       - name: Upload browser failure evidence
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: browser-evidence-${{ matrix.project }}-${{ github.sha }}
           path: |
@@ -181,12 +162,12 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - uses: github/codeql-action/init@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3
         with:
           languages: javascript-typescript,python
       - name: Analyze without the unavailable private-repository upload
-        uses: github/codeql-action/analyze@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d
+        uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3
         with:
           upload: never
           output: codeql-results
@@ -194,7 +175,7 @@ jobs:
         run: jq --slurp --exit-status '[.[].runs[]?.results[]?] | length == 0' codeql-results/*.sarif
       - name: Upload CodeQL evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: codeql-evidence-${{ github.sha }}
           path: codeql-results/
@@ -209,10 +190,10 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -223,7 +204,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Review the dependency-graph diff when GitHub provides it
         if: github.event.repository.private == false
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
@@ -231,7 +212,7 @@ jobs:
           fail-on-severity: moderate
       - name: Configure pinned Node for the private-repository fallback
         if: github.event.repository.private
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -248,16 +229,34 @@ jobs:
   container:
     name: Container build, SBOM, vulnerability scan
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     permissions:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Configure pinned Buildx builder
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+        with:
+          version: v0.36.1
+          driver-opts: image=moby/buildkit:v0.32.2@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8
       - name: Build immutable candidate
         run: docker build --tag tsx-core:${{ github.sha }} .
       - name: Build official exchange executor
         run: docker build --tag tsx-core-exchange-executor:${{ github.sha }} exchange_executor
+      - name: Build hardened Alertmanager for both release platforms
+        run: |
+          docker buildx build --provenance=false --platform linux/amd64 --load --metadata-file alertmanager-amd64-build.json --file monitoring/alertmanager.Dockerfile --tag tsx-core-alertmanager:${{ github.sha }}-amd64 .
+          docker buildx build --provenance=false --platform linux/arm64 --load --metadata-file alertmanager-arm64-build.json --file monitoring/alertmanager.Dockerfile --tag tsx-core-alertmanager:${{ github.sha }}-arm64 .
+      - name: Rebuild Alertmanager without cache and require the same digest
+        run: |
+          docker buildx build --no-cache --provenance=false --platform linux/amd64 --load --metadata-file alertmanager-amd64-rebuild.json --file monitoring/alertmanager.Dockerfile --tag tsx-core-alertmanager:${{ github.sha }}-repro .
+          test "$(jq -er '."containerimage.digest"' alertmanager-amd64-build.json)" = "$(jq -er '."containerimage.digest"' alertmanager-amd64-rebuild.json)"
+          docker image rm tsx-core-alertmanager:${{ github.sha }}-repro
+      - name: Prove Alertmanager source and binary reachability for both platforms
+        run: |
+          docker buildx build --provenance=false --platform linux/amd64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file monitoring/alertmanager.Dockerfile .
+          docker buildx build --provenance=false --platform linux/arm64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file monitoring/alertmanager.Dockerfile .
       - name: Verify runtime native modules and non-root user
         run: |
           test "$(docker image inspect tsx-core:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
@@ -265,18 +264,23 @@ jobs:
           test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
           docker run --rm --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -c "from importlib.metadata import version; assert version('hyperliquid-python-sdk') == '0.24.0'; assert version('pybit') == '5.16.0'"
           docker run --rm -e PYTHONPATH=/app -v "$PWD/exchange_executor/tests:/tests:ro" --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -m unittest discover -s /tests -v
+          test "$(docker image inspect tsx-core-alertmanager:${{ github.sha }}-amd64 --format '{{.Architecture}}/{{.Config.User}}')" = amd64/65534:65534
+          test "$(docker image inspect tsx-core-alertmanager:${{ github.sha }}-arm64 --format '{{.Architecture}}/{{.Config.User}}')" = arm64/65534:65534
+          docker run --rm --entrypoint /bin/alertmanager tsx-core-alertmanager:${{ github.sha }}-amd64 --version
+          docker run --rm --entrypoint /bin/amtool tsx-core-alertmanager:${{ github.sha }}-amd64 --version
+          docker run --rm --entrypoint /bin/amtool tsx-core-alertmanager:${{ github.sha }}-amd64 check-config /etc/alertmanager/alertmanager.yml
       - name: Generate container SBOM
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: v0.69.3
+          version: v0.70.0
           image-ref: tsx-core:${{ github.sha }}
           format: cyclonedx
           output: container.cdx.json
           exit-code: '0'
       - name: Block high and critical container vulnerabilities
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: v0.69.3
+          version: v0.70.0
           image-ref: tsx-core:${{ github.sha }}
           format: sarif
           output: trivy.sarif
@@ -284,17 +288,17 @@ jobs:
           limit-severities-for-sarif: true
           exit-code: '1'
       - name: Generate exchange executor SBOM
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: v0.69.3
+          version: v0.70.0
           image-ref: tsx-core-exchange-executor:${{ github.sha }}
           format: cyclonedx
           output: exchange-executor.cdx.json
           exit-code: '0'
       - name: Block exchange executor high and critical vulnerabilities
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: v0.69.3
+          version: v0.70.0
           image-ref: tsx-core-exchange-executor:${{ github.sha }}
           format: sarif
           output: exchange-executor-trivy.sarif
@@ -302,40 +306,56 @@ jobs:
           limit-severities-for-sarif: true
           exit-code: '1'
       - name: Generate Prometheus SBOM
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: v0.69.3
+          version: v0.70.0
           image-ref: prom/prometheus:v3.13.2-distroless@sha256:64f71bb84e03c855948418b0fc5dea53e9543d8e3fc9931598f583805507f05e
           format: cyclonedx
           output: prometheus.cdx.json
           exit-code: '0'
       - name: Block Prometheus high and critical vulnerabilities
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: v0.69.3
+          version: v0.70.0
           image-ref: prom/prometheus:v3.13.2-distroless@sha256:64f71bb84e03c855948418b0fc5dea53e9543d8e3fc9931598f583805507f05e
           format: sarif
           output: prometheus-trivy.sarif
           severity: HIGH,CRITICAL
           limit-severities-for-sarif: true
           exit-code: '1'
-      - name: Generate Alertmanager SBOM
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+      - name: Generate Alertmanager amd64 SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: v0.69.3
-          image-ref: prom/alertmanager:v0.33.1@sha256:9e082985f56f4c8c9f724e18f2288c6708f472e56a5286b8863d080434ea065d
+          version: v0.70.0
+          image-ref: tsx-core-alertmanager:${{ github.sha }}-amd64
           format: cyclonedx
-          output: alertmanager.cdx.json
+          output: alertmanager-amd64.cdx.json
           exit-code: '0'
-      - name: Block Alertmanager high and critical vulnerabilities
-        env:
-          TRIVY_VEX: monitoring/vex/alertmanager-v0.33.1.openvex.json
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+      - name: Block Alertmanager amd64 high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: v0.69.3
-          image-ref: prom/alertmanager:v0.33.1@sha256:9e082985f56f4c8c9f724e18f2288c6708f472e56a5286b8863d080434ea065d
+          version: v0.70.0
+          image-ref: tsx-core-alertmanager:${{ github.sha }}-amd64
           format: sarif
-          output: alertmanager-trivy.sarif
+          output: alertmanager-amd64-trivy.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          exit-code: '1'
+      - name: Generate Alertmanager arm64 SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          version: v0.70.0
+          image-ref: tsx-core-alertmanager:${{ github.sha }}-arm64
+          format: cyclonedx
+          output: alertmanager-arm64.cdx.json
+          exit-code: '0'
+      - name: Block Alertmanager arm64 high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          version: v0.70.0
+          image-ref: tsx-core-alertmanager:${{ github.sha }}-arm64
+          format: sarif
+          output: alertmanager-arm64-trivy.sarif
           severity: HIGH,CRITICAL
           limit-severities-for-sarif: true
           exit-code: '1'
@@ -344,20 +364,24 @@ jobs:
         run: |
           docker save tsx-core:${{ github.sha }} | zstd -T0 -3 -o release-image.tar.zst
           docker save tsx-core-exchange-executor:${{ github.sha }} | zstd -T0 -3 -o release-executor-image.tar.zst
+          docker save tsx-core-alertmanager:${{ github.sha }}-amd64 | zstd -T0 -3 -o release-alertmanager-amd64-image.tar.zst
+          docker save tsx-core-alertmanager:${{ github.sha }}-arm64 | zstd -T0 -3 -o release-alertmanager-arm64-image.tar.zst
       - name: Upload release candidate
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: release-image-${{ github.sha }}
           path: |
             release-image.tar.zst
             release-executor-image.tar.zst
+            release-alertmanager-amd64-image.tar.zst
+            release-alertmanager-arm64-image.tar.zst
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
       - name: Upload container evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: container-evidence-${{ github.sha }}
           path: |
@@ -367,168 +391,12 @@ jobs:
             exchange-executor-trivy.sarif
             prometheus.cdx.json
             prometheus-trivy.sarif
-            alertmanager.cdx.json
-            alertmanager-trivy.sarif
+            alertmanager-amd64.cdx.json
+            alertmanager-amd64-trivy.sarif
+            alertmanager-arm64.cdx.json
+            alertmanager-arm64-trivy.sarif
+            alertmanager-amd64-build.json
+            alertmanager-amd64-rebuild.json
+            alertmanager-arm64-build.json
           if-no-files-found: error
           retention-days: 90
-
-  release:
-    name: Publish attested immutable release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [verify, mutation, browser, sast, secrets, container]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      actions: read
-      attestations: write
-      artifact-metadata: write
-      contents: write
-      id-token: write
-      packages: write
-    steps:
-      - name: Checkout the exact release tag
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          fetch-depth: 0
-      - name: Require a verified annotated tag on the default branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          ref_json="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${GITHUB_REF_NAME}")"
-          test "$(jq -r '.object.type' <<<"${ref_json}")" = tag
-          tag_sha="$(jq -r '.object.sha' <<<"${ref_json}")"
-          tag_json="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_sha}")"
-          test "$(jq -r '.object.type' <<<"${tag_json}")" = commit
-          test "$(jq -r '.object.sha' <<<"${tag_json}")" = "${GITHUB_SHA}"
-          test "$(jq -r '.verification.verified' <<<"${tag_json}")" = true
-          test "$(jq -r '.verification.reason' <<<"${tag_json}")" = valid
-          default_branch="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')"
-          git fetch --no-tags origin "${default_branch}"
-          git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${default_branch}"
-      - name: Verify repository governance controls
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/verify_github_governance.js
-      - name: Require repository release immutability
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" >/dev/null
-      - name: Require successful staging and 30-day evidence for this commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for workflow in staging.yml production_evidence.yml; do
-            count="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?head_sha=${GITHUB_SHA}&status=success&per_page=1" --jq '.total_count')"
-            test "${count}" -ge 1 || { echo "No successful ${workflow} run exists for ${GITHUB_SHA}." >&2; exit 1; }
-          done
-      - name: Require tag and package versions to match
-        run: test "${GITHUB_REF_NAME}" = "v$(node -p "require('./package.json').version")"
-      - name: Download scanned image candidate
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
-        with:
-          name: release-image-${{ github.sha }}
-          path: release-candidate
-      - name: Download application SBOM evidence
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
-        with:
-          name: quality-evidence-${{ github.sha }}
-          path: application-evidence
-      - name: Download container scan evidence
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
-        with:
-          name: container-evidence-${{ github.sha }}
-          path: container-evidence
-      - name: Load, publish and identify the scanned image
-        id: publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          zstd -dc release-candidate/release-image.tar.zst | docker load
-          zstd -dc release-candidate/release-executor-image.tar.zst | docker load
-          image_name="ghcr.io/${GITHUB_REPOSITORY,,}"
-          executor_image_name="${image_name}-exchange-executor"
-          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
-          docker tag "tsx-core:${GITHUB_SHA}" "${image_name}:${GITHUB_REF_NAME}"
-          docker tag "tsx-core:${GITHUB_SHA}" "${image_name}:sha-${GITHUB_SHA}"
-          docker tag "tsx-core-exchange-executor:${GITHUB_SHA}" "${executor_image_name}:${GITHUB_REF_NAME}"
-          docker tag "tsx-core-exchange-executor:${GITHUB_SHA}" "${executor_image_name}:sha-${GITHUB_SHA}"
-          docker push "${image_name}:${GITHUB_REF_NAME}"
-          docker push "${image_name}:sha-${GITHUB_SHA}"
-          docker push "${executor_image_name}:${GITHUB_REF_NAME}"
-          docker push "${executor_image_name}:sha-${GITHUB_SHA}"
-          published_ref="$(docker inspect --format '{{index .RepoDigests 0}}' "${image_name}:${GITHUB_REF_NAME}")"
-          executor_published_ref="$(docker inspect --format '{{index .RepoDigests 0}}' "${executor_image_name}:${GITHUB_REF_NAME}")"
-          test "${published_ref}" != '<no value>'
-          test "${executor_published_ref}" != '<no value>'
-          echo "image-name=${image_name}" >> "$GITHUB_OUTPUT"
-          echo "image-digest=${published_ref#*@}" >> "$GITHUB_OUTPUT"
-          echo "executor-image-name=${executor_image_name}" >> "$GITHUB_OUTPUT"
-          echo "executor-image-digest=${executor_published_ref#*@}" >> "$GITHUB_OUTPUT"
-      - name: Attest image build provenance
-        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999
-        with:
-          subject-name: ${{ steps.publish.outputs.image-name }}
-          subject-digest: ${{ steps.publish.outputs.image-digest }}
-          push-to-registry: true
-      - name: Attest the container SBOM
-        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999
-        with:
-          subject-name: ${{ steps.publish.outputs.image-name }}
-          subject-digest: ${{ steps.publish.outputs.image-digest }}
-          sbom-path: container-evidence/container.cdx.json
-          push-to-registry: true
-      - name: Attest exchange executor build provenance
-        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999
-        with:
-          subject-name: ${{ steps.publish.outputs.executor-image-name }}
-          subject-digest: ${{ steps.publish.outputs.executor-image-digest }}
-          push-to-registry: true
-      - name: Attest the exchange executor SBOM
-        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999
-        with:
-          subject-name: ${{ steps.publish.outputs.executor-image-name }}
-          subject-digest: ${{ steps.publish.outputs.executor-image-digest }}
-          sbom-path: container-evidence/exchange-executor.cdx.json
-          push-to-registry: true
-      - name: Assemble signed release evidence
-        env:
-          IMAGE_NAME: ${{ steps.publish.outputs.image-name }}
-          IMAGE_DIGEST: ${{ steps.publish.outputs.image-digest }}
-          EXECUTOR_IMAGE_NAME: ${{ steps.publish.outputs.executor-image-name }}
-          EXECUTOR_IMAGE_DIGEST: ${{ steps.publish.outputs.executor-image-digest }}
-        run: |
-          mkdir release-assets
-          cp application-evidence/reports/sbom/backend.cdx.json release-assets/backend.cdx.json
-          cp application-evidence/reports/sbom/frontend.cdx.json release-assets/frontend.cdx.json
-          cp container-evidence/container.cdx.json release-assets/container.cdx.json
-          cp container-evidence/trivy.sarif release-assets/trivy.sarif
-          cp container-evidence/exchange-executor.cdx.json release-assets/exchange-executor.cdx.json
-          cp container-evidence/exchange-executor-trivy.sarif release-assets/exchange-executor-trivy.sarif
-          cp container-evidence/prometheus.cdx.json release-assets/prometheus.cdx.json
-          cp container-evidence/prometheus-trivy.sarif release-assets/prometheus-trivy.sarif
-          cp container-evidence/alertmanager.cdx.json release-assets/alertmanager.cdx.json
-          cp container-evidence/alertmanager-trivy.sarif release-assets/alertmanager-trivy.sarif
-          cp reports/governance/github-governance.json release-assets/github-governance.json
-          sha256sum release-assets/* > release-assets/SHA256SUMS
-          jq -n \
-            --arg tag "$GITHUB_REF_NAME" \
-            --arg commit "$GITHUB_SHA" \
-            --arg image "$IMAGE_NAME" \
-            --arg digest "$IMAGE_DIGEST" \
-            --arg executorImage "$EXECUTOR_IMAGE_NAME" \
-            --arg executorDigest "$EXECUTOR_IMAGE_DIGEST" \
-            '{schemaVersion:1, tag:$tag, commit:$commit, image:$image, digest:$digest, executorImage:$executorImage, executorDigest:$executorDigest}' \
-            > release-assets/release-manifest.json
-      - name: Publish release with all assets atomically
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME" release-assets/*
-          --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
-      - name: Verify immutable release and published attestation
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release verify "$GITHUB_REF_NAME"
-          gh attestation verify "oci://${{ steps.publish.outputs.image-name }}@${{ steps.publish.outputs.image-digest }}" --repo "$GITHUB_REPOSITORY"
-          gh attestation verify "oci://${{ steps.publish.outputs.executor-image-name }}@${{ steps.publish.outputs.executor-image-digest }}" --repo "$GITHUB_REPOSITORY"

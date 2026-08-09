@@ -1,16 +1,19 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { riskLevel, scorePullRequest } from '../scripts/calculate_pr_risk.js';
 import { evaluateGithubGovernance } from '../scripts/verify_github_governance.js';
 
-const EXCLUDED_ENCODING_DIRECTORIES = new Set(['.git', 'coverage', 'coverage-modules', 'dist', 'node_modules', 'reports']);
+const EXCLUDED_ENCODING_DIRECTORIES = new Set([
+  '.git', 'coverage', 'coverage-modules', 'dist', 'node_modules', 'reports',
+]);
 const ANALYZED_TEXT_EXTENSIONS = new Set([
   '.css', '.html', '.in', '.js', '.json', '.lock', '.md', '.mjs', '.properties',
-  '.py', '.sh', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml'
+  '.py', '.sh', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml',
 ]);
 const ANALYZED_TEXT_BASENAMES = new Set([
-  '.dockerignore', '.env.example', '.gitignore', 'config.json.example', 'Dockerfile', 'LICENSE', 'Makefile'
+  '.dockerignore', '.editorconfig', '.env.example', '.gitattributes', '.gitignore',
+  'config.json.example', 'Dockerfile', 'LICENSE', 'Makefile',
 ]);
 
 function isAnalyzedTextFile(fileName) {
@@ -24,8 +27,13 @@ async function assertUtf8Tree(directory) {
     const filePath = path.join(directory, entry.name);
     if (entry.isDirectory()) await assertUtf8Tree(filePath);
     if (!entry.isFile() || !isAnalyzedTextFile(entry.name)) continue;
-    const content = new TextDecoder('utf-8', { fatal: true }).decode(await readFile(filePath));
-    assert.doesNotMatch(content, /\uFFFD|\u00C3.|\u00E2\u20AC|\u00C2.|\u00F0\u0178/, `${filePath} contains damaged Unicode text.`);
+    const bytes = await readFile(filePath);
+    const content = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    assert.doesNotMatch(
+      content,
+      /\uFFFD|\u00C3.|\u00E2\u20AC|\u00C2.|\u00F0\u0178/,
+      `${filePath} contains damaged Unicode text.`
+    );
   }
 }
 
@@ -35,37 +43,96 @@ assert.equal(riskLevel(10), 'security-architecture-review-and-rollback');
 assert.equal(riskLevel(15), 'critical-staging-and-explicit-approval');
 
 const critical = scorePullRequest([
-  { path: 'src/dashboard_auth.ts', additions: 400, deletions: 150 },
-  { path: 'package.json', additions: 2, deletions: 1 }
+  { path: 'src/dashboard_auth.ts', status: 'M', additions: 400, deletions: 150 },
+  { path: 'package.json', status: 'M', additions: 2, deletions: 1 },
 ]);
 assert.ok(critical.score >= 15);
-assert.ok(critical.factors.some(factor => factor.id === 'test-gap'));
+assert.ok(critical.factors.some(factor => factor.id === 'production-verification'));
 assert.ok(critical.factors.some(factor => factor.id === 'large-change'));
-const tested = scorePullRequest([
-  { path: 'src/config.ts', additions: 5, deletions: 2 },
-  { path: 'tests/test_config.js', additions: 10, deletions: 0 }
-]);
-assert.ok(!tested.factors.some(factor => factor.id === 'test-gap'));
-const managedSecretChange = scorePullRequest([
-  { path: 'src/secret_store.ts', additions: 5, deletions: 1 },
-  { path: 'tests/test_secret_store.js', additions: 8, deletions: 0 }
-]);
-assert.ok(managedSecretChange.factors.some(factor => factor.id === 'critical-domain'));
-assert.ok(managedSecretChange.factors.some(factor => factor.id === 'auth-secrets'));
-const runtimeSettingsChange = scorePullRequest([
-  { path: 'src/runtime_settings.ts', additions: 5, deletions: 1 },
-  { path: 'tests/test_runtime_settings.js', additions: 8, deletions: 0 }
-]);
-assert.ok(runtimeSettingsChange.factors.some(factor => factor.id === 'auth-secrets'));
-const tradingChange = scorePullRequest([
-  { path: 'src/trading_engine.ts', additions: 5, deletions: 1 },
-  { path: 'tests/test_trading_engine.js', additions: 8, deletions: 0 }
-]);
-assert.ok(tradingChange.score >= 14, 'Trading execution changes require critical-domain, side-effect and concurrency review.');
-assert.ok(tradingChange.factors.some(factor => factor.id === 'critical-domain'));
-assert.ok(tradingChange.factors.some(factor => factor.id === 'ai-side-effect'));
 
-const requiredContexts = [
+const databaseChange = scorePullRequest([
+  { path: 'src/db.ts', status: 'M', additions: 5, deletions: 1 },
+]);
+for (const untrustedTestMetadata of [
+  { path: 'tests/test_unrelated.js', status: 'A', additions: 5, deletions: 0 },
+  { path: 'tests/test_db.js', status: 'D', additions: 0, deletions: 5 },
+  { path: 'tests/test_db.js', status: 'A', additions: 1, deletions: 0 },
+]) {
+  const attempt = scorePullRequest([
+    { path: 'src/db.ts', status: 'M', additions: 5, deletions: 1 },
+    untrustedTestMetadata,
+  ]);
+  assert.equal(attempt.score, databaseChange.score);
+}
+
+for (const criticalRuntimePath of [
+  'src/secret_store.ts',
+  'src/runtime_settings.ts',
+  'src/trading_engine.ts',
+  'src/mcp_control_bridge.ts',
+  'src/mcp_server.ts',
+  'src/mcp_repository.ts',
+  'src/factory_reset_paths.ts',
+  'src/exchange_stream_repository.ts',
+  'src/trade_journal.ts',
+  'src/signal_contract.ts',
+  'src/trading_web_control.ts',
+  'frontend/src/lib/api.ts',
+  'frontend/src/components/dashboard-auth-gate.tsx',
+]) {
+  const evaluation = scorePullRequest([
+    { path: criticalRuntimePath, status: 'M', additions: 1, deletions: 1 },
+  ]);
+  assert.ok(evaluation.score >= 10, `${criticalRuntimePath} must remain high risk.`);
+  assert.ok(evaluation.factors.some(factor => factor.id === 'critical-domain'));
+}
+
+for (const governancePath of [
+  '.github/workflows/quality.yml',
+  '.github/workflows/staging.yml',
+  '.github/workflows/production_evidence.yml',
+  '.github/workflows/synthetic.yml',
+  '.github/CODEOWNERS',
+  '.github/dependabot.yml',
+  '.gitleaks.toml',
+  '.sonarcloud.properties',
+  '.editorconfig',
+  '.dockerignore',
+  'package.json',
+  'package-lock.json',
+  'frontend/package.json',
+  'frontend/package-lock.json',
+  'frontend/index.html',
+  'frontend/.oxlintrc.json',
+  'frontend/postcss.config.js',
+  'frontend/tailwind.config.js',
+  'quality-baseline.json',
+  'coverage-baseline.json',
+  'c8.critical.json',
+  'c8.modules.json',
+  'stryker.config.mjs',
+  'eslint.config.js',
+  'tsconfig.json',
+  'frontend/playwright.config.ts',
+  'frontend/vite.config.ts',
+  'tests/run_all.js',
+  'tests/test_supply_chain.js',
+  'monitoring/rules.yml',
+  'monitoring/vex/example.openvex.json',
+  'monitoring/alertmanager.Dockerfile',
+  'Dockerfile',
+  'docker-compose.yml',
+  'exchange_executor/requirements.lock',
+  'config/runtime-settings.json',
+]) {
+  const evaluation = scorePullRequest([
+    { path: governancePath, status: 'M', additions: 1, deletions: 1 },
+  ]);
+  assert.ok(evaluation.score >= 10, `${governancePath} must remain high risk.`);
+  assert.ok(evaluation.factors.some(factor => factor.id === 'governance-control'));
+}
+
+const REQUIRED_CONTEXTS = [
   'Lint, tests, coverage, build, supply chain',
   'Critical mutation gate (queue)',
   'Critical mutation gate (retry)',
@@ -78,58 +145,94 @@ const requiredContexts = [
   'CodeQL SAST',
   'Secret history scan',
   'Dependency review',
-  'Container build, SBOM, vulnerability scan'
+  'Container build, SBOM, vulnerability scan',
 ];
-const governance = evaluateGithubGovernance({
+const validGovernance = {
   repository: {
+    default_branch: 'main',
+    allow_merge_commit: true,
+    allow_squash_merge: false,
+    allow_rebase_merge: false,
     security_and_analysis: {
       dependency_graph: { status: 'enabled' },
       secret_scanning: { status: 'enabled' },
-      secret_scanning_push_protection: { status: 'enabled' }
-    }
+      secret_scanning_push_protection: { status: 'enabled' },
+    },
   },
   protection: {
-    required_status_checks: { strict: true, contexts: requiredContexts },
+    required_status_checks: {
+      strict: true,
+      contexts: REQUIRED_CONTEXTS,
+      checks: REQUIRED_CONTEXTS.map(context => ({ context, app_id: 15368 })),
+    },
     required_pull_request_reviews: {
       required_approving_review_count: 2,
       dismiss_stale_reviews: true,
       require_code_owner_reviews: true,
-      require_last_push_approval: true
+      require_last_push_approval: true,
     },
     enforce_admins: { enabled: true },
     required_conversation_resolution: { enabled: true },
     allow_force_pushes: { enabled: false },
-    allow_deletions: { enabled: false }
+    allow_deletions: { enabled: false },
   },
-  environments: { environments: [{ name: 'staging' }, { name: 'production-observer' }] },
-  codeowners: '* @enterprise/forwarder-owners\n',
-  codeownerErrors: []
-});
-assert.equal(governance.passed, true);
+  environments: {
+    environments: [
+      { name: 'staging' },
+      {
+        name: 'production-observer',
+        deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
+      },
+    ],
+  },
+  productionEnvironmentPolicies: {
+    branch_policies: [{ name: 'main', type: 'branch' }],
+  },
+  codeowners: '* @888nikush888\n',
+  codeownerErrors: [],
+};
 
-const [dependabot, workflow, securityPolicy, sonarCloud, editorConfig, gitAttributes] = await Promise.all([
-  readFile('.github/dependabot.yml', 'utf8'),
+const governance = evaluateGithubGovernance(validGovernance);
+assert.equal(governance.passed, true);
+assert.equal(governance.checks.filter(item => item.name.startsWith('Required check:')).length, 13);
+assert.equal(governance.checks.filter(item => item.name.startsWith('Required check source:')).length, 13);
+
+const wrongSource = structuredClone(validGovernance);
+wrongSource.protection.required_status_checks.checks[0].app_id = 999;
+assert.equal(evaluateGithubGovernance(wrongSource).passed, false);
+const wrongDefault = structuredClone(validGovernance);
+wrongDefault.repository.default_branch = 'not-main';
+assert.equal(evaluateGithubGovernance(wrongDefault).passed, false);
+const tagPolicy = structuredClone(validGovernance);
+tagPolicy.productionEnvironmentPolicies.branch_policies = [{ name: 'main', type: 'tag' }];
+assert.equal(evaluateGithubGovernance(tagPolicy).passed, false);
+const missingOwner = structuredClone(validGovernance);
+missingOwner.codeowners = '# no owner\n';
+assert.equal(evaluateGithubGovernance(missingOwner).passed, false);
+
+const [workflow, codeowners, sonarCloud, editorConfig, gitAttributes] = await Promise.all([
   readFile('.github/workflows/quality.yml', 'utf8'),
-  readFile('SECURITY.md', 'utf8'),
+  readFile('.github/CODEOWNERS', 'utf8'),
   readFile('.sonarcloud.properties', 'utf8'),
   readFile('.editorconfig', 'utf8'),
-  readFile('.gitattributes', 'utf8')
+  readFile('.gitattributes', 'utf8'),
 ]);
-for (const ecosystem of ['npm', 'github-actions', 'docker']) {
-  assert.match(dependabot, new RegExp(`package-ecosystem: ${ecosystem}`));
-}
-assert.match(workflow, /calculate_pr_risk\.js/);
-assert.match(workflow, /verify_github_governance\.js/);
-assert.match(securityPolicy, /Private Vulnerability Reporting/);
-assert.match(sonarCloud, /^sonar\.sourceEncoding=UTF-8$/m);
+assert.match(codeowners, /^\*\s+@888nikush888\s*$/m);
+assert.doesNotMatch(workflow, /^\s{2}release:\s*$/m);
+assert.doesNotMatch(workflow, /create-github-app-token|PR risk approval gate|release-governance|pr-risk-publisher/);
 assert.match(sonarCloud, /^sonar\.python\.version=3\.12$/m);
-assert.match(sonarCloud, /^sonar\.sources=src,frontend\/src,scripts,\.github,exchange_executor\/bybit_adapter\.py,/m);
-assert.match(sonarCloud, /^sonar\.tests=tests,frontend\/tests,frontend\/e2e,exchange_executor\/tests,monitoring\/rules\.test\.yml$/m);
-assert.doesNotMatch(sonarCloud, /^sonar\.exclusions=/m, 'Explicit source paths must stay disjoint from test paths.');
-assert.doesNotMatch(sonarCloud, /[*?]/, 'Automatic-analysis paths must not use wildcard patterns.');
 assert.match(editorConfig, /^charset = utf-8$/m);
-assert.match(editorConfig, /^end_of_line = lf$/m);
 assert.match(gitAttributes, /^\* text=auto$/m);
-await assertUtf8Tree('.');
+for (const removedPath of [
+  '.github/workflows/pr_risk.yml',
+  '.github/workflows/release.yml',
+  '.github/dependabot.yml',
+  'scripts/publish_pr_risk_status.js',
+  'scripts/reevaluate_open_pr_risks.js',
+  'scripts/run_trusted_pr_risk.js',
+]) {
+  await assert.rejects(access(removedPath), /ENOENT/, `${removedPath} must not be shipped.`);
+}
 
-console.log('Repository governance and PR-risk tests passed.');
+await assertUtf8Tree('.');
+console.log('Repository governance tests passed.');

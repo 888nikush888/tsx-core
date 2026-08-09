@@ -19,9 +19,7 @@ function isSensitiveTrackedPath(file) {
   return sensitiveDirectory.test(file) || environmentFile.test(file) || file.toLowerCase().endsWith('.tgfb');
 }
 
-export function evaluateBuildContext({ dockerignore, dockerfile, trackedFiles }) {
-  const rules = new Set(dockerignore.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')));
-  const violations = requiredIgnores.filter(rule => !rules.has(rule)).map(rule => `.dockerignore is missing ${rule}`);
+function workspaceRootCopyViolation(dockerfile, label = 'Dockerfile') {
   const copiesWorkspaceRoot = dockerfile.split(/\r?\n/).some((line) => {
     const trimmed = line.trim();
     if (!trimmed.startsWith('COPY ') && !trimmed.startsWith('ADD ')) return false;
@@ -37,9 +35,13 @@ export function evaluateBuildContext({ dockerignore, dockerfile, trackedFiles })
     const values = argumentText.split(/\s+/).filter(value => !value.startsWith('--'));
     return values.slice(0, -1).some(value => value === '.' || value === './');
   });
-  if (copiesWorkspaceRoot) {
-    violations.push('Dockerfile must use an explicit COPY allowlist instead of copying or adding the workspace root');
-  }
+  return copiesWorkspaceRoot ? [`${label} must use an explicit COPY allowlist instead of copying or adding the workspace root`] : [];
+}
+
+export function evaluateBuildContext({ dockerignore, dockerfile, trackedFiles }) {
+  const rules = new Set(dockerignore.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')));
+  const violations = requiredIgnores.filter(rule => !rules.has(rule)).map(rule => `.dockerignore is missing ${rule}`);
+  violations.push(...workspaceRootCopyViolation(dockerfile));
   for (const file of trackedFiles.map(value => value.replaceAll('\\', '/'))) {
     if (file === '.env.example') continue;
     if (isSensitiveTrackedPath(file)) violations.push(`sensitive runtime path is tracked: ${file}`);
@@ -48,14 +50,16 @@ export function evaluateBuildContext({ dockerignore, dockerfile, trackedFiles })
 }
 
 if (path.resolve(process.argv[1] ?? '') === path.resolve(fileURLToPath(import.meta.url))) {
-  const [dockerignore, dockerfile, executorDockerignore] = await Promise.all([
+  const [dockerignore, dockerfile, executorDockerignore, alertmanagerDockerfile] = await Promise.all([
     readFile(path.join(root, '.dockerignore'), 'utf8'),
     readFile(path.join(root, 'Dockerfile'), 'utf8'),
     readFile(path.join(root, 'exchange_executor', '.dockerignore'), 'utf8'),
+    readFile(path.join(root, 'monitoring', 'alertmanager.Dockerfile'), 'utf8'),
   ]);
   // Names only: the gate deliberately never opens possible secret files.
   const trackedFiles = execFileSync(gitExecutable, ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
   const violations = evaluateBuildContext({ dockerignore, dockerfile, trackedFiles });
+  violations.push(...workspaceRootCopyViolation(alertmanagerDockerfile, 'monitoring/alertmanager.Dockerfile'));
   const executorRules = new Set(executorDockerignore.split(/\r?\n/).map(line => line.trim()).filter(Boolean));
   for (const rule of ['.env', '.env.*', 'secrets', '**/secrets']) {
     if (!executorRules.has(rule)) violations.push(`exchange_executor/.dockerignore is missing ${rule}`);

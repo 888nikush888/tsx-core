@@ -2,11 +2,11 @@
 
 ## Ziel und Geltungsbereich
 
-Jeder Merge muss Qualität, Sicherheit, Betriebsstabilität und Änderbarkeit mindestens erhalten. Dieses Quality OS gilt für Backend, Dashboard, KI-Prompts und -Schemas, dynamische Signalverträge, MCP, Container, Konfiguration, Datenbank und Betriebsdokumentation. Ein grüner Einzeltest ersetzt kein Gate; widersprüchliche Evidenz führt zum strengeren Ergebnis.
+Jeder veröffentlichte Commit muss Qualität, Sicherheit, Betriebsstabilität und Änderbarkeit mindestens erhalten. Dieses Quality OS gilt für Backend, Dashboard, KI-Prompts und -Schemas, dynamische Signalverträge, MCP, Container, Konfiguration, Datenbank und Betriebsdokumentation. Ein grüner Einzeltest ersetzt kein Gate; widersprüchliche Evidenz führt zum strengeren Ergebnis.
 
 ## Requirement Contract
 
-Für jedes neue oder geänderte kritische Feature wird vor Implementierung diese Tabelle im Issue oder PR ausgefüllt:
+Für jedes neue oder geänderte kritische Feature wird vor Implementierung diese Tabelle in der Arbeitsnotiz oder einem Issue ausgefüllt:
 
 | Business-/Systemziel | Input Contract          | Output Contract    | Invarianten         | Side Effects             | Failure Policy              | Observability        | Test Evidence | Owner   |
 | -------------------- | ----------------------- | ------------------ | ------------------- | ------------------------ | --------------------------- | -------------------- | ------------- | ------- |
@@ -32,20 +32,23 @@ Fehlt der Contract für einen kritischen Pfad, ist Correctness nicht beweisbar u
 | Exchange-WebSocket-Beschleunigung | aktiviertes verifiziertes Nicht-Paper-Konto, offizielles SDK, normalisiertes Symbol, gültiger Cursor | dedupliziertes Ereignis und bei Zustandsänderung erzwungene REST-Reconciliation | WebSocket mutiert nie Orders/Fills/Positionen direkt; REST bleibt autoritativ; Lücke/Disconnect schaltet periodischen Schutz nicht ab | begrenzte Stream-Event-/Status-Persistenz und vorgezogener Abgleich | Gap/Overflow/Socketfehler = `degraded`, REST-Schutz bleibt aktiv und Trading bei REST-Fehler fail closed | Konto-Streamstatus, Cursor, Lückenzähler, letztes Ereignis/Fehler | `test_trade_journal_streams.js`, `test_trading_failures.js`, `exchange_executor/tests/test_contracts.py` | Trading Domain + SRE |
 | Trade Journal und Export | authentifizierter Filter auf managed Trade Intent; Admin-Review mit begrenzten Notizen/Tags/Bewertung | vollständige Trade-Provenienz oder PII-redigierter JSON-/CSV-Download | normalisierte Symbole; kein Telegram-Chat-Klartext; CSV-Formeln neutralisiert; Review schützt Provenienz vor Standard-Retention | Journal-Review und Download | ungültiger Filter/Review = keine Änderung; fehlende Audit-Voraussetzung blockiert Mutation | Audit, Review-Zeit, immutable Strategie-/Vertragshash, Execution-Timeline | `test_trade_journal_streams.js`, `test_web_server.js`, Frontend-Build/-Behavior | Trading Domain + Data Owner |
 
-## PR-Risikowert
+## Änderungsrisikowert
 
-Jeder zutreffende Faktor wird einmal addiert. `scripts/calculate_pr_risk.js` berechnet die Summe aus dem tatsächlichen Git-Diff und veröffentlicht die JSON-Evidenz; der Autor verlinkt sie in der PR-Vorlage.
+Jeder zutreffende Faktor wird einmal addiert. `scripts/calculate_pr_risk.js` wird lokal gegen zwei explizite Commit-SHAs ausgeführt und schreibt seine Evidenz nach `reports/pr-risk/`; es veröffentlicht keinen GitHub-Status. Änderungen an Quality-, Release-, SBOM-, Deployment-, GitHub-Governance- oder Risiko-Gates, allen GitHub-Workflows sowie den Root-Buildskripten in `package.json` erhalten allein bereits zehn Punkte. Die Git-Auswertung deaktiviert Rename-Komprimierung, damit bei Verschiebungen sowohl der kritische alte als auch der neue Pfad getrennt bewertet werden.
 
 | Faktor                                                                      | Punkte |
 | --------------------------------------------------------------------------- | -----: |
 | Kritische Domäne: Zustellung, irreversible Aktion, PII oder KI-Entscheidung |      5 |
+| Zusätzlicher Operator-Sicherheitsaufschlag für kritische Kontrollpfade       |      3 |
 | Authentifizierung, Autorisierung oder Secret-Grenze                         |      5 |
 | KI-Prompt, Modell, Tool oder automatische Nebenwirkung                      |      5 |
 | DB-Migration oder persistentes Datenmodell                                  |      4 |
 | Concurrency, Retry, Timeout, Idempotenz oder Shutdown                       |      4 |
 | Public-API-/Event-Vertragsänderung                                          |      3 |
-| Fehlender Regressionstest oder kritische Branch Coverage <80 %              |      3 |
+| Produktionsänderung mit unabhängigem Verifikationsbedarf                    |      3 |
 | Neue Produktionsabhängigkeit oder Base Image                                |      2 |
+| Standalone-Löschung ablaufender Risikoakzeptanz-Records                     |      5 |
+| Änderung an Governance-/Release-/Risk-Gates oder Risk-Records               |     10 |
 | Änderung >500 LOC netto                                                     |      2 |
 
 | Summe | Verbindliches Verfahren                                |
@@ -53,13 +56,15 @@ Jeder zutreffende Faktor wird einmal addiert. `scripts/calculate_pr_risk.js` ber
 |   0–4 | Standard-Review                                        |
 |   5–9 | Senior Review                                          |
 | 10–14 | Security-/Architecture-Review plus Rollback-Plan       |
-|   ≥15 | Kein Merge ohne explizite Freigabe und Staging-Evidenz |
+|   ≥15 | Keine Veröffentlichung ohne explizite Freigabe und Staging-Evidenz |
+
+Für Scores ab zehn ist eine unabhängige fachliche und sicherheitstechnische Prüfung mit dokumentiertem Rollback vorgesehen. Wenn ein zeitlich befristeter Risikoakzeptanz-Record verwendet wird, muss er konkrete Evidenz, kompensierende Kontrollen, Exit-Kriterien, getrennte Owner-/Approver-Namen und mindestens 24 Stunden Restgültigkeit enthalten. Das Repository automatisiert diese Freigabe nicht über einen eigenen GitHub-Status; `npm run quality:risk-acceptances` validiert ausschließlich die vorhandenen Records. Details und Vorlage stehen in `docs/risk-acceptances/README.md`.
 
 ## Gate-Matrix
 
-`Fail` blockiert. `Evidence` muss als CI-Artefakt oder Release-Record verlinkt sein. Nicht anwendbare Gates benötigen eine begründete N/A-Zeile im PR.
+`Fail` blockiert. `Evidence` muss als CI-Artefakt oder Betriebsrecord verlinkt sein. Nicht anwendbare Gates benötigen eine begründete N/A-Zeile in der Änderungsdokumentation.
 
-| Gate                                              | Pull Request                  | Main     | Release/Tag               |
+| Gate                                              | Lokaler Snapshot              | Main-CI  | Produktions-Deploy        |
 | ------------------------------------------------- | ----------------------------- | -------- | ------------------------- |
 | Lockfile-Install, Lint, Typecheck                 | Fail                          | Fail     | Fail                      |
 | Unit-/Integration-/Contract-Tests                 | Fail                          | Fail     | Fail                      |
@@ -72,20 +77,21 @@ Jeder zutreffende Faktor wird einmal addiert. `scripts/calculate_pr_risk.js` ber
 | Browser-/Accessibility-Matrix (4 Browserprofile) | Fail                          | Fail     | Fail                      |
 | Dependency-Audit ab Moderate                      | Fail                          | Fail     | Fail                      |
 | Lizenz-Allowlist                                  | Fail                          | Fail     | Fail                      |
-| Secret-History-Scan                               | Fail                          | Fail     | Fail                      |
-| CodeQL SAST                                       | Fail                          | Fail     | Fail                      |
+| Secret-History-Scan                               | Evidence                      | Fail     | Fail                      |
+| CodeQL SAST                                       | Optional                      | Fail     | Fail                      |
 | SBOM Backend, Frontend, Container                 | Evidence                      | Evidence | Fail wenn fehlend         |
 | Container HIGH/CRITICAL, non-root, Native Imports | Fail                          | Fail     | Fail                      |
+| Lokaler Änderungsrisikowert                       | Evidence                      | N/A      | Evidence                  |
 | DB-Migration/Restore-Test                         | Bei DB-Änderung Fail          | Fail     | Fail                      |
 | MCP-/Event-Contract-Kompatibilität                | Fail bei inkompatibler Änderung | Fail   | Fail                      |
-| Live KI-Golden-Set mit Staging-Provider           | Bei KI-Änderung Fail          | Evidence | Fail                      |
+| Live KI-Golden-Set mit Staging-Provider           | Bei KI-Änderung Evidence      | Evidence | Fail                      |
 | Synthetischer E2E-Flow                            | Optional                      | Evidence | Fail                      |
 | Performance-/30-Tage-Soak                         | Bei Ressourcenänderung        | Evidence | Fail                      |
 | Rollback- und Offline-Restore-Übung               | Bei betroffener Änderung      | Evidence | Fail                      |
 
-Der Workflow `.github/workflows/quality.yml` implementiert die lokal automatisierbaren Gates einschließlich getesteter Alarmregeln. `.github/workflows/staging.yml`, `.github/workflows/synthetic.yml` und `.github/workflows/production_evidence.yml` erzeugen die externen Staging-/SLO-Nachweise; ein Tag-Release prüft erfolgreiche Läufe für exakt seinen Commit. Branch Protection, Runner-/Environment-Schutz, Eigentum am Off-host-Ziel, der konkrete Incident-Empfänger und die tatsächlichen Messwerte bleiben externe Kontrollen und müssen durch die Plattform beziehungsweise den Release-Record belegt werden.
+Der Workflow `.github/workflows/quality.yml` implementiert die Produkt- und Supply-Chain-Gates einschließlich getesteter Alarmregeln. Er baut und scannt Kandidaten, besitzt aber keine Release-Credentials und veröffentlicht weder GitHub Releases noch Registry-Images. `.github/workflows/staging.yml`, `.github/workflows/synthetic.yml` und `.github/workflows/production_evidence.yml` erzeugen die externen Staging-/SLO-Nachweise. Branch Protection, Runner-/Environment-Schutz, Eigentum am Off-host-Ziel, der konkrete Incident-Empfänger und die tatsächlichen Messwerte bleiben externe Betreiberkontrollen.
 
-Vor Veröffentlichung validiert `scripts/verify_github_governance.js` Branch Protection, konkrete Required Checks, Review-/CODEOWNERS-Regeln, Security-Features und die benötigten Environments direkt über die GitHub-API. Fehlende oder unprüfbare Plattformkontrollen blockieren den Release; die Einrichtung ist in `docs/GITHUB_GOVERNANCE.md` beschrieben.
+`scripts/verify_github_governance.js` kann auf einer Plattform mit Branch Protection den strengeren Zielzustand aus dreizehn normalen GitHub-Actions-Checks, Review-/CODEOWNERS-Regeln, Security-Features und dem auf `main` begrenzten `production-observer`-Environment prüfen. Im aktuellen privaten Free-Repository ist diese API-Kontrolle nicht verfügbar und deshalb kein Bestandteil des direkten Main-Pushs; Details stehen in `docs/GITHUB_GOVERNANCE.md`.
 
 Das in `quality-baseline.json` geratchete Budget steht bei null ESLint-Warnungen sowie null Complexity-, Nesting- und Funktionslängen-Hotspots. `npm run quality:complexity` blockiert jede neue Warnung oder Budgetabweichung. Das Budget darf nie erhöht werden, außer über einen gültigen zeitlich befristeten Risikoakzeptanz-Record.
 
@@ -108,13 +114,13 @@ Der Token gehört ausschließlich in einen Secret Store beziehungsweise eine kur
 
 ## Gate-Ausnahmen
 
-Ein Gate wird nie still übersprungen. Eine Ausnahme benötigt vor dem Merge eine Datei `docs/risk-acceptances/RA-<datum>-<slug>.md`, eine Laufzeit von höchstens 30 Tagen, benannte Owner und Approver, konkrete Evidenz, kompensierende Kontrollen und Exit-Kriterien. `npm run quality:risk-acceptances` blockiert ungültige oder abgelaufene Records. Kritische Sicherheitslücken, ungetestete Migrationen, fehlender Rollback, kritische Flows ohne Test, unverifizierter Restore und ungeklärte irreversible KI-Aktionen sind nicht akzeptierbar.
+Ein Gate wird nie still übersprungen. Eine Ausnahme benötigt vor der Veröffentlichung eine Datei `docs/risk-acceptances/RA-<datum>-<slug>.md`, eine Laufzeit von höchstens 30 Tagen, benannte Owner und Approver, konkrete Evidenz, kompensierende Kontrollen und Exit-Kriterien. `npm run quality:risk-acceptances` blockiert ungültige oder abgelaufene Records. Kritische Sicherheitslücken, ungetestete Migrationen, fehlender Rollback, kritische Flows ohne Test, unverifizierter Restore und ungeklärte irreversible KI-Aktionen sind nicht akzeptierbar.
 
 ## Traceability
 
-Für kritische Änderungen muss der PR diese Kette vollständig verlinken:
+Für kritische Änderungen muss die Änderungsdokumentation diese Kette vollständig verlinken:
 
-`Requirement → Acceptance Criteria → ADR → Commit/PR → Review → Testfall → Build/SBOM → Deployment → SLO/Alert → Incident → Regressionstest`
+`Requirement → Acceptance Criteria → ADR → Commit → Review → Testfall → Build/SBOM → Deployment → SLO/Alert → Incident → Regressionstest`
 
 Jede fehlende Kante wird als `TRACEABILITY GAP` markiert. Ein Incident wird erst geschlossen, wenn Ursache, Datenumfang, sichere Wiederholung und Regressionstest dokumentiert sind.
 
@@ -157,7 +163,7 @@ Die Werte sind die initialen verbindlichen Ziele; sie werden nach dem ersten bel
 | Trading Kill-Switch im Steady State         |                            0 |                   0 | Release-/Feature-Freeze bis Ursachenbeleg                |
 | Paper/Testnet Trade Intents im Soak         |                     ≥100/30d |                  100 | 30-Tage-Gate bleibt NO-GO                                |
 
-Synthetische E2E-Prüfungen laufen im Staging mindestens alle 15 Minuten. Monatlich werden Restore und kontrollierter Provider-/Netzwerkausfall geübt. Postmortems sind blameless, aber ein Regressionstest für jede technisch reproduzierbare Incident-Ursache ist verpflichtend.
+Im echten Produktionsbetrieb muss ein extern überwachter Scheduler synthetische E2E-Prüfungen im Staging mindestens alle 15 Minuten auslösen; bis Runner und Scheduler eingerichtet sind, bleibt der Workflow manuell und diese SLO-Evidenz ausdrücklich offen. Monatlich werden Restore und kontrollierter Provider-/Netzwerkausfall geübt. Postmortems sind blameless, aber ein Regressionstest für jede technisch reproduzierbare Incident-Ursache ist verpflichtend.
 
 ## AI Governance ohne Runtime-HITL
 

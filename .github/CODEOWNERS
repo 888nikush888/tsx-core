@@ -1,15 +1,3 @@
-# Default ownership is intentionally fail-closed. The organization team must
-# exist before the release governance API gate can pass.
-* @enterprise/forwarder-owners
-
-# Security, release, and trading boundaries require their specialist owners.
-/.github/ @enterprise/security-owners @enterprise/release-owners
-/src/web_server.ts @enterprise/security-owners
-/src/secret_store.ts @enterprise/security-owners
-/src/audit_trail.ts @enterprise/security-owners @enterprise/sre-owners
-/src/trading_*.ts @enterprise/trading-owners @enterprise/security-owners
-/exchange_executor/ @enterprise/trading-owners @enterprise/security-owners
-/Dockerfile @enterprise/release-owners
-/docker-compose*.yml @enterprise/release-owners @enterprise/sre-owners
-/package*.json @enterprise/release-owners
-/frontend/package*.json @enterprise/release-owners
+# The repository is currently owned by a personal GitHub account. Keep this
+# ownership rule resolvable; review separation is an operator responsibility.
+* @888nikush888

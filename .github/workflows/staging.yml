@@ -1,27 +1,17 @@
 name: Staging Release Gate
 
 on:
-  workflow_run:
-    workflows: [Quality OS]
-    branches: [main]
-    types: [completed]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: staging-release-${{ github.event.workflow_run.head_sha || github.sha }}
+  group: staging-release-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
   staging:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_repository.full_name == github.repository &&
-       github.event.workflow_run.head_branch == 'main')
     runs-on: [self-hosted, staging]
     environment: staging
     timeout-minutes: 30
@@ -37,12 +27,12 @@ jobs:
       E2E_TDL_FILES_DIR: ${{ vars.E2E_TDL_FILES_DIR }}
     steps:
       - name: Checkout the verified commit
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Configure pinned Node major
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '22'
           cache: npm
@@ -55,9 +45,9 @@ jobs:
         run: npm run test:ai-eval
       - name: Upload staging evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: staging-evidence-${{ github.event.workflow_run.head_sha || github.sha }}
+          name: staging-evidence-${{ github.sha }}
           path: reports/staging/
           if-no-files-found: error
           retention-days: 90

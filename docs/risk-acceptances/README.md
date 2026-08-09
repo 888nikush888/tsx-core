@@ -1,35 +1,43 @@
-# TSX Core – Time-bounded risk acceptances
+# Risk acceptances
 
-Only files named `RA-<YYYYMMDD>-<slug>.md` are records. Copy the template, replace every value, and remove the record after remediation. A record may remain active for at most 30 days; expired or incomplete records fail CI.
+Only files named `RA-<YYYYMMDD>-<slug>.md` are records. Copy the template below, replace every value, and remove the record after remediation.
 
-PR risk records use the commit-bound gate `pr-risk:<40-character-head-sha>`. The `scope` must contain the same SHA, and owner and approver must differ. A score of ten or more fails CI unless this exact, valid, and unexpired record exists.
+Every required section must contain concrete, non-placeholder content. Empty headings, comments, checkboxes, `TBD`, `N/A`, or equivalent filler fail `npm run quality:risk-acceptances`. A record may remain active for at most 30 days, may not be future-dated, and must retain at least 24 hours of validity when evaluated.
+
+TSX Core does not publish a custom GitHub approval status. These records are local, reviewable evidence for an explicitly accepted temporary deviation. They never make the following acceptable:
+
+- critical security vulnerabilities;
+- untested destructive migrations;
+- missing restore or rollback evidence;
+- critical execution paths without tests;
+- unresolved irreversible trading or AI side effects.
+
+Use separate, real people for `owner` and `approver` whenever a second qualified reviewer is available. `scope` must identify the exact affected component or commit, and `gate` must name the blocked quality or operational gate. Deleting an expired or remediated record does not erase it from Git history.
 
 ```markdown
 ---
-id: RA-<YYYYMMDD>-<slug>
-owner: <responsible-owner>
-approver: <different-security-or-domain-approver>
-created: <YYYY-MM-DD>
-expires: <YYYY-MM-DD, at most 30 days after created>
-scope: <exact components, versions, and commit SHA>
-gate: <affected-gate or pr-risk:40-character-head-sha>
+id: RA-YYYYMMDD-short-name
+owner: service-owner
+approver: independent-reviewer
+created: YYYY-MM-DD
+expires: YYYY-MM-DD
+scope: exact component, change, or commit
+gate: affected-gate
 ---
 
 ## Risk
 
-Concrete damage scenario and maximum impact.
+Concrete failure scenario and impact.
 
 ## Evidence
 
-Finding, test or scan output, and why the gate cannot currently be met.
+Exact test, scan, issue, or measurement references.
 
 ## Compensating controls
 
-Time-bounded controls, monitoring, and stop condition.
+Temporary controls with named operators.
 
 ## Exit criteria
 
-Measurable evidence, responsible owner, and latest remediation date.
+Measurable remediation and removal condition.
 ```
-
-Critical security vulnerabilities, untested migrations, missing rollback or restore capability, critical flows without tests, and unresolved irreversible AI actions cannot be accepted.

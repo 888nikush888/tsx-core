@@ -15,8 +15,9 @@ const REQUIRED_CHECKS = [
   'CodeQL SAST',
   'Secret history scan',
   'Dependency review',
-  'Container build, SBOM, vulnerability scan'
+  'Container build, SBOM, vulnerability scan',
 ];
+const GITHUB_ACTIONS_APP_ID = 15368;
 
 function check(name, passed, actual) {
   return { name, passed: Boolean(passed), actual };
@@ -24,10 +25,19 @@ function check(name, passed, actual) {
 
 function statusCheckResults(protection) {
   const statusChecks = protection.required_status_checks || {};
-  const contexts = new Set([...(statusChecks.contexts || []), ...(statusChecks.checks || []).map(item => item.context)]);
+  const configuredChecks = statusChecks.checks || [];
+  const contexts = new Set([
+    ...(statusChecks.contexts || []),
+    ...configuredChecks.map(item => item.context),
+  ]);
   return [
     check('Required status checks use the latest base branch', statusChecks.strict === true, statusChecks.strict),
-    ...REQUIRED_CHECKS.map(required => check(`Required check: ${required}`, contexts.has(required), [...contexts]))
+    ...REQUIRED_CHECKS.map(required => check(`Required check: ${required}`, contexts.has(required), [...contexts])),
+    ...REQUIRED_CHECKS.map(required => check(
+      `Required check source: ${required}`,
+      configuredChecks.some(item => item.context === required && item.app_id === GITHUB_ACTIONS_APP_ID),
+      configuredChecks.find(item => item.context === required) ?? null
+    )),
   ];
 }
 
@@ -41,28 +51,63 @@ function reviewResults(protection) {
     check('Administrators are protected', protection.enforce_admins?.enabled === true, protection.enforce_admins?.enabled),
     check('Conversation resolution is required', protection.required_conversation_resolution?.enabled === true, protection.required_conversation_resolution?.enabled),
     check('Force pushes are disabled', protection.allow_force_pushes?.enabled !== true, protection.allow_force_pushes?.enabled),
-    check('Branch deletion is disabled', protection.allow_deletions?.enabled !== true, protection.allow_deletions?.enabled)
+    check('Branch deletion is disabled', protection.allow_deletions?.enabled !== true, protection.allow_deletions?.enabled),
   ];
 }
 
-function securityResults(repository) {
+function repositoryResults(repository) {
   const security = repository.security_and_analysis || {};
   return [
+    check('Default branch is main', repository.default_branch === 'main', repository.default_branch),
+    check('Merge commits are enabled', repository.allow_merge_commit === true, repository.allow_merge_commit),
+    check('Squash merges are disabled', repository.allow_squash_merge === false, repository.allow_squash_merge),
+    check('Rebase merges are disabled', repository.allow_rebase_merge === false, repository.allow_rebase_merge),
     check('Dependency graph is enabled', security.dependency_graph?.status === 'enabled', security.dependency_graph?.status),
     check('Secret scanning is enabled', security.secret_scanning?.status === 'enabled', security.secret_scanning?.status),
-    check('Secret push protection is enabled', security.secret_scanning_push_protection?.status === 'enabled', security.secret_scanning_push_protection?.status)
+    check('Secret push protection is enabled', security.secret_scanning_push_protection?.status === 'enabled', security.secret_scanning_push_protection?.status),
   ];
 }
 
-function environmentResults(environments) {
-  const environmentNames = new Set((environments.environments || []).map(item => item.name));
+function usesCustomBranchPolicy(environment) {
+  const policy = environment?.deployment_branch_policy;
+  return policy?.custom_branch_policies === true && policy?.protected_branches === false;
+}
+
+function isRestrictedToMain(policies) {
+  if (!Array.isArray(policies) || policies.length !== 1) return false;
+  const [policy] = policies;
+  return policy?.name === 'main' && policy?.type === 'branch';
+}
+
+function productionEnvironmentResults(environments, productionEnvironmentPolicies) {
+  const configured = environments.environments || [];
+  const names = new Set(configured.map(item => item.name));
+  const production = configured.find(item => item.name === 'production-observer');
+  const policies = productionEnvironmentPolicies?.branch_policies || [];
   return [
-    check('Staging environment exists', environmentNames.has('staging'), [...environmentNames]),
-    check('Production observer environment exists', environmentNames.has('production-observer'), [...environmentNames])
+    check('Staging environment exists', names.has('staging'), [...names]),
+    check('Production observer environment exists', Boolean(production), production?.name ?? null),
+    check(
+      'Production observer uses custom branch policies',
+      usesCustomBranchPolicy(production),
+      production?.deployment_branch_policy ?? null
+    ),
+    check(
+      'Production observer is restricted exactly to main',
+      isRestrictedToMain(policies),
+      policies
+    ),
   ];
 }
 
-export function evaluateGithubGovernance({ repository, protection, environments, codeowners, codeownerErrors }) {
+export function evaluateGithubGovernance({
+  repository,
+  protection,
+  environments,
+  productionEnvironmentPolicies,
+  codeowners,
+  codeownerErrors,
+}) {
   const hasOwnerRule = codeowners.split(/\r?\n/).some(line => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) return false;
@@ -73,8 +118,8 @@ export function evaluateGithubGovernance({ repository, protection, environments,
     check('CODEOWNERS has no platform parse errors', Array.isArray(codeownerErrors) && codeownerErrors.length === 0, codeownerErrors),
     ...statusCheckResults(protection),
     ...reviewResults(protection),
-    ...securityResults(repository),
-    ...environmentResults(environments)
+    ...repositoryResults(repository),
+    ...productionEnvironmentResults(environments, productionEnvironmentPolicies),
   ];
   return { passed: checks.every(item => item.passed), checks };
 }
@@ -88,9 +133,9 @@ async function githubJson(pathSegments, token, query = {}) {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${token}`,
       'X-GitHub-Api-Version': '2026-03-10',
-      'User-Agent': 'tsx-core-quality-gate'
+      'User-Agent': 'tsx-core-quality-gate',
     },
-    signal: AbortSignal.timeout(15_000)
+    signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw new Error(`GitHub governance query failed with HTTP ${response.status}.`);
   return response.json();
@@ -106,19 +151,37 @@ async function main() {
   const repositoryPath = ['repos', owner, repositorySlug];
   const repository = await githubJson(repositoryPath, token);
   const branch = repository.default_branch;
-  const [protection, environments, codeownerErrors] = await Promise.all([
+  const [protection, environments, codeownerErrors, productionEnvironmentPolicies] = await Promise.all([
     githubJson([...repositoryPath, 'branches', branch, 'protection'], token),
     githubJson([...repositoryPath, 'environments'], token, { per_page: '100' }),
-    githubJson([...repositoryPath, 'codeowners', 'errors'], token, { ref: branch })
+    githubJson([...repositoryPath, 'codeowners', 'errors'], token, { ref: branch }),
+    githubJson([...repositoryPath, 'environments', 'production-observer', 'deployment-branch-policies'], token),
   ]);
   const codeowners = await readFile(path.resolve('.github', 'CODEOWNERS'), 'utf8').catch(error => {
     if (error.code === 'ENOENT') return '';
     throw error;
   });
-  const result = evaluateGithubGovernance({ repository, protection, environments, codeowners, codeownerErrors });
-  const evidence = { schemaVersion: 1, repository: repositoryName, branch: repository.default_branch, evaluatedAt: new Date().toISOString(), ...result };
+  const result = evaluateGithubGovernance({
+    repository,
+    protection,
+    environments,
+    productionEnvironmentPolicies,
+    codeowners,
+    codeownerErrors,
+  });
+  const evidence = {
+    schemaVersion: 1,
+    repository: repositoryName,
+    branch: repository.default_branch,
+    evaluatedAt: new Date().toISOString(),
+    ...result,
+  };
   await mkdir(path.resolve('reports', 'governance'), { recursive: true });
-  await writeFile(path.resolve('reports', 'governance', 'github-governance.json'), `${JSON.stringify(evidence, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+  await writeFile(
+    path.resolve('reports', 'governance', 'github-governance.json'),
+    `${JSON.stringify(evidence, null, 2)}\n`,
+    { encoding: 'utf8', mode: 0o600 }
+  );
   for (const item of result.checks) console.log(`${item.passed ? 'PASS' : 'FAIL'} ${item.name}`);
   if (!result.passed) throw new Error('GitHub repository governance gate failed.');
 }

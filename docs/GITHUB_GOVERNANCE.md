@@ -1,62 +1,70 @@
 # TSX Core – GitHub Repository Governance
 
-## Verbindlicher Zielzustand
+## Veröffentlichtes Modell
 
-Der Release-Workflow fragt die GitHub-API ab und blockiert, bis alle folgenden externen Kontrollen tatsächlich aktiv sind:
+TSX Core wird in diesem persönlichen, privaten Repository direkt über den einzigen Branch `main` ausgeliefert. Es gibt keine zusätzliche GitHub-App, keinen privilegierten PR-Status-Publisher und keinen automatischen GitHub-Release- oder GHCR-Publisher.
 
-- `main` verlangt die 13 Quality-OS-Checks aus `scripts/verify_github_governance.js` auf dem aktuellen Base-Branch: Hauptqualität, vier Mutation-Shards, vier Browser-/Accessibility-Jobs, CodeQL, Secret-History, Dependency Review und Container/SBOM/Vulnerability Scan.
-- Mindestens zwei Approvals, CODEOWNERS-Review, Last-Push-Approval, Dismissal veralteter Reviews und Conversation Resolution sind aktiv.
-- Regeln gelten auch für Administratoren; Force Push und Branch-Löschung sind deaktiviert.
-- Dependency Graph, Secret Scanning und Secret Push Protection sind aktiv.
-- Die Environments `staging` und `production-observer` existieren und enthalten ausschließlich die in den Runbooks beschriebenen Secrets/Variablen.
-- `.github/CODEOWNERS` enthält reale, auf GitHub auflösbare Benutzer oder Teams; `/codeowners/errors` liefert für den Default Branch keine Fehler.
+Der Verzicht auf diese Zusatzautomation verändert weder den Programmumfang noch den Werkseinstellungszustand. Er bedeutet lediglich:
 
-Diese Einstellungen können nicht ohne nachgewiesene Owner-Identität sicher erfunden werden. Vor dem ersten Release legt der Repository-Administrator `.github/CODEOWNERS` mit den realen Verantwortlichen an, aktiviert die Kontrollen in GitHub und führt den Release-Gate erneut aus. Ein Dummy-Owner, Shared Account oder eine nicht auflösbare Teambezeichnung erfüllt das Gate nicht.
+- Änderungen werden direkt nach lokaler Vollprüfung auf `main` veröffentlicht.
+- GitHub Actions prüft den veröffentlichten Commit anschließend erneut.
+- Release-Tags, GitHub Releases und Registry-Images werden nicht automatisch erzeugt.
+- Automatische Dependabot-PRs sind deaktiviert, damit dauerhaft kein zusätzlicher Branch entsteht.
 
-## Aktuell verifizierter Plattformstatus
+Security Alerts bleiben aktiviert. Abhängigkeiten werden weiterhin über die Lockfiles, `npm audit`, die Dependency-Policy, SBOMs und Trivy geprüft. CodeQL, Secret-History, Browser-/WCAG-Tests, Mutationstests und die übrigen Quality-OS-Gates bleiben unverändert aktiv. Staging-, Synthetic- und 30-Tage-Workflows sind bis zur Einrichtung realer Self-hosted Runner ausschließlich manuell auslösbar und erzeugen deshalb keine dauerhaft wartenden Zeitplanläufe.
 
-Stand 23.07.2026 für das private Repository `888nikush888/tsx-core`:
+## Aktueller Plattformstatus
+
+Stand 09.08.2026 für `888nikush888/tsx-core`:
 
 | Kontrolle | Status |
 | --- | --- |
-| Remote und Default Branch | vorhanden; privat; `main` |
-| Quality Workflow | Run `30002905392` für Commit `8f7e0ba` einschließlich CodeQL, Browsermatrix, Secret Scan und Container-Gate erfolgreich |
-| Branch Protection | nicht verfügbar/prüfbar: GitHub antwortet mit HTTP 403 und verlangt für dieses private Repository GitHub Pro oder ein öffentliches Repository |
-| CODEOWNERS | nicht gültig: die eingetragenen `@enterprise/*`-Teams existieren für dieses Repository nicht; `/codeowners/errors` meldet „Unknown owner“ |
-| Environments | `staging` vorhanden; `production-observer` fehlt |
-| Governance-Gate | fehlgeschlagen; damit kein Production-GO und kein attestierter Release |
+| Sichtbarkeit | privat |
+| Default Branch | `main` |
+| Branch-Modell | genau ein veröffentlichter Branch: `main` |
+| CODEOWNERS | globaler, auflösbarer Owner `@888nikush888` |
+| Quality OS | läuft auf `main`, Zeitplan und manueller Auslösung |
+| Automatische Update-Branches | deaktiviert; `.github/dependabot.yml` wird nicht ausgeliefert |
+| Automatischer Release-Publisher | nicht vorhanden |
+| Zusätzliche GitHub Apps | nicht erforderlich und nicht vorhanden |
+| Branch Protection/Rulesets | im aktuellen privaten Free-Repository nicht verfügbar |
 
-Behebung: einen geeigneten GitHub-Tarif beziehungsweise eine Organisation mit den benötigten Private-Repository-Funktionen verwenden, reale Owner eintragen, `production-observer` anlegen, die 13 Required Checks und Review-Regeln aktivieren und anschließend `npm run quality:github-governance` erneut ausführen. Das erfolgreiche normale Quality-CI ersetzt diese Plattformkontrollen nicht.
+Da Branch Protection im aktuellen Tarif nicht erzwungen werden kann, ist der direkte Push auf `main` eine bewusste Betreiberentscheidung. Vor jedem finalen Push müssen deshalb alle lokalen Gates auf demselben Snapshot grün sein; danach muss der Main-Lauf in GitHub Actions kontrolliert werden.
 
-## Ownership-Schnitt
+## Quality-Checks
 
-Mindestens folgende Pfade erhalten zusätzlich zum globalen Owner fachliche Security-/Operations-Owner:
+`scripts/verify_github_governance.js` beschreibt den strengeren Zielzustand für eine spätere Plattform mit Branch Protection. Er erwartet dreizehn normale GitHub-Actions-Checks:
 
-| Pfad | Erforderliche Verantwortung |
-| --- | --- |
-| `/src/dashboard_auth.ts`, `/src/web_server.ts`, `/src/audit_trail.ts`, `/.github/` | Security und Plattform |
-| `/src/db.ts`, `/src/backup*.ts`, `/src/retention.ts` | Data Owner und SRE |
-| `/src/signal_*.ts`, `/templates/`, `/tests/fixtures/signal_golden_set.json` | AI-/Domain-Owner |
-| `/Dockerfile`, `/docker-compose*.yml`, `/monitoring/`, `/docs/runbooks/` | SRE/On-Call |
+1. Hauptqualität, Tests, Coverage, Build und Supply Chain
+2. vier Mutation-Shards
+3. vier Browser-/Accessibility-Ziele
+4. CodeQL
+5. Secret-History
+6. Dependency Review beziehungsweise den privaten Audit-Fallback
+7. Container-, SBOM- und Vulnerability-Scan
 
-Owner-Änderungen erfolgen über einen PR und benötigen Review eines bereits gültigen Owners. Im verbindlichen Zielzustand bleiben direkte Änderungen auf `main` gesperrt. Der aktuell verifizierte Plattformstatus erfüllt diese Voraussetzung noch nicht.
-
-## Automatischer PR-Risikowert
-
-`scripts/calculate_pr_risk.js` bewertet den tatsächlichen Git-Diff, nicht eine Selbsteinschätzung. Der Workflow speichert Score, Faktoren, geänderte Zeilen und erforderliches Verfahren unter `reports/pr-risk/`. Die Stufen entsprechen `docs/QUALITY_OS.md`; Änderungen ohne Regressionstest erhalten automatisch den Test-Gap-Zuschlag.
-
-## Dependency- und Security-Betrieb
-
-Dependabot öffnet wöchentlich getrennte Updates für Backend, Frontend, GitHub Actions und Docker. Jeder PR durchläuft unverändert alle Gates; Major-Updates werden nicht gruppiert. Sicherheitsmeldungen werden ausschließlich nach `SECURITY.md` privat behandelt. Ein automatisches Update ist kein Freigabenachweis und darf Quality-, Staging- oder Rollback-Gates nicht umgehen.
-
-Der Check **Dependency review** verwendet die GitHub-Dependency-Graph-Diffprüfung, wenn GitHub sie für das Repository bereitstellt. Für private Repositories ohne gebuchtes GitHub Code Security bleibt der Check verpflichtend und führt stattdessen beide Moderate-Audits sowie die Lockfile-/Dependency-Policy aus. Damit wird eine nicht verfügbare Plattformfunktion nicht als Sicherheitsfreigabe missverstanden oder pauschal übersprungen.
-
-## Verifikation
-
-Innerhalb eines GitHub Actions Release-Jobs:
+Zusätzlich prüft das Skript CODEOWNERS, Reviewregeln, Repository-Security-Einstellungen und die Beschränkung des `production-observer`-Environments auf den Branch `main`. Es verwendet ausschließlich einen normalen, lesenden GitHub-Token. Benutzerverwaltete App-IDs oder Private Keys sind nicht vorgesehen; bei Required Checks wird lediglich GitHubs eingebaute Actions-Quelle erkannt.
 
 ```bash
 npm run quality:github-governance
 ```
 
-Das Ergebnis wird als `reports/governance/github-governance.json` in das unveränderliche Release aufgenommen. Lokal ohne `GITHUB_REPOSITORY` und ein berechtigtes `GH_TOKEN` schlägt die Prüfung absichtlich fehl und darf nicht als bestanden dokumentiert werden. Scheitert bereits eine GitHub-API-Abfrage – beispielsweise Branch Protection mit HTTP 403 –, wird kein vollständiger Evidence-Record erzeugt; auch dieser Zustand ist ein fehlgeschlagenes Gate.
+Auf dem aktuellen Tarif schlägt die Live-Abfrage der nicht verfügbaren Branch-Protection-API erwartungsgemäß fehl. Das ist transparent dokumentiert und kein Bestandteil des Programmstarts.
+
+## Risikoanalyse
+
+`scripts/calculate_pr_risk.js` und `scripts/check_risk_acceptances.js` bleiben als lokale Analysewerkzeuge erhalten. Sie bewerten kritische Domänen, Authentifizierung, Persistenz, Nebenwirkungen, Abhängigkeiten, Änderungsumfang und Governance-Dateien. Die tatsächliche Testabdeckung wird unabhängig davon durch Coverage- und Mutation-Gates gemessen. Es gibt keinen GitHub-Workflow, der daraus einen eigenen Commit-Status veröffentlicht.
+
+Für umfangreiche oder sicherheitskritische Änderungen gilt organisatorisch:
+
+- Diff und Rollback-Plan vor dem Push prüfen.
+- einen zweiten fachkundigen Menschen einbeziehen, wenn verfügbar;
+- Quality OS, Factory-Empty-Test und Container-Scans vollständig ausführen;
+- Tokens niemals in Commits, Logs oder Dokumentation aufnehmen;
+- einen fehlgeschlagenen Main-Lauf sofort korrigieren oder den Commit nachvollziehbar zurücknehmen.
+
+## Branch- und Update-Betrieb
+
+Das Repository hält nur `main`. Automatische Tools dürfen keine Update-Branches oder PRs erzeugen. Abhängigkeitsupdates werden gesammelt, lokal geprüft und direkt als getesteter Main-Commit veröffentlicht. GitHub Security Alerts dienen dabei als Hinweisquelle, erzeugen aber keine automatischen Änderungen.
+
+Wenn später wieder mit mehreren Entwicklern, Pull Requests oder automatischen Releases gearbeitet werden soll, muss das Branch-Modell zuerst bewusst geändert und mit einem passenden GitHub-Tarif, Branch Protection, unabhängigen Reviews und einer getrennten Release-Pipeline neu entworfen werden.

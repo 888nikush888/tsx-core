@@ -45,7 +45,7 @@ Damit das Projekt übersichtlich bleibt, sind die Dateien klar aufgeteilt:
 ├── frontend/                 # React/Vite Dashboard einschließlich Trading Builder
 ├── exchange_executor/        # Internes Python-Sidecar für offizielle Exchange-SDKs
 ├── docs/                     # Architektur-, Betriebs-, Trading- und Governance-Dokumentation
-├── monitoring/               # Prometheus, Alertmanager, Regeln und VEX-Nachweise
+├── monitoring/               # Prometheus, Regeln und reproduzierbarer Alertmanager-Sicherheitsbuild
 ├── templates/                # Vorlagen für die KI-Signalextraktion
 ├── tests/                    # Unit-, Integrations-, Contract- und Systemtests
 ├── .env.example              # Referenz für Source-Dev/Orchestrator-Overrides
@@ -70,6 +70,7 @@ Das System wurde auf Enterprise-Niveau gehoben und nutzt moderne Best Practices:
 5. **Dynamische Signalverträge**: Verträge sind versionierte SQLite-Datensätze. Der visuelle Builder verwaltet XML-Pfade, Feldtypen, Entry-/Target-Form, Geometrie und Quelltext-Erdung ohne ausführbaren Benutzer-Code.
 6. **Cockpit und Labor**: Das Dashboard zeigt im Cockpit nur Live-Sicherheit, Positionen, PnL und Signalstrom. Equity, Drawdown, Kanalqualität, Slippage, Latenz und Simulation liegen im separaten Analytics-Bereich.
 7. **Agenten-Control-Plane**: Ein separater, standardmäßig mitgestarteter MCP-Dienst verwendet pro Agent gehashte Tokens und dauerhaft verwaltete Minimalrechte. Sein persistenter Modus ist ab Werk `disabled`; Schreibaktionen laufen nicht direkt gegen SQLite oder Exchanges, sondern über die auditierte TSX-Core-Kontrollbrücke.
+8. **Geprüfte Auslieferung**: Die veröffentlichte Quelle liegt ausschließlich auf `main`. GitHub Actions baut und scannt jeden Main-Stand; es gibt bewusst weder zusätzliche GitHub-Apps noch einen automatischen Release- oder Registry-Publisher.
 
 ---
 
@@ -255,7 +256,7 @@ docker volume ls --filter name=tsx-core_forwarder
 
 Dashboard, Metriken und der MCP-Port werden ausschließlich auf Host-Loopback veröffentlicht. Externer Zugriff erfolgt bevorzugt über Tailscale Serve oder alternativ einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; der persistente MCP-Modus bleibt dabei erhalten und wird beim Factory Reset wieder auf `disabled` gesetzt. Die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
 
-Incident-URL, internes Relay-Token und Incident-Gateway-Token werden vollständig im Web unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** beziehungsweise **Enterprise-Secrets** gesetzt. Danach startet `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d` den Monitoring-Stack; Alertmanager und Relay lesen ausschließlich die verwalteten Config-/Secret-Volumes, nicht `.env` oder Host-Secret-Dateien. Prometheus und Alertmanager sind per unveränderlichem Multi-Arch-Digest gepinnt, speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
+Incident-URL, internes Relay-Token und Incident-Gateway-Token werden vollständig im Web unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** beziehungsweise **Enterprise-Secrets** gesetzt. Danach startet `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d` den Monitoring-Stack; Alertmanager und Relay lesen ausschließlich die verwalteten Config-/Secret-Volumes, nicht `.env` oder Host-Secret-Dateien. Prometheus verwendet einen unveränderlichen Multi-Arch-Digest. Alertmanager 0.33.1 wird lokal reproduzierbar aus dem verifizierten Upstream-Commit mit checksum-geprüften Quellen, Go 1.26.5 und gepatchten Go-Modulen in eine digest-gepinnte Distroless-Non-Root-Runtime gebaut. CI baut und scannt die `linux/amd64`- und `linux/arm64`-Kandidaten ohne VEX-Ausnahmen; eine Registry-Veröffentlichung erfolgt nicht automatisch. Beide Dienste speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
 
 ---
 
@@ -300,9 +301,9 @@ Der ausgegebene `correlation_id` muss im externen Incident-System nachgewiesen u
 
 Die Workflows `staging.yml` und `synthetic.yml` benötigen einen isolierten Self-hosted Runner mit den Labels `self-hosted, staging`, einen bereits authentifizierten technischen Telegram-Account, zwei ausschließlich dafür verwendete Chats sowie getrennte TDLib-Verzeichnisse. Der Test sendet eine eindeutig korrelierte Fixture in den Quellchat, wartet auf die reale Weiterleitung und akzeptiert im Zielchat exakt eine Kopie. Das Evidence-Artefakt enthält IDs, Zeitpunkte, Latenz und Inhalts-Hashes, aber keinen Nachrichteninhalt. Interaktive Anmeldung und die Wiederverwendung der Produktions-Session werden abgewiesen.
 
-Ein zweiter, read-only Self-hosted Runner mit den Labels `self-hosted, production-observer` liest täglich ein vollständiges 30-Tage-Fenster aus Prometheus. `npm run ops:soak` fordert mindestens 99,5 % Scrape-Verfügbarkeit und bestätigte Zustellung, P95 unter 60 Sekunden, mindestens 100 Zustellversuche, keine unbekannte Zustellung, durchgehend gesunde Backups/Retention/Disk sowie begrenzte Queue und RAM. `PROMETHEUS_URL` muss HTTPS verwenden (Loopback ausgenommen), das optionale Bearer-Token kommt aus `PROMETHEUS_TOKEN[_FILE]`.
+Ein zweiter, read-only Self-hosted Runner mit den Labels `self-hosted, production-observer` kann ein vollständiges 30-Tage-Fenster aus Prometheus prüfen. Bis solche Runner eingerichtet sind, sind Staging-, Synthetic- und 30-Tage-Workflows ausschließlich manuell auslösbar. Für echten Produktionsbetrieb muss ein externer Scheduler den Observer täglich und den Synthetic-Monitor alle 15 Minuten starten sowie ausgebliebene Läufe alarmieren. `npm run ops:soak` fordert mindestens 99,5 % Scrape-Verfügbarkeit und bestätigte Zustellung, P95 unter 60 Sekunden, mindestens 100 Zustellversuche, keine unbekannte Zustellung, durchgehend gesunde Backups/Retention/Disk sowie begrenzte Queue und RAM. `PROMETHEUS_URL` muss HTTPS verwenden (Loopback ausgenommen), das optionale Bearer-Token kommt aus `PROMETHEUS_TOKEN[_FILE]`.
 
-Der Tag-Release in `quality.yml` prüft über die GitHub-API, dass für exakt denselben Commit sowohl das Staging-Gate als auch der 30-Tage-Nachweis erfolgreich waren. Fehlende Runner, Provider-Zugänge, unvollständige Messfenster oder fehlende Artefakte blockieren damit die Veröffentlichung; sie werden nicht als N/A behandelt. Einrichtung und Secret-/Variable-Zuordnung stehen in `docs/runbooks/operations.md`.
+Die Quelle wird direkt und ausschließlich über `main` veröffentlicht. `.github/workflows/quality.yml` besitzt keine Release-Credentials und prüft den veröffentlichten Commit mit Tests, Coverage, Mutation, Browser-/WCAG-Gates, SAST, Secret-Scan, SBOM und Container-Scans. Staging- und Langzeitnachweise bleiben separate Betreiberprüfungen; fehlende Runner, Provider-Zugänge oder Messwerte gelten nicht als bestanden. Die Betriebsdetails stehen in `docs/runbooks/operations.md`.
 
 ---
 

@@ -4,6 +4,8 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-09
+
 ### Added
 
 - Projektweite Umbenennung zu **TSX Core** einschließlich Web-UI, Container-Metadaten, Monitoring, Dokumentation und des vom Projekteigentümer gelieferten Logos.
@@ -27,7 +29,9 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Strategien steuern handelbare normalisierte Symbole jetzt explizit als **alle**, **keine** oder Allowlist. Bei **alle** bestätigt der Börsenadapter die Marktverfügbarkeit vor einer Order.
 - SonarCloud analysiert Produktions- und Testpfade ohne Überlappung, mit festgelegter Python-Version und UTF-8-Quellkodierung.
 - Der Factory Reset stellt Konfiguration und Runtime-Templates reproduzierbar auf die integrierten Defaults zurück und räumt verwalteten Trading-/Secret-Zustand nur nach erfolgreichem Exposure-Preflight auf.
-- Monitoring-Images und GitHub Actions wurden aktualisiert; binäre Erreichbarkeitsnachweise für verbleibende Monitoring-Funde liegen als versionsgebundene OpenVEX-Dokumente vor.
+- Monitoring-Images und GitHub Actions wurden aktualisiert; die Actions verwenden geprüfte Node-24-Commits, Trivy 0.70.0 und eine explizite Allowlist, die aktuellen Monitoring-Images passieren den Container-Gate ohne VEX-Ausnahme.
+- Der Risikorechner ist auf eine lokale, diffbasierte Analyse ohne GitHub-API, Signaturdienst oder eigenen Commit-Status reduziert.
+- Die Auslieferung ist auf einen einzigen `main`-Branch vereinfacht; automatische Release-, Registry- und Dependabot-Branch-Publisher sind entfernt. Quality OS bleibt als vollständige Nachprüfung des veröffentlichten Main-Commits aktiv.
 - Die operative Oberfläche verwendet ein minimalistisches monochromes TSX-Core-Design; Farbe ist keine alleinige Statuscodierung.
 - Der normale Compose-Stack startet Forwarder, Exchange-Executor und den gehärteten MCP-Prozess gemeinsam; die Agentenschnittstelle bleibt bis zur auditierten Aktivierung logisch `disabled` und benötigt keinen Docker-Socket.
 - Neue Installationen und Factory Resets liefern einen fachlich vollständig leeren Zustand: keine Beispielkanäle, Verträge/Profile/Strategien, Konten, Paper-Bilanz/-Märkte, Routen oder MCP-Agenten; Paper-Konten verlangen eine explizite Startbilanz.
@@ -48,12 +52,15 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ### Security
 
+- Alertmanager 0.33.1 wird aus dem verifizierten Upstream-Commit mit checksum-geprüften Release-Assets, Go 1.26.5 sowie korrigierten `x/text`-, gRPC-, `x/crypto`-, `klauspost/compress`- und OpenTelemetry-Versionen statisch in eine digest-gepinnte Non-Root-Distroless-Runtime gebaut. Deterministische Zeitstempel und getrennt gescannte `amd64`-/`arm64`-Artefakte sichern die reproduzierbaren Kandidaten; die frühere Alertmanager-VEX-Ausnahme wurde vollständig entfernt.
 - Verwundbare transitive Node-Abhängigkeiten wurden auf abgesicherte Versionen angehoben; Backend- und Frontend-Audit-Gates melden keine Schwachstellen mehr.
 - Prometheus wurde auf das digest-gepinnte Security-Release 3.13.2 aktualisiert; die frühere VEX-Ausnahme entfällt, weil die korrigierten `x/text`- und gRPC-Versionen direkt im Image enthalten sind.
 - Schutz vor Symlink-/Junction-Ausbruch, manipulierten Backup-/Audit-Dateien, unsicheren Vergleichen und ungebundenen Exchange-/DB-Zuständen wurde verschärft.
 - CodeQL, Secret-History, Container-SBOM/Vulnerability Scan und vier kritische Mutation-Gates laufen im verpflichtenden Quality-Workflow.
 - MCP-Agenten besitzen keine Exchange-Secrets oder direkten Adapter; jede Mutation prüft aktuelle Rechte erneut und benötigt einen erfolgreichen Vorab-Audit-Record sowie die bestehende Trading-Sicherheitslogik.
 - Dashboard, Metriken und MCP bleiben Host-Loopback-only; Tailscale Serve ist tailnet-intern und Funnel für diese Endpunkte ausdrücklich verboten.
+- Die lokale PR-Risikoanalyse und der Risikoakzeptanz-Validator bleiben als optionale Prüfwerkzeuge erhalten, ohne eigenen GitHub-Status-Publisher oder zusätzliche App-Credentials.
+- Risikoakzeptanz-Records verlangen konkrete Inhalte in allen vier Pflichtabschnitten; leere Überschriften, Platzhalter, ungültige Laufzeiten und identische Owner-/Approver-Namen werden abgelehnt.
 
 ## [2.0.0] - 2026-07-21
 

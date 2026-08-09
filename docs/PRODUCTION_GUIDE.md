@@ -77,7 +77,7 @@ npm audit --omit=dev --audit-level=moderate
 npm audit --prefix frontend --omit=dev --audit-level=moderate
 ```
 
-`npm run quality:monitoring` benötigt einen laufenden Docker-Engine-Dienst, weil die gepinnten Prometheus-/Alertmanager-Werkzeuge in Containern ausgeführt werden. `npm run test:browser` benötigt die Playwright-Browser. `npm run quality:github-governance` benötigt `GITHUB_REPOSITORY` und ein berechtigtes `GH_TOKEN`; `npm run quality:deployment-images` benötigt die freigegebenen Image-Digests. Das Container-Image selbst und seine nativen Imports werden im Workflow `.github/workflows/quality.yml` gebaut, gescannt und attestiert. Fehlende lokale Container-/Browser-/GitHub-Unterstützung ist kein Pass; die entsprechende CI- oder Plattform-Evidenz bleibt Pflicht.
+`npm run quality:monitoring` benötigt einen laufenden Docker-Engine-Dienst, weil die gepinnten Prometheus-/Alertmanager-Werkzeuge in Containern ausgeführt werden. `npm run test:browser` benötigt die Playwright-Browser. `npm run quality:github-governance` beschreibt einen optionalen strengeren Zielzustand und benötigt `GITHUB_REPOSITORY`, ein berechtigtes `GH_TOKEN` sowie Branch Protection, die im aktuellen privaten Free-Repository nicht verfügbar ist. `npm run quality:deployment-images` benötigt vom Betreiber freigegebene Image-Digests. Die Container-Images und ihre nativen Imports werden im Workflow `.github/workflows/quality.yml` gebaut und gescannt. Fehlende lokale Container- oder Browser-Unterstützung ist kein Pass; nicht verfügbare Plattformkontrollen werden als bekannte Betreibergrenze dokumentiert und nicht als erfolgreich ausgegeben.
 
 ## 4. Nicht geheime Anwendungskonfiguration
 
@@ -236,22 +236,23 @@ curl --fail http://127.0.0.1:${HOST_METRICS_PORT:-9100}/healthz
 curl --fail http://127.0.0.1:${HOST_METRICS_PORT:-9100}/readyz
 ```
 
-Für ein echtes Release wird **nicht** das frei neu gebaute lokale Tag deployt. Deployt wird der vom Release-Workflow gescannte und attestierte GHCR-Digest aus `release-manifest.json`, beispielsweise `ghcr.io/<owner>/<repo>@sha256:<digest>`:
+Für einen verwalteten Produktionsbetrieb veröffentlicht der Betreiber die lokal und in CI geprüften Images in einer eigenen Registry und dokumentiert die unveränderlichen Digests. TSX Core besitzt keinen automatischen Registry-Publisher. Beispiel:
 
 ```bash
-export FORWARDER_IMAGE='ghcr.io/<owner>/<repo>@sha256:<digest>'
-export EXCHANGE_EXECUTOR_IMAGE='ghcr.io/<owner>/<repo>-exchange-executor@sha256:<executor-digest>'
+export FORWARDER_IMAGE='registry.example/<owner>/<repo>@sha256:<digest>'
+export EXCHANGE_EXECUTOR_IMAGE='registry.example/<owner>/<repo>-exchange-executor@sha256:<executor-digest>'
+export ALERTMANAGER_IMAGE='registry.example/<owner>/<repo>-alertmanager@sha256:<alertmanager-digest>'
 npm run quality:deployment-images
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml pull
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d --no-build
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml images
 ```
 
-Production deployment treats the forwarder and exchange executor as one release unit with two independent digests. Copy both references from the signed release manifest; a local tag or a missing executor digest is a failed deployment precondition.
+Production behandelt Forwarder, Exchange Executor und gehärteten Alertmanager als eine Einheit mit drei unabhängigen Digests. Alle drei Referenzen müssen aus dem vom Betreiber geprüften Deployment-Record stammen; ein veränderliches Tag oder ein fehlender Digest ist eine fehlgeschlagene Deployment-Voraussetzung.
 
-Der MCP-Dienst verwendet dasselbe attestierte `FORWARDER_IMAGE`, aber einen anderen Entry Point. Der Standard-Deploy muss deshalb auch den laufenden `mcp-server` gegen exakt diesen Digest prüfen. Er fügt kein drittes Release-Image hinzu.
+Der MCP-Dienst verwendet dasselbe geprüfte `FORWARDER_IMAGE`, aber einen anderen Entry Point. Der Standard-Deploy muss deshalb auch den laufenden `mcp-server` gegen exakt diesen Digest prüfen. Er fügt neben Forwarder, Executor und Alertmanager kein viertes Image hinzu.
 
-`FORWARDER_IMAGE` wird sowohl für den Forwarder als auch den Alert-Relay gesetzt. `--no-build` verhindert, dass der freigegebene Digest unbemerkt durch ein lokales Build ersetzt wird. Tag, Digest und Ausgabe von `docker compose images` werden im Deployment-Record festgehalten.
+`FORWARDER_IMAGE` wird sowohl für den Forwarder als auch den Alert-Relay gesetzt. Für lokale und Staging-Starts baut Compose Alertmanager aus `monitoring/alertmanager.Dockerfile` nativ für die Host-Architektur; Upstream-Commit, Quell- und UI-Archive, Go-Builder, Zeitstempel und Distroless-Runtime sind unveränderlich gepinnt. CI verlangt zusätzlich, dass ein zweiter cachefreier `linux/amd64`-Build exakt denselben Manifest-Digest erzeugt, und scannt getrennte `linux/amd64`- und `linux/arm64`-Kandidaten. Ein optionaler Multiarch-Digest wird vom Betreiber außerhalb dieses Repository-Workflows veröffentlicht. `--no-build` verhindert im Produktionsstart, dass einer der drei freigegebenen Digests unbemerkt durch ein lokales Build ersetzt wird. Index- und Plattform-Digests sowie die Ausgabe von `docker compose images` werden im Deployment-Record festgehalten.
 
 Nach dem ersten Start müssen innerhalb des freigegebenen Wartungsfensters geprüft werden:
 
@@ -347,35 +348,35 @@ docker compose up -d
 
 Ein Rollback gilt erst als bewiesen, wenn der exakte vorherige Image-Digest mit dem passenden DB-Zustand gestartet, Readiness grün und eine Zustellung bestätigt wurde. Ein theoretischer Plan oder nur ein erfolgreiches Backup ist kein Restore-Nachweis.
 
-## 13. Release-Ablauf
+## 13. Veröffentlichungs- und Deploy-Ablauf
 
-1. Kritischen Requirement-Contract, Akzeptanzkriterien, ADR und PR-Risikowert verlinken.
-2. PR-Gates und die gemäß Score erforderlichen Reviews abschließen.
-3. Main-Workflow, Container-Scan, SBOM, SAST und Secret-History-Scan müssen grün sein.
-4. `staging.yml` muss für exakt denselben Commit erfolgreich sein.
-5. `production_evidence.yml` muss ein vollständiges, gültiges 30-Tage-Fenster nachweisen.
-6. Restore-/Rollback-Probe, Alertzustellung, On-Call und Change-Fenster im Release-Record belegen.
-7. `package.json`-Version und `CHANGELOG.md` aktualisieren; signierten Tag `v<version>` erstellen.
-8. Der Tag-Workflow veröffentlicht nur den zuvor gescannten Image-Kandidaten, SBOMs, Scans, Manifest und Attestationsnachweise.
-9. Ausschließlich den Digest aus dem veröffentlichten Manifest deployen.
-10. Post-Deploy: `readyz`, Outbox, Backup-Frische, Audit, Alerting und synthetische Zustellung prüfen.
+1. Requirement, Akzeptanzkriterien, Rollback und lokalen Risikowert prüfen.
+2. Alle lokalen Quality-OS-Gates auf exakt dem zu veröffentlichenden Snapshot abschließen.
+3. Den Commit direkt auf den einzigen Branch `main` pushen.
+4. Main-Workflow, Container-Scan, SBOM, SAST und Secret-History-Scan für exakt diesen SHA kontrollieren.
+5. Für einen Produktions-Deploy zusätzlich `staging.yml` sowie das erforderliche Betriebs-/SLO-Fenster nachweisen.
+6. Restore-/Rollback-Probe, Alertzustellung, On-Call und Change-Fenster im Deployment-Record belegen.
+7. Images nur bei Bedarf manuell in die Betreiber-Registry veröffentlichen und die drei unveränderlichen Digests festhalten.
+8. Ausschließlich diese geprüften Digests deployen.
+9. Post-Deploy: `readyz`, Outbox, Backup-Frische, Audit, Alerting und synthetische Zustellung prüfen.
 
 Ein Gate darf nur über einen gültigen, höchstens 30 Tage laufenden Record unter `docs/risk-acceptances/` behandelt werden. Die in `QUALITY_OS.md` ausdrücklich nicht akzeptierbaren Blocker können auch damit nicht freigegeben werden.
 
 ## Trading-Betrieb
 
-Die vollständige Web-Anleitung für visuell verwaltete Signalverträge, frei verknüpfbare Schema-Profile, pro Strategie wählbare Symbolregeln (alle, keine oder Allowlist), dynamisches Kanalrisiko, Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, adaptive TP-Staffelung, SL-Nachziehen, Cockpit/Analytics, Live-Gate und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading ist Teil derselben Datenbank-, Audit-, Backup-, Monitoring- und Release-Grenze. Der Release veröffentlicht und attestiert deshalb zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor.
+Die vollständige Web-Anleitung für visuell verwaltete Signalverträge, frei verknüpfbare Schema-Profile, pro Strategie wählbare Symbolregeln (alle, keine oder Allowlist), dynamisches Kanalrisiko, Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, adaptive TP-Staffelung, SL-Nachziehen, Cockpit/Analytics, Live-Gate und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading benötigt zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor. Der Monitoring-Betrieb ergänzt das gehärtete Alertmanager-Image als dritte geprüfte Komponente.
 
 ## 14. Enterprise-Nachweise und aktuelle offene Punkte
 
-Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Der Plattformstatus wurde zuletzt am 23.07.2026 gegen das private Repository `888nikush888/tsx-core` geprüft. Die folgenden Punkte hängen von realen Identitäten, Tarif-/Plattformfunktionen, Infrastruktur oder verstrichener Betriebszeit ab und dürfen nicht durch Beispieldaten ersetzt werden:
+Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Der Plattformstatus wurde zuletzt am 09.08.2026 gegen das private Repository `888nikush888/tsx-core` geprüft. Die folgenden Punkte hängen von realen Identitäten, Tarif-/Plattformfunktionen, Infrastruktur oder verstrichener Betriebszeit ab und dürfen nicht durch Beispieldaten ersetzt werden:
 
 | Nachweis | Aktueller Repository-/Workspace-Status | Für Production-GO erforderlich |
 | --- | --- | --- |
-| GitHub-Remote und reale CODEOWNERS | Private GitHub-Remote und Default-Branch `main` sind verifiziert. Das eingecheckte CODEOWNERS verwendet jedoch nicht existente `@enterprise/*`-Teams; GitHub meldet mehrere „Unknown owner“-Fehler. | Alle Platzhalter durch reale Benutzer/Teams mit Repository-Schreibrecht ersetzen; `/codeowners/errors` muss leer sein |
-| Branch Protection und Security-Features | **NICHT ERFÜLLT**: Die Branch-Protection-API antwortet für dieses private Repository mit HTTP 403 und verlangt GitHub Pro oder ein öffentliches Repository. `quality:github-governance` bleibt dadurch rot; Security-and-analysis ist nicht als vollständig aktiviert belegt. | Geeigneten GitHub-Tarif/Organisation verwenden und alle 13 Required Checks, zwei Reviews, CODEOWNERS, Adminschutz, Dependency Graph, Secret Scanning und Push Protection aktivieren |
-| Geschützte Environments und Runner | `staging` existiert; `production-observer` fehlt. Reale getrennte Runner sind nicht nachgewiesen. | `production-observer` ergänzen und beide Environments/Runner mit minimalen Rechten und dokumentierten Ownern betreiben |
-| Container-Build und -Scan | Der GitHub-Workflow für Commit `8f7e0ba` hat Container-Build, Native-Import, SBOM und Vulnerability Scan erfolgreich abgeschlossen. Ein Release-Tag wurde dabei nicht publiziert. | Derselbe Nachweis muss für den exakten Release-Commit vorliegen; anschließend nur den attestierten Digest veröffentlichen/deployen |
+| GitHub-Remote und reale CODEOWNERS | Privates Repository, Default-Branch `main`, globaler realer Owner `@888nikush888` | Nach jedem Push Main-SHA, CODEOWNERS und CI-Ergebnis kontrollieren |
+| Branch Protection und Security-Features | Branch Protection/Rulesets sind im aktuellen privaten Free-Repository nicht verfügbar. Security Alerts und die repositoryeigenen Scans bleiben aktiv. | Für erzwungene Mehrpersonen-Reviews später geeigneten Tarif oder Organisation verwenden |
+| Environments und Runner | `staging` und `production-observer` bleiben vorgesehen; reale Self-hosted Runner und externe Zielsysteme sind nicht verifiziert. | Runner mit minimalen Rechten sowie reale Provider-/Monitoring-Endpunkte bereitstellen |
+| Branch-Modell | Automatische Dependabot-Branches sind deaktiviert; veröffentlicht wird nur `main`. | Keine Automation aktivieren, die ungeprüft neue Branches oder PRs erzeugt |
+| Container-Build und -Scan | Lokale Vollprüfung und GitHub Main-CI bauen, prüfen und scannen die Kandidaten; es gibt keinen automatischen Registry-Publisher. | Für Produktion geprüfte Digests selbst veröffentlichen, dokumentieren und anschließend ausschließlich diese deployen |
 | OIDC und TLS-Proxy | **NICHT VERIFIZIERT**: keine reale Issuer-/Proxy-Evidenz im Repository | Signatur-/Rollen-/Origin-Negativtests gegen Staging, TLS-Konfiguration und Header-Stripping belegen |
 | Unveränderlicher Audit-Empfänger | **NICHT VERIFIZIERT** | Reale Vorabpersistenz, idempotenter Replay, Retention und Alarm bei Ausfall nachweisen |
 | Verschlüsselter Off-host-Backup-Store | **NICHT VERIFIZIERT** | Reales PUT/GET, unabhängiger Schlüssel, Download/Decrypt/Restore und gemessenes RPO/RTO belegen |
@@ -388,7 +389,7 @@ Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Der Pl
 | Trading-Key-/Subkonto-Isolation | **NICHT VERIFIZIERT** ohne reale Exchange-Konfiguration | Dediziertes Subkonto, minimale Trading-Rechte ohne Withdrawal, IP-Allowlist, Rotation und Owner belegen |
 | Trading 30-Tage-Soak und Live-Canary | **NICHT VERIFIZIERT** ohne verstrichene Betriebszeit | 30 Tage Paper/Testnet ohne Unknown/Unprotected/Drift, danach begrenzter Live-Canary mit Max-Notional und Kill-Switch-Übung |
 
-Solange eine dieser für den konkreten Release relevanten Zeilen offen ist, lautet die Produktionsentscheidung **NO-GO**. Die Workflows blockieren Tag-Releases bei fehlender Staging-, Produktions-, Governance-, Scan- oder Artefaktevidenz; offen bedeutet damit nicht „später prüfen“, sondern „noch nicht veröffentlichen“.
+Solange eine dieser für den konkreten Produktions-Deploy relevanten Zeilen offen ist, lautet die Produktionsentscheidung **NO-GO**. Es gibt keinen automatischen Tag- oder Release-Publisher; der Betreiber darf einen Deploy bei fehlender Staging-, Produktions-, Scan- oder Artefaktevidenz nicht manuell freigeben. Offen bedeutet damit nicht „später prüfen“, sondern „noch nicht deployen“.
 
 ## 15. Abnahmeprotokoll
 

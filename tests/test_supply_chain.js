@@ -11,6 +11,8 @@ const syntheticWorkflow = await readFile(path.join(root, '.github', 'workflows',
 const productionEvidenceWorkflow = await readFile(path.join(root, '.github', 'workflows', 'production_evidence.yml'), 'utf8');
 const dockerfile = await readFile(path.join(root, 'Dockerfile'), 'utf8');
 const executorDockerfile = await readFile(path.join(root, 'exchange_executor', 'Dockerfile'), 'utf8');
+const alertmanagerDockerfile = await readFile(path.join(root, 'monitoring', 'alertmanager.Dockerfile'), 'utf8');
+const monitoringCompose = await readFile(path.join(root, 'docker-compose.monitoring.yml'), 'utf8');
 const executorLock = await readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8');
 const hyperliquidAdapter = await readFile(path.join(root, 'exchange_executor', 'hyperliquid_adapter.py'), 'utf8');
 const bybitAdapter = await readFile(path.join(root, 'exchange_executor', 'bybit_adapter.py'), 'utf8');
@@ -19,28 +21,41 @@ const strykerConfig = await readFile(path.join(root, 'stryker.config.mjs'), 'utf
 const mutationRunner = await readFile(path.join(root, 'scripts', 'run_mutation_shards.js'), 'utf8');
 
 const allWorkflows = `${workflow}\n${stagingWorkflow}\n${syntheticWorkflow}\n${productionEvidenceWorkflow}`;
-const actionReferences = [...allWorkflows.matchAll(/^\s*uses:\s*([^\s#]+).*$/gm)].map(
+const actionReferences = [...allWorkflows.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+).*$/gm)].map(
   (match) => match[1]
 );
 assert.ok(actionReferences.length > 0, 'quality workflow must use pinned actions');
+const approvedActionReferences = new Set([
+  'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9',
+  'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+  'actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294',
+  'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
+  'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a',
+  'aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25',
+  'docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c',
+  'github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3',
+  'github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3',
+  'gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e',
+]);
 for (const reference of actionReferences) {
   assert.match(
     reference,
     /^[^@\s]+@[a-f0-9]{40}$/,
     `action reference must use a full SHA: ${reference}`
   );
+  assert.ok(approvedActionReferences.has(reference), `action reference is not on the reviewed allowlist: ${reference}`);
 }
 
-const safeTrivyAction = 'aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1';
+const safeTrivyAction = 'aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25';
 assert.equal(
   actionReferences.filter((reference) => reference === safeTrivyAction).length,
-  8,
+  10,
   'all Trivy steps must use the known-safe action commit'
 );
-assert.equal((workflow.match(/^\s*version:\s*v0\.69\.3\s*$/gm) ?? []).length, 8);
+assert.equal((workflow.match(/^\s*version:\s*v0\.70\.0\s*$/gm) ?? []).length, 10);
 assert.equal(
   (workflow.match(/^\s*limit-severities-for-sarif:\s*true\s*$/gm) ?? []).length,
-  4,
+  5,
   'every blocking SARIF scan must apply the HIGH/CRITICAL severity limit'
 );
 assert.doesNotMatch(workflow, /^\s*version:\s*latest\s*$/m);
@@ -76,17 +91,8 @@ assert.match(workflow, /playwright install --with-deps/);
 assert.match(workflow, /playwright test --project=\$\{\{ matrix\.project \}\}/);
 assert.match(workflow, /github\.event\.repository\.private == false[\s\S]*?actions\/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294/);
 assert.match(workflow, /github\.event\.repository\.private[\s\S]*?npm audit --audit-level=moderate[\s\S]*?npm audit --prefix frontend --audit-level=moderate[\s\S]*?npm run quality:dependencies/);
-assert.match(workflow, /needs:\s*\[verify, mutation, browser, sast, secrets, container\]/);
-assert.match(workflow, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/);
-assert.match(workflow, /actions\/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0/);
-assert.match(workflow, /actions\/attest@f6bf1532d7d6793fce74eac584813a8eee607999/);
-assert.match(workflow, /gh release verify "\$GITHUB_REF_NAME"/);
-assert.match(workflow, /release-executor-image\.tar\.zst/);
-assert.match(workflow, /executor-image-name=\$\{executor_image_name\}/);
-assert.match(workflow, /executor-image-digest=\$\{executor_published_ref#\*@\}/);
-assert.match(workflow, /sbom-path: container-evidence\/exchange-executor\.cdx\.json/);
-assert.match(workflow, /executorImage:\$executorImage, executorDigest:\$executorDigest/);
-assert.match(workflow, /gh attestation verify "oci:\/\/\$\{\{ steps\.publish\.outputs\.executor-image-name \}\}@\$\{\{ steps\.publish\.outputs\.executor-image-digest \}\}"/);
+assert.doesNotMatch(workflow, /^\s{2}release:\s*$/m);
+assert.doesNotMatch(workflow, /create-github-app-token|gh release create|packages:\s*write/);
 
 const baseImages = [...dockerfile.matchAll(/^FROM\s+([^\s]+).*$/gm)].map((match) => match[1]);
 assert.ok(baseImages.length > 0, 'Dockerfile must declare a base image');
@@ -146,9 +152,38 @@ assert.match(mcpService, /MCP_RUNTIME_POLL_MS:/);
 assert.match(mcpService, /"127\.0\.0\.1:\$\{HOST_MCP_PORT:-8091\}:8091"/);
 assert.match(dockerCompose, /forwarder_secrets:\/app\/secrets:ro/);
 
+const alertmanagerGoImage = alertmanagerDockerfile.match(/^ARG GO_IMAGE=([^\s]+)$/m)?.[1];
+const alertmanagerRuntimeImage = alertmanagerDockerfile.match(/^ARG RUNTIME_IMAGE=([^\s]+)$/m)?.[1];
+assert.match(alertmanagerGoImage ?? '', /^golang:1\.26\.5-bookworm@sha256:[a-f0-9]{64}$/);
+assert.match(alertmanagerRuntimeImage ?? '', /^gcr\.io\/distroless\/static-debian13:nonroot@sha256:[a-f0-9]{64}$/);
+assert.match(alertmanagerDockerfile, /--checksum=sha256:[a-f0-9]{64}[\s\S]*?codeload\.github\.com\/prometheus\/alertmanager\/tar\.gz\/2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5/);
+assert.match(alertmanagerDockerfile, /github\.com\/prometheus\/common\/version\.BuildDate=20260704-19:05:41/);
+assert.match(alertmanagerDockerfile, /github\.com\/klauspost\/compress@v1\.18\.7/);
+assert.match(alertmanagerDockerfile, /go\.opentelemetry\.io\/otel@v1\.44\.0/);
+assert.match(alertmanagerDockerfile, /^ARG SOURCE_DATE_EPOCH=1783191941$/m);
+assert.match(alertmanagerDockerfile, /^FROM --platform=\$\{BUILDPLATFORM\} \$\{GO_IMAGE\} AS builder$/m);
+assert.match(alertmanagerDockerfile, /find \/out\/rootfs -exec touch -h --date="@\$\{SOURCE_DATE_EPOCH\}"/);
+assert.doesNotMatch(alertmanagerDockerfile, /-ldflags="[^"]*-s(?:\s|$)/);
+assert.match(alertmanagerDockerfile, /govulncheck -scan=symbol \.\/cmd\/alertmanager \.\/cmd\/amtool/);
+assert.equal((alertmanagerDockerfile.match(/govulncheck -mode=binary -scan=symbol/g) ?? []).length, 2);
+assert.match(alertmanagerDockerfile, /^USER 65534:65534$/m);
+assert.doesNotMatch(alertmanagerDockerfile, /^(?:COPY|ADD)\s+(?:--[^\s]+\s+)*\.\/?\s/m, 'Alertmanager build must not copy the workspace root.');
+assert.match(monitoringCompose, /alertmanager:[\s\S]*?image:\s*\$\{ALERTMANAGER_IMAGE:-tsx-core-alertmanager:0\.33\.1-hardened\}[\s\S]*?dockerfile:\s*monitoring\/alertmanager\.Dockerfile/);
+assert.match(workflow, /docker buildx build --provenance=false --platform linux\/amd64 --load --metadata-file alertmanager-amd64-build\.json --file monitoring\/alertmanager\.Dockerfile --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-amd64 \./);
+assert.match(workflow, /docker buildx build --provenance=false --platform linux\/arm64 --load --metadata-file alertmanager-arm64-build\.json --file monitoring\/alertmanager\.Dockerfile --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-arm64 \./);
+assert.equal((allWorkflows.match(/docker\/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c/g) ?? []).length, 1);
+assert.equal((allWorkflows.match(/^\s*version:\s*v0\.36\.1\s*$/gm) ?? []).length, 1);
+assert.equal((allWorkflows.match(/image=moby\/buildkit:v0\.32\.2@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8/g) ?? []).length, 1);
+assert.match(workflow, /--no-cache --provenance=false --platform linux\/amd64 --load --metadata-file alertmanager-amd64-rebuild\.json/);
+assert.equal((workflow.match(/--target security-audit --build-arg VULN_DB_EPOCH=\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/g) ?? []).length, 2);
+assert.equal((workflow.match(/image-ref:\s*tsx-core-alertmanager:\$\{\{ github\.sha \}\}-amd64/g) ?? []).length, 2);
+assert.equal((workflow.match(/image-ref:\s*tsx-core-alertmanager:\$\{\{ github\.sha \}\}-arm64/g) ?? []).length, 2);
+assert.doesNotMatch(workflow, /TRIVY_VEX:[^\n]*alertmanager/);
+
 const releaseImages = {
   FORWARDER_IMAGE: `ghcr.io/example/forwarder@sha256:${'a'.repeat(64)}`,
   EXCHANGE_EXECUTOR_IMAGE: `ghcr.io/example/exchange-executor@sha256:${'b'.repeat(64)}`,
+  ALERTMANAGER_IMAGE: `ghcr.io/example/alertmanager@sha256:${'c'.repeat(64)}`,
 };
 assert.deepEqual(validateDeploymentImages(releaseImages), []);
 assert.ok(validateDeploymentImages({ ...releaseImages, FORWARDER_IMAGE: 'forwarder:latest' }).length > 0);
