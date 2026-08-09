@@ -55,10 +55,19 @@ function sectionBody(content, section) {
   return (nextHeading < 0 ? remainder : remainder.slice(0, nextHeading)).trim();
 }
 
+function removeEmptyMarkdownListItems(content) {
+  return content
+    .split(/\r?\n/)
+    .map((line) => {
+      const trimmed = line.trim();
+      return trimmed.length === 1 && '-*+'.includes(trimmed) ? ' ' : line;
+    })
+    .join('\n');
+}
+
 function hasConcreteSectionContent(body) {
-  const normalized = body
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/^\s*[-*+]\s*$/gm, ' ')
+  const withoutComments = body.replace(/<!--[\s\S]*?-->/g, ' ');
+  const normalized = removeEmptyMarkdownListItems(withoutComments)
     .replace(/\s+/g, ' ')
     .trim();
   const alphanumericCharacters = normalized.match(/[\p{L}\p{N}]/gu) || [];

@@ -784,6 +784,17 @@ async function runRepositoryTests() {
       createTradingAccount({ name: 'Explicit paper', exchange: 'paper', mode: 'paper' }),
       /explicitly entered initial balance/,
     );
+    await assert.rejects(
+      createTradingAccount({ name: 'Invalid paper', exchange: 'paper', mode: 'paper', initialBalance: {} }),
+      /must be a decimal string or number/,
+    );
+    const numericBalanceAccount = await createTradingAccount({
+      name: 'Numeric paper', exchange: 'paper', mode: 'paper', initialBalance: 12_500.5,
+    });
+    assert.equal((await getDatabase().get(
+      'SELECT equity FROM trading_paper_accounts WHERE account_id = ?', [numericBalanceAccount.id],
+    )).equity, '12500.5');
+    assert.equal(await deleteTradingAccount(numericBalanceAccount.id), true);
     await seedTradingFixtures(1_700_000_000_000);
     const defaults = await listTradingStrategies();
     const accounts = await listTradingAccounts();

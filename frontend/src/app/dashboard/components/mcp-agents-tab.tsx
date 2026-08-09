@@ -163,6 +163,18 @@ const RUNTIME_MODES = [
   },
 ]
 
+function runtimeConfirmationHeaders(mode: Snapshot["runtime"]["mode"]): Record<string, string> | undefined {
+  if (mode === "active") return { "X-Destructive-Confirmation": "set-mcp-runtime-active" }
+  if (mode === "disabled") return { "X-Destructive-Confirmation": "set-mcp-runtime-disabled" }
+  return undefined
+}
+
+function runtimeSuccessMessage(mode: Snapshot["runtime"]["mode"]): string {
+  if (mode === "active") return "MCP-Server ist aktiv und nimmt Agentenverbindungen an."
+  if (mode === "standby") return "MCP-Server ist im Standby; Sitzungen und Ausführung sind pausiert."
+  return "MCP-Server ist deaktiviert; Sitzungen wurden getrennt."
+}
+
 function sessionConnectionLabel(connected: boolean, disconnectedAt: number | null): string {
   if (connected) return "verbunden"
   return disconnectedAt ? "beendet" : "inaktiv"
@@ -203,7 +215,7 @@ export function McpAgentsTab() {
     setSnapshot({
       ...EMPTY,
       ...payload,
-      runtime: { ...EMPTY.runtime, ...(payload.runtime || {}) },
+      runtime: { ...EMPTY.runtime, ...payload.runtime },
       proposals: payload.proposals || [],
     })
   }
@@ -279,19 +291,11 @@ export function McpAgentsTab() {
     if (mode === snapshot.runtime.mode) return
     if (mode === "active" && !window.confirm("MCP aktivieren? Konfigurierte Agenten können sich danach mit ihren Tokens verbinden und freigegebene Tools verwenden.")) return
     if (mode === "disabled" && !window.confirm("MCP vollständig deaktivieren? Aktive Sitzungen werden getrennt und noch nicht gestartete MCP-Aktionen verworfen.")) return
-    const headers = mode === "active"
-      ? { "X-Destructive-Confirmation": "set-mcp-runtime-active" }
-      : mode === "disabled"
-        ? { "X-Destructive-Confirmation": "set-mcp-runtime-disabled" }
-        : undefined
+    const headers = runtimeConfirmationHeaders(mode)
     await execute(
       `runtime-${mode}`,
       () => request("/api/mcp/runtime", { mode }, headers),
-      mode === "active"
-        ? "MCP-Server ist aktiv und nimmt Agentenverbindungen an."
-        : mode === "standby"
-          ? "MCP-Server ist im Standby; Sitzungen und Ausführung sind pausiert."
-          : "MCP-Server ist deaktiviert; Sitzungen wurden getrennt.",
+      runtimeSuccessMessage(mode),
     )
   }
 

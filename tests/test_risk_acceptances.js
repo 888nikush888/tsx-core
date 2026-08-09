@@ -64,6 +64,20 @@ assert.equal(
   4
 );
 
+const largeEmptyListSection = Array.from(
+  { length: 20_000 },
+  (_, index) => index % 2 === 0 ? '  -  ' : '  *  '
+).join('\r\n');
+const largeEmptyListRecord = validRecord.replace(
+  'Concrete failure scenario.',
+  largeEmptyListSection
+);
+assert.ok(
+  validateRiskAcceptance(largeEmptyListRecord, now)
+    .includes('section must contain concrete content: Risk'),
+  'Large whitespace-only list sections must be rejected without regex backtracking.'
+);
+
 const repositoryRecords = await checkRiskAcceptances(new Date('2026-08-09T00:00:00Z'));
 assert.deepEqual(repositoryRecords.violations, []);
 assert.deepEqual(repositoryRecords.files, []);

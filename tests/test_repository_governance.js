@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { riskLevel, scorePullRequest } from '../scripts/calculate_pr_risk.js';
+import {
+  resolveGitExecutable,
+  riskLevel,
+  scorePullRequest,
+} from '../scripts/calculate_pr_risk.js';
 import { evaluateGithubGovernance } from '../scripts/verify_github_governance.js';
 
 const EXCLUDED_ENCODING_DIRECTORIES = new Set([
@@ -41,6 +45,25 @@ assert.equal(riskLevel(4), 'standard-review');
 assert.equal(riskLevel(5), 'senior-review');
 assert.equal(riskLevel(10), 'security-architecture-review-and-rollback');
 assert.equal(riskLevel(15), 'critical-staging-and-explicit-approval');
+
+assert.equal(
+  resolveGitExecutable({
+    platform: 'win32',
+    fileExists: candidate => candidate === String.raw`C:\Program Files\Git\cmd\git.exe`,
+  }),
+  String.raw`C:\Program Files\Git\cmd\git.exe`,
+  'Windows Git resolution must stay inside the protected Program Files locations.'
+);
+assert.equal(
+  resolveGitExecutable({ platform: 'linux', fileExists: candidate => candidate === '/usr/bin/git' }),
+  '/usr/bin/git',
+  'POSIX Git resolution must use the protected system location.'
+);
+assert.throws(
+  () => resolveGitExecutable({ platform: 'linux', fileExists: () => false }),
+  /trusted absolute installation location/,
+  'Missing protected Git installations must fail closed instead of falling back to PATH.'
+);
 
 const critical = scorePullRequest([
   { path: 'src/dashboard_auth.ts', status: 'M', additions: 400, deletions: 150 },

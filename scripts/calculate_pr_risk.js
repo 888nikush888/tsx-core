@@ -1,7 +1,19 @@
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const TRUSTED_GIT_LOCATIONS = Object.freeze({
+  win32: Object.freeze([
+    String.raw`C:\Program Files\Git\cmd\git.exe`,
+    String.raw`C:\Program Files\Git\bin\git.exe`,
+    String.raw`C:\Program Files (x86)\Git\cmd\git.exe`,
+  ]),
+  unix: Object.freeze([
+    '/usr/bin/git',
+  ]),
+});
 
 const GOVERNANCE_FILES = new Set([
   '.dockerignore',
@@ -169,12 +181,36 @@ function parseNameStatus(value) {
   }));
 }
 
+export function resolveGitExecutable({
+  platform = process.platform,
+  fileExists = existsSync,
+} = {}) {
+  const pathImplementation = platform === 'win32' ? path.win32 : path.posix;
+  const trustedCandidates = platform === 'win32'
+    ? TRUSTED_GIT_LOCATIONS.win32
+    : TRUSTED_GIT_LOCATIONS.unix;
+  const executable = trustedCandidates.find(candidate =>
+    pathImplementation.isAbsolute(candidate) && fileExists(candidate)
+  );
+  if (!executable) {
+    throw new Error('Git was not found in a trusted absolute installation location.');
+  }
+  return executable;
+}
+
 function gitChanges(base, head) {
   const range = `${base}...${head}`;
   const options = { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 };
-  const numstat = execFileSync('git', ['diff', '--no-renames', '--numstat', range], options);
+  const gitExecutable = resolveGitExecutable();
+  const numstat = execFileSync(
+    gitExecutable,
+    ['diff', '--no-renames', '--numstat', range],
+    options
+  );
   const statuses = parseNameStatus(execFileSync(
-    'git', ['diff', '--no-renames', '--name-status', range], options
+    gitExecutable,
+    ['diff', '--no-renames', '--name-status', range],
+    options
   ));
   return parseNumstat(numstat).map(change => ({
     ...change,

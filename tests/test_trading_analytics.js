@@ -90,7 +90,8 @@ try {
   await seedTradingFixtures();
   const account = (await listTradingAccounts())[0];
   const strategy = (await listTradingStrategies()).find(candidate => candidate.status === 'published');
-  assert.ok(account && strategy);
+  assert.ok(account);
+  assert.ok(strategy);
   const evaluationNow = Date.UTC(2026, 6, 27, 12);
   const closedAt = evaluationNow - 24 * 60 * 60 * 1_000;
 

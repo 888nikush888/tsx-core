@@ -599,7 +599,12 @@ function validateTradingAccountBalance(initialBalance: unknown, paper: boolean):
   if (paper && (initialBalance === undefined || initialBalance === null || initialBalance === '')) {
     throw new Error('Paper accounts require an explicitly entered initial balance.');
   }
-  return paper ? decimal(String(initialBalance), { positive: true }) : null;
+  if (!paper) return null;
+  if (typeof initialBalance !== 'string' && typeof initialBalance !== 'number') {
+    throw new Error('Paper account initial balance must be a decimal string or number.');
+  }
+  const serializedBalance = typeof initialBalance === 'number' ? String(initialBalance) : initialBalance;
+  return decimal(serializedBalance, { positive: true });
 }
 
 export async function createTradingAccount(input: {
