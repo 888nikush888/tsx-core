@@ -786,7 +786,7 @@ async function runRepositoryTests() {
     );
     await assert.rejects(
       createTradingAccount({ name: 'Invalid paper', exchange: 'paper', mode: 'paper', initialBalance: {} }),
-      /must be a decimal string or number/,
+      { name: 'TypeError', message: /must be a decimal string or number/ },
     );
     const numericBalanceAccount = await createTradingAccount({
       name: 'Numeric paper', exchange: 'paper', mode: 'paper', initialBalance: 12_500.5,

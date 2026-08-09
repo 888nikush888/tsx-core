@@ -601,7 +601,7 @@ function validateTradingAccountBalance(initialBalance: unknown, paper: boolean):
   }
   if (!paper) return null;
   if (typeof initialBalance !== 'string' && typeof initialBalance !== 'number') {
-    throw new Error('Paper account initial balance must be a decimal string or number.');
+    throw new TypeError('Paper account initial balance must be a decimal string or number.');
   }
   const serializedBalance = typeof initialBalance === 'number' ? String(initialBalance) : initialBalance;
   return decimal(serializedBalance, { positive: true });
