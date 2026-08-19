@@ -21,6 +21,7 @@ try {
   assert.equal(env.ENTERPRISE_MODE, 'false');
   assert.equal(env.DASHBOARD_LOCAL_TRUST, 'true');
   assert.equal(env.DASHBOARD_ALLOWED_ORIGIN, undefined);
+  assert.equal(env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES, 'false');
 
   const standalone = { ...store.snapshot(), shutdownGraceMs: 45_000, backupIntervalMs: 60_000 };
   await store.set(standalone);
@@ -62,6 +63,7 @@ try {
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, auditRemoteRequired: 'yes' }), /true or false/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, backupOffsiteRequired: 'yes' }), /true or false/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, jsonLogging: 'yes' }), /true or false/);
+  assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, isolateUnavailableMarketFailures: 'yes' }), /true or false/);
   assert.throws(() => validateRuntimeSettings({ ...enterprise, dashboardLocalTrust: true }), /disable trusted local/);
   assert.throws(() => validateRuntimeSettings({ ...enterprise, auditRemoteRequired: false }), /remote audit/);
   assert.throws(() => validateRuntimeSettings({ ...enterprise, backupOffsiteRequired: false }), /off-site backup/);

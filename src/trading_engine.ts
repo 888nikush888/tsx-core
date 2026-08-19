@@ -34,14 +34,19 @@ import type {
   ExchangeStreamBatch,
   PlannedOrder,
   TradingAccount,
+  TradingAccountSnapshot,
   TradingExchange,
   TradingExchangeAdapter,
   TradingIntent,
+  TradingMarketSnapshot,
   TradingPlan,
 } from './trading_types.js';
 
 type TradingLogger = (message: string) => void;
 type ReconciliationOptions = { force?: boolean };
+export interface TradingEngineOptions {
+  isolateUnavailableMarketFailures?: boolean;
+}
 type RemoteStateWithIdentity = ExchangeOpenState & { accountFingerprint?: string };
 type OpenEntryRow = {
   intent_id: string;
@@ -59,6 +64,17 @@ class ReconciliationMismatchError extends Error {
     super(message);
     this.name = 'ReconciliationMismatchError';
   }
+}
+
+function unavailableMarketMessage(error: unknown, symbol: string): string | null {
+  const message = error instanceof Error ? error.message : String(error);
+  const normalizedSymbol = symbol.toUpperCase();
+  const hyperliquidCoin = normalizedSymbol.replace(/(?:USDT|USDC|USD)$/, '');
+  const accepted = new Set([
+    `Exchange executor request failed (400): Hyperliquid symbol ${hyperliquidCoin} is unavailable.`,
+    `Exchange executor request failed (400): Bybit symbol ${normalizedSymbol} is unavailable or ambiguous.`,
+  ]);
+  return accepted.has(message) ? message : null;
 }
 
 function replacementStopId(intentId: string, quantity: string, trigger: string): string {
@@ -605,6 +621,7 @@ export class TradingEngine {
     adapters: TradingExchangeAdapter[],
     private readonly logger: TradingLogger = () => undefined,
     private readonly clockGuard: ClockHealthMonitor = new ClockGuard(),
+    private readonly options: TradingEngineOptions = {},
   ) {
     for (const adapter of adapters) this.adapters.set(adapter.exchange, adapter);
   }
@@ -748,10 +765,20 @@ export class TradingEngine {
     assertExecutionPreconditions(account, runtime);
     assertPublishedStrategy(strategy);
     const adapter = this.adapter(account.exchange);
-    const [accountSnapshot, market] = await Promise.all([
-      adapter.accountSnapshot(account),
-      adapter.marketSnapshot(account, intent.symbol),
-    ]);
+    let accountSnapshot: TradingAccountSnapshot;
+    let market: TradingMarketSnapshot;
+    try {
+      [accountSnapshot, market] = await Promise.all([
+        adapter.accountSnapshot(account),
+        adapter.marketSnapshot(account, intent.symbol),
+      ]);
+    } catch (error) {
+      const unavailable = unavailableMarketMessage(error, intent.symbol);
+      if (this.options.isolateUnavailableMarketFailures && unavailable) {
+        throw new TradingRiskError('SYMBOL_UNAVAILABLE', unavailable);
+      }
+      throw error;
+    }
     await recordTradingEquitySnapshot(account.id, accountSnapshot);
     const channelRisk = await resolveEffectiveChannelRisk({
       channelId: intent.channelId,

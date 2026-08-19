@@ -458,6 +458,7 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
                 ["auditRemoteRequired", "Remote-Audit verpflichtend"],
                 ["backupOffsiteRequired", "Off-site-Backup verpflichtend"],
                 ["jsonLogging", "JSON-Logging"],
+                ["isolateUnavailableMarketFailures", "Nicht verfügbare Märkte nur tradebezogen blockieren"],
               ].map(([name, label]) => (
                 <label key={name} className="flex items-center gap-2 rounded-md border p-3 text-sm">
                   <input type="checkbox" checked={Boolean(runtimeSettings[name])} onChange={(event) => name === "enterpriseMode" ? toggleEnterpriseMode(event.target.checked) : updateRuntimeSetting(name, event.target.checked)} />
@@ -465,6 +466,7 @@ export function SystemTab({ config, secretStatus, onSecretStatusChange }: any) {
                 </label>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">Ist die tradebezogene Marktsperre aktiv, blockiert eine eindeutige Börsenmeldung „Symbol nicht verfügbar“ nur das betroffene Signal. Unklare Orderausgänge, Timeouts und Schutzfehler bleiben weiterhin kontoweit fail-closed.</p>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
