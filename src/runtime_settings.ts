@@ -36,6 +36,7 @@ export interface RuntimeSettings {
   deliveryConfirmTimeoutMs: number;
   shutdownGraceMs: number;
   jsonLogging: boolean;
+  isolateUnavailableMarketFailures: boolean;
 }
 
 export interface RuntimeSettingsRecoveryStatus {
@@ -82,6 +83,7 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
   deliveryConfirmTimeoutMs: 30_000,
   shutdownGraceMs: 30_000,
   jsonLogging: true,
+  isolateUnavailableMarketFailures: false,
 };
 
 // A corrupted managed settings file must never silently re-enable the broad
@@ -100,6 +102,7 @@ const BOOLEAN_SETTING_NAMES = [
   'auditRemoteRequired',
   'backupOffsiteRequired',
   'jsonLogging',
+  'isolateUnavailableMarketFailures',
 ] as const;
 
 type RuntimeSettingsRecord = Record<string, unknown>;
@@ -309,6 +312,7 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
     deliveryConfirmTimeoutMs: integer(merged.deliveryConfirmTimeoutMs, 'deliveryConfirmTimeoutMs', 1_000, 300_000),
     shutdownGraceMs: integer(merged.shutdownGraceMs, 'shutdownGraceMs', 1_000, 120_000),
     jsonLogging: merged.jsonLogging as boolean,
+    isolateUnavailableMarketFailures: merged.isolateUnavailableMarketFailures as boolean,
   };
 }
 
@@ -347,6 +351,7 @@ const ENVIRONMENT_MAPPING: Record<keyof RuntimeSettings, string> = {
   deliveryConfirmTimeoutMs: 'DELIVERY_CONFIRM_TIMEOUT_MS',
   shutdownGraceMs: 'SHUTDOWN_GRACE_MS',
   jsonLogging: 'JSON_LOGGING',
+  isolateUnavailableMarketFailures: 'TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES',
 };
 
 async function syncDirectory(directory: string): Promise<void> {

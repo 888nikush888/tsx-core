@@ -1390,7 +1390,12 @@ function composeTradingControl(tradingCredentials: TradingCredentialStore, clock
   const paperAdapter = new PaperExchangeAdapter();
   const hyperliquidAdapter = new OfficialExchangeAdapter('hyperliquid', tradingCredentials);
   const bybitAdapter = new OfficialExchangeAdapter('bybit', tradingCredentials);
-  const tradingEngine = new TradingEngine([paperAdapter, hyperliquidAdapter, bybitAdapter], addLog, clockGuard);
+  const tradingEngine = new TradingEngine(
+    [paperAdapter, hyperliquidAdapter, bybitAdapter],
+    addLog,
+    clockGuard,
+    { isolateUnavailableMarketFailures: process.env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES === 'true' },
+  );
   tradingWebControl = new TradingWebControl(
     tradingCredentials,
     paperAdapter,

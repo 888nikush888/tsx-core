@@ -42,6 +42,8 @@ async function inspectConfiguredAccess(bootstrap: BootstrapInspection): Promise<
     if (response.ok) return { state: 'authenticated' }
     clearDashboardToken()
   }
+  const proxyIdentityResponse = await apiFetch('/api/status')
+  if (proxyIdentityResponse.ok) return { state: 'authenticated' }
   if (bootstrap.localSessionAvailable) {
     const localSession = await createLocalSession()
     if (localSession) return localSession

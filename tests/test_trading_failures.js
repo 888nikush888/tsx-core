@@ -138,6 +138,51 @@ async function testRuntimeStopWinsPendingIntentRace(directory) {
   await closeDb();
 }
 
+async function testUnavailableMarketFailureIsolation(directory) {
+  const strict = await setup(path.join(directory, 'unavailable-market-strict.db'));
+  const strictAdapter = {
+    ...wrappedAdapter(strict.paper, (...args) => strict.paper.submitOrder(...args)),
+    marketSnapshot: async () => {
+      throw new Error('Exchange executor request failed (400): Hyperliquid symbol ETH is unavailable.');
+    },
+  };
+  await new TradingEngine([strictAdapter]).processIntent(strict.intent.id);
+  assert.equal((await getTradingIntent(strict.intent.id)).status, 'unknown');
+  assert.deepEqual(
+    await getDatabase().get('SELECT severity, code FROM trading_risk_events WHERE intent_id = ?', [strict.intent.id]),
+    { severity: 'critical', code: 'ORDER_OUTCOME_UNKNOWN' },
+  );
+  await closeDb();
+
+  const isolated = await setup(path.join(directory, 'unavailable-market-isolated.db'));
+  const isolatedAdapter = {
+    ...wrappedAdapter(isolated.paper, (...args) => isolated.paper.submitOrder(...args)),
+    marketSnapshot: async () => {
+      throw new Error('Exchange executor request failed (400): Hyperliquid symbol ETH is unavailable.');
+    },
+  };
+  await new TradingEngine(
+    [isolatedAdapter],
+    () => undefined,
+    undefined,
+    { isolateUnavailableMarketFailures: true },
+  ).processIntent(isolated.intent.id);
+  const intent = await getTradingIntent(isolated.intent.id);
+  assert.equal(intent.status, 'blocked');
+  assert.equal(intent.blockReason, 'SYMBOL_UNAVAILABLE');
+  assert.equal(intent.plan, null, 'An unavailable market must be rejected before an order plan exists.');
+  assert.equal(
+    Number((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_orders WHERE intent_id = ?', [isolated.intent.id])).count),
+    0,
+    'An unavailable market must never reach order submission.',
+  );
+  assert.deepEqual(
+    await getDatabase().get('SELECT severity, code FROM trading_risk_events WHERE intent_id = ?', [isolated.intent.id]),
+    { severity: 'warning', code: 'SYMBOL_UNAVAILABLE' },
+  );
+  await closeDb();
+}
+
 async function testEntryTtlCancelsAndClosesEmptyPosition(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'entry-ttl.db'));
   await paper.setMarket(account.id, {
@@ -698,6 +743,7 @@ async function run() {
     await testUnknownEntry(directory);
     await testProtectiveStopFailure(directory);
     await testRuntimeStopWinsPendingIntentRace(directory);
+    await testUnavailableMarketFailureIsolation(directory);
     await testEntryTtlCancelsAndClosesEmptyPosition(directory);
     await testAdverseEntrySlippageFlattens(directory);
     await testPartialEntryProtectionAndTerminalResizing(directory);
