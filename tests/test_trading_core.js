@@ -250,6 +250,25 @@ function testAdaptivePlanContracts() {
   assert.equal(adaptiveStopLossDecision(adaptiveShortPlan, 3).trigger, '59000');
 }
 
+function assertPortfolioSizingModes(input) {
+  const portfolioSizedStrategy = configuration('5');
+  portfolioSizedStrategy.sizing.positionSizingMode = 'equity_percent_notional';
+  portfolioSizedStrategy.sizing.maxPositionNotional = '1000000';
+  const portfolioSizedPlan = createTradingPlan({ ...input, strategy: portfolioSizedStrategy });
+  assert.equal(portfolioSizedPlan.quantity, '0.008');
+  assert.equal(portfolioSizedPlan.notional, '484');
+  assert.equal(portfolioSizedPlan.riskAmount, '12');
+  assert.equal(portfolioSizedPlan.stopPrice, '59000');
+  const capitalSizedStrategy = configuration('5');
+  capitalSizedStrategy.sizing.positionSizingMode = 'equity_percent_margin';
+  capitalSizedStrategy.sizing.maxPositionNotional = '1000000';
+  const capitalSizedPlan = createTradingPlan({ ...input, strategy: capitalSizedStrategy });
+  assert.equal(capitalSizedPlan.leverage, 3);
+  assert.equal(capitalSizedPlan.quantity, '0.024');
+  assert.equal(capitalSizedPlan.notional, '1452');
+  assert.equal(capitalSizedPlan.riskAmount, '36');
+}
+
 function testTradingPlanContracts() {
   const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
   const input = planInput(executable);
@@ -293,22 +312,7 @@ function testTradingPlanContracts() {
   assert.equal(shortPlan.orders[1].side, 'buy');
   assert.equal(shortPlan.riskAmount, '50');
   assert.equal(shortPlan.leverage, configuration().sizing.maxLeverage);
-  const portfolioSizedStrategy = configuration('5');
-  portfolioSizedStrategy.sizing.positionSizingMode = 'equity_percent_notional';
-  portfolioSizedStrategy.sizing.maxPositionNotional = '1000000';
-  const portfolioSizedPlan = createTradingPlan({ ...input, strategy: portfolioSizedStrategy });
-  assert.equal(portfolioSizedPlan.quantity, '0.008');
-  assert.equal(portfolioSizedPlan.notional, '484');
-  assert.equal(portfolioSizedPlan.riskAmount, '12');
-  assert.equal(portfolioSizedPlan.stopPrice, '59000');
-  const capitalSizedStrategy = configuration('5');
-  capitalSizedStrategy.sizing.positionSizingMode = 'equity_percent_margin';
-  capitalSizedStrategy.sizing.maxPositionNotional = '1000000';
-  const capitalSizedPlan = createTradingPlan({ ...input, strategy: capitalSizedStrategy });
-  assert.equal(capitalSizedPlan.leverage, 3);
-  assert.equal(capitalSizedPlan.quantity, '0.024');
-  assert.equal(capitalSizedPlan.notional, '1452');
-  assert.equal(capitalSizedPlan.riskAmount, '36');
+  assertPortfolioSizingModes(input);
   const coarseMarket = {
     ...input.market,
     priceTick: '1',

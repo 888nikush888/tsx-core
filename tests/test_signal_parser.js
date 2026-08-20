@@ -149,6 +149,29 @@ function assertUsdQuoteOnly() {
   }
 }
 
+function assertRussianEntryGrounding() {
+  const marketXml = STANDARD_LONG.replace('<leverage>15</leverage>', '');
+  const marketSource = 'ETH/USDT LONG\nВход: по рынку\nУсреднение: 3400.50\nЦели: 3500.00 3600.00\nСтоп: 3300.00';
+  assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(marketXml), marketSource));
+  const limitXml = marketXml.replace('<max>3400.50</max>', '<max>3401.00</max>');
+  const limitSource = 'ETH/USDT LONG\nВход: лимитки 3401.00 3400.50\nЦели: 3500.00 3600.00\nСтоп: 3300.00';
+  assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(limitXml), limitSource));
+  assert.throws(
+    () => assertSignalGrounded(
+      validateSignalXml(marketXml),
+      'ETH/USDT LONG\nВход: по рынку\nЦели: 3500.00 3600.00\nСтоп: 3300.00',
+    ),
+    /3400\.50.*not grounded/,
+  );
+}
+
+function assertExtendedGroundingCases() {
+  assertRussianEntryGrounding();
+  assertSpacedPairGrounding();
+  assertCryptoShaurmaGrounding();
+  assertUsdQuoteOnly();
+}
+
 async function testStandardSchemaContracts() {
   await assertGoldenSetGrounding();
   await assertRepositoryDefaultPromptContract();
@@ -187,22 +210,7 @@ async function testStandardSchemaContracts() {
     ),
     /competing trading pairs/
   );
-  const russianMarketXml = STANDARD_LONG.replace('<leverage>15</leverage>', '');
-  const russianMarketSource = 'ETH/USDT LONG\nВход: по рынку\nУсреднение: 3400.50\nЦели: 3500.00 3600.00\nСтоп: 3300.00';
-  assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(russianMarketXml), russianMarketSource));
-  const russianLimitXml = russianMarketXml.replace('<max>3400.50</max>', '<max>3401.00</max>');
-  const russianLimitSource = 'ETH/USDT LONG\nВход: лимитки 3401.00 3400.50\nЦели: 3500.00 3600.00\nСтоп: 3300.00';
-  assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(russianLimitXml), russianLimitSource));
-  assert.throws(
-    () => assertSignalGrounded(
-      validateSignalXml(russianMarketXml),
-      'ETH/USDT LONG\nВход: по рынку\nЦели: 3500.00 3600.00\nСтоп: 3300.00',
-    ),
-    /3400\.50.*not grounded/,
-  );
-  assertSpacedPairGrounding();
-  assertCryptoShaurmaGrounding();
-  assertUsdQuoteOnly();
+  assertExtendedGroundingCases();
 
   const invalidStandard = [
     ['numeric suffix', standard({ targets: '<target id="1">95abc</target>' }), /plain decimal/],

@@ -757,7 +757,7 @@ export class TradingEngine {
     return flattened;
   }
 
-  private async executePendingIntent(intent: TradingIntent): Promise<void> {
+  private async preparePendingIntent(intent: TradingIntent) {
     const [account, strategy, runtime] = await Promise.all([
       getTradingAccount(intent.accountId),
       getTradingStrategyVersion(intent.strategyVersionId),
@@ -814,6 +814,16 @@ export class TradingEngine {
       accountSnapshot.fundingPnlToday,
     );
     await persistPlan(intent, plan);
+    return {
+      account,
+      adapter,
+      plan,
+      effectiveRiskPercent: channelRisk.riskPercent,
+    };
+  }
+
+  private async executePendingIntent(intent: TradingIntent): Promise<void> {
+    const { account, adapter, plan, effectiveRiskPercent } = await this.preparePendingIntent(intent);
     const entry = plan.orders.find(order => order.role === 'entry')!;
     const protectiveStop = plan.orders.find(order => order.role === 'stop_loss')!;
     await setIntentState(intent.id, 'submitting', { plan });
@@ -824,7 +834,7 @@ export class TradingEngine {
       accountId: intent.accountId,
       exchange: intent.exchange,
       mode: intent.mode,
-      details: { symbol: intent.symbol, effectiveRiskPercent: channelRisk.riskPercent },
+      details: { symbol: intent.symbol, effectiveRiskPercent },
     });
     const protectedResult = await submitTrackedProtectedEntry({
       adapter,
