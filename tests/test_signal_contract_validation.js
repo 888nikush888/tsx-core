@@ -163,11 +163,22 @@ assert.deepEqual(marketSignal.groundingFields, [
   { kind: 'averaging', values: ['99'] },
 ]);
 
+const decimalLeverageXml = marketXml.replace('<leverage>5</leverage>', '<leverage>15.87</leverage>');
+const decimalLeverageSignal = validateSignalXml(decimalLeverageXml, undefined, typedSelection);
+assert.equal(decimalLeverageSignal.execution.suggestedLeverage, 15);
+assert.ok(decimalLeverageSignal.groundingNumbers.includes('15.87'));
+assert.deepEqual(
+  decimalLeverageSignal.groundingFields.find(field => field.kind === 'leverage'),
+  { kind: 'leverage', values: ['15.87'] },
+);
+
 const typedInvalidCases = [
   [marketXml.replace('MARKET', 'STOP'), /not allowed by the contract/],
   [marketXml.replace('<entry_type>MARKET</entry_type>', '<entry_type>LIMIT</entry_type>'), /appear exactly once/],
   [marketXml.replace('<entry_type>MARKET</entry_type>', '<entry_type>MARKET</entry_type><entry_range><min>100</min><max>101</max></entry_range>'), /must omit/],
   [marketXml.replace('<leverage>5</leverage>', '<leverage>126</leverage>'), /between 1 and 125/],
+  [marketXml.replace('<leverage>5</leverage>', '<leverage>0.99</leverage>'), /between 1 and 125/],
+  [marketXml.replace('<leverage>5</leverage>', '<leverage>125.01</leverage>'), /between 1 and 125/],
   [marketXml.replace('<risk>1.5</risk>', '<risk>101</risk>'), /must not exceed 100/],
   [marketXml.replace('<action>LONG</action>', '<action>HOLD</action>'), /LONG.*SHORT/],
   [marketXml.replace('<pair>ETHUSD</pair>', '<pair>ethusd</pair>'), /quote asset/],

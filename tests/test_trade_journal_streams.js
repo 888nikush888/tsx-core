@@ -198,7 +198,28 @@ try {
   await recordExchangeStreamFailure(bybit.id, cyclicFailure);
   stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
   assert.equal(stream.lastError, 'Unknown exchange stream error.');
-  assert.deepEqual(await listActiveExchangeStreamSymbols(bybit.id), []);
+  const now = Date.now();
+  await saveSignal('stream-pending-signal', '-journal-channel', 43, XML, XML);
+  await saveSignal('stream-unknown-signal', '-journal-channel', 44, XML, XML);
+  await getDatabase().run(
+    `INSERT INTO trading_trade_intents (
+       id, source_signal_id, channel_id, strategy_version_id, account_id,
+       exchange, mode, symbol, side, status, signal_json, plan_json,
+       block_reason, last_error, created_at, updated_at
+     ) VALUES
+       ('stream-pending', 'stream-pending-signal', '-journal-channel', ?, ?,
+        'bybit', 'testnet', 'ETHUSDT', 'LONG', 'pending', '{}', NULL,
+        NULL, NULL, ?, ?),
+       ('stream-unknown', 'stream-unknown-signal', '-journal-channel', ?, ?,
+        'bybit', 'testnet', 'HYPEPERPUSDT', 'LONG', 'unknown', '{}', NULL,
+        NULL, 'provider outcome unknown', ?, ?)`,
+    [strategy.id, bybit.id, now, now, strategy.id, bybit.id, now, now],
+  );
+  assert.deepEqual(
+    await listActiveExchangeStreamSymbols(bybit.id),
+    ['ETHUSDT'],
+    'Unknown historical intents rely on private account events and REST; invalid public symbols must not poison the stream.',
+  );
   await assert.rejects(
     persistExchangeStreamBatch(paper, {
       events: [],

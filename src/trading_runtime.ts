@@ -73,6 +73,10 @@ export class TradingRuntime {
     this.entriesEnabled = true;
   }
 
+  disableEntries(): void {
+    this.entriesEnabled = false;
+  }
+
   private async assertEntryClockHealthy(): Promise<void> {
     const clock = this.clockGuard.sample();
     if (clock.healthy) return;

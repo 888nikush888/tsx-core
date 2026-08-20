@@ -22,6 +22,7 @@ import {
   adaptiveStopLossDecision,
   allocateTargetQuantities,
   createTradingPlan,
+  resolveDailyLossLimit,
   TradingRiskError,
 } from './trading_risk.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
@@ -764,6 +765,14 @@ export class TradingEngine {
     ]);
     assertExecutionPreconditions(account, runtime);
     assertPublishedStrategy(strategy);
+    const maximumPendingAgeMs = strategy.configuration.safety.entryOrderTtlSeconds * 1_000;
+    const pendingAgeMs = Date.now() - intent.createdAt;
+    if (pendingAgeMs >= maximumPendingAgeMs) {
+      throw new TradingRiskError(
+        'ENTRY_INTENT_EXPIRED',
+        `Trading intent exceeded its ${strategy.configuration.safety.entryOrderTtlSeconds}s entry TTL before execution.`,
+      );
+    }
     const adapter = this.adapter(account.exchange);
     let accountSnapshot: TradingAccountSnapshot;
     let market: TradingMarketSnapshot;
@@ -799,7 +808,7 @@ export class TradingEngine {
     await assertCapacity(
       intent,
       strategy.configuration.safety.maxConcurrentPositions,
-      strategy.configuration.safety.maxDailyLoss,
+      resolveDailyLossLimit(strategy.configuration.safety, accountSnapshot.equity),
       plan.riskAmount,
       accountSnapshot.unrealizedPnl,
       accountSnapshot.fundingPnlToday,

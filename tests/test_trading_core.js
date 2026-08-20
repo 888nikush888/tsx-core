@@ -27,6 +27,7 @@ import {
 import {
   adaptiveStopLossDecision,
   adaptiveTargetAllocations,
+  resolveDailyLossLimit,
   allocateTargetQuantities,
   createTradingPlan,
 } from '../src/trading_risk.js';
@@ -117,6 +118,9 @@ function testDecimalAndStrategyContracts() {
   const invalidStopPolicy = configuration();
   invalidStopPolicy.safety.requireProtectiveStop = false;
   assert.throws(() => validateStrategyConfiguration(invalidStopPolicy), /mandatory/);
+  const capitalSizing = configuration('5');
+  capitalSizing.sizing.positionSizingMode = 'equity_percent_margin';
+  assert.equal(validateStrategyConfiguration(capitalSizing).sizing.positionSizingMode, 'equity_percent_margin');
   const invalidRemainderPolicy = configuration();
   invalidRemainderPolicy.exits.closeRemainderAtLastTarget = false;
   assert.throws(() => validateStrategyConfiguration(invalidRemainderPolicy), /full remainder.*mandatory/);
@@ -130,6 +134,7 @@ function testDecimalAndStrategyContracts() {
   invalidConfiguration(value => { value.exits.stopLossMode = 'unsupported'; }, /stopLossMode/);
   invalidConfiguration(value => { value.schemaVersion = 3; }, /Unsupported strategy schema/);
   invalidConfiguration(value => { value.sizing.maxAdaptiveRiskPercent = '0.5'; }, /must not be below/);
+  invalidConfiguration(value => { value.sizing.positionSizingMode = 'balance_percent'; }, /positionSizingMode/);
   invalidConfiguration(value => { value.unsupported = true; }, /unsupported fields/);
   invalidConfiguration(value => { value.allowedSignalSchemas = []; }, /executable signal schema/);
   invalidConfiguration(value => { value.allowedSignalSchemas = 'standard'; }, /array of strings/);
@@ -148,7 +153,13 @@ function testDecimalAndStrategyContracts() {
   invalidConfiguration(value => { value.exits.targetAllocationsPercent = '100'; }, /one and twenty/);
   invalidConfiguration(value => { value.exits.trailingStopPercent = '21'; }, /must not exceed/);
   invalidConfiguration(value => { value.safety.maxSlippagePercent = '6'; }, /must not exceed/);
+  invalidConfiguration(value => { value.safety.maxDailyLossMode = 'rolling'; }, /maxDailyLossMode/);
+  invalidConfiguration(value => { value.safety.maxDailyLossMode = 'equity_percent'; value.safety.maxDailyLoss = '101'; }, /must not exceed/);
   invalidConfiguration(value => { value.safety.entryOrderTtlSeconds = 9; }, /between 10 and 86400/);
+
+  assert.equal(resolveDailyLossLimit(configuration().safety, '10000'), '100');
+  const percentSafety = { ...configuration().safety, maxDailyLossMode: 'equity_percent', maxDailyLoss: '5' };
+  assert.equal(resolveDailyLossLimit(percentSafety, '10000'), '500');
 
   assert.deepEqual(adaptiveTargetAllocations(1), ['100']);
   assert.deepEqual(adaptiveTargetAllocations(3), ['50', '25', '25']);
@@ -282,6 +293,22 @@ function testTradingPlanContracts() {
   assert.equal(shortPlan.orders[1].side, 'buy');
   assert.equal(shortPlan.riskAmount, '50');
   assert.equal(shortPlan.leverage, configuration().sizing.maxLeverage);
+  const portfolioSizedStrategy = configuration('5');
+  portfolioSizedStrategy.sizing.positionSizingMode = 'equity_percent_notional';
+  portfolioSizedStrategy.sizing.maxPositionNotional = '1000000';
+  const portfolioSizedPlan = createTradingPlan({ ...input, strategy: portfolioSizedStrategy });
+  assert.equal(portfolioSizedPlan.quantity, '0.008');
+  assert.equal(portfolioSizedPlan.notional, '484');
+  assert.equal(portfolioSizedPlan.riskAmount, '12');
+  assert.equal(portfolioSizedPlan.stopPrice, '59000');
+  const capitalSizedStrategy = configuration('5');
+  capitalSizedStrategy.sizing.positionSizingMode = 'equity_percent_margin';
+  capitalSizedStrategy.sizing.maxPositionNotional = '1000000';
+  const capitalSizedPlan = createTradingPlan({ ...input, strategy: capitalSizedStrategy });
+  assert.equal(capitalSizedPlan.leverage, 3);
+  assert.equal(capitalSizedPlan.quantity, '0.024');
+  assert.equal(capitalSizedPlan.notional, '1452');
+  assert.equal(capitalSizedPlan.riskAmount, '36');
   const coarseMarket = {
     ...input.market,
     priceTick: '1',

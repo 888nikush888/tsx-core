@@ -19,6 +19,8 @@ MAX_BUFFERED_EVENTS = 2_000
 MAX_EVENTS_PER_POLL = 500
 MAX_EVENT_BYTES = 64 * 1024
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
+STREAM_RETRY_BASE_SECONDS = 1.0
+STREAM_RETRY_MAX_SECONDS = 30.0
 
 
 def _milliseconds(value: Any, fallback: int) -> int:
@@ -142,17 +144,31 @@ class AccountStream:
         self._public_client: Any | None = None
         self._public_symbols: set[str] = set()
         self._public_emitted_at: dict[str, int] = {}
+        self._retry_attempt = 0
+        self._next_retry_at = 0.0
 
     def ensure_started(self, symbols: list[str]) -> None:
+        clients_to_close: list[Any] = []
+        start_thread = False
         with self._lock:
             if self._closed:
                 raise ExchangeContractError("Exchange stream is stopped.")
             new_symbols = set(symbols) - self._public_symbols
             if self._status == "healthy" and new_symbols:
-                self._subscribe_symbols(sorted(new_symbols))
-            if self._starting or self._started_at is not None:
+                try:
+                    self._subscribe_symbols(sorted(new_symbols))
+                except Exception as error:
+                    self._record_failure_locked("STREAM_SUBSCRIBE_FAILED", error)
+                    clients_to_close = self._detach_clients_locked()
+            if self._status == "healthy" and self._started_at is not None:
                 return
-            self._starting = True
+            if not self._starting and time.monotonic() >= self._next_retry_at:
+                if not clients_to_close:
+                    clients_to_close = self._detach_clients_locked()
+                self._starting = True
+                start_thread = True
+        self._close_clients(clients_to_close)
+        if start_thread:
             threading.Thread(
                 target=self._start,
                 args=(symbols,),
@@ -160,7 +176,37 @@ class AccountStream:
                 daemon=True,
             ).start()
 
+    def _record_failure_locked(self, code: str, error: Exception) -> None:
+        self._status = "degraded"
+        self._started_at = None
+        self._last_error = f"{code}: {type(error).__name__}"[:500]
+        self._retry_attempt = min(self._retry_attempt + 1, 16)
+        delay = min(
+            STREAM_RETRY_MAX_SECONDS,
+            STREAM_RETRY_BASE_SECONDS * (2 ** (self._retry_attempt - 1)),
+        )
+        self._next_retry_at = time.monotonic() + delay
+
+    def _detach_clients_locked(self) -> list[Any]:
+        clients = list(self._clients)
+        self._clients.clear()
+        self._public_client = None
+        self._public_symbols.clear()
+        return clients
+
+    @staticmethod
+    def _close_clients(clients: list[Any]) -> None:
+        for client in clients:
+            try:
+                if isinstance(client, Info):
+                    client.disconnect_websocket()
+                elif hasattr(client, "exit"):
+                    client.exit()
+            except Exception:
+                continue
+
     def _start(self, symbols: list[str]) -> None:
+        clients_to_close: list[Any] = []
         try:
             if self.account["exchange"] == "bybit":
                 self._start_bybit(symbols)
@@ -171,13 +217,16 @@ class AccountStream:
                 self._started_at = now
                 self._status = "healthy"
                 self._last_error = None
+                self._retry_attempt = 0
+                self._next_retry_at = 0.0
         except Exception as error:
             with self._lock:
-                self._status = "degraded"
-                self._last_error = f"{type(error).__name__}: stream initialization failed"[:500]
+                self._record_failure_locked("STREAM_INITIALIZATION_FAILED", error)
+                clients_to_close = self._detach_clients_locked()
         finally:
             with self._lock:
                 self._starting = False
+            self._close_clients(clients_to_close)
 
     def _start_bybit(self, symbols: list[str]) -> None:
         options = {
@@ -256,8 +305,7 @@ class AccountStream:
                 self._ingest(channel_hint, message)
             except Exception as error:
                 with self._lock:
-                    self._status = "degraded"
-                    self._last_error = f"{type(error).__name__}: stream event rejected"[:500]
+                    self._record_failure_locked("STREAM_EVENT_REJECTED", error)
 
         return callback
 
@@ -341,17 +389,8 @@ class AccountStream:
                 return
             self._closed = True
             self._status = "stopped"
-            clients = list(self._clients)
-            self._clients.clear()
-            self._public_client = None
-        for client in clients:
-            try:
-                if isinstance(client, Info):
-                    client.disconnect_websocket()
-                elif hasattr(client, "exit"):
-                    client.exit()
-            except Exception:
-                continue
+            clients = self._detach_clients_locked()
+        self._close_clients(clients)
 
 
 class ExchangeStreamHub:

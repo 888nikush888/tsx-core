@@ -1363,15 +1363,16 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore,
   await initDb();
   const tradingEngine = composeTradingControl(tradingCredentials, clockGuard);
   if (!tradingWebControl || !auditTrail) throw new Error('MCP control dependencies are unavailable.');
-  mcpControlBridge = new McpControlBridge(tradingWebControl, auditTrail, addLog);
-  await mcpControlBridge.start();
-  await clearMcpMaintenanceMarker(databasePath);
   tradingRuntime = new TradingRuntime(
     tradingEngine,
     2_000,
     addLog,
     clockGuard,
   );
+  tradingWebControl.attachEntryRuntime(tradingRuntime);
+  mcpControlBridge = new McpControlBridge(tradingWebControl, auditTrail, addLog);
+  await mcpControlBridge.start();
+  await clearMcpMaintenanceMarker(databasePath);
   // Existing exposure is reconciled immediately, but pending entries remain
   // latched off until crash, retention, dashboard, monitoring and backup gates
   // have all completed below.

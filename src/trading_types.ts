@@ -6,6 +6,8 @@ export type TradingOrderSide = 'buy' | 'sell';
 export type TradingOrderType = 'market' | 'limit';
 export type TargetAllocationMode = 'manual' | 'adaptive_halving';
 export type StopLossMode = 'configured' | 'adaptive_targets';
+export type DailyLossLimitMode = 'absolute' | 'equity_percent';
+export type PositionSizingMode = 'risk_percent' | 'equity_percent_notional' | 'equity_percent_margin';
 export type ExecutableSignalSchemaContract = 'standard' | 'cryptodanielvip' | 'loma';
 export type SignalContractVersionStatus = 'draft' | 'published' | 'archived';
 export type SignalContractEntryMode = 'optional_range' | 'required_range' | 'typed';
@@ -64,6 +66,8 @@ export interface StrategyConfiguration {
     timeoutSeconds: number;
   };
   sizing: {
+    /** Stop-distance risk, equity-based notional, or equity-based deployed margin/capital. */
+    positionSizingMode?: PositionSizingMode;
     riskPerTradePercent: string;
     maxAdaptiveRiskPercent?: string;
     maxPositionNotional: string;
@@ -81,6 +85,8 @@ export interface StrategyConfiguration {
   };
   safety: {
     maxConcurrentPositions: number;
+    /** Interprets maxDailyLoss as quote currency or as a percentage of current account equity. */
+    maxDailyLossMode?: DailyLossLimitMode;
     maxDailyLoss: string;
     maxSlippagePercent: string;
     entryOrderTtlSeconds: number;

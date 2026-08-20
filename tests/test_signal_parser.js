@@ -11,6 +11,7 @@ import {
   validateXmlStructure
 } from '../src/signal_parser.js';
 import { assertSignalGrounded, SignalValidationError, validateSignalXml } from '../src/signal_schema.js';
+import { BUILTIN_SIGNAL_CONTRACTS, validateSignalContractDefinition } from '../src/signal_contract.js';
 
 const STANDARD_LONG = `<signal>
 <action>LONG</action><pair>ETHUSDT</pair>
@@ -108,6 +109,40 @@ function assertSpacedPairGrounding() {
   }
 }
 
+function assertCryptoShaurmaGrounding() {
+  const definition = structuredClone(
+    BUILTIN_SIGNAL_CONTRACTS.find(contract => contract.id === 'standard').definition,
+  );
+  definition.targets.minimumItems = 1;
+  definition.targets.maximumItems = 20;
+  const selection = {
+    id: 'crypto-shaurma-ru:v1',
+    parserSchema: 'standard',
+    contractDefinition: validateSignalContractDefinition(definition),
+  };
+  const xml = `<signal><action>LONG</action><pair>ICNTUSDT</pair>
+<entry_range><min>0.1205</min><max>0.1205</max></entry_range>
+<targets><target id="1">0.1226</target><target id="2">0.1240</target><target id="3">0.1255</target><target id="4">0.1290</target><target id="5">0.1340</target></targets>
+<stoploss>0.1174</stoploss><leverage>15.87</leverage></signal>`;
+  const source = `#ICNT LONG — вход отложенный, не сейчас (!), а строго по указанной цене.
+Биржа / Exchange: ByBit
+Вход / Entry: 0.1205
+TP1: 0.1226
+TP2: 0.1240
+TP3: 0.1255
+TP4: 0.1290
+TP5: 0.1340
+Stoploss: 0.1174
+В этом трейде используем кросс-плечо x15.87 на 5.00% депозита.`;
+  const signal = validateSignalXml(xml, undefined, selection);
+  assert.equal(signal.execution.suggestedLeverage, 15);
+  assert.doesNotThrow(() => assertSignalGrounded(signal, source));
+  assert.throws(
+    () => assertSignalGrounded(signal, source.replace('x15.87', 'x16.87')),
+    /15\.87.*not grounded|field 'leverage'.*does not exactly match/,
+  );
+}
+
 function assertUsdQuoteOnly() {
   for (const pair of ['BTCEUR', 'ETHBTC', 'SOLETH']) {
     assertInvalid(standard({ pair }), undefined, /must use the USD, USDC, or USDT quote asset/);
@@ -152,7 +187,21 @@ async function testStandardSchemaContracts() {
     ),
     /competing trading pairs/
   );
+  const russianMarketXml = STANDARD_LONG.replace('<leverage>15</leverage>', '');
+  const russianMarketSource = 'ETH/USDT LONG\nВход: по рынку\nУсреднение: 3400.50\nЦели: 3500.00 3600.00\nСтоп: 3300.00';
+  assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(russianMarketXml), russianMarketSource));
+  const russianLimitXml = russianMarketXml.replace('<max>3400.50</max>', '<max>3401.00</max>');
+  const russianLimitSource = 'ETH/USDT LONG\nВход: лимитки 3401.00 3400.50\nЦели: 3500.00 3600.00\nСтоп: 3300.00';
+  assert.doesNotThrow(() => assertSignalGrounded(validateSignalXml(russianLimitXml), russianLimitSource));
+  assert.throws(
+    () => assertSignalGrounded(
+      validateSignalXml(russianMarketXml),
+      'ETH/USDT LONG\nВход: по рынку\nЦели: 3500.00 3600.00\nСтоп: 3300.00',
+    ),
+    /3400\.50.*not grounded/,
+  );
   assertSpacedPairGrounding();
+  assertCryptoShaurmaGrounding();
   assertUsdQuoteOnly();
 
   const invalidStandard = [

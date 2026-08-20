@@ -20,6 +20,21 @@ from stream_hub import ExchangeStreamHub
 MAX_BODY_BYTES = 128 * 1024
 MAX_IN_FLIGHT_REQUESTS = 8
 
+EXECUTOR_ERROR_CODES = {
+    "/v1/verify-account": "ACCOUNT_VERIFY_FAILED",
+    "/v1/account-snapshot": "ACCOUNT_SNAPSHOT_FAILED",
+    "/v1/market-snapshot": "MARKET_SNAPSHOT_FAILED",
+    "/v1/submit-order": "ORDER_SUBMIT_FAILED",
+    "/v1/submit-protected-entry": "PROTECTED_ENTRY_SUBMIT_FAILED",
+    "/v1/cancel-order": "ORDER_CANCEL_FAILED",
+    "/v1/open-state": "OPEN_STATE_FAILED",
+    "/v1/stream-events": "STREAM_POLL_FAILED",
+}
+
+
+def executor_error_code(path: str) -> str:
+    return EXECUTOR_ERROR_CODES.get(path, "EXECUTOR_REQUEST_FAILED")
+
 
 class Application:
     def __init__(self, secret_directory: str) -> None:
@@ -134,8 +149,16 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as error:
             self._json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
         except Exception as error:  # SDK/network errors are not exposed with secret-bearing details.
-            print(f"executor_error type={type(error).__name__}", file=sys.stderr, flush=True)
-            self._json(HTTPStatus.BAD_GATEWAY, {"error": "Official exchange SDK request failed."})
+            code = executor_error_code(self.path)
+            print(
+                f"executor_error endpoint={self.path} code={code} type={type(error).__name__}",
+                file=sys.stderr,
+                flush=True,
+            )
+            self._json(
+                HTTPStatus.BAD_GATEWAY,
+                {"error": "Official exchange SDK request failed.", "code": code},
+            )
 
     def _authenticated(self) -> bool:
         authorization = self.headers.get("Authorization", "")

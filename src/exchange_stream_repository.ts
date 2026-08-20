@@ -208,7 +208,7 @@ export async function listActiveExchangeStreamSymbols(accountId: string): Promis
        WHERE account_id = ? AND status IN ('opening', 'open', 'closing', 'emergency')
        UNION
        SELECT symbol FROM trading_trade_intents
-       WHERE account_id = ? AND status IN ('pending', 'planned', 'submitting', 'monitoring', 'unknown')
+       WHERE account_id = ? AND status IN ('pending', 'planned', 'submitting', 'monitoring')
      ) ORDER BY symbol LIMIT 100`,
     [accountId, accountId],
   );

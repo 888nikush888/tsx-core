@@ -56,7 +56,25 @@ try {
   const hyperliquid = new FakeOfficialAdapter('hyperliquid');
   const bybit = new FakeOfficialAdapter('bybit');
   const engine = new TradingEngine([paper, hyperliquid, bybit]);
-  const control = new TradingWebControl(credentials, paper, [hyperliquid, bybit], engine);
+  const entryRuntime = {
+    enabled: false,
+    enableCalls: 0,
+    disableCalls: 0,
+    failNextEnable: false,
+    async enableEntries() {
+      this.enableCalls += 1;
+      if (this.failNextEnable) {
+        this.failNextEnable = false;
+        throw new Error('simulated entry latch failure');
+      }
+      this.enabled = true;
+    },
+    disableEntries() {
+      this.disableCalls += 1;
+      this.enabled = false;
+    },
+  };
+  const control = new TradingWebControl(credentials, paper, [hyperliquid, bybit], engine, entryRuntime);
 
   const initial = await control.snapshot();
   assert.equal(initial.accounts.length, 1);
@@ -227,6 +245,8 @@ try {
   assert.equal((await control.snapshot()).activity.paperMarkets[0].markPrice, '60000');
   await control.setRuntime({ action: 'execution', enabled: true });
   assert.equal((await control.snapshot()).overview.runtime.executionEnabled, true);
+  assert.equal(entryRuntime.enabled, true, 'A successful dashboard enable must open the in-memory entry latch.');
+  assert.equal(entryRuntime.enableCalls, 1);
 
   const live = await control.createAccount({
     name: 'Bybit Live', exchange: 'bybit', mode: 'live',
@@ -286,6 +306,7 @@ try {
   assert.equal((await control.snapshot()).overview.runtime.liveTradingEnabled, true);
 
   await control.setRuntime({ action: 'kill-switch', active: true, reason: 'Contract test' });
+  assert.equal(entryRuntime.enabled, false, 'The kill switch must close the in-memory entry latch immediately.');
   await assert.rejects(control.setRuntime({ action: 'execution', enabled: true }), /kill switch is active/);
   let runtime = (await control.snapshot()).overview.runtime;
   assert.equal(runtime.killSwitchActive, true);
@@ -293,6 +314,18 @@ try {
   await control.setRuntime({ action: 'kill-switch', active: false });
   runtime = (await control.snapshot()).overview.runtime;
   assert.equal(runtime.killSwitchActive, false);
+  entryRuntime.failNextEnable = true;
+  await assert.rejects(
+    control.setRuntime({ action: 'execution', enabled: true }),
+    /simulated entry latch failure/,
+  );
+  assert.equal(
+    (await control.snapshot()).overview.runtime.executionEnabled,
+    false,
+    'A failed latch enable must roll the persisted execution switch back to off.',
+  );
+  await control.setRuntime({ action: 'execution', enabled: true });
+  assert.equal(entryRuntime.enabled, true, 'Execution must be re-enableable after safely releasing the kill switch.');
 
   await control.reconcile();
   await control.reconcile(paperAccount.id);

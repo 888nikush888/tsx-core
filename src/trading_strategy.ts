@@ -26,6 +26,7 @@ export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
     timeoutSeconds: 10,
   },
   sizing: {
+    positionSizingMode: 'risk_percent',
     riskPerTradePercent: '1',
     maxAdaptiveRiskPercent: '1',
     maxPositionNotional: '1000',
@@ -41,6 +42,7 @@ export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
   },
   safety: {
     maxConcurrentPositions: 1,
+    maxDailyLossMode: 'absolute',
     maxDailyLoss: '100',
     maxSlippagePercent: '0.5',
     entryOrderTtlSeconds: 900,
@@ -114,8 +116,12 @@ function validateEntry(input: unknown): StrategyConfiguration['entry'] {
 function validateSizing(input: unknown, schemaVersion: 1 | 2): StrategyConfiguration['sizing'] {
   const value = object(input, 'sizing');
   exactKeys(value, 'sizing', [
-    'riskPerTradePercent', 'maxAdaptiveRiskPercent', 'maxPositionNotional', 'maxLeverage',
+    'positionSizingMode', 'riskPerTradePercent', 'maxAdaptiveRiskPercent', 'maxPositionNotional', 'maxLeverage',
   ]);
+  const positionSizingMode = value.positionSizingMode ?? 'risk_percent';
+  if (!['risk_percent', 'equity_percent_notional', 'equity_percent_margin'].includes(positionSizingMode)) {
+    throw new Error('sizing.positionSizingMode must be risk_percent, equity_percent_notional or equity_percent_margin.');
+  }
   const riskPerTradePercent = decimal(value.riskPerTradePercent, { positive: true, max: '10' });
   const maxAdaptiveRiskPercent = schemaVersion === 1
     ? undefined
@@ -124,6 +130,7 @@ function validateSizing(input: unknown, schemaVersion: 1 | 2): StrategyConfigura
     throw new Error('sizing.maxAdaptiveRiskPercent must not be below the baseline risk.');
   }
   return {
+    positionSizingMode,
     riskPerTradePercent,
     ...(maxAdaptiveRiskPercent ? { maxAdaptiveRiskPercent } : {}),
     maxPositionNotional: decimal(value.maxPositionNotional, { positive: true }),
@@ -177,13 +184,21 @@ function validateExits(input: unknown): StrategyConfiguration['exits'] {
 function validateSafety(input: unknown): StrategyConfiguration['safety'] {
   const value = object(input, 'safety');
   exactKeys(value, 'safety', [
-    'maxConcurrentPositions', 'maxDailyLoss', 'maxSlippagePercent',
+    'maxConcurrentPositions', 'maxDailyLossMode', 'maxDailyLoss', 'maxSlippagePercent',
     'entryOrderTtlSeconds', 'requireProtectiveStop',
   ]);
   if (value.requireProtectiveStop !== true) throw new Error('Protective stops are mandatory.');
+  const maxDailyLossMode = value.maxDailyLossMode ?? 'absolute';
+  if (!['absolute', 'equity_percent'].includes(maxDailyLossMode as string)) {
+    throw new Error('safety.maxDailyLossMode must be absolute or equity_percent.');
+  }
   return {
     maxConcurrentPositions: integer(value.maxConcurrentPositions, 'safety.maxConcurrentPositions', 1, 20),
-    maxDailyLoss: decimal(value.maxDailyLoss, { positive: true }),
+    maxDailyLossMode: maxDailyLossMode as 'absolute' | 'equity_percent',
+    maxDailyLoss: decimal(value.maxDailyLoss, {
+      positive: true,
+      max: maxDailyLossMode === 'equity_percent' ? '100' : undefined,
+    }),
     maxSlippagePercent: decimal(value.maxSlippagePercent, { positive: true, max: '5' }),
     entryOrderTtlSeconds: integer(value.entryOrderTtlSeconds, 'safety.entryOrderTtlSeconds', 10, 86_400),
     requireProtectiveStop: true,

@@ -138,6 +138,29 @@ async function testRuntimeStopWinsPendingIntentRace(directory) {
   await closeDb();
 }
 
+async function testStalePendingIntentNeverSubmits(directory) {
+  const { paper, intent } = await setup(path.join(directory, 'stale-pending-intent.db'));
+  await getDatabase().run(
+    'UPDATE trading_trade_intents SET created_at = ?, updated_at = ? WHERE id = ?',
+    [Date.now() - 901_000, Date.now() - 901_000, intent.id],
+  );
+  let submissions = 0;
+  const adapter = wrappedAdapter(paper, async (...args) => {
+    submissions += 1;
+    return paper.submitOrder(...args);
+  });
+  await new TradingEngine([adapter]).processIntent(intent.id);
+  const expired = await getTradingIntent(intent.id);
+  assert.equal(submissions, 0, 'A stale pending intent must never reach order submission.');
+  assert.equal(expired.status, 'blocked');
+  assert.equal(expired.blockReason, 'ENTRY_INTENT_EXPIRED');
+  assert.deepEqual(
+    await getDatabase().get('SELECT severity, code FROM trading_risk_events WHERE intent_id = ?', [intent.id]),
+    { severity: 'warning', code: 'ENTRY_INTENT_EXPIRED' },
+  );
+  await closeDb();
+}
+
 async function testUnavailableMarketFailureIsolation(directory) {
   const strict = await setup(path.join(directory, 'unavailable-market-strict.db'));
   const strictAdapter = {
@@ -743,6 +766,7 @@ async function run() {
     await testUnknownEntry(directory);
     await testProtectiveStopFailure(directory);
     await testRuntimeStopWinsPendingIntentRace(directory);
+    await testStalePendingIntentNeverSubmits(directory);
     await testUnavailableMarketFailureIsolation(directory);
     await testEntryTtlCancelsAndClosesEmptyPosition(directory);
     await testAdverseEntrySlippageFlattens(directory);

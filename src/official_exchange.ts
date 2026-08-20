@@ -14,6 +14,7 @@ import type {
 
 interface ExecutorErrorPayload {
   error?: string;
+  code?: string;
 }
 
 export interface VerifiedExternalAccount {
@@ -265,7 +266,12 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
       signal: AbortSignal.timeout(timeoutMs),
     });
     const body = await response.json().catch(() => ({})) as ExecutorErrorPayload;
-    if (!response.ok) throw new Error(`Exchange executor request failed (${response.status}): ${body.error || 'invalid response'}`);
+    if (!response.ok) {
+      const code = typeof body.code === 'string' && /^[A-Z][A-Z0-9_]{2,63}$/.test(body.code)
+        ? ` [${body.code}]`
+        : '';
+      throw new Error(`Exchange executor request failed (${response.status}): ${body.error || 'invalid response'}${code}`);
+    }
     return body;
   }
 }

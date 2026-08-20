@@ -71,6 +71,11 @@ type VerifiableAdapter = TradingExchangeAdapter & {
   }>;
 };
 
+export interface TradingEntryRuntimeControl {
+  enableEntries(): Promise<void>;
+  disableEntries(): void;
+}
+
 const LIVE_CONFIRMATION = 'ENABLE LIVE TRADING';
 const FLATTEN_CONFIRMATION = 'FLATTEN MANAGED POSITIONS';
 
@@ -145,15 +150,30 @@ export class TradingWebControl {
   private readonly adapters = new Map<TradingExchange, VerifiableAdapter>();
   private portfolioCache: { value: TradingPortfolioSnapshot; expiresAt: number } | null = null;
   private portfolioRefresh: Promise<TradingPortfolioSnapshot> | null = null;
+  private entryRuntime: TradingEntryRuntimeControl | null;
 
   constructor(
     private readonly credentials: TradingCredentialStore,
     private readonly paper: PaperExchangeAdapter,
     adapters: VerifiableAdapter[],
     private readonly engine: TradingEngine,
+    entryRuntime: TradingEntryRuntimeControl | null = null,
   ) {
+    this.entryRuntime = entryRuntime;
     this.adapters.set('paper', paper);
     for (const adapter of adapters) this.adapters.set(adapter.exchange, adapter);
+  }
+
+  attachEntryRuntime(runtime: TradingEntryRuntimeControl): void {
+    if (this.entryRuntime && this.entryRuntime !== runtime) {
+      throw new Error('Trading entry runtime is already attached.');
+    }
+    this.entryRuntime = runtime;
+  }
+
+  private requiredEntryRuntime(): TradingEntryRuntimeControl {
+    if (!this.entryRuntime) throw new Error('Trading entry runtime is unavailable.');
+    return this.entryRuntime;
   }
 
   async snapshot(): Promise<TradingWebSnapshot> {
@@ -419,6 +439,7 @@ export class TradingWebControl {
     // Credential rotation is a maintenance operation, never a live-trading
     // operation. Leave the global kill switch engaged for explicit operator
     // review after a successful rotation.
+    this.entryRuntime?.disableEntries();
     await updateTradingRuntimeState({
       executionEnabled: false,
       killSwitchActive: true,
@@ -564,13 +585,24 @@ export class TradingWebControl {
 
   private async setExecutionRuntime(payload: any) {
     const enabled = boolean(payload.enabled, 'Execution enabled state');
-    if (enabled) {
-      const overview = await getTradingOverview();
-      if (overview.runtime.killSwitchActive) throw new Error('Execution cannot start while the kill switch is active.');
-      if (overview.enabledRouteCount < 1) throw new Error('Execution requires at least one enabled channel route.');
-      await this.reconcileEnabledAccounts();
+    if (!enabled) {
+      this.entryRuntime?.disableEntries();
+      return updateTradingRuntimeState({ executionEnabled: false });
     }
-    return updateTradingRuntimeState({ executionEnabled: enabled });
+    const overview = await getTradingOverview();
+    if (overview.runtime.killSwitchActive) throw new Error('Execution cannot start while the kill switch is active.');
+    if (overview.enabledRouteCount < 1) throw new Error('Execution requires at least one enabled channel route.');
+    const runtime = this.requiredEntryRuntime();
+    await this.reconcileEnabledAccounts();
+    const state = await updateTradingRuntimeState({ executionEnabled: true });
+    try {
+      await runtime.enableEntries();
+      return state;
+    } catch (error) {
+      runtime.disableEntries();
+      await updateTradingRuntimeState({ executionEnabled: false });
+      throw error;
+    }
   }
 
   private async setLiveRuntime(payload: any) {
@@ -588,6 +620,7 @@ export class TradingWebControl {
     const active = boolean(payload.active, 'Kill switch state');
     if (active) {
       const reason = identifier(payload.reason, 'Kill switch reason', 300);
+      this.entryRuntime?.disableEntries();
       return updateTradingRuntimeState({ executionEnabled: false, killSwitchActive: true, killSwitchReason: reason });
     }
     await this.reconcileEnabledAccounts();
@@ -617,6 +650,7 @@ export class TradingWebControl {
     if (payload.confirmation !== FLATTEN_CONFIRMATION) {
       throw new Error(`Emergency flatten requires the exact confirmation '${FLATTEN_CONFIRMATION}'.`);
     }
+    this.entryRuntime?.disableEntries();
     await updateTradingRuntimeState({ executionEnabled: false, killSwitchActive: true, killSwitchReason: 'Operator emergency flatten' });
     const accountId = payload.accountId ? identifier(payload.accountId, 'Account identifier', 64) : undefined;
     if (accountId) await this.engine.reconcileAccount(accountId);
@@ -629,6 +663,7 @@ export class TradingWebControl {
   }
 
   async assertFactoryResetSafe(): Promise<void> {
+    this.entryRuntime?.disableEntries();
     await updateTradingRuntimeState({ executionEnabled: false, liveTradingEnabled: false });
     await this.engine.cancelOpenEntries();
     const accounts = (await listTradingAccounts()).filter(account => account.exchange !== 'paper');

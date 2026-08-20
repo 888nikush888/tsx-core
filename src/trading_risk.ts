@@ -121,6 +121,61 @@ function positionQuantity(input: {
   return quantity;
 }
 
+function equityPercentPositionQuantity(input: {
+  account: TradingAccountSnapshot;
+  market: TradingMarketSnapshot;
+  entry: string;
+  positionPercent: string;
+  maxNotional: string;
+  leverage: number;
+}): string {
+  const portfolioNotional = divideDecimal(
+    multiplyDecimal(input.account.equity, input.positionPercent),
+    '100',
+  );
+  const buyingPower = multiplyDecimal(input.account.availableBalance, String(input.leverage));
+  const allowedNotional = minDecimal(portfolioNotional, input.maxNotional, buyingPower);
+  const quantity = quantizeDecimalDown(
+    divideDecimal(allowedNotional, input.entry),
+    input.market.quantityStep,
+  );
+  if (compareDecimal(quantity, input.market.minimumQuantity) < 0) {
+    throw new TradingRiskError('QUANTITY_BELOW_MINIMUM', 'Portfolio-sized quantity is below the exchange minimum.');
+  }
+  if (compareDecimal(multiplyDecimal(quantity, input.entry), input.market.minimumNotional) < 0) {
+    throw new TradingRiskError('NOTIONAL_BELOW_MINIMUM', 'Portfolio-sized notional is below the exchange minimum.');
+  }
+  return quantity;
+}
+
+function equityPercentMarginQuantity(input: {
+  account: TradingAccountSnapshot;
+  market: TradingMarketSnapshot;
+  entry: string;
+  capitalPercent: string;
+  maxNotional: string;
+  leverage: number;
+}): string {
+  const deployedCapital = divideDecimal(
+    multiplyDecimal(input.account.equity, input.capitalPercent),
+    '100',
+  );
+  const leveragedNotional = multiplyDecimal(deployedCapital, String(input.leverage));
+  const buyingPower = multiplyDecimal(input.account.availableBalance, String(input.leverage));
+  const allowedNotional = minDecimal(leveragedNotional, input.maxNotional, buyingPower);
+  const quantity = quantizeDecimalDown(
+    divideDecimal(allowedNotional, input.entry),
+    input.market.quantityStep,
+  );
+  if (compareDecimal(quantity, input.market.minimumQuantity) < 0) {
+    throw new TradingRiskError('QUANTITY_BELOW_MINIMUM', 'Capital-sized quantity is below the exchange minimum.');
+  }
+  if (compareDecimal(multiplyDecimal(quantity, input.entry), input.market.minimumNotional) < 0) {
+    throw new TradingRiskError('NOTIONAL_BELOW_MINIMUM', 'Capital-sized notional is below the exchange minimum.');
+  }
+  return quantity;
+}
+
 export function allocateTargetQuantities(quantity: string, allocations: string[], step: string): string[] {
   let allocated = '0';
   return allocations.map((allocation, index) => {
@@ -163,6 +218,14 @@ export function resolveTargetAllocations(strategy: StrategyConfiguration, target
     );
   }
   return [...strategy.exits.targetAllocationsPercent];
+}
+
+export function resolveDailyLossLimit(
+  safety: StrategyConfiguration['safety'],
+  accountEquity: string,
+): string {
+  if ((safety.maxDailyLossMode ?? 'absolute') === 'absolute') return safety.maxDailyLoss;
+  return divideDecimal(multiplyDecimal(accountEquity, safety.maxDailyLoss), '100');
 }
 
 export interface AdaptiveStopLossDecision {
@@ -279,21 +342,43 @@ export function createTradingPlan(input: {
   const selectedRisk = input.effectiveRiskPercent
     ? minDecimal(decimal(input.effectiveRiskPercent, { positive: true, max: '10' }), adaptiveCeiling)
     : input.strategy.sizing.riskPerTradePercent;
-  const configuredRisk = input.signal.suggestedRiskPercent
+  const sizingMode = input.strategy.sizing.positionSizingMode ?? 'risk_percent';
+  const configuredRisk = sizingMode === 'risk_percent' && input.signal.suggestedRiskPercent
     ? minDecimal(selectedRisk, input.signal.suggestedRiskPercent)
     : selectedRisk;
-  const riskAmount = divideDecimal(multiplyDecimal(input.account.equity, configuredRisk), '100');
   const leverage = selectedLeverage(input.signal, input.strategy, input.market);
-  const quantity = positionQuantity({
-    account: input.account,
-    market: input.market,
-    entry: price,
-    riskAmount,
-    riskDistance: distance,
-    maxNotional: input.strategy.sizing.maxPositionNotional,
-    leverage,
-  });
+  const configuredRiskAmount = divideDecimal(multiplyDecimal(input.account.equity, configuredRisk), '100');
+  const quantity = sizingMode === 'equity_percent_notional'
+    ? equityPercentPositionQuantity({
+      account: input.account,
+      market: input.market,
+      entry: price,
+      positionPercent: configuredRisk,
+      maxNotional: input.strategy.sizing.maxPositionNotional,
+      leverage,
+    })
+    : sizingMode === 'equity_percent_margin'
+      ? equityPercentMarginQuantity({
+        account: input.account,
+        market: input.market,
+        entry: price,
+        capitalPercent: configuredRisk,
+        maxNotional: input.strategy.sizing.maxPositionNotional,
+        leverage,
+      })
+    : positionQuantity({
+      account: input.account,
+      market: input.market,
+      entry: price,
+      riskAmount: configuredRiskAmount,
+      riskDistance: distance,
+      maxNotional: input.strategy.sizing.maxPositionNotional,
+      leverage,
+    });
   const notional = multiplyDecimal(quantity, price);
+  const riskAmount = sizingMode === 'equity_percent_notional' || sizingMode === 'equity_percent_margin'
+    ? multiplyDecimal(quantity, distance)
+    : configuredRiskAmount;
   return {
     version: 1,
     symbol: input.signal.symbol,

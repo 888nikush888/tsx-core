@@ -224,8 +224,8 @@ try {
   assert.equal(attachedState.orders[0].clientOrderId, `0x${'2'.repeat(32)}`);
   assert.equal(attachedState.orders[0].role, 'stop_loss');
 
-  nextResponse = { status: 503, body: { error: 'executor unavailable' } };
-  await assert.rejects(adapter.marketSnapshot(account, 'BTCUSDT'), /503.*executor unavailable/);
+  nextResponse = { status: 503, body: { error: 'executor unavailable', code: 'MARKET_SNAPSHOT_FAILED' } };
+  await assert.rejects(adapter.marketSnapshot(account, 'BTCUSDT'), /503.*executor unavailable.*MARKET_SNAPSHOT_FAILED/);
 } finally {
   if (previousUrl === undefined) delete process.env.EXCHANGE_EXECUTOR_URL;
   else process.env.EXCHANGE_EXECUTOR_URL = previousUrl;

@@ -25,11 +25,16 @@ from common import (
 )
 from credentials import CredentialError, CredentialStore
 from hyperliquid_adapter import HyperliquidAdapter
-from server import Handler
+from server import Handler, executor_error_code
 from stream_hub import AccountStream, _canonical_payload, _event_type, _symbol
 
 
 class ContractTests(unittest.TestCase):
+    def test_executor_failures_have_stable_secret_free_endpoint_codes(self) -> None:
+        self.assertEqual(executor_error_code("/v1/stream-events"), "STREAM_POLL_FAILED")
+        self.assertEqual(executor_error_code("/v1/open-state"), "OPEN_STATE_FAILED")
+        self.assertEqual(executor_error_code("/unknown"), "EXECUTOR_REQUEST_FAILED")
+
     def test_websocket_events_are_normalized_and_cursor_gaps_fail_safe(self) -> None:
         stream = AccountStream(
             {"id": "account-stream", "exchange": "bybit", "mode": "testnet"},
@@ -55,6 +60,45 @@ class ContractTests(unittest.TestCase):
         truncated, digest = _canonical_payload({"value": "x" * (70 * 1024)})
         self.assertTrue(truncated["truncated"])
         self.assertEqual(truncated["sha256"], digest)
+
+    def test_stream_subscription_failure_is_degraded_and_never_escapes_poll(self) -> None:
+        class WebSocketConnectionClosedException(Exception):
+            pass
+
+        class ClosedPublicClient:
+            def __init__(self) -> None:
+                self.closed = False
+
+            @staticmethod
+            def subscribe(*_args, **_kwargs):
+                raise WebSocketConnectionClosedException("provider details must not escape")
+
+            def exit(self) -> None:
+                self.closed = True
+
+        stream = AccountStream(
+            {"id": "account-stream", "exchange": "hyperliquid", "mode": "testnet"},
+            {"walletAddress": "0x" + "1" * 40},
+            "b" * 64,
+        )
+        client = ClosedPublicClient()
+        stream._status = "healthy"
+        stream._started_at = 1
+        stream._clients = [client]
+        stream._public_client = client
+
+        stream.ensure_started(["ETHUSDT"])
+
+        health = stream.poll(0)["health"]
+        self.assertEqual(health["status"], "degraded")
+        self.assertEqual(
+            health["lastError"],
+            "STREAM_SUBSCRIBE_FAILED: WebSocketConnectionClosedException",
+        )
+        self.assertNotIn("provider details", health["lastError"])
+        self.assertIsNone(health["startedAt"])
+        self.assertTrue(client.closed)
+        self.assertGreater(stream._next_retry_at, time.monotonic())
 
     def test_plain_decimals_only(self) -> None:
         self.assertEqual(decimal_string("1.2300", "price", positive=True), "1.23")

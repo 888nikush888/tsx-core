@@ -687,10 +687,10 @@ function dynamicAction(root: XmlNode, definition: SignalContractDefinition): 'LO
 
 function dynamicOptionalValues(root: XmlNode, definition: SignalContractDefinition): DynamicOptionalValues {
   const leverage = definition.leveragePath
-    ? pathLeaf(root, definition.leveragePath, false)
+    ? contractDecimal(root, definition.leveragePath, false)
     : undefined;
-  if (leverage && (!/^[1-9]\d{0,2}$/.test(leverage) || Number(leverage) > 125)) {
-    throw new SignalValidationError('Leverage must be an integer between 1 and 125.');
+  if (leverage && (compareDecimals(leverage, '1') < 0 || compareDecimals(leverage, '125') > 0)) {
+    throw new SignalValidationError('Leverage must be between 1 and 125.');
   }
   const risk = definition.riskPercentPath
     ? contractDecimal(root, definition.riskPercentPath, false)
@@ -772,7 +772,7 @@ function validateDynamicContract(
       entry: entry ? { type: 'range', ...entry } : { type: 'market' },
       targets,
       stopLoss,
-      suggestedLeverage: optional.leverage ? Number(optional.leverage) : undefined,
+      suggestedLeverage: optional.leverage ? Math.floor(Number(optional.leverage)) : undefined,
       suggestedRiskPercent: optional.risk,
       averagingPrice: optional.averaging,
     },
@@ -816,14 +816,21 @@ function normalizedGroundingText(value: string): string {
 
 const GROUNDING_LABEL_PATTERNS = [
   /\bENTRY(?:\s+(?:RANGE|LIMIT|MARKET))?\b/giu,
+  /(?<![\p{L}\p{N}_])ВХОД(?![\p{L}\p{N}_])/giu,
   /\bAVERAGING\b/giu,
+  /(?<![\p{L}\p{N}_])УСРЕДНЕНИЕ(?![\p{L}\p{N}_])/giu,
   /\b(?:STOP\s*LOSS|STOPLOSS|STOP|SL)\b/giu,
+  /(?<![\p{L}\p{N}_])СТОП(?![\p{L}\p{N}_])/giu,
   /\bTARGETS\b/giu,
-  /\bTARGET(?:\s+#?\d+(?=\s*:))?\b/giu,
-  /\bTP(?:\s+#?\d+(?=\s*:))?\b/giu,
-  /\bTAKE\s*PROFIT(?:\s+#?\d+(?=\s*:))?\b/giu,
+  /\bTARGET(?:\s*#?\d+(?=\s*:))?\b/giu,
+  /\bTP(?:\s*#?\d+(?=\s*:))?\b/giu,
+  /\bTAKE\s*PROFIT(?:\s*#?\d+(?=\s*:))?\b/giu,
+  /(?<![\p{L}\p{N}_])ЦЕЛИ(?![\p{L}\p{N}_])/giu,
   /\bLEVERAGE\b/giu,
+  /(?<![\p{L}\p{N}_])\u041a\u0420\u041e\u0421\u0421[-\u2010-\u2015]?\u041f\u041b\u0415\u0427\u041e(?![\p{L}\p{N}_])/giu,
+  /(?<![\p{L}\p{N}_])\u041d\u0410(?=\s+(?:0|[1-9]\d{0,17})(?:\.\d{1,18})?%\s+\u0414\u0415\u041f\u041e\u0417\u0418\u0422\u0410(?![\p{L}\p{N}_]))/giu,
   /\bRISK(?:\s*PERCENT)?\b/giu,
+  /(?<![\p{L}\p{N}_])РИСК(?:\s+МЕНЕДЖМЕНТ)?(?![\p{L}\p{N}_])/giu,
 ] as const;
 
 interface GroundingLabelMatch {
@@ -844,11 +851,11 @@ function groundingLabels(value: string): GroundingLabelMatch[] {
 
 function groundingKind(label: string): GroundingFieldKind {
   const normalized = label.replace(/\s+/g, ' ').trim().toUpperCase();
-  if (normalized.startsWith('ENTRY')) return 'entry';
-  if (normalized.startsWith('AVERAGING')) return 'averaging';
-  if (normalized.startsWith('STOP') || normalized === 'SL') return 'stop';
-  if (normalized.startsWith('TARGET') || normalized.startsWith('TP') || normalized.startsWith('TAKE PROFIT')) return 'target';
-  if (normalized.startsWith('LEVERAGE')) return 'leverage';
+  if (normalized.startsWith('ENTRY') || normalized === 'ВХОД') return 'entry';
+  if (normalized.startsWith('AVERAGING') || normalized === 'УСРЕДНЕНИЕ') return 'averaging';
+  if (normalized.startsWith('STOP') || normalized === 'SL' || normalized === 'СТОП') return 'stop';
+  if (normalized.startsWith('TARGET') || normalized.startsWith('TP') || normalized.startsWith('TAKE PROFIT') || normalized === 'ЦЕЛИ') return 'target';
+  if (normalized.startsWith('LEVERAGE') || normalized.startsWith('\u041a\u0420\u041e\u0421\u0421')) return 'leverage';
   return 'risk';
 }
 
@@ -893,6 +900,12 @@ function numbersInGroundingClause(value: string): string[] {
   const values: string[] = [];
   let cursor = 0;
   while (cursor < value.length) {
+    if ((value[cursor] === 'x' || value[cursor] === 'X') && isDigit(value[cursor + 1]) && !isWordCharacter(value[cursor - 1])) {
+      const scanned = scanGroundingNumber(value, cursor + 1);
+      if (scanned.decimal) values.push(scanned.decimal);
+      cursor = Math.max(scanned.end, cursor + 2);
+      continue;
+    }
     if (!isGroundingNumberStart(value, cursor)) {
       cursor += 1;
       continue;
@@ -918,9 +931,17 @@ function sourceFieldNumbers(sourceText: string): Map<GroundingFieldKind, string[
   return result;
 }
 
-function assertFieldGrounded(field: GroundingField, sourceFields: Map<GroundingFieldKind, string[]>): void {
+function assertFieldGrounded(
+  field: GroundingField,
+  sourceFields: Map<GroundingFieldKind, string[]>,
+  allowMarketAveragingEntry = false,
+): void {
   const expected = [...new Set(field.values.map(canonicalDecimal))].sort((left, right) => left.localeCompare(right));
-  const actual = [...new Set(sourceFields.get(field.kind) ?? [])].sort((left, right) => left.localeCompare(right));
+  const directValues = sourceFields.get(field.kind) ?? [];
+  const sourceValues = field.kind === 'entry' && directValues.length === 0 && allowMarketAveragingEntry
+    ? sourceFields.get('averaging') ?? []
+    : directValues;
+  const actual = [...new Set(sourceValues)].sort((left, right) => left.localeCompare(right));
   if (actual.length === 0) {
     throw new SignalValidationError(`Output field '${field.kind}' has no explicit source label and cannot be grounded.`);
   }
@@ -960,14 +981,22 @@ function pairCandidates(tokens: string[], expectedPair: string): string[] {
   return candidates;
 }
 
+function hashtagPairCandidates(sourceText: string): string[] {
+  return Array.from(
+    sourceText.normalize('NFKC').toUpperCase().matchAll(/#([A-Z0-9]{2,12})(?=\s+(?:LONG|SHORT)(?:\b|[^A-Z]))/g),
+    match => `${match[1]}USDT`,
+  ).filter(isQuotedPairCandidate);
+}
+
 function assertPairGrounded(signal: ValidatedSignal, sourceText: string): void {
   const compactSource = sourceText.normalize('NFKC').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!compactSource.includes(signal.pair)) {
+  const hashtagPairs = hashtagPairCandidates(sourceText);
+  if (!compactSource.includes(signal.pair) && !hashtagPairs.includes(signal.pair)) {
     throw new SignalValidationError(`Pair '${signal.pair}' is not grounded in the source text.`);
   }
   if (!signal.execution) return;
   const normalizedTokens = sourceText.normalize('NFKC').toUpperCase().match(/[A-Z0-9]+|\//g) || [];
-  const quotedPairs = new Set(pairCandidates(normalizedTokens, signal.pair));
+  const quotedPairs = new Set([...pairCandidates(normalizedTokens, signal.pair), ...hashtagPairs]);
   if (quotedPairs.size > 1 || (quotedPairs.size === 1 && !quotedPairs.has(signal.pair))) {
     throw new SignalValidationError('Source text contains competing trading pairs and is ambiguous.');
   }
@@ -988,8 +1017,8 @@ function assertActionGrounded(signal: ValidatedSignal, sourceText: string): void
 
 function assertNumbersGrounded(signal: ValidatedSignal, sourceText: string): void {
   const sourceNumbers = Array.from(
-    sourceText.matchAll(/(?<![\p{L}\p{N}_])(?<!\d\.)(?:0|[1-9]\d{0,17})(?:\.\d{1,18})?(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu),
-    match => match[0]
+    sourceText.matchAll(/(?<![\p{L}\p{N}_])(?<!\d\.)(?:[xX])?((?:0|[1-9]\d{0,17})(?:\.\d{1,18})?)(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu),
+    match => match[1]!
   );
   for (const value of signal.groundingNumbers) {
     if (!sourceNumbers.some(sourceValue => compareDecimals(sourceValue, value) === 0)) {
@@ -1015,6 +1044,11 @@ export function assertSignalGrounded(signal: ValidatedSignal, sourceText: string
   if (signal.groundingPolicy?.action !== false) assertActionGrounded(signal, sourceText);
   assertNumbersGrounded(signal, sourceText);
   const sourceFields = sourceFieldNumbers(sourceText);
-  for (const field of signal.groundingFields) assertFieldGrounded(field, sourceFields);
+  const allowMarketAveragingEntry = /(?<![\p{L}\p{N}_])ВХОД\s*:\s*ПО\s+РЫНКУ(?![\p{L}\p{N}_])/iu.test(
+    sourceText.normalize('NFKC'),
+  );
+  for (const field of signal.groundingFields) {
+    assertFieldGrounded(field, sourceFields, allowMarketAveragingEntry);
+  }
   assertCommentGrounded(signal.groundingComment, sourceText);
 }
