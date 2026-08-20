@@ -154,7 +154,7 @@ assert.match(dockerCompose, /forwarder_secrets:\/app\/secrets:ro/);
 
 const alertmanagerGoImage = alertmanagerDockerfile.match(/^ARG GO_IMAGE=([^\s]+)$/m)?.[1];
 const alertmanagerRuntimeImage = alertmanagerDockerfile.match(/^ARG RUNTIME_IMAGE=([^\s]+)$/m)?.[1];
-assert.match(alertmanagerGoImage ?? '', /^golang:1\.26\.5-bookworm@sha256:[a-f0-9]{64}$/);
+assert.match(alertmanagerGoImage ?? '', /^golang:1\.26\.6-bookworm@sha256:[a-f0-9]{64}$/);
 assert.match(alertmanagerRuntimeImage ?? '', /^gcr\.io\/distroless\/static-debian13:nonroot@sha256:[a-f0-9]{64}$/);
 assert.match(alertmanagerDockerfile, /--checksum=sha256:[a-f0-9]{64}[\s\S]*?codeload\.github\.com\/prometheus\/alertmanager\/tar\.gz\/2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5/);
 assert.match(alertmanagerDockerfile, /github\.com\/prometheus\/common\/version\.BuildDate=20260704-19:05:41/);

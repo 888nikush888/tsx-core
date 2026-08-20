@@ -1,4 +1,4 @@
-ARG GO_IMAGE=golang:1.26.5-bookworm@sha256:6c5605ab3a9a9fb3c4eafe5b3d63cdbf3881caf113262b67862547b54a9db599
+ARG GO_IMAGE=golang:1.26.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36
 ARG RUNTIME_IMAGE=gcr.io/distroless/static-debian13:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6
 ARG SOURCE_DATE_EPOCH=1783191941
 
@@ -17,7 +17,7 @@ ADD --checksum=sha256:fdeab39769b39ebeb2fa0da244295dfb02da76e1c8b5afc041fbd99076
 ADD --checksum=sha256:1f63344e196e47ba7bfe27276f44c1da77e39fb76493e42b2cf0a50ca8f04321 \
     https://github.com/prometheus/alertmanager/releases/download/v0.33.1/alertmanager-web-ui-0.33.1.tar.gz /tmp/alertmanager-web-ui.tar.gz
 
-RUN test "$(go env GOVERSION)" = "go1.26.5" \
+RUN test "$(go env GOVERSION)" = "go1.26.6" \
     && tar -xzf /tmp/alertmanager.tar.gz --strip-components=1 -C /src \
     && tar -xzf /tmp/alertmanager-web-ui.tar.gz -C /src/ui/app \
     && test "$(cat VERSION)" = "0.33.1" \

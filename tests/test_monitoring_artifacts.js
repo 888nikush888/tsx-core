@@ -64,7 +64,7 @@ assert.match(checker, /amtool.*check-config/s);
 assert.doesNotMatch(workflow, /TRIVY_VEX:\s*monitoring\/vex\/prometheus-/);
 assert.deepEqual(vexFiles.filter(file => file.endsWith('.json')), [], 'Monitoring release images must pass without VEX exceptions.');
 
-assert.match(alertmanagerDockerfile, /^ARG GO_IMAGE=golang:1\.26\.5-bookworm@sha256:6c5605ab3a9a9fb3c4eafe5b3d63cdbf3881caf113262b67862547b54a9db599$/m);
+assert.match(alertmanagerDockerfile, /^ARG GO_IMAGE=golang:1\.26\.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36$/m);
 assert.match(alertmanagerDockerfile, /^ARG RUNTIME_IMAGE=gcr\.io\/distroless\/static-debian13:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6$/m);
 assert.match(alertmanagerDockerfile, /ADD --checksum=sha256:fdeab39769b39ebeb2fa0da244295dfb02da76e1c8b5afc041fbd99076ed5181[\s\S]*?2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5/);
 assert.match(alertmanagerDockerfile, /ADD --checksum=sha256:1f63344e196e47ba7bfe27276f44c1da77e39fb76493e42b2cf0a50ca8f04321[\s\S]*?alertmanager-web-ui-0\.33\.1\.tar\.gz/);

@@ -504,6 +504,10 @@ async function testProtectionOnlyStartupRequiresExplicitEntryEnable(directory) {
   await assert.rejects(runtime.enableEntries(), /execution is disabled or the kill switch is active/);
   await updateTradingRuntimeState({ executionEnabled: true });
   await runtime.enableEntries();
+  runtime.disableEntries();
+  await runtime.runOnce(false);
+  assert.equal((await getTradingIntent(intent.id)).status, 'pending', 'An explicitly closed entry latch must preserve pending intents.');
+  await runtime.enableEntries();
   await updateTradingRuntimeState({ executionEnabled: false });
   await runtime.runOnce(false);
   assert.equal((await getTradingIntent(intent.id)).status, 'pending', 'A stopped control plane must disable entry processing.');

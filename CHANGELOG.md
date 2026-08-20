@@ -52,7 +52,7 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ### Security
 
-- Alertmanager 0.33.1 wird aus dem verifizierten Upstream-Commit mit checksum-geprüften Release-Assets, Go 1.26.5 sowie korrigierten `x/text`-, gRPC-, `x/crypto`-, `klauspost/compress`- und OpenTelemetry-Versionen statisch in eine digest-gepinnte Non-Root-Distroless-Runtime gebaut. Deterministische Zeitstempel und getrennt gescannte `amd64`-/`arm64`-Artefakte sichern die reproduzierbaren Kandidaten; die frühere Alertmanager-VEX-Ausnahme wurde vollständig entfernt.
+- Alertmanager 0.33.1 wird aus dem verifizierten Upstream-Commit mit checksum-geprüften Release-Assets, Go 1.26.6 sowie korrigierten `x/text`-, gRPC-, `x/crypto`-, `klauspost/compress`- und OpenTelemetry-Versionen statisch in eine digest-gepinnte Non-Root-Distroless-Runtime gebaut. Deterministische Zeitstempel und getrennt gescannte `amd64`-/`arm64`-Artefakte sichern die reproduzierbaren Kandidaten; die frühere Alertmanager-VEX-Ausnahme wurde vollständig entfernt.
 - Verwundbare transitive Node-Abhängigkeiten wurden auf abgesicherte Versionen angehoben; Backend- und Frontend-Audit-Gates melden keine Schwachstellen mehr.
 - Prometheus wurde auf das digest-gepinnte Security-Release 3.13.2 aktualisiert; die frühere VEX-Ausnahme entfällt, weil die korrigierten `x/text`- und gRPC-Versionen direkt im Image enthalten sind.
 - Schutz vor Symlink-/Junction-Ausbruch, manipulierten Backup-/Audit-Dateien, unsicheren Vergleichen und ungebundenen Exchange-/DB-Zuständen wurde verschärft.

@@ -75,6 +75,11 @@ try {
     },
   };
   const control = new TradingWebControl(credentials, paper, [hyperliquid, bybit], engine, entryRuntime);
+  control.attachEntryRuntime(entryRuntime);
+  assert.throws(
+    () => control.attachEntryRuntime({ enableEntries: async () => {}, disableEntries: () => {} }),
+    /already attached/,
+  );
 
   const initial = await control.snapshot();
   assert.equal(initial.accounts.length, 1);
