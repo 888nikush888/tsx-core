@@ -88,9 +88,10 @@ assert.match(alertmanagerDockerfile, /^ARG RUNTIME_IMAGE=gcr\.io\/distroless\/st
 assert.match(alertmanagerDockerfile, /ADD --checksum=sha256:fdeab39769b39ebeb2fa0da244295dfb02da76e1c8b5afc041fbd99076ed5181[\s\S]*?2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5/);
 assert.match(alertmanagerDockerfile, /ADD --checksum=sha256:1f63344e196e47ba7bfe27276f44c1da77e39fb76493e42b2cf0a50ca8f04321[\s\S]*?alertmanager-web-ui-0\.33\.1\.tar\.gz/);
 for (const dependency of [
-  'golang.org/x/text@v0.39.0',
+  'golang.org/x/text@v0.41.0',
+  'golang.org/x/mod@v0.40.0',
   'google.golang.org/grpc@v1.82.1',
-  'golang.org/x/crypto@v0.53.0',
+  'golang.org/x/crypto@v0.55.0',
   'github.com/klauspost/compress@v1.18.7',
   'go.opentelemetry.io/otel@v1.44.0',
   'go.opentelemetry.io/otel/metric@v1.44.0',

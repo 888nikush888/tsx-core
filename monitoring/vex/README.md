@@ -15,8 +15,9 @@ The official Alertmanager v0.33.1 binaries contain vulnerable Go modules.
 `amtool` from verified commit `2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5`.
 The source archive and official prebuilt web UI are checksum verified, the Go
 1.26.6 builder and static non-root Distroless runtime are digest pinned, and the
-build requires `golang.org/x/text` v0.39.0, `google.golang.org/grpc` v1.82.1,
-`golang.org/x/crypto` v0.53.0, `github.com/klauspost/compress` v1.18.7 and
+build requires `golang.org/x/text` v0.41.0, `google.golang.org/grpc` v1.82.1,
+`golang.org/x/mod` v0.40.0, `golang.org/x/crypto` v0.55.0,
+`github.com/klauspost/compress` v1.18.7 and
 OpenTelemetry v1.44.0. Reproducible LDFlags, `SOURCE_DATE_EPOCH` and normalized
 output mtimes bind both binaries and runtime layers to the upstream version,
 revision and release timestamp. CI builds and scans independent `linux/amd64`

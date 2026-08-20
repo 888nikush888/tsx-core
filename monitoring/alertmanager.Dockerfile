@@ -25,18 +25,20 @@ RUN test "$(go env GOVERSION)" = "go1.26.6" \
     && rm /tmp/alertmanager.tar.gz /tmp/alertmanager-web-ui.tar.gz
 
 RUN go get \
-      golang.org/x/text@v0.39.0 \
+      golang.org/x/text@v0.41.0 \
+      golang.org/x/mod@v0.40.0 \
       google.golang.org/grpc@v1.82.1 \
-      golang.org/x/crypto@v0.53.0 \
+      golang.org/x/crypto@v0.55.0 \
       github.com/klauspost/compress@v1.18.7 \
       go.opentelemetry.io/otel@v1.44.0 \
       go.opentelemetry.io/otel/metric@v1.44.0 \
       go.opentelemetry.io/otel/trace@v1.44.0 \
     && go mod tidy \
     && go mod verify \
-    && test "$(go list -m -f '{{.Version}}' golang.org/x/text)" = "v0.39.0" \
+    && test "$(go list -m -f '{{.Version}}' golang.org/x/text)" = "v0.41.0" \
+    && test "$(go list -m -f '{{.Version}}' golang.org/x/mod)" = "v0.40.0" \
     && test "$(go list -m -f '{{.Version}}' google.golang.org/grpc)" = "v1.82.1" \
-    && test "$(go list -m -f '{{.Version}}' golang.org/x/crypto)" = "v0.53.0" \
+    && test "$(go list -m -f '{{.Version}}' golang.org/x/crypto)" = "v0.55.0" \
     && test "$(go list -m -f '{{.Version}}' github.com/klauspost/compress)" = "v1.18.7" \
     && test "$(go list -m -f '{{.Version}}' go.opentelemetry.io/otel)" = "v1.44.0" \
     && test "$(go list -m -f '{{.Version}}' go.opentelemetry.io/otel/metric)" = "v1.44.0" \
