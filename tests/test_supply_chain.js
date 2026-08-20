@@ -177,7 +177,7 @@ assert.equal((allWorkflows.match(/docker\/setup-buildx-action@bb05f3f5519dd87d3b
 assert.equal((allWorkflows.match(/^\s*version:\s*v0\.36\.1\s*$/gm) ?? []).length, 1);
 assert.equal((allWorkflows.match(/image=moby\/buildkit:v0\.32\.2@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8/g) ?? []).length, 1);
 assert.match(workflow, /--no-cache --provenance=false --platform linux\/amd64 --load --metadata-file alertmanager-amd64-rebuild\.json/);
-assert.equal((workflow.match(/--target security-audit --build-arg VULN_DB_EPOCH=\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/g) ?? []).length, 2);
+assert.equal((workflow.match(/--target security-audit --build-arg VULN_DB_EPOCH=\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/g) ?? []).length, 3);
 assert.equal((workflow.match(/image-ref:\s*tsx-core-alertmanager:\$\{\{ github\.sha \}\}-amd64/g) ?? []).length, 2);
 assert.equal((workflow.match(/image-ref:\s*tsx-core-alertmanager:\$\{\{ github\.sha \}\}-arm64/g) ?? []).length, 2);
 assert.doesNotMatch(workflow, /TRIVY_VEX:[^\n]*alertmanager/);

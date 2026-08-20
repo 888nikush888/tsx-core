@@ -244,6 +244,8 @@ jobs:
         run: docker build --tag tsx-core:${{ github.sha }} .
       - name: Build official exchange executor
         run: docker build --tag tsx-core-exchange-executor:${{ github.sha }} exchange_executor
+      - name: Build hardened Prometheus
+        run: docker buildx build --provenance=false --platform linux/amd64 --load --file monitoring/prometheus.Dockerfile --tag tsx-core-prometheus:${{ github.sha }} .
       - name: Build hardened Alertmanager for both release platforms
         run: |
           docker buildx build --provenance=false --platform linux/amd64 --load --metadata-file alertmanager-amd64-build.json --file monitoring/alertmanager.Dockerfile --tag tsx-core-alertmanager:${{ github.sha }}-amd64 .
@@ -257,6 +259,8 @@ jobs:
         run: |
           docker buildx build --provenance=false --platform linux/amd64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file monitoring/alertmanager.Dockerfile .
           docker buildx build --provenance=false --platform linux/arm64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file monitoring/alertmanager.Dockerfile .
+      - name: Prove Prometheus source and binary reachability
+        run: docker buildx build --provenance=false --platform linux/amd64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file monitoring/prometheus.Dockerfile .
       - name: Verify runtime native modules and non-root user
         run: |
           test "$(docker image inspect tsx-core:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
@@ -264,6 +268,9 @@ jobs:
           test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
           docker run --rm --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -c "from importlib.metadata import version; assert version('hyperliquid-python-sdk') == '0.24.0'; assert version('pybit') == '5.16.0'"
           docker run --rm -e PYTHONPATH=/app -v "$PWD/exchange_executor/tests:/tests:ro" --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -m unittest discover -s /tests -v
+          test "$(docker image inspect tsx-core-prometheus:${{ github.sha }} --format '{{.Architecture}}/{{.Config.User}}')" = amd64/65534:65534
+          docker run --rm --entrypoint /usr/bin/prometheus tsx-core-prometheus:${{ github.sha }} --version
+          docker run --rm --entrypoint /usr/bin/promtool tsx-core-prometheus:${{ github.sha }} --version
           test "$(docker image inspect tsx-core-alertmanager:${{ github.sha }}-amd64 --format '{{.Architecture}}/{{.Config.User}}')" = amd64/65534:65534
           test "$(docker image inspect tsx-core-alertmanager:${{ github.sha }}-arm64 --format '{{.Architecture}}/{{.Config.User}}')" = arm64/65534:65534
           docker run --rm --entrypoint /bin/alertmanager tsx-core-alertmanager:${{ github.sha }}-amd64 --version
@@ -312,7 +319,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           version: v0.70.0
-          image-ref: prom/prometheus:v3.13.2-distroless@sha256:64f71bb84e03c855948418b0fc5dea53e9543d8e3fc9931598f583805507f05e
+          image-ref: tsx-core-prometheus:${{ github.sha }}
           format: cyclonedx
           output: prometheus.cdx.json
           exit-code: '0'
@@ -320,7 +327,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           version: v0.70.0
-          image-ref: prom/prometheus:v3.13.2-distroless@sha256:64f71bb84e03c855948418b0fc5dea53e9543d8e3fc9931598f583805507f05e
+          image-ref: tsx-core-prometheus:${{ github.sha }}
           format: sarif
           output: prometheus-trivy.sarif
           severity: HIGH,CRITICAL

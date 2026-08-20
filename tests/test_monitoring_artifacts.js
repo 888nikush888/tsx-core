@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 
-const [prometheus, rules, alertmanager, compose, applicationCompose, checker, workflow, alertmanagerDockerfile, vexFiles] = await Promise.all([
+const [prometheus, rules, alertmanager, compose, applicationCompose, checker, workflow, prometheusDockerfile, alertmanagerDockerfile, vexFiles] = await Promise.all([
   readFile('monitoring/prometheus.yml', 'utf8'),
   readFile('monitoring/rules.yml', 'utf8'),
   readFile('monitoring/alertmanager.yml', 'utf8'),
@@ -9,10 +9,11 @@ const [prometheus, rules, alertmanager, compose, applicationCompose, checker, wo
   readFile('docker-compose.yml', 'utf8'),
   readFile('scripts/check_monitoring.js', 'utf8'),
   readFile('.github/workflows/quality.yml', 'utf8'),
+  readFile('monitoring/prometheus.Dockerfile', 'utf8'),
   readFile('monitoring/alertmanager.Dockerfile', 'utf8'),
   readdir('monitoring/vex'),
 ]);
-const prometheusImage = 'prom/prometheus:v3.13.2-distroless@sha256:64f71bb84e03c855948418b0fc5dea53e9543d8e3fc9931598f583805507f05e';
+const prometheusImage = 'tsx-core-prometheus:3.13.2-hardened';
 const alertmanagerImage = 'tsx-core-alertmanager:0.33.1-hardened';
 
 assert.match(prometheus, /alertmanager:9093/);
@@ -36,11 +37,15 @@ assert.match(alertmanager, /credentials_file:\s*\/app\/secrets\/alert_relay_toke
 assert.match(alertmanager, /send_resolved:\s*true/);
 assert.ok(compose.includes(prometheusImage));
 assert.ok(checker.includes(prometheusImage));
-assert.equal(workflow.split(prometheusImage).length - 1, 2, 'SBOM and blocking scan must use the release image');
+assert.match(compose, /prometheus:[\s\S]*?build:[\s\S]*?dockerfile:\s*monitoring\/prometheus\.Dockerfile/);
+assert.match(checker, /build\(prometheusImage, prometheusDockerfile, 'Prometheus'\)/);
+assert.equal(workflow.split('image-ref: tsx-core-prometheus:${{ github.sha }}').length - 1, 2, 'SBOM and blocking scan must use the hardened image');
+assert.match(workflow, /docker buildx build --provenance=false --platform linux\/amd64 --load --file monitoring\/prometheus\.Dockerfile --tag tsx-core-prometheus:\$\{\{ github\.sha \}\} \./);
 assert.ok(compose.includes(alertmanagerImage));
 assert.match(compose, /alertmanager:[\s\S]*?build:[\s\S]*?dockerfile:\s*monitoring\/alertmanager\.Dockerfile/);
 assert.ok(checker.includes(alertmanagerImage));
-assert.match(checker, /dockerExecutable[\s\S]*?'build'[\s\S]*?alertmanagerDockerfile[\s\S]*?'--tag'[\s\S]*?alertmanagerImage/);
+assert.match(checker, /build\(alertmanagerImage, alertmanagerDockerfile, 'Alertmanager'\)/);
+assert.match(checker, /'build', '--provenance=false', '--file', dockerfile, '--tag', image, root/);
 assert.equal(workflow.split('image-ref: tsx-core-alertmanager:${{ github.sha }}-amd64').length - 1, 2);
 assert.equal(workflow.split('image-ref: tsx-core-alertmanager:${{ github.sha }}-arm64').length - 1, 2);
 assert.match(workflow, /docker buildx build --provenance=false --platform linux\/amd64 --load --metadata-file alertmanager-amd64-build\.json --file monitoring\/alertmanager\.Dockerfile --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-amd64 \./);
@@ -63,6 +68,20 @@ assert.match(checker, /promtool.*test/s);
 assert.match(checker, /amtool.*check-config/s);
 assert.doesNotMatch(workflow, /TRIVY_VEX:\s*monitoring\/vex\/prometheus-/);
 assert.deepEqual(vexFiles.filter(file => file.endsWith('.json')), [], 'Monitoring release images must pass without VEX exceptions.');
+
+assert.match(prometheusDockerfile, /^ARG GO_IMAGE=golang:1\.26\.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36$/m);
+assert.match(prometheusDockerfile, /^ARG RUNTIME_IMAGE=gcr\.io\/distroless\/static-debian13:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6$/m);
+assert.match(prometheusDockerfile, /ADD --checksum=sha256:beffc32fe1e56dd49c2146589e63182414c5fea1cc555343d29d58a7ee49332d[\s\S]*?bb5dff00cf8fdfbf5c65e0531aa835fa238a43a2/);
+assert.match(prometheusDockerfile, /ADD --checksum=sha256:6a2255eb51cbe8735a58b4955d3b211920e91331590654bf81b1c1d4a4b32e9d[\s\S]*?prometheus-web-ui-3\.13\.2\.tar\.gz/);
+assert.match(prometheusDockerfile, /PREBUILT_ASSETS_STATIC_DIR=web\/ui\/static make assets-compress/);
+assert.match(prometheusDockerfile, /-trimpath -buildvcs=false -tags=netgo,builtinassets/);
+assert.match(prometheusDockerfile, /-o \/out\/rootfs\/usr\/bin\/prometheus \.\/cmd\/prometheus/);
+assert.match(prometheusDockerfile, /-o \/out\/rootfs\/usr\/bin\/promtool \.\/cmd\/promtool/);
+assert.match(prometheusDockerfile, /^FROM builder AS security-audit$/m);
+assert.equal((prometheusDockerfile.match(/govulncheck -mode=binary -scan=symbol/g) ?? []).length, 2);
+assert.match(prometheusDockerfile, /^USER 65534:65534$/m);
+const prometheusRuntime = prometheusDockerfile.slice(prometheusDockerfile.indexOf('FROM ${RUNTIME_IMAGE} AS runner'));
+assert.doesNotMatch(prometheusRuntime, /^RUN\s/m, 'Hardened Prometheus runtime must not install packages.');
 
 assert.match(alertmanagerDockerfile, /^ARG GO_IMAGE=golang:1\.26\.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36$/m);
 assert.match(alertmanagerDockerfile, /^ARG RUNTIME_IMAGE=gcr\.io\/distroless\/static-debian13:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6$/m);

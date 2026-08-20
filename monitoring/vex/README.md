@@ -3,8 +3,12 @@
 No monitoring VEX exception is active. Both monitoring images must pass the CI
 HIGH/CRITICAL container gate without suppression.
 
-Prometheus v3.13.2 is pinned by multi-architecture digest and contains the fixed
-`golang.org/x/text` v0.39.0 and `google.golang.org/grpc` v1.82.1 dependencies.
+The official Prometheus v3.13.2 binary was built with Go 1.26.5. The pinned
+`monitoring/prometheus.Dockerfile` rebuilds verified commit
+`bb5dff00cf8fdfbf5c65e0531aa835fa238a43a2` and the checksum-verified release
+web UI with Go 1.26.6, retaining the upstream source and dependency versions.
+The static non-root runtime, reproducible metadata, SBOM, Trivy gate and
+`govulncheck` source/binary reachability checks apply without suppression.
 
 The official Alertmanager v0.33.1 binaries contain vulnerable Go modules.
 `monitoring/alertmanager.Dockerfile` therefore rebuilds both `alertmanager` and

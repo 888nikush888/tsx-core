@@ -1,6 +1,9 @@
 services:
   prometheus:
-    image: prom/prometheus:v3.13.2-distroless@sha256:64f71bb84e03c855948418b0fc5dea53e9543d8e3fc9931598f583805507f05e
+    image: ${PROMETHEUS_IMAGE:-tsx-core-prometheus:3.13.2-hardened}
+    build:
+      context: .
+      dockerfile: monitoring/prometheus.Dockerfile
     working_dir: /etc/prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
