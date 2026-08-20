@@ -279,6 +279,9 @@ jobs:
           exit-code: '0'
       - name: Block high and critical container vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        env:
+          TRIVY_VEX: security/vex/CVE-2026-14456.openvex.json
+          TRIVY_SHOW_SUPPRESSED: true
         with:
           version: v0.70.0
           image-ref: tsx-core:${{ github.sha }}

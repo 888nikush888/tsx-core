@@ -12,6 +12,7 @@ const productionEvidenceWorkflow = await readFile(path.join(root, '.github', 'wo
 const dockerfile = await readFile(path.join(root, 'Dockerfile'), 'utf8');
 const executorDockerfile = await readFile(path.join(root, 'exchange_executor', 'Dockerfile'), 'utf8');
 const alertmanagerDockerfile = await readFile(path.join(root, 'monitoring', 'alertmanager.Dockerfile'), 'utf8');
+const applicationVex = JSON.parse(await readFile(path.join(root, 'security', 'vex', 'CVE-2026-14456.openvex.json'), 'utf8'));
 const monitoringCompose = await readFile(path.join(root, 'docker-compose.monitoring.yml'), 'utf8');
 const executorLock = await readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8');
 const hyperliquidAdapter = await readFile(path.join(root, 'exchange_executor', 'hyperliquid_adapter.py'), 'utf8');
@@ -105,6 +106,7 @@ assert.match(runtimeImage, /@sha256:[a-f0-9]{64}$/, 'RUNTIME_IMAGE must use a sh
 assert.doesNotMatch(nodeImage, /:latest(?:@|$)/, 'NODE_IMAGE must not use latest');
 assert.doesNotMatch(runtimeImage, /:latest(?:@|$)/, 'RUNTIME_IMAGE must not use latest');
 assert.match(runtimeImage, /^gcr\.io\/distroless\/nodejs22-debian13@sha256:/);
+assert.equal(runtimeImage, 'gcr.io/distroless/nodejs22-debian13@sha256:bde4c459719d1101d0ed962bb1eec9cbf58bbbaca3560ac143c8ca02ab02e099');
 assert.equal(baseImages[0], '${NODE_IMAGE}', 'base stage must use the pinned NODE_IMAGE argument');
 assert.ok(
   baseImages.slice(1, -1).every((image) => image === 'base'),
@@ -179,6 +181,21 @@ assert.equal((workflow.match(/--target security-audit --build-arg VULN_DB_EPOCH=
 assert.equal((workflow.match(/image-ref:\s*tsx-core-alertmanager:\$\{\{ github\.sha \}\}-amd64/g) ?? []).length, 2);
 assert.equal((workflow.match(/image-ref:\s*tsx-core-alertmanager:\$\{\{ github\.sha \}\}-arm64/g) ?? []).length, 2);
 assert.doesNotMatch(workflow, /TRIVY_VEX:[^\n]*alertmanager/);
+const applicationVulnerabilityGate = workflow.slice(
+  workflow.indexOf('- name: Block high and critical container vulnerabilities'),
+  workflow.indexOf('- name: Generate exchange executor SBOM'),
+);
+assert.match(applicationVulnerabilityGate, /TRIVY_VEX:\s*security\/vex\/CVE-2026-14456\.openvex\.json/);
+assert.match(applicationVulnerabilityGate, /TRIVY_SHOW_SUPPRESSED:\s*true/);
+assert.equal(applicationVex['@context'], 'https://openvex.dev/ns/v0.2.0');
+assert.equal(applicationVex.statements.length, 1);
+assert.deepEqual(applicationVex.statements[0], {
+  vulnerability: { name: 'CVE-2026-14456' },
+  products: [{ '@id': 'pkg:deb/debian/libssl3t64@3.5.6-1~deb13u2' }],
+  status: 'not_affected',
+  justification: 'vulnerable_code_not_in_execute_path',
+  impact_statement: 'TSX Core exposes no OpenSSL QUIC listener, QUIC socket, or HTTP/3 endpoint; inbound dashboard and MCP traffic uses TCP HTTP behind Tailscale Serve.',
+});
 
 const releaseImages = {
   FORWARDER_IMAGE: `ghcr.io/example/forwarder@sha256:${'a'.repeat(64)}`,

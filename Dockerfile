@@ -1,5 +1,5 @@
 ARG NODE_IMAGE=node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3
-ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13@sha256:773a62fbe24a3f8c8b24b16fd59154627f8b406737bc906f83bf1732bc8907dd
+ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13@sha256:bde4c459719d1101d0ed962bb1eec9cbf58bbbaca3560ac143c8ca02ab02e099
 ARG DEBIAN_SNAPSHOT=20260713T150000Z
 
 FROM ${NODE_IMAGE} AS base
@@ -42,7 +42,7 @@ FROM ${RUNTIME_IMAGE} AS runner
 LABEL org.opencontainers.image.title="TSX Core" \
       org.opencontainers.image.source="local-workspace" \
       org.opencontainers.image.base.name="gcr.io/distroless/nodejs22-debian13" \
-      org.opencontainers.image.base.digest="sha256:773a62fbe24a3f8c8b24b16fd59154627f8b406737bc906f83bf1732bc8907dd"
+      org.opencontainers.image.base.digest="sha256:bde4c459719d1101d0ed962bb1eec9cbf58bbbaca3560ac143c8ca02ab02e099"
 
 ENV NODE_ENV=production \
     ENTERPRISE_MODE=false \
