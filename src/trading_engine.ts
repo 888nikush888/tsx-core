@@ -83,6 +83,11 @@ function replacementStopId(intentId: string, quantity: string, trigger: string):
   return `0x${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
 }
 
+function replacementTakeProfitId(intentId: string, targetIndex: number, quantity: string, price: string): string {
+  const identity = `${intentId}:take-profit:${targetIndex}:${quantity}:${price}:${randomUUID()}`;
+  return `0x${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
+}
+
 async function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(operation);
 }
@@ -458,10 +463,12 @@ async function adjustedTakeProfits(intentId: string, plan: TradingPlan, quantity
      WHERE intent_id = ? AND role = 'take_profit'`,
     [intentId],
   );
-  if (states.length !== takeProfits.length) {
+  const plannedIds = new Set(takeProfits.map(order => order.clientOrderId));
+  const plannedStates = states.filter(state => plannedIds.has(state.client_order_id));
+  if (plannedStates.length !== takeProfits.length) {
     throw new Error('Take-profit order state does not match the immutable trade plan.');
   }
-  if (states.some(state => state.status !== 'created')) {
+  if (plannedStates.some(state => state.status !== 'created')) {
     return takeProfits;
   }
   const quantities = allocateTargetQuantities(quantity, plan.targetAllocationsPercent, plan.quantityStep);
@@ -474,6 +481,60 @@ async function adjustedTakeProfits(intentId: string, plan: TradingPlan, quantity
     );
   }
   return adjusted;
+}
+
+type TakeProfitOrderRow = {
+  client_order_id: string;
+  status: string;
+  price: string | null;
+  quantity: string;
+  filled_quantity: string;
+  request_json: string;
+};
+
+function targetIndexFromOrderRow(row: TakeProfitOrderRow): number | null {
+  try {
+    const targetIndex = (JSON.parse(row.request_json) as PlannedOrder).targetIndex;
+    return Number.isSafeInteger(targetIndex) && Number(targetIndex) > 0 ? Number(targetIndex) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function terminalEntryFill(intentId: string): Promise<{ quantity: string } | null> {
+  const entry = await getDatabase().get<{ status: string; filled_quantity: string }>(
+    `SELECT status, filled_quantity FROM trading_orders
+     WHERE intent_id = ? AND role = 'entry' ORDER BY created_at LIMIT 1`,
+    [intentId],
+  );
+  if (!entry || !['filled', 'cancelled'].includes(entry.status) || compareDecimal(entry.filled_quantity, '0') <= 0) {
+    return null;
+  }
+  return { quantity: entry.filled_quantity };
+}
+
+async function desiredTakeProfitQuantities(intentId: string, plan: TradingPlan): Promise<string[] | null> {
+  const entry = await terminalEntryFill(intentId);
+  if (!entry) return null;
+  return allocateTargetQuantities(entry.quantity, plan.targetAllocationsPercent, plan.quantityStep);
+}
+
+async function completedTakeProfitTargets(intentId: string, plan: TradingPlan): Promise<number> {
+  const desired = await desiredTakeProfitQuantities(intentId, plan);
+  if (!desired) return 0;
+  const rows = await getDatabase().all<TakeProfitOrderRow[]>(
+    `SELECT client_order_id, status, price, quantity, filled_quantity, request_json
+     FROM trading_orders WHERE intent_id = ? AND role = 'take_profit'`,
+    [intentId],
+  );
+  let completed = 0;
+  for (let index = 0; index < desired.length; index += 1) {
+    const filled = rows
+      .filter(row => targetIndexFromOrderRow(row) === index + 1)
+      .reduce((total, row) => addDecimal(total, row.filled_quantity), '0');
+    if (compareDecimal(filled, desired[index]!) >= 0) completed += 1;
+  }
+  return completed;
 }
 
 async function requiredProtectiveQuantity(intentId: string, plan: TradingPlan, positionQuantity: string): Promise<string> {
@@ -523,6 +584,34 @@ async function createReplacementStop(intent: TradingIntent, plan: TradingPlan, q
     [
       randomUUID(), intent.id, intent.accountId, replacement.clientOrderId, replacement.side,
       replacement.triggerPrice, replacement.quantity, JSON.stringify(replacement), Date.now(), Date.now(),
+    ],
+  );
+  return replacement;
+}
+
+async function createReplacementTakeProfit(
+  intent: TradingIntent,
+  original: PlannedOrder,
+  quantity: string,
+): Promise<PlannedOrder> {
+  if (original.role !== 'take_profit' || !original.targetIndex || !original.price) {
+    throw new Error('Trade plan has an invalid take-profit order.');
+  }
+  const replacement: PlannedOrder = {
+    ...original,
+    clientOrderId: replacementTakeProfitId(intent.id, original.targetIndex, quantity, original.price),
+    quantity,
+  };
+  const now = Date.now();
+  await getDatabase().run(
+    `INSERT INTO trading_orders (
+       id, intent_id, account_id, client_order_id, exchange_order_id, role,
+       side, order_type, status, price, trigger_price, quantity, filled_quantity,
+       reduce_only, request_json, response_json, last_error, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, NULL, 'take_profit', ?, 'limit', 'created', ?, NULL, ?, '0', 1, ?, NULL, NULL, ?, ?)`,
+    [
+      randomUUID(), intent.id, intent.accountId, replacement.clientOrderId, replacement.side,
+      replacement.price, replacement.quantity, JSON.stringify(replacement), now, now,
     ],
   );
   return replacement;
@@ -1035,6 +1124,99 @@ export class TradingEngine {
     }
   }
 
+  private async ensureTakeProfitCoverage(
+    adapter: TradingExchangeAdapter,
+    account: TradingAccount,
+    intent: TradingIntent,
+    plan: TradingPlan,
+  ): Promise<void> {
+    const desiredQuantities = await desiredTakeProfitQuantities(intent.id, plan);
+    if (!desiredQuantities) return;
+    const plannedTargets = plan.orders.filter(order => order.role === 'take_profit');
+    if (plannedTargets.length !== desiredQuantities.length) {
+      throw new Error('Take-profit allocation does not match the immutable trade plan.');
+    }
+    const loadRows = () => getDatabase().all<TakeProfitOrderRow[]>(
+      `SELECT client_order_id, status, price, quantity, filled_quantity, request_json
+       FROM trading_orders WHERE intent_id = ? AND role = 'take_profit' ORDER BY created_at`,
+      [intent.id],
+    );
+    const initialRows = await loadRows();
+    const unresolved = initialRows.filter(row => ['submitting', 'unknown', 'cancel_pending'].includes(row.status));
+    if (unresolved.length > 0) {
+      throw new ReconciliationMismatchError('Take-profit coverage contains an unresolved order outcome.');
+    }
+    const invalidActive = initialRows.filter(row =>
+      ['open', 'partially_filled'].includes(row.status) && targetIndexFromOrderRow(row) === null);
+    if (invalidActive.length > 0) {
+      throw new ReconciliationMismatchError('Active take-profit order has no recoverable target index.');
+    }
+
+    const resized: Array<{ targetIndex: number; from: string; to: string }> = [];
+    try {
+      for (let index = 0; index < plannedTargets.length; index += 1) {
+        const targetIndex = index + 1;
+        const planned = plannedTargets[index]!;
+        let rows = (await loadRows()).filter(row => targetIndexFromOrderRow(row) === targetIndex);
+        const active = rows.filter(row => ['open', 'partially_filled'].includes(row.status));
+        const filled = rows.reduce((total, row) => addDecimal(total, row.filled_quantity), '0');
+        const activeRemaining = active.reduce((total, row) =>
+          addDecimal(total, subtractDecimal(row.quantity, row.filled_quantity)), '0');
+        const covered = addDecimal(filled, activeRemaining);
+        const priceMatches = active.every(row => row.price !== null && compareDecimal(row.price, planned.price!) === 0);
+        if (compareDecimal(covered, desiredQuantities[index]!) === 0 && priceMatches) continue;
+
+        for (const row of active) {
+          const result = await adapter.cancelOrder(account, row.client_order_id);
+          await storeOrderResult(intent.id, result);
+          if (!['cancelled', 'filled'].includes(result.status)) {
+            throw new Error(`Take-profit cancellation status is ${result.status}.`);
+          }
+        }
+
+        rows = (await loadRows()).filter(row => targetIndexFromOrderRow(row) === targetIndex);
+        const filledAfterCancellation = rows.reduce(
+          (total, row) => addDecimal(total, row.filled_quantity),
+          '0',
+        );
+        const desiredRemaining = compareDecimal(filledAfterCancellation, desiredQuantities[index]!) >= 0
+          ? '0'
+          : subtractDecimal(desiredQuantities[index]!, filledAfterCancellation);
+        if (compareDecimal(desiredRemaining, '0') > 0) {
+          const replacement = await createReplacementTakeProfit(intent, planned, desiredRemaining);
+          const result = await submitTrackedOrder({ adapter, account, intent, plan, order: replacement });
+          if (!['open', 'filled'].includes(result.status)) {
+            throw new Error(`Replacement take-profit status is ${result.status}.`);
+          }
+        }
+        resized.push({ targetIndex, from: covered, to: desiredQuantities[index]! });
+      }
+    } catch (error: any) {
+      await riskEvent({
+        severity: 'critical',
+        code: 'TAKE_PROFIT_REBALANCE_UNRESOLVED',
+        accountId: account.id,
+        intentId: intent.id,
+        details: { message: error?.message || String(error) },
+      });
+      await updateTradingRuntimeState({
+        executionEnabled: false,
+        killSwitchActive: true,
+        killSwitchReason: `Take-profit rebalance is unresolved for account ${account.id}`,
+      });
+      throw new ReconciliationMismatchError(error?.message || 'Take-profit rebalance is unresolved.');
+    }
+    if (resized.length > 0) {
+      await riskEvent({
+        severity: 'info',
+        code: 'TAKE_PROFIT_COVERAGE_RESIZED',
+        accountId: account.id,
+        intentId: intent.id,
+        details: { targets: resized },
+      });
+    }
+  }
+
   private async emergencyFlatten(
     adapter: TradingExchangeAdapter,
     account: TradingAccount,
@@ -1442,6 +1624,7 @@ export class TradingEngine {
     }
     await this.ensureProtectiveStop(account, adapter, local, position.quantity, remote);
     await this.submitExits(adapter, account, recoverableIntent, recoverablePlan);
+    await this.ensureTakeProfitCoverage(adapter, account, recoverableIntent, recoverablePlan);
   }
 
   private async detectUnmanagedExposure(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
@@ -1498,11 +1681,7 @@ export class TradingEngine {
       'SELECT client_order_id FROM trading_orders WHERE intent_id = ?', [intent.id],
     );
     const intentOrderIds = new Set(intentOrders.map(order => order.client_order_id));
-    const filledTargetState = await getDatabase().get<{ count: number }>(
-      `SELECT COUNT(*) AS count FROM trading_orders
-       WHERE intent_id = ? AND role = 'take_profit' AND status = 'filled'`, [intent.id],
-    );
-    const filledTargets = Number(filledTargetState?.count || 0);
+    const filledTargets = await completedTakeProfitTargets(intent.id, plan);
     const activeStops = matchingActiveStops(remote, intentOrderIds, local.symbol);
     const activeStop = safestActiveStop(activeStops, local.side);
     const protectiveQuantity = await requiredProtectiveQuantity(intent.id, plan, quantity);

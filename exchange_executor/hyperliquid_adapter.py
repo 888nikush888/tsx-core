@@ -24,6 +24,7 @@ from credentials import CredentialStore
 class HyperliquidAdapter:
     PERP_MAX_DECIMALS = 6
     ORDER_STATUS_ATTEMPTS = 5
+    OPEN_STATE_ATTEMPTS = 3
 
     def __init__(self, credentials: CredentialStore) -> None:
         self.credentials = credentials
@@ -466,7 +467,28 @@ class HyperliquidAdapter:
         return result
 
     def open_state(self, account: dict[str, str], deadline: RequestDeadline | None = None) -> dict[str, Any]:
-        info, _, address = self._clients(account) if deadline is None else self._clients(account, deadline)
+        for attempt in range(self.OPEN_STATE_ATTEMPTS):
+            try:
+                info, _, address = self._clients(account) if deadline is None else self._clients(account, deadline)
+                return self._open_state_once(account, info, address, deadline)
+            except ExchangeContractError:
+                raise
+            except Exception:
+                if attempt + 1 >= self.OPEN_STATE_ATTEMPTS:
+                    raise
+                delay = 0.2 * (2 ** attempt)
+                if deadline is not None and deadline.remaining_ms() < int((delay + 0.25) * 1000):
+                    raise
+                time.sleep(delay)
+        raise ExchangeContractError("Hyperliquid open state retry budget was exhausted.")
+
+    def _open_state_once(
+        self,
+        account: dict[str, str],
+        info: Any,
+        address: str,
+        deadline: RequestDeadline | None,
+    ) -> dict[str, Any]:
         if deadline:
             deadline.ensure(250)
         # The basic openOrders contract omits triggerPx, reduceOnly and the

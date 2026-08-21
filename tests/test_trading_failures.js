@@ -439,6 +439,46 @@ async function testPeriodicReconciliationFailureActivatesKillSwitch(directory) {
   await closeDb();
 }
 
+async function testTransientReconciliationFailureRecoversAfterTwoAuthoritativeCycles(directory) {
+  await initDb(path.join(directory, 'periodic-reconciliation-recovery.db'));
+  await seedTradingFixtures();
+  await updateTradingRuntimeState({ executionEnabled: true });
+  let fail = false;
+  const forced = [];
+  const logs = [];
+  const engine = {
+    reconcileAccount: async (_accountId, options) => {
+      forced.push(options?.force === true);
+      if (fail) throw new Error('simulated transient OPEN_STATE_FAILED');
+    },
+    cancelExpiredEntries: async () => 0,
+    processIntent: async () => undefined,
+  };
+  const runtime = new TradingRuntime(engine, 60_000, message => logs.push(message));
+  await runtime.start();
+  await runtime.enableEntries();
+
+  fail = true;
+  await assert.rejects(runtime.runOnce(false), /simulated transient OPEN_STATE_FAILED/);
+  let state = await getTradingRuntimeState();
+  assert.equal(state.executionEnabled, false);
+  assert.equal(state.killSwitchActive, true);
+
+  fail = false;
+  await runtime.runOnce(false);
+  state = await getTradingRuntimeState();
+  assert.equal(state.killSwitchActive, true, 'One good snapshot is not enough to clear a protection failure.');
+  await runtime.runOnce(false);
+  state = await getTradingRuntimeState();
+  assert.equal(state.executionEnabled, true);
+  assert.equal(state.killSwitchActive, false);
+  assert.equal(state.killSwitchReason, null);
+  assert.deepEqual(forced.slice(-2), [true, true], 'Recovery evidence must use two forced exchange snapshots.');
+  assert.match(logs.at(-1), /Protection recovered after two authoritative reconciliations/);
+  await runtime.stop();
+  await closeDb();
+}
+
 async function testEntryExpiryFailureActivatesKillSwitch(directory) {
   await initDb(path.join(directory, 'entry-expiry-failure.db'));
   await seedTradingFixtures();
@@ -831,6 +871,7 @@ async function run() {
     await testTrailingStopOnlyMovesTowardProfit(directory);
     await testStopReplacementCancellationFailsClosed(directory);
     await testPeriodicReconciliationFailureActivatesKillSwitch(directory);
+    await testTransientReconciliationFailureRecoversAfterTwoAuthoritativeCycles(directory);
     await testEntryExpiryFailureActivatesKillSwitch(directory);
     await testRuntimeIsolatesAccountFailures(directory);
     await testRemoteAccountIdentityBinding(directory);

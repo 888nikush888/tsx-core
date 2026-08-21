@@ -398,6 +398,37 @@ class HyperliquidMappingTests(unittest.TestCase):
         self.assertIsNone(state["orders"][0]["triggerPrice"])
         self.assertRegex(state["accountFingerprint"], r"^[a-f0-9]{64}$")
 
+    def test_open_state_retries_transient_official_sdk_failures(self) -> None:
+        attempts = 0
+
+        class InfoStub:
+            @staticmethod
+            def frontend_open_orders(_address):
+                nonlocal attempts
+                attempts += 1
+                if attempts < 3:
+                    raise RuntimeError("simulated transient official SDK server error")
+                return []
+
+            @staticmethod
+            def historical_orders(_address):
+                return []
+
+            @staticmethod
+            def user_fills(_address):
+                return []
+
+            @staticmethod
+            def user_state(_address):
+                return {"assetPositions": []}
+
+        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
+        adapter._clients = lambda _account: (InfoStub(), object(), "0xwallet")
+        state = adapter.open_state({"mode": "testnet"})
+        self.assertEqual(attempts, 3)
+        self.assertEqual(state["orders"], [])
+        self.assertEqual(state["positions"], [])
+
     def test_open_state_preserves_protective_stop_fields_from_frontend_orders(self) -> None:
         cloid = "0x" + "3" * 32
 

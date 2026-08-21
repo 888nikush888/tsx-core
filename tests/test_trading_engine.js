@@ -109,6 +109,64 @@ async function testAdaptiveTargetAndStopManagement(databasePath) {
     ['0.008', '0.004', '0.002', '0.002'],
   );
 
+  const plannedTakeProfits = plan.orders.filter(order => order.role === 'take_profit');
+  const stalePartialFillQuantities = ['0.004', '0.002', '0.001', '0.001'];
+  for (let index = 0; index < plannedTakeProfits.length; index += 1) {
+    const order = plannedTakeProfits[index];
+    await getDatabase().run(
+      `UPDATE trading_orders SET quantity = ?
+       WHERE intent_id = ? AND client_order_id = ?`,
+      [stalePartialFillQuantities[index], intent.id, order.clientOrderId],
+    );
+    await getDatabase().run(
+      `UPDATE trading_paper_orders SET quantity = ?
+       WHERE account_id = ? AND client_order_id = ?`,
+      [stalePartialFillQuantities[index], account.id, order.clientOrderId],
+    );
+  }
+  await engine.reconcileAccount(account.id);
+  const repairedTakeProfits = await getDatabase().all(
+    `SELECT client_order_id, quantity, request_json FROM trading_orders
+     WHERE intent_id = ? AND role = 'take_profit' AND status = 'open' ORDER BY price`,
+    [intent.id],
+  );
+  assert.equal(repairedTakeProfits.length, 4, 'Reconciliation must leave one active order per target.');
+  assert.deepEqual(
+    repairedTakeProfits
+      .map(order => ({ targetIndex: JSON.parse(order.request_json).targetIndex, quantity: order.quantity }))
+      .sort((left, right) => left.targetIndex - right.targetIndex),
+    [
+      { targetIndex: 1, quantity: '0.008' },
+      { targetIndex: 2, quantity: '0.004' },
+      { targetIndex: 3, quantity: '0.002' },
+      { targetIndex: 4, quantity: '0.002' },
+    ],
+    'Take profits must be rebuilt from the terminal entry fill, not the earlier partial position.',
+  );
+  assert.ok(
+    repairedTakeProfits.every(order => !plannedTakeProfits.some(planned => planned.clientOrderId === order.client_order_id)),
+    'Resized take profits must use fresh client order identifiers after authoritative cancellation.',
+  );
+  const repairedIds = repairedTakeProfits.map(order => order.client_order_id).sort();
+  await engine.reconcileAccount(account.id);
+  assert.deepEqual(
+    (await getDatabase().all(
+      `SELECT client_order_id FROM trading_orders
+       WHERE intent_id = ? AND role = 'take_profit' AND status = 'open' ORDER BY client_order_id`,
+      [intent.id],
+    )).map(order => order.client_order_id),
+    repairedIds,
+    'A second reconciliation must not create duplicate take-profit replacements.',
+  );
+  assert.equal(
+    (await getDatabase().get(
+      `SELECT COUNT(*) AS count FROM trading_risk_events
+       WHERE intent_id = ? AND code = 'TAKE_PROFIT_COVERAGE_RESIZED'`,
+      [intent.id],
+    )).count,
+    1,
+  );
+
   await setPaperMark(paper, account.id, '62000');
   await engine.reconcileAccount(account.id);
   let remote = await paper.openState(account);

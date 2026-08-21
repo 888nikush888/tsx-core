@@ -22,6 +22,8 @@ export class TradingRuntime {
   private readonly streamCursors = new Map<string, number>();
   private readonly streamDirtyAccounts = new Set<string>();
   private readonly streamFailureLogState = new Map<string, { message: string; loggedAt: number }>();
+  private resumeEntriesAfterProtectionRecovery = false;
+  private successfulProtectionRecoveryCycles = 0;
 
   constructor(
     private readonly engine: TradingEngine,
@@ -121,6 +123,7 @@ export class TradingRuntime {
     await this.captureEntryExpiryFailure(failures);
     if (failures.length > 0) await this.failProtectionCycle(startup, failures);
     this.protectionHealthy = true;
+    await this.recoverEntriesAfterProtectionFailure();
     if (this.entriesEnabled) {
       await this.assertEntryClockHealthy();
       await this.processPendingEntries();
@@ -135,7 +138,9 @@ export class TradingRuntime {
     for (const account of accounts) {
       try {
         const streamTriggered = this.streamDirtyAccounts.delete(account.id);
-        await this.engine.reconcileAccount(account.id, { force: startup || streamTriggered });
+        await this.engine.reconcileAccount(account.id, {
+          force: startup || streamTriggered || this.resumeEntriesAfterProtectionRecovery,
+        });
       } catch (error: any) {
         failures.push(`${account.id}: ${error?.message || String(error)}`);
       }
@@ -201,6 +206,8 @@ export class TradingRuntime {
   }
 
   private async failProtectionCycle(startup: boolean, failures: string[]): Promise<never> {
+    if (this.entriesEnabled) this.resumeEntriesAfterProtectionRecovery = true;
+    this.successfulProtectionRecoveryCycles = 0;
     this.entriesEnabled = false;
     this.protectionHealthy = false;
     const cycle = startup ? 'Startup' : 'Periodic';
@@ -210,6 +217,42 @@ export class TradingRuntime {
       killSwitchReason: `${cycle} reconciliation failed for ${failures.length} protection task(s)`,
     });
     throw new Error(`${cycle} trading protection failed: ${failures.join('; ')}`);
+  }
+
+  private async recoverEntriesAfterProtectionFailure(): Promise<void> {
+    if (!this.resumeEntriesAfterProtectionRecovery) return;
+    this.successfulProtectionRecoveryCycles += 1;
+    if (this.successfulProtectionRecoveryCycles < 2) return;
+    const state = await getDatabase().get<{
+      execution_enabled: number;
+      kill_switch_active: number;
+      kill_switch_reason: string | null;
+    }>(
+      `SELECT execution_enabled, kill_switch_active, kill_switch_reason
+       FROM trading_runtime_state WHERE singleton_id = 1`,
+    );
+    if (!state?.kill_switch_active || !/^(?:Startup|Periodic) reconciliation failed for \d+ protection task\(s\)$/.test(
+      state.kill_switch_reason || '',
+    )) {
+      this.resumeEntriesAfterProtectionRecovery = false;
+      this.successfulProtectionRecoveryCycles = 0;
+      return;
+    }
+    const critical = await getDatabase().get<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM trading_risk_events
+       WHERE severity = 'critical' AND acknowledged_at IS NULL`,
+    );
+    if (Number(critical?.count || 0) > 0) return;
+    await this.assertEntryClockHealthy();
+    await updateTradingRuntimeState({
+      executionEnabled: true,
+      killSwitchActive: false,
+      killSwitchReason: null,
+    });
+    this.entriesEnabled = true;
+    this.resumeEntriesAfterProtectionRecovery = false;
+    this.successfulProtectionRecoveryCycles = 0;
+    this.logger('[TRADING] Protection recovered after two authoritative reconciliations; entries resumed.');
   }
 
   private async processPendingEntries(): Promise<void> {
