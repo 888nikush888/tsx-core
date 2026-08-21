@@ -3,6 +3,7 @@ import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
 import { writeConfigSync } from './config.js';
 import { addLog, getLogEntries } from './logger.js';
 import {
@@ -1851,11 +1852,14 @@ function handleOptions(res: http.ServerResponse): void {
 async function serveSpaFallback(res: http.ServerResponse): Promise<void> {
   try {
     const content = await fsPromises.readFile(path.join(STATIC_ROOT, 'index.html'));
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': String(content.length),
+      'Cache-Control': 'no-cache',
+    });
     res.end(content);
   } catch {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(`<!DOCTYPE html>
+    const content = Buffer.from(`<!DOCTYPE html>
 <html>
 <head><title>Dashboard Dev Mode</title></head>
 <body style="font-family:sans-serif;background:#0d1117;color:#c9d1d9;padding:2rem;">
@@ -1863,7 +1867,25 @@ async function serveSpaFallback(res: http.ServerResponse): Promise<void> {
   <p>Compile the React frontend with: <code>npm run build</code></p>
 </body>
 </html>`);
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': String(content.length),
+      'Cache-Control': 'no-cache',
+    });
+    res.end(content);
   }
+}
+
+function staticResponseBody(
+  content: Buffer,
+  mimeType: string,
+  acceptedEncoding: string | string[] | undefined
+): { body: Buffer; encoding?: 'gzip' } {
+  const acceptsGzip = typeof acceptedEncoding === 'string'
+    && acceptedEncoding.split(',').some(value => value.trim().split(';')[0] === 'gzip');
+  const compressible = /^(?:text\/|application\/(?:javascript|json))/.test(mimeType);
+  if (!acceptsGzip || !compressible || content.length < 1024) return { body: content };
+  return { body: gzipSync(content, { level: 6 }), encoding: 'gzip' };
 }
 
 async function serveStatic(context: RequestContext, url: string): Promise<void> {
@@ -1886,8 +1908,16 @@ async function serveStatic(context: RequestContext, url: string): Promise<void> 
       return;
     }
     const mimeType = MIME_TYPES[path.extname(absolutePath).toLowerCase()] ?? 'application/octet-stream';
-    context.res.writeHead(200, { 'Content-Type': mimeType });
-    context.res.end(await fsPromises.readFile(absolutePath));
+    const content = await fsPromises.readFile(absolutePath);
+    const response = staticResponseBody(content, mimeType, context.req.headers['accept-encoding']);
+    const isVersionedAsset = decodedPath.startsWith(`assets${path.sep}`) || decodedPath.startsWith('assets/');
+    context.res.writeHead(200, {
+      'Content-Type': mimeType,
+      'Content-Length': String(response.body.length),
+      'Cache-Control': isVersionedAsset ? 'public, max-age=31536000, immutable' : 'no-cache',
+      ...(response.encoding ? { 'Content-Encoding': response.encoding, Vary: 'Accept-Encoding' } : {}),
+    });
+    context.res.end(response.body);
   } catch {
     await serveSpaFallback(context.res);
   }

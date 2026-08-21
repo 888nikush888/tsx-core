@@ -816,7 +816,18 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   assert.strictEqual(response.status, 404, 'Unknown API routes must not fall through to the SPA');
   response = await fetch(`${baseUrl}/.directory-response-test`, { signal: AbortSignal.timeout(2000) });
   assert.strictEqual(response.status, 200, 'A static directory path must receive a bounded SPA response');
+  assert.ok(Number(response.headers.get('content-length')) > 0, 'SPA responses must declare their exact size');
+  assert.strictEqual(response.headers.get('cache-control'), 'no-cache');
   assert.match(await response.text(), /<html(?:\s|>)/i);
+  response = await fetch(`${baseUrl}/assets/index-Cq3bAKcv.js`, {
+    headers: { 'Accept-Encoding': 'gzip' }, signal: AbortSignal.timeout(2000)
+  });
+  assert.strictEqual(response.status, 200);
+  assert.ok(Number(response.headers.get('content-length')) > 0, 'Static assets must declare their transmitted size');
+  assert.strictEqual(response.headers.get('content-encoding'), 'gzip');
+  assert.strictEqual(response.headers.get('vary'), 'Accept-Encoding');
+  assert.strictEqual(response.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+  assert.match(await response.text(), /import|function|const|var/);
 }
 
 async function createAppState(testDir, controls) {
