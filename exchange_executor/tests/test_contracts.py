@@ -452,6 +452,120 @@ class HyperliquidMappingTests(unittest.TestCase):
         self.assertEqual(len(captured["orders"]), 2)
         self.assertTrue(captured["orders"][1]["reduce_only"])
 
+    def test_protected_entry_recovers_a_nested_stop_from_order_status(self) -> None:
+        stop_id = "0x" + "2" * 32
+        queries: list[str] = []
+
+        class InfoStub:
+            @staticmethod
+            def query_order_by_oid(_address, client_order_id):
+                queries.append(client_order_id)
+                return {
+                    "status": "order",
+                    "order": {
+                        "status": "open",
+                        "order": {"oid": 11, "origSz": "1", "sz": "1", "cloid": stop_id},
+                    },
+                }
+
+        class ExchangeStub:
+            @staticmethod
+            def update_leverage(*_args, **_kwargs):
+                return {"status": "ok"}
+
+            @staticmethod
+            def bulk_orders(_orders, grouping="na"):
+                self.assertEqual(grouping, "normalTpsl")
+                return {
+                    "status": "ok",
+                    "response": {"data": {"statuses": [
+                        {"filled": {"oid": 10, "totalSz": "1", "avgPx": "100"}},
+                    ]}},
+                }
+
+        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
+        adapter._clients = lambda *_args: (InfoStub(), ExchangeStub(), "0xwallet")
+        entry = {
+            "accountId": "account", "symbol": "ETHUSDT", "role": "entry", "leverage": 2,
+            "side": "buy", "orderType": "limit", "quantity": "1", "price": "100",
+            "clientOrderId": "0x" + "1" * 32, "reduceOnly": False, "postOnly": False,
+        }
+        stop = {
+            "accountId": "account", "symbol": "ETHUSDT", "role": "stop_loss", "leverage": 2,
+            "side": "sell", "orderType": "stop_market", "quantity": "1", "triggerPrice": "95",
+            "clientOrderId": stop_id, "reduceOnly": True,
+        }
+        result = adapter.submit_protected_entry({"mode": "testnet"}, entry, stop)
+        self.assertEqual(result["entry"]["status"], "filled")
+        self.assertEqual(result["entry"]["averagePrice"], "100")
+        self.assertEqual(result["protectiveStop"]["status"], "open")
+        self.assertEqual(queries, [stop_id])
+
+    def test_protected_entry_single_batch_error_rejects_both_without_querying(self) -> None:
+        class InfoStub:
+            @staticmethod
+            def query_order_by_oid(*_args):
+                raise AssertionError("A provider batch rejection is already authoritative.")
+
+        class ExchangeStub:
+            @staticmethod
+            def update_leverage(*_args, **_kwargs):
+                return {"status": "ok"}
+
+            @staticmethod
+            def bulk_orders(_orders, grouping="na"):
+                return {"status": "ok", "response": {"data": {"statuses": [{"error": "bad batch"}]}}}
+
+        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
+        adapter._clients = lambda *_args: (InfoStub(), ExchangeStub(), "0xwallet")
+        entry = {
+            "accountId": "account", "symbol": "ETHUSDT", "role": "entry", "leverage": 2,
+            "side": "buy", "orderType": "limit", "quantity": "1", "price": "100",
+            "clientOrderId": "0x" + "1" * 32, "reduceOnly": False, "postOnly": False,
+        }
+        stop = {
+            "accountId": "account", "symbol": "ETHUSDT", "role": "stop_loss", "leverage": 2,
+            "side": "sell", "orderType": "stop_market", "quantity": "1", "triggerPrice": "95",
+            "clientOrderId": "0x" + "2" * 32, "reduceOnly": True,
+        }
+        result = adapter.submit_protected_entry({"mode": "testnet"}, entry, stop)
+        self.assertEqual(result["entry"]["status"], "rejected")
+        self.assertEqual(result["protectiveStop"]["status"], "rejected")
+
+    def test_market_ioc_prices_round_outward_to_valid_hyperliquid_ticks(self) -> None:
+        class InfoStub:
+            @staticmethod
+            def meta_and_asset_ctxs():
+                return ({"universe": [{"name": "BTC", "szDecimals": 5}]}, [{"markPx": "75499.4"}])
+
+        request = {
+            "orderType": "market", "role": "flatten", "maxSlippagePercent": "1",
+        }
+        sell_price, sell_type = HyperliquidAdapter._price_and_order_type(
+            InfoStub(), "BTC", False, request, None
+        )
+        buy_price, buy_type = HyperliquidAdapter._price_and_order_type(
+            InfoStub(), "BTC", True, request, None
+        )
+        self.assertEqual(sell_price, 74744.0)
+        self.assertEqual(buy_price, 76255.0)
+        self.assertEqual(sell_type, {"limit": {"tif": "Ioc"}})
+        self.assertEqual(buy_type, {"limit": {"tif": "Ioc"}})
+
+    def test_market_snapshot_tick_obeys_size_decimals_and_significant_figures(self) -> None:
+        class InfoStub:
+            @staticmethod
+            def meta_and_asset_ctxs():
+                return ({
+                    "universe": [{"name": "BTC", "szDecimals": 5, "maxLeverage": 50}],
+                }, [{"markPx": "75499.4"}])
+
+        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
+        adapter._clients = lambda *_args: (InfoStub(), object(), "0xwallet")
+        snapshot = adapter.market_snapshot({"mode": "testnet"}, "BTCUSDT")
+        self.assertEqual(snapshot["priceTick"], "1")
+        self.assertEqual(snapshot["quantityStep"], "0.00001")
+
 
 if __name__ == "__main__":
     unittest.main()

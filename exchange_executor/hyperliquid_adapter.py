@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, ROUND_CEILING, ROUND_FLOOR
 from typing import Any
 
 from eth_account import Account
@@ -22,6 +22,9 @@ from credentials import CredentialStore
 
 
 class HyperliquidAdapter:
+    PERP_MAX_DECIMALS = 6
+    ORDER_STATUS_ATTEMPTS = 5
+
     def __init__(self, credentials: CredentialStore) -> None:
         self.credentials = credentials
 
@@ -136,26 +139,57 @@ class HyperliquidAdapter:
         if deadline:
             deadline.ensure(250)
         coin = self._coin(symbol)
-        metadata, contexts = info.meta_and_asset_ctxs()
-        universe = metadata.get("universe", [])
-        index = next((position for position, asset in enumerate(universe) if asset.get("name") == coin), None)
-        if index is None or index >= len(contexts):
-            raise ExchangeContractError(f"Hyperliquid symbol {coin} is unavailable.")
-        asset = universe[index]
-        mark = Decimal(decimal_string(contexts[index].get("markPx"), "markPx", positive=True))
-        tick_exponent = max(-6, mark.adjusted() - 4)
-        price_tick = Decimal(1).scaleb(tick_exponent)
-        quantity_step = Decimal(1).scaleb(-int(asset.get("szDecimals", 0)))
+        asset, context = self._asset_context(info, coin)
+        mark = Decimal(decimal_string(context.get("markPx"), "markPx", positive=True))
+        size_decimals = int(asset.get("szDecimals", 0))
+        price_tick = self._perp_price_tick(mark, size_decimals)
+        quantity_step = Decimal(1).scaleb(-size_decimals)
         return {
             "symbol": symbol,
             "markPrice": decimal_string(str(mark), "markPrice", positive=True),
-            "priceTick": decimal_string(str(price_tick), "priceTick", positive=True),
-            "quantityStep": decimal_string(str(quantity_step), "quantityStep", positive=True),
-            "minimumQuantity": decimal_string(str(quantity_step), "minimumQuantity", positive=True),
+            "priceTick": decimal_string(format(price_tick, "f"), "priceTick", positive=True),
+            "quantityStep": decimal_string(format(quantity_step, "f"), "quantityStep", positive=True),
+            "minimumQuantity": decimal_string(format(quantity_step, "f"), "minimumQuantity", positive=True),
             "minimumNotional": "10",
             "maxLeverage": int(asset.get("maxLeverage", 1)),
             "observedAt": int(time.time() * 1000),
         }
+
+    @staticmethod
+    def _asset_context(info: Any, coin: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        metadata, contexts = info.meta_and_asset_ctxs()
+        universe = metadata.get("universe", []) if isinstance(metadata, dict) else []
+        if not isinstance(universe, list) or not isinstance(contexts, list):
+            raise ExchangeContractError("Hyperliquid market metadata returned an invalid contract.")
+        index = next(
+            (position for position, asset in enumerate(universe) if isinstance(asset, dict) and asset.get("name") == coin),
+            None,
+        )
+        if index is None or index >= len(contexts) or not isinstance(contexts[index], dict):
+            raise ExchangeContractError(f"Hyperliquid symbol {coin} is unavailable.")
+        return universe[index], contexts[index]
+
+    @classmethod
+    def _perp_price_tick(cls, mark: Decimal, size_decimals: int) -> Decimal:
+        if size_decimals < 0 or size_decimals > cls.PERP_MAX_DECIMALS:
+            raise ExchangeContractError("Hyperliquid size-decimal metadata is invalid.")
+        # Perpetual prices permit at most five significant figures and no more
+        # than (6 - szDecimals) fractional decimal places. Integer prices are valid.
+        tick_exponent = max(mark.adjusted() - 4, -(cls.PERP_MAX_DECIMALS - size_decimals))
+        return Decimal(1).scaleb(tick_exponent)
+
+    @classmethod
+    def _market_limit_price(cls, mark: Decimal, size_decimals: int, is_buy: bool, slippage: Decimal) -> Decimal:
+        multiplier = slippage / Decimal("100")
+        adjustment = Decimal("1") + multiplier if is_buy else Decimal("1") - multiplier
+        unrounded = mark * adjustment
+        tick = cls._perp_price_tick(mark, size_decimals)
+        rounding = ROUND_CEILING if is_buy else ROUND_FLOOR
+        steps = (unrounded / tick).to_integral_value(rounding=rounding)
+        price = steps * tick
+        if price <= 0:
+            raise ExchangeContractError("Hyperliquid market-order limit price is invalid.")
+        return price
 
     def submit_order(
         self,
@@ -194,8 +228,9 @@ class HyperliquidAdapter:
         if leverage_response.get("status") != "ok":
             raise ExchangeContractError("Hyperliquid leverage update failed.")
 
-    @staticmethod
+    @classmethod
     def _price_and_order_type(
+        cls,
         info: Any,
         coin: str,
         is_buy: bool,
@@ -210,7 +245,8 @@ class HyperliquidAdapter:
             return price, {"trigger": {"triggerPx": price, "isMarket": True, "tpsl": "sl"}}
         if deadline:
             deadline.ensure(500)
-        mark = Decimal(str(info.all_mids()[coin]))
+        asset, context = cls._asset_context(info, coin)
+        mark = Decimal(decimal_string(context.get("markPx"), "markPx", positive=True))
         slippage = Decimal("1")
         if request["role"] == "entry":
             slippage = Decimal(decimal_string(
@@ -218,9 +254,8 @@ class HyperliquidAdapter:
             ))
         if slippage > Decimal("10"):
             raise ExchangeContractError("maxSlippagePercent exceeds the provider-side safety cap.")
-        multiplier = slippage / Decimal("100")
-        adjustment = Decimal("1") + multiplier if is_buy else Decimal("1") - multiplier
-        return float(mark * adjustment), {"limit": {"tif": "Ioc"}}
+        price = cls._market_limit_price(mark, int(asset.get("szDecimals", 0)), is_buy, slippage)
+        return float(price), {"limit": {"tif": "Ioc"}}
 
     def submit_protected_entry(
         self,
@@ -230,7 +265,7 @@ class HyperliquidAdapter:
         deadline: RequestDeadline | None = None,
     ) -> dict[str, Any]:
         self._validate_protective_stop(entry, protective_stop)
-        info, exchange, _ = self._clients(account, deadline)
+        info, exchange, address = self._clients(account, deadline)
         coin = self._coin(entry["symbol"])
         is_buy = entry["side"] == "buy"
         self._configure_entry_leverage(exchange, coin, entry, deadline)
@@ -266,17 +301,93 @@ class HyperliquidAdapter:
         response = exchange.bulk_orders(orders, grouping="normalTpsl")
         statuses = response.get("response", {}).get("data", {}).get("statuses", []) \
             if isinstance(response, dict) else []
-        if not isinstance(statuses, list) or len(statuses) != 2:
+        if not isinstance(response, dict) or response.get("status") != "ok":
             return {
-                "entry": self._unknown_result(entry["clientOrderId"], response),
-                "protectiveStop": self._unknown_result(protective_stop["clientOrderId"], response),
+                "entry": self._order_result(entry["clientOrderId"], response),
+                "protectiveStop": self._order_result(protective_stop["clientOrderId"], response),
             }
-        entry_response = {"status": response.get("status"), "response": {"data": {"statuses": [statuses[0]]}}}
-        stop_response = {"status": response.get("status"), "response": {"data": {"statuses": [statuses[1]]}}}
-        return {
-            "entry": self._order_result(entry["clientOrderId"], entry_response),
-            "protectiveStop": self._order_result(protective_stop["clientOrderId"], stop_response),
-        }
+        if isinstance(statuses, list) and len(statuses) == 1 \
+                and isinstance(statuses[0], dict) and "error" in statuses[0]:
+            rejected = {"status": "ok", "response": {"data": {"statuses": [statuses[0]]}}}
+            return {
+                "entry": self._order_result(entry["clientOrderId"], rejected),
+                "protectiveStop": self._order_result(protective_stop["clientOrderId"], rejected),
+            }
+
+        entry_result = self._status_at(entry["clientOrderId"], response, statuses, 0)
+        stop_result = self._status_at(protective_stop["clientOrderId"], response, statuses, 1)
+        if entry_result["status"] == "unknown":
+            entry_result = self._resolve_order_status(
+                info, address, entry["clientOrderId"], response, deadline
+            )
+        if stop_result["status"] == "unknown":
+            stop_result = self._resolve_order_status(
+                info, address, protective_stop["clientOrderId"], response, deadline
+            )
+        return {"entry": entry_result, "protectiveStop": stop_result}
+
+    @classmethod
+    def _status_at(cls, client_order_id: str, response: Any, statuses: Any, index: int) -> dict[str, Any]:
+        if not isinstance(statuses, list) or index >= len(statuses) or not isinstance(statuses[index], dict):
+            return cls._unknown_result(client_order_id, response)
+        individual = {"status": "ok", "response": {"data": {"statuses": [statuses[index]]}}}
+        return cls._order_result(client_order_id, individual)
+
+    @classmethod
+    def _resolve_order_status(
+        cls,
+        info: Any,
+        address: str,
+        client_order_id: str,
+        acknowledgement: Any,
+        deadline: RequestDeadline | None,
+    ) -> dict[str, Any]:
+        last_response: Any = acknowledgement
+        for attempt in range(cls.ORDER_STATUS_ATTEMPTS):
+            if deadline:
+                deadline.ensure(350)
+            try:
+                last_response = info.query_order_by_oid(address, client_order_id)
+            except Exception as error:  # SDK/network failures remain an unknown outcome.
+                last_response = {"status": "queryError", "error": str(error)}
+            result = cls._order_status_result(client_order_id, last_response)
+            if result["status"] != "unknown":
+                return result
+            if attempt + 1 < cls.ORDER_STATUS_ATTEMPTS:
+                if deadline:
+                    deadline.ensure(550)
+                time.sleep(0.2)
+        return cls._unknown_result(client_order_id, {
+            "acknowledgement": acknowledgement,
+            "orderStatus": last_response,
+        })
+
+    @classmethod
+    def _order_status_result(cls, client_order_id: str, response: Any) -> dict[str, Any]:
+        result = cls._unknown_result(client_order_id, response)
+        result["error"] = None
+        if not isinstance(response, dict) or response.get("status") != "order":
+            return result
+        record = response.get("order")
+        order = record.get("order") if isinstance(record, dict) else None
+        if not isinstance(order, dict):
+            return result
+        status = cls._map_order_status(record.get("status"))
+        try:
+            original = Decimal(str(order.get("origSz", order.get("sz", "0"))))
+            remaining = Decimal(str(order.get("sz", "0")))
+            filled = max(original - remaining, Decimal("0"))
+            filled_quantity = decimal_string(str(filled), "filled quantity")
+        except (InvalidOperation, TypeError, ValueError, ExchangeContractError):
+            return result
+        result.update(
+            exchangeOrderId=str(order.get("oid", "")),
+            status=status,
+            filledQuantity=filled_quantity,
+        )
+        if status == "rejected":
+            result["error"] = str(record.get("status") or "Hyperliquid order rejected.")
+        return result
 
     @staticmethod
     def _unknown_result(client_order_id: str, raw: Any) -> dict[str, Any]:

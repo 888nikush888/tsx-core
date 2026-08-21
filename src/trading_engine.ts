@@ -596,7 +596,7 @@ function matchingActiveStops(
 ) {
   return remote.orders.filter(order =>
     intentOrderIds.has(order.clientOrderId)
-    && order.role === 'stop_loss'
+    && (order.role === 'stop_loss' || (order.reduceOnly && order.triggerPrice !== null))
     && order.status === 'open'
     && order.symbol === symbol);
 }
@@ -1061,7 +1061,7 @@ export class TradingEngine {
       targetIndex: null,
     };
     await getDatabase().run(
-      `INSERT INTO trading_orders (
+      `INSERT OR IGNORE INTO trading_orders (
          id, intent_id, account_id, client_order_id, exchange_order_id, role,
          side, order_type, status, price, trigger_price, quantity, filled_quantity,
          reduce_only, request_json, response_json, last_error, created_at, updated_at
@@ -1069,6 +1069,21 @@ export class TradingEngine {
       [randomUUID(), intent.id, account.id, order.clientOrderId, order.side, order.quantity, JSON.stringify(order), Date.now(), Date.now()],
     );
     try {
+      const existing = await getDatabase().get<{ status: string }>(
+        'SELECT status FROM trading_orders WHERE intent_id = ? AND client_order_id = ?',
+        [intent.id, order.clientOrderId],
+      );
+      if (existing?.status === 'filled') {
+        await updateTradingRuntimeState({
+          executionEnabled: false,
+          killSwitchActive: true,
+          killSwitchReason: `Emergency flatten for intent ${intent.id} awaits exchange reconciliation`,
+        });
+        return;
+      }
+      if (existing && ['submitting', 'unknown', 'cancel_pending', 'open', 'partially_filled'].includes(existing.status)) {
+        throw new ReconciliationMismatchError(`Emergency flatten status is ${existing.status}; exchange reconciliation is required.`);
+      }
       const result = await submitTrackedOrder({ adapter, account, intent, plan, order });
       if (result.status !== 'filled') throw new Error(`Emergency flatten status is ${result.status}.`);
       await updateTradingRuntimeState({

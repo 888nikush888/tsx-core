@@ -253,6 +253,55 @@ async function testAdverseEntrySlippageFlattens(directory) {
   await closeDb();
 }
 
+async function testEmergencyFlattenRetryIsIdempotent(directory) {
+  const { paper, account, intent } = await setup(path.join(directory, 'flatten-retry.db'));
+  let flattenSubmissions = 0;
+  const adapter = wrappedAdapter(paper, async (targetAccount, request) => {
+    if (request.role !== 'flatten') return paper.submitOrder(targetAccount, request);
+    flattenSubmissions += 1;
+    return {
+      clientOrderId: request.clientOrderId,
+      exchangeOrderId: '',
+      status: 'rejected',
+      filledQuantity: '0',
+      averagePrice: null,
+      error: 'simulated invalid market price',
+      raw: {},
+    };
+  });
+  const engine = new TradingEngine([adapter]);
+  await engine.processIntent(intent.id);
+  const managed = await getTradingIntent(intent.id);
+  await assert.rejects(
+    engine.emergencyFlatten(adapter, account, managed, managed.plan, new Error('first failure')),
+    /Emergency flatten status is rejected/,
+  );
+  await assert.rejects(
+    engine.emergencyFlatten(adapter, account, managed, managed.plan, new Error('retry failure')),
+    /Emergency flatten status is rejected/,
+  );
+  assert.equal(flattenSubmissions, 2, 'A terminal rejection may be retried with the deterministic client order id.');
+  const flattenRow = await getDatabase().get(
+    `SELECT id FROM trading_orders WHERE intent_id = ? AND role = 'flatten'`,
+    [intent.id],
+  );
+  assert.ok(flattenRow?.id);
+  await getDatabase().run('UPDATE trading_orders SET status = ? WHERE id = ?', ['filled', flattenRow.id]);
+  await engine.emergencyFlatten(adapter, account, managed, managed.plan, new Error('already filled'));
+  assert.equal(flattenSubmissions, 2, 'A confirmed flatten must wait for reconciliation without resubmitting.');
+  await getDatabase().run('UPDATE trading_orders SET status = ? WHERE id = ?', ['unknown', flattenRow.id]);
+  await assert.rejects(
+    engine.emergencyFlatten(adapter, account, managed, managed.plan, new Error('unknown outcome')),
+    /exchange reconciliation is required/,
+  );
+  assert.equal(flattenSubmissions, 2, 'An unresolved flatten must never be submitted a second time.');
+  assert.equal((await getDatabase().get(
+    `SELECT COUNT(*) AS count FROM trading_orders WHERE intent_id = ? AND role = 'flatten'`,
+    [intent.id],
+  )).count, 1, 'Emergency retries must reuse one durable order row.');
+  await closeDb();
+}
+
 function orderResult(request, status, filledQuantity, averagePrice = null) {
   return {
     clientOrderId: request.clientOrderId,
@@ -284,6 +333,7 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
   let activeStop;
   const submittedStops = new Map();
   let terminal = false;
+  let cancelledStops = 0;
   const submittedTakeProfits = [];
   const adapter = wrappedAdapter(paper, async (_targetAccount, request) => {
     if (request.role === 'entry') {
@@ -305,13 +355,14 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
     const cancelled = submittedStops.get(clientOrderId);
     assert.ok(cancelled, 'Only a previously confirmed stop may be cancelled.');
     assert.notEqual(clientOrderId, activeStop.clientOrderId, 'Replacement must be active before the stale stop is cancelled.');
+    cancelledStops += 1;
     return orderResult(cancelled, 'cancelled', '0');
   };
   adapter.openState = async () => ({
     orders: terminal
       ? [
         orderSnapshot(entryRequest, 'cancelled', '0.1', '3050'),
-        orderSnapshot(activeStop, 'open', '0'),
+        { ...orderSnapshot(activeStop, 'open', '0'), role: 'entry' },
       ]
       : [],
     positions: terminal
@@ -337,6 +388,7 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
     ['0.05', '0.05'],
     'Take profits must be rescaled to exactly the terminal filled quantity.',
   );
+  assert.equal(cancelledStops, 1, 'A locally known reduce-only trigger remains a managed stop even if the provider omits its role.');
   await closeDb();
 }
 
@@ -774,6 +826,7 @@ async function run() {
     await testUnavailableMarketFailureIsolation(directory);
     await testEntryTtlCancelsAndClosesEmptyPosition(directory);
     await testAdverseEntrySlippageFlattens(directory);
+    await testEmergencyFlattenRetryIsIdempotent(directory);
     await testPartialEntryProtectionAndTerminalResizing(directory);
     await testTrailingStopOnlyMovesTowardProfit(directory);
     await testStopReplacementCancellationFailsClosed(directory);

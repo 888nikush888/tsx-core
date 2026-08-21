@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { once } from 'events';
-import { mkdir, mkdtemp, readFile, rm } from 'fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { closeDb, initDb } from '../src/db.js';
@@ -819,7 +819,7 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   assert.ok(Number(response.headers.get('content-length')) > 0, 'SPA responses must declare their exact size');
   assert.strictEqual(response.headers.get('cache-control'), 'no-cache');
   assert.match(await response.text(), /<html(?:\s|>)/i);
-  response = await fetch(`${baseUrl}/assets/index-Cq3bAKcv.js`, {
+  response = await fetch(`${baseUrl}/assets/.static-response-test.js`, {
     headers: { 'Accept-Encoding': 'gzip' }, signal: AbortSignal.timeout(2000)
   });
   assert.strictEqual(response.status, 200);
@@ -1121,11 +1121,14 @@ async function runTests() {
   const previousTemplatesDirectory = process.env.TEMPLATES_DIR;
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-web-test-'));
   const staticDirectory = path.resolve('frontend/dist/.directory-response-test');
+  const staticAsset = path.resolve('frontend/dist/assets/.static-response-test.js');
   let stopped = false;
 
   try {
     await initDb(path.join(testDir, 'forwarder.db'));
     await mkdir(staticDirectory, { recursive: true });
+    await mkdir(path.dirname(staticAsset), { recursive: true });
+    await writeFile(staticAsset, `const staticResponseTest = ${JSON.stringify('x'.repeat(2048))};\n`);
     delete process.env.DASHBOARD_ADMIN_TOKEN;
     delete process.env.DASHBOARD_VIEWER_TOKEN;
     delete process.env.WEB_HOST;
@@ -1188,6 +1191,7 @@ async function runTests() {
     await closeDb();
     await rm(testDir, { recursive: true, force: true });
     await rm(staticDirectory, { recursive: true, force: true });
+    await rm(staticAsset, { force: true });
     if (previousAdminToken === undefined) delete process.env.DASHBOARD_ADMIN_TOKEN;
     else process.env.DASHBOARD_ADMIN_TOKEN = previousAdminToken;
     if (previousViewerToken === undefined) delete process.env.DASHBOARD_VIEWER_TOKEN;
