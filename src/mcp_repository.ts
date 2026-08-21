@@ -1181,7 +1181,7 @@ export async function createMcpProposal(input: {
   const autoApprove = input.autoApprove === true && !preflight.requiresApproval;
   const id = randomUUID();
   const now = Date.now();
-  await withDatabaseTransaction(async database => {
+  return withDatabaseTransaction(async database => {
     await assertRuntimeActiveFrom(database);
     await database.run(
       `INSERT INTO mcp_agent_proposals (
@@ -1202,8 +1202,22 @@ export async function createMcpProposal(input: {
         autoApprove ? `mcp:${agentId}` : null,
       ],
     );
+    const row = await database.get<any>(
+      `SELECT proposal.id, proposal.agent_id AS agentId, agent.name AS agentName,
+              proposal.session_id AS sessionId, proposal.action,
+              proposal.payload_json AS payloadJson, proposal.preflight_json AS preflightJson,
+              proposal.status, proposal.requested_at AS requestedAt,
+              proposal.expires_at AS expiresAt, proposal.decided_at AS decidedAt,
+              proposal.decided_by AS decidedBy, proposal.executed_at AS executedAt,
+              proposal.result_json AS resultJson, proposal.error
+       FROM mcp_agent_proposals AS proposal
+       JOIN mcp_agents AS agent ON agent.id = proposal.agent_id
+       WHERE proposal.id = ?`,
+      [id],
+    );
+    if (!row) throw new Error('MCP proposal was not persisted.');
+    return mappedProposal(row);
   });
-  return (await getMcpProposal(id))!;
 }
 
 export async function expireMcpProposals(now = Date.now()): Promise<number> {
