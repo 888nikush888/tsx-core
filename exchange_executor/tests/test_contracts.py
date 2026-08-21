@@ -368,7 +368,7 @@ class HyperliquidMappingTests(unittest.TestCase):
 
         class InfoStub:
             @staticmethod
-            def open_orders(_address):
+            def frontend_open_orders(_address):
                 return []
 
             @staticmethod
@@ -397,6 +397,42 @@ class HyperliquidMappingTests(unittest.TestCase):
         self.assertEqual(state["orders"][0]["status"], "filled")
         self.assertIsNone(state["orders"][0]["triggerPrice"])
         self.assertRegex(state["accountFingerprint"], r"^[a-f0-9]{64}$")
+
+    def test_open_state_preserves_protective_stop_fields_from_frontend_orders(self) -> None:
+        cloid = "0x" + "3" * 32
+
+        class InfoStub:
+            @staticmethod
+            def open_orders(_address):
+                raise AssertionError("The basic openOrders response omits protective-stop fields.")
+
+            @staticmethod
+            def frontend_open_orders(_address):
+                return [{
+                    "coin": "BTC", "side": "A", "limitPx": "74000", "triggerPx": "74000",
+                    "origSz": "0.00322", "sz": "0.00322", "oid": 44, "cloid": cloid,
+                    "reduceOnly": True, "isTrigger": True, "orderType": "Stop Market",
+                }]
+
+            @staticmethod
+            def historical_orders(_address):
+                return []
+
+            @staticmethod
+            def user_fills(_address):
+                return []
+
+            @staticmethod
+            def user_state(_address):
+                return {"assetPositions": []}
+
+        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
+        adapter._clients = lambda _account: (InfoStub(), object(), "0xwallet")
+        state = adapter.open_state({"mode": "testnet"})
+        self.assertEqual(len(state["orders"]), 1)
+        self.assertEqual(state["orders"][0]["status"], "open")
+        self.assertEqual(state["orders"][0]["triggerPrice"], "74000")
+        self.assertTrue(state["orders"][0]["reduceOnly"])
 
     def test_current_open_order_overrides_terminal_history_and_unknown_status_fails_closed(self) -> None:
         order = {

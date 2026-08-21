@@ -469,7 +469,10 @@ class HyperliquidAdapter:
         info, _, address = self._clients(account) if deadline is None else self._clients(account, deadline)
         if deadline:
             deadline.ensure(250)
-        open_orders = info.open_orders(address)
+        # The basic openOrders contract omits triggerPx, reduceOnly and the
+        # other TP/SL fields needed to prove that a protective stop exists.
+        # frontendOpenOrders is the official enriched contract for that data.
+        open_orders = info.frontend_open_orders(address)
         if deadline:
             deadline.ensure(250)
         history = info.historical_orders(address)
