@@ -20,7 +20,7 @@ from ccxt_adapter import (
 )
 import ccxt_client
 from ccxt_client import CERTIFIED_EXCHANGES, CcxtClientRegistry, _account_identity, _client_configuration
-from common import ExchangeContractError, RequestDeadline, account_request, decimal_string
+from common import ExchangeContractError, RequestDeadline, account_request, decimal_string, external_account_id
 from credentials import CredentialError, CredentialStore
 from server import authenticated, executor_error_code
 from stream_hub import AccountStream, _canonical_payload, _event_type
@@ -81,6 +81,19 @@ class ContractTests(unittest.TestCase):
         rebound = _account_identity({"apiKey": "different-key", "apiSecret": "new-secret"}, "bybit", "live")
         self.assertEqual(first, rotated)
         self.assertNotEqual(first, rebound)
+
+    def test_ccxt_identity_preserves_native_adapter_account_bindings(self) -> None:
+        wallet = "0x" + "Ab" * 20
+        stable = _account_identity(
+            {"privateKey": "0x" + "1" * 64, "walletAddress": wallet},
+            "hyperliquid",
+            "testnet",
+        )
+        self.assertEqual(stable, wallet.lower())
+        self.assertEqual(
+            external_account_id("hyperliquid", "testnet", stable),
+            external_account_id("hyperliquid", "testnet", wallet.lower()),
+        )
 
     def test_plain_decimals_and_deadlines_remain_bounded(self) -> None:
         self.assertEqual(decimal_string("1.2300", "price", positive=True), "1.23")

@@ -36,9 +36,11 @@ def _credential_fingerprint(secret: dict[str, Any], exchange: str, mode: str) ->
     return external_account_cache_key(exchange, mode, hashlib.sha256(canonical.encode("utf-8")).hexdigest())
 
 
-def _account_identity(secret: dict[str, Any], exchange: str, mode: str) -> str:
-    stable_identifier = secret["walletAddress"].lower() if exchange == "hyperliquid" else secret["apiKey"]
-    return external_account_cache_key(exchange, mode, stable_identifier)
+def _account_identity(secret: dict[str, Any], exchange: str, _mode: str) -> str:
+    # This value is only retained inside the executor process. The adapter
+    # applies external_account_id exactly once before it crosses the trust
+    # boundary, preserving bindings created by the certified native adapters.
+    return secret["walletAddress"].lower() if exchange == "hyperliquid" else secret["apiKey"]
 
 
 def _client_configuration(account: dict[str, str], secret: dict[str, Any]) -> dict[str, Any]:
