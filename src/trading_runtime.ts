@@ -25,6 +25,17 @@ export class TradingRuntime {
   private readonly reconciliationRecoveryEvidence = new Map<string, number>();
 
   private static readonly TRANSIENT_RECONCILIATION_PREFIX = 'Transient reconciliation failure:';
+  private static readonly UNTRUSTED_ACCOUNT_IDENTITY_PREFIX = 'Remote account identity is untrusted for account ';
+
+  private static isRecoverableProtection(account: {
+    kill_switch_active: number;
+    kill_switch_reason: string | null;
+  }): boolean {
+    if (account.kill_switch_active !== 1) return false;
+    const reason = account.kill_switch_reason || '';
+    return reason.startsWith(TradingRuntime.TRANSIENT_RECONCILIATION_PREFIX)
+      || reason.startsWith(TradingRuntime.UNTRUSTED_ACCOUNT_IDENTITY_PREFIX);
+  }
 
   constructor(
     private readonly engine: TradingEngine,
@@ -144,14 +155,13 @@ export class TradingRuntime {
     );
     const failures: string[] = [];
     for (const account of accounts) {
-      const transientRecovery = account.kill_switch_active === 1
-        && account.kill_switch_reason?.startsWith(TradingRuntime.TRANSIENT_RECONCILIATION_PREFIX) === true;
+      const recoverableProtection = TradingRuntime.isRecoverableProtection(account);
       try {
         const streamTriggered = this.streamDirtyAccounts.delete(account.id);
         await this.engine.reconcileAccount(account.id, {
-          force: startup || streamTriggered || transientRecovery,
+          force: startup || streamTriggered || recoverableProtection,
         });
-        if (transientRecovery) {
+        if (recoverableProtection) {
           const evidence = (this.reconciliationRecoveryEvidence.get(account.id) ?? 0) + 1;
           if (evidence >= 2) {
             await updateTradingAccountConfiguration(account.id, {

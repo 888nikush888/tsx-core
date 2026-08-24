@@ -18,6 +18,7 @@ import {
   publishTradingStrategyVersion,
   setTradingRoute,
   updateTradingRuntimeState,
+  updateTradingAccountConfiguration,
   updateTradingAccountState,
 } from '../src/trading_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
@@ -489,6 +490,38 @@ async function testTransientReconciliationFailureRecoversAfterTwoAuthoritativeCy
   await closeDb();
 }
 
+async function testRestoredAccountIdentityRecoversAfterTwoAuthoritativeCycles(directory) {
+  await initDb(path.join(directory, 'account-identity-recovery.db'));
+  await seedTradingFixtures();
+  const [account] = await listTradingAccounts();
+  await updateTradingAccountConfiguration(account.id, {
+    killSwitchActive: true,
+    killSwitchReason: `Remote account identity is untrusted for account ${account.id}`,
+  });
+  const forced = [];
+  const engine = {
+    reconcileAccount: async (_accountId, options) => { forced.push(options?.force === true); },
+    cancelExpiredEntries: async () => 0,
+    processIntent: async () => undefined,
+  };
+  const runtime = new TradingRuntime(engine, 60_000);
+
+  await runtime.runOnce(false);
+  assert.equal(
+    (await getTradingAccount(account.id)).killSwitchActive,
+    true,
+    'One matching authoritative identity snapshot must not clear account protection.',
+  );
+  await runtime.runOnce(false);
+  assert.equal(
+    (await getTradingAccount(account.id)).killSwitchActive,
+    false,
+    'Two matching authoritative identity snapshots must recover the trusted binding.',
+  );
+  assert.deepEqual(forced, [true, true]);
+  await closeDb();
+}
+
 async function testEntryExpiryFailureActivatesKillSwitch(directory) {
   await initDb(path.join(directory, 'entry-expiry-failure.db'));
   await seedTradingFixtures();
@@ -893,6 +926,7 @@ async function run() {
     await testStopReplacementCancellationFailsClosed(directory);
     await testPeriodicReconciliationFailureActivatesKillSwitch(directory);
     await testTransientReconciliationFailureRecoversAfterTwoAuthoritativeCycles(directory);
+    await testRestoredAccountIdentityRecoversAfterTwoAuthoritativeCycles(directory);
     await testEntryExpiryFailureActivatesKillSwitch(directory);
     await testRuntimeIsolatesAccountFailures(directory);
     await testRemoteAccountIdentityBinding(directory);
