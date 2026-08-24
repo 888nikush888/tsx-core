@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
+import { stripVTControlCharacters } from 'node:util';
 
 const frontend = path.resolve('frontend');
 const vitest = path.join(frontend, 'node_modules', 'vitest', 'vitest.mjs');
@@ -15,8 +16,9 @@ const result = spawnSync(process.execPath, [vitest, 'run', '--configLoader', 'ru
 
 assert.ifError(result.error);
 assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-const files = result.stdout.match(/Test Files\s+(\d+) passed \((\d+)\)/);
-const tests = result.stdout.match(/Tests\s+(\d+) passed \((\d+)\)/);
+const output = stripVTControlCharacters(result.stdout);
+const files = output.match(/Test Files\s+(\d+) passed \((\d+)\)/);
+const tests = output.match(/Tests\s+(\d+) passed \((\d+)\)/);
 assert.ok(files, `Frontend test-file result missing:\n${result.stdout}`);
 assert.ok(tests, `Frontend test-count result missing:\n${result.stdout}`);
 assert.equal(files[1], files[2], 'Every discovered frontend test file must pass.');
