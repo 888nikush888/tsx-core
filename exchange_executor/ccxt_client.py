@@ -93,6 +93,7 @@ class AccountClients:
     pro: Any
     lock: asyncio.Lock
     markets_loaded: bool = False
+    market_load_task: asyncio.Task[None] | None = None
 
     async def load_markets(self) -> None:
         if self.markets_loaded:
@@ -100,10 +101,35 @@ class AccountClients:
         async with self.lock:
             if self.markets_loaded:
                 return
-            await asyncio.gather(self.rest.load_markets(), self.pro.load_markets())
-            self.markets_loaded = True
+            if self.market_load_task is None:
+                self.market_load_task = asyncio.create_task(self._load_markets())
+            task = self.market_load_task
+        try:
+            # An HTTP request deadline must not cancel the shared market
+            # bootstrap for every concurrent REST and Pro consumer. Later
+            # callers await the same task and never observe a half-initialized
+            # CCXT client from the registry cache.
+            await asyncio.shield(task)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            async with self.lock:
+                if self.market_load_task is task:
+                    self.market_load_task = None
+            raise
+
+    async def _load_markets(self) -> None:
+        await asyncio.gather(self.rest.load_markets(), self.pro.load_markets())
+        self.markets_loaded = True
 
     async def close(self) -> None:
+        async with self.lock:
+            task = self.market_load_task
+            self.market_load_task = None
+        if task is not None and not task.done():
+            task.cancel()
+        if task is not None:
+            await asyncio.gather(task, return_exceptions=True)
         await asyncio.gather(self.rest.close(), self.pro.close(), return_exceptions=True)
 
 
@@ -123,33 +149,38 @@ class CcxtClientRegistry:
         async with self._lock:
             existing = self._clients.get(cache_key)
             if existing and existing.credential_fingerprint == fingerprint:
-                return existing
-            if existing:
-                await existing.close()
-            configuration = _client_configuration(account, secret)
-            rest_class = getattr(ccxt_async, exchange, None)
-            pro_class = getattr(ccxt_pro, exchange, None)
-            if rest_class is None or pro_class is None:
-                raise ExchangeContractError("Certified CCXT exchange class is unavailable.")
-            rest = rest_class(configuration)
-            pro = pro_class(configuration)
-            if account["mode"] == "testnet":
-                try:
-                    rest.set_sandbox_mode(True)
-                    pro.set_sandbox_mode(True)
-                except Exception as error:
-                    await asyncio.gather(rest.close(), pro.close(), return_exceptions=True)
-                    raise ExchangeContractError("Exchange testnet mode is not supported by CCXT.") from error
-            _assert_capabilities(rest, REQUIRED_REST_CAPABILITIES, f"{exchange} REST")
-            _assert_capabilities(pro, REQUIRED_PRO_CAPABILITIES, f"{exchange} Pro")
-            clients = AccountClients(
-                dict(account), fingerprint, _account_identity(secret, exchange, account["mode"]),
-                rest, pro, asyncio.Lock(),
-            )
-            self._clients[cache_key] = clients
+                clients = existing
+            else:
+                if existing:
+                    await existing.close()
+                configuration = _client_configuration(account, secret)
+                rest_class = getattr(ccxt_async, exchange, None)
+                pro_class = getattr(ccxt_pro, exchange, None)
+                if rest_class is None or pro_class is None:
+                    raise ExchangeContractError("Certified CCXT exchange class is unavailable.")
+                rest = rest_class(configuration)
+                pro = pro_class(configuration)
+                if account["mode"] == "testnet":
+                    try:
+                        rest.set_sandbox_mode(True)
+                        pro.set_sandbox_mode(True)
+                    except Exception as error:
+                        await asyncio.gather(rest.close(), pro.close(), return_exceptions=True)
+                        raise ExchangeContractError("Exchange testnet mode is not supported by CCXT.") from error
+                _assert_capabilities(rest, REQUIRED_REST_CAPABILITIES, f"{exchange} REST")
+                _assert_capabilities(pro, REQUIRED_PRO_CAPABILITIES, f"{exchange} Pro")
+                clients = AccountClients(
+                    dict(account), fingerprint, _account_identity(secret, exchange, account["mode"]),
+                    rest, pro, asyncio.Lock(),
+                )
+                self._clients[cache_key] = clients
         try:
             await clients.load_markets()
             return clients
+        except asyncio.CancelledError:
+            # AccountClients shields the shared bootstrap task. Keeping this
+            # cache entry lets the next bounded request await that same task.
+            raise
         except Exception:
             async with self._lock:
                 if self._clients.get(cache_key) is clients:

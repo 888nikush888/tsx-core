@@ -121,7 +121,10 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
   }
 
   async verifyAccount(account: TradingAccount): Promise<VerifiedExternalAccount> {
-    const result = assertObject(await this.post('/v1/verify-account', { account: accountPayload(account) }), 'Exchange executor');
+    const result = assertObject(
+      await this.post('/v1/verify-account', { account: accountPayload(account) }, 30_000),
+      'Exchange executor',
+    );
     if (result.verified !== true || typeof result.equity !== 'string'
       || typeof result.externalAccountId !== 'string' || !/^[a-f0-9]{64}$/.test(result.externalAccountId)
       || result.accountFingerprint !== result.externalAccountId) {
@@ -136,7 +139,7 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
 
   async accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
     const result = assertObject(
-      await this.post('/v1/account-snapshot', { account: accountPayload(account) }),
+      await this.post('/v1/account-snapshot', { account: accountPayload(account) }, 30_000),
       'Exchange executor',
     );
     for (const field of ['equity', 'availableBalance', 'unrealizedPnl', 'marginUsed', 'fundingPnlToday']) {
@@ -148,7 +151,11 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
   }
 
   async marketSnapshot(account: TradingAccount, symbol: string): Promise<TradingMarketSnapshot> {
-    return this.post('/v1/market-snapshot', { account: accountPayload(account), symbol }) as Promise<TradingMarketSnapshot>;
+    return this.post(
+      '/v1/market-snapshot',
+      { account: accountPayload(account), symbol },
+      30_000,
+    ) as Promise<TradingMarketSnapshot>;
   }
 
   async submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult> {
@@ -201,7 +208,10 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
   }
 
   async openState(account: TradingAccount): Promise<ExchangeOpenState> {
-    const state = assertObject(await this.post('/v1/open-state', { account: accountPayload(account) }), 'Exchange executor');
+    const state = assertObject(
+      await this.post('/v1/open-state', { account: accountPayload(account) }, 30_000),
+      'Exchange executor',
+    );
     if (!Array.isArray(state.orders) || !Array.isArray(state.positions) || !Array.isArray(state.fills)) {
       throw new TypeError('Exchange executor returned an invalid open-state contract.');
     }
@@ -254,7 +264,7 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
       account: accountPayload(account),
       cursor,
       symbols: [...new Set(symbols)].sort((left, right) => left.localeCompare(right)),
-    }, 5_000));
+    }, 30_000));
   }
 
   private async post(endpoint: string, payload: unknown, timeoutMs = 12_000): Promise<unknown> {

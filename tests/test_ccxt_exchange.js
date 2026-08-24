@@ -24,7 +24,7 @@ const server = http.createServer((request, response) => {
   request.setEncoding('utf8');
   request.on('data', chunk => { body += chunk; });
   request.on('end', () => {
-    requests.push({ url: request.url, authorization: request.headers.authorization, body });
+    requests.push({ url: request.url, authorization: request.headers.authorization, body, receivedAt: Date.now() });
     response.setHeader('Content-Type', 'application/json');
     if (nextResponse !== undefined) {
       const selected = nextResponse;
@@ -136,6 +136,12 @@ try {
     assert.doesNotMatch(request.body, /apiSecret|privateKey|walletAddress/, 'Core-to-executor requests must never carry exchange secrets.');
     const payload = JSON.parse(request.body);
     assert.ok(payload.deadlineAt > Date.now() - 35_000, 'Every executor request must carry an end-to-end deadline.');
+    if (['/v1/account-snapshot', '/v1/market-snapshot', '/v1/verify-account', '/v1/open-state'].includes(request.url)) {
+      assert.ok(
+        payload.deadlineAt - request.receivedAt >= 29_000,
+        `${request.url} must allow a bounded cold CCXT market bootstrap.`,
+      );
+    }
   }
   const submitPayload = JSON.parse(requests.find(request => request.url === '/v1/submit-order').body);
   assert.equal(submitPayload.request.maxSlippagePercent, undefined, 'The adapter must not invent a slippage value absent from the request.');
@@ -164,6 +170,10 @@ try {
   assert.equal(stream.events[0].eventType, 'execution');
   const streamRequest = JSON.parse(requests.at(-1).body);
   assert.deepEqual(streamRequest.symbols, ['BTCUSDT'], 'Stream symbols must be deduplicated and sorted.');
+  assert.ok(
+    streamRequest.deadlineAt - requests.at(-1).receivedAt >= 29_000,
+    'The first CCXT Pro stream poll must allow a bounded cold market bootstrap.',
+  );
   await assert.rejects(adapter.streamEvents(account, -1, []), /cursor is invalid/);
   await assert.rejects(adapter.streamEvents(account, 0, ['BTCEUR']), /bounded USD pairs/);
 

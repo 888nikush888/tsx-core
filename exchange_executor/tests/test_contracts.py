@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 import tempfile
@@ -8,6 +9,7 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -16,7 +18,8 @@ from ccxt_adapter import (
     CcxtAdapter, _canonical_symbol, _ledger_funding_amount, _market_order_result, _order_result,
     _reduce_only, _requested_base, _status, _trigger_price,
 )
-from ccxt_client import CERTIFIED_EXCHANGES, _account_identity, _client_configuration
+import ccxt_client
+from ccxt_client import CERTIFIED_EXCHANGES, CcxtClientRegistry, _account_identity, _client_configuration
 from common import ExchangeContractError, RequestDeadline, account_request, decimal_string
 from credentials import CredentialError, CredentialStore
 from server import authenticated, executor_error_code
@@ -122,6 +125,61 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(truncated["sha256"], digest)
         self.assertEqual(_event_type("orders"), "order")
         self.assertEqual(_event_type("positions"), "position")
+
+
+class DelayedMarketClient:
+    def __init__(self, _configuration, state) -> None:
+        self.state = state
+        self.has = {
+            "fetchBalance": True, "fetchPositions": True, "fetchOpenOrders": True,
+            "fetchMyTrades": True, "createOrder": True, "createOrders": True,
+            "cancelOrder": True, "setLeverage": True, "watchOrders": True,
+            "watchMyTrades": True, "watchPositions": True,
+        }
+
+    def set_sandbox_mode(self, _enabled) -> None:
+        return None
+
+    async def load_markets(self) -> None:
+        self.state["loads"] += 1
+        if self.state["loads"] == 2:
+            self.state["started"].set()
+        await self.state["release"].wait()
+
+    async def close(self) -> None:
+        self.state["closes"] += 1
+
+
+class RegistryBootstrapTests(unittest.IsolatedAsyncioTestCase):
+    async def test_cancelled_request_never_exposes_half_initialized_cached_clients(self) -> None:
+        state = {
+            "loads": 0, "closes": 0,
+            "started": asyncio.Event(), "release": asyncio.Event(),
+        }
+        credentials = SimpleNamespace(account=lambda _account_id, _exchange: {
+            "privateKey": "0x" + "1" * 64,
+            "walletAddress": "0x" + "2" * 40,
+        })
+        registry = CcxtClientRegistry(credentials)
+        account = {"id": "account-1", "exchange": "hyperliquid", "mode": "testnet"}
+        factory = lambda configuration: DelayedMarketClient(configuration, state)
+        with patch.object(ccxt_client.ccxt_async, "hyperliquid", factory), \
+             patch.object(ccxt_client.ccxt_pro, "hyperliquid", factory):
+            first = asyncio.create_task(registry.account(account))
+            await asyncio.wait_for(state["started"].wait(), timeout=1)
+            first.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await first
+
+            second = asyncio.create_task(registry.account(account))
+            await asyncio.sleep(0)
+            self.assertFalse(second.done(), "Cached clients must still await the shared market bootstrap.")
+            state["release"].set()
+            clients = await asyncio.wait_for(second, timeout=1)
+            self.assertTrue(clients.markets_loaded)
+            self.assertEqual(state["loads"], 2)
+            await registry.close()
+            self.assertEqual(state["closes"], 2)
 
 
 class FakePro:
