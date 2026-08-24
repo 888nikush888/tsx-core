@@ -21,6 +21,7 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 - Contract-Size-, Trigger-, Reduce-only-, Teilfüllungs- und stabile Kontoidentitäts-Normalisierung an der CCXT-Grenze sowie separates Notfallzeitfenster für unklare geschützte Entry-Batches.
 - Kraken-Ledger-PnL wird nicht mehr als Funding fehlklassifiziert. Kontofehler und Kapazitätssperren bleiben auf den betroffenen Fan-out-Zweig isoliert.
+- SonarCloud-Zuverlässigkeits- und Sicherheitsbefunde zu Schaltflächen-Semantik, deterministischer Sortierung, Lockdatei-Parsing und komplexen Kontrollpfaden wurden behoben; die mobile Statusleiste bleibt dabei tastaturzugänglich.
 
 ## [2.1.0] - 2026-08-09
 

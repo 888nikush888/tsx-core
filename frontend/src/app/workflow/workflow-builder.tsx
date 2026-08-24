@@ -30,28 +30,28 @@ async function jsonRequest(url: string, init?: RequestInit) {
 
 function summary(resource: WorkflowResource, trading: TradingSnapshot | null): string {
   const value: any = resource.configuration
-  if (resource.kind === 'channel') return String(value.channelId)
-  if (resource.kind === 'content_filter') return `${value.allowedTypes?.length || 0} Inhaltstypen`
-  if (resource.kind === 'keyword_filter') return `${value.allowedKeywords?.length || 0} erlaubt · ${value.blockedKeywords?.length || 0} blockiert`
-  if (resource.kind === 'regex') return `${value.patterns?.length || 0} Muster · ${value.mode === 'any' ? 'eines' : 'alle'}`
-  if (resource.kind === 'parser') return `${Math.round(Number(value.timeoutMs || 0) / 1000)} s · ${value.templateName}`
-  if (resource.kind === 'schema') return trading?.signalSchemas.find(item => item.id === value.schemaId)?.name || String(value.schemaId)
-  if (resource.kind === 'contract') return String(value.contractVersionId)
-  if (resource.kind === 'dedupe') return value.enabled === false ? 'deaktiviert' : `${value.cooldownHours} h Cooldown`
-  if (resource.kind === 'strategy') return trading?.strategies.find(item => item.id === value.strategyVersionId)?.name || String(value.strategyVersionId)
-  if (resource.kind === 'sizing') return `${value.riskPerTradePercent}% Basis · ${value.maxAdaptiveRiskPercent}% max · ${value.maxLeverage}×`
-  if (resource.kind === 'adaptive_risk') return value.enabled === false ? 'deaktiviert' : `${value.mode} · ${value.tiers?.length || 0} Stufen`
   if (resource.kind === 'account') {
     const account = trading?.accounts.find(item => item.id === value.accountId)
     return account ? `${account.exchange} · ${account.mode} · max ${account.maxConcurrentPositions}` : String(value.accountId)
   }
-  return value.mode === 'telegram_xml'
-    ? 'Telegram XML'
-    : value.mode === 'telegram_original'
-      ? 'Telegram Original'
-      : value.mode === 'none'
-        ? 'Keine Ausgabe'
-        : 'Audit & Journal'
+  const summaries: Partial<Record<WorkflowKind, () => string>> = {
+    channel: () => String(value.channelId),
+    content_filter: () => `${value.allowedTypes?.length || 0} Inhaltstypen`,
+    keyword_filter: () => `${value.allowedKeywords?.length || 0} erlaubt · ${value.blockedKeywords?.length || 0} blockiert`,
+    regex: () => `${value.patterns?.length || 0} Muster · ${value.mode === 'any' ? 'eines' : 'alle'}`,
+    parser: () => `${Math.round(Number(value.timeoutMs || 0) / 1000)} s · ${value.templateName}`,
+    schema: () => trading?.signalSchemas.find(item => item.id === value.schemaId)?.name || String(value.schemaId),
+    contract: () => String(value.contractVersionId),
+    dedupe: () => value.enabled === false ? 'deaktiviert' : `${value.cooldownHours} h Cooldown`,
+    strategy: () => trading?.strategies.find(item => item.id === value.strategyVersionId)?.name || String(value.strategyVersionId),
+    sizing: () => `${value.riskPerTradePercent}% Basis · ${value.maxAdaptiveRiskPercent}% max · ${value.maxLeverage}×`,
+    adaptive_risk: () => value.enabled === false ? 'deaktiviert' : `${value.mode} · ${value.tiers?.length || 0} Stufen`,
+    output: () => ({
+      telegram_xml: 'Telegram XML', telegram_original: 'Telegram Original',
+      none: 'Keine Ausgabe', audit_only: 'Audit & Journal',
+    })[String(value.mode)] || 'Audit & Journal',
+  }
+  return summaries[resource.kind]?.() || resource.name
 }
 
 function newId(prefix: string): string {
@@ -355,19 +355,20 @@ export function WorkflowBuilder() {
       </div>
       <div className="workflow-actions">
         <div className="builder-search"><Search size={15} /><input aria-label="Bausteine durchsuchen" placeholder="Baustein suchen" value={search} onChange={event => setSearch(event.target.value)} /></div>
-        <button className="secondary-button" onClick={event => { event.currentTarget.focus(); setSimulationOpen(true) }}><FlaskConical size={15} /> Simulieren</button>
-        <button className="secondary-button" onClick={event => { event.currentTarget.focus(); setOperationsOpen(true) }}><Activity size={15} /> Betrieb</button>
-        <button className="primary-button" onClick={event => { event.currentTarget.focus(); setLibraryKind(null); setKindPickerOpen(true) }}><Plus size={16} /> Baustein</button>
+        <button type="button" className="secondary-button" onClick={event => { event.currentTarget.focus(); setSimulationOpen(true) }}><FlaskConical size={15} /> Simulieren</button>
+        <button type="button" className="secondary-button" onClick={event => { event.currentTarget.focus(); setOperationsOpen(true) }}><Activity size={15} /> Betrieb</button>
+        <button type="button" className="primary-button" onClick={event => { event.currentTarget.focus(); setLibraryKind(null); setKindPickerOpen(true) }}><Plus size={16} /> Baustein</button>
       </div>
     </header>
-      <section className="workflow-statusbar" tabIndex={0} aria-label="Workflow-Status">
+      <section className="workflow-statusbar" aria-label="Workflow-Status">
+      <a className="workflow-status-skip" href="#workflow-canvas">Statusleiste überspringen</a>
       <div><strong>Revision {snapshot.workflow?.revision ?? 0}</strong><span>{snapshot.workflow ? `aktiv seit ${new Date(snapshot.workflow.createdAt).toLocaleString('de-DE')}` : 'Noch keine aktive Revision'}</span></div>
       <div><strong>{snapshot.workflow?.compiled.paths.length ?? 0} Pfade</strong><span>{snapshot.workflow?.compiled.paths.filter(path => path.enabled).length ?? 0} ausführbar</span></div>
       <div><strong>{graph.nodes.length} Bausteine</strong><span>{graph.edges.length} Verbindungen</span></div>
       <div className="save-indicator">{saving ? <><RefreshCw size={14} className="spin" /> validiere & aktiviere</> : <><Save size={14} /> alle Änderungen gespeichert</>}</div>
     </section>
-    {notice && <div className={`builder-notice ${notice.tone}`}><span>{notice.tone === 'ok' ? <Check size={16} /> : <AlertTriangle size={16} />}</span><p>{notice.text}</p><button onClick={() => setNotice(null)}><X size={14} /></button></div>}
-    <div className="workflow-canvas">
+    {notice && <div className={`builder-notice ${notice.tone}`}><span>{notice.tone === 'ok' ? <Check size={16} /> : <AlertTriangle size={16} />}</span><p>{notice.text}</p><button type="button" onClick={() => setNotice(null)}><X size={14} /></button></div>}
+    <div id="workflow-canvas" className="workflow-canvas">
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}
@@ -396,8 +397,8 @@ export function WorkflowBuilder() {
       onSave={saveResource} onDeleteNode={selectedNode ? deleteNode : undefined}
       onConfigureAccount={configureAccount}
     />
-    {kindPickerOpen && <div className="builder-modal-backdrop" onMouseDown={event => event.target === event.currentTarget && closeLibrary()}><section ref={libraryDialogRef} className="kind-picker" role="dialog" aria-modal="true" aria-labelledby="workflow-library-title" tabIndex={-1}><header><div><span>Baustein-Bibliothek</span><h2 id="workflow-library-title">{libraryKind ? KIND_META[libraryKind].label : 'Was soll der Workflow als Nächstes können?'}</h2></div><button className="icon-button" onClick={closeLibrary} aria-label="Baustein-Bibliothek schließen"><X size={18} /></button></header>{!libraryKind ? <div>{WORKFLOW_KINDS.map(kind => { const available = publishedLibrary.filter(resource => resource.kind === kind).length; return <button key={kind} style={{ '--node-accent': KIND_META[kind].color } as CSSProperties} onClick={() => setLibraryKind(kind)}><i /><strong>{KIND_META[kind].label}</strong><span>{available ? `${available} veröffentlichte Bausteine` : 'Noch kein gespeicherter Baustein'}</span></button> })}</div> : <div className="resource-library"><button className="library-back" onClick={() => setLibraryKind(null)}>← Alle Bausteinarten</button><button className="library-new" style={{ '--node-accent': KIND_META[libraryKind].color } as CSSProperties} onClick={() => { setKindPickerOpen(false); setNewKind(libraryKind); setLibraryKind(null) }}><Plus size={16} /><strong>Neuen Baustein erstellen</strong><span>Mit einer neuen unveränderlichen Version beginnen</span></button>{publishedLibrary.filter(resource => resource.kind === libraryKind).map(resource => <button key={resource.id} className="library-existing" style={{ '--node-accent': KIND_META[libraryKind].color } as CSSProperties} onClick={() => void addExistingResource(resource)}><i /><strong>{resource.name}</strong><span>Version {resource.version}{resource.description ? ` · ${resource.description}` : ''}</span></button>)}</div>}</section></div>}
-    {simulationOpen && <div className="builder-modal-backdrop" onMouseDown={event => event.target === event.currentTarget && closeSimulation()}><section ref={simulationDialogRef} className="simulation-modal" role="dialog" aria-modal="true" aria-labelledby="workflow-simulation-title" tabIndex={-1}><header><div><span>Trockenlauf</span><h2 id="workflow-simulation-title">Signal durch aktive Revision schicken</h2></div><button className="icon-button" onClick={closeSimulation} aria-label="Simulation schließen"><X size={18} /></button></header><label>Kanal-ID<input value={simulation.channelId} onChange={event => setSimulation({ ...simulation, channelId: event.target.value })} /></label><label>Inhaltstyp<select value={simulation.contentType} onChange={event => setSimulation({ ...simulation, contentType: event.target.value })}><option value="text">Text</option><option value="photo">Foto mit Caption</option><option value="video">Video mit Caption</option><option value="document">Dokument</option></select></label><label>Beispielnachricht<textarea value={simulation.text} onChange={event => setSimulation({ ...simulation, text: event.target.value })} /></label><button className="primary-button" onClick={runSimulation}><FlaskConical size={15} /> Pfade prüfen</button>{simulationResult && <div className="simulation-result" aria-live="polite">{simulationResult.error ? <div className="builder-error" role="alert">{simulationResult.error}</div> : <>{simulationResult.paths?.map((path: any) => <div key={path.id} className={path.allowed && path.enabled ? 'pass' : 'blocked'}><span>{path.allowed && path.enabled ? 'PASS' : 'BLOCK'}</span><strong>{path.accountId}</strong><small>{path.reason || (path.enabled ? 'Filter erfüllt' : 'Konto nicht bereit')}</small></div>)}{simulationResult.paths?.length === 0 && <EmptySimulation />}</>}</div>}</section></div>}
+    {kindPickerOpen && <div className="builder-modal-backdrop"><section ref={libraryDialogRef} className="kind-picker" role="dialog" aria-modal="true" aria-labelledby="workflow-library-title" tabIndex={-1}><header><div><span>Baustein-Bibliothek</span><h2 id="workflow-library-title">{libraryKind ? KIND_META[libraryKind].label : 'Was soll der Workflow als Nächstes können?'}</h2></div><button type="button" className="icon-button" onClick={closeLibrary} aria-label="Baustein-Bibliothek schließen"><X size={18} /></button></header>{!libraryKind ? <div>{WORKFLOW_KINDS.map(kind => { const available = publishedLibrary.filter(resource => resource.kind === kind).length; return <button type="button" key={kind} style={{ '--node-accent': KIND_META[kind].color } as CSSProperties} onClick={() => setLibraryKind(kind)}><i /><strong>{KIND_META[kind].label}</strong><span>{available ? `${available} veröffentlichte Bausteine` : 'Noch kein gespeicherter Baustein'}</span></button> })}</div> : <div className="resource-library"><button type="button" className="library-back" onClick={() => setLibraryKind(null)}>← Alle Bausteinarten</button><button type="button" className="library-new" style={{ '--node-accent': KIND_META[libraryKind].color } as CSSProperties} onClick={() => { setKindPickerOpen(false); setNewKind(libraryKind); setLibraryKind(null) }}><Plus size={16} /><strong>Neuen Baustein erstellen</strong><span>Mit einer neuen unveränderlichen Version beginnen</span></button>{publishedLibrary.filter(resource => resource.kind === libraryKind).map(resource => <button type="button" key={resource.id} className="library-existing" style={{ '--node-accent': KIND_META[libraryKind].color } as CSSProperties} onClick={() => void addExistingResource(resource)}><i /><strong>{resource.name}</strong><span>Version {resource.version}{resource.description ? ` · ${resource.description}` : ''}</span></button>)}</div>}</section></div>}
+    {simulationOpen && <div className="builder-modal-backdrop"><section ref={simulationDialogRef} className="simulation-modal" role="dialog" aria-modal="true" aria-labelledby="workflow-simulation-title" tabIndex={-1}><header><div><span>Trockenlauf</span><h2 id="workflow-simulation-title">Signal durch aktive Revision schicken</h2></div><button type="button" className="icon-button" onClick={closeSimulation} aria-label="Simulation schließen"><X size={18} /></button></header><label>Kanal-ID<input value={simulation.channelId} onChange={event => setSimulation({ ...simulation, channelId: event.target.value })} /></label><label>Inhaltstyp<select value={simulation.contentType} onChange={event => setSimulation({ ...simulation, contentType: event.target.value })}><option value="text">Text</option><option value="photo">Foto mit Caption</option><option value="video">Video mit Caption</option><option value="document">Dokument</option></select></label><label>Beispielnachricht<textarea value={simulation.text} onChange={event => setSimulation({ ...simulation, text: event.target.value })} /></label><button type="button" className="primary-button" onClick={runSimulation}><FlaskConical size={15} /> Pfade prüfen</button>{simulationResult && <div className="simulation-result" aria-live="polite">{simulationResult.error ? <div className="builder-error" role="alert">{simulationResult.error}</div> : <>{simulationResult.paths?.map((path: any) => <div key={path.id} className={path.allowed && path.enabled ? 'pass' : 'blocked'}><span>{path.allowed && path.enabled ? 'PASS' : 'BLOCK'}</span><strong>{path.accountId}</strong><small>{path.reason || (path.enabled ? 'Filter erfüllt' : 'Konto nicht bereit')}</small></div>)}{simulationResult.paths?.length === 0 && <EmptySimulation />}</>}</div>}</section></div>}
     <OperationsPanel open={operationsOpen} trading={trading} catalog={catalog} systemStatus={systemStatus} onClose={() => setOperationsOpen(false)} onRefresh={load} />
   </main>
 }

@@ -35,6 +35,74 @@ function numberValue(value: unknown, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function applyParserDraft(configuration: Record<string, unknown>, templateContent: string): void {
+  const templateName = String(configuration.templateName || '').trim()
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(templateName)) throw new Error('Der Vorlagenname ist ungültig.')
+  if (!templateContent.trim()) throw new Error('Der Parser-Prompt darf nicht leer sein.')
+  configuration.prompt = templateContent.trim()
+  configuration.saveToFile = false
+}
+
+async function publishStrategyDraft(
+  configuration: Record<string, unknown>, trading: TradingSnapshot | null, nativeJson: string,
+): Promise<void> {
+  const selected = trading?.strategies.find(item => item.id === configuration.strategyVersionId)
+  if (!selected) throw new Error('Die gewählte Strategieversion existiert nicht mehr.')
+  const draft = await requestJson('/api/trading/strategies', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      strategyId: selected.strategyId, name: selected.name, description: selected.description,
+      configuration: JSON.parse(nativeJson),
+    }),
+  })
+  const published = await requestJson('/api/trading/strategies/publish', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.result.id }),
+  })
+  configuration.strategyVersionId = published.result.id
+}
+
+async function publishContractDraft(
+  configuration: Record<string, unknown>, trading: TradingSnapshot | null, nativeJson: string,
+): Promise<void> {
+  const parent = trading?.signalContracts.find(contract => contract.versions.some(version => version.id === configuration.contractVersionId))
+  const source = parent?.versions.find(version => version.id === configuration.contractVersionId)
+  if (!parent || !source) throw new Error('Die gewählte Vertragsversion existiert nicht mehr.')
+  const draft = await requestJson('/api/trading/signal-contracts/versions', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contractId: parent.id, sourceVersionId: source.id }),
+  })
+  await requestJson('/api/trading/signal-contracts/update', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contractId: parent.id, versionId: draft.result.id, name: parent.name,
+      description: parent.description, definition: JSON.parse(nativeJson),
+    }),
+  })
+  const published = await requestJson('/api/trading/signal-contracts/publish', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ versionId: draft.result.id }),
+  })
+  configuration.contractVersionId = published.result.id
+}
+
+async function createSchemaDraft(
+  configuration: Record<string, unknown>, schemaDraft: Record<string, unknown>,
+): Promise<void> {
+  const id = String(schemaDraft.id || '').trim()
+  if (!id || id === schemaDraft.originalId) {
+    throw new Error('Änderungen an einem verwendeten Signal-Schema benötigen eine neue eindeutige Schema-ID.')
+  }
+  const created = await requestJson('/api/trading/signal-schemas', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id, name: schemaDraft.name, description: schemaDraft.description,
+      contractVersionId: schemaDraft.contractVersionId, templateName: schemaDraft.templateName,
+      enabled: schemaDraft.enabled !== false,
+    }),
+  })
+  configuration.schemaId = created.result.id
+}
+
 export function defaultConfiguration(kind: WorkflowKind, trading: TradingSnapshot | null): Record<string, unknown> {
   const strategy = trading?.strategies.find(item => item.status === 'published')
   const schema = trading?.signalSchemas.find(item => item.enabled)
@@ -156,64 +224,10 @@ export function ResourceEditor({
     setError('')
     try {
       const nextConfiguration = structuredClone(configuration)
-      if (kind === 'parser') {
-        const templateName = String(nextConfiguration.templateName || '').trim()
-        if (!/^[a-zA-Z0-9_-]{1,64}$/.test(templateName)) throw new Error('Der Vorlagenname ist ungültig.')
-        if (!templateContent.trim()) throw new Error('Der Parser-Prompt darf nicht leer sein.')
-        nextConfiguration.prompt = templateContent.trim()
-        nextConfiguration.saveToFile = false
-      }
-      if (kind === 'strategy' && nativeTouched) {
-        const selected = trading?.strategies.find(item => item.id === nextConfiguration.strategyVersionId)
-        if (!selected) throw new Error('Die gewählte Strategieversion existiert nicht mehr.')
-        const draft = await requestJson('/api/trading/strategies', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            strategyId: selected.strategyId, name: selected.name, description: selected.description,
-            configuration: JSON.parse(nativeJson),
-          }),
-        })
-        const published = await requestJson('/api/trading/strategies/publish', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.result.id }),
-        })
-        nextConfiguration.strategyVersionId = published.result.id
-      }
-      if (kind === 'contract' && nativeTouched) {
-        const parent = trading?.signalContracts.find(contract => contract.versions.some(version => version.id === nextConfiguration.contractVersionId))
-        const source = parent?.versions.find(version => version.id === nextConfiguration.contractVersionId)
-        if (!parent || !source) throw new Error('Die gewählte Vertragsversion existiert nicht mehr.')
-        const draft = await requestJson('/api/trading/signal-contracts/versions', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contractId: parent.id, sourceVersionId: source.id }),
-        })
-        await requestJson('/api/trading/signal-contracts/update', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contractId: parent.id, versionId: draft.result.id, name: parent.name,
-            description: parent.description, definition: JSON.parse(nativeJson),
-          }),
-        })
-        const published = await requestJson('/api/trading/signal-contracts/publish', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ versionId: draft.result.id }),
-        })
-        nextConfiguration.contractVersionId = published.result.id
-      }
-      if (kind === 'schema' && schemaTouched) {
-        const id = String(schemaDraft.id || '').trim()
-        if (!id || id === schemaDraft.originalId) {
-          throw new Error('Änderungen an einem verwendeten Signal-Schema benötigen eine neue eindeutige Schema-ID.')
-        }
-        const created = await requestJson('/api/trading/signal-schemas', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id, name: schemaDraft.name, description: schemaDraft.description,
-            contractVersionId: schemaDraft.contractVersionId, templateName: schemaDraft.templateName,
-            enabled: schemaDraft.enabled !== false,
-          }),
-        })
-        nextConfiguration.schemaId = created.result.id
-      }
+      if (kind === 'parser') applyParserDraft(nextConfiguration, templateContent)
+      if (kind === 'strategy' && nativeTouched) await publishStrategyDraft(nextConfiguration, trading, nativeJson)
+      if (kind === 'contract' && nativeTouched) await publishContractDraft(nextConfiguration, trading, nativeJson)
+      if (kind === 'schema' && schemaTouched) await createSchemaDraft(nextConfiguration, schemaDraft)
       const activated = await onSave({ name, description, configuration: nextConfiguration })
       if (!activated) return
       if (kind === 'account' && selectedAccount && onConfigureAccount) {

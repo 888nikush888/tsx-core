@@ -60,6 +60,32 @@ class Application:
         self.adapter = CcxtAdapter(self.registry)
         self.streams = ExchangeStreamHub(self.registry)
 
+    async def _submit_order(
+        self, account: dict[str, str], payload: dict[str, Any], deadline: RequestDeadline,
+    ) -> Any:
+        request = payload.get("request")
+        if not isinstance(request, dict):
+            raise ExchangeContractError("request is required.")
+        return await self.adapter.submit_order(account, request, deadline)
+
+    async def _submit_protected_entry(
+        self, account: dict[str, str], payload: dict[str, Any], deadline: RequestDeadline,
+    ) -> Any:
+        entry = payload.get("entry")
+        stop = payload.get("protectiveStop")
+        if not isinstance(entry, dict) or not isinstance(stop, dict):
+            raise ExchangeContractError("entry and protectiveStop are required.")
+        return await self.adapter.submit_protected_entry(account, entry, stop, deadline)
+
+    async def _stream_events(
+        self, account: dict[str, str], payload: dict[str, Any], deadline: RequestDeadline,
+    ) -> Any:
+        cursor, symbols = payload.get("cursor"), payload.get("symbols")
+        if not isinstance(cursor, int) or isinstance(cursor, bool) or not isinstance(symbols, list):
+            raise ExchangeContractError("cursor and symbols are required.")
+        deadline.ensure()
+        return await self.streams.poll(account, cursor, symbols)
+
     async def handle(self, path: str, payload: dict[str, Any]) -> Any:
         deadline = RequestDeadline.from_payload(payload)
         account = account_request(payload)
@@ -70,16 +96,9 @@ class Application:
         if path == "/v1/market-snapshot":
             return await self.adapter.market_snapshot(account, required_string(payload, "symbol"), deadline)
         if path == "/v1/submit-order":
-            request = payload.get("request")
-            if not isinstance(request, dict):
-                raise ExchangeContractError("request is required.")
-            return await self.adapter.submit_order(account, request, deadline)
+            return await self._submit_order(account, payload, deadline)
         if path == "/v1/submit-protected-entry":
-            entry = payload.get("entry")
-            stop = payload.get("protectiveStop")
-            if not isinstance(entry, dict) or not isinstance(stop, dict):
-                raise ExchangeContractError("entry and protectiveStop are required.")
-            return await self.adapter.submit_protected_entry(account, entry, stop, deadline)
+            return await self._submit_protected_entry(account, payload, deadline)
         if path == "/v1/cancel-order":
             return await self.adapter.cancel_order(
                 account,
@@ -90,11 +109,7 @@ class Application:
         if path == "/v1/open-state":
             return await self.adapter.open_state(account, deadline)
         if path == "/v1/stream-events":
-            cursor, symbols = payload.get("cursor"), payload.get("symbols")
-            if not isinstance(cursor, int) or isinstance(cursor, bool) or not isinstance(symbols, list):
-                raise ExchangeContractError("cursor and symbols are required.")
-            deadline.ensure()
-            return await self.streams.poll(account, cursor, symbols)
+            return await self._stream_events(account, payload, deadline)
         raise ExchangeContractError("Unknown executor endpoint.")
 
     async def close(self) -> None:
@@ -117,6 +132,8 @@ def json_response(payload: Any, status: int = 200) -> web.Response:
 
 
 async def health(request: web.Request) -> web.Response:
+    application: Application = request.app["application"]
+    await asyncio.to_thread(application.credentials.token)
     return json_response({"status": "ok"})
 
 

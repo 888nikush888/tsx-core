@@ -64,8 +64,12 @@ export function evaluateNpmLicenses(name, lock) {
 
 export function evaluatePythonLockedRequirements(directContent, lockedContent) {
   const directRequirements = directContent.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#'));
-  const requirements = [...lockedContent.matchAll(/^([A-Za-z0-9_.-]+)==([^\s\\]+)(?:\s*;[^\n\\]+)?\s+\\$/gm)]
-    .map(([, name, version]) => `${name}==${version}`);
+  const requirements = lockedContent.split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => /^[A-Za-z0-9_.-]+==/.test(line) && line.endsWith('\\'))
+    .map(line => line.slice(0, -1).trimEnd())
+    .map(line => line.includes(';') ? line.slice(0, line.indexOf(';')).trimEnd() : line)
+    .filter(line => /^[A-Za-z0-9_.-]+==[^\s;]+$/.test(line));
   const violations = [];
   const inventory = [];
   const lockedArtifacts = new Set(requirements.map(requirement => requirement.replace('==', '@')));

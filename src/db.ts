@@ -1303,18 +1303,7 @@ async function applyMigration(database: Database, migration: SchemaMigration): P
   await database.exec(migration.sql);
 }
 
-async function migrateDatabase(database: Database, beforeApply?: (fromVersion: number) => Promise<void>): Promise<void> {
-  await database.exec(`
-    CREATE TABLE IF NOT EXISTS schema_migrations (
-      version INTEGER PRIMARY KEY,
-      name TEXT NOT NULL,
-      checksum TEXT NOT NULL,
-      applied_at INTEGER NOT NULL
-    );
-  `);
-  const applied = await database.all<Array<{ version: number; name: string; checksum: string }>>(
-    'SELECT version, name, checksum FROM schema_migrations ORDER BY version'
-  );
+function validateAppliedMigrations(applied: Array<{ version: number; name: string; checksum: string }>): void {
   if (applied.some(record => record.version > LATEST_SCHEMA_VERSION)) {
     throw new Error(`Database schema is newer than this binary (supported version ${LATEST_SCHEMA_VERSION}).`);
   }
@@ -1328,27 +1317,46 @@ async function migrateDatabase(database: Database, beforeApply?: (fromVersion: n
       throw new Error(`Database migration ${record.version} checksum or name does not match this binary.`);
     }
   }
+}
+
+async function applyPendingMigration(database: Database, migration: SchemaMigration): Promise<void> {
+  if (migration.foreignKeysOff) await database.exec('PRAGMA foreign_keys = OFF;');
+  await database.exec('BEGIN IMMEDIATE;');
+  try {
+    await applyMigration(database, migration);
+    if (migration.foreignKeysOff) {
+      const violations = await database.all<Array<Record<string, unknown>>>('PRAGMA foreign_key_check;');
+      if (violations.length > 0) throw new Error(`Foreign-key validation found ${violations.length} violation(s).`);
+    }
+    await database.run(
+      'INSERT INTO schema_migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)',
+      [migration.version, migration.name, migrationChecksum(migration), Date.now()]
+    );
+    await database.exec('COMMIT;');
+  } catch (error) {
+    await database.exec('ROLLBACK;').catch(() => {});
+    throw new Error(`Database migration ${migration.version} (${migration.name}) failed.`, { cause: error });
+  } finally {
+    if (migration.foreignKeysOff) await database.exec('PRAGMA foreign_keys = ON;');
+  }
+}
+
+async function migrateDatabase(database: Database, beforeApply?: (fromVersion: number) => Promise<void>): Promise<void> {
+  await database.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      checksum TEXT NOT NULL,
+      applied_at INTEGER NOT NULL
+    );
+  `);
+  const applied = await database.all<Array<{ version: number; name: string; checksum: string }>>(
+    'SELECT version, name, checksum FROM schema_migrations ORDER BY version'
+  );
+  validateAppliedMigrations(applied);
   if (applied.length < migrations.length && beforeApply) await beforeApply(applied.length);
   for (const migration of migrations.slice(applied.length)) {
-    if (migration.foreignKeysOff) await database.exec('PRAGMA foreign_keys = OFF;');
-    await database.exec('BEGIN IMMEDIATE;');
-    try {
-      await applyMigration(database, migration);
-      if (migration.foreignKeysOff) {
-        const violations = await database.all<Array<Record<string, unknown>>>('PRAGMA foreign_key_check;');
-        if (violations.length > 0) throw new Error(`Foreign-key validation found ${violations.length} violation(s).`);
-      }
-      await database.run(
-        'INSERT INTO schema_migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)',
-        [migration.version, migration.name, migrationChecksum(migration), Date.now()]
-      );
-      await database.exec('COMMIT;');
-    } catch (error) {
-      await database.exec('ROLLBACK;').catch(() => {});
-      throw new Error(`Database migration ${migration.version} (${migration.name}) failed.`, { cause: error });
-    } finally {
-      if (migration.foreignKeysOff) await database.exec('PRAGMA foreign_keys = ON;');
-    }
+    await applyPendingMigration(database, migration);
   }
 }
 

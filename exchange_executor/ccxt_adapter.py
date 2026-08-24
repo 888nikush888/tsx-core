@@ -10,6 +10,8 @@ from ccxt.base.errors import BadRequest, InvalidOrder, OrderNotFound
 from ccxt_client import CcxtClientRegistry, AccountClients, decimal_text
 from common import ExchangeContractError, RequestDeadline, decimal_string, external_account_id
 
+INVALID_CONTRACT_SIZE = "CCXT market has an invalid contract size."
+
 
 def _canonical_symbol(market: dict[str, Any]) -> str:
     base = str(market.get("base") or "").upper()
@@ -113,9 +115,108 @@ def _market_order_result(
     result = _order_result(order, fallback_client_id)
     contract_size = Decimal(str(market.get("contractSize") or 1))
     if contract_size <= 0:
-        raise ExchangeContractError("CCXT market has an invalid contract size.")
+        raise ExchangeContractError(INVALID_CONTRACT_SIZE)
     result["filledQuantity"] = decimal_text(Decimal(result["filledQuantity"]) * contract_size)
     return result
+
+
+def _normalized_open_order(rest: Any, order: dict[str, Any]) -> dict[str, Any]:
+    market = rest.market(order["symbol"])
+    amount = Decimal(str(order.get("amount") or 0)) * Decimal(str(market.get("contractSize") or 1))
+    trigger_price = _trigger_price(order)
+    reduce_only = _reduce_only(order)
+    return {
+        **_market_order_result(order, market),
+        "symbol": _canonical_symbol(market),
+        "role": "stop_loss" if reduce_only and trigger_price is not None else "entry",
+        "side": str(order.get("side") or "").lower(),
+        "quantity": decimal_text(amount),
+        "price": decimal_text(order.get("price"), "0") if order.get("price") is not None else None,
+        "triggerPrice": decimal_text(trigger_price, "0") if trigger_price is not None else None,
+        "reduceOnly": reduce_only,
+    }
+
+
+def _normalized_position(rest: Any, position: dict[str, Any]) -> dict[str, Any] | None:
+    contracts = Decimal(str(position.get("contracts") or 0))
+    if contracts <= 0:
+        return None
+    market = rest.market(position["symbol"])
+    side = str(position.get("side") or "").lower()
+    if side not in {"long", "short"}:
+        raise ExchangeContractError("CCXT position omitted its side.")
+    return {
+        "symbol": _canonical_symbol(market),
+        "side": side.upper(),
+        "quantity": decimal_text(contracts * Decimal(str(market.get("contractSize") or 1))),
+        "averageEntryPrice": decimal_text(position.get("entryPrice")),
+        "unrealizedPnl": decimal_text(position.get("unrealizedPnl")),
+    }
+
+
+def _normalized_fill(
+    rest: Any, order_by_id: dict[str, dict[str, Any]], trade: dict[str, Any],
+) -> dict[str, Any] | None:
+    order = order_by_id.get(str(trade.get("order")))
+    client_id = _client_order_id(order or {})
+    if not client_id:
+        return None
+    fee = trade.get("fee") if isinstance(trade.get("fee"), dict) else {}
+    market = rest.market(trade["symbol"])
+    base_quantity = Decimal(str(trade.get("amount") or 0)) * Decimal(str(market.get("contractSize") or 1))
+    return {
+        "exchangeFillId": str(trade.get("id") or f"{trade.get('order')}:{trade.get('timestamp')}:{trade.get('amount')}"),
+        "clientOrderId": client_id,
+        "price": decimal_text(trade.get("price")),
+        "quantity": decimal_text(base_quantity),
+        "fee": decimal_text(fee.get("cost")),
+        "feeAsset": fee.get("currency"),
+        "filledAt": int(trade.get("timestamp") or time.time() * 1_000),
+        "raw": trade,
+    }
+
+
+def _base_order_spec(rest: Any, request: dict[str, Any], symbol: str, amount: str) -> dict[str, Any]:
+    side = request.get("side")
+    if side not in {"buy", "sell"}:
+        raise ExchangeContractError("Order side is invalid.")
+    order_type = request.get("orderType")
+    if order_type not in {"market", "limit", "stop_market"}:
+        raise ExchangeContractError("Order type is invalid.")
+    params: dict[str, Any] = {
+        "clientOrderId": str(request.get("clientOrderId") or ""),
+        "reduceOnly": request.get("reduceOnly") is True,
+    }
+    if not params["clientOrderId"]:
+        raise ExchangeContractError("clientOrderId is required.")
+    if request.get("postOnly") is True:
+        params.update({"postOnly": True, "timeInForce": "PO"})
+    unified_type, price = order_type, request.get("price")
+    if order_type == "stop_market":
+        trigger = decimal_string(request.get("triggerPrice"), "triggerPrice", positive=True)
+        params["stopLossPrice"] = rest.price_to_precision(symbol, trigger)
+        unified_type, price = "market", None
+    elif order_type == "limit":
+        price = rest.price_to_precision(symbol, decimal_string(price, "price", positive=True))
+    else:
+        price = None
+    return {"symbol": symbol, "type": unified_type, "side": side, "amount": amount, "price": price, "params": params}
+
+
+def _protected_order_results(
+    orders: list[dict[str, Any]], market: dict[str, Any], specs: tuple[dict[str, Any], dict[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    mapped = [
+        _market_order_result(orders[index], market, spec["params"]["clientOrderId"])
+        if index < len(orders) else {
+            "clientOrderId": spec["params"]["clientOrderId"],
+            "exchangeOrderId": spec["params"]["clientOrderId"],
+            "status": "unknown", "filledQuantity": "0", "averagePrice": None,
+            "error": "CCXT batch response omitted this order.", "raw": None,
+        }
+        for index, spec in enumerate(specs)
+    ]
+    return mapped[0], mapped[1]
 
 
 async def _within(deadline: RequestDeadline, operation: Awaitable[Any]) -> Any:
@@ -261,7 +362,7 @@ class CcxtAdapter:
         cost_limits = limits.get("cost") or {}
         contract_size = Decimal(str(market.get("contractSize") or 1))
         if contract_size <= 0:
-            raise ExchangeContractError("CCXT market has an invalid contract size.")
+            raise ExchangeContractError(INVALID_CONTRACT_SIZE)
         quantity_step = decimal_text(Decimal(_precision_step(precision.get("amount"), "0.00000001")) * contract_size)
         minimum_contracts = Decimal(str(amount_limits.get("min") or _precision_step(precision.get("amount"), "0.00000001")))
         minimum_quantity = decimal_text(minimum_contracts * contract_size)
@@ -290,51 +391,19 @@ class CcxtAdapter:
         quantity = decimal_string(request.get("quantity"), "quantity", positive=True)
         contract_size = Decimal(str(market.get("contractSize") or 1))
         if contract_size <= 0:
-            raise ExchangeContractError("CCXT market has an invalid contract size.")
+            raise ExchangeContractError(INVALID_CONTRACT_SIZE)
         contracts = Decimal(quantity) / contract_size
         amount = clients.rest.amount_to_precision(symbol, decimal_text(contracts))
         if Decimal(str(amount)) <= 0:
             raise ExchangeContractError("Order quantity is below the market contract precision.")
-        side = request.get("side")
-        if side not in {"buy", "sell"}:
-            raise ExchangeContractError("Order side is invalid.")
-        order_type = request.get("orderType")
-        if order_type not in {"market", "limit", "stop_market"}:
-            raise ExchangeContractError("Order type is invalid.")
-        price = request.get("price")
-        params: dict[str, Any] = {
-            "clientOrderId": str(request.get("clientOrderId") or ""),
-            "reduceOnly": request.get("reduceOnly") is True,
-        }
-        if not params["clientOrderId"]:
-            raise ExchangeContractError("clientOrderId is required.")
-        if request.get("postOnly") is True:
-            params["postOnly"] = True
-            params["timeInForce"] = "PO"
-        unified_type = order_type
-        if order_type == "stop_market":
-            trigger = decimal_string(request.get("triggerPrice"), "triggerPrice", positive=True)
-            params["stopLossPrice"] = clients.rest.price_to_precision(symbol, trigger)
-            unified_type = "market"
-            price = None
-        elif order_type == "limit":
-            price = clients.rest.price_to_precision(symbol, decimal_string(price, "price", positive=True))
-        else:
-            price = None
+        spec = _base_order_spec(clients.rest, request, symbol, amount)
         leverage = request.get("leverage")
-        if not params["reduceOnly"]:
+        if not spec["params"]["reduceOnly"]:
             maximum = await self._maximum_leverage(clients, market, deadline)
             if not isinstance(leverage, int) or isinstance(leverage, bool) or leverage < 1:
                 raise ExchangeContractError("Order leverage is invalid.")
             await _within(deadline, clients.rest.set_leverage(min(leverage, maximum), symbol))
-        return {
-            "symbol": symbol,
-            "type": unified_type,
-            "side": side,
-            "amount": amount,
-            "price": price,
-            "params": params,
-        }, market
+        return spec, market
 
     async def submit_order(self, account: dict[str, str], request: dict[str, Any], deadline: RequestDeadline) -> dict[str, Any]:
         clients = await self._clients(account, deadline)
@@ -403,6 +472,56 @@ class CcxtAdapter:
                 market["symbol"], "market", side, amount, None, {"reduceOnly": True},
             ))
 
+    async def _create_protected_orders(
+        self,
+        clients: AccountClients,
+        market: dict[str, Any],
+        specs: tuple[dict[str, Any], dict[str, Any]],
+        deadline: RequestDeadline,
+    ) -> list[dict[str, Any]]:
+        try:
+            orders = await _within(deadline, clients.rest.create_orders(list(specs)))
+        except Exception as error:
+            try:
+                cleanup_deadline = RequestDeadline(int(time.time() * 1_000) + 10_000)
+                recent = await self._all_recent_orders(clients, cleanup_deadline)
+                for spec in specs:
+                    client_id = spec["params"]["clientOrderId"]
+                    match = next((item for item in recent if _client_order_id(item) == client_id), None)
+                    if match is not None:
+                        result = _order_result(match, client_id)
+                        await self._cancel_if_open(clients, result, market["symbol"], cleanup_deadline)
+                await self._flatten_new_symbol_exposure(clients, market, cleanup_deadline)
+            except Exception:
+                pass
+            raise ExchangeContractError(
+                "Protected-entry batch outcome is unknown; emergency cleanup was attempted and REST reconciliation is required."
+            ) from error
+        if not isinstance(orders, list):
+            raise ExchangeContractError("CCXT createOrders returned an invalid response.")
+        return orders
+
+    async def _resolve_protected_results(
+        self,
+        clients: AccountClients,
+        market: dict[str, Any],
+        entry_result: dict[str, Any],
+        stop_result: dict[str, Any],
+    ) -> dict[str, Any]:
+        accepted = {"open", "partially_filled", "filled"}
+        if entry_result["status"] in accepted and stop_result["status"] in accepted:
+            return {"entry": entry_result, "protectiveStop": stop_result}
+        cleanup_deadline = RequestDeadline(int(time.time() * 1_000) + 10_000)
+        await asyncio.gather(
+            self._cancel_if_open(clients, entry_result, market["symbol"], cleanup_deadline),
+            self._cancel_if_open(clients, stop_result, market["symbol"], cleanup_deadline),
+            return_exceptions=True,
+        )
+        await self._flatten_new_symbol_exposure(clients, market, cleanup_deadline)
+        if entry_result["status"] == "rejected" and stop_result["status"] == "rejected":
+            return {"entry": entry_result, "protectiveStop": stop_result}
+        raise ExchangeContractError("Protected-entry batch was incomplete; exposure was emergency-flattened.")
+
     async def submit_protected_entry(
         self,
         account: dict[str, str],
@@ -418,54 +537,10 @@ class CcxtAdapter:
         stop_spec, stop_market = await self._order_spec(clients, stop, deadline)
         if stop_market["symbol"] != market["symbol"]:
             raise ExchangeContractError("Entry and protective stop must use the same market.")
-        try:
-            orders = await _within(deadline, clients.rest.create_orders([entry_spec, stop_spec]))
-        except Exception as error:
-            # A transport failure can occur after the exchange accepted one or
-            # both legs. Query by client id, cancel what can be proven open and
-            # flatten any resulting exposure before returning an unknown result.
-            try:
-                cleanup_deadline = RequestDeadline(int(time.time() * 1_000) + 10_000)
-                recent = await self._all_recent_orders(clients, cleanup_deadline)
-                for spec in (entry_spec, stop_spec):
-                    client_id = spec["params"]["clientOrderId"]
-                    match = next((item for item in recent if _client_order_id(item) == client_id), None)
-                    if match is not None:
-                        await self._cancel_if_open(clients, _order_result(match, client_id), market["symbol"], cleanup_deadline)
-                await self._flatten_new_symbol_exposure(clients, market, cleanup_deadline)
-            except Exception:
-                pass
-            raise ExchangeContractError(
-                "Protected-entry batch outcome is unknown; emergency cleanup was attempted and REST reconciliation is required."
-            ) from error
-        if not isinstance(orders, list):
-            raise ExchangeContractError("CCXT createOrders returned an invalid response.")
-        mapped = [
-            _market_order_result(orders[index], market, spec["params"]["clientOrderId"])
-            if index < len(orders) else {
-                "clientOrderId": spec["params"]["clientOrderId"],
-                "exchangeOrderId": spec["params"]["clientOrderId"],
-                "status": "unknown", "filledQuantity": "0", "averagePrice": None,
-                "error": "CCXT batch response omitted this order.", "raw": None,
-            }
-            for index, spec in enumerate((entry_spec, stop_spec))
-        ]
-        entry_result, stop_result = mapped
-        accepted = {"open", "partially_filled", "filled"}
-        if entry_result["status"] in accepted and stop_result["status"] in accepted:
-            return {"entry": entry_result, "protectiveStop": stop_result}
-        # A batch with only one accepted leg is unsafe. Cancel both possible
-        # orders and flatten any exposure before surfacing an unknown outcome.
-        cleanup_deadline = RequestDeadline(int(time.time() * 1_000) + 10_000)
-        await asyncio.gather(
-            self._cancel_if_open(clients, entry_result, market["symbol"], cleanup_deadline),
-            self._cancel_if_open(clients, stop_result, market["symbol"], cleanup_deadline),
-            return_exceptions=True,
-        )
-        await self._flatten_new_symbol_exposure(clients, market, cleanup_deadline)
-        if entry_result["status"] == "rejected" and stop_result["status"] == "rejected":
-            return {"entry": entry_result, "protectiveStop": stop_result}
-        raise ExchangeContractError("Protected-entry batch was incomplete; exposure was emergency-flattened.")
+        specs = (entry_spec, stop_spec)
+        orders = await self._create_protected_orders(clients, market, specs, deadline)
+        entry_result, stop_result = _protected_order_results(orders, market, specs)
+        return await self._resolve_protected_results(clients, market, entry_result, stop_result)
 
     async def _all_recent_orders(self, clients: AccountClients, deadline: RequestDeadline) -> list[dict[str, Any]]:
         since = int(time.time() * 1_000) - 30 * 86_400 * 1_000
@@ -504,6 +579,23 @@ class CcxtAdapter:
         cancelled = await _within(deadline, clients.rest.cancel_order(str(match["id"]), market["symbol"]))
         return _market_order_result(cancelled, market, client_order_id)
 
+    async def _recent_trades(
+        self,
+        account: dict[str, str],
+        clients: AccountClients,
+        provider_symbols: list[str],
+        since: int,
+        deadline: RequestDeadline,
+    ) -> list[dict[str, Any]]:
+        if account["exchange"] != "krakenfutures":
+            return await _within(deadline, clients.rest.fetch_my_trades(None, since, 1_000))
+        if not provider_symbols:
+            return []
+        pages = await _within(deadline, asyncio.gather(*[
+            clients.rest.fetch_my_trades(symbol, since, 1_000) for symbol in provider_symbols
+        ]))
+        return [trade for page in pages for trade in (page or [])]
+
     async def open_state(self, account: dict[str, str], deadline: RequestDeadline) -> dict[str, Any]:
         clients = await self._clients(account, deadline)
         since = int(time.time() * 1_000) - 30 * 86_400 * 1_000
@@ -515,66 +607,17 @@ class CcxtAdapter:
             str(item.get("symbol")) for item in [*orders, *positions]
             if isinstance(item.get("symbol"), str) and item.get("symbol")
         })
-        if account["exchange"] == "krakenfutures":
-            trade_pages = await _within(deadline, asyncio.gather(*[
-                clients.rest.fetch_my_trades(symbol, since, 1_000) for symbol in provider_symbols
-            ])) if provider_symbols else []
-            trades = [trade for page in trade_pages for trade in (page or [])]
-        else:
-            trades = await _within(deadline, clients.rest.fetch_my_trades(None, since, 1_000))
+        trades = await self._recent_trades(account, clients, provider_symbols, since, deadline)
         order_by_id = {str(order.get("id")): order for order in orders if order.get("id") is not None}
-        normalized_orders = []
-        for order in orders:
-            market = clients.rest.market(order["symbol"])
-            amount = Decimal(str(order.get("amount") or 0)) * Decimal(str(market.get("contractSize") or 1))
-            mapped_order = _market_order_result(order, market)
-            trigger_price = _trigger_price(order)
-            reduce_only = _reduce_only(order)
-            normalized_orders.append({
-                **mapped_order,
-                "symbol": _canonical_symbol(market),
-                "role": "stop_loss" if reduce_only and trigger_price is not None else "entry",
-                "side": str(order.get("side") or "").lower(),
-                "quantity": decimal_text(amount),
-                "price": decimal_text(order.get("price"), "0") if order.get("price") is not None else None,
-                "triggerPrice": decimal_text(trigger_price, "0") if trigger_price is not None else None,
-                "reduceOnly": reduce_only,
-            })
-        normalized_positions = []
-        for position in positions:
-            contracts = Decimal(str(position.get("contracts") or 0))
-            if contracts <= 0:
-                continue
-            market = clients.rest.market(position["symbol"])
-            side = str(position.get("side") or "").lower()
-            if side not in {"long", "short"}:
-                raise ExchangeContractError("CCXT position omitted its side.")
-            normalized_positions.append({
-                "symbol": _canonical_symbol(market),
-                "side": side.upper(),
-                "quantity": decimal_text(contracts * Decimal(str(market.get("contractSize") or 1))),
-                "averageEntryPrice": decimal_text(position.get("entryPrice")),
-                "unrealizedPnl": decimal_text(position.get("unrealizedPnl")),
-            })
-        normalized_fills = []
-        for trade in trades:
-            order = order_by_id.get(str(trade.get("order")))
-            client_id = _client_order_id(order or {})
-            if not client_id:
-                continue
-            fee = trade.get("fee") if isinstance(trade.get("fee"), dict) else {}
-            market = clients.rest.market(trade["symbol"])
-            base_quantity = Decimal(str(trade.get("amount") or 0)) * Decimal(str(market.get("contractSize") or 1))
-            normalized_fills.append({
-                "exchangeFillId": str(trade.get("id") or f"{trade.get('order')}:{trade.get('timestamp')}:{trade.get('amount')}"),
-                "clientOrderId": client_id,
-                "price": decimal_text(trade.get("price")),
-                "quantity": decimal_text(base_quantity),
-                "fee": decimal_text(fee.get("cost")),
-                "feeAsset": fee.get("currency"),
-                "filledAt": int(trade.get("timestamp") or time.time() * 1_000),
-                "raw": trade,
-            })
+        normalized_orders = [_normalized_open_order(clients.rest, order) for order in orders]
+        normalized_positions = [
+            normalized for position in positions
+            if (normalized := _normalized_position(clients.rest, position)) is not None
+        ]
+        normalized_fills = [
+            normalized for trade in trades
+            if (normalized := _normalized_fill(clients.rest, order_by_id, trade)) is not None
+        ]
         identity = external_account_id(account["exchange"], account["mode"], clients.account_identity)
         return {
             "orders": normalized_orders,

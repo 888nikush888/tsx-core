@@ -55,7 +55,9 @@ function normalizedJson(value: unknown): string {
   const visit = (candidate: any): any => {
     if (Array.isArray(candidate)) return candidate.map(visit);
     if (!candidate || typeof candidate !== 'object') return candidate;
-    return Object.fromEntries(Object.keys(candidate).sort().map(key => [key, visit(candidate[key])]));
+    return Object.fromEntries(Object.keys(candidate)
+      .sort((left, right) => left.localeCompare(right))
+      .map(key => [key, visit(candidate[key])]));
   };
   return JSON.stringify(visit(value));
 }
@@ -1113,8 +1115,8 @@ export async function getWorkflowSignalPlans(input: {
   }
   return [...groups.values()].map(plan => ({
     ...plan,
-    executionPathIds: [...plan.executionPathIds].sort(),
-    outputModes: [...plan.outputModes].sort(),
+    executionPathIds: [...plan.executionPathIds].sort((left, right) => left.localeCompare(right)),
+    outputModes: [...plan.outputModes].sort((left, right) => left.localeCompare(right)),
   })).sort((left, right) => left.key.localeCompare(right.key));
 }
 
