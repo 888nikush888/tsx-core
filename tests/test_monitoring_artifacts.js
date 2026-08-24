@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 
-const [prometheus, rules, alertmanager, compose, applicationCompose, checker, workflow, prometheusDockerfile, alertmanagerDockerfile, vexFiles] = await Promise.all([
+const [
+  prometheus, rules, alertmanager, compose, applicationCompose, checker, workflow,
+  prometheusDockerfile, alertmanagerDockerfile, alertmanagerModuleLock, alertmanagerSumLock,
+  vulncheckModuleLock, vulncheckSumLock, vexFiles,
+] = await Promise.all([
   readFile('monitoring/prometheus.yml', 'utf8'),
   readFile('monitoring/rules.yml', 'utf8'),
   readFile('monitoring/alertmanager.yml', 'utf8'),
@@ -11,6 +15,10 @@ const [prometheus, rules, alertmanager, compose, applicationCompose, checker, wo
   readFile('.github/workflows/quality.yml', 'utf8'),
   readFile('monitoring/prometheus.Dockerfile', 'utf8'),
   readFile('monitoring/alertmanager.Dockerfile', 'utf8'),
+  readFile('monitoring/alertmanager.go.mod', 'utf8'),
+  readFile('monitoring/alertmanager.go.sum', 'utf8'),
+  readFile('monitoring/govulncheck/go.mod', 'utf8'),
+  readFile('monitoring/govulncheck/go.sum', 'utf8'),
   readdir('monitoring/vex'),
 ]);
 const prometheusImage = 'tsx-core-prometheus:3.13.2-hardened';
@@ -77,6 +85,9 @@ assert.match(prometheusDockerfile, /PREBUILT_ASSETS_STATIC_DIR=web\/ui\/static m
 assert.match(prometheusDockerfile, /-trimpath -buildvcs=false -tags=netgo,builtinassets/);
 assert.match(prometheusDockerfile, /-o \/out\/rootfs\/usr\/bin\/prometheus \.\/cmd\/prometheus/);
 assert.match(prometheusDockerfile, /-o \/out\/rootfs\/usr\/bin\/promtool \.\/cmd\/promtool/);
+assert.match(prometheusDockerfile, /GOFLAGS=-mod=readonly/);
+assert.match(prometheusDockerfile, /COPY --chmod=0444 monitoring\/govulncheck\/go\.mod monitoring\/govulncheck\/go\.sum/);
+assert.doesNotMatch(prometheusDockerfile, /\bgo install\b/);
 assert.match(prometheusDockerfile, /^FROM builder AS security-audit$/m);
 assert.equal((prometheusDockerfile.match(/govulncheck -mode=binary -scan=symbol/g) ?? []).length, 2);
 assert.match(prometheusDockerfile, /^USER 65534:65534$/m);
@@ -88,15 +99,21 @@ assert.match(alertmanagerDockerfile, /^ARG RUNTIME_IMAGE=gcr\.io\/distroless\/st
 assert.match(alertmanagerDockerfile, /ADD --checksum=sha256:fdeab39769b39ebeb2fa0da244295dfb02da76e1c8b5afc041fbd99076ed5181[\s\S]*?2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5/);
 assert.match(alertmanagerDockerfile, /ADD --checksum=sha256:1f63344e196e47ba7bfe27276f44c1da77e39fb76493e42b2cf0a50ca8f04321[\s\S]*?alertmanager-web-ui-0\.33\.1\.tar\.gz/);
 for (const dependency of [
-  'golang.org/x/text@v0.41.0',
-  'golang.org/x/mod@v0.40.0',
-  'google.golang.org/grpc@v1.82.1',
-  'golang.org/x/crypto@v0.55.0',
-  'github.com/klauspost/compress@v1.18.7',
-  'go.opentelemetry.io/otel@v1.44.0',
-  'go.opentelemetry.io/otel/metric@v1.44.0',
-  'go.opentelemetry.io/otel/trace@v1.44.0',
-]) assert.ok(alertmanagerDockerfile.includes(dependency));
+  'golang.org/x/text v0.41.0',
+  'golang.org/x/mod v0.40.0',
+  'google.golang.org/grpc v1.82.1',
+  'golang.org/x/crypto v0.55.0',
+  'github.com/klauspost/compress v1.18.7',
+  'go.opentelemetry.io/otel v1.44.0',
+  'go.opentelemetry.io/otel/metric v1.44.0',
+  'go.opentelemetry.io/otel/trace v1.44.0',
+]) assert.ok(alertmanagerModuleLock.includes(dependency));
+assert.match(alertmanagerDockerfile, /COPY --chmod=0444 monitoring\/alertmanager\.go\.mod monitoring\/alertmanager\.go\.sum/);
+assert.match(alertmanagerDockerfile, /GOFLAGS=-mod=readonly/);
+assert.doesNotMatch(alertmanagerDockerfile, /\bgo (?:get|install)\b/);
+assert.match(alertmanagerSumLock, /golang\.org\/x\/text v0\.41\.0 h1:/);
+assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.6\.0/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.6\.0 h1:/);
 assert.match(alertmanagerDockerfile, /CGO_ENABLED=0/);
 assert.match(alertmanagerDockerfile, /^ARG SOURCE_DATE_EPOCH=1783191941$/m);
 assert.match(alertmanagerDockerfile, /^FROM --platform=\$\{BUILDPLATFORM\} \$\{GO_IMAGE\} AS builder$/m);

@@ -2,12 +2,23 @@ ARG GO_IMAGE=golang:1.26.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422
 ARG RUNTIME_IMAGE=gcr.io/distroless/static-debian13:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6
 ARG SOURCE_DATE_EPOCH=1785410710
 
+FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS vulncheck-builder
+ENV CGO_ENABLED=0 \
+    GOTOOLCHAIN=local \
+    GOFLAGS=-mod=readonly
+WORKDIR /src
+COPY --chmod=0444 monitoring/govulncheck/go.mod monitoring/govulncheck/go.sum ./
+RUN go mod download \
+    && go mod verify \
+    && go build -trimpath -buildvcs=false -o /out/govulncheck golang.org/x/vuln/cmd/govulncheck
+
 FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS builder
 ARG TARGETOS=linux
 ARG TARGETARCH
 ARG SOURCE_DATE_EPOCH
 ENV CGO_ENABLED=0 \
     GOTOOLCHAIN=local \
+    GOFLAGS=-mod=readonly \
     SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
 WORKDIR /src
 
@@ -56,8 +67,8 @@ RUN install -d -m 0755 \
 
 FROM builder AS security-audit
 ARG VULN_DB_EPOCH=manual
+COPY --from=vulncheck-builder /out/govulncheck /usr/local/bin/govulncheck
 RUN test -n "${VULN_DB_EPOCH}" \
-    && GOBIN=/usr/local/bin go install golang.org/x/vuln/cmd/govulncheck@v1.6.0 \
     && govulncheck -scan=symbol ./cmd/prometheus ./cmd/promtool \
     && govulncheck -mode=binary -scan=symbol /out/rootfs/usr/bin/prometheus \
     && govulncheck -mode=binary -scan=symbol /out/rootfs/usr/bin/promtool

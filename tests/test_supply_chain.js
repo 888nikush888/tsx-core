@@ -12,6 +12,10 @@ const productionEvidenceWorkflow = await readFile(path.join(root, '.github', 'wo
 const dockerfile = await readFile(path.join(root, 'Dockerfile'), 'utf8');
 const executorDockerfile = await readFile(path.join(root, 'exchange_executor', 'Dockerfile'), 'utf8');
 const alertmanagerDockerfile = await readFile(path.join(root, 'monitoring', 'alertmanager.Dockerfile'), 'utf8');
+const alertmanagerModuleLock = await readFile(path.join(root, 'monitoring', 'alertmanager.go.mod'), 'utf8');
+const alertmanagerSumLock = await readFile(path.join(root, 'monitoring', 'alertmanager.go.sum'), 'utf8');
+const vulncheckModuleLock = await readFile(path.join(root, 'monitoring', 'govulncheck', 'go.mod'), 'utf8');
+const vulncheckSumLock = await readFile(path.join(root, 'monitoring', 'govulncheck', 'go.sum'), 'utf8');
 const applicationVex = JSON.parse(await readFile(path.join(root, 'security', 'vex', 'CVE-2026-14456.openvex.json'), 'utf8'));
 const monitoringCompose = await readFile(path.join(root, 'docker-compose.monitoring.yml'), 'utf8');
 const executorLock = await readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8');
@@ -21,12 +25,18 @@ const streamHub = await readFile(path.join(root, 'exchange_executor', 'stream_hu
 const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf8');
 const strykerConfig = await readFile(path.join(root, 'stryker.config.mjs'), 'utf8');
 const mutationRunner = await readFile(path.join(root, 'scripts', 'run_mutation_shards.js'), 'utf8');
+const gitleaksConfig = await readFile(path.join(root, '.gitleaks.toml'), 'utf8');
 
 const allWorkflows = `${workflow}\n${stagingWorkflow}\n${syntheticWorkflow}\n${productionEvidenceWorkflow}`;
 const actionReferences = [...allWorkflows.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+).*$/gm)].map(
   (match) => match[1]
 );
 assert.ok(actionReferences.length > 0, 'quality workflow must use pinned actions');
+assert.match(gitleaksConfig, /useDefault = true/);
+assert.match(gitleaksConfig, /targetRules = \["generic-api-key"\]/);
+assert.match(gitleaksConfig, /condition = "AND"/);
+assert.match(gitleaksConfig, /regexTarget = "line"/);
+assert.match(gitleaksConfig, /\^monitoring\/\(\?:alertmanager\\\.go\\\.sum\|govulncheck\/go\\\.sum\)\$/);
 const approvedActionReferences = new Set([
   'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9',
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
@@ -169,8 +179,13 @@ assert.match(alertmanagerGoImage ?? '', /^golang:1\.26\.6-bookworm@sha256:[a-f0-
 assert.match(alertmanagerRuntimeImage ?? '', /^gcr\.io\/distroless\/static-debian13:nonroot@sha256:[a-f0-9]{64}$/);
 assert.match(alertmanagerDockerfile, /--checksum=sha256:[a-f0-9]{64}[\s\S]*?codeload\.github\.com\/prometheus\/alertmanager\/tar\.gz\/2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5/);
 assert.match(alertmanagerDockerfile, /github\.com\/prometheus\/common\/version\.BuildDate=20260704-19:05:41/);
-assert.match(alertmanagerDockerfile, /github\.com\/klauspost\/compress@v1\.18\.7/);
-assert.match(alertmanagerDockerfile, /go\.opentelemetry\.io\/otel@v1\.44\.0/);
+assert.match(alertmanagerModuleLock, /github\.com\/klauspost\/compress v1\.18\.7/);
+assert.match(alertmanagerModuleLock, /go\.opentelemetry\.io\/otel v1\.44\.0/);
+assert.match(alertmanagerSumLock, /github\.com\/klauspost\/compress v1\.18\.7 h1:/);
+assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.6\.0/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.6\.0 h1:/);
+assert.match(alertmanagerDockerfile, /GOFLAGS=-mod=readonly/);
+assert.doesNotMatch(alertmanagerDockerfile, /\bgo (?:get|install)\b/);
 assert.match(alertmanagerDockerfile, /^ARG SOURCE_DATE_EPOCH=1783191941$/m);
 assert.match(alertmanagerDockerfile, /^FROM --platform=\$\{BUILDPLATFORM\} \$\{GO_IMAGE\} AS builder$/m);
 assert.match(alertmanagerDockerfile, /find \/out\/rootfs -exec touch -h --date="@\$\{SOURCE_DATE_EPOCH\}"/);
