@@ -31,6 +31,7 @@ import {
   publishSignalContractVersion,
   setTradingRoute,
   updateTradingAccountState,
+  updateTradingAccountConfiguration,
   updateTradingRuntimeState,
   updateTradingSignalSchema,
   updateSignalContractDraft,
@@ -41,6 +42,7 @@ import { assertSignalGrounded, validateSignalXml } from './signal_schema.js';
 import { validateSignalContractDefinition } from './signal_contract.js';
 import {
   deleteChannelRiskPolicy,
+  getWorkflowAdaptiveRiskAnalytics,
   listChannelRiskEvaluations,
   listChannelRiskPolicies,
   upsertChannelRiskPolicy,
@@ -53,6 +55,14 @@ import {
 } from './trading_telemetry.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
 import { listExchangeStreamStates } from './exchange_stream_repository.js';
+import {
+  archiveWorkflowResource,
+  createWorkflowResourceDraft,
+  deleteWorkflowResourceDraft,
+  publishWorkflowResource,
+  saveWorkflowRevision,
+  updateWorkflowResourceDraft,
+} from './workflow_repository.js';
 import type {
   ExchangeOpenState,
   StrategyConfiguration,
@@ -68,6 +78,7 @@ type VerifiableAdapter = TradingExchangeAdapter & {
     verified: boolean;
     equity: string;
     externalAccountId: string;
+    capabilities?: Record<string, unknown>;
   }>;
 };
 
@@ -106,6 +117,7 @@ export interface TradingWebSnapshot {
   signalContracts: Awaited<ReturnType<typeof listSignalContracts>>;
   channelRiskPolicies: Awaited<ReturnType<typeof listChannelRiskPolicies>>;
   channelRiskEvaluations: Awaited<ReturnType<typeof listChannelRiskEvaluations>>;
+  workflowAdaptiveRisk: Awaited<ReturnType<typeof getWorkflowAdaptiveRiskAnalytics>>;
   executionAnalytics: Awaited<ReturnType<typeof getTradingExecutionAnalytics>>;
   channelAnalytics: Awaited<ReturnType<typeof getChannelPerformanceAnalytics>>;
   equityHistory: Awaited<ReturnType<typeof listTradingEquityPoints>>;
@@ -179,7 +191,7 @@ export class TradingWebControl {
   async snapshot(): Promise<TradingWebSnapshot> {
     const [
       overview, analytics, strategies, signalSchemas, signalContracts, channelRiskPolicies,
-      channelRiskEvaluations, executionAnalytics, channelAnalytics, equityHistory, accounts, routes, intents, activity,
+      channelRiskEvaluations, workflowAdaptiveRisk, executionAnalytics, channelAnalytics, equityHistory, accounts, routes, intents, activity,
       exchangeStreams,
     ] = await Promise.all([
       getTradingOverview(),
@@ -189,6 +201,7 @@ export class TradingWebControl {
       listSignalContracts(),
       listChannelRiskPolicies(),
       listChannelRiskEvaluations(),
+      getWorkflowAdaptiveRiskAnalytics(),
       getTradingExecutionAnalytics(),
       getChannelPerformanceAnalytics(),
       listTradingEquityPoints(),
@@ -206,6 +219,7 @@ export class TradingWebControl {
       signalContracts,
       channelRiskPolicies,
       channelRiskEvaluations,
+      workflowAdaptiveRisk,
       executionAnalytics,
       channelAnalytics,
       equityHistory,
@@ -418,6 +432,7 @@ export class TradingWebControl {
       mode,
       credentialRef: exchange === 'paper' ? undefined : 'managed-secret',
       initialBalance: exchange === 'paper' ? payload.initialBalance : undefined,
+      maxConcurrentPositions: payload.maxConcurrentPositions,
     });
     if (exchange === 'paper') return account;
     try {
@@ -514,13 +529,17 @@ export class TradingWebControl {
       if (account.externalAccountId && account.externalAccountId !== externalAccountId) {
         throw new Error('Credentials resolve to a different external exchange account.');
       }
-      return updateTradingAccountState(account.id, {
+      const verified = await updateTradingAccountState(account.id, {
         externalAccountId,
         status: 'ready',
         enabled: enableOnSuccess || account.enabled,
         error: null,
         verifiedAt: Date.now(),
       });
+      if (result.capabilities) {
+        return updateTradingAccountConfiguration(verified.id, { capabilities: result.capabilities });
+      }
+      return verified;
     } catch (error: any) {
       await updateTradingAccountState(account.id, {
         status: 'error', enabled: false, error: error?.message || String(error), verifiedAt: null,
@@ -552,6 +571,26 @@ export class TradingWebControl {
       error: account.lastError,
       verifiedAt: account.lastVerifiedAt,
     });
+  }
+
+  async configureAccount(payload: any): Promise<TradingAccount> {
+    const accountId = identifier(payload.id, 'Account identifier', 64);
+    const current = await this.requiredAccount(accountId);
+    if (current.killSwitchActive && payload.killSwitchActive === false) {
+      if (payload.confirmation !== 'RELEASE ACCOUNT KILL SWITCH') {
+        throw new Error('Explicit account kill-switch release confirmation required.');
+      }
+      await this.engine.reconcileAccount(accountId, { force: true });
+      await this.engine.reconcileAccount(accountId, { force: true });
+    }
+    return updateTradingAccountConfiguration(
+      accountId,
+      {
+        maxConcurrentPositions: payload.maxConcurrentPositions,
+        killSwitchActive: payload.killSwitchActive,
+        killSwitchReason: payload.killSwitchReason,
+      },
+    );
   }
 
   async removeAccount(id: unknown): Promise<void> {
@@ -662,6 +701,35 @@ export class TradingWebControl {
     return acknowledgeTradingRiskEvent(identifier(id, 'Risk event identifier', 64));
   }
 
+  createWorkflowResource(payload: any) {
+    return createWorkflowResourceDraft(payload);
+  }
+
+  updateWorkflowResource(payload: any) {
+    return updateWorkflowResourceDraft(identifier(payload.id, 'Workflow resource version identifier', 64), payload);
+  }
+
+  publishWorkflowResource(id: unknown) {
+    return publishWorkflowResource(identifier(id, 'Workflow resource version identifier', 64));
+  }
+
+  archiveWorkflowResource(id: unknown) {
+    return archiveWorkflowResource(identifier(id, 'Workflow resource version identifier', 64));
+  }
+
+  deleteWorkflowResourceDraft(id: unknown) {
+    return deleteWorkflowResourceDraft(identifier(id, 'Workflow resource version identifier', 64));
+  }
+
+  activateWorkflow(payload: any, actorId = 'control:workflow') {
+    return saveWorkflowRevision({
+      baseRevisionId: payload.baseRevisionId ?? null,
+      graph: payload.graph,
+      actorId,
+      confirmation: payload.confirmation ?? null,
+    });
+  }
+
   async assertFactoryResetSafe(): Promise<void> {
     this.entryRuntime?.disableEntries();
     await updateTradingRuntimeState({ executionEnabled: false, liveTradingEnabled: false });
@@ -694,7 +762,9 @@ export class TradingWebControl {
     if (exchange === 'hyperliquid') {
       return { exchange, privateKey: input?.privateKey, walletAddress: input?.walletAddress };
     }
-    if (exchange === 'bybit') return { exchange, apiKey: input?.apiKey, apiSecret: input?.apiSecret };
+    if (exchange === 'bybit' || exchange === 'krakenfutures') {
+      return { exchange, apiKey: input?.apiKey, apiSecret: input?.apiSecret };
+    }
     throw new Error('Paper accounts do not accept credentials.');
   }
 

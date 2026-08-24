@@ -27,18 +27,18 @@
 
 <a id="trading-notfall-und-reconciliation"></a>
 
-1. In **Trading → Betrieb** prüfen, ob Kill-Switch, Unknown Orders, ungeschützte Positionen oder veralteter Abgleich gemeldet sind. Keine Order manuell erneut senden und keine lokale Zeile löschen.
+1. In **Betrieb → Live** prüfen, ob Kill-Switch, Unknown Orders, ungeschützte Positionen oder veralteter Abgleich gemeldet sind. Keine Order manuell erneut senden und keine lokale Zeile löschen.
 2. Exchange-Weboberfläche read-only gegen Konto, Symbol, Client Order ID, Menge und reduce-only Status vergleichen. Withdrawal-/Transfer-Funktionen sind für diese Untersuchung nie erforderlich.
 3. Bei offener managed Position sicherstellen, dass exakt ein gültiger Protective Stop über die vollständige Restmenge existiert. Bei fehlendem Schutz **Notfall-Flatten** mit der angezeigten exakten Phrase ausführen; die Anwendung deaktiviert vorher neue Entries und sendet nur reduce-only.
 4. Ein unbekannter Submit-/Cancel-Ausgang wird nicht blind wiederholt. Erst Exchange-Historie und Fills belegen. Danach **Jetzt reconciliieren**; der Reconciler übernimmt bestätigte Orders/Fills, verkleinert den Stop nach TP-Teilfills und setzt ihn entsprechend der Strategie auf konfiguriertes Break-even/Trailing oder – im adaptiven Modus – nach TP1/TP2 auf Break-even und danach auf TP(i-2).
 5. Fremde Orders oder Positionen auf demselben API-Konto gelten als unmanaged Exposure. Entweder außerhalb des Systems nach Vier-Augen-Betriebsprozess schließen oder ein separates ausschließlich diesem System gehörendes Exchange-Subkonto verwenden. Der Kill-Switch bleibt bis zu einer erfolgreichen Null-/Managed-Reconciliation aktiv.
 6. Vor Aufheben der Sperre Datenumfang, betroffene Kanäle/Strategieversionen und Ursache dokumentieren. **Abgleichen und Sperre aufheben** führt nochmals alle aktivierten Konten gegen die Exchange; erst Erfolg entfernt die Sperre.
 
-Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaisen lassen. Factory Reset stoppt MCP-Brücke und Trading-Worker, signalisiert dem unabhängigen MCP-Prozess ein gemeinsames Wartungsfenster, storniert offene Entries, prüft jedes Nicht-Paper-Konto über das offizielle SDK und verweigert bei Order/Position oder nicht erreichbarer Exchange die Löschung. Danach werden DB einschließlich MCP-Modus, Verträgen, Kanalrisiko, Analytics und MCP-Agenten, Strategie-/Routingzustand, alle Exchange-Key-Dateien und der interne Executor-Key entfernt; der neue Key wird nach Neustart automatisch vom bereits laufenden Sidecar akzeptiert und der neue MCP-Modus ist `disabled`. **Betriebsdaten leeren** ist davon getrennt: Es stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie nicht von Trades referenzierte Signale atomar. Trading-Historie, Strategien, Konten, Secrets und trade-referenzierte Signale bleiben unverändert erhalten.
+Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaisen lassen. Factory Reset stoppt MCP-Brücke und Trading-Worker, signalisiert dem unabhängigen MCP-Prozess ein gemeinsames Wartungsfenster, storniert offene Entries, prüft jedes Nicht-Paper-Konto über CCXT REST und verweigert bei Order/Position oder nicht erreichbarer Exchange die Löschung. Danach werden DB einschließlich Workflowrevisionen, MCP-Modus, Verträgen, adaptivem Risiko, Analytics und MCP-Agenten, Strategie-/Alt-Routingzustand, alle Exchange-Key-Dateien und der interne Executor-Key entfernt; der neue Key wird nach Neustart automatisch vom bereits laufenden Sidecar akzeptiert und der neue MCP-Modus ist `disabled`. **Betriebsdaten leeren** ist davon getrennt: Es stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie nicht von Trades referenzierte Signale atomar. Trading-Historie, Strategien, Konten, Secrets und trade-referenzierte Signale bleiben unverändert erhalten.
 
 ## Signalvertrag oder Schema-Profil ändern
 
-1. Unter **Trading → Verträge** Vertrags-ID, Version, Status, Definition-Hash und alle verknüpften Schema-Profile erfassen. Publizierte Definitionen nie in SQLite bearbeiten.
+1. Im Vertragsbaustein Vertrags-ID, Version, Status und Definition-Hash erfassen. Publizierte Definitionen nie in SQLite bearbeiten; der Builder erzeugt eine neue Version.
 2. Änderung als neuen Entwurf aus der gewünschten Version erstellen oder Vertrag duplizieren. XML-Pfade, Feldtypen, Entry-/Target-Form, Geometrie und Quelltext-Erdung im visuellen Builder vollständig prüfen.
 3. Den Entwurf mit kontrolliertem XML und ursprünglichem Telegram-Text validieren; anschließend publizieren. Erst danach ein Ersatzprofil mit passendem Parser-Template und neuer `contractVersionId` anlegen beziehungsweise umstellen.
 4. Verwendet eine aktive Kanalroute das Profil, zuerst eine neue Strategieversion mit dem Ersatzprofil publizieren und die Route bewusst umstellen. Bestehende Trades behalten ihre immutable alte Strategieversion.
@@ -49,7 +49,7 @@ Factory Reset und Datenbank-Löschung dürfen niemals Exchange-Exposure verwaise
 ## MCP-Agent kompromittiert oder fehlerhaft
 
 1. Bei unklarem Umfang unter **MCP-Agenten → MCP-Server** zuerst `disabled` wählen; dadurch werden alle Sitzungen getrennt und noch nicht gestartete freigegebene MCP-Arbeit verworfen. Danach den betroffenen Agenten deaktivieren. Bei endgültigem Widerruf **Agent löschen** verwenden; dadurch werden Token, Rechte, aktive Sitzungen und noch wartende Kontrollanforderungen widerrufen und der Agent aus dem aktiven Inventar entfernt. Die anonymisierte Audit-Historie bleibt erhalten.
-2. Im Cockpit Kill-Switch, offene Positionen, unbekannte Orders und letzte Reconciliation prüfen. Bei unklarer Exchange-Wirkung niemals denselben Tool-Aufruf blind wiederholen.
+2. Unter **Betrieb → Live** Kill-Switch, offene Positionen, unbekannte Orders und letzte Reconciliation prüfen. Bei unklarer Exchange-Wirkung niemals denselben Tool-Aufruf blind wiederholen.
 3. Agenten-Aktionen, Sitzung, `mcp_control_request`-ID, hashverkettete Audit-Records und passende Trading-Execution-Events sichern. Token oder Request-Secrets nicht in Tickets kopieren.
 4. Falls `trading.kill_switch`, `trading.cancel_entries` oder `trading.flatten` verwendet wurde, Exchange read-only gegen Client Order IDs und Fills prüfen und anschließend über einen menschlichen Admin reconciliieren.
 5. Ursache beheben, Rechte auf das Minimum reduzieren und Token rotieren. Alte Tokens können nicht wieder aktiviert werden.
@@ -65,7 +65,7 @@ Bei Backup-Restore, Migration-Rollback oder Factory Reset stoppt TSX Core die in
 
 ## Exchange-WebSocket degradiert
 
-1. Unter **Trading → Betrieb** Konto, Streamstatus, Cursor/Lückenzähler, letztes Ereignis und Fehler sichern. Keine Streamzeile manuell aus SQLite löschen.
+1. Unter **Betrieb → Konten/Live** Konto, CCXT-Pro-Streamstatus, Cursor/Lückenzähler, letztes Ereignis und Fehler sichern. Keine Streamzeile manuell aus SQLite löschen.
 2. Prüfen, ob die periodische REST-Reconciliation weiterhin erfolgreich und jünger als 30 Sekunden ist. WebSocket-Ausfall allein darf sie nicht stoppen; schlägt auch REST fehl, Trading bleibt beziehungsweise wird fail-closed gesperrt.
 3. Bei Cursor-Lücke sofort **Jetzt reconciliieren** verwenden und Remote Orders/Fills/Positionen mit den managed Client-IDs vergleichen. Der WebSocket-Payload ist niemals autoritativer Wiederherstellungsbeleg.
 4. Sidecar-/SDK-Netzwerk, Credential-Status und Exchange-Statusseite prüfen. Nach Wiederverbindung muss der Cursor fortlaufen, der Status `healthy` werden und ein zustandsänderndes Testevent eine erzwungene REST-Reconciliation auslösen.

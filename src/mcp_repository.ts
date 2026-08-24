@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import { TRADING_EVENT_TYPES, type TradingEventType } from './trading_telemetry.js';
+import { getActiveWorkflow, listWorkflowResources, previewWorkflowImpact } from './workflow_repository.js';
 
 export const MCP_PERMISSIONS = [
   'system.read',
@@ -12,10 +13,12 @@ export const MCP_PERMISSIONS = [
   'routes.read',
   'analytics.read',
   'journal.read',
+  'workflow.read',
   'contracts.write',
   'risk.write',
   'strategies.write',
   'routes.write',
+  'workflow.write',
   'trading.reconcile',
   'trading.cancel_entries',
   'trading.kill_switch',
@@ -58,6 +61,12 @@ export type McpProposalAction =
   | 'routes.delete'
   | 'risk.update'
   | 'risk.delete'
+  | 'workflow.resource_create'
+  | 'workflow.resource_update'
+  | 'workflow.resource_publish'
+  | 'workflow.resource_archive'
+  | 'workflow.resource_delete_draft'
+  | 'workflow.activate'
   | 'trading.release_kill_switch';
 
 export interface McpAgent {
@@ -205,6 +214,12 @@ const PROPOSAL_ACTIONS = new Set<McpProposalAction>([
   'routes.delete',
   'risk.update',
   'risk.delete',
+  'workflow.resource_create',
+  'workflow.resource_update',
+  'workflow.resource_publish',
+  'workflow.resource_archive',
+  'workflow.resource_delete_draft',
+  'workflow.activate',
   'trading.release_kill_switch',
 ]);
 const APPROVAL_REQUIRED_ACTIONS = new Set<McpProposalAction>([
@@ -221,10 +236,14 @@ const APPROVAL_REQUIRED_ACTIONS = new Set<McpProposalAction>([
   'routes.delete',
   'risk.update',
   'risk.delete',
+  'workflow.resource_archive',
+  'workflow.resource_delete_draft',
+  'workflow.activate',
   'trading.release_kill_switch',
 ]);
 const TOKEN_PREFIX = 'tsx_mcp_';
 const MAXIMUM_JSON_BYTES = 64 * 1024;
+const MAXIMUM_WORKFLOW_JSON_BYTES = 2 * 1024 * 1024;
 
 function identifier(value: unknown, label: string, maximum = 128): string {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > maximum || /[\r\n\0]/.test(value)) {
@@ -254,15 +273,15 @@ function subscriptions(value: unknown): TradingEventType[] {
   return boundedList<TradingEventType>(value, EVENT_SET, 'MCP event subscriptions');
 }
 
-function json(value: unknown, label: string): string {
+function json(value: unknown, label: string, maximumBytes = MAXIMUM_JSON_BYTES): string {
   let serialized: string;
   try {
     serialized = JSON.stringify(value ?? null);
   } catch {
     throw new Error(`${label} must be JSON-serializable.`);
   }
-  if (Buffer.byteLength(serialized, 'utf8') > MAXIMUM_JSON_BYTES) {
-    throw new Error(`${label} exceeds 64 KiB.`);
+  if (Buffer.byteLength(serialized, 'utf8') > maximumBytes) {
+    throw new Error(`${label} exceeds ${maximumBytes === MAXIMUM_JSON_BYTES ? '64 KiB' : '2 MiB'}.`);
   }
   return serialized;
 }
@@ -1125,6 +1144,72 @@ async function preflightConfigurationAction(
   return preflightRouteAction(action, payload, blockers, impact);
 }
 
+async function preflightWorkflowActivation(
+  payload: Record<string, unknown>, blockers: string[], impact: string[],
+): Promise<void> {
+  const active = await getActiveWorkflow();
+  const baseRevisionId = payload.baseRevisionId === null || payload.baseRevisionId === undefined
+    ? null
+    : identifier(payload.baseRevisionId, 'Base workflow revision identifier', 64);
+  if ((active?.id ?? null) !== baseRevisionId) {
+    blockers.push('The workflow base revision is stale. Reload the active workflow before proposing activation.');
+    return;
+  }
+  const preview = await previewWorkflowImpact({ baseRevisionId, graph: payload.graph });
+  impact.push(
+    `Activates one immutable workflow revision: ${preview.added.length} path(s) added, ${preview.changed.length} changed, ${preview.removed.length} removed.`,
+  );
+  impact.push(...preview.warnings.slice(0, 20));
+}
+
+const WORKFLOW_RESOURCE_IMPACT: Partial<Record<McpProposalAction, string>> = {
+  'workflow.resource_update': 'Updates only the selected unpublished workflow-resource draft.',
+  'workflow.resource_publish': 'Publishes an immutable resource version so a workflow revision can reference it.',
+  'workflow.resource_archive': 'Archives an unreferenced published workflow resource.',
+  'workflow.resource_delete_draft': 'Permanently deletes the selected unpublished workflow-resource draft.',
+};
+
+async function preflightWorkflowResourceLifecycle(
+  action: McpProposalAction,
+  payload: Record<string, unknown>,
+  blockers: string[],
+  impact: string[],
+): Promise<void> {
+  const id = identifier(payload.id, 'Workflow resource version identifier', 64);
+  const resource = (await listWorkflowResources()).find(candidate => candidate.id === id);
+  if (!resource) {
+    blockers.push('Workflow resource version does not exist.');
+    return;
+  }
+  if (action === 'workflow.resource_update' && resource.status !== 'draft') {
+    blockers.push('Only a workflow-resource draft can be edited.');
+  }
+  if (action === 'workflow.resource_publish' && resource.status !== 'draft') {
+    blockers.push('Only a workflow-resource draft can be published.');
+  }
+  if (action === 'workflow.resource_archive' && resource.status !== 'published') {
+    blockers.push('Only a published workflow resource can be archived.');
+  }
+  if (action === 'workflow.resource_delete_draft' && resource.status !== 'draft') {
+    blockers.push('Only a workflow-resource draft can be deleted.');
+  }
+  impact.push(WORKFLOW_RESOURCE_IMPACT[action] ?? 'Changes the selected workflow resource.');
+}
+
+async function preflightWorkflowAction(
+  action: McpProposalAction,
+  payload: Record<string, unknown>,
+  blockers: string[],
+  impact: string[],
+): Promise<void> {
+  if (action === 'workflow.activate') return preflightWorkflowActivation(payload, blockers, impact);
+  if (action === 'workflow.resource_create') {
+    impact.push('Creates a new versioned workflow-resource draft without activating it.');
+    return;
+  }
+  return preflightWorkflowResourceLifecycle(action, payload, blockers, impact);
+}
+
 export async function preflightMcpAction(
   actionValue: unknown,
   payloadValue: unknown,
@@ -1143,6 +1228,8 @@ export async function preflightMcpAction(
       impact.push(action === 'risk.update'
         ? 'Changes capital-at-risk policy for future trades from the selected channel.'
         : 'Removes the channel-specific risk override.');
+    } else if (action.startsWith('workflow.')) {
+      await preflightWorkflowAction(action, payload, blockers, impact);
     } else {
       const state = await getDatabase().get<{ kill_switch_active: number }>(
         'SELECT kill_switch_active FROM trading_runtime_state WHERE singleton_id = 1',
@@ -1193,7 +1280,7 @@ export async function createMcpProposal(input: {
         agentId,
         sessionId,
         action,
-        json(payload, 'MCP proposal payload'),
+        json(payload, 'MCP proposal payload', action.startsWith('workflow.') ? MAXIMUM_WORKFLOW_JSON_BYTES : MAXIMUM_JSON_BYTES),
         json(preflight, 'MCP proposal preflight'),
         autoApprove ? 'approved' : 'pending',
         now,
@@ -1344,7 +1431,7 @@ export async function completeMcpProposal(
      WHERE id = ? AND status = 'executing'`,
     [
       succeeded ? 'completed' : 'failed',
-      succeeded ? json(outcome.result, 'MCP proposal result') : null,
+      succeeded ? json(outcome.result, 'MCP proposal result', MAXIMUM_WORKFLOW_JSON_BYTES) : null,
       succeeded ? null : boundedError(outcome.error),
       Date.now(),
       id,

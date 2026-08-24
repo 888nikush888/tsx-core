@@ -4,6 +4,24 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+### Added
+
+- Globale visuelle Workflow-Control-Plane mit typisierten Spaltenbausteinen, wiederverwendbarer Ressourcenbibliothek, Popup-Editoren, gerichteten Fan-out-Verbindungen, Simulation, atomaren Revisionen, Revisionskonfliktschutz und explizitem Impact-Preflight.
+- Parallele Ausführung eines Signals auf mehreren Börsenkonten mit eigenem Strategie-/Sizing-/Risiko-Zweig und pro Kanal/Konto/logischem Baustein isoliertem adaptivem Zustand.
+- Kraken-Futures-Konten sowie ein integrierter Betriebsbereich für Live-Gates, Konten, Journal, Analytics, Logs, Backups, MCP und System.
+
+### Changed
+
+- Die Exchange-Grenze verwendet jetzt ausschließlich das gepinnte `ccxt==4.5.75`; CCXT Pro beschleunigt private und öffentliche Streams, während CCXT REST alleinige Order- und Reconciliation-Autorität bleibt.
+- Das maximale Positionslimit liegt am konkreten Börsenkonto (1–20) und umfasst alle Strategien, Kanäle und Workflowpfade dieses Kontos.
+- Bestehende aktivierte Routen werden einmalig in eine immutable visuelle Workflowrevision migriert. Die frühere Trading-Menüoberfläche wurde entfernt.
+- Parser-Signale werden nur in SQLite gespeichert; neue und migrierte Workflow-Parser erzwingen `saveToFile=false`.
+
+### Fixed
+
+- Contract-Size-, Trigger-, Reduce-only-, Teilfüllungs- und stabile Kontoidentitäts-Normalisierung an der CCXT-Grenze sowie separates Notfallzeitfenster für unklare geschützte Entry-Batches.
+- Kraken-Ledger-PnL wird nicht mehr als Funding fehlklassifiziert. Kontofehler und Kapazitätssperren bleiben auf den betroffenen Fan-out-Zweig isoliert.
+
 ## [2.1.0] - 2026-08-09
 
 ### Added

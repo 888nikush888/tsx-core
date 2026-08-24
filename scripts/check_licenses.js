@@ -7,41 +7,36 @@ const productionLicenses = new Set([
   '0BSD', 'Apache-2.0', 'BlueOak-1.0.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC',
   'MIT', 'MIT-0', 'MPL-2.0', 'PSF-2.0', 'Apache-2.0 AND CNRI-Python',
   'MIT AND ISC', '(MIT OR WTFPL)',
+  'Apache-2.0 AND MIT', 'MIT OR Apache-2.0', 'Apache-2.0 OR BSD-3-Clause',
+  'MPL-2.0 AND (Apache-2.0 OR MIT)',
   '(BSD-2-Clause OR MIT OR Apache-2.0)',
 ]);
 const buildOnlyLicenses = new Set([...productionLicenses, 'CC-BY-4.0', 'CC0-1.0', 'MPL-2.0']);
 const pythonPolicy = new Map([
-  ['annotated-types@0.7.0', 'MIT'],
-  ['bitarray@3.9.0', 'PSF-2.0'],
+  ['aiohappyeyeballs@2.7.1', 'PSF-2.0'],
+  ['aiohttp@3.14.3', 'Apache-2.0 AND MIT'],
+  ['aiohttp-fast-zlib@0.3.0', 'Apache-2.0'],
+  ['aiosignal@1.4.0', 'Apache-2.0'],
+  ['attrs@26.1.0', 'MIT'],
+  ['ccxt@4.5.75', 'MIT'],
   ['certifi@2026.6.17', 'MPL-2.0'],
-  ['charset-normalizer@3.4.9', 'MIT'],
-  ['ckzg@2.1.8', 'Apache-2.0'],
-  ['cytoolz@1.1.0', 'BSD-3-Clause'],
-  ['eth-abi@5.2.0', 'MIT'],
-  ['eth-account@0.13.7', 'MIT'],
-  ['eth-hash@0.8.0', 'MIT'],
-  ['eth-keyfile@0.8.1', 'MIT'],
-  ['eth-keys@0.7.0', 'MIT'],
-  ['eth-rlp@2.2.0', 'MIT'],
-  ['eth-typing@6.0.0', 'MIT'],
-  ['eth-utils@5.3.1', 'MIT'],
-  ['hexbytes@1.3.1', 'MIT'],
-  ['hyperliquid-python-sdk@0.24.0', 'MIT'],
+  ['cffi@2.0.0', 'MIT'],
+  ['charset-normalizer@3.4.7', 'MIT'],
+  ['coincurve@21.0.0', 'MIT OR Apache-2.0'],
+  ['cryptography@50.0.0', 'Apache-2.0 OR BSD-3-Clause'],
+  ['frozenlist@1.8.0', 'Apache-2.0'],
   ['idna@3.18', 'BSD-3-Clause'],
-  ['msgpack@1.2.1', 'Apache-2.0'],
-  ['parsimonious@0.10.0', 'MIT'],
-  ['pybit@5.16.0', 'MIT'],
-  ['pycryptodome@3.23.0', 'BSD-2-Clause'],
-  ['pydantic@2.13.4', 'MIT'],
-  ['pydantic-core@2.46.4', 'MIT'],
-  ['regex@2026.7.10', 'Apache-2.0 AND CNRI-Python'],
+  ['multidict@6.7.1', 'Apache-2.0'],
+  ['orjson@3.11.9', 'MPL-2.0 AND (Apache-2.0 OR MIT)'],
+  ['propcache@0.5.2', 'Apache-2.0'],
+  ['pycparser@3.0', 'BSD-3-Clause'],
   ['requests@2.34.2', 'Apache-2.0'],
-  ['rlp@4.1.0', 'MIT'],
-  ['toolz@1.1.0', 'BSD-3-Clause'],
   ['typing-extensions@4.16.0', 'PSF-2.0'],
-  ['typing-inspection@0.4.2', 'MIT'],
   ['urllib3@2.7.0', 'MIT'],
-  ['websocket-client@1.9.0', 'Apache-2.0'],
+  ['uvloop@0.22.1', 'MIT OR Apache-2.0'],
+  ['winloop@0.6.3', 'MIT OR Apache-2.0'],
+  ['yarl@1.24.5', 'Apache-2.0'],
+  ['zlib-ng@1.0.0', 'PSF-2.0'],
 ]);
 
 function packageName(lockPath) {
@@ -69,7 +64,7 @@ export function evaluateNpmLicenses(name, lock) {
 
 export function evaluatePythonLockedRequirements(directContent, lockedContent) {
   const directRequirements = directContent.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#'));
-  const requirements = [...lockedContent.matchAll(/^([A-Za-z0-9_.-]+)==([^\s\\]+)\s+\\$/gm)]
+  const requirements = [...lockedContent.matchAll(/^([A-Za-z0-9_.-]+)==([^\s\\]+)(?:\s*;[^\n\\]+)?\s+\\$/gm)]
     .map(([, name, version]) => `${name}==${version}`);
   const violations = [];
   const inventory = [];

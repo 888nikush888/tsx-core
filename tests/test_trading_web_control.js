@@ -237,6 +237,44 @@ try {
   assert.equal(await control.removeRoute('-100099'), true);
   assert.equal((await control.snapshot()).routes.length, 2, 'Independent channels must run distinct strategy versions in parallel.');
 
+  const limitedPaper = await control.configureAccount({
+    id: paperAccount.id,
+    maxConcurrentPositions: 7,
+    killSwitchActive: true,
+    killSwitchReason: 'Account maintenance',
+  });
+  assert.equal(limitedPaper.maxConcurrentPositions, 7);
+  assert.equal(limitedPaper.killSwitchActive, true);
+  await assert.rejects(
+    control.configureAccount({ id: paperAccount.id, killSwitchActive: false }),
+    /kill-switch release confirmation/,
+  );
+  const releasedPaper = await control.configureAccount({
+    id: paperAccount.id,
+    maxConcurrentPositions: 5,
+    killSwitchActive: false,
+    killSwitchReason: null,
+    confirmation: 'RELEASE ACCOUNT KILL SWITCH',
+  });
+  assert.equal(releasedPaper.maxConcurrentPositions, 5);
+  assert.equal(releasedPaper.killSwitchActive, false);
+
+  const workflowDraft = await control.createWorkflowResource({
+    kind: 'channel', name: 'Control channel', configuration: { channelId: '-100-control' },
+  });
+  const workflowUpdated = await control.updateWorkflowResource({
+    id: workflowDraft.id, name: 'Control channel updated', description: '',
+    configuration: { channelId: '-100-control' },
+  });
+  assert.equal(workflowUpdated.name, 'Control channel updated');
+  const workflowPublished = await control.publishWorkflowResource(workflowDraft.id);
+  assert.equal(workflowPublished.status, 'published');
+  assert.equal((await control.archiveWorkflowResource(workflowPublished.id)).status, 'archived');
+  const disposableWorkflowDraft = await control.createWorkflowResource({
+    kind: 'channel', name: 'Disposable control draft', configuration: { channelId: '-100-disposable' },
+  });
+  assert.equal(await control.deleteWorkflowResourceDraft(disposableWorkflowDraft.id), true);
+
   await control.configurePaper({
     accountId: paperAccount.id,
     equity: '15000',
@@ -344,6 +382,12 @@ try {
   }), 0);
   assert.equal(await control.emergencyFlatten({ confirmation: 'FLATTEN MANAGED POSITIONS' }), 0);
   await control.assertFactoryResetSafe();
+
+  const activatedWorkflow = await control.activateWorkflow({
+    baseRevisionId: null,
+    graph: { schemaVersion: 1, nodes: [], edges: [] },
+  }, 'test:control');
+  assert.equal(activatedWorkflow.createdBy, 'test:control');
 
   bybit.remote.positions.push({ symbol: 'BTC', side: 'LONG', quantity: '1', averageEntryPrice: '60000', unrealizedPnl: '0' });
   await assert.rejects(control.assertFactoryResetSafe(), /open orders or positions/);

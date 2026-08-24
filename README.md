@@ -1,12 +1,12 @@
 # TSX Core
 
-**TSX Core** ist eine robuste TypeScript-Control-Plane für Telegram-Nachrichtenweiterleitung auf Basis der offiziellen **TDLib** (Telegram Database Library), ergänzt um ein internes Python-Sidecar ausschließlich für die offiziellen Hyperliquid-/Bybit-SDKs. Der Node.js-Dienst leitet Nachrichten aus Quellkanälen automatisch an einen Zielkanal weiter und kann validierte Signale kontrolliert in Trades überführen.
+**TSX Core** ist eine robuste TypeScript-Control-Plane für Telegram-Nachrichtenweiterleitung auf Basis der offiziellen **TDLib** (Telegram Database Library), ergänzt um ein internes, auf **CCXT und CCXT Pro** aufgebautes Python-Sidecar. Der Node.js-Dienst verarbeitet Telegram-Signale über versionierte visuelle Workflows und kann sie kontrolliert parallel auf mehreren Börsenkonten ausführen.
 
 Es ist für den **Docker-Betrieb als daemonisierten Hintergrunddienst (Service)** optimiert, bietet integrierte **Prometheus-Metriken**, strukturierte **JSON-Logs** und speichert Zustände ausfallsicher in einer **SQLite-Datenbank**.
 
 Die vollständige, verbindliche Anleitung für Installation, Konfiguration, Nutzung, Production-Release, Recovery und alle noch extern zu erbringenden Enterprise-Nachweise steht in [`docs/PRODUCTION_GUIDE.md`](docs/PRODUCTION_GUIDE.md).
 
-Die vollständige Trading-Einrichtung für selbst verwaltete Signal-Schemas, paralleles Kanal-Routing, Hyperliquid/Bybit, adaptive TP-Staffelung, SL-Nachziehen und Notfälle steht in [`docs/TRADING_GUIDE.md`](docs/TRADING_GUIDE.md).
+Die vollständige Trading-Einrichtung für visuelle Signalpfade, Hyperliquid, Bybit, Kraken Futures, kontoübergreifenden Fan-out, adaptive TP-Staffelung, SL-Nachziehen und Notfälle steht in [`docs/TRADING_GUIDE.md`](docs/TRADING_GUIDE.md).
 
 Die Einrichtung des eigenständigen MCP-Dienstes, seiner persistenten Betriebsmodi, der Agenten-Tokens, dauerhaften Berechtigungen und Ereignis-Abonnements steht in [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md).
 
@@ -42,8 +42,8 @@ Damit das Projekt übersichtlich bleibt, sind die Dateien klar aufgeteilt:
 │   ├── trading_*.ts          # Strategien, Kanalrisiko, Telemetrie, Orders und Reconciliation
 │   ├── mcp_*.ts              # Agentenidentitäten, Kontrollbrücke und MCP-Server
 │   └── web_server.ts         # Authentifizierte Web-Control-Plane und API
-├── frontend/                 # React/Vite Dashboard einschließlich Trading Builder
-├── exchange_executor/        # Internes Python-Sidecar für offizielle Exchange-SDKs
+├── frontend/                 # React/Vite/React-Flow Workflow-Builder und Betriebsbereich
+├── exchange_executor/        # Internes Python-Sidecar für CCXT REST und CCXT Pro
 ├── docs/                     # Architektur-, Betriebs-, Trading- und Governance-Dokumentation
 ├── monitoring/               # Prometheus, Regeln und reproduzierbarer Alertmanager-Sicherheitsbuild
 ├── templates/                # Vorlagen für die KI-Signalextraktion
@@ -68,7 +68,7 @@ Das System wurde auf Enterprise-Niveau gehoben und nutzt moderne Best Practices:
 3. **Structured JSON Logging**: Im Container-Betrieb gibt der Service strukturierte JSON-Meldungen direkt an `stdout` aus, um sie in Log-Aggregatoren wie Kibana, Splunk oder Datadog einzulesen.
 4. **Multi-Stage Docker Pipeline**: Der Compiler läuft in einer Build-Stufe. Das produktive Docker-Image enthält nur die kompilierten Dateien und native Produktivabhängigkeiten – sicher, gehärtet und klein.
 5. **Dynamische Signalverträge**: Verträge sind versionierte SQLite-Datensätze. Der visuelle Builder verwaltet XML-Pfade, Feldtypen, Entry-/Target-Form, Geometrie und Quelltext-Erdung ohne ausführbaren Benutzer-Code.
-6. **Cockpit und Labor**: Das Dashboard zeigt im Cockpit nur Live-Sicherheit, Positionen, PnL und Signalstrom. Equity, Drawdown, Kanalqualität, Slippage, Latenz und Simulation liegen im separaten Analytics-Bereich.
+6. **Visuelle Workflow-Control-Plane**: Ein globaler Builder zeigt Kanäle, Filter, Parser, Schemas, Verträge, Strategien, Sizing, adaptives Risiko, Konten und Ausgaben als wiederverwendbare Bausteine. Verbindungen bilden den ausführbaren Signalfluss und seine Börsenverzweigungen ab.
 7. **Agenten-Control-Plane**: Ein separater, standardmäßig mitgestarteter MCP-Dienst verwendet pro Agent gehashte Tokens und dauerhaft verwaltete Minimalrechte. Sein persistenter Modus ist ab Werk `disabled`; Schreibaktionen laufen nicht direkt gegen SQLite oder Exchanges, sondern über die auditierte TSX-Core-Kontrollbrücke.
 8. **Geprüfte Auslieferung**: Die veröffentlichte Quelle liegt ausschließlich auf `main`. GitHub Actions baut und scannt jeden Main-Stand; es gibt bewusst weder zusätzliche GitHub-Apps noch einen automatischen Release- oder Registry-Publisher.
 
@@ -87,9 +87,9 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
    `--build` ist auch nach jedem erneuten Download oder `git pull` erforderlich. Ein bloßes `docker compose up -d` darf ein bereits vorhandenes lokales Image weiterverwenden und würde dann eine ältere Oberfläche ausliefern. Persistente Volumes bleiben beim Neubau erhalten.
 
 2. `http://127.0.0.1:8080` öffnen und **Create secure dashboard** wählen. Erst diese bewusste Erststartaktion erzeugt serverseitig einen starken dauerhaften Admin-Bearer-Token und zeigt ihn genau einmal zum Kopieren und sicheren Hinterlegen an. Vor diesem sichtbaren Schritt wird keine lokale Sitzung erzeugt. Bei späteren Browser-Sitzungen darf der Loopback-Only-Komfortpfad einen separaten, höchstens zwölf Stunden gültigen lokalen Session-Token erzeugen; der dauerhafte Admin-Token wird dabei nie erneut offengelegt.
-3. Unter **Signale & Nachrichten → Kanäle** die Telegram API ID, den 32-stelligen API Hash, mindestens einen Quellkanal und den Zielkanal eintragen. **Konfiguration speichern** speichert Nicht-Secrets und write-only Secrets getrennt in persistenten Docker-Volumes. Die lokale `.env` wird von Docker Compose bewusst nicht eingelesen und kann diese Felder daher nicht mehr sperren.
-4. Falls der KI-Parser verwendet wird: unter **Signale & Nachrichten → KI-Parser** den OpenRouter-Key eintragen und Limits/Modelle prüfen. Das `default`-Template ist direkt editierbar; die serverseitigen Prompt-Injection- und Schema-Schutzregeln bleiben unveränderlich angehängt. Ohne KI-Parser ist kein OpenRouter-Key nötig.
-5. Auf dem Dashboard **Start Forwarder** anklicken. Telefon, Telegram-Code, E-Mail-Code und optionale 2FA werden ausschließlich im Web-Dialog abgefragt und nicht persistiert.
+3. Im Builder **Betrieb → System** öffnen, Telegram API ID und den 32-stelligen API Hash sowie bei KI-Nutzung den OpenRouter-Key write-only speichern. Dort auch das Routing starten. Telefon, Telegram-Code, E-Mail-Code und optionale 2FA werden ausschließlich im Web-Dialog abgefragt und nicht persistiert.
+4. Über **Baustein** einen Kanal, Filter, Parser, Schema, Vertrag, Strategie, Positionsgröße und Börsenkonto erstellen oder eine veröffentlichte Version wiederverwenden. Die Karten von links nach rechts verbinden. Erst vollständige Pfade sind ausführbar; ein Kanal darf in mehrere Kontopfade verzweigen.
+5. Unter **Betrieb → Konten** Paper, Hyperliquid, Bybit oder Kraken Futures anlegen, das kontoweite Positionslimit setzen und das Konto prüfen. Danach unter **Betrieb → Live** reconciliieren und die Ausführung bewusst aktivieren.
 6. Betriebszustand prüfen:
 
    ```bash
@@ -101,7 +101,7 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
 
 `healthz` darf bereits während der Einrichtung grün sein; `readyz` wird erst nach vollständiger Konfiguration, Telegram-Anmeldung und aktivem Routing grün. Der dauerhafte lokale Admin-Token bleibt im Secret-Volume gültig und wird daraus niemals erneut an den Browser zurückgegeben. Bei aktiviertem Compose-Local-Trust ersetzt ein automatisch erzeugter, pro Prozess begrenzter Session-Token die manuelle Bearer-Eingabe. Remote-Zugriffe erhalten diesen Vertrauenspfad nicht und benötigen Tailscale-Identity, OIDC oder einen explizit verwalteten Bearer-Key. Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System & Backup → API- und Bearer-Keys** erzeugt, rotiert oder deaktiviert und jeweils nur einmal angezeigt.
 
-Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verkettete Audit-Logs und verifizierte lokale Backups. Sämtliche Runtime-/Enterprise-Parameter – OIDC, externe Origin, Remote-Audit, verschlüsselte Off-site-Backups, Retention, Kapazitätsgrenzen und Timeouts – werden unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** gespeichert und über **Container kontrolliert neu starten** aktiviert. Enterprise-Modus erzwingt OIDC, deaktiviert Local Trust und verlangt unveränderlichen Remote-Audit-Trail sowie verschlüsselte, rücklesbar verifizierte Off-host-Backups.
+Im Standalone-Modus verwendet das Dashboard integrierten lokalen Zugriff, verkettete Audit-Logs und verifizierte lokale Backups. Sämtliche Runtime-/Enterprise-Parameter – OIDC, externe Origin, Remote-Audit, verschlüsselte Off-site-Backups, Retention, Kapazitätsgrenzen und Timeouts – werden unter **Betrieb → System** gespeichert und über **Kontrolliert neu starten** aktiviert. Enterprise-Modus erzwingt OIDC, deaktiviert Local Trust und verlangt unveränderlichen Remote-Audit-Trail sowie verschlüsselte, rücklesbar verifizierte Off-host-Backups.
 
 ### Leerer Auslieferungszustand und vorhandene Docker-Volumes
 
@@ -118,28 +118,27 @@ docker compose up --build -d
 
 ### Trading vollständig im Web einrichten
 
-1. Eine neue Installation enthält **keine** Konten, Paper-Bilanz, Signalverträge, Signal-Schema-Profile, Strategien, Routen, Kanäle oder MCP-Agenten. Unter **Trading → Verträge** zuerst einen eigenen Vertrag erstellen, testen und publizieren.
-2. Unter **Trading → Strategien** ein eigenes Signal-Schema-Profil mit dem publizierten Vertrag und einem Parser-Template verknüpfen und danach eine Strategie erstellen und publizieren. Publizierte oder archivierte Vertragsversionen lassen sich nach expliziter Bestätigung endgültig löschen, sobald kein Signal-Schema-Profil mehr darauf verweist. Aktive Profile schützen ihren Vertrag gegen Archivierung; unbekannte, deaktivierte oder nicht publizierte Verknüpfungen bleiben fail-closed. Die adaptive TP-Halbierungsstaffel funktioniert automatisch mit 1 bis 20 Signal-Targets; das adaptive SL-Nachziehen setzt nach TP1/TP2 Break-even und danach den Stop auf TP(i-2).
-3. Unter **Trading → Börsenkonten** Hyperliquid oder Bybit wählen, Testnet/Live bestimmen und die Keys eingeben. Paper Trading ist optional: Dazu ausdrücklich `paper` wählen und eine eigene Startbilanz eingeben; es gibt weder ein vorinstalliertes Paper-Konto noch ein voreingestelltes Guthaben. Die UI zeigt danach nur Konfigurations- und Verifikationsstatus; Keys werden nie zurückgelesen. Hyperliquid erwartet einen dedizierten API-Wallet Private Key plus Master-Wallet-Adresse, Bybit einen API-Key mit ausschließlich erforderlichen Futures-Handelsrechten. Withdrawal-Rechte sind nicht erforderlich und dürfen nicht vergeben werden.
-4. Unter **Trading → Kanal-Routing** jeden Telegram-Quellkanal genau einer publizierten Strategieversion und einem aktivierten Konto zuordnen. Kanal A, B und C können gleichzeitig unterschiedliche Strategien/Konten ausführen; dasselbe Konto/Symbol bleibt exklusiv bei einer aktiven Position.
-5. Unter **Trading → Betrieb** zuerst reconciliieren und dann die automatische Ausführung aktivieren. Für Echtgeld muss einmal exakt `ENABLE LIVE TRADING` bestätigt werden. Danach läuft die freigegebene Strategie ohne Approval pro Einzeltrade.
-6. **Trades & Risiko** zeigt Intents, Positionen, Entries, TP/SL/Flatten-Orders, Fills, Risk Events und Reconciliation. Unknown Orders, fremde Positionen oder fehlender Protective Stop aktivieren fail-closed die Sperre und machen `/readyz` rot.
+1. Eine neue Installation enthält **keine** Konten, Paper-Bilanz, Signalverträge, Signal-Schema-Profile, Strategien, Workflows, Kanäle oder MCP-Agenten. Im Builder werden alle fachlichen Objekte als Bausteine erstellt oder aus der Bibliothek wiederverwendet.
+2. Ein vollständiger Pfad lautet grundsätzlich `Kanal → Filter → Parser → Schema → Vertrag → Strategie → Sizing → optional adaptives Risiko → Konto → optional Ausgabe`. Direkte Kanten dürfen Stufen überspringen; die erforderlichen Typen müssen im Pfad trotzdem vorhanden sein. Unvollständige Pfade bleiben inert.
+3. Unter **Betrieb → Konten** Hyperliquid, Bybit oder Kraken Futures wählen, Testnet/Live bestimmen und die Keys eingeben. Paper Trading ist optional und benötigt eine eigene Startbilanz. Zugangsdaten werden nie zurückgelesen. Withdrawal-Rechte sind nicht erforderlich und dürfen nicht vergeben werden.
+4. Das maximale Positionslimit von 1 bis 20 wird am Börsenkonto festgelegt und umfasst alle Strategien, Kanäle und Workflowpfade dieses Kontos. Ein Kanal kann gleichzeitig zu mehreren Konten führen; jeder Zweig darf eigenes Sizing und eigenes adaptives Risiko besitzen.
+5. Unter **Betrieb → Live** zuerst alle aktivierten Konten reconciliieren und dann die automatische Ausführung aktivieren. Für Echtgeld muss einmal exakt `ENABLE LIVE TRADING` bestätigt werden. Danach läuft jeder vollständige, freigegebene Pfad ohne Einzelapproval.
+6. **Betrieb → Journal/Analyse/Logs** zeigt Intents, Positionen, Entries, TP/SL/Flatten-Orders, Fills, Risk Events, Kanal-/Börsenleistung und Reconciliation. Unknown Orders, fremde Positionen oder fehlender Protective Stop sperren neue Entries fail-closed.
 
-Private Order-, Execution- und Positions-WebSockets sowie öffentliche Ticker-/Kerzen-Streams von Bybit und Hyperliquid laufen im offiziellen SDK-Sidecar. Zustandsändernde Events lösen unmittelbar einen erzwungenen Exchange-Abgleich aus; ausschließlich der danach gelesene REST-Snapshot darf lokalen Trading-Zustand ändern. Cursor-Lücken oder Stream-Ausfälle markieren den Stream als degradiert, lassen die periodische REST-Schutzschleife aber unverändert aktiv.
+Private Order-, Trade- und Positions-Streams sowie öffentliche Marktdaten von Hyperliquid, Bybit und Kraken Futures laufen über CCXT Pro. Zustandsändernde Events lösen unmittelbar einen erzwungenen Exchange-Abgleich aus; ausschließlich der danach über CCXT REST gelesene Snapshot darf lokalen Trading-Zustand ändern. Cursor-Lücken oder Stream-Ausfälle markieren den Stream als degradiert, lassen die periodische REST-Schutzschleife aber unverändert aktiv.
 
-Die Anwendung führt keinen beliebigen in der UI eingegebenen Code aus. „Plugins“ sind strikt validierte, versionierte deklarative Strategien; ein neuer grundlegend anderer Algorithmus benötigt eine getestete Engine-Version. Exchange-Zugriffe laufen ausschließlich über das interne Sidecar mit den offiziellen SDKs `hyperliquid-python-sdk` und `pybit`; das Sidecar besitzt keinen Host-Port.
+Die Anwendung führt keinen beliebigen in der UI eingegebenen Code aus. Strategien, Verträge und Workflows sind strikt validiert und versioniert; ein grundlegend anderer Algorithmus benötigt eine getestete Engine-Version. Exchange-Zugriffe laufen ausschließlich über das interne, nicht am Host veröffentlichte CCXT-Sidecar. CCXT ist exakt gepinnt; ein Upgrade benötigt erneut Contract-, Testnet- und Reconciliation-Nachweise.
 
 Die Strategie bestimmt pro Kanalroute, ob **alle**, **keine** oder nur eine explizite Liste normalisierter Symbole gehandelt werden darf. Bei **Alle** entscheidet die ausgewählte Börse verbindlich über Marktverfügbarkeit; unbekannte oder nicht handelbare Symbole werden vor einer Order abgewiesen.
 
 ### Bedienoberfläche
 
-- **Cockpit**: Kill-Switch, Execution-/Live-/Paper-Zustand, aktive Positionen mit PnL, letzter Signalstrom und Notfallaktionen.
-- **Analytics**: Equity-Kurve, Drawdown, tägliche/wöchentliche Auswertung, Kanalranking, Slippage-/Exchange-Vergleich, Signal-zu-Ausführungs-Latenz und Erwartungswert-Simulation.
-- **Trade Journal**: unter **Trading → Journal** filterbare Trade-Historie mit Signal-, Schema-, Vertrags- und Strategie-Provenienz, Orders/Fills/Gebühren/PnL, Review-Notizen, Tags und Bewertung. CSV-/JSON-Downloads redigieren Telegram-PII und schützen CSV-Zellen vor Formelausführung.
-- **Dynamisches Kanalrisiko**: je Telegram-Kanal `fixed`, `shadow` oder `automatic`, gestaffelte Risikoprozentwerte, Lookback, Mindest-Trades, Gewinn-/Verlustschwellen, automatische Reduktion/Sperre sowie manuelle Sperre/Stufenfixierung. Die Strategieobergrenze und alle globalen Safety-Gates bleiben zwingend.
+- **Workflow-Arbeitsfläche**: spaltenweise Karten, typisierte Verbindungen, Suche, Mini-Map, Trockenlauf und atomare Revisionen. Ein Klick auf eine Karte öffnet ihren vollständigen Editor.
+- **Betrieb → Live/Konten**: Kill-Switch, Execution-/Live-/Paper-Zustand, kontoübergreifende Limits, Reconciliation, Zugangsdaten-Rotation und Notfallaktionen.
+- **Betrieb → Analyse/Journal**: Equity, Drawdown, tägliche/wöchentliche Auswertung, Kanalranking, Slippage-/Börsenvergleich, Latenz sowie filterbare Trade-Provenienz.
+- **Adaptives Risiko als Pfadbaustein**: gestaffelte Prozentwerte, Lookback, Mindest-Trades, Gewinn-/Verlustschwellen, automatische Reduktion/Sperre und manuelle Sperre. Zustand und Performance werden pro Kanal, Konto und logischem Baustein geführt.
 - **Logs**: zusammenhängender Live-Terminalstrom mit 20.000 Zeilen Ringpuffer, Freitext-/Regex-Suche und virtueller Darstellung; keine Level-Filter zerreißen Abläufe.
-- **Command Palette**: `Strg+K` beziehungsweise `⌘K` öffnet Navigation, Verträge, Kanäle, Positionen und erlaubte Schnellaktionen.
-- **Monochrom-Design**: Status wird durch Text, Punkte, Konturen und invertierte Auswahlzustände vermittelt, nicht ausschließlich durch Farbe.
+- **Betrieb → Backups/MCP/System**: Restore, Agentenrechte/-Vorschläge, Telegram-Anmeldung, Remote-Zugriff, Secrets und Enterprise-Parameter bleiben im selben Interface erreichbar.
 
 ### Sicherer Remote-Zugriff und MCP
 

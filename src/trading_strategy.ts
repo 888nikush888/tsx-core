@@ -15,7 +15,7 @@ export function signalSchemaIdentifier(value: unknown, label = 'Signal schema id
 }
 
 export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   allowedSignalSchemas: ['standard', 'cryptodanielvip', 'loma'],
   allowedSymbols: [],
   allowedSides: ['LONG', 'SHORT'],
@@ -41,7 +41,6 @@ export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
     closeRemainderAtLastTarget: true,
   },
   safety: {
-    maxConcurrentPositions: 1,
     maxDailyLossMode: 'absolute',
     maxDailyLoss: '100',
     maxSlippagePercent: '0.5',
@@ -79,7 +78,7 @@ function exactKeys(value: Record<string, any>, name: string, keys: string[]): vo
 function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
   'schemaVersion' | 'allowedSignalSchemas' | 'allowedSymbols' | 'allowedSides'
 > {
-  if (value.schemaVersion !== 1 && value.schemaVersion !== 2) throw new Error('Unsupported strategy schema version.');
+  if (![1, 2, 3].includes(value.schemaVersion)) throw new Error('Unsupported strategy schema version.');
   if (!Array.isArray(value.allowedSignalSchemas) || value.allowedSignalSchemas.some(schema => typeof schema !== 'string')) {
     throw new Error('allowedSignalSchemas must be an array of strings.');
   }
@@ -113,7 +112,7 @@ function validateEntry(input: unknown): StrategyConfiguration['entry'] {
   };
 }
 
-function validateSizing(input: unknown, schemaVersion: 1 | 2): StrategyConfiguration['sizing'] {
+function validateSizing(input: unknown, schemaVersion: 1 | 2 | 3): StrategyConfiguration['sizing'] {
   const value = object(input, 'sizing');
   exactKeys(value, 'sizing', [
     'positionSizingMode', 'riskPerTradePercent', 'maxAdaptiveRiskPercent', 'maxPositionNotional', 'maxLeverage',
@@ -181,19 +180,23 @@ function validateExits(input: unknown): StrategyConfiguration['exits'] {
   };
 }
 
-function validateSafety(input: unknown): StrategyConfiguration['safety'] {
+function validateSafety(input: unknown, schemaVersion: 1 | 2 | 3): StrategyConfiguration['safety'] {
   const value = object(input, 'safety');
-  exactKeys(value, 'safety', [
-    'maxConcurrentPositions', 'maxDailyLossMode', 'maxDailyLoss', 'maxSlippagePercent',
+  const supportedKeys = [
+    'maxDailyLossMode', 'maxDailyLoss', 'maxSlippagePercent',
     'entryOrderTtlSeconds', 'requireProtectiveStop',
-  ]);
+  ];
+  if (schemaVersion < 3) supportedKeys.unshift('maxConcurrentPositions');
+  exactKeys(value, 'safety', supportedKeys);
   if (value.requireProtectiveStop !== true) throw new Error('Protective stops are mandatory.');
   const maxDailyLossMode = value.maxDailyLossMode ?? 'absolute';
   if (!['absolute', 'equity_percent'].includes(maxDailyLossMode as string)) {
     throw new Error('safety.maxDailyLossMode must be absolute or equity_percent.');
   }
   return {
-    maxConcurrentPositions: integer(value.maxConcurrentPositions, 'safety.maxConcurrentPositions', 1, 20),
+    ...(schemaVersion < 3
+      ? { maxConcurrentPositions: integer(value.maxConcurrentPositions, 'safety.maxConcurrentPositions', 1, 20) }
+      : {}),
     maxDailyLossMode: maxDailyLossMode as 'absolute' | 'equity_percent',
     maxDailyLoss: decimal(value.maxDailyLoss, {
       positive: true,
@@ -217,7 +220,7 @@ export function validateStrategyConfiguration(input: unknown): StrategyConfigura
     entry: validateEntry(value.entry),
     sizing: validateSizing(value.sizing, access.schemaVersion),
     exits: validateExits(value.exits),
-    safety: validateSafety(value.safety),
+    safety: validateSafety(value.safety, access.schemaVersion),
   };
 }
 

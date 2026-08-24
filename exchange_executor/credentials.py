@@ -63,10 +63,10 @@ class CredentialStore:
             if not re.fullmatch(r"0x[0-9a-fA-F]{40}", str(value.get("walletAddress", ""))):
                 raise CredentialError("Hyperliquid wallet address is invalid.")
             return
-        if exchange == "bybit":
+        if exchange in {"bybit", "krakenfutures"}:
             for field in ("apiKey", "apiSecret"):
                 secret = value.get(field)
-                if not isinstance(secret, str) or not 8 <= len(secret) <= 128 or any(char in secret for char in "\r\n\0"):
-                    raise CredentialError(f"Bybit {field} is invalid.")
+                if not isinstance(secret, str) or not 8 <= len(secret) <= 256 or any(char in secret for char in "\r\n\0"):
+                    raise CredentialError(f"{exchange} {field} is invalid.")
             return
         raise CredentialError("Unsupported exchange credentials.")

@@ -122,7 +122,7 @@ export const DEFAULT_CONFIG: Config = {
   xmlParsing: {
     enabled: false,
     externalDataPolicyAccepted: false,
-    saveToFile: true,
+    saveToFile: false,
     forwardXmlToTarget: false,
     signalsDir: './signals',
     sourceTemplates: {},

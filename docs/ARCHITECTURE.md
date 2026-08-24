@@ -14,7 +14,7 @@ flowchart LR
   DB[("SQLite State")] --- O
   B["Backup Scheduler"] --> DB
   R["Bounded Retention"] --> DB
-  W["Loopback Dashboard: Cockpit / Analytics / Logs"] --> F
+  W["Loopback Visual Workflow Builder + Betrieb"] --> F
   M["Loopback Health/Metrics"] --> F
   TS["Tailscale Serve: tailnet-only"] --> W
   RP["Optional TLS/OIDC Reverse Proxy"] --> W
@@ -25,16 +25,19 @@ flowchart LR
   W --> AT["Local hash-chained audit"]
   AT --> AG["Immutable HTTPS audit gateway"]
   F --> TC["Trading Core + Risk Engine"]
-  W --> SC["Versioned declarative signal contracts + profiles"]
+  W --> WF["Immutable workflow resources + atomic revisions"]
+  WF --> SC["Versioned declarative signal contracts + profiles"]
   SC --> AI
   SC --> TC
   SC --> DB
   TC --> DB
-  TC --> EX["Internal official-SDK executor"]
-  EX --> HL["Hyperliquid official API"]
-  EX --> BY["Bybit V5 official API"]
-  HL --> WS["Normalized bounded WebSocket event stream"]
+  TC --> EX["Internal CCXT REST + CCXT Pro executor"]
+  EX --> HL["Hyperliquid"]
+  EX --> BY["Bybit"]
+  EX --> KR["Kraken Futures"]
+  HL --> WS["Normalized bounded CCXT Pro event stream"]
   BY --> WS
+  KR --> WS
   WS --> TC
   TC --> J["Trade Journal + redacted export"]
   A["MCP Agent"] --> MS["Runtime-gated loopback MCP service"]
@@ -56,9 +59,9 @@ Trust Boundaries liegen an Telegram/TDLib, der externen KI-API, OIDC/JWKS bezieh
 | Core | `queue.ts`, `filters.ts`, `signal_schema.ts`, `signal_contract.ts`, `tdlib_retry.ts`, `delivery_tracker.ts`, `dashboard_auth.ts`, `crash_guard.ts`, `metrics_tracker.ts` | deterministische Regeln, Vertragsinterpreter und Zustandsmaschinen |
 | State/Config | `db.ts`, `config.ts`, `env.ts`, `runtime_settings.ts`, `secret_store.ts` | persistente Verträge, Migrationen und Konfigurationsgrenzen |
 | Adapter | `signal_parser.ts`, `web_server.ts`, `metrics.ts`, `logger.ts`, `backup.ts`, `backup_replication.ts`, `retention.ts`, `audit_trail.ts` | externe Provider, HTTP, Operator und Filesystem |
-| Trading | `trading_types.ts`, `trading_strategy.ts`, `trading_risk.ts`, `trading_channel_risk.ts`, `trading_telemetry.ts`, `trading_engine.ts`, `trading_repository.ts`, `trading_runtime.ts`, `trading_web_control.ts`, `trading_credentials.ts`, `trade_journal.ts` | Verträge/Profile, adaptive Kanalgewichtung, Telemetrie, exakte Planung, Lifecycle, Reconciliation und Journal |
+| Trading | `workflow_repository.ts`, `trading_types.ts`, `trading_strategy.ts`, `trading_risk.ts`, `trading_channel_risk.ts`, `trading_telemetry.ts`, `trading_engine.ts`, `trading_repository.ts`, `trading_runtime.ts`, `trading_web_control.ts`, `trading_credentials.ts`, `trade_journal.ts` | visuelle Revisionen und Fan-out, Verträge/Profile, pfadisoliertes adaptives Risiko, kontoweite Kapazität, Planung, Lifecycle, Reconciliation und Journal |
 | Agenten | `mcp_repository.ts`, `mcp_control_bridge.ts`, `mcp_server.ts` | gehashte Agentenidentitäten, dauerhafte Minimalrechte, Preflight/Freigabe-Vorschläge, Streamable HTTP, Ereignis-Push und auditierte Befehlsübergabe |
-| Exchange | `official_exchange.ts`, `exchange_stream_repository.ts`, `paper_exchange.ts`, `exchange_executor/` | Paper-Simulation, offizielle Hyperliquid-/Bybit-SDK-Grenze sowie deduplizierte Streambeschleunigung |
+| Exchange | `ccxt_exchange.ts`, `exchange_stream_repository.ts`, `paper_exchange.ts`, `exchange_executor/` | Paper-Simulation, CCXT-REST-Grenze, CCXT-Pro-Beschleunigung und fail-closed Implementierungs-Allowlist für Hyperliquid, Bybit und Kraken Futures; externe Testnet-/Produktionszertifizierung bleibt ein separates Release-Gate |
 
 Erlaubte Richtung: `Entry Point → Adapter → Core/State`. Core importiert keine Adapter oder Entry Points. Kein Modul außerhalb des Composition Root importiert einen Entry Point. `db.ts` importiert kein internes Modul. Zirkuläre Imports sind verboten.
 
@@ -83,17 +86,19 @@ Konfiguration und Runtime-Einstellungen werden atomar via temporärer Datei, `fs
 
 ## Trading-Zustandsfluss
 
-Ein Signalvertrag ist ein eigenständiger, versionierter SQLite-Baustein. Seine deklarative Definition beschreibt XML-Pfade und Typen, Entry-/Target-Form, Zusatzfelder, Long-/Short-Geometrie und die gegen die Telegram-Quelle zu erdenden Werte. Entwürfe sind editier- und löschbar; publizierte Versionen bleiben immutable, können archiviert und ohne verbleibende Schema-Profilreferenz nach expliziter Bestätigung endgültig gelöscht werden. Ein benutzerverwaltetes Signal-Schema-Profil verbindet Parser-Template und Vertrag frei miteinander. Unbekannte, deaktivierte oder nicht publizierte Verknüpfungen sind fail-closed. Der XML-Validator akzeptiert für ausführbare Signale normalisierte Großbuchstaben-/Ziffernsymbole; die Strategie bestimmt pro Kanalroute **alle**, **keine** oder eine explizite Allowlist. Die Börsenadapter prüfen die Marktverfügbarkeit vor jeder Order.
+Ein Signalvertrag ist ein eigenständiger, versionierter SQLite-Baustein. Seine deklarative Definition beschreibt XML-Pfade und Typen, Entry-/Target-Form, Zusatzfelder, Long-/Short-Geometrie und die gegen die Telegram-Quelle zu erdenden Werte. Publizierte Versionen bleiben immutable. Im visuellen Workflow bestimmt das Schema die Parserform, während der separat verbundene Vertragsbaustein die konkrete veröffentlichte Definition bestimmt; das im Schema gespeicherte Vertragsfeld bleibt nur der Legacy-Default. Unbekannte, deaktivierte oder nicht publizierte Verknüpfungen sind fail-closed.
 
-Trading-Signale werden nach persistierter Signalvalidierung über eine immutable Kanalroute in einen Trade Intent überführt. Der Intent wird exakt einmal geplant, jede Order besitzt eine deterministische Client-ID, und eine Position wird gemeinsam mit Entry, TP-Staffel und zwingendem Stop persistiert. Im adaptiven TP-Modus halbiert jeder TP bis zum vorletzten das verbleibende Volumen; der letzte schließt den Rest. Im adaptiven SL-Modus folgt nach TP1/TP2 Break-even und danach TP(i-2). Der konfigurierte Alternativmodus verwendet feste TP-Prozente, einen Break-even-Schwellwert und optionales Prozent-Trailing.
+Der aktive Signalfluss ist eine immutable Workflowrevision aus typisierten Ressourcen. Kanäle können nach gemeinsamen Filtern/Parsern in mehrere Kontoäste verzweigen. Jeder Ast besitzt eigene Strategie, Positionsgröße und optional eigenes adaptives Risiko. Identische Parser-/Schema-/Vertrags-/Dedupe-Kombinationen werden einmal ausgeführt und danach aufgefächert. Der Duplikatschutz ist auf den unveränderlichen Hash dieser Parser-Pfadgruppe begrenzt, damit abweichende Parser- oder Vertragszweige desselben Telegram-Pakets unabhängig fan-outen. Unvollständige Pfade sind inert; ausführbare Änderungen werden atomar aktiviert und bei destruktiver Wirkung explizit bestätigt.
+
+Trading-Signale werden nach persistierter Signalvalidierung für jeden vollständigen Workflowast in einen eigenen Trade Intent überführt. Der Intent wird exakt einmal geplant, jede Order besitzt eine deterministische Client-ID, und eine Position wird gemeinsam mit Entry, TP-Staffel und zwingendem Stop persistiert. Das Positionslimit liegt am Börsenkonto und zählt alle aktiven Positionen über Strategien und Kanäle hinweg. Im adaptiven TP-Modus halbiert jeder TP bis zum vorletzten das verbleibende Volumen; der letzte schließt den Rest. Im adaptiven SL-Modus folgt nach TP1/TP2 Break-even und danach TP(i-2).
 
 Teilgefüllte Entries werden bis zur maximal möglichen Entry-Menge geschützt; nach terminaler Füllung werden Stop und TPs exakt auf die reale Position skaliert. Der Reconciler gleicht Orders, Fills und Positionen mit der Exchange ab, passt den Stop an die Restmenge an und verschiebt ihn unabhängig vom Modus nur in Gewinnrichtung. Unbekannte Orderausgänge oder nicht vom System verwaltete Exchange-Exposure sperren neue Entries global.
 
-Private Exchange-WebSockets liefern normalisierte Order-, Execution- und Positionsereignisse; öffentliche Ticker/Kerzen dienen der Beobachtung. Die Streams besitzen pro Konto einen begrenzten Cursorpuffer. Event-Schlüssel deduplizieren Wiederholungen, Cursor-Lücken markieren den Zustand als degradiert. Ein zustandsrelevantes Ereignis darf ausschließlich eine erzwungene REST-Reconciliation vorziehen; es darf niemals direkt den persistierten Order-/Fill-/Positionszustand mutieren. Periodische REST-Reconciliation bleibt auch bei Socket-Ausfall aktiv und autoritativ.
+CCXT Pro liefert normalisierte private Order-, Trade- und Positionsereignisse; öffentliche Ticker/Kerzen dienen der Beobachtung. Die Streams besitzen pro Konto einen begrenzten Cursorpuffer. Event-Schlüssel deduplizieren Wiederholungen, Cursor-Lücken markieren den Zustand als degradiert. Ein zustandsrelevantes Ereignis darf ausschließlich eine erzwungene CCXT-REST-Reconciliation vorziehen; es darf niemals direkt den persistierten Order-/Fill-/Positionszustand mutieren. Periodische REST-Reconciliation bleibt auch bei Socket-Ausfall aktiv und autoritativ.
 
 Das Trade Journal ist eine abgeleitete, read-mostly Sicht über Intents, Signal-/Vertrags-/Strategie-Provenienz, Positionen, Orders, Fills und Execution Events. Nur Review-Notizen, Tags, Bewertung und Review-Status werden separat gespeichert. Exporte hashen Chat-Identitäten, redigieren Quelltext-PII und neutralisieren Tabellenformeln. Ein vorhandener manueller Review schützt die zugehörige Trade-Historie vor operativer Standard-Retention.
 
-Je Quellkanal kann eine feste, beobachtende oder automatische Risikopolice hinterlegt werden. Wöchentliche, aus geschlossenen managed Trades berechnete Evaluationen empfehlen beziehungsweise setzen eine Risikostufe, reduzieren schwache Kanäle oder blockieren sie nach der konfigurierten Serie. Manuelle Sperre und Stufenfixierung haben Vorrang. Das resultierende Kanalrisiko kann die Strategie nur weiter begrenzen, niemals globale Caps, Protective-Stop-Pflicht, Kill-Switch oder Exchange-Reconciliation aufheben.
+Je Workflowpfad kann eine feste, beobachtende oder automatische Risikopolice hinterlegt werden. Wöchentliche, aus geschlossenen managed Trades berechnete Evaluationen empfehlen beziehungsweise setzen eine Risikostufe, reduzieren schwache Pfade oder blockieren sie nach der konfigurierten Serie. Der Zustand ist durch Kanal, Börsenkonto und logischen Risikobaustein isoliert. Manuelle Sperre und Stufenfixierung haben Vorrang; kein Risiko-Baustein kann kontoweite Kapazität, Protective-Stop-Pflicht, Kill-Switch oder Exchange-Reconciliation aufheben.
 
 ## MCP-Kontrollfluss
 

@@ -244,6 +244,24 @@ assert.match(codeowners, /^\*\s+@888nikush888\s*$/m);
 assert.doesNotMatch(workflow, /^\s{2}release:\s*$/m);
 assert.doesNotMatch(workflow, /create-github-app-token|PR risk approval gate|release-governance|pr-risk-publisher/);
 assert.match(sonarCloud, /^sonar\.python\.version=3\.12$/m);
+const sonarPaths = name => sonarCloud.match(new RegExp(`^${name}=(.+)$`, 'm'))?.[1]
+  .split(',').map(value => value.trim()).filter(Boolean) ?? [];
+const sonarSources = sonarPaths('sonar\\.sources');
+const sonarTests = sonarPaths('sonar\\.tests');
+assert.ok(sonarSources.length > 0, 'Sonar production sources must be explicit.');
+assert.ok(sonarTests.length > 0, 'Sonar test sources must be explicit.');
+for (const configuredPath of [...sonarSources, ...sonarTests]) {
+  await access(configuredPath);
+}
+const resolvedSources = sonarSources.map(value => path.resolve(value));
+const resolvedTests = sonarTests.map(value => path.resolve(value));
+for (const sourcePath of resolvedSources) {
+  for (const testPath of resolvedTests) {
+    assert.notEqual(sourcePath, testPath, `Sonar source/test scopes overlap at ${sourcePath}`);
+    assert.equal(testPath.startsWith(`${sourcePath}${path.sep}`), false,
+      `Sonar test path ${testPath} is nested below source path ${sourcePath}`);
+  }
+}
 assert.match(editorConfig, /^charset = utf-8$/m);
 assert.match(gitAttributes, /^\* text=auto$/m);
 for (const removedPath of [

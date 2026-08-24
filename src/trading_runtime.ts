@@ -1,5 +1,5 @@
 import { getDatabase } from './db.js';
-import { updateTradingRuntimeState } from './trading_repository.js';
+import { updateTradingAccountConfiguration, updateTradingRuntimeState } from './trading_repository.js';
 import { TradingEngine } from './trading_engine.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
 import {
@@ -22,8 +22,9 @@ export class TradingRuntime {
   private readonly streamCursors = new Map<string, number>();
   private readonly streamDirtyAccounts = new Set<string>();
   private readonly streamFailureLogState = new Map<string, { message: string; loggedAt: number }>();
-  private resumeEntriesAfterProtectionRecovery = false;
-  private successfulProtectionRecoveryCycles = 0;
+  private readonly reconciliationRecoveryEvidence = new Map<string, number>();
+
+  private static readonly TRANSIENT_RECONCILIATION_PREFIX = 'Transient reconciliation failure:';
 
   constructor(
     private readonly engine: TradingEngine,
@@ -115,15 +116,17 @@ export class TradingRuntime {
     this.streamCursors.clear();
     this.streamDirtyAccounts.clear();
     this.streamFailureLogState.clear();
+    this.reconciliationRecoveryEvidence.clear();
     await markExchangeStreamsStopped();
   }
 
   private async runOnce(startup: boolean): Promise<void> {
     const failures = await this.reconcileAccounts(startup);
     await this.captureEntryExpiryFailure(failures);
-    if (failures.length > 0) await this.failProtectionCycle(startup, failures);
+    if (failures.length > 0) {
+      this.logger(`[TRADING] ${failures.length} account protection task(s) are isolated by account kill switch: ${failures.join('; ')}`);
+    }
     this.protectionHealthy = true;
-    await this.recoverEntriesAfterProtectionFailure();
     if (this.entriesEnabled) {
       await this.assertEntryClockHealthy();
       await this.processPendingEntries();
@@ -131,18 +134,55 @@ export class TradingRuntime {
   }
 
   private async reconcileAccounts(startup: boolean): Promise<string[]> {
-    const accounts = await getDatabase().all<Array<{ id: string }>>(
-      `SELECT id FROM trading_accounts WHERE enabled = 1 AND status = 'ready' ORDER BY created_at`,
+    const accounts = await getDatabase().all<Array<{
+      id: string;
+      kill_switch_active: number;
+      kill_switch_reason: string | null;
+    }>>(
+      `SELECT id, kill_switch_active, kill_switch_reason
+       FROM trading_accounts WHERE enabled = 1 AND status = 'ready' ORDER BY created_at`,
     );
     const failures: string[] = [];
     for (const account of accounts) {
+      const transientRecovery = account.kill_switch_active === 1
+        && account.kill_switch_reason?.startsWith(TradingRuntime.TRANSIENT_RECONCILIATION_PREFIX) === true;
       try {
         const streamTriggered = this.streamDirtyAccounts.delete(account.id);
         await this.engine.reconcileAccount(account.id, {
-          force: startup || streamTriggered || this.resumeEntriesAfterProtectionRecovery,
+          force: startup || streamTriggered || transientRecovery,
         });
+        if (transientRecovery) {
+          const evidence = (this.reconciliationRecoveryEvidence.get(account.id) ?? 0) + 1;
+          if (evidence >= 2) {
+            await updateTradingAccountConfiguration(account.id, {
+              killSwitchActive: false,
+              killSwitchReason: null,
+            });
+            this.reconciliationRecoveryEvidence.delete(account.id);
+            this.logger(`[TRADING] Account ${account.id} recovered after two authoritative reconciliations.`);
+          } else {
+            this.reconciliationRecoveryEvidence.set(account.id, evidence);
+          }
+        } else {
+          this.reconciliationRecoveryEvidence.delete(account.id);
+        }
       } catch (error: any) {
-        failures.push(`${account.id}: ${error?.message || String(error)}`);
+        const message = error?.message || String(error);
+        this.reconciliationRecoveryEvidence.delete(account.id);
+        const current = await getDatabase().get<{
+          kill_switch_active: number;
+          kill_switch_reason: string | null;
+        }>(
+          'SELECT kill_switch_active, kill_switch_reason FROM trading_accounts WHERE id = ?',
+          [account.id],
+        );
+        if (current?.kill_switch_active !== 1) {
+          await updateTradingAccountConfiguration(account.id, {
+            killSwitchActive: true,
+            killSwitchReason: `${TradingRuntime.TRANSIENT_RECONCILIATION_PREFIX} ${message}`.slice(0, 500),
+          }).catch(() => undefined);
+        }
+        failures.push(`${account.id}: ${message}`);
       }
     }
     return failures;
@@ -203,56 +243,6 @@ export class TradingRuntime {
     } catch (error: any) {
       failures.push(`entry-expiry: ${error?.message || String(error)}`);
     }
-  }
-
-  private async failProtectionCycle(startup: boolean, failures: string[]): Promise<never> {
-    if (this.entriesEnabled) this.resumeEntriesAfterProtectionRecovery = true;
-    this.successfulProtectionRecoveryCycles = 0;
-    this.entriesEnabled = false;
-    this.protectionHealthy = false;
-    const cycle = startup ? 'Startup' : 'Periodic';
-    await updateTradingRuntimeState({
-      executionEnabled: false,
-      killSwitchActive: true,
-      killSwitchReason: `${cycle} reconciliation failed for ${failures.length} protection task(s)`,
-    });
-    throw new Error(`${cycle} trading protection failed: ${failures.join('; ')}`);
-  }
-
-  private async recoverEntriesAfterProtectionFailure(): Promise<void> {
-    if (!this.resumeEntriesAfterProtectionRecovery) return;
-    this.successfulProtectionRecoveryCycles += 1;
-    if (this.successfulProtectionRecoveryCycles < 2) return;
-    const state = await getDatabase().get<{
-      execution_enabled: number;
-      kill_switch_active: number;
-      kill_switch_reason: string | null;
-    }>(
-      `SELECT execution_enabled, kill_switch_active, kill_switch_reason
-       FROM trading_runtime_state WHERE singleton_id = 1`,
-    );
-    if (!state?.kill_switch_active || !/^(?:Startup|Periodic) reconciliation failed for \d+ protection task\(s\)$/.test(
-      state.kill_switch_reason || '',
-    )) {
-      this.resumeEntriesAfterProtectionRecovery = false;
-      this.successfulProtectionRecoveryCycles = 0;
-      return;
-    }
-    const critical = await getDatabase().get<{ count: number }>(
-      `SELECT COUNT(*) AS count FROM trading_risk_events
-       WHERE severity = 'critical' AND acknowledged_at IS NULL`,
-    );
-    if (Number(critical?.count || 0) > 0) return;
-    await this.assertEntryClockHealthy();
-    await updateTradingRuntimeState({
-      executionEnabled: true,
-      killSwitchActive: false,
-      killSwitchReason: null,
-    });
-    this.entriesEnabled = true;
-    this.resumeEntriesAfterProtectionRecovery = false;
-    this.successfulProtectionRecoveryCycles = 0;
-    this.logger('[TRADING] Protection recovered after two authoritative reconciliations; entries resumed.');
   }
 
   private async processPendingEntries(): Promise<void> {

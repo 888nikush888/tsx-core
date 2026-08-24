@@ -16,7 +16,7 @@ Die wichtigsten Oberflächen sind:
 
 | Oberfläche | Standard | Zweck | Produktionsgrenze |
 | --- | --- | --- | --- |
-| Web-Dashboard/API | `127.0.0.1:8080` | Cockpit, Analytics, Verträge, Konfiguration und kontrollierte Aktionen | Bevorzugt Tailscale Serve im Tailnet; Enterprise alternativ/zusätzlich TLS/OIDC |
+| Web-Dashboard/API | `127.0.0.1:8080` | visueller Workflow-Builder, Betrieb, Analytics, Journal, Backups, MCP und System | Bevorzugt Tailscale Serve im Tailnet; Enterprise alternativ/zusätzlich TLS/OIDC |
 | MCP Streamable HTTP | `127.0.0.1:8091` | persistent schaltbare Agenten-Tools, Events und Kontrollanforderungen | Standarddienst, Werkseinstellung `disabled`, Bearer pro Agent, niemals Funnel |
 | Prometheus | `127.0.0.1:9100` | `/metrics`, `/healthz`, `/readyz` | Nur intern oder über read-only Monitoring-Zugriff |
 | SQLite | `session_data/forwarder.db` | Inbox/Outbox, Verträge, Trading, Kanalrisiko, Telemetrie, MCP und Migrationen | Nie live kopieren oder manuell bearbeiten |
@@ -364,7 +364,7 @@ Ein Gate darf nur über einen gültigen, höchstens 30 Tage laufenden Record unt
 
 ## Trading-Betrieb
 
-Die vollständige Web-Anleitung für visuell verwaltete Signalverträge, frei verknüpfbare Schema-Profile, pro Strategie wählbare Symbolregeln (alle, keine oder Allowlist), dynamisches Kanalrisiko, Paper, Strategieversionen, Hyperliquid/Bybit, paralleles Kanal-Routing, adaptive TP-Staffelung, SL-Nachziehen, Cockpit/Analytics, Live-Gate und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading benötigt zwei untrennbare Images: die TypeScript-Control-Plane und den internen offiziellen-SDK-Executor. Der Monitoring-Betrieb ergänzt das gehärtete Alertmanager-Image als dritte geprüfte Komponente.
+Die vollständige Web-Anleitung für visuelle Workflowrevisionen, wiederverwendbare Signalbausteine, pro Pfad wählbare Strategie/Sizing/Risikologik, kontoweite Kapazität, Paper, Hyperliquid, Bybit, Kraken Futures, parallelen Konto-Fan-out, adaptive TP-Staffelung, SL-Nachziehen, Analytics, Live-Gates und Notfallbetrieb steht in [TRADING_GUIDE.md](TRADING_GUIDE.md). Trading benötigt zwei untrennbare Images: die TypeScript-Control-Plane und den internen gepinnten CCXT-/CCXT-Pro-Executor. Der Monitoring-Betrieb ergänzt das gehärtete Alertmanager-Image als dritte geprüfte Komponente.
 
 ## 14. Enterprise-Nachweise und aktuelle offene Punkte
 

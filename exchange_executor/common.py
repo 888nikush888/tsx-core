@@ -106,7 +106,7 @@ def account_request(payload: dict[str, Any]) -> dict[str, str]:
     account_id = account.get("id")
     exchange = account.get("exchange")
     mode = account.get("mode")
-    if not isinstance(account_id, str) or exchange not in {"hyperliquid", "bybit"} or mode not in {"testnet", "live"}:
+    if not isinstance(account_id, str) or exchange not in {"hyperliquid", "bybit", "krakenfutures"} or mode not in {"testnet", "live"}:
         raise ExchangeContractError("Invalid account contract.")
     return {"id": account_id, "exchange": exchange, "mode": mode}
 

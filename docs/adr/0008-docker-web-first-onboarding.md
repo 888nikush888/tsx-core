@@ -22,7 +22,7 @@ TDLib-Anforderungen für Telefonnummer, Code, E-Mail, 2FA und Gerätebestätigun
 - Container-Neuerstellung erhält alle benannten Volumes; `docker compose down -v` ist als destruktiver Total-Reset dokumentiert.
 - Enterprise-Gates können durch den Standalone-Komfortmodus nicht umgangen werden.
 
-ADR 0009 konkretisiert den später hinzugefügten bevorzugten anwendungsweiten Factory Reset. `docker compose down -v` bleibt lediglich der grobe Docker-Volume-Reset; für den Normalbetrieb ist die vorab geprüfte Web-Aktion unter **System & Backup → Factory Reset** maßgeblich.
+ADR 0009 konkretisiert den später hinzugefügten bevorzugten anwendungsweiten Factory Reset. `docker compose down -v` bleibt lediglich der grobe Docker-Volume-Reset; für den Normalbetrieb ist die vorab geprüfte Web-Aktion unter **Betrieb → Backups/System → Factory Reset** maßgeblich.
 
 Ergänzung 26.07.2026 (durch die folgende Ergänzung ersetzt): Der Web-first-Standard startete zunächst nur `forwarder` und `exchange-executor`; MCP war ein separates Compose-Profil.
 

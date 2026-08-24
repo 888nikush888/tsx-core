@@ -22,6 +22,7 @@ export interface VerifiedExternalAccount {
   equity: string;
   externalAccountId: string;
   accountFingerprint: string;
+  capabilities?: Record<string, unknown>;
 }
 
 function executorUrl(): string {
@@ -110,11 +111,11 @@ function assertStreamBatch(value: unknown): ExchangeStreamBatch {
   return batch as ExchangeStreamBatch;
 }
 
-export class OfficialExchangeAdapter implements TradingExchangeAdapter {
-  readonly exchange: 'hyperliquid' | 'bybit';
+export class CcxtExchangeAdapter implements TradingExchangeAdapter {
+  readonly exchange: 'hyperliquid' | 'bybit' | 'krakenfutures';
   private readonly baseUrl: string;
 
-  constructor(exchange: 'hyperliquid' | 'bybit', private readonly credentials: TradingCredentialStore) {
+  constructor(exchange: 'hyperliquid' | 'bybit' | 'krakenfutures', private readonly credentials: TradingCredentialStore) {
     this.exchange = exchange;
     this.baseUrl = executorUrl();
   }
@@ -125,6 +126,10 @@ export class OfficialExchangeAdapter implements TradingExchangeAdapter {
       || typeof result.externalAccountId !== 'string' || !/^[a-f0-9]{64}$/.test(result.externalAccountId)
       || result.accountFingerprint !== result.externalAccountId) {
       throw new Error('Exchange executor returned an invalid verified-account identity contract.');
+    }
+    if (result.capabilities !== undefined && (!result.capabilities || typeof result.capabilities !== 'object'
+      || Array.isArray(result.capabilities))) {
+      throw new Error('Exchange executor returned invalid account capabilities.');
     }
     return result as unknown as VerifiedExternalAccount;
   }

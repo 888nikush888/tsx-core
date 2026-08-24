@@ -17,10 +17,16 @@ import {
   recordTradingExecutionEvent,
 } from '../src/trading_telemetry.js';
 import {
+  getWorkflowAdaptiveRiskAnalytics,
   listChannelRiskEvaluations,
   resolveEffectiveChannelRisk,
+  resolveWorkflowAdaptiveRisk,
   upsertChannelRiskPolicy,
 } from '../src/trading_channel_risk.js';
+import {
+  createWorkflowResourceDraft,
+  publishWorkflowResource,
+} from '../src/workflow_repository.js';
 
 async function insertIntentFixture({
   id,
@@ -37,10 +43,10 @@ async function insertIntentFixture({
   await saveSignal(`signal-${id}`, channelId, Number(id.replace(/\D/g, '')) || 1, '<signal/>', `<signal id="${id}"/>`);
   await getDatabase().run(
     `INSERT INTO trading_trade_intents (
-       id, source_signal_id, channel_id, strategy_version_id, account_id,
+       id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id, account_id,
        exchange, mode, symbol, side, status, signal_json, plan_json, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, 'paper', 'paper', 'BTCUSD', 'LONG', ?, '{}', ?, ?, ?)`,
-    [id, `signal-${id}`, channelId, strategyVersionId, accountId, status, planJson, closedAt - 2_000, closedAt],
+     ) VALUES (?, ?, ?, ?, ?, ?, 'paper', 'paper', 'BTCUSD', 'LONG', ?, '{}', ?, ?, ?)`,
+    [id, `signal-${id}`, `signal-${id}`, channelId, strategyVersionId, accountId, status, planJson, closedAt - 2_000, closedAt],
   );
   if (realizedPnl !== undefined) {
     await getDatabase().run(
@@ -82,6 +88,34 @@ function policyInput(channelId, overrides = {}) {
     weakWeeksBeforeBlock: 2,
     ...overrides,
   };
+}
+
+function workflowRiskConfiguration(overrides = {}) {
+  return {
+    enabled: true,
+    mode: 'automatic',
+    tiers: [{ riskPercent: '0.5' }, { riskPercent: '1' }, { riskPercent: '1.5' }],
+    startingTier: 1,
+    lockedTier: null,
+    lookbackWeeks: 1,
+    minimumClosedTrades: 3,
+    lossThresholdPercent: '0.1',
+    profitThresholdPercent: '0.1',
+    weakChannelAction: 'none',
+    weakWeeksBeforeBlock: 2,
+    manuallyBlocked: false,
+    ...overrides,
+  };
+}
+
+async function publishedAdaptiveRiskResource(name, configuration, resourceId) {
+  const draft = await createWorkflowResourceDraft({
+    resourceId,
+    kind: 'adaptive_risk',
+    name,
+    configuration,
+  });
+  return publishWorkflowResource(draft.id);
 }
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-trading-analytics-'));
@@ -267,6 +301,97 @@ try {
   const evaluations = await listChannelRiskEvaluations();
   assert.ok(evaluations.some(evaluation => evaluation.channelId === 'profit-channel'));
   assert.ok(evaluations.some(evaluation => evaluation.action === 'block'));
+
+  const automaticResource = await publishedAdaptiveRiskResource(
+    'Automatic workflow risk',
+    workflowRiskConfiguration(),
+  );
+  const workflowStrategyConfiguration = structuredClone(strategyConfiguration);
+  workflowStrategyConfiguration.sizing.maxAdaptiveRiskPercent = '10';
+  const automaticInput = {
+    channelId: 'profit-channel',
+    accountId: account.id,
+    adaptiveResourceVersionId: automaticResource.id,
+    configuration: workflowRiskConfiguration(),
+    strategy: workflowStrategyConfiguration,
+    currentEquity: '10000',
+    now: evaluationNow,
+  };
+  const automatic = await resolveWorkflowAdaptiveRisk(automaticInput);
+  assert.equal(automatic.riskPercent, '1.5');
+  assert.equal(automatic.blocked, false);
+  assert.match(automatic.reason, /account/);
+  await resolveWorkflowAdaptiveRisk(automaticInput);
+
+  const shortenedConfiguration = workflowRiskConfiguration({
+    tiers: [{ riskPercent: '0.5' }, { riskPercent: '1' }],
+    minimumClosedTrades: 99,
+  });
+  const shortenedResource = await publishedAdaptiveRiskResource(
+    'Shortened workflow risk',
+    shortenedConfiguration,
+    automaticResource.resourceId,
+  );
+  const shortened = await resolveWorkflowAdaptiveRisk({
+    ...automaticInput,
+    adaptiveResourceVersionId: shortenedResource.id,
+    configuration: shortenedConfiguration,
+  });
+  assert.equal(shortened.riskPercent, '1');
+
+  const shadowConfiguration = workflowRiskConfiguration({ mode: 'shadow', startingTier: 0, minimumClosedTrades: 1 });
+  const shadowResource = await publishedAdaptiveRiskResource('Shadow workflow risk', shadowConfiguration);
+  const shadowWorkflow = await resolveWorkflowAdaptiveRisk({
+    ...automaticInput,
+    channelId: 'neutral-channel',
+    adaptiveResourceVersionId: shadowResource.id,
+    configuration: shadowConfiguration,
+  });
+  assert.equal(shadowWorkflow.riskPercent, strategyConfiguration.sizing.riskPerTradePercent);
+
+  const fixedConfiguration = workflowRiskConfiguration({ mode: 'fixed', lockedTier: 0 });
+  const fixedResource = await publishedAdaptiveRiskResource('Fixed workflow risk', fixedConfiguration);
+  const fixedWorkflow = await resolveWorkflowAdaptiveRisk({
+    ...automaticInput,
+    adaptiveResourceVersionId: fixedResource.id,
+    configuration: fixedConfiguration,
+  });
+  assert.equal(fixedWorkflow.blocked, false);
+  assert.equal(fixedWorkflow.riskPercent, strategyConfiguration.sizing.riskPerTradePercent);
+
+  const blockedConfiguration = workflowRiskConfiguration({
+    weakChannelAction: 'block',
+    weakWeeksBeforeBlock: 1,
+  });
+  const blockedResource = await publishedAdaptiveRiskResource('Blocking workflow risk', blockedConfiguration);
+  const blockedWorkflow = await resolveWorkflowAdaptiveRisk({
+    ...automaticInput,
+    channelId: 'loss-channel',
+    adaptiveResourceVersionId: blockedResource.id,
+    configuration: blockedConfiguration,
+  });
+  assert.equal(blockedWorkflow.blocked, true);
+  assert.match(blockedWorkflow.reason, /consecutive weak evaluations/);
+
+  const manualConfiguration = workflowRiskConfiguration({ mode: 'fixed', manuallyBlocked: true });
+  const manualResource = await publishedAdaptiveRiskResource('Manual workflow block', manualConfiguration);
+  const manualBlock = await resolveWorkflowAdaptiveRisk({
+    ...automaticInput,
+    adaptiveResourceVersionId: manualResource.id,
+    configuration: manualConfiguration,
+  });
+  assert.equal(manualBlock.blocked, true);
+  assert.match(manualBlock.reason, /workflow policy/i);
+
+  await assert.rejects(
+    resolveWorkflowAdaptiveRisk({ ...automaticInput, adaptiveResourceVersionId: 'missing-resource-version' }),
+    /resource is unavailable/,
+  );
+  await assert.rejects(getWorkflowAdaptiveRiskAnalytics(0), /between 1 and 1000/);
+  const workflowAnalytics = await getWorkflowAdaptiveRiskAnalytics();
+  assert.ok(workflowAnalytics.states.some(state => state.resourceName === 'Shortened workflow risk'));
+  assert.ok(workflowAnalytics.evaluations.some(evaluation => evaluation.action === 'block'));
+  assert.ok(workflowAnalytics.evaluations.some(evaluation => evaluation.reason.startsWith('Shadow only:')));
   console.log('Trading analytics and adaptive channel-risk tests passed.');
 } finally {
   await closeDb();

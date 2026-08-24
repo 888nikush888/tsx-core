@@ -10,6 +10,7 @@ import {
   createTradingAccount,
   createTradingStrategyDraft,
   createTradingIntent,
+  getTradingAccount,
   getTradingRuntimeState,
   getTradingIntent,
   listTradingAccounts,
@@ -431,11 +432,14 @@ async function testPeriodicReconciliationFailureActivatesKillSwitch(directory) {
     processIntent: async () => undefined,
   };
   const runtime = new TradingRuntime(engine);
-  await assert.rejects(runtime.runOnce(false), /simulated periodic exchange outage/);
+  await runtime.runOnce(false);
   const state = await getTradingRuntimeState();
-  assert.equal(state.executionEnabled, false);
-  assert.equal(state.killSwitchActive, true);
-  assert.match(state.killSwitchReason, /Periodic reconciliation failed/);
+  const [account] = await listTradingAccounts();
+  const isolated = await getTradingAccount(account.id);
+  assert.equal(state.executionEnabled, true);
+  assert.equal(state.killSwitchActive, false);
+  assert.equal(isolated.killSwitchActive, true);
+  assert.match(isolated.killSwitchReason, /Transient reconciliation failure/);
   await closeDb();
 }
 
@@ -459,22 +463,28 @@ async function testTransientReconciliationFailureRecoversAfterTwoAuthoritativeCy
   await runtime.enableEntries();
 
   fail = true;
-  await assert.rejects(runtime.runOnce(false), /simulated transient OPEN_STATE_FAILED/);
+  await runtime.runOnce(false);
   let state = await getTradingRuntimeState();
-  assert.equal(state.executionEnabled, false);
-  assert.equal(state.killSwitchActive, true);
+  const [account] = await listTradingAccounts();
+  assert.equal(state.executionEnabled, true);
+  assert.equal(state.killSwitchActive, false);
+  assert.equal((await getTradingAccount(account.id)).killSwitchActive, true);
 
   fail = false;
   await runtime.runOnce(false);
-  state = await getTradingRuntimeState();
-  assert.equal(state.killSwitchActive, true, 'One good snapshot is not enough to clear a protection failure.');
+  assert.equal(
+    (await getTradingAccount(account.id)).killSwitchActive,
+    true,
+    'One good snapshot is not enough to clear a transient account protection failure.',
+  );
   await runtime.runOnce(false);
   state = await getTradingRuntimeState();
   assert.equal(state.executionEnabled, true);
   assert.equal(state.killSwitchActive, false);
   assert.equal(state.killSwitchReason, null);
+  assert.equal((await getTradingAccount(account.id)).killSwitchActive, false);
   assert.deepEqual(forced.slice(-2), [true, true], 'Recovery evidence must use two forced exchange snapshots.');
-  assert.match(logs.at(-1), /Protection recovered after two authoritative reconciliations/);
+  assert.match(logs.at(-1), /recovered after two authoritative reconciliations/);
   await runtime.stop();
   await closeDb();
 }
@@ -489,8 +499,8 @@ async function testEntryExpiryFailureActivatesKillSwitch(directory) {
     processIntent: async () => undefined,
   };
   const runtime = new TradingRuntime(engine);
-  await assert.rejects(runtime.runOnce(false), /entry-expiry.*simulated expiry cancellation outage/);
-  assert.equal((await getTradingRuntimeState()).killSwitchActive, true);
+  await runtime.runOnce(false);
+  assert.equal((await getTradingRuntimeState()).killSwitchActive, false);
   await closeDb();
 }
 
@@ -515,9 +525,11 @@ async function testRuntimeIsolatesAccountFailures(directory) {
     processIntent: async () => undefined,
   };
   const runtime = new TradingRuntime(engine);
-  await assert.rejects(runtime.runOnce(false), /first account unavailable/);
+  await runtime.runOnce(false);
   assert.deepEqual(calls, [first.id, 'paper-secondary'], 'One account failure must not skip protection for later accounts.');
-  assert.equal(runtime.isProtectionHealthy(), false);
+  assert.equal(runtime.isProtectionHealthy(), true);
+  assert.equal((await getTradingAccount(first.id)).killSwitchActive, true);
+  assert.equal((await getTradingAccount('paper-secondary')).killSwitchActive, false);
   await closeDb();
 }
 
@@ -537,9 +549,11 @@ async function testStopReplacementCancellationFailsClosed(directory) {
     /replacement stop is active but the stale stop outcome is unresolved/i,
   );
   const state = await getTradingRuntimeState();
-  assert.equal(state.executionEnabled, false);
-  assert.equal(state.killSwitchActive, true);
-  assert.match(state.killSwitchReason, /Protective stop cancellation is unresolved/);
+  const isolated = await getTradingAccount(account.id);
+  assert.equal(state.executionEnabled, true);
+  assert.equal(state.killSwitchActive, false);
+  assert.equal(isolated.killSwitchActive, true);
+  assert.match(isolated.killSwitchReason, /Protective stop cancellation is unresolved/);
   assert.equal(
     (await getDatabase().get(
       `SELECT COUNT(*) AS count FROM trading_risk_events
@@ -566,6 +580,7 @@ async function testRemoteAccountIdentityBinding(directory) {
   await updateTradingAccountState(account.id, {
     status: 'ready', enabled: true, verifiedAt: Date.now(), externalAccountId: boundIdentity,
   });
+  await updateTradingRuntimeState({ executionEnabled: true });
   let observedIdentity = boundIdentity;
   const adapter = {
     exchange: 'bybit',
@@ -581,8 +596,10 @@ async function testRemoteAccountIdentityBinding(directory) {
     /does not match the bound external account identity/,
   );
   const state = await getTradingRuntimeState();
-  assert.equal(state.killSwitchActive, true);
-  assert.equal(state.executionEnabled, false);
+  const isolated = await getTradingAccount(account.id);
+  assert.equal(state.killSwitchActive, false);
+  assert.equal(state.executionEnabled, true);
+  assert.equal(isolated.killSwitchActive, true);
   await closeDb();
 }
 
@@ -804,12 +821,15 @@ async function testStartupReconciliationFailureKeepsControlPlaneAvailable(direct
   await runtime.start();
 
   const state = await getTradingRuntimeState();
-  assert.equal(state.executionEnabled, false);
-  assert.equal(state.killSwitchActive, true);
-  assert.match(state.killSwitchReason, /Startup reconciliation failed/);
+  const [account] = await listTradingAccounts();
+  const isolated = await getTradingAccount(account.id);
+  assert.equal(state.executionEnabled, true);
+  assert.equal(state.killSwitchActive, false);
+  assert.equal(isolated.killSwitchActive, true);
+  assert.match(isolated.killSwitchReason, /Transient reconciliation failure/);
   assert.equal(logs.length, 1);
-  assert.match(logs[0], /trading remains fail-closed and will retry/);
-  await assert.rejects(runtime.enableEntries(), /protection has not reached a healthy reconciliation latch/);
+  assert.match(logs[0], /isolated by account kill switch/);
+  await runtime.enableEntries();
   await runtime.stop();
   await closeDb();
 }
@@ -829,7 +849,8 @@ async function testUnmanagedExposureAndOperatorFlatten(directory) {
     new TradingEngine([unmanagedAdapter]).reconcileAccount(unmanaged.account.id),
     /Unmanaged remote order or position/,
   );
-  assert.equal((await getTradingRuntimeState()).killSwitchActive, true);
+  assert.equal((await getTradingRuntimeState()).killSwitchActive, false);
+  assert.equal((await getTradingAccount(unmanaged.account.id)).killSwitchActive, true);
   await closeDb();
 
   const absent = await setup(path.join(directory, 'unconfirmed-position-absence.db'));

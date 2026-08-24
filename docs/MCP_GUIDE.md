@@ -154,7 +154,7 @@ Danach den ausgegebenen MagicDNS-Host in `MCP_ALLOWED_HOSTS`, die HTTPS-Adresse 
 Bei verdächtigem Agentenverhalten:
 
 1. Agent im Dashboard sofort deaktivieren oder bei endgültigem Widerruf über **Agent löschen** entfernen.
-2. Kill-Switch und offene Positionen im Cockpit prüfen.
+2. Kill-Switch und offene Positionen unter **Betrieb → Live** prüfen.
 3. MCP-Sitzungen, Agenten-Aktionen, Audit-Kette und Trading-Events anhand der Request-/Agenten-ID sichern.
 4. Exchange-Zustand read-only reconciliieren; unbekannte Ausgänge nicht blind wiederholen.
 5. Erst nach Ursachenklärung Rechte minimal neu vergeben und einen neuen Token ausstellen.

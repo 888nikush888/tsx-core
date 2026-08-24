@@ -37,6 +37,7 @@ function proposalPermission(action: McpAgentProposal['action']): McpPermission {
   if (action.startsWith('strategies.')) return 'strategies.write';
   if (action.startsWith('routes.')) return 'routes.write';
   if (action.startsWith('risk.')) return 'risk.write';
+  if (action.startsWith('workflow.')) return 'workflow.write';
   return 'trading.kill_switch';
 }
 
@@ -210,6 +211,15 @@ export class McpControlBridge {
       'routes.delete': () => this.control.removeRoute(payload.channelId),
       'risk.update': () => this.control.setChannelRiskPolicy(payload),
       'risk.delete': () => this.control.removeChannelRiskPolicy(payload.channelId),
+      'workflow.resource_create': () => this.control.createWorkflowResource(payload),
+      'workflow.resource_update': () => this.control.updateWorkflowResource(payload),
+      'workflow.resource_publish': () => this.control.publishWorkflowResource(payload.id),
+      'workflow.resource_archive': () => this.control.archiveWorkflowResource(payload.id),
+      'workflow.resource_delete_draft': () => this.control.deleteWorkflowResourceDraft(payload.id),
+      'workflow.activate': () => this.control.activateWorkflow(
+        { ...payload, confirmation: 'ACTIVATE WORKFLOW IMPACT' },
+        `mcp:${proposal.agentId}`,
+      ),
       'trading.release_kill_switch': () => this.control.setRuntime({ action: 'kill-switch', active: false }),
     };
     return handlers[proposal.action]();

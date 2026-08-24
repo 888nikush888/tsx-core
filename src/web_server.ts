@@ -41,6 +41,18 @@ import {
   updateTradeJournalReview,
   type TradeJournalFilters,
 } from './trade_journal.js';
+import {
+  archiveWorkflowResource,
+  createWorkflowResourceDraft,
+  deleteWorkflowResourceDraft,
+  getActiveWorkflow,
+  listWorkflowResources,
+  publishWorkflowResource,
+  previewWorkflowImpact,
+  saveWorkflowRevision,
+  simulateWorkflow,
+  updateWorkflowResourceDraft,
+} from './workflow_repository.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TEMPLATES_DIR = path.join(__dirname, '../templates');
@@ -1369,6 +1381,8 @@ const verifyTradingAccountHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.verifyAccount(payload.id));
 const updateTradingAccountHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.setAccountEnabled(payload.id, payload.enabled));
+const configureTradingAccountHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.configureAccount(payload));
 const deleteTradingAccountHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.removeAccount(payload.id));
 const setTradingRouteHandler = (context: RequestContext) =>
@@ -1387,6 +1401,155 @@ const emergencyFlattenHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.emergencyFlatten(payload));
 const acknowledgeTradingRiskHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.acknowledgeRisk(payload.id));
+
+async function workflowSnapshotHandler(context: RequestContext): Promise<void> {
+  try {
+    const [workflow, resources] = await Promise.all([getActiveWorkflow(), listWorkflowResources()]);
+    sendJson(context.res, 200, { workflow, resources, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function saveWorkflowHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 2 * 1024 * 1024);
+    const workflow = await saveWorkflowRevision({
+      baseRevisionId: payload.baseRevisionId ?? null,
+      graph: payload.graph,
+      actorId: context.actor?.id || 'dashboard:admin',
+      confirmation: payload.confirmation ?? null,
+    });
+    sendJson(context.res, 201, { success: true, workflow, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function previewWorkflowImpactHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 2 * 1024 * 1024);
+    sendJson(context.res, 200, {
+      success: true,
+      impact: await previewWorkflowImpact({
+        baseRevisionId: payload.baseRevisionId ?? null,
+        graph: payload.graph,
+      }),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+function exchangeCatalogHandler(context: RequestContext): void {
+  sendJson(context.res, 200, {
+    implementation: {
+      library: 'ccxt',
+      version: '4.5.75',
+      streaming: 'ccxt-pro',
+      orderAuthority: 'rest',
+    },
+    exchanges: [
+      {
+        id: 'paper', name: 'Paper Trading', modes: ['paper'], credentialFields: [],
+        certified: true, maxConcurrentPositions: { minimum: 1, maximum: 20 },
+      },
+      {
+        id: 'hyperliquid', name: 'Hyperliquid', modes: ['testnet', 'live'],
+        credentialFields: [
+          { id: 'privateKey', label: 'Private Key', secret: true },
+          { id: 'walletAddress', label: 'Wallet Address', secret: false },
+        ],
+        certified: true, builderFeeEnabled: false,
+        maxConcurrentPositions: { minimum: 1, maximum: 20 },
+      },
+      {
+        id: 'bybit', name: 'Bybit', modes: ['testnet', 'live'],
+        credentialFields: [
+          { id: 'apiKey', label: 'API Key', secret: true },
+          { id: 'apiSecret', label: 'API Secret', secret: true },
+        ],
+        certified: true, maxConcurrentPositions: { minimum: 1, maximum: 20 },
+      },
+      {
+        id: 'krakenfutures', name: 'Kraken Futures', modes: ['testnet', 'live'],
+        credentialFields: [
+          { id: 'apiKey', label: 'API Key', secret: true },
+          { id: 'apiSecret', label: 'API Secret', secret: true },
+        ],
+        certified: true, maxConcurrentPositions: { minimum: 1, maximum: 20 },
+      },
+    ],
+    requestId: context.requestId,
+  });
+}
+
+async function simulateWorkflowHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 256 * 1024);
+    if (typeof payload.channelId !== 'string' || typeof payload.text !== 'string') {
+      throw new HttpError(400, 'channelId and text are required.');
+    }
+    sendJson(context.res, 200, { success: true, result: await simulateWorkflow(payload), requestId: context.requestId });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function createWorkflowResourceHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 256 * 1024);
+    sendJson(context.res, 201, {
+      success: true,
+      resource: await createWorkflowResourceDraft(payload),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function updateWorkflowResourceHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 256 * 1024);
+    sendJson(context.res, 200, {
+      success: true,
+      resource: await updateWorkflowResourceDraft(payload.id, payload),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function publishWorkflowResourceHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 8 * 1024);
+    sendJson(context.res, 200, {
+      success: true,
+      resource: await publishWorkflowResource(payload.id),
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function deleteWorkflowResourceHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(context, 'delete-workflow-resource', 'Explicit workflow resource deletion confirmation required.')) return;
+  try {
+    const payload = await readJsonBody(context.req, 8 * 1024);
+    const resource = (await listWorkflowResources()).find(item => item.id === payload.id);
+    if (!resource) throw new Error('Workflow resource does not exist.');
+    const result = resource.status === 'draft'
+      ? { deleted: await deleteWorkflowResourceDraft(resource.id) }
+      : { archived: await archiveWorkflowResource(resource.id) };
+    sendJson(context.res, 200, { success: true, result, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
 
 function configuredMcpEndpoint(): string | null {
   const value = process.env.MCP_ENDPOINT_URL?.trim();
@@ -1640,6 +1803,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/backups/recover-offsite', recoverOffsiteBackupHandler],
   ['POST /api/backups/restore', restoreBackupHandler],
   ['GET /api/trading', tradingSnapshotHandler],
+  ['GET /api/exchanges/catalog', exchangeCatalogHandler],
   ['GET /api/trading/portfolio', tradingPortfolioHandler],
   ['GET /api/trading/journal', tradingJournalHandler],
   ['GET /api/trading/journal/export', tradingJournalExportHandler],
@@ -1667,6 +1831,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/accounts/credentials', replaceTradingCredentialsHandler],
   ['POST /api/trading/accounts/verify', verifyTradingAccountHandler],
   ['POST /api/trading/accounts/state', updateTradingAccountHandler],
+  ['POST /api/trading/accounts/configuration', configureTradingAccountHandler],
   ['DELETE /api/trading/accounts', deleteTradingAccountHandler],
   ['POST /api/trading/routes', setTradingRouteHandler],
   ['DELETE /api/trading/routes', deleteTradingRouteHandler],
@@ -1676,6 +1841,14 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/cancel-entries', cancelTradingEntriesHandler],
   ['POST /api/trading/emergency-flatten', emergencyFlattenHandler],
   ['POST /api/trading/risk/acknowledge', acknowledgeTradingRiskHandler],
+  ['GET /api/workflow', workflowSnapshotHandler],
+  ['POST /api/workflow/mutate', saveWorkflowHandler],
+  ['POST /api/workflow/impact', previewWorkflowImpactHandler],
+  ['POST /api/workflow/simulate', simulateWorkflowHandler],
+  ['POST /api/workflow/resources', createWorkflowResourceHandler],
+  ['POST /api/workflow/resources/update', updateWorkflowResourceHandler],
+  ['POST /api/workflow/resources/publish', publishWorkflowResourceHandler],
+  ['DELETE /api/workflow/resources', deleteWorkflowResourceHandler],
   ['GET /api/mcp', mcpSnapshotHandler],
   ['POST /api/mcp/runtime', updateMcpRuntimeHandler],
   ['POST /api/mcp/agents', createMcpAgentHandler],

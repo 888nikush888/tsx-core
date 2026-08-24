@@ -91,7 +91,9 @@ export const DATABASE_FEATURE_SET = [
   'mcp-agent-control-plane',
   'mcp-agent-retirement',
   'exchange-streams-mcp-approvals-trade-journal',
-  'persistent-mcp-runtime-modes'
+  'persistent-mcp-runtime-modes',
+  'versioned-visual-workflows-and-account-capacity',
+  'path-isolated-adaptive-risk'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -129,6 +131,13 @@ export const REQUIRED_DATABASE_TABLES = [
   'trading_exchange_events',
   'trading_exchange_stream_state',
   'trading_journal_entries',
+  'workflow_resource_versions',
+  'workflow_revisions',
+  'workflow_active_revision',
+  'workflow_execution_paths',
+  'workflow_signal_runs',
+  'workflow_adaptive_risk_state',
+  'workflow_adaptive_risk_evaluations',
   'trading_paper_accounts',
   'trading_paper_markets',
   'trading_paper_orders',
@@ -228,6 +237,8 @@ interface SchemaMigration {
   name: string;
   columns: MigrationColumn[];
   sql: string;
+  /** Required only for audited table rebuilds that preserve existing foreign-key names. */
+  foreignKeysOff?: boolean;
 }
 
 const migrations: SchemaMigration[] = [
@@ -997,6 +1008,263 @@ const migrations: SchemaMigration[] = [
           1, 'disabled', CAST(strftime('%s','now') AS INTEGER) * 1000, 'system:factory-default'
         );
       `
+  },
+  {
+    version: 15,
+    name: 'versioned_visual_workflows_and_account_capacity',
+    columns: [],
+    foreignKeysOff: true,
+    sql: `
+        CREATE TABLE trading_accounts_next (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80),
+          exchange TEXT NOT NULL CHECK(exchange IN ('paper', 'hyperliquid', 'bybit', 'krakenfutures')),
+          mode TEXT NOT NULL CHECK(mode IN ('paper', 'testnet', 'live')),
+          status TEXT NOT NULL CHECK(status IN ('unverified', 'ready', 'disabled', 'error', 'degraded')),
+          enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0, 1)),
+          credential_ref TEXT,
+          external_account_id TEXT,
+          max_concurrent_positions INTEGER NOT NULL DEFAULT 20 CHECK(max_concurrent_positions BETWEEN 1 AND 20),
+          kill_switch_active INTEGER NOT NULL DEFAULT 0 CHECK(kill_switch_active IN (0, 1)),
+          kill_switch_reason TEXT,
+          capabilities_json TEXT,
+          last_verified_at INTEGER,
+          last_reconciled_at INTEGER,
+          last_error TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          CHECK((exchange = 'paper' AND mode = 'paper' AND credential_ref IS NULL)
+             OR (exchange <> 'paper' AND mode <> 'paper' AND credential_ref IS NOT NULL))
+        );
+        INSERT INTO trading_accounts_next (
+          id, name, exchange, mode, status, enabled, credential_ref, external_account_id,
+          max_concurrent_positions, kill_switch_active, kill_switch_reason, capabilities_json,
+          last_verified_at, last_reconciled_at, last_error, created_at, updated_at
+        )
+        SELECT account.id, account.name, account.exchange, account.mode, account.status,
+               account.enabled, account.credential_ref, account.external_account_id,
+               COALESCE((
+                 SELECT MIN(CAST(json_extract(strategy.configuration_json, '$.safety.maxConcurrentPositions') AS INTEGER))
+                 FROM trading_routes AS route
+                 JOIN trading_strategy_versions AS strategy ON strategy.id = route.strategy_version_id
+                 WHERE route.account_id = account.id
+               ), 20),
+               0, NULL, NULL, account.last_verified_at, NULL, account.last_error,
+               account.created_at, account.updated_at
+        FROM trading_accounts AS account;
+        DROP TABLE trading_accounts;
+        ALTER TABLE trading_accounts_next RENAME TO trading_accounts;
+        CREATE UNIQUE INDEX uq_trading_external_account_identity
+          ON trading_accounts(exchange, mode, external_account_id)
+          WHERE external_account_id IS NOT NULL;
+        CREATE INDEX idx_trading_accounts_runtime
+          ON trading_accounts(enabled, status, exchange, created_at);
+
+        CREATE TABLE workflow_resource_versions (
+          id TEXT PRIMARY KEY,
+          resource_id TEXT NOT NULL,
+          version INTEGER NOT NULL CHECK(version > 0),
+          kind TEXT NOT NULL CHECK(kind IN (
+            'channel', 'content_filter', 'keyword_filter', 'regex', 'parser', 'schema',
+            'contract', 'dedupe', 'strategy', 'sizing', 'adaptive_risk', 'account', 'output'
+          )),
+          name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80),
+          description TEXT NOT NULL DEFAULT '' CHECK(length(description) <= 500),
+          status TEXT NOT NULL CHECK(status IN ('draft', 'published', 'archived')),
+          configuration_json TEXT NOT NULL,
+          configuration_sha256 TEXT NOT NULL CHECK(length(configuration_sha256) = 64),
+          created_at INTEGER NOT NULL,
+          published_at INTEGER,
+          archived_at INTEGER,
+          UNIQUE(resource_id, version)
+        );
+        CREATE INDEX idx_workflow_resource_versions
+          ON workflow_resource_versions(kind, resource_id, version DESC);
+        CREATE TRIGGER trg_workflow_resource_immutable
+        BEFORE UPDATE ON workflow_resource_versions
+        WHEN OLD.status IN ('published', 'archived') AND (
+          NEW.resource_id <> OLD.resource_id OR NEW.version <> OLD.version OR NEW.kind <> OLD.kind OR
+          NEW.name <> OLD.name OR NEW.description <> OLD.description OR
+          NEW.configuration_json <> OLD.configuration_json OR
+          NEW.configuration_sha256 <> OLD.configuration_sha256 OR NEW.created_at <> OLD.created_at OR
+          NEW.published_at IS NOT OLD.published_at
+        )
+        BEGIN
+          SELECT RAISE(ABORT, 'published workflow resource versions are immutable');
+        END;
+
+        CREATE TABLE workflow_revisions (
+          id TEXT PRIMARY KEY,
+          revision INTEGER NOT NULL UNIQUE CHECK(revision > 0),
+          status TEXT NOT NULL CHECK(status IN ('active', 'archived')),
+          graph_json TEXT NOT NULL,
+          compiled_json TEXT NOT NULL,
+          definition_sha256 TEXT NOT NULL CHECK(length(definition_sha256) = 64),
+          base_revision_id TEXT REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+          created_by TEXT NOT NULL CHECK(length(created_by) BETWEEN 1 AND 128),
+          created_at INTEGER NOT NULL,
+          archived_at INTEGER
+        );
+        CREATE UNIQUE INDEX uq_workflow_active_revision
+          ON workflow_revisions(status) WHERE status = 'active';
+        CREATE TRIGGER trg_workflow_revision_immutable
+        BEFORE UPDATE ON workflow_revisions
+        WHEN NEW.revision <> OLD.revision OR NEW.graph_json <> OLD.graph_json OR
+             NEW.compiled_json <> OLD.compiled_json OR NEW.definition_sha256 <> OLD.definition_sha256 OR
+             NEW.base_revision_id IS NOT OLD.base_revision_id OR NEW.created_by <> OLD.created_by OR
+             NEW.created_at <> OLD.created_at
+        BEGIN
+          SELECT RAISE(ABORT, 'workflow revision definitions are immutable');
+        END;
+        CREATE TABLE workflow_active_revision (
+          singleton_id INTEGER PRIMARY KEY CHECK(singleton_id = 1),
+          revision_id TEXT NOT NULL REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE workflow_execution_paths (
+          id TEXT PRIMARY KEY,
+          workflow_revision_id TEXT NOT NULL REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+          path_key TEXT NOT NULL CHECK(length(path_key) = 64),
+          channel_id TEXT NOT NULL,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          strategy_version_id TEXT NOT NULL REFERENCES trading_strategy_versions(id) ON DELETE RESTRICT,
+          parser_resource_version_id TEXT REFERENCES workflow_resource_versions(id) ON DELETE RESTRICT,
+          schema_resource_version_id TEXT REFERENCES workflow_resource_versions(id) ON DELETE RESTRICT,
+          contract_resource_version_id TEXT REFERENCES workflow_resource_versions(id) ON DELETE RESTRICT,
+          sizing_resource_version_id TEXT REFERENCES workflow_resource_versions(id) ON DELETE RESTRICT,
+          adaptive_risk_resource_version_id TEXT REFERENCES workflow_resource_versions(id) ON DELETE RESTRICT,
+          node_ids_json TEXT NOT NULL,
+          effective_configuration_json TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0, 1)),
+          created_at INTEGER NOT NULL,
+          UNIQUE(workflow_revision_id, path_key)
+        );
+        CREATE INDEX idx_workflow_paths_channel
+          ON workflow_execution_paths(workflow_revision_id, channel_id, enabled);
+        CREATE INDEX idx_workflow_paths_account
+          ON workflow_execution_paths(account_id, enabled);
+        CREATE TABLE workflow_signal_runs (
+          id TEXT PRIMARY KEY,
+          source_signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE RESTRICT,
+          workflow_revision_id TEXT REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+          channel_id TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('received', 'running', 'completed', 'partially_blocked', 'blocked', 'failed')),
+          input_sha256 TEXT NOT NULL CHECK(length(input_sha256) = 64),
+          result_json TEXT,
+          error TEXT,
+          created_at INTEGER NOT NULL,
+          completed_at INTEGER,
+          UNIQUE(source_signal_id, workflow_revision_id)
+        );
+        CREATE INDEX idx_workflow_signal_runs_time
+          ON workflow_signal_runs(created_at DESC);
+
+        CREATE TABLE trading_trade_intents_next (
+          id TEXT PRIMARY KEY,
+          source_signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE RESTRICT,
+          root_source_signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE RESTRICT,
+          signal_run_id TEXT REFERENCES workflow_signal_runs(id) ON DELETE RESTRICT,
+          workflow_revision_id TEXT REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+          execution_path_id TEXT REFERENCES workflow_execution_paths(id) ON DELETE RESTRICT,
+          channel_id TEXT NOT NULL,
+          strategy_version_id TEXT NOT NULL REFERENCES trading_strategy_versions(id) ON DELETE RESTRICT,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          exchange TEXT NOT NULL CHECK(exchange IN ('paper', 'hyperliquid', 'bybit', 'krakenfutures')),
+          mode TEXT NOT NULL CHECK(mode IN ('paper', 'testnet', 'live')),
+          symbol TEXT NOT NULL,
+          side TEXT NOT NULL CHECK(side IN ('LONG', 'SHORT')),
+          status TEXT NOT NULL CHECK(status IN ('pending', 'planned', 'submitting', 'monitoring', 'completed', 'blocked', 'failed', 'unknown')),
+          signal_json TEXT NOT NULL,
+          plan_json TEXT,
+          block_reason TEXT,
+          last_error TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        INSERT INTO trading_trade_intents_next (
+          id, source_signal_id, root_source_signal_id, signal_run_id, workflow_revision_id,
+          execution_path_id, channel_id, strategy_version_id, account_id, exchange, mode,
+          symbol, side, status, signal_json, plan_json, block_reason, last_error, created_at, updated_at
+        )
+        SELECT id, source_signal_id, source_signal_id, NULL, NULL, NULL, channel_id,
+               strategy_version_id, account_id, exchange, mode, symbol, side, status,
+               signal_json, plan_json, block_reason, last_error, created_at, updated_at
+        FROM trading_trade_intents;
+        DROP TABLE trading_trade_intents;
+        ALTER TABLE trading_trade_intents_next RENAME TO trading_trade_intents;
+        CREATE INDEX idx_trading_intents_status
+          ON trading_trade_intents(status, created_at);
+        CREATE INDEX idx_trading_intents_account_status
+          ON trading_trade_intents(account_id, status, created_at);
+        CREATE UNIQUE INDEX uq_trading_intent_execution_path
+          ON trading_trade_intents(root_source_signal_id, execution_path_id)
+          WHERE execution_path_id IS NOT NULL;
+
+        CREATE TABLE trading_exchange_events_next (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          exchange TEXT NOT NULL CHECK(exchange IN ('hyperliquid', 'bybit', 'krakenfutures')),
+          mode TEXT NOT NULL CHECK(mode IN ('testnet', 'live')),
+          event_key TEXT NOT NULL CHECK(length(event_key) = 64),
+          event_type TEXT NOT NULL CHECK(event_type IN ('order', 'execution', 'position', 'market', 'candle', 'stream_status')),
+          symbol TEXT,
+          sequence INTEGER,
+          occurred_at INTEGER NOT NULL,
+          received_at INTEGER NOT NULL,
+          payload_json TEXT NOT NULL,
+          UNIQUE(account_id, event_key)
+        );
+        INSERT INTO trading_exchange_events_next
+        SELECT * FROM trading_exchange_events;
+        DROP TABLE trading_exchange_events;
+        ALTER TABLE trading_exchange_events_next RENAME TO trading_exchange_events;
+        CREATE INDEX idx_exchange_events_account_time
+          ON trading_exchange_events(account_id, received_at DESC);
+        CREATE INDEX idx_exchange_events_type_time
+          ON trading_exchange_events(event_type, received_at DESC);
+      `
+  },
+  {
+    version: 16,
+    name: 'path_isolated_adaptive_risk',
+    columns: [],
+    sql: `
+        CREATE TABLE workflow_adaptive_risk_state (
+          state_key TEXT PRIMARY KEY CHECK(length(state_key) = 64),
+          channel_id TEXT NOT NULL,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          resource_id TEXT NOT NULL,
+          current_tier INTEGER NOT NULL CHECK(current_tier >= 0),
+          locked_tier INTEGER,
+          blocked INTEGER NOT NULL DEFAULT 0 CHECK(blocked IN (0, 1)),
+          block_reason TEXT,
+          policy_sha256 TEXT NOT NULL CHECK(length(policy_sha256) = 64),
+          updated_at INTEGER NOT NULL,
+          UNIQUE(channel_id, account_id, resource_id)
+        );
+        CREATE TABLE workflow_adaptive_risk_evaluations (
+          id TEXT PRIMARY KEY,
+          state_key TEXT NOT NULL REFERENCES workflow_adaptive_risk_state(state_key) ON DELETE RESTRICT,
+          policy_sha256 TEXT NOT NULL CHECK(length(policy_sha256) = 64),
+          week_started_at INTEGER NOT NULL,
+          week_ended_at INTEGER NOT NULL,
+          closed_trades INTEGER NOT NULL,
+          wins INTEGER NOT NULL,
+          losses INTEGER NOT NULL,
+          realized_pnl TEXT NOT NULL,
+          starting_equity TEXT NOT NULL,
+          return_percent TEXT NOT NULL,
+          previous_tier INTEGER NOT NULL,
+          recommended_tier INTEGER NOT NULL,
+          applied_tier INTEGER NOT NULL,
+          action TEXT NOT NULL CHECK(action IN ('hold', 'increase', 'decrease', 'block')),
+          reason TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          UNIQUE(state_key, policy_sha256, week_started_at)
+        );
+        CREATE INDEX idx_workflow_adaptive_risk_evaluations
+          ON workflow_adaptive_risk_evaluations(state_key, week_ended_at DESC);
+      `
   }
 ];
 
@@ -1008,7 +1276,8 @@ function migrationChecksum(migration: SchemaMigration): string {
       version: migration.version,
       name: migration.name,
       columns: migration.columns,
-      sql: migration.sql
+      sql: migration.sql,
+      ...(migration.foreignKeysOff ? { foreignKeysOff: true } : {}),
     }))
     .digest('hex');
 }
@@ -1061,9 +1330,14 @@ async function migrateDatabase(database: Database, beforeApply?: (fromVersion: n
   }
   if (applied.length < migrations.length && beforeApply) await beforeApply(applied.length);
   for (const migration of migrations.slice(applied.length)) {
+    if (migration.foreignKeysOff) await database.exec('PRAGMA foreign_keys = OFF;');
     await database.exec('BEGIN IMMEDIATE;');
     try {
       await applyMigration(database, migration);
+      if (migration.foreignKeysOff) {
+        const violations = await database.all<Array<Record<string, unknown>>>('PRAGMA foreign_key_check;');
+        if (violations.length > 0) throw new Error(`Foreign-key validation found ${violations.length} violation(s).`);
+      }
       await database.run(
         'INSERT INTO schema_migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)',
         [migration.version, migration.name, migrationChecksum(migration), Date.now()]
@@ -1072,6 +1346,8 @@ async function migrateDatabase(database: Database, beforeApply?: (fromVersion: n
     } catch (error) {
       await database.exec('ROLLBACK;').catch(() => {});
       throw new Error(`Database migration ${migration.version} (${migration.name}) failed.`, { cause: error });
+    } finally {
+      if (migration.foreignKeysOff) await database.exec('PRAGMA foreign_keys = ON;');
     }
   }
 }
@@ -1617,19 +1893,27 @@ export async function isDatabaseHealthy(): Promise<boolean> {
 export async function findDuplicateSignal(
   normalizedContent: string,
   cooldownHours: number,
-  excludeSignalId?: string
+  excludeSignalId?: string,
+  dedupeScope?: string,
 ): Promise<{ isDupe: boolean; matchFile?: string; ageHours?: number } | null> {
   const database = getDb();
   const cooldownMs = cooldownHours * 60 * 60 * 1000;
   const now = Date.now();
+  if (dedupeScope !== undefined && !/^[a-f0-9]{64}$/.test(dedupeScope)) {
+    throw new Error('Signal dedupe scope must be a SHA-256 identifier.');
+  }
+  const scopeSuffix = dedupeScope ? `_${dedupeScope}` : null;
+  const scopeSql = scopeSuffix ? ' AND substr(id, -?) = ?' : '';
+  const scopeParameters = scopeSuffix ? [scopeSuffix.length, scopeSuffix] : [];
   
   if (cooldownHours > 0) {
     const minTime = now - cooldownMs;
     const match = await database.get(
       `SELECT id, created_at FROM signals 
        WHERE normalized_content = ? AND created_at >= ? AND (? IS NULL OR id <> ?)
+       ${scopeSql}
        ORDER BY created_at DESC LIMIT 1`,
-      [normalizedContent, minTime, excludeSignalId || null, excludeSignalId || null]
+      [normalizedContent, minTime, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
     );
     if (match) {
       const ageMs = now - (match.created_at as number);
@@ -1641,8 +1925,9 @@ export async function findDuplicateSignal(
     const match = await database.get(
       `SELECT id FROM signals 
        WHERE normalized_content = ? AND (? IS NULL OR id <> ?)
+       ${scopeSql}
        ORDER BY created_at DESC LIMIT 1`,
-      [normalizedContent, excludeSignalId || null, excludeSignalId || null]
+      [normalizedContent, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
     );
     if (match) {
       return { isDupe: true, matchFile: match.id };

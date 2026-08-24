@@ -71,6 +71,9 @@ function strategyFromRow(row: any): TradingStrategyVersion {
 }
 
 function accountFromRow(row: any): TradingAccount {
+  const capabilities = row.capabilities_json
+    ? parseJson<Record<string, unknown>>(row.capabilities_json, 'account capabilities')
+    : null;
   return {
     id: String(row.id),
     name: String(row.name),
@@ -80,7 +83,14 @@ function accountFromRow(row: any): TradingAccount {
     enabled: boolean(row.enabled),
     credentialRef: row.credential_ref || null,
     externalAccountId: row.external_account_id || null,
+    maxConcurrentPositions: Number(row.max_concurrent_positions ?? 20),
+    killSwitchActive: boolean(row.kill_switch_active),
+    killSwitchReason: row.kill_switch_reason || null,
+    capabilities,
     lastVerifiedAt: row.last_verified_at === null ? null : Number(row.last_verified_at),
+    lastReconciledAt: row.last_reconciled_at === null || row.last_reconciled_at === undefined
+      ? null
+      : Number(row.last_reconciled_at),
     lastError: row.last_error || null,
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at),
@@ -113,6 +123,10 @@ function intentFromRow(row: any): TradingIntent {
   return {
     id: String(row.id),
     sourceSignalId: String(row.source_signal_id),
+    rootSourceSignalId: String(row.root_source_signal_id ?? row.source_signal_id),
+    signalRunId: row.signal_run_id || null,
+    workflowRevisionId: row.workflow_revision_id || null,
+    executionPathId: row.execution_path_id || null,
     channelId: String(row.channel_id),
     strategyVersionId: String(row.strategy_version_id),
     accountId: String(row.account_id),
@@ -189,6 +203,14 @@ export async function listSignalContracts(): Promise<SignalContract[]> {
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at),
   }));
+}
+
+export async function getSignalContractVersion(id: string): Promise<SignalContractVersion | null> {
+  const row = await getDatabase().get<any>(
+    'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
+    [contractVersionIdentifier(id)],
+  );
+  return row ? contractVersionFromRow(row) : null;
 }
 
 export async function createSignalContract(input: {
@@ -568,17 +590,24 @@ function validateTradingAccountInput(input: {
   mode: TradingAccountMode;
   credentialRef?: string;
   initialBalance?: unknown;
-}): { name: string; paper: boolean; credentialRef: string | null; initialBalance: string | null } {
+  maxConcurrentPositions?: unknown;
+}): { name: string; paper: boolean; credentialRef: string | null; initialBalance: string | null; maxConcurrentPositions: number } {
   const name = input.name?.trim();
   if (!name || name.length > 80) throw new Error('Account name must contain between 1 and 80 characters.');
   const paper = validateTradingAccountType(input.exchange, input.mode);
   const credentialRef = validateTradingAccountCredentials(input, paper);
   const initialBalance = validateTradingAccountBalance(input.initialBalance, paper);
-  return { name, paper, credentialRef, initialBalance };
+  const maxConcurrentPositions = input.maxConcurrentPositions === undefined
+    ? 20
+    : Number(input.maxConcurrentPositions);
+  if (!Number.isSafeInteger(maxConcurrentPositions) || maxConcurrentPositions < 1 || maxConcurrentPositions > 20) {
+    throw new Error('Account maximum concurrent positions must be an integer between 1 and 20.');
+  }
+  return { name, paper, credentialRef, initialBalance, maxConcurrentPositions };
 }
 
 function validateTradingAccountType(exchange: TradingExchange, mode: TradingAccountMode): boolean {
-  if (!['paper', 'hyperliquid', 'bybit'].includes(exchange)) throw new Error('Unsupported exchange.');
+  if (!['paper', 'hyperliquid', 'bybit', 'krakenfutures'].includes(exchange)) throw new Error('Unsupported exchange.');
   if (!['paper', 'testnet', 'live'].includes(mode)) throw new Error('Unsupported account mode.');
   const paper = exchange === 'paper';
   if (paper !== (mode === 'paper')) throw new Error('Paper mode may only be used with the paper exchange.');
@@ -613,16 +642,19 @@ export async function createTradingAccount(input: {
   mode: TradingAccountMode;
   credentialRef?: string;
   initialBalance?: unknown;
+  maxConcurrentPositions?: number;
 }, now = Date.now()): Promise<TradingAccount> {
-  const { name, paper, credentialRef, initialBalance } = validateTradingAccountInput(input);
+  const { name, paper, credentialRef, initialBalance, maxConcurrentPositions } = validateTradingAccountInput(input);
   const id = randomUUID();
   await transaction(async () => {
     await getDatabase().run(
       `INSERT INTO trading_accounts (
          id, name, exchange, mode, status, enabled, credential_ref,
-         last_verified_at, last_error, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
-      [id, name, input.exchange, input.mode, paper ? 'ready' : 'unverified', paper ? 1 : 0, credentialRef, paper ? now : null, now, now],
+         max_concurrent_positions, kill_switch_active, last_verified_at,
+         last_error, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NULL, ?, ?)`,
+      [id, name, input.exchange, input.mode, paper ? 'ready' : 'unverified', paper ? 1 : 0,
+        credentialRef, maxConcurrentPositions, paper ? now : null, now, now],
     );
     if (paper) {
       await getDatabase().run(
@@ -646,7 +678,7 @@ export async function updateTradingAccountState(
     externalAccountId?: string | null;
   },
 ): Promise<TradingAccount> {
-  if (!['unverified', 'ready', 'disabled', 'error'].includes(state.status)) throw new Error('Unsupported account status.');
+  if (!['unverified', 'ready', 'disabled', 'error', 'degraded'].includes(state.status)) throw new Error('Unsupported account status.');
   if (state.enabled && state.status !== 'ready') throw new Error('Only a verified ready account can be enabled.');
   const updatesExternalAccountId = Object.hasOwn(state, 'externalAccountId');
   const externalAccountId = state.externalAccountId?.trim() || null;
@@ -672,6 +704,70 @@ export async function updateTradingAccountState(
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Trading account does not exist.');
   return accountFromRow(await getDatabase().get('SELECT * FROM trading_accounts WHERE id = ?', [id]));
+}
+
+type TradingAccountConfigurationUpdate = {
+  maxConcurrentPositions?: unknown;
+  killSwitchActive?: unknown;
+  killSwitchReason?: unknown;
+  capabilities?: Record<string, unknown> | null;
+  lastReconciledAt?: number | null;
+};
+
+function accountPositionLimit(value: unknown, fallback: number): number {
+  const limit = value === undefined ? fallback : Number(value);
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 20) {
+    throw new Error('Account maximum concurrent positions must be an integer between 1 and 20.');
+  }
+  return limit;
+}
+
+function accountKillSwitch(
+  input: TradingAccountConfigurationUpdate,
+  current: TradingAccount,
+): { active: boolean; reason: string | null } {
+  const active = input.killSwitchActive === undefined ? current.killSwitchActive : input.killSwitchActive;
+  if (typeof active !== 'boolean') throw new Error('Account kill-switch state must be boolean.');
+  const reason = input.killSwitchReason === undefined
+    ? (active ? current.killSwitchReason : null)
+    : (typeof input.killSwitchReason === 'string' ? input.killSwitchReason.trim() || null : null);
+  if (active && !reason) throw new Error('Account kill-switch activation requires a reason.');
+  return { active, reason };
+}
+
+function accountCapabilitiesJson(value: Record<string, unknown> | null | undefined, current: TradingAccount): string | null {
+  const capabilities = value === undefined ? current.capabilities : value;
+  const serialized = capabilities === null ? null : JSON.stringify(capabilities);
+  if (serialized && serialized.length > 100_000) throw new Error('Account capabilities payload is too large.');
+  return serialized;
+}
+
+function accountReconciledAt(value: number | null | undefined, current: TradingAccount): number | null {
+  const timestamp = value === undefined ? current.lastReconciledAt : value;
+  if (timestamp !== null && (!Number.isSafeInteger(timestamp) || timestamp < 0)) {
+    throw new Error('Account reconciliation timestamp is invalid.');
+  }
+  return timestamp;
+}
+
+export async function updateTradingAccountConfiguration(
+  id: string,
+  input: TradingAccountConfigurationUpdate,
+): Promise<TradingAccount> {
+  const current = await getTradingAccount(id);
+  if (!current) throw new Error('Trading account does not exist.');
+  const maxConcurrentPositions = accountPositionLimit(input.maxConcurrentPositions, current.maxConcurrentPositions);
+  const killSwitch = accountKillSwitch(input, current);
+  const capabilitiesJson = accountCapabilitiesJson(input.capabilities, current);
+  const lastReconciledAt = accountReconciledAt(input.lastReconciledAt, current);
+  await getDatabase().run(
+    `UPDATE trading_accounts SET max_concurrent_positions = ?, kill_switch_active = ?,
+       kill_switch_reason = ?, capabilities_json = ?, last_reconciled_at = ?, updated_at = ?
+     WHERE id = ?`,
+    [maxConcurrentPositions, killSwitch.active ? 1 : 0, killSwitch.reason, capabilitiesJson,
+      lastReconciledAt, Date.now(), id],
+  );
+  return (await getTradingAccount(id))!;
 }
 
 export async function listTradingRoutes(): Promise<TradingRoute[]> {
@@ -795,12 +891,12 @@ export async function createTradingIntent(input: {
     const now = Date.now();
     await getDatabase().run(
       `INSERT INTO trading_trade_intents (
-         id, source_signal_id, channel_id, strategy_version_id, account_id,
+         id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id, account_id,
          exchange, mode, symbol, side, status, signal_json, plan_json,
          block_reason, last_error, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?)`,
       [
-        id, input.sourceSignalId, input.channelId, route.strategy_version_id, route.account_id,
+        id, input.sourceSignalId, input.sourceSignalId, input.channelId, route.strategy_version_id, route.account_id,
         route.exchange, route.mode, input.signal.symbol, input.signal.action, status,
         JSON.stringify(input.signal), blockReason, now, now,
       ],
@@ -830,7 +926,12 @@ export async function getTradingOverview(): Promise<TradingOverview> {
     getTradingRuntimeState(),
     getDatabase().get<any>(`SELECT
       (SELECT COUNT(*) FROM trading_accounts) AS accounts,
-      (SELECT COUNT(*) FROM trading_routes WHERE enabled = 1) AS routes,
+      (CASE WHEN EXISTS (SELECT 1 FROM workflow_active_revision WHERE singleton_id = 1)
+        THEN (SELECT COUNT(*) FROM workflow_execution_paths AS path
+              JOIN workflow_active_revision AS active ON active.revision_id = path.workflow_revision_id
+              WHERE active.singleton_id = 1 AND path.enabled = 1)
+        ELSE (SELECT COUNT(*) FROM trading_routes WHERE enabled = 1)
+       END) AS routes,
       (SELECT COUNT(*) FROM trading_positions WHERE status IN ('opening', 'open', 'closing', 'emergency')) AS positions,
       (SELECT COUNT(*) FROM trading_trade_intents WHERE status IN ('pending', 'planned', 'submitting', 'monitoring')) AS intents,
       (SELECT COUNT(*) FROM trading_orders WHERE status = 'unknown') AS unknown_orders`),
@@ -1269,7 +1370,12 @@ export async function getTradingOperationalSnapshot(): Promise<{
   const [runtime, values] = await Promise.all([
     getTradingRuntimeState(),
     getDatabase().get<any>(`SELECT
-      (SELECT COUNT(*) FROM trading_routes WHERE enabled = 1) AS enabled_routes,
+      (CASE WHEN EXISTS (SELECT 1 FROM workflow_active_revision WHERE singleton_id = 1)
+        THEN (SELECT COUNT(*) FROM workflow_execution_paths AS path
+              JOIN workflow_active_revision AS active ON active.revision_id = path.workflow_revision_id
+              WHERE active.singleton_id = 1 AND path.enabled = 1)
+        ELSE (SELECT COUNT(*) FROM trading_routes WHERE enabled = 1)
+       END) AS enabled_routes,
       (SELECT COUNT(*) FROM trading_positions WHERE status IN ('opening', 'open', 'closing', 'emergency') AND quantity <> '0') AS open_positions,
       (SELECT COUNT(*) FROM trading_trade_intents WHERE status IN ('pending', 'planned', 'submitting', 'monitoring')) AS pending_intents,
       (SELECT COUNT(*) FROM trading_orders WHERE status = 'unknown') AS unknown_orders,

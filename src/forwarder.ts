@@ -75,10 +75,18 @@ import {
 } from './runtime_settings.js';
 import {
   createTradingIntent,
+  getSignalContractVersion,
   getTradingSignalSchemaForTemplate,
   getTradingOperationalSnapshot,
   getTradingRuntimeState,
+  listTradingSignalSchemas,
 } from './trading_repository.js';
+import {
+  createWorkflowTradingIntents,
+  getActiveWorkflow,
+  getWorkflowSignalPlans,
+  migrateLegacyTradingRoutesToWorkflow,
+} from './workflow_repository.js';
 import { PaperExchangeAdapter } from './paper_exchange.js';
 import { TradingEngine } from './trading_engine.js';
 import { TradingRuntime } from './trading_runtime.js';
@@ -86,7 +94,7 @@ import {
   tradingCredentialStoreFromEnvironment,
   type TradingCredentialStore,
 } from './trading_credentials.js';
-import { OfficialExchangeAdapter } from './official_exchange.js';
+import { CcxtExchangeAdapter } from './ccxt_exchange.js';
 import { TradingWebControl } from './trading_web_control.js';
 import { ClockGuard, clockDriftLimitFromEnvironment } from './clock_guard.js';
 import { recordTradingExecutionEvent } from './trading_telemetry.js';
@@ -589,6 +597,7 @@ async function parseSignalNative(
   signal: AbortSignal | null = null,
   limits?: Partial<AiLimits>,
   executableSchema?: ExecutableSignalSchemaSelection | null,
+  promptTemplate?: string,
 ): Promise<ParsedSignal> {
   if (signal?.aborted) throw new Error('Task aborted');
   const effectiveTimeout = timeoutMs || DEFAULT_PARSER_TIMEOUT_MS;
@@ -606,6 +615,7 @@ async function parseSignalNative(
       signal: controller.signal,
       limits,
       executableSchema,
+      promptTemplate,
     });
   } catch (error: any) {
     if (timedOut) throw new Error(`Parser Timeout (${effectiveTimeout}ms)`, { cause: error });
@@ -740,13 +750,15 @@ async function checkDuplicateAndSave(
   xmlString,
   xmlParsing,
   dupeBlocker,
-  provenance?: SignalProvenance
+  provenance?: SignalProvenance,
+  requestedSignalId?: string,
+  dedupeScope?: string,
 ) {
-  const signalId = `signal_${message.chat_id}_${message.id}`;
+  const signalId = requestedSignalId || `signal_${message.chat_id}_${message.id}`;
   if (dupeBlocker.enabled) {
     const baseDir = xmlParsing.signalsDir || './signals';
     const cooldown = dupeBlocker.cooldownHours !== undefined ? dupeBlocker.cooldownHours : 24;
-    const dupeResult = await isDuplicateSignal(xmlString, baseDir, cooldown, signalId);
+    const dupeResult = await isDuplicateSignal(xmlString, baseDir, cooldown, signalId, dedupeScope);
     if (dupeResult.isDupe) {
       addLog(`[DUPE-BLOCKER] Paket ${message.id} blockiert: ${dupeResult.reason}`);
       updateIncomingMessageStatus(String(message.chat_id), message.id, 'duplicate')
@@ -755,17 +767,141 @@ async function checkDuplicateAndSave(
     }
   }
   
-  if (xmlParsing.saveToFile) {
-    const baseDir = xmlParsing.signalsDir || './signals';
-    const channelDir = path.join(baseDir, String(message.chat_id));
-    await fsPromises.mkdir(channelDir, { recursive: true });
-    await fsPromises.writeFile(path.join(channelDir, `signal_${message.id}.xml`), xmlString, 'utf-8');
-  }
-
   const normalizedNew = normalizeSignalXml(xmlString);
   await saveSignal(signalId, String(message.chat_id), message.id, xmlString, normalizedNew, provenance);
   
   return signalId;
+}
+
+async function recordCreatedIntents(intents: any[], sourceId: string, signalReceivedAt: number): Promise<void> {
+  for (const intent of intents) {
+    await recordTradingExecutionEvent({
+      eventType: 'intent_created',
+      intentId: intent.id,
+      channelId: intent.channelId,
+      accountId: intent.accountId,
+      exchange: intent.exchange,
+      mode: intent.mode,
+      details: { symbol: intent.symbol, status: intent.status, signalReceivedAt },
+    });
+    addLog(`[TRADING] intent=${intent.id} path=${intent.executionPathId || 'legacy'} channel=${sourceId} account=${intent.accountId} status=${intent.status} symbol=${intent.symbol}`);
+  }
+}
+
+async function parseWorkflowPlan(
+  plan: any,
+  message: any,
+  text: string,
+  xmlParsing: any,
+  context: OutboxExecutionContext,
+  sourceId: string,
+  schemas: any[],
+) {
+  const configuredSchema = schemas.find(schema => schema.id === plan.schemaId);
+  const contractVersion = await getSignalContractVersion(plan.contractVersionId);
+  if (!configuredSchema || !configuredSchema.enabled || contractVersion?.status !== 'published') {
+    throw new Error(`Workflow parser plan ${plan.key.slice(0, 12)} references a stale schema or contract.`);
+  }
+  addLog(`[XML-Parser] Analysiere Paket ${message.id} über Workflow-Pfadgruppe ${plan.key.slice(0, 12)}...`);
+  const parsedSignal = await parseSignalNative(
+    text,
+    plan.timeoutMs,
+    plan.templateName,
+    {
+      primaryModel: plan.primaryModel || xmlParsing.primaryModel,
+      fallbackModel: plan.fallbackModel || xmlParsing.fallbackModel,
+    },
+    context.signal,
+    xmlParsing.aiLimits,
+    {
+      id: configuredSchema.id,
+      parserSchema: configuredSchema.parserSchema,
+      contractVersionId: contractVersion.id,
+      contractDefinition: contractVersion.definition,
+    },
+    plan.prompt,
+  );
+  await recordTradingExecutionEvent({
+    eventType: 'signal_validated',
+    channelId: sourceId,
+    details: {
+      telegramMessageId: String(message.id),
+      workflowRevisionId: plan.workflowRevisionId,
+      workflowPlan: plan.key,
+      schema: parsedSignal.signal.schema,
+      contractVersionId: plan.contractVersionId,
+    },
+  });
+  return parsedSignal;
+}
+
+async function finishWorkflowOutput(
+  message: any,
+  context: OutboxExecutionContext,
+  sourceId: string,
+  outputModes: Set<string>,
+  firstXml: string | null,
+): Promise<{ handled: boolean; result?: any; workflowOriginal?: boolean }> {
+  if (outputModes.has('telegram_xml') && firstXml) {
+    const result = await sendXmlMessage(firstXml, context);
+    await updateIncomingMessageStatus(sourceId, message.id, 'processed');
+    return { handled: true, result };
+  }
+  if (outputModes.has('telegram_original')) return { handled: false, workflowOriginal: true };
+  await updateIncomingMessageStatus(sourceId, message.id, 'processed');
+  return { handled: true, result: { mode: 'local-workflow-signal' } };
+}
+
+async function processWorkflowSignal(
+  message: any,
+  text: string,
+  contentType: string,
+  xmlParsing: any,
+  context: OutboxExecutionContext,
+  signalReceivedAt: number,
+) {
+  const sourceId = String(message.chat_id);
+  const plans = await getWorkflowSignalPlans({ channelId: sourceId, text, contentType });
+  if (plans.length === 0) {
+    addLog(`[WORKFLOW] Paket ${message.id} hat keinen aktiven, filterkonformen Ausführungspfad.`);
+    await updateIncomingMessageStatus(sourceId, message.id, 'filtered');
+    return { handled: true, result: { mode: 'workflow-filtered' } };
+  }
+  const schemas = await listTradingSignalSchemas();
+  let firstXml: string | null = null;
+  let createdIntents = 0;
+  const outputModes = new Set<string>();
+  for (const plan of plans) {
+    plan.outputModes.forEach(mode => outputModes.add(mode));
+    const parsedSignal = await parseWorkflowPlan(plan, message, text, xmlParsing, context, sourceId, schemas);
+    firstXml ||= parsedSignal.xml;
+    const signalId = await checkDuplicateAndSave(
+      message,
+      parsedSignal.xml,
+      xmlParsing,
+      plan.dedupe,
+      parsedSignal.provenance,
+      `signal_${message.chat_id}_${message.id}_${plan.key}`,
+      plan.key,
+    );
+    if (!signalId) continue;
+    if (!parsedSignal.signal.execution) {
+      addLog(`[TRADING] Workflow-Pfadgruppe ${plan.key.slice(0, 12)} lieferte kein ausführbares Signal.`);
+      continue;
+    }
+    const intents = await createWorkflowTradingIntents({
+      sourceSignalId: signalId,
+      channelId: sourceId,
+      sourceText: text,
+      contentType,
+      signal: parsedSignal.signal.execution,
+      executionPathIds: plan.executionPathIds,
+    });
+    createdIntents += intents.length;
+    await recordCreatedIntents(intents, sourceId, signalReceivedAt);
+  }
+  addLog(`[WORKFLOW] Paket ${message.id} erzeugte ${createdIntents} kontospezifische Trade-Intent(s).`);
+  return finishWorkflowOutput(message, context, sourceId, outputModes, firstXml);
 }
 
 async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {
@@ -781,7 +917,85 @@ async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {
   return { mode: 'xml-forward', ...confirmation };
 }
 
-async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldForwardToTelegram, context: OutboxExecutionContext) {
+function parserSchemaOverride(configuredSchema: any): any {
+  if (!configuredSchema) return null;
+  return {
+    id: configuredSchema.id,
+    parserSchema: configuredSchema.parserSchema,
+    contractVersionId: configuredSchema.contractVersionId,
+    contractDefinition: configuredSchema.contractDefinition,
+  };
+}
+
+async function parseLegacyXmlSignal(
+  message: any,
+  text: string,
+  sourceId: string,
+  xmlParsing: any,
+  context: OutboxExecutionContext,
+) {
+  const templateName = (xmlParsing.sourceTemplates || {})[sourceId];
+  const configuredSchema = await getTradingSignalSchemaForTemplate(templateName);
+  const parsedSignal = await parseSignalNative(
+    text,
+    xmlParsing.timeout || DEFAULT_PARSER_TIMEOUT_MS,
+    templateName,
+    { primaryModel: xmlParsing.primaryModel, fallbackModel: xmlParsing.fallbackModel },
+    context.signal,
+    xmlParsing.aiLimits,
+    parserSchemaOverride(configuredSchema),
+  );
+  await recordTradingExecutionEvent({
+    eventType: 'signal_validated',
+    channelId: sourceId,
+    details: {
+      telegramMessageId: String(message.id),
+      schema: parsedSignal.signal.schema,
+      contractVersionId: configuredSchema?.contractVersionId ?? null,
+    },
+  });
+  return parsedSignal;
+}
+
+async function createLegacyIntentForSignal(
+  parsedSignal: any,
+  signalId: string,
+  sourceId: string,
+  signalReceivedAt: number,
+): Promise<void> {
+  if (!parsedSignal.signal.execution) {
+    addLog(`[TRADING] channel=${sourceId} schema=${parsedSignal.signal.schema} is not executable; no trade intent created.`);
+    return;
+  }
+  const intent = await createTradingIntent({
+    sourceSignalId: signalId,
+    channelId: sourceId,
+    signal: parsedSignal.signal.execution,
+  });
+  await recordCreatedIntents(intent ? [intent] : [], sourceId, signalReceivedAt);
+}
+
+async function finishLegacySignalOutput(input: {
+  message: any;
+  parsedXml: string;
+  forwardXml: boolean;
+  shouldForwardToTelegram: boolean;
+  context: OutboxExecutionContext;
+}): Promise<{ handled: boolean; result?: any }> {
+  const { message, parsedXml, forwardXml, shouldForwardToTelegram, context } = input;
+  if (forwardXml) {
+    const result = await sendXmlMessage(parsedXml, context);
+    updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
+      .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
+    return { handled: true, result };
+  }
+  if (shouldForwardToTelegram) return { handled: false };
+  updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
+    .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
+  return { handled: true, result: { mode: 'local-signal-only' } };
+}
+
+async function processXmlSignal(message, text, contentType, xmlParsing, dupeBlocker, shouldForwardToTelegram, context: OutboxExecutionContext) {
   addLog(`[XML-Parser] Analysiere Signal-Text für Paket ${message.id}...`);
   const forwardXml = shouldForwardToTelegram && xmlParsing.forwardXmlToTarget;
   try {
@@ -793,36 +1007,17 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
       channelId: sourceId,
       details: { telegramMessageId: String(message.id) },
     });
-    const sourceTemplates = xmlParsing.sourceTemplates || {};
-    const templateName = sourceTemplates[sourceId];
-    const configuredSchema = await getTradingSignalSchemaForTemplate(templateName);
-    
-    const parsedSignal = await parseSignalNative(
-      text,
-      xmlParsing.timeout || DEFAULT_PARSER_TIMEOUT_MS,
-      templateName,
-      {
-        primaryModel: xmlParsing.primaryModel,
-        fallbackModel: xmlParsing.fallbackModel
-      },
-      context.signal,
-      xmlParsing.aiLimits,
-      configuredSchema ? {
-        id: configuredSchema.id,
-        parserSchema: configuredSchema.parserSchema,
-        contractVersionId: configuredSchema.contractVersionId,
-        contractDefinition: configuredSchema.contractDefinition,
-      } : null,
-    );
-    await recordTradingExecutionEvent({
-      eventType: 'signal_validated',
-      channelId: sourceId,
-      details: {
-        telegramMessageId: String(message.id),
-        schema: parsedSignal.signal.schema,
-        contractVersionId: configuredSchema?.contractVersionId ?? null,
-      },
-    });
+    if (await getActiveWorkflow()) {
+      return processWorkflowSignal(
+        message,
+        text,
+        contentType,
+        xmlParsing,
+        context,
+        signalReceivedAt,
+      );
+    }
+    const parsedSignal = await parseLegacyXmlSignal(message, text, sourceId, xmlParsing, context);
     addLog(`[XML-Parser SUCCESS] Paket ${message.id} erfolgreich analysiert.`);
     
     const signalId = await checkDuplicateAndSave(
@@ -833,68 +1028,35 @@ async function processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldFo
       parsedSignal.provenance
     );
     if (!signalId) return { handled: true, result: { mode: 'duplicate-blocked' } };
-
-    if (parsedSignal.signal.execution) {
-      const intent = await createTradingIntent({
-        sourceSignalId: signalId,
-        channelId: sourceId,
-        signal: parsedSignal.signal.execution,
-      });
-      if (intent) {
-        await recordTradingExecutionEvent({
-          eventType: 'intent_created',
-          intentId: intent.id,
-          channelId: intent.channelId,
-          accountId: intent.accountId,
-          exchange: intent.exchange,
-          mode: intent.mode,
-          details: { symbol: intent.symbol, status: intent.status, signalReceivedAt },
-        });
-        addLog(`[TRADING] intent=${intent.id} channel=${sourceId} status=${intent.status} symbol=${intent.symbol}`);
-      }
-    } else {
-      addLog(`[TRADING] channel=${sourceId} schema=${parsedSignal.signal.schema} is not executable; no trade intent created.`);
-    }
-    
-    if (forwardXml) {
-      const result = await sendXmlMessage(parsedSignal.xml, context);
-      updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
-        .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
-      return { handled: true, result };
-    }
-    
-    if (!shouldForwardToTelegram) {
-      updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
-        .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
-      return { handled: true, result: { mode: 'local-signal-only' } };
-    }
+    await createLegacyIntentForSignal(parsedSignal, signalId, sourceId, signalReceivedAt);
+    return finishLegacySignalOutput({ message, parsedXml: parsedSignal.xml, forwardXml, shouldForwardToTelegram, context });
   } catch (error: any) {
     addLog(`[XML-Parser ERROR] Paket ${message.id}: ${error.message}`);
     updateIncomingMessageStatus(String(message.chat_id), message.id, 'failed')
       .catch(statusError => addLog(`[WARN] Inbox failure status update failed for ${message.id}: ${statusError.message}`));
     throw error;
   }
-  return { handled: false };
 }
 
 async function forwardSingleMessage(message, config, context: OutboxExecutionContext) {
   if (context.signal.aborted) throw new Error('Task aborted');
-  const { text } = getMessageTextAndType(message);
+  const { text, type } = getMessageTextAndType(message);
   const shouldForwardToTelegram = config.forwardOptions?.forwardToTarget ?? true;
 
   const xmlParsing = config.xmlParsing || {};
   const dupeBlocker = config.dupeBlocker || {};
+  const activeWorkflow = await getActiveWorkflow();
 
-  let xmlResult = { handled: false } as { handled: boolean; result?: any };
-  if (xmlParsing.enabled && text?.trim()) {
+  let xmlResult = { handled: false } as { handled: boolean; result?: any; workflowOriginal?: boolean };
+  if ((activeWorkflow || xmlParsing.enabled) && text?.trim()) {
     if (xmlParsing.externalDataPolicyAccepted !== true) {
       throw new Error('AI parsing is blocked until the external data-processing policy is explicitly accepted in the Web UI.');
     }
-    xmlResult = await processXmlSignal(message, text, xmlParsing, dupeBlocker, shouldForwardToTelegram, context);
+    xmlResult = await processXmlSignal(message, text, type, xmlParsing, dupeBlocker, shouldForwardToTelegram, context);
   }
 
   if (xmlResult.handled) return xmlResult.result;
-  if (shouldForwardToTelegram) {
+  if ((activeWorkflow && xmlResult.workflowOriginal) || shouldForwardToTelegram) {
     return forwardRawMessage(message, config, context);
   }
   throw new Error(`Message ${message.id} produced no configured side effect.`);
@@ -986,24 +1148,21 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
   }
 }
 
-async function routeIncomingMessage(message: any, config: any): Promise<void> {
-  const chatId = String(message.chat_id);
-  if (!state.resolvedSourceChatIds.has(chatId) || message.is_outgoing) return;
+async function messagePassesRoutingFilters(
+  message: any,
+  config: any,
+  activeWorkflow: any,
+  chatId: string,
+  text: string,
+  contentType: string,
+): Promise<boolean> {
+  if (!activeWorkflow) return shouldForward(message, config.filters, addLog, chatId, config);
+  const workflowPlans = await getWorkflowSignalPlans({ channelId: chatId, text, contentType });
+  return workflowPlans.length > 0;
+}
 
-  const { text, type } = getMessageTextAndType(message);
-  const sender = config.sourceAliases?.[chatId] || chatId;
-  const inserted = await saveIncomingMessage(chatId, message.id, sender, text || '', type, 'received');
-  if (!inserted) {
-    addLog(`[INFO] Duplicate incoming message ${chatId}/${message.id} ignored.`);
-    return;
-  }
-
-  addLog(`[INFO] Neues Datenpaket ${message.id} an Quell-Knoten ${chatId} abgefangen.`);
-  if (!shouldForward(message, config.filters, addLog, chatId, config)) {
-    await updateIncomingMessageStatus(chatId, message.id, 'filtered');
-    return;
-  }
-  if (!message.media_group_id || message.media_group_id === '0') {
+async function routeAcceptedMessage(message: any, config: any, activeWorkflow: any): Promise<void> {
+  if (!message.media_group_id || message.media_group_id === '0' || activeWorkflow) {
     await enqueueSingleMessage(message, config);
     return;
   }
@@ -1012,6 +1171,30 @@ async function routeIncomingMessage(message: any, config: any): Promise<void> {
     return;
   }
   addLog(`[INFO] Album-Paketgruppe ${message.media_group_id} übersprungen (Weiterleitung deaktiviert).`);
+}
+
+async function routeIncomingMessage(message: any, config: any): Promise<void> {
+  if (message.is_outgoing) return;
+  const chatId = String(message.chat_id);
+  const activeWorkflow = await getActiveWorkflow();
+  const workflowSource = activeWorkflow ? activeWorkflow.compiled.paths.some(path => path.channelId === chatId) : false;
+  if (!state.resolvedSourceChatIds.has(chatId) && !workflowSource) return;
+  const { text, type } = getMessageTextAndType(message);
+  const sender = config.sourceAliases?.[chatId] || chatId;
+  const inserted = await saveIncomingMessage(chatId, message.id, sender, text || '', type, 'received');
+  if (!inserted) {
+    addLog(`[INFO] Duplicate incoming message ${chatId}/${message.id} ignored.`);
+    return;
+  }
+  addLog(`[INFO] Neues Datenpaket ${message.id} an Quell-Knoten ${chatId} abgefangen.`);
+  if (!await messagePassesRoutingFilters(message, config, activeWorkflow, chatId, text || '', type)) {
+    await updateIncomingMessageStatus(chatId, message.id, 'filtered');
+    return;
+  }
+  // A workflow-qualified caption must traverse the same parser/filter path as
+  // an ordinary message. The legacy album forwarder is intentionally not
+  // allowed to bypass the graph's output node.
+  await routeAcceptedMessage(message, config, activeWorkflow);
 }
 
 async function handleUpdate(update: any, config: any): Promise<void> {
@@ -1065,12 +1248,17 @@ function routingCredentials(config: any): { apiId: number; apiHash: string } {
   return { apiId, apiHash: process.env.TELEGRAM_API_HASH || '' };
 }
 
-function routingConfigurationIsComplete(config: any, apiId: number, apiHash: string): boolean {
+function routingConfigurationIsComplete(
+  config: any,
+  apiId: number,
+  apiHash: string,
+  requiresTelegramTarget = true,
+): boolean {
   return Boolean(
     apiId
     && /^[a-f0-9]{32}$/i.test(apiHash)
     && config.sourceChannels.length > 0
-    && isValidTargetChannel(config.targetChannel)
+    && (!requiresTelegramTarget || isValidTargetChannel(config.targetChannel))
   );
 }
 
@@ -1110,7 +1298,8 @@ async function connectAndActivateRouting(
   apiId: number,
   apiHash: string,
   resetLogs: boolean,
-  activeMessage: string
+  activeMessage: string,
+  requiresTelegramTarget = true,
 ): Promise<void> {
   state.connectionState = 'connecting';
   client = tdl.createClient({ apiId, apiHash, databaseDirectory: './session_data', filesDirectory: './session_files' });
@@ -1131,8 +1320,13 @@ async function connectAndActivateRouting(
   addLog("[SUCCESS] Mainframe-Verbindung autorisiert!");
   await preloadTelegramChats();
   await resolveConfiguredSources(config);
-  targetChatId = await resolveChatId(config.targetChannel);
-  addLog(`[SUCCESS] Ziel-Knoten geladen: ${config.targetChannel} -> ${targetChatId}`);
+  if (requiresTelegramTarget) {
+    targetChatId = await resolveChatId(config.targetChannel);
+    addLog(`[SUCCESS] Ziel-Knoten geladen: ${config.targetChannel} -> ${targetChatId}`);
+  } else {
+    targetChatId = null;
+    addLog('[INFO] Aktiver Workflow besitzt keine Telegram-Ausgabe; kein Ziel-Knoten erforderlich.');
+  }
   attachTelegramUpdateHandler(config);
   state.startupTime = Math.floor(Date.now() / 1000);
   state.isRunning = true;
@@ -1172,17 +1366,34 @@ async function cleanupFailedRoutingStart(reason: string): Promise<boolean> {
 
 async function startForwardingNonInteractive(config) {
   if (forwardQueue.running > 0) throw new Error('Cannot start routing while previous queue tasks are still running.');
-  applyQueueSettings(config);
+  const activeWorkflow = await getActiveWorkflow();
+  const workflowSources = activeWorkflow?.compiled.paths.map(path => path.channelId) ?? [];
+  const effectiveConfig = {
+    ...config,
+    sourceChannels: [...new Set([...(config.sourceChannels || []), ...workflowSources])],
+  };
+  const requiresTelegramTarget = !activeWorkflow || activeWorkflow.compiled.paths.some(path => {
+    const resources = path.effectiveConfiguration?.resources as Record<string, any> | undefined;
+    return ['telegram_xml', 'telegram_original'].includes(String(resources?.output?.mode || 'audit_only'));
+  });
+  applyQueueSettings(effectiveConfig);
   routingStopRequested = false;
-  const { apiId, apiHash } = routingCredentials(config);
-  if (!routingConfigurationIsComplete(config, apiId, apiHash)) {
+  const { apiId, apiHash } = routingCredentials(effectiveConfig);
+  if (!routingConfigurationIsComplete(effectiveConfig, apiId, apiHash, requiresTelegramTarget)) {
     addLog("[ERROR] Konfiguration unvollständig! Bitte apiId, TELEGRAM_API_HASH, sourceChannels und targetChannel prüfen.");
     throw new Error('Non-interactive routing configuration is incomplete.');
   }
 
   try {
     addLog("[INFO] Verbinde mit Telegram Mainframe...");
-    await connectAndActivateRouting(config, apiId, apiHash, false, "[SUCCESS] Mainframe-Routing aktiv!");
+    await connectAndActivateRouting(
+      effectiveConfig,
+      apiId,
+      apiHash,
+      false,
+      "[SUCCESS] Mainframe-Routing aktiv!",
+      requiresTelegramTarget,
+    );
   } catch (error: any) {
     if (routingStopRequested) {
       await cleanupFailedRoutingStart('Routing start cancelled by operator.');
@@ -1351,7 +1562,11 @@ function loadRuntimeConfiguration(): RuntimeConfiguration {
   }
 }
 
-async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore, clockGuard: ClockGuard) {
+async function initializeCoreRuntime(
+  tradingCredentials: TradingCredentialStore,
+  clockGuard: ClockGuard,
+  runtimeConfig: any,
+) {
   initializeDeliveryTracker();
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
   processLockPath = path.join(path.dirname(databasePath), '.process_active');
@@ -1361,6 +1576,15 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore,
   await auditTrail.initialize();
   await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
   await initDb();
+  try {
+    const migration = await migrateLegacyTradingRoutesToWorkflow(runtimeConfig);
+    if (migration.migrated) {
+      addLog(`[WORKFLOW] ${migration.paths} legacy trading route(s) migrated to the active visual workflow.`);
+    }
+    for (const skipped of migration.skipped) addLog(`[WARN] Legacy workflow migration skipped ${skipped}.`);
+  } catch (error: any) {
+    addLog(`[WARN] Legacy visual-workflow migration was not activated; existing routing remains intact: ${error.message}`);
+  }
   const tradingEngine = composeTradingControl(tradingCredentials, clockGuard);
   if (!tradingWebControl || !auditTrail) throw new Error('MCP control dependencies are unavailable.');
   tradingRuntime = new TradingRuntime(
@@ -1389,10 +1613,11 @@ async function initializeCoreRuntime(tradingCredentials: TradingCredentialStore,
 
 function composeTradingControl(tradingCredentials: TradingCredentialStore, clockGuard: ClockGuard): TradingEngine {
   const paperAdapter = new PaperExchangeAdapter();
-  const hyperliquidAdapter = new OfficialExchangeAdapter('hyperliquid', tradingCredentials);
-  const bybitAdapter = new OfficialExchangeAdapter('bybit', tradingCredentials);
+  const hyperliquidAdapter = new CcxtExchangeAdapter('hyperliquid', tradingCredentials);
+  const bybitAdapter = new CcxtExchangeAdapter('bybit', tradingCredentials);
+  const krakenFuturesAdapter = new CcxtExchangeAdapter('krakenfutures', tradingCredentials);
   const tradingEngine = new TradingEngine(
-    [paperAdapter, hyperliquidAdapter, bybitAdapter],
+    [paperAdapter, hyperliquidAdapter, bybitAdapter, krakenFuturesAdapter],
     addLog,
     clockGuard,
     { isolateUnavailableMarketFailures: process.env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES === 'true' },
@@ -1400,7 +1625,7 @@ function composeTradingControl(tradingCredentials: TradingCredentialStore, clock
   tradingWebControl = new TradingWebControl(
     tradingCredentials,
     paperAdapter,
-    [hyperliquidAdapter, bybitAdapter],
+    [hyperliquidAdapter, bybitAdapter, krakenFuturesAdapter],
     tradingEngine,
   );
   return tradingEngine;
@@ -1767,7 +1992,7 @@ async function run() {
     startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
     return;
   }
-  const { databasePath, retentionPolicy } = await initializeCoreRuntime(tradingCredentials, clockGuard);
+  const { databasePath, retentionPolicy } = await initializeCoreRuntime(tradingCredentials, clockGuard, runtime.config);
   startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
   let operationalGatesHealthy = true;
   try {

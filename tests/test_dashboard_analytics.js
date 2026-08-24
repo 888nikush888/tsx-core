@@ -41,10 +41,10 @@ try {
   ]) {
     await database.run(
       `INSERT INTO trading_trade_intents (
-         id, source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
+         id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
          symbol, side, status, signal_json, created_at, updated_at
-       ) VALUES (?, ?, '-1001', ?, ?, 'paper', 'paper', 'BTCUSDT', 'LONG', 'completed', '{}', ?, ?)`,
-      [`intent-${suffix}`, signalId, strategy.id, account.id, createdAt, createdAt],
+       ) VALUES (?, ?, ?, '-1001', ?, ?, 'paper', 'paper', 'BTCUSDT', 'LONG', 'completed', '{}', ?, ?)`,
+      [`intent-${suffix}`, signalId, signalId, strategy.id, account.id, createdAt, createdAt],
     );
     await database.run(
       `INSERT INTO trading_orders (

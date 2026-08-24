@@ -78,6 +78,8 @@ interface CompletionResult {
 
 export interface ParseSignalOptions {
   signal?: AbortSignal;
+  /** Immutable workflow-owned prompt template. The server always appends the non-editable safety boundary. */
+  promptTemplate?: string;
   /** Undefined preserves legacy direct-call behavior; null deliberately disables trading execution. */
   executableSchema?: ExecutableSignalSchemaSelection | null;
   limits?: Partial<AiLimits>;
@@ -308,7 +310,7 @@ function utcUsageDay(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-async function loadPrompt(templateName?: string): Promise<{ prompt: string; templateName: string }> {
+export async function loadSignalPromptTemplate(templateName?: string): Promise<{ promptTemplate: string; templateName: string }> {
   const normalized = (templateName || 'default').trim();
   const templatesDir = path.resolve(
     process.env.TEMPLATES_DIR?.trim()
@@ -319,12 +321,12 @@ async function loadPrompt(templateName?: string): Promise<{ prompt: string; temp
     try {
       const override = await fsPromises.readFile(defaultPath, 'utf-8');
       if (!override.trim()) throw new Error('default template override is empty');
-      return { prompt: override.trim() + SAFETY_PROMPT, templateName: 'default' };
+      return { promptTemplate: override.trim(), templateName: 'default' };
     } catch (error: any) {
       if (error?.code !== 'ENOENT') {
         throw new Error(`Default signal template override cannot be loaded: ${error.message}`, { cause: error });
       }
-      return { prompt: DEFAULT_SIGNAL_PROMPT + SAFETY_PROMPT, templateName: 'default' };
+      return { promptTemplate: DEFAULT_SIGNAL_PROMPT, templateName: 'default' };
     }
   }
   if (!/^[a-zA-Z0-9 _-]{1,64}$/.test(normalized)) {
@@ -335,10 +337,29 @@ async function loadPrompt(templateName?: string): Promise<{ prompt: string; temp
   try {
     const prompt = await fsPromises.readFile(templatePath, 'utf-8');
     if (!prompt.trim()) throw new Error('template is empty');
-    return { prompt: prompt.trim() + SAFETY_PROMPT, templateName: normalized };
+    return { promptTemplate: prompt.trim(), templateName: normalized };
   } catch (error: any) {
     throw new Error(`Signal template '${normalized}' cannot be loaded: ${error.message}`, { cause: error });
   }
+}
+
+async function loadPrompt(
+  templateName?: string,
+  immutablePromptTemplate?: string,
+): Promise<{ prompt: string; templateName: string }> {
+  const loaded = immutablePromptTemplate === undefined
+    ? await loadSignalPromptTemplate(templateName)
+    : {
+        promptTemplate: immutablePromptTemplate.trim(),
+        templateName: (templateName || 'default').trim(),
+      };
+  if (!loaded.promptTemplate || loaded.promptTemplate.length > 50_000) {
+    throw new Error('Signal prompt template must contain between 1 and 50000 characters.');
+  }
+  if (!/^[a-zA-Z0-9 _-]{1,64}$/.test(loaded.templateName)) {
+    throw new Error(`Invalid signal template name '${loaded.templateName}'.`);
+  }
+  return { prompt: loaded.promptTemplate + SAFETY_PROMPT, templateName: loaded.templateName };
 }
 
 export function validateXmlStructure(xml: string): void {
@@ -498,7 +519,7 @@ export async function parseSignalToXml(
     throw new Error(`Signal source text exceeds the ${limits.maxInputChars} character limit.`);
   }
   throwIfAborted(options.signal);
-  const { prompt, templateName: effectiveTemplate } = await loadPrompt(templateName);
+  const { prompt, templateName: effectiveTemplate } = await loadPrompt(templateName, options.promptTemplate);
   const context: AttemptContext = {
     messageText: text,
     prompt,

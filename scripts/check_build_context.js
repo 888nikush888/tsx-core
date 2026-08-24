@@ -10,7 +10,7 @@ const gitExecutable = process.platform === 'win32'
 const requiredIgnores = [
   '.git', '.env', '.env.*', 'config.json', 'node_modules', 'frontend/node_modules',
   'secrets', '**/secrets', '**/.managed-secret-transaction.json', 'session_data', 'tmp',
-  'session_files', 'logs', 'backups', '*.tgfb',
+  'session_files', 'logs', 'backups', 'reports', '*.tgfb', '*.tar.gz', '.stryker-tmp-*',
 ];
 const sensitiveDirectory = /(^|\/)(?:secrets?|session_data|session_files|backups)(?:\/|$)/i;
 const environmentFile = /(^|\/)\.env(?:\.|$)/i;
@@ -61,7 +61,7 @@ if (path.resolve(process.argv[1] ?? '') === path.resolve(fileURLToPath(import.me
   const violations = evaluateBuildContext({ dockerignore, dockerfile, trackedFiles });
   violations.push(...workspaceRootCopyViolation(alertmanagerDockerfile, 'monitoring/alertmanager.Dockerfile'));
   const executorRules = new Set(executorDockerignore.split(/\r?\n/).map(line => line.trim()).filter(Boolean));
-  for (const rule of ['.env', '.env.*', 'secrets', '**/secrets']) {
+  for (const rule of ['.env', '.env.*', 'secrets', '**/secrets', 'tests', 'reports', '__pycache__', '*.pyc']) {
     if (!executorRules.has(rule)) violations.push(`exchange_executor/.dockerignore is missing ${rule}`);
   }
   if (violations.length > 0) {

@@ -16,7 +16,7 @@
   "xmlParsing": {
     "enabled": false,
     "externalDataPolicyAccepted": false,
-    "saveToFile": true,
+    "saveToFile": false,
     "forwardXmlToTarget": false,
     "signalsDir": "./signals",
     "primaryModel": "google/gemini-flash-1.5",

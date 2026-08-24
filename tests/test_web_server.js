@@ -145,6 +145,149 @@ async function testOperatorReadContracts(baseUrl, appState) {
   }
 }
 
+async function testWorkflowResourceApi(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).workflow, null);
+
+  response = await fetch(`${baseUrl}/api/exchanges/catalog`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  const catalog = await response.json();
+  assert.deepStrictEqual(catalog.implementation, {
+    library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',
+  });
+  assert.deepStrictEqual(catalog.exchanges.map(exchange => exchange.id), [
+    'paper', 'hyperliquid', 'bybit', 'krakenfutures',
+  ]);
+
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ kind: 'channel', name: 'Draft channel', configuration: { channelId: '-100-test' } }),
+  });
+  assert.strictEqual(response.status, 201);
+  const draft = (await response.json()).resource;
+  assert.strictEqual(draft.status, 'draft');
+
+  response = await fetch(`${baseUrl}/api/workflow/resources/update`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      id: draft.id, name: 'Updated channel', description: 'Versioned workflow input',
+      configuration: { channelId: '-100-test' },
+    }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).resource.name, 'Updated channel');
+
+  response = await fetch(`${baseUrl}/api/workflow/resources/publish`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).resource.status, 'published');
+
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'DELETE',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id }),
+  });
+  assert.strictEqual(response.status, 412, 'Workflow resource removal must require exact confirmation.');
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'DELETE',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'delete-workflow-resource',
+    }),
+    body: JSON.stringify({ id: draft.id }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).result.archived.status, 'archived');
+
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ kind: 'channel', name: 'Disposable draft', configuration: { channelId: '-100-delete' } }),
+  });
+  const disposable = (await response.json()).resource;
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'DELETE',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'delete-workflow-resource',
+    }),
+    body: JSON.stringify({ id: disposable.id }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).result.deleted, true);
+
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ kind: 'unknown', name: 'Invalid', configuration: {} }),
+  });
+  assert.strictEqual(response.status, 409);
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'DELETE',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'delete-workflow-resource',
+    }),
+    body: JSON.stringify({ id: 'missing-resource' }),
+  });
+  assert.strictEqual(response.status, 409);
+
+}
+
+async function testWorkflowRevisionApi(baseUrl) {
+  const graph = { schemaVersion: 1, nodes: [], edges: [] };
+  let response = await fetch(`${baseUrl}/api/workflow/impact`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ baseRevisionId: null, graph }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).impact.destructive, false);
+  response = await fetch(`${baseUrl}/api/workflow/mutate`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ baseRevisionId: null, graph }),
+  });
+  assert.strictEqual(response.status, 201);
+  const workflow = (await response.json()).workflow;
+  assert.strictEqual(workflow.revision, 1);
+
+  response = await fetch(`${baseUrl}/api/workflow/simulate`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ channelId: '-100-test', text: 'BTCUSDT LONG' }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).result.active, true);
+  response = await fetch(`${baseUrl}/api/workflow/simulate`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: '{}',
+  });
+  assert.strictEqual(response.status, 400);
+  response = await fetch(`${baseUrl}/api/workflow/mutate`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ baseRevisionId: workflow.id, graph: {} }),
+  });
+  assert.strictEqual(response.status, 409);
+
+  response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).workflow.id, workflow.id);
+}
+
+async function testWorkflowControlPlane(baseUrl) {
+  await testWorkflowResourceApi(baseUrl);
+  await testWorkflowRevisionApi(baseUrl);
+}
+
 async function testRequestValidation(baseUrl) {
   const rejectedRouteCases = [
     ['/api/incoming-messages', { method: 'DELETE', headers: mutationHeaders() }, 400],
@@ -1162,6 +1305,7 @@ async function runTests() {
     await testBootstrap(baseUrl);
     await testAuthenticationAndReads(baseUrl);
     await testOperatorReadContracts(baseUrl, appState);
+    await testWorkflowControlPlane(baseUrl);
     await testTelegramWebLogin(baseUrl);
     await testRequestValidation(baseUrl);
     await testTradingStrategyDeletion(baseUrl, appState);

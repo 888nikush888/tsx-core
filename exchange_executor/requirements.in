@@ -1,4 +1,4 @@
-# Official exchange SDKs only. Runtime dependencies are fully resolved and
-# hash-pinned in requirements.lock.
-hyperliquid-python-sdk==0.24.0
-pybit==5.16.0
+# CCXT is the only exchange integration layer. CCXT Pro is bundled with the
+# package and provides the private/public WebSocket watchers used by the
+# executor. Runtime dependencies are fully resolved and hash-pinned below.
+ccxt==4.5.75

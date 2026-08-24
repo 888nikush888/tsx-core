@@ -26,6 +26,6 @@ Ergänzung 28.07.2026: Die Auslieferung erzeugt keine fachlichen Beispieldaten m
 
 ## Abnahme und Traceability
 
-Owner sind Security und SRE, für Backup/Reset zusätzlich der Data Owner. Akzeptiert ist die Entscheidung nur bei grünen Tests `test_web_server.js`, `test_secret_store.js`, `test_runtime_settings.js`, `test_backup_replication.js`, `test_dashboard_auth.js` und `frontend/tests/system-tab.test.tsx`, erfolgreichem Docker-Startup-/Reset-/Restore-Smoke sowie erfüllten SLOs aus `docs/QUALITY_OS.md`. Rollback erfolgt über den vorherigen Image-Digest und das vor Restore bewahrte DB-/Config-Paar.
+Owner sind Security und SRE, für Backup/Reset zusätzlich der Data Owner. Akzeptiert ist die Entscheidung nur bei grünen Tests `test_web_server.js`, `test_secret_store.js`, `test_runtime_settings.js`, `test_backup_replication.js`, `test_dashboard_auth.js` und `frontend/e2e/dashboard.spec.ts`, erfolgreichem Docker-Startup-/Reset-/Restore-Smoke sowie erfüllten SLOs aus `docs/QUALITY_OS.md`. Rollback erfolgt über den vorherigen Image-Digest und das vor Restore bewahrte DB-/Config-Paar.
 
 Ergänzung 26.07.2026, aktualisiert 28.07.2026: ADR 0011 ergänzt Tailscale-Identity, dynamische Verträge/Analytics und einen unabhängigen MCP-Dienst. Dieser startet nun standardmäßig, bleibt fachlich ab Werk `disabled` und wird persistent über das Dashboard gesteuert. Factory Reset und Restore koordinieren dessen SQLite-Handle über einen gemeinsamen Wartungsmarker; die Web-first- und Loopback-Grundsätze bleiben bestehen.

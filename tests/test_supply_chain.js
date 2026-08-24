@@ -15,8 +15,9 @@ const alertmanagerDockerfile = await readFile(path.join(root, 'monitoring', 'ale
 const applicationVex = JSON.parse(await readFile(path.join(root, 'security', 'vex', 'CVE-2026-14456.openvex.json'), 'utf8'));
 const monitoringCompose = await readFile(path.join(root, 'docker-compose.monitoring.yml'), 'utf8');
 const executorLock = await readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8');
-const hyperliquidAdapter = await readFile(path.join(root, 'exchange_executor', 'hyperliquid_adapter.py'), 'utf8');
-const bybitAdapter = await readFile(path.join(root, 'exchange_executor', 'bybit_adapter.py'), 'utf8');
+const ccxtClient = await readFile(path.join(root, 'exchange_executor', 'ccxt_client.py'), 'utf8');
+const ccxtAdapter = await readFile(path.join(root, 'exchange_executor', 'ccxt_adapter.py'), 'utf8');
+const streamHub = await readFile(path.join(root, 'exchange_executor', 'stream_hub.py'), 'utf8');
 const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf8');
 const strykerConfig = await readFile(path.join(root, 'stryker.config.mjs'), 'utf8');
 const mutationRunner = await readFile(path.join(root, 'scripts', 'run_mutation_shards.js'), 'utf8');
@@ -131,13 +132,21 @@ assert.match(
 );
 assert.match(executorDockerfile, /^USER 65532:65532$/m);
 assert.match(executorDockerfile, /pip install --require-hashes/);
-assert.match(executorLock, /^hyperliquid-python-sdk==0\.24\.0 \\/m);
-assert.match(executorLock, /^pybit==5\.16\.0 \\/m);
-assert.match(executorLock, /f472dd4f6d8ef0e66182c7627276400462c86fbc0929eb5b63feda3ae45605f6/);
-assert.match(executorLock, /d214c4987aabb25c10e8e031244973a3be4728e044575ab6c6f6f7873f8c1cab/);
-assert.match(hyperliquidAdapter, /from hyperliquid\.exchange import Exchange/);
-assert.match(hyperliquidAdapter, /from hyperliquid\.info import Info/);
-assert.match(bybitAdapter, /from pybit\.unified_trading import HTTP/);
+assert.match(executorLock, /^#\s+uv pip compile requirements\.in --universal --python-version 3\.12 --generate-hashes --output-file requirements\.lock$/m);
+assert.match(executorLock, /^ccxt==4\.5\.75 \\/m);
+assert.match(executorLock, /^uvloop==0\.22\.1 ; implementation_name == 'cpython' and sys_platform != 'win32' \\/m);
+assert.match(executorLock, /^winloop==0\.6\.3 ; .*sys_platform == 'win32' \\/m);
+assert.match(executorLock, /05815e6e7fdf8c8e28602150d7d6f8a9a98050dac3fc133ffff182444e4e6545/);
+assert.match(executorLock, /5509c2659e4bfad6f4f5a9cea5c15ad244121263b423ae92f7ccbc4c04cfd8d9/);
+assert.match(ccxtClient, /import ccxt\.async_support as ccxt_async/);
+assert.match(ccxtClient, /import ccxt\.pro as ccxt_pro/);
+assert.match(ccxtClient, /CERTIFIED_EXCHANGES = \{"hyperliquid", "bybit", "krakenfutures"\}/);
+assert.match(ccxtClient, /"builderFee": False, "approvedBuilderFee": False/);
+assert.match(ccxtAdapter, /clients\.rest\.create_orders/);
+assert.match(ccxtAdapter, /clients\.rest\.fetch_positions/);
+assert.match(streamHub, /clients\.pro\.watch_orders/);
+assert.match(streamHub, /clients\.pro\.watch_my_trades/);
+assert.match(streamHub, /clients\.pro\.watch_positions/);
 const executorService = dockerCompose.slice(
   dockerCompose.indexOf('\n  exchange-executor:'),
   dockerCompose.indexOf('\n  mcp-server:'),

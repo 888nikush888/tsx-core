@@ -49,6 +49,12 @@ import {
 } from './mcp_repository.js';
 import { listExchangeStreamStates } from './exchange_stream_repository.js';
 import { listTradeJournal } from './trade_journal.js';
+import {
+  getActiveWorkflow,
+  listWorkflowResources,
+  previewWorkflowImpact,
+  simulateWorkflow,
+} from './workflow_repository.js';
 import { validateSignalContractDefinition } from './signal_contract.js';
 import { assertSignalGrounded, validateSignalXml } from './signal_schema.js';
 import {
@@ -79,6 +85,12 @@ const PROPOSAL_ACTION_VALUES = [
   'routes.delete',
   'risk.update',
   'risk.delete',
+  'workflow.resource_create',
+  'workflow.resource_update',
+  'workflow.resource_publish',
+  'workflow.resource_archive',
+  'workflow.resource_delete_draft',
+  'workflow.activate',
   'trading.release_kill_switch',
 ] as const;
 
@@ -421,6 +433,33 @@ function registerExtendedReadTools(server: McpServer, agentId: string): void {
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, () => listTradingRoutes());
 
+  registerTool(server, agentId, 'tsx_workflow_get', 'workflow.read', {
+    title: 'Read active visual workflow',
+    description: 'Reads the active immutable workflow revision, compiled account paths and reusable resource versions.',
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async () => ({ workflow: await getActiveWorkflow(), resources: await listWorkflowResources() }));
+
+  registerTool(server, agentId, 'tsx_workflow_simulate', 'workflow.read', {
+    title: 'Simulate visual workflow filters',
+    description: 'Evaluates a sample Telegram message against the active workflow without parsing, trading or saving it.',
+    inputSchema: {
+      channelId: z.string().min(1).max(128),
+      text: z.string().max(64 * 1024),
+      contentType: z.string().min(1).max(40).default('text'),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, input => simulateWorkflow(input));
+
+  registerTool(server, agentId, 'tsx_workflow_impact', 'workflow.read', {
+    title: 'Preview visual workflow impact',
+    description: 'Compiles a candidate graph and reports added, changed or removed execution paths without activating it.',
+    inputSchema: {
+      baseRevisionId: z.string().min(1).max(64).nullable(),
+      graph: z.record(z.string(), z.unknown()),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, input => previewWorkflowImpact(input));
+
   registerTool(server, agentId, 'tsx_analytics', 'analytics.read', {
     title: 'Read trading analytics',
     description: 'Reads performance, execution latency and exchange WebSocket health.',
@@ -697,6 +736,63 @@ function registerConfigurationTools(server: McpServer, agentId: string): void {
   });
 }
 
+function registerWorkflowTools(server: McpServer, agentId: string): void {
+  const resourceInput = {
+    resourceId: z.string().min(1).max(128).optional(),
+    kind: z.enum([
+      'channel', 'content_filter', 'keyword_filter', 'regex', 'parser', 'schema',
+      'contract', 'dedupe', 'strategy', 'sizing', 'adaptive_risk', 'account', 'output',
+    ]),
+    name: z.string().min(1).max(80),
+    description: z.string().max(500).default(''),
+    configuration: z.record(z.string(), z.unknown()),
+  };
+  registerProposalTool(server, agentId, 'tsx_workflow_resource_create', 'workflow.write', 'workflow.resource_create', {
+    title: 'Create workflow-resource draft',
+    description: 'Creates a versioned, inactive resource draft for the visual workflow.',
+    inputSchema: resourceInput,
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_workflow_resource_update', 'workflow.write', 'workflow.resource_update', {
+    title: 'Update workflow-resource draft',
+    description: 'Updates only an unpublished workflow-resource draft.',
+    inputSchema: {
+      id: z.string().min(1).max(64),
+      name: z.string().min(1).max(80),
+      description: z.string().max(500).default(''),
+      configuration: z.record(z.string(), z.unknown()),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_workflow_resource_publish', 'workflow.write', 'workflow.resource_publish', {
+    title: 'Publish workflow resource',
+    description: 'Publishes a validated immutable workflow-resource version.',
+    inputSchema: { id: z.string().min(1).max(64) },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_workflow_resource_archive', 'workflow.write', 'workflow.resource_archive', {
+    title: 'Archive workflow resource',
+    description: 'Requests approval to archive an unreferenced published resource.',
+    inputSchema: { id: z.string().min(1).max(64) },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_workflow_resource_delete_draft', 'workflow.write', 'workflow.resource_delete_draft', {
+    title: 'Delete workflow-resource draft',
+    description: 'Requests approval to permanently delete an unpublished resource draft.',
+    inputSchema: { id: z.string().min(1).max(64) },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  });
+  registerProposalTool(server, agentId, 'tsx_workflow_activate', 'workflow.write', 'workflow.activate', {
+    title: 'Activate visual workflow revision',
+    description: 'Compiles and requests approval for an atomic immutable visual-workflow revision.',
+    inputSchema: {
+      baseRevisionId: z.string().min(1).max(64).nullable(),
+      graph: z.record(z.string(), z.unknown()),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  });
+}
+
 function registerTradingTools(server: McpServer, agentId: string): void {
   registerControlTool(server, agentId, 'tsx_reconcile', 'trading.reconcile', 'trading.reconcile', {
     title: 'Reconcile exchange state',
@@ -738,6 +834,7 @@ function registerTools(server: McpServer, agentId: string): void {
   registerContractTools(server, agentId);
   registerRiskTools(server, agentId);
   registerConfigurationTools(server, agentId);
+  registerWorkflowTools(server, agentId);
   registerTradingTools(server, agentId);
 }
 

@@ -203,14 +203,14 @@ try {
   await saveSignal('stream-unknown-signal', '-journal-channel', 44, XML, XML);
   await getDatabase().run(
     `INSERT INTO trading_trade_intents (
-       id, source_signal_id, channel_id, strategy_version_id, account_id,
+       id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id, account_id,
        exchange, mode, symbol, side, status, signal_json, plan_json,
        block_reason, last_error, created_at, updated_at
      ) VALUES
-       ('stream-pending', 'stream-pending-signal', '-journal-channel', ?, ?,
+       ('stream-pending', 'stream-pending-signal', 'stream-pending-signal', '-journal-channel', ?, ?,
         'bybit', 'testnet', 'ETHUSDT', 'LONG', 'pending', '{}', NULL,
         NULL, NULL, ?, ?),
-       ('stream-unknown', 'stream-unknown-signal', '-journal-channel', ?, ?,
+       ('stream-unknown', 'stream-unknown-signal', 'stream-unknown-signal', '-journal-channel', ?, ?,
         'bybit', 'testnet', 'HYPEPERPUSDT', 'LONG', 'unknown', '{}', NULL,
         NULL, 'provider outcome unknown', ?, ?)`,
     [strategy.id, bybit.id, now, now, strategy.id, bybit.id, now, now],

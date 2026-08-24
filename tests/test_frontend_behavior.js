@@ -15,5 +15,12 @@ const result = spawnSync(process.execPath, [vitest, 'run', '--configLoader', 'ru
 
 assert.ifError(result.error);
 assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-assert.match(result.stdout, /22 passed/);
+const files = result.stdout.match(/Test Files\s+(\d+) passed \((\d+)\)/);
+const tests = result.stdout.match(/Tests\s+(\d+) passed \((\d+)\)/);
+assert.ok(files, `Frontend test-file result missing:\n${result.stdout}`);
+assert.ok(tests, `Frontend test-count result missing:\n${result.stdout}`);
+assert.equal(files[1], files[2], 'Every discovered frontend test file must pass.');
+assert.equal(tests[1], tests[2], 'Every discovered frontend test must pass.');
+assert.ok(Number(files[1]) >= 5, 'Frontend test-file coverage must not regress below five files.');
+assert.ok(Number(tests[1]) >= 14, 'Frontend behavioral coverage must not regress below fourteen tests.');
 console.log('Frontend enterprise behavior tests passed.');

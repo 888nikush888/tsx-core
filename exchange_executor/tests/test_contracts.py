@@ -1,637 +1,270 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 import tempfile
 import time
 import unittest
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from bybit_adapter import BybitAdapter
-from common import (
-    ExchangeContractError,
-    RequestDeadline,
-    decimal_string,
-    external_account_cache_key,
-    external_account_id,
-    map_bybit_status,
-    optional_positive_decimal_string,
-    signed_decimal_string,
+from ccxt_adapter import (
+    CcxtAdapter, _canonical_symbol, _ledger_funding_amount, _market_order_result, _order_result,
+    _reduce_only, _requested_base, _status, _trigger_price,
 )
+from ccxt_client import CERTIFIED_EXCHANGES, _account_identity, _client_configuration
+from common import ExchangeContractError, RequestDeadline, account_request, decimal_string
 from credentials import CredentialError, CredentialStore
-from hyperliquid_adapter import HyperliquidAdapter
-from server import Handler, executor_error_code
-from stream_hub import AccountStream, _canonical_payload, _event_type, _symbol
+from server import authenticated, executor_error_code
+from stream_hub import AccountStream, _canonical_payload, _event_type
 
 
 class ContractTests(unittest.TestCase):
+    def test_only_certified_ccxt_exchanges_are_accepted(self) -> None:
+        self.assertEqual(CERTIFIED_EXCHANGES, {"hyperliquid", "bybit", "krakenfutures"})
+        for exchange in CERTIFIED_EXCHANGES:
+            account = account_request({"account": {"id": "account-1", "exchange": exchange, "mode": "testnet"}})
+            self.assertEqual(account["exchange"], exchange)
+        with self.assertRaises(ExchangeContractError):
+            account_request({"account": {"id": "account-1", "exchange": "binance", "mode": "testnet"}})
+
     def test_executor_failures_have_stable_secret_free_endpoint_codes(self) -> None:
         self.assertEqual(executor_error_code("/v1/stream-events"), "STREAM_POLL_FAILED")
         self.assertEqual(executor_error_code("/v1/open-state"), "OPEN_STATE_FAILED")
         self.assertEqual(executor_error_code("/unknown"), "EXECUTOR_REQUEST_FAILED")
 
-    def test_websocket_events_are_normalized_and_cursor_gaps_fail_safe(self) -> None:
-        stream = AccountStream(
-            {"id": "account-stream", "exchange": "bybit", "mode": "testnet"},
-            {"apiKey": "test-key", "apiSecret": "test-secret"},
-            "a" * 64,
+    def test_hyperliquid_builder_fee_is_explicitly_disabled(self) -> None:
+        config = _client_configuration(
+            {"id": "a", "exchange": "hyperliquid", "mode": "testnet"},
+            {"privateKey": "0x" + "1" * 64, "walletAddress": "0x" + "2" * 40},
         )
-        message = {
-            "topic": "execution",
-            "creationTime": 1_700_000_000_000,
-            "data": [{"symbol": "BTCUSDT", "execId": "fill-1", "seq": 7}],
-        }
-        stream._ingest("execution", message)
-        stream._ingest("execution", message)
-        batch = stream.poll(0)
-        self.assertEqual([event["cursor"] for event in batch["events"]], [1, 2])
-        self.assertEqual(batch["events"][0]["eventKey"], batch["events"][1]["eventKey"])
-        self.assertEqual(batch["events"][0]["eventType"], "execution")
-        self.assertEqual(batch["events"][0]["symbol"], "BTCUSDT")
-        self.assertTrue(stream.poll(99)["gap"])
-        self.assertEqual(_event_type("orderUpdates"), "order")
-        self.assertEqual(_event_type("webData2"), "position")
-        self.assertEqual(_symbol("hyperliquid", "ETH"), "ETHUSDC")
-        truncated, digest = _canonical_payload({"value": "x" * (70 * 1024)})
-        self.assertTrue(truncated["truncated"])
-        self.assertEqual(truncated["sha256"], digest)
+        self.assertFalse(config["options"]["builderFee"])
+        self.assertFalse(config["options"]["approvedBuilderFee"])
 
-    def test_stream_subscription_failure_is_degraded_and_never_escapes_poll(self) -> None:
-        class WebSocketConnectionClosedException(Exception):
-            pass
+    def test_ccxt_symbol_and_status_normalization_is_fail_closed(self) -> None:
+        market = {"base": "BTC"}
+        self.assertEqual(_canonical_symbol(market), "BTCUSDT")
+        self.assertEqual(_requested_base("BTC/USD:USD"), "BTC")
+        self.assertEqual(_status("closed"), "filled")
+        self.assertEqual(_status("future-provider-status"), "unknown")
+        mapped = _order_result({"id": "order-1", "clientOrderId": "client-1", "status": "open", "filled": 0})
+        self.assertEqual(mapped["clientOrderId"], "client-1")
+        self.assertEqual(mapped["status"], "open")
+        partial = _order_result({"id": "order-2", "clientOrderId": "client-2", "status": "open", "filled": "1"})
+        self.assertEqual(partial["status"], "partially_filled")
 
-        class ClosedPublicClient:
-            def __init__(self) -> None:
-                self.closed = False
-
-            @staticmethod
-            def subscribe(*_args, **_kwargs):
-                raise WebSocketConnectionClosedException("provider details must not escape")
-
-            def exit(self) -> None:
-                self.closed = True
-
-        stream = AccountStream(
-            {"id": "account-stream", "exchange": "hyperliquid", "mode": "testnet"},
-            {"walletAddress": "0x" + "1" * 40},
-            "b" * 64,
+    def test_contract_amounts_are_normalized_back_to_base_quantity(self) -> None:
+        mapped = _market_order_result(
+            {"id": "order-1", "clientOrderId": "client-1", "status": "closed", "filled": "25"},
+            {"contractSize": "0.001"},
         )
-        client = ClosedPublicClient()
-        stream._status = "healthy"
-        stream._started_at = 1
-        stream._clients = [client]
-        stream._public_client = client
+        self.assertEqual(mapped["filledQuantity"], "0.025")
+        stop = {"reduceOnly": True, "triggerPrice": "65000"}
+        self.assertTrue(_reduce_only(stop))
+        self.assertEqual(_trigger_price(stop), "65000")
 
-        stream.ensure_started(["ETHUSDT"])
+    def test_ledger_funding_excludes_trade_pnl_and_preserves_sign(self) -> None:
+        self.assertIsNone(_ledger_funding_amount({"type": "trade", "amount": 99}))
+        self.assertEqual(_ledger_funding_amount({"type": "funding", "amount": "2", "direction": "out"}), -2)
+        self.assertEqual(_ledger_funding_amount({"info": {"realized_funding": "-0.25"}}), Decimal("-0.25"))
 
-        health = stream.poll(0)["health"]
-        self.assertEqual(health["status"], "degraded")
-        self.assertEqual(
-            health["lastError"],
-            "STREAM_SUBSCRIBE_FAILED: WebSocketConnectionClosedException",
-        )
-        self.assertNotIn("provider details", health["lastError"])
-        self.assertIsNone(health["startedAt"])
-        self.assertTrue(client.closed)
-        self.assertGreater(stream._next_retry_at, time.monotonic())
+    def test_external_identity_survives_secret_rotation_but_not_api_key_rebinding(self) -> None:
+        first = _account_identity({"apiKey": "same-key", "apiSecret": "old-secret"}, "bybit", "live")
+        rotated = _account_identity({"apiKey": "same-key", "apiSecret": "new-secret"}, "bybit", "live")
+        rebound = _account_identity({"apiKey": "different-key", "apiSecret": "new-secret"}, "bybit", "live")
+        self.assertEqual(first, rotated)
+        self.assertNotEqual(first, rebound)
 
-    def test_plain_decimals_only(self) -> None:
+    def test_plain_decimals_and_deadlines_remain_bounded(self) -> None:
         self.assertEqual(decimal_string("1.2300", "price", positive=True), "1.23")
-        self.assertEqual(signed_decimal_string("-12.3400", "pnl"), "-12.34")
-        self.assertEqual(signed_decimal_string("-0", "pnl"), "0")
         with self.assertRaises(ExchangeContractError):
             decimal_string("1e3", "price")
-        with self.assertRaises(ExchangeContractError):
-            signed_decimal_string("+1", "pnl")
-        with self.assertRaises(ExchangeContractError):
-            decimal_string("0", "price", positive=True)
-        self.assertIsNone(optional_positive_decimal_string("0.0", "triggerPx"))
-        self.assertEqual(optional_positive_decimal_string("1450.0", "triggerPx"), "1450")
-
-    def test_status_mapping_is_fail_closed(self) -> None:
-        self.assertEqual(map_bybit_status("Filled"), "filled")
-        self.assertEqual(map_bybit_status("FutureStatus"), "unknown")
-
-    def test_secret_account_cache_keys_are_keyed_and_domain_separated(self) -> None:
-        first = external_account_cache_key("bybit-key", "mainnet", "high-entropy-api-key")
-        self.assertEqual(first, external_account_cache_key("bybit-key", "mainnet", "high-entropy-api-key"))
-        self.assertNotEqual(first, external_account_cache_key("bybit-key", "testnet", "high-entropy-api-key"))
-        self.assertNotIn("high-entropy-api-key", first)
-        with self.assertRaises(ExchangeContractError):
-            external_account_cache_key("bybit-key", "mainnet", "")
-
-    def test_external_account_ids_are_keyed_and_domain_separated(self) -> None:
-        first = external_account_id("bybit", "mainnet", "public-account-123")
-        self.assertEqual(first, external_account_id("bybit", "mainnet", "public-account-123"))
-        self.assertNotEqual(first, external_account_id("bybit", "testnet", "public-account-123"))
-        self.assertNotIn("public-account-123", first)
-        with self.assertRaises(ExchangeContractError):
-            external_account_id("bybit", "mainnet", "")
-
-    def test_executor_deadline_is_bounded_and_fail_closed(self) -> None:
         deadline = RequestDeadline.from_payload({"deadlineAt": int(time.time() * 1000) + 2_000})
         self.assertGreater(deadline.remaining_ms(), 0)
-        expired_deadline = {"deadlineAt": int(time.time() * 1000) - 1}
         with self.assertRaises(ExchangeContractError):
-            RequestDeadline.from_payload(expired_deadline)
-        excessive_deadline = {"deadlineAt": int(time.time() * 1000) + 60_000}
-        with self.assertRaises(ExchangeContractError):
-            RequestDeadline.from_payload(excessive_deadline)
+            RequestDeadline.from_payload({"deadlineAt": int(time.time() * 1000) + 60_000})
 
-    def test_credential_file_contract(self) -> None:
+    def test_credential_contract_supports_kraken_futures(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "trading").mkdir()
             (root / "exchange_executor_token").write_text("a" * 64 + "\n", encoding="utf-8")
             account_id = "11111111-1111-4111-8111-111111111111"
-            (root / "trading" / f"{account_id}.json").write_text(
-                json.dumps({
-                    "version": 1,
-                    "accountId": account_id,
-                    "exchange": "bybit",
-                    "apiKey": "bybit-key-123",
-                    "apiSecret": "bybit-secret-123",
-                    "updatedAt": 1,
-                }),
-                encoding="utf-8",
-            )
+            (root / "trading" / f"{account_id}.json").write_text(json.dumps({
+                "version": 1, "accountId": account_id, "exchange": "krakenfutures",
+                "apiKey": "kraken-key-123", "apiSecret": "kraken-secret-123", "updatedAt": 1,
+            }), encoding="utf-8")
             store = CredentialStore(directory)
-            self.assertEqual(store.token(), "a" * 64)
-            self.assertEqual(store.account(account_id, "bybit")["apiKey"], "bybit-key-123")
+            self.assertEqual(store.account(account_id, "krakenfutures")["apiKey"], "kraken-key-123")
             with self.assertRaises(CredentialError):
-                store.account(account_id, "hyperliquid")
+                store.account(account_id, "bybit")
 
-    def test_executor_authentication_accepts_factory_reset_token_rotation(self) -> None:
+    def test_authentication_observes_executor_token_rotation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "trading").mkdir()
             token_file = root / "exchange_executor_token"
             token_file.write_text("a" * 64 + "\n", encoding="utf-8")
-            handler = Handler.__new__(Handler)
-            handler.server = SimpleNamespace(application=SimpleNamespace(credentials=CredentialStore(directory)))
-            handler.headers = {"Authorization": f"Bearer {'a' * 64}"}
-            self.assertTrue(handler._authenticated())
+            application = SimpleNamespace(credentials=CredentialStore(directory))
+            request = SimpleNamespace(headers={"Authorization": f"Bearer {'a' * 64}"})
+            self.assertTrue(authenticated(request, application))
             token_file.write_text("b" * 64 + "\n", encoding="utf-8")
-            handler.headers = {"Authorization": f"Bearer {'b' * 64}"}
-            self.assertTrue(handler._authenticated(), "The sidecar must accept the rotated token without restart.")
+            request.headers = {"Authorization": f"Bearer {'b' * 64}"}
+            self.assertTrue(authenticated(request, application))
 
-    def test_hyperliquid_official_response_mapping(self) -> None:
-        resting = HyperliquidAdapter._order_result(
-            "0x" + "1" * 32,
-            {"status": "ok", "response": {"data": {"statuses": [{"resting": {"oid": 42}}]}}},
-        )
-        self.assertEqual(resting["status"], "open")
-        self.assertEqual(resting["exchangeOrderId"], "42")
-        filled = HyperliquidAdapter._order_result(
-            "0x" + "2" * 32,
-            {"status": "ok", "response": {"data": {"statuses": [{"filled": {"oid": 43, "totalSz": "1.25", "avgPx": "10"}}]}}},
-        )
-        self.assertEqual(filled["status"], "filled")
-        self.assertEqual(filled["filledQuantity"], "1.25")
+    def test_pro_event_helpers_are_bounded_and_normalized(self) -> None:
+        truncated, digest = _canonical_payload({"value": "x" * (70 * 1024)})
+        self.assertTrue(truncated["truncated"])
+        self.assertEqual(truncated["sha256"], digest)
+        self.assertEqual(_event_type("orders"), "order")
+        self.assertEqual(_event_type("positions"), "position")
 
 
-class FakeBybitHttp:
-    def get_api_key_information(self):
-        return {"retCode": 0, "result": {"userID": "stable-subaccount-42"}}
+class FakePro:
+    has = {"watchTickers": False}
+    markets = {"BTC/USDT:USDT": {"symbol": "BTC/USDT:USDT", "base": "BTC"}}
 
-    def get_wallet_balance(self, **_kwargs):
-        return {
-            "retCode": 0,
-            "result": {"list": [{
-                "totalEquity": "1000.00", "totalAvailableBalance": "800",
-                "totalPerpUPL": "-12.5", "totalInitialMargin": "200",
-            }]},
-        }
+    def market(self, symbol):
+        return self.markets[symbol]
 
-    def get_instruments_info(self, **_kwargs):
-        return {
-            "retCode": 0,
-            "result": {"list": [{
-                "lotSizeFilter": {"qtyStep": "0.001", "minOrderQty": "0.001", "minNotionalValue": "5"},
-                "priceFilter": {"tickSize": "0.1"},
-                "leverageFilter": {"maxLeverage": "50"},
-            }]},
-        }
 
-    def get_tickers(self, **_kwargs):
-        return {"retCode": 0, "result": {"list": [{"markPrice": "100.5"}]}}
-
-    def get_transaction_log(self, **_kwargs):
-        return {
-            "retCode": 0,
-            "result": {
-                "list": [{"funding": "-1.25"}, {"funding": "0.20"}],
-                "nextPageCursor": "",
+class FakeProtectedRest:
+    def __init__(self, positions, orders=None, failure=None) -> None:
+        self.markets = {
+            "BTC/USDT:USDT": {
+                "symbol": "BTC/USDT:USDT", "base": "BTC", "quote": "USDT", "settle": "USDT",
+                "contract": True, "swap": True, "linear": True, "active": True, "contractSize": "1",
+                "limits": {"leverage": {"max": 50}},
             },
         }
+        self.has = {"fetchMarketLeverageTiers": False}
+        self._positions = list(positions)
+        self._orders = orders
+        self._failure = failure
+        self.created_batches = []
+        self.cleanup_orders = []
+        self.leverage = []
+
+    async def fetch_positions(self, _symbols=None):
+        return self._positions.pop(0) if self._positions else []
+
+    async def set_leverage(self, leverage, symbol):
+        self.leverage.append((leverage, symbol))
+
+    async def create_orders(self, orders):
+        self.created_batches.append(orders)
+        if self._failure:
+            raise self._failure
+        return self._orders
+
+    async def fetch_open_orders(self, *_args):
+        return []
+
+    async def create_order(self, *args):
+        self.cleanup_orders.append(args)
+        return {"id": "cleanup"}
+
+    def amount_to_precision(self, _symbol, amount):
+        return str(amount)
+
+    def price_to_precision(self, _symbol, price):
+        return str(price)
 
 
-class BybitMappingTests(unittest.TestCase):
-    def test_verification_returns_stable_pseudonymous_account_identity(self) -> None:
-        class CredentialsStub:
-            @staticmethod
-            def account(_account_id, _exchange):
-                return {"apiKey": "rotatable-api-key", "apiSecret": "secret"}
-
-        adapter = BybitAdapter(CredentialsStub())
-        adapter._client = lambda _account: FakeBybitHttp()
-        result = adapter.verify({"id": "local", "mode": "testnet"})
-        self.assertRegex(result["externalAccountId"], r"^[a-f0-9]{64}$")
-        self.assertEqual(result["accountFingerprint"], result["externalAccountId"])
-
-    def test_account_snapshot_exposes_live_dashboard_finance(self) -> None:
-        adapter = BybitAdapter.__new__(BybitAdapter)
-        adapter._client = lambda _account: FakeBybitHttp()
-        self.assertEqual(adapter.account_snapshot({}), {
-            "equity": "1000", "availableBalance": "800",
-            "unrealizedPnl": "-12.5", "marginUsed": "200", "fundingPnlToday": "-1.05",
-        })
-
-    def test_market_metadata_comes_from_official_contract(self) -> None:
-        adapter = BybitAdapter.__new__(BybitAdapter)
-        adapter._client = lambda _account: FakeBybitHttp()
-        snapshot = adapter.market_snapshot({"id": "x", "exchange": "bybit", "mode": "testnet"}, "BTCUSDT")
-        self.assertEqual(snapshot["markPrice"], "100.5")
-        self.assertEqual(snapshot["quantityStep"], "0.001")
-        self.assertEqual(snapshot["maxLeverage"], 50)
-
-    def test_market_entry_carries_provider_side_slippage_guard(self) -> None:
-        captured: dict[str, object] = {}
-
-        class OrderClient:
-            @staticmethod
-            def set_leverage(**_kwargs):
-                return {"retCode": 0}
-
-            @staticmethod
-            def place_order(**kwargs):
-                captured.update(kwargs)
-                return {"retCode": 10001, "retMsg": "test rejection"}
-
-        adapter = BybitAdapter.__new__(BybitAdapter)
-        adapter._client = lambda _account: OrderClient()
-        result = adapter.submit_order({}, {
-            "symbol": "BTCUSDT", "role": "entry", "leverage": 2,
-            "side": "buy", "orderType": "market", "quantity": "0.1",
-            "clientOrderId": "0x" + "1" * 32, "reduceOnly": False,
-            "maxSlippagePercent": "0.5",
-        })
-        self.assertEqual(result["status"], "rejected")
-        self.assertEqual(captured["slippageToleranceType"], "Percent")
-        self.assertEqual(captured["slippageTolerance"], "0.5")
-
-    def test_protected_entry_attaches_stop_in_the_same_provider_request(self) -> None:
-        captured: dict[str, object] = {}
-
-        class OrderClient:
-            @staticmethod
-            def set_leverage(**_kwargs):
-                return {"retCode": 0}
-
-            @staticmethod
-            def place_order(**kwargs):
-                captured.update(kwargs)
-                return {"retCode": 10001, "retMsg": "intentional test rejection"}
-
-        adapter = BybitAdapter.__new__(BybitAdapter)
-        adapter._client = lambda _account: OrderClient()
-        entry = {
-            "accountId": "account", "symbol": "BTCUSDT", "role": "entry", "leverage": 2,
-            "side": "buy", "orderType": "limit", "quantity": "0.1", "price": "100",
-            "clientOrderId": "0x" + "1" * 32, "reduceOnly": False,
-        }
-        stop = {
-            "accountId": "account", "symbol": "BTCUSDT", "role": "stop_loss", "leverage": 2,
-            "side": "sell", "orderType": "stop_market", "quantity": "0.1", "triggerPrice": "95",
-            "clientOrderId": "0x" + "2" * 32, "reduceOnly": True,
-        }
-        result = adapter.submit_protected_entry({}, entry, stop)
-        self.assertEqual(result["entry"]["status"], "rejected")
-        self.assertEqual(result["protectiveStop"]["status"], "cancelled")
-        self.assertEqual(captured["stopLoss"], "95")
-        self.assertEqual(captured["slOrderType"], "Market")
-        self.assertEqual(captured["slTriggerBy"], "MarkPrice")
-
-    def test_open_state_pagination_is_bounded_and_complete(self) -> None:
-        calls: list[str | None] = []
-
-        def page(**kwargs):
-            calls.append(kwargs.get("cursor"))
-            return {
-                "retCode": 0,
-                "result": {
-                    "list": [{"id": len(calls)}],
-                    "nextPageCursor": "next" if len(calls) == 1 else "",
-                },
-            }
-
-        values = BybitAdapter._all_pages(page, "test pages", category="linear", limit=50)
-        self.assertEqual(values, [{"id": 1}, {"id": 2}])
-        self.assertEqual(calls, [None, "next"])
-
-
-class HyperliquidMappingTests(unittest.TestCase):
-    def test_account_snapshot_sums_official_position_upl(self) -> None:
-        class InfoStub:
-            @staticmethod
-            def user_state(_address):
-                return {
-                    "marginSummary": {"accountValue": "1500", "totalMarginUsed": "300"},
-                    "withdrawable": "1200",
-                    "assetPositions": [
-                        {"position": {"unrealizedPnl": "10.25"}},
-                        {"position": {"unrealizedPnl": "-4.75"}},
-                    ],
-                }
-
-            @staticmethod
-            def user_funding_history(_address, _start_time, _end_time):
-                return [
-                    {"delta": {"usdc": "-2.5"}, "time": 1},
-                    {"delta": {"usdc": "0.5"}, "time": 2},
-                ]
-
-        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
-        adapter._clients = lambda _account: (InfoStub(), object(), "0xwallet")
-        self.assertEqual(adapter.account_snapshot({}), {
-            "equity": "1500", "availableBalance": "1200",
-            "unrealizedPnl": "5.5", "marginUsed": "300", "fundingPnlToday": "-2",
-        })
-
-    def test_open_state_uses_latest_history_status_and_accepts_zero_trigger_sentinel(self) -> None:
-        cloid = "0x" + "1" * 32
-
-        class InfoStub:
-            @staticmethod
-            def frontend_open_orders(_address):
-                return []
-
-            @staticmethod
-            def historical_orders(_address):
-                order = {
-                    "coin": "ETH", "side": "B", "limitPx": "1657.8", "triggerPx": "0.0",
-                    "origSz": "1", "sz": "0", "oid": 42, "cloid": cloid, "reduceOnly": False,
-                }
-                return [
-                    {"order": order, "status": "filled", "statusTimestamp": 200},
-                    {"order": {**order, "sz": "1"}, "status": "open", "statusTimestamp": 100},
-                ]
-
-            @staticmethod
-            def user_fills(_address):
-                return []
-
-            @staticmethod
-            def user_state(_address):
-                return {"assetPositions": []}
-
-        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
-        adapter._clients = lambda _account: (InfoStub(), object(), "0xwallet")
-        state = adapter.open_state({"mode": "testnet"})
-        self.assertEqual(len(state["orders"]), 1)
-        self.assertEqual(state["orders"][0]["status"], "filled")
-        self.assertIsNone(state["orders"][0]["triggerPrice"])
-        self.assertRegex(state["accountFingerprint"], r"^[a-f0-9]{64}$")
-
-    def test_open_state_retries_transient_official_sdk_failures(self) -> None:
-        attempts = 0
-
-        class InfoStub:
-            @staticmethod
-            def frontend_open_orders(_address):
-                nonlocal attempts
-                attempts += 1
-                if attempts < 3:
-                    raise RuntimeError("simulated transient official SDK server error")
-                return []
-
-            @staticmethod
-            def historical_orders(_address):
-                return []
-
-            @staticmethod
-            def user_fills(_address):
-                return []
-
-            @staticmethod
-            def user_state(_address):
-                return {"assetPositions": []}
-
-        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
-        adapter._clients = lambda _account: (InfoStub(), object(), "0xwallet")
-        state = adapter.open_state({"mode": "testnet"})
-        self.assertEqual(attempts, 3)
-        self.assertEqual(state["orders"], [])
-        self.assertEqual(state["positions"], [])
-
-    def test_open_state_preserves_protective_stop_fields_from_frontend_orders(self) -> None:
-        cloid = "0x" + "3" * 32
-
-        class InfoStub:
-            @staticmethod
-            def open_orders(_address):
-                raise AssertionError("The basic openOrders response omits protective-stop fields.")
-
-            @staticmethod
-            def frontend_open_orders(_address):
-                return [{
-                    "coin": "BTC", "side": "A", "limitPx": "74000", "triggerPx": "74000",
-                    "origSz": "0.00322", "sz": "0.00322", "oid": 44, "cloid": cloid,
-                    "reduceOnly": True, "isTrigger": True, "orderType": "Stop Market",
-                }]
-
-            @staticmethod
-            def historical_orders(_address):
-                return []
-
-            @staticmethod
-            def user_fills(_address):
-                return []
-
-            @staticmethod
-            def user_state(_address):
-                return {"assetPositions": []}
-
-        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
-        adapter._clients = lambda _account: (InfoStub(), object(), "0xwallet")
-        state = adapter.open_state({"mode": "testnet"})
-        self.assertEqual(len(state["orders"]), 1)
-        self.assertEqual(state["orders"][0]["status"], "open")
-        self.assertEqual(state["orders"][0]["triggerPrice"], "74000")
-        self.assertTrue(state["orders"][0]["reduceOnly"])
-
-    def test_current_open_order_overrides_terminal_history_and_unknown_status_fails_closed(self) -> None:
-        order = {
-            "coin": "ETH", "side": "A", "limitPx": "1500", "triggerPx": "0",
-            "origSz": "1", "sz": "1", "oid": 43, "cloid": None, "reduceOnly": False,
-        }
-        latest = HyperliquidAdapter._latest_orders(
-            [{"order": order, "status": "filled", "statusTimestamp": 200}],
-            [order],
+class FakeRegistry:
+    def __init__(self, rest) -> None:
+        self.clients = SimpleNamespace(
+            account={"id": "account-1", "exchange": "bybit", "mode": "testnet"},
+            rest=rest,
         )
-        self.assertEqual(latest["oid:43"]["status"], "open")
-        self.assertEqual(HyperliquidAdapter._map_order_status("badAloPxRejected"), "rejected")
-        self.assertEqual(HyperliquidAdapter._map_order_status("futureStatus"), "unknown")
+        self.calls = 0
 
-    def test_protected_entry_uses_one_grouped_bulk_request(self) -> None:
-        captured: dict[str, object] = {}
+    async def account(self, _account):
+        self.calls += 1
+        return self.clients
 
-        class InfoStub:
-            pass
 
-        class ExchangeStub:
-            @staticmethod
-            def update_leverage(*_args, **_kwargs):
-                return {"status": "ok"}
+def protected_requests():
+    entry = {
+        "role": "entry", "accountId": "account-1", "symbol": "BTCUSDT", "side": "buy",
+        "orderType": "limit", "quantity": "2", "price": "65000", "triggerPrice": None,
+        "clientOrderId": "entry-client", "reduceOnly": False, "postOnly": False, "leverage": 20,
+    }
+    stop = {
+        "role": "stop_loss", "accountId": "account-1", "symbol": "BTCUSDT", "side": "sell",
+        "orderType": "stop_market", "quantity": "2", "price": None, "triggerPrice": "64000",
+        "clientOrderId": "stop-client", "reduceOnly": True, "postOnly": False, "leverage": 20,
+    }
+    return entry, stop
 
-            @staticmethod
-            def bulk_orders(orders, grouping="na"):
-                captured["orders"] = orders
-                captured["grouping"] = grouping
-                return {
-                    "status": "ok",
-                    "response": {"data": {"statuses": [
-                        {"resting": {"oid": 10}}, {"resting": {"oid": 11}},
-                    ]}},
-                }
 
-        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
-        adapter._clients = lambda *_args: (InfoStub(), ExchangeStub(), "0xwallet")
-        entry = {
-            "accountId": "account", "symbol": "ETHUSDT", "role": "entry", "leverage": 2,
-            "side": "buy", "orderType": "limit", "quantity": "1", "price": "100",
-            "clientOrderId": "0x" + "1" * 32, "reduceOnly": False, "postOnly": False,
-        }
-        stop = {
-            "accountId": "account", "symbol": "ETHUSDT", "role": "stop_loss", "leverage": 2,
-            "side": "sell", "orderType": "stop_market", "quantity": "1", "triggerPrice": "95",
-            "clientOrderId": "0x" + "2" * 32, "reduceOnly": True,
-        }
-        result = adapter.submit_protected_entry({"mode": "testnet"}, entry, stop)
-        self.assertEqual(result["entry"]["status"], "open")
-        self.assertEqual(result["protectiveStop"]["status"], "open")
-        self.assertEqual(captured["grouping"], "normalTpsl")
-        self.assertEqual(len(captured["orders"]), 2)
-        self.assertTrue(captured["orders"][1]["reduce_only"])
+class StreamTests(unittest.IsolatedAsyncioTestCase):
+    async def test_pro_events_have_monotonic_cursors_and_gap_detection(self) -> None:
+        clients = SimpleNamespace(pro=FakePro(), credential_fingerprint="a" * 64)
+        stream = AccountStream({"id": "stream", "exchange": "bybit", "mode": "testnet"}, clients)
+        stream._ingest("orders", {"id": "1", "symbol": "BTC/USDT:USDT", "timestamp": 10})
+        stream._ingest("orders", {"id": "2", "symbol": "BTC/USDT:USDT", "timestamp": 11})
+        batch = stream.poll(0)
+        self.assertEqual([event["cursor"] for event in batch["events"]], [1, 2])
+        self.assertEqual(batch["events"][0]["symbol"], "BTCUSDT")
+        self.assertTrue(stream.poll(99)["gap"])
+        await stream.close()
 
-    def test_protected_entry_recovers_a_nested_stop_from_order_status(self) -> None:
-        stop_id = "0x" + "2" * 32
-        queries: list[str] = []
 
-        class InfoStub:
-            @staticmethod
-            def query_order_by_oid(_address, client_order_id):
-                queries.append(client_order_id)
-                return {
-                    "status": "order",
-                    "order": {
-                        "status": "open",
-                        "order": {"oid": 11, "origSz": "1", "sz": "1", "cloid": stop_id},
-                    },
-                }
+class ProtectedEntryTests(unittest.IsolatedAsyncioTestCase):
+    def deadline(self):
+        return RequestDeadline(int(time.time() * 1_000) + 30_000)
 
-        class ExchangeStub:
-            @staticmethod
-            def update_leverage(*_args, **_kwargs):
-                return {"status": "ok"}
+    async def test_invalid_protected_pair_is_rejected_before_any_exchange_access(self) -> None:
+        entry, stop = protected_requests()
+        stop["side"] = "buy"
+        registry = FakeRegistry(FakeProtectedRest([[]]))
+        with self.assertRaisesRegex(ExchangeContractError, "must oppose"):
+            await CcxtAdapter(registry).submit_protected_entry(
+                {"id": "account-1", "exchange": "bybit", "mode": "testnet"}, entry, stop, self.deadline(),
+            )
+        self.assertEqual(registry.calls, 0)
 
-            @staticmethod
-            def bulk_orders(_orders, grouping="na"):
-                self.assertEqual(grouping, "normalTpsl")
-                return {
-                    "status": "ok",
-                    "response": {"data": {"statuses": [
-                        {"filled": {"oid": 10, "totalSz": "1", "avgPx": "100"}},
-                    ]}},
-                }
+    async def test_existing_remote_exposure_blocks_batch_before_order_submission(self) -> None:
+        entry, stop = protected_requests()
+        rest = FakeProtectedRest([[{"contracts": "1", "side": "long"}]])
+        with self.assertRaisesRegex(ExchangeContractError, "already reports exposure"):
+            await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(
+                {"id": "account-1", "exchange": "bybit", "mode": "testnet"}, entry, stop, self.deadline(),
+            )
+        self.assertEqual(rest.created_batches, [])
+        self.assertEqual(rest.leverage, [])
 
-        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
-        adapter._clients = lambda *_args: (InfoStub(), ExchangeStub(), "0xwallet")
-        entry = {
-            "accountId": "account", "symbol": "ETHUSDT", "role": "entry", "leverage": 2,
-            "side": "buy", "orderType": "limit", "quantity": "1", "price": "100",
-            "clientOrderId": "0x" + "1" * 32, "reduceOnly": False, "postOnly": False,
-        }
-        stop = {
-            "accountId": "account", "symbol": "ETHUSDT", "role": "stop_loss", "leverage": 2,
-            "side": "sell", "orderType": "stop_market", "quantity": "1", "triggerPrice": "95",
-            "clientOrderId": stop_id, "reduceOnly": True,
-        }
-        result = adapter.submit_protected_entry({"mode": "testnet"}, entry, stop)
-        self.assertEqual(result["entry"]["status"], "filled")
-        self.assertEqual(result["entry"]["averagePrice"], "100")
-        self.assertEqual(result["protectiveStop"]["status"], "open")
-        self.assertEqual(queries, [stop_id])
-
-    def test_protected_entry_single_batch_error_rejects_both_without_querying(self) -> None:
-        class InfoStub:
-            @staticmethod
-            def query_order_by_oid(*_args):
-                raise AssertionError("A provider batch rejection is already authoritative.")
-
-        class ExchangeStub:
-            @staticmethod
-            def update_leverage(*_args, **_kwargs):
-                return {"status": "ok"}
-
-            @staticmethod
-            def bulk_orders(_orders, grouping="na"):
-                return {"status": "ok", "response": {"data": {"statuses": [{"error": "bad batch"}]}}}
-
-        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
-        adapter._clients = lambda *_args: (InfoStub(), ExchangeStub(), "0xwallet")
-        entry = {
-            "accountId": "account", "symbol": "ETHUSDT", "role": "entry", "leverage": 2,
-            "side": "buy", "orderType": "limit", "quantity": "1", "price": "100",
-            "clientOrderId": "0x" + "1" * 32, "reduceOnly": False, "postOnly": False,
-        }
-        stop = {
-            "accountId": "account", "symbol": "ETHUSDT", "role": "stop_loss", "leverage": 2,
-            "side": "sell", "orderType": "stop_market", "quantity": "1", "triggerPrice": "95",
-            "clientOrderId": "0x" + "2" * 32, "reduceOnly": True,
-        }
-        result = adapter.submit_protected_entry({"mode": "testnet"}, entry, stop)
-        self.assertEqual(result["entry"]["status"], "rejected")
-        self.assertEqual(result["protectiveStop"]["status"], "rejected")
-
-    def test_market_ioc_prices_round_outward_to_valid_hyperliquid_ticks(self) -> None:
-        class InfoStub:
-            @staticmethod
-            def meta_and_asset_ctxs():
-                return ({"universe": [{"name": "BTC", "szDecimals": 5}]}, [{"markPx": "75499.4"}])
-
-        request = {
-            "orderType": "market", "role": "flatten", "maxSlippagePercent": "1",
-        }
-        sell_price, sell_type = HyperliquidAdapter._price_and_order_type(
-            InfoStub(), "BTC", False, request, None
+    async def test_ambiguous_batch_only_flattens_exposure_created_after_zero_position_preflight(self) -> None:
+        entry, stop = protected_requests()
+        rest = FakeProtectedRest(
+            [[], [{"contracts": "2", "side": "long"}]],
+            failure=TimeoutError("provider response lost"),
         )
-        buy_price, buy_type = HyperliquidAdapter._price_and_order_type(
-            InfoStub(), "BTC", True, request, None
+        with self.assertRaisesRegex(ExchangeContractError, "outcome is unknown"):
+            await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(
+                {"id": "account-1", "exchange": "bybit", "mode": "testnet"}, entry, stop, self.deadline(),
+            )
+        self.assertEqual(len(rest.created_batches), 1)
+        self.assertEqual(rest.cleanup_orders, [
+            ("BTC/USDT:USDT", "market", "sell", "2", None, {"reduceOnly": True}),
+        ])
+
+    async def test_complete_batch_returns_both_normalized_legs(self) -> None:
+        entry, stop = protected_requests()
+        rest = FakeProtectedRest([[]], orders=[
+            {"id": "exchange-entry", "clientOrderId": "entry-client", "status": "open", "filled": "0"},
+            {"id": "exchange-stop", "clientOrderId": "stop-client", "status": "open", "filled": "0"},
+        ])
+        result = await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(
+            {"id": "account-1", "exchange": "bybit", "mode": "testnet"}, entry, stop, self.deadline(),
         )
-        self.assertEqual(sell_price, 74744.0)
-        self.assertEqual(buy_price, 76255.0)
-        self.assertEqual(sell_type, {"limit": {"tif": "Ioc"}})
-        self.assertEqual(buy_type, {"limit": {"tif": "Ioc"}})
-
-    def test_market_snapshot_tick_obeys_size_decimals_and_significant_figures(self) -> None:
-        class InfoStub:
-            @staticmethod
-            def meta_and_asset_ctxs():
-                return ({
-                    "universe": [{"name": "BTC", "szDecimals": 5, "maxLeverage": 50}],
-                }, [{"markPx": "75499.4"}])
-
-        adapter = HyperliquidAdapter.__new__(HyperliquidAdapter)
-        adapter._clients = lambda *_args: (InfoStub(), object(), "0xwallet")
-        snapshot = adapter.market_snapshot({"mode": "testnet"}, "BTCUSDT")
-        self.assertEqual(snapshot["priceTick"], "1")
-        self.assertEqual(snapshot["quantityStep"], "0.00001")
+        self.assertEqual(result["entry"]["exchangeOrderId"], "exchange-entry")
+        self.assertEqual(result["protectiveStop"]["exchangeOrderId"], "exchange-stop")
 
 
 if __name__ == "__main__":

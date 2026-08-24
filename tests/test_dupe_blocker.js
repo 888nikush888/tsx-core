@@ -76,6 +76,30 @@ function runNormalizationTests(testPass, testFail) {
   } catch (error) { testFail('Leere Eingaben', error); }
 }
 
+async function runWorkflowScopeTest(db, testPass, testFail) {
+  try {
+    await db.exec(`DELETE FROM signals`);
+    const firstScope = 'a'.repeat(64);
+    const secondScope = 'b'.repeat(64);
+    await saveSignal(
+      `signal_channel1_1_${firstScope}`,
+      'channel1',
+      1,
+      SAMPLE_SIGNAL_1,
+      normalizeSignalXml(SAMPLE_SIGNAL_1),
+    );
+    const samePath = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24, undefined, firstScope);
+    const independentPath = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24, undefined, secondScope);
+    assert.strictEqual(samePath.isDupe, true, 'The same workflow parser path must remain deduplicated');
+    assert.strictEqual(independentPath.isDupe, false, 'A distinct parser/contract path must fan out independently');
+    await assert.rejects(
+      isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24, undefined, 'invalid-scope'),
+      /SHA-256 identifier/,
+    );
+    testPass('Workflow-Duplikatschutz bleibt auf die jeweilige Pfadgruppe begrenzt');
+  } catch (e) { testFail('Workflow-Pfadgruppen-Deduplizierung', e); }
+}
+
 async function runTests() {
   let passed = 0;
   let failed = 0;
@@ -155,6 +179,8 @@ async function runTests() {
     assert.strictEqual(retryResult.isDupe, false, 'A retry must not be blocked by its own previously persisted signal');
     testPass('Crash-Retry ignoriert den eigenen Signal-Datensatz');
   } catch (e) { testFail('Crash-Retry Self-Deduplication', e); }
+
+  await runWorkflowScopeTest(db, testPass, testFail);
 
   // Test: Cooldown abgelaufen — Signal wird erlaubt
   try {

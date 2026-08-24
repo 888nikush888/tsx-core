@@ -5,7 +5,8 @@ import type { TradingExchange } from './trading_types.js';
 
 export type TradingCredentials =
   | { exchange: 'hyperliquid'; privateKey: string; walletAddress: string }
-  | { exchange: 'bybit'; apiKey: string; apiSecret: string };
+  | { exchange: 'bybit'; apiKey: string; apiSecret: string }
+  | { exchange: 'krakenfutures'; apiKey: string; apiSecret: string };
 
 export interface TradingCredentialStatus {
   configured: boolean;
@@ -16,7 +17,7 @@ export interface TradingCredentialStatus {
 interface StoredCredentials {
   version: 1;
   accountId: string;
-  exchange: 'hyperliquid' | 'bybit';
+  exchange: 'hyperliquid' | 'bybit' | 'krakenfutures';
   privateKey?: string;
   walletAddress?: string;
   apiKey?: string;
@@ -49,9 +50,10 @@ function storedCredentials(accountId: string, credentials: TradingCredentials, n
     if (!/^0x[0-9a-f]{40}$/i.test(walletAddress)) throw new Error('Hyperliquid wallet address must be a 20-byte 0x-prefixed hex value.');
     return { version: 1, accountId, exchange: 'hyperliquid', privateKey, walletAddress, updatedAt: now };
   }
-  const apiKey = singleLine(credentials.apiKey, 'Bybit API key', 8, 128);
-  const apiSecret = singleLine(credentials.apiSecret, 'Bybit API secret', 8, 128);
-  return { version: 1, accountId, exchange: 'bybit', apiKey, apiSecret, updatedAt: now };
+  const exchangeName = credentials.exchange === 'bybit' ? 'Bybit' : 'Kraken Futures';
+  const apiKey = singleLine(credentials.apiKey, `${exchangeName} API key`, 8, 256);
+  const apiSecret = singleLine(credentials.apiSecret, `${exchangeName} API secret`, 8, 256);
+  return { version: 1, accountId, exchange: credentials.exchange, apiKey, apiSecret, updatedAt: now };
 }
 
 async function syncDirectory(directory: string): Promise<void> {
@@ -113,7 +115,7 @@ export class TradingCredentialStore {
           walletAddress: candidate.walletAddress!,
         }
       : {
-          exchange: 'bybit',
+          exchange: candidate.exchange,
           apiKey: candidate.apiKey!,
           apiSecret: candidate.apiSecret!,
         };
@@ -191,12 +193,13 @@ export class TradingCredentialStore {
       throw new Error('Trading credential file must be a small regular file.');
     }
     const parsed = JSON.parse(await fs.readFile(filePath, 'utf8')) as StoredCredentials;
-    if (parsed.version !== 1 || parsed.accountId !== accountId || !['hyperliquid', 'bybit'].includes(parsed.exchange)) {
+    if (parsed.version !== 1 || parsed.accountId !== accountId
+      || !['hyperliquid', 'bybit', 'krakenfutures'].includes(parsed.exchange)) {
       throw new Error('Trading credential file is invalid.');
     }
     storedCredentials(accountId, parsed.exchange === 'hyperliquid'
       ? { exchange: 'hyperliquid', privateKey: parsed.privateKey!, walletAddress: parsed.walletAddress! }
-      : { exchange: 'bybit', apiKey: parsed.apiKey!, apiSecret: parsed.apiSecret! }, parsed.updatedAt);
+      : { exchange: parsed.exchange, apiKey: parsed.apiKey!, apiSecret: parsed.apiSecret! }, parsed.updatedAt);
     return parsed;
   }
 

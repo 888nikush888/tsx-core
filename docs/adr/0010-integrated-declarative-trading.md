@@ -16,7 +16,7 @@ Validierte Telegram-XML-Signale sollen kanalweise und parallel in Futures-Trades
 - Eine aktive Route pinnt genau `channel_id → strategy_version_id → account_id`. Mehrere Kanäle können parallel unterschiedliche Versionen nutzen. Pro Konto/Symbol darf nur eine aktive Position Owner sein.
 - Geldwerte, Preise und Mengen bleiben kanonische Dezimalstrings; ausführbare Signalpaare benötigen `USD`, `USDC` oder `USDT` als Quote-Asset. Ein Trade benötigt einen bestätigten Protective Stop; unklare Orderausgänge, fremde Exposure oder fehlgeschlagene Reconciliation aktivieren fail-closed den Kill-Switch.
 - Exits unterstützen zwei deklarative Modi: manuell exakt 100 Prozent plus konfiguriertes Break-even/Prozent-Trailing oder adaptive Halbierung der verbleibenden Position plus SL-Leiter (TP1/TP2 → Break-even, danach TP(i-2)). Der letzte TP schließt den Rest und der Stop darf sich nie verschlechtern.
-- Der Kern bleibt TypeScript. Ein internes, nicht veröffentlichtes Python-Sidecar kapselt ausschließlich die offiziellen SDKs `hyperliquid-python-sdk` und `pybit`, weil hierfür keine gleichwertigen offiziellen TypeScript-SDKs freigegeben sind. Das Sidecar erhält Exchange-Secrets über ein read-only Volume, besitzt keine Host-Ports und akzeptiert nur einen rotierbaren internen Bearer-Key.
+- Der Kern bleibt TypeScript. Das interne, nicht veröffentlichte Python-Sidecar kapselt Exchange-Zugriffe und erhält Secrets über ein read-only Volume, besitzt keine Host-Ports und akzeptiert nur einen rotierbaren internen Bearer-Key. Die ursprüngliche Festlegung auf `hyperliquid-python-sdk` und `pybit` wird durch ADR 0012 für neue Ausführungen durch das gepinnte CCXT-/CCXT-Pro-Modell ersetzt.
 - Echtgeld benötigt eine einmalige explizite Web-Freigabe. Danach gibt es entsprechend der Produktentscheidung kein Human-in-the-loop pro Trade. Paper und Testnet bleiben der Standard.
 
 ## Konsequenzen
@@ -25,4 +25,4 @@ Strategie-, Vertrags- und Schema-Profiländerungen sind reproduzierbar, auditier
 
 Die Profilverwaltung und adaptiven TP-/SL-Modi wurden am 22./23.07.2026 als additive Konkretisierung dieser Entscheidung umgesetzt. Der weiterhin offene Gesamtvergleich zum ursprünglichen Blueprint steht in `docs/TRADING_BLUEPRINT_V4_GAP_ANALYSIS.md`.
 
-Ergänzung 26.07.2026: ADR 0011 erweitert den ausführbaren Vertragsraum um benutzerverwaltete deklarative Vertragsversionen und ergänzt Kanalrisiko, Execution-Telemetrie sowie die auditierte MCP-Kontrollbrücke. Die in diesem ADR festgelegte alleinige Positionshoheit, offizielle SDK-Grenze und fail-closed Trading-Sicherheit bleiben unverändert.
+Ergänzung 24.08.2026: ADR 0012 ersetzt die börsenspezifische SDK-Grenze durch CCXT REST/CCXT Pro, verschiebt die Positionskapazität auf das Börsenkonto und führt visuelle Fan-out-Workflows ein. Alleinige Positionshoheit, REST-Autorität und fail-closed Trading-Sicherheit bleiben unverändert.

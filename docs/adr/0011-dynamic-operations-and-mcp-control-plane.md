@@ -4,6 +4,8 @@
 - Datum: 2026-07-26
 - Entscheider: Product Owner, Trading Domain, Security, SRE
 
+Ergänzung 24.08.2026: Die Cockpit-/Menüstruktur, kanalglobale Risikozuordnung und börsenspezifischen Streams werden für die aktuelle Oberfläche und Ausführung durch ADR 0012 ersetzt. Audit-, Tailscale- und MCP-Entscheidungen dieser ADR bleiben gültig.
+
 ## Kontext
 
 TSX Core besaß geprüfte, aber fest benannte Signalverträge, eine analytisch überladene Hauptansicht, starres beziehungsweise nur strategiebezogenes Risiko und ausschließlich Dashboard-/HTTP-gesteuerte Administration. Für wechselnde Telegram-Quellen, operativen Remote-Betrieb und Agenten-Frameworks wurden neun zusammenhängende Fähigkeiten benötigt: frei verwaltete Verträge, tailnet-interner Zugriff, monochromes UI, Trennung von Cockpit und Analytics, kanalbezogenes adaptives Risiko, dedizierte Analytics, durchgehende Logs, Command Palette und ein unabhängiger MCP-Server.

@@ -28,7 +28,8 @@ export async function isDuplicateSignal(
   xmlString: string,
   _signalsDir: string, // Kept for signature compatibility
   cooldownHours: number,
-  currentSignalId?: string
+  currentSignalId?: string,
+  dedupeScope?: string,
 ): Promise<{ isDupe: boolean; reason: string; matchFile?: string }> {
   if (!xmlString || typeof xmlString !== 'string') {
     return { isDupe: false, reason: 'Leerer Signal-Inhalt' };
@@ -39,7 +40,7 @@ export async function isDuplicateSignal(
     return { isDupe: false, reason: 'Signal konnte nicht normalisiert werden' };
   }
 
-  const match = await findDuplicateSignal(normalizedNew, cooldownHours, currentSignalId);
+  const match = await findDuplicateSignal(normalizedNew, cooldownHours, currentSignalId, dedupeScope);
   if (match?.isDupe) {
     if (cooldownHours === 0) {
       return {

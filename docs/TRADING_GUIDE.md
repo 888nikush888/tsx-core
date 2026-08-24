@@ -1,220 +1,157 @@
-# TSX Core – Trading: vollständige Einrichtung und Nutzung
+# TSX Core – Trading und visueller Workflow-Builder
 
-## Sicherheitsmodell in einem Satz
+Diese Anleitung beschreibt den neuen verbindlichen Trading-Pfad. Die frühere Einrichtung über getrennte Trading-Untermenüs und eine einzelne Kanalroute ist nicht mehr die fachliche Oberfläche.
 
-Jeder Telegram-Kanal pinnt eine immutable Strategieversion und ein verifiziertes Exchange-Konto; jeder Trade ist idempotent, exakt dezimal geplant, durch reduce-only TP/SL verwaltet und wird bei Unklarheit global fail-closed gestoppt.
+## Sicherheitsmodell
 
-## 1. Docker starten
+- Eine Neuinstallation enthält keine Konten, Guthaben, Verträge, Schemas, Strategien, Workflows oder MCP-Agenten.
+- Ausführung und Live-Trading sind zunächst deaktiviert.
+- Ein Pfad ist nur ausführbar, wenn alle erforderlichen Bausteine veröffentlicht, verbunden und gültig sind. Unvollständige Pfade sind inert.
+- Zugangsdaten sind write-only. Die UI zeigt nur Konfigurations- und Verifikationsstatus.
+- Jede Position benötigt einen Protective Stop. Unbekannte Orderausgänge, fremde Exposure, fehlender Schutz, Kontosperre oder globale Sperre blockieren neue Entries fail-closed.
+- REST-Reconciliation ist autoritativ. CCXT-Pro-Ereignisse beschleunigen ausschließlich den Zeitpunkt des nächsten Abgleichs.
+- Workflow-Parser speichern Signale nur in SQLite; `saveToFile` ist zwingend `false`.
 
-```bash
-docker compose up --build -d
-docker compose ps
-```
+## Oberfläche
 
-Öffne `http://127.0.0.1:8080`, wähle beim ersten Aufruf **Create secure dashboard** und sichere den genau einmal angezeigten Admin-Bearer-Token. Erst danach sind automatische kurzlebige lokale Sitzungen zulässig. Der lokale Standard veröffentlicht nur Host-Loopback. Das interne `exchange-executor`-Sidecar besitzt keinen Host-Port. Für externe/mehrbenutzerfähige Enterprise-Nutzung zuerst OIDC und einen TLS-Reverse-Proxy gemäß `PRODUCTION_GUIDE.md` aktivieren.
+Die Hauptansicht ist eine horizontale Arbeitsfläche. Jede fachliche Stufe besitzt eine Spalte:
 
-## 2. Leerer Start und optionales Paper Trading
+1. Telegram-Kanal
+2. Inhaltstyp
+3. Schlüsselwörter
+4. Regex
+5. KI-Parser
+6. Signal-Schema
+7. Signal-Vertrag
+8. Duplikatschutz
+9. Strategie
+10. Positionsgröße
+11. Adaptives Risiko
+12. Börsenkonto
+13. Ausgabe
 
-Eine neue Installation enthält keine Konten und keine Startbilanz. Für Paper Trading unter **Trading → Börsenkonten** ausdrücklich die Exchange `paper` wählen, einen Namen und eine selbst bestimmte positive Startbilanz eingeben. Erst dadurch wird ein Paper-Konto angelegt. Anschließend unter **Trading → Paper-Märkte** für jedes erwartete Symbol Mark Price, Price Tick, Quantity Step, Minimum Quantity, Minimum Notional und Max Leverage aus realistischen Testdaten setzen. Eine Mark-Price-Änderung wertet offene Paper-Orders deterministisch aus und erzeugt Fills.
+Karten lassen sich innerhalb ihrer Spalte vertikal anordnen. Verbindungen laufen ausschließlich von einer früheren zu einer späteren Spalte. Direkte Kanten dürfen optionale Stufen überspringen; ein ausführbarer Pfad muss trotzdem Kanal, Parser, Schema, Vertrag, Strategie, Sizing und Konto enthalten. Der Konto-Knoten ist das fachliche Ende; ein Ausgabe-Knoten kann folgen.
 
-Paper ist kein Profitabilitätsnachweis: Latenz, Orderbuch, Funding, Liquidation, Teilausführungsdynamik und reale Gebühren sind nur begrenzt abgebildet. Es beweist Zustandsmaschine, Sizing, TP/SL und Recovery, nicht Marktperformance.
+Ein Klick auf eine Karte öffnet ihren Editor. **Baustein** öffnet die Bibliothek: Dort kann eine bereits veröffentlichte logische Ressource wiederverwendet oder eine neue erstellt werden. Änderungen erzeugen eine neue immutable Version. Eine ältere aktive Revision wird niemals in-place verändert.
 
-## 3. Signalverträge, Schema-Profile und Strategien erstellen
+Jede Änderung wird zuerst validiert und dann atomar als neue aktive Revision gespeichert. Sobald ein ausführbarer Pfad hinzugefügt, geändert oder entfernt würde, zeigt TSX Core die Auswirkung und verlangt die exakte Eingabe `ACTIVATE WORKFLOW IMPACT`. Abbrechen oder eine abweichende Eingabe lässt die bisherige aktive Revision unverändert. Parallele Browseränderungen werden über einen Revisionskonflikt abgefangen.
 
-Unter **Trading → Verträge**:
+## Bausteine
 
-- **Vertrag erstellen oder duplizieren:** Kennung, Name und Beschreibung festlegen. Es werden keine Beispielverträge ausgeliefert; der Operator beginnt mit einer leeren Vertragsliste.
-- **Visueller Vertrags-Builder:** XML-Pfade für Aktion, Paar, Entry, Targets, Stop-Loss sowie optionale Leverage-/Risiko-/Averaging-Felder; Entry-Modus, scalar/range Targets, 1 bis 20 Targets, sequenzielle IDs und bis zu 30 zusätzliche typisierte Felder.
-- **Geometrie:** Stop auf der Verlustseite, Targets auf der Gewinnseite, geordnete Targets und geordnete Ranges für LONG und SHORT getrennt durch die Signalrichtung erzwingen.
-- **Quelltext-Erdung:** pro Kernfeld bestimmen, ob der extrahierte Wert in der ursprünglichen Telegram-Nachricht nachweisbar sein muss.
-- **Vorschau:** XML plus Originaltext gegen genau den noch nicht publizierten Entwurf testen.
-- **Versionen:** Nur Entwürfe sind editierbar. Publizieren macht die Definition samt SHA-256 immutable. Für Änderungen aus einer vorhandenen Version einen neuen Entwurf erzeugen. Eine von einem aktivierten Profil verwendete Version kann nicht archiviert werden. Entwürfe sowie nicht referenzierte publizierte oder archivierte Versionen können nach expliziter Bestätigung endgültig gelöscht werden.
+### Kanal und Filter
 
-Unter **Trading → Strategien**:
+Der Kanal verwendet die numerische Telegram-Chat-ID. Ein Kanal aus der aktiven Workflowrevision wird direkt als Quelle akzeptiert; ein Neustart des Routings ist für eine neu verbundene, bereits zugängliche Telegram-Quelle nicht erforderlich.
 
-- **Signal-Schema-Profile:** Profile anlegen, bearbeiten, aktivieren/deaktivieren oder nach expliziter Bestätigung löschen. Jedes Profil besitzt eine unveränderliche Kennung, einen Anzeigenamen, ein Parser-Template und `contractVersionId` als frei wählbare Verknüpfung zu einer publizierten Vertragsversion.
-- **Signalvertrag in der Strategie:** erlaubte Schema-Profil-IDs, Symbole (leer = jedes normalisierte Symbol) und LONG/SHORT.
-- **Entry:** Market oder Limit, Preiswahl innerhalb der Signal-Range, Post-only und Timeout.
-- **Sizing:** Risiko pro Trade in Prozent der Equity, maximales Positionsnotional und maximaler Hebel. Signalhebel und Exchange-Maximum können nur weiter begrenzen.
-- **Exits:** manuelle Prozentwerte oder adaptive TP-Halbierungsstaffel; konfigurierbares Break-even/Prozent-Trailing oder adaptives SL-Nachziehen nach erreichten TP-Stufen. Der letzte TP schließt immer den vollständigen Rest. Ein Protective Stop ist zwingend.
-- **Safety:** maximale gleichzeitige Positionen je Strategieversion, absoluter maximaler UTC-Tagesverlust, Slippage-Grenze und Entry-TTL.
+Inhaltstyp, Keyword- und Regex-Filter laufen vor dem KI-Aufruf. Regex erhält ReDoS-Prüfung, begrenzten Eingang und Zeitlimit. `all` verlangt alle Muster, `any` mindestens eines. Fotos oder Videos können über ihren Caption-Text in denselben Einzel-Signalpfad gelangen; Media-Groups umgehen den Workflow nicht.
 
-**Entwurf speichern** validiert alle Grenzen. **Publizieren** macht die Version immutable und routingfähig. Für Änderungen die publizierte Version auswählen und **Neue Version** erstellen. Bestehende Trades behalten die alte Version; neue Signale nutzen erst nach explizitem Routing-Wechsel die neue.
+### Parser
 
-Nur aktive Schema-Profile können in neuen Strategien verwendet werden. Ein Profil, das eine aktivierte Kanalroute verwendet, kann weder verändert noch gelöscht werden. Ein unbekanntes, deaktiviertes oder gelöschtes Profil bleibt zur Laufzeit fail-closed und erzeugt keinen ausführbaren Trade.
+Der Parser-Dialog verwaltet Prompt-Vorlage, Primär-/Fallbackmodell und ein Zeitlimit zwischen 2 und 120 Sekunden. Der konkrete Prompttext wird direkt im Parser-Baustein gespeichert und durch dessen Konfigurationshash unveränderlich an die Revision gebunden. Eine spätere Änderung der gleichnamigen globalen Vorlage verändert einen aktiven Workflow nicht. Serverseitige Schutz- und Grounding-Regeln bleiben nicht editierbar und werden zusätzlich angehängt. Der Parser-Baustein erzwingt Datenbankspeicherung.
 
-### Verträge und Signal-Schema-Profile sicher verwalten
+Identische Parser-, Schema-, Vertrags- und Dedupe-Konfigurationen mehrerer Börsenzweige werden gruppiert. Das Telegram-Signal wird einmal geparst und erst danach in unabhängige Trade Intents aufgefächert.
+Duplikate werden innerhalb dieser unveränderlichen Pfadgruppe erkannt. Zwei bewusst unterschiedliche Parser- oder Vertragszweige blockieren sich daher nicht gegenseitig.
 
-Ein Vertrag ist ausschließlich deklarativ. Pfade sind auf ein bis vier kleingeschriebene XML-Segmente begrenzt, Feldtypen und Strukturen stammen aus festen Interpreter-Primitiven, und risikoreiche Regex-Konstrukte werden abgewiesen. Der Builder akzeptiert weder XML-Schema-Code noch Python oder JavaScript. Dadurch kann ein Benutzer beliebige fachliche Verträge modellieren, ohne den Container- oder Exchange-Berechtigungsraum zu erweitern.
+### Schema und Vertrag
 
-Ein Profil bleibt die deklarative Zuordnung zwischen quellspezifischem Parser-Template und publiziertem Vertrag. Das wirksame Profil wird zur Laufzeit über das der Telegram-Quelle zugeordnete Parser-Template ermittelt. Für jedes aktiv verwendete Template sollte genau ein aktives Profil existieren. Vor einer Änderung an einem gerouteten Profil zuerst eine Ersatzstrategieversion mit dem neuen Profil publizieren, die Kanalroute umstellen und anschließend das alte Profil bearbeiten, deaktivieren oder löschen.
+Das Schema bestimmt die ausführbare Parserform (`standard`, `cryptodanielvip` oder `loma`). Eine fachliche Schemaänderung erhält eine neue eindeutige Schema-ID; verwendete Profile werden nicht still mutiert. Die ausgewählte Strategieversion muss diese ID in `allowedSignalSchemas` erlauben.
 
-Die authentifizierte Admin-API entspricht den UI-Aktionen. Mutationen benötigen zusätzlich zum Admin-Bearer `X-Requested-With: forwarder-dashboard`; die Löschung verlangt außerdem die unten genannte destruktive Bestätigung:
+Der Vertrag ist ein unabhängiger, versionierter Baustein. Seine Definition legt XML-Pfade, Entry-Form, Target-Form und -Anzahl, Stop, Leverage, Zusatzfelder, Geometrie und Quelltext-Grounding fest. Eine Bearbeitung im Dialog erzeugt eine neue veröffentlichte Vertragsversion. Im visuellen Workflow bestimmt der verbundene Vertrag die Definition; die im Schema gespeicherte Vertragsversion ist nur der Default für Alt-/Nicht-Workflow-Pfade.
 
-| Aktion | Methode und Pfad | Zusatzbedingung |
+### Strategie
+
+Eine Strategieversion enthält:
+
+- erlaubte Schema-IDs, Symbole und Seiten;
+- Entry-Typ, Range-Auswahl, Post-only und Entry-Timeout;
+- Default-Sizing für Legacy-Pfade;
+- TP-Verteilung, Break-even/Trailing beziehungsweise adaptive Targets;
+- tägliches Verlustlimit, Slippage, Entry-TTL und Protective-Stop-Pflicht.
+
+Die Definition kann als deklaratives JSON im Dialog bearbeitet werden. Speichern erzeugt eine neue veröffentlichte Version. `maxConcurrentPositions` gehört seit Schema v3 nicht mehr zur Strategie.
+
+### Positionsgröße
+
+Der Pfadbaustein überschreibt das Strategy-Sizing für genau diesen Zweig:
+
+- `equity_percent_margin`: Prozent des Portfoliowerts als eingesetztes Margin-Kapital; Notional = Margin × tatsächlich erlaubter Hebel.
+- `equity_percent_notional`: Prozent des Portfoliowerts als gesamter Positionswert.
+- `risk_percent`: Prozent des Portfoliowerts als maximaler Verlust zwischen Entry und Stop.
+
+`riskPerTradePercent`, `maxAdaptiveRiskPercent`, Notional-Obergrenze und maximaler Hebel werden strikt validiert. Der Hebel wird auf das kleinere Limit aus Signal, Strategie/Pfad und Börsenmarkt heruntergestuft. Ein im Signal fehlender Hebel verwendet die Strategie-/Pfadgrenze; ein nicht verfügbarer Markt wird vor der Order abgelehnt.
+
+### Adaptives Risiko
+
+Der optionale Baustein unterstützt `fixed`, `shadow` und `automatic`, gestaffelte Prozentwerte, Start-/Fixstufe, Lookback, Mindestzahl geschlossener Trades, Gewinn-/Verlustschwellen, schwache Wochen und manuelle Sperre. Zustand und Auswertung sind durch Kanal, konkretes Börsenkonto und logischen Risiko-Baustein getrennt. Derselbe Kanal kann daher auf Konto A starr mit 10 Prozent und auf Konto B adaptiv ab 5 Prozent laufen.
+
+### Börsenkonto und Kapazität
+
+Das Positionslimit wird im Kontobaustein beziehungsweise unter **Betrieb → Konten** auf 1 bis 20 gesetzt. Es gilt für das gesamte konkrete Konto über alle Kanäle, Strategien und Workflowpfade. Zusätzlich kann dasselbe Konto/Symbol nur eine aktive verwaltete Position besitzen.
+
+Wenn das Limit oder verfügbare Kapital erreicht ist, wird nur der betreffende neue Intent blockiert; andere Kontozweige desselben Signals bleiben unabhängig. TSX Core erhöht weder automatisch den Hebel noch verwendet es Kapital eines anderen Kontos, um das Limit zu umgehen.
+
+Unterstützte Kontotypen:
+
+| Typ | Modi | Zugangsdaten |
 | --- | --- | --- |
-| Trading-Snapshot einschließlich Verträgen/Profile lesen | `GET /api/trading` | Viewer oder Admin |
-| Vertrag anlegen | `POST /api/trading/signal-contracts` | Admin; Metadaten plus deklarative `definition`; Ergebnis ist `v1` als Entwurf |
-| Vertragsentwurf aktualisieren | `POST /api/trading/signal-contracts/update` | Admin; `contractId`, `versionId`, Metadaten und vollständige Definition |
-| Neue Version / Duplikat | `POST /api/trading/signal-contracts/versions` / `duplicate` | Admin; Quelle bleibt unverändert |
-| Vertrag publizieren / archivieren | `POST …/publish` / `archive` | Admin; Archivierung nur ohne aktiviertes Profil |
-| Vertragsentwurf löschen | `DELETE /api/trading/signal-contracts/drafts` | Admin plus `X-Destructive-Confirmation: delete-signal-contract-draft` |
-| Publizierte/archivierte Vertragsversion löschen | `DELETE /api/trading/signal-contracts/versions` | Admin plus `X-Destructive-Confirmation: delete-signal-contract-version`; nur ohne irgendein referenzierendes Schema-Profil |
-| Vertrag in Vorschau validieren | `POST /api/trading/signal-contracts/validate` | Admin; keine Persistenz |
-| Profil anlegen | `POST /api/trading/signal-schemas` | Admin; Body mit `id`, `name`, `description`, `contractVersionId`, `templateName`, `enabled` |
-| Profil bearbeiten/aktivieren/deaktivieren | `POST /api/trading/signal-schemas/update` | Admin; Body zusätzlich mit unveränderlicher `id`; keine aktive Route darf das Profil verwenden |
-| Profil löschen | `DELETE /api/trading/signal-schemas` | Admin; Body `{"id":"..."}` und `X-Destructive-Confirmation: delete-trading-signal-schema` |
+| Paper | Paper | eigene Startbilanz |
+| Hyperliquid | Testnet, Live | dedizierter API-Wallet Private Key und Master-Wallet-Adresse |
+| Bybit | Testnet, Live | API Key und API Secret |
+| Kraken Futures | Testnet, Live | API Key und API Secret |
 
-| Profilfeld | Vertrag |
-| --- | --- |
-| `id` | 1 bis 40 Zeichen; beginnt mit `a-z`, danach nur `a-z`, `0-9`, `_` oder `-`; wird kleingeschrieben und bleibt nach Erstellung unveränderlich |
-| `name` | 1 bis 80 Zeichen |
-| `description` | optional, höchstens 500 Zeichen |
-| `contractVersionId` | Kennung einer vorhandenen publizierten Vertragsversion, beispielsweise `desk-alpha:v3` |
-| `parserSchema` | wird aus dem verknüpften Vertrag abgeleitet und dient nur der rückwärtskompatiblen Anzeige |
-| `templateName` | 1 bis 64 Zeichen aus Buchstaben, Ziffern, `_` oder `-`; muss zum quellspezifisch ausgewählten Parser-Template passen |
-| `enabled` | echter JSON-Boolean, kein String |
+Nur Futures-/Derivate-Handelsrechte vergeben. Withdrawal-Rechte sind unnötig und verboten. Hyperliquid-Builder-Fees sind deaktiviert. Eine Secret-Rotation ist nur für dieselbe stabile Exchange-Kontoidentität erlaubt; ein anderer API-Key beziehungsweise eine andere Wallet-Adresse wird als Rebinding abgelehnt.
 
-Fehlerhafte oder bereits vorhandene Kennungen, unpublizierte Verträge und ungültige Definitionen werden abgewiesen. Unbekannte oder deaktivierte Profile führen nicht zu einem Fallback-Trade.
+## CCXT und CCXT Pro
 
-### Handelbare Symbole pro Strategie
-
-Im Strategie-Editor legt **Handelbare Symbole** die Regel für jede Kanalroute fest:
-
-- **Alle** akzeptiert jedes normalisierte Symbol aus einem Signal, etwa `BTCUSDT`, `BTCEUR`, `ETHBTC` oder `XAUUSD`. Die ausgewählte Börse prüft vor der Order verbindlich, ob der Markt existiert und mit dem Konto handelbar ist; unbekannte oder nicht verfügbare Symbole werden ohne Order abgewiesen.
-- **Keine** blockiert jedes Symbol. Das ist ein expliziter, revisionssicherer Handelsstopp für die Strategie, ohne die Kanalroute entfernen zu müssen.
-- **Nur bestimmte Symbole** akzeptiert ausschließlich die kommagetrennte Allowlist. Die Einträge müssen normalisierte Großbuchstaben-/Ziffernsymbole sein, zum Beispiel `BTCUSDT, ETHBTC, BTCEUR`.
-
-Frühere Strategieversionen bleiben lesbar: Eine leere alte Symbol-Liste entspricht **Alle**, eine gefüllte alte Liste entspricht **Nur bestimmte Symbole**. Die Portfolioansicht fasst verschiedene Quote-Assets nicht als garantierte FX-Bewertung zusammen.
-
-### Adaptive TP-Staffelung
-
-Bei **Adaptive TP-Staffelung (Halbierungsregel)** passt sich die Allokation automatisch an jedes Signal mit 1 bis 20 Targets an. Jeder TP bis zum vorletzten schließt die Hälfte des verbleibenden Volumens; der letzte TP schließt den gesamten Rest:
-
-| Anzahl TPs | Allokation |
-| ---: | --- |
-| 1 | `100 %` |
-| 2 | `50 % / 50 %` |
-| 3 | `50 % / 25 % / 25 %` |
-| 4 | `50 % / 25 % / 12,5 % / 12,5 %` |
-| 5 | `50 % / 25 % / 12,5 % / 6,25 % / 6,25 %` |
-
-Damit funktionieren Signale mit wechselnder TP-Anzahl ohne separate Strategieversion. Im manuellen Modus muss die Prozentliste dagegen exakt so viele Einträge wie das Signal Targets enthalten und exakt 100 Prozent ergeben; andernfalls wird der Trade blockiert. Exchange-Schrittweiten werden beim Planen berücksichtigt, und eine auf null gerundete TP-Menge wird abgewiesen.
-
-### Adaptives SL-Nachziehen
-
-Bei **Adaptives SL-Nachziehen nach TP-Stufen** gilt die Blueprint-Leiter:
-
-- vor TP1 bleibt der ursprüngliche Stop bestehen;
-- nach TP1 und TP2 liegt der Stop auf Break-even, also dem geplanten Entry;
-- nach TP3 wird der Stop auf TP1 nachgezogen, nach TP4 auf TP2, allgemein nach `TP n` auf `TP (n-2)`;
-- der Stop wird niemals in Verlust- beziehungsweise Gegenrichtung verschoben;
-- nach dem letzten TP ist die Position geschlossen; ein verbliebener Schutz wird im Reconciliation-Lauf nur noch sicher abgewickelt.
-
-Im Modus **Konfiguriert** gelten stattdessen der frei wählbare Break-even-Schwellwert und optional das prozentuale Trailing. Die prozentuale Trailing-Regel wird im adaptiven TP-Stufenmodus nicht zusätzlich ausgeführt. Jede Stop-Ersetzung legt zuerst den neuen reduce-only Schutz an und entfernt erst danach veraltete Stops.
-
-**Strategie löschen** entfernt eine unbenutzte Version nach einer expliziten Bestätigung endgültig. Eine Kanalroute muss vorher unter **Kanal-Routing** entfernt werden; Versionen mit aufbewahrter Trade-Historie können aus Audit- und Recovery-Gründen nur archiviert, nicht gelöscht werden. Die letzte verbleibende Strategieversion ist nicht löschbar – zuerst eine Ersatzstrategie erstellen.
-
-Ein Plugin ist bewusst deklarativ. Die UI nimmt keinen ausführbaren Python-/JavaScript-Code an. Dadurch bleiben Rechte, Determinismus, Review, Rollback und Containerhärtung erhalten. Ein völlig neuer Algorithmus benötigt eine geprüfte Engine-/Schema-Version im Repository.
-
-## 4. Exchange-Konto verbinden
-
-### Hyperliquid
-
-1. Auf Hyperliquid ein dediziertes API Wallet für das ausschließlich von diesem System verwendete Konto/Subkonto erzeugen.
-2. Unter **Trading → Börsenkonten** `hyperliquid`, `testnet` oder `live`, API-Wallet Private Key und Master-Wallet-Adresse eingeben.
-3. **Konto anlegen & prüfen**. Das offizielle `hyperliquid-python-sdk` liest Equity und bestätigt den Vertrag.
-
-### Bybit
-
-1. Einen separaten Bybit API Key mit ausschließlich benötigten Unified-Trading-/Futures-Rechten erzeugen. Keine Withdrawal-/Transfer-Rechte vergeben; IP-Allowlisting verwenden, sobald die Deployment-IP stabil ist.
-2. `bybit`, `testnet` oder `live`, API Key und API Secret eingeben.
-3. **Konto anlegen & prüfen**. Das offizielle `pybit` SDK validiert das Konto.
-
-Secrets werden atomar als Modus `0600` im Secret-Volume gespeichert, nur read-only in den Executor gemountet und nie an Browser/API zurückgegeben. **Keys ersetzen** deaktiviert das Konto, überschreibt die Secret-Datei und verifiziert erneut. Löschen wird verweigert, solange Route, Historie, Order oder Position besteht.
-
-### Exchange-WebSockets und REST-Autorität
-
-Das Sidecar öffnet je aktiviertem Nicht-Paper-Konto private Order-, Execution- und Positions-Streams. Zusätzlich werden für aktuell relevante USD-/USDC-/USDT-Symbole öffentliche Ticker und 1-Minuten-Kerzen abonniert. Bybit verwendet die offiziellen V5-WebSocket-Klassen aus `pybit`, Hyperliquid die Abonnements des offiziellen Python-SDKs. Credentials bleiben dabei ausschließlich im Sidecar.
-
-WebSocket-Ereignisse sind ein Beschleuniger, keine zweite Wahrheit: Order-, Fill- oder Positionsereignisse markieren das Konto als geändert und lösen sofort eine erzwungene REST-Reconciliation aus. Erst dieser Snapshot darf Orders, Fills oder Positionen im Trading-Kern ändern. Cursor-Lücken, Überläufe oder Socket-Fehler setzen den sichtbaren Streamstatus auf `degraded`; die periodische REST-Schutzschleife läuft weiter und bleibt fail-closed. Doppelte Events werden über stabile Event-Schlüssel ignoriert, Payloads sind begrenzt und pro Konto bleiben höchstens 5.000 Events erhalten.
-
-## 5. Mehrere Kanäle parallel routen
-
-Unter **Trading → Kanal-Routing** für jeden Quellkanal auswählen:
+Das Sidecar pinnt `ccxt==4.5.75`. Dieselbe Distribution liefert CCXT Pro. Pro wird verwendet, weil private Order-/Trade-/Positionsereignisse und öffentliche Marktströme schneller als Polling eintreffen. Es ersetzt REST nicht:
 
 ```text
-Kanal A → Strategie Alpha v3 → Hyperliquid Testnet
-Kanal B → Strategie Beta v1  → Bybit Testnet
-Kanal C → Strategie Gamma v7 → Hyperliquid Live
+CCXT Pro Event → deduplizierter Cursor → erzwungene Reconciliation → CCXT REST Snapshot → SQLite
 ```
 
-Eine Kanal-ID besitzt genau eine Route. Beliebig viele unterschiedliche Kanäle können parallel laufen. Eine aktive Position besitzt jedoch exklusiv `(account, symbol)`: Zwei Strategien dürfen auf demselben Konto nicht gleichzeitig dieselbe Coin-Position steuern. Für getrennte gleichzeitige BTC-Strategien separate Exchange-Subkonten verwenden.
+Alle zustandsändernden Orders laufen über CCXT REST. Preis- und Mengenpräzision, Contract Size, Trigger, Reduce-only, Client-ID und Providerstatus werden normalisiert. Ein geschützter Entry wird als validierter Entry plus gleich großer Reduce-only-Stop im Batch gesendet. Vor Leverage- oder Orderänderungen verlangt das Sidecar per REST null bestehende Exposure auf Konto/Symbol. Bei unvollständigem oder unbekanntem Ergebnis versucht es mit eigenem Notfallzeitfenster beide Legs zu stornieren und ausschließlich die seit diesem Null-Preflight neu entstandene Exposure zu reduzieren; anschließend bleibt das Konto bis zur autoritativen Reconciliation gesperrt.
 
-### Dynamisches Risiko je Quellkanal
+Ein CCXT-Upgrade ist keine gewöhnliche Dependency-Aktualisierung. Es benötigt erneut Unit-/Contracttests, Containerbuild, Testnet-Nachweis je implementierungsseitig freigegebener Börse und Reconciliation-/Timeoutprüfung. Die interne CCXT-Allowlist allein ist ausdrücklich kein Testnet- oder Produktionsnachweis.
 
-Unter **Trading → Kanal-Routing → Dynamisches Kanalrisiko** erhält jeder Quellkanal eine eigene Police:
+## Mehrere Börsen aus einem Signal
 
-- `fixed`: aktuelle oder manuell fixierte Stufe bleibt konstant;
-- `shadow`: wöchentliche Performance erzeugt eine Empfehlung, ändert das Trade-Risiko aber nicht;
-- `automatic`: Verlustwochen reduzieren stufenweise, Gewinnwochen erhöhen stufenweise;
-- `weakChannelAction`: nur staffeln, zusätzlich reduzieren oder nach der konfigurierten Anzahl schwacher Wochen blockieren;
-- `manuallyBlocked` und `lockedTier`: unmittelbarer Operator-Vorrang.
-
-Die Auswertung verwendet nur abgeschlossene managed Trades des Kanals und speichert Zeitraum, Trades, Wins, Losses, realisierten PnL, Return, vorige/empfohlene/angewendete Stufe, Entscheidung und Begründung. Lookback, Mindestzahl geschlossener Trades, Gewinn-/Verlustschwellen und Risikostufen sind vollständig im Web steuerbar. Trefferquote, Win/Loss, Slippage und PnL-Beitrag erscheinen im Analytics-Kanalranking.
-
-Das wirksame Risiko ist stets das Minimum aus Strategie-Risiko, optionalem Signal-Cap und Kanalpolice. Automatik kann keine Strategie- oder globale Sicherheitsgrenze erhöhen, keine manuelle Sperre aufheben und keinen Kill-Switch umgehen.
-
-## 6. Ausführung aktivieren
-
-Unter **Trading → Betrieb**:
-
-1. **Jetzt reconciliieren**. Konten, lokale Orders/Fills/Positionen und Remote-State müssen übereinstimmen.
-2. **Automatische Ausführung** aktivieren. Es gibt danach wie entschieden kein Approval je Trade.
-3. Für Echtgeld exakt `ENABLE LIVE TRADING` eingeben. Ohne diese zweite Sperre bleiben live geroutete Signale blockiert, Paper/Testnet können weiterlaufen.
+Für das Beispiel „VIP Coinsignals gleichzeitig Hyperliquid 10 Prozent starr und Kraken 5 Prozent adaptiv“ wird der gemeinsame Pfad bis Strategie geführt und danach verzweigt:
 
 ```text
-validiertes XML → Kanalroute → immutable Strategie → Risk/Capacity
-→ persistierter Plan → idempotenter Entry → bestätigter Protective Stop
-→ TP-Staffel → Fill-Reconciliation → Stop auf Restmenge/Break-even/TP-Leiter
-→ Position geschlossen + realisierter PnL
+VIP → Filter → Parser → Schema → Vertrag → Strategie
+                                         ├→ Sizing 10 % fixed → Hyperliquid
+                                         └→ Sizing 5 % → Adaptive Risk → Kraken Futures
 ```
 
-Ein Stop-Submit-Fehler nach gefülltem Entry löst automatisch einen reduce-only Emergency Flatten aus. Ist dessen Ausgang unklar, werden neue Entries gesperrt und der Kill-Switch gesetzt.
+Beide Intents referenzieren dieselbe Signal- und Workflow-Provenienz, besitzen aber eigene Pfad-ID, Strategieversion, Konto, Plan, Order-IDs und Fehlerzustände. Ein nicht bereites Kraken-Konto verhindert den Hyperliquid-Zweig nicht.
 
-Eine Teilfüllung wird sofort mit einem reduce-only Stop bis zur maximal noch möglichen Entry-Menge geschützt. Solange der Entry weiter offen ist, werden noch keine TPs platziert. Sobald der Entry vollständig gefüllt oder mit Teilfüllung storniert ist, skaliert die Reconciliation Stop und sämtliche TP-Mengen exakt auf die tatsächlich bestehende Position.
+## Simulation und Aktivierung
 
-## 7. Cockpit, Analytics, Logs und Notfall
+**Simulieren** schickt Beispieltext und Inhaltstyp ohne Parser-/Exchange-Nebenwirkung durch die Filter der aktiven Revision. Für jeden passenden Pfad werden Konto, Aktivierungszustand und Blockgrund angezeigt. Die Simulation ersetzt keinen Paper-/Testnet-End-to-End-Test.
 
-- **Cockpit:** zeigt ausschließlich System-/Sicherheitsstatus, Kill-Switch, Execution-/Live-/Paper-Zustand, aktive Positionen mit PnL, kompakten Signalstrom und Notfallaktionen.
-- **Analytics:** enthält Equity-/Drawdown-Verlauf, tägliche/wöchentliche Auswertung, Kanalranking, Treffer-/Win-Loss-/Slippage-/PnL-Beitrag, Exchange-Vergleich, Ausführungslatenzen und Erwartungswert-Simulation.
-- **Dynamisches Kanalrisiko:** `fixed` hält die gewählte Stufe, `shadow` berechnet nur Empfehlungen, `automatic` wendet wöchentliche Stufenänderungen an. Anhaltend schwache Kanäle können reduziert oder blockiert werden; manuelle Sperre und Stufenfixierung bleiben möglich.
-- **Datenherkunft:** Equity, verfügbarer Saldo, Margin und unrealisierter PnL kommen über die offiziellen Exchange-SDKs. Realisierter PnL und historische Kennzahlen kommen aus den vom System persistierten Managed Trades; externe/manuelle Trades werden nicht fälschlich als Managed Performance ausgegeben.
-- **Aktualisierung:** Das Cockpit lädt lokale Zustände regelmäßig. Exchange-Snapshots werden 60 Sekunden gecacht; ein expliziter Abgleich erzwingt eine neue Abfrage der angebundenen Konten und zeigt Teilfehler je Konto.
-- **WebSocket-Status:** Trading zeigt je Exchange-Konto `starting`, `healthy`, `degraded` oder `stopped`, Cursor, Lücken, letztes Ereignis und letzten Fehler. Ein grüner Streamstatus ersetzt niemals den REST-Abgleich.
-- **Trade Journal:** unter **Trading → Journal** nach Konto, Kanal, normalisiertem Symbol, Status und Review-Zustand filtern. Jeder Eintrag verbindet immutable Strategie-/Vertrags-Hashes, Signal-Provenienz, Plan, Position, Orders, Fills, Gebühren, Ausführungstimeline und PnL. Operatoren pflegen Notizen, bis zu 20 Tags, Bewertung 1–5 und Review-Status. CSV-/JSON-Export redigiert Telefonnummern, Adressen und weitere Telegram-PII; der Chat wird nur als kurzer SHA-256-Fingerprint ausgegeben und CSV-Formeln werden neutralisiert.
-- **Nominale Gesamtsicht:** Die gemeinsame Equity addiert Bybit-USD, Hyperliquid-USDC und Paper-Quote nominal. Sie ist keine FX-Bewertung und garantiert keine Stablecoin-Parität; für belastbare Bewertung immer zusätzlich den Konto-Drill-down verwenden.
-- **Logs:** ein ununterbrochener, virtueller Terminalstrom mit Freitext- und sicherer Regex-Suche; keine Level-Filter zerreißen zusammengehörige Abläufe.
-- **Command Palette:** `Strg+K`/`⌘K` durchsucht Navigation, Verträge, Kanäle und Positionen und bietet den erlaubten Exchange-Abgleich als Schnellaktion.
-- Prometheus: `tg_forwarder_trading_*`. Unknown Orders, ungeschützte Positionen, Kill-Switch oder >30 Sekunden alter Abgleich bei aktiver Execution machen `/readyz` rot und lösen kritische Alerts aus.
+Unter **Betrieb → Live**:
 
-Im Notfall Kill-Switch aktivieren, Exchange read-only gegen Client Order IDs prüfen und bei fehlendem Schutz exakt `FLATTEN MANAGED POSITIONS` eingeben. Nur managed Positionen werden reduce-only geschlossen; fremde Exposure wird nie still übernommen. Unknown Submit-/Cancel-Ausgänge nie blind wiederholen. Der vollständige Ablauf steht in `runbooks/operations.md#trading-notfall-und-reconciliation`.
+1. alle aktivierten Konten reconciliieren;
+2. Unknown Orders, fremde Exposure, offene Risk Events und Streamlücken prüfen;
+3. automatische Ausführung aktivieren;
+4. für Live einmal exakt `ENABLE LIVE TRADING` bestätigen.
 
-## 8. Neustart, Backup, Restore, Factory Reset
+Ausführung kann global pausiert werden, ohne bestehende Stops/TPs zu entfernen. Der globale Kill-Switch storniert Entries und blockiert neue. Ein Kontoschalter isoliert ein einzelnes Konto; seine Freigabe verlangt `RELEASE ACCOUNT KILL SWITCH` und zwei erzwungene Reconciliations.
 
-- Bei jedem Start reconciliert der Trading-Worker alle aktivierten Konten, bevor er Pending Intents bearbeitet.
-- SQLite-Backups enthalten Signalverträge/Profile, Strategien, Kanalrisiko und Evaluationen, Equity-/Execution-Telemetrie, Exchange-Streamstatus/-Events, Trade-Journal-Reviews, den persistenten MCP-Modus, MCP-Agenten samt Hash/Rechten/Historie/Vorschlägen, Routen, Intents, Orders, Fills, Positionen und Risk Events. Klartext-Agenten- und Exchange-Secrets sind absichtlich ausgeschlossen beziehungsweise nie vorhanden und müssen nach Restore neu provisioniert oder rotiert werden.
-- Factory Reset stoppt MCP-Kontrollbrücke und Trading-Worker, storniert offene Entries und fragt jedes reale Konto ab. Solange Exchange/Executor nicht erreichbar ist oder Remote-Exposure besteht, wird der Reset verweigert. Nach sicherem Nullzustand werden Datenbank einschließlich MCP-Modus, Verträgen, Kanalrisiko, Analytics und MCP-Agenten, Keys, interner Executor-Token und der gesamte übrige lokale Zustand entfernt; der Neuaufbau startet MCP wieder `disabled`.
-- **Betriebsdaten leeren** stoppt das Nachrichten-Routing und entfernt Nachrichten, Queue-/Medienpuffer sowie unreferenzierte Signale. Trading-Historie, Strategien, Konten, Exchange-Secrets und von Trades referenzierte Signale werden dabei bewusst nicht gelöscht.
+## Betrieb, Journal und Analytics
 
-## 9. Production-Freigabe
+Der integrierte Bereich enthält:
 
-Live bleibt **NO-GO**, bis zusätzlich zu allen normalen Enterprise-Gates folgende reale Nachweise vorliegen:
+- **Live**: Runtime-Gates, Reconciliation, Cancel Entries, Kill-Switch und Emergency Flatten;
+- **Konten**: Erstellung, Limits, Status, Verifikation, Secret-Rotation und Löschung ohne Exposure;
+- **Journal**: Signal-/Workflow-/Schema-/Vertrags-/Strategie-Provenienz, Orders, Fills, Gebühren, PnL und Reviews;
+- **Analyse**: Equity, Drawdown, Kanalranking, Börsenvergleich, Latenz und adaptive Pfadzustände;
+- **Logs**: begrenzter zusammenhängender Betriebsstrom;
+- **Backups**: Erstellen, Prüfen, Restore und Off-site-Recovery mit exakten Bestätigungen;
+- **MCP**: Runtime, Agenten, Minimalrechte, Tokens, Vorschläge, Sitzungen und Aktionen;
+- **System**: Telegram-Anmeldung, Parserprovider, Routing, Remote-Zugriff, OIDC/Tailscale, Secrets und Enterprise-Parameter.
 
-- Hyperliquid- und Bybit-Testnet: Entry, Signale mit 1/2/3/5 TPs, adaptive Allokation, mehrere TP-Fills, Stop-Resize, Break-even, TP(i-2)-Nachziehen, Cancel, Timeout/Unknown und Neustart-Reconciliation.
-- Private WebSocket-Disconnects, Cursor-Lücke und Event-Duplikate auf beiden Testnets; in jedem Fall muss REST autoritativ bleiben und Schutz-Reconciliation weiterlaufen.
-- Exchange-separates Subkonto, minimale API-Rechte, IP-Allowlist und dokumentierte Key-Rotation.
-- Staging-Last mit parallelen Kanälen und Symbolkonflikt-Test.
-- Alarmzustellung für Unknown Order, ungeschützte Position, Kill-Switch und stale Reconciliation.
-- Restore plus erneutes Secret-Provisioning, vorheriger Image-Digest plus beide Image-Attestierungen.
-- 30 Tage Paper/Testnet-Soak ohne Unknown Order, ungeschützte Position, Drift oder Ressourcenwachstum; danach bewusst begrenzter Live-Canary mit festem maximalen Notional.
+## Migration bestehender Installationen
+
+Wenn noch keine aktive Workflowrevision vorhanden ist, werden aktivierte Alt-Routen beim Start automatisch übernommen. Für jede Route entstehen typisierte Ressourcen einschließlich Filter, Parser, Schema, Vertrag, Strategie, Sizing, optional adaptivem Risiko, Konto und Ausgabe. Promptzeitlimit und `saveToFile=false` werden übernommen beziehungsweise sicher normalisiert. Danach ist die Workflowrevision die Quelle für Telegram-Kanäle und Ausführung.
+
+Die Migration verändert keine offene Exchange-Position. Ein späterer Produktions-Cutover benötigt ein verifiziertes Backup, gestoppte Entries, vollständige Reconciliation und eine gesonderte Bestätigung für das Schließen aller Exposure auf betroffenen Konten. Ohne diese Bestätigung findet kein Server-/Exchange-Cutover statt.

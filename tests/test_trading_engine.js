@@ -15,6 +15,7 @@ import {
   listTradingStrategies,
   publishTradingStrategyVersion,
   setTradingRoute,
+  updateTradingAccountConfiguration,
   updateTradingRuntimeState,
 } from '../src/trading_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
@@ -75,7 +76,7 @@ async function setPaperMark(paper, accountId, markPrice) {
   });
 }
 
-async function testAdaptiveTargetAndStopManagement(databasePath) {
+async function setupAdaptiveTargetTest(databasePath) {
   await initDb(databasePath);
   const paper = new PaperExchangeAdapter();
   await seedTradingFixtures(1_700_000_100_000);
@@ -100,7 +101,6 @@ async function testAdaptiveTargetAndStopManagement(databasePath) {
   });
   const engine = new TradingEngine([paper]);
   await engine.processIntent(intent.id);
-
   const plan = (await getTradingIntent(intent.id)).plan;
   assert.deepEqual(plan.targetAllocationsPercent, ['50', '25', '12.5', '12.5']);
   assert.equal(plan.stopLossMode, 'adaptive_targets');
@@ -108,7 +108,10 @@ async function testAdaptiveTargetAndStopManagement(databasePath) {
     plan.orders.filter(order => order.role === 'take_profit').map(order => order.quantity),
     ['0.008', '0.004', '0.002', '0.002'],
   );
+  return { paper, account, intent, engine, plan };
+}
 
+async function assertAdaptiveTakeProfitRepair({ account, intent, engine, plan }) {
   const plannedTakeProfits = plan.orders.filter(order => order.role === 'take_profit');
   const stalePartialFillQuantities = ['0.004', '0.002', '0.001', '0.001'];
   for (let index = 0; index < plannedTakeProfits.length; index += 1) {
@@ -166,7 +169,9 @@ async function testAdaptiveTargetAndStopManagement(databasePath) {
     )).count,
     1,
   );
+}
 
+async function assertAdaptiveStopManagement({ paper, account, intent, engine }) {
   await setPaperMark(paper, account.id, '62000');
   await engine.reconcileAccount(account.id);
   let remote = await paper.openState(account);
@@ -209,6 +214,56 @@ async function testAdaptiveTargetAndStopManagement(databasePath) {
   remote = await paper.openState(account);
   assert.equal(remote.positions.length, 0, 'The final adaptive target must close the complete remainder.');
   assert.equal((await getTradingIntent(intent.id)).status, 'completed');
+}
+
+async function testAdaptiveTargetAndStopManagement(databasePath) {
+  const context = await setupAdaptiveTargetTest(databasePath);
+  await assertAdaptiveTakeProfitRepair(context);
+  await assertAdaptiveStopManagement(context);
+}
+
+async function testAccountCapacitySpansStrategies(databasePath) {
+  await initDb(databasePath);
+  const paper = new PaperExchangeAdapter();
+  await seedTradingFixtures(1_700_000_200_000);
+  const [account] = await listTradingAccounts();
+  const [firstStrategy] = await listTradingStrategies();
+  const secondDraft = await createTradingStrategyDraft({
+    name: 'Independent second strategy',
+    configuration: structuredClone(DEFAULT_STRATEGY_CONFIGURATION),
+  });
+  const secondStrategy = await publishTradingStrategyVersion(secondDraft.id, 1_700_000_200_100);
+  await updateTradingAccountConfiguration(account.id, { maxConcurrentPositions: 1 });
+  await setTradingRoute({ channelId: '-capacity-a', strategyVersionId: firstStrategy.id, accountId: account.id, enabled: true });
+  await setTradingRoute({ channelId: '-capacity-b', strategyVersionId: secondStrategy.id, accountId: account.id, enabled: true });
+  await updateTradingRuntimeState({ executionEnabled: true });
+  for (const symbol of ['BTCUSDT', 'ETHUSDT']) {
+    await paper.setMarket(account.id, {
+      symbol, markPrice: symbol === 'BTCUSDT' ? '60000' : '3000', priceTick: '0.1', quantityStep: '0.001',
+      minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
+    });
+  }
+  const firstXml = SIGNAL;
+  const secondXml = SIGNAL
+    .replace('BTCUSDT', 'ETHUSDT')
+    .replaceAll('60000', '3000').replaceAll('61000', '3050')
+    .replaceAll('62000', '3100').replaceAll('63000', '3200').replaceAll('59000', '2900');
+  await saveSignal('capacity-signal-a', '-capacity-a', 1, firstXml, firstXml);
+  await saveSignal('capacity-signal-b', '-capacity-b', 2, secondXml, secondXml);
+  const firstIntent = await createTradingIntent({
+    sourceSignalId: 'capacity-signal-a', channelId: '-capacity-a', signal: validateSignalXml(firstXml, 'default').execution,
+  });
+  const secondIntent = await createTradingIntent({
+    sourceSignalId: 'capacity-signal-b', channelId: '-capacity-b', signal: validateSignalXml(secondXml, 'default').execution,
+  });
+  const engine = new TradingEngine([paper]);
+  await engine.processIntent(firstIntent.id);
+  await engine.processIntent(secondIntent.id);
+  const rejected = await getTradingIntent(secondIntent.id);
+  assert.equal(rejected.status, 'blocked');
+  assert.equal(rejected.blockReason, 'MAX_CONCURRENT_POSITIONS');
+  assert.notEqual(firstIntent.strategyVersionId, secondIntent.strategyVersionId);
+  await closeDb();
 }
 
 async function run() {
@@ -306,6 +361,8 @@ async function run() {
 
     await closeDb();
     await testAdaptiveTargetAndStopManagement(path.join(directory, 'adaptive.db'));
+    await closeDb();
+    await testAccountCapacitySpansStrategies(path.join(directory, 'account-capacity.db'));
   } finally {
     await closeDb();
     await rm(directory, { recursive: true, force: true });

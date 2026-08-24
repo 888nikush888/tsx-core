@@ -132,7 +132,7 @@ function testDecimalAndStrategyContracts() {
   assert.equal(normalizedLegacy.exits.stopLossMode, 'configured');
   invalidConfiguration(value => { value.exits.targetAllocationMode = 'unsupported'; }, /targetAllocationMode/);
   invalidConfiguration(value => { value.exits.stopLossMode = 'unsupported'; }, /stopLossMode/);
-  invalidConfiguration(value => { value.schemaVersion = 3; }, /Unsupported strategy schema/);
+  invalidConfiguration(value => { value.schemaVersion = 4; }, /Unsupported strategy schema/);
   invalidConfiguration(value => { value.sizing.maxAdaptiveRiskPercent = '0.5'; }, /must not be below/);
   invalidConfiguration(value => { value.sizing.positionSizingMode = 'balance_percent'; }, /positionSizingMode/);
   invalidConfiguration(value => { value.unsupported = true; }, /unsupported fields/);
@@ -180,6 +180,14 @@ function planInput(executable) {
       minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now(),
     },
   };
+}
+
+function assertTradingRiskError(operation, code, message) {
+  assert.throws(operation, error => {
+    assert.equal(error.code, code);
+    assert.match(error.message, message);
+    return true;
+  });
 }
 
 function testAdaptivePlanContracts() {
@@ -372,6 +380,123 @@ function testTradingPlanContracts() {
   assert.throws(() => createTradingPlan({
     ...input, market: { ...input.market, minimumNotional: '10000' },
   }), /notional is below the exchange minimum/i);
+}
+
+function testRiskPriceBoundaries() {
+  const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
+  const input = planInput(executable);
+  const coarseMarket = { ...input.market, priceTick: '1', markPrice: '60000.4' };
+  const marketStrategy = configuration();
+  marketStrategy.entry.orderType = 'market';
+  marketStrategy.entry.postOnly = false;
+  const longMarket = createTradingPlan({ ...input, market: coarseMarket, strategy: marketStrategy });
+  assert.equal(longMarket.entryPrice, '60001', 'Market LONG risk must use the adverse upper tick.');
+  const shortSignal = {
+    ...executable,
+    action: 'SHORT',
+    stopLoss: '62000',
+    targets: ['59000', '58000'].map(price => ({ min: price, max: price })),
+  };
+  const shortMarket = createTradingPlan({
+    ...input, market: coarseMarket, strategy: marketStrategy, signal: shortSignal,
+  });
+  assert.equal(shortMarket.entryPrice, '60000', 'Market SHORT risk must use the adverse lower tick.');
+  const signalMarket = createTradingPlan({
+    ...input,
+    market: coarseMarket,
+    signal: { ...executable, entry: { type: 'market', min: '60000.2', max: '60000.4' } },
+  });
+  assert.equal(signalMarket.entryPrice, '60001', 'A signal-level market entry must override a limit strategy.');
+  assert.equal(signalMarket.orders[0].orderType, 'market');
+  assert.throws(
+    () => createTradingPlan({
+      ...input,
+      strategy: marketStrategy,
+      market: { ...input.market, markPrice: '0' },
+    }),
+    /greater than zero/,
+  );
+}
+
+function testRiskGuardBoundaries() {
+  const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
+  const input = planInput(executable);
+  const shortSignal = {
+    ...executable,
+    action: 'SHORT',
+    stopLoss: '62000',
+    targets: ['59000', '58000'].map(price => ({ min: price, max: price })),
+  };
+  const schemaBlocked = configuration();
+  schemaBlocked.allowedSignalSchemas = ['loma'];
+  assertTradingRiskError(
+    () => createTradingPlan({ ...input, strategy: schemaBlocked }),
+    'SIGNAL_SCHEMA_BLOCKED',
+    /does not allow standard/,
+  );
+  const sideBlocked = configuration();
+  sideBlocked.allowedSides = ['SHORT'];
+  assertTradingRiskError(
+    () => createTradingPlan({ ...input, strategy: sideBlocked }),
+    'SIDE_BLOCKED',
+    /does not allow LONG/,
+  );
+  const symbolBlocked = configuration();
+  symbolBlocked.allowedSymbols = ['ETHUSDT'];
+  assertTradingRiskError(
+    () => createTradingPlan({ ...input, strategy: symbolBlocked }),
+    'SYMBOL_BLOCKED',
+    /does not allow BTCUSDT/,
+  );
+  assertTradingRiskError(
+    () => createTradingPlan({ ...input, signal: { ...executable, stopLoss: '60500' } }),
+    'INVALID_STOP',
+    /LONG stop must be below entry/,
+  );
+  assertTradingRiskError(
+    () => createTradingPlan({ ...input, signal: { ...shortSignal, stopLoss: '60500' } }),
+    'INVALID_STOP',
+    /SHORT stop must be above entry/,
+  );
+
+  const baseline = createTradingPlan(input);
+  assert.equal(
+    createTradingPlan({ ...input, market: { ...input.market, minimumQuantity: baseline.quantity } }).quantity,
+    baseline.quantity,
+    'A quantity exactly at the exchange minimum is valid.',
+  );
+  assert.equal(
+    createTradingPlan({ ...input, market: { ...input.market, minimumNotional: baseline.notional } }).notional,
+    baseline.notional,
+    'A notional exactly at the exchange minimum is valid.',
+  );
+  assertTradingRiskError(
+    () => createTradingPlan({ ...input, market: { ...input.market, minimumQuantity: '1' } }),
+    'QUANTITY_BELOW_MINIMUM',
+    /Risk-limited quantity is below/,
+  );
+  assertTradingRiskError(
+    () => createTradingPlan({ ...input, market: { ...input.market, minimumNotional: '10000' } }),
+    'NOTIONAL_BELOW_MINIMUM',
+    /Risk-limited notional is below/,
+  );
+  const portfolioStrategy = configuration('5');
+  portfolioStrategy.sizing.positionSizingMode = 'equity_percent_notional';
+  portfolioStrategy.sizing.maxPositionNotional = '1000000';
+  assertTradingRiskError(
+    () => createTradingPlan({
+      ...input, strategy: portfolioStrategy, market: { ...input.market, minimumQuantity: '1' },
+    }),
+    'QUANTITY_BELOW_MINIMUM',
+    /Portfolio-sized quantity is below/,
+  );
+  assertTradingRiskError(
+    () => createTradingPlan({
+      ...input, strategy: portfolioStrategy, market: { ...input.market, minimumNotional: '10000' },
+    }),
+    'NOTIONAL_BELOW_MINIMUM',
+    /Portfolio-sized notional is below/,
+  );
 }
 
 async function testRepositoryValidation(defaults, accounts) {
@@ -853,5 +978,7 @@ async function runRepositoryTests() {
 testDecimalAndStrategyContracts();
 testAdaptivePlanContracts();
 testTradingPlanContracts();
+testRiskPriceBoundaries();
+testRiskGuardBoundaries();
 await runRepositoryTests();
 console.log('Trading core tests passed.');

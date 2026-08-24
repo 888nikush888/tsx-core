@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb } from '../src/db.js';
-import { OfficialExchangeAdapter } from '../src/official_exchange.js';
+import { CcxtExchangeAdapter } from '../src/ccxt_exchange.js';
 import { TradingCredentialStore } from '../src/trading_credentials.js';
 import { createTradingAccount, listTradingStrategies } from '../src/trading_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
@@ -69,7 +69,7 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const previousUrl = process.env.EXCHANGE_EXECUTOR_URL;
 try {
   process.env.EXCHANGE_EXECUTOR_URL = `http://127.0.0.1:${server.address().port}`;
-  const adapter = new OfficialExchangeAdapter('bybit', credentials);
+  const adapter = new CcxtExchangeAdapter('bybit', credentials);
   const account = await createTradingAccount({
     name: 'Bybit test', exchange: 'bybit', mode: 'testnet', credentialRef: 'credential-ref',
   });
@@ -81,9 +81,9 @@ try {
   );
   await getDatabase().run(
     `INSERT INTO trading_trade_intents (
-       id, source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
+       id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
        symbol, side, status, signal_json, created_at, updated_at
-     ) VALUES ('official-intent', 'official-signal', '-1', ?, ?, 'bybit', 'testnet',
+     ) VALUES ('official-intent', 'official-signal', 'official-signal', '-1', ?, ?, 'bybit', 'testnet',
                'BTCUSDT', 'LONG', 'monitoring', '{}', ?, ?)`,
     [strategy.id, account.id, Date.now(), Date.now()],
   );
@@ -186,7 +186,7 @@ try {
   await assert.rejects(adapter.streamEvents(account, 0, []), /invalid stream event/);
 
   process.env.EXCHANGE_EXECUTOR_URL = 'https://executor.invalid';
-  assert.throws(() => new OfficialExchangeAdapter('bybit', credentials), /plain internal HTTP origin/);
+  assert.throws(() => new CcxtExchangeAdapter('bybit', credentials), /plain internal HTTP origin/);
   process.env.EXCHANGE_EXECUTOR_URL = `http://127.0.0.1:${server.address().port}`;
 
   nextResponse = { body: null };
@@ -234,4 +234,4 @@ try {
   await rm(directory, { recursive: true, force: true });
 }
 
-console.log('Official exchange executor client tests passed.');
+console.log('CCXT exchange executor client tests passed.');

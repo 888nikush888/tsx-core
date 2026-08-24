@@ -1,6 +1,6 @@
-export type TradingExchange = 'paper' | 'hyperliquid' | 'bybit';
+export type TradingExchange = 'paper' | 'hyperliquid' | 'bybit' | 'krakenfutures';
 export type TradingAccountMode = 'paper' | 'testnet' | 'live';
-export type TradingAccountStatus = 'unverified' | 'ready' | 'disabled' | 'error';
+export type TradingAccountStatus = 'unverified' | 'ready' | 'disabled' | 'error' | 'degraded';
 export type TradingSide = 'LONG' | 'SHORT';
 export type TradingOrderSide = 'buy' | 'sell';
 export type TradingOrderType = 'market' | 'limit';
@@ -55,7 +55,7 @@ export interface ExecutableSignal {
 }
 
 export interface StrategyConfiguration {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   allowedSignalSchemas: string[];
   allowedSymbols: string[];
   allowedSides: TradingSide[];
@@ -84,7 +84,8 @@ export interface StrategyConfiguration {
     closeRemainderAtLastTarget: true;
   };
   safety: {
-    maxConcurrentPositions: number;
+    /** @deprecated Capacity is account-scoped from schema v3 onward. */
+    maxConcurrentPositions?: number;
     /** Interprets maxDailyLoss as quote currency or as a percentage of current account equity. */
     maxDailyLossMode?: DailyLossLimitMode;
     maxDailyLoss: string;
@@ -262,7 +263,13 @@ export interface TradingAccount {
   credentialRef: string | null;
   /** Stable provider account/subaccount identity; never a credential value. */
   externalAccountId: string | null;
+  /** Account-wide reservation and position capacity, shared by every workflow path. */
+  maxConcurrentPositions: number;
+  killSwitchActive: boolean;
+  killSwitchReason: string | null;
+  capabilities: Record<string, unknown> | null;
   lastVerifiedAt: number | null;
+  lastReconciledAt: number | null;
   lastError: string | null;
   createdAt: number;
   updatedAt: number;
@@ -288,6 +295,10 @@ export interface TradingRuntimeState {
 export interface TradingIntent {
   id: string;
   sourceSignalId: string;
+  rootSourceSignalId: string;
+  signalRunId: string | null;
+  workflowRevisionId: string | null;
+  executionPathId: string | null;
   channelId: string;
   strategyVersionId: string;
   accountId: string;
@@ -302,6 +313,86 @@ export interface TradingIntent {
   error: string | null;
   createdAt: number;
   updatedAt: number;
+}
+
+export type WorkflowResourceKind =
+  | 'channel'
+  | 'content_filter'
+  | 'keyword_filter'
+  | 'regex'
+  | 'parser'
+  | 'schema'
+  | 'contract'
+  | 'dedupe'
+  | 'strategy'
+  | 'sizing'
+  | 'adaptive_risk'
+  | 'account'
+  | 'output';
+
+export interface WorkflowResourceVersion {
+  id: string;
+  resourceId: string;
+  version: number;
+  kind: WorkflowResourceKind;
+  name: string;
+  description: string;
+  status: 'draft' | 'published' | 'archived';
+  configuration: Record<string, unknown>;
+  configurationSha256: string;
+  createdAt: number;
+  publishedAt: number | null;
+  archivedAt: number | null;
+}
+
+export interface WorkflowNode {
+  id: string;
+  kind: WorkflowResourceKind;
+  resourceVersionId: string;
+  position: { x: number; y: number };
+}
+
+export interface WorkflowEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
+export interface WorkflowGraph {
+  schemaVersion: 1;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+}
+
+export interface WorkflowExecutionPath {
+  id: string;
+  workflowRevisionId: string;
+  pathKey: string;
+  channelId: string;
+  accountId: string;
+  strategyVersionId: string;
+  parserResourceVersionId: string | null;
+  schemaResourceVersionId: string | null;
+  contractResourceVersionId: string | null;
+  sizingResourceVersionId: string | null;
+  adaptiveRiskResourceVersionId: string | null;
+  nodeIds: string[];
+  effectiveConfiguration: Record<string, unknown>;
+  enabled: boolean;
+  createdAt: number;
+}
+
+export interface WorkflowRevision {
+  id: string;
+  revision: number;
+  status: 'active' | 'archived';
+  graph: WorkflowGraph;
+  compiled: { paths: WorkflowExecutionPath[]; warnings: string[] };
+  definitionSha256: string;
+  baseRevisionId: string | null;
+  createdBy: string;
+  createdAt: number;
+  archivedAt: number | null;
 }
 
 export interface TradingAccountSnapshot {

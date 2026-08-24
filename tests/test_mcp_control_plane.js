@@ -279,11 +279,21 @@ try {
     }, false],
     ['risk.update', { channelId: '-mcp-risk' }, true],
     ['risk.delete', { channelId: '-mcp-risk' }, true],
+    ['workflow.resource_create', { kind: 'channel', name: 'MCP channel', configuration: { channelId: '-100' } }, true],
+    ['workflow.resource_publish', { id: 'missing-resource' }, false],
+    ['workflow.activate', { baseRevisionId: null, graph: { schemaVersion: 1, nodes: [], edges: [] } }, true],
     ['trading.release_kill_switch', {}, false],
   ];
   for (const [action, payload, allowed] of preflightCases) {
     assert.equal((await preflightMcpAction(action, payload)).allowed, allowed, `${action} preflight`);
   }
+  assert.equal(
+    (await preflightMcpAction('workflow.activate', {
+      baseRevisionId: null,
+      graph: { schemaVersion: 1, nodes: [], edges: [] },
+    })).requiresApproval,
+    true,
+  );
   await getDatabase().run(
     "UPDATE trading_runtime_state SET kill_switch_active = 1 WHERE singleton_id = 1",
   );

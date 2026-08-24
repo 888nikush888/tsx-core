@@ -8,6 +8,7 @@ frontend/node_modules
 dist
 frontend/dist
 coverage
+reports
 scratch
 tmp
 session_data
@@ -19,5 +20,9 @@ secrets
 **/secrets
 **/.managed-secret-transaction.json
 *.tgfb
+*.tar.gz
 *.log
 *.tsbuildinfo
+.stryker-tmp-*
+frontend/playwright-report
+frontend/test-results

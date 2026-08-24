@@ -182,9 +182,9 @@ async function assertInvalidArtifacts(root, artifact, manifest, configPath, back
   );
   await unresolvedDatabase.run(
     `INSERT INTO trading_trade_intents (
-       id, source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
+       id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id, account_id, exchange, mode,
        symbol, side, status, signal_json, created_at, updated_at
-     ) VALUES ('restore-active-intent', 'restore-active-signal', '-1001', ?, 'paper-default',
+     ) VALUES ('restore-active-intent', 'restore-active-signal', 'restore-active-signal', '-1001', ?, 'paper-default',
                'paper', 'paper', 'BTCUSDT', 'LONG', 'monitoring', '{}', ?, ?)`,
     [strategy.id, Date.now(), Date.now()],
   );

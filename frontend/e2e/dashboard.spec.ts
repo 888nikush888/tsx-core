@@ -8,7 +8,7 @@ function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 }
 
-async function mockDashboardApi(page: Page, firstRun = false) {
+async function mockDashboardApi(page: Page, firstRun = false, workflowResources: Array<Record<string, unknown>> = []) {
   await page.route('**/api/**', async route => {
     const request = route.request()
     const url = new URL(request.url())
@@ -56,6 +56,33 @@ async function mockDashboardApi(page: Page, firstRun = false) {
       })
       return
     }
+    if (url.pathname === '/api/workflow') {
+      await json(route, { workflow: null, resources: workflowResources })
+      return
+    }
+    if (url.pathname === '/api/trading') {
+      await json(route, {
+        overview: {
+          runtime: { executionEnabled: false, liveTradingEnabled: false, killSwitchActive: false, killSwitchReason: null },
+          accountCount: 0,
+          enabledRouteCount: 0,
+          openPositionCount: 0,
+          pendingIntentCount: 0,
+          unknownOrderCount: 0,
+          latestReconciliationAt: null,
+        },
+        accounts: [], strategies: [], signalSchemas: [], signalContracts: [], intents: [],
+        activity: { positions: [], riskEvents: [], reconciliations: [] }, exchangeStreams: [],
+      })
+      return
+    }
+    if (url.pathname === '/api/exchanges/catalog') {
+      await json(route, {
+        implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
+        exchanges: [],
+      })
+      return
+    }
     if (url.pathname === '/api/config') {
       await json(route, { apiId: 0, sourceChannels: [], targetChannel: '', xmlParsing: { enabled: false } })
       return
@@ -86,17 +113,14 @@ async function mockDashboardApi(page: Page, firstRun = false) {
   })
 }
 
-test('local startup unlocks the responsive dashboard without a bearer prompt or WCAG A/AA violations', async ({ page }) => {
+test('local startup unlocks the responsive workflow builder without a bearer prompt or WCAG A/AA violations', async ({ page }) => {
   await mockDashboardApi(page)
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: 'Live-Cockpit' })).toBeVisible()
+  await expect(page.getByRole('main', { name: 'TSX Core Workflow Builder' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Baustein$/ })).toBeVisible()
   await expect(page.getByLabel('Bearer token')).toHaveCount(0)
-  if ((page.viewportSize()?.width ?? 0) < 768) {
-    await page.locator('[data-sidebar="trigger"]').click()
-  }
-  await expect(page.getByRole('link', { name: 'Trading' })).toHaveAttribute('href', '/dashboard?tab=trading')
-  await expect(page.getByRole('link', { name: 'XML-Verträge' })).toHaveCount(0)
+  await expect(page.getByRole('navigation')).toHaveCount(0)
   const overflowingElements = await page.locator('body *').evaluateAll(elements => {
     const viewportWidth = document.documentElement.clientWidth
     if (document.documentElement.scrollWidth <= viewportWidth) return []
@@ -127,4 +151,53 @@ test('first local startup visibly generates and displays the administrator recov
   await expect(page.getByRole('heading', { name: 'Save your recovery token' })).toBeVisible()
   await expect(page.getByTestId('recovery-token')).toHaveText(TOKEN)
   await expect(page.getByLabel('Bearer token')).toHaveCount(0)
+})
+
+test('the block library offers published resources for reuse and a separate create action', async ({ page }) => {
+  await mockDashboardApi(page, false, [{
+    id: 'channel-v1', resourceId: 'channel-logical', version: 1, kind: 'channel',
+    name: 'VIP Coinsignals', description: 'Bestehender Kanal', status: 'published',
+    configuration: { channelId: '-1002417439383' }, configurationSha256: 'a'.repeat(64),
+    createdAt: 1, publishedAt: 1,
+  }])
+  await page.goto('/')
+  await page.getByRole('button', { name: /Baustein$/ }).click()
+  await page.getByRole('button', { name: /Telegram-Kanal/ }).click()
+  await expect(page.getByRole('button', { name: /Neuen Baustein erstellen/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /VIP Coinsignals/ })).toContainText('Version 1')
+})
+
+test('builder dialogs expose names, trap keyboard focus and close without accessibility violations', async ({ page }) => {
+  await mockDashboardApi(page)
+  await page.goto('/')
+
+  const blockButton = page.getByRole('button', { name: /Baustein$/ })
+  await blockButton.click()
+  const library = page.getByRole('dialog', { name: 'Was soll der Workflow als Nächstes können?' })
+  await expect(library).toBeVisible()
+  await expect(page.locator(':focus')).toHaveAccessibleName('Baustein-Bibliothek schließen')
+  expect((await new AxeBuilder({ page }).include('.kind-picker').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()).violations).toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(library).toBeHidden()
+  await expect(blockButton).toBeFocused()
+
+  const simulationButton = page.getByRole('button', { name: 'Simulieren' })
+  await simulationButton.click()
+  const simulation = page.getByRole('dialog', { name: 'Signal durch aktive Revision schicken' })
+  await expect(simulation).toBeVisible()
+  await expect(page.locator(':focus')).toHaveAccessibleName('Simulation schließen')
+  expect((await new AxeBuilder({ page }).include('.simulation-modal').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()).violations).toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(simulation).toBeHidden()
+  await expect(simulationButton).toBeFocused()
+
+  const operationsButton = page.getByRole('button', { name: 'Betrieb' })
+  await operationsButton.click()
+  const operations = page.getByRole('dialog', { name: 'Live' })
+  await expect(operations).toBeVisible()
+  await expect(page.locator(':focus')).toHaveAccessibleName('Betriebszentrale schließen')
+  expect((await new AxeBuilder({ page }).include('.operations-panel').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()).violations).toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(operations).toBeHidden()
+  await expect(operationsButton).toBeFocused()
 })
