@@ -2323,6 +2323,7 @@ button:disabled {
   .workflow-status-tools .builder-search {
     display: none;
   }
+  .workflow-statusbar:not(.workspace-statusbar) > div:nth-of-type(2),
   .workflow-statusbar:not(.workspace-statusbar) > div:nth-of-type(3) {
     display: none;
   }

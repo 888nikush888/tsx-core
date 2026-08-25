@@ -210,7 +210,7 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
       );
       if (!tools) return false;
       const toolsLeft = tools.getBoundingClientRect().left;
-      return [...statusbar.children]
+      const statusFits = [...statusbar.children]
         .filter(
           (child): child is HTMLElement =>
             child instanceof HTMLElement &&
@@ -223,6 +223,18 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
             metric.getBoundingClientRect().right <= toolsLeft + 1 &&
             metric.scrollWidth <= metric.clientWidth + 1,
         );
+      const toolsBox = tools.getBoundingClientRect();
+      const toolsFit = [...tools.children]
+        .filter(
+          (child): child is HTMLElement =>
+            child instanceof HTMLElement &&
+            getComputedStyle(child).display !== "none",
+        )
+        .every((child) => {
+          const box = child.getBoundingClientRect();
+          return box.left >= toolsBox.left - 1 && box.right <= toolsBox.right + 1;
+        });
+      return statusFits && toolsFit;
     }),
   ).toBe(true);
   await expect(page.locator("html")).toHaveClass(/dark/);
