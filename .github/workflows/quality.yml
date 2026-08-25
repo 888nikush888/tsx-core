@@ -36,12 +36,21 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             frontend/package-lock.json
+      - name: Configure pinned Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            exchange_executor/requirements.lock
+            exchange_executor/requirements-dev.lock
       - name: Install locked dependencies
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm rebuild sqlite3 --build-from-source
           npm ci --prefix frontend --ignore-scripts --no-audit --no-fund
           npm rebuild --prefix frontend esbuild
+          python -m pip install --require-hashes -r exchange_executor/requirements.lock -r exchange_executor/requirements-dev.lock
       - name: Dependency vulnerability gates
         run: |
           npm audit --audit-level=moderate
@@ -66,6 +75,9 @@ jobs:
         run: |
           npm run test:coverage
           npm run test:coverage:modules
+          python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
+          python -m coverage report --fail-under=60
+          python -m coverage xml -o exchange_executor/coverage.xml
       - name: Duplicate ratio gate
         run: npm run quality:duplicates
       - name: Reproducible build
@@ -83,6 +95,84 @@ jobs:
             reports/
           if-no-files-found: error
           retention-days: 90
+
+  sonarcloud:
+    name: SonarQube Cloud quality gate
+    if: github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact main revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Prove scanner input revision
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Configure pinned Node major
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - name: Configure pinned Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            exchange_executor/requirements.lock
+            exchange_executor/requirements-dev.lock
+      - name: Install locked analysis dependencies
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild sqlite3 --build-from-source
+          npm ci --prefix frontend --ignore-scripts --no-audit --no-fund
+          npm rebuild --prefix frontend esbuild
+          python -m pip install --require-hashes -r exchange_executor/requirements.lock -r exchange_executor/requirements-dev.lock
+      - name: Produce JavaScript and TypeScript coverage
+        run: |
+          npm run test:coverage
+          npm run test:coverage --prefix frontend
+      - name: Produce Python coverage
+        working-directory: exchange_executor
+        run: |
+          python -m coverage run --branch --source=. -m unittest discover -s tests -v
+          python -m coverage xml -o coverage.xml
+      - name: Analyze exact revision and wait for Quality Gate
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f
+        continue-on-error: true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.scm.revision=${{ github.sha }}
+      - name: Export issues and Security Hotspots for this revision
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: 888nikush888_telegram-tdlib-forwarder-private
+          SONAR_BRANCH: main
+          SONAR_EXPECTED_REVISION: ${{ github.sha }}
+        run: |
+          npm run quality:sonar-export
+          jq --exit-status '.revisionMatchesExpectation == true and .qualityGate.status == "OK" and .toReviewHotspotCount == 0 and .blockerOrCriticalIssueCount == 0' reports/sonarcloud/summary.json
+      - name: Upload SonarQube Cloud evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: sonarcloud-evidence-${{ github.sha }}
+          path: |
+            reports/sonarcloud/
+            coverage/lcov.info
+            frontend/coverage/lcov.info
+            exchange_executor/coverage.xml
+          if-no-files-found: warn
+          retention-days: 90
+
   mutation:
     name: Critical mutation gate (${{ matrix.shard }})
     runs-on: ubuntu-latest

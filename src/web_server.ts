@@ -29,6 +29,7 @@ import {
   approveMcpProposal,
   createMcpAgent,
   deleteMcpAgent,
+  getMcpRuntimeState,
   mcpDashboardSnapshot,
   rejectMcpProposal,
   rotateMcpAgentToken,
@@ -54,10 +55,29 @@ import {
   simulateWorkflow,
   updateWorkflowResourceDraft,
 } from './workflow_repository.js';
+import { getFilteredTradingAnalytics } from './trading_telemetry.js';
+import {
+  applyPortableSetupBundle,
+  assertSetupBundleContainsNoSecrets,
+  exportPortableSetupBundle,
+  suggestPortableAccountMappings,
+  validatePortableSetupBundle,
+  type PortableSetupBundle,
+} from './setup_bundle.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TEMPLATES_DIR = path.join(__dirname, '../templates');
 const STATIC_ROOT = path.resolve(__dirname, '../frontend/dist');
+const SETUP_PREVIEW_TTL_MS = 15 * 60 * 1_000;
+const SETUP_APPLY_CONFIRMATION = 'REPLACE EXISTING SETUP';
+interface SetupBundlePreview {
+  actorId: string;
+  bundle: PortableSetupBundle;
+  bundleHash: string;
+  expiresAt: number;
+  automaticAccountMappings: Record<string, string>;
+}
+const setupBundlePreviews = new Map<string, SetupBundlePreview>();
 const SECRET_CONFIG_KEYS = new Set([
   'apiHash',
   'openRouterApiKey',
@@ -302,6 +322,8 @@ function semanticMutationAction(method: string, url: string): string {
   const known: Record<string, string> = {
     '/api/config': 'configuration.update',
     '/api/import': 'configuration.import',
+    '/api/setup-bundle/preview': 'setup-bundle.preview',
+    '/api/setup-bundle/apply': 'setup-bundle.apply',
     '/api/secrets': 'secrets.update',
     '/api/control': 'routing.control',
     '/api/telegram-login': 'telegram.authentication.update',
@@ -528,7 +550,7 @@ function firstConfigured(...values: Array<string | undefined>): string {
   return values.find(Boolean) ?? '';
 }
 
-function statusHandler({ res, appState }: RequestContext): void {
+async function statusHandler({ res, appState }: RequestContext): Promise<void> {
   const xmlConfig = appState.config.xmlParsing ?? {};
   const apiKey = process.env.OPENROUTER_API_KEY;
   sendJson(res, 200, {
@@ -555,6 +577,7 @@ function statusHandler({ res, appState }: RequestContext): void {
     ),
     openRouterApiKeyConfigured: Boolean(apiKey && apiKey !== 'your_openrouter_api_key_here'),
     telegramLogin: appState.getTelegramLoginState?.() ?? { state: 'idle' },
+    mcp: await getMcpRuntimeState(),
     config: {
       sourceChannels: appState.config.sourceChannels,
       targetChannel: appState.config.targetChannel,
@@ -920,6 +943,11 @@ async function importHandler(context: RequestContext): Promise<void> {
     if (bundle.env !== undefined || containsSecretConfig(bundle.config)) {
       throw new HttpError(400, 'Imports may contain non-secret configuration only.');
     }
+    try {
+      assertSetupBundleContainsNoSecrets(bundle.config);
+    } catch (error) {
+      throw new HttpError(400, errorMessage(error));
+    }
     applyConfiguration(context, bundle.config, 'Dashboard configuration imported.');
     sendJson(context.res, 200, {
       success: true,
@@ -928,6 +956,157 @@ async function importHandler(context: RequestContext): Promise<void> {
     });
   } catch (error) {
     sendError(context, error);
+  }
+}
+
+function pruneSetupBundlePreviews(now = Date.now()): void {
+  for (const [key, preview] of setupBundlePreviews) {
+    if (preview.expiresAt <= now) setupBundlePreviews.delete(key);
+  }
+}
+
+async function exportSetupBundleHandler(context: RequestContext): Promise<void> {
+  try {
+    const bundle = await exportPortableSetupBundle(publicConfig(context.appState.config));
+    const date = new Date().toISOString().slice(0, 10);
+    sendDownload(
+      context.res,
+      'application/json',
+      `tsx-core-setup-${date}.json`,
+      JSON.stringify(bundle, null, 2),
+    );
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function previewSetupBundleHandler(context: RequestContext): Promise<void> {
+  try {
+    pruneSetupBundlePreviews();
+    const payload = await readJsonBody(context.req, 4 * 1024 * 1024);
+    const bundle = validatePortableSetupBundle(payload?.bundle ?? payload);
+    const mappings = await suggestPortableAccountMappings(bundle);
+    const active = await getActiveWorkflow();
+    const key = randomUUID();
+    const expiresAt = Date.now() + SETUP_PREVIEW_TTL_MS;
+    setupBundlePreviews.set(key, {
+      actorId: context.actor!.id,
+      bundle,
+      bundleHash: bundle.checksum,
+      expiresAt,
+      automaticAccountMappings: mappings.automatic,
+    });
+    sendJson(context.res, 200, {
+      previewKey: key,
+      bundleHash: bundle.checksum,
+      expiresAt,
+      mode: 'replace',
+      diff: {
+        current: {
+          revision: active?.revision ?? null,
+          nodes: active?.graph.nodes.length ?? 0,
+          edges: active?.graph.edges.length ?? 0,
+        },
+        imported: {
+          nodes: bundle.workflow.graph.nodes.length,
+          edges: bundle.workflow.graph.edges.length,
+          resources: bundle.workflow.resources.length,
+          contracts: bundle.models.contracts.length,
+          schemas: bundle.models.schemas.length,
+          strategies: bundle.models.strategies.length,
+          channelRiskPolicies: bundle.models.channelRiskPolicies.length,
+        },
+      },
+      accountMapping: mappings,
+      accountReferences: bundle.accountReferences,
+      confirmation: SETUP_APPLY_CONFIRMATION,
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
+  }
+}
+
+function consumeSetupBundlePreview(payload: any, actorId: string): SetupBundlePreview {
+  if (typeof payload.previewKey !== 'string' || typeof payload.confirmation !== 'string') {
+    throw new HttpError(400, 'Preview key and confirmation are required.');
+  }
+  if (payload.confirmation !== SETUP_APPLY_CONFIRMATION) {
+    throw new HttpError(409, `Setup replacement requires the exact confirmation '${SETUP_APPLY_CONFIRMATION}'.`);
+  }
+  const preview = setupBundlePreviews.get(payload.previewKey);
+  setupBundlePreviews.delete(payload.previewKey);
+  if (!preview || preview.expiresAt <= Date.now()) throw new HttpError(409, 'Setup preview is missing or expired.');
+  if (preview.actorId !== actorId) throw new HttpError(403, 'Setup preview belongs to another authenticated user.');
+  return preview;
+}
+
+function setupBundleAccountMappings(payload: any, preview: SetupBundlePreview): Record<string, string> {
+  if (!payload.accountMappings || typeof payload.accountMappings !== 'object' || Array.isArray(payload.accountMappings)) {
+    throw new HttpError(400, 'Account mappings must be an object.');
+  }
+  const accountMappings = { ...preview.automaticAccountMappings };
+  for (const [source, target] of Object.entries(payload.accountMappings)) {
+    if (typeof target !== 'string' || source.length > 128 || target.length > 128) {
+      throw new HttpError(400, 'Account mapping contains an invalid identifier.');
+    }
+    accountMappings[source] = target;
+  }
+  return accountMappings;
+}
+
+function activateSetupConfiguration(context: RequestContext, replacement: any): void {
+  for (const key of Object.keys(context.appState.config)) delete context.appState.config[key];
+  Object.assign(context.appState.config, replacement);
+  context.appState.reloadConfig();
+  context.appState.applyRuntimeConfig(context.appState.config);
+}
+
+function restoreSetupConfiguration(context: RequestContext, previousConfig: any): void {
+  (context.appState.persistConfig ?? writeConfigSync)(previousConfig);
+  activateSetupConfiguration(context, previousConfig);
+}
+
+async function applySetupBundleHandler(context: RequestContext): Promise<void> {
+  let previousConfig: any = null;
+  let configPersisted = false;
+  try {
+    pruneSetupBundlePreviews();
+    const payload = await readJsonBody(context.req, 256 * 1024);
+    const preview = consumeSetupBundlePreview(payload, context.actor!.id);
+    const accountMappings = setupBundleAccountMappings(payload, preview);
+    if (!context.appState.runBackupNow) throw new HttpError(503, 'A verified backup is required before setup replacement.');
+    const backupArtifact = await context.appState.runBackupNow();
+    previousConfig = structuredClone(context.appState.config);
+    const replacementConfig = structuredClone(preview.bundle.systemConfig);
+    if (containsSecretConfig(replacementConfig)) throw new HttpError(400, 'Setup replacement contains forbidden secret configuration.');
+    const result = await applyPortableSetupBundle({
+      bundle: preview.bundle,
+      accountMappings,
+      actorId: context.actor!.id,
+      beforeCommit: () => {
+        (context.appState.persistConfig ?? writeConfigSync)(replacementConfig as any);
+        configPersisted = true;
+        activateSetupConfiguration(context, replacementConfig);
+      },
+    });
+    addLog(`[SECURITY] request_id=${context.requestId} Portable setup bundle ${preview.bundleHash} applied after verified backup.`);
+    sendJson(context.res, 200, {
+      success: true,
+      mode: 'replace',
+      backupArtifact: path.basename(backupArtifact),
+      ...result,
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    if (configPersisted && previousConfig) {
+      try {
+        restoreSetupConfiguration(context, previousConfig);
+      } catch (rollbackError) {
+        addLog(`[ERROR] request_id=${context.requestId} Setup configuration rollback failed: ${errorMessage(rollbackError)}`);
+      }
+    }
+    sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
   }
 }
 
@@ -1013,6 +1192,15 @@ async function deleteTemplateHandler(context: RequestContext): Promise<void> {
   }
 }
 
+function requireCurrentVerifiedBackup(context: RequestContext): void {
+  const operations = context.appState.getOperationsStatus?.() as any;
+  const backup = operations?.backup;
+  const lastSuccessAt = Number(backup?.lastSuccessAt);
+  if (backup?.healthy !== true || !Number.isSafeInteger(lastSuccessAt) || Date.now() - lastSuccessAt > 30 * 60_000) {
+    throw new HttpError(409, 'A verified backup no older than 30 minutes is required for this destructive action.');
+  }
+}
+
 async function factoryResetHandler(context: RequestContext): Promise<void> {
   if (
     !requireConfirmation(
@@ -1023,6 +1211,11 @@ async function factoryResetHandler(context: RequestContext): Promise<void> {
   )
     return;
   try {
+    const payload = await readJsonBody(context.req, 4 * 1024);
+    if (payload.confirmation !== 'FACTORY RESET') {
+      throw new HttpError(412, "Factory reset requires the exact written confirmation 'FACTORY RESET'.");
+    }
+    requireCurrentVerifiedBackup(context);
     if (!context.appState.performFactoryReset) {
       throw new HttpError(503, 'Complete factory reset is unavailable in this runtime.');
     }
@@ -1250,6 +1443,11 @@ async function clearDatabaseHandler(context: RequestContext): Promise<void> {
   )
     return;
   try {
+    const payload = await readJsonBody(context.req, 4 * 1024);
+    if (payload.confirmation !== 'DATENBANK LEEREN') {
+      throw new HttpError(412, "Database clearing requires the exact written confirmation 'DATENBANK LEEREN'.");
+    }
+    requireCurrentVerifiedBackup(context);
     const routingStopped = Boolean(context.appState.state.isRunning);
     if (routingStopped) await context.appState.stopForwarding();
     if (context.appState.state.isRunning) {
@@ -1293,6 +1491,47 @@ async function tradingPortfolioHandler(context: RequestContext): Promise<void> {
   try {
     const refresh = context.parsedUrl.searchParams.get('refresh') === 'true';
     sendJson(context.res, 200, await requireTradingControl(context).portfolioSnapshot(refresh));
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+function analyticsQueryValues(context: RequestContext, name: string): string[] {
+  const values = context.parsedUrl.searchParams.getAll(name)
+    .flatMap(value => value.split(','))
+    .map(value => value.trim())
+    .filter(Boolean);
+  if (values.length > 100 || values.some(value => value.length > 128 || /[\r\n\0]/.test(value))) {
+    throw new HttpError(400, `Trading analytics ${name} filter is invalid.`);
+  }
+  return [...new Set(values)];
+}
+
+async function tradingAnalyticsHandler(context: RequestContext): Promise<void> {
+  try {
+    const now = Date.now();
+    const since = Number(context.parsedUrl.searchParams.get('since') ?? now - 90 * 86_400_000);
+    const until = Number(context.parsedUrl.searchParams.get('until') ?? now);
+    if (!Number.isSafeInteger(since) || !Number.isSafeInteger(until) || since < 0 || since > until || until > now + 60_000) {
+      throw new HttpError(400, 'Trading analytics time range is invalid.');
+    }
+    const exchanges = analyticsQueryValues(context, 'exchange');
+    const modes = analyticsQueryValues(context, 'mode');
+    if (exchanges.some(value => !['paper', 'hyperliquid', 'bybit', 'krakenfutures'].includes(value))) {
+      throw new HttpError(400, 'Trading analytics exchange filter is invalid.');
+    }
+    if (modes.some(value => !['paper', 'testnet', 'live'].includes(value))) {
+      throw new HttpError(400, 'Trading analytics mode filter is invalid.');
+    }
+    sendJson(context.res, 200, await getFilteredTradingAnalytics({
+      since,
+      until,
+      channelIds: analyticsQueryValues(context, 'channelId'),
+      accountIds: analyticsQueryValues(context, 'accountId'),
+      exchanges,
+      modes,
+      statuses: analyticsQueryValues(context, 'status'),
+    }));
   } catch (error) {
     sendError(context, error);
   }
@@ -1384,6 +1623,8 @@ const updateTradingAccountHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.setAccountEnabled(payload.id, payload.enabled));
 const configureTradingAccountHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.configureAccount(payload));
+const releaseTradingAccountKillSwitchHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.releaseAccountKillSwitch(payload));
 const deleteTradingAccountHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.removeAccount(payload.id));
 const setTradingRouteHandler = (context: RequestContext) =>
@@ -1792,6 +2033,9 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/access-tokens', accessTokenHandler],
   ['DELETE /api/access-tokens/viewer', disableViewerTokenHandler],
   ['POST /api/import', importHandler],
+  ['GET /api/setup-bundle/export', exportSetupBundleHandler],
+  ['POST /api/setup-bundle/preview', previewSetupBundleHandler],
+  ['POST /api/setup-bundle/apply', applySetupBundleHandler],
   ['GET /api/templates', getTemplatesHandler],
   ['POST /api/templates', postTemplateHandler],
   ['DELETE /api/templates', deleteTemplateHandler],
@@ -1811,6 +2055,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/trading', tradingSnapshotHandler],
   ['GET /api/exchanges/catalog', exchangeCatalogHandler],
   ['GET /api/trading/portfolio', tradingPortfolioHandler],
+  ['GET /api/trading/analytics', tradingAnalyticsHandler],
   ['GET /api/trading/journal', tradingJournalHandler],
   ['GET /api/trading/journal/export', tradingJournalExportHandler],
   ['POST /api/trading/journal', updateTradingJournalHandler],
@@ -1838,6 +2083,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/accounts/verify', verifyTradingAccountHandler],
   ['POST /api/trading/accounts/state', updateTradingAccountHandler],
   ['POST /api/trading/accounts/configuration', configureTradingAccountHandler],
+  ['POST /api/trading/accounts/kill-switch/release', releaseTradingAccountKillSwitchHandler],
   ['DELETE /api/trading/accounts', deleteTradingAccountHandler],
   ['POST /api/trading/routes', setTradingRouteHandler],
   ['DELETE /api/trading/routes', deleteTradingRouteHandler],

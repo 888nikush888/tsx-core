@@ -81,6 +81,7 @@ function exportSummary(configuration, analysis, issues, hotspots, qualityGate, g
     expectedRevision: expectedRevision || null,
     revisionMatchesExpectation: expectedRevision ? analysis.revision === expectedRevision : null,
     openIssueCount: issues.length,
+    blockerOrCriticalIssueCount: issues.filter(issue => ['BLOCKER', 'CRITICAL'].includes(issue.severity)).length,
     toReviewHotspotCount: hotspots.length,
     qualityGate: qualityGate.projectStatus
   };

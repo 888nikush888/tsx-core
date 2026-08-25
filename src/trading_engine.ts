@@ -30,6 +30,12 @@ import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
 import { resolveEffectiveChannelRisk, resolveWorkflowAdaptiveRisk } from './trading_channel_risk.js';
 import { validateStrategyConfiguration } from './trading_strategy.js';
 import { recordTradingEquitySnapshot, recordTradingExecutionEvent } from './trading_telemetry.js';
+import {
+  listTradingAccountIncidents,
+  recordTradingAccountIncident,
+  resolveTradingAccountIncidents,
+  type TradingIncidentCategory,
+} from './trading_incidents.js';
 import type {
   ExchangeOpenState,
   ExchangeOrderRequest,
@@ -64,10 +70,25 @@ const MIN_PERIODIC_RECONCILIATION_MS = 10_000;
 const MAX_RECONCILIATION_ROWS_PER_ACCOUNT = 256;
 
 class ReconciliationMismatchError extends Error {
-  constructor(message: string) {
+  constructor(message: string, readonly incidentCategory: TradingIncidentCategory = 'reconciliation_contract') {
     super(message);
     this.name = 'ReconciliationMismatchError';
   }
+}
+
+function transientReconciliationFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /(?:\b50[234]\b|timeout|timed out|abort(?:ed|error)?|fetch failed|econn(?:reset|refused)|temporarily unavailable)/i.test(message);
+}
+
+function reconciliationIncidentCategory(error: unknown): TradingIncidentCategory {
+  if (error instanceof ReconciliationMismatchError) return error.incidentCategory;
+  if (transientReconciliationFailure(error)) return 'reconciliation_transient';
+  return 'reconciliation_contract';
+}
+
+function reconciliationErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 async function activateAccountKillSwitch(accountId: string, reason: string): Promise<void> {
@@ -892,6 +913,13 @@ export class TradingEngine {
     ]);
     assertExecutionPreconditions(account, runtime);
     assertPublishedStrategy(strategy);
+    const accountIncidents = await listTradingAccountIncidents({ accountId: intent.accountId, limit: 100 });
+    if (accountIncidents.some(incident => incident.category === 'reconciliation_transient')) {
+      throw new TradingRiskError(
+        'ACCOUNT_EXECUTOR_UNAVAILABLE',
+        'The exchange executor is temporarily unavailable; new entries remain blocked until reconciliation succeeds.',
+      );
+    }
     const strategyConfiguration = pathConfiguration.strategy;
     const maximumPendingAgeMs = strategyConfiguration.safety.entryOrderTtlSeconds * 1_000;
     const pendingAgeMs = Date.now() - intent.createdAt;
@@ -1347,20 +1375,7 @@ export class TradingEngine {
   async reconcileAccount(accountId: string, options?: ReconciliationOptions): Promise<void> {
     const force = options?.force !== false;
     const now = Date.now();
-    if (!force) {
-      const inMemory = this.lastPeriodicReconciliationAt.get(accountId) || 0;
-      if (now - inMemory < MIN_PERIODIC_RECONCILIATION_MS) return;
-      this.lastPeriodicReconciliationAt.set(accountId, now);
-      const latest = await getDatabase().get<{ completed_at: number | null }>(
-        `SELECT MAX(completed_at) AS completed_at FROM trading_reconciliation_runs
-         WHERE account_id = ? AND status = 'succeeded'`,
-        [accountId],
-      );
-      if (latest?.completed_at && now - latest.completed_at < MIN_PERIODIC_RECONCILIATION_MS) {
-        this.lastPeriodicReconciliationAt.set(accountId, latest.completed_at);
-        return;
-      }
-    }
+    if (await this.skipPeriodicReconciliation(accountId, force, now)) return;
     const account = await getTradingAccount(accountId);
     if (!account) throw new Error('Trading account does not exist.');
     const adapter = this.adapter(account.exchange);
@@ -1371,23 +1386,72 @@ export class TradingEngine {
       await this.assertRemoteAccountIdentity(account, remote);
       await this.applyRemoteState(account, adapter, remote);
       await this.recordReconciliationSuccess(accountId, runId, startedAt, remote);
-    } catch (error: any) {
-      await getDatabase().run(
-        `INSERT INTO trading_reconciliation_runs (
-           id, account_id, status, last_error, started_at, completed_at
-         ) VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          runId,
-          accountId,
-          error instanceof ReconciliationMismatchError ? 'mismatch' : 'failed',
-          error?.message || String(error),
-          startedAt,
-          Date.now(),
-        ],
-      );
-      await this.pruneReconciliationRuns(accountId);
+      await resolveTradingAccountIncidents(accountId, [
+        'reconciliation_transient', 'reconciliation_contract', 'remote_identity', 'unmanaged_remote',
+      ]);
+    } catch (error) {
+      await this.recordReconciliationFailure(accountId, runId, startedAt, error);
       throw error;
     }
+  }
+
+  private async skipPeriodicReconciliation(accountId: string, force: boolean, now: number): Promise<boolean> {
+    if (force) return false;
+    const inMemory = this.lastPeriodicReconciliationAt.get(accountId) || 0;
+    if (now - inMemory < MIN_PERIODIC_RECONCILIATION_MS) return true;
+    this.lastPeriodicReconciliationAt.set(accountId, now);
+    const latest = await getDatabase().get<{ completed_at: number | null }>(
+      `SELECT MAX(completed_at) AS completed_at FROM trading_reconciliation_runs
+       WHERE account_id = ? AND status = 'succeeded'`,
+      [accountId],
+    );
+    if (!latest?.completed_at || now - latest.completed_at >= MIN_PERIODIC_RECONCILIATION_MS) return false;
+    this.lastPeriodicReconciliationAt.set(accountId, latest.completed_at);
+    return true;
+  }
+
+  private async recordReconciliationFailure(
+    accountId: string,
+    runId: string,
+    startedAt: number,
+    error: unknown,
+  ): Promise<void> {
+    const category = reconciliationIncidentCategory(error);
+    const message = reconciliationErrorMessage(error);
+    await recordTradingAccountIncident({
+      accountId,
+      category,
+      severity: category === 'reconciliation_transient' ? 'warning' : 'critical',
+      message,
+      details: { errorName: error instanceof Error ? error.name : 'Error' },
+    });
+    if (category !== 'reconciliation_transient') await this.activateReconciliationProtection(accountId, message);
+    await getDatabase().run(
+      `INSERT INTO trading_reconciliation_runs (
+         id, account_id, status, last_error, started_at, completed_at
+       ) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        runId,
+        accountId,
+        error instanceof ReconciliationMismatchError ? 'mismatch' : 'failed',
+        message,
+        startedAt,
+        Date.now(),
+      ],
+    );
+    await this.pruneReconciliationRuns(accountId);
+  }
+
+  private async activateReconciliationProtection(accountId: string, message: string): Promise<void> {
+    const protection = await getDatabase().get<{ kill_switch_active: number }>(
+      'SELECT kill_switch_active FROM trading_accounts WHERE id = ?',
+      [accountId],
+    );
+    if (protection?.kill_switch_active === 1) return;
+    await activateAccountKillSwitch(
+      accountId,
+      `Authoritative reconciliation is unsafe for account ${accountId}: ${message}`.slice(0, 500),
+    );
   }
 
   private async assertRemoteAccountIdentity(
@@ -1438,7 +1502,7 @@ export class TradingEngine {
       details: { message, ...details },
     });
     await activateAccountKillSwitch(account.id, `Remote account identity is untrusted for account ${account.id}`);
-    throw new ReconciliationMismatchError(message);
+    throw new ReconciliationMismatchError(message, 'remote_identity');
   }
 
   private async recordReconciliationSuccess(
@@ -1500,6 +1564,22 @@ export class TradingEngine {
     remote: ExchangeOpenState,
   ): Promise<void> {
     await this.detectUnmanagedExposure(account, remote);
+    const unresolvedFills = remote.fills.filter(fill => !fill.clientOrderId);
+    if (unresolvedFills.length > 0) {
+      await recordTradingAccountIncident({
+        accountId: account.id,
+        category: 'unresolved_fill',
+        severity: 'warning',
+        message: 'Exchange snapshot contains fills that cannot be mapped to a managed order.',
+        details: {
+          fillIds: unresolvedFills.slice(0, 25).map(fill => fill.exchangeFillId),
+          exchangeOrderIds: unresolvedFills.slice(0, 25).map(fill => fill.exchangeOrderId),
+          total: unresolvedFills.length,
+        },
+      });
+    } else {
+      await resolveTradingAccountIncidents(account.id, ['unresolved_fill']);
+    }
     await this.persistRemoteExecutions(account, remote);
     const localPositions = await getDatabase().all<any[]>(
       `SELECT position.*, intent.plan_json FROM trading_positions AS position
@@ -1516,6 +1596,7 @@ export class TradingEngine {
 
   private async persistRemoteExecutions(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
     for (const order of remote.orders) {
+      if (!order.clientOrderId) continue;
       await getDatabase().run(
         `UPDATE trading_orders SET exchange_order_id = ?, status = ?, filled_quantity = ?,
            response_json = ?, updated_at = ? WHERE account_id = ? AND client_order_id = ?`,
@@ -1523,6 +1604,7 @@ export class TradingEngine {
       );
     }
     for (const fill of remote.fills) {
+      if (!fill.clientOrderId) continue;
       const localOrder = await getDatabase().get<any>(
         `SELECT id, intent_id, role, status FROM trading_orders
          WHERE account_id = ? AND client_order_id = ?`,
@@ -1690,9 +1772,9 @@ export class TradingEngine {
       !localPositions.some(local => local.symbol === position.symbol && local.side === position.side));
     if (externalOrders.length === 0 && externalPositions.length === 0 && unknownOrders.length === 0) return;
     const details = {
-      externalOrderIds: externalOrders.map(order => order.clientOrderId),
+      externalOrderIds: externalOrders.map(order => order.clientOrderId || `exchange:${order.exchangeOrderId}`),
       externalPositions: externalPositions.map(position => ({ symbol: position.symbol, side: position.side })),
-      unknownOrderIds: unknownOrders.map(order => order.clientOrderId),
+      unknownOrderIds: unknownOrders.map(order => order.clientOrderId || `exchange:${order.exchangeOrderId}`),
     };
     await riskEvent({
       severity: 'critical',
@@ -1701,7 +1783,7 @@ export class TradingEngine {
       details,
     });
     await activateAccountKillSwitch(account.id, `Unmanaged remote exposure detected for account ${account.id}`);
-    throw new ReconciliationMismatchError('Unmanaged remote order or position detected.');
+    throw new ReconciliationMismatchError('Unmanaged remote order or position detected.', 'unmanaged_remote');
   }
 
   private async ensureProtectiveStop(

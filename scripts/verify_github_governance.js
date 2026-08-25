@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const REQUIRED_CHECKS = [
   'Lint, tests, coverage, build, supply chain',
+  'SonarQube Cloud quality gate',
   'Critical mutation gate (queue)',
   'Critical mutation gate (retry)',
   'Critical mutation gate (schema)',

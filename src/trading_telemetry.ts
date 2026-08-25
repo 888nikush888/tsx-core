@@ -236,6 +236,70 @@ export async function getTradingExecutionAnalytics(since = Date.now() - 30 * 24 
   };
 }
 
+export interface TradingAnalyticsFilters {
+  since: number;
+  until: number;
+  channelIds: string[];
+  accountIds: string[];
+  exchanges: string[];
+  modes: string[];
+  statuses: string[];
+}
+
+function analyticsTimestamp(row: any): number {
+  const values = [row.occurredAt, row.closedAt, row.createdAt, row.filledAt];
+  const selected = values.find(value => value !== undefined && value !== null);
+  return Number(selected ?? 0);
+}
+
+function analyticsTimestampMatches(timestamp: number, filters: TradingAnalyticsFilters): boolean {
+  if (timestamp <= 0) return true;
+  if (timestamp < filters.since) return false;
+  return timestamp <= filters.until;
+}
+
+function analyticsDimensionMatches(allowed: string[], value: unknown): boolean {
+  if (allowed.length === 0) return true;
+  return allowed.includes(String(value));
+}
+
+function analyticsRowMatches(row: any, filters: TradingAnalyticsFilters): boolean {
+  const dimensions: Array<[string[], unknown]> = [
+    [filters.channelIds, row.channelId],
+    [filters.accountIds, row.accountId],
+    [filters.exchanges, row.exchange],
+    [filters.modes, row.mode],
+    [filters.statuses, row.intentStatus ?? row.status ?? ''],
+  ];
+  return analyticsTimestampMatches(analyticsTimestamp(row), filters)
+    && dimensions.every(([allowed, value]) => analyticsDimensionMatches(allowed, value));
+}
+
+async function filteredExecutionAnalytics(filters: TradingAnalyticsFilters): Promise<{
+  generatedAt: number;
+  funnel: Record<TradingEventType, number>;
+  latencyMs: {
+    signalToSubmit: { count: number; p50: number | null; p95: number | null; p99: number | null };
+    signalToFirstFill: { count: number; p50: number | null; p95: number | null; p99: number | null };
+  };
+  recent: Array<Record<string, unknown>>;
+}> {
+  const rows = (await getDatabase().all<ExecutionEventRow[]>(
+    `SELECT intent_id AS intentId, channel_id AS channelId, account_id AS accountId,
+            exchange, mode, event_type AS eventType, occurred_at AS occurredAt, details_json AS detailsJson
+     FROM trading_execution_events WHERE occurred_at >= ? AND occurred_at <= ?
+     ORDER BY occurred_at DESC LIMIT 20000`,
+    [filters.since, filters.until],
+  )).filter(row => analyticsRowMatches(row, filters));
+  const timeline = eventTimeline(rows);
+  return {
+    generatedAt: Date.now(),
+    funnel: timeline.funnel,
+    latencyMs: executionLatencies(timeline.byIntent),
+    recent: rows.slice(0, 200).map(recentExecutionEvent),
+  };
+}
+
 function finite(value: unknown): number {
   const parsed = Number(value ?? 0);
   if (!Number.isFinite(parsed)) throw new Error('Trading analytics produced a non-finite value.');
@@ -413,22 +477,26 @@ function equityPerformance(points: TradingEquityPoint[]): Array<Record<string, u
 async function performanceRows(since: number): Promise<[any[], any[], any[], TradingEquityPoint[]]> {
   return Promise.all([
     getDatabase().all<any[]>(
-      `SELECT channel_id AS channelId, account_id AS accountId, realized_pnl AS realizedPnl,
-              closed_at AS closedAt
-       FROM trading_positions
-       WHERE status = 'closed' AND closed_at >= ?
-       ORDER BY closed_at`,
+      `SELECT position.channel_id AS channelId, position.account_id AS accountId,
+              account.exchange, account.mode, intent.status AS intentStatus,
+              position.realized_pnl AS realizedPnl, position.closed_at AS closedAt
+       FROM trading_positions AS position
+       JOIN trading_accounts AS account ON account.id = position.account_id
+       JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
+       WHERE position.status = 'closed' AND position.closed_at >= ?
+       ORDER BY position.closed_at`,
       [since],
     ),
     getDatabase().all<any[]>(
-      `SELECT channel_id AS channelId, exchange, mode, status, created_at AS createdAt
+      `SELECT channel_id AS channelId, account_id AS accountId, exchange, mode, status, created_at AS createdAt
        FROM trading_trade_intents WHERE created_at >= ?`,
       [since],
     ),
     getDatabase().all<any[]>(
-      `SELECT intent.channel_id AS channelId, intent.exchange, intent.mode,
+      `SELECT intent.channel_id AS channelId, intent.account_id AS accountId,
+              intent.exchange, intent.mode, intent.status AS intentStatus,
               fill.price AS fillPrice, fill.quantity, order_row.price AS plannedPrice,
-              intent.plan_json AS planJson
+              intent.plan_json AS planJson, fill.filled_at AS filledAt
        FROM trading_fills AS fill
        JOIN trading_orders AS order_row ON order_row.id = fill.order_id
        JOIN trading_trade_intents AS intent ON intent.id = order_row.intent_id
@@ -447,20 +515,61 @@ export async function getChannelPerformanceAnalytics(
   exchanges: Array<Record<string, unknown>>;
   equity: Array<Record<string, unknown>>;
 }> {
-  const [positions, intents, fills, equityPoints] = await performanceRows(since);
+  const detailed = await getFilteredTradingAnalytics({
+    since,
+    until: Date.now(),
+    channelIds: [],
+    accountIds: [],
+    exchanges: [],
+    modes: [],
+    statuses: [],
+  });
+  return detailed.performance;
+}
+
+export async function getFilteredTradingAnalytics(filters: TradingAnalyticsFilters): Promise<{
+  generatedAt: number;
+  filters: TradingAnalyticsFilters;
+  performance: {
+    generatedAt: number;
+    channels: Array<Record<string, unknown>>;
+    exchanges: Array<Record<string, unknown>>;
+    equity: Array<Record<string, unknown>>;
+  };
+  execution: Awaited<ReturnType<typeof filteredExecutionAnalytics>>;
+}> {
+  const [rawPositions, rawIntents, rawFills, equityPoints] = await performanceRows(filters.since);
+  const positions = rawPositions.filter(row => analyticsRowMatches(row, filters));
+  const intents = rawIntents.filter(row => analyticsRowMatches(row, filters));
+  const fills = rawFills.filter(row => analyticsRowMatches(row, filters));
   const channels = new Map<string, PerformanceAggregate>();
   const exchanges = new Map<string, PerformanceAggregate>();
   aggregatePositions(positions, channels);
   aggregateIntents(intents, channels, exchanges);
   aggregateFills(fills, channels, exchanges);
+  const selectedAccounts = new Set(
+    filters.accountIds.length > 0
+      ? filters.accountIds
+      : intents.map(row => String(row.accountId)),
+  );
+  const filteredEquity = equityPoints.filter(point =>
+    point.observedAt >= filters.since
+    && point.observedAt <= filters.until
+    && (selectedAccounts.size === 0 || selectedAccounts.has(point.accountId)));
+  const generatedAt = Date.now();
   return {
-    generatedAt: Date.now(),
-    channels: [...channels.values()]
-      .map(presentedAggregate)
-      .sort((left, right) => finite(right.realizedPnl) - finite(left.realizedPnl)),
-    exchanges: [...exchanges.values()]
-      .map(presentedAggregate)
-      .sort((left, right) => dimensionValue(left.id).localeCompare(dimensionValue(right.id))),
-    equity: equityPerformance(equityPoints),
+    generatedAt,
+    filters,
+    performance: {
+      generatedAt,
+      channels: [...channels.values()]
+        .map(presentedAggregate)
+        .sort((left, right) => finite(right.realizedPnl) - finite(left.realizedPnl)),
+      exchanges: [...exchanges.values()]
+        .map(presentedAggregate)
+        .sort((left, right) => dimensionValue(left.id).localeCompare(dimensionValue(right.id))),
+      equity: equityPerformance(filteredEquity),
+    },
+    execution: await filteredExecutionAnalytics(filters),
   };
 }

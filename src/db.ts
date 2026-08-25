@@ -93,7 +93,8 @@ export const DATABASE_FEATURE_SET = [
   'exchange-streams-mcp-approvals-trade-journal',
   'persistent-mcp-runtime-modes',
   'versioned-visual-workflows-and-account-capacity',
-  'path-isolated-adaptive-risk'
+  'path-isolated-adaptive-risk',
+  'account-protection-incidents'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -128,6 +129,7 @@ export const REQUIRED_DATABASE_TABLES = [
   'trading_positions',
   'trading_risk_events',
   'trading_reconciliation_runs',
+  'trading_account_incidents',
   'trading_exchange_events',
   'trading_exchange_stream_state',
   'trading_journal_entries',
@@ -1264,6 +1266,32 @@ const migrations: SchemaMigration[] = [
         );
         CREATE INDEX idx_workflow_adaptive_risk_evaluations
           ON workflow_adaptive_risk_evaluations(state_key, week_ended_at DESC);
+      `
+  },
+  {
+    version: 17,
+    name: 'account_protection_incidents',
+    columns: [],
+    sql: `
+        CREATE TABLE trading_account_incidents (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          fingerprint TEXT NOT NULL CHECK(length(fingerprint) = 64),
+          category TEXT NOT NULL,
+          severity TEXT NOT NULL CHECK(severity IN ('warning', 'critical')),
+          message TEXT NOT NULL,
+          details_json TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('open', 'resolved')),
+          occurrence_count INTEGER NOT NULL CHECK(occurrence_count >= 1),
+          first_seen_at INTEGER NOT NULL,
+          last_seen_at INTEGER NOT NULL,
+          resolved_at INTEGER
+        );
+        CREATE UNIQUE INDEX uq_trading_account_incident_open
+          ON trading_account_incidents(account_id, fingerprint)
+          WHERE status = 'open';
+        CREATE INDEX idx_trading_account_incident_status
+          ON trading_account_incidents(account_id, status, last_seen_at DESC);
       `
   }
 ];

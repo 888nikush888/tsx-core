@@ -249,14 +249,16 @@ try {
     control.configureAccount({ id: paperAccount.id, killSwitchActive: false }),
     /kill-switch release confirmation/,
   );
-  const releasedPaper = await control.configureAccount({
+  const resizedPaper = await control.configureAccount({
     id: paperAccount.id,
     maxConcurrentPositions: 5,
-    killSwitchActive: false,
-    killSwitchReason: null,
-    confirmation: 'RELEASE ACCOUNT KILL SWITCH',
   });
-  assert.equal(releasedPaper.maxConcurrentPositions, 5);
+  assert.equal(resizedPaper.maxConcurrentPositions, 5);
+  assert.equal(resizedPaper.killSwitchActive, true);
+  const releasedPaper = (await control.releaseAccountKillSwitch({
+    id: paperAccount.id,
+    confirmation: 'RELEASE ACCOUNT KILL SWITCH',
+  })).account;
   assert.equal(releasedPaper.killSwitchActive, false);
 
   const workflowDraft = await control.createWorkflowResource({

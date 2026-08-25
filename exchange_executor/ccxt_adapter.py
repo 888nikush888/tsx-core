@@ -107,6 +107,33 @@ def _order_result(order: dict[str, Any], fallback_client_id: str = "") -> dict[s
     }
 
 
+def _remote_order_result(order: dict[str, Any]) -> dict[str, Any]:
+    """Normalize an exchange snapshot without inventing a provider client id.
+
+    Some exchanges legitimately omit ``clientOrderId`` from fetch-order responses,
+    especially for provider-attached protective orders.  The exchange id remains
+    the authoritative remote identity and the control plane performs the safe
+    correlation against locally persisted orders.
+    """
+    client_order_id = _client_order_id(order) or None
+    exchange_order_id = str(order.get("id") or "")
+    if not exchange_order_id:
+        raise ExchangeContractError("CCXT remote order omitted its exchange identifier.")
+    status = _status(order.get("status"))
+    filled = Decimal(str(order.get("filled") or 0))
+    if status == "open" and filled > 0:
+        status = "partially_filled"
+    return {
+        "clientOrderId": client_order_id,
+        "exchangeOrderId": exchange_order_id,
+        "status": status,
+        "filledQuantity": decimal_text(filled),
+        "averagePrice": decimal_text(order.get("average"), "0") if order.get("average") is not None else None,
+        "error": None if status != "rejected" else "Exchange rejected the order.",
+        "raw": order,
+    }
+
+
 def _market_order_result(
     order: dict[str, Any],
     market: dict[str, Any],
@@ -125,8 +152,12 @@ def _normalized_open_order(rest: Any, order: dict[str, Any]) -> dict[str, Any]:
     amount = Decimal(str(order.get("amount") or 0)) * Decimal(str(market.get("contractSize") or 1))
     trigger_price = _trigger_price(order)
     reduce_only = _reduce_only(order)
+    result = _remote_order_result(order)
+    result["filledQuantity"] = decimal_text(
+        Decimal(result["filledQuantity"]) * Decimal(str(market.get("contractSize") or 1))
+    )
     return {
-        **_market_order_result(order, market),
+        **result,
         "symbol": _canonical_symbol(market),
         "role": "stop_loss" if reduce_only and trigger_price is not None else "entry",
         "side": str(order.get("side") or "").lower(),
@@ -157,16 +188,20 @@ def _normalized_position(rest: Any, position: dict[str, Any]) -> dict[str, Any] 
 def _normalized_fill(
     rest: Any, order_by_id: dict[str, dict[str, Any]], trade: dict[str, Any],
 ) -> dict[str, Any] | None:
-    order = order_by_id.get(str(trade.get("order")))
-    client_id = _client_order_id(order or {})
-    if not client_id:
+    exchange_order_id = str(trade.get("order") or "")
+    order = order_by_id.get(exchange_order_id)
+    if not exchange_order_id and order and order.get("id") is not None:
+        exchange_order_id = str(order["id"])
+    if not exchange_order_id:
         return None
+    client_id = _client_order_id(order or {}) or None
     fee = trade.get("fee") if isinstance(trade.get("fee"), dict) else {}
     market = rest.market(trade["symbol"])
     base_quantity = Decimal(str(trade.get("amount") or 0)) * Decimal(str(market.get("contractSize") or 1))
     return {
         "exchangeFillId": str(trade.get("id") or f"{trade.get('order')}:{trade.get('timestamp')}:{trade.get('amount')}"),
         "clientOrderId": client_id,
+        "exchangeOrderId": exchange_order_id,
         "price": decimal_text(trade.get("price")),
         "quantity": decimal_text(base_quantity),
         "fee": decimal_text(fee.get("cost")),

@@ -475,7 +475,8 @@ export interface ExchangeOrderResult {
 
 export interface ExchangeFill {
   exchangeFillId: string;
-  clientOrderId: string;
+  clientOrderId: string | null;
+  exchangeOrderId: string;
   price: string;
   quantity: string;
   fee: string;
@@ -484,7 +485,14 @@ export interface ExchangeFill {
   raw: unknown;
 }
 
-export interface ExchangeOrderSnapshot extends ExchangeOrderResult {
+export interface ExchangeOrderSnapshot {
+  clientOrderId: string | null;
+  exchangeOrderId: string;
+  status: ExchangeOrderResult['status'];
+  filledQuantity: string;
+  averagePrice: string | null;
+  error: string | null;
+  raw: unknown;
   symbol: string;
   role: PlannedOrder['role'];
   side: TradingOrderSide;

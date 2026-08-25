@@ -1,5 +1,5 @@
 import { getDatabase } from './db.js';
-import { updateTradingAccountConfiguration, updateTradingRuntimeState } from './trading_repository.js';
+import { updateTradingRuntimeState } from './trading_repository.js';
 import { TradingEngine } from './trading_engine.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
 import {
@@ -22,20 +22,7 @@ export class TradingRuntime {
   private readonly streamCursors = new Map<string, number>();
   private readonly streamDirtyAccounts = new Set<string>();
   private readonly streamFailureLogState = new Map<string, { message: string; loggedAt: number }>();
-  private readonly reconciliationRecoveryEvidence = new Map<string, number>();
-
-  private static readonly TRANSIENT_RECONCILIATION_PREFIX = 'Transient reconciliation failure:';
-  private static readonly UNTRUSTED_ACCOUNT_IDENTITY_PREFIX = 'Remote account identity is untrusted for account ';
-
-  private static isRecoverableProtection(account: {
-    kill_switch_active: number;
-    kill_switch_reason: string | null;
-  }): boolean {
-    if (account.kill_switch_active !== 1) return false;
-    const reason = account.kill_switch_reason || '';
-    return reason.startsWith(TradingRuntime.TRANSIENT_RECONCILIATION_PREFIX)
-      || reason.startsWith(TradingRuntime.UNTRUSTED_ACCOUNT_IDENTITY_PREFIX);
-  }
+  private reconciliationFailureLog: { summary: string; loggedAt: number; suppressed: number } | null = null;
 
   constructor(
     private readonly engine: TradingEngine,
@@ -127,7 +114,7 @@ export class TradingRuntime {
     this.streamCursors.clear();
     this.streamDirtyAccounts.clear();
     this.streamFailureLogState.clear();
-    this.reconciliationRecoveryEvidence.clear();
+    this.reconciliationFailureLog = null;
     await markExchangeStreamsStopped();
   }
 
@@ -135,7 +122,20 @@ export class TradingRuntime {
     const failures = await this.reconcileAccounts(startup);
     await this.captureEntryExpiryFailure(failures);
     if (failures.length > 0) {
-      this.logger(`[TRADING] ${failures.length} account protection task(s) are isolated by account kill switch: ${failures.join('; ')}`);
+      const summary = `${failures.length} account protection reconciliation task(s) failed; affected entries remain fail-closed: ${failures.join('; ')}`;
+      const now = Date.now();
+      const repeated = this.reconciliationFailureLog?.summary === summary;
+      if (!repeated || !this.reconciliationFailureLog || now - this.reconciliationFailureLog.loggedAt >= 60_000) {
+        const suffix = repeated && this.reconciliationFailureLog.suppressed > 0
+          ? ` (${this.reconciliationFailureLog.suppressed} identical retries suppressed)`
+          : '';
+        this.logger(`[TRADING] ${summary}${suffix}`);
+        this.reconciliationFailureLog = { summary, loggedAt: now, suppressed: 0 };
+      } else {
+        this.reconciliationFailureLog.suppressed += 1;
+      }
+    } else {
+      this.reconciliationFailureLog = null;
     }
     this.protectionHealthy = true;
     if (this.entriesEnabled) {
@@ -145,53 +145,19 @@ export class TradingRuntime {
   }
 
   private async reconcileAccounts(startup: boolean): Promise<string[]> {
-    const accounts = await getDatabase().all<Array<{
-      id: string;
-      kill_switch_active: number;
-      kill_switch_reason: string | null;
-    }>>(
-      `SELECT id, kill_switch_active, kill_switch_reason
+    const accounts = await getDatabase().all<Array<{ id: string }>>(
+      `SELECT id
        FROM trading_accounts WHERE enabled = 1 AND status = 'ready' ORDER BY created_at`,
     );
     const failures: string[] = [];
     for (const account of accounts) {
-      const recoverableProtection = TradingRuntime.isRecoverableProtection(account);
       try {
         const streamTriggered = this.streamDirtyAccounts.delete(account.id);
         await this.engine.reconcileAccount(account.id, {
-          force: startup || streamTriggered || recoverableProtection,
+          force: startup || streamTriggered,
         });
-        if (recoverableProtection) {
-          const evidence = (this.reconciliationRecoveryEvidence.get(account.id) ?? 0) + 1;
-          if (evidence >= 2) {
-            await updateTradingAccountConfiguration(account.id, {
-              killSwitchActive: false,
-              killSwitchReason: null,
-            });
-            this.reconciliationRecoveryEvidence.delete(account.id);
-            this.logger(`[TRADING] Account ${account.id} recovered after two authoritative reconciliations.`);
-          } else {
-            this.reconciliationRecoveryEvidence.set(account.id, evidence);
-          }
-        } else {
-          this.reconciliationRecoveryEvidence.delete(account.id);
-        }
       } catch (error: any) {
         const message = error?.message || String(error);
-        this.reconciliationRecoveryEvidence.delete(account.id);
-        const current = await getDatabase().get<{
-          kill_switch_active: number;
-          kill_switch_reason: string | null;
-        }>(
-          'SELECT kill_switch_active, kill_switch_reason FROM trading_accounts WHERE id = ?',
-          [account.id],
-        );
-        if (current?.kill_switch_active !== 1) {
-          await updateTradingAccountConfiguration(account.id, {
-            killSwitchActive: true,
-            killSwitchReason: `${TradingRuntime.TRANSIENT_RECONCILIATION_PREFIX} ${message}`.slice(0, 500),
-          }).catch(() => undefined);
-        }
         failures.push(`${account.id}: ${message}`);
       }
     }

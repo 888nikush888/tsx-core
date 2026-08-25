@@ -52,7 +52,7 @@ async function buildFrontendGraph(files) {
   const graph = new Map(files.map((file) => [file, []]));
   const externalByFile = new Map(files.map((file) => [file, []]));
   const violations = [];
-  const importPattern = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)['"]([^'"]+)['"]/g;
+  const importPattern = /(?:\bfrom\s+|\bimport\s*\(\s*|\bimport\s*)['"]([^'"]+)['"]/g;
 
   for (const file of files) {
     const content = await readFile(file, 'utf8');

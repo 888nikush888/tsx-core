@@ -366,6 +366,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       fills: fills.map(row => ({
         exchangeFillId: row.exchange_fill_id,
         clientOrderId: row.client_order_id,
+        exchangeOrderId: row.exchange_order_id,
         price: row.price,
         quantity: row.quantity,
         fee: row.fee,

@@ -20,7 +20,7 @@ const GOVERNANCE_FILES = new Set([
   '.editorconfig',
   '.gitattributes',
   '.gitleaks.toml',
-  '.sonarcloud.properties',
+  'sonar-project.properties',
   '.github/CODEOWNERS',
   '.github/dependabot.yml',
   'Dockerfile',

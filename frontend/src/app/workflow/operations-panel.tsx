@@ -15,7 +15,30 @@ import {
 } from "lucide-react";
 import { apiFetch, clearDashboardToken, setDashboardToken } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import type { ExchangeCatalog, TradingAccount, TradingSnapshot } from "./types";
 
 export type OperationTab =
@@ -28,16 +51,16 @@ export type OperationTab =
   | "mcp"
   | "system";
 
-const TABS: Array<{ id: OperationTab; label: string; icon: typeof Activity }> =
+const TABS: Array<{ id: OperationTab; label: string; description: string; icon: typeof Activity }> =
   [
-    { id: "overview", label: "Live", icon: Activity },
-    { id: "accounts", label: "Konten", icon: Landmark },
-    { id: "journal", label: "Journal", icon: Gauge },
-    { id: "analytics", label: "Analyse", icon: BarChart3 },
-    { id: "logs", label: "Logs", icon: Terminal },
-    { id: "backups", label: "Backups", icon: DatabaseBackup },
-    { id: "mcp", label: "MCP", icon: Bot },
-    { id: "system", label: "System", icon: ServerCog },
+    { id: "overview", label: "Live", description: "Gates und Laufzeit", icon: Activity },
+    { id: "accounts", label: "Konten", description: "Börsen und Schutz", icon: Landmark },
+    { id: "journal", label: "Journal", description: "Trades und Prüfung", icon: Gauge },
+    { id: "analytics", label: "Analyse", description: "Leistung und Latenz", icon: BarChart3 },
+    { id: "logs", label: "Logs", description: "Live-Diagnose", icon: Terminal },
+    { id: "backups", label: "Backups", description: "Sicherung und Restore", icon: DatabaseBackup },
+    { id: "mcp", label: "MCP", description: "Agenten und Rechte", icon: Bot },
+    { id: "system", label: "System", description: "Zugriff und Wartung", icon: ServerCog },
   ];
 
 const OPERATION_TABS = new Map(TABS.map((tab) => [tab.id, tab]));
@@ -69,6 +92,38 @@ function Overview({
 }) {
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const [portfolio, setPortfolio] = useState<any>({ accounts: [] });
+  const [signals, setSignals] = useState<any[]>([]);
+  const [access, setAccess] = useState<any>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const dashboardInFlight = useRef(false);
+  const refreshDashboard = useCallback(async () => {
+    if (dashboardInFlight.current) return;
+    dashboardInFlight.current = true;
+    setDashboardLoading(true);
+    try {
+      const [portfolioPayload, signalPayload, accessPayload] = await Promise.all([
+        requestJson("/api/trading/portfolio"),
+        requestJson("/api/processed-signals"),
+        requestJson("/api/access"),
+      ]);
+      setPortfolio(portfolioPayload);
+      setSignals(signalPayload.signals || []);
+      setAccess(accessPayload);
+      setLastUpdated(Date.now());
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setDashboardLoading(false);
+      dashboardInFlight.current = false;
+    }
+  }, []);
+  useEffect(() => {
+    void refreshDashboard();
+    const timer = window.setInterval(() => void refreshDashboard(), 5_000);
+    return () => window.clearInterval(timer);
+  }, [refreshDashboard]);
   const overview = trading?.overview;
   const runtime = overview?.runtime;
   const gates = [
@@ -93,6 +148,20 @@ function Overview({
       runtime?.liveTradingEnabled ? "freigegeben" : "gesperrt",
     ],
   ] as const;
+  const portfolioTotal = (key: string) => {
+    const totals = new Map<string, number>();
+    for (const account of portfolio.accounts || []) {
+      const value = Number(account[key]);
+      if (!Number.isFinite(value)) continue;
+      const currency = String(account.reportingCurrency || "QUOTE");
+      totals.set(currency, (totals.get(currency) || 0) + value);
+    }
+    return [...totals.entries()].map(([currency, value]) => `${metricNumber(value)} ${currency}`).join(" · ") || "–";
+  };
+  const openPositions = (trading?.activity.positions || []).filter((position: any) => ["opening", "open", "closing", "emergency"].includes(position.status));
+  const intentById = new Map((trading?.intents || []).map((intent: any) => [intent.id, intent]));
+  const accountById = new Map((trading?.accounts || []).map((account) => [account.id, account]));
+  const openIncidents = (trading?.accountIncidents || []).filter((incident) => incident.status === "open");
   const mutate = async (key: string, url: string, body: unknown) => {
     setBusy(key);
     setMessage("");
@@ -163,6 +232,25 @@ function Overview({
   return (
     <div className="operations-stack">
       {message && <div className="builder-error">{message}</div>}
+      {openIncidents.length > 0 && (
+        <section className="operations-card critical-dashboard-alert" aria-live="assertive">
+          <AlertTriangle />
+          <div>
+            <h3>{openIncidents.length} aktive Konto-Incident{openIncidents.length === 1 ? "" : "s"}</h3>
+            {openIncidents.slice(0, 3).map((incident) => <p key={incident.id}>{accountById.get(incident.accountId)?.name || incident.accountId}: {incident.message} · {incident.occurrenceCount}×</p>)}
+          </div>
+        </section>
+      )}
+      <div className="operations-section-heading dashboard-heading">
+        <div><h3>Portfolio und Handel</h3><p>{lastUpdated ? `Zuletzt aktualisiert ${time(lastUpdated)}` : "Live-Daten werden geladen."}</p></div>
+        <Button type="button" variant="outline" size="sm" onClick={() => void refreshDashboard()}><RefreshCw className={dashboardLoading ? "spin" : ""} size={15} /> Aktualisieren</Button>
+      </div>
+      <div className="operations-metrics portfolio-metrics">
+        <Metric label="Portfolio-Eigenkapital" value={portfolioTotal("equity")} />
+        <Metric label="Verfügbares Kapital" value={portfolioTotal("availableBalance")} />
+        <Metric label="Gebundene Margin" value={portfolioTotal("marginUsed")} />
+        <Metric label="Unrealisierter PnL" value={portfolioTotal("unrealizedPnl")} />
+      </div>
       <div className="operations-metrics">
         <Metric label="Aktive Pfade" value={overview?.enabledRouteCount ?? 0} />
         <Metric
@@ -189,6 +277,64 @@ function Overview({
           </div>
         ))}
       </section>
+      <div className="dashboard-grid">
+        <section className="operations-card analytics-chart dashboard-equity-card">
+          <h3>Equity-Verlauf</h3>
+          {(trading?.equityHistory || []).length ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={trading?.equityHistory || []}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="observedAt" tickFormatter={(value) => new Date(value).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} minTickGap={24} />
+                <YAxis width={62} domain={["auto", "auto"]} />
+                <Tooltip labelFormatter={(value) => time(value)} formatter={(value) => metricNumber(value)} />
+                <Line type="monotone" dataKey="equity" dot={false} stroke="var(--chart-1)" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : <Empty text="Noch keine Equity-Messwerte." />}
+        </section>
+        <section className="operations-card">
+          <h3>Remote-Zugriff und Betrieb</h3>
+          <div className="system-line"><span>Identität</span><strong>{access?.identity?.name || access?.identity?.login || access?.actorId || "unbekannt"}</strong></div>
+          <div className="system-line"><span>Rolle</span><strong>{access?.role || "–"}</strong></div>
+          <div className="system-line"><span>Remote-Zugriff</span><strong>{access?.remoteAccess?.connected ? `${access.remoteAccess.provider} verbunden` : "nicht verbunden"}</strong></div>
+          <div className="system-line"><span>Letzter Abgleich</span><strong>{time(overview?.latestReconciliationAt)}</strong></div>
+          {(portfolio.accounts || []).map((account: any) => <div className="system-line" key={account.accountId}><span>{account.name} · {account.exchange}/{account.mode}</span><strong>{account.error || `${metricNumber(account.equity)} ${account.reportingCurrency}`}</strong></div>)}
+        </section>
+      </div>
+      <section className="operations-card">
+        <h3>Aktive Positionen</h3>
+        <div className="position-table" role="table" aria-label="Aktive Positionen">
+          <div className="position-row heading" role="row"><span>Position</span><span>Entry / Mark</span><span>SL</span><span>TPs</span><span>Hebel</span><span>PnL</span></div>
+          {openPositions.map((position: any) => {
+            const intent: any = intentById.get(position.intentId);
+            const orders = (trading?.activity as any)?.orders || [];
+            const relatedOrders = orders.filter((order: any) => order.intentId === position.intentId);
+            const targets = relatedOrders.filter((order: any) => String(order.role).startsWith("take_profit")).map((order: any) => order.triggerPrice || order.price);
+            const paperMarket = (trading?.activity as any)?.paperMarkets?.find((market: any) => market.accountId === position.accountId && market.symbol === position.symbol);
+            return <div className="position-row" role="row" key={position.id}>
+              <strong>{position.symbol} · {position.side}<small>{accountById.get(position.accountId)?.name || position.accountId}</small></strong>
+              <span>{position.averageEntryPrice || "–"} / {paperMarket?.markPrice || intent?.plan?.markPrice || "–"}</span>
+              <span>{position.stopPrice || relatedOrders.find((order: any) => order.role === "stop_loss")?.triggerPrice || "–"}</span>
+              <span>{targets.length ? targets.join(" · ") : intent?.signal?.targets?.map((target: any) => target.min ?? target).join(" · ") || "–"}</span>
+              <span>{intent?.plan?.leverage ? `${intent.plan.leverage}×` : "–"}</span>
+              <span>{position.realizedPnl ?? intent?.plan?.unrealizedPnl ?? "–"}</span>
+            </div>;
+          })}
+          {openPositions.length === 0 && <Empty text="Keine aktive Position." />}
+        </div>
+      </section>
+      <div className="dashboard-grid">
+        <section className="operations-card">
+          <h3>Aktuelle Signale</h3>
+          {signals.slice(0, 10).map((signal: any) => <div className="adaptive-row" key={signal.id}><div><strong>{signal.channel_id || signal.channelId || "Kanal"}</strong><small>{time(signal.created_at || signal.createdAt)} · {signal.template_name || signal.templateName || "Signal"}</small></div><span className="state-badge">{signal.status || "verarbeitet"}</span></div>)}
+          {signals.length === 0 && <Empty text="Noch keine verarbeiteten Signale." />}
+        </section>
+        <section className="operations-card">
+          <h3>Offene Intents</h3>
+          {(trading?.intents || []).filter((intent: any) => ["pending", "planned", "submitting", "monitoring", "unknown"].includes(intent.status)).slice(0, 10).map((intent: any) => <div className="adaptive-row" key={intent.id}><div><strong>{intent.symbol} · {intent.side}</strong><small>{intent.channelId} → {accountById.get(intent.accountId)?.name || intent.accountId}</small></div><span className={`state-badge ${intent.status === "unknown" ? "danger" : ""}`}>{intent.status}</span></div>)}
+          {!(trading?.intents || []).some((intent: any) => ["pending", "planned", "submitting", "monitoring", "unknown"].includes(intent.status)) && <Empty text="Keine offenen Intents." />}
+        </section>
+      </div>
       <section className="operations-card">
         <h3>Handelssteuerung</h3>
         <div className="system-actions">
@@ -363,6 +509,8 @@ function Accounts({
   const [message, setMessage] = useState("");
   const [credentialFor, setCredentialFor] = useState("");
   const [replacement, setReplacement] = useState<Record<string, string>>({});
+  const [releaseTarget, setReleaseTarget] = useState<TradingAccount | null>(null);
+  const [releaseConfirmation, setReleaseConfirmation] = useState("");
   const exchange = catalog?.exchanges.find((item) => item.id === form.exchange);
 
   const updateAccount = async (
@@ -386,17 +534,31 @@ function Accounts({
   };
 
   const releaseKillSwitch = async (account: TradingAccount) => {
-    if (
-      window.prompt(
-        "Kontosperre erst nach zwei erzwungenen Börsenabgleichen freigeben. RELEASE ACCOUNT KILL SWITCH exakt eingeben:",
-      ) !== "RELEASE ACCOUNT KILL SWITCH"
-    )
-      return;
-    await updateAccount(account, {
-      killSwitchActive: false,
-      killSwitchReason: null,
-      confirmation: "RELEASE ACCOUNT KILL SWITCH",
-    });
+    setReleaseTarget(account);
+    setReleaseConfirmation("");
+  };
+
+  const confirmKillSwitchRelease = async () => {
+    if (!releaseTarget) return;
+    setBusy(releaseTarget.id);
+    setMessage("");
+    try {
+      await requestJson("/api/trading/accounts/kill-switch/release", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: releaseTarget.id,
+          confirmation: releaseConfirmation,
+        }),
+      });
+      setReleaseTarget(null);
+      setReleaseConfirmation("");
+      await onRefresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy("");
+    }
   };
 
   const accountAction = async (
@@ -500,7 +662,8 @@ function Accounts({
   };
 
   return (
-    <div className="operations-stack">
+    <>
+      <div className="operations-stack">
       <div className="operations-section-heading">
         <div>
           <h3>Börsenkonten</h3>
@@ -615,14 +778,34 @@ function Accounts({
               />
             </label>
           ))}
-          <button
-            type="button"
-            className="primary-button"
-            disabled={busy === "create" || !form.name.trim()}
-            onClick={create}
-          >
-            {busy === "create" ? "Prüfe…" : "Konto anlegen & verifizieren"}
-          </button>
+          <div className="account-create-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={busy === "create"}
+              onClick={() => {
+                setCreating(false);
+                setForm({
+                  name: "",
+                  exchange: "paper",
+                  mode: "paper",
+                  initialBalance: "10000",
+                  maxConcurrentPositions: 20,
+                  credentials: {},
+                });
+              }}
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={busy === "create" || !form.name.trim()}
+              onClick={create}
+            >
+              {busy === "create" ? "Prüfe…" : "Konto anlegen & verifizieren"}
+            </button>
+          </div>
         </section>
       )}
       {trading?.accounts.map((account) => (
@@ -668,6 +851,23 @@ function Accounts({
           {account.lastError && (
             <small className="error-text">{account.lastError}</small>
           )}
+          {(trading?.accountIncidents || [])
+            .filter((incident) => incident.accountId === account.id)
+            .map((incident) => (
+              <div className="account-incident" key={incident.id}>
+                <div>
+                  <strong>{incident.message}</strong>
+                  <small>
+                    {incident.category} · {incident.occurrenceCount} Beobachtungen · zuletzt {time(incident.lastSeenAt)}
+                  </small>
+                </div>
+                <Badge
+                  variant={incident.severity === "critical" ? "destructive" : "outline"}
+                >
+                  {incident.severity === "critical" ? "kritisch" : "Warnung"}
+                </Badge>
+              </div>
+            ))}
           <div className="account-actions">
             <button
               type="button"
@@ -772,38 +972,155 @@ function Accounts({
           )}
         </section>
       ))}
-    </div>
+      </div>
+      <Dialog
+        open={Boolean(releaseTarget)}
+        onOpenChange={(open) => {
+          if (!open && !busy) {
+            setReleaseTarget(null);
+            setReleaseConfirmation("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <Badge variant="destructive">Kontoschutz</Badge>
+            <DialogTitle>Kill-Switch sicher freigeben</DialogTitle>
+            <DialogDescription>
+              TSX Core führt vor der Freigabe zwei vollständige Börsenabgleiche
+              durch. Unverwaltete Orders, Positionen oder fehlender Stop-Schutz
+              verhindern die Freigabe.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="kill-switch-confirmation">
+            Zur Bestätigung exakt „RELEASE ACCOUNT KILL SWITCH“ eingeben
+            <Input
+              autoComplete="off"
+              value={releaseConfirmation}
+              onChange={(event) => setReleaseConfirmation(event.target.value)}
+            />
+          </label>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={Boolean(busy)}
+              onClick={() => setReleaseTarget(null)}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={
+                Boolean(busy) ||
+                releaseConfirmation !== "RELEASE ACCOUNT KILL SWITCH"
+              }
+              onClick={() => void confirmKillSwitchRelease()}
+            >
+              {busy ? "Prüfe Schutz…" : "Prüfen und freigeben"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
-function Journal() {
+function Journal({
+  trading,
+  onRefresh,
+}: {
+  trading: TradingSnapshot | null;
+  onRefresh: () => Promise<void>;
+}) {
   const [entries, setEntries] = useState<any[]>([]);
   const [error, setError] = useState("");
-  const load = useCallback(
-    () =>
-      requestJson("/api/trading/journal?limit=200")
-        .then((payload) => setEntries(payload.entries || []))
-        .catch((reason) => setError(reason.message)),
-    [],
-  );
+  const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [filters, setFilters] = useState({ from: "", to: "", channelId: "", accountId: "", symbol: "", status: "" });
+  const inFlight = useRef(false);
+  const query = useMemo(() => {
+    const params = new URLSearchParams({ limit: "500" });
+    if (filters.from) params.set("from", String(new Date(`${filters.from}T00:00:00`).getTime()));
+    if (filters.to) params.set("to", String(new Date(`${filters.to}T23:59:59.999`).getTime()));
+    if (filters.channelId) params.set("channelId", filters.channelId);
+    if (filters.accountId) params.set("accountId", filters.accountId);
+    if (filters.symbol) params.set("symbol", filters.symbol.trim().toUpperCase());
+    if (filters.status) params.set("status", filters.status);
+    return params.toString();
+  }, [filters]);
+  const load = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setLoading(true);
+    setError("");
+    try {
+      const payload = await requestJson(`/api/trading/journal?${query}`);
+      setEntries(payload.entries || []);
+      setLastUpdated(Date.now());
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setLoading(false);
+      inFlight.current = false;
+    }
+  }, [query]);
   useEffect(() => {
     void load();
+    const timer = window.setInterval(() => void load(), 5_000);
+    return () => window.clearInterval(timer);
   }, [load]);
+  const exportJournal = async (format: "csv" | "json") => {
+    setError("");
+    try {
+      const response = await apiFetch(`/api/trading/journal/export?${query}&format=${format}`);
+      if (!response.ok) throw new Error(`Export fehlgeschlagen (${response.status}).`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `tsx-core-trade-journal-${new Date().toISOString().slice(0, 10)}.${format}`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    }
+  };
+  const acknowledgeRisk = async (id: unknown) => {
+    try {
+      await requestJson("/api/trading/risk/acknowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      await onRefresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    }
+  };
+  const channels = [...new Set(entries.map((entry) => String(entry.channelId)))];
   return (
     <div className="operations-stack">
       <div className="operations-section-heading">
         <div>
           <h3>Trade Journal</h3>
-          <p>Signal, Pfad, Konto und Ergebnis in einer Spur.</p>
+          <p>Signal, Pfad, Konto und Ergebnis in einer Spur · {lastUpdated ? `aktualisiert ${time(lastUpdated)}` : "wird geladen"}.</p>
         </div>
-        <button
-          type="button"
-          className="icon-button"
-          onClick={() => void load()}
-        >
-          <RefreshCw size={16} />
-        </button>
+        <div className="system-actions">
+          <Button type="button" variant="outline" size="sm" onClick={() => void exportJournal("csv")}>CSV</Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => void exportJournal("json")}>JSON</Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => void load()}><RefreshCw className={loading ? "spin" : ""} size={15} /> Aktualisieren</Button>
+        </div>
       </div>
+      <section className="operations-card journal-filterbar">
+        <label><span>Von</span><Input type="date" value={filters.from} onChange={(event) => setFilters((value) => ({ ...value, from: event.target.value }))} /></label>
+        <label><span>Bis</span><Input type="date" value={filters.to} onChange={(event) => setFilters((value) => ({ ...value, to: event.target.value }))} /></label>
+        <label><span>Kanal</span><select value={filters.channelId} onChange={(event) => setFilters((value) => ({ ...value, channelId: event.target.value }))}><option value="">Alle Kanäle</option>{channels.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+        <label><span>Konto</span><select value={filters.accountId} onChange={(event) => setFilters((value) => ({ ...value, accountId: event.target.value }))}><option value="">Alle Konten</option>{(trading?.accounts || []).map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
+        <label><span>Symbol</span><Input value={filters.symbol} onChange={(event) => setFilters((value) => ({ ...value, symbol: event.target.value }))} placeholder="BTC/USDT" /></label>
+        <label><span>Status</span><select value={filters.status} onChange={(event) => setFilters((value) => ({ ...value, status: event.target.value }))}><option value="">Alle Status</option><option value="completed">Abgeschlossen</option><option value="blocked">Blockiert</option><option value="failed">Fehlgeschlagen</option><option value="open">Offen</option></select></label>
+      </section>
       {error && <div className="builder-error">{error}</div>}
       <div className="journal-list">
         {entries.map((entry) => (
@@ -825,6 +1142,17 @@ function Journal() {
         ))}
         {entries.length === 0 && <Empty text="Noch keine Journal-Einträge." />}
       </div>
+      <section className="operations-card">
+        <h3>Unquittierte Risikoereignisse</h3>
+        {(trading?.activity.riskEvents || []).filter((event: any) => !event.acknowledgedAt).slice(0, 30).map((event: any) => (
+          <div className="event-row journal-risk-row" key={event.id}>
+            <span className={`severity ${event.severity}`}>{event.severity}</span>
+            <div><strong>{event.code}</strong><small>{event.accountId || "global"} · {time(event.createdAt)}</small></div>
+            <Button type="button" variant="outline" size="sm" onClick={() => void acknowledgeRisk(event.id)}>Quittieren</Button>
+          </div>
+        ))}
+        {!(trading?.activity.riskEvents || []).some((event: any) => !event.acknowledgedAt) && <Empty text="Keine unquittierten Risikoereignisse." />}
+      </section>
     </div>
   );
 }
@@ -847,12 +1175,98 @@ function duration(value: unknown): string {
     : `${metricNumber(parsed / 1_000)} s`;
 }
 
+type AnalyticsRange = "24h" | "7d" | "30d" | "90d" | "all" | "custom";
+
 function Analytics({ trading }: { trading: TradingSnapshot | null }) {
-  const channels = trading?.channelAnalytics?.channels || [];
-  const exchanges = trading?.channelAnalytics?.exchanges || [];
+  const [range, setRange] = useState<AnalyticsRange>("30d");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customUntil, setCustomUntil] = useState("");
+  const [channelId, setChannelId] = useState("");
+  const [accountId, setAccountId] = useState("");
+  const [exchange, setExchange] = useState("");
+  const [mode, setMode] = useState("");
+  const [status, setStatus] = useState("");
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [expectancy, setExpectancy] = useState({
+    winRate: "50",
+    averageWin: "2",
+    averageLoss: "1",
+  });
+  const inFlight = useRef(false);
+  const rerun = useRef(false);
+  const currentQuery = useRef("");
+  const query = useMemo(() => {
+    const now = Date.now();
+    const rangeMs: Record<Exclude<AnalyticsRange, "all" | "custom">, number> = {
+      "24h": 86_400_000,
+      "7d": 7 * 86_400_000,
+      "30d": 30 * 86_400_000,
+      "90d": 90 * 86_400_000,
+    };
+    const since = range === "all"
+      ? 0
+      : range === "custom"
+        ? new Date(customFrom).getTime()
+        : now - rangeMs[range];
+    const until = range === "custom" ? new Date(customUntil).getTime() : now;
+    const params = new URLSearchParams({
+      since: String(Number.isFinite(since) ? since : 0),
+      until: String(Number.isFinite(until) ? until : now),
+    });
+    if (channelId) params.set("channelId", channelId);
+    if (accountId) params.set("accountId", accountId);
+    if (exchange) params.set("exchange", exchange);
+    if (mode) params.set("mode", mode);
+    if (status) params.set("status", status);
+    return params.toString();
+  }, [accountId, channelId, customFrom, customUntil, exchange, mode, range, status]);
+  const load = useCallback(async () => {
+    if (range === "custom" && (!customFrom || !customUntil)) {
+      setLoading(false);
+      return;
+    }
+    currentQuery.current = query;
+    if (inFlight.current) {
+      rerun.current = true;
+      return;
+    }
+    inFlight.current = true;
+    setLoading(true);
+    setError("");
+    const requestedQuery = query;
+    try {
+      const payload = await requestJson(`/api/trading/analytics?${requestedQuery}`);
+      if (currentQuery.current === requestedQuery) {
+        setAnalytics(payload);
+        setLastUpdated(payload.generatedAt || Date.now());
+      }
+    } catch (reason) {
+      if (currentQuery.current === requestedQuery) {
+        setError(reason instanceof Error ? reason.message : String(reason));
+      }
+    } finally {
+      inFlight.current = false;
+      setLoading(false);
+      if (rerun.current) {
+        rerun.current = false;
+        void load();
+      }
+    }
+  }, [customFrom, customUntil, query, range]);
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => void load(), 5_000);
+    return () => window.clearInterval(timer);
+  }, [load]);
+  const channels = analytics?.performance?.channels || [];
+  const exchanges = analytics?.performance?.exchanges || [];
+  const equity = analytics?.performance?.equity || [];
   const adaptiveStates = trading?.workflowAdaptiveRisk?.states || [];
   const evaluations = trading?.workflowAdaptiveRisk?.evaluations || [];
-  const execution = trading?.executionAnalytics || {};
+  const execution = analytics?.execution || {};
   const totalPnl = channels.reduce(
     (total, item: any) => total + Number(item.realizedPnl || 0),
     0,
@@ -861,9 +1275,20 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
     (total, item: any) => total + Number(item.closedTrades || 0),
     0,
   );
-  const peakDrawdown = (trading?.channelAnalytics?.equity || []).reduce(
+  const peakDrawdown = equity.reduce(
     (peak, point: any) => Math.max(peak, Number(point.drawdownPercent || 0)),
     0,
+  );
+  const funnel = Object.entries(execution.funnel || {}).map(([name, value]) => ({
+    name: name.replaceAll("_", " "),
+    value: Number(value),
+  }));
+  const expectancyValue =
+    (Number(expectancy.winRate) / 100) * Number(expectancy.averageWin) -
+    (1 - Number(expectancy.winRate) / 100) * Number(expectancy.averageLoss);
+  const channelOptions = useMemo(
+    () => [...new Set((trading?.channelAnalytics?.channels || []).map((item: any) => String(item.id)))],
+    [trading?.channelAnalytics?.channels],
   );
   return (
     <div className="operations-stack">
@@ -874,7 +1299,36 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
             Kanal-, Konto- und Ausführungsleistung aus persistierten Messwerten.
           </p>
         </div>
+        <div className="refresh-state" aria-live="polite">
+          <RefreshCw className={loading ? "spin" : ""} size={15} />
+          <span>{lastUpdated ? `aktualisiert ${time(lastUpdated)}` : "wird geladen"}</span>
+        </div>
       </div>
+      <section className="operations-card analytics-filterbar" aria-label="Analysefilter">
+        <label>
+          <span>Zeitraum</span>
+          <select value={range} onChange={(event) => setRange(event.target.value as AnalyticsRange)}>
+            <option value="24h">24 Stunden</option>
+            <option value="7d">7 Tage</option>
+            <option value="30d">30 Tage</option>
+            <option value="90d">90 Tage</option>
+            <option value="all">Gesamt</option>
+            <option value="custom">Benutzerdefiniert</option>
+          </select>
+        </label>
+        {range === "custom" && (
+          <>
+            <label><span>Von</span><Input type="datetime-local" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} /></label>
+            <label><span>Bis</span><Input type="datetime-local" value={customUntil} onChange={(event) => setCustomUntil(event.target.value)} /></label>
+          </>
+        )}
+        <label><span>Kanal</span><select value={channelId} onChange={(event) => setChannelId(event.target.value)}><option value="">Alle Kanäle</option>{channelOptions.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+        <label><span>Konto</span><select value={accountId} onChange={(event) => setAccountId(event.target.value)}><option value="">Alle Konten</option>{(trading?.accounts || []).map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
+        <label><span>Börse</span><select value={exchange} onChange={(event) => setExchange(event.target.value)}><option value="">Alle Börsen</option><option value="paper">Paper</option><option value="hyperliquid">Hyperliquid</option><option value="bybit">Bybit</option><option value="krakenfutures">Kraken Futures</option></select></label>
+        <label><span>Modus</span><select value={mode} onChange={(event) => setMode(event.target.value)}><option value="">Alle Modi</option><option value="paper">Paper</option><option value="testnet">Testnet</option><option value="live">Live</option></select></label>
+        <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Alle Status</option><option value="completed">Abgeschlossen</option><option value="blocked">Blockiert</option><option value="failed">Fehlgeschlagen</option><option value="open">Offen</option></select></label>
+      </section>
+      {error && <div className="builder-error">{error}</div>}
       <div className="operations-metrics">
         <Metric label="Realisierter PnL" value={metricNumber(totalPnl)} />
         <Metric label="Geschlossene Trades" value={closedTrades} />
@@ -889,6 +1343,64 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
           </strong>
           <span>Signal → Submit p95</span>
         </div>
+      </div>
+      <div className="analytics-chart-grid">
+        <section className="operations-card analytics-chart">
+          <h3>Equity-Verlauf</h3>
+          {equity.length ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={equity}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="observedAt" tickFormatter={(value) => new Date(value).toLocaleDateString("de-DE")} minTickGap={28} />
+                <YAxis width={64} domain={["auto", "auto"]} />
+                <Tooltip labelFormatter={(value) => time(value)} formatter={(value) => metricNumber(value)} />
+                <Line type="monotone" dataKey="equity" stroke="var(--chart-1)" dot={false} strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : <Empty text="Für diese Auswahl liegen keine Equity-Punkte vor." />}
+        </section>
+        <section className="operations-card analytics-chart">
+          <h3>Drawdown</h3>
+          {equity.length ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={equity}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="observedAt" tickFormatter={(value) => new Date(value).toLocaleDateString("de-DE")} minTickGap={28} />
+                <YAxis width={52} unit=" %" />
+                <Tooltip labelFormatter={(value) => time(value)} formatter={(value) => `${metricNumber(value)} %`} />
+                <Area type="monotone" dataKey="drawdownPercent" stroke="var(--destructive)" fill="color-mix(in oklch, var(--destructive) 22%, transparent)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : <Empty text="Für diese Auswahl liegt kein Drawdown vor." />}
+        </section>
+        <section className="operations-card analytics-chart">
+          <h3>Realisierter PnL je Kanal</h3>
+          {channels.length ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={channels}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="id" minTickGap={18} />
+                <YAxis width={64} />
+                <Tooltip formatter={(value) => metricNumber(value)} />
+                <Bar dataKey="realizedPnl" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <Empty text="Keine abgeschlossenen Trades in dieser Auswahl." />}
+        </section>
+        <section className="operations-card analytics-chart">
+          <h3>Ausführungs-Funnel</h3>
+          {funnel.some((item) => item.value > 0) ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={funnel} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} />
+                <YAxis type="category" dataKey="name" width={110} />
+                <Tooltip />
+                <Bar dataKey="value" fill="var(--chart-3)" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <Empty text="Keine Ausführungsereignisse in dieser Auswahl." />}
+        </section>
       </div>
       <section className="operations-card">
         <h3>Kanalperformance</h3>
@@ -972,7 +1484,7 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
       </section>
       <section className="operations-card">
         <h3>Letzte adaptive Bewertungen</h3>
-        {evaluations.slice(0, 30).map((item: any) => (
+        {evaluations.filter((item: any) => (!channelId || item.channelId === channelId) && (!accountId || item.accountId === accountId)).slice(0, 30).map((item: any) => (
           <div className="adaptive-row" key={item.id}>
             <div>
               <strong>
@@ -992,6 +1504,15 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
           <Empty text="Noch keine abgeschlossene adaptive Bewertung." />
         )}
       </section>
+      <section className="operations-card">
+        <h3>Erwartungswert-Rechner</h3>
+        <div className="expectancy-grid">
+          <label><span>Trefferquote %</span><Input type="number" min="0" max="100" value={expectancy.winRate} onChange={(event) => setExpectancy((value) => ({ ...value, winRate: event.target.value }))} /></label>
+          <label><span>Ø Gewinn (R)</span><Input type="number" min="0" step="0.1" value={expectancy.averageWin} onChange={(event) => setExpectancy((value) => ({ ...value, averageWin: event.target.value }))} /></label>
+          <label><span>Ø Verlust (R)</span><Input type="number" min="0" step="0.1" value={expectancy.averageLoss} onChange={(event) => setExpectancy((value) => ({ ...value, averageLoss: event.target.value }))} /></label>
+          <div className={`expectancy-result ${expectancyValue < 0 ? "danger" : "healthy"}`}><strong>{metricNumber(expectancyValue, 3)} R</strong><span>Erwartungswert je Trade</span></div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1002,6 +1523,11 @@ function Logs() {
   >([]);
   const cursor = useRef(0);
   const [paused, setPaused] = useState(false);
+  const [search, setSearch] = useState("");
+  const [regexMode, setRegexMode] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [copyMessage, setCopyMessage] = useState("");
+  const logView = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (paused) return;
     let alive = true;
@@ -1026,6 +1552,33 @@ function Logs() {
       window.clearInterval(timer);
     };
   }, [paused]);
+  const match = useMemo(() => {
+    if (!search) return () => true;
+    if (!regexMode) {
+      const needle = search.toLocaleLowerCase("de-DE");
+      return (line: string) => line.toLocaleLowerCase("de-DE").includes(needle);
+    }
+    try {
+      const pattern = new RegExp(search, "i");
+      return (line: string) => pattern.test(line);
+    } catch {
+      return () => false;
+    }
+  }, [regexMode, search]);
+  const matches = useMemo(() => entries.filter((entry) => match(entry.line)), [entries, match]);
+  const visibleEntries = matches.slice(-1_000);
+  useEffect(() => {
+    if (!autoScroll || !logView.current) return;
+    logView.current.scrollTop = logView.current.scrollHeight;
+  }, [autoScroll, visibleEntries.length]);
+  const copy = async (selected: typeof matches, label: string) => {
+    try {
+      await navigator.clipboard.writeText(selected.map((entry) => entry.line).join("\n"));
+      setCopyMessage(`${label} kopiert (${selected.length}).`);
+    } catch {
+      setCopyMessage("Kopieren wurde vom Browser blockiert.");
+    }
+  };
   return (
     <div className="operations-stack">
       <div className="operations-section-heading">
@@ -1035,22 +1588,27 @@ function Logs() {
             Cursor {cursor.current} · {entries.length} Zeilen lokal
           </p>
         </div>
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() => setPaused((value) => !value)}
-        >
-          {paused ? "Fortsetzen" : "Pausieren"}
-        </button>
+        <div className="system-actions">
+          <Button type="button" variant="outline" size="sm" onClick={() => setPaused((value) => !value)}>{paused ? "Fortsetzen" : "Pausieren"}</Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => { setEntries([]); setCopyMessage("Lokale Ansicht geleert; die Serverhistorie bleibt erhalten."); }}>Ansicht leeren</Button>
+        </div>
       </div>
-      <div className="compact-log" role="log">
-        {entries.map((entry) => (
+      <section className="operations-card log-toolbar">
+        <label><span>Textsuche</span><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Logs filtern" /></label>
+        <label className="inline-check"><input type="checkbox" checked={regexMode} onChange={(event) => setRegexMode(event.target.checked)} /> Regex</label>
+        <label className="inline-check"><input type="checkbox" checked={autoScroll} onChange={(event) => setAutoScroll(event.target.checked)} /> Autoscroll</label>
+        <Button type="button" variant="outline" size="sm" onClick={() => void copy(visibleEntries, "Sichtbare Treffer")}>Sichtbare kopieren</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => void copy(matches, "Alle Treffer")}>Alle Treffer kopieren</Button>
+      </section>
+      {copyMessage && <div className="builder-message">{copyMessage}</div>}
+      <div className="compact-log" role="log" ref={logView}>
+        {visibleEntries.map((entry) => (
           <div key={entry.cursor}>
             <span>{entry.cursor}</span>
             {entry.line}
           </div>
         ))}
-        {entries.length === 0 && <Empty text="Warte auf Log-Einträge …" />}
+        {matches.length === 0 && <Empty text={entries.length ? "Keine passenden Log-Einträge." : "Warte auf Log-Einträge …"} />}
       </div>
     </div>
   );
@@ -1626,6 +2184,12 @@ function System({
   const [runtime, setRuntime] = useState<any>(null);
   const [secrets, setSecrets] = useState<any>(null);
   const [recovery, setRecovery] = useState<any>(null);
+  const [operations, setOperations] = useState<any>(null);
+  const [access, setAccess] = useState<any>(null);
+  const [setupPreview, setSetupPreview] = useState<any>(null);
+  const [setupMappings, setSetupMappings] = useState<Record<string, string>>({});
+  const [setupConfirmation, setSetupConfirmation] = useState("");
+  const [dangerConfirmation, setDangerConfirmation] = useState("");
   const [secretInput, setSecretInput] = useState<Record<string, string>>({});
   const [loginValue, setLoginValue] = useState("");
   const [loginName, setLoginName] = useState({ firstName: "", lastName: "" });
@@ -1633,17 +2197,21 @@ function System({
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const load = useCallback(async () => {
-    const [configuration, runtimePayload, secretPayload, recoveryPayload] =
+    const [configuration, runtimePayload, secretPayload, recoveryPayload, operationsPayload, accessPayload] =
       await Promise.all([
         requestJson("/api/config"),
         requestJson("/api/runtime-settings"),
         requestJson("/api/secrets"),
         requestJson("/api/recovery"),
+        requestJson("/api/operations"),
+        requestJson("/api/access"),
       ]);
     setConfig(configuration);
     setRuntime(runtimePayload.settings);
     setSecrets(secretPayload.secrets);
     setRecovery(recoveryPayload);
+    setOperations(operationsPayload.operations || {});
+    setAccess(accessPayload);
   }, []);
   useEffect(() => {
     void load().catch((reason) => setMessage(reason.message));
@@ -1795,6 +2363,112 @@ function System({
         window.location.href = "/";
       }, 2_500);
     }
+  };
+  const revokeViewer = async () => {
+    if (!window.confirm("Viewer-Key widerrufen und bestehende Viewer-Anmeldungen ungültig machen?")) return;
+    await execute(
+      "viewer-revoke",
+      () => requestJson("/api/access-tokens/viewer", {
+        method: "DELETE",
+        headers: { "X-Destructive-Confirmation": "disable-viewer-token" },
+      }),
+      "Viewer-Key wurde widerrufen.",
+    );
+  };
+  const replayAudit = async () => {
+    await execute(
+      "audit-replay",
+      () => requestJson("/api/operations/audit-replay", {
+        method: "POST",
+        headers: { "X-Destructive-Confirmation": "replay-audit" },
+      }),
+      "Ausstehende Audit-Ereignisse wurden erneut übertragen.",
+    );
+  };
+  const exportSetup = async () => {
+    setBusy("setup-export");
+    setMessage("");
+    try {
+      const response = await apiFetch("/api/setup-bundle/export");
+      if (!response.ok) throw new Error(`Setup-Export fehlgeschlagen (${response.status}).`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `tsx-core-setup-${new Date().toISOString().slice(0, 10)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setMessage("Geheimnisfreies Setup-Bundle exportiert.");
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setBusy("");
+    }
+  };
+  const previewSetup = async (file: File | null) => {
+    if (!file) return;
+    setBusy("setup-preview");
+    setMessage("");
+    setSetupPreview(null);
+    try {
+      if (file.size > 4 * 1024 * 1024) throw new Error("Setup-Bundle ist größer als 4 MB.");
+      const bundle = JSON.parse(await file.text());
+      const preview = await requestJson("/api/setup-bundle/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bundle }),
+      });
+      setSetupPreview(preview);
+      setSetupMappings(preview.accountMapping?.automatic || {});
+      setSetupConfirmation("");
+      setMessage("Bundle validiert. Prüfe Diff und Kontozuordnung vor der Anwendung.");
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setBusy("");
+    }
+  };
+  const applySetup = async () => {
+    if (!setupPreview) return;
+    const result = await execute(
+      "setup-apply",
+      () => requestJson("/api/setup-bundle/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          previewKey: setupPreview.previewKey,
+          confirmation: setupConfirmation,
+          accountMappings: setupMappings,
+        }),
+      }),
+      "Setup wurde nach verifizierter Sicherung vollständig ersetzt.",
+    );
+    if (result) {
+      setSetupPreview(null);
+      setSetupMappings({});
+      setSetupConfirmation("");
+    }
+  };
+  const dangerAction = async (kind: "clear" | "factory") => {
+    const expected = kind === "clear" ? "DATENBANK LEEREN" : "FACTORY RESET";
+    if (dangerConfirmation !== expected) return;
+    const result = await execute(
+      `danger-${kind}`,
+      () => requestJson(kind === "clear" ? "/api/clear-database" : "/api/factory-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Destructive-Confirmation": kind === "clear" ? "clear-database" : "factory-reset",
+        },
+        body: JSON.stringify({ confirmation: expected }),
+      }),
+      kind === "clear" ? "Betriebsdatenbank wurde geleert." : "Factory Reset wurde gestartet.",
+    );
+    if (result && kind === "factory") {
+      clearDashboardToken();
+      window.setTimeout(() => { window.location.href = "/"; }, 2_500);
+    }
+    if (result) setDangerConfirmation("");
   };
   if (!config || !runtime)
     return (
@@ -2229,6 +2903,14 @@ function System({
       </section>
       <section className="operations-card">
         <h3>Zugriffsschlüssel</h3>
+        <div className="system-line">
+          <span>Aktuelle Identität</span>
+          <strong>{access?.identity?.name || access?.identity?.login || access?.actorId || "unbekannt"} · {access?.role || "–"}</strong>
+        </div>
+        <div className="system-line">
+          <span>Remote-Verbindung</span>
+          <strong>{access?.remoteAccess?.connected ? `${access.remoteAccess.provider} verbunden` : "nicht verbunden"}</strong>
+        </div>
         <div className="system-actions">
           <button
             type="button"
@@ -2246,6 +2928,14 @@ function System({
           >
             Viewer-Key erzeugen/rotieren
           </button>
+          <button
+            type="button"
+            className="danger-button"
+            disabled={Boolean(busy)}
+            onClick={() => void revokeViewer()}
+          >
+            Viewer-Key widerrufen
+          </button>
         </div>
         {issuedToken && (
           <div className="one-time-inline">
@@ -2259,6 +2949,59 @@ function System({
             </button>
           </div>
         )}
+      </section>
+      <section className="operations-card setup-bundle-card">
+        <h3>Portables Setup-Bundle</h3>
+        <p className="operations-help">Exportiert Builder, Parser, Verträge, Strategien und nicht-geheime Einstellungen. Zugangsdaten, Tokens, Tailscale-Identitäten, Nachrichten, Logs, Journal und Backups bleiben ausgeschlossen.</p>
+        <div className="system-actions">
+          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => void exportSetup()}>Setup exportieren</Button>
+          <label className="secondary-button setup-file-button">
+            {busy === "setup-preview" ? "Prüfe Bundle…" : "Bundle auswählen"}
+            <input type="file" accept="application/json,.json" disabled={Boolean(busy)} onChange={(event) => { void previewSetup(event.target.files?.[0] || null); event.currentTarget.value = ""; }} />
+          </label>
+        </div>
+        {setupPreview && (
+          <div className="setup-preview">
+            <div className="setup-diff-grid">
+              <Metric label="Aktuelle Bausteine" value={setupPreview.diff.current.nodes} />
+              <Metric label="Import-Bausteine" value={setupPreview.diff.imported.nodes} />
+              <Metric label="Import-Verbindungen" value={setupPreview.diff.imported.edges} />
+              <Metric label="Import-Ressourcen" value={setupPreview.diff.imported.resources} />
+            </div>
+            <p>Vorschau gültig bis {time(setupPreview.expiresAt)} · Prüfsumme {String(setupPreview.bundleHash).slice(0, 16)}…</p>
+            {(setupPreview.accountReferences || []).map((reference: any) => (
+              <label key={reference.sourceAccountId}>
+                <span>{reference.name} · {reference.exchange}/{reference.mode}</span>
+                <select value={setupMappings[reference.sourceAccountId] || ""} onChange={(event) => setSetupMappings((value) => ({ ...value, [reference.sourceAccountId]: event.target.value }))}>
+                  <option value="">Lokales Konto zuordnen</option>
+                  {(setupPreview.accountMapping?.candidates || []).filter((candidate: any) => candidate.exchange === reference.exchange && candidate.mode === reference.mode).map((candidate: any) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+                </select>
+              </label>
+            ))}
+            <label>
+              <span>Zum Ersetzen exakt „{setupPreview.confirmation}“ eingeben</span>
+              <Input autoComplete="off" value={setupConfirmation} onChange={(event) => setSetupConfirmation(event.target.value)} />
+            </label>
+            <Button type="button" variant="destructive" disabled={Boolean(busy) || setupConfirmation !== setupPreview.confirmation || (setupPreview.accountReferences || []).some((reference: any) => !setupMappings[reference.sourceAccountId])} onClick={() => void applySetup()}>
+              {busy === "setup-apply" ? "Sichere und ersetze…" : "Bestehendes Setup sicher ersetzen"}
+            </Button>
+          </div>
+        )}
+      </section>
+      <section className="operations-card">
+        <h3>Audit und Diagnose</h3>
+        <div className="system-line"><span>Audit-Zustand</span><strong>{operations?.audit?.healthy === false ? "gestört" : "bereit"}</strong></div>
+        <div className="system-line"><span>Letzte erfolgreiche Sicherung</span><strong>{time(operations?.backup?.lastSuccessAt)}</strong></div>
+        <div className="system-actions">
+          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => void replayAudit()}>Audit erneut übertragen</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.open("/api/status", "_blank", "noopener,noreferrer")}
+          >
+            Diagnosestatus öffnen
+          </Button>
+        </div>
       </section>
       <section className="operations-card">
         <h3>Exchange Engine</h3>
@@ -2283,6 +3026,16 @@ function System({
             <strong>{exchange.modes.join(" · ")}</strong>
           </div>
         ))}
+      </section>
+      <section className="operations-card danger-zone">
+        <h3>Gefahrenzone</h3>
+        <p>Nur mit Administratorrolle und einer aktuellen, gesunden Sicherung. „Datenbank leeren“ bewahrt Trading-Zustand gemäß Serverrichtlinie; Factory Reset entfernt die vollständige lokale Installation.</p>
+        <div className="system-line"><span>Sicherung</span><strong>{operations?.backup?.healthy ? `gesund · ${time(operations.backup.lastSuccessAt)}` : "nicht aktuell – Aktion gesperrt"}</strong></div>
+        <label><span>Bestätigung</span><Input autoComplete="off" value={dangerConfirmation} onChange={(event) => setDangerConfirmation(event.target.value)} placeholder="DATENBANK LEEREN oder FACTORY RESET" /></label>
+        <div className="system-actions">
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || dangerConfirmation !== "DATENBANK LEEREN"} onClick={() => void dangerAction("clear")}>Datenbank leeren</Button>
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || dangerConfirmation !== "FACTORY RESET"} onClick={() => void dangerAction("factory")}>Factory Reset</Button>
+        </div>
       </section>
     </div>
   );
@@ -2328,7 +3081,7 @@ export function OperationsWorkspace({
       return (
         <Accounts trading={trading} catalog={catalog} onRefresh={onRefresh} />
       );
-    if (tab === "journal") return <Journal />;
+    if (tab === "journal") return <Journal trading={trading} onRefresh={onRefresh} />;
     if (tab === "analytics") return <Analytics trading={trading} />;
     if (tab === "logs") return <Logs />;
     if (tab === "backups") return <Backups />;
@@ -2370,7 +3123,7 @@ export function OperationsWorkspace({
               return (
                 <TabsTrigger key={item.id} value={item.id}>
                   <Icon />
-                  <span>{item.label}</span>
+                  <span><strong>{item.label}</strong><small>{item.description}</small></span>
                 </TabsTrigger>
               );
             })}

@@ -39,7 +39,6 @@ import {
   ServerCog,
   ShieldCheck,
   Trash2,
-  Unlink2,
   X,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -369,7 +368,6 @@ function WorkflowStatusbar({
   onRoutes,
   onSimulation,
   onLibrary,
-  onDisconnectAll,
   routeTriggerRef,
   simulationTriggerRef,
   libraryTriggerRef,
@@ -384,7 +382,6 @@ function WorkflowStatusbar({
   onRoutes: () => void;
   onSimulation: () => void;
   onLibrary: () => void;
-  onDisconnectAll: () => void;
   routeTriggerRef: RefObject<HTMLButtonElement | null>;
   simulationTriggerRef: RefObject<HTMLButtonElement | null>;
   libraryTriggerRef: RefObject<HTMLButtonElement | null>;
@@ -450,15 +447,6 @@ function WorkflowStatusbar({
             onChange={(event) => onSearch(event.target.value)}
           />
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={saving || graph.edges.length === 0}
-          onClick={onDisconnectAll}
-        >
-          <Unlink2 data-icon="inline-start" /> Alle Verbindungen lösen
-        </Button>
         <div className="save-indicator">
           {saving ? (
             <>
@@ -478,9 +466,17 @@ function WorkflowStatusbar({
 function WorkspaceStatusbar({
   workspace,
   onRefresh,
+  trading,
+  systemStatus,
+  refreshing,
+  lastUpdated,
 }: Readonly<{
   workspace: Exclude<WorkflowWorkspace, "builder">;
   onRefresh: () => Promise<void>;
+  trading: TradingSnapshot | null;
+  systemStatus: Record<string, any> | null;
+  refreshing: boolean;
+  lastUpdated: number | null;
 }>) {
   const copy = {
     dashboard: {
@@ -496,20 +492,86 @@ function WorkspaceStatusbar({
       description: "Konten, Journal, Logs, Backups, MCP und System verwalten.",
     },
   }[workspace];
+  const runtime = trading?.overview.runtime;
+  const openIncidents = (trading?.accountIncidents || []).filter(
+    (incident) => incident.status === "open",
+  );
+  const dashboardCockpit = [
+    {
+      label: "Telegram",
+      value: systemStatus?.connectionState || "offline",
+      healthy: systemStatus?.connectionState === "connected",
+    },
+    {
+      label: "Execution",
+      value: runtime?.executionEnabled ? "aktiv" : "pausiert",
+      healthy: runtime?.executionEnabled === true,
+    },
+    {
+      label: "Schutz",
+      value: runtime?.killSwitchActive
+        ? runtime.killSwitchReason || "global gesperrt"
+        : openIncidents.length
+          ? `${openIncidents.length} Incident(s)`
+          : "bereit",
+      healthy: runtime?.killSwitchActive !== true && openIncidents.length === 0,
+    },
+  ];
+  const operationsCockpit = [
+    {
+      label: "System",
+      value: systemStatus?.state || systemStatus?.status || "erreichbar",
+      healthy: !systemStatus?.error,
+    },
+    {
+      label: "Letzte Sicherung",
+      value: systemStatus?.operations?.backup?.lastSuccessAt
+        ? new Date(systemStatus.operations.backup.lastSuccessAt).toLocaleString("de-DE")
+        : "Status in Backups",
+      healthy: systemStatus?.operations?.backup?.healthy === true,
+    },
+    {
+      label: "MCP",
+      value: systemStatus?.mcp?.mode || "inaktiv",
+      healthy: systemStatus?.mcp?.mode === "active",
+    },
+    {
+      label: "Incidents",
+      value: openIncidents.length ? String(openIncidents.length) : "keine",
+      healthy: openIncidents.length === 0,
+    },
+  ];
+  const items = workspace === "dashboard"
+    ? dashboardCockpit
+    : workspace === "operations"
+      ? operationsCockpit
+      : [];
   return (
     <section className="workflow-statusbar workspace-statusbar">
       <div>
         <strong>{copy.title}</strong>
         <span>{copy.description}</span>
       </div>
+      {items.map((item) => (
+        <div className="workspace-status-item" key={item.label}>
+          <span className={`status-dot ${item.healthy ? "healthy" : "muted"}`} />
+          <span>{item.label}</span>
+          <strong>{item.value}</strong>
+        </div>
+      ))}
       <div className="workflow-status-tools">
+        <span className="workspace-last-updated">
+          {lastUpdated
+            ? `zuletzt aktualisiert ${new Date(lastUpdated).toLocaleTimeString("de-DE")}`
+            : "noch nicht aktualisiert"}
+        </span>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => void onRefresh()}
         >
-          <RefreshCw data-icon="inline-start" /> Aktualisieren
+          <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
         </Button>
       </div>
     </section>
@@ -792,7 +854,7 @@ export function WorkflowBuilder() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<BuilderNoticeValue | null>(null);
   const [activeWorkspace, setActiveWorkspace] =
-    useState<WorkflowWorkspace>("builder");
+    useState<WorkflowWorkspace>("dashboard");
   const [editorNodeId, setEditorNodeId] = useState<string | null>(null);
   const [newKind, setNewKind] = useState<WorkflowKind | null>(null);
   const [kindPickerOpen, setKindPickerOpen] = useState(false);
@@ -821,6 +883,11 @@ export function WorkflowBuilder() {
   const routeTriggerRef = useRef<HTMLButtonElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const reactFlowRef = useRef<ReactFlowInstance<Node, Edge> | null>(null);
+  const fitViewPendingRef = useRef(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const operationalRefreshRef = useRef(false);
+  const operationalRefreshQueuedRef = useRef(false);
   const closeLibrary = useCallback(() => {
     setKindPickerOpen(false);
     setLibraryKind(null);
@@ -841,22 +908,26 @@ export function WorkflowBuilder() {
 
   const revealNode = useCallback((node: WorkflowGraph["nodes"][number]) => {
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        void reactFlowRef.current?.setCenter(
-          KIND_META[node.kind].order * COLUMN_GAP +
-            WORKFLOW_NODE_DIMENSIONS.width / 2,
-          node.position.y + WORKFLOW_NODE_DIMENSIONS.height / 2,
-          { zoom: 0.88, duration: 420 },
-        );
-      });
+      void reactFlowRef.current?.setCenter(
+        KIND_META[node.kind].order * COLUMN_GAP +
+          WORKFLOW_NODE_DIMENSIONS.width / 2,
+        node.position.y + WORKFLOW_NODE_DIMENSIONS.height / 2,
+        {
+          zoom: 0.88,
+          duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? 0
+            : 160,
+        },
+      );
     });
   }, []);
 
   const showAllNodes = useCallback(() => {
-    if (graphRef.current.nodes.length === 0) return;
+    if (graphRef.current.nodes.length === 0 || fitViewPendingRef.current) return;
+    fitViewPendingRef.current = true;
     setSearch("");
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
+      try {
         const instance = reactFlowRef.current;
         const canvas = canvasRef.current;
         if (!instance || !canvas) return;
@@ -873,8 +944,14 @@ export function WorkflowBuilder() {
           0.88,
           0.12,
         );
-        void instance.setViewport(viewport, { duration: 420 });
-      });
+        void instance.setViewport(viewport, {
+          duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? 0
+            : 160,
+        });
+      } finally {
+        fitViewPendingRef.current = false;
+      }
     });
   }, []);
 
@@ -894,8 +971,52 @@ export function WorkflowBuilder() {
     );
     setCatalog(exchangeCatalog(catalogPayload));
     setGraph(normalizeWorkflowGrid(nextSnapshot.workflow?.graph || EMPTY_GRAPH));
+    setLastUpdated(Date.now());
     setLoading(false);
   }, []);
+
+  const refreshOperationalState = useCallback(async () => {
+    if (operationalRefreshRef.current) {
+      operationalRefreshQueuedRef.current = true;
+      return;
+    }
+    operationalRefreshRef.current = true;
+    setRefreshing(true);
+    try {
+      const [tradingPayload, statusPayload, operationsPayload] = await Promise.all([
+        jsonRequest("/api/trading"),
+        jsonRequest("/api/status"),
+        activeWorkspace === "operations"
+          ? jsonRequest("/api/operations")
+          : Promise.resolve(null),
+      ]);
+      setTrading(tradingSnapshot(tradingPayload));
+      setSystemStatus(
+        statusPayload && typeof statusPayload === "object"
+          ? {
+              ...statusPayload,
+              ...(operationsPayload?.operations
+                ? { operations: operationsPayload.operations }
+                : {}),
+            }
+          : null,
+      );
+      setLastUpdated(Date.now());
+    } finally {
+      operationalRefreshRef.current = false;
+      setRefreshing(false);
+      if (operationalRefreshQueuedRef.current) {
+        operationalRefreshQueuedRef.current = false;
+        void refreshOperationalState();
+      }
+    }
+  }, [activeWorkspace]);
+
+  useEffect(() => {
+    if (activeWorkspace !== "builder") {
+      void refreshOperationalState().catch(() => undefined);
+    }
+  }, [activeWorkspace, refreshOperationalState]);
 
   useEffect(() => {
     void load().catch((error) => {
@@ -906,22 +1027,12 @@ export function WorkflowBuilder() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      void Promise.all([
-        jsonRequest("/api/trading"),
-        jsonRequest("/api/status"),
-      ])
-        .then(([tradingPayload, statusPayload]) => {
-          setTrading(tradingSnapshot(tradingPayload));
-          setSystemStatus(
-            statusPayload && typeof statusPayload === "object"
-              ? statusPayload
-              : null,
-          );
-        })
-        .catch(() => undefined);
-    }, 5000);
+      if (activeWorkspace !== "builder") {
+        void refreshOperationalState().catch(() => undefined);
+      }
+    }, activeWorkspace === "operations" ? 3000 : 5000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [activeWorkspace, refreshOperationalState]);
 
   const resourceById = useMemo(
     () =>
@@ -1042,7 +1153,7 @@ export function WorkflowBuilder() {
   }, []);
 
   const connectNodes = useCallback(
-    (sourceId: string, targetId: string) => {
+    async (sourceId: string, targetId: string) => {
       const source = graphRef.current.nodes.find(
         (node) => node.id === sourceId,
       );
@@ -1072,10 +1183,30 @@ export function WorkflowBuilder() {
         cancelConnection();
         return;
       }
+      const upstreamChannels = channelNodesReachingSource(
+        graphRef.current,
+        source.id,
+      );
+      if (upstreamChannels.length <= 1) {
+        const candidate = structuredClone(graphRef.current);
+        const edgeId = newId("edge");
+        candidate.edges.push({
+          id: edgeId,
+          source: source.id,
+          target: target.id,
+          ...(upstreamChannels.length === 1
+            ? { channelNodeIds: [upstreamChannels[0]] }
+            : {}),
+        });
+        const activated = await activateGraph(candidate, "Verbindung aktiviert");
+        if (activated) setSelectedEdgeId(edgeId);
+        cancelConnection();
+        return;
+      }
       setConnectionDraft({ sourceId: source.id, targetId: target.id });
       cancelConnection();
     },
-    [cancelConnection],
+    [activateGraph, cancelConnection],
   );
 
   const saveConnectionRouting = useCallback(
@@ -1376,6 +1507,7 @@ export function WorkflowBuilder() {
     if (!edge) return null;
     const source = graph.nodes.find((node) => node.id === edge.source);
     const target = graph.nodes.find((node) => node.id === edge.target);
+    const upstreamChannels = channelNodesReachingSource(graph, edge.source);
     return {
       edge,
       sourceName: source
@@ -1394,8 +1526,9 @@ export function WorkflowBuilder() {
               channelNodeId
           : channelNodeId;
       }),
+      canEditScope: upstreamChannels.length > 1,
     };
-  }, [graph.edges, graph.nodes, resourceById, selectedEdgeId]);
+  }, [graph, resourceById, selectedEdgeId]);
 
   const connectionDialog = useMemo(() => {
     if (!connectionDraft) return null;
@@ -1670,20 +1803,6 @@ export function WorkflowBuilder() {
     }
   };
 
-  const disconnectAllEdges = async () => {
-    if (graphRef.current.edges.length === 0) return;
-    const candidate = structuredClone(graphRef.current);
-    candidate.edges = [];
-    const activated = await activateGraph(
-      candidate,
-      "Alle Verbindungen wurden gelöst",
-    );
-    if (activated) {
-      setSelectedEdgeId(null);
-      cancelConnection();
-    }
-  };
-
   const deleteNode = async () => {
     if (!selectedNode) return;
     const candidate = structuredClone(graphRef.current);
@@ -1756,13 +1875,19 @@ export function WorkflowBuilder() {
             setLibraryKind(null);
             setKindPickerOpen(true);
           }}
-          onDisconnectAll={() => void disconnectAllEdges()}
           routeTriggerRef={routeTriggerRef}
           simulationTriggerRef={simulationTriggerRef}
           libraryTriggerRef={libraryTriggerRef}
         />
       ) : (
-        <WorkspaceStatusbar workspace={activeWorkspace} onRefresh={load} />
+        <WorkspaceStatusbar
+          workspace={activeWorkspace}
+          onRefresh={refreshOperationalState}
+          trading={trading}
+          systemStatus={systemStatus}
+          refreshing={refreshing}
+          lastUpdated={lastUpdated}
+        />
       )}
       {activeWorkspace === "builder" ? (
         <>
@@ -1782,12 +1907,6 @@ export function WorkflowBuilder() {
           edgeTypes={edgeTypes}
           onInit={(instance) => {
             reactFlowRef.current = instance;
-            const firstNode = [...graphRef.current.nodes].sort(
-              (left, right) =>
-                KIND_META[left.kind].order - KIND_META[right.kind].order ||
-                left.position.y - right.position.y,
-            )[0];
-            if (firstNode) revealNode(firstNode);
           }}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
@@ -1957,50 +2076,6 @@ export function WorkflowBuilder() {
               </Card>
             </Panel>
           )}
-          {selectedConnection && (
-            <Panel position="bottom-center" className="edge-inspector-panel">
-              <Card
-                role="toolbar"
-                aria-label={`Verbindung von ${selectedConnection.sourceName} zu ${selectedConnection.targetName}`}
-              >
-                <CardContent>
-                  <Link2 aria-hidden="true" />
-                  <span>
-                    <strong>{selectedConnection.sourceName}</strong>
-                    <small>verbunden mit</small>
-                    <strong>{selectedConnection.targetName}</strong>
-                    <small>
-                      {selectedConnection.channelNames
-                        ? `Nur: ${selectedConnection.channelNames.join(", ")}`
-                        : "Alle Ursprungskanäle"}
-                    </small>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setConnectionDraft({
-                        edgeId: selectedConnection.edge.id,
-                        sourceId: selectedConnection.edge.source,
-                        targetId: selectedConnection.edge.target,
-                      })
-                    }
-                  >
-                    Routing bearbeiten
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => void removeEdge(selectedConnection.edge.id)}
-                  >
-                    <Trash2 data-icon="inline-start" /> Verbindung löschen
-                  </Button>
-                </CardContent>
-              </Card>
-            </Panel>
-          )}
             </ReactFlow>
           </div>
         </>
@@ -2009,7 +2084,7 @@ export function WorkflowBuilder() {
           trading={trading}
           catalog={catalog}
           systemStatus={systemStatus}
-          onRefresh={load}
+          onRefresh={refreshOperationalState}
           ariaLabel={
             activeWorkspace === "dashboard"
               ? "Dashboard"
@@ -2046,6 +2121,52 @@ export function WorkflowBuilder() {
           void saveConnectionRouting(channelNodeIds)
         }
       />
+      <Dialog
+        open={Boolean(selectedConnection)}
+        onOpenChange={(open) => !open && setSelectedEdgeId(null)}
+      >
+        <DialogContent className="workflow-connection-inspector sm:max-w-lg">
+          <DialogHeader>
+            <Badge variant="secondary"><Link2 /> Verbindung</Badge>
+            <DialogTitle>
+              {selectedConnection?.sourceName} → {selectedConnection?.targetName}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedConnection?.channelNames?.length
+                ? `Nur für ${selectedConnection.channelNames.join(", ")}`
+                : "Für alle Ursprungskanäle dieses Pfads."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="workflow-connection-inspector-actions">
+            {selectedConnection?.canEditScope && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (!selectedConnection) return;
+                  setConnectionDraft({
+                    edgeId: selectedConnection.edge.id,
+                    sourceId: selectedConnection.edge.source,
+                    targetId: selectedConnection.edge.target,
+                  });
+                  setSelectedEdgeId(null);
+                }}
+              >
+                Routing bearbeiten
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() =>
+                selectedConnection && void removeEdge(selectedConnection.edge.id)
+              }
+            >
+              <Trash2 data-icon="inline-start" /> Verbindung löschen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <ResourceEditor
         open={Boolean(editorNodeId || newKind)}
         kind={editorKind}

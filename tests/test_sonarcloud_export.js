@@ -24,7 +24,7 @@ async function sonarFetch(url, options) {
   if (parsed.pathname === '/api/issues/search') {
     const page = Number(parsed.searchParams.get('p'));
     const issue = page === 1
-      ? { key: 'issue-1', impacts: [{ softwareQuality: 'RELIABILITY', severity: 'HIGH' }] }
+      ? { key: 'issue-1', severity: 'CRITICAL', impacts: [{ softwareQuality: 'RELIABILITY', severity: 'HIGH' }] }
       : { key: 'issue-2', impacts: [{ softwareQuality: 'SECURITY', severity: 'MEDIUM' }] };
     return jsonResponse({ issues: [issue], paging: { total: 2 } });
   }
@@ -57,6 +57,7 @@ try {
   assert.equal(summary.expectedRevision, revision);
   assert.equal(summary.revisionMatchesExpectation, true);
   assert.equal(summary.openIssueCount, 2);
+  assert.equal(summary.blockerOrCriticalIssueCount, 1);
   assert.equal(summary.toReviewHotspotCount, 1);
   assert.equal(summary.qualityGate.status, 'OK');
   assert.ok(calls.every(call => call.url.searchParams.get('branch') === 'main'));

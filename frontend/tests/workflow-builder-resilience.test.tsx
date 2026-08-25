@@ -38,6 +38,11 @@ import {
   WorkflowBuilder,
 } from "@/app/workflow/workflow-builder";
 
+async function openBuilderWorkspace() {
+  fireEvent.click(await screen.findByRole("tab", { name: "Builder" }));
+  await waitFor(() => expect(screen.getByTestId("workflow-canvas")).toBeVisible());
+}
+
 describe("workflow builder resilience", () => {
   afterEach(() => {
     cleanup();
@@ -58,6 +63,11 @@ describe("workflow builder resilience", () => {
         screen.getByRole("main", { name: "TSX Core Workflow Builder" }),
       ).toBeVisible(),
     );
+    expect(screen.getByRole("tab", { name: "Dashboard" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await openBuilderWorkspace();
     expect(screen.getByTestId("workflow-canvas")).toBeVisible();
     expect(screen.getByText("Noch keine aktive Revision")).toBeVisible();
   });
@@ -124,7 +134,7 @@ describe("workflow builder resilience", () => {
     });
 
     render(<WorkflowBuilder />);
-
+    await openBuilderWorkspace();
     await waitFor(() => expect(flow.props).not.toBeNull());
     const nodes = flow.props?.nodes as Array<Record<string, unknown>>;
     const header = nodes.find((node) => node.id === "__column_channel");
@@ -189,6 +199,7 @@ describe("workflow builder resilience", () => {
     });
 
     render(<WorkflowBuilder />);
+    await openBuilderWorkspace();
     await waitFor(() => expect(flow.props).not.toBeNull());
     expect(
       screen.queryByRole("button", {
@@ -224,8 +235,13 @@ describe("workflow builder resilience", () => {
       graph,
       compiled: { paths: [], warnings: [] },
     };
-    api.apiFetch.mockImplementation(async (input: RequestInfo | URL) => {
+    api.apiFetch.mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
+      const requestedGraph =
+        url === "/api/workflow/mutate" && typeof init?.body === "string"
+          ? JSON.parse(init.body).graph
+          : null;
       const payload =
         url === "/api/workflow"
           ? {
@@ -259,16 +275,7 @@ describe("workflow builder resilience", () => {
                     ...workflow,
                     id: "revision-2",
                     revision: 2,
-                    graph: {
-                      ...graph,
-                      edges: [
-                        {
-                          id: "edge-new",
-                          source: "node-channel",
-                          target: "node-output",
-                        },
-                      ],
-                    },
+                    graph: requestedGraph,
                   },
                 }
               : {};
@@ -276,9 +283,11 @@ describe("workflow builder resilience", () => {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    });
+      },
+    );
 
     render(<WorkflowBuilder />);
+    await openBuilderWorkspace();
     await waitFor(() => expect(flow.props).not.toBeNull());
     if (!flow.props) throw new Error("React Flow props were not captured.");
     const source = (flow.props.nodes as Array<any>).find(
@@ -303,9 +312,9 @@ describe("workflow builder resilience", () => {
     expect(
       await screen.findByRole("heading", { name: /Test channel.*Test output/ }),
     ).toBeVisible();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Routing übernehmen" }),
-    );
+    expect(
+      screen.queryByText("Alle Kanäle weiterleiten"),
+    ).not.toBeInTheDocument();
     await waitFor(() =>
       expect(api.apiFetch).toHaveBeenCalledWith(
         "/api/workflow/mutate",

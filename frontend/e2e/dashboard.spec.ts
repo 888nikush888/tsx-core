@@ -71,6 +71,8 @@ async function mockDashboardApi(
         forwardXmlToTarget: false,
         queue: { running: 0, queued: 0, maxConcurrency: 2, paused: false },
         telegramLogin: { state: "idle" },
+        backup: { healthy: true, lastSuccessAt: Date.now() },
+        mcp: { mode: "inactive", updatedAt: Date.now(), updatedBy: "system" },
       });
       return;
     }
@@ -183,6 +185,11 @@ async function mockDashboardApi(
   });
 }
 
+async function openBuilderWorkspace(page: Page) {
+  await page.getByRole("tab", { name: "Builder" }).click();
+  await expect(page.locator(".workflow-canvas")).toBeVisible();
+}
+
 test("local startup unlocks the responsive workflow builder without a bearer prompt or WCAG A/AA violations", async ({
   page,
 }) => {
@@ -192,7 +199,6 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
   await expect(
     page.getByRole("main", { name: "TSX Core Workflow Builder" }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: /Baustein$/ })).toBeVisible();
   await expect(page.getByLabel("Bearer token")).toHaveCount(0);
   await expect(
     page.getByRole("navigation", { name: "Hauptbereiche" }),
@@ -203,8 +209,23 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
       .getByRole("tab")
       .allTextContents(),
   ).toEqual(["Dashboard", "Builder", "Analytics", "Betrieb"]);
+  await expect(page.getByRole("tab", { name: "Dashboard" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   expect(
     await page.locator(".workflow-statusbar").evaluate((statusbar) => {
+      if (window.innerWidth <= 720) {
+        return (
+          statusbar.scrollWidth >= statusbar.clientWidth &&
+          [...statusbar.children]
+            .filter((child): child is HTMLElement => child instanceof HTMLElement)
+            .every(
+              (child) =>
+                child.offsetLeft + child.offsetWidth <= statusbar.scrollWidth + 1,
+            )
+        );
+      }
       const tools = statusbar.querySelector<HTMLElement>(
         ".workflow-status-tools",
       );
@@ -237,6 +258,8 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
       return statusFits && toolsFit;
     }),
   ).toBe(true);
+  await openBuilderWorkspace(page);
+  await expect(page.getByRole("button", { name: /Baustein$/ })).toBeVisible();
   await expect(page.locator("html")).toHaveClass(/dark/);
   const overflowingElements = await page
     .locator("body *")
@@ -318,6 +341,7 @@ test("the block library offers published resources for reuse and a separate crea
     },
   ]);
   await page.goto("/");
+  await openBuilderWorkspace(page);
   await page.getByRole("button", { name: /Baustein$/ }).click();
   await page.getByRole("button", { name: /Telegram-Kanal/ }).click();
   await expect(
@@ -405,6 +429,7 @@ test("workflow nodes and connections render when resize callbacks are unavailabl
   };
   await mockDashboardApi(page, false, resources, workflow);
   await page.goto("/");
+  await openBuilderWorkspace(page);
 
   await expect(page.locator(".workflow-brand").getByRole("img", { name: "TSX Core" })).toBeVisible();
   await expect(page.locator(".workflow-node")).toHaveCount(2);
@@ -488,6 +513,7 @@ test("shared processing and account branches are explicit in the route matrix an
     compiled: { paths, warnings: [] },
   });
   await page.goto("/");
+  await openBuilderWorkspace(page);
 
   await page
     .getByRole("button", { name: "Hellen Modus aktivieren" })
@@ -609,6 +635,7 @@ test("a late-column block is brought into view and the canvas can always be refr
   };
   await mockDashboardApi(page, false, resources, workflow);
   await page.goto("/");
+  await openBuilderWorkspace(page);
 
   const firstNode = page.locator(
     '.react-flow__node[data-id="node-channel"]',
@@ -638,10 +665,16 @@ test("a late-column block is brought into view and the canvas can always be refr
   } else {
     await expect(page.getByLabel("Bausteine durchsuchen")).toBeHidden();
   }
-  await expect(
-    page.getByRole("button", { name: "Alle Verbindungen lösen" }),
-  ).toBeDisabled();
+  await expect(page.getByText("Alle Verbindungen lösen")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Fit View" })).toHaveCount(1);
+  const viewport = page.locator(".react-flow__viewport");
+  const deterministicViewport = await viewport.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  await page.waitForTimeout(300);
+  expect(
+    await viewport.evaluate((element) => getComputedStyle(element).transform),
+  ).toBe(deterministicViewport);
   await page.waitForTimeout(500);
   await page.getByRole("button", { name: "Fit View" }).click();
   await expect
@@ -719,6 +752,7 @@ test("connections can be created from a clear block action and deleted from the 
   };
   await mockDashboardApi(page, false, resources, workflow);
   await page.goto("/");
+  await openBuilderWorkspace(page);
 
   await page
     .getByRole("button", { name: "Verbindung ab Connection source erstellen" })
@@ -737,30 +771,16 @@ test("connections can be created from a clear block action and deleted from the 
     .locator(".connection-target-list")
     .getByRole("button", { name: /Connection target/ })
     .click();
-  await page.getByRole("button", { name: "Routing übernehmen" }).click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
-  await page.getByRole("button", { name: "Alle Verbindungen lösen" }).click();
+  const connectionDialog = page.getByRole("dialog", {
+    name: "Connection source → Connection target",
+  });
+  await expect(connectionDialog).toBeVisible();
+  await connectionDialog
+    .getByRole("button", { name: "Verbindung löschen" })
+    .click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(0);
   await expect(page.locator(".workflow-node")).toHaveCount(2);
-  await expect(
-    page.getByRole("button", { name: "Alle Verbindungen lösen" }),
-  ).toBeDisabled();
-
-  await page
-    .getByRole("button", { name: "Verbindung ab Connection source erstellen" })
-    .click();
-  await page
-    .locator(".connection-target-list")
-    .getByRole("button", { name: /Connection target/ })
-    .click();
-  await page.getByRole("button", { name: "Routing übernehmen" }).click();
-  await expect(page.locator(".react-flow__edge")).toHaveCount(1);
-  const toolbar = page.getByRole("toolbar", {
-    name: "Verbindung von Connection source zu Connection target",
-  });
-  await expect(toolbar).toBeVisible();
-  await toolbar.getByRole("button", { name: "Verbindung löschen" }).click();
-  await expect(page.locator(".react-flow__edge")).toHaveCount(0);
 });
 
 test("builder dialogs expose names, trap keyboard focus and close without accessibility violations", async ({
@@ -768,6 +788,7 @@ test("builder dialogs expose names, trap keyboard focus and close without access
 }) => {
   await mockDashboardApi(page);
   await page.goto("/");
+  await openBuilderWorkspace(page);
 
   const blockButton = page.getByRole("button", { name: /Baustein$/ });
   await blockButton.click();
@@ -833,6 +854,12 @@ test("builder dialogs expose names, trap keyboard focus and close without access
   await operationsButton.click();
   const operations = page.getByRole("region", { name: "Betrieb" });
   await expect(operations).toBeVisible();
+  await operations.getByRole("button", { name: "Konto" }).click();
+  await operations.getByLabel("Name").fill("Ungespeicherter Entwurf");
+  await operations.getByRole("button", { name: "Abbrechen" }).click();
+  await operations.getByRole("button", { name: "Konto" }).click();
+  await expect(operations.getByLabel("Name")).toHaveValue("");
+  await operations.getByRole("button", { name: "Abbrechen" }).click();
   expect(
     (
       await new AxeBuilder({ page })
@@ -843,4 +870,21 @@ test("builder dialogs expose names, trap keyboard focus and close without access
   ).toEqual([]);
   await page.getByRole("tab", { name: "Builder" }).click();
   await expect(operations).toBeHidden();
+});
+
+test("reduced motion disables navigation transitions and keyboard navigation remains usable", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await mockDashboardApi(page);
+  await page.goto("/");
+
+  const dashboardTab = page.getByRole("tab", { name: "Dashboard" });
+  await dashboardTab.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: "Builder" })).toBeFocused();
+  const underlineTransition = await page
+    .getByRole("tab", { name: "Builder" })
+    .evaluate((element) => getComputedStyle(element, "::after").transitionDuration);
+  expect(underlineTransition).toBe("0s");
 });

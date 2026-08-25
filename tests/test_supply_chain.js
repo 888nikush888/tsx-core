@@ -42,12 +42,14 @@ const approvedActionReferences = new Set([
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
   'actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294',
   'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
+  'actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548',
   'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a',
   'aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25',
   'docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c',
   'github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3',
   'github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3',
   'gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e',
+  'SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f',
 ]);
 for (const reference of actionReferences) {
   assert.match(

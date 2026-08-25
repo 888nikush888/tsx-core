@@ -89,10 +89,10 @@ try {
   );
   await getDatabase().run(
     `INSERT INTO trading_orders (
-       id, intent_id, account_id, client_order_id, role, side, order_type, status,
+       id, intent_id, account_id, client_order_id, exchange_order_id, role, side, order_type, status,
        quantity, filled_quantity, reduce_only, request_json, created_at, updated_at
-     ) VALUES ('official-order', 'official-intent', ?, ?, 'entry', 'buy', 'limit', 'open',
-               '0.01', '0', 0, '{}', ?, ?)`,
+     ) VALUES ('official-order', 'official-intent', ?, ?, 'exchange-entry-local', 'entry', 'buy', 'limit', 'open',
+                '0.01', '0', 0, '{}', ?, ?)`,
     [account.id, `0x${'1'.repeat(32)}`, Date.now(), Date.now()],
   );
   assert.deepEqual(await adapter.accountSnapshot(account), {
@@ -225,17 +225,58 @@ try {
   );
   nextResponse = { body: {
     orders: [{
-      clientOrderId: 'provider-attached-stop', symbol: 'BTCUSDT', triggerPrice: '59000',
-      reduceOnly: true, status: 'open',
+      clientOrderId: null, exchangeOrderId: 'provider-attached-stop', symbol: 'BTCUSDT',
+      triggerPrice: '59000', reduceOnly: true, side: 'sell', quantity: '0.010', status: 'open',
     }],
-    positions: [], fills: [], observedAt: Date.now(), accountFingerprint: externalAccountId,
+    positions: [], fills: [{
+      exchangeFillId: 'fill-without-client-id', clientOrderId: null,
+      exchangeOrderId: 'exchange-entry-local', price: '60000', quantity: '0.01',
+      fee: '1', feeAsset: 'USDT', filledAt: Date.now(), raw: {},
+    }], observedAt: Date.now(), accountFingerprint: externalAccountId,
   } };
   const attachedState = await adapter.openState(account);
   assert.equal(attachedState.orders[0].clientOrderId, `0x${'2'.repeat(32)}`);
   assert.equal(attachedState.orders[0].role, 'stop_loss');
+  assert.equal(attachedState.fills[0].clientOrderId, `0x${'1'.repeat(32)}`);
 
+  await getDatabase().run(
+    `INSERT INTO trading_orders (
+       id, intent_id, account_id, client_order_id, role, side, order_type, status,
+       quantity, filled_quantity, reduce_only, trigger_price, request_json, created_at, updated_at
+     ) VALUES ('ambiguous-stop', 'official-intent', ?, ?, 'stop_loss', 'sell', 'stop_market', 'open',
+               '0.01', '0', 1, '59000', '{}', ?, ?)`,
+    [account.id, `0x${'3'.repeat(32)}`, Date.now(), Date.now()],
+  );
+  nextResponse = { body: {
+    orders: [{
+      clientOrderId: null, exchangeOrderId: 'provider-ambiguous-stop', symbol: 'BTCUSDT',
+      triggerPrice: '59000', reduceOnly: true, side: 'sell', quantity: '0.01', status: 'open',
+    }],
+    positions: [], fills: [], observedAt: Date.now(), accountFingerprint: externalAccountId,
+  } };
+  const ambiguousState = await adapter.openState(account);
+  assert.equal(ambiguousState.orders[0].clientOrderId, null, 'Ambiguous attached stops must remain unmanaged.');
+
+  const readsBeforeRetry = requests.length;
   nextResponse = { status: 503, body: { error: 'executor unavailable', code: 'MARKET_SNAPSHOT_FAILED' } };
-  await assert.rejects(adapter.marketSnapshot(account, 'BTCUSDT'), /503.*executor unavailable.*MARKET_SNAPSHOT_FAILED/);
+  assert.equal(
+    (await adapter.marketSnapshot(account, 'BTCUSDT')).symbol,
+    'BTCUSDT',
+    'Read-only executor requests must retry a bounded transient 503 response.',
+  );
+  assert.equal(requests.length - readsBeforeRetry, 2);
+
+  const mutationsBeforeFailure = requests.length;
+  nextResponse = { status: 503, body: { error: 'executor unavailable', code: 'ORDER_SUBMIT_FAILED' } };
+  await assert.rejects(
+    adapter.submitOrder(account, { symbol: 'BTCUSDT' }),
+    /503.*executor unavailable.*ORDER_SUBMIT_FAILED/,
+  );
+  assert.equal(
+    requests.length - mutationsBeforeFailure,
+    1,
+    'Mutating order requests must not be retried after an uncertain transport outcome.',
+  );
 } finally {
   if (previousUrl === undefined) delete process.env.EXCHANGE_EXECUTOR_URL;
   else process.env.EXCHANGE_EXECUTOR_URL = previousUrl;

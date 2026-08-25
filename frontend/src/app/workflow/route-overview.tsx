@@ -10,12 +10,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { WorkflowRoute, WorkflowRouteTopology } from "./workflow-routes";
 
 type RouteOverviewProps = {
@@ -50,21 +50,20 @@ export function RouteOverview({
     onOpenChange(false);
   };
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
         className="route-overview-panel"
-        closeLabel="Pfadübersicht schließen"
       >
-        <SheetHeader>
+        <DialogHeader>
           <Badge variant="secondary">
             <Route /> Routing
           </Badge>
-          <SheetTitle>Kanäle, Verarbeitung und Börsen</SheetTitle>
-          <SheetDescription>
+          <DialogTitle>Kanäle, Verarbeitung und Börsen</DialogTitle>
+          <DialogDescription>
             Die Matrix zeigt verbindlich, welches Signal auf welchem Konto
             ausgeführt wird. Ein Haken entspricht einem kompilierten Pfad.
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
         <div className="route-overview-content">
           <Alert>
             <GitBranch />
@@ -219,7 +218,7 @@ export function RouteOverview({
             ))}
           </section>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

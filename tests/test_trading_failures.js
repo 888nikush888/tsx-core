@@ -423,7 +423,42 @@ async function testTrailingStopOnlyMovesTowardProfit(directory) {
   await closeDb();
 }
 
-async function testPeriodicReconciliationFailureActivatesKillSwitch(directory) {
+async function testTransientExecutorIncidentBlocksOnlyNewEntriesUntilReconciled(directory) {
+  const { paper, account, intent } = await setup(path.join(directory, 'transient-executor-incident.db'));
+  const adapter = wrappedAdapter(paper, (...args) => paper.submitOrder(...args));
+  let unavailable = true;
+  adapter.openState = async (...args) => {
+    if (unavailable) throw new Error('Exchange executor request failed (503): temporarily unavailable');
+    return paper.openState(...args);
+  };
+  const engine = new TradingEngine([adapter]);
+
+  await assert.rejects(engine.reconcileAccount(account.id), /503/);
+  assert.equal((await getTradingAccount(account.id)).killSwitchActive, false);
+  const openIncident = await getDatabase().get(
+    `SELECT category, status FROM trading_account_incidents
+     WHERE account_id = ? AND status = 'open'`,
+    [account.id],
+  );
+  assert.deepEqual(openIncident, { category: 'reconciliation_transient', status: 'open' });
+
+  await engine.processIntent(intent.id);
+  const blockedIntent = await getTradingIntent(intent.id);
+  assert.equal(blockedIntent.status, 'blocked');
+  assert.equal(blockedIntent.blockReason, 'ACCOUNT_EXECUTOR_UNAVAILABLE');
+
+  unavailable = false;
+  await engine.reconcileAccount(account.id);
+  const resolvedIncident = await getDatabase().get(
+    `SELECT status FROM trading_account_incidents WHERE account_id = ?`,
+    [account.id],
+  );
+  assert.equal(resolvedIncident.status, 'resolved');
+  assert.equal((await getTradingAccount(account.id)).killSwitchActive, false);
+  await closeDb();
+}
+
+async function testPeriodicReconciliationFailureDoesNotActivateHardKillSwitch(directory) {
   await initDb(path.join(directory, 'periodic-reconciliation.db'));
   await seedTradingFixtures();
   await updateTradingRuntimeState({ executionEnabled: true });
@@ -439,12 +474,12 @@ async function testPeriodicReconciliationFailureActivatesKillSwitch(directory) {
   const isolated = await getTradingAccount(account.id);
   assert.equal(state.executionEnabled, true);
   assert.equal(state.killSwitchActive, false);
-  assert.equal(isolated.killSwitchActive, true);
-  assert.match(isolated.killSwitchReason, /Transient reconciliation failure/);
+  assert.equal(isolated.killSwitchActive, false);
+  assert.equal(isolated.killSwitchReason, null);
   await closeDb();
 }
 
-async function testTransientReconciliationFailureRecoversAfterTwoAuthoritativeCycles(directory) {
+async function testTransientReconciliationFailureKeepsRetryingWithoutHardIsolation(directory) {
   await initDb(path.join(directory, 'periodic-reconciliation-recovery.db'));
   await seedTradingFixtures();
   await updateTradingRuntimeState({ executionEnabled: true });
@@ -469,28 +504,23 @@ async function testTransientReconciliationFailureRecoversAfterTwoAuthoritativeCy
   const [account] = await listTradingAccounts();
   assert.equal(state.executionEnabled, true);
   assert.equal(state.killSwitchActive, false);
-  assert.equal((await getTradingAccount(account.id)).killSwitchActive, true);
+  assert.equal((await getTradingAccount(account.id)).killSwitchActive, false);
 
   fail = false;
   await runtime.runOnce(false);
-  assert.equal(
-    (await getTradingAccount(account.id)).killSwitchActive,
-    true,
-    'One good snapshot is not enough to clear a transient account protection failure.',
-  );
   await runtime.runOnce(false);
   state = await getTradingRuntimeState();
   assert.equal(state.executionEnabled, true);
   assert.equal(state.killSwitchActive, false);
   assert.equal(state.killSwitchReason, null);
   assert.equal((await getTradingAccount(account.id)).killSwitchActive, false);
-  assert.deepEqual(forced.slice(-2), [true, true], 'Recovery evidence must use two forced exchange snapshots.');
-  assert.match(logs.at(-1), /recovered after two authoritative reconciliations/);
+  assert.deepEqual(forced.slice(-2), [false, false], 'Normal protection polling must continue after a transient outage.');
+  assert.ok(logs.some(message => /affected entries remain fail-closed/.test(message)));
   await runtime.stop();
   await closeDb();
 }
 
-async function testRestoredAccountIdentityRecoversAfterTwoAuthoritativeCycles(directory) {
+async function testRestoredAccountIdentityRequiresExplicitSafeRelease(directory) {
   await initDb(path.join(directory, 'account-identity-recovery.db'));
   await seedTradingFixtures();
   const [account] = await listTradingAccounts();
@@ -510,15 +540,15 @@ async function testRestoredAccountIdentityRecoversAfterTwoAuthoritativeCycles(di
   assert.equal(
     (await getTradingAccount(account.id)).killSwitchActive,
     true,
-    'One matching authoritative identity snapshot must not clear account protection.',
+    'A matching authoritative identity snapshot must not clear account protection implicitly.',
   );
   await runtime.runOnce(false);
   assert.equal(
     (await getTradingAccount(account.id)).killSwitchActive,
-    false,
-    'Two matching authoritative identity snapshots must recover the trusted binding.',
+    true,
+    'Only the dedicated, verified operator release flow may clear hard account protection.',
   );
-  assert.deepEqual(forced, [true, true]);
+  assert.deepEqual(forced, [false, false]);
   await closeDb();
 }
 
@@ -561,7 +591,7 @@ async function testRuntimeIsolatesAccountFailures(directory) {
   await runtime.runOnce(false);
   assert.deepEqual(calls, [first.id, 'paper-secondary'], 'One account failure must not skip protection for later accounts.');
   assert.equal(runtime.isProtectionHealthy(), true);
-  assert.equal((await getTradingAccount(first.id)).killSwitchActive, true);
+  assert.equal((await getTradingAccount(first.id)).killSwitchActive, false);
   assert.equal((await getTradingAccount('paper-secondary')).killSwitchActive, false);
   await closeDb();
 }
@@ -858,10 +888,10 @@ async function testStartupReconciliationFailureKeepsControlPlaneAvailable(direct
   const isolated = await getTradingAccount(account.id);
   assert.equal(state.executionEnabled, true);
   assert.equal(state.killSwitchActive, false);
-  assert.equal(isolated.killSwitchActive, true);
-  assert.match(isolated.killSwitchReason, /Transient reconciliation failure/);
+  assert.equal(isolated.killSwitchActive, false);
+  assert.equal(isolated.killSwitchReason, null);
   assert.equal(logs.length, 1);
-  assert.match(logs[0], /isolated by account kill switch/);
+  assert.match(logs[0], /affected entries remain fail-closed/);
   await runtime.enableEntries();
   await runtime.stop();
   await closeDb();
@@ -923,10 +953,11 @@ async function run() {
     await testEmergencyFlattenRetryIsIdempotent(directory);
     await testPartialEntryProtectionAndTerminalResizing(directory);
     await testTrailingStopOnlyMovesTowardProfit(directory);
+    await testTransientExecutorIncidentBlocksOnlyNewEntriesUntilReconciled(directory);
     await testStopReplacementCancellationFailsClosed(directory);
-    await testPeriodicReconciliationFailureActivatesKillSwitch(directory);
-    await testTransientReconciliationFailureRecoversAfterTwoAuthoritativeCycles(directory);
-    await testRestoredAccountIdentityRecoversAfterTwoAuthoritativeCycles(directory);
+    await testPeriodicReconciliationFailureDoesNotActivateHardKillSwitch(directory);
+    await testTransientReconciliationFailureKeepsRetryingWithoutHardIsolation(directory);
+    await testRestoredAccountIdentityRequiresExplicitSafeRelease(directory);
     await testEntryExpiryFailureActivatesKillSwitch(directory);
     await testRuntimeIsolatesAccountFailures(directory);
     await testRemoteAccountIdentityBinding(directory);

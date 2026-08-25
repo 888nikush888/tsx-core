@@ -258,6 +258,19 @@ export type TradingSnapshot = {
   };
   equityHistory: Array<Record<string, any>>;
   exchangeStreams: Array<Record<string, unknown>>;
+  accountIncidents: Array<{
+    id: string;
+    accountId: string;
+    category: string;
+    severity: "warning" | "critical";
+    message: string;
+    status: "open" | "resolved";
+    occurrenceCount: number;
+    firstSeenAt: number;
+    lastSeenAt: number;
+    resolvedAt: number | null;
+    details: Record<string, unknown>;
+  }>;
 };
 
 export type ExchangeCatalog = {

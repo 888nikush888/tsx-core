@@ -55,6 +55,7 @@ import {
 } from './trading_telemetry.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
 import { listExchangeStreamStates } from './exchange_stream_repository.js';
+import { listTradingAccountIncidents, resolveTradingAccountIncidents } from './trading_incidents.js';
 import {
   archiveWorkflowResource,
   createWorkflowResourceDraft,
@@ -128,6 +129,7 @@ export interface TradingWebSnapshot {
   intents: Awaited<ReturnType<typeof listTradingIntents>>;
   activity: Awaited<ReturnType<typeof listTradingActivity>>;
   exchangeStreams: Awaited<ReturnType<typeof listExchangeStreamStates>>;
+  accountIncidents: Awaited<ReturnType<typeof listTradingAccountIncidents>>;
   confirmations: { live: string; emergencyFlatten: string };
 }
 
@@ -192,7 +194,7 @@ export class TradingWebControl {
     const [
       overview, analytics, strategies, signalSchemas, signalContracts, channelRiskPolicies,
       channelRiskEvaluations, workflowAdaptiveRisk, executionAnalytics, channelAnalytics, equityHistory, accounts, routes, intents, activity,
-      exchangeStreams,
+      exchangeStreams, accountIncidents,
     ] = await Promise.all([
       getTradingOverview(),
       getTradingAnalytics(),
@@ -210,6 +212,7 @@ export class TradingWebControl {
       listTradingIntents(200),
       listTradingActivity(200),
       listExchangeStreamStates(),
+      listTradingAccountIncidents({ limit: 200 }),
     ]);
     return {
       overview,
@@ -233,6 +236,7 @@ export class TradingWebControl {
       intents,
       activity,
       exchangeStreams,
+      accountIncidents,
       confirmations: { live: LIVE_CONFIRMATION, emergencyFlatten: FLATTEN_CONFIRMATION },
     };
   }
@@ -577,11 +581,7 @@ export class TradingWebControl {
     const accountId = identifier(payload.id, 'Account identifier', 64);
     const current = await this.requiredAccount(accountId);
     if (current.killSwitchActive && payload.killSwitchActive === false) {
-      if (payload.confirmation !== 'RELEASE ACCOUNT KILL SWITCH') {
-        throw new Error('Explicit account kill-switch release confirmation required.');
-      }
-      await this.engine.reconcileAccount(accountId, { force: true });
-      await this.engine.reconcileAccount(accountId, { force: true });
+      throw new Error('Account kill switches require the protected kill-switch release confirmation operation.');
     }
     return updateTradingAccountConfiguration(
       accountId,
@@ -591,6 +591,32 @@ export class TradingWebControl {
         killSwitchReason: payload.killSwitchReason,
       },
     );
+  }
+
+  async releaseAccountKillSwitch(payload: any): Promise<{
+    account: TradingAccount;
+    reconciliations: number;
+  }> {
+    const accountId = identifier(payload.id, 'Account identifier', 64);
+    const confirmation = identifier(payload.confirmation, 'Account kill-switch release confirmation', 64);
+    if (confirmation !== 'RELEASE ACCOUNT KILL SWITCH') {
+      throw new Error('Explicit account kill-switch release confirmation required.');
+    }
+    const current = await this.requiredAccount(accountId);
+    if (!current.killSwitchActive) throw new Error('Account kill switch is not active.');
+    if (!current.enabled || current.status !== 'ready') {
+      throw new Error('Account must be enabled and verified before its kill switch can be released.');
+    }
+    await this.engine.reconcileAccount(accountId, { force: true });
+    await this.engine.reconcileAccount(accountId, { force: true });
+    const account = await updateTradingAccountConfiguration(accountId, {
+      killSwitchActive: false,
+      killSwitchReason: null,
+    });
+    await resolveTradingAccountIncidents(accountId, [
+      'reconciliation_transient', 'reconciliation_contract', 'remote_identity', 'unmanaged_remote',
+    ]);
+    return { account, reconciliations: 2 };
   }
 
   async removeAccount(id: unknown): Promise<void> {

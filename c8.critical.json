@@ -11,7 +11,7 @@
     "src/trading_risk.ts"
   ],
   "exclude": ["**/*.d.ts"],
-  "reporter": ["text", "json-summary", "html"],
+  "reporter": ["text", "json-summary", "html", "lcov"],
   "reports-dir": "coverage",
   "check-coverage": true,
   "per-file": true,

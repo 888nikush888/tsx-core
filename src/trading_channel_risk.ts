@@ -183,6 +183,10 @@ function normalizedRiskPolicy(
   };
 }
 
+export function validateChannelRiskPolicyInput(input: unknown): void {
+  normalizedRiskPolicy(input as ChannelRiskPolicyInput, null, 0);
+}
+
 export async function upsertChannelRiskPolicy(
   input: ChannelRiskPolicyInput,
   now = Date.now(),

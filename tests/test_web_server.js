@@ -327,6 +327,59 @@ async function testWorkflowControlPlane(baseUrl) {
   await testWorkflowRevisionApi(baseUrl);
 }
 
+async function testSetupBundleApi(baseUrl, controls) {
+  let response = await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200, 'Authenticated viewers may export the redacted portable setup.');
+  assert.match(response.headers.get('content-disposition') || '', /tsx-core-setup-/);
+  const bundle = await response.json();
+  assert.equal(bundle.schemaVersion, 1);
+  assert.equal(bundle.mode, 'replace');
+  assert.match(bundle.checksum, /^[a-f0-9]{64}$/);
+  assert.doesNotMatch(JSON.stringify(bundle), /must-never-be-returned|must-also-be-redacted/);
+
+  const tampered = structuredClone(bundle);
+  tampered.systemConfig.targetChannel = 'tampered';
+  response = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ bundle: tampered }),
+  });
+  assert.strictEqual(response.status, 400, 'A manipulated setup bundle must fail checksum validation.');
+
+  response = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ bundle }),
+  });
+  assert.strictEqual(response.status, 200);
+  const preview = await response.json();
+  assert.match(preview.previewKey, /^[a-f0-9-]{36}$/);
+  assert.equal(preview.bundleHash, bundle.checksum);
+  assert.equal(preview.confirmation, 'REPLACE EXISTING SETUP');
+
+  response = await fetch(`${baseUrl}/api/setup-bundle/apply`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ previewKey: preview.previewKey, confirmation: 'WRONG', accountMappings: {} }),
+  });
+  assert.strictEqual(response.status, 409, 'Setup application must require the exact written confirmation.');
+  const backupsBeforeApply = controls.backupCalls;
+  response = await fetch(`${baseUrl}/api/setup-bundle/apply`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ previewKey: preview.previewKey, confirmation: preview.confirmation, accountMappings: {} }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.equal(controls.backupCalls, backupsBeforeApply + 1, 'Setup replacement must create a verified backup first.');
+  assert.equal((await response.json()).mode, 'replace');
+  response = await fetch(`${baseUrl}/api/setup-bundle/apply`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ previewKey: preview.previewKey, confirmation: preview.confirmation, accountMappings: {} }),
+  });
+  assert.strictEqual(response.status, 409, 'A setup preview key must be one-time use.');
+}
+
 async function testRequestValidation(baseUrl) {
   const rejectedRouteCases = [
     ['/api/incoming-messages', { method: 'DELETE', headers: mutationHeaders() }, 400],
@@ -847,9 +900,10 @@ async function testOperationsControl(baseUrl, controls) {
   let response = await fetch(`${baseUrl}/api/operations`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
   assert.strictEqual((await response.json()).operations.backup.healthy, true);
+  const backupCallsBeforeManualRun = controls.backupCalls;
   response = await fetch(`${baseUrl}/api/operations/backup`, { method: 'POST', headers: mutationHeaders() });
   assert.strictEqual(response.status, 201);
-  assert.strictEqual(controls.backupCalls, 1);
+  assert.strictEqual(controls.backupCalls, backupCallsBeforeManualRun + 1);
   response = await fetch(`${baseUrl}/api/operations/audit-replay`, {
     method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'replay-audit' })
   });
@@ -950,7 +1004,9 @@ async function testUnavailableControlContracts(baseUrl, appState) {
       body: JSON.stringify({ name: 'backup-2026-test' })
     }],
     ['performFactoryReset', '/api/factory-reset', {
-      method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'factory-reset' })
+      method: 'POST',
+      headers: mutationHeaders({ 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'factory-reset' }),
+      body: JSON.stringify({ confirmation: 'FACTORY RESET' })
     }],
   ];
   for (const [property, route, options] of checks) {
@@ -977,7 +1033,11 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   const stopCallsBeforeClear = appState.controls.stopCalls;
   const originalTradingControl = appState.tradingControl;
   appState.tradingControl = {};
-  response = await fetch(`${baseUrl}/api/clear-database`, { method: 'POST', headers: destructiveHeaders });
+  response = await fetch(`${baseUrl}/api/clear-database`, {
+    method: 'POST',
+    headers: { ...destructiveHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirmation: 'DATENBANK LEEREN' })
+  });
   assert.strictEqual(response.status, 200, 'Confirmed operational data clear must stop routing and support installed trading');
   const clearResult = await response.json();
   assert.strictEqual(clearResult.routingStopped, true);
@@ -988,7 +1048,8 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   appState.state.isRunning = true;
   response = await fetch(`${baseUrl}/api/factory-reset`, {
     method: 'POST',
-    headers: mutationHeaders({ 'X-Destructive-Confirmation': 'factory-reset' })
+    headers: mutationHeaders({ 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'factory-reset' }),
+    body: JSON.stringify({ confirmation: 'FACTORY RESET' })
   });
   assert.strictEqual(response.status, 200, 'Factory reset must stop active routing and execute the complete reset service');
   assert.strictEqual((await response.json()).restartScheduled, true);
@@ -1067,7 +1128,7 @@ async function createAppState(testDir, controls) {
       replayRemote: async () => { controls.auditReplayCalls += 1; return controls.auditEvents.length; }
     },
     secretStore: new ManagedSecretStore(path.join(testDir, 'secrets')),
-    getOperationsStatus: () => ({ backup: { healthy: true }, audit: { healthy: true } }),
+    getOperationsStatus: () => ({ backup: { healthy: true, lastSuccessAt: Date.now() }, audit: { healthy: true } }),
     runBackupNow: async () => {
       controls.backupCalls += 1;
       if (controls.backupBarrier) await controls.backupBarrier;
@@ -1345,6 +1406,7 @@ async function runTests() {
     await testAuthenticationAndReads(baseUrl);
     await testOperatorReadContracts(baseUrl, appState);
     await testWorkflowControlPlane(baseUrl);
+    await testSetupBundleApi(baseUrl, controls);
     await testTelegramWebLogin(baseUrl);
     await testRequestValidation(baseUrl);
     await testTradingStrategyDeletion(baseUrl, appState);

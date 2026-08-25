@@ -4,11 +4,16 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-08-25
+
 ### Added
 
 - Globale visuelle Workflow-Control-Plane mit typisierten Spaltenbausteinen, wiederverwendbarer Ressourcenbibliothek, Popup-Editoren, gerichteten Fan-out-Verbindungen, Simulation, atomaren Revisionen, Revisionskonfliktschutz und explizitem Impact-Preflight.
 - Parallele Ausführung eines Signals auf mehreren Börsenkonten mit eigenem Strategie-/Sizing-/Risiko-Zweig und pro Kanal/Konto/logischem Baustein isoliertem adaptivem Zustand.
 - Kraken-Futures-Konten sowie ein integrierter Betriebsbereich für Live-Gates, Konten, Journal, Analytics, Logs, Backups, MCP und System.
+- Portables, prüfsummengesichertes Setup-Bundle mit Diff-Vorschau, einmaligem 15-Minuten-Schlüssel, lokaler Kontozuordnung, verifiziertem Backup und transaktionalem Replace/Rollback.
+- Servergefilterte Trading-Analytics mit Equity, Drawdown, PnL, Gebühren, Slippage, Funnel, Latenzen und adaptiven Risikostufen.
+- Dauerhafte, deduplizierte Konto-Incidents sowie eine gesonderte, erneute Reconciliation verlangende Kill-Switch-Freigabe.
 
 ### Changed
 
@@ -16,6 +21,8 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Das maximale Positionslimit liegt am konkreten Börsenkonto (1–20) und umfasst alle Strategien, Kanäle und Workflowpfade dieses Kontos.
 - Bestehende aktivierte Routen werden einmalig in eine immutable visuelle Workflowrevision migriert. Die frühere Trading-Menüoberfläche wurde entfernt.
 - Parser-Signale werden nur in SQLite gespeichert; neue und migrierte Workflow-Parser erzwingen `saveToFile=false`.
+- Die Hauptnavigation lautet Dashboard, Builder, Analytics und Betrieb. Bereichsspezifisches Polling ist serialisiert, pausiert in inaktiven Bereichen und zeigt den Aktualisierungszustand sichtbar an.
+- Direkte Builder-Verbindungen übernehmen ihren Kanal automatisch; Kanten, Pfade, Kontenentwürfe und Viewport-Verhalten verwenden die neuen responsiven Dialog- und Stabilitätsregeln.
 
 ### Fixed
 
@@ -23,6 +30,13 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 - Kraken-Ledger-PnL wird nicht mehr als Funding fehlklassifiziert. Kontofehler und Kapazitätssperren bleiben auf den betroffenen Fan-out-Zweig isoliert.
 - SonarCloud-Zuverlässigkeits- und Sicherheitsbefunde zu Schaltflächen-Semantik, deterministischer Sortierung, Lockdatei-Parsing und komplexen Kontrollpfaden wurden behoben; die mobile Statusleiste bleibt dabei tastaturzugänglich.
 - Alertmanager-Sicherheitsabhängigkeiten und das von Prometheus/Alertmanager verwendete `govulncheck` werden aus eingecheckten Go-Modul-Locks ausschließlich im Read-only-Modus gebaut.
+- Eingelesene CCXT-Orders und Fills dürfen eine fehlende `clientOrderId` besitzen und werden sicher über Client-ID, Exchange-ID oder genau einen passenden Attached Stop korreliert. Unbekannte oder mehrdeutige Börsenereignisse bleiben fail-closed.
+- Vorübergehende 502/503/504- und Transportfehler blockieren Neueinstiege mit begrenzten Read-only-Retries, ohne einen permanenten Konto-Kill-Switch zu erzeugen; Vertrags- und Zuordnungsfehler bleiben harte Schutzsperren.
+
+### Security
+
+- Setup-Importe prüfen rekursiv Feldnamen und typische Secret-Werte; Tokens, Schlüssel, Sitzungen, Nachrichten, Logs, Journal und Kontohistorie werden weder exportiert noch übernommen.
+- SonarQube Cloud analysiert JavaScript/TypeScript, Frontend und Python am exakten Main-Revisionsstand, importiert LCOV/Python-Coverage und exportiert Findings sowie Security Hotspots als CI-Artefakt.
 
 ## [2.1.0] - 2026-08-09
 

@@ -1,4 +1,5 @@
 import { getDatabase } from './db.js';
+import { compareDecimal } from './trading_decimal.js';
 import type { TradingCredentialStore } from './trading_credentials.js';
 import type {
   ExchangeOpenState,
@@ -15,6 +16,13 @@ import type {
 interface ExecutorErrorPayload {
   error?: string;
   code?: string;
+}
+
+class ExecutorHttpError extends Error {
+  constructor(message: string, readonly retryable: boolean) {
+    super(message);
+    this.name = 'ExecutorHttpError';
+  }
 }
 
 export interface VerifiedExternalAccount {
@@ -62,6 +70,23 @@ const STREAM_EVENT_TYPES = new Set<ExchangeStreamEventType>([
   'candle',
   'stream_status',
 ]);
+
+const RETRYABLE_READ_ENDPOINTS = new Set([
+  '/v1/verify-account',
+  '/v1/account-snapshot',
+  '/v1/market-snapshot',
+  '/v1/open-state',
+  '/v1/stream-events',
+]);
+
+function retryableExecutorStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
+}
+
+function retryableTransportFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /(?:timeout|timed out|abort(?:ed|error)?|fetch failed|econn(?:reset|refused)|temporarily unavailable)/i.test(message);
+}
 
 function isSafeIntegerAtLeast(value: unknown, minimum: number): boolean {
   return Number.isSafeInteger(value) && Number(value) >= minimum;
@@ -220,31 +245,66 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
     }
     const localOrders = await getDatabase().all<Array<{
       client_order_id: string;
+      exchange_order_id: string | null;
       role: string;
       symbol: string;
       trigger_price: string | null;
       reduce_only: number;
+      side: string;
+      quantity: string;
     }>>(
-      `SELECT orders.client_order_id, orders.role, intent.symbol,
-              orders.trigger_price, orders.reduce_only
+      `SELECT orders.client_order_id, orders.exchange_order_id, orders.role, intent.symbol,
+              orders.trigger_price, orders.reduce_only, orders.side, orders.quantity
        FROM trading_orders AS orders
        JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id
        WHERE orders.account_id = ?`,
       [account.id],
     );
     const roles = new Map(localOrders.map(order => [order.client_order_id, order.role]));
+    const byExchangeId = new Map(localOrders
+      .filter(order => Boolean(order.exchange_order_id))
+      .map(order => [order.exchange_order_id!, order]));
+    const decimalEquals = (left: unknown, right: unknown) => {
+      if (typeof left !== 'string' || typeof right !== 'string') return false;
+      try {
+        return compareDecimal(left, right) === 0;
+      } catch {
+        return false;
+      }
+    };
     state.orders = state.orders.map((order: any) => {
-      const attachedStop = roles.has(order.clientOrderId) ? undefined : localOrders.find(local =>
+      const exactClient = typeof order.clientOrderId === 'string'
+        ? localOrders.find(local => local.client_order_id === order.clientOrderId)
+        : undefined;
+      const exactExchange = typeof order.exchangeOrderId === 'string'
+        ? byExchangeId.get(order.exchangeOrderId)
+        : undefined;
+      const attachedStops = exactClient || exactExchange ? [] : localOrders.filter(local =>
         local.role === 'stop_loss'
         && local.symbol === order.symbol
         && local.reduce_only === 1
-        && local.trigger_price === order.triggerPrice
+        && local.side === order.side
+        && decimalEquals(local.trigger_price, order.triggerPrice)
+        && decimalEquals(local.quantity, order.quantity)
         && order.reduceOnly === true);
-      const clientOrderId = attachedStop?.client_order_id || order.clientOrderId;
+      const local = exactClient || exactExchange || (attachedStops.length === 1 ? attachedStops[0] : undefined);
+      const clientOrderId = local?.client_order_id || order.clientOrderId || null;
       return {
         ...order,
         clientOrderId,
         role: roles.get(clientOrderId) || order.role || 'entry',
+      };
+    });
+    state.fills = state.fills.map((fill: any) => {
+      const exactClient = typeof fill.clientOrderId === 'string'
+        ? localOrders.find(local => local.client_order_id === fill.clientOrderId)
+        : undefined;
+      const exactExchange = typeof fill.exchangeOrderId === 'string'
+        ? byExchangeId.get(fill.exchangeOrderId)
+        : undefined;
+      return {
+        ...fill,
+        clientOrderId: exactClient?.client_order_id || exactExchange?.client_order_id || fill.clientOrderId || null,
       };
     });
     return state as ExchangeOpenState;
@@ -271,6 +331,34 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
     const token = await this.credentials.getOrCreateExecutorToken();
     const bodyPayload = assertObject(payload, 'Exchange executor request');
     const deadlineAt = Date.now() + Math.max(1, timeoutMs - 250);
+    const maximumAttempts = RETRYABLE_READ_ENDPOINTS.has(endpoint) ? 3 : 1;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+      const remainingMs = deadlineAt - Date.now();
+      if (remainingMs <= 0) break;
+      try {
+        return await this.postOnce(endpoint, bodyPayload, token, deadlineAt, timeoutMs, remainingMs);
+      } catch (error) {
+        lastError = error;
+        const retryable = error instanceof ExecutorHttpError ? error.retryable : retryableTransportFailure(error);
+        if (!retryable || attempt === maximumAttempts) throw error;
+      }
+      const backoffMs = attempt === 1 ? 100 : 250;
+      const availableBackoff = deadlineAt - Date.now();
+      if (availableBackoff <= 0) break;
+      await new Promise(resolve => setTimeout(resolve, Math.min(backoffMs, availableBackoff)));
+    }
+    throw lastError instanceof Error ? lastError : new Error('Exchange executor request timed out.');
+  }
+
+  private async postOnce(
+    endpoint: string,
+    bodyPayload: Record<string, any>,
+    token: string,
+    deadlineAt: number,
+    timeoutMs: number,
+    remainingMs: number,
+  ): Promise<unknown> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: {
@@ -278,15 +366,16 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ ...bodyPayload, deadlineAt }),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: AbortSignal.timeout(Math.max(1, Math.min(timeoutMs, remainingMs))),
     });
     const body = await response.json().catch(() => ({})) as ExecutorErrorPayload;
-    if (!response.ok) {
-      const code = typeof body.code === 'string' && /^[A-Z][A-Z0-9_]{2,63}$/.test(body.code)
-        ? ` [${body.code}]`
-        : '';
-      throw new Error(`Exchange executor request failed (${response.status}): ${body.error || 'invalid response'}${code}`);
-    }
-    return body;
+    if (response.ok) return body;
+    const code = typeof body.code === 'string' && /^[A-Z][A-Z0-9_]{2,63}$/.test(body.code)
+      ? ` [${body.code}]`
+      : '';
+    throw new ExecutorHttpError(
+      `Exchange executor request failed (${response.status}): ${body.error || 'invalid response'}${code}`,
+      retryableExecutorStatus(response.status),
+    );
   }
 }

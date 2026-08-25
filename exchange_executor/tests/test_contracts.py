@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 
 from ccxt_adapter import (
     CcxtAdapter, _canonical_symbol, _ledger_funding_amount, _market_order_result, _order_result,
-    _reduce_only, _requested_base, _status, _trigger_price,
+    _normalized_fill, _normalized_open_order, _reduce_only, _requested_base, _status, _trigger_price,
 )
 import ccxt_client
 from ccxt_client import CERTIFIED_EXCHANGES, CcxtClientRegistry, _account_identity, _client_configuration
@@ -69,6 +69,32 @@ class ContractTests(unittest.TestCase):
         stop = {"reduceOnly": True, "triggerPrice": "65000"}
         self.assertTrue(_reduce_only(stop))
         self.assertEqual(_trigger_price(stop), "65000")
+
+    def test_remote_snapshots_preserve_exchange_identity_without_client_identity(self) -> None:
+        rest = SimpleNamespace(market=lambda _symbol: {
+            "base": "BTC", "contractSize": "0.001",
+        })
+        order = _normalized_open_order(rest, {
+            "id": "exchange-stop", "clientOrderId": None, "symbol": "BTC/USDT:USDT",
+            "status": "open", "filled": "0", "amount": "25", "side": "sell",
+            "reduceOnly": True, "triggerPrice": "59000",
+        })
+        self.assertIsNone(order["clientOrderId"])
+        self.assertEqual(order["exchangeOrderId"], "exchange-stop")
+        self.assertEqual(order["quantity"], "0.025")
+        fill = _normalized_fill(rest, {"exchange-stop": {
+            "id": "exchange-stop", "clientOrderId": None,
+        }}, {
+            "id": "fill-1", "order": "exchange-stop", "symbol": "BTC/USDT:USDT",
+            "price": "60000", "amount": "10", "timestamp": 123, "fee": {"cost": "1"},
+        })
+        self.assertIsNotNone(fill)
+        self.assertIsNone(fill["clientOrderId"])
+        self.assertEqual(fill["exchangeOrderId"], "exchange-stop")
+        with self.assertRaisesRegex(ExchangeContractError, "exchange identifier"):
+            _normalized_open_order(rest, {
+                "symbol": "BTC/USDT:USDT", "status": "open", "amount": "1", "side": "sell",
+            })
 
     def test_ledger_funding_excludes_trade_pnl_and_preserves_sign(self) -> None:
         self.assertIsNone(_ledger_funding_amount({"type": "trade", "amount": 99}))

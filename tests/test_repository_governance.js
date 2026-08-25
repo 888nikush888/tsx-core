@@ -118,7 +118,7 @@ for (const governancePath of [
   '.github/CODEOWNERS',
   '.github/dependabot.yml',
   '.gitleaks.toml',
-  '.sonarcloud.properties',
+  'sonar-project.properties',
   '.editorconfig',
   '.dockerignore',
   'package.json',
@@ -157,6 +157,7 @@ for (const governancePath of [
 
 const REQUIRED_CONTEXTS = [
   'Lint, tests, coverage, build, supply chain',
+  'SonarQube Cloud quality gate',
   'Critical mutation gate (queue)',
   'Critical mutation gate (retry)',
   'Critical mutation gate (schema)',
@@ -217,8 +218,8 @@ const validGovernance = {
 
 const governance = evaluateGithubGovernance(validGovernance);
 assert.equal(governance.passed, true);
-assert.equal(governance.checks.filter(item => item.name.startsWith('Required check:')).length, 13);
-assert.equal(governance.checks.filter(item => item.name.startsWith('Required check source:')).length, 13);
+assert.equal(governance.checks.filter(item => item.name.startsWith('Required check:')).length, 14);
+assert.equal(governance.checks.filter(item => item.name.startsWith('Required check source:')).length, 14);
 
 const wrongSource = structuredClone(validGovernance);
 wrongSource.protection.required_status_checks.checks[0].app_id = 999;
@@ -236,7 +237,7 @@ assert.equal(evaluateGithubGovernance(missingOwner).passed, false);
 const [workflow, codeowners, sonarCloud, editorConfig, gitAttributes] = await Promise.all([
   readFile('.github/workflows/quality.yml', 'utf8'),
   readFile('.github/CODEOWNERS', 'utf8'),
-  readFile('.sonarcloud.properties', 'utf8'),
+  readFile('sonar-project.properties', 'utf8'),
   readFile('.editorconfig', 'utf8'),
   readFile('.gitattributes', 'utf8'),
 ]);
@@ -244,6 +245,12 @@ assert.match(codeowners, /^\*\s+@888nikush888\s*$/m);
 assert.doesNotMatch(workflow, /^\s{2}release:\s*$/m);
 assert.doesNotMatch(workflow, /create-github-app-token|PR risk approval gate|release-governance|pr-risk-publisher/);
 assert.match(sonarCloud, /^sonar\.python\.version=3\.12$/m);
+assert.match(sonarCloud, /^sonar\.javascript\.lcov\.reportPaths=coverage\/lcov\.info,frontend\/coverage\/lcov\.info$/m);
+assert.match(sonarCloud, /^sonar\.python\.coverage\.reportPaths=exchange_executor\/coverage\.xml$/m);
+assert.match(sonarCloud, /^sonar\.qualitygate\.wait=true$/m);
+assert.match(workflow, /name: SonarQube Cloud quality gate/);
+assert.match(workflow, /SonarSource\/sonarqube-scan-action@[a-f0-9]{40}/);
+assert.match(workflow, /SONAR_EXPECTED_REVISION: \$\{\{ github\.sha \}\}/);
 const sonarPaths = name => sonarCloud.match(new RegExp(`^${name}=(.+)$`, 'm'))?.[1]
   .split(',').map(value => value.trim()).filter(Boolean) ?? [];
 const sonarSources = sonarPaths('sonar\\.sources');
