@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   applyEdgeChanges, applyNodeChanges, Background, BackgroundVariant, Controls,
-  MiniMap, ReactFlow, type Connection, type Edge, type EdgeChange, type Node,
+  MiniMap, Position, ReactFlow, type Connection, type Edge, type EdgeChange, type Node,
   type NodeChange, type NodeMouseHandler, type OnNodeDrag,
 } from '@xyflow/react'
 import {
@@ -20,6 +20,29 @@ import { useModalFocus } from './use-modal-focus'
 
 const nodeTypes = { workflow: WorkflowNode, columnHeader: ColumnHeaderNode }
 const EMPTY_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges: [] }
+const WORKFLOW_NODE_DIMENSIONS = { width: 236, height: 78 } as const
+const COLUMN_HEADER_DIMENSIONS = { width: 236, height: 27 } as const
+const WORKFLOW_HANDLE_SIZE = 9
+
+function workflowHandles(kind: WorkflowKind): NonNullable<Node['handles']> {
+  const edgeOffset = WORKFLOW_HANDLE_SIZE / 2
+  const centerY = (WORKFLOW_NODE_DIMENSIONS.height - WORKFLOW_HANDLE_SIZE) / 2
+  const handles: NonNullable<Node['handles']> = []
+  if (kind !== 'channel') {
+    handles.push({
+      type: 'target', position: Position.Left, x: -edgeOffset, y: centerY,
+      width: WORKFLOW_HANDLE_SIZE, height: WORKFLOW_HANDLE_SIZE,
+    })
+  }
+  if (kind !== 'output') {
+    handles.push({
+      type: 'source', position: Position.Right,
+      x: WORKFLOW_NODE_DIMENSIONS.width - edgeOffset, y: centerY,
+      width: WORKFLOW_HANDLE_SIZE, height: WORKFLOW_HANDLE_SIZE,
+    })
+  }
+  return handles
+}
 
 async function jsonRequest(url: string, init?: RequestInit) {
   const response = await apiFetch(url, init)
@@ -167,7 +190,9 @@ export function WorkflowBuilder() {
     const headers: Node[] = WORKFLOW_KINDS.map(kind => ({
       id: `__column_${kind}`, type: 'columnHeader', draggable: false, selectable: false,
       position: { x: KIND_META[kind].order * COLUMN_GAP, y: -185 }, data: { kind },
-      style: { width: 236, zIndex: -1 },
+      initialWidth: COLUMN_HEADER_DIMENSIONS.width,
+      initialHeight: COLUMN_HEADER_DIMENSIONS.height,
+      style: { width: COLUMN_HEADER_DIMENSIONS.width, zIndex: -1 },
     }))
     const query = search.trim().toLocaleLowerCase('de-DE')
     const nodes: Node[] = graph.nodes.map(node => {
@@ -188,7 +213,10 @@ export function WorkflowBuilder() {
           warning,
           onEdit: openEditor,
         } satisfies WorkflowNodeData,
-        style: { width: 236 },
+        initialWidth: WORKFLOW_NODE_DIMENSIONS.width,
+        initialHeight: WORKFLOW_NODE_DIMENSIONS.height,
+        handles: workflowHandles(node.kind),
+        style: { width: WORKFLOW_NODE_DIMENSIONS.width },
       }
     })
     return [...headers, ...nodes]

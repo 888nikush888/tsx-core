@@ -8,7 +8,12 @@ function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 }
 
-async function mockDashboardApi(page: Page, firstRun = false, workflowResources: Array<Record<string, unknown>> = []) {
+async function mockDashboardApi(
+  page: Page,
+  firstRun = false,
+  workflowResources: Array<Record<string, unknown>> = [],
+  workflow: Record<string, unknown> | null = null,
+) {
   await page.route('**/api/**', async route => {
     const request = route.request()
     const url = new URL(request.url())
@@ -57,7 +62,7 @@ async function mockDashboardApi(page: Page, firstRun = false, workflowResources:
       return
     }
     if (url.pathname === '/api/workflow') {
-      await json(route, { workflow: null, resources: workflowResources })
+      await json(route, { workflow, resources: workflowResources })
       return
     }
     if (url.pathname === '/api/trading') {
@@ -165,6 +170,49 @@ test('the block library offers published resources for reuse and a separate crea
   await page.getByRole('button', { name: /Telegram-Kanal/ }).click()
   await expect(page.getByRole('button', { name: /Neuen Baustein erstellen/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /VIP Coinsignals/ })).toContainText('Version 1')
+})
+
+test('workflow nodes and connections render when resize callbacks are unavailable', async ({ page }) => {
+  await page.addInitScript(() => {
+    class SilentResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    Object.defineProperty(window, 'ResizeObserver', { configurable: true, value: SilentResizeObserver })
+  })
+  const resources = [
+    {
+      id: 'channel-v1', resourceId: 'channel', version: 1, kind: 'channel',
+      name: 'Test channel', description: '', status: 'published',
+      configuration: { channelId: '-1001' }, configurationSha256: 'a'.repeat(64), createdAt: 1, publishedAt: 1,
+    },
+    {
+      id: 'output-v1', resourceId: 'output', version: 1, kind: 'output',
+      name: 'Test output', description: '', status: 'published',
+      configuration: { mode: 'audit_only' }, configurationSha256: 'b'.repeat(64), createdAt: 1, publishedAt: 1,
+    },
+  ]
+  const workflow = {
+    id: 'revision-1', revision: 1, createdAt: 1,
+    graph: {
+      schemaVersion: 1,
+      nodes: [
+        { id: 'node-channel', kind: 'channel', resourceVersionId: 'channel-v1', position: { x: 0, y: 0 } },
+        { id: 'node-output', kind: 'output', resourceVersionId: 'output-v1', position: { x: 0, y: 0 } },
+      ],
+      edges: [{ id: 'edge-1', source: 'node-channel', target: 'node-output' }],
+    },
+    compiled: { paths: [{ id: 'path-1', enabled: true, nodeIds: ['node-channel', 'node-output'] }], warnings: [] },
+  }
+  await mockDashboardApi(page, false, resources, workflow)
+  await page.goto('/')
+
+  await expect(page.locator('.workflow-node')).toHaveCount(2)
+  await expect(page.locator('.workflow-node').first()).toBeVisible()
+  await expect(page.locator('.workflow-node').last()).toBeVisible()
+  await expect(page.locator('.react-flow__edge')).toHaveCount(1)
+  await expect(page.locator('.react-flow__edge-path')).toHaveAttribute('d', /\S+/)
 })
 
 test('builder dialogs expose names, trap keyboard focus and close without accessibility violations', async ({ page }) => {

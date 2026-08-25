@@ -4,12 +4,17 @@ import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const api = vi.hoisted(() => ({ apiFetch: vi.fn() }))
+const flow = vi.hoisted(() => ({ props: null as Record<string, unknown> | null }))
 vi.mock('@/lib/api', () => api)
 vi.mock('@xyflow/react', () => ({
-  ReactFlow: ({ children }: { children?: ReactNode }) => <div data-testid="workflow-canvas">{children}</div>,
+  ReactFlow: ({ children, ...props }: { children?: ReactNode }) => {
+    flow.props = props
+    return <div data-testid="workflow-canvas">{children}</div>
+  },
   Background: () => null,
   Controls: () => null,
   MiniMap: () => null,
+  Position: { Left: 'left', Right: 'right' },
   BackgroundVariant: { Dots: 'dots' },
   applyEdgeChanges: (_changes: unknown, edges: unknown) => edges,
   applyNodeChanges: (_changes: unknown, nodes: unknown) => nodes,
@@ -18,7 +23,11 @@ vi.mock('@xyflow/react', () => ({
 import { confirmWorkflowImpact, WorkflowBuilder } from '@/app/workflow/workflow-builder'
 
 describe('workflow builder resilience', () => {
-  afterEach(() => cleanup())
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+    flow.props = null
+  })
 
   it('stays visible when an older or partially unavailable API omits optional collections', async () => {
     api.apiFetch.mockResolvedValue(new Response('{}', {
@@ -43,5 +52,42 @@ describe('workflow builder resilience', () => {
     expect(confirmWorkflowImpact(impact)).toBe('ACTIVATE WORKFLOW IMPACT')
     expect(prompt).toHaveBeenLastCalledWith(expect.stringContaining('Zur Bestätigung exakt eingeben'))
     prompt.mockRestore()
+  })
+
+  it('provides initial dimensions so nodes remain renderable before browser measurement callbacks', async () => {
+    api.apiFetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      const payload = url === '/api/workflow'
+        ? {
+            workflow: {
+              id: 'revision-1', revision: 1, createdAt: 1,
+              graph: {
+                schemaVersion: 1,
+                nodes: [{ id: 'node-channel', kind: 'channel', resourceVersionId: 'channel-v1', position: { x: 0, y: 0 } }],
+                edges: [],
+              },
+              compiled: { paths: [], warnings: [] },
+            },
+            resources: [{
+              id: 'channel-v1', resourceId: 'channel', version: 1, kind: 'channel',
+              name: 'Test channel', status: 'published', configuration: { channelId: '-1001' },
+            }],
+          }
+        : {}
+      return new Response(JSON.stringify(payload), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    })
+
+    render(<WorkflowBuilder />)
+
+    await waitFor(() => expect(flow.props).not.toBeNull())
+    const nodes = flow.props?.nodes as Array<Record<string, unknown>>
+    const header = nodes.find(node => node.id === '__column_channel')
+    const workflowNode = nodes.find(node => node.id === 'node-channel')
+    expect(header).toMatchObject({ initialWidth: 236, initialHeight: 27 })
+    expect(workflowNode).toMatchObject({
+      initialWidth: 236,
+      initialHeight: 78,
+      handles: [{ type: 'source', position: 'right', x: 231.5, y: 34.5, width: 9, height: 9 }],
+    })
   })
 })
