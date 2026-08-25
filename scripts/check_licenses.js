@@ -5,13 +5,19 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const productionLicenses = new Set([
   '0BSD', 'Apache-2.0', 'BlueOak-1.0.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC',
-  'MIT', 'MIT-0', 'MPL-2.0', 'PSF-2.0', 'Apache-2.0 AND CNRI-Python',
+  'MIT', 'MIT-0', 'MPL-2.0', 'OFL-1.1', 'PSF-2.0', 'Apache-2.0 AND CNRI-Python',
   'MIT AND ISC', '(MIT OR WTFPL)',
   'Apache-2.0 AND MIT', 'MIT OR Apache-2.0', 'Apache-2.0 OR BSD-3-Clause',
   'MPL-2.0 AND (Apache-2.0 OR MIT)',
   '(BSD-2-Clause OR MIT OR Apache-2.0)',
 ]);
-const buildOnlyLicenses = new Set([...productionLicenses, 'CC-BY-4.0', 'CC0-1.0', 'MPL-2.0']);
+const buildOnlyLicenses = new Set([
+  ...productionLicenses,
+  'CC-BY-4.0',
+  'CC0-1.0',
+  'MPL-2.0',
+  'Python-2.0',
+]);
 const pythonPolicy = new Map([
   ['aiohappyeyeballs@2.7.1', 'PSF-2.0'],
   ['aiohttp@3.14.3', 'Apache-2.0 AND MIT'],
