@@ -1,14 +1,17 @@
-import * as React from "react"
+import * as React from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-const BRAND_ASSET = "/brand/tsx-core-logo.png"
+const BRAND_ASSET = "/brand/tsx-core-logo.png";
 
-type LogoVariant = "full" | "mark"
+type LogoVariant = "full" | "mark";
 
-interface LogoProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, "children"> {
-  readonly size?: number
-  readonly variant?: LogoVariant
+interface LogoProps extends Omit<
+  React.HTMLAttributes<HTMLSpanElement>,
+  "children"
+> {
+  readonly size?: number;
+  readonly variant?: LogoVariant;
 }
 
 const FULL_CROP = {
@@ -17,7 +20,7 @@ const FULL_CROP = {
   imageHeight: `${(2000 / 487) * 100}%`,
   left: `${(-365 / 1278) * 100}%`,
   top: `${(-756 / 487) * 100}%`,
-}
+};
 
 const MARK_CROP = {
   aspectRatio: 1,
@@ -25,11 +28,17 @@ const MARK_CROP = {
   imageHeight: `${(2000 / 487) * 100}%`,
   left: `${(-1170 / 487) * 100}%`,
   top: `${(-756 / 487) * 100}%`,
-}
+};
 
-export function Logo({ size = 30, variant = "full", className, style, ...props }: LogoProps) {
-  const crop = variant === "full" ? FULL_CROP : MARK_CROP
-  const imageWidth = size * crop.aspectRatio
+export function Logo({
+  size = 30,
+  variant = "full",
+  className,
+  style,
+  ...props
+}: LogoProps) {
+  const crop = variant === "full" ? FULL_CROP : MARK_CROP;
+  const imageWidth = size * crop.aspectRatio;
 
   return (
     <span
@@ -39,7 +48,10 @@ export function Logo({ size = 30, variant = "full", className, style, ...props }
       style={{ height: size, ...style }}
       {...props}
     >
-      <span className="relative inline-block shrink-0 overflow-hidden" style={{ width: imageWidth, height: size }}>
+      <span
+        className="relative inline-block shrink-0 overflow-hidden"
+        style={{ width: imageWidth, height: size }}
+      >
         <img
           src={BRAND_ASSET}
           alt=""
@@ -63,5 +75,5 @@ export function Logo({ size = 30, variant = "full", className, style, ...props }
         </span>
       ) : null}
     </span>
-  )
+  );
 }
