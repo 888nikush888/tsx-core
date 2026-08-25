@@ -560,6 +560,13 @@ test("shared processing and account branches are explicit in the route matrix an
   await expect(
     overview.getByRole("button", { name: /hervorheben/ }),
   ).toHaveCount(4);
+  await overview.evaluate(async (element) => {
+    await Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.finished.catch(() => undefined)),
+    );
+  });
   expect(
     (
       await new AxeBuilder({ page })
