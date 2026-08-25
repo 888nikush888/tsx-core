@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type RefObject,
 } from "react";
 import {
   applyNodeChanges,
@@ -40,11 +41,11 @@ import {
   Search,
   ShieldCheck,
   Trash2,
-  Workflow,
   X,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -65,6 +66,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 import { OperationsPanel } from "./operations-panel";
 import { RouteOverview } from "./route-overview";
 import { ResourceEditor } from "./resource-editor";
@@ -86,6 +88,12 @@ import {
 } from "./workflow-node";
 import { WorkflowEdge, type WorkflowEdgeData } from "./workflow-edge";
 import { buildWorkflowRouteTopology } from "./workflow-routes";
+import {
+  consolidateWorkflowResources,
+  latestPublishedResources,
+  moveWorkflowNode,
+  placedNodesByResourceId,
+} from "./workflow-graph";
 
 const nodeTypes = { workflow: WorkflowNode, columnHeader: ColumnHeaderNode };
 const edgeTypes = { workflow: WorkflowEdge };
@@ -246,6 +254,447 @@ function exchangeCatalog(payload: any): ExchangeCatalog | null {
     : null;
 }
 
+type BuilderNoticeValue = {
+  tone: "ok" | "warning" | "error";
+  text: string;
+};
+
+function WorkflowTopbar({
+  systemStatus,
+  trading,
+  search,
+  onSearch,
+  onShowAll,
+  nodeCount,
+  selectedPathId,
+  routeCount,
+  onRoutes,
+  onSimulation,
+  onOperations,
+  onLibrary,
+  routeTriggerRef,
+  simulationTriggerRef,
+  operationsTriggerRef,
+  libraryTriggerRef,
+}: Readonly<{
+  systemStatus: Record<string, any> | null;
+  trading: TradingSnapshot | null;
+  search: string;
+  onSearch: (value: string) => void;
+  onShowAll: () => void;
+  nodeCount: number;
+  selectedPathId: string | null;
+  routeCount: number;
+  onRoutes: () => void;
+  onSimulation: () => void;
+  onOperations: () => void;
+  onLibrary: () => void;
+  routeTriggerRef: RefObject<HTMLButtonElement | null>;
+  simulationTriggerRef: RefObject<HTMLButtonElement | null>;
+  operationsTriggerRef: RefObject<HTMLButtonElement | null>;
+  libraryTriggerRef: RefObject<HTMLButtonElement | null>;
+}>) {
+  const executionEnabled = trading?.overview.runtime.executionEnabled === true;
+  const killSwitchActive = trading?.overview.runtime.killSwitchActive === true;
+  return (
+    <header className="workflow-topbar">
+      <div className="workflow-brand">
+        <Logo variant="full" size={34} className="workflow-brand-logo" />
+        <div>
+          <span>Execution Workflow</span>
+          <strong>Visueller Builder</strong>
+        </div>
+      </div>
+      <div className="workflow-health">
+        <Badge
+          variant="outline"
+          className={
+            systemStatus?.connectionState === "connected"
+              ? "status-healthy"
+              : ""
+          }
+        >
+          <i />
+          Telegram {systemStatus?.connectionState || "offline"}
+        </Badge>
+        <Badge
+          variant="outline"
+          className={executionEnabled ? "status-healthy" : ""}
+        >
+          <i />
+          Execution {executionEnabled ? "aktiv" : "pausiert"}
+        </Badge>
+        <Badge
+          variant={killSwitchActive ? "destructive" : "outline"}
+          className={killSwitchActive ? "" : "status-healthy"}
+        >
+          <ShieldCheck />
+          {killSwitchActive ? "global gesperrt" : "Schutz bereit"}
+        </Badge>
+      </div>
+      <div className="workflow-actions">
+        <div className="builder-search">
+          <Search />
+          <Input
+            aria-label="Bausteine durchsuchen"
+            placeholder="Baustein suchen"
+            value={search}
+            onChange={(event) => onSearch(event.target.value)}
+          />
+        </div>
+        <ThemeToggle />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onShowAll}
+          disabled={nodeCount === 0}
+          aria-label="Alle Bausteine im Canvas anzeigen"
+        >
+          <Maximize2 data-icon="inline-start" /> Alles anzeigen
+        </Button>
+        <Button
+          ref={routeTriggerRef}
+          type="button"
+          variant={selectedPathId ? "secondary" : "outline"}
+          size="sm"
+          onClick={onRoutes}
+          aria-label={`Pfade anzeigen (${routeCount})`}
+        >
+          <RouteIcon data-icon="inline-start" /> Pfade
+          <span className="action-count">{routeCount}</span>
+        </Button>
+        <Button
+          ref={simulationTriggerRef}
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onSimulation}
+        >
+          <FlaskConical data-icon="inline-start" /> Simulieren
+        </Button>
+        <Button
+          ref={operationsTriggerRef}
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onOperations}
+        >
+          <Activity data-icon="inline-start" /> Betrieb
+        </Button>
+        <Button
+          ref={libraryTriggerRef}
+          type="button"
+          size="sm"
+          onClick={onLibrary}
+        >
+          <Plus data-icon="inline-start" /> Baustein
+        </Button>
+      </div>
+    </header>
+  );
+}
+
+function WorkflowStatusbar({
+  snapshot,
+  graph,
+  saving,
+}: Readonly<{
+  snapshot: WorkflowSnapshot;
+  graph: WorkflowGraph;
+  saving: boolean;
+}>) {
+  const enabledPaths =
+    snapshot.workflow?.compiled.paths.filter((path) => path.enabled).length || 0;
+  return (
+    <section className="workflow-statusbar" aria-label="Workflow-Status">
+      <a className="workflow-status-skip" href="#workflow-canvas">
+        Statusleiste überspringen
+      </a>
+      <div>
+        <strong>Revision {snapshot.workflow?.revision ?? 0}</strong>
+        <span>
+          {snapshot.workflow
+            ? `aktiv seit ${new Date(snapshot.workflow.createdAt).toLocaleString("de-DE")}`
+            : "Noch keine aktive Revision"}
+        </span>
+      </div>
+      <div>
+        <strong>{snapshot.workflow?.compiled.paths.length ?? 0} Pfade</strong>
+        <span>{enabledPaths} ausführbar</span>
+      </div>
+      <div>
+        <strong>{graph.nodes.length} Bausteine</strong>
+        <span>{graph.edges.length} Verbindungen</span>
+      </div>
+      <div className="save-indicator">
+        {saving ? (
+          <>
+            <RefreshCw size={14} className="spin" /> validiere & aktiviere
+          </>
+        ) : (
+          <>
+            <Save size={14} /> alle Änderungen gespeichert
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function BuilderNotice({
+  notice,
+  onClose,
+}: Readonly<{ notice: BuilderNoticeValue; onClose: () => void }>) {
+  return (
+    <div className={`builder-notice ${notice.tone}`}>
+      <span>
+        {notice.tone === "ok" ? (
+          <Check size={16} />
+        ) : (
+          <AlertTriangle size={16} />
+        )}
+      </span>
+      <p>{notice.text}</p>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        onClick={onClose}
+        aria-label="Hinweis schließen"
+      >
+        <X />
+      </Button>
+    </div>
+  );
+}
+
+function DuplicateResourceNotice({
+  removedNodeCount,
+  saving,
+  onConsolidate,
+}: Readonly<{
+  removedNodeCount: number;
+  saving: boolean;
+  onConsolidate: () => void;
+}>) {
+  if (removedNodeCount === 0) return null;
+  return (
+    <div className="builder-notice warning duplicate-resource-notice">
+      <span>
+        <AlertTriangle size={16} />
+      </span>
+      <p>
+        <strong>{removedNodeCount} alte Doppelplatzierung(en) gefunden.</strong>{" "}
+        Jeder logische Baustein darf künftig nur einmal im Canvas stehen;
+        mehrere Pfeile bilden weiterhin alle Kombinationen ab.
+      </p>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        disabled={saving}
+        onClick={onConsolidate}
+      >
+        Jetzt sicher zusammenführen
+      </Button>
+    </div>
+  );
+}
+
+function ResourceLibraryDialog({
+  open,
+  selectedKind,
+  resources,
+  placedResources,
+  archiveTarget,
+  onClose,
+  onSelectKind,
+  onCreate,
+  onAdd,
+  onSelectArchive,
+  onArchive,
+}: Readonly<{
+  open: boolean;
+  selectedKind: WorkflowKind | null;
+  resources: WorkflowResource[];
+  placedResources: Map<string, WorkflowGraph["nodes"][number]>;
+  archiveTarget: WorkflowResource | null;
+  onClose: () => void;
+  onSelectKind: (kind: WorkflowKind | null) => void;
+  onCreate: (kind: WorkflowKind) => void;
+  onAdd: (resource: WorkflowResource) => void;
+  onSelectArchive: (resource: WorkflowResource | null) => void;
+  onArchive: (resource: WorkflowResource) => void;
+}>) {
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
+    >
+      <DialogContent
+        className="kind-picker sm:max-w-3xl"
+        closeLabel="Baustein-Bibliothek schließen"
+      >
+        <DialogHeader>
+          <Badge variant="secondary">Baustein-Bibliothek</Badge>
+          <DialogTitle>
+            {selectedKind
+              ? KIND_META[selectedKind].label
+              : "Was soll der Workflow als Nächstes können?"}
+          </DialogTitle>
+          <DialogDescription>
+            Jeder gespeicherte Baustein steht höchstens einmal im Canvas.
+            Zusätzliche Kombinationen entstehen über mehrere Verbindungen.
+          </DialogDescription>
+        </DialogHeader>
+        {!selectedKind ? (
+          <div className="kind-grid">
+            {WORKFLOW_KINDS.map((kind) => {
+              const available = resources.filter(
+                (resource) => resource.kind === kind,
+              ).length;
+              return (
+                <Button
+                  type="button"
+                  variant="outline"
+                  key={kind}
+                  style={
+                    {
+                      "--node-accent": KIND_META[kind].color,
+                    } as CSSProperties
+                  }
+                  onClick={() => onSelectKind(kind)}
+                >
+                  <i />
+                  <span>
+                    <strong>{KIND_META[kind].label}</strong>
+                    <small>
+                      {available
+                        ? `${available} veröffentlichte Bausteine`
+                        : "Noch kein gespeicherter Baustein"}
+                    </small>
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="resource-library">
+            <Button
+              type="button"
+              variant="ghost"
+              className="library-back"
+              onClick={() => onSelectKind(null)}
+            >
+              ← Alle Bausteinarten
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="library-new"
+              style={
+                {
+                  "--node-accent": KIND_META[selectedKind].color,
+                } as CSSProperties
+              }
+              onClick={() => onCreate(selectedKind)}
+            >
+              <Plus />
+              <span>
+                <strong>Neuen Baustein erstellen</strong>
+                <small>Mit einer neuen unveränderlichen Version beginnen</small>
+              </span>
+            </Button>
+            {archiveTarget && (
+              <Alert
+                variant="destructive"
+                className="library-delete-confirmation"
+              >
+                <AlertTriangle />
+                <AlertDescription>
+                  <strong>„{archiveTarget.name}“ dauerhaft archivieren?</strong>
+                  <p>
+                    Falls der Baustein im Canvas steht, werden auch seine
+                    aktiven Verbindungen entfernt. Frühere Revisionen bleiben
+                    für Audit und Wiederherstellung erhalten.
+                  </p>
+                  <span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSelectArchive(null)}
+                    >
+                      Abbrechen
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onArchive(archiveTarget)}
+                    >
+                      Ja, dauerhaft archivieren
+                    </Button>
+                  </span>
+                </AlertDescription>
+              </Alert>
+            )}
+            {resources
+              .filter((resource) => resource.kind === selectedKind)
+              .map((resource) => {
+                const placed = placedResources.get(resource.resourceId);
+                return (
+                  <div
+                    key={resource.resourceId}
+                    className={`library-existing ${placed ? "is-placed" : ""}`}
+                    style={
+                      {
+                        "--node-accent": KIND_META[selectedKind].color,
+                      } as CSSProperties
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="library-resource-main"
+                      onClick={() => onAdd(resource)}
+                    >
+                      <i />
+                      <span>
+                        <strong>{resource.name}</strong>
+                        <small>
+                          {placed
+                            ? "Bereits im Canvas · dort anzeigen"
+                            : `Version ${resource.version}`}
+                          {resource.description
+                            ? ` · ${resource.description}`
+                            : ""}
+                        </small>
+                      </span>
+                      {placed && <Check aria-label="Bereits platziert" />}
+                    </button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="library-resource-delete"
+                      aria-label={`${resource.name} dauerhaft archivieren`}
+                      onClick={() => onSelectArchive(resource)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function WorkflowBuilder() {
   const [snapshot, setSnapshot] = useState<WorkflowSnapshot>({
     workflow: null,
@@ -259,15 +708,14 @@ export function WorkflowBuilder() {
   const [graph, setGraph] = useState<WorkflowGraph>(EMPTY_GRAPH);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<{
-    tone: "ok" | "warning" | "error";
-    text: string;
-  } | null>(null);
+  const [notice, setNotice] = useState<BuilderNoticeValue | null>(null);
   const [operationsOpen, setOperationsOpen] = useState(false);
   const [editorNodeId, setEditorNodeId] = useState<string | null>(null);
   const [newKind, setNewKind] = useState<WorkflowKind | null>(null);
   const [kindPickerOpen, setKindPickerOpen] = useState(false);
   const [libraryKind, setLibraryKind] = useState<WorkflowKind | null>(null);
+  const [libraryArchiveTarget, setLibraryArchiveTarget] =
+    useState<WorkflowResource | null>(null);
   const [simulationOpen, setSimulationOpen] = useState(false);
   const [simulation, setSimulation] = useState({
     channelId: "",
@@ -292,6 +740,7 @@ export function WorkflowBuilder() {
   const closeLibrary = useCallback(() => {
     setKindPickerOpen(false);
     setLibraryKind(null);
+    setLibraryArchiveTarget(null);
     window.setTimeout(() => libraryTriggerRef.current?.focus(), 0);
   }, []);
   const closeSimulation = useCallback(() => {
@@ -425,18 +874,18 @@ export function WorkflowBuilder() {
   useEffect(() => {
     if (selectedPathId && !selectedRoute) setSelectedPathId(null);
   }, [selectedPathId, selectedRoute]);
-  const publishedLibrary = useMemo(() => {
-    const latest = new Map<string, WorkflowResource>();
-    for (const resource of snapshot.resources) {
-      if (resource.status !== "published") continue;
-      const current = latest.get(resource.resourceId);
-      if (!current || current.version < resource.version)
-        latest.set(resource.resourceId, resource);
-    }
-    return [...latest.values()].sort((left, right) =>
-      left.name.localeCompare(right.name, "de-DE"),
-    );
-  }, [snapshot.resources]);
+  const publishedLibrary = useMemo(
+    () => latestPublishedResources(snapshot.resources),
+    [snapshot.resources],
+  );
+  const placedResources = useMemo(
+    () => placedNodesByResourceId(graph, snapshot.resources),
+    [graph, snapshot.resources],
+  );
+  const duplicateSummary = useMemo(
+    () => consolidateWorkflowResources(graph, snapshot.resources),
+    [graph, snapshot.resources],
+  );
   const openEditor = useCallback(
     (nodeId: string) => setEditorNodeId(nodeId),
     [],
@@ -634,6 +1083,30 @@ export function WorkflowBuilder() {
     trading,
   ]);
 
+  const moveNode = useCallback(
+    (nodeId: string, direction: "up" | "down") => {
+      const candidate = moveWorkflowNode(graphRef.current, nodeId, direction);
+      if (!candidate) {
+        setNotice({
+          tone: "warning",
+          text:
+            direction === "up"
+              ? "Der Baustein steht in dieser Spalte bereits ganz oben."
+              : "Der Baustein steht in dieser Spalte bereits ganz unten.",
+        });
+        return;
+      }
+      setGraph(candidate);
+      void activateGraph(
+        candidate,
+        direction === "up"
+          ? "Baustein nach oben verschoben"
+          : "Baustein nach unten verschoben",
+      );
+    },
+    [activateGraph],
+  );
+
   const displayNodes = useMemo<Node[]>(() => {
     const headers: Node[] = WORKFLOW_KINDS.map((kind) => ({
       id: `__column_${kind}`,
@@ -715,7 +1188,9 @@ export function WorkflowBuilder() {
           onStartConnection: startConnection,
           onCompleteConnection: completeConnection,
           onCancelConnection: cancelConnection,
+          onMove: moveNode,
         } satisfies WorkflowNodeData,
+        dragHandle: ".workflow-node-drag-handle",
         initialWidth: WORKFLOW_NODE_DIMENSIONS.width,
         initialHeight: WORKFLOW_NODE_DIMENSIONS.height,
         handles: workflowHandles(node.kind),
@@ -730,6 +1205,7 @@ export function WorkflowBuilder() {
     executableNodeIds,
     graph.edges,
     graph.nodes,
+    moveNode,
     openEditor,
     resourceById,
     routeTopology.nodeUsage,
@@ -950,6 +1426,19 @@ export function WorkflowBuilder() {
   };
 
   const addExistingResource = async (resource: WorkflowResource) => {
+    const existing = placedResources.get(resource.resourceId);
+    if (existing) {
+      setKindPickerOpen(false);
+      setLibraryKind(null);
+      setLibraryArchiveTarget(null);
+      setSearch("");
+      setNotice({
+        tone: "warning",
+        text: `${resource.name} ist bereits einmal im Canvas platziert. Für weitere Kombinationen verbindest du denselben Baustein mit mehreren Pfeilen.`,
+      });
+      revealNode(existing);
+      return;
+    }
     const candidate = structuredClone(graphRef.current);
     const sameColumn = candidate.nodes.filter(
       (item) => item.kind === resource.kind,
@@ -973,6 +1462,61 @@ export function WorkflowBuilder() {
       setLibraryKind(null);
       setSearch("");
       revealNode(addedNode);
+    }
+  };
+
+  const archiveResourceFamily = async (resource: WorkflowResource) => {
+    const familyNodeIds = new Set(
+      graphRef.current.nodes
+        .filter(
+          (node) =>
+            resourceById.get(node.resourceVersionId)?.resourceId ===
+            resource.resourceId,
+        )
+        .map((node) => node.id),
+    );
+    if (familyNodeIds.size > 0) {
+      const candidate = structuredClone(graphRef.current);
+      candidate.nodes = candidate.nodes.filter(
+        (node) => !familyNodeIds.has(node.id),
+      );
+      candidate.edges = candidate.edges.filter(
+        (edge) =>
+          !familyNodeIds.has(edge.source) && !familyNodeIds.has(edge.target),
+      );
+      const activated = await activateGraph(
+        candidate,
+        `${resource.name} aus dem aktiven Canvas entfernt`,
+      );
+      if (!activated) throw new Error("Die Archivierung wurde abgebrochen.");
+    }
+    await jsonRequest("/api/workflow/resources", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Destructive-Confirmation": "delete-workflow-resource",
+      },
+      body: JSON.stringify({ resourceId: resource.resourceId }),
+    });
+    setEditorNodeId(null);
+    setLibraryArchiveTarget(null);
+    await load();
+    setNotice({
+      tone: "ok",
+      text: `${resource.name} wurde dauerhaft aus der aktiven Bibliothek archiviert. Alte Revisionen bleiben prüfbar.`,
+    });
+  };
+
+  const consolidateDuplicates = async () => {
+    if (duplicateSummary.removedNodeCount === 0) return;
+    const activated = await activateGraph(
+      duplicateSummary.graph,
+      `${duplicateSummary.removedNodeCount} doppelte Platzierungen zusammengeführt`,
+    );
+    if (activated) {
+      setEditorNodeId(null);
+      setSearch("");
+      window.setTimeout(showAllNodes, 0);
     }
   };
 
@@ -1018,181 +1562,43 @@ export function WorkflowBuilder() {
   if (loading)
     return (
       <div className="builder-loading">
-        <Workflow size={28} />
+        <Logo variant="mark" size={32} />
         <span>Lade aktive Workflow-Revision…</span>
       </div>
     );
 
   return (
     <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
-      <header className="workflow-topbar">
-        <div className="workflow-brand">
-          <div className="workflow-mark">
-            <Workflow size={21} />
-          </div>
-          <div>
-            <span>TSX Core</span>
-            <strong>Execution Workflow</strong>
-          </div>
-        </div>
-        <div className="workflow-health">
-          <Badge
-            variant="outline"
-            className={
-              systemStatus?.connectionState === "connected"
-                ? "status-healthy"
-                : ""
-            }
-          >
-            <i />
-            Telegram {systemStatus?.connectionState || "offline"}
-          </Badge>
-          <Badge
-            variant="outline"
-            className={
-              trading?.overview.runtime.executionEnabled ? "status-healthy" : ""
-            }
-          >
-            <i />
-            Execution{" "}
-            {trading?.overview.runtime.executionEnabled ? "aktiv" : "pausiert"}
-          </Badge>
-          <Badge
-            variant={
-              trading?.overview.runtime.killSwitchActive
-                ? "destructive"
-                : "outline"
-            }
-            className={
-              trading?.overview.runtime.killSwitchActive ? "" : "status-healthy"
-            }
-          >
-            <ShieldCheck />
-            {trading?.overview.runtime.killSwitchActive
-              ? "global gesperrt"
-              : "Schutz bereit"}
-          </Badge>
-        </div>
-        <div className="workflow-actions">
-          <div className="builder-search">
-            <Search />
-            <Input
-              aria-label="Bausteine durchsuchen"
-              placeholder="Baustein suchen"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-          <ThemeToggle />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={showAllNodes}
-            disabled={graph.nodes.length === 0}
-            aria-label="Alle Bausteine im Canvas anzeigen"
-          >
-            <Maximize2 data-icon="inline-start" /> Alles anzeigen
-          </Button>
-          <Button
-            ref={routeTriggerRef}
-            type="button"
-            variant={selectedPathId ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setRouteOverviewOpen(true)}
-            aria-label={`Pfade anzeigen (${routeTopology.routes.length})`}
-          >
-            <RouteIcon data-icon="inline-start" /> Pfade
-            <span className="action-count">{routeTopology.routes.length}</span>
-          </Button>
-          <Button
-            ref={simulationTriggerRef}
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setSimulationOpen(true)}
-          >
-            <FlaskConical data-icon="inline-start" /> Simulieren
-          </Button>
-          <Button
-            ref={operationsTriggerRef}
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setOperationsOpen(true)}
-          >
-            <Activity data-icon="inline-start" /> Betrieb
-          </Button>
-          <Button
-            ref={libraryTriggerRef}
-            type="button"
-            size="sm"
-            onClick={() => {
-              setLibraryKind(null);
-              setKindPickerOpen(true);
-            }}
-          >
-            <Plus data-icon="inline-start" /> Baustein
-          </Button>
-        </div>
-      </header>
-      <section className="workflow-statusbar" aria-label="Workflow-Status">
-        <a className="workflow-status-skip" href="#workflow-canvas">
-          Statusleiste überspringen
-        </a>
-        <div>
-          <strong>Revision {snapshot.workflow?.revision ?? 0}</strong>
-          <span>
-            {snapshot.workflow
-              ? `aktiv seit ${new Date(snapshot.workflow.createdAt).toLocaleString("de-DE")}`
-              : "Noch keine aktive Revision"}
-          </span>
-        </div>
-        <div>
-          <strong>{snapshot.workflow?.compiled.paths.length ?? 0} Pfade</strong>
-          <span>
-            {snapshot.workflow?.compiled.paths.filter((path) => path.enabled)
-              .length ?? 0}{" "}
-            ausführbar
-          </span>
-        </div>
-        <div>
-          <strong>{graph.nodes.length} Bausteine</strong>
-          <span>{graph.edges.length} Verbindungen</span>
-        </div>
-        <div className="save-indicator">
-          {saving ? (
-            <>
-              <RefreshCw size={14} className="spin" /> validiere & aktiviere
-            </>
-          ) : (
-            <>
-              <Save size={14} /> alle Änderungen gespeichert
-            </>
-          )}
-        </div>
-      </section>
+      <WorkflowTopbar
+        systemStatus={systemStatus}
+        trading={trading}
+        search={search}
+        onSearch={setSearch}
+        onShowAll={showAllNodes}
+        nodeCount={graph.nodes.length}
+        selectedPathId={selectedPathId}
+        routeCount={routeTopology.routes.length}
+        onRoutes={() => setRouteOverviewOpen(true)}
+        onSimulation={() => setSimulationOpen(true)}
+        onOperations={() => setOperationsOpen(true)}
+        onLibrary={() => {
+          setLibraryKind(null);
+          setKindPickerOpen(true);
+        }}
+        routeTriggerRef={routeTriggerRef}
+        simulationTriggerRef={simulationTriggerRef}
+        operationsTriggerRef={operationsTriggerRef}
+        libraryTriggerRef={libraryTriggerRef}
+      />
+      <WorkflowStatusbar snapshot={snapshot} graph={graph} saving={saving} />
       {notice && (
-        <div className={`builder-notice ${notice.tone}`}>
-          <span>
-            {notice.tone === "ok" ? (
-              <Check size={16} />
-            ) : (
-              <AlertTriangle size={16} />
-            )}
-          </span>
-          <p>{notice.text}</p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setNotice(null)}
-            aria-label="Hinweis schließen"
-          >
-            <X />
-          </Button>
-        </div>
+        <BuilderNotice notice={notice} onClose={() => setNotice(null)} />
       )}
+      <DuplicateResourceNotice
+        removedNodeCount={duplicateSummary.removedNodeCount}
+        saving={saving}
+        onConsolidate={() => void consolidateDuplicates()}
+      />
       <div
         ref={canvasRef}
         id="workflow-canvas"
@@ -1416,125 +1822,37 @@ export function WorkflowBuilder() {
         }}
         onSave={saveResource}
         onDeleteNode={selectedNode ? deleteNode : undefined}
+        onArchiveResource={
+          selectedResource
+            ? () => archiveResourceFamily(selectedResource)
+            : undefined
+        }
         onConfigureAccount={configureAccount}
       />
-      <Dialog
+      <ResourceLibraryDialog
         open={kindPickerOpen}
-        onOpenChange={(open) => {
-          if (!open) closeLibrary();
+        selectedKind={libraryKind}
+        resources={publishedLibrary}
+        placedResources={placedResources}
+        archiveTarget={libraryArchiveTarget}
+        onClose={closeLibrary}
+        onSelectKind={setLibraryKind}
+        onCreate={(kind) => {
+          setKindPickerOpen(false);
+          setNewKind(kind);
+          setLibraryKind(null);
         }}
-      >
-        <DialogContent
-          className="kind-picker sm:max-w-3xl"
-          closeLabel="Baustein-Bibliothek schließen"
-        >
-          <DialogHeader>
-            <Badge variant="secondary">Baustein-Bibliothek</Badge>
-            <DialogTitle>
-              {libraryKind
-                ? KIND_META[libraryKind].label
-                : "Was soll der Workflow als Nächstes können?"}
-            </DialogTitle>
-            <DialogDescription>
-              Erstelle einen neuen Baustein oder verwende eine bereits
-              veröffentlichte Version.
-            </DialogDescription>
-          </DialogHeader>
-          {!libraryKind ? (
-            <div className="kind-grid">
-              {WORKFLOW_KINDS.map((kind) => {
-                const available = publishedLibrary.filter(
-                  (resource) => resource.kind === kind,
-                ).length;
-                return (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    key={kind}
-                    style={
-                      {
-                        "--node-accent": KIND_META[kind].color,
-                      } as CSSProperties
-                    }
-                    onClick={() => setLibraryKind(kind)}
-                  >
-                    <i />
-                    <span>
-                      <strong>{KIND_META[kind].label}</strong>
-                      <small>
-                        {available
-                          ? `${available} veröffentlichte Bausteine`
-                          : "Noch kein gespeicherter Baustein"}
-                      </small>
-                    </span>
-                  </Button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="resource-library">
-              <Button
-                type="button"
-                variant="ghost"
-                className="library-back"
-                onClick={() => setLibraryKind(null)}
-              >
-                ← Alle Bausteinarten
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="library-new"
-                style={
-                  {
-                    "--node-accent": KIND_META[libraryKind].color,
-                  } as CSSProperties
-                }
-                onClick={() => {
-                  setKindPickerOpen(false);
-                  setNewKind(libraryKind);
-                  setLibraryKind(null);
-                }}
-              >
-                <Plus />
-                <span>
-                  <strong>Neuen Baustein erstellen</strong>
-                  <small>
-                    Mit einer neuen unveränderlichen Version beginnen
-                  </small>
-                </span>
-              </Button>
-              {publishedLibrary
-                .filter((resource) => resource.kind === libraryKind)
-                .map((resource) => (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    key={resource.id}
-                    className="library-existing"
-                    style={
-                      {
-                        "--node-accent": KIND_META[libraryKind].color,
-                      } as CSSProperties
-                    }
-                    onClick={() => void addExistingResource(resource)}
-                  >
-                    <i />
-                    <span>
-                      <strong>{resource.name}</strong>
-                      <small>
-                        Version {resource.version}
-                        {resource.description
-                          ? ` · ${resource.description}`
-                          : ""}
-                      </small>
-                    </span>
-                  </Button>
-                ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+        onAdd={(resource) => void addExistingResource(resource)}
+        onSelectArchive={setLibraryArchiveTarget}
+        onArchive={(resource) =>
+          void archiveResourceFamily(resource).catch((error) => {
+            setNotice({
+              tone: "error",
+              text: error instanceof Error ? error.message : String(error),
+            });
+          })
+        }
+      />
       <Dialog
         open={simulationOpen}
         onOpenChange={(open) => {

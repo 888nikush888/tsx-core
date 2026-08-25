@@ -7,7 +7,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { AlertTriangle, Archive, Check } from "lucide-react";
+import { AlertTriangle, Archive, Check, Plus, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -27,12 +27,14 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   KIND_META,
+  type SignalContractDefinition,
+  type StrategyConfiguration,
   type TradingSnapshot,
   type WorkflowKind,
   type WorkflowResource,
 } from "./types";
 
-type ResourceEditorProps = {
+type ResourceEditorProps = Readonly<{
   open: boolean;
   kind: WorkflowKind;
   resource: WorkflowResource | null;
@@ -44,8 +46,9 @@ type ResourceEditorProps = {
     configuration: Record<string, unknown>;
   }) => Promise<boolean>;
   onDeleteNode?: () => Promise<void>;
+  onArchiveResource?: () => Promise<void>;
   onConfigureAccount?: (accountId: string, maximum: number) => Promise<void>;
-};
+}>;
 
 async function requestJson(url: string, init?: RequestInit) {
   const response = await apiFetch(url, init);
@@ -73,11 +76,17 @@ function numberValue(value: unknown, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function textValue(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return fallback;
+}
+
 function applyParserDraft(
   configuration: Record<string, unknown>,
   templateContent: string,
 ): void {
-  const templateName = String(configuration.templateName || "").trim();
+  const templateName = textValue(configuration.templateName).trim();
   if (!/^[a-zA-Z0-9_-]{1,64}$/.test(templateName))
     throw new Error("Der Vorlagenname ist ungültig.");
   if (!templateContent.trim())
@@ -89,7 +98,7 @@ function applyParserDraft(
 async function publishStrategyDraft(
   configuration: Record<string, unknown>,
   trading: TradingSnapshot | null,
-  nativeJson: string,
+  strategyDraft: StrategyConfiguration,
 ): Promise<void> {
   const selected = trading?.strategies.find(
     (item) => item.id === configuration.strategyVersionId,
@@ -103,7 +112,7 @@ async function publishStrategyDraft(
       strategyId: selected.strategyId,
       name: selected.name,
       description: selected.description,
-      configuration: JSON.parse(nativeJson),
+      configuration: strategyDraft,
     }),
   });
   const published = await requestJson("/api/trading/strategies/publish", {
@@ -117,7 +126,7 @@ async function publishStrategyDraft(
 async function publishContractDraft(
   configuration: Record<string, unknown>,
   trading: TradingSnapshot | null,
-  nativeJson: string,
+  contractDraft: SignalContractDefinition,
 ): Promise<void> {
   const parent = trading?.signalContracts.find((contract) =>
     contract.versions.some(
@@ -142,7 +151,7 @@ async function publishContractDraft(
       versionId: draft.result.id,
       name: parent.name,
       description: parent.description,
-      definition: JSON.parse(nativeJson),
+      definition: contractDraft,
     }),
   });
   const published = await requestJson("/api/trading/signal-contracts/publish", {
@@ -157,7 +166,7 @@ async function createSchemaDraft(
   configuration: Record<string, unknown>,
   schemaDraft: Record<string, unknown>,
 ): Promise<void> {
-  const id = String(schemaDraft.id || "").trim();
+  const id = textValue(schemaDraft.id).trim();
   if (!id || id === schemaDraft.originalId) {
     throw new Error(
       "Änderungen an einem verwendeten Signal-Schema benötigen eine neue eindeutige Schema-ID.",
@@ -231,7 +240,9 @@ export function defaultConfiguration(
   return defaults[kind];
 }
 
-function Field(props: { label: string; hint?: string; children: ReactNode }) {
+function Field(
+  props: Readonly<{ label: string; hint?: string; children: ReactNode }>,
+) {
   const controls = Children.map(props.children, (child) => {
     if (!isValidElement(child)) return child;
     const element = child as ReactElement<Record<string, unknown>>;
@@ -254,16 +265,834 @@ function Toggle({
   checked,
   onChange,
   label,
-}: {
+  disabled = false,
+}: Readonly<{
   checked: boolean;
   onChange: (checked: boolean) => void;
   label: string;
-}) {
+  disabled?: boolean;
+}>) {
   return (
-    <Label className="builder-toggle">
-      <Switch checked={checked} onCheckedChange={onChange} />
+    <Label className="builder-toggle" aria-disabled={disabled}>
+      <Switch
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onChange}
+      />
       {label}
     </Label>
+  );
+}
+
+function StrategyForm({
+  value,
+  onChange,
+}: Readonly<{
+  value: StrategyConfiguration;
+  onChange: (value: StrategyConfiguration) => void;
+}>) {
+  const section = <
+    Name extends "entry" | "sizing" | "exits" | "safety",
+  >(
+    name: Name,
+    changes: Partial<StrategyConfiguration[Name]>,
+  ) =>
+    onChange({
+      ...value,
+      [name]: { ...value[name], ...changes },
+    });
+  const setAccess = <Name extends "allowedSignalSchemas" | "allowedSymbols" | "allowedSides">(
+    name: Name,
+    next: StrategyConfiguration[Name],
+  ) => onChange({ ...value, [name]: next });
+  const toggleSide = (side: "LONG" | "SHORT", enabled: boolean) => {
+    const next = enabled
+      ? [...new Set([...value.allowedSides, side])]
+      : value.allowedSides.filter((candidate) => candidate !== side);
+    setAccess("allowedSides", next);
+  };
+
+  return (
+    <div className="strategy-form">
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Freigaben</strong>
+          <small>Welche Signale diese Strategie überhaupt annehmen darf.</small>
+        </div>
+        <div className="builder-field-grid three">
+          <Field label="Erlaubte Signal-Schemas" hint="Eine Schema-ID je Zeile.">
+            <textarea
+              value={value.allowedSignalSchemas.join("\n")}
+              onChange={(event) =>
+                setAccess("allowedSignalSchemas", list(event.target.value))
+              }
+            />
+          </Field>
+          <Field label="Erlaubte Symbole" hint="Leer erlaubt alle Symbole.">
+            <textarea
+              value={value.allowedSymbols.join("\n")}
+              onChange={(event) =>
+                setAccess(
+                  "allowedSymbols",
+                  list(event.target.value).map((item) => item.toUpperCase()),
+                )
+              }
+            />
+          </Field>
+          <div className="strategy-toggle-stack">
+            <span>Erlaubte Richtungen</span>
+            <Toggle
+              checked={value.allowedSides.includes("LONG")}
+              onChange={(enabled) => toggleSide("LONG", enabled)}
+              label="LONG"
+            />
+            <Toggle
+              checked={value.allowedSides.includes("SHORT")}
+              onChange={(enabled) => toggleSide("SHORT", enabled)}
+              label="SHORT"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Entry</strong>
+          <small>Orderart, Preiswahl und maximale Wartezeit.</small>
+        </div>
+        <div className="builder-field-grid three">
+          <Field label="Orderart">
+            <select
+              value={value.entry.orderType}
+              onChange={(event) =>
+                section("entry", {
+                  orderType: event.target.value as "market" | "limit",
+                  postOnly:
+                    event.target.value === "market"
+                      ? false
+                      : value.entry.postOnly,
+                })
+              }
+            >
+              <option value="limit">Limit</option>
+              <option value="market">Market</option>
+            </select>
+          </Field>
+          <Field
+            label="Preis im Entry-Bereich"
+            hint="Near liegt näher am aktuellen Kurs, far weiter entfernt."
+          >
+            <select
+              value={value.entry.rangePrice}
+              disabled={value.entry.orderType === "market"}
+              onChange={(event) =>
+                section("entry", {
+                  rangePrice: event.target.value as "near" | "midpoint" | "far",
+                })
+              }
+            >
+              <option value="near">Near</option>
+              <option value="midpoint">Mittelpunkt</option>
+              <option value="far">Far</option>
+            </select>
+          </Field>
+          <Field label="Order-Timeout (Sekunden)" hint="2 bis 30 Sekunden.">
+            <input
+              type="number"
+              min={2}
+              max={30}
+              value={value.entry.timeoutSeconds}
+              onChange={(event) =>
+                section("entry", { timeoutSeconds: Number(event.target.value) })
+              }
+            />
+          </Field>
+          <Toggle
+            checked={value.entry.postOnly}
+            onChange={(postOnly) => section("entry", { postOnly })}
+            disabled={value.entry.orderType === "market"}
+            label="Post-only (nur bei Limit)"
+          />
+        </div>
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Fallback-Positionsgröße</strong>
+          <small>
+            Ein nachgeschalteter Positionsgrößen-Baustein überschreibt diese
+            Grundwerte für seinen konkreten Pfad.
+          </small>
+        </div>
+        <div className="builder-field-grid three">
+          <Field label="Größenmodus">
+            <select
+              value={value.sizing.positionSizingMode || "risk_percent"}
+              onChange={(event) =>
+                section("sizing", {
+                  positionSizingMode: event.target.value as NonNullable<
+                    StrategyConfiguration["sizing"]["positionSizingMode"]
+                  >,
+                })
+              }
+            >
+              <option value="equity_percent_margin">
+                Portfolioanteil als eingesetztes Kapital
+              </option>
+              <option value="equity_percent_notional">
+                Portfolioanteil als Positionswert
+              </option>
+              <option value="risk_percent">Risiko bis Stop-Loss</option>
+            </select>
+          </Field>
+          <Field label="Basis pro Trade (%)">
+            <input
+              type="number"
+              min="0.01"
+              max="10"
+              step="0.01"
+              value={value.sizing.riskPerTradePercent}
+              onChange={(event) =>
+                section("sizing", { riskPerTradePercent: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Max. adaptiv (%)">
+            <input
+              type="number"
+              min="0.01"
+              max="10"
+              step="0.01"
+              value={value.sizing.maxAdaptiveRiskPercent || ""}
+              onChange={(event) =>
+                section("sizing", {
+                  maxAdaptiveRiskPercent: event.target.value,
+                })
+              }
+            />
+          </Field>
+          <Field label="Notional-Obergrenze">
+            <input
+              value={value.sizing.maxPositionNotional}
+              onChange={(event) =>
+                section("sizing", { maxPositionNotional: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Max. Leverage">
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={value.sizing.maxLeverage}
+              onChange={(event) =>
+                section("sizing", { maxLeverage: Number(event.target.value) })
+              }
+            />
+          </Field>
+        </div>
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Take Profit & Stop</strong>
+          <small>Verteilung der Targets und Verhalten des Schutz-Stops.</small>
+        </div>
+        <div className="builder-field-grid three">
+          <Field label="Target-Verteilung">
+            <select
+              value={value.exits.targetAllocationMode}
+              onChange={(event) =>
+                section("exits", {
+                  targetAllocationMode: event.target.value as
+                    | "manual"
+                    | "adaptive_halving",
+                })
+              }
+            >
+              <option value="manual">Manuelle Prozente</option>
+              <option value="adaptive_halving">Jeweils halber Rest</option>
+            </select>
+          </Field>
+          <Field
+            label="Target-Anteile (%)"
+            hint="Ein Wert je Zeile; zusammen exakt 100 %."
+          >
+            <textarea
+              value={value.exits.targetAllocationsPercent.join("\n")}
+              onChange={(event) =>
+                section("exits", {
+                  targetAllocationsPercent: list(event.target.value),
+                })
+              }
+            />
+          </Field>
+          <Field label="Stop-Loss-Modus">
+            <select
+              value={value.exits.stopLossMode}
+              onChange={(event) =>
+                section("exits", {
+                  stopLossMode: event.target.value as
+                    | "configured"
+                    | "adaptive_targets",
+                })
+              }
+            >
+              <option value="configured">Signal-SL + konfiguriertes Nachziehen</option>
+              <option value="adaptive_targets">Adaptiv anhand erreichter Targets</option>
+            </select>
+          </Field>
+          <Field
+            label="Break-even nach Target"
+            hint="Leer lässt diese Regel aus."
+          >
+            <input
+              type="number"
+              min={1}
+              max={value.exits.targetAllocationsPercent.length}
+              value={value.exits.moveStopToBreakEvenAfterTarget ?? ""}
+              onChange={(event) =>
+                section("exits", {
+                  moveStopToBreakEvenAfterTarget: event.target.value
+                    ? Number(event.target.value)
+                    : null,
+                })
+              }
+            />
+          </Field>
+          <Field label="Trailing Stop (%)" hint="Leer deaktiviert zusätzliches Trailing.">
+            <input
+              type="number"
+              min="0.01"
+              max="20"
+              step="0.01"
+              value={value.exits.trailingStopPercent ?? ""}
+              onChange={(event) =>
+                section("exits", {
+                  trailingStopPercent: event.target.value || null,
+                })
+              }
+            />
+          </Field>
+          <div className="builder-locked-note">
+            <Check size={16} /> Am letzten Target wird der komplette Rest
+            geschlossen.
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Sicherheitsgrenzen</strong>
+          <small>
+            Verlust-, Slippage- und Ablaufgrenzen. Die Positionsanzahl wird am
+            Börsenkonto verwaltet.
+          </small>
+        </div>
+        <div className="builder-field-grid three">
+          <Field label="Daily-Loss-Modus">
+            <select
+              value={value.safety.maxDailyLossMode || "absolute"}
+              onChange={(event) =>
+                section("safety", {
+                  maxDailyLossMode: event.target.value as
+                    | "absolute"
+                    | "equity_percent",
+                })
+              }
+            >
+              <option value="equity_percent">Prozent des Portfolios</option>
+              <option value="absolute">Absoluter Betrag</option>
+            </select>
+          </Field>
+          <Field
+            label={
+              value.safety.maxDailyLossMode === "equity_percent"
+                ? "Max. Daily Loss (%)"
+                : "Max. Daily Loss (Quote-Währung)"
+            }
+          >
+            <input
+              type="number"
+              min="0.01"
+              max={
+                value.safety.maxDailyLossMode === "equity_percent"
+                  ? "100"
+                  : undefined
+              }
+              step="0.01"
+              value={value.safety.maxDailyLoss}
+              onChange={(event) =>
+                section("safety", { maxDailyLoss: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Max. Slippage (%)">
+            <input
+              type="number"
+              min="0.01"
+              max="5"
+              step="0.01"
+              value={value.safety.maxSlippagePercent}
+              onChange={(event) =>
+                section("safety", { maxSlippagePercent: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Entry-Gültigkeit (Sekunden)" hint="10 bis 86.400.">
+            <input
+              type="number"
+              min={10}
+              max={86400}
+              value={value.safety.entryOrderTtlSeconds}
+              onChange={(event) =>
+                section("safety", {
+                  entryOrderTtlSeconds: Number(event.target.value),
+                })
+              }
+            />
+          </Field>
+          <div className="builder-locked-note">
+            <Check size={16} /> Ein Schutz-Stop ist immer verpflichtend.
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ContractForm({
+  value,
+  onChange,
+}: Readonly<{
+  value: SignalContractDefinition;
+  onChange: (value: SignalContractDefinition) => void;
+}>) {
+  const section = <
+    Name extends "entry" | "targets" | "geometry" | "grounding",
+  >(
+    name: Name,
+    changes: Partial<SignalContractDefinition[Name]>,
+  ) => onChange({ ...value, [name]: { ...value[name], ...changes } });
+  const optionalPath = (
+    name: "leveragePath" | "riskPercentPath" | "averagingPricePath",
+    next: string,
+  ) => {
+    const updated = { ...value };
+    if (next.trim()) updated[name] = next;
+    else delete updated[name];
+    onChange(updated);
+  };
+
+  return (
+    <div className="strategy-form contract-form">
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Signal-Felder</strong>
+          <small>
+            XML-Pfade für Richtung, Paar, Stop sowie optionale Angaben. Das
+            Root-Element bleibt aus Sicherheitsgründen „signal“.
+          </small>
+        </div>
+        <div className="builder-field-grid three">
+          <Field label="Richtungspfad">
+            <input
+              value={value.actionPath}
+              onChange={(event) =>
+                onChange({ ...value, actionPath: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Paarpfad">
+            <input
+              value={value.pairPath}
+              onChange={(event) =>
+                onChange({ ...value, pairPath: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Stop-Loss-Pfad">
+            <input
+              value={value.stopLossPath}
+              onChange={(event) =>
+                onChange({ ...value, stopLossPath: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Leverage-Pfad" hint="Optional.">
+            <input
+              value={value.leveragePath || ""}
+              onChange={(event) =>
+                optionalPath("leveragePath", event.target.value)
+              }
+            />
+          </Field>
+          <Field label="Risiko-Pfad" hint="Optional.">
+            <input
+              value={value.riskPercentPath || ""}
+              onChange={(event) =>
+                optionalPath("riskPercentPath", event.target.value)
+              }
+            />
+          </Field>
+          <Field label="Averaging-Pfad" hint="Optional.">
+            <input
+              value={value.averagingPricePath || ""}
+              onChange={(event) =>
+                optionalPath("averagingPricePath", event.target.value)
+              }
+            />
+          </Field>
+        </div>
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Entry-Vertrag</strong>
+          <small>Welche Entry-Formen und XML-Pfade zulässig sind.</small>
+        </div>
+        <div className="builder-field-grid three">
+          <Field label="Entry-Modus">
+            <select
+              value={value.entry.mode}
+              onChange={(event) =>
+                section("entry", {
+                  mode: event.target.value as SignalContractDefinition["entry"]["mode"],
+                })
+              }
+            >
+              <option value="optional_range">Market oder optionaler Bereich</option>
+              <option value="required_range">Bereich ist Pflicht</option>
+              <option value="typed">Explizit typisiert</option>
+            </select>
+          </Field>
+          <Field label="Entry-Typpfad" hint="Nur für typisierte Entries.">
+            <input
+              value={value.entry.typePath || ""}
+              onChange={(event) =>
+                section("entry", {
+                  typePath: event.target.value || undefined,
+                })
+              }
+            />
+          </Field>
+          <Field label="Minimum-Pfad">
+            <input
+              value={value.entry.minimumPath}
+              onChange={(event) =>
+                section("entry", { minimumPath: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Maximum-Pfad">
+            <input
+              value={value.entry.maximumPath}
+              onChange={(event) =>
+                section("entry", { maximumPath: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Market-Werte" hint="Ein erlaubter Wert je Zeile.">
+            <textarea
+              value={value.entry.marketValues.join("\n")}
+              onChange={(event) =>
+                section("entry", { marketValues: list(event.target.value) })
+              }
+            />
+          </Field>
+          <Field label="Range-Werte" hint="Ein erlaubter Wert je Zeile.">
+            <textarea
+              value={value.entry.rangeValues.join("\n")}
+              onChange={(event) =>
+                section("entry", { rangeValues: list(event.target.value) })
+              }
+            />
+          </Field>
+        </div>
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Target-Vertrag</strong>
+          <small>Form, Anzahl und Reihenfolge der Take-Profits.</small>
+        </div>
+        <div className="builder-field-grid three">
+          <Field label="Container-Pfad">
+            <input
+              value={value.targets.containerPath}
+              onChange={(event) =>
+                section("targets", { containerPath: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Element-Tag">
+            <input
+              value={value.targets.itemTag}
+              onChange={(event) =>
+                section("targets", { itemTag: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Target-Form">
+            <select
+              value={value.targets.shape}
+              onChange={(event) =>
+                section("targets", {
+                  shape: event.target.value as "scalar" | "range",
+                })
+              }
+            >
+              <option value="scalar">Einzelpreis</option>
+              <option value="range">Preisbereich</option>
+            </select>
+          </Field>
+          <Field label="Minimum-Pfad">
+            <input
+              value={value.targets.minimumPath}
+              onChange={(event) =>
+                section("targets", { minimumPath: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Maximum-Pfad">
+            <input
+              value={value.targets.maximumPath}
+              onChange={(event) =>
+                section("targets", { maximumPath: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="Mindestens Targets">
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={value.targets.minimumItems}
+              onChange={(event) =>
+                section("targets", { minimumItems: Number(event.target.value) })
+              }
+            />
+          </Field>
+          <Field label="Maximal Targets">
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={value.targets.maximumItems}
+              onChange={(event) =>
+                section("targets", { maximumItems: Number(event.target.value) })
+              }
+            />
+          </Field>
+          <Toggle
+            checked={value.targets.sequentialIds}
+            onChange={(sequentialIds) =>
+              section("targets", { sequentialIds })
+            }
+            label="Fortlaufende Target-IDs verlangen"
+          />
+        </div>
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Geometrie & Grounding</strong>
+          <small>
+            Plausibilitätsregeln sowie Felder, die ausdrücklich im Quelltext
+            belegt sein müssen.
+          </small>
+        </div>
+        <div className="contract-toggle-grid">
+          <Toggle
+            checked={value.geometry.stopOnLossSide}
+            onChange={(stopOnLossSide) =>
+              section("geometry", { stopOnLossSide })
+            }
+            label="Stop liegt auf Verlustseite"
+          />
+          <Toggle
+            checked={value.geometry.targetsOnProfitSide}
+            onChange={(targetsOnProfitSide) =>
+              section("geometry", { targetsOnProfitSide })
+            }
+            label="Targets liegen auf Gewinnseite"
+          />
+          <Toggle
+            checked={value.geometry.orderedTargets}
+            onChange={(orderedTargets) =>
+              section("geometry", { orderedTargets })
+            }
+            label="Targets müssen geordnet sein"
+          />
+          <Toggle
+            checked={value.geometry.orderedRanges}
+            onChange={(orderedRanges) =>
+              section("geometry", { orderedRanges })
+            }
+            label="Bereiche müssen geordnet sein"
+          />
+          {(
+            [
+              ["action", "Richtung muss belegt sein"],
+              ["pair", "Paar muss belegt sein"],
+              ["entry", "Entry muss belegt sein"],
+              ["targets", "Targets müssen belegt sein"],
+              ["stopLoss", "Stop muss belegt sein"],
+              ["leverage", "Leverage muss belegt sein"],
+              ["riskPercent", "Risiko muss belegt sein"],
+              ["averagingPrice", "Averaging muss belegt sein"],
+            ] as const
+          ).map(([name, label]) => (
+            <Toggle
+              key={name}
+              checked={value.grounding[name]}
+              onChange={(enabled) =>
+                section("grounding", { [name]: enabled })
+              }
+              label={label}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="strategy-section-heading contract-additional-heading">
+          <span>
+            <strong>Zusätzliche Felder</strong>
+            <small>Optionale, typisierte Erweiterungen des Signalvertrags.</small>
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              onChange({
+                ...value,
+                additionalFields: [
+                  ...value.additionalFields,
+                  {
+                    path: "",
+                    type: "text",
+                    required: false,
+                    allowedValues: [],
+                  },
+                ],
+              })
+            }
+          >
+            <Plus data-icon="inline-start" /> Feld hinzufügen
+          </Button>
+        </div>
+        {value.additionalFields.length === 0 ? (
+          <p className="builder-info">Keine zusätzlichen Felder definiert.</p>
+        ) : (
+          <div className="contract-additional-list">
+            {value.additionalFields.map((field, index) => {
+              const update = (changes: Partial<typeof field>) =>
+                onChange({
+                  ...value,
+                  additionalFields: value.additionalFields.map((candidate, itemIndex) =>
+                    itemIndex === index ? { ...candidate, ...changes } : candidate,
+                  ),
+                });
+              return (
+                <div className="contract-additional-field" key={`${index}-${field.path}`}>
+                  <div className="builder-field-grid three">
+                    <Field label="Pfad">
+                      <input
+                        value={field.path}
+                        onChange={(event) => update({ path: event.target.value })}
+                      />
+                    </Field>
+                    <Field label="Typ">
+                      <select
+                        value={field.type}
+                        onChange={(event) =>
+                          update({
+                            type: event.target.value as typeof field.type,
+                          })
+                        }
+                      >
+                        <option value="text">Text</option>
+                        <option value="decimal">Dezimalzahl</option>
+                        <option value="integer">Ganzzahl</option>
+                        <option value="boolean">Boolean</option>
+                      </select>
+                    </Field>
+                    <Toggle
+                      checked={field.required}
+                      onChange={(required) => update({ required })}
+                      label="Pflichtfeld"
+                    />
+                    <Field label="Erlaubte Werte" hint="Optional, je Zeile ein Wert.">
+                      <textarea
+                        value={field.allowedValues.join("\n")}
+                        onChange={(event) =>
+                          update({ allowedValues: list(event.target.value) })
+                        }
+                      />
+                    </Field>
+                    <Field label="Minimum">
+                      <input
+                        value={field.minimum || ""}
+                        onChange={(event) =>
+                          update({ minimum: event.target.value || undefined })
+                        }
+                      />
+                    </Field>
+                    <Field label="Maximum">
+                      <input
+                        value={field.maximum || ""}
+                        onChange={(event) =>
+                          update({ maximum: event.target.value || undefined })
+                        }
+                      />
+                    </Field>
+                    <Field label="Max. Textlänge">
+                      <input
+                        type="number"
+                        min={1}
+                        value={field.maximumLength || ""}
+                        onChange={(event) =>
+                          update({
+                            maximumLength: event.target.value
+                              ? Number(event.target.value)
+                              : undefined,
+                          })
+                        }
+                      />
+                    </Field>
+                    <Field label="Muster (Regex)">
+                      <input
+                        value={field.pattern || ""}
+                        onChange={(event) =>
+                          update({ pattern: event.target.value || undefined })
+                        }
+                      />
+                    </Field>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      onChange({
+                        ...value,
+                        additionalFields: value.additionalFields.filter(
+                          (_, itemIndex) => itemIndex !== index,
+                        ),
+                      })
+                    }
+                  >
+                    <Trash2 data-icon="inline-start" /> Feld entfernen
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
 
@@ -275,6 +1104,7 @@ export function ResourceEditor({
   onClose,
   onSave,
   onDeleteNode,
+  onArchiveResource,
   onConfigureAccount,
 }: ResourceEditorProps) {
   const [name, setName] = useState("");
@@ -286,10 +1116,15 @@ export function ResourceEditor({
   const [error, setError] = useState("");
   const [templates, setTemplates] = useState<Record<string, string>>({});
   const [templateContent, setTemplateContent] = useState("");
-  const [nativeJson, setNativeJson] = useState("");
-  const [nativeTouched, setNativeTouched] = useState(false);
+  const [strategyDraft, setStrategyDraft] =
+    useState<StrategyConfiguration | null>(null);
+  const [strategyTouched, setStrategyTouched] = useState(false);
+  const [contractDraft, setContractDraft] =
+    useState<SignalContractDefinition | null>(null);
+  const [contractTouched, setContractTouched] = useState(false);
   const [schemaDraft, setSchemaDraft] = useState<Record<string, unknown>>({});
   const [schemaTouched, setSchemaTouched] = useState(false);
+  const [archiveConfirmation, setArchiveConfirmation] = useState(false);
   const meta = KIND_META[kind];
 
   useEffect(() => {
@@ -307,18 +1142,21 @@ export function ResourceEditor({
       const selected = trading?.strategies.find(
         (item) => item.id === nextConfiguration.strategyVersionId,
       );
-      setNativeJson(
-        selected ? JSON.stringify(selected.configuration, null, 2) : "",
+      setStrategyDraft(
+        selected ? structuredClone(selected.configuration) : null,
       );
     } else if (kind === "contract") {
       const selected = trading?.signalContracts
         .flatMap((contract) => contract.versions)
         .find((item) => item.id === nextConfiguration.contractVersionId);
-      setNativeJson(
-        selected ? JSON.stringify(selected.definition, null, 2) : "",
+      setContractDraft(
+        selected ? structuredClone(selected.definition) : null,
       );
-    } else setNativeJson("");
-    setNativeTouched(false);
+    }
+    if (kind !== "strategy") setStrategyDraft(null);
+    if (kind !== "contract") setContractDraft(null);
+    setStrategyTouched(false);
+    setContractTouched(false);
     if (kind === "schema") {
       const selected = trading?.signalSchemas.find(
         (item) => item.id === nextConfiguration.schemaId,
@@ -347,7 +1185,7 @@ export function ResourceEditor({
             typeof nextConfiguration.prompt === "string"
               ? nextConfiguration.prompt
               : String(
-                  loaded[String(nextConfiguration.templateName || "default")] ||
+                  loaded[textValue(nextConfiguration.templateName, "default")] ||
                     "",
                 ),
           );
@@ -356,6 +1194,7 @@ export function ResourceEditor({
           setError(reason instanceof Error ? reason.message : String(reason)),
         );
     }
+    setArchiveConfirmation(false);
     setError("");
   }, [kind, meta.short, open, resource, trading]);
 
@@ -383,10 +1222,16 @@ export function ResourceEditor({
       const nextConfiguration = structuredClone(configuration);
       if (kind === "parser")
         applyParserDraft(nextConfiguration, templateContent);
-      if (kind === "strategy" && nativeTouched)
-        await publishStrategyDraft(nextConfiguration, trading, nativeJson);
-      if (kind === "contract" && nativeTouched)
-        await publishContractDraft(nextConfiguration, trading, nativeJson);
+      if (kind === "strategy" && strategyTouched) {
+        if (!strategyDraft)
+          throw new Error("Die gewählte Strategieversion ist nicht verfügbar.");
+        await publishStrategyDraft(nextConfiguration, trading, strategyDraft);
+      }
+      if (kind === "contract" && contractTouched) {
+        if (!contractDraft)
+          throw new Error("Die gewählte Vertragsversion ist nicht verfügbar.");
+        await publishContractDraft(nextConfiguration, trading, contractDraft);
+      }
       if (kind === "schema" && schemaTouched)
         await createSchemaDraft(nextConfiguration, schemaDraft);
       const activated = await onSave({
@@ -403,6 +1248,21 @@ export function ResourceEditor({
       setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const archiveResource = async () => {
+    if (!onArchiveResource) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onArchiveResource();
+      onClose();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setSaving(false);
+      setArchiveConfirmation(false);
     }
   };
 
@@ -459,7 +1319,7 @@ export function ResourceEditor({
               hint="Numerische Chat-ID, zum Beispiel -1002417439383."
             >
               <input
-                value={String(configuration.channelId || "")}
+                value={textValue(configuration.channelId)}
                 onChange={(event) => set("channelId", event.target.value)}
               />
             </Field>
@@ -516,7 +1376,7 @@ export function ResourceEditor({
               </Field>
               <Field label="Verknüpfung">
                 <select
-                  value={String(configuration.mode || "all")}
+                  value={textValue(configuration.mode, "all")}
                   onChange={(event) => set("mode", event.target.value)}
                 >
                   <option value="all">Alle Muster müssen passen</option>
@@ -531,7 +1391,7 @@ export function ResourceEditor({
                 <Field label="Prompt-Vorlage">
                   <input
                     list="parser-template-names"
-                    value={String(configuration.templateName || "default")}
+                    value={textValue(configuration.templateName, "default")}
                     onChange={(event) => {
                       set("templateName", event.target.value);
                       setTemplateContent(templates[event.target.value] || "");
@@ -556,7 +1416,7 @@ export function ResourceEditor({
                 </Field>
                 <Field label="Primärmodell">
                   <input
-                    value={String(configuration.primaryModel || "")}
+                    value={textValue(configuration.primaryModel)}
                     placeholder="Globales Modell verwenden"
                     onChange={(event) =>
                       set("primaryModel", event.target.value || undefined)
@@ -565,7 +1425,7 @@ export function ResourceEditor({
                 </Field>
                 <Field label="Fallback-Modell">
                   <input
-                    value={String(configuration.fallbackModel || "")}
+                    value={textValue(configuration.fallbackModel)}
                     placeholder="Globales Modell verwenden"
                     onChange={(event) =>
                       set("fallbackModel", event.target.value || undefined)
@@ -593,7 +1453,7 @@ export function ResourceEditor({
             <>
               <Field label="Aktives Signal-Schema">
                 <select
-                  value={String(configuration.schemaId || "")}
+                  value={textValue(configuration.schemaId)}
                   onChange={(event) => {
                     const id = event.target.value;
                     set("schemaId", id);
@@ -631,7 +1491,7 @@ export function ResourceEditor({
                   hint="Nur ändern, wenn eine neue, unveränderliche Schema-Zuordnung entstehen soll."
                 >
                   <input
-                    value={String(schemaDraft.id || "")}
+                    value={textValue(schemaDraft.id)}
                     onChange={(event) => {
                       setSchemaDraft((previous) => ({
                         ...previous,
@@ -643,7 +1503,7 @@ export function ResourceEditor({
                 </Field>
                 <Field label="Schema-Name">
                   <input
-                    value={String(schemaDraft.name || "")}
+                    value={textValue(schemaDraft.name)}
                     onChange={(event) => {
                       setSchemaDraft((previous) => ({
                         ...previous,
@@ -655,7 +1515,7 @@ export function ResourceEditor({
                 </Field>
                 <Field label="Prompt-Vorlage">
                   <input
-                    value={String(schemaDraft.templateName || "")}
+                    value={textValue(schemaDraft.templateName)}
                     onChange={(event) => {
                       setSchemaDraft((previous) => ({
                         ...previous,
@@ -670,7 +1530,7 @@ export function ResourceEditor({
                   hint="Fallback für Alt-Routen; im visuellen Workflow entscheidet der separate Vertragsbaustein."
                 >
                   <select
-                    value={String(schemaDraft.contractVersionId || "")}
+                    value={textValue(schemaDraft.contractVersionId)}
                     onChange={(event) => {
                       setSchemaDraft((previous) => ({
                         ...previous,
@@ -692,7 +1552,7 @@ export function ResourceEditor({
                 </Field>
                 <Field label="Beschreibung">
                   <input
-                    value={String(schemaDraft.description || "")}
+                    value={textValue(schemaDraft.description)}
                     onChange={(event) => {
                       setSchemaDraft((previous) => ({
                         ...previous,
@@ -720,19 +1580,17 @@ export function ResourceEditor({
             <>
               <Field label="Veröffentlichte Vertragsversion">
                 <select
-                  value={String(configuration.contractVersionId || "")}
+                  value={textValue(configuration.contractVersionId)}
                   onChange={(event) => {
                     const id = event.target.value;
                     set("contractVersionId", id);
                     const selected = trading?.signalContracts
                       .flatMap((contract) => contract.versions)
                       .find((version) => version.id === id);
-                    setNativeJson(
-                      selected
-                        ? JSON.stringify(selected.definition, null, 2)
-                        : "",
+                    setContractDraft(
+                      selected ? structuredClone(selected.definition) : null,
                     );
-                    setNativeTouched(false);
+                    setContractTouched(false);
                   }}
                 >
                   {trading?.signalContracts.flatMap((contract) =>
@@ -746,19 +1604,22 @@ export function ResourceEditor({
                   )}
                 </select>
               </Field>
-              <Field
-                label="Vertragsdefinition"
-                hint="Eine Änderung erzeugt und veröffentlicht eine neue Vertragsversion; bestehende Revisionen bleiben unverändert."
-              >
-                <textarea
-                  className="code-input native-json-input"
-                  value={nativeJson}
-                  onChange={(event) => {
-                    setNativeJson(event.target.value);
-                    setNativeTouched(true);
+              {contractDraft ? (
+                <ContractForm
+                  value={contractDraft}
+                  onChange={(next) => {
+                    setContractDraft(next);
+                    setContractTouched(true);
                   }}
                 />
-              </Field>
+              ) : (
+                <Alert variant="destructive">
+                  <AlertTriangle />
+                  <AlertDescription>
+                    Die gewählte Vertragsversion ist nicht verfügbar.
+                  </AlertDescription>
+                </Alert>
+              )}
             </>
           )}
           {kind === "dedupe" && (
@@ -785,19 +1646,17 @@ export function ResourceEditor({
             <>
               <Field label="Veröffentlichte Strategie">
                 <select
-                  value={String(configuration.strategyVersionId || "")}
+                  value={textValue(configuration.strategyVersionId)}
                   onChange={(event) => {
                     const id = event.target.value;
                     set("strategyVersionId", id);
                     const selected = trading?.strategies.find(
                       (item) => item.id === id,
                     );
-                    setNativeJson(
-                      selected
-                        ? JSON.stringify(selected.configuration, null, 2)
-                        : "",
+                    setStrategyDraft(
+                      selected ? structuredClone(selected.configuration) : null,
                     );
-                    setNativeTouched(false);
+                    setStrategyTouched(false);
                   }}
                 >
                   {trading?.strategies
@@ -809,19 +1668,22 @@ export function ResourceEditor({
                     ))}
                 </select>
               </Field>
-              <Field
-                label="Strategiedefinition"
-                hint="Eine Änderung erzeugt und veröffentlicht eine neue Strategieversion; bestehende Revisionen bleiben unverändert."
-              >
-                <textarea
-                  className="code-input native-json-input"
-                  value={nativeJson}
-                  onChange={(event) => {
-                    setNativeJson(event.target.value);
-                    setNativeTouched(true);
+              {strategyDraft ? (
+                <StrategyForm
+                  value={strategyDraft}
+                  onChange={(next) => {
+                    setStrategyDraft(next);
+                    setStrategyTouched(true);
                   }}
                 />
-              </Field>
+              ) : (
+                <Alert variant="destructive">
+                  <AlertTriangle />
+                  <AlertDescription>
+                    Die gewählte Strategieversion ist nicht verfügbar.
+                  </AlertDescription>
+                </Alert>
+              )}
             </>
           )}
           {kind === "sizing" && (
@@ -850,7 +1712,7 @@ export function ResourceEditor({
                   min="0.01"
                   max="10"
                   step="0.01"
-                  value={String(configuration.riskPerTradePercent || "5")}
+                  value={textValue(configuration.riskPerTradePercent, "5")}
                   onChange={(event) =>
                     set("riskPerTradePercent", event.target.value)
                   }
@@ -862,7 +1724,7 @@ export function ResourceEditor({
                   min="0.01"
                   max="10"
                   step="0.01"
-                  value={String(configuration.maxAdaptiveRiskPercent || "10")}
+                  value={textValue(configuration.maxAdaptiveRiskPercent, "10")}
                   onChange={(event) =>
                     set("maxAdaptiveRiskPercent", event.target.value)
                   }
@@ -901,7 +1763,7 @@ export function ResourceEditor({
                 />
                 <Field label="Modus">
                   <select
-                    value={String(configuration.mode || "automatic")}
+                    value={textValue(configuration.mode, "automatic")}
                     onChange={(event) => set("mode", event.target.value)}
                   >
                     <option value="automatic">Automatisch anwenden</option>
@@ -966,7 +1828,7 @@ export function ResourceEditor({
                 </Field>
                 <Field label="Verlustschwelle (%)">
                   <input
-                    value={String(configuration.lossThresholdPercent || "2")}
+                    value={textValue(configuration.lossThresholdPercent, "2")}
                     onChange={(event) =>
                       set("lossThresholdPercent", event.target.value)
                     }
@@ -974,7 +1836,7 @@ export function ResourceEditor({
                 </Field>
                 <Field label="Gewinnschwelle (%)">
                   <input
-                    value={String(configuration.profitThresholdPercent || "2")}
+                    value={textValue(configuration.profitThresholdPercent, "2")}
                     onChange={(event) =>
                       set("profitThresholdPercent", event.target.value)
                     }
@@ -982,7 +1844,7 @@ export function ResourceEditor({
                 </Field>
                 <Field label="Schwacher Kanal">
                   <select
-                    value={String(configuration.weakChannelAction || "reduce")}
+                    value={textValue(configuration.weakChannelAction, "reduce")}
                     onChange={(event) =>
                       set("weakChannelAction", event.target.value)
                     }
@@ -1020,7 +1882,7 @@ export function ResourceEditor({
             <div className="builder-field-grid">
               <Field label="Börsenkonto">
                 <select
-                  value={String(configuration.accountId || "")}
+                  value={textValue(configuration.accountId)}
                   onChange={(event) => set("accountId", event.target.value)}
                 >
                   {trading?.accounts.map((account) => (
@@ -1061,7 +1923,7 @@ export function ResourceEditor({
           {kind === "output" && (
             <Field label="Ausgabe">
               <select
-                value={String(configuration.mode || "audit_only")}
+                value={textValue(configuration.mode, "audit_only")}
                 onChange={(event) => set("mode", event.target.value)}
               >
                 <option value="audit_only">Nur Audit & Journal</option>
@@ -1073,17 +1935,57 @@ export function ResourceEditor({
               </select>
             </Field>
           )}
+          {archiveConfirmation && (
+            <Alert variant="destructive" className="builder-delete-confirmation">
+              <AlertTriangle />
+              <AlertDescription>
+                <strong>„{name}“ dauerhaft aus der Bibliothek archivieren?</strong>
+                <p>
+                  Der Baustein und seine Verbindungen werden aus dem aktiven
+                  Canvas entfernt. Alte Revisionen bleiben für Audit und
+                  Wiederherstellung unverändert erhalten.
+                </p>
+                <span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setArchiveConfirmation(false)}
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => void archiveResource()}
+                  >
+                    Ja, dauerhaft archivieren
+                  </Button>
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
         <DialogFooter className="builder-modal-footer">
           {onDeleteNode && (
             <Button
               type="button"
-              variant="destructive"
+              variant="outline"
               disabled={saving}
               onClick={onDeleteNode}
             >
-              <Archive data-icon="inline-start" /> Baustein aus Workflow
-              entfernen
+              <Archive data-icon="inline-start" /> Nur vom Canvas lösen
+            </Button>
+          )}
+          {onArchiveResource && (
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={saving}
+              onClick={() => setArchiveConfirmation(true)}
+            >
+              <Trash2 data-icon="inline-start" /> Dauerhaft archivieren
             </Button>
           )}
           <span />

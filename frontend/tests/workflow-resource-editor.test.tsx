@@ -10,9 +10,38 @@ import { KIND_META, WORKFLOW_KINDS } from '@/app/workflow/types'
 
 const trading = {
   accounts: [{ id: 'account-1', name: 'Paper', exchange: 'paper', mode: 'paper', status: 'ready', enabled: true, maxConcurrentPositions: 7, killSwitchActive: false, killSwitchReason: null, lastReconciledAt: null, lastError: null }],
-  strategies: [{ id: 'strategy-v1', strategyId: 'strategy', version: 1, name: 'VIP Strategy', description: 'stable', status: 'published', configuration: { schemaVersion: 3, allowedSignalSchemas: ['standard'] } }],
+  strategies: [{
+    id: 'strategy-v1', strategyId: 'strategy', version: 1, name: 'VIP Strategy', description: 'stable', status: 'published',
+    configuration: {
+      schemaVersion: 3,
+      allowedSignalSchemas: ['standard'],
+      allowedSymbols: [],
+      allowedSides: ['LONG', 'SHORT'],
+      entry: { orderType: 'limit', rangePrice: 'midpoint', postOnly: false, timeoutSeconds: 10 },
+      sizing: { positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxAdaptiveRiskPercent: '10', maxPositionNotional: '1000000000', maxLeverage: 50 },
+      exits: { targetAllocationMode: 'manual', targetAllocationsPercent: ['50', '50'], stopLossMode: 'configured', moveStopToBreakEvenAfterTarget: 1, trailingStopPercent: null, closeRemainderAtLastTarget: true },
+      safety: { maxDailyLossMode: 'equity_percent', maxDailyLoss: '5', maxSlippagePercent: '0.5', entryOrderTtlSeconds: 900, requireProtectiveStop: true },
+    },
+  }],
   signalSchemas: [{ id: 'standard', name: 'Standard', description: 'schema', parserSchema: 'standard', enabled: true, contractVersionId: 'standard:v1', templateName: 'default' }],
-  signalContracts: [{ id: 'standard', name: 'Standard Contract', description: 'contract', versions: [{ id: 'standard:v1', contractId: 'standard', version: 1, status: 'published', definition: { schemaVersion: 1, rootTag: 'signal' } }] }],
+  signalContracts: [{ id: 'standard', name: 'Standard Contract', description: 'contract', versions: [{
+    id: 'standard:v1', contractId: 'standard', version: 1, status: 'published',
+    definition: {
+      schemaVersion: 1,
+      rootTag: 'signal',
+      actionPath: 'action',
+      pairPath: 'pair',
+      entry: { mode: 'optional_range', marketValues: ['market'], rangeValues: ['range'], minimumPath: 'entry/min', maximumPath: 'entry/max' },
+      targets: { containerPath: 'targets', itemTag: 'target', shape: 'range', minimumPath: 'min', maximumPath: 'max', minimumItems: 1, maximumItems: 20, sequentialIds: true },
+      stopLossPath: 'stopLoss',
+      leveragePath: 'leverage',
+      riskPercentPath: 'riskPercent',
+      averagingPricePath: 'averagingPrice',
+      additionalFields: [],
+      geometry: { stopOnLossSide: true, targetsOnProfitSide: true, orderedTargets: true, orderedRanges: true },
+      grounding: { action: true, pair: true, entry: true, targets: true, stopLoss: true, leverage: false, riskPercent: false, averagingPrice: false },
+    },
+  }] }],
 } as any
 
 function response(body: unknown, status = 200) {
@@ -69,9 +98,14 @@ describe('workflow resource contracts', () => {
       return response({ templates: { default: 'BASE PROMPT' } })
     })
     const onSave = editor('strategy')
-    fireEvent.change(screen.getByLabelText(/Strategiedefinition/), { target: { value: JSON.stringify({ schemaVersion: 3, allowedSignalSchemas: ['standard'], changed: true }) } })
+    fireEvent.change(screen.getByLabelText('Max. Slippage (%)'), { target: { value: '0.75' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ configuration: { strategyVersionId: 'strategy-v2' } })))
+    expect(api.apiFetch).toHaveBeenCalledWith('/api/trading/strategies', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('"maxSlippagePercent":"0.75"'),
+    }))
+    expect(screen.queryByLabelText(/Strategiedefinition/)).not.toBeInTheDocument()
   })
 
   it('publishes a new independent contract version from the contract popup', async () => {
@@ -81,9 +115,13 @@ describe('workflow resource contracts', () => {
       return response({ result: { id: 'standard:v2' } })
     })
     const onSave = editor('contract')
-    fireEvent.change(screen.getByLabelText(/Vertragsdefinition/), { target: { value: JSON.stringify({ schemaVersion: 1, rootTag: 'signal', changed: true }) } })
+    fireEvent.change(screen.getByLabelText('Maximal Targets'), { target: { value: '10' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ configuration: { contractVersionId: 'standard:v2' } })))
+    expect(api.apiFetch).toHaveBeenCalledWith('/api/trading/signal-contracts/update', expect.objectContaining({
+      body: expect.stringContaining('"maximumItems":10'),
+    }))
+    expect(screen.queryByLabelText(/Vertragsdefinition/)).not.toBeInTheDocument()
   })
 
   it('refuses to mutate a used schema under its existing identity', async () => {
@@ -91,5 +129,32 @@ describe('workflow resource contracts', () => {
     fireEvent.change(screen.getByLabelText('Schema-Name'), { target: { value: 'Changed in place' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
     await waitFor(() => expect(screen.getByText(/benötigen eine neue eindeutige Schema-ID/)).toBeInTheDocument())
+  })
+
+  it('separates canvas removal from permanent library archival', async () => {
+    const onDeleteNode = vi.fn(async () => undefined)
+    const onArchiveResource = vi.fn(async () => undefined)
+    render(
+      <ResourceEditor
+        open
+        kind="channel"
+        resource={{
+          id: 'channel-v1', resourceId: 'channel', version: 1, kind: 'channel', name: 'My channel', description: '',
+          status: 'published', configuration: { channelId: '-1001' }, configurationSha256: 'a'.repeat(64), createdAt: 1, publishedAt: 1,
+        }}
+        trading={trading}
+        onClose={vi.fn()}
+        onSave={vi.fn(async () => true)}
+        onDeleteNode={onDeleteNode}
+        onArchiveResource={onArchiveResource}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Nur vom Canvas lösen' }))
+    expect(onDeleteNode).toHaveBeenCalledOnce()
+    expect(onArchiveResource).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Dauerhaft archivieren' }))
+    expect(screen.getByText(/dauerhaft aus der Bibliothek archivieren/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Ja, dauerhaft archivieren' }))
+    await waitFor(() => expect(onArchiveResource).toHaveBeenCalledOnce())
   })
 })

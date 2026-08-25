@@ -43,6 +43,7 @@ import {
 } from './trade_journal.js';
 import {
   archiveWorkflowResource,
+  archiveWorkflowResourceFamily,
   createWorkflowResourceDraft,
   deleteWorkflowResourceDraft,
   getActiveWorkflow,
@@ -1540,6 +1541,11 @@ async function deleteWorkflowResourceHandler(context: RequestContext): Promise<v
   if (!requireConfirmation(context, 'delete-workflow-resource', 'Explicit workflow resource deletion confirmation required.')) return;
   try {
     const payload = await readJsonBody(context.req, 8 * 1024);
+    if (typeof payload.resourceId === 'string') {
+      const archived = await archiveWorkflowResourceFamily(payload.resourceId);
+      sendJson(context.res, 200, { success: true, result: { archived }, requestId: context.requestId });
+      return;
+    }
     const resource = (await listWorkflowResources()).find(item => item.id === payload.id);
     if (!resource) throw new Error('Workflow resource does not exist.');
     const result = resource.status === 'draft'

@@ -71,6 +71,102 @@ export type WorkflowSnapshot = {
   resources: WorkflowResource[];
 };
 
+export type StrategyConfiguration = {
+  schemaVersion: 1 | 2 | 3;
+  allowedSignalSchemas: string[];
+  allowedSymbols: string[];
+  allowedSides: Array<"LONG" | "SHORT">;
+  entry: {
+    orderType: "market" | "limit";
+    rangePrice: "near" | "midpoint" | "far";
+    postOnly: boolean;
+    timeoutSeconds: number;
+  };
+  sizing: {
+    positionSizingMode?:
+      | "risk_percent"
+      | "equity_percent_notional"
+      | "equity_percent_margin";
+    riskPerTradePercent: string;
+    maxAdaptiveRiskPercent?: string;
+    maxPositionNotional: string;
+    maxLeverage: number;
+  };
+  exits: {
+    targetAllocationMode: "manual" | "adaptive_halving";
+    targetAllocationsPercent: string[];
+    stopLossMode: "configured" | "adaptive_targets";
+    moveStopToBreakEvenAfterTarget: number | null;
+    trailingStopPercent: string | null;
+    closeRemainderAtLastTarget: true;
+  };
+  safety: {
+    maxConcurrentPositions?: number;
+    maxDailyLossMode?: "absolute" | "equity_percent";
+    maxDailyLoss: string;
+    maxSlippagePercent: string;
+    entryOrderTtlSeconds: number;
+    requireProtectiveStop: true;
+  };
+};
+
+export type SignalContractAdditionalField = {
+  path: string;
+  type: "text" | "decimal" | "integer" | "boolean";
+  required: boolean;
+  allowedValues: string[];
+  minimum?: string;
+  maximum?: string;
+  maximumLength?: number;
+  pattern?: string;
+};
+
+export type SignalContractDefinition = {
+  schemaVersion: 1;
+  rootTag: "signal";
+  actionPath: string;
+  pairPath: string;
+  entry: {
+    mode: "optional_range" | "required_range" | "typed";
+    typePath?: string;
+    marketValues: string[];
+    rangeValues: string[];
+    minimumPath: string;
+    maximumPath: string;
+  };
+  targets: {
+    containerPath: string;
+    itemTag: string;
+    shape: "scalar" | "range";
+    minimumPath: string;
+    maximumPath: string;
+    minimumItems: number;
+    maximumItems: number;
+    sequentialIds: boolean;
+  };
+  stopLossPath: string;
+  leveragePath?: string;
+  riskPercentPath?: string;
+  averagingPricePath?: string;
+  additionalFields: SignalContractAdditionalField[];
+  geometry: {
+    stopOnLossSide: boolean;
+    targetsOnProfitSide: boolean;
+    orderedTargets: boolean;
+    orderedRanges: boolean;
+  };
+  grounding: {
+    action: boolean;
+    pair: boolean;
+    entry: boolean;
+    targets: boolean;
+    stopLoss: boolean;
+    leverage: boolean;
+    riskPercent: boolean;
+    averagingPrice: boolean;
+  };
+};
+
 export type TradingAccount = {
   id: string;
   name: string;
@@ -109,7 +205,7 @@ export type TradingSnapshot = {
     name: string;
     description: string;
     status: string;
-    configuration: Record<string, unknown>;
+    configuration: StrategyConfiguration;
   }>;
   signalSchemas: Array<{
     id: string;
@@ -129,7 +225,7 @@ export type TradingSnapshot = {
       contractId: string;
       version: number;
       status: string;
-      definition: Record<string, unknown>;
+      definition: SignalContractDefinition;
     }>;
   }>;
   intents: Array<Record<string, unknown>>;

@@ -3,12 +3,15 @@ import type { CSSProperties } from "react";
 import {
   Bot,
   Braces,
+  ArrowDown,
+  ArrowUp,
   CircleDollarSign,
   CopyCheck,
   FileCheck2,
   Filter,
   GitBranch,
   GitMerge,
+  GripVertical,
   Landmark,
   Layers3,
   Link2,
@@ -63,6 +66,7 @@ export type WorkflowNodeData = {
   onStartConnection: (nodeId: string) => void;
   onCompleteConnection: (nodeId: string) => void;
   onCancelConnection: () => void;
+  onMove: (nodeId: string, direction: "up" | "down") => void;
 };
 
 export function WorkflowNode({ id, data, selected }: NodeProps) {
@@ -78,6 +82,48 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
       data-connection-state={node.connectionState}
       data-path-state={node.pathFocusState}
     >
+      <div className="workflow-node-order-controls nopan">
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                className="workflow-node-drag-handle"
+                aria-label={`${node.name} mit der Maus verschieben`}
+              />
+            }
+          >
+            <GripVertical />
+          </TooltipTrigger>
+          <TooltipContent>Baustein ziehen</TooltipContent>
+        </Tooltip>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="nodrag"
+          aria-label={`${node.name} nach oben verschieben`}
+          onClick={(event) => {
+            event.stopPropagation();
+            node.onMove(id, "up");
+          }}
+        >
+          <ArrowUp />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="nodrag"
+          aria-label={`${node.name} nach unten verschieben`}
+          onClick={(event) => {
+            event.stopPropagation();
+            node.onMove(id, "down");
+          }}
+        >
+          <ArrowDown />
+        </Button>
+      </div>
       {node.kind !== "channel" && (
         <Handle
           type="target"
@@ -132,9 +178,9 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
               )}
             {node.routeUsage.resourceInstanceCount > 1 && (
               <span
-                title={`Dieselbe veröffentlichte Konfiguration wird in ${node.routeUsage.resourceInstanceCount} getrennten Bausteinen verwendet`}
+                title={`Altbestand: derselbe Baustein ist ${node.routeUsage.resourceInstanceCount}-mal platziert und sollte zusammengeführt werden`}
               >
-                <Layers3 /> Vorlage ×{node.routeUsage.resourceInstanceCount}
+                <Layers3 /> Doppelt ×{node.routeUsage.resourceInstanceCount}
               </span>
             )}
           </span>

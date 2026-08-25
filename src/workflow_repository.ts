@@ -365,6 +365,40 @@ export async function archiveWorkflowResource(id: string, now = Date.now()): Pro
   return resourceFromRow(await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]));
 }
 
+export async function archiveWorkflowResourceFamily(
+  resourceId: string,
+  now = Date.now(),
+): Promise<WorkflowResourceVersion[]> {
+  const logicalId = stringValue(resourceId, 'Workflow resource identifier', 128);
+  return withDatabaseTransaction(async database => {
+    const rows = await database.all<any[]>(
+      `SELECT * FROM workflow_resource_versions
+       WHERE resource_id = ? AND status = 'published'
+       ORDER BY version`,
+      [logicalId],
+    );
+    if (rows.length === 0) throw new Error('No published workflow resource versions can be archived.');
+    const publishedIds = new Set(rows.map(row => String(row.id)));
+    const active = await getActiveWorkflow();
+    if (active?.graph.nodes.some(node => publishedIds.has(node.resourceVersionId))) {
+      throw new Error('The active workflow must stop referencing this resource before it can be archived.');
+    }
+    const result = await database.run(
+      `UPDATE workflow_resource_versions
+       SET status = 'archived', archived_at = ?
+       WHERE resource_id = ? AND status = 'published'`,
+      [now, logicalId],
+    );
+    if (Number(result.changes || 0) !== rows.length) {
+      throw new Error('The workflow resource family changed while it was being archived.');
+    }
+    return (await database.all<any[]>(
+      'SELECT * FROM workflow_resource_versions WHERE resource_id = ? ORDER BY version',
+      [logicalId],
+    )).filter(row => publishedIds.has(String(row.id))).map(resourceFromRow);
+  });
+}
+
 export async function deleteWorkflowResourceDraft(id: string): Promise<boolean> {
   const result = await getDatabase().run(
     `DELETE FROM workflow_resource_versions WHERE id = ? AND status = 'draft'`, [id],
@@ -491,10 +525,18 @@ async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, 
     graph.nodes.map(node => node.resourceVersionId),
   );
   const resources = new Map<string, WorkflowResourceVersion>(resourceRows.map(row => [String(row.id), resourceFromRow(row)]));
+  const placedResourceIds = new Map<string, string>();
   for (const node of graph.nodes) {
     const resource = resources.get(node.resourceVersionId);
     if (!resource || resource.status !== 'published') throw new Error(`Node ${node.id} must reference a published resource version.`);
     if (resource.kind !== node.kind) throw new Error(`Node ${node.id} kind does not match its resource.`);
+    const existingNodeId = placedResourceIds.get(resource.resourceId);
+    if (existingNodeId) {
+      throw new Error(
+        `Workflow resource '${resource.name}' may only be placed once (nodes ${existingNodeId} and ${node.id}).`,
+      );
+    }
+    placedResourceIds.set(resource.resourceId, node.id);
   }
   return resources;
 }

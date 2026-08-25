@@ -10,6 +10,7 @@ import {
 import {
   WORKFLOW_IMPACT_CONFIRMATION,
   archiveWorkflowResource,
+  archiveWorkflowResourceFamily,
   createWorkflowResourceDraft,
   createWorkflowTradingIntents,
   deleteWorkflowResourceDraft,
@@ -116,6 +117,10 @@ try {
     kind: 'output', name: 'Draft cannot archive', configuration: { mode: 'none' },
   });
   await assert.rejects(archiveWorkflowResource(draftForArchive.id), /Only a published workflow resource can be archived/);
+  await assert.rejects(
+    archiveWorkflowResourceFamily('missing-resource-family'),
+    /No published workflow resource versions/,
+  );
   assert.equal(await deleteWorkflowResourceDraft(draftForArchive.id), true);
   assert.equal(await deleteWorkflowResourceDraft(draftForArchive.id), false);
   const defaultResourceCases = [
@@ -181,12 +186,40 @@ try {
   });
   const outputV2 = await publishWorkflowResource(outputV2Updated.id);
   await assert.rejects(
+    previewWorkflowImpact({
+      baseRevisionId: null,
+      graph: {
+        schemaVersion: 1,
+        nodes: [
+          { id: 'output-v1-placement', kind: 'output', resourceVersionId: resources.output.id, position: { x: 0, y: 0 } },
+          { id: 'output-v2-placement', kind: 'output', resourceVersionId: outputV2.id, position: { x: 0, y: 150 } },
+        ],
+        edges: [],
+      },
+    }),
+    /may only be placed once/,
+  );
+  await assert.rejects(
     updateWorkflowResourceDraft(outputV2.id, { name: 'Published', configuration: { mode: 'none' } }),
     /Only a workflow resource draft can be edited/,
   );
   await assert.rejects(publishWorkflowResource(outputV2.id), /Only a workflow resource draft can be published/);
   assert.equal((await archiveWorkflowResource(outputV2.id)).status, 'archived');
   assert.equal(await deleteWorkflowResourceDraft(outputV2.id), false);
+
+  const removableV1 = await resource('output', 'Removable family v1', { mode: 'none' });
+  const removableV2Draft = await createWorkflowResourceDraft({
+    resourceId: removableV1.resourceId,
+    kind: 'output',
+    name: 'Removable family v2',
+    configuration: { mode: 'audit_only' },
+  });
+  await publishWorkflowResource(removableV2Draft.id);
+  assert.equal((await archiveWorkflowResourceFamily(removableV1.resourceId)).length, 2);
+  assert.equal(
+    (await listWorkflowResources('output')).filter(item => item.resourceId === removableV1.resourceId && item.status === 'published').length,
+    0,
+  );
 
   const node = (id, kind, resourceVersionId, x, y) => ({ id, kind, resourceVersionId, position: { x, y } });
   const nodes = [
@@ -302,11 +335,14 @@ try {
 
   async function graphWithReplacement(kind, configuration) {
     const replacement = await resource(kind, `Invalid ${kind} dependency`, configuration);
+    let replaced = false;
     return {
       ...graph,
-      nodes: graph.nodes.map(candidate => candidate.kind === kind
-        ? { ...candidate, resourceVersionId: replacement.id }
-        : candidate),
+      nodes: graph.nodes.map(candidate => {
+        if (candidate.kind !== kind || replaced) return candidate;
+        replaced = true;
+        return { ...candidate, resourceVersionId: replacement.id };
+      }),
     };
   }
   await assert.rejects(
@@ -470,6 +506,10 @@ try {
   assert.equal(changedWorkflow.revision, 2);
   await assert.rejects(
     archiveWorkflowResource(resources.channel.id),
+    /must stop referencing this resource/,
+  );
+  await assert.rejects(
+    archiveWorkflowResourceFamily(resources.channel.resourceId),
     /must stop referencing this resource/,
   );
   console.log('Workflow builder tests passed.');

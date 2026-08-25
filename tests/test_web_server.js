@@ -240,6 +240,44 @@ async function testWorkflowResourceApi(baseUrl) {
 
 }
 
+async function testWorkflowResourceFamilyArchiveApi(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ kind: 'output', name: 'Family v1', configuration: { mode: 'none' } }),
+  });
+  const familyV1Draft = (await response.json()).resource;
+  response = await fetch(`${baseUrl}/api/workflow/resources/publish`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: familyV1Draft.id }),
+  });
+  const familyV1 = (await response.json()).resource;
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      resourceId: familyV1.resourceId, kind: 'output', name: 'Family v2', configuration: { mode: 'audit_only' },
+    }),
+  });
+  const familyV2Draft = (await response.json()).resource;
+  await fetch(`${baseUrl}/api/workflow/resources/publish`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: familyV2Draft.id }),
+  });
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'DELETE',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'delete-workflow-resource',
+    }),
+    body: JSON.stringify({ resourceId: familyV1.resourceId }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).result.archived.length, 2);
+}
+
 async function testWorkflowRevisionApi(baseUrl) {
   const graph = { schemaVersion: 1, nodes: [], edges: [] };
   let response = await fetch(`${baseUrl}/api/workflow/impact`, {
@@ -285,6 +323,7 @@ async function testWorkflowRevisionApi(baseUrl) {
 
 async function testWorkflowControlPlane(baseUrl) {
   await testWorkflowResourceApi(baseUrl);
+  await testWorkflowResourceFamilyArchiveApi(baseUrl);
   await testWorkflowRevisionApi(baseUrl);
 }
 

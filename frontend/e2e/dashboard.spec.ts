@@ -282,7 +282,7 @@ test("the block library offers published resources for reuse and a separate crea
     page.getByRole("button", { name: /Neuen Baustein erstellen/ }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: /VIP Coinsignals/ }),
+    page.getByRole("button", { name: /VIP Coinsignals Version 1/ }),
   ).toContainText("Version 1");
 });
 
@@ -364,6 +364,7 @@ test("workflow nodes and connections render when resize callbacks are unavailabl
   await mockDashboardApi(page, false, resources, workflow);
   await page.goto("/");
 
+  await expect(page.locator(".workflow-brand").getByRole("img", { name: "TSX Core" })).toBeVisible();
   await expect(page.locator(".workflow-node")).toHaveCount(2);
   await expect(page.locator(".workflow-node").first()).toBeVisible();
   await expect(page.locator(".workflow-node").last()).toBeVisible();
@@ -372,6 +373,14 @@ test("workflow nodes and connections render when resize callbacks are unavailabl
     "d",
     /\S+/,
   );
+
+  await page.getByRole("button", { name: /Baustein$/ }).click();
+  await page.getByRole("button", { name: /Telegram-Kanal/ }).click();
+  const library = page.getByRole("dialog", { name: "Telegram-Kanal" });
+  await expect(library.getByText(/Bereits im Canvas/)).toBeVisible();
+  await library.getByRole("button", { name: /Test channel/ }).first().click();
+  await expect(page.locator(".workflow-node")).toHaveCount(2);
+  await expect(page.getByText(/bereits einmal im Canvas platziert/)).toBeVisible();
 });
 
 test("shared processing and account branches are explicit in the route matrix and canvas focus", async ({
@@ -450,6 +459,21 @@ test("shared processing and account branches are explicit in the route matrix an
   ).toEqual([]);
   await expect(page.getByText("2 Kanäle", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("2 Konten", { exact: true }).first()).toBeVisible();
+  const firstChannel = page.locator('.react-flow__node[data-id="c1"]');
+  const secondChannel = page.locator('.react-flow__node[data-id="c2"]');
+  const firstBefore = await firstChannel.boundingBox();
+  const secondBefore = await secondChannel.boundingBox();
+  expect(firstBefore?.y).toBeLessThan(secondBefore?.y || 0);
+  await page.getByRole("button", { name: "Kanal B nach oben verschieben" }).click();
+  await expect
+    .poll(async () =>
+      ((await secondChannel.boundingBox())?.y || 0) <
+      ((await firstChannel.boundingBox())?.y || 0),
+    )
+    .toBe(true);
+  await expect(
+    page.getByRole("button", { name: "Kanal A mit der Maus verschieben" }),
+  ).toBeAttached();
   await page.getByRole("button", { name: "Pfade anzeigen (4)" }).click();
   const overview = page.getByRole("dialog", {
     name: "Kanäle, Verarbeitung und Börsen",

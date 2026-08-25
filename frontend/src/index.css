@@ -208,29 +208,22 @@ button {
 .workflow-brand {
   gap: 11px;
 }
-.workflow-mark {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--chart-2);
-  background: var(--secondary);
+.workflow-brand-logo {
+  color: var(--foreground);
 }
 .workflow-brand > div:last-child {
   align-items: flex-start;
   flex-direction: column;
   line-height: 1.1;
 }
-.workflow-brand span {
+.workflow-brand > div:last-child > span {
   color: var(--builder-muted);
   font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.workflow-brand strong {
+.workflow-brand > div:last-child > strong {
   margin-top: 4px;
   font-size: 15px;
   font-weight: 650;
@@ -901,6 +894,48 @@ button:disabled {
     opacity 0.15s,
     box-shadow 0.15s;
 }
+.workflow-node-order-controls {
+  position: absolute;
+  z-index: 5;
+  top: -27px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  opacity: 0.62;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 5px 18px var(--builder-elevation);
+  transition: opacity 0.15s;
+}
+.workflow-node:hover .workflow-node-order-controls,
+.workflow-node:focus-within .workflow-node-order-controls,
+.workflow-node.is-selected .workflow-node-order-controls {
+  opacity: 1;
+}
+.workflow-node-drag-handle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: var(--muted-foreground);
+  border: 0;
+  background: transparent;
+  cursor: grab;
+}
+.workflow-node-drag-handle:active {
+  cursor: grabbing;
+}
+.workflow-node-drag-handle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.workflow-node-drag-handle svg,
+.workflow-node-order-controls [data-slot="button"] svg {
+  width: 13px;
+  height: 13px;
+}
 .workflow-node:hover,
 .workflow-node.is-selected {
   border-color: color-mix(in srgb, var(--node-accent) 58%, var(--border));
@@ -1142,10 +1177,92 @@ button:disabled {
 }
 .builder-modal-footer {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto auto 1fr auto auto;
   align-items: center;
   border-top: 1px solid var(--border);
   padding-top: 16px;
+}
+.strategy-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+.strategy-form > section {
+  padding: 16px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklch, var(--muted) 24%, transparent);
+}
+.strategy-section-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.strategy-section-heading strong {
+  font-size: 12px;
+}
+.strategy-section-heading small,
+.strategy-toggle-stack > span {
+  color: var(--muted-foreground);
+  font-size: 9px;
+  line-height: 1.4;
+}
+.strategy-toggle-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.strategy-toggle-stack .builder-toggle {
+  align-self: stretch;
+  min-height: 28px;
+}
+.contract-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+.contract-toggle-grid .builder-toggle {
+  align-self: stretch;
+}
+.contract-additional-heading {
+  align-items: center;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.contract-additional-heading > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.contract-additional-list {
+  display: grid;
+  gap: 12px;
+}
+.contract-additional-field {
+  padding: 14px;
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+.contract-additional-field > [data-slot="button"] {
+  color: var(--destructive);
+}
+.builder-delete-confirmation {
+  margin-top: 16px;
+}
+.builder-delete-confirmation [data-slot="alert-description"] > strong,
+.library-delete-confirmation [data-slot="alert-description"] > strong {
+  display: block;
+  margin-bottom: 5px;
+}
+.builder-delete-confirmation [data-slot="alert-description"] > p,
+.library-delete-confirmation [data-slot="alert-description"] > p {
+  margin-bottom: 10px;
+}
+.builder-delete-confirmation [data-slot="alert-description"] > span,
+.library-delete-confirmation [data-slot="alert-description"] > span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .builder-field {
   display: flex;
@@ -1181,12 +1298,6 @@ button:disabled {
 .builder-field textarea.prompt-input {
   min-height: 220px;
 }
-.builder-field textarea.native-json-input {
-  min-height: 300px;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 10px;
-  line-height: 1.5;
-}
 .builder-field small {
   color: var(--muted-foreground);
   font-size: 9px;
@@ -1215,6 +1326,10 @@ button:disabled {
   color: var(--foreground);
   font-size: 11px;
   cursor: pointer;
+}
+.builder-toggle[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .builder-locked-note,
 .builder-info,
@@ -1307,6 +1422,73 @@ button:disabled {
 }
 .resource-library > .library-new svg {
   color: var(--node-accent);
+}
+.resource-library > .library-delete-confirmation {
+  grid-column: 1 / -1;
+}
+.library-existing {
+  position: relative;
+  min-width: 0;
+  min-height: 66px;
+  border: 1px solid var(--border);
+  background: transparent;
+}
+.library-existing.is-placed {
+  border-color: color-mix(in srgb, var(--node-accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--node-accent) 7%, transparent);
+}
+.library-resource-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 43px 10px 10px;
+  color: var(--foreground);
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.library-resource-main:hover {
+  background: var(--accent);
+}
+.library-resource-main > i {
+  width: 5px;
+  height: 36px;
+  flex: 0 0 5px;
+  background: var(--node-accent);
+}
+.library-resource-main > span {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+}
+.library-resource-main strong {
+  font-size: 10px;
+}
+.library-resource-main small {
+  color: var(--muted-foreground);
+  font-size: 9px;
+  font-weight: 450;
+}
+.library-resource-main > svg {
+  width: 15px;
+  height: 15px;
+  color: var(--node-accent);
+}
+.library-resource-delete {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  z-index: 2;
+  transform: translateY(-50%);
+  color: var(--destructive);
+}
+.duplicate-resource-notice {
+  grid-template-columns: auto 1fr auto;
 }
 
 .simulation-fields {
@@ -2053,6 +2235,7 @@ button:disabled {
   }
   .builder-field-grid,
   .builder-field-grid.three,
+  .contract-toggle-grid,
   .account-create {
     grid-template-columns: 1fr;
   }
