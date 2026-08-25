@@ -201,8 +201,12 @@ export function buildWorkflowRouteTopology(
   >();
   for (const node of graph.nodes) {
     const matching = routes.filter((route) => route.nodeIds.includes(node.id));
-    const channelIds = [...new Set(matching.map((route) => route.channelId))].sort();
-    const accountIds = [...new Set(matching.map((route) => route.accountId))].sort();
+    const channelIds = [
+      ...new Set(matching.map((route) => route.channelId)),
+    ].sort((left, right) => left.localeCompare(right, "de-DE"));
+    const accountIds = [
+      ...new Set(matching.map((route) => route.accountId)),
+    ].sort((left, right) => left.localeCompare(right, "de-DE"));
     if (channelIds.length < 2 || accountIds.length < 2) continue;
     const key = `${channelIds.join("\0")}::${accountIds.join("\0")}`;
     const group = productGroups.get(key) || { routes: matching, nodeIds: [] };
