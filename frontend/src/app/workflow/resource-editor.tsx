@@ -187,6 +187,60 @@ async function createSchemaDraft(
   configuration.schemaId = created.result.id;
 }
 
+type ConfigurationDrafts = Readonly<{
+  kind: WorkflowKind;
+  configuration: Record<string, unknown>;
+  templateContent: string;
+  trading: TradingSnapshot | null;
+  strategyDraft: StrategyConfiguration | null;
+  strategyTouched: boolean;
+  contractDraft: SignalContractDefinition | null;
+  contractTouched: boolean;
+  schemaDraft: Record<string, unknown>;
+  schemaTouched: boolean;
+}>;
+
+async function applyStrategyChanges(
+  configuration: Record<string, unknown>,
+  drafts: ConfigurationDrafts,
+): Promise<void> {
+  if (drafts.kind !== "strategy" || !drafts.strategyTouched) return;
+  if (!drafts.strategyDraft)
+    throw new Error("Die gewählte Strategieversion ist nicht verfügbar.");
+  await publishStrategyDraft(
+    configuration,
+    drafts.trading,
+    drafts.strategyDraft,
+  );
+}
+
+async function applyContractChanges(
+  configuration: Record<string, unknown>,
+  drafts: ConfigurationDrafts,
+): Promise<void> {
+  if (drafts.kind !== "contract" || !drafts.contractTouched) return;
+  if (!drafts.contractDraft)
+    throw new Error("Die gewählte Vertragsversion ist nicht verfügbar.");
+  await publishContractDraft(
+    configuration,
+    drafts.trading,
+    drafts.contractDraft,
+  );
+}
+
+async function prepareConfiguration(
+  drafts: ConfigurationDrafts,
+): Promise<Record<string, unknown>> {
+  const configuration = structuredClone(drafts.configuration);
+  if (drafts.kind === "parser")
+    applyParserDraft(configuration, drafts.templateContent);
+  await applyStrategyChanges(configuration, drafts);
+  await applyContractChanges(configuration, drafts);
+  if (drafts.kind === "schema" && drafts.schemaTouched)
+    await createSchemaDraft(configuration, drafts.schemaDraft);
+  return configuration;
+}
+
 export function defaultConfiguration(
   kind: WorkflowKind,
   trading: TradingSnapshot | null,
@@ -1219,21 +1273,18 @@ export function ResourceEditor({
     setSaving(true);
     setError("");
     try {
-      const nextConfiguration = structuredClone(configuration);
-      if (kind === "parser")
-        applyParserDraft(nextConfiguration, templateContent);
-      if (kind === "strategy" && strategyTouched) {
-        if (!strategyDraft)
-          throw new Error("Die gewählte Strategieversion ist nicht verfügbar.");
-        await publishStrategyDraft(nextConfiguration, trading, strategyDraft);
-      }
-      if (kind === "contract" && contractTouched) {
-        if (!contractDraft)
-          throw new Error("Die gewählte Vertragsversion ist nicht verfügbar.");
-        await publishContractDraft(nextConfiguration, trading, contractDraft);
-      }
-      if (kind === "schema" && schemaTouched)
-        await createSchemaDraft(nextConfiguration, schemaDraft);
+      const nextConfiguration = await prepareConfiguration({
+        kind,
+        configuration,
+        templateContent,
+        trading,
+        strategyDraft,
+        strategyTouched,
+        contractDraft,
+        contractTouched,
+        schemaDraft,
+        schemaTouched,
+      });
       const activated = await onSave({
         name,
         description,
