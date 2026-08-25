@@ -2311,7 +2311,10 @@ button:disabled {
   cursor: pointer;
 }
 
-@media (max-width: 1050px) {
+/* Keep the contextual toolbar clear of the fixed status summary on common
+   laptop and in-app-browser widths. The search remains available in the
+   canvas through the full desktop layout once enough horizontal room exists. */
+@media (max-width: 1380px) {
   .workflow-status-tools .builder-search {
     display: none;
   }

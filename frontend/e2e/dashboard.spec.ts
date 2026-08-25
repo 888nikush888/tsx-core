@@ -203,6 +203,23 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
       .getByRole("tab")
       .allTextContents(),
   ).toEqual(["Dashboard", "Builder", "Analytics", "Betrieb"]);
+  expect(
+    await page.locator(".workflow-statusbar").evaluate((statusbar) => {
+      const tools = statusbar.querySelector<HTMLElement>(
+        ".workflow-status-tools",
+      );
+      if (!tools) return false;
+      const toolsLeft = tools.getBoundingClientRect().left;
+      return [...statusbar.children]
+        .filter(
+          (child): child is HTMLElement =>
+            child instanceof HTMLElement &&
+            !child.classList.contains("workflow-status-tools") &&
+            getComputedStyle(child).display !== "none",
+        )
+        .every((metric) => metric.getBoundingClientRect().right <= toolsLeft + 1);
+    }),
+  ).toBe(true);
   await expect(page.locator("html")).toHaveClass(/dark/);
   const overflowingElements = await page
     .locator("body *")
@@ -599,7 +616,7 @@ test("a late-column block is brought into view and the canvas can always be refr
   ).toHaveCount(0);
   await expect(page.getByText("Execution Workflow")).toHaveCount(0);
   await expect(page.getByText("Visueller Builder")).toHaveCount(0);
-  if ((page.viewportSize()?.width || 0) > 1050) {
+  if ((page.viewportSize()?.width || 0) > 1380) {
     await expect(page.getByLabel("Bausteine durchsuchen")).toBeVisible();
   } else {
     await expect(page.getByLabel("Bausteine durchsuchen")).toBeHidden();
