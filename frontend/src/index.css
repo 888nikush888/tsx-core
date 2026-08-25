@@ -60,7 +60,7 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.48 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -136,8 +136,24 @@
   --builder-bg: var(--background);
   --builder-border: var(--border);
   --builder-muted: var(--muted-foreground);
-  --builder-green: oklch(0.765 0.177 163.223);
+  --builder-green: oklch(0.43 0.14 160);
   --builder-red: var(--destructive);
+  --builder-info: oklch(0.52 0.16 244);
+  --builder-warning: oklch(0.53 0.14 82);
+  --builder-surface: color-mix(in oklch, var(--card) 94%, var(--muted));
+  --builder-surface-strong: color-mix(in oklch, var(--card) 88%, var(--muted));
+  --builder-canvas-glow: color-mix(in oklch, var(--chart-1) 13%, transparent);
+  --builder-elevation: color-mix(in oklch, black 16%, transparent);
+  --minimap-mask: color-mix(in oklch, var(--background) 78%, transparent);
+}
+
+.dark {
+  --builder-green: oklch(0.765 0.177 163.223);
+  --builder-info: oklch(0.78 0.12 238);
+  --builder-warning: oklch(0.82 0.14 82);
+  --builder-canvas-glow: color-mix(in oklch, var(--chart-3) 20%, transparent);
+  --builder-elevation: color-mix(in oklch, black 40%, transparent);
+  --minimap-mask: color-mix(in oklch, var(--background) 76%, transparent);
 }
 
 html,
@@ -250,6 +266,18 @@ button {
   justify-content: flex-end;
   gap: 8px;
 }
+.workflow-actions .action-count {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  margin-left: 2px;
+  padding: 0 4px;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  font-size: 8px;
+  line-height: 1;
+}
 
 .builder-search {
   position: relative;
@@ -334,8 +362,8 @@ button:disabled {
   align-items: stretch;
   min-height: 48px;
   padding: 0 22px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-  background: #090d14;
+  border-bottom: 1px solid var(--border);
+  background: var(--builder-surface);
 }
 .workflow-status-skip {
   position: absolute;
@@ -356,15 +384,15 @@ button:disabled {
   padding: 7px 10px;
   overflow: visible;
   clip: auto;
-  border: 1px solid #5eead4;
+  border: 1px solid var(--builder-green);
   border-radius: 7px;
-  background: #111722;
-  color: #e6edf7;
+  background: var(--popover);
+  color: var(--popover-foreground);
 }
 .workflow-statusbar > div {
   gap: 8px;
   padding: 0 20px;
-  border-right: 1px solid rgba(148, 163, 184, 0.09);
+  border-right: 1px solid var(--border);
 }
 .workflow-statusbar > div:first-child {
   padding-left: 0;
@@ -380,7 +408,7 @@ button:disabled {
 .workflow-statusbar .save-indicator {
   margin-left: auto;
   border-right: 0;
-  color: #7dd3fc;
+  color: var(--builder-info);
   font-size: 10px;
 }
 .spin {
@@ -405,8 +433,8 @@ button:disabled {
   padding: 10px 12px;
   border: 1px solid var(--builder-border);
   border-radius: 10px;
-  background: rgba(17, 24, 39, 0.96);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  background: color-mix(in oklch, var(--popover) 96%, transparent);
+  box-shadow: 0 20px 60px var(--builder-elevation);
   transform: translateX(-50%);
 }
 .builder-notice p {
@@ -431,7 +459,7 @@ button:disabled {
   flex: 1;
   min-height: 0;
   background:
-    radial-gradient(circle at 50% 0%, rgba(30, 41, 59, 0.28), transparent 44%),
+    radial-gradient(circle at 50% 0%, var(--builder-canvas-glow), transparent 44%),
     var(--builder-bg);
 }
 .workflow-canvas .react-flow__renderer {
@@ -446,26 +474,82 @@ button:disabled {
 .workflow-canvas .react-flow__controls-button {
   width: 30px;
   height: 30px;
-  color: #a6b2c2;
+  color: var(--muted-foreground);
   border: 0;
   border-bottom: 1px solid var(--builder-border);
-  background: #111722;
+  background: var(--card);
   fill: currentColor;
 }
 .workflow-canvas .react-flow__minimap {
   border: 1px solid var(--builder-border);
   border-radius: 9px;
-  background: #0d131d;
+  background: var(--card);
 }
 .workflow-canvas .react-flow__edge-path {
   stroke: color-mix(in oklch, var(--foreground) 42%, transparent);
 }
+.canvas-empty-panel {
+  margin: 18px !important;
+}
+.canvas-empty-panel [data-slot="card"] {
+  max-width: min(520px, calc(100vw - 80px));
+  border-style: dashed;
+  box-shadow: 0 18px 50px var(--builder-elevation);
+}
+.canvas-empty-panel [data-slot="card-content"] {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px;
+}
+.canvas-empty-panel [data-slot="card-content"] > span {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+.canvas-empty-panel strong {
+  font-size: 11px;
+}
+.canvas-empty-panel small {
+  color: var(--muted-foreground);
+  font-size: 9px;
+}
 .workflow-edge-path {
   stroke-width: 1.8;
+  transition:
+    stroke 0.16s,
+    stroke-width 0.16s,
+    opacity 0.16s;
+}
+.workflow-edge-path.is-shared {
+  stroke-width: 2.6;
+}
+.workflow-edge-path.path-active {
+  stroke: var(--chart-2) !important;
+  stroke-width: 3.4;
+}
+.workflow-edge-path.path-dimmed {
+  opacity: 0.12;
 }
 .workflow-edge-path.is-selected {
   stroke: var(--chart-2) !important;
   stroke-width: 3;
+}
+.workflow-edge-label {
+  position: absolute;
+  z-index: 2;
+  padding: 3px 6px;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 4px 14px var(--builder-elevation);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
 }
 .edge-inspector-panel {
   margin: 18px !important;
@@ -564,18 +648,254 @@ button:disabled {
   padding: 18px 6px;
   text-align: center;
 }
+.route-focus-panel {
+  margin: 16px !important;
+}
+.route-focus-panel [data-slot="card"] {
+  max-width: min(460px, calc(100vw - 80px));
+  padding: 0;
+  border-left: 3px solid var(--chart-2);
+  box-shadow: 0 18px 50px var(--builder-elevation);
+}
+.route-focus-panel [data-slot="card-content"] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+.route-focus-panel [data-slot="card-content"] > svg {
+  flex: 0 0 auto;
+  color: var(--chart-2);
+}
+.route-focus-panel [data-slot="card-content"] > span {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+.route-focus-panel small {
+  color: var(--muted-foreground);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.route-focus-panel strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-overview-panel {
+  display: grid !important;
+  width: min(900px, 96vw) !important;
+  max-width: none !important;
+  grid-template-rows: auto 1fr;
+  gap: 0 !important;
+  padding: 0 !important;
+  background: var(--background);
+}
+.route-overview-panel > [data-slot="sheet-header"] {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.route-overview-panel [data-slot="sheet-header"] > [data-slot="badge"] {
+  margin-bottom: 8px;
+}
+.route-overview-content {
+  display: flex;
+  min-height: 0;
+  overflow: auto;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 24px 28px;
+}
+.route-overview-content > * {
+  flex: 0 0 auto;
+}
+.route-cross-product-alert {
+  color: var(--builder-warning);
+}
+.route-matrix-card {
+  gap: 0;
+  padding: 0;
+}
+.route-matrix-card [data-slot="card-header"] {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.route-matrix-card [data-slot="card-title"] {
+  font-size: 12px;
+}
+.route-matrix-card [data-slot="card-description"] {
+  font-size: 10px;
+}
+.route-matrix-card [data-slot="card-content"] {
+  padding: 0;
+}
+.route-matrix-scroll {
+  overflow: auto;
+}
+.route-matrix-scroll table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 9px;
+}
+.route-matrix-scroll th,
+.route-matrix-scroll td {
+  min-width: 130px;
+  padding: 10px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.route-matrix-scroll tr:last-child th,
+.route-matrix-scroll tr:last-child td {
+  border-bottom: 0;
+}
+.route-matrix-scroll th:last-child,
+.route-matrix-scroll td:last-child {
+  border-right: 0;
+}
+.route-matrix-scroll thead th {
+  color: var(--muted-foreground);
+  background: var(--muted);
+  font-weight: 700;
+}
+.route-matrix-scroll th strong,
+.route-matrix-scroll th small {
+  display: block;
+}
+.route-matrix-scroll th strong {
+  color: var(--foreground);
+}
+.route-matrix-scroll th small {
+  margin-top: 3px;
+  color: var(--muted-foreground);
+  font-weight: 450;
+}
+.route-matrix-scroll td > span {
+  color: var(--muted-foreground);
+}
+.route-empty {
+  margin: 0;
+  padding: 26px;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+.route-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.route-list-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+.route-list-heading h3,
+.route-list-heading p {
+  margin: 0;
+}
+.route-list-heading h3 {
+  font-size: 12px;
+}
+.route-list-heading p {
+  margin-top: 3px;
+  color: var(--muted-foreground);
+  font-size: 9px;
+}
+.route-card {
+  gap: 0;
+  padding: 0;
+  transition:
+    box-shadow 0.16s,
+    border-color 0.16s;
+}
+.route-card.is-selected {
+  box-shadow: inset 3px 0 0 var(--chart-2);
+}
+.route-card [data-slot="card-content"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px 14px;
+  padding: 13px;
+}
+.route-card-index {
+  display: flex;
+  grid-row: 1 / 3;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+}
+.route-card-index > span {
+  color: var(--muted-foreground);
+  font: 9px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.route-sequence {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+.route-sequence strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.route-sequence strong:last-child {
+  text-align: right;
+}
+.route-sequence span {
+  color: var(--muted-foreground);
+  font-size: 8px;
+  white-space: nowrap;
+}
+.route-sequence svg {
+  width: 12px;
+  color: var(--muted-foreground);
+}
+.route-card-detail {
+  display: flex;
+  min-width: 0;
+  gap: 10px;
+  color: var(--muted-foreground);
+  font-size: 8px;
+}
+.route-card-detail span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.route-card [data-slot="button"] {
+  grid-row: 1 / 3;
+  grid-column: 3;
+}
 .workflow-node {
   position: relative;
   display: flex;
-  width: 252px;
-  min-height: 88px;
+  width: 276px;
+  min-height: 112px;
+  gap: 0;
+  overflow: visible;
+  padding: 0;
   color: var(--foreground);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--card);
+  border-radius: 0;
+  background: color-mix(in oklch, var(--card) 97%, var(--node-accent));
   box-shadow:
-    0 12px 28px color-mix(in oklch, black 25%, transparent),
-    inset 3px 0 0 var(--node-accent);
+    0 10px 28px var(--builder-elevation),
+    inset 3px 0 0 var(--node-accent),
+    0 0 0 1px color-mix(in srgb, var(--node-accent) 4%, transparent);
   transition:
     border-color 0.15s,
     opacity 0.15s,
@@ -585,12 +905,24 @@ button:disabled {
 .workflow-node.is-selected {
   border-color: color-mix(in srgb, var(--node-accent) 58%, var(--border));
   box-shadow:
-    0 14px 36px color-mix(in oklch, black 32%, transparent),
+    0 15px 38px var(--builder-elevation),
     0 0 0 2px color-mix(in srgb, var(--node-accent) 18%, transparent),
     inset 3px 0 0 var(--node-accent);
 }
 .workflow-node.is-inert {
   opacity: 0.66;
+}
+.workflow-node.path-active {
+  z-index: 3;
+  border-color: color-mix(in srgb, var(--node-accent) 70%, var(--border));
+  box-shadow:
+    0 15px 38px var(--builder-elevation),
+    0 0 0 2px color-mix(in srgb, var(--node-accent) 24%, transparent),
+    inset 3px 0 0 var(--node-accent);
+}
+.workflow-node.path-dimmed {
+  opacity: 0.18;
+  filter: saturate(0.3);
 }
 .workflow-node.connection-blocked {
   opacity: 0.3;
@@ -619,7 +951,8 @@ button:disabled {
   gap: 10px;
   width: 100%;
   min-width: 0;
-  padding: 12px 38px 12px 12px;
+  min-height: 110px;
+  padding: 13px 38px 13px 13px;
   text-align: left;
   color: inherit;
   border: 0;
@@ -633,8 +966,8 @@ button:disabled {
   width: 34px;
   height: 34px;
   border: 1px solid color-mix(in srgb, var(--node-accent) 28%, transparent);
-  border-radius: var(--radius-sm);
-  color: var(--node-accent);
+  border-radius: 0;
+  color: color-mix(in oklch, var(--node-accent) 72%, var(--foreground));
   background: color-mix(in srgb, var(--node-accent) 9%, transparent);
 }
 .workflow-node-body {
@@ -644,7 +977,7 @@ button:disabled {
   flex-direction: column;
 }
 .workflow-node-eyebrow {
-  color: var(--node-accent);
+  color: color-mix(in oklch, var(--node-accent) 72%, var(--foreground));
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -665,6 +998,32 @@ button:disabled {
   font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.workflow-node-routing {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 7px;
+}
+.workflow-node-routing > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 18px;
+  padding: 2px 5px;
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  background: color-mix(in oklch, var(--muted) 75%, transparent);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.workflow-node-routing svg {
+  width: 10px;
+  height: 10px;
+  color: color-mix(in oklch, var(--node-accent) 70%, var(--foreground));
 }
 .workflow-node-meta {
   display: flex;
@@ -718,14 +1077,14 @@ button:disabled {
   z-index: 4;
   transform: translateY(-50%);
   border-color: color-mix(in srgb, var(--node-accent) 38%, var(--border));
-  color: var(--node-accent);
+  color: color-mix(in oklch, var(--node-accent) 72%, var(--foreground));
   background: var(--card);
 }
 .workflow-column-header {
   display: flex;
   align-items: center;
   gap: 9px;
-  width: 252px;
+  width: 276px;
   padding: 0 9px 11px;
   border-bottom: 1px solid
     color-mix(in srgb, var(--node-accent) 25%, transparent);
@@ -753,12 +1112,12 @@ button:disabled {
   gap: 12px;
   width: 100%;
   height: 100dvh;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   background: var(--builder-bg);
   font-size: 12px;
 }
 .builder-loading svg {
-  color: #5eead4;
+  color: var(--builder-green);
   animation: builder-pulse 1.3s ease-in-out infinite alternate;
 }
 @keyframes builder-pulse {
@@ -865,22 +1224,22 @@ button:disabled {
   align-items: center;
   gap: 8px;
   padding: 10px 11px;
-  border: 1px solid rgba(56, 189, 248, 0.16);
+  border: 1px solid color-mix(in oklch, var(--builder-info) 24%, var(--border));
   border-radius: 8px;
-  color: #bae6fd;
-  background: rgba(56, 189, 248, 0.055);
+  color: var(--builder-info);
+  background: color-mix(in oklch, var(--builder-info) 7%, transparent);
   font-size: 10px;
   line-height: 1.45;
 }
 .builder-error {
   margin-bottom: 14px;
-  color: #fecdd3;
-  border-color: rgba(251, 113, 133, 0.22);
-  background: rgba(251, 113, 133, 0.07);
+  color: var(--destructive);
+  border-color: color-mix(in oklch, var(--destructive) 28%, var(--border));
+  background: color-mix(in oklch, var(--destructive) 8%, transparent);
 }
 .account-inline-status.danger {
-  color: #fecdd3;
-  border-color: rgba(251, 113, 133, 0.22);
+  color: var(--destructive);
+  border-color: color-mix(in oklch, var(--destructive) 28%, var(--border));
 }
 .account-inline-status {
   justify-content: space-between;
@@ -1077,7 +1436,7 @@ button:disabled {
   align-items: center;
   gap: 10px;
   min-height: 34px;
-  border-top: 1px solid rgba(148, 163, 184, 0.08);
+  border-top: 1px solid var(--border);
   font-size: 10px;
 }
 .gate-row:first-of-type {
@@ -1100,14 +1459,14 @@ button:disabled {
 .severity {
   padding: 3px 5px;
   border-radius: 4px;
-  color: #bfdbfe;
-  background: rgba(59, 130, 246, 0.1);
+  color: var(--builder-info);
+  background: color-mix(in oklch, var(--builder-info) 10%, transparent);
   font-size: 8px;
   text-transform: uppercase;
 }
 .severity.critical {
-  color: #fecdd3;
-  background: rgba(251, 113, 133, 0.1);
+  color: var(--destructive);
+  background: color-mix(in oklch, var(--destructive) 10%, transparent);
 }
 .operations-section-heading {
   display: flex;
@@ -1174,12 +1533,12 @@ button:disabled {
   text-transform: uppercase;
 }
 .state-badge.healthy {
-  color: #bbf7d0;
-  border-color: rgba(52, 211, 153, 0.22);
+  color: var(--builder-green);
+  border-color: color-mix(in oklch, var(--builder-green) 28%, var(--border));
 }
 .state-badge.danger {
-  color: #fecdd3;
-  border-color: rgba(251, 113, 133, 0.25);
+  color: var(--destructive);
+  border-color: color-mix(in oklch, var(--destructive) 30%, var(--border));
 }
 .account-grid {
   display: grid;
@@ -1195,7 +1554,7 @@ button:disabled {
   font-size: 9px;
 }
 .account-grid > div strong {
-  color: #d4dce7;
+  color: var(--foreground);
   font-size: 10px;
 }
 .account-warning {
@@ -1204,9 +1563,9 @@ button:disabled {
   gap: 8px;
   margin-top: 11px;
   padding: 8px;
-  color: #fecdd3;
+  color: var(--destructive);
   border-radius: 7px;
-  background: rgba(251, 113, 133, 0.07);
+  background: color-mix(in oklch, var(--destructive) 8%, transparent);
   font-size: 9px;
 }
 .account-warning span {
@@ -1214,7 +1573,7 @@ button:disabled {
 }
 .account-warning button,
 .backup-row button {
-  color: #fda4af;
+  color: var(--destructive);
   border: 0;
   background: transparent;
   font-size: 9px;
@@ -1230,7 +1589,7 @@ button:disabled {
 .account-actions button {
   min-height: 27px;
   padding: 0 7px;
-  color: #9fb0c3;
+  color: var(--muted-foreground);
   border: 1px solid var(--builder-border);
   border-radius: 6px;
   background: transparent;
@@ -1238,7 +1597,7 @@ button:disabled {
   cursor: pointer;
 }
 .account-actions button.danger-text {
-  color: #fda4af;
+  color: var(--destructive);
 }
 .credential-replace {
   display: grid;
@@ -1246,9 +1605,9 @@ button:disabled {
   gap: 9px;
   margin-top: 10px;
   padding: 10px;
-  border: 1px solid rgba(251, 191, 36, 0.2);
+  border: 1px solid color-mix(in oklch, var(--builder-warning) 28%, var(--border));
   border-radius: 8px;
-  background: rgba(251, 191, 36, 0.03);
+  background: color-mix(in oklch, var(--builder-warning) 6%, transparent);
 }
 .credential-replace p,
 .credential-replace > div {
@@ -1256,7 +1615,7 @@ button:disabled {
 }
 .credential-replace p {
   margin: 0;
-  color: #c6a75c;
+  color: var(--builder-warning);
   font-size: 8px;
 }
 .credential-replace label {
@@ -1274,7 +1633,7 @@ button:disabled {
 .error-text {
   display: block;
   margin-top: 9px;
-  color: #fb7185;
+  color: var(--destructive);
 }
 .journal-list {
   display: flex;
@@ -1285,7 +1644,7 @@ button:disabled {
   padding: 11px;
   border: 1px solid var(--builder-border);
   border-radius: 8px;
-  background: #0b111a;
+  background: var(--builder-surface);
 }
 .journal-list article > div {
   display: flex;
@@ -1298,16 +1657,16 @@ button:disabled {
   font-size: 9px;
 }
 .journal-list small {
-  color: #758399;
+  color: var(--muted-foreground);
 }
 .compact-log {
   max-height: calc(100dvh - 205px);
   overflow: auto;
   padding: 9px;
-  color: #a7f3d0;
+  color: var(--builder-green);
   border: 1px solid var(--builder-border);
   border-radius: 8px;
-  background: #05080d;
+  background: var(--builder-surface-strong);
   font:
     9px/1.6 ui-monospace,
     SFMono-Regular,
@@ -1321,14 +1680,14 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 .compact-log > div > span {
-  color: #475569;
+  color: var(--muted-foreground);
 }
 .backup-row {
   grid-template-columns: 1fr auto;
   padding: 0 10px;
   border: 1px solid var(--builder-border);
   border-radius: 7px;
-  background: #0b111a;
+  background: var(--builder-surface);
 }
 .backup-row > div {
   display: flex;
@@ -1348,13 +1707,13 @@ button:disabled {
   gap: 9px;
   min-height: 36px;
   padding: 0 7px;
-  border-top: 1px solid rgba(148, 163, 184, 0.08);
-  color: #aab5c4;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 .analytics-row.heading {
   min-height: 29px;
-  color: #64748b;
+  color: var(--muted-foreground);
   border-top: 0;
   font-size: 8px;
   font-weight: 750;
@@ -1362,7 +1721,7 @@ button:disabled {
   text-transform: uppercase;
 }
 .analytics-row strong {
-  color: #dbe5f1;
+  color: var(--foreground);
   overflow-wrap: anywhere;
 }
 .adaptive-row {
@@ -1372,7 +1731,7 @@ button:disabled {
   gap: 12px;
   min-height: 42px;
   padding: 7px 0;
-  border-top: 1px solid rgba(148, 163, 184, 0.08);
+  border-top: 1px solid var(--border);
   font-size: 9px;
 }
 .adaptive-row:first-of-type {
@@ -1396,34 +1755,34 @@ button:disabled {
 }
 .mcp-mode-grid button {
   min-height: 34px;
-  color: #7f8da0;
+  color: var(--muted-foreground);
   border: 1px solid var(--builder-border);
   border-radius: 7px;
-  background: #090e16;
+  background: var(--builder-surface);
   font-size: 9px;
   font-weight: 750;
   text-transform: uppercase;
   cursor: pointer;
 }
 .mcp-mode-grid button.active {
-  color: #a7f3d0;
-  border-color: rgba(52, 211, 153, 0.28);
-  background: rgba(52, 211, 153, 0.08);
+  color: var(--builder-green);
+  border-color: color-mix(in oklch, var(--builder-green) 32%, var(--border));
+  background: color-mix(in oklch, var(--builder-green) 9%, transparent);
 }
 .one-time-token {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 9px;
-  border-color: rgba(250, 204, 21, 0.28);
+  border-color: color-mix(in oklch, var(--builder-warning) 34%, var(--border));
 }
 .one-time-token h3 {
   grid-column: 1 / -1;
-  color: #fde68a;
+  color: var(--builder-warning);
 }
 .one-time-token code {
   min-width: 0;
   overflow-wrap: anywhere;
-  color: #fef3c7;
+  color: var(--foreground);
   font-size: 9px;
 }
 .agent-grid {
@@ -1437,15 +1796,15 @@ button:disabled {
   gap: 3px 8px;
   padding: 10px;
   text-align: left;
-  color: #dbe5f1;
+  color: var(--foreground);
   border: 1px solid var(--builder-border);
   border-radius: 8px;
-  background: #0a1018;
+  background: var(--builder-surface);
   cursor: pointer;
 }
 .agent-grid > button.selected {
-  border-color: rgba(45, 212, 191, 0.35);
-  background: rgba(45, 212, 191, 0.06);
+  border-color: color-mix(in oklch, var(--builder-green) 38%, var(--border));
+  background: color-mix(in oklch, var(--builder-green) 7%, transparent);
 }
 .agent-grid > button .status-dot {
   grid-row: 1 / 3;
@@ -1476,7 +1835,7 @@ button:disabled {
 }
 .mcp-editor legend {
   padding: 0 5px;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 .permission-grid {
@@ -1489,7 +1848,7 @@ button:disabled {
   align-items: center;
   gap: 6px;
   min-width: 0;
-  color: #98a6b8;
+  color: var(--muted-foreground);
   font:
     8px/1.35 ui-monospace,
     SFMono-Regular,
@@ -1498,7 +1857,7 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 .permission-grid input {
-  accent-color: #2dd4bf;
+  accent-color: var(--builder-green);
 }
 .mcp-editor-actions {
   display: flex;
@@ -1511,7 +1870,7 @@ button:disabled {
   align-items: center;
   gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid rgba(148, 163, 184, 0.08);
+  border-top: 1px solid var(--border);
 }
 .proposal-row:first-of-type {
   border-top: 0;
@@ -1534,7 +1893,7 @@ button:disabled {
 .proposal-row button {
   min-height: 28px;
   padding: 0 7px;
-  color: #a7f3d0;
+  color: var(--builder-green);
   border: 1px solid var(--builder-border);
   border-radius: 6px;
   background: transparent;
@@ -1542,7 +1901,7 @@ button:disabled {
   cursor: pointer;
 }
 .proposal-row button:last-child {
-  color: #fda4af;
+  color: var(--destructive);
 }
 .mcp-action {
   display: grid;
@@ -1550,7 +1909,7 @@ button:disabled {
   gap: 9px;
   align-items: center;
   padding: 7px 0;
-  border-top: 1px solid rgba(148, 163, 184, 0.08);
+  border-top: 1px solid var(--border);
 }
 .mcp-action > div {
   display: flex;
@@ -1585,11 +1944,11 @@ button:disabled {
 .system-form details {
   border: 1px solid var(--builder-border);
   border-radius: 8px;
-  background: #090e16;
+  background: var(--builder-surface);
 }
 .system-form summary {
   padding: 10px;
-  color: #aab5c4;
+  color: var(--muted-foreground);
   font-size: 9px;
   cursor: pointer;
 }
@@ -1604,7 +1963,7 @@ button:disabled {
   min-width: 0;
   flex-direction: column;
   gap: 5px;
-  color: #8290a3;
+  color: var(--muted-foreground);
   font:
     8px/1.35 ui-monospace,
     SFMono-Regular,
@@ -1618,7 +1977,7 @@ button:disabled {
 }
 .runtime-grid input[type="checkbox"] {
   width: auto;
-  accent-color: #2dd4bf;
+  accent-color: var(--builder-green);
 }
 .one-time-inline {
   display: flex;
@@ -1626,10 +1985,10 @@ button:disabled {
   gap: 7px;
   margin-top: 12px;
   padding: 10px;
-  color: #fef3c7;
-  border: 1px solid rgba(250, 204, 21, 0.24);
+  color: var(--foreground);
+  border: 1px solid color-mix(in oklch, var(--builder-warning) 30%, var(--border));
   border-radius: 8px;
-  background: rgba(250, 204, 21, 0.04);
+  background: color-mix(in oklch, var(--builder-warning) 6%, transparent);
 }
 .one-time-inline code {
   overflow-wrap: anywhere;
@@ -1637,7 +1996,7 @@ button:disabled {
 }
 .one-time-inline button {
   align-self: flex-start;
-  color: #fde68a;
+  color: var(--builder-warning);
   border: 0;
   background: transparent;
   font-size: 9px;
@@ -1663,10 +2022,16 @@ button:disabled {
   .workflow-brand > div:last-child {
     display: none;
   }
-  .workflow-actions .secondary-button {
+  .workflow-actions {
+    gap: 4px;
+  }
+  .workflow-actions [data-slot="button"] {
     width: 34px;
     padding: 0;
     font-size: 0;
+  }
+  .workflow-actions .action-count {
+    display: none;
   }
   .workflow-statusbar {
     min-height: 42px;
@@ -1722,5 +2087,22 @@ button:disabled {
   }
   .edge-inspector-panel small {
     margin: 2px 0;
+  }
+  .route-overview-content {
+    padding: 14px 12px 20px;
+  }
+  .route-card [data-slot="card-content"] {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .route-card [data-slot="button"] {
+    grid-row: auto;
+    grid-column: 1 / -1;
+  }
+  .route-sequence {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  .route-sequence span,
+  .route-sequence svg:nth-of-type(2) {
+    display: none;
   }
 }

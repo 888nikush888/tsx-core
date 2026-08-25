@@ -195,6 +195,7 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
   await expect(page.getByRole("button", { name: /Baustein$/ })).toBeVisible();
   await expect(page.getByLabel("Bearer token")).toHaveCount(0);
   await expect(page.getByRole("navigation")).toHaveCount(0);
+  await expect(page.locator("html")).toHaveClass(/dark/);
   const overflowingElements = await page
     .locator("body *")
     .evaluateAll((elements) => {
@@ -219,6 +220,24 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
   expect(results.violations).toEqual([]);
+
+  await page
+    .getByRole("button", { name: "Hellen Modus aktivieren" })
+    .click();
+  await expect(page.locator("html")).toHaveClass(/light/);
+  await page.waitForTimeout(250);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await page.reload();
+  await expect(page.locator("html")).toHaveClass(/light/);
+  await expect(
+    page.getByRole("button", { name: "Dunklen Modus aktivieren" }),
+  ).toBeVisible();
 });
 
 test("first local startup visibly generates and displays the administrator recovery token", async ({
@@ -353,6 +372,171 @@ test("workflow nodes and connections render when resize callbacks are unavailabl
     "d",
     /\S+/,
   );
+});
+
+test("shared processing and account branches are explicit in the route matrix and canvas focus", async ({
+  page,
+}) => {
+  const makeResource = (
+    id: string,
+    kind: string,
+    name: string,
+    configuration: Record<string, unknown>,
+  ) => ({
+    id,
+    resourceId: id,
+    version: 1,
+    kind,
+    name,
+    description: "",
+    status: "published",
+    configuration,
+    configurationSha256: id.padEnd(64, "a").slice(0, 64),
+    createdAt: 1,
+    publishedAt: 1,
+  });
+  const resources = [
+    makeResource("channel-a", "channel", "Kanal A", { channelId: "-1001" }),
+    makeResource("channel-b", "channel", "Kanal B", { channelId: "-1002" }),
+    makeResource("parser", "parser", "Gemeinsamer Parser", {
+      timeoutMs: 30_000,
+      templateName: "shared",
+    }),
+    makeResource("account-a", "account", "Konto A", { accountId: "kraken" }),
+    makeResource("account-b", "account", "Konto B", { accountId: "hyper" }),
+  ];
+  const nodes = [
+    { id: "c1", kind: "channel", resourceVersionId: "channel-a", position: { x: 0, y: 0 } },
+    { id: "c2", kind: "channel", resourceVersionId: "channel-b", position: { x: 0, y: 150 } },
+    { id: "parser", kind: "parser", resourceVersionId: "parser", position: { x: 0, y: 70 } },
+    { id: "a1", kind: "account", resourceVersionId: "account-a", position: { x: 0, y: 0 } },
+    { id: "a2", kind: "account", resourceVersionId: "account-b", position: { x: 0, y: 150 } },
+  ];
+  const paths = [
+    { id: "c1-a1", channelId: "-1001", accountId: "kraken", strategyVersionId: "s", enabled: true, nodeIds: ["c1", "parser", "a1"] },
+    { id: "c1-a2", channelId: "-1001", accountId: "hyper", strategyVersionId: "s", enabled: true, nodeIds: ["c1", "parser", "a2"] },
+    { id: "c2-a1", channelId: "-1002", accountId: "kraken", strategyVersionId: "s", enabled: true, nodeIds: ["c2", "parser", "a1"] },
+    { id: "c2-a2", channelId: "-1002", accountId: "hyper", strategyVersionId: "s", enabled: true, nodeIds: ["c2", "parser", "a2"] },
+  ];
+  await mockDashboardApi(page, false, resources, {
+    id: "revision-routing",
+    revision: 3,
+    createdAt: 1,
+    graph: {
+      schemaVersion: 1,
+      nodes,
+      edges: [
+        { id: "c1-parser", source: "c1", target: "parser" },
+        { id: "c2-parser", source: "c2", target: "parser" },
+        { id: "parser-a1", source: "parser", target: "a1" },
+        { id: "parser-a2", source: "parser", target: "a2" },
+      ],
+    },
+    compiled: { paths, warnings: [] },
+  });
+  await page.goto("/");
+
+  await page
+    .getByRole("button", { name: "Hellen Modus aktivieren" })
+    .click();
+  await page.waitForTimeout(250);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include(".workflow-canvas")
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await expect(page.getByText("2 Kanäle", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("2 Konten", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Pfade anzeigen (4)" }).click();
+  const overview = page.getByRole("dialog", {
+    name: "Kanäle, Verarbeitung und Börsen",
+  });
+  await expect(overview).toBeVisible();
+  await expect(
+    overview.getByText("Vollständige Verteilung: 2 Kanäle × 2 Konten"),
+  ).toBeVisible();
+  await expect(
+    overview.getByRole("button", { name: /hervorheben/ }),
+  ).toHaveCount(4);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include(".route-overview-panel")
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await overview
+    .getByRole("button", { name: "Kanal A auf Konto A hervorheben" })
+    .click();
+
+  await expect(overview).toBeHidden();
+  await expect(page.getByText("Kanal A → Konto A")).toBeVisible();
+  await expect(page.locator(".workflow-node.path-active")).toHaveCount(3);
+  await expect(page.locator(".workflow-node.path-dimmed")).toHaveCount(2);
+});
+
+test("a late-column block is brought into view and the canvas can always be reframed", async ({
+  page,
+}) => {
+  const resources = [
+    {
+      id: "account-v1",
+      resourceId: "account",
+      version: 1,
+      kind: "account",
+      name: "Far-away account",
+      description: "",
+      status: "published",
+      configuration: { accountId: "account-1" },
+      configurationSha256: "a".repeat(64),
+      createdAt: 1,
+      publishedAt: 1,
+    },
+  ];
+  const workflow = {
+    id: "revision-1",
+    revision: 1,
+    createdAt: 1,
+    graph: {
+      schemaVersion: 1,
+      nodes: [
+        {
+          id: "node-account",
+          kind: "account",
+          resourceVersionId: "account-v1",
+          position: { x: 3476, y: 0 },
+        },
+      ],
+      edges: [],
+    },
+    compiled: { paths: [], warnings: [] },
+  };
+  await mockDashboardApi(page, false, resources, workflow);
+  await page.goto("/");
+
+  const node = page.locator('.react-flow__node[data-id="node-account"]');
+  await expect(node).toBeVisible();
+  await expect
+    .poll(async () => {
+      const box = await node.boundingBox();
+      return Boolean(
+        box &&
+          box.x < page.viewportSize()!.width &&
+          box.x + box.width > 0 &&
+          box.y < page.viewportSize()!.height &&
+          box.y + box.height > 0,
+      );
+    })
+    .toBe(true);
+
+  await page
+    .getByRole("button", { name: "Alle Bausteine im Canvas anzeigen" })
+    .click();
+  await expect(node).toBeVisible();
 });
 
 test("connections can be created from a clear block action and deleted from the selected arrow", async ({

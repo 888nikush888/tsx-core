@@ -245,4 +245,4 @@ export const KIND_META: Record<
   output: { label: "Ausgabe", short: "Ausgabe", color: "#94a3b8", order: 12 },
 };
 
-export const COLUMN_GAP = 292;
+export const COLUMN_GAP = 316;

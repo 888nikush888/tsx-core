@@ -127,21 +127,94 @@ describe("workflow builder resilience", () => {
     const nodes = flow.props?.nodes as Array<Record<string, unknown>>;
     const header = nodes.find((node) => node.id === "__column_channel");
     const workflowNode = nodes.find((node) => node.id === "node-channel");
-    expect(header).toMatchObject({ initialWidth: 252, initialHeight: 27 });
+    expect(header).toMatchObject({ initialWidth: 276, initialHeight: 27 });
     expect(workflowNode).toMatchObject({
-      initialWidth: 252,
-      initialHeight: 88,
+      initialWidth: 276,
+      initialHeight: 112,
       handles: [
         {
           type: "source",
           position: "right",
-          x: 246,
-          y: 38,
+          x: 270,
+          y: 50,
           width: 12,
           height: 12,
         },
       ],
     });
+  });
+
+  it("can recover a panned-away canvas by fitting every workflow node", async () => {
+    api.apiFetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const payload =
+        String(input) === "/api/workflow"
+          ? {
+              workflow: {
+                id: "revision-1",
+                revision: 1,
+                createdAt: 1,
+                graph: {
+                  schemaVersion: 1,
+                  nodes: [
+                    {
+                      id: "node-account",
+                      kind: "account",
+                      resourceVersionId: "account-v1",
+                      position: { x: 3476, y: 0 },
+                    },
+                  ],
+                  edges: [],
+                },
+                compiled: { paths: [], warnings: [] },
+              },
+              resources: [
+                {
+                  id: "account-v1",
+                  resourceId: "account",
+                  version: 1,
+                  kind: "account",
+                  name: "Remote account",
+                  status: "published",
+                  configuration: { accountId: "account-1" },
+                },
+              ],
+            }
+          : {};
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    render(<WorkflowBuilder />);
+    await waitFor(() => expect(flow.props).not.toBeNull());
+    const fitView = vi.fn();
+    const setCenter = vi.fn();
+    const initialize = flow.props?.onInit as
+      | ((instance: unknown) => void)
+      | undefined;
+    if (!initialize) throw new Error("React Flow initialization is missing.");
+    act(() => {
+      initialize({
+        fitView,
+        setCenter,
+      });
+    });
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Alle Bausteine im Canvas anzeigen",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(fitView).toHaveBeenCalledWith({
+        nodes: [{ id: "node-account" }],
+        padding: 0.12,
+        minZoom: 0.18,
+        maxZoom: 0.88,
+        duration: 420,
+      }),
+    );
   });
 
   it("guides a connection from a source block to only valid later targets", async () => {

@@ -7,7 +7,10 @@ import {
   CopyCheck,
   FileCheck2,
   Filter,
+  GitBranch,
+  GitMerge,
   Landmark,
+  Layers3,
   Link2,
   MessageCircle,
   Route,
@@ -19,12 +22,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { KIND_META, type WorkflowKind } from "./types";
+import type { WorkflowRouteUsage } from "./workflow-routes";
 
 const ICONS = {
   channel: MessageCircle,
@@ -51,6 +56,8 @@ export type WorkflowNodeData = {
   warning?: string;
   incomingConnections: number;
   outgoingConnections: number;
+  routeUsage: WorkflowRouteUsage;
+  pathFocusState: "idle" | "active" | "dimmed";
   connectionState: "idle" | "source" | "target" | "blocked";
   onEdit: (nodeId: string) => void;
   onStartConnection: (nodeId: string) => void;
@@ -64,10 +71,12 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
   const Icon = ICONS[node.kind];
   const connectionMode = node.connectionState !== "idle";
   return (
-    <div
-      className={`workflow-node ${selected ? "is-selected" : ""} ${node.enabled ? "" : "is-inert"} connection-${node.connectionState}`}
+    <Card
+      size="sm"
+      className={`workflow-node ${selected ? "is-selected" : ""} ${node.enabled ? "" : "is-inert"} connection-${node.connectionState} path-${node.pathFocusState}`}
       style={{ "--node-accent": meta.color } as CSSProperties}
       data-connection-state={node.connectionState}
+      data-path-state={node.pathFocusState}
     >
       {node.kind !== "channel" && (
         <Handle
@@ -101,6 +110,33 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
             {node.connectionState === "target"
               ? "Hier verbinden"
               : node.summary}
+          </span>
+          <span className="workflow-node-routing">
+            {node.routeUsage.channelCount > 1 && (
+              <span title={`${node.routeUsage.channelCount} Kanäle laufen hier zusammen`}>
+                <GitMerge /> {node.routeUsage.channelCount} Kanäle
+              </span>
+            )}
+            {node.routeUsage.accountCount > 1 && (
+              <span title={`Dieser Baustein führt zu ${node.routeUsage.accountCount} Konten`}>
+                <GitBranch /> {node.routeUsage.accountCount} Konten
+              </span>
+            )}
+            {node.routeUsage.channelCount <= 1 &&
+              node.routeUsage.accountCount <= 1 &&
+              node.routeUsage.pathCount > 0 && (
+                <span title="Kompilierter Ausführungspfad">
+                  <Route /> {node.routeUsage.pathCount}{" "}
+                  {node.routeUsage.pathCount === 1 ? "Pfad" : "Pfade"}
+                </span>
+              )}
+            {node.routeUsage.resourceInstanceCount > 1 && (
+              <span
+                title={`Dieselbe veröffentlichte Konfiguration wird in ${node.routeUsage.resourceInstanceCount} getrennten Bausteinen verwendet`}
+              >
+                <Layers3 /> Vorlage ×{node.routeUsage.resourceInstanceCount}
+              </span>
+            )}
           </span>
         </span>
         <span className="workflow-node-meta">
@@ -160,7 +196,7 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
           </Tooltip>
         </>
       )}
-    </div>
+    </Card>
   );
 }
 

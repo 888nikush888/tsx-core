@@ -23,6 +23,7 @@ import {
   type NodeChange,
   type NodeMouseHandler,
   type OnNodeDrag,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 import {
   Activity,
@@ -30,8 +31,10 @@ import {
   Check,
   FlaskConical,
   Link2,
+  Maximize2,
   Plus,
   RefreshCw,
+  Route as RouteIcon,
   Save,
   Search,
   ShieldCheck,
@@ -60,7 +63,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { OperationsPanel } from "./operations-panel";
+import { RouteOverview } from "./route-overview";
 import { ResourceEditor } from "./resource-editor";
 import {
   COLUMN_GAP,
@@ -78,13 +83,14 @@ import {
   WorkflowNode,
   type WorkflowNodeData,
 } from "./workflow-node";
-import { WorkflowEdge } from "./workflow-edge";
+import { WorkflowEdge, type WorkflowEdgeData } from "./workflow-edge";
+import { buildWorkflowRouteTopology } from "./workflow-routes";
 
 const nodeTypes = { workflow: WorkflowNode, columnHeader: ColumnHeaderNode };
 const edgeTypes = { workflow: WorkflowEdge };
 const EMPTY_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges: [] };
-const WORKFLOW_NODE_DIMENSIONS = { width: 252, height: 88 } as const;
-const COLUMN_HEADER_DIMENSIONS = { width: 252, height: 27 } as const;
+const WORKFLOW_NODE_DIMENSIONS = { width: 276, height: 112 } as const;
+const COLUMN_HEADER_DIMENSIONS = { width: 276, height: 27 } as const;
 const WORKFLOW_HANDLE_SIZE = 12;
 
 function workflowHandles(kind: WorkflowKind): NonNullable<Node["handles"]> {
@@ -273,9 +279,13 @@ export function WorkflowBuilder() {
   );
   const [connectionSearch, setConnectionSearch] = useState("");
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [routeOverviewOpen, setRouteOverviewOpen] = useState(false);
+  const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const libraryTriggerRef = useRef<HTMLButtonElement>(null);
   const simulationTriggerRef = useRef<HTMLButtonElement>(null);
   const operationsTriggerRef = useRef<HTMLButtonElement>(null);
+  const routeTriggerRef = useRef<HTMLButtonElement>(null);
+  const reactFlowRef = useRef<ReactFlowInstance<Node, Edge> | null>(null);
   const closeLibrary = useCallback(() => {
     setKindPickerOpen(false);
     setLibraryKind(null);
@@ -289,8 +299,42 @@ export function WorkflowBuilder() {
     setOperationsOpen(false);
     window.setTimeout(() => operationsTriggerRef.current?.focus(), 0);
   }, []);
+  const changeRouteOverview = useCallback((open: boolean) => {
+    setRouteOverviewOpen(open);
+    if (!open)
+      window.setTimeout(() => routeTriggerRef.current?.focus(), 0);
+  }, []);
   const graphRef = useRef(graph);
   graphRef.current = graph;
+
+  const revealNode = useCallback((node: WorkflowGraph["nodes"][number]) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        void reactFlowRef.current?.setCenter(
+          KIND_META[node.kind].order * COLUMN_GAP +
+            WORKFLOW_NODE_DIMENSIONS.width / 2,
+          node.position.y + WORKFLOW_NODE_DIMENSIONS.height / 2,
+          { zoom: 0.88, duration: 420 },
+        );
+      });
+    });
+  }, []);
+
+  const showAllNodes = useCallback(() => {
+    if (graphRef.current.nodes.length === 0) return;
+    setSearch("");
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        void reactFlowRef.current?.fitView({
+          nodes: graphRef.current.nodes.map((node) => ({ id: node.id })),
+          padding: 0.12,
+          minZoom: 0.18,
+          maxZoom: 0.88,
+          duration: 420,
+        });
+      });
+    });
+  }, []);
 
   const load = useCallback(async () => {
     const [workflowPayload, tradingPayload, statusPayload, catalogPayload] =
@@ -342,6 +386,32 @@ export function WorkflowBuilder() {
       new Map(snapshot.resources.map((resource) => [resource.id, resource])),
     [snapshot.resources],
   );
+  const routeTopology = useMemo(
+    () =>
+      buildWorkflowRouteTopology(
+        snapshot.workflow?.compiled.paths || [],
+        graph,
+        snapshot.resources,
+        trading?.accounts || [],
+        trading?.strategies || [],
+      ),
+    [
+      graph,
+      snapshot.resources,
+      snapshot.workflow?.compiled.paths,
+      trading?.accounts,
+      trading?.strategies,
+    ],
+  );
+  const selectedRoute = useMemo(
+    () =>
+      routeTopology.routes.find((route) => route.id === selectedPathId) || null,
+    [routeTopology.routes, selectedPathId],
+  );
+
+  useEffect(() => {
+    if (selectedPathId && !selectedRoute) setSelectedPathId(null);
+  }, [selectedPathId, selectedRoute]);
   const publishedLibrary = useMemo(() => {
     const latest = new Map<string, WorkflowResource>();
     for (const resource of snapshot.resources) {
@@ -591,6 +661,13 @@ export function WorkflowBuilder() {
             : KIND_META[node.kind].order > sourceOrder && !isExistingTarget
               ? "target"
               : "blocked";
+      const routeUsage = routeTopology.nodeUsage.get(node.id) || {
+        pathCount: 0,
+        channelCount: 0,
+        accountCount: 0,
+        resourceInstanceCount: 1,
+        routeIds: [],
+      };
       return {
         id: node.id,
         type: "workflow",
@@ -614,6 +691,12 @@ export function WorkflowBuilder() {
           outgoingConnections: graph.edges.filter(
             (edge) => edge.source === node.id,
           ).length,
+          routeUsage,
+          pathFocusState: !selectedPathId
+            ? "idle"
+            : routeUsage.routeIds.includes(selectedPathId)
+              ? "active"
+              : "dimmed",
           connectionState,
           onEdit: openEditor,
           onStartConnection: startConnection,
@@ -636,7 +719,9 @@ export function WorkflowBuilder() {
     graph.nodes,
     openEditor,
     resourceById,
+    routeTopology.nodeUsage,
     search,
+    selectedPathId,
     snapshot.workflow?.compiled.warnings,
     startConnection,
     trading,
@@ -645,14 +730,36 @@ export function WorkflowBuilder() {
   const displayEdges = useMemo<Edge[]>(
     () =>
       graph.edges.map((edge) => {
+        const routeUsage = routeTopology.edgeUsage.get(edge.id) || {
+          pathCount: 0,
+          channelCount: 0,
+          accountCount: 0,
+          resourceInstanceCount: 1,
+          routeIds: [],
+        };
         return {
           ...edge,
           type: "workflow",
           selected: edge.id === selectedEdgeId,
           markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+          data: {
+            routeUsage,
+            pathFocusState: !selectedPathId
+              ? "idle"
+              : routeUsage.routeIds.includes(selectedPathId)
+                ? "active"
+                : "dimmed",
+          } satisfies WorkflowEdgeData,
         };
       }),
-    [graph.edges, selectedEdgeId],
+    [graph.edges, routeTopology.edgeUsage, selectedEdgeId, selectedPathId],
+  );
+  const noSearchResults = Boolean(
+    search.trim() &&
+      graph.nodes.length > 0 &&
+      !displayNodes.some(
+        (node) => !node.id.startsWith("__column_") && !node.hidden,
+      ),
   );
 
   const selectedConnection = useMemo(() => {
@@ -793,6 +900,7 @@ export function WorkflowBuilder() {
     );
     const resource = publishPayload.resource as WorkflowResource;
     const candidate = structuredClone(graphRef.current);
+    let addedNode: WorkflowGraph["nodes"][number] | null = null;
     if (selectedNode) {
       const node = candidate.nodes.find((item) => item.id === selectedNode.id)!;
       node.resourceVersionId = resource.id;
@@ -800,7 +908,7 @@ export function WorkflowBuilder() {
       const sameColumn = candidate.nodes.filter(
         (item) => item.kind === editorKind,
       );
-      candidate.nodes.push({
+      addedNode = {
         id: newId("node"),
         kind: editorKind,
         resourceVersionId: resource.id,
@@ -808,18 +916,23 @@ export function WorkflowBuilder() {
           x: KIND_META[editorKind].order * COLUMN_GAP,
           y: sameColumn.length * 150,
         },
-      });
+      };
+      candidate.nodes.push(addedNode);
     }
     const activated = await activateGraph(
       candidate,
       base ? `${value.name} aktualisiert` : `${value.name} hinzugefügt`,
     );
-    if (activated)
+    if (activated) {
       setSnapshot((previous) => ({
         ...previous,
         resources: [...previous.resources, resource],
       }));
-    else await load();
+      if (addedNode) {
+        setSearch("");
+        revealNode(addedNode);
+      }
+    } else await load();
     return activated;
   };
 
@@ -828,7 +941,7 @@ export function WorkflowBuilder() {
     const sameColumn = candidate.nodes.filter(
       (item) => item.kind === resource.kind,
     );
-    candidate.nodes.push({
+    const addedNode: WorkflowGraph["nodes"][number] = {
       id: newId("node"),
       kind: resource.kind,
       resourceVersionId: resource.id,
@@ -836,7 +949,8 @@ export function WorkflowBuilder() {
         x: KIND_META[resource.kind].order * COLUMN_GAP,
         y: sameColumn.length * 150,
       },
-    });
+    };
+    candidate.nodes.push(addedNode);
     const activated = await activateGraph(
       candidate,
       `${resource.name} wiederverwendet`,
@@ -844,6 +958,8 @@ export function WorkflowBuilder() {
     if (activated) {
       setKindPickerOpen(false);
       setLibraryKind(null);
+      setSearch("");
+      revealNode(addedNode);
     }
   };
 
@@ -954,6 +1070,28 @@ export function WorkflowBuilder() {
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
+          <ThemeToggle />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={showAllNodes}
+            disabled={graph.nodes.length === 0}
+            aria-label="Alle Bausteine im Canvas anzeigen"
+          >
+            <Maximize2 data-icon="inline-start" /> Alles anzeigen
+          </Button>
+          <Button
+            ref={routeTriggerRef}
+            type="button"
+            variant={selectedPathId ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setRouteOverviewOpen(true)}
+            aria-label={`Pfade anzeigen (${routeTopology.routes.length})`}
+          >
+            <RouteIcon data-icon="inline-start" /> Pfade
+            <span className="action-count">{routeTopology.routes.length}</span>
+          </Button>
           <Button
             ref={simulationTriggerRef}
             type="button"
@@ -1049,6 +1187,15 @@ export function WorkflowBuilder() {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
+          onInit={(instance) => {
+            reactFlowRef.current = instance;
+            const firstNode = [...graphRef.current.nodes].sort(
+              (left, right) =>
+                KIND_META[left.kind].order - KIND_META[right.kind].order ||
+                left.position.y - right.position.y,
+            )[0];
+            if (firstNode) revealNode(firstNode);
+          }}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onConnectStart={(_event, params) => {
@@ -1099,8 +1246,53 @@ export function WorkflowBuilder() {
                 ? "transparent"
                 : KIND_META[(node.data as any).kind]?.color || "#64748b"
             }
-            maskColor="rgba(2,6,23,.72)"
+            maskColor="var(--minimap-mask)"
           />
+          {noSearchResults && (
+            <Panel position="top-center" className="canvas-empty-panel">
+              <Card>
+                <CardContent>
+                  <span>
+                    <strong>Keine passenden Bausteine</strong>
+                    <small>
+                      Die Suche blendet derzeit alle Canvas-Bausteine aus.
+                    </small>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={showAllNodes}
+                  >
+                    Suche löschen und alles anzeigen
+                  </Button>
+                </CardContent>
+              </Card>
+            </Panel>
+          )}
+          {selectedRoute && (
+            <Panel position="top-right" className="route-focus-panel">
+              <Card>
+                <CardContent>
+                  <RouteIcon aria-hidden="true" />
+                  <span>
+                    <small>Pfadfokus</small>
+                    <strong>
+                      {selectedRoute.channelName} → {selectedRoute.accountName}
+                    </strong>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedPathId(null)}
+                  >
+                    Alle zeigen
+                  </Button>
+                </CardContent>
+              </Card>
+            </Panel>
+          )}
           {connectionSource && (
             <Panel position="top-left" className="connection-panel">
               <Card>
@@ -1430,6 +1622,13 @@ export function WorkflowBuilder() {
         systemStatus={systemStatus}
         onClose={closeOperations}
         onRefresh={load}
+      />
+      <RouteOverview
+        open={routeOverviewOpen}
+        topology={routeTopology}
+        selectedPathId={selectedPathId}
+        onOpenChange={changeRouteOverview}
+        onFocusPath={setSelectedPathId}
       />
     </main>
   );
