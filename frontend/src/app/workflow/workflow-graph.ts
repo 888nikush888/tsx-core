@@ -141,7 +141,9 @@ export function consolidateWorkflowResources(
     graph: { schemaVersion: 1, nodes, edges },
     duplicateBehaviorCount,
     removedNodeCount,
-    redundantResourceIds: [...redundantResourceIds].sort(),
+    redundantResourceIds: [...redundantResourceIds].sort((left, right) =>
+      left.localeCompare(right, "de-DE"),
+    ),
   };
 }
 
