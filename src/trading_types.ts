@@ -356,6 +356,13 @@ export interface WorkflowEdge {
   id: string;
   source: string;
   target: string;
+  /**
+   * Optional origin-channel routing constraint. When omitted, every channel
+   * lineage reaching the source node may traverse this edge. When present,
+   * only lineages that started at one of these channel node identifiers may
+   * continue to the target.
+   */
+  channelNodeIds?: string[];
 }
 
 export interface WorkflowGraph {

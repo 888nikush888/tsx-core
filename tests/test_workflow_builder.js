@@ -141,6 +141,7 @@ try {
 
   const resources = {
     channel: await resource('channel', 'VIP channel', { channelId: '-100-workflow' }),
+    channelB: await resource('channel', 'Second VIP channel', { channelId: '-100-workflow-b' }),
     content: await resource('content_filter', 'Text signals', { allowedTypes: ['text'] }),
     keywords: await resource('keyword_filter', 'Directional signals', {
       allowedKeywords: ['long'], blockedKeywords: ['scam'],
@@ -303,6 +304,21 @@ try {
     [{
       schemaVersion: 1,
       nodes: [node('source', 'channel', resources.channel.id, 0, 0), node('target', 'content_filter', resources.content.id, 1, 0)],
+      edges: [{ id: 'empty-scope', source: 'source', target: 'target', channelNodeIds: [] }],
+    }, /channel scope must contain at least one/],
+    [{
+      schemaVersion: 1,
+      nodes: [node('source', 'channel', resources.channel.id, 0, 0), node('target', 'content_filter', resources.content.id, 1, 0)],
+      edges: [{ id: 'wrong-scope', source: 'source', target: 'target', channelNodeIds: ['target'] }],
+    }, /channel scope must reference channel nodes/],
+    [{
+      schemaVersion: 1,
+      nodes: [node('source', 'channel', resources.channel.id, 0, 0), node('target', 'content_filter', resources.content.id, 1, 0)],
+      edges: [{ id: 'duplicate-scope', source: 'source', target: 'target', channelNodeIds: ['source', 'source'] }],
+    }, /channel scope must not contain duplicates/],
+    [{
+      schemaVersion: 1,
+      nodes: [node('source', 'channel', resources.channel.id, 0, 0), node('target', 'content_filter', resources.content.id, 1, 0)],
       edges: [{ id: 'reverse', source: 'target', target: 'source' }],
     }, /earlier processing column/],
   ];
@@ -433,6 +449,15 @@ try {
     baseRevisionId: null, graph, actorId: 'test:admin', confirmation: WORKFLOW_IMPACT_CONFIRMATION,
   });
   assert.equal(workflow.compiled.paths.length, 2);
+  assert.deepEqual(
+    workflow.graph.nodes.find(candidate => candidate.id === 'sizing-a').position,
+    { x: 9 * 316, y: 0 },
+    'Workflow revisions must persist the fixed stage grid.',
+  );
+  assert.deepEqual(
+    workflow.graph.nodes.find(candidate => candidate.id === 'sizing-b').position,
+    { x: 9 * 316, y: 150 },
+  );
   assert.equal((await getActiveWorkflow()).definitionSha256, workflow.definitionSha256);
   await assert.rejects(
     saveWorkflowRevision({ baseRevisionId: null, graph, actorId: 'test:stale' }),
@@ -441,6 +466,36 @@ try {
   const simulation = await simulateWorkflow({ channelId: '-100-workflow', text: 'BTCUSDT LONG' });
   assert.equal(simulation.paths.length, 2);
   assert.ok(simulation.paths.every(item => item.allowed));
+  const sharedGraph = {
+    ...graph,
+    nodes: [...graph.nodes, node('channel-b', 'channel', resources.channelB.id, 0, 150)],
+    edges: [...graph.edges, edge('channel-b', 'content')],
+  };
+  const sharedImpact = await previewWorkflowImpact({ baseRevisionId: workflow.id, graph: sharedGraph });
+  assert.equal(sharedImpact.added.length, 2, 'An unscoped shared branch must continue forwarding every channel.');
+  assert.equal(sharedImpact.removed.length, 0);
+  const scopedGraph = {
+    ...sharedGraph,
+    edges: sharedGraph.edges.map(candidate => {
+      if (candidate.source === 'strategy' && candidate.target === 'sizing-a') {
+        return { ...candidate, channelNodeIds: ['channel'] };
+      }
+      if (candidate.source === 'strategy' && candidate.target === 'sizing-b') {
+        return { ...candidate, channelNodeIds: ['channel-b'] };
+      }
+      return candidate;
+    }),
+  };
+  const scopedImpact = await previewWorkflowImpact({ baseRevisionId: workflow.id, graph: scopedGraph });
+  assert.deepEqual(
+    scopedImpact.added.map(item => [item.channelId, item.accountId]),
+    [['-100-workflow-b', secondAccount.id]],
+    'Origin-channel scope must survive shared blocks and select only the configured branch.',
+  );
+  assert.deepEqual(
+    scopedImpact.removed.map(item => [item.channelId, item.accountId]),
+    [['-100-workflow', secondAccount.id]],
+  );
   assert.ok((await simulateWorkflow({
     channelId: '-100-workflow', text: 'BTCUSDT LONG', contentType: 'photo',
   })).paths.every(item => item.reason === 'CONTENT_TYPE_FILTERED'));

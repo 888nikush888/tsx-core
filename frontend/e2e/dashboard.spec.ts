@@ -194,7 +194,15 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
   ).toBeVisible();
   await expect(page.getByRole("button", { name: /Baustein$/ })).toBeVisible();
   await expect(page.getByLabel("Bearer token")).toHaveCount(0);
-  await expect(page.getByRole("navigation")).toHaveCount(0);
+  await expect(
+    page.getByRole("navigation", { name: "Hauptbereiche" }),
+  ).toBeVisible();
+  expect(
+    await page
+      .getByRole("navigation", { name: "Hauptbereiche" })
+      .getByRole("tab")
+      .allTextContents(),
+  ).toEqual(["Dashboard", "Builder", "Analytics", "Betrieb"]);
   await expect(page.locator("html")).toHaveClass(/dark/);
   const overflowingElements = await page
     .locator("body *")
@@ -466,7 +474,12 @@ test("shared processing and account branches are explicit in the route matrix an
   const firstBefore = await firstChannel.boundingBox();
   const secondBefore = await secondChannel.boundingBox();
   expect(firstBefore?.y).toBeLessThan(secondBefore?.y || 0);
-  await page.getByRole("button", { name: "Kanal B nach oben verschieben" }).click();
+  await secondChannel.locator(".workflow-node").hover();
+  const moveSecondChannelUp = page.getByRole("button", {
+    name: "Kanal B nach oben verschieben",
+  });
+  await expect(moveSecondChannelUp).toBeVisible();
+  await moveSecondChannelUp.click({ force: true });
   await expect
     .poll(async () =>
       ((await secondChannel.boundingBox())?.y || 0) <
@@ -475,7 +488,7 @@ test("shared processing and account branches are explicit in the route matrix an
     .toBe(true);
   await expect(
     page.getByRole("button", { name: "Kanal A mit der Maus verschieben" }),
-  ).toBeAttached();
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Pfade anzeigen (4)" }).click();
   const overview = page.getByRole("dialog", {
     name: "Kanäle, Verarbeitung und Börsen",
@@ -690,6 +703,7 @@ test("connections can be created from a clear block action and deleted from the 
     .locator(".connection-target-list")
     .getByRole("button", { name: /Connection target/ })
     .click();
+  await page.getByRole("button", { name: "Routing übernehmen" }).click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
   await page.getByRole("button", { name: "Alle Verbindungen lösen" }).click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(0);
@@ -705,6 +719,7 @@ test("connections can be created from a clear block action and deleted from the 
     .locator(".connection-target-list")
     .getByRole("button", { name: /Connection target/ })
     .click();
+  await page.getByRole("button", { name: "Routing übernehmen" }).click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
   const toolbar = page.getByRole("toolbar", {
     name: "Verbindung von Connection source zu Connection target",
@@ -780,32 +795,18 @@ test("builder dialogs expose names, trap keyboard focus and close without access
   await expect(simulation).toBeHidden();
   await expect(simulationButton).toBeFocused();
 
-  const operationsButton = page.getByRole("button", { name: "Betrieb" });
+  const operationsButton = page.getByRole("tab", { name: "Betrieb" });
   await operationsButton.click();
-  const operations = page.getByRole("dialog", { name: "Live" });
+  const operations = page.getByRole("region", { name: "Betrieb" });
   await expect(operations).toBeVisible();
-  expect(
-    await operations.evaluate((element) =>
-      element.contains(document.activeElement),
-    ),
-  ).toBe(true);
-  await page.keyboard.press("Shift+Tab");
-  await expect
-    .poll(() =>
-      operations.evaluate((element) =>
-        element.contains(document.activeElement),
-      ),
-    )
-    .toBe(true);
   expect(
     (
       await new AxeBuilder({ page })
-        .include(".operations-panel")
+        .include(".operations-workspace")
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze()
     ).violations,
   ).toEqual([]);
-  await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: "Builder" }).click();
   await expect(operations).toBeHidden();
-  await expect(operationsButton).toBeFocused();
 });

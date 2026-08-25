@@ -11,7 +11,6 @@ import {
   Filter,
   GitBranch,
   GitMerge,
-  GripVertical,
   Landmark,
   Layers3,
   Link2,
@@ -83,20 +82,6 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
       data-path-state={node.pathFocusState}
     >
       <div className="workflow-node-order-controls nopan">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                className="workflow-node-drag-handle"
-                aria-label={`${node.name} mit der Maus verschieben`}
-              />
-            }
-          >
-            <GripVertical />
-          </TooltipTrigger>
-          <TooltipContent>Baustein ziehen</TooltipContent>
-        </Tooltip>
         <Button
           type="button"
           variant="ghost"

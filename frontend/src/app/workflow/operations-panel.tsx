@@ -15,26 +15,10 @@ import {
 } from "lucide-react";
 import { apiFetch, clearDashboardToken, setDashboardToken } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ExchangeCatalog, TradingAccount, TradingSnapshot } from "./types";
 
-type OperationsPanelProps = {
-  open: boolean;
-  trading: TradingSnapshot | null;
-  catalog: ExchangeCatalog | null;
-  systemStatus: Record<string, any> | null;
-  onClose: () => void;
-  onRefresh: () => Promise<void>;
-};
-
-type OperationTab =
+export type OperationTab =
   | "overview"
   | "accounts"
   | "journal"
@@ -55,6 +39,8 @@ const TABS: Array<{ id: OperationTab; label: string; icon: typeof Activity }> =
     { id: "mcp", label: "MCP", icon: Bot },
     { id: "system", label: "System", icon: ServerCog },
   ];
+
+const OPERATION_TABS = new Map(TABS.map((tab) => [tab.id, tab]));
 
 async function requestJson(url: string, init?: RequestInit) {
   const response = await apiFetch(url, init);
@@ -2302,15 +2288,33 @@ function System({
   );
 }
 
-export function OperationsPanel({
-  open,
+type OperationsWorkspaceProps = {
+  trading: TradingSnapshot | null;
+  catalog: ExchangeCatalog | null;
+  systemStatus: Record<string, any> | null;
+  onRefresh: () => Promise<void>;
+  initialTab?: OperationTab;
+  availableTabs?: OperationTab[];
+  ariaLabel?: string;
+  title?: string;
+  description?: string;
+};
+
+export function OperationsWorkspace({
   trading,
   catalog,
   systemStatus,
-  onClose,
   onRefresh,
-}: OperationsPanelProps) {
-  const [tab, setTab] = useState<OperationTab>("overview");
+  initialTab = "overview",
+  availableTabs = TABS.map((item) => item.id),
+  ariaLabel = "Betrieb",
+  title,
+  description,
+}: Readonly<OperationsWorkspaceProps>) {
+  const [tab, setTab] = useState<OperationTab>(initialTab);
+  useEffect(() => {
+    if (!availableTabs.includes(tab)) setTab(initialTab);
+  }, [availableTabs, initialTab, tab]);
   const content = useMemo(() => {
     if (tab === "overview")
       return (
@@ -2337,27 +2341,19 @@ export function OperationsPanel({
       />
     );
   }, [catalog, onRefresh, systemStatus, tab, trading]);
+
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose();
-      }}
-    >
-      <SheetContent
-        side="right"
-        className="operations-panel sm:max-w-3xl"
-        closeLabel="Betriebszentrale schließen"
-      >
-        <SheetHeader>
-          <Badge variant="secondary">Betriebszentrale</Badge>
-          <SheetTitle id="operations-panel-title">
-            {TABS.find((item) => item.id === tab)?.label}
-          </SheetTitle>
-          <SheetDescription>
-            Live-Status, Börsenkonten, Auswertung und sichere Systemverwaltung.
-          </SheetDescription>
-        </SheetHeader>
+    <section className="operations-workspace" aria-label={ariaLabel}>
+      {(title || description) && (
+        <header className="operations-workspace-header">
+          <div>
+            <Badge variant="secondary">TSX Core</Badge>
+            {title && <h2>{title}</h2>}
+            {description && <p>{description}</p>}
+          </div>
+        </header>
+      )}
+      {availableTabs.length > 1 && (
         <Tabs
           value={tab}
           onValueChange={(value) => setTab(value as OperationTab)}
@@ -2368,7 +2364,8 @@ export function OperationsPanel({
             className="operations-tab-list"
             aria-label="Betriebsbereiche"
           >
-            {TABS.map((item) => {
+            {availableTabs.map((tabId) => OPERATION_TABS.get(tabId)).filter(Boolean).map((item) => {
+              if (!item) return null;
               const Icon = item.icon;
               return (
                 <TabsTrigger key={item.id} value={item.id}>
@@ -2379,8 +2376,8 @@ export function OperationsPanel({
             })}
           </TabsList>
         </Tabs>
-        <div className="operations-content">{content}</div>
-      </SheetContent>
-    </Sheet>
+      )}
+      <div className="operations-content">{content}</div>
+    </section>
   );
 }

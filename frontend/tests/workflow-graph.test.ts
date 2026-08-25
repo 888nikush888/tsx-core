@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  channelNodesReachingSource,
   consolidateWorkflowResources,
   latestPublishedResources,
   moveWorkflowNode,
+  normalizeWorkflowGrid,
   placedNodesByResourceIdentity,
   resourceBehaviorKey,
 } from "@/app/workflow/workflow-graph";
@@ -10,6 +12,7 @@ import type {
   WorkflowGraph,
   WorkflowResource,
 } from "@/app/workflow/types";
+import { COLUMN_GAP } from "@/app/workflow/types";
 
 function resource(
   id: string,
@@ -157,6 +160,38 @@ describe("workflow graph controls", () => {
     expect(result.graph.nodes).toHaveLength(2);
   });
 
+  it("merges channel scopes when duplicate connections collapse", () => {
+    const graph: WorkflowGraph = {
+      schemaVersion: 1,
+      nodes: [
+        { id: "channel-a", kind: "channel", resourceVersionId: "channel-a-v1", position: { x: 0, y: 0 } },
+        { id: "channel-b", kind: "channel", resourceVersionId: "channel-b-v1", position: { x: 0, y: 150 } },
+        { id: "shared", kind: "content_filter", resourceVersionId: "shared-v1", position: { x: 316, y: 0 } },
+        node("old", "family-v1", 150),
+        node("new", "duplicate-v1", 0),
+      ],
+      edges: [
+        { id: "old-edge", source: "shared", target: "old", channelNodeIds: ["channel-a"] },
+        { id: "new-edge", source: "shared", target: "new", channelNodeIds: ["channel-b"] },
+      ],
+    };
+    const resources: WorkflowResource[] = [
+      resource("family-v1", "family", 1, "published", "shared-sizing"),
+      resource("duplicate-v1", "duplicate", 1, "published", "shared-sizing"),
+      { ...resource("channel-a-v1", "channel-a", 1), kind: "channel" },
+      { ...resource("channel-b-v1", "channel-b", 1), kind: "channel" },
+      { ...resource("shared-v1", "shared", 1), kind: "content_filter" },
+    ];
+    const result = consolidateWorkflowResources(graph, resources);
+    expect(result.graph.edges).toEqual([
+      expect.objectContaining({
+        source: "shared",
+        target: "new",
+        channelNodeIds: ["channel-a", "channel-b"],
+      }),
+    ]);
+  });
+
   it("moves a block by keyboard-compatible column order", () => {
     const graph: WorkflowGraph = {
       schemaVersion: 1,
@@ -167,5 +202,57 @@ describe("workflow graph controls", () => {
     expect(moved?.nodes.find((item) => item.id === "second")?.position.y).toBe(0);
     expect(moved?.nodes.find((item) => item.id === "first")?.position.y).toBe(150);
     expect(moveWorkflowNode(graph, "first", "up")).toBeNull();
+  });
+
+  it("normalizes every column onto the fixed grid", () => {
+    const graph: WorkflowGraph = {
+      schemaVersion: 1,
+      nodes: [
+        node("lower", "lower-v1", 418),
+        node("upper", "upper-v1", -37),
+        {
+          id: "channel",
+          kind: "channel",
+          resourceVersionId: "channel-v1",
+          position: { x: 999, y: 88 },
+        },
+      ],
+      edges: [],
+    };
+    const normalized = normalizeWorkflowGrid(graph);
+    expect(normalized.nodes.find((item) => item.id === "upper")?.position).toEqual({
+      x: 9 * COLUMN_GAP,
+      y: 0,
+    });
+    expect(normalized.nodes.find((item) => item.id === "lower")?.position).toEqual({
+      x: 9 * COLUMN_GAP,
+      y: 150,
+    });
+    expect(normalized.nodes.find((item) => item.id === "channel")?.position).toEqual({
+      x: 0,
+      y: 0,
+    });
+  });
+
+  it("keeps origin-channel reachability through shared and scoped edges", () => {
+    const graph: WorkflowGraph = {
+      schemaVersion: 1,
+      nodes: [
+        { id: "channel-a", kind: "channel", resourceVersionId: "a", position: { x: 0, y: 0 } },
+        { id: "channel-b", kind: "channel", resourceVersionId: "b", position: { x: 0, y: 150 } },
+        { id: "shared", kind: "content_filter", resourceVersionId: "shared", position: { x: 280, y: 0 } },
+        { id: "only-a", kind: "regex", resourceVersionId: "only-a", position: { x: 840, y: 0 } },
+      ],
+      edges: [
+        { id: "a-shared", source: "channel-a", target: "shared" },
+        { id: "b-shared", source: "channel-b", target: "shared" },
+        { id: "shared-a", source: "shared", target: "only-a", channelNodeIds: ["channel-a"] },
+      ],
+    };
+    expect(channelNodesReachingSource(graph, "shared")).toEqual([
+      "channel-a",
+      "channel-b",
+    ]);
+    expect(channelNodesReachingSource(graph, "only-a")).toEqual(["channel-a"]);
   });
 });

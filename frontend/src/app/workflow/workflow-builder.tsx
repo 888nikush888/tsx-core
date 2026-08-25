@@ -8,7 +8,6 @@ import {
   type RefObject,
 } from "react";
 import {
-  applyNodeChanges,
   Background,
   BackgroundVariant,
   Controls,
@@ -22,22 +21,22 @@ import {
   type Edge,
   type EdgeChange,
   type Node,
-  type NodeChange,
   type NodeMouseHandler,
-  type OnNodeDrag,
   type ReactFlowInstance,
 } from "@xyflow/react";
 import {
-  Activity,
   AlertTriangle,
+  BarChart3,
   Check,
   FlaskConical,
+  Gauge,
   Link2,
   Plus,
   RefreshCw,
   Route as RouteIcon,
   Save,
   Search,
+  ServerCog,
   ShieldCheck,
   Trash2,
   Unlink2,
@@ -64,10 +63,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
-import { OperationsPanel } from "./operations-panel";
+import { OperationsWorkspace } from "./operations-panel";
 import { RouteOverview } from "./route-overview";
 import { ResourceEditor } from "./resource-editor";
 import {
@@ -87,11 +87,14 @@ import {
   type WorkflowNodeData,
 } from "./workflow-node";
 import { WorkflowEdge, type WorkflowEdgeData } from "./workflow-edge";
+import { WorkflowConnectionDialog } from "./workflow-connection-dialog";
 import { buildWorkflowRouteTopology } from "./workflow-routes";
 import {
   consolidateWorkflowResources,
+  channelNodesReachingSource,
   latestPublishedResources,
   moveWorkflowNode,
+  normalizeWorkflowGrid,
   placedNodesByResourceIdentity,
   resourceBehaviorKey,
 } from "./workflow-graph";
@@ -265,32 +268,25 @@ type BuilderNoticeValue = {
   text: string;
 };
 
+type WorkflowWorkspace = "builder" | "dashboard" | "analytics" | "operations";
+
+const WORKSPACES: Array<{
+  id: WorkflowWorkspace;
+  label: string;
+  icon: typeof RouteIcon;
+}> = [
+  { id: "dashboard", label: "Dashboard", icon: Gauge },
+  { id: "builder", label: "Builder", icon: RouteIcon },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "operations", label: "Betrieb", icon: ServerCog },
+];
+
 function WorkflowTopbar({
   systemStatus,
   trading,
-  selectedPathId,
-  routeCount,
-  onRoutes,
-  onSimulation,
-  onOperations,
-  onLibrary,
-  routeTriggerRef,
-  simulationTriggerRef,
-  operationsTriggerRef,
-  libraryTriggerRef,
 }: Readonly<{
   systemStatus: Record<string, any> | null;
   trading: TradingSnapshot | null;
-  selectedPathId: string | null;
-  routeCount: number;
-  onRoutes: () => void;
-  onSimulation: () => void;
-  onOperations: () => void;
-  onLibrary: () => void;
-  routeTriggerRef: RefObject<HTMLButtonElement | null>;
-  simulationTriggerRef: RefObject<HTMLButtonElement | null>;
-  operationsTriggerRef: RefObject<HTMLButtonElement | null>;
-  libraryTriggerRef: RefObject<HTMLButtonElement | null>;
 }>) {
   const executionEnabled = trading?.overview.runtime.executionEnabled === true;
   const killSwitchActive = trading?.overview.runtime.killSwitchActive === true;
@@ -327,45 +323,38 @@ function WorkflowTopbar({
         </Badge>
       </div>
       <div className="workflow-actions">
-        <Button
-          ref={routeTriggerRef}
-          type="button"
-          variant={selectedPathId ? "secondary" : "outline"}
-          size="sm"
-          onClick={onRoutes}
-          aria-label={`Pfade anzeigen (${routeCount})`}
-        >
-          <RouteIcon data-icon="inline-start" /> Pfade
-          <span className="action-count">{routeCount}</span>
-        </Button>
-        <Button
-          ref={simulationTriggerRef}
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onSimulation}
-        >
-          <FlaskConical data-icon="inline-start" /> Simulieren
-        </Button>
-        <Button
-          ref={operationsTriggerRef}
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onOperations}
-        >
-          <Activity data-icon="inline-start" /> Betrieb
-        </Button>
-        <Button
-          ref={libraryTriggerRef}
-          type="button"
-          size="sm"
-          onClick={onLibrary}
-        >
-          <Plus data-icon="inline-start" /> Baustein
-        </Button>
+        <ThemeToggle />
       </div>
     </header>
+  );
+}
+
+function WorkflowNavigation({
+  activeWorkspace,
+  onChange,
+}: Readonly<{
+  activeWorkspace: WorkflowWorkspace;
+  onChange: (workspace: WorkflowWorkspace) => void;
+}>) {
+  return (
+    <nav className="workflow-navigation" aria-label="Hauptbereiche">
+      <Tabs
+        value={activeWorkspace}
+        onValueChange={(value) => onChange(value as WorkflowWorkspace)}
+      >
+        <TabsList variant="line" className="workflow-navigation-list">
+          {WORKSPACES.map((workspace) => {
+            const Icon = workspace.icon;
+            return (
+              <TabsTrigger key={workspace.id} value={workspace.id}>
+                <Icon />
+                {workspace.label}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </Tabs>
+    </nav>
   );
 }
 
@@ -374,15 +363,31 @@ function WorkflowStatusbar({
   graph,
   saving,
   search,
+  selectedPathId,
+  routeCount,
   onSearch,
+  onRoutes,
+  onSimulation,
+  onLibrary,
   onDisconnectAll,
+  routeTriggerRef,
+  simulationTriggerRef,
+  libraryTriggerRef,
 }: Readonly<{
   snapshot: WorkflowSnapshot;
   graph: WorkflowGraph;
   saving: boolean;
   search: string;
+  selectedPathId: string | null;
+  routeCount: number;
   onSearch: (value: string) => void;
+  onRoutes: () => void;
+  onSimulation: () => void;
+  onLibrary: () => void;
   onDisconnectAll: () => void;
+  routeTriggerRef: RefObject<HTMLButtonElement | null>;
+  simulationTriggerRef: RefObject<HTMLButtonElement | null>;
+  libraryTriggerRef: RefObject<HTMLButtonElement | null>;
 }>) {
   const enabledPaths =
     snapshot.workflow?.compiled.paths.filter((path) => path.enabled).length || 0;
@@ -408,6 +413,34 @@ function WorkflowStatusbar({
         <span>{graph.edges.length} Verbindungen</span>
       </div>
       <div className="workflow-status-tools">
+        <Button
+          ref={routeTriggerRef}
+          type="button"
+          variant={selectedPathId ? "secondary" : "outline"}
+          size="sm"
+          onClick={onRoutes}
+          aria-label={`Pfade anzeigen (${routeCount})`}
+        >
+          <RouteIcon data-icon="inline-start" /> Pfade
+          <span className="action-count">{routeCount}</span>
+        </Button>
+        <Button
+          ref={simulationTriggerRef}
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onSimulation}
+        >
+          <FlaskConical data-icon="inline-start" /> Simulieren
+        </Button>
+        <Button
+          ref={libraryTriggerRef}
+          type="button"
+          size="sm"
+          onClick={onLibrary}
+        >
+          <Plus data-icon="inline-start" /> Baustein
+        </Button>
         <div className="builder-search">
           <Search />
           <Input
@@ -426,7 +459,6 @@ function WorkflowStatusbar({
         >
           <Unlink2 data-icon="inline-start" /> Alle Verbindungen lösen
         </Button>
-        <ThemeToggle />
         <div className="save-indicator">
           {saving ? (
             <>
@@ -438,6 +470,47 @@ function WorkflowStatusbar({
             </>
           )}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function WorkspaceStatusbar({
+  workspace,
+  onRefresh,
+}: Readonly<{
+  workspace: Exclude<WorkflowWorkspace, "builder">;
+  onRefresh: () => Promise<void>;
+}>) {
+  const copy = {
+    dashboard: {
+      title: "Dashboard",
+      description: "Live-Gates, Runtime und Systemzustand auf einen Blick.",
+    },
+    analytics: {
+      title: "Analytics",
+      description: "Kanal-, Pfad- und Handelsperformance auswerten.",
+    },
+    operations: {
+      title: "Betrieb",
+      description: "Konten, Journal, Logs, Backups, MCP und System verwalten.",
+    },
+  }[workspace];
+  return (
+    <section className="workflow-statusbar workspace-statusbar">
+      <div>
+        <strong>{copy.title}</strong>
+        <span>{copy.description}</span>
+      </div>
+      <div className="workflow-status-tools">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void onRefresh()}
+        >
+          <RefreshCw data-icon="inline-start" /> Aktualisieren
+        </Button>
       </div>
     </section>
   );
@@ -698,6 +771,12 @@ function ResourceLibraryDialog({
   );
 }
 
+type WorkflowConnectionDraft = {
+  edgeId?: string;
+  sourceId: string;
+  targetId: string;
+};
+
 export function WorkflowBuilder() {
   const [snapshot, setSnapshot] = useState<WorkflowSnapshot>({
     workflow: null,
@@ -712,7 +791,8 @@ export function WorkflowBuilder() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<BuilderNoticeValue | null>(null);
-  const [operationsOpen, setOperationsOpen] = useState(false);
+  const [activeWorkspace, setActiveWorkspace] =
+    useState<WorkflowWorkspace>("builder");
   const [editorNodeId, setEditorNodeId] = useState<string | null>(null);
   const [newKind, setNewKind] = useState<WorkflowKind | null>(null);
   const [kindPickerOpen, setKindPickerOpen] = useState(false);
@@ -732,11 +812,12 @@ export function WorkflowBuilder() {
   );
   const [connectionSearch, setConnectionSearch] = useState("");
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [connectionDraft, setConnectionDraft] =
+    useState<WorkflowConnectionDraft | null>(null);
   const [routeOverviewOpen, setRouteOverviewOpen] = useState(false);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const libraryTriggerRef = useRef<HTMLButtonElement>(null);
   const simulationTriggerRef = useRef<HTMLButtonElement>(null);
-  const operationsTriggerRef = useRef<HTMLButtonElement>(null);
   const routeTriggerRef = useRef<HTMLButtonElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const reactFlowRef = useRef<ReactFlowInstance<Node, Edge> | null>(null);
@@ -749,10 +830,6 @@ export function WorkflowBuilder() {
   const closeSimulation = useCallback(() => {
     setSimulationOpen(false);
     window.setTimeout(() => simulationTriggerRef.current?.focus(), 0);
-  }, []);
-  const closeOperations = useCallback(() => {
-    setOperationsOpen(false);
-    window.setTimeout(() => operationsTriggerRef.current?.focus(), 0);
   }, []);
   const changeRouteOverview = useCallback((open: boolean) => {
     setRouteOverviewOpen(open);
@@ -816,7 +893,7 @@ export function WorkflowBuilder() {
       statusPayload && typeof statusPayload === "object" ? statusPayload : null,
     );
     setCatalog(exchangeCatalog(catalogPayload));
-    setGraph(structuredClone(nextSnapshot.workflow?.graph || EMPTY_GRAPH));
+    setGraph(normalizeWorkflowGrid(nextSnapshot.workflow?.graph || EMPTY_GRAPH));
     setLoading(false);
   }, []);
 
@@ -965,7 +1042,7 @@ export function WorkflowBuilder() {
   }, []);
 
   const connectNodes = useCallback(
-    async (sourceId: string, targetId: string) => {
+    (sourceId: string, targetId: string) => {
       const source = graphRef.current.nodes.find(
         (node) => node.id === sourceId,
       );
@@ -981,7 +1058,7 @@ export function WorkflowBuilder() {
           tone: "error",
           text: "Das Ziel muss rechts vom Ausgangsbaustein in einer späteren Verarbeitungsspalte liegen.",
         });
-        return false;
+        return;
       }
       if (
         graphRef.current.edges.some(
@@ -993,21 +1070,45 @@ export function WorkflowBuilder() {
           text: "Diese Verbindung besteht bereits.",
         });
         cancelConnection();
-        return false;
+        return;
       }
-      const candidate = structuredClone(graphRef.current);
-      const edgeId = newId("edge");
-      candidate.edges.push({
-        id: edgeId,
-        source: source.id,
-        target: target.id,
-      });
-      const activated = await activateGraph(candidate, "Verbindung aktiviert");
-      if (activated) setSelectedEdgeId(edgeId);
+      setConnectionDraft({ sourceId: source.id, targetId: target.id });
       cancelConnection();
-      return activated;
     },
-    [activateGraph, cancelConnection],
+    [cancelConnection],
+  );
+
+  const saveConnectionRouting = useCallback(
+    async (channelNodeIds?: string[]) => {
+      if (!connectionDraft) return;
+      const candidate = structuredClone(graphRef.current);
+      let edgeId = connectionDraft.edgeId;
+      if (edgeId) {
+        const edge = candidate.edges.find((item) => item.id === edgeId);
+        if (!edge) return;
+        if (channelNodeIds) edge.channelNodeIds = [...channelNodeIds];
+        else delete edge.channelNodeIds;
+      } else {
+        edgeId = newId("edge");
+        candidate.edges.push({
+          id: edgeId,
+          source: connectionDraft.sourceId,
+          target: connectionDraft.targetId,
+          ...(channelNodeIds ? { channelNodeIds: [...channelNodeIds] } : {}),
+        });
+      }
+      const activated = await activateGraph(
+        candidate,
+        connectionDraft.edgeId
+          ? "Routing der Verbindung aktualisiert"
+          : "Verbindung aktiviert",
+      );
+      if (activated) {
+        setSelectedEdgeId(edgeId);
+        setConnectionDraft(null);
+      }
+    },
+    [activateGraph, connectionDraft],
   );
 
   const removeEdge = useCallback(
@@ -1165,6 +1266,7 @@ export function WorkflowBuilder() {
           y: node.position.y,
         },
         hidden: !visible,
+        draggable: false,
         data: {
           kind: node.kind,
           name: resource?.name || "Fehlende Ressource",
@@ -1193,7 +1295,6 @@ export function WorkflowBuilder() {
           onCancelConnection: cancelConnection,
           onMove: moveNode,
         } satisfies WorkflowNodeData,
-        dragHandle: ".workflow-node-drag-handle",
         initialWidth: WORKFLOW_NODE_DIMENSIONS.width,
         initialHeight: WORKFLOW_NODE_DIMENSIONS.height,
         handles: workflowHandles(node.kind),
@@ -1236,6 +1337,15 @@ export function WorkflowBuilder() {
           markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
           data: {
             routeUsage,
+            channelNames: edge.channelNodeIds?.map((channelNodeId) => {
+              const channelNode = graph.nodes.find(
+                (node) => node.id === channelNodeId,
+              );
+              return channelNode
+                ? resourceById.get(channelNode.resourceVersionId)?.name ||
+                    channelNodeId
+                : channelNodeId;
+            }),
             pathFocusState: !selectedPathId
               ? "idle"
               : routeUsage.routeIds.includes(selectedPathId)
@@ -1244,7 +1354,14 @@ export function WorkflowBuilder() {
           } satisfies WorkflowEdgeData,
         };
       }),
-    [graph.edges, routeTopology.edgeUsage, selectedEdgeId, selectedPathId],
+    [
+      graph.edges,
+      graph.nodes,
+      resourceById,
+      routeTopology.edgeUsage,
+      selectedEdgeId,
+      selectedPathId,
+    ],
   );
   const noSearchResults = Boolean(
     search.trim() &&
@@ -1268,45 +1385,53 @@ export function WorkflowBuilder() {
       targetName: target
         ? resourceById.get(target.resourceVersionId)?.name || "Unbekanntes Ziel"
         : "Unbekanntes Ziel",
+      channelNames: edge.channelNodeIds?.map((channelNodeId) => {
+        const channelNode = graph.nodes.find(
+          (node) => node.id === channelNodeId,
+        );
+        return channelNode
+          ? resourceById.get(channelNode.resourceVersionId)?.name ||
+              channelNodeId
+          : channelNodeId;
+      }),
     };
   }, [graph.edges, graph.nodes, resourceById, selectedEdgeId]);
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => {
-    const relevant = changes.filter(
-      (change) => !("id" in change) || !change.id.startsWith("__column_"),
+  const connectionDialog = useMemo(() => {
+    if (!connectionDraft) return null;
+    const source = graph.nodes.find(
+      (node) => node.id === connectionDraft.sourceId,
     );
-    if (relevant.length === 0) return;
-    const currentNodes: Node[] = graphRef.current.nodes.map((node) => ({
-      id: node.id,
-      position: node.position,
-      data: {},
-    }));
-    const updated = applyNodeChanges(relevant, currentNodes);
-    const positions = new Map(updated.map((node) => [node.id, node.position]));
-    setGraph((previous) => ({
-      ...previous,
-      nodes: previous.nodes.map((node) => ({
-        ...node,
-        position: positions.get(node.id) || node.position,
-      })),
-    }));
-  }, []);
-
-  const persistPosition: OnNodeDrag = useCallback(
-    (_event, node) => {
-      if (node.id.startsWith("__column_")) return;
-      const candidate = structuredClone(graphRef.current);
-      const target = candidate.nodes.find((item) => item.id === node.id);
-      if (!target) return;
-      target.position = {
-        x: KIND_META[target.kind].order * COLUMN_GAP,
-        y: Math.round(node.position.y / 10) * 10,
+    const target = graph.nodes.find(
+      (node) => node.id === connectionDraft.targetId,
+    );
+    const existing = connectionDraft.edgeId
+      ? graph.edges.find((edge) => edge.id === connectionDraft.edgeId)
+      : undefined;
+    const channels = channelNodesReachingSource(
+      graph,
+      connectionDraft.sourceId,
+    ).map((channelNodeId) => {
+      const channelNode = graph.nodes.find((node) => node.id === channelNodeId);
+      return {
+        id: channelNodeId,
+        name: channelNode
+          ? resourceById.get(channelNode.resourceVersionId)?.name ||
+            channelNodeId
+          : channelNodeId,
       };
-      setGraph(candidate);
-      void activateGraph(candidate, "Position gespeichert");
-    },
-    [activateGraph],
-  );
+    });
+    return {
+      sourceName: source
+        ? resourceById.get(source.resourceVersionId)?.name || "Quelle"
+        : "Quelle",
+      targetName: target
+        ? resourceById.get(target.resourceVersionId)?.name || "Ziel"
+        : "Ziel",
+      channels,
+      initialChannelNodeIds: existing?.channelNodeIds,
+    };
+  }, [connectionDraft, graph, resourceById]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -1611,47 +1736,50 @@ export function WorkflowBuilder() {
       <WorkflowTopbar
         systemStatus={systemStatus}
         trading={trading}
-        selectedPathId={selectedPathId}
-        routeCount={routeTopology.routes.length}
-        onRoutes={() => setRouteOverviewOpen(true)}
-        onSimulation={() => setSimulationOpen(true)}
-        onOperations={() => setOperationsOpen(true)}
-        onLibrary={() => {
-          setLibraryKind(null);
-          setKindPickerOpen(true);
-        }}
-        routeTriggerRef={routeTriggerRef}
-        simulationTriggerRef={simulationTriggerRef}
-        operationsTriggerRef={operationsTriggerRef}
-        libraryTriggerRef={libraryTriggerRef}
       />
-      <WorkflowStatusbar
-        snapshot={snapshot}
-        graph={graph}
-        saving={saving}
-        search={search}
-        onSearch={setSearch}
-        onDisconnectAll={() => void disconnectAllEdges()}
+      <WorkflowNavigation
+        activeWorkspace={activeWorkspace}
+        onChange={setActiveWorkspace}
       />
-      {notice && (
-        <BuilderNotice notice={notice} onClose={() => setNotice(null)} />
+      {activeWorkspace === "builder" ? (
+        <WorkflowStatusbar
+          snapshot={snapshot}
+          graph={graph}
+          saving={saving}
+          search={search}
+          selectedPathId={selectedPathId}
+          routeCount={routeTopology.routes.length}
+          onSearch={setSearch}
+          onRoutes={() => setRouteOverviewOpen(true)}
+          onSimulation={() => setSimulationOpen(true)}
+          onLibrary={() => {
+            setLibraryKind(null);
+            setKindPickerOpen(true);
+          }}
+          onDisconnectAll={() => void disconnectAllEdges()}
+          routeTriggerRef={routeTriggerRef}
+          simulationTriggerRef={simulationTriggerRef}
+          libraryTriggerRef={libraryTriggerRef}
+        />
+      ) : (
+        <WorkspaceStatusbar workspace={activeWorkspace} onRefresh={load} />
       )}
-      <DuplicateResourceNotice
-        removedNodeCount={duplicateSummary.removedNodeCount}
-        saving={saving}
-        onConsolidate={() => void consolidateDuplicates()}
-      />
-      <div
-        ref={canvasRef}
-        id="workflow-canvas"
-        className="workflow-canvas"
-      >
+      {activeWorkspace === "builder" ? (
+        <>
+          {notice && (
+            <BuilderNotice notice={notice} onClose={() => setNotice(null)} />
+          )}
+          <DuplicateResourceNotice
+            removedNodeCount={duplicateSummary.removedNodeCount}
+            saving={saving}
+            onConsolidate={() => void consolidateDuplicates()}
+          />
+          <div ref={canvasRef} id="workflow-canvas" className="workflow-canvas">
         <ReactFlow
           nodes={displayNodes}
           edges={displayEdges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange}
           onInit={(instance) => {
             reactFlowRef.current = instance;
             const firstNode = [...graphRef.current.nodes].sort(
@@ -1668,7 +1796,7 @@ export function WorkflowBuilder() {
               startConnection(params.nodeId);
           }}
           isValidConnection={isValidConnection}
-          onNodeDragStop={persistPosition}
+          nodesDraggable={false}
           onNodeClick={
             ((_event, node) => {
               if (node.id.startsWith("__column_")) return;
@@ -1701,7 +1829,11 @@ export function WorkflowBuilder() {
             size={1}
             color="rgba(148,163,184,.16)"
           />
-          <Controls position="bottom-left" showInteractive={false} />
+          <Controls
+            position="bottom-left"
+            showInteractive={false}
+            onFitView={showAllNodes}
+          />
           <MiniMap
             position="bottom-right"
             pannable
@@ -1837,7 +1969,26 @@ export function WorkflowBuilder() {
                     <strong>{selectedConnection.sourceName}</strong>
                     <small>verbunden mit</small>
                     <strong>{selectedConnection.targetName}</strong>
+                    <small>
+                      {selectedConnection.channelNames
+                        ? `Nur: ${selectedConnection.channelNames.join(", ")}`
+                        : "Alle Ursprungskanäle"}
+                    </small>
                   </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setConnectionDraft({
+                        edgeId: selectedConnection.edge.id,
+                        sourceId: selectedConnection.edge.source,
+                        targetId: selectedConnection.edge.target,
+                      })
+                    }
+                  >
+                    Routing bearbeiten
+                  </Button>
                   <Button
                     type="button"
                     variant="destructive"
@@ -1850,9 +2001,51 @@ export function WorkflowBuilder() {
               </Card>
             </Panel>
           )}
-        </ReactFlow>
-      </div>
+            </ReactFlow>
+          </div>
+        </>
+      ) : (
+        <OperationsWorkspace
+          trading={trading}
+          catalog={catalog}
+          systemStatus={systemStatus}
+          onRefresh={load}
+          ariaLabel={
+            activeWorkspace === "dashboard"
+              ? "Dashboard"
+              : activeWorkspace === "analytics"
+                ? "Analytics"
+                : "Betrieb"
+          }
+          initialTab={
+            activeWorkspace === "dashboard"
+              ? "overview"
+              : activeWorkspace === "analytics"
+                ? "analytics"
+                : "accounts"
+          }
+          availableTabs={
+            activeWorkspace === "dashboard"
+              ? ["overview"]
+              : activeWorkspace === "analytics"
+                ? ["analytics"]
+                : ["accounts", "journal", "logs", "backups", "mcp", "system"]
+          }
+        />
+      )}
 
+      <WorkflowConnectionDialog
+        open={Boolean(connectionDialog)}
+        sourceName={connectionDialog?.sourceName || "Quelle"}
+        targetName={connectionDialog?.targetName || "Ziel"}
+        channels={connectionDialog?.channels || []}
+        initialChannelNodeIds={connectionDialog?.initialChannelNodeIds}
+        saving={saving}
+        onClose={() => setConnectionDraft(null)}
+        onSave={(channelNodeIds) =>
+          void saveConnectionRouting(channelNodeIds)
+        }
+      />
       <ResourceEditor
         open={Boolean(editorNodeId || newKind)}
         kind={editorKind}
@@ -1992,14 +2185,6 @@ export function WorkflowBuilder() {
           )}
         </DialogContent>
       </Dialog>
-      <OperationsPanel
-        open={operationsOpen}
-        trading={trading}
-        catalog={catalog}
-        systemStatus={systemStatus}
-        onClose={closeOperations}
-        onRefresh={load}
-      />
       <RouteOverview
         open={routeOverviewOpen}
         topology={routeTopology}

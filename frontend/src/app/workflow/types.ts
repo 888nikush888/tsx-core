@@ -37,7 +37,13 @@ export type WorkflowNodeRecord = {
   position: { x: number; y: number };
 };
 
-export type WorkflowEdgeRecord = { id: string; source: string; target: string };
+export type WorkflowEdgeRecord = {
+  id: string;
+  source: string;
+  target: string;
+  /** Missing means that every channel reaching the source is forwarded. */
+  channelNodeIds?: string[];
+};
 
 export type WorkflowGraph = {
   schemaVersion: 1;

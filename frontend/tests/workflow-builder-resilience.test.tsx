@@ -300,6 +300,12 @@ describe("workflow builder resilience", () => {
       screen.getByText("Wähle rechts im Canvas oder hier ein gültiges Ziel."),
     ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /Test output/ }));
+    expect(
+      await screen.findByRole("heading", { name: /Test channel.*Test output/ }),
+    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Routing übernehmen" }),
+    );
     await waitFor(() =>
       expect(api.apiFetch).toHaveBeenCalledWith(
         "/api/workflow/mutate",

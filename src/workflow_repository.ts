@@ -39,6 +39,9 @@ const STAGE: Record<WorkflowResourceKind, number> = {
   output: 12,
 };
 
+const WORKFLOW_COLUMN_GAP = 316;
+const WORKFLOW_ROW_GAP = 150;
+
 const REQUIRED_EXECUTION_KINDS = new Set<WorkflowResourceKind>([
   'channel', 'parser', 'schema', 'contract', 'strategy', 'sizing', 'account',
 ]);
@@ -426,6 +429,15 @@ function validateGraph(input: unknown): WorkflowGraph {
       position: { x: Number(position.x), y: Number(position.y) },
     };
   });
+  for (const kind of RESOURCE_KINDS) {
+    nodes
+      .filter(node => node.kind === kind)
+      .sort((left, right) => left.position.y - right.position.y || left.id.localeCompare(right.id))
+      .forEach((node, index) => {
+        node.position = { x: STAGE[kind] * WORKFLOW_COLUMN_GAP, y: index * WORKFLOW_ROW_GAP };
+      });
+  }
+  const nodesById = new Map(nodes.map(node => [node.id, node]));
   const edgeIds = new Set<string>();
   const pairs = new Set<string>();
   const edges: WorkflowEdge[] = value.edges.map((candidate: unknown) => {
@@ -436,8 +448,19 @@ function validateGraph(input: unknown): WorkflowGraph {
     const pair = `${source}\0${target}`;
     if (!IDENTIFIER.test(id) || edgeIds.has(id) || pairs.has(pair)) throw new Error(`Workflow edge ${id} is invalid or duplicated.`);
     if (!nodeIds.has(source) || !nodeIds.has(target) || source === target) throw new Error(`Workflow edge ${id} references an invalid endpoint.`);
+    let channelNodeIds: string[] | undefined;
+    if (edge.channelNodeIds !== undefined) {
+      channelNodeIds = stringArray(edge.channelNodeIds, `Workflow edge ${id} channel scope`, 1_000);
+      if (channelNodeIds.length === 0 || channelNodeIds.some(channelNodeId => !IDENTIFIER.test(channelNodeId))) {
+        throw new Error(`Workflow edge ${id} channel scope must contain at least one valid channel node identifier.`);
+      }
+      if (channelNodeIds.some(channelNodeId => nodesById.get(channelNodeId)?.kind !== 'channel')) {
+        throw new Error(`Workflow edge ${id} channel scope must reference channel nodes in this graph.`);
+      }
+      channelNodeIds.sort((left, right) => left.localeCompare(right));
+    }
     edgeIds.add(id); pairs.add(pair);
-    return { id, source, target };
+    return { id, source, target, ...(channelNodeIds ? { channelNodeIds } : {}) };
   });
   return { schemaVersion: 1, nodes, edges };
 }
@@ -553,11 +576,11 @@ async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, 
 
 function buildWorkflowTopology(graph: WorkflowGraph): {
   nodes: Map<string, WorkflowNode>;
-  adjacency: Map<string, string[]>;
+  adjacency: Map<string, WorkflowEdge[]>;
   indegree: Map<string, number>;
 } {
   const nodes = new Map(graph.nodes.map(node => [node.id, node]));
-  const adjacency = new Map<string, string[]>();
+  const adjacency = new Map<string, WorkflowEdge[]>();
   const indegree = new Map(graph.nodes.map(node => [node.id, 0]));
   for (const edge of graph.edges) {
     const source = nodes.get(edge.source)!;
@@ -565,18 +588,19 @@ function buildWorkflowTopology(graph: WorkflowGraph): {
     if (STAGE[source.kind] >= STAGE[target.kind]) {
       throw new Error(`Connection ${edge.id} must move from an earlier processing column to a later one.`);
     }
-    adjacency.set(edge.source, [...(adjacency.get(edge.source) ?? []), edge.target]);
+    adjacency.set(edge.source, [...(adjacency.get(edge.source) ?? []), edge]);
     indegree.set(edge.target, (indegree.get(edge.target) ?? 0) + 1);
   }
   return { nodes, adjacency, indegree };
 }
 
-function assertAcyclicWorkflow(nodeCount: number, adjacency: Map<string, string[]>, indegree: Map<string, number>): void {
+function assertAcyclicWorkflow(nodeCount: number, adjacency: Map<string, WorkflowEdge[]>, indegree: Map<string, number>): void {
   const queue = [...indegree.entries()].filter(([, degree]) => degree === 0).map(([id]) => id);
   let visited = 0;
   while (queue.length > 0) {
     const id = queue.shift()!; visited += 1;
-    for (const target of adjacency.get(id) ?? []) {
+    for (const edge of adjacency.get(id) ?? []) {
+      const target = edge.target;
       const next = (indegree.get(target) ?? 0) - 1;
       indegree.set(target, next);
       if (next === 0) queue.push(target);
@@ -587,7 +611,7 @@ function assertAcyclicWorkflow(nodeCount: number, adjacency: Map<string, string[
 
 interface WorkflowCompileContext {
   nodes: Map<string, WorkflowNode>;
-  adjacency: Map<string, string[]>;
+  adjacency: Map<string, WorkflowEdge[]>;
   resources: Map<string, WorkflowResourceVersion>;
   paths: CompiledDraftPath[];
   warnings: string[];
@@ -671,11 +695,19 @@ async function compileTerminalLineage(
   });
 }
 
-async function walkWorkflowPaths(context: WorkflowCompileContext, nodeId: string, lineage: string[]): Promise<void> {
+async function walkWorkflowPaths(
+  context: WorkflowCompileContext,
+  nodeId: string,
+  lineage: string[],
+  channelNodeId: string,
+): Promise<void> {
   const node = context.nodes.get(nodeId)!;
   const nextLineage = [...lineage, nodeId];
   if (node.kind === 'account') {
-    const outputTargets = (context.adjacency.get(node.id) ?? []).filter(target => context.nodes.get(target)?.kind === 'output');
+    const outputTargets = (context.adjacency.get(node.id) ?? [])
+      .filter(edge => !edge.channelNodeIds || edge.channelNodeIds.includes(channelNodeId))
+      .map(edge => edge.target)
+      .filter(target => context.nodes.get(target)?.kind === 'output');
     if (outputTargets.length > 1) throw new Error(`Exchange account node ${node.id} may connect to at most one output node.`);
     const terminalLineages = outputTargets.length > 0
       ? outputTargets.map(target => [...nextLineage, target])
@@ -683,9 +715,11 @@ async function walkWorkflowPaths(context: WorkflowCompileContext, nodeId: string
     for (const terminalLineage of terminalLineages) await compileTerminalLineage(terminalLineage, node.id, context);
     return;
   }
-  const targets = context.adjacency.get(nodeId) ?? [];
-  if (targets.length === 0) context.warnings.push(`Node ${nodeId} is not connected to an exchange account and is inert.`);
-  for (const target of targets) await walkWorkflowPaths(context, target, nextLineage);
+  const targets = (context.adjacency.get(nodeId) ?? [])
+    .filter(edge => !edge.channelNodeIds || edge.channelNodeIds.includes(channelNodeId))
+    .map(edge => edge.target);
+  if (targets.length === 0) context.warnings.push(`Node ${nodeId} is not connected to an exchange account for channel ${channelNodeId} and is inert.`);
+  for (const target of targets) await walkWorkflowPaths(context, target, nextLineage, channelNodeId);
 }
 
 function assertConsistentTelegramOutputs(paths: CompiledDraftPath[]): void {
@@ -714,7 +748,7 @@ async function compileWorkflow(graph: WorkflowGraph): Promise<{ paths: CompiledD
   const paths: CompiledDraftPath[] = [];
   const channelNodes = graph.nodes.filter(node => node.kind === 'channel');
   const context = { nodes, adjacency, resources, paths, warnings };
-  for (const channel of channelNodes) await walkWorkflowPaths(context, channel.id, []);
+  for (const channel of channelNodes) await walkWorkflowPaths(context, channel.id, [], channel.id);
   if (channelNodes.length === 0 && graph.nodes.length > 0) warnings.push('No channel node is present; the workflow is inert.');
   assertConsistentTelegramOutputs(paths);
   return { paths, warnings: [...new Set(warnings)] };

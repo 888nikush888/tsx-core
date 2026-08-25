@@ -64,6 +64,60 @@ export type WorkflowDuplicateSummary = {
   redundantResourceIds: string[];
 };
 
+export function normalizeWorkflowGrid(source: WorkflowGraph): WorkflowGraph {
+  const graph = structuredClone(source);
+  for (const kind of Object.keys(KIND_META) as Array<keyof typeof KIND_META>) {
+    const ordered = graph.nodes
+      .filter((node) => node.kind === kind)
+      .sort(
+        (left, right) =>
+          left.position.y - right.position.y || left.id.localeCompare(right.id),
+      );
+    ordered.forEach((node, index) => {
+      node.position = {
+        x: KIND_META[kind].order * COLUMN_GAP,
+        y: index * ROW_GAP,
+      };
+    });
+  }
+  return graph;
+}
+
+export function channelNodesReachingSource(
+  graph: WorkflowGraph,
+  sourceId: string,
+): string[] {
+  const outgoing = new Map<string, WorkflowGraph["edges"]>();
+  for (const edge of graph.edges) {
+    const edges = outgoing.get(edge.source) || [];
+    edges.push(edge);
+    outgoing.set(edge.source, edges);
+  }
+  const reachesSource = (channelNodeId: string): boolean => {
+    const pending = [channelNodeId];
+    const visited = new Set<string>();
+    while (pending.length > 0) {
+      const current = pending.pop();
+      if (!current || visited.has(current)) continue;
+      if (current === sourceId) return true;
+      visited.add(current);
+      for (const edge of outgoing.get(current) || []) {
+        if (
+          !edge.channelNodeIds ||
+          edge.channelNodeIds.includes(channelNodeId)
+        ) {
+          pending.push(edge.target);
+        }
+      }
+    }
+    return false;
+  };
+  return graph.nodes
+    .filter((node) => node.kind === "channel" && reachesSource(node.id))
+    .map((node) => node.id)
+    .sort((left, right) => left.localeCompare(right));
+}
+
 export function consolidateWorkflowResources(
   source: WorkflowGraph,
   resources: WorkflowResource[],
@@ -126,19 +180,39 @@ export function consolidateWorkflowResources(
     }
   }
 
-  const seenEdges = new Set<string>();
-  const edges: WorkflowGraph["edges"] = [];
+  const edgesByIdentity = new Map<string, WorkflowGraph["edges"][number]>();
   for (const edge of source.edges) {
     const sourceId = replacement.get(edge.source) || edge.source;
     const targetId = replacement.get(edge.target) || edge.target;
     const identity = `${sourceId}\u0000${targetId}`;
-    if (sourceId === targetId || seenEdges.has(identity)) continue;
-    seenEdges.add(identity);
-    edges.push({ ...edge, source: sourceId, target: targetId });
+    if (sourceId === targetId) continue;
+    const channelNodeIds = edge.channelNodeIds
+      ? [...new Set(edge.channelNodeIds.map((id) => replacement.get(id) || id))]
+          .sort((left, right) => left.localeCompare(right))
+      : undefined;
+    const existing = edgesByIdentity.get(identity);
+    if (!existing) {
+      edgesByIdentity.set(identity, {
+        ...edge,
+        source: sourceId,
+        target: targetId,
+        ...(channelNodeIds ? { channelNodeIds } : {}),
+      });
+      continue;
+    }
+    if (!existing.channelNodeIds || !channelNodeIds) {
+      delete existing.channelNodeIds;
+      continue;
+    }
+    existing.channelNodeIds = [
+      ...new Set([...existing.channelNodeIds, ...channelNodeIds]),
+    ].sort((left, right) => left.localeCompare(right));
   }
 
+  const edges = [...edgesByIdentity.values()];
+
   return {
-    graph: { schemaVersion: 1, nodes, edges },
+    graph: normalizeWorkflowGrid({ schemaVersion: 1, nodes, edges }),
     duplicateBehaviorCount,
     removedNodeCount,
     redundantResourceIds: [...redundantResourceIds].sort((left, right) =>
