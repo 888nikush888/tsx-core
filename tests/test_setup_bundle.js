@@ -4,10 +4,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDb, initDb } from '../src/db.js';
 import {
+  createTradingAccount,
   listSignalContracts,
   listTradingAccounts,
   listTradingSignalSchemas,
   listTradingStrategies,
+  updateTradingAccountState,
 } from '../src/trading_repository.js';
 import {
   createWorkflowResourceDraft,
@@ -19,6 +21,7 @@ import {
 } from '../src/workflow_repository.js';
 import {
   applyPortableSetupBundle,
+  assertSetupBundleContainsNoSecrets,
   exportPortableSetupBundle,
   suggestPortableAccountMappings,
   validatePortableSetupBundle,
@@ -93,9 +96,222 @@ try {
   invalidRiskPolicy.models.channelRiskPolicies.push({ channelId: '-100-invalid', mode: 'unsafe' });
   assert.throws(() => validatePortableSetupBundle(invalidRiskPolicy), /mode is invalid/);
 
+  const invalidBundleCases = [
+    {
+      label: 'unknown root fields',
+      mutate: candidate => { candidate.unknown = true; },
+      error: /unsupported root field/,
+    },
+    {
+      label: 'unsupported versions',
+      mutate: candidate => { candidate.schemaVersion = 2; },
+      error: /schema or version is unsupported/,
+    },
+    {
+      label: 'negative timestamps',
+      mutate: candidate => { candidate.exportedAt = -1; },
+      error: /timestamp is invalid/,
+    },
+    {
+      label: 'non-object system configuration',
+      mutate: candidate => { candidate.systemConfig = []; },
+      error: /system configuration must be an object/,
+    },
+    {
+      label: 'non-array workflow resources',
+      mutate: candidate => { candidate.workflow.resources = {}; },
+      error: /resources are invalid/,
+    },
+    {
+      label: 'unsupported graph schemas',
+      mutate: candidate => { candidate.workflow.graph.schemaVersion = 2; },
+      error: /graph structure is invalid/,
+    },
+    {
+      label: 'non-array graph nodes',
+      mutate: candidate => { candidate.workflow.graph.nodes = {}; },
+      error: /graph structure is invalid/,
+    },
+    {
+      label: 'non-array graph edges',
+      mutate: candidate => { candidate.workflow.graph.edges = {}; },
+      error: /graph structure is invalid/,
+    },
+    {
+      label: 'too many graph nodes',
+      mutate: candidate => { candidate.workflow.graph.nodes = Array.from({ length: 1_001 }, () => ({})); },
+      error: /graph structure is invalid/,
+    },
+    {
+      label: 'too many graph edges',
+      mutate: candidate => { candidate.workflow.graph.edges = Array.from({ length: 4_001 }, () => ({})); },
+      error: /graph structure is invalid/,
+    },
+    {
+      label: 'duplicate graph node ids',
+      mutate: candidate => { candidate.workflow.graph.nodes[1].id = candidate.workflow.graph.nodes[0].id; },
+      error: /node is invalid or duplicated/,
+    },
+    {
+      label: 'unknown graph node kinds',
+      mutate: candidate => { candidate.workflow.graph.nodes[0].kind = 'unknown'; },
+      error: /node is invalid or duplicated/,
+    },
+    {
+      label: 'invalid graph positions',
+      mutate: candidate => { candidate.workflow.graph.nodes[0].position.x = null; },
+      error: /node position is invalid/,
+    },
+    {
+      label: 'non-object graph positions',
+      mutate: candidate => { candidate.workflow.graph.nodes[0].position = []; },
+      error: /node position must be an object/,
+    },
+    {
+      label: 'duplicate graph edge ids',
+      mutate: candidate => { candidate.workflow.graph.edges.push(structuredClone(candidate.workflow.graph.edges[0])); },
+      error: /edge is invalid, duplicated or dangling/,
+    },
+    {
+      label: 'non-array graph edge scopes',
+      mutate: candidate => { candidate.workflow.graph.edges[0].channelNodeIds = 'channel'; },
+      error: /edge channel scope is invalid/,
+    },
+    {
+      label: 'dangling graph edge scopes',
+      mutate: candidate => { candidate.workflow.graph.edges[0].channelNodeIds = ['missing-channel']; },
+      error: /edge channel scope is invalid/,
+    },
+    {
+      label: 'missing graph resource versions',
+      mutate: candidate => { candidate.workflow.graph.nodes[0].resourceVersionId = 'missing-version'; },
+      error: /missing resource version/,
+    },
+    {
+      label: 'duplicate resource versions',
+      mutate: candidate => { candidate.workflow.resources[1].sourceVersionId = candidate.workflow.resources[0].sourceVersionId; },
+      error: /resource is invalid or duplicated/,
+    },
+    {
+      label: 'unknown resource kinds',
+      mutate: candidate => { candidate.workflow.resources[0].kind = 'unknown'; },
+      error: /resource is invalid or duplicated/,
+    },
+    {
+      label: 'empty resource names',
+      mutate: candidate => { candidate.workflow.resources[0].name = ' '; },
+      error: /resource name is invalid/,
+    },
+    {
+      label: 'overlong resource names',
+      mutate: candidate => { candidate.workflow.resources[0].name = 'x'.repeat(161); },
+      error: /resource name is invalid/,
+    },
+    {
+      label: 'non-object resource configurations',
+      mutate: candidate => { candidate.workflow.resources[0].configuration = []; },
+      error: /resource configuration must be an object/,
+    },
+    {
+      label: 'too many workflow resources',
+      mutate: candidate => { candidate.workflow.resources = Array.from({ length: 1_001 }, () => ({})); },
+      error: /resources are invalid/,
+    },
+    {
+      label: 'invalid parser enabled state',
+      mutate: candidate => { candidate.models.schemas[0].enabled = 'yes'; },
+      error: /enabled state is invalid/,
+    },
+    {
+      label: 'duplicate contract identifiers',
+      mutate: candidate => { candidate.models.contracts.push(structuredClone(candidate.models.contracts[0])); },
+      error: /contract identifiers are duplicated/,
+    },
+    {
+      label: 'invalid model collections',
+      mutate: candidate => { candidate.models.strategies = {}; },
+      error: /model collections are invalid/,
+    },
+    {
+      label: 'missing schema contracts',
+      mutate: candidate => { candidate.models.schemas[0].sourceContractVersionId = 'missing-contract'; },
+      error: /schema references a missing contract/,
+    },
+    {
+      label: 'non-array account references',
+      mutate: candidate => { candidate.accountReferences = {}; },
+      error: /account references are invalid/,
+    },
+    {
+      label: 'too many account references',
+      mutate: candidate => { candidate.accountReferences = Array.from({ length: 101 }, () => structuredClone(candidate.accountReferences[0])); },
+      error: /account references are invalid/,
+    },
+    {
+      label: 'invalid account names',
+      mutate: candidate => { candidate.accountReferences[0].name = ''; },
+      error: /account name is invalid/,
+    },
+    {
+      label: 'non-object account references',
+      mutate: candidate => { candidate.accountReferences = [null]; },
+      error: /account reference must be an object/,
+    },
+    {
+      label: 'invalid checksum format',
+      mutate: candidate => { candidate.checksum = 'invalid'; },
+      error: /checksum is invalid/,
+    },
+  ];
+  assert.throws(() => validatePortableSetupBundle(null), /Setup bundle must be an object/);
+  for (const { label, mutate, error } of invalidBundleCases) {
+    const candidate = structuredClone(bundle);
+    mutate(candidate);
+    assert.throws(() => validatePortableSetupBundle(candidate), error, label);
+  }
+  let nested = {};
+  for (let depth = 0; depth < 42; depth += 1) nested = { nested };
+  assert.throws(() => assertSetupBundleContainsNoSecrets(nested), /nesting exceeds the safety limit/);
+
   const suggestion = await suggestPortableAccountMappings(bundle);
   assert.deepEqual(suggestion.unresolved, []);
   assert.equal(suggestion.automatic[account.id], account.id);
+  const fallbackReference = {
+    sourceAccountId: 'remote-account',
+    name: account.name,
+    exchange: account.exchange,
+    mode: account.mode,
+  };
+  const fallbackSuggestion = await suggestPortableAccountMappings({
+    ...bundle,
+    accountReferences: [fallbackReference],
+  });
+  assert.equal(fallbackSuggestion.automatic['remote-account'], account.id);
+  const missingSuggestion = await suggestPortableAccountMappings({
+    ...bundle,
+    accountReferences: [{ ...fallbackReference, sourceAccountId: 'missing-account', name: 'No match' }],
+  });
+  assert.deepEqual(missingSuggestion.unresolved, ['missing-account']);
+
+  const duplicateAccount = await createTradingAccount({
+    name: account.name,
+    exchange: account.exchange,
+    mode: account.mode,
+    ...(account.exchange === 'paper'
+      ? { initialBalance: '10000' }
+      : { credentialRef: 'duplicate-mapping-candidate' }),
+  });
+  await updateTradingAccountState(duplicateAccount.id, {
+    status: 'ready',
+    enabled: true,
+    verifiedAt: Date.now(),
+    externalAccountId: 'duplicate-external-account',
+  });
+  const ambiguousSuggestion = await suggestPortableAccountMappings({
+    ...bundle,
+    accountReferences: [{ ...fallbackReference, sourceAccountId: 'ambiguous-account' }],
+  });
+  assert.deepEqual(ambiguousSuggestion.unresolved, ['ambiguous-account']);
   await assert.rejects(
     applyPortableSetupBundle({ bundle, accountMappings: {}, actorId: 'test:missing-map' }),
     /not mapped to a verified compatible local account/,

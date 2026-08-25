@@ -145,6 +145,57 @@ async function testOperatorReadContracts(baseUrl, appState) {
   }
 }
 
+async function testTradingAnalyticsApi(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/trading/analytics`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200, 'Trading analytics must support the documented default range.');
+  let analytics = await response.json();
+  assert.deepStrictEqual(analytics.filters.channelIds, []);
+  assert.deepStrictEqual(analytics.filters.accountIds, []);
+  assert.deepStrictEqual(analytics.filters.exchanges, []);
+  assert.deepStrictEqual(analytics.filters.modes, []);
+  assert.deepStrictEqual(analytics.filters.statuses, []);
+
+  const until = Date.now();
+  const query = new URLSearchParams({
+    since: '1000',
+    until: String(until),
+    channelId: '-1001,-1002,-1001',
+    accountId: 'account-1, account-2',
+    exchange: 'paper,paper',
+    mode: 'paper',
+    status: 'filled, blocked,filled',
+  });
+  response = await fetch(`${baseUrl}/api/trading/analytics?${query}`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  analytics = await response.json();
+  assert.deepStrictEqual(analytics.filters, {
+    since: 1_000,
+    until,
+    channelIds: ['-1001', '-1002'],
+    accountIds: ['account-1', 'account-2'],
+    exchanges: ['paper'],
+    modes: ['paper'],
+    statuses: ['filled', 'blocked'],
+  });
+
+  const invalidQueries = [
+    'since=not-a-number',
+    'since=-1',
+    'since=2&until=1',
+    `until=${Date.now() + 120_000}`,
+    'exchange=binance',
+    'mode=production',
+    `channelId=${'x'.repeat(129)}`,
+    `status=${Array.from({ length: 101 }, (_, index) => `status-${index}`).join(',')}`,
+  ];
+  for (const invalidQuery of invalidQueries) {
+    response = await fetch(`${baseUrl}/api/trading/analytics?${invalidQuery}`, {
+      headers: headers(VIEWER_TOKEN),
+    });
+    assert.strictEqual(response.status, 400, `Invalid analytics query must fail closed: ${invalidQuery.slice(0, 40)}`);
+  }
+}
+
 async function testWorkflowResourceApi(baseUrl) {
   let response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
@@ -327,7 +378,7 @@ async function testWorkflowControlPlane(baseUrl) {
   await testWorkflowRevisionApi(baseUrl);
 }
 
-async function testSetupBundleApi(baseUrl, controls) {
+async function testSetupBundleApi(baseUrl, controls, appState) {
   let response = await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200, 'Authenticated viewers may export the redacted portable setup.');
   assert.match(response.headers.get('content-disposition') || '', /tsx-core-setup-/);
@@ -378,6 +429,39 @@ async function testSetupBundleApi(baseUrl, controls) {
     body: JSON.stringify({ previewKey: preview.previewKey, confirmation: preview.confirmation, accountMappings: {} }),
   });
   assert.strictEqual(response.status, 409, 'A setup preview key must be one-time use.');
+
+  response = await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) });
+  const rollbackBundle = await response.json();
+  response = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ bundle: rollbackBundle }),
+  });
+  const rollbackPreview = await response.json();
+  const previousConfig = structuredClone(appState.config);
+  const originalApplyRuntimeConfig = appState.applyRuntimeConfig;
+  let failReplacementOnce = true;
+  appState.applyRuntimeConfig = () => {
+    if (failReplacementOnce) {
+      failReplacementOnce = false;
+      throw new Error('simulated runtime configuration failure');
+    }
+  };
+  try {
+    response = await fetch(`${baseUrl}/api/setup-bundle/apply`, {
+      method: 'POST',
+      headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        previewKey: rollbackPreview.previewKey,
+        confirmation: rollbackPreview.confirmation,
+        accountMappings: {},
+      }),
+    });
+    assert.strictEqual(response.status, 409);
+    assert.deepStrictEqual(appState.config, previousConfig, 'A failed setup activation must restore the prior config.');
+  } finally {
+    appState.applyRuntimeConfig = originalApplyRuntimeConfig;
+  }
 }
 
 async function testRequestValidation(baseUrl) {
@@ -1405,8 +1489,9 @@ async function runTests() {
     await testBootstrap(baseUrl);
     await testAuthenticationAndReads(baseUrl);
     await testOperatorReadContracts(baseUrl, appState);
+    await testTradingAnalyticsApi(baseUrl);
     await testWorkflowControlPlane(baseUrl);
-    await testSetupBundleApi(baseUrl, controls);
+    await testSetupBundleApi(baseUrl, controls, appState);
     await testTelegramWebLogin(baseUrl);
     await testRequestValidation(baseUrl);
     await testTradingStrategyDeletion(baseUrl, appState);

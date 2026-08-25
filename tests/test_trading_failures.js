@@ -24,6 +24,11 @@ import {
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { validateSignalXml } from '../src/signal_schema.js';
 import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
+import {
+  listTradingAccountIncidents,
+  recordTradingAccountIncident,
+  resolveTradingAccountIncidents,
+} from '../src/trading_incidents.js';
 
 const SIGNAL = '<signal><action>LONG</action><pair>ETHUSDT</pair><entry_range><min>3000</min><max>3100</max></entry_range><targets><target id="1">3200</target><target id="2">3300</target></targets><stoploss>2900</stoploss></signal>';
 
@@ -455,6 +460,112 @@ async function testTransientExecutorIncidentBlocksOnlyNewEntriesUntilReconciled(
   );
   assert.equal(resolvedIncident.status, 'resolved');
   assert.equal((await getTradingAccount(account.id)).killSwitchActive, false);
+  await closeDb();
+}
+
+async function testTradingAccountIncidentLifecycle(directory) {
+  await initDb(path.join(directory, 'account-incident-lifecycle.db'));
+  await seedTradingFixtures();
+  const [account] = await listTradingAccounts();
+
+  await assert.rejects(
+    recordTradingAccountIncident({
+      accountId: account.id,
+      category: 'reconciliation_transient',
+      severity: 'warning',
+      message: '   ',
+    }),
+    /requires a message/,
+  );
+
+  const first = await recordTradingAccountIncident({
+    accountId: account.id,
+    category: 'reconciliation_transient',
+    severity: 'warning',
+    message: '  executor temporarily unavailable  ',
+    details: { attempt: 1 },
+    now: 1_000,
+  });
+  assert.equal(first.message, 'executor temporarily unavailable');
+  assert.equal(first.occurrenceCount, 1);
+  assert.equal(first.firstSeenAt, 1_000);
+  assert.equal(first.resolvedAt, null);
+  assert.deepEqual(first.details, { attempt: 1 });
+
+  const repeated = await recordTradingAccountIncident({
+    accountId: account.id,
+    category: 'reconciliation_transient',
+    severity: 'critical',
+    message: 'executor temporarily unavailable',
+    details: { attempt: 2 },
+    now: 2_000,
+  });
+  assert.equal(repeated.id, first.id, 'Identical open incidents must be aggregated.');
+  assert.equal(repeated.occurrenceCount, 2);
+  assert.equal(repeated.firstSeenAt, 1_000);
+  assert.equal(repeated.lastSeenAt, 2_000);
+  assert.deepEqual(repeated.details, { attempt: 2 });
+  const repeatedWithoutDetails = await recordTradingAccountIncident({
+    accountId: account.id,
+    category: 'reconciliation_transient',
+    severity: 'warning',
+    message: 'executor temporarily unavailable',
+    now: 2_100,
+  });
+  assert.equal(repeatedWithoutDetails.occurrenceCount, 3);
+  assert.deepEqual(repeatedWithoutDetails.details, {});
+
+  const distinct = await recordTradingAccountIncident({
+    accountId: account.id,
+    category: 'remote_identity',
+    severity: 'critical',
+    message: 'executor temporarily unavailable',
+    now: 1_500,
+  });
+  assert.notEqual(distinct.id, first.id, 'The incident category is part of the fingerprint.');
+  assert.deepEqual(distinct.details, {});
+
+  let open = await listTradingAccountIncidents();
+  assert.deepEqual(open.map(incident => incident.id), [first.id, distinct.id]);
+  assert.equal(await resolveTradingAccountIncidents(account.id, []), 0);
+  assert.equal(await resolveTradingAccountIncidents(account.id, ['unresolved_fill'], 2_500), 0);
+  assert.equal(await resolveTradingAccountIncidents(account.id, ['reconciliation_transient'], 3_000), 1);
+
+  open = await listTradingAccountIncidents({ accountId: account.id, limit: 0 });
+  assert.deepEqual(open.map(incident => incident.id), [distinct.id]);
+
+  await getDatabase().run(
+    `INSERT INTO trading_account_incidents (
+       id, account_id, fingerprint, category, severity, message, details_json,
+       status, occurrence_count, first_seen_at, last_seen_at, resolved_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, 'resolved', 1, ?, ?, ?)`,
+    ['invalid-details', account.id, 'a'.repeat(64), 'unmanaged_remote', 'warning',
+      'invalid details', '{', 100, 200, 200],
+  );
+  await getDatabase().run(
+    `INSERT INTO trading_account_incidents (
+       id, account_id, fingerprint, category, severity, message, details_json,
+       status, occurrence_count, first_seen_at, last_seen_at, resolved_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, 'resolved', 1, ?, ?, ?)`,
+    ['array-details', account.id, 'b'.repeat(64), 'unresolved_fill', 'critical',
+      'array details', '[]', 300, 400, 400],
+  );
+  await getDatabase().run(
+    `INSERT INTO trading_account_incidents (
+       id, account_id, fingerprint, category, severity, message, details_json,
+       status, occurrence_count, first_seen_at, last_seen_at, resolved_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, 'resolved', 1, ?, ?, ?)`,
+    ['empty-details', account.id, 'c'.repeat(64), 'reconciliation_contract', 'warning',
+      'empty details', '', 500, 600, 600],
+  );
+
+  const completeHistory = await listTradingAccountIncidents({ includeResolved: true, limit: 1_000 });
+  assert.equal(completeHistory.length, 5);
+  assert.equal(completeHistory[0].id, distinct.id, 'Open incidents must be listed before resolved history.');
+  assert.deepEqual(completeHistory.find(incident => incident.id === 'invalid-details').details, {});
+  assert.deepEqual(completeHistory.find(incident => incident.id === 'array-details').details, {});
+  assert.deepEqual(completeHistory.find(incident => incident.id === 'empty-details').details, {});
+  assert.equal(completeHistory.find(incident => incident.id === first.id).resolvedAt, 3_000);
   await closeDb();
 }
 
@@ -954,6 +1065,7 @@ async function run() {
     await testPartialEntryProtectionAndTerminalResizing(directory);
     await testTrailingStopOnlyMovesTowardProfit(directory);
     await testTransientExecutorIncidentBlocksOnlyNewEntriesUntilReconciled(directory);
+    await testTradingAccountIncidentLifecycle(directory);
     await testStopReplacementCancellationFailsClosed(directory);
     await testPeriodicReconciliationFailureDoesNotActivateHardKillSwitch(directory);
     await testTransientReconciliationFailureKeepsRetryingWithoutHardIsolation(directory);

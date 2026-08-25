@@ -6,7 +6,7 @@ import path from 'node:path';
 import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { CcxtExchangeAdapter } from '../src/ccxt_exchange.js';
 import { TradingCredentialStore } from '../src/trading_credentials.js';
-import { createTradingAccount, listTradingStrategies } from '../src/trading_repository.js';
+import { createTradingAccount, getSignalContractVersion, listTradingStrategies } from '../src/trading_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'official-exchange-'));
@@ -29,6 +29,10 @@ const server = http.createServer((request, response) => {
     if (nextResponse !== undefined) {
       const selected = nextResponse;
       nextResponse = undefined;
+      if (selected.destroy === true) {
+        request.socket.destroy();
+        return;
+      }
       response.statusCode = selected.status || 200;
       response.end(JSON.stringify(selected.body));
     } else if (request.url === '/v1/account-snapshot') response.end(JSON.stringify({
@@ -74,6 +78,7 @@ try {
     name: 'Bybit test', exchange: 'bybit', mode: 'testnet', credentialRef: 'credential-ref',
   });
   const [strategy] = await listTradingStrategies();
+  assert.equal(await getSignalContractVersion('missing:v1'), null);
   await getDatabase().run(
     `INSERT INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at)
      VALUES ('official-signal', '-1', 1, '<signal/>', '<signal/>', ?)`,
@@ -265,6 +270,15 @@ try {
     'Read-only executor requests must retry a bounded transient 503 response.',
   );
   assert.equal(requests.length - readsBeforeRetry, 2);
+
+  const readsBeforeTransportRetry = requests.length;
+  nextResponse = { destroy: true };
+  assert.equal(
+    (await adapter.accountSnapshot(account)).equity,
+    '1000',
+    'Read-only executor requests must retry one bounded transport failure.',
+  );
+  assert.equal(requests.length - readsBeforeTransportRetry, 2);
 
   const mutationsBeforeFailure = requests.length;
   nextResponse = { status: 503, body: { error: 'executor unavailable', code: 'ORDER_SUBMIT_FAILED' } };
