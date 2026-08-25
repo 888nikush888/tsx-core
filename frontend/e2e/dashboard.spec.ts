@@ -678,11 +678,21 @@ test("a late-column block is brought into view and the canvas can always be refr
   const deterministicViewport = await viewport.evaluate(
     (element) => getComputedStyle(element).transform,
   );
-  await page.waitForTimeout(300);
+  await viewport.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let remainingFrames = 6;
+        const observeFrame = () => {
+          remainingFrames -= 1;
+          if (remainingFrames === 0) resolve();
+          else requestAnimationFrame(observeFrame);
+        };
+        requestAnimationFrame(observeFrame);
+      }),
+  );
   expect(
     await viewport.evaluate((element) => getComputedStyle(element).transform),
   ).toBe(deterministicViewport);
-  await page.waitForTimeout(500);
   await page.getByRole("button", { name: "Fit View" }).click();
   await expect
     .poll(async () => {

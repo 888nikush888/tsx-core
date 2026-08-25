@@ -153,28 +153,7 @@ class CcxtClientRegistry:
             if existing and existing.credential_fingerprint == fingerprint:
                 clients = existing
             else:
-                if existing:
-                    await existing.close()
-                configuration = _client_configuration(account, secret)
-                rest_class = getattr(ccxt_async, exchange, None)
-                pro_class = getattr(ccxt_pro, exchange, None)
-                if rest_class is None or pro_class is None:
-                    raise ExchangeContractError("Certified CCXT exchange class is unavailable.")
-                rest = rest_class(configuration)
-                pro = pro_class(configuration)
-                if account["mode"] == "testnet":
-                    try:
-                        rest.set_sandbox_mode(True)
-                        pro.set_sandbox_mode(True)
-                    except Exception as error:
-                        await asyncio.gather(rest.close(), pro.close(), return_exceptions=True)
-                        raise ExchangeContractError("Exchange testnet mode is not supported by CCXT.") from error
-                _assert_capabilities(rest, REQUIRED_REST_CAPABILITIES, f"{exchange} REST")
-                _assert_capabilities(pro, REQUIRED_PRO_CAPABILITIES, f"{exchange} Pro")
-                clients = AccountClients(
-                    dict(account), fingerprint, _account_identity(secret, exchange, account["mode"]),
-                    rest, pro, asyncio.Lock(),
-                )
+                clients = await self._replace_clients(account, secret, fingerprint, existing)
                 self._clients[cache_key] = clients
         try:
             await clients.load_markets()
@@ -189,6 +168,41 @@ class CcxtClientRegistry:
                     self._clients.pop(cache_key, None)
             await clients.close()
             raise
+
+    async def _replace_clients(
+        self,
+        account: dict[str, str],
+        secret: dict[str, Any],
+        fingerprint: str,
+        existing: AccountClients | None,
+    ) -> AccountClients:
+        if existing:
+            await existing.close()
+        exchange = account["exchange"]
+        configuration = _client_configuration(account, secret)
+        rest_class = getattr(ccxt_async, exchange, None)
+        pro_class = getattr(ccxt_pro, exchange, None)
+        if rest_class is None or pro_class is None:
+            raise ExchangeContractError("Certified CCXT exchange class is unavailable.")
+        rest = rest_class(configuration)
+        pro = pro_class(configuration)
+        if account["mode"] == "testnet":
+            await self._enable_sandbox(rest, pro)
+        _assert_capabilities(rest, REQUIRED_REST_CAPABILITIES, f"{exchange} REST")
+        _assert_capabilities(pro, REQUIRED_PRO_CAPABILITIES, f"{exchange} Pro")
+        return AccountClients(
+            dict(account), fingerprint, _account_identity(secret, exchange, account["mode"]),
+            rest, pro, asyncio.Lock(),
+        )
+
+    @staticmethod
+    async def _enable_sandbox(rest: Any, pro: Any) -> None:
+        try:
+            rest.set_sandbox_mode(True)
+            pro.set_sandbox_mode(True)
+        except Exception as error:
+            await asyncio.gather(rest.close(), pro.close(), return_exceptions=True)
+            raise ExchangeContractError("Exchange testnet mode is not supported by CCXT.") from error
 
     async def close(self) -> None:
         async with self._lock:

@@ -64,6 +64,115 @@ export type WorkflowDuplicateSummary = {
   redundantResourceIds: string[];
 };
 
+type WorkflowEdge = WorkflowGraph["edges"][number];
+
+function groupedBehaviorNodes(
+  nodes: WorkflowGraph["nodes"],
+  byVersionId: Map<string, WorkflowResource>,
+) {
+  const behaviors = new Map<string, WorkflowGraph["nodes"]>();
+  const unknownNodes: WorkflowGraph["nodes"] = [];
+  for (const node of nodes) {
+    const resource = byVersionId.get(node.resourceVersionId);
+    if (!resource) {
+      unknownNodes.push(structuredClone(node));
+      continue;
+    }
+    const key = resourceBehaviorKey(resource);
+    const behavior = behaviors.get(key) || [];
+    behavior.push(structuredClone(node));
+    behaviors.set(key, behavior);
+  }
+  return { behaviors, unknownNodes };
+}
+
+function newestCanonicalResource(
+  behavior: WorkflowGraph["nodes"],
+  canonicalResource: WorkflowResource | undefined,
+  byVersionId: Map<string, WorkflowResource>,
+) {
+  return behavior
+    .map((node) => byVersionId.get(node.resourceVersionId))
+    .filter((resource): resource is WorkflowResource => Boolean(resource))
+    .filter((resource) => resource.resourceId === canonicalResource?.resourceId)
+    .sort((left, right) => right.version - left.version)[0];
+}
+
+function appendCanonicalBehavior(
+  behavior: WorkflowGraph["nodes"],
+  byVersionId: Map<string, WorkflowResource>,
+  nodes: WorkflowGraph["nodes"],
+  replacement: Map<string, string>,
+  redundantResourceIds: Set<string>,
+): { duplicateBehaviorCount: number; removedNodeCount: number } {
+  behavior.sort(
+    (left, right) =>
+      left.position.y - right.position.y || left.id.localeCompare(right.id),
+  );
+  const canonical = behavior[0];
+  const canonicalResource = byVersionId.get(canonical.resourceVersionId);
+  const newest = newestCanonicalResource(behavior, canonicalResource, byVersionId);
+  if (newest) canonical.resourceVersionId = newest.id;
+  canonical.position = {
+    x: KIND_META[canonical.kind].order * COLUMN_GAP,
+    y: Math.min(...behavior.map((node) => node.position.y)),
+  };
+  nodes.push(canonical);
+  for (const node of behavior) {
+    replacement.set(node.id, canonical.id);
+    const resource = byVersionId.get(node.resourceVersionId);
+    if (resource && canonicalResource && resource.resourceId !== canonicalResource.resourceId) {
+      redundantResourceIds.add(resource.resourceId);
+    }
+  }
+  return {
+    duplicateBehaviorCount: behavior.length > 1 ? 1 : 0,
+    removedNodeCount: Math.max(0, behavior.length - 1),
+  };
+}
+
+function remappedChannelNodeIds(
+  edge: WorkflowEdge,
+  replacement: Map<string, string>,
+): string[] | undefined {
+  return edge.channelNodeIds
+    ? [...new Set(edge.channelNodeIds.map((id) => replacement.get(id) || id))]
+        .sort((left, right) => left.localeCompare(right))
+    : undefined;
+}
+
+function consolidatedEdges(
+  edges: WorkflowGraph["edges"],
+  replacement: Map<string, string>,
+): WorkflowGraph["edges"] {
+  const edgesByIdentity = new Map<string, WorkflowEdge>();
+  for (const edge of edges) {
+    const source = replacement.get(edge.source) || edge.source;
+    const target = replacement.get(edge.target) || edge.target;
+    if (source === target) continue;
+    const identity = `${source}\u0000${target}`;
+    const channelNodeIds = remappedChannelNodeIds(edge, replacement);
+    const existing = edgesByIdentity.get(identity);
+    if (!existing) {
+      edgesByIdentity.set(identity, {
+        ...edge,
+        source,
+        target,
+        ...(channelNodeIds ? { channelNodeIds } : {}),
+      });
+      continue;
+    }
+    if (!existing.channelNodeIds || !channelNodeIds) {
+      delete existing.channelNodeIds;
+      continue;
+    }
+    existing.channelNodeIds = [
+      ...new Set([...existing.channelNodeIds, ...channelNodeIds]),
+    ].sort((left, right) => left.localeCompare(right));
+  }
+  return [...edgesByIdentity.values()];
+}
+
 export function normalizeWorkflowGrid(source: WorkflowGraph): WorkflowGraph {
   const graph = structuredClone(source);
   for (const kind of Object.keys(KIND_META) as Array<keyof typeof KIND_META>) {
@@ -123,96 +232,29 @@ export function consolidateWorkflowResources(
   resources: WorkflowResource[],
 ): WorkflowDuplicateSummary {
   const byVersionId = resourceMap(resources);
-  const behaviors = new Map<string, WorkflowGraph["nodes"]>();
-  const unknownNodes: WorkflowGraph["nodes"] = [];
-
-  for (const node of source.nodes) {
-    const resource = byVersionId.get(node.resourceVersionId);
-    if (!resource) {
-      unknownNodes.push(structuredClone(node));
-      continue;
-    }
-    const behavior = behaviors.get(resourceBehaviorKey(resource)) || [];
-    behavior.push(structuredClone(node));
-    behaviors.set(resourceBehaviorKey(resource), behavior);
-  }
-
+  const { behaviors, unknownNodes } = groupedBehaviorNodes(source.nodes, byVersionId);
   const replacement = new Map<string, string>();
   const nodes: WorkflowGraph["nodes"] = [...unknownNodes];
   const redundantResourceIds = new Set<string>();
   let duplicateBehaviorCount = 0;
   let removedNodeCount = 0;
-
   for (const behavior of behaviors.values()) {
-    behavior.sort(
-      (left, right) =>
-        left.position.y - right.position.y || left.id.localeCompare(right.id),
+    const counts = appendCanonicalBehavior(
+      behavior,
+      byVersionId,
+      nodes,
+      replacement,
+      redundantResourceIds,
     );
-    const canonical = behavior[0];
-    const canonicalResource = byVersionId.get(canonical.resourceVersionId);
-    const newest = behavior
-      .map((node) => byVersionId.get(node.resourceVersionId))
-      .filter((resource): resource is WorkflowResource => Boolean(resource))
-      .filter(
-        (resource) => resource.resourceId === canonicalResource?.resourceId,
-      )
-      .sort((left, right) => right.version - left.version)[0];
-    if (newest) canonical.resourceVersionId = newest.id;
-    canonical.position = {
-      x: KIND_META[canonical.kind].order * COLUMN_GAP,
-      y: Math.min(...behavior.map((node) => node.position.y)),
-    };
-    nodes.push(canonical);
-    for (const node of behavior) {
-      replacement.set(node.id, canonical.id);
-      const resource = byVersionId.get(node.resourceVersionId);
-      if (
-        resource &&
-        canonicalResource &&
-        resource.resourceId !== canonicalResource.resourceId
-      ) {
-        redundantResourceIds.add(resource.resourceId);
-      }
-    }
-    if (behavior.length > 1) {
-      duplicateBehaviorCount += 1;
-      removedNodeCount += behavior.length - 1;
-    }
+    duplicateBehaviorCount += counts.duplicateBehaviorCount;
+    removedNodeCount += counts.removedNodeCount;
   }
-
-  const edgesByIdentity = new Map<string, WorkflowGraph["edges"][number]>();
-  for (const edge of source.edges) {
-    const sourceId = replacement.get(edge.source) || edge.source;
-    const targetId = replacement.get(edge.target) || edge.target;
-    const identity = `${sourceId}\u0000${targetId}`;
-    if (sourceId === targetId) continue;
-    const channelNodeIds = edge.channelNodeIds
-      ? [...new Set(edge.channelNodeIds.map((id) => replacement.get(id) || id))]
-          .sort((left, right) => left.localeCompare(right))
-      : undefined;
-    const existing = edgesByIdentity.get(identity);
-    if (!existing) {
-      edgesByIdentity.set(identity, {
-        ...edge,
-        source: sourceId,
-        target: targetId,
-        ...(channelNodeIds ? { channelNodeIds } : {}),
-      });
-      continue;
-    }
-    if (!existing.channelNodeIds || !channelNodeIds) {
-      delete existing.channelNodeIds;
-      continue;
-    }
-    existing.channelNodeIds = [
-      ...new Set([...existing.channelNodeIds, ...channelNodeIds]),
-    ].sort((left, right) => left.localeCompare(right));
-  }
-
-  const edges = [...edgesByIdentity.values()];
-
   return {
-    graph: normalizeWorkflowGrid({ schemaVersion: 1, nodes, edges }),
+    graph: normalizeWorkflowGrid({
+      schemaVersion: 1,
+      nodes,
+      edges: consolidatedEdges(source.edges, replacement),
+    }),
     duplicateBehaviorCount,
     removedNodeCount,
     redundantResourceIds: [...redundantResourceIds].sort((left, right) =>

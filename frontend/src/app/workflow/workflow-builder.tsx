@@ -269,6 +269,77 @@ type BuilderNoticeValue = {
 
 type WorkflowWorkspace = "builder" | "dashboard" | "analytics" | "operations";
 
+function operationalWorkspaceView(workspace: WorkflowWorkspace) {
+  switch (workspace) {
+    case "dashboard":
+      return {
+        ariaLabel: "Dashboard",
+        initialTab: "overview" as const,
+        availableTabs: ["overview"] as Array<"overview">,
+      };
+    case "analytics":
+      return {
+        ariaLabel: "Analytics",
+        initialTab: "analytics" as const,
+        availableTabs: ["analytics"] as Array<"analytics">,
+      };
+    default:
+      return {
+        ariaLabel: "Betrieb",
+        initialTab: "accounts" as const,
+        availableTabs: [
+          "accounts",
+          "journal",
+          "logs",
+          "backups",
+          "mcp",
+          "system",
+        ] as Array<"accounts" | "journal" | "logs" | "backups" | "mcp" | "system">,
+      };
+  }
+}
+
+function selectedGraphNode(graph: WorkflowGraph, nodeId: string | null) {
+  return nodeId ? graph.nodes.find((node) => node.id === nodeId) || null : null;
+}
+
+function resourceForNode(
+  node: WorkflowGraph["nodes"][number] | null,
+  resources: Map<string, WorkflowResource>,
+) {
+  return node ? resources.get(node.resourceVersionId) || null : null;
+}
+
+function connectionScopeDescription(selectedConnection: {
+  channelNames?: string[];
+} | null): string {
+  return selectedConnection?.channelNames?.length
+    ? `Nur für ${selectedConnection.channelNames.join(", ")}`
+    : "Für alle Ursprungskanäle dieses Pfads.";
+}
+
+function SimulationResult({ result }: Readonly<{ result: any }>) {
+  if (result.error) {
+    return <div className="builder-error" role="alert">{result.error}</div>;
+  }
+  return (
+    <>
+      {result.paths?.map((path: any) => {
+        const passed = path.allowed && path.enabled;
+        const reason = path.reason || (path.enabled ? "Filter erfüllt" : "Konto nicht bereit");
+        return (
+          <div key={path.id} className={passed ? "pass" : "blocked"}>
+            <span>{passed ? "PASS" : "BLOCK"}</span>
+            <strong>{path.accountId}</strong>
+            <small>{reason}</small>
+          </div>
+        );
+      })}
+      {result.paths?.length === 0 && <EmptySimulation />}
+    </>
+  );
+}
+
 const WORKSPACES: Array<{
   id: WorkflowWorkspace;
   label: string;
@@ -1269,9 +1340,7 @@ export function WorkflowBuilder() {
     [connectNodes, connectionSourceId],
   );
 
-  const connectionSource = connectionSourceId
-    ? graph.nodes.find((node) => node.id === connectionSourceId) || null
-    : null;
+  const connectionSource = selectedGraphNode(graph, connectionSourceId);
   const connectionTargets = useMemo(() => {
     if (!connectionSource) return [];
     const query = connectionSearch.trim().toLocaleLowerCase("de-DE");
@@ -1615,13 +1684,10 @@ export function WorkflowBuilder() {
     );
   }, []);
 
-  const selectedNode = editorNodeId
-    ? graph.nodes.find((node) => node.id === editorNodeId) || null
-    : null;
-  const selectedResource = selectedNode
-    ? resourceById.get(selectedNode.resourceVersionId) || null
-    : null;
+  const selectedNode = selectedGraphNode(graph, editorNodeId);
+  const selectedResource = resourceForNode(selectedNode, resourceById);
   const editorKind = newKind || selectedNode?.kind || "channel";
+  const operationalView = operationalWorkspaceView(activeWorkspace);
 
   const saveResource = async (value: {
     name: string;
@@ -2085,27 +2151,9 @@ export function WorkflowBuilder() {
           catalog={catalog}
           systemStatus={systemStatus}
           onRefresh={refreshOperationalState}
-          ariaLabel={
-            activeWorkspace === "dashboard"
-              ? "Dashboard"
-              : activeWorkspace === "analytics"
-                ? "Analytics"
-                : "Betrieb"
-          }
-          initialTab={
-            activeWorkspace === "dashboard"
-              ? "overview"
-              : activeWorkspace === "analytics"
-                ? "analytics"
-                : "accounts"
-          }
-          availableTabs={
-            activeWorkspace === "dashboard"
-              ? ["overview"]
-              : activeWorkspace === "analytics"
-                ? ["analytics"]
-                : ["accounts", "journal", "logs", "backups", "mcp", "system"]
-          }
+          ariaLabel={operationalView.ariaLabel}
+          initialTab={operationalView.initialTab}
+          availableTabs={operationalView.availableTabs}
         />
       )}
 
@@ -2132,9 +2180,7 @@ export function WorkflowBuilder() {
               {selectedConnection?.sourceName} → {selectedConnection?.targetName}
             </DialogTitle>
             <DialogDescription>
-              {selectedConnection?.channelNames?.length
-                ? `Nur für ${selectedConnection.channelNames.join(", ")}`
-                : "Für alle Ursprungskanäle dieses Pfads."}
+              {connectionScopeDescription(selectedConnection)}
             </DialogDescription>
           </DialogHeader>
           <div className="workflow-connection-inspector-actions">
@@ -2274,34 +2320,7 @@ export function WorkflowBuilder() {
           </div>
           {simulationResult && (
             <div className="simulation-result" aria-live="polite">
-              {simulationResult.error ? (
-                <div className="builder-error" role="alert">
-                  {simulationResult.error}
-                </div>
-              ) : (
-                <>
-                  {simulationResult.paths?.map((path: any) => (
-                    <div
-                      key={path.id}
-                      className={
-                        path.allowed && path.enabled ? "pass" : "blocked"
-                      }
-                    >
-                      <span>
-                        {path.allowed && path.enabled ? "PASS" : "BLOCK"}
-                      </span>
-                      <strong>{path.accountId}</strong>
-                      <small>
-                        {path.reason ||
-                          (path.enabled
-                            ? "Filter erfüllt"
-                            : "Konto nicht bereit")}
-                      </small>
-                    </div>
-                  ))}
-                  {simulationResult.paths?.length === 0 && <EmptySimulation />}
-                </>
-              )}
+              <SimulationResult result={simulationResult} />
             </div>
           )}
         </DialogContent>

@@ -1604,48 +1604,47 @@ export class TradingEngine {
       );
     }
     for (const fill of remote.fills) {
-      if (!fill.clientOrderId) continue;
-      const localOrder = await getDatabase().get<any>(
-        `SELECT id, intent_id, role, status FROM trading_orders
-         WHERE account_id = ? AND client_order_id = ?`,
-        [account.id, fill.clientOrderId],
-      );
-      if (!localOrder) continue;
-      const inserted = await getDatabase().run(
-        `INSERT OR IGNORE INTO trading_fills (
-           id, order_id, account_id, exchange_fill_id, price, quantity,
-           fee, fee_asset, filled_at, raw_json
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [randomUUID(), localOrder.id, account.id, fill.exchangeFillId, fill.price, fill.quantity, fill.fee, fill.feeAsset, fill.filledAt, JSON.stringify(fill.raw)],
-      );
-      if (Number(inserted.changes || 0) === 1 && localOrder.role === 'entry') {
-        const intent = await getTradingIntent(localOrder.intent_id);
-        if (intent) {
-          await recordTradingExecutionEvent({
-            eventType: 'first_fill',
-            occurredAt: fill.filledAt,
-            intentId: intent.id,
-            channelId: intent.channelId,
-            accountId: intent.accountId,
-            exchange: intent.exchange,
-            mode: intent.mode,
-            details: { symbol: intent.symbol },
-          });
-          if (localOrder.status === 'filled') {
-            await recordTradingExecutionEvent({
-              eventType: 'fully_filled',
-              occurredAt: fill.filledAt,
-              intentId: intent.id,
-              channelId: intent.channelId,
-              accountId: intent.accountId,
-              exchange: intent.exchange,
-              mode: intent.mode,
-              details: { symbol: intent.symbol },
-            });
-          }
-        }
-      }
+      await this.persistRemoteFill(account, fill);
     }
+  }
+
+  private async persistRemoteFill(account: TradingAccount, fill: ExchangeOpenState['fills'][number]): Promise<void> {
+    if (!fill.clientOrderId) return;
+    const localOrder = await getDatabase().get<any>(
+      `SELECT id, intent_id, role, status FROM trading_orders
+       WHERE account_id = ? AND client_order_id = ?`,
+      [account.id, fill.clientOrderId],
+    );
+    if (!localOrder) return;
+    const inserted = await getDatabase().run(
+      `INSERT OR IGNORE INTO trading_fills (
+         id, order_id, account_id, exchange_fill_id, price, quantity,
+         fee, fee_asset, filled_at, raw_json
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [randomUUID(), localOrder.id, account.id, fill.exchangeFillId, fill.price, fill.quantity, fill.fee, fill.feeAsset, fill.filledAt, JSON.stringify(fill.raw)],
+    );
+    if (Number(inserted.changes || 0) !== 1 || localOrder.role !== 'entry') return;
+    const intent = await getTradingIntent(localOrder.intent_id);
+    if (!intent) return;
+    await this.recordEntryFillEvents(intent, fill.filledAt, localOrder.status === 'filled');
+  }
+
+  private async recordEntryFillEvents(
+    intent: TradingIntent,
+    occurredAt: number,
+    fullyFilled: boolean,
+  ): Promise<void> {
+    const event = {
+      occurredAt,
+      intentId: intent.id,
+      channelId: intent.channelId,
+      accountId: intent.accountId,
+      exchange: intent.exchange,
+      mode: intent.mode,
+      details: { symbol: intent.symbol },
+    };
+    await recordTradingExecutionEvent({ ...event, eventType: 'first_fill' });
+    if (fullyFilled) await recordTradingExecutionEvent({ ...event, eventType: 'fully_filled' });
   }
 
   private async reconcileMissingRemotePosition(

@@ -84,8 +84,26 @@ function retryableExecutorStatus(status: number): boolean {
 }
 
 function retryableTransportFailure(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : 'unknown transport failure';
   return /(?:timeout|timed out|abort(?:ed|error)?|fetch failed|econn(?:reset|refused)|temporarily unavailable)/i.test(message);
+}
+
+function retryableExecutorFailure(error: unknown): boolean {
+  return error instanceof ExecutorHttpError
+    ? error.retryable
+    : retryableTransportFailure(error);
+}
+
+async function waitForExecutorRetry(attempt: number, deadlineAt: number): Promise<boolean> {
+  const availableBackoff = deadlineAt - Date.now();
+  if (availableBackoff <= 0) return false;
+  const backoffMs = attempt === 1 ? 100 : 250;
+  await new Promise(resolve => setTimeout(resolve, Math.min(backoffMs, availableBackoff)));
+  return true;
 }
 
 function isSafeIntegerAtLeast(value: unknown, minimum: number): boolean {
@@ -340,13 +358,9 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
         return await this.postOnce(endpoint, bodyPayload, token, deadlineAt, timeoutMs, remainingMs);
       } catch (error) {
         lastError = error;
-        const retryable = error instanceof ExecutorHttpError ? error.retryable : retryableTransportFailure(error);
-        if (!retryable || attempt === maximumAttempts) throw error;
+        if (!retryableExecutorFailure(error) || attempt === maximumAttempts) throw error;
       }
-      const backoffMs = attempt === 1 ? 100 : 250;
-      const availableBackoff = deadlineAt - Date.now();
-      if (availableBackoff <= 0) break;
-      await new Promise(resolve => setTimeout(resolve, Math.min(backoffMs, availableBackoff)));
+      if (!await waitForExecutorRetry(attempt, deadlineAt)) break;
     }
     throw lastError instanceof Error ? lastError : new Error('Exchange executor request timed out.');
   }

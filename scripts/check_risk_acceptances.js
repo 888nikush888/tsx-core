@@ -102,7 +102,7 @@ export function validateRiskAcceptance(content, now = new Date()) {
 export async function checkRiskAcceptances(now = new Date()) {
   const files = (await readdir(acceptanceDirectory))
     .filter((file) => /^RA-.+\.md$/.test(file))
-    .sort();
+    .sort((left, right) => left.localeCompare(right));
   const violations = [];
   for (const file of files) {
     const errors = validateRiskAcceptance(

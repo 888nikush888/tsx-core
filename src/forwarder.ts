@@ -1783,7 +1783,7 @@ async function listAvailableBackups(): Promise<string[]> {
   return entries
     .filter((entry) => entry.isDirectory() && /^backup-\d{4}-/.test(entry.name))
     .map((entry) => entry.name)
-    .sort()
+    .sort((left, right) => left.localeCompare(right))
     .reverse();
 }
 

@@ -136,7 +136,7 @@ jobs:
           python -m pip install --require-hashes -r exchange_executor/requirements.lock -r exchange_executor/requirements-dev.lock
       - name: Produce JavaScript and TypeScript coverage
         run: |
-          npm run test:coverage
+          npx c8 --all --include="src/**/*.ts" --include="scripts/**/*.js" --exclude="src/*_cli.ts" --reporter=lcov --reports-dir=coverage node tests/run_all.js
           npm run test:coverage --prefix frontend
       - name: Produce Python coverage
         working-directory: exchange_executor
