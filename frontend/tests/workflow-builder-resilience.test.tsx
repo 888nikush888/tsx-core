@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const api = vi.hoisted(() => ({ apiFetch: vi.fn() }));
 const flow = vi.hoisted(() => ({
   props: null as Record<string, unknown> | null,
+  viewport: { x: 10, y: 20, zoom: 0.5 },
 }));
 vi.mock("@/lib/api", () => api);
 vi.mock("@xyflow/react", () => ({
@@ -27,6 +28,7 @@ vi.mock("@xyflow/react", () => ({
   Position: { Left: "left", Right: "right" },
   MarkerType: { ArrowClosed: "arrowclosed" },
   BackgroundVariant: { Dots: "dots" },
+  getViewportForBounds: vi.fn(() => flow.viewport),
   applyEdgeChanges: (_changes: unknown, edges: unknown) => edges,
   applyNodeChanges: (_changes: unknown, nodes: unknown) => nodes,
 }));
@@ -188,7 +190,26 @@ describe("workflow builder resilience", () => {
 
     render(<WorkflowBuilder />);
     await waitFor(() => expect(flow.props).not.toBeNull());
-    const fitView = vi.fn();
+    const canvas = screen.getByTestId("workflow-canvas").parentElement;
+    if (!canvas) throw new Error("Workflow canvas wrapper is missing.");
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      right: 1200,
+      bottom: 700,
+      left: 0,
+      width: 1200,
+      height: 700,
+      toJSON: () => ({}),
+    });
+    const getNodesBounds = vi.fn(() => ({
+      x: 3476,
+      y: 0,
+      width: 276,
+      height: 112,
+    }));
+    const setViewport = vi.fn();
     const setCenter = vi.fn();
     const initialize = flow.props?.onInit as
       | ((instance: unknown) => void)
@@ -196,7 +217,8 @@ describe("workflow builder resilience", () => {
     if (!initialize) throw new Error("React Flow initialization is missing.");
     act(() => {
       initialize({
-        fitView,
+        getNodesBounds,
+        setViewport,
         setCenter,
       });
     });
@@ -207,14 +229,11 @@ describe("workflow builder resilience", () => {
     );
 
     await waitFor(() =>
-      expect(fitView).toHaveBeenCalledWith({
-        nodes: [{ id: "node-account" }],
-        padding: 0.12,
-        minZoom: 0.18,
-        maxZoom: 0.88,
+      expect(setViewport).toHaveBeenCalledWith(flow.viewport, {
         duration: 420,
       }),
     );
+    expect(getNodesBounds).toHaveBeenCalledWith(["node-account"]);
   });
 
   it("guides a connection from a source block to only valid later targets", async () => {

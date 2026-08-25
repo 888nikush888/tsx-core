@@ -484,6 +484,19 @@ test("a late-column block is brought into view and the canvas can always be refr
 }) => {
   const resources = [
     {
+      id: "channel-v1",
+      resourceId: "channel",
+      version: 1,
+      kind: "channel",
+      name: "First channel",
+      description: "",
+      status: "published",
+      configuration: { channelId: "-1001" },
+      configurationSha256: "b".repeat(64),
+      createdAt: 1,
+      publishedAt: 1,
+    },
+    {
       id: "account-v1",
       resourceId: "account",
       version: 1,
@@ -505,6 +518,12 @@ test("a late-column block is brought into view and the canvas can always be refr
       schemaVersion: 1,
       nodes: [
         {
+          id: "node-channel",
+          kind: "channel",
+          resourceVersionId: "channel-v1",
+          position: { x: 0, y: 0 },
+        },
+        {
           id: "node-account",
           kind: "account",
           resourceVersionId: "account-v1",
@@ -518,11 +537,14 @@ test("a late-column block is brought into view and the canvas can always be refr
   await mockDashboardApi(page, false, resources, workflow);
   await page.goto("/");
 
-  const node = page.locator('.react-flow__node[data-id="node-account"]');
-  await expect(node).toBeVisible();
+  const firstNode = page.locator(
+    '.react-flow__node[data-id="node-channel"]',
+  );
+  const lastNode = page.locator('.react-flow__node[data-id="node-account"]');
+  await expect(firstNode).toBeVisible();
   await expect
     .poll(async () => {
-      const box = await node.boundingBox();
+      const box = await firstNode.boundingBox();
       return Boolean(
         box &&
           box.x < page.viewportSize()!.width &&
@@ -536,7 +558,22 @@ test("a late-column block is brought into view and the canvas can always be refr
   await page
     .getByRole("button", { name: "Alle Bausteine im Canvas anzeigen" })
     .click();
-  await expect(node).toBeVisible();
+  await expect
+    .poll(async () => {
+      const boxes = await Promise.all([
+        firstNode.boundingBox(),
+        lastNode.boundingBox(),
+      ]);
+      return boxes.every(
+        (box) =>
+          box &&
+          box.x < page.viewportSize()!.width &&
+          box.x + box.width > 0 &&
+          box.y < page.viewportSize()!.height &&
+          box.y + box.height > 0,
+      );
+    })
+    .toBe(true);
 });
 
 test("connections can be created from a clear block action and deleted from the selected arrow", async ({

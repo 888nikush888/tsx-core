@@ -11,6 +11,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  getViewportForBounds,
   MarkerType,
   MiniMap,
   Panel,
@@ -92,6 +93,7 @@ const EMPTY_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges: [] };
 const WORKFLOW_NODE_DIMENSIONS = { width: 276, height: 112 } as const;
 const COLUMN_HEADER_DIMENSIONS = { width: 276, height: 27 } as const;
 const WORKFLOW_HANDLE_SIZE = 12;
+const WORKFLOW_MIN_ZOOM = 0.05;
 
 function workflowHandles(kind: WorkflowKind): NonNullable<Node["handles"]> {
   const edgeOffset = WORKFLOW_HANDLE_SIZE / 2;
@@ -285,6 +287,7 @@ export function WorkflowBuilder() {
   const simulationTriggerRef = useRef<HTMLButtonElement>(null);
   const operationsTriggerRef = useRef<HTMLButtonElement>(null);
   const routeTriggerRef = useRef<HTMLButtonElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const reactFlowRef = useRef<ReactFlowInstance<Node, Edge> | null>(null);
   const closeLibrary = useCallback(() => {
     setKindPickerOpen(false);
@@ -325,13 +328,23 @@ export function WorkflowBuilder() {
     setSearch("");
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        void reactFlowRef.current?.fitView({
-          nodes: graphRef.current.nodes.map((node) => ({ id: node.id })),
-          padding: 0.12,
-          minZoom: 0.18,
-          maxZoom: 0.88,
-          duration: 420,
-        });
+        const instance = reactFlowRef.current;
+        const canvas = canvasRef.current;
+        if (!instance || !canvas) return;
+        const { width, height } = canvas.getBoundingClientRect();
+        if (width <= 0 || height <= 0) return;
+        const bounds = instance.getNodesBounds(
+          graphRef.current.nodes.map((node) => node.id),
+        );
+        const viewport = getViewportForBounds(
+          bounds,
+          width,
+          height,
+          WORKFLOW_MIN_ZOOM,
+          0.88,
+          0.12,
+        );
+        void instance.setViewport(viewport, { duration: 420 });
       });
     });
   }, []);
@@ -1180,7 +1193,11 @@ export function WorkflowBuilder() {
           </Button>
         </div>
       )}
-      <div id="workflow-canvas" className="workflow-canvas">
+      <div
+        ref={canvasRef}
+        id="workflow-canvas"
+        className="workflow-canvas"
+      >
         <ReactFlow
           nodes={displayNodes}
           edges={displayEdges}
@@ -1221,7 +1238,7 @@ export function WorkflowBuilder() {
             cancelConnection();
           }}
           deleteKeyCode={["Backspace", "Delete"]}
-          minZoom={0.18}
+          minZoom={WORKFLOW_MIN_ZOOM}
           maxZoom={1.5}
           defaultViewport={{ x: 24, y: 210, zoom: 0.88 }}
           proOptions={{ hideAttribution: true }}
