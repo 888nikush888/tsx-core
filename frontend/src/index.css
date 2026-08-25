@@ -199,8 +199,8 @@ button {
 .workflow-brand,
 .workflow-health,
 .workflow-actions,
-.workflow-brand > div:last-child,
 .workflow-statusbar > div,
+.workflow-status-tools,
 .save-indicator {
   display: flex;
   align-items: center;
@@ -210,23 +210,6 @@ button {
 }
 .workflow-brand-logo {
   color: var(--foreground);
-}
-.workflow-brand > div:last-child {
-  align-items: flex-start;
-  flex-direction: column;
-  line-height: 1.1;
-}
-.workflow-brand > div:last-child > span {
-  color: var(--builder-muted);
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.workflow-brand > div:last-child > strong {
-  margin-top: 4px;
-  font-size: 15px;
-  font-weight: 650;
 }
 .workflow-health {
   justify-content: center;
@@ -399,10 +382,29 @@ button:disabled {
   font-size: 10px;
 }
 .workflow-statusbar .save-indicator {
-  margin-left: auto;
   border-right: 0;
   color: var(--builder-info);
   font-size: 10px;
+}
+.workflow-statusbar > .workflow-status-tools {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  margin-left: auto;
+  padding-right: 0;
+  border-right: 0;
+}
+.workflow-status-tools .builder-search {
+  width: min(240px, 24vw);
+}
+.workflow-status-tools .builder-search input {
+  height: 32px;
+}
+.workflow-status-tools .save-indicator {
+  flex: 0 0 auto;
+  gap: 6px;
+  padding-left: 8px;
 }
 .spin {
   animation: builder-spin 0.9s linear infinite;
@@ -1364,6 +1366,43 @@ button:disabled {
 .account-inline-status span {
   color: var(--builder-muted);
 }
+.schema-overview,
+.schema-copy-editor {
+  margin-bottom: 17px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--muted) 22%, transparent);
+}
+.schema-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.schema-overview-grid > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.schema-overview-grid small {
+  color: var(--muted-foreground);
+  font-size: 9px;
+}
+.schema-overview-grid strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.schema-overview .builder-info {
+  margin: 0 0 12px;
+}
+.schema-copy-editor .builder-field-grid {
+  margin-bottom: 8px;
+}
 
 .kind-grid,
 .resource-library {
@@ -2192,7 +2231,7 @@ button:disabled {
   .workflow-health {
     display: none;
   }
-  .builder-search {
+  .workflow-status-tools .builder-search {
     display: none;
   }
 }
@@ -2200,9 +2239,6 @@ button:disabled {
   .workflow-topbar {
     min-height: 60px;
     padding: 0 12px;
-  }
-  .workflow-brand > div:last-child {
-    display: none;
   }
   .workflow-actions {
     gap: 4px;
@@ -2227,6 +2263,12 @@ button:disabled {
   .workflow-statusbar .save-indicator {
     display: none;
   }
+  .workflow-statusbar > .workflow-status-tools {
+    padding-right: 0;
+  }
+  .workflow-status-tools [data-slot="button"] {
+    white-space: nowrap;
+  }
   .builder-modal,
   .kind-picker,
   .simulation-modal {
@@ -2235,6 +2277,7 @@ button:disabled {
   }
   .builder-field-grid,
   .builder-field-grid.three,
+  .schema-overview-grid,
   .contract-toggle-grid,
   .account-create {
     grid-template-columns: 1fr;

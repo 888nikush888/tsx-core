@@ -199,6 +199,25 @@ try {
     }),
     /may only be placed once/,
   );
+  const equivalentOutput = await resource(
+    'output',
+    'Equivalent audit output',
+    { mode: 'audit_only' },
+  );
+  await assert.rejects(
+    previewWorkflowImpact({
+      baseRevisionId: null,
+      graph: {
+        schemaVersion: 1,
+        nodes: [
+          { id: 'output-primary', kind: 'output', resourceVersionId: resources.output.id, position: { x: 0, y: 0 } },
+          { id: 'output-equivalent', kind: 'output', resourceVersionId: equivalentOutput.id, position: { x: 0, y: 150 } },
+        ],
+        edges: [],
+      },
+    }),
+    /identical behavior and may only be placed once/,
+  );
   await assert.rejects(
     updateWorkflowResourceDraft(outputV2.id, { name: 'Published', configuration: { mode: 'none' } }),
     /Only a workflow resource draft can be edited/,

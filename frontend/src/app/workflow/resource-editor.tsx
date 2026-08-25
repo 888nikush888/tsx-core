@@ -164,7 +164,7 @@ async function publishContractDraft(
 
 async function createSchemaDraft(
   configuration: Record<string, unknown>,
-  schemaDraft: Record<string, unknown>,
+  schemaDraft: SignalSchemaDraft,
 ): Promise<void> {
   const id = textValue(schemaDraft.id).trim();
   if (!id || id === schemaDraft.originalId) {
@@ -187,6 +187,48 @@ async function createSchemaDraft(
   configuration.schemaId = created.result.id;
 }
 
+type TradingSignalSchema = TradingSnapshot["signalSchemas"][number];
+
+type SignalSchemaDraft = Readonly<{
+  id: string;
+  originalId: string;
+  name: string;
+  description: string;
+  contractVersionId: string;
+  templateName: string;
+  enabled: boolean;
+  copying: boolean;
+}>;
+
+function signalSchemaDraft(
+  schema: TradingSignalSchema | undefined,
+): SignalSchemaDraft | null {
+  return schema
+    ? {
+        id: schema.id,
+        originalId: schema.id,
+        name: schema.name,
+        description: schema.description,
+        contractVersionId: schema.contractVersionId,
+        templateName: schema.templateName,
+        enabled: schema.enabled,
+        copying: false,
+      }
+    : null;
+}
+
+function uniqueSchemaCopyId(
+  sourceId: string,
+  schemas: TradingSignalSchema[],
+): string {
+  const used = new Set(schemas.map((schema) => schema.id));
+  const base = `${sourceId}-copy`;
+  if (!used.has(base)) return base;
+  let suffix = 2;
+  while (used.has(`${base}-${suffix}`)) suffix += 1;
+  return `${base}-${suffix}`;
+}
+
 type ConfigurationDrafts = Readonly<{
   kind: WorkflowKind;
   configuration: Record<string, unknown>;
@@ -196,7 +238,7 @@ type ConfigurationDrafts = Readonly<{
   strategyTouched: boolean;
   contractDraft: SignalContractDefinition | null;
   contractTouched: boolean;
-  schemaDraft: Record<string, unknown>;
+  schemaDraft: SignalSchemaDraft | null;
   schemaTouched: boolean;
 }>;
 
@@ -236,8 +278,11 @@ async function prepareConfiguration(
     applyParserDraft(configuration, drafts.templateContent);
   await applyStrategyChanges(configuration, drafts);
   await applyContractChanges(configuration, drafts);
-  if (drafts.kind === "schema" && drafts.schemaTouched)
+  if (drafts.kind === "schema" && drafts.schemaTouched) {
+    if (!drafts.schemaDraft)
+      throw new Error("Das zu kopierende Signal-Schema ist nicht verfügbar.");
     await createSchemaDraft(configuration, drafts.schemaDraft);
+  }
   return configuration;
 }
 
@@ -1176,8 +1221,7 @@ export function ResourceEditor({
   const [contractDraft, setContractDraft] =
     useState<SignalContractDefinition | null>(null);
   const [contractTouched, setContractTouched] = useState(false);
-  const [schemaDraft, setSchemaDraft] = useState<Record<string, unknown>>({});
-  const [schemaTouched, setSchemaTouched] = useState(false);
+  const [schemaDraft, setSchemaDraft] = useState<SignalSchemaDraft | null>(null);
   const [archiveConfirmation, setArchiveConfirmation] = useState(false);
   const meta = KIND_META[kind];
 
@@ -1215,34 +1259,24 @@ export function ResourceEditor({
       const selected = trading?.signalSchemas.find(
         (item) => item.id === nextConfiguration.schemaId,
       );
-      setSchemaDraft(
-        selected
-          ? {
-              id: selected.id,
-              originalId: selected.id,
-              name: selected.name,
-              description: selected.description,
-              contractVersionId: selected.contractVersionId,
-              templateName: selected.templateName,
-              enabled: selected.enabled,
-            }
-          : {},
-      );
-    } else setSchemaDraft({});
-    setSchemaTouched(false);
-    if (kind === "parser") {
+      setSchemaDraft(signalSchemaDraft(selected));
+    } else setSchemaDraft(null);
+    if (kind === "parser" || kind === "schema") {
       void requestJson("/api/templates")
         .then((payload) => {
           const loaded = payload.templates || {};
           setTemplates(loaded);
-          setTemplateContent(
-            typeof nextConfiguration.prompt === "string"
-              ? nextConfiguration.prompt
-              : String(
-                  loaded[textValue(nextConfiguration.templateName, "default")] ||
-                    "",
-                ),
-          );
+          if (kind === "parser") {
+            setTemplateContent(
+              typeof nextConfiguration.prompt === "string"
+                ? nextConfiguration.prompt
+                : String(
+                    loaded[
+                      textValue(nextConfiguration.templateName, "default")
+                    ] || "",
+                  ),
+            );
+          }
         })
         .catch((reason) =>
           setError(reason instanceof Error ? reason.message : String(reason)),
@@ -1283,7 +1317,7 @@ export function ResourceEditor({
         contractDraft,
         contractTouched,
         schemaDraft,
-        schemaTouched,
+        schemaTouched: schemaDraft?.copying === true,
       });
       const activated = await onSave({
         name,
@@ -1502,29 +1536,20 @@ export function ResourceEditor({
           )}
           {kind === "schema" && (
             <>
-              <Field label="Aktives Signal-Schema">
+              <Field
+                label="Verwendetes Signal-Schema"
+                hint="Ordnet die Ausgabe des KI-Parsers einer bekannten Signalstruktur zu."
+              >
                 <select
                   value={textValue(configuration.schemaId)}
                   onChange={(event) => {
                     const id = event.target.value;
                     set("schemaId", id);
-                    const selected = trading?.signalSchemas.find(
-                      (item) => item.id === id,
-                    );
                     setSchemaDraft(
-                      selected
-                        ? {
-                            id: selected.id,
-                            originalId: selected.id,
-                            name: selected.name,
-                            description: selected.description,
-                            contractVersionId: selected.contractVersionId,
-                            templateName: selected.templateName,
-                            enabled: selected.enabled,
-                          }
-                        : {},
+                      signalSchemaDraft(
+                        trading?.signalSchemas.find((item) => item.id === id),
+                      ),
                     );
-                    setSchemaTouched(false);
                   }}
                 >
                   {trading?.signalSchemas
@@ -1536,95 +1561,161 @@ export function ResourceEditor({
                     ))}
                 </select>
               </Field>
-              <div className="builder-field-grid three">
-                <Field
-                  label="Neue Schema-ID"
-                  hint="Nur ändern, wenn eine neue, unveränderliche Schema-Zuordnung entstehen soll."
-                >
-                  <input
-                    value={textValue(schemaDraft.id)}
-                    onChange={(event) => {
-                      setSchemaDraft((previous) => ({
-                        ...previous,
-                        id: event.target.value,
-                      }));
-                      setSchemaTouched(true);
-                    }}
-                  />
-                </Field>
-                <Field label="Schema-Name">
-                  <input
-                    value={textValue(schemaDraft.name)}
-                    onChange={(event) => {
-                      setSchemaDraft((previous) => ({
-                        ...previous,
-                        name: event.target.value,
-                      }));
-                      setSchemaTouched(true);
-                    }}
-                  />
-                </Field>
-                <Field label="Prompt-Vorlage">
-                  <input
-                    value={textValue(schemaDraft.templateName)}
-                    onChange={(event) => {
-                      setSchemaDraft((previous) => ({
-                        ...previous,
-                        templateName: event.target.value,
-                      }));
-                      setSchemaTouched(true);
-                    }}
-                  />
-                </Field>
-                <Field
-                  label="Standard-Vertragsversion"
-                  hint="Fallback für Alt-Routen; im visuellen Workflow entscheidet der separate Vertragsbaustein."
-                >
-                  <select
-                    value={textValue(schemaDraft.contractVersionId)}
-                    onChange={(event) => {
-                      setSchemaDraft((previous) => ({
-                        ...previous,
-                        contractVersionId: event.target.value,
-                      }));
-                      setSchemaTouched(true);
+              {schemaDraft && !schemaDraft.copying && (
+                <div className="schema-overview">
+                  <div className="strategy-section-heading">
+                    <strong>{schemaDraft.name}</strong>
+                    <small>{schemaDraft.description || "Keine Beschreibung"}</small>
+                  </div>
+                  <div className="schema-overview-grid">
+                    <span>
+                      <small>Schema-ID</small>
+                      <strong>{schemaDraft.originalId}</strong>
+                    </span>
+                    <span>
+                      <small>Parser-Vorlage</small>
+                      <strong>{schemaDraft.templateName}</strong>
+                    </span>
+                    <span>
+                      <small>Fallback-Vertrag</small>
+                      <strong>{schemaDraft.contractVersionId}</strong>
+                    </span>
+                    <Badge variant={schemaDraft.enabled ? "outline" : "secondary"}>
+                      {schemaDraft.enabled ? "aktiv" : "inaktiv"}
+                    </Badge>
+                  </div>
+                  <p className="builder-info">
+                    Der separate Vertragsbaustein im Canvas hat Vorrang. Der
+                    hier angezeigte Vertrag dient nur als Fallback für ältere
+                    Routen ohne eigenen Vertragsbaustein.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSchemaDraft({
+                        ...schemaDraft,
+                        id: uniqueSchemaCopyId(
+                          schemaDraft.originalId,
+                          trading?.signalSchemas || [],
+                        ),
+                        name: `${schemaDraft.name} · Kopie`,
+                        copying: true,
+                      });
                     }}
                   >
-                    {trading?.signalContracts.flatMap((contract) =>
-                      contract.versions
-                        .filter((version) => version.status === "published")
-                        .map((version) => (
-                          <option key={version.id} value={version.id}>
-                            {contract.name} · v{version.version}
-                          </option>
-                        )),
-                    )}
-                  </select>
-                </Field>
-                <Field label="Beschreibung">
-                  <input
-                    value={textValue(schemaDraft.description)}
-                    onChange={(event) => {
-                      setSchemaDraft((previous) => ({
-                        ...previous,
-                        description: event.target.value,
-                      }));
-                      setSchemaTouched(true);
+                    <Plus data-icon="inline-start" /> Als neues Schema duplizieren
+                  </Button>
+                </div>
+              )}
+              {schemaDraft?.copying && (
+                <div className="schema-copy-editor">
+                  <div className="strategy-section-heading">
+                    <strong>Neue unveränderliche Schema-Zuordnung</strong>
+                    <small>
+                      Das bestehende Schema bleibt unverändert. Beim Speichern
+                      wird eine neue Schema-ID angelegt und dieser Baustein
+                      darauf umgestellt.
+                    </small>
+                  </div>
+                  <div className="builder-field-grid three">
+                    <Field label="Neue Schema-ID" hint="Muss eindeutig sein.">
+                      <input
+                        aria-label="Neue Schema-ID"
+                        value={schemaDraft.id}
+                        onChange={(event) =>
+                          setSchemaDraft({ ...schemaDraft, id: event.target.value })
+                        }
+                      />
+                    </Field>
+                    <Field label="Schema-Name">
+                      <input
+                        aria-label="Schema-Name"
+                        value={schemaDraft.name}
+                        onChange={(event) =>
+                          setSchemaDraft({ ...schemaDraft, name: event.target.value })
+                        }
+                      />
+                    </Field>
+                    <Field label="Prompt-Vorlage">
+                      <input
+                        list="schema-template-names"
+                        value={schemaDraft.templateName}
+                        onChange={(event) =>
+                          setSchemaDraft({
+                            ...schemaDraft,
+                            templateName: event.target.value,
+                          })
+                        }
+                      />
+                      <datalist id="schema-template-names">
+                        {Object.keys(templates).map((template) => (
+                          <option key={template} value={template} />
+                        ))}
+                      </datalist>
+                    </Field>
+                    <Field
+                      label="Standard-Vertragsversion"
+                      hint="Nur Fallback; ein verbundener Vertragsbaustein hat Vorrang."
+                    >
+                      <select
+                        value={schemaDraft.contractVersionId}
+                        onChange={(event) =>
+                          setSchemaDraft({
+                            ...schemaDraft,
+                            contractVersionId: event.target.value,
+                          })
+                        }
+                      >
+                        {trading?.signalContracts.flatMap((contract) =>
+                          contract.versions
+                            .filter((version) => version.status === "published")
+                            .map((version) => (
+                              <option key={version.id} value={version.id}>
+                                {contract.name} · v{version.version}
+                              </option>
+                            )),
+                        )}
+                      </select>
+                    </Field>
+                    <Field label="Beschreibung">
+                      <input
+                        value={schemaDraft.description}
+                        onChange={(event) =>
+                          setSchemaDraft({
+                            ...schemaDraft,
+                            description: event.target.value,
+                          })
+                        }
+                      />
+                    </Field>
+                    <Toggle
+                      checked={schemaDraft.enabled}
+                      onChange={(enabled) =>
+                        setSchemaDraft({ ...schemaDraft, enabled })
+                      }
+                      label="Neues Schema aktiv"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSchemaDraft(
+                        signalSchemaDraft(
+                          trading?.signalSchemas.find(
+                            (item) => item.id === configuration.schemaId,
+                          ),
+                        ),
+                      );
                     }}
-                  />
-                </Field>
-                <Toggle
-                  checked={schemaDraft.enabled !== false}
-                  onChange={(value) => {
-                    setSchemaDraft((previous) => ({
-                      ...previous,
-                      enabled: value,
-                    }));
-                    setSchemaTouched(true);
-                  }}
-                  label="Schema aktiv"
-                />
-              </div>
+                  >
+                    Kopie verwerfen
+                  </Button>
+                </div>
+              )}
             </>
           )}
           {kind === "contract" && (

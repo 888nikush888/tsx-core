@@ -526,6 +526,7 @@ async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, 
   );
   const resources = new Map<string, WorkflowResourceVersion>(resourceRows.map(row => [String(row.id), resourceFromRow(row)]));
   const placedResourceIds = new Map<string, string>();
+  const placedBehaviors = new Map<string, { nodeId: string; name: string }>();
   for (const node of graph.nodes) {
     const resource = resources.get(node.resourceVersionId);
     if (!resource || resource.status !== 'published') throw new Error(`Node ${node.id} must reference a published resource version.`);
@@ -537,6 +538,15 @@ async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, 
       );
     }
     placedResourceIds.set(resource.resourceId, node.id);
+    const behaviorKey = `${resource.kind}:${resource.configurationSha256}`;
+    const existingBehavior = placedBehaviors.get(behaviorKey);
+    if (existingBehavior) {
+      throw new Error(
+        `Workflow resources '${existingBehavior.name}' and '${resource.name}' have identical behavior and may only be placed once ` +
+        `(nodes ${existingBehavior.nodeId} and ${node.id}).`,
+      );
+    }
+    placedBehaviors.set(behaviorKey, { nodeId: node.id, name: resource.name });
   }
   return resources;
 }

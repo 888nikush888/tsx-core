@@ -380,7 +380,9 @@ test("workflow nodes and connections render when resize callbacks are unavailabl
   await expect(library.getByText(/Bereits im Canvas/)).toBeVisible();
   await library.getByRole("button", { name: /Test channel/ }).first().click();
   await expect(page.locator(".workflow-node")).toHaveCount(2);
-  await expect(page.getByText(/bereits einmal im Canvas platziert/)).toBeVisible();
+  await expect(
+    page.getByText(/entspricht funktional bereits einem Baustein im Canvas/),
+  ).toBeVisible();
 });
 
 test("shared processing and account branches are explicit in the route matrix and canvas focus", async ({
@@ -579,9 +581,22 @@ test("a late-column block is brought into view and the canvas can always be refr
     })
     .toBe(true);
 
-  await page
-    .getByRole("button", { name: "Alle Bausteine im Canvas anzeigen" })
-    .click();
+  await expect(
+    page.getByRole("button", { name: "Alle Bausteine im Canvas anzeigen" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Execution Workflow")).toHaveCount(0);
+  await expect(page.getByText("Visueller Builder")).toHaveCount(0);
+  if ((page.viewportSize()?.width || 0) > 1050) {
+    await expect(page.getByLabel("Bausteine durchsuchen")).toBeVisible();
+  } else {
+    await expect(page.getByLabel("Bausteine durchsuchen")).toBeHidden();
+  }
+  await expect(
+    page.getByRole("button", { name: "Alle Verbindungen lösen" }),
+  ).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Fit View" })).toHaveCount(1);
+  await page.waitForTimeout(500);
+  await page.getByRole("button", { name: "Fit View" }).click();
   await expect
     .poll(async () => {
       const boxes = await Promise.all([
@@ -671,6 +686,21 @@ test("connections can be created from a clear block action and deleted from the 
     page.locator('.react-flow__node[data-id="node-output"] .workflow-node'),
   ).toHaveClass(/connection-target/);
 
+  await page
+    .locator(".connection-target-list")
+    .getByRole("button", { name: /Connection target/ })
+    .click();
+  await expect(page.locator(".react-flow__edge")).toHaveCount(1);
+  await page.getByRole("button", { name: "Alle Verbindungen lösen" }).click();
+  await expect(page.locator(".react-flow__edge")).toHaveCount(0);
+  await expect(page.locator(".workflow-node")).toHaveCount(2);
+  await expect(
+    page.getByRole("button", { name: "Alle Verbindungen lösen" }),
+  ).toBeDisabled();
+
+  await page
+    .getByRole("button", { name: "Verbindung ab Connection source erstellen" })
+    .click();
   await page
     .locator(".connection-target-list")
     .getByRole("button", { name: /Connection target/ })

@@ -11,6 +11,10 @@ function resourceMap(resources: WorkflowResource[]) {
   return new Map(resources.map((resource) => [resource.id, resource]));
 }
 
+export function resourceBehaviorKey(resource: WorkflowResource): string {
+  return `${resource.kind}:${resource.configurationSha256}`;
+}
+
 export function latestPublishedResources(
   resources: WorkflowResource[],
 ): WorkflowResource[] {
@@ -22,12 +26,18 @@ export function latestPublishedResources(
       latest.set(resource.resourceId, resource);
     }
   }
-  return [...latest.values()].sort((left, right) =>
+  const ordered = [...latest.values()].sort((left, right) =>
     left.name.localeCompare(right.name, "de-DE"),
   );
+  const uniqueBehaviors = new Map<string, WorkflowResource>();
+  for (const resource of ordered) {
+    const identity = resourceBehaviorKey(resource);
+    if (!uniqueBehaviors.has(identity)) uniqueBehaviors.set(identity, resource);
+  }
+  return [...uniqueBehaviors.values()];
 }
 
-export function placedNodesByResourceId(
+export function placedNodesByResourceIdentity(
   graph: WorkflowGraph,
   resources: WorkflowResource[],
 ): Map<string, WorkflowGraph["nodes"][number]> {
@@ -35,8 +45,13 @@ export function placedNodesByResourceId(
   const placed = new Map<string, WorkflowGraph["nodes"][number]>();
   for (const node of graph.nodes) {
     const resource = byVersionId.get(node.resourceVersionId);
-    if (resource && !placed.has(resource.resourceId)) {
-      placed.set(resource.resourceId, node);
+    if (resource) {
+      for (const identity of [
+        resource.resourceId,
+        resourceBehaviorKey(resource),
+      ]) {
+        if (!placed.has(identity)) placed.set(identity, node);
+      }
     }
   }
   return placed;
@@ -44,8 +59,9 @@ export function placedNodesByResourceId(
 
 export type WorkflowDuplicateSummary = {
   graph: WorkflowGraph;
-  duplicateFamilyCount: number;
+  duplicateBehaviorCount: number;
   removedNodeCount: number;
+  redundantResourceIds: string[];
 };
 
 export function consolidateWorkflowResources(
@@ -53,7 +69,7 @@ export function consolidateWorkflowResources(
   resources: WorkflowResource[],
 ): WorkflowDuplicateSummary {
   const byVersionId = resourceMap(resources);
-  const families = new Map<string, WorkflowGraph["nodes"]>();
+  const behaviors = new Map<string, WorkflowGraph["nodes"]>();
   const unknownNodes: WorkflowGraph["nodes"] = [];
 
   for (const node of source.nodes) {
@@ -62,36 +78,51 @@ export function consolidateWorkflowResources(
       unknownNodes.push(structuredClone(node));
       continue;
     }
-    const family = families.get(resource.resourceId) || [];
-    family.push(structuredClone(node));
-    families.set(resource.resourceId, family);
+    const behavior = behaviors.get(resourceBehaviorKey(resource)) || [];
+    behavior.push(structuredClone(node));
+    behaviors.set(resourceBehaviorKey(resource), behavior);
   }
 
   const replacement = new Map<string, string>();
   const nodes: WorkflowGraph["nodes"] = [...unknownNodes];
-  let duplicateFamilyCount = 0;
+  const redundantResourceIds = new Set<string>();
+  let duplicateBehaviorCount = 0;
   let removedNodeCount = 0;
 
-  for (const family of families.values()) {
-    family.sort(
+  for (const behavior of behaviors.values()) {
+    behavior.sort(
       (left, right) =>
         left.position.y - right.position.y || left.id.localeCompare(right.id),
     );
-    const canonical = family[0];
-    const newest = family
+    const canonical = behavior[0];
+    const canonicalResource = byVersionId.get(canonical.resourceVersionId);
+    const newest = behavior
       .map((node) => byVersionId.get(node.resourceVersionId))
       .filter((resource): resource is WorkflowResource => Boolean(resource))
+      .filter(
+        (resource) => resource.resourceId === canonicalResource?.resourceId,
+      )
       .sort((left, right) => right.version - left.version)[0];
     if (newest) canonical.resourceVersionId = newest.id;
     canonical.position = {
       x: KIND_META[canonical.kind].order * COLUMN_GAP,
-      y: Math.min(...family.map((node) => node.position.y)),
+      y: Math.min(...behavior.map((node) => node.position.y)),
     };
     nodes.push(canonical);
-    for (const node of family) replacement.set(node.id, canonical.id);
-    if (family.length > 1) {
-      duplicateFamilyCount += 1;
-      removedNodeCount += family.length - 1;
+    for (const node of behavior) {
+      replacement.set(node.id, canonical.id);
+      const resource = byVersionId.get(node.resourceVersionId);
+      if (
+        resource &&
+        canonicalResource &&
+        resource.resourceId !== canonicalResource.resourceId
+      ) {
+        redundantResourceIds.add(resource.resourceId);
+      }
+    }
+    if (behavior.length > 1) {
+      duplicateBehaviorCount += 1;
+      removedNodeCount += behavior.length - 1;
     }
   }
 
@@ -108,8 +139,9 @@ export function consolidateWorkflowResources(
 
   return {
     graph: { schemaVersion: 1, nodes, edges },
-    duplicateFamilyCount,
+    duplicateBehaviorCount,
     removedNodeCount,
+    redundantResourceIds: [...redundantResourceIds].sort(),
   };
 }
 

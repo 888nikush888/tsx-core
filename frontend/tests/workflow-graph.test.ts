@@ -3,7 +3,8 @@ import {
   consolidateWorkflowResources,
   latestPublishedResources,
   moveWorkflowNode,
-  placedNodesByResourceId,
+  placedNodesByResourceIdentity,
+  resourceBehaviorKey,
 } from "@/app/workflow/workflow-graph";
 import type {
   WorkflowGraph,
@@ -15,6 +16,7 @@ function resource(
   resourceId: string,
   version: number,
   status: WorkflowResource["status"] = "published",
+  behaviorSha = id,
 ): WorkflowResource {
   return {
     id,
@@ -25,7 +27,7 @@ function resource(
     description: "",
     status,
     configuration: {},
-    configurationSha256: id,
+    configurationSha256: behaviorSha,
     createdAt: version,
     publishedAt: status === "published" ? version : null,
   };
@@ -41,28 +43,34 @@ function node(id: string, resourceVersionId: string, y: number) {
 }
 
 describe("workflow graph controls", () => {
-  it("exposes only the latest published version per logical resource", () => {
+  it("exposes only the latest published version and one resource per behavior", () => {
     const resources = [
-      resource("family-v1", "family", 1),
-      resource("family-v2", "family", 2),
+      resource("family-v1", "family", 1, "published", "old"),
+      resource("family-v2", "family", 2, "published", "shared"),
       resource("family-v3", "family", 3, "draft"),
+      resource("duplicate-v1", "duplicate", 1, "published", "shared"),
     ];
     expect(latestPublishedResources(resources).map((item) => item.id)).toEqual([
-      "family-v2",
+      "duplicate-v1",
     ]);
   });
 
-  it("maps placements by logical resource identity", () => {
+  it("maps placements by logical and exact behavior identity", () => {
+    const placedResource = resource(
+      "family-v1",
+      "family",
+      1,
+      "published",
+      "shared",
+    );
     const graph: WorkflowGraph = {
       schemaVersion: 1,
       nodes: [node("placed", "family-v1", 0)],
       edges: [],
     };
-    expect(
-      placedNodesByResourceId(graph, [resource("family-v1", "family", 1)]).get(
-        "family",
-      )?.id,
-    ).toBe("placed");
+    const placed = placedNodesByResourceIdentity(graph, [placedResource]);
+    expect(placed.get("family")?.id).toBe("placed");
+    expect(placed.get(resourceBehaviorKey(placedResource))?.id).toBe("placed");
   });
 
   it("consolidates old duplicate placements and preserves every connection", () => {
@@ -76,7 +84,7 @@ describe("workflow graph controls", () => {
           position: { x: 0, y: 0 },
         },
         node("old", "family-v1", 150),
-        node("new", "family-v2", 0),
+        node("new", "duplicate-v1", 0),
         {
           id: "account-a",
           kind: "account",
@@ -98,8 +106,8 @@ describe("workflow graph controls", () => {
       ],
     };
     const resources: WorkflowResource[] = [
-      resource("family-v1", "family", 1),
-      resource("family-v2", "family", 2),
+      resource("family-v1", "family", 1, "published", "shared"),
+      resource("duplicate-v1", "duplicate", 1, "published", "shared"),
       {
         ...resource("channel-v1", "channel-family", 1),
         kind: "channel",
@@ -115,11 +123,12 @@ describe("workflow graph controls", () => {
     ];
     const result = consolidateWorkflowResources(graph, resources);
     expect(result).toMatchObject({
-      duplicateFamilyCount: 1,
+      duplicateBehaviorCount: 1,
       removedNodeCount: 1,
+      redundantResourceIds: ["family"],
     });
     expect(result.graph.nodes.filter((item) => item.kind === "sizing")).toEqual([
-      expect.objectContaining({ id: "new", resourceVersionId: "family-v2" }),
+      expect.objectContaining({ id: "new", resourceVersionId: "duplicate-v1" }),
     ]);
     expect(
       result.graph.edges.map((edge) => [edge.source, edge.target]),
@@ -128,6 +137,24 @@ describe("workflow graph controls", () => {
       ["new", "account-a"],
       ["new", "account-b"],
     ]);
+  });
+
+  it("keeps resources of the same kind when their behavior differs", () => {
+    const graph: WorkflowGraph = {
+      schemaVersion: 1,
+      nodes: [node("first", "first-v1", 0), node("second", "second-v1", 150)],
+      edges: [],
+    };
+    const result = consolidateWorkflowResources(graph, [
+      resource("first-v1", "first", 1, "published", "behavior-a"),
+      resource("second-v1", "second", 1, "published", "behavior-b"),
+    ]);
+    expect(result).toMatchObject({
+      duplicateBehaviorCount: 0,
+      removedNodeCount: 0,
+      redundantResourceIds: [],
+    });
+    expect(result.graph.nodes).toHaveLength(2);
   });
 
   it("moves a block by keyboard-compatible column order", () => {

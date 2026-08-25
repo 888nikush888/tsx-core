@@ -124,11 +124,26 @@ describe('workflow resource contracts', () => {
     expect(screen.queryByLabelText(/Vertragsdefinition/)).not.toBeInTheDocument()
   })
 
-  it('refuses to mutate a used schema under its existing identity', async () => {
-    editor('schema')
-    fireEvent.change(screen.getByLabelText('Schema-Name'), { target: { value: 'Changed in place' } })
+  it('shows used schemas read-only and creates an explicit immutable copy', async () => {
+    api.apiFetch.mockImplementation((url: string) => {
+      if (url === '/api/trading/signal-schemas') return response({ result: { id: 'standard-copy' } }, 201)
+      if (url === '/api/templates') return response({ templates: { default: 'BASE PROMPT' } })
+      return response({ success: true, result: {} })
+    })
+    const onSave = editor('schema')
+    expect(screen.getByText('Fallback-Vertrag')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Schema-Name')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Als neues Schema duplizieren' }))
+    await waitFor(() => expect(screen.getByLabelText('Neue Schema-ID')).toHaveValue('standard-copy'))
+    fireEvent.change(screen.getByLabelText('Schema-Name'), { target: { value: 'Standard Copy' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
-    await waitFor(() => expect(screen.getByText(/benötigen eine neue eindeutige Schema-ID/)).toBeInTheDocument())
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: { schemaId: 'standard-copy' },
+    })))
+    expect(api.apiFetch).toHaveBeenCalledWith('/api/trading/signal-schemas', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('"name":"Standard Copy"'),
+    }))
   })
 
   it('separates canvas removal from permanent library archival', async () => {

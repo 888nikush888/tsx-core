@@ -33,7 +33,6 @@ import {
   Check,
   FlaskConical,
   Link2,
-  Maximize2,
   Plus,
   RefreshCw,
   Route as RouteIcon,
@@ -41,6 +40,7 @@ import {
   Search,
   ShieldCheck,
   Trash2,
+  Unlink2,
   X,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -92,7 +92,8 @@ import {
   consolidateWorkflowResources,
   latestPublishedResources,
   moveWorkflowNode,
-  placedNodesByResourceId,
+  placedNodesByResourceIdentity,
+  resourceBehaviorKey,
 } from "./workflow-graph";
 
 const nodeTypes = { workflow: WorkflowNode, columnHeader: ColumnHeaderNode };
@@ -162,9 +163,14 @@ function summary(
       `${value.patterns?.length || 0} Muster · ${value.mode === "any" ? "eines" : "alle"}`,
     parser: () =>
       `${Math.round(Number(value.timeoutMs || 0) / 1000)} s · ${value.templateName}`,
-    schema: () =>
-      trading?.signalSchemas.find((item) => item.id === value.schemaId)?.name ||
-      String(value.schemaId),
+    schema: () => {
+      const schema = trading?.signalSchemas.find(
+        (item) => item.id === value.schemaId,
+      );
+      return schema
+        ? `${schema.name} · ${schema.templateName}`
+        : String(value.schemaId);
+    },
     contract: () => String(value.contractVersionId),
     dedupe: () =>
       value.enabled === false
@@ -262,10 +268,6 @@ type BuilderNoticeValue = {
 function WorkflowTopbar({
   systemStatus,
   trading,
-  search,
-  onSearch,
-  onShowAll,
-  nodeCount,
   selectedPathId,
   routeCount,
   onRoutes,
@@ -279,10 +281,6 @@ function WorkflowTopbar({
 }: Readonly<{
   systemStatus: Record<string, any> | null;
   trading: TradingSnapshot | null;
-  search: string;
-  onSearch: (value: string) => void;
-  onShowAll: () => void;
-  nodeCount: number;
   selectedPathId: string | null;
   routeCount: number;
   onRoutes: () => void;
@@ -300,10 +298,6 @@ function WorkflowTopbar({
     <header className="workflow-topbar">
       <div className="workflow-brand">
         <Logo variant="full" size={34} className="workflow-brand-logo" />
-        <div>
-          <span>Execution Workflow</span>
-          <strong>Visueller Builder</strong>
-        </div>
       </div>
       <div className="workflow-health">
         <Badge
@@ -333,26 +327,6 @@ function WorkflowTopbar({
         </Badge>
       </div>
       <div className="workflow-actions">
-        <div className="builder-search">
-          <Search />
-          <Input
-            aria-label="Bausteine durchsuchen"
-            placeholder="Baustein suchen"
-            value={search}
-            onChange={(event) => onSearch(event.target.value)}
-          />
-        </div>
-        <ThemeToggle />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onShowAll}
-          disabled={nodeCount === 0}
-          aria-label="Alle Bausteine im Canvas anzeigen"
-        >
-          <Maximize2 data-icon="inline-start" /> Alles anzeigen
-        </Button>
         <Button
           ref={routeTriggerRef}
           type="button"
@@ -399,10 +373,16 @@ function WorkflowStatusbar({
   snapshot,
   graph,
   saving,
+  search,
+  onSearch,
+  onDisconnectAll,
 }: Readonly<{
   snapshot: WorkflowSnapshot;
   graph: WorkflowGraph;
   saving: boolean;
+  search: string;
+  onSearch: (value: string) => void;
+  onDisconnectAll: () => void;
 }>) {
   const enabledPaths =
     snapshot.workflow?.compiled.paths.filter((path) => path.enabled).length || 0;
@@ -427,16 +407,37 @@ function WorkflowStatusbar({
         <strong>{graph.nodes.length} Bausteine</strong>
         <span>{graph.edges.length} Verbindungen</span>
       </div>
-      <div className="save-indicator">
-        {saving ? (
-          <>
-            <RefreshCw size={14} className="spin" /> validiere & aktiviere
-          </>
-        ) : (
-          <>
-            <Save size={14} /> alle Änderungen gespeichert
-          </>
-        )}
+      <div className="workflow-status-tools">
+        <div className="builder-search">
+          <Search />
+          <Input
+            aria-label="Bausteine durchsuchen"
+            placeholder="Baustein suchen"
+            value={search}
+            onChange={(event) => onSearch(event.target.value)}
+          />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={saving || graph.edges.length === 0}
+          onClick={onDisconnectAll}
+        >
+          <Unlink2 data-icon="inline-start" /> Alle Verbindungen lösen
+        </Button>
+        <ThemeToggle />
+        <div className="save-indicator">
+          {saving ? (
+            <>
+              <RefreshCw size={14} className="spin" /> validiere & aktiviere
+            </>
+          ) : (
+            <>
+              <Save size={14} /> alle Änderungen gespeichert
+            </>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -485,9 +486,9 @@ function DuplicateResourceNotice({
         <AlertTriangle size={16} />
       </span>
       <p>
-        <strong>{removedNodeCount} alte Doppelplatzierung(en) gefunden.</strong>{" "}
-        Jeder logische Baustein darf künftig nur einmal im Canvas stehen;
-        mehrere Pfeile bilden weiterhin alle Kombinationen ab.
+        <strong>{removedNodeCount} verhaltensidentische Dublette(n) gefunden.</strong>{" "}
+        Typ und vollständige Konfiguration sind identisch. Eine gemeinsame
+        Instanz genügt für alle Verbindungen.
       </p>
       <Button
         type="button"
@@ -645,7 +646,9 @@ function ResourceLibraryDialog({
             {resources
               .filter((resource) => resource.kind === selectedKind)
               .map((resource) => {
-                const placed = placedResources.get(resource.resourceId);
+                const placed = placedResources.get(
+                  resourceBehaviorKey(resource),
+                );
                 return (
                   <div
                     key={resource.resourceId}
@@ -879,7 +882,7 @@ export function WorkflowBuilder() {
     [snapshot.resources],
   );
   const placedResources = useMemo(
-    () => placedNodesByResourceId(graph, snapshot.resources),
+    () => placedNodesByResourceIdentity(graph, snapshot.resources),
     [graph, snapshot.resources],
   );
   const duplicateSummary = useMemo(
@@ -1426,7 +1429,7 @@ export function WorkflowBuilder() {
   };
 
   const addExistingResource = async (resource: WorkflowResource) => {
-    const existing = placedResources.get(resource.resourceId);
+    const existing = placedResources.get(resourceBehaviorKey(resource));
     if (existing) {
       setKindPickerOpen(false);
       setLibraryKind(null);
@@ -1434,7 +1437,7 @@ export function WorkflowBuilder() {
       setSearch("");
       setNotice({
         tone: "warning",
-        text: `${resource.name} ist bereits einmal im Canvas platziert. Für weitere Kombinationen verbindest du denselben Baustein mit mehreren Pfeilen.`,
+        text: `${resource.name} entspricht funktional bereits einem Baustein im Canvas. Für weitere Kombinationen verbindest du diesen mit mehreren Pfeilen.`,
       });
       revealNode(existing);
       return;
@@ -1511,12 +1514,48 @@ export function WorkflowBuilder() {
     if (duplicateSummary.removedNodeCount === 0) return;
     const activated = await activateGraph(
       duplicateSummary.graph,
-      `${duplicateSummary.removedNodeCount} doppelte Platzierungen zusammengeführt`,
+      `${duplicateSummary.removedNodeCount} verhaltensidentische Bausteine zusammengeführt`,
     );
     if (activated) {
+      const archiveFailures: string[] = [];
+      for (const resourceId of duplicateSummary.redundantResourceIds) {
+        try {
+          await jsonRequest("/api/workflow/resources", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Destructive-Confirmation": "delete-workflow-resource",
+            },
+            body: JSON.stringify({ resourceId }),
+          });
+        } catch {
+          archiveFailures.push(resourceId);
+        }
+      }
       setEditorNodeId(null);
       setSearch("");
+      await load();
+      if (archiveFailures.length > 0) {
+        setNotice({
+          tone: "warning",
+          text: `${archiveFailures.length} nicht mehr verwendete Dubletten konnten nicht archiviert werden. Der aktive Canvas ist bereits eindeutig; die verbliebenen Einträge bleiben in der Bibliothek verborgen.`,
+        });
+      }
       window.setTimeout(showAllNodes, 0);
+    }
+  };
+
+  const disconnectAllEdges = async () => {
+    if (graphRef.current.edges.length === 0) return;
+    const candidate = structuredClone(graphRef.current);
+    candidate.edges = [];
+    const activated = await activateGraph(
+      candidate,
+      "Alle Verbindungen wurden gelöst",
+    );
+    if (activated) {
+      setSelectedEdgeId(null);
+      cancelConnection();
     }
   };
 
@@ -1572,10 +1611,6 @@ export function WorkflowBuilder() {
       <WorkflowTopbar
         systemStatus={systemStatus}
         trading={trading}
-        search={search}
-        onSearch={setSearch}
-        onShowAll={showAllNodes}
-        nodeCount={graph.nodes.length}
         selectedPathId={selectedPathId}
         routeCount={routeTopology.routes.length}
         onRoutes={() => setRouteOverviewOpen(true)}
@@ -1590,7 +1625,14 @@ export function WorkflowBuilder() {
         operationsTriggerRef={operationsTriggerRef}
         libraryTriggerRef={libraryTriggerRef}
       />
-      <WorkflowStatusbar snapshot={snapshot} graph={graph} saving={saving} />
+      <WorkflowStatusbar
+        snapshot={snapshot}
+        graph={graph}
+        saving={saving}
+        search={search}
+        onSearch={setSearch}
+        onDisconnectAll={() => void disconnectAllEdges()}
+      />
       {notice && (
         <BuilderNotice notice={notice} onClose={() => setNotice(null)} />
       )}

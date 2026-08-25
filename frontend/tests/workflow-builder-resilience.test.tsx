@@ -22,7 +22,7 @@ vi.mock("@xyflow/react", () => ({
     return <div data-testid="workflow-canvas">{children}</div>;
   },
   Background: () => null,
-  Controls: () => null,
+  Controls: () => <button type="button" aria-label="Fit View" />,
   MiniMap: () => null,
   Panel: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   Position: { Left: "left", Right: "right" },
@@ -146,7 +146,7 @@ describe("workflow builder resilience", () => {
     });
   });
 
-  it("can recover a panned-away canvas by fitting every workflow node", async () => {
+  it("keeps only React Flow's single fit-view control", async () => {
     api.apiFetch.mockImplementation(async (input: RequestInfo | URL) => {
       const payload =
         String(input) === "/api/workflow"
@@ -190,50 +190,12 @@ describe("workflow builder resilience", () => {
 
     render(<WorkflowBuilder />);
     await waitFor(() => expect(flow.props).not.toBeNull());
-    const canvas = screen.getByTestId("workflow-canvas").parentElement;
-    if (!canvas) throw new Error("Workflow canvas wrapper is missing.");
-    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
-      x: 0,
-      y: 0,
-      top: 0,
-      right: 1200,
-      bottom: 700,
-      left: 0,
-      width: 1200,
-      height: 700,
-      toJSON: () => ({}),
-    });
-    const getNodesBounds = vi.fn(() => ({
-      x: 3476,
-      y: 0,
-      width: 276,
-      height: 112,
-    }));
-    const setViewport = vi.fn();
-    const setCenter = vi.fn();
-    const initialize = flow.props?.onInit as
-      | ((instance: unknown) => void)
-      | undefined;
-    if (!initialize) throw new Error("React Flow initialization is missing.");
-    act(() => {
-      initialize({
-        getNodesBounds,
-        setViewport,
-        setCenter,
-      });
-    });
-    fireEvent.click(
-      screen.getByRole("button", {
+    expect(
+      screen.queryByRole("button", {
         name: "Alle Bausteine im Canvas anzeigen",
       }),
-    );
-
-    await waitFor(() =>
-      expect(setViewport).toHaveBeenCalledWith(flow.viewport, {
-        duration: 420,
-      }),
-    );
-    expect(getNodesBounds).toHaveBeenCalledWith(["node-account"]);
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Fit View" })).toHaveLength(1);
   });
 
   it("guides a connection from a source block to only valid later targets", async () => {
