@@ -215,9 +215,14 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
           (child): child is HTMLElement =>
             child instanceof HTMLElement &&
             !child.classList.contains("workflow-status-tools") &&
+            !child.classList.contains("workflow-status-skip") &&
             getComputedStyle(child).display !== "none",
         )
-        .every((metric) => metric.getBoundingClientRect().right <= toolsLeft + 1);
+        .every(
+          (metric) =>
+            metric.getBoundingClientRect().right <= toolsLeft + 1 &&
+            metric.scrollWidth <= metric.clientWidth + 1,
+        );
     }),
   ).toBe(true);
   await expect(page.locator("html")).toHaveClass(/dark/);
