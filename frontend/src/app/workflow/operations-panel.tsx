@@ -71,6 +71,10 @@ function time(value: unknown): string {
     : "–";
 }
 
+export function normalizeJournalSymbol(symbol: string): string {
+  return symbol.trim().toUpperCase().replace(/\//g, "");
+}
+
 function Overview({
   trading,
   systemStatus,
@@ -1038,7 +1042,7 @@ function Journal({
     if (filters.channelId) params.set("channelId", filters.channelId);
     if (filters.accountId) params.set("accountId", filters.accountId);
     if (filters.symbol) {
-      const normalizedSymbol = filters.symbol.trim().toUpperCase().replace(/\//g, "");
+      const normalizedSymbol = normalizeJournalSymbol(filters.symbol);
       if (normalizedSymbol) params.set("symbol", normalizedSymbol);
     }
     if (filters.status) params.set("status", filters.status);

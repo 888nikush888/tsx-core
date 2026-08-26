@@ -489,39 +489,30 @@ function WorkflowStatusbar({
   );
 }
 
-function WorkspaceStatusbar({
-  workspace,
-  onRefresh,
-  trading,
-  systemStatus,
-  refreshing,
-  lastUpdated,
-}: Readonly<{
-  workspace: Exclude<WorkflowWorkspace, "builder">;
-  onRefresh: () => Promise<void>;
-  trading: TradingSnapshot | null;
-  systemStatus: Record<string, any> | null;
-  refreshing: boolean;
-  lastUpdated: number | null;
-}>) {
-  const copy = (
-    {
-      dashboard: {
-        title: "Dashboard",
-        description: "Live-Gates, Runtime und Systemzustand auf einen Blick.",
-      },
-      analytics: null,
-      operations: {
-        title: "Betrieb",
-        description: "Konten, Journal, Logs, Backups, MCP und System verwalten.",
-      },
-    } as Record<string, { title: string; description: string } | null>
-  )[workspace] as { title: string; description: string } | null;
-  const runtime = trading?.overview.runtime;
-  const openIncidents = (trading?.accountIncidents || []).filter(
-    (incident) => incident.status === "open",
-  );
-  const dashboardCockpit = [
+type StatusbarCopy = { title: string; description: string } | null;
+type CockpitItem = { label: string; value: string; healthy: boolean };
+
+export function resolveStatusbarCopy(workspace: string): StatusbarCopy {
+  const copies: Record<string, StatusbarCopy> = {
+    dashboard: {
+      title: "Dashboard",
+      description: "Live-Gates, Runtime und Systemzustand auf einen Blick.",
+    },
+    analytics: null,
+    operations: {
+      title: "Betrieb",
+      description: "Konten, Journal, Logs, Backups, MCP und System verwalten.",
+    },
+  };
+  return copies[workspace] ?? null;
+}
+
+export function buildDashboardCockpit(
+  runtime: TradingSnapshot["overview"]["runtime"] | undefined,
+  systemStatus: Record<string, any> | null,
+  openIncidents: TradingSnapshot["accountIncidents"],
+): CockpitItem[] {
+  return [
     {
       label: "Telegram",
       value: systemStatus?.connectionState || "offline",
@@ -542,7 +533,13 @@ function WorkspaceStatusbar({
       healthy: runtime?.killSwitchActive !== true && openIncidents.length === 0,
     },
   ];
-  const operationsCockpit = [
+}
+
+export function buildOperationsCockpit(
+  systemStatus: Record<string, any> | null,
+  openIncidents: TradingSnapshot["accountIncidents"],
+): CockpitItem[] {
+  return [
     {
       label: "System",
       value: systemStatus?.state || systemStatus?.status || "erreichbar",
@@ -566,11 +563,41 @@ function WorkspaceStatusbar({
       healthy: openIncidents.length === 0,
     },
   ];
-  const items = workspace === "dashboard"
-    ? dashboardCockpit
-    : workspace === "operations"
-      ? operationsCockpit
-      : [];
+}
+
+export function selectCockpitItems(
+  workspace: string,
+  dashboardCockpit: CockpitItem[],
+  operationsCockpit: CockpitItem[],
+): CockpitItem[] {
+  if (workspace === "dashboard") return dashboardCockpit;
+  if (workspace === "operations") return operationsCockpit;
+  return [];
+}
+
+function WorkspaceStatusbar({
+  workspace,
+  onRefresh,
+  trading,
+  systemStatus,
+  refreshing,
+  lastUpdated,
+}: Readonly<{
+  workspace: Exclude<WorkflowWorkspace, "builder">;
+  onRefresh: () => Promise<void>;
+  trading: TradingSnapshot | null;
+  systemStatus: Record<string, any> | null;
+  refreshing: boolean;
+  lastUpdated: number | null;
+}>) {
+  const copy = resolveStatusbarCopy(workspace);
+  const runtime = trading?.overview.runtime;
+  const openIncidents = (trading?.accountIncidents ?? []).filter(
+    (incident) => incident.status === "open",
+  );
+  const dashboardCockpit = buildDashboardCockpit(runtime, systemStatus, openIncidents);
+  const operationsCockpit = buildOperationsCockpit(systemStatus, openIncidents);
+  const items = selectCockpitItems(workspace, dashboardCockpit, operationsCockpit);
   if (!copy) {
     return (
       <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
