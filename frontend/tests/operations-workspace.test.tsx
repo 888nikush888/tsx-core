@@ -274,4 +274,18 @@ describe("operations workspace", () => {
     )
     expect(screen.getByRole("heading", { name: "Entscheidende Live-Gates" })).toBeInTheDocument()
   })
+
+  it("covers system diagnostics and danger zone", async () => {
+    const openMock = vi.fn()
+    const originalOpen = window.open
+    window.open = openMock as any
+    workspace("system")
+    const diagButton = await screen.findByRole("button", { name: "Diagnosestatus öffnen" })
+    fireEvent.click(diagButton)
+    expect(openMock).toHaveBeenCalledWith("/api/status", "_blank", "noopener,noreferrer")
+    const input = screen.getByPlaceholderText("DATENBANK LEEREN oder FACTORY RESET")
+    fireEvent.change(input, { target: { value: "DATENBANK LEEREN" } })
+    expect(input).toHaveValue("DATENBANK LEEREN")
+    window.open = originalOpen
+  })
 })
