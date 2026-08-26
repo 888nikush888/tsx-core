@@ -300,14 +300,15 @@ def protected_requests():
 
 
 class FakeHyperliquidRest(FakeProtectedRest):
-    def __init__(self) -> None:
+    def __init__(self, ticker=None) -> None:
         super().__init__([[]])
         self.submitted = []
         self.ticker_calls = 0
+        self.ticker = ticker or {"bid": 65000.0, "ask": 65010.25, "last": 65005.0}
 
     async def fetch_ticker(self, _symbol):
         self.ticker_calls += 1
-        return {"bid": 65000.0, "ask": 65010.25, "last": 65005.0}
+        return self.ticker
 
     async def create_order(self, *args, **kwargs):
         self.submitted.append((args, kwargs))
@@ -356,6 +357,41 @@ class HyperliquidOrderTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(spec["params"]["slippage"], "0.005")
         self.assertEqual(rest.ticker_calls, 0)
 
+    async def test_market_reference_rejects_invalid_side_before_ticker_access(self) -> None:
+        rest = FakeHyperliquidRest()
+        registry = FakeRegistry(rest, "hyperliquid")
+        with self.assertRaisesRegex(ExchangeContractError, "Order side is invalid"):
+            await CcxtAdapter(registry)._market_order_reference(
+                registry.clients, rest.markets["BTC/USDT:USDT"], "hold", self.deadline(),
+            )
+        self.assertEqual(rest.ticker_calls, 0)
+
+    async def test_market_reference_skips_missing_nonpositive_and_invalid_candidates(self) -> None:
+        rest = FakeHyperliquidRest({
+            "ask": None,
+            "mark": "0",
+            "last": "not-a-number",
+            "info": {"markPrice": "65006.5"},
+        })
+        registry = FakeRegistry(rest, "hyperliquid")
+        reference = await CcxtAdapter(registry)._market_order_reference(
+            registry.clients, rest.markets["BTC/USDT:USDT"], "buy", self.deadline(),
+        )
+        self.assertEqual(reference, "65006.5")
+
+    async def test_market_reference_rejects_ticker_without_usable_price(self) -> None:
+        rest = FakeHyperliquidRest({
+            "ask": None,
+            "mark": "0",
+            "last": "not-a-number",
+            "info": {"markPrice": None, "mark_price": "-1"},
+        })
+        registry = FakeRegistry(rest, "hyperliquid")
+        with self.assertRaisesRegex(ExchangeContractError, "omitted a usable"):
+            await CcxtAdapter(registry)._market_order_reference(
+                registry.clients, rest.markets["BTC/USDT:USDT"], "buy", self.deadline(),
+            )
+
     async def test_emergency_cleanup_uses_bounded_hyperliquid_slippage(self) -> None:
         rest = FakeHyperliquidRest()
         rest._positions = [[{"contracts": "2", "side": "long"}]]
@@ -370,6 +406,29 @@ class HyperliquidOrderTests(unittest.IsolatedAsyncioTestCase):
             "BTC/USDT:USDT", "market", "sell", "2", "65000",
             {"reduceOnly": True, "slippage": "0.01"},
         ))
+
+    async def test_emergency_cleanup_short_uses_buy_reference(self) -> None:
+        rest = FakeHyperliquidRest()
+        rest._positions = [[{"contracts": "2", "side": "short"}]]
+        registry = FakeRegistry(rest, "hyperliquid")
+        await CcxtAdapter(registry)._flatten_new_symbol_exposure(
+            registry.clients, rest.markets["BTC/USDT:USDT"], self.deadline(),
+        )
+        args, _kwargs = rest.submitted[0]
+        self.assertEqual(args[2:5], ("buy", "2", "65010.25"))
+
+    async def test_emergency_cleanup_skips_zero_and_rejects_missing_position_side(self) -> None:
+        rest = FakeHyperliquidRest()
+        rest._positions = [[
+            {"contracts": "0", "side": "long"},
+            {"contracts": "2", "side": None},
+        ]]
+        registry = FakeRegistry(rest, "hyperliquid")
+        with self.assertRaisesRegex(ExchangeContractError, "omitted its side"):
+            await CcxtAdapter(registry)._flatten_new_symbol_exposure(
+                registry.clients, rest.markets["BTC/USDT:USDT"], self.deadline(),
+            )
+        self.assertEqual(rest.submitted, [])
 
 
 class StreamTests(unittest.IsolatedAsyncioTestCase):

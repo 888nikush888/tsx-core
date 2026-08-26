@@ -1,4 +1,4 @@
-ARG PYTHON_IMAGE=python@sha256:601d3d3797e90e2534782e69c85fafb7971b43f24c7b1b079b7e48dd435e458d
+ARG PYTHON_IMAGE=python@sha256:31a768b01976652c222e318fe5bd6e7c252f056cbf489c88fa256f1bf0af58e3
 
 FROM ${PYTHON_IMAGE} AS dependencies
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -11,7 +11,7 @@ FROM ${PYTHON_IMAGE} AS runner
 LABEL org.opencontainers.image.title="TSX Core Exchange Executor" \
       org.opencontainers.image.source="local-workspace" \
       org.opencontainers.image.base.name="python:3.12-alpine3.23" \
-      org.opencontainers.image.base.digest="sha256:601d3d3797e90e2534782e69c85fafb7971b43f24c7b1b079b7e48dd435e458d"
+      org.opencontainers.image.base.digest="sha256:31a768b01976652c222e318fe5bd6e7c252f056cbf489c88fa256f1bf0af58e3"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -19,7 +19,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     EXECUTOR_HOST=0.0.0.0 \
     EXECUTOR_PORT=8090
 WORKDIR /app
-RUN addgroup --system --gid 65532 executor \
+RUN apk add --no-cache "sqlite-libs=3.53.4-r0" \
+    && addgroup --system --gid 65532 executor \
     && adduser --system --uid 65532 --ingroup executor --no-create-home --home /nonexistent executor
 COPY --from=dependencies /install /usr/local
 COPY --chown=0:0 --chmod=0444 *.py ./
