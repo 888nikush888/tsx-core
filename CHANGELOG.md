@@ -4,6 +4,12 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-08-26
+
+### Fixed
+
+- Hyperliquid Market- und Stop-Market-Orders erhalten den von CCXT verlangten Referenzpreis und verwenden das in der Strategie festgelegte Slippage-Limit. Auch die isolierte Notfallbereinigung verwendet nun einen aktuellen Richtungsreferenzpreis mit begrenzter Slippage.
+
 ## [3.1.0] - 2026-08-25
 
 ### Added

@@ -273,9 +273,9 @@ class FakeProtectedRest:
 
 
 class FakeRegistry:
-    def __init__(self, rest) -> None:
+    def __init__(self, rest, exchange="bybit") -> None:
         self.clients = SimpleNamespace(
-            account={"id": "account-1", "exchange": "bybit", "mode": "testnet"},
+            account={"id": "account-1", "exchange": exchange, "mode": "testnet"},
             rest=rest,
         )
         self.calls = 0
@@ -297,6 +297,79 @@ def protected_requests():
         "clientOrderId": "stop-client", "reduceOnly": True, "postOnly": False, "leverage": 20,
     }
     return entry, stop
+
+
+class FakeHyperliquidRest(FakeProtectedRest):
+    def __init__(self) -> None:
+        super().__init__([[]])
+        self.submitted = []
+        self.ticker_calls = 0
+
+    async def fetch_ticker(self, _symbol):
+        self.ticker_calls += 1
+        return {"bid": 65000.0, "ask": 65010.25, "last": 65005.0}
+
+    async def create_order(self, *args, **kwargs):
+        self.submitted.append((args, kwargs))
+        client_id = kwargs.get("params", {}).get("clientOrderId", "cleanup")
+        return {
+            "id": "exchange-order", "clientOrderId": client_id,
+            "status": "open", "filled": "0",
+        }
+
+
+class HyperliquidOrderTests(unittest.IsolatedAsyncioTestCase):
+    def deadline(self):
+        return RequestDeadline(int(time.time() * 1_000) + 30_000)
+
+    async def test_market_order_uses_directional_reference_and_strategy_slippage(self) -> None:
+        rest = FakeHyperliquidRest()
+        request = {
+            "role": "flatten", "accountId": "account-1", "symbol": "BTCUSDT", "side": "buy",
+            "orderType": "market", "quantity": "2", "price": None, "triggerPrice": None,
+            "clientOrderId": "flatten-client", "reduceOnly": True, "postOnly": False,
+            "leverage": 20, "maxSlippagePercent": "0.225",
+        }
+        result = await CcxtAdapter(FakeRegistry(rest, "hyperliquid")).submit_order(
+            {"id": "account-1", "exchange": "hyperliquid", "mode": "testnet"}, request, self.deadline(),
+        )
+        self.assertEqual(result["exchangeOrderId"], "exchange-order")
+        _args, spec = rest.submitted[0]
+        self.assertEqual(spec["price"], "65010.25")
+        self.assertEqual(spec["params"]["slippage"], "0.00225")
+        self.assertEqual(rest.ticker_calls, 1)
+
+    async def test_stop_market_uses_trigger_as_reference_without_stale_ticker(self) -> None:
+        rest = FakeHyperliquidRest()
+        request = {
+            "role": "stop_loss", "accountId": "account-1", "symbol": "BTCUSDT", "side": "sell",
+            "orderType": "stop_market", "quantity": "2", "price": None, "triggerPrice": "64000",
+            "clientOrderId": "stop-client", "reduceOnly": True, "postOnly": False,
+            "leverage": 20, "maxSlippagePercent": "0.5",
+        }
+        await CcxtAdapter(FakeRegistry(rest, "hyperliquid")).submit_order(
+            {"id": "account-1", "exchange": "hyperliquid", "mode": "testnet"}, request, self.deadline(),
+        )
+        _args, spec = rest.submitted[0]
+        self.assertEqual(spec["price"], "64000")
+        self.assertEqual(spec["params"]["stopLossPrice"], "64000")
+        self.assertEqual(spec["params"]["slippage"], "0.005")
+        self.assertEqual(rest.ticker_calls, 0)
+
+    async def test_emergency_cleanup_uses_bounded_hyperliquid_slippage(self) -> None:
+        rest = FakeHyperliquidRest()
+        rest._positions = [[{"contracts": "2", "side": "long"}]]
+        registry = FakeRegistry(rest, "hyperliquid")
+        adapter = CcxtAdapter(registry)
+        await adapter._flatten_new_symbol_exposure(
+            registry.clients, rest.markets["BTC/USDT:USDT"], self.deadline(),
+        )
+        args, kwargs = rest.submitted[0]
+        self.assertEqual(kwargs, {})
+        self.assertEqual(args, (
+            "BTC/USDT:USDT", "market", "sell", "2", "65000",
+            {"reduceOnly": True, "slippage": "0.01"},
+        ))
 
 
 class StreamTests(unittest.IsolatedAsyncioTestCase):

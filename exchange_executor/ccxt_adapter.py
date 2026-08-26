@@ -11,6 +11,7 @@ from ccxt_client import CcxtClientRegistry, AccountClients, decimal_text
 from common import ExchangeContractError, RequestDeadline, decimal_string, external_account_id
 
 INVALID_CONTRACT_SIZE = "CCXT market has an invalid contract size."
+EMERGENCY_CLEANUP_SLIPPAGE = "0.01"
 
 
 def _canonical_symbol(market: dict[str, Any]) -> str:
@@ -432,6 +433,16 @@ class CcxtAdapter:
         if Decimal(str(amount)) <= 0:
             raise ExchangeContractError("Order quantity is below the market contract precision.")
         spec = _base_order_spec(clients.rest, request, symbol, amount)
+        if clients.account["exchange"] == "hyperliquid" and spec["type"] == "market":
+            slippage_percent = decimal_string(
+                request.get("maxSlippagePercent"), "maxSlippagePercent", positive=True,
+            )
+            spec["params"]["slippage"] = decimal_text(Decimal(slippage_percent) / Decimal("100"))
+            if request.get("orderType") == "stop_market":
+                reference = decimal_string(request.get("triggerPrice"), "triggerPrice", positive=True)
+            else:
+                reference = await self._market_order_reference(clients, market, request.get("side"), deadline)
+            spec["price"] = clients.rest.price_to_precision(symbol, reference)
         leverage = request.get("leverage")
         if not spec["params"]["reduceOnly"]:
             maximum = await self._maximum_leverage(clients, market, deadline)
@@ -439,6 +450,37 @@ class CcxtAdapter:
                 raise ExchangeContractError("Order leverage is invalid.")
             await _within(deadline, clients.rest.set_leverage(min(leverage, maximum), symbol))
         return spec, market
+
+    async def _market_order_reference(
+        self,
+        clients: AccountClients,
+        market: dict[str, Any],
+        side: Any,
+        deadline: RequestDeadline,
+    ) -> str:
+        if side not in {"buy", "sell"}:
+            raise ExchangeContractError("Order side is invalid.")
+        ticker = await _within(deadline, clients.rest.fetch_ticker(market["symbol"]))
+        info = ticker.get("info") if isinstance(ticker.get("info"), dict) else {}
+        directional = ticker.get("ask") if side == "buy" else ticker.get("bid")
+        candidates = (
+            directional,
+            ticker.get("mark"),
+            ticker.get("last"),
+            info.get("markPrice"),
+            info.get("mark_price"),
+        )
+        for candidate in candidates:
+            if candidate is None:
+                continue
+            try:
+                normalized = decimal_text(candidate)
+                if Decimal(normalized) <= 0:
+                    continue
+            except ExchangeContractError:
+                continue
+            return clients.rest.price_to_precision(market["symbol"], normalized)
+        raise ExchangeContractError("CCXT ticker omitted a usable market-order reference price.")
 
     async def submit_order(self, account: dict[str, str], request: dict[str, Any], deadline: RequestDeadline) -> dict[str, Any]:
         clients = await self._clients(account, deadline)
@@ -503,8 +545,13 @@ class CcxtAdapter:
                 raise ExchangeContractError("CCXT position omitted its side during emergency cleanup.")
             side = "sell" if position_side == "long" else "buy"
             amount = clients.rest.amount_to_precision(market["symbol"], abs(contracts))
+            reference = None
+            params: dict[str, Any] = {"reduceOnly": True}
+            if clients.account["exchange"] == "hyperliquid":
+                reference = await self._market_order_reference(clients, market, side, deadline)
+                params["slippage"] = EMERGENCY_CLEANUP_SLIPPAGE
             await _within(deadline, clients.rest.create_order(
-                market["symbol"], "market", side, amount, None, {"reduceOnly": True},
+                market["symbol"], "market", side, amount, reference, params,
             ))
 
     async def _create_protected_orders(
