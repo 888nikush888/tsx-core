@@ -575,7 +575,7 @@ export function selectCockpitItems(
   return [];
 }
 
-function WorkspaceStatusbar({
+export function WorkspaceStatusbar({
   workspace,
   onRefresh,
   trading,
