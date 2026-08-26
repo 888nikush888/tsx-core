@@ -241,4 +241,37 @@ describe("operations workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Speichern" }))
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith("/api/mcp/agents/update", expect.objectContaining({ method: "POST" })))
   })
+
+  it("renders header and multi-tab navigation", async () => {
+    render(
+      <OperationsWorkspace
+        trading={trading}
+        catalog={catalog}
+        systemStatus={{ connectionState: "connected", isRunning: true, resolvedSources: ["VIP"], queue: { running: 1, queued: 0 }, telegramLogin: { state: "idle" } }}
+        onRefresh={vi.fn(async () => undefined)}
+        initialTab="overview"
+        availableTabs={["overview", "accounts", "journal"]}
+        title="Custom Titel"
+        description="Custom Beschreibung"
+      />,
+    )
+    expect(screen.getByText("Custom Titel")).toBeInTheDocument()
+    expect(screen.getByText("Custom Beschreibung")).toBeInTheDocument()
+    const tabs = screen.getAllByRole("tab")
+    expect(tabs).toHaveLength(3)
+    fireEvent.click(screen.getByRole("tab", { name: /Börsen/ }))
+    expect(await screen.findByRole("heading", { name: "Börsenkonten" })).toBeInTheDocument()
+  })
+
+  it("handles default props and single tab without header duplication", async () => {
+    render(
+      <OperationsWorkspace
+        trading={trading}
+        catalog={catalog}
+        systemStatus={{ connectionState: "connected", isRunning: true, resolvedSources: ["VIP"], queue: { running: 1, queued: 0 }, telegramLogin: { state: "idle" } }}
+        onRefresh={vi.fn(async () => undefined)}
+      />,
+    )
+    expect(screen.getByRole("heading", { name: "Entscheidende Live-Gates" })).toBeInTheDocument()
+  })
 })
