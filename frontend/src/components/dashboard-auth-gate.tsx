@@ -242,7 +242,7 @@ export function DashboardAuthGate({
           </CardHeader>
           <CardContent className="space-y-4">
             <div
-              className="break-all rounded-md border bg-muted p-3 font-mono text-sm"
+              className="break-all rounded-none border bg-muted p-3 font-mono text-sm"
               data-testid="recovery-token"
             >
               {recoveryToken}

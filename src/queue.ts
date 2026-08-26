@@ -111,8 +111,12 @@ export class ConcurrencyQueue {
    * newly available workers begin processing immediately.
    */
   public updateSettings(maxConcurrency: number, timeoutMs: number): void {
-    this.maxConcurrency = Math.max(1, Math.floor(maxConcurrency));
-    this.timeoutMs = Math.max(0, Math.floor(timeoutMs));
+    this.maxConcurrency = Number.isFinite(maxConcurrency) && maxConcurrency >= 1
+      ? Math.floor(maxConcurrency)
+      : this.maxConcurrency;
+    this.timeoutMs = Number.isFinite(timeoutMs) && timeoutMs >= 0
+      ? Math.floor(timeoutMs)
+      : this.timeoutMs;
 
     if (!this.paused) {
       for (let i = this.running; i < this.maxConcurrency; i++) {

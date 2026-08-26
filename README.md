@@ -1,76 +1,32 @@
 # TSX Core
 
-**TSX Core** ist eine robuste TypeScript-Control-Plane für Telegram-Nachrichtenweiterleitung auf Basis der offiziellen **TDLib** (Telegram Database Library), ergänzt um ein internes, auf **CCXT und CCXT Pro** aufgebautes Python-Sidecar. Der Node.js-Dienst verarbeitet Telegram-Signale über versionierte visuelle Workflows und kann sie kontrolliert parallel auf mehreren Börsenkonten ausführen.
+TypeScript-Control-Plane für Telegram-Signal-Automatisierung und Multi-Exchange-Trading auf Basis von **TDLib** und **CCXT Pro** (Python-Sidecar). Visuelle Workflows, parallele Ausführung auf mehreren Börsenkonten, SQLite-Persistenz, Prometheus-Metriken, JSON-Logging.
 
-Es ist für den **Docker-Betrieb als daemonisierten Hintergrunddienst (Service)** optimiert, bietet integrierte **Prometheus-Metriken**, strukturierte **JSON-Logs** und speichert Zustände ausfallsicher in einer **SQLite-Datenbank**.
+**Dokumentation:** [Production Guide](docs/PRODUCTION_GUIDE.md) · [Trading Guide](docs/TRADING_GUIDE.md) · [MCP Guide](docs/MCP_GUIDE.md) · [Architecture](docs/ARCHITECTURE.md) · [Quality Gates](docs/QUALITY_OS.md) · [Operations Runbook](docs/runbooks/operations.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
-Die vollständige, verbindliche Anleitung für Installation, Konfiguration, Nutzung, Production-Release, Recovery und alle noch extern zu erbringenden Enterprise-Nachweise steht in [`docs/PRODUCTION_GUIDE.md`](docs/PRODUCTION_GUIDE.md).
+## Struktur
 
-Die vollständige Trading-Einrichtung für visuelle Signalpfade, Hyperliquid, Bybit, Kraken Futures, kontoübergreifenden Fan-out, adaptive TP-Staffelung, SL-Nachziehen und Notfälle steht in [`docs/TRADING_GUIDE.md`](docs/TRADING_GUIDE.md).
-
-Die Einrichtung des eigenständigen MCP-Dienstes, seiner persistenten Betriebsmodi, der Agenten-Tokens, dauerhaften Berechtigungen und Ereignis-Abonnements steht in [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md).
-
-Weitere verbindliche Dokumente:
-
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) – Komponenten, Trust Boundaries und Zustandsflüsse;
-- [`docs/QUALITY_OS.md`](docs/QUALITY_OS.md) – Tests, Security- und Release-Gates;
-- [`docs/runbooks/operations.md`](docs/runbooks/operations.md) – Störung, Reconciliation, Restore und Rollback;
-- [`docs/GITHUB_GOVERNANCE.md`](docs/GITHUB_GOVERNANCE.md) – erforderliche Repository-Regeln und aktuell offene Plattformkontrollen;
-- [`docs/TRADING_BLUEPRINT_V4_GAP_ANALYSIS.md`](docs/TRADING_BLUEPRINT_V4_GAP_ANALYSIS.md) – aktueller Abgleich mit dem Trading-Blueprint;
-- [`SECURITY.md`](SECURITY.md) und [`CHANGELOG.md`](CHANGELOG.md) – Support-/Meldeweg und Versionshistorie.
-
----
-
-## 📂 Ordnerstruktur & Datei-Guide
-
-Damit das Projekt übersichtlich bleibt, sind die Dateien klar aufgeteilt:
-
-```text
-├── dist/                     # Kompilierter JavaScript-Code (wird automatisch erzeugt)
-├── src/                      # TypeScript-Quellcode
-│   ├── config.ts             # Konfigurations-Parser und -Validierer
-│   ├── db.ts                 # SQLite-Datenbanktreiber (Persistent State, Queue & Buffer)
-│   ├── dupe_blocker.ts       # XML-Signal-Deduplizierer (normalisiert XML und fragt DB ab)
-│   ├── env.ts                # Umgebungsvariablen-Manager (.env)
-│   ├── filters.ts            # RegEx-, Typ- und Keyword-Filter (inkl. ReDoS-Schutz)
-│   ├── forwarder.ts          # Hauptprogramm (Client-Initialisierung und Routing-Loop)
-│   ├── metrics.ts            # Prometheus-Metriken und Healthcheck HTTP-Server
-│   ├── queue.ts              # Concurrency-Queue für asynchrone Nachrichtenweiterleitung
-│   ├── signal_parser.ts      # TS-Modul zur KI-XML-Signalextraktion via OpenRouter
-│   ├── signal_schema.ts      # Dynamische XML-, Grounding- und Symbol-Validierung
-│   ├── signal_contract.ts    # Deklarativer, versionierter Signalvertrags-Interpreter
-│   ├── trading_*.ts          # Strategien, Kanalrisiko, Telemetrie, Orders und Reconciliation
-│   ├── mcp_*.ts              # Agentenidentitäten, Kontrollbrücke und MCP-Server
-│   └── web_server.ts         # Authentifizierte Web-Control-Plane und API
-├── frontend/                 # React/Vite/React-Flow Workflow-Builder und Betriebsbereich
-├── exchange_executor/        # Internes Python-Sidecar für CCXT REST und CCXT Pro
-├── docs/                     # Architektur-, Betriebs-, Trading- und Governance-Dokumentation
-├── monitoring/               # Prometheus, Regeln und reproduzierbarer Alertmanager-Sicherheitsbuild
-├── templates/                # Vorlagen für die KI-Signalextraktion
-├── tests/                    # Unit-, Integrations-, Contract- und Systemtests
-├── .env.example              # Referenz für Source-Dev/Orchestrator-Overrides
-├── config.json.example       # Vorlage für die Kanal-Konfiguration
-├── Dockerfile                # Multi-Stage Dockerfile (Build & Production-Runner)
-├── docker-compose.yml        # Docker-Compose Konfiguration zur Orchestrierung
-├── package.json              # Abhängigkeiten und Build-Scripts
-├── tsconfig.json             # TypeScript-Compiler-Konfiguration
-└── README.md                 # Diese Dokumentation
+```
+src/                      TypeScript-Backend (Signal-Ingestion, Trading, MCP, Web-API)
+frontend/                 React/Vite Workflow-Builder und Betriebs-Dashboard
+exchange_executor/        Python-CCXT-Sidecar (REST + WebSocket)
+docs/                     Architektur-, Betriebs- und Governance-Dokumentation
+monitoring/               Prometheus, Alertmanager, Regeln
+tests/                    Unit-, Integrations-, Contract- und Systemtests
 ```
 
 ---
 
-## 🛠️ System-Architektur (Enterprise)
+## Architektur
 
-Das System wurde auf Enterprise-Niveau gehoben und nutzt moderne Best Practices:
-
-1. **State & Queue in SQLite**: Zustände (Persistenz-Queue, Album-Buffer und gesendete Signale) werden in der lokalen Datenbank `session_data/forwarder.db` gespeichert. Keine unzuverlässigen JSON-Dateien im Dateisystem mehr.
-2. **Prometheus HTTP-Server**: Liefert Metriken (`/metrics`) über Systemdurchsatz und Queue-Zustände sowie Healthchecks (`/healthz`) für Container-Orchestratoren auf Port `9100`.
-3. **Structured JSON Logging**: Im Container-Betrieb gibt der Service strukturierte JSON-Meldungen direkt an `stdout` aus, um sie in Log-Aggregatoren wie Kibana, Splunk oder Datadog einzulesen.
-4. **Multi-Stage Docker Pipeline**: Der Compiler läuft in einer Build-Stufe. Das produktive Docker-Image enthält nur die kompilierten Dateien und native Produktivabhängigkeiten – sicher, gehärtet und klein.
-5. **Dynamische Signalverträge**: Verträge sind versionierte SQLite-Datensätze. Der visuelle Builder verwaltet XML-Pfade, Feldtypen, Entry-/Target-Form, Geometrie und Quelltext-Erdung ohne ausführbaren Benutzer-Code.
-6. **Visuelle Workflow-Control-Plane**: Ein globaler Builder zeigt Kanäle, Filter, Parser, Schemas, Verträge, Strategien, Sizing, adaptives Risiko, Konten und Ausgaben als wiederverwendbare Bausteine. Verbindungen bilden den ausführbaren Signalfluss und seine Börsenverzweigungen ab.
-7. **Agenten-Control-Plane**: Ein separater, standardmäßig mitgestarteter MCP-Dienst verwendet pro Agent gehashte Tokens und dauerhaft verwaltete Minimalrechte. Sein persistenter Modus ist ab Werk `disabled`; Schreibaktionen laufen nicht direkt gegen SQLite oder Exchanges, sondern über die auditierte TSX-Core-Kontrollbrücke.
-8. **Geprüfte Auslieferung**: Die veröffentlichte Quelle liegt ausschließlich auf `main`. GitHub Actions baut und scannt jeden Main-Stand; es gibt bewusst weder zusätzliche GitHub-Apps noch einen automatischen Release- oder Registry-Publisher.
+1. **SQLite-Persistenz**: Queue, Album-Buffer und Signale in `session_data/forwarder.db`
+2. **Prometheus**: `/metrics` + `/healthz` + `/readyz` auf Port 9100
+3. **JSON-Logging**: strukturiert an stdout für Log-Aggregatoren
+4. **Multi-Stage Docker**: Build-Stufe kompiliert, Production-Image enthält nur Artefakte
+5. **Signalverträge**: versionierte SQLite-Datensätze, verwaltet im visuellen Builder
+6. **Workflow-Control-Plane**: Kanäle → Filter → Parser → Schema → Vertrag → Strategie → Sizing → Risiko → Konto → Ausgabe
+7. **MCP-Agenten**: separater Dienst, gehashte Tokens, Minimalrechte, auditierter Kontrollbrücken-Zugriff
+8. **Supply Chain**: Quelle nur auf `main`, CI baut und scannt jeden Stand
 
 ---
 

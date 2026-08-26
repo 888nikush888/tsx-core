@@ -30,8 +30,15 @@ function testRegexParsing() {
   assert.throws(() => parseRegex("[a-z"), /Invalid regex pattern/);
   assert.throws(
     () => safeRegexTest(new RegExp(nestedPlusFixture), `${'a'.repeat(10_000)}!`, 10),
-    /Regex timeout oder Script-Fehler/
+    /Regex timeout oder Ausführungsfehler/
   );
+
+  const globalRx = parseRegex("/BUY/g");
+  assert.strictEqual(globalRx.flags.includes("g"), false, "g-flag must be stripped to keep test() stateless");
+  const firstMessage = "BUY now: BTCUSDT";
+  const secondMessage = "BUY";
+  assert.strictEqual(safeRegexTest(globalRx, firstMessage), true);
+  assert.strictEqual(safeRegexTest(globalRx, secondMessage), true, "Repeated matches must not fail due to lastIndex carry-over");
   console.log("   -> OK");
 }
 

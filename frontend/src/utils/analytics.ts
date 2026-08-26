@@ -6,7 +6,6 @@
 declare global {
   interface Window {
     dataLayer: unknown[];
-    gtag: (...args: unknown[]) => void;
   }
 }
 
@@ -53,38 +52,4 @@ export const initGTM = (): void => {
   document.body.insertBefore(noscript, document.body.firstChild);
 
   console.log("GTM initialized successfully");
-};
-
-/**
- * Track custom events
- * @param eventName - The event name
- * @param parameters - Event parameters
- */
-export const trackEvent = (
-  eventName: string,
-  parameters?: Record<string, unknown>,
-): void => {
-  if (!GTM_ID || !IS_PRODUCTION || typeof window === "undefined") return;
-
-  window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({
-    event: eventName,
-    ...parameters,
-  });
-};
-
-/**
- * Track page views (useful for SPA route changes)
- * @param path - The page path
- * @param title - Optional page title
- */
-export const trackPageView = (path: string, title?: string): void => {
-  if (!GTM_ID || !IS_PRODUCTION || typeof window === "undefined") return;
-
-  window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({
-    event: "page_view",
-    page_path: path,
-    page_title: title || document.title,
-  });
 };

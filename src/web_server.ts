@@ -13,6 +13,7 @@ import {
   clearDb,
   deleteIncomingMessage,
   deleteProcessedSignal,
+  SignalReferencedError,
 } from './db.js';
 import type { EnterpriseAuditTrail } from './audit_trail.js';
 import {
@@ -837,6 +838,10 @@ async function deleteSignalHandler(context: RequestContext): Promise<void> {
     await deleteProcessedSignal(id);
     sendJson(context.res, 200, { success: true });
   } catch (error) {
+    if (error instanceof SignalReferencedError) {
+      sendError(context, new HttpError(409, error.message));
+      return;
+    }
     sendError(context, error);
   }
 }

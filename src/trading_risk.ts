@@ -207,7 +207,7 @@ export function adaptiveTargetAllocations(targetCount: number): string[] {
   return allocations;
 }
 
-export function resolveTargetAllocations(strategy: StrategyConfiguration, targetCount: number): string[] {
+function resolveTargetAllocations(strategy: StrategyConfiguration, targetCount: number): string[] {
   const mode = strategy.exits.targetAllocationMode ?? 'manual';
   if (mode === 'adaptive_halving') return adaptiveTargetAllocations(targetCount);
   if (mode !== 'manual') throw new TradingRiskError('INVALID_TARGET_ALLOCATION_MODE', 'Unsupported target allocation mode.');

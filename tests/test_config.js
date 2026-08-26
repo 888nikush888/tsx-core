@@ -57,6 +57,19 @@ try {
   assert.equal(sanitized.apiHash, undefined);
   assert.equal(sanitized.forwardOptions.maxConcurrency, DEFAULT_CONFIG.forwardOptions.maxConcurrency);
   assert.equal(sanitized.forwardOptions.queueTimeoutSeconds, DEFAULT_CONFIG.forwardOptions.queueTimeoutSeconds);
+
+  const shortQueue = structuredClone(DEFAULT_CONFIG);
+  shortQueue.forwardOptions.queueTimeoutSeconds = 10;
+  shortQueue.xmlParsing.enabled = true;
+  shortQueue.xmlParsing.aiLimits.requestTimeoutMs = 30_000;
+  const raised = validateConfig(shortQueue);
+  assert.equal(raised.forwardOptions.queueTimeoutSeconds, 35);
+
+  const parserDisabled = structuredClone(shortQueue);
+  parserDisabled.forwardOptions.queueTimeoutSeconds = 10;
+  parserDisabled.xmlParsing.enabled = false;
+  const untouched = validateConfig(parserDisabled);
+  assert.equal(untouched.forwardOptions.queueTimeoutSeconds, 10, "queue timeout must stay operator-controlled while the AI parser is disabled");
   assert.equal(sanitized.xmlParsing.primaryModel, DEFAULT_CONFIG.xmlParsing.primaryModel);
   assert.deepEqual(sanitized.xmlParsing.sourceTemplates, {});
   assert.deepEqual(sanitized.xmlParsing.aiLimits, DEFAULT_CONFIG.xmlParsing.aiLimits);

@@ -353,6 +353,21 @@ function normalizeXmlParsing(cfg: Record<string, any>): void {
   normalizeAiLimits(cfg.xmlParsing);
 }
 
+function ensureQueueCoversParserTimeout(cfg: Record<string, any>): void {
+  if (!isRecord(cfg.forwardOptions) || !isRecord(cfg.xmlParsing?.aiLimits)) return;
+  if (cfg.xmlParsing.enabled !== true) return;
+  const parserMs = Number(cfg.xmlParsing.aiLimits.requestTimeoutMs);
+  const queueSeconds = Number(cfg.forwardOptions.queueTimeoutSeconds);
+  if (!Number.isSafeInteger(parserMs) || !Number.isSafeInteger(queueSeconds) || queueSeconds <= 0) return;
+  const minimumSeconds = Math.ceil((parserMs + 5_000) / 1000);
+  if (queueSeconds < minimumSeconds) {
+    console.warn(
+      `[WARN] forwardOptions.queueTimeoutSeconds raised to ${minimumSeconds} so AI parser timeouts can complete.`
+    );
+    cfg.forwardOptions.queueTimeoutSeconds = minimumSeconds;
+  }
+}
+
 function normalizeSourceFilters(cfg: Record<string, any>): void {
   if (!isRecord(cfg.sourceFilters)) {
     cfg.sourceFilters = {};
@@ -451,6 +466,7 @@ export function validateConfig(cfg: any): Config {
   delete cfg.apiHash;
   normalizeForwardOptions(cfg);
   normalizeXmlParsing(cfg);
+  ensureQueueCoversParserTimeout(cfg);
   normalizeSourceFilters(cfg);
   normalizeSourceAliases(cfg);
   return cfg as Config;

@@ -2,7 +2,16 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const api = vi.hoisted(() => ({ apiFetch: vi.fn() }))
+const api = vi.hoisted(() => {
+  const apiFetch = vi.fn()
+  const jsonRequest = vi.fn(async (url: string, init?: RequestInit) => {
+    const response = await apiFetch(url, init)
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(payload.error || `Anfrage fehlgeschlagen (${response.status}).`)
+    return payload
+  })
+  return { apiFetch, jsonRequest }
+})
 vi.mock('@/lib/api', () => api)
 
 import { defaultConfiguration, ResourceEditor } from '@/app/workflow/resource-editor'

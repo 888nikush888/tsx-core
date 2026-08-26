@@ -5,9 +5,11 @@ import path from 'node:path';
 import {
   clearDb,
   closeDb,
+  deleteProcessedSignal,
   getDatabase,
   initDb,
   saveSignal,
+  SignalReferencedError,
 } from '../src/db.js';
 import {
   addDecimal,
@@ -857,6 +859,9 @@ async function testRepositoryRouting(defaults, accounts) {
   });
   assert.equal(enabledIntent.status, 'pending');
   assert.equal(enabledIntent.strategyVersionId, published.id);
+  await assert.rejects(deleteProcessedSignal('signal-2'), SignalReferencedError);
+  await saveSignal('deletable-signal', '-100098', 98, STANDARD_SIGNAL, STANDARD_SIGNAL);
+  await deleteProcessedSignal('deletable-signal');
   await assert.rejects(deleteTradingStrategyVersion(published.id), /retained trade history/);
 
   const overview = await getTradingOverview();

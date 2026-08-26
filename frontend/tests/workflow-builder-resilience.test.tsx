@@ -10,7 +10,16 @@ import {
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const api = vi.hoisted(() => ({ apiFetch: vi.fn() }));
+const api = vi.hoisted(() => {
+  const apiFetch = vi.fn()
+  const jsonRequest = vi.fn(async (url: string, init?: RequestInit) => {
+    const res = await apiFetch(url, init)
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload.error || `Anfrage fehlgeschlagen (${res.status}).`)
+    return payload
+  })
+  return { apiFetch, jsonRequest }
+});
 const flow = vi.hoisted(() => ({
   props: null as Record<string, unknown> | null,
   viewport: { x: 10, y: 20, zoom: 0.5 },

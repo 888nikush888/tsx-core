@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   BarChart3,
   Check,
+  Filter,
   FlaskConical,
   Gauge,
   Link2,
@@ -37,11 +38,10 @@ import {
   Save,
   Search,
   ServerCog,
-  ShieldCheck,
   Trash2,
   X,
 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { jsonRequest } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -131,16 +131,6 @@ function workflowHandles(kind: WorkflowKind): NonNullable<Node["handles"]> {
     });
   }
   return handles;
-}
-
-async function jsonRequest(url: string, init?: RequestInit) {
-  const response = await apiFetch(url, init);
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(
-      payload.error || `Anfrage fehlgeschlagen (${response.status}).`,
-    );
-  return payload;
 }
 
 function summary(
@@ -351,46 +341,11 @@ const WORKSPACES: Array<{
   { id: "operations", label: "Betrieb", icon: ServerCog },
 ];
 
-function WorkflowTopbar({
-  systemStatus,
-  trading,
-}: Readonly<{
-  systemStatus: Record<string, any> | null;
-  trading: TradingSnapshot | null;
-}>) {
-  const executionEnabled = trading?.overview.runtime.executionEnabled === true;
-  const killSwitchActive = trading?.overview.runtime.killSwitchActive === true;
+function WorkflowTopbar() {
   return (
     <header className="workflow-topbar">
       <div className="workflow-brand">
         <Logo variant="full" size={34} className="workflow-brand-logo" />
-      </div>
-      <div className="workflow-health">
-        <Badge
-          variant="outline"
-          className={
-            systemStatus?.connectionState === "connected"
-              ? "status-healthy"
-              : ""
-          }
-        >
-          <i />
-          Telegram {systemStatus?.connectionState || "offline"}
-        </Badge>
-        <Badge
-          variant="outline"
-          className={executionEnabled ? "status-healthy" : ""}
-        >
-          <i />
-          Execution {executionEnabled ? "aktiv" : "pausiert"}
-        </Badge>
-        <Badge
-          variant={killSwitchActive ? "destructive" : "outline"}
-          className={killSwitchActive ? "" : "status-healthy"}
-        >
-          <ShieldCheck />
-          {killSwitchActive ? "global gesperrt" : "Schutz bereit"}
-        </Badge>
       </div>
       <div className="workflow-actions">
         <ThemeToggle />
@@ -549,20 +504,19 @@ function WorkspaceStatusbar({
   refreshing: boolean;
   lastUpdated: number | null;
 }>) {
-  const copy = {
-    dashboard: {
-      title: "Dashboard",
-      description: "Live-Gates, Runtime und Systemzustand auf einen Blick.",
-    },
-    analytics: {
-      title: "Analytics",
-      description: "Kanal-, Pfad- und Handelsperformance auswerten.",
-    },
-    operations: {
-      title: "Betrieb",
-      description: "Konten, Journal, Logs, Backups, MCP und System verwalten.",
-    },
-  }[workspace];
+  const copy = (
+    {
+      dashboard: {
+        title: "Dashboard",
+        description: "Live-Gates, Runtime und Systemzustand auf einen Blick.",
+      },
+      analytics: null,
+      operations: {
+        title: "Betrieb",
+        description: "Konten, Journal, Logs, Backups, MCP und System verwalten.",
+      },
+    } as Record<string, { title: string; description: string } | null>
+  )[workspace] as { title: string; description: string } | null;
   const runtime = trading?.overview.runtime;
   const openIncidents = (trading?.accountIncidents || []).filter(
     (incident) => incident.status === "open",
@@ -617,6 +571,23 @@ function WorkspaceStatusbar({
     : workspace === "operations"
       ? operationsCockpit
       : [];
+  if (!copy) {
+    return (
+      <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
+        <div className="workflow-status-tools" style={{ margin: 0, width: "100%" }}>
+          <span className="workspace-last-updated" style={{ marginRight: "auto" }}>
+            {lastUpdated
+              ? `zuletzt aktualisiert ${new Date(lastUpdated).toLocaleTimeString("de-DE")}`
+              : "noch nicht aktualisiert"}
+          </span>
+          <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Analytics</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => void onRefresh()}>
+            <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
+          </Button>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="workflow-statusbar workspace-statusbar">
       <div>
@@ -957,6 +928,7 @@ export function WorkflowBuilder() {
   const fitViewPendingRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [analyticsFiltersOpen, setAnalyticsFiltersOpen] = useState(false);
   const operationalRefreshRef = useRef(false);
   const operationalRefreshQueuedRef = useRef(false);
   const closeLibrary = useCallback(() => {
@@ -1916,12 +1888,65 @@ export function WorkflowBuilder() {
       </div>
     );
 
+  if (activeWorkspace === "analytics") {
+    return (
+      <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
+        <WorkflowTopbar />
+        <WorkflowNavigation activeWorkspace={activeWorkspace} onChange={setActiveWorkspace} />
+        <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
+          <div className="workflow-status-tools" style={{ marginLeft: 0, width: "100%" }}>
+            <span className="workspace-last-updated" style={{ marginRight: "auto" }}>
+              {lastUpdated ? `zuletzt aktualisiert ${new Date(lastUpdated).toLocaleTimeString("de-DE")}` : "noch nicht aktualisiert"}
+            </span>
+            <Button type="button" variant="outline" size="sm" onClick={() => setAnalyticsFiltersOpen((value) => !value)}>
+              <Filter size={14} data-icon="inline-start" /> Filter
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => void refreshOperationalState()}>
+              <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
+            </Button>
+          </div>
+        </section>
+        <OperationsWorkspace
+          trading={trading}
+          catalog={catalog}
+          systemStatus={systemStatus}
+          onRefresh={refreshOperationalState}
+          initialTab="analytics"
+          availableTabs={["analytics"]}
+          ariaLabel="Analytics"
+          filtersOpen={analyticsFiltersOpen}
+        />
+      </main>
+    );
+  }
+  if (activeWorkspace === "dashboard") {
+    return (
+      <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
+        <WorkflowTopbar />
+        <WorkflowNavigation activeWorkspace={activeWorkspace} onChange={setActiveWorkspace} />
+        <WorkspaceStatusbar
+          workspace={activeWorkspace}
+          onRefresh={refreshOperationalState}
+          trading={trading}
+          systemStatus={systemStatus}
+          refreshing={refreshing}
+          lastUpdated={lastUpdated}
+        />
+        <OperationsWorkspace
+          trading={trading}
+          catalog={catalog}
+          systemStatus={systemStatus}
+          onRefresh={refreshOperationalState}
+          initialTab="overview"
+          availableTabs={["overview"]}
+          ariaLabel="Dashboard"
+        />
+      </main>
+    );
+  }
   return (
     <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
-      <WorkflowTopbar
-        systemStatus={systemStatus}
-        trading={trading}
-      />
+      <WorkflowTopbar />
       <WorkflowNavigation
         activeWorkspace={activeWorkspace}
         onChange={setActiveWorkspace}
@@ -1947,7 +1972,7 @@ export function WorkflowBuilder() {
         />
       ) : (
         <WorkspaceStatusbar
-          workspace={activeWorkspace}
+          workspace={activeWorkspace as Exclude<WorkflowWorkspace, "builder">}
           onRefresh={refreshOperationalState}
           trading={trading}
           systemStatus={systemStatus}

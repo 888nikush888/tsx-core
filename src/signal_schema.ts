@@ -779,7 +779,7 @@ function validateDynamicContract(
   };
 }
 
-export function schemaForTemplate(templateName?: string): string {
+function schemaForTemplate(templateName?: string): string {
   const normalized = (templateName || 'default').trim().toLowerCase();
   if (normalized === 'cryptodanielvip') return 'cryptodanielvip';
   if (normalized === 'loma') return 'loma';

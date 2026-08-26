@@ -24,17 +24,6 @@ export type TradingIntentStatus =
   | 'blocked'
   | 'failed'
   | 'unknown';
-export type TradingOrderStatus =
-  | 'created'
-  | 'submitting'
-  | 'open'
-  | 'partially_filled'
-  | 'filled'
-  | 'cancel_pending'
-  | 'cancelled'
-  | 'rejected'
-  | 'unknown';
-export type TradingPositionStatus = 'opening' | 'open' | 'closing' | 'closed' | 'emergency';
 
 export interface DecimalRange {
   min: string;

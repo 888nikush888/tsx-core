@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const envPath = path.join(__dirname, '../.env');
+const envPath = path.join(__dirname, '../.env');
 
 const FILE_BACKED_SECRETS = [
   'OPENROUTER_API_KEY',

@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 @import "@xyflow/react/dist/style.css";
 @import "shadcn/tailwind.css";
@@ -80,7 +80,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
+  --radius: 0rem;
 }
 
 .dark {
@@ -278,19 +278,6 @@ button {
   height: 46px;
   justify-content: center;
 }
-.workflow-navigation-list [data-slot="tabs-trigger"]::after {
-  transform: scaleX(0);
-  transform-origin: center;
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
-}
-.workflow-navigation-list [data-slot="tabs-trigger"][data-active]::after {
-  transform: scaleX(1);
-}
-.workflow-navigation-list [data-slot="tabs-trigger"][data-state="active"]::after {
-  transform: scaleX(1);
-}
 .workflow-navigation-list svg {
   width: 15px;
   height: 15px;
@@ -402,7 +389,7 @@ button:disabled {
   overflow: visible;
   clip: auto;
   border: 1px solid var(--builder-green);
-  border-radius: 7px;
+  border-radius: 0;
   background: var(--popover);
   color: var(--popover-foreground);
 }
@@ -410,6 +397,9 @@ button:disabled {
   gap: 8px;
   padding: 0 20px;
   border-right: 1px solid var(--border);
+}
+.workflow-statusbar.analytics-statusbar .workflow-status-tools {
+  gap: 8px;
 }
 .workflow-statusbar > div:first-child {
   padding-left: 0;
@@ -446,6 +436,14 @@ button:disabled {
   align-items: flex-start;
   justify-content: center;
   gap: 2px;
+}
+.analytics-statusbar > div:first-child {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.analytics-statusbar .workflow-status-tools {
+  margin-left: 0;
 }
 .workspace-status-item {
   flex: 0 1 auto;
@@ -493,7 +491,7 @@ button:disabled {
   width: min(520px, calc(100vw - 32px));
   padding: 10px 12px;
   border: 1px solid var(--builder-border);
-  border-radius: 10px;
+  border-radius: 0;
   background: color-mix(in oklch, var(--popover) 96%, transparent);
   box-shadow: 0 20px 60px var(--builder-elevation);
   transform: translateX(-50%);
@@ -529,7 +527,7 @@ button:disabled {
 .workflow-canvas .react-flow__controls {
   overflow: hidden;
   border: 1px solid var(--builder-border);
-  border-radius: 9px;
+  border-radius: 0;
   box-shadow: none;
 }
 .workflow-canvas .react-flow__controls-button {
@@ -543,7 +541,7 @@ button:disabled {
 }
 .workflow-canvas .react-flow__minimap {
   border: 1px solid var(--builder-border);
-  border-radius: 9px;
+  border-radius: 0;
   background: var(--card);
 }
 .workflow-canvas .react-flow__edge-path {
@@ -1358,7 +1356,7 @@ button:disabled {
   gap: 8px;
   padding: 10px 11px;
   border: 1px solid color-mix(in oklch, var(--builder-info) 24%, var(--border));
-  border-radius: 8px;
+  border-radius: 0;
   color: var(--builder-info);
   background: color-mix(in oklch, var(--builder-info) 7%, transparent);
   font-size: 10px;
@@ -1387,7 +1385,7 @@ button:disabled {
   margin-bottom: 17px;
   padding: 16px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 0;
   background: color-mix(in oklch, var(--muted) 22%, transparent);
 }
 .schema-overview-grid {
@@ -1568,7 +1566,7 @@ button:disabled {
   gap: 10px;
   padding: 11px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   background: var(--card);
   cursor: pointer;
 }
@@ -1619,7 +1617,7 @@ button:disabled {
   gap: 3px 10px;
   padding: 9px;
   border: 1px solid var(--builder-border);
-  border-radius: 7px;
+  border-radius: 0;
 }
 .simulation-result > div > span {
   grid-row: 1 / 3;
@@ -1687,7 +1685,7 @@ button:disabled {
   height: auto;
   padding: 10px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   background: var(--card);
   text-align: left;
 }
@@ -1732,7 +1730,7 @@ button:disabled {
   gap: 5px;
   padding: 13px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   background: var(--card);
 }
 .operation-metric strong {
@@ -1795,7 +1793,7 @@ button:disabled {
 .operations-card {
   padding: 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   background: var(--card);
   color: var(--card-foreground);
 }
@@ -1836,7 +1834,7 @@ button:disabled {
 }
 .severity {
   padding: 3px 5px;
-  border-radius: 4px;
+  border-radius: 0;
   color: var(--builder-info);
   background: color-mix(in oklch, var(--builder-info) 10%, transparent);
   font-size: 8px;
@@ -1879,6 +1877,10 @@ button:disabled {
   grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
   align-items: end;
   gap: 9px;
+  min-height: 48px;
+  padding: 10px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--builder-surface);
 }
 .analytics-filterbar label,
 .journal-filterbar label,
@@ -1903,7 +1905,7 @@ button:disabled {
   height: 32px;
   width: 100%;
   border: 1px solid var(--input);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   background: var(--background);
   padding: 0 9px;
   color: var(--foreground);
@@ -1934,7 +1936,7 @@ button:disabled {
   min-height: 52px;
   padding: 8px 11px;
   border: 1px solid currentColor;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
 }
 .expectancy-result strong { font-size: 17px; }
 .expectancy-result span { font-size: 8px; color: var(--muted-foreground); }
@@ -2003,7 +2005,7 @@ button:disabled {
 .setup-preview select {
   min-height: 32px;
   border: 1px solid var(--input);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   background: var(--background);
   color: var(--foreground);
   padding: 0 9px;
@@ -2058,7 +2060,7 @@ button:disabled {
   width: fit-content;
   padding: 3px 6px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   color: var(--muted-foreground);
   font-size: 8px !important;
   text-transform: uppercase;
@@ -2095,7 +2097,7 @@ button:disabled {
   margin-top: 11px;
   padding: 8px;
   color: var(--destructive);
-  border-radius: 7px;
+  border-radius: 0;
   background: color-mix(in oklch, var(--destructive) 8%, transparent);
   font-size: 9px;
 }
@@ -2147,7 +2149,7 @@ button:disabled {
   padding: 0 7px;
   color: var(--muted-foreground);
   border: 1px solid var(--builder-border);
-  border-radius: 6px;
+  border-radius: 0;
   background: transparent;
   font-size: 8px;
   cursor: pointer;
@@ -2162,7 +2164,7 @@ button:disabled {
   margin-top: 10px;
   padding: 10px;
   border: 1px solid color-mix(in oklch, var(--builder-warning) 28%, var(--border));
-  border-radius: 8px;
+  border-radius: 0;
   background: color-mix(in oklch, var(--builder-warning) 6%, transparent);
 }
 .credential-replace p,
@@ -2199,7 +2201,7 @@ button:disabled {
 .journal-list article {
   padding: 11px;
   border: 1px solid var(--builder-border);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--builder-surface);
 }
 .journal-list article > div {
@@ -2221,7 +2223,7 @@ button:disabled {
   padding: 9px;
   color: var(--builder-green);
   border: 1px solid var(--builder-border);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--builder-surface-strong);
   font:
     9px/1.6 ui-monospace,
@@ -2242,7 +2244,7 @@ button:disabled {
   grid-template-columns: 1fr auto;
   padding: 0 10px;
   border: 1px solid var(--builder-border);
-  border-radius: 7px;
+  border-radius: 0;
   background: var(--builder-surface);
 }
 .backup-row > div {
@@ -2313,7 +2315,7 @@ button:disabled {
   min-height: 34px;
   color: var(--muted-foreground);
   border: 1px solid var(--builder-border);
-  border-radius: 7px;
+  border-radius: 0;
   background: var(--builder-surface);
   font-size: 9px;
   font-weight: 750;
@@ -2354,7 +2356,7 @@ button:disabled {
   text-align: left;
   color: var(--foreground);
   border: 1px solid var(--builder-border);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--builder-surface);
   cursor: pointer;
 }
@@ -2387,7 +2389,7 @@ button:disabled {
   margin: 0;
   padding: 10px;
   border: 1px solid var(--builder-border);
-  border-radius: 8px;
+  border-radius: 0;
 }
 .mcp-editor legend {
   padding: 0 5px;
@@ -2451,7 +2453,7 @@ button:disabled {
   padding: 0 7px;
   color: var(--builder-green);
   border: 1px solid var(--builder-border);
-  border-radius: 6px;
+  border-radius: 0;
   background: transparent;
   font-size: 8px;
   cursor: pointer;
@@ -2499,7 +2501,7 @@ button:disabled {
 }
 .system-form details {
   border: 1px solid var(--builder-border);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--builder-surface);
 }
 .system-form summary {
@@ -2543,7 +2545,7 @@ button:disabled {
   padding: 10px;
   color: var(--foreground);
   border: 1px solid color-mix(in oklch, var(--builder-warning) 30%, var(--border));
-  border-radius: 8px;
+  border-radius: 0;
   background: color-mix(in oklch, var(--builder-warning) 6%, transparent);
 }
 .one-time-inline code {
@@ -2617,7 +2619,10 @@ button:disabled {
   .workflow-navigation-list {
     gap: 8px;
   }
-  .workflow-navigation-list [data-slot="tabs-trigger"] {
+.workflow-navigation-list [data-slot="tabs-indicator"] {
+  z-index: 1;
+}
+.workflow-navigation-list [data-slot="tabs-trigger"] {
     min-width: 92px;
   }
   .workflow-statusbar {
@@ -2728,7 +2733,90 @@ button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .workflow-navigation-list [data-slot="tabs-trigger"]::after {
+  .workflow-navigation-list [data-slot="tabs-indicator"] {
     transition: none;
   }
 }
+
+/* â”€â”€ Polish layer: motion safety, numeric rhythm, scroll & selection â”€â”€ */
+
+@media (prefers-reduced-motion: reduce) {
+  .spin,
+  .builder-loading svg,
+  .workflow-node.connection-target,
+  [data-slot="tabs-indicator"],
+  .workflow-status-tools svg,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Live-updating numbers must not jitter the layout */
+.operation-metric strong,
+.workspace-last-updated,
+.workflow-statusbar strong,
+.gate-row strong,
+.system-line strong,
+.position-row span,
+.analytics-row td,
+.refresh-state span {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cross-browser scrollbars in the dark surface language */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 45%, transparent) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 0;
+  background-clip: padding-box;
+  background-color: color-mix(in oklch, var(--muted-foreground) 40%, transparent);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklch, var(--muted-foreground) 60%, transparent);
+}
+
+/* Selection in brand tone */
+::selection {
+  background: color-mix(in oklch, var(--chart-1) 32%, transparent);
+}
+
+/* Scannable rows: quiet hover tint, GPU-safe */
+.adaptive-row,
+.journal-list article,
+.backup-row,
+.event-row,
+.gate-row,
+.system-line,
+.proposal-row,
+.mcp-action {
+  transition: background-color 0.12s ease-out;
+}
+.adaptive-row:hover,
+.journal-list article:hover,
+.backup-row:hover,
+.event-row:hover,
+.system-line:hover,
+.proposal-row:hover,
+.mcp-action:hover {
+  background-color: color-mix(in oklch, var(--muted) 38%, transparent);
+}
+
+/* Empty states read as intentional slots, not missing UI */
+.operations-empty {
+  border: 1px dashed color-mix(in oklch, var(--border) 80%, var(--muted-foreground));
+  border-radius: 0;
+}
+

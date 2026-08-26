@@ -237,6 +237,8 @@ export type TradingSnapshot = {
   intents: Array<Record<string, unknown>>;
   activity: {
     positions: Array<Record<string, unknown>>;
+    orders: Array<Record<string, any>>;
+    paperMarkets: Array<Record<string, any>>;
     riskEvents: Array<Record<string, unknown>>;
     reconciliations: Array<Record<string, unknown>>;
   };

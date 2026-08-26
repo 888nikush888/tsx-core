@@ -15,7 +15,7 @@ export function safeRegexTest(regex: RegExp, text: string, timeoutMs = 100): boo
     vm.runInContext('result = regex.test(text)', sandbox, { timeout: timeoutMs });
     return sandbox.result;
   } catch (err: any) {
-    throw new Error(`Regex timeout oder Script-Fehler bei der Prüfung auf Duplikate: ${err.message}`, { cause: err });
+    throw new Error(`Regex timeout oder Ausführungsfehler bei der Musterprüfung: ${err.message}`, { cause: err });
   }
 }
 
@@ -67,8 +67,11 @@ class NestedQuantifierScanner {
 }
 
 /**
- * Checks if a pattern contains nested quantifiers or dangerous alternation structures
- * that might result in exponential backtracking (ReDoS).
+ * Checks if a pattern contains nested quantifiers (e.g. `(a+)+`) that might
+ * result in exponential backtracking (ReDoS).
+ *
+ * Scope note: alternation-based ReDoS (e.g. `(a|aa)+`) is NOT detected here;
+ * those cases are mitigated solely by the vm CPU timeout in safeRegexTest.
  */
 export function hasNestedQuantifiers(pattern: string): boolean {
   const scanner = new NestedQuantifierScanner();
@@ -105,6 +108,9 @@ export function parseRegex(patternStr: string): RegExp {
     flags = match[2]!;
   }
 
+  // g/y make test() stateful via lastIndex; cached instances must stay stateless.
+  flags = flags.replace(/[gy]/g, "");
+
   // Reject dangerous patterns
   if (hasNestedQuantifiers(pattern)) {
     throw new Error(`ReDoS warning: Nested quantifiers or dangerous structures detected: "${patternStr}"`);
@@ -117,9 +123,10 @@ export function parseRegex(patternStr: string): RegExp {
 
   try {
     const regex = new RegExp(pattern, flags);
-    // Eviction: Cache leeren wenn Limit überschritten, um Memory Leaks zu verhindern
+    // FIFO-Eviction statt Full-Clear: wiederholte Kompilierung vermeiden
     if (regexCache.size >= MAX_REGEX_CACHE_SIZE) {
-      regexCache.clear();
+      const oldest = regexCache.keys().next().value;
+      if (oldest !== undefined) regexCache.delete(oldest);
     }
     regexCache.set(trimmed, regex);
     return regex;

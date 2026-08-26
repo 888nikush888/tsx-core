@@ -33,6 +33,16 @@ export async function apiFetch(
   return response;
 }
 
+export async function jsonRequest(url: string, init?: RequestInit) {
+  const response = await apiFetch(url, init);
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok)
+    throw new Error(
+      payload.error || `Anfrage fehlgeschlagen (${response.status}).`,
+    );
+  return payload;
+}
+
 export function onDashboardAuthRequired(listener: () => void): () => void {
   window.addEventListener(AUTH_REQUIRED_EVENT, listener);
   return () => window.removeEventListener(AUTH_REQUIRED_EVENT, listener);

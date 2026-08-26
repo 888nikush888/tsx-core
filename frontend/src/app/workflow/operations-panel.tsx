@@ -13,7 +13,7 @@ import {
   ServerCog,
   Terminal,
 } from "lucide-react";
-import { apiFetch, clearDashboardToken, setDashboardToken } from "@/lib/api";
+import { apiFetch, clearDashboardToken, jsonRequest, setDashboardToken } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,16 +65,6 @@ const TABS: Array<{ id: OperationTab; label: string; description: string; icon: 
 
 const OPERATION_TABS = new Map(TABS.map((tab) => [tab.id, tab]));
 
-async function requestJson(url: string, init?: RequestInit) {
-  const response = await apiFetch(url, init);
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(
-      payload.error || `Anfrage fehlgeschlagen (${response.status}).`,
-    );
-  return payload;
-}
-
 function time(value: unknown): string {
   return typeof value === "number" && value > 0
     ? new Date(value).toLocaleString("de-DE")
@@ -95,27 +85,22 @@ function Overview({
   const [portfolio, setPortfolio] = useState<any>({ accounts: [] });
   const [signals, setSignals] = useState<any[]>([]);
   const [access, setAccess] = useState<any>(null);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const dashboardInFlight = useRef(false);
   const refreshDashboard = useCallback(async () => {
     if (dashboardInFlight.current) return;
     dashboardInFlight.current = true;
-    setDashboardLoading(true);
     try {
       const [portfolioPayload, signalPayload, accessPayload] = await Promise.all([
-        requestJson("/api/trading/portfolio"),
-        requestJson("/api/processed-signals"),
-        requestJson("/api/access"),
+        jsonRequest("/api/trading/portfolio"),
+        jsonRequest("/api/processed-signals"),
+        jsonRequest("/api/access"),
       ]);
       setPortfolio(portfolioPayload);
       setSignals(signalPayload.signals || []);
       setAccess(accessPayload);
-      setLastUpdated(Date.now());
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : String(reason));
     } finally {
-      setDashboardLoading(false);
       dashboardInFlight.current = false;
     }
   }, []);
@@ -166,7 +151,7 @@ function Overview({
     setBusy(key);
     setMessage("");
     try {
-      await requestJson(url, {
+      await jsonRequest(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -229,7 +214,7 @@ function Overview({
       confirmation: "FLATTEN MANAGED POSITIONS",
     });
   };
-  return (
+   return (
     <div className="operations-stack">
       {message && <div className="builder-error">{message}</div>}
       {openIncidents.length > 0 && (
@@ -241,10 +226,6 @@ function Overview({
           </div>
         </section>
       )}
-      <div className="operations-section-heading dashboard-heading">
-        <div><h3>Portfolio und Handel</h3><p>{lastUpdated ? `Zuletzt aktualisiert ${time(lastUpdated)}` : "Live-Daten werden geladen."}</p></div>
-        <Button type="button" variant="outline" size="sm" onClick={() => void refreshDashboard()}><RefreshCw className={dashboardLoading ? "spin" : ""} size={15} /> Aktualisieren</Button>
-      </div>
       <div className="operations-metrics portfolio-metrics">
         <Metric label="Portfolio-Eigenkapital" value={portfolioTotal("equity")} />
         <Metric label="Verfügbares Kapital" value={portfolioTotal("availableBalance")} />
@@ -252,20 +233,30 @@ function Overview({
         <Metric label="Unrealisierter PnL" value={portfolioTotal("unrealizedPnl")} />
       </div>
       <div className="operations-metrics">
-        <Metric label="Aktive Pfade" value={overview?.enabledRouteCount ?? 0} />
-        <Metric
-          label="Offene Positionen"
-          value={overview?.openPositionCount ?? 0}
-        />
-        <Metric
-          label="Wartende Intents"
-          value={overview?.pendingIntentCount ?? 0}
-        />
-        <Metric
-          label="Unklare Orders"
-          value={overview?.unknownOrderCount ?? 0}
-          danger={(overview?.unknownOrderCount ?? 0) > 0}
-        />
+        <div className="operation-metric">
+          <strong>{overview?.enabledRouteCount ?? 0}</strong><span>Aktive Pfade</span>
+        </div>
+        <div className={`operation-metric ${((overview?.unknownOrderCount ?? 0) > 0 ? "danger" : "")}`}>
+          <strong>{overview?.openPositionCount ?? 0}</strong><span>Offene Positionen</span>
+          {openPositions.slice(0, 5).map((p: any) => (
+            <small key={p.id} style={{ display: "block", marginTop: 4 }}>{p.symbol} · {p.side} — {p.status}</small>
+          ))}
+          {openPositions.length === 0 && <small style={{ color: "var(--muted-foreground)" }}>Keine Position</small>}
+        </div>
+        <div className="operation-metric">
+          <strong>{overview?.pendingIntentCount ?? 0}</strong><span>Wartende Intents</span>
+          {(trading?.intents || []).filter((i: any) => ["pending","planned","submitting"].includes(i.status)).slice(0,5).map((i: any) => (
+            <small key={i.id} style={{ display: "block", marginTop: 4 }}>{i.symbol || i.channelId} · {i.status}</small>
+          ))}
+          {(trading?.intents || []).filter((i: any) => ["pending","planned","submitting"].includes(i.status)).length === 0 && <small style={{ color: "var(--muted-foreground)" }}>Keine Intents</small>}
+        </div>
+        <div className={`operation-metric ${((overview?.unknownOrderCount ?? 0) > 0 ? "danger" : "")}`}>
+          <strong>{overview?.unknownOrderCount ?? 0}</strong><span>Unklare Orders</span>
+          {(trading?.activity.orders || []).filter((o: any) => o.status === "unknown").slice(0,5).map((o: any) => (
+            <small key={o.id} style={{ display: "block", marginTop: 4 }}>{o.symbol || o.intentId} · {o.status}</small>
+          ))}
+          {(trading?.activity.orders || []).filter((o: any) => o.status === "unknown").length === 0 && <small style={{ color: "var(--muted-foreground)" }}>Keine unklaren Orders</small>}
+        </div>
       </div>
       <section className="operations-card">
         <h3>Entscheidende Live-Gates</h3>
@@ -307,10 +298,10 @@ function Overview({
           <div className="position-row heading" role="row"><span>Position</span><span>Entry / Mark</span><span>SL</span><span>TPs</span><span>Hebel</span><span>PnL</span></div>
           {openPositions.map((position: any) => {
             const intent: any = intentById.get(position.intentId);
-            const orders = (trading?.activity as any)?.orders || [];
+            const orders = trading?.activity.orders || [];
             const relatedOrders = orders.filter((order: any) => order.intentId === position.intentId);
             const targets = relatedOrders.filter((order: any) => String(order.role).startsWith("take_profit")).map((order: any) => order.triggerPrice || order.price);
-            const paperMarket = (trading?.activity as any)?.paperMarkets?.find((market: any) => market.accountId === position.accountId && market.symbol === position.symbol);
+            const paperMarket = trading?.activity.paperMarkets?.find((market: any) => market.accountId === position.accountId && market.symbol === position.symbol);
             return <div className="position-row" role="row" key={position.id}>
               <strong>{position.symbol} · {position.side}<small>{accountById.get(position.accountId)?.name || position.accountId}</small></strong>
               <span>{position.averageEntryPrice || "–"} / {paperMarket?.markPrice || intent?.plan?.markPrice || "–"}</span>
@@ -326,12 +317,12 @@ function Overview({
       <div className="dashboard-grid">
         <section className="operations-card">
           <h3>Aktuelle Signale</h3>
-          {signals.slice(0, 10).map((signal: any) => <div className="adaptive-row" key={signal.id}><div><strong>{signal.channel_id || signal.channelId || "Kanal"}</strong><small>{time(signal.created_at || signal.createdAt)} · {signal.template_name || signal.templateName || "Signal"}</small></div><span className="state-badge">{signal.status || "verarbeitet"}</span></div>)}
+          {signals.slice(0, 5).map((signal: any) => <div className="adaptive-row" key={signal.id}><div><strong>{signal.channel_id || signal.channelId || "Kanal"}</strong><small>{time(signal.created_at || signal.createdAt)} · {signal.template_name || signal.templateName || "Signal"}</small></div><span className="state-badge">{signal.status || "verarbeitet"}</span></div>)}
           {signals.length === 0 && <Empty text="Noch keine verarbeiteten Signale." />}
         </section>
         <section className="operations-card">
           <h3>Offene Intents</h3>
-          {(trading?.intents || []).filter((intent: any) => ["pending", "planned", "submitting", "monitoring", "unknown"].includes(intent.status)).slice(0, 10).map((intent: any) => <div className="adaptive-row" key={intent.id}><div><strong>{intent.symbol} · {intent.side}</strong><small>{intent.channelId} → {accountById.get(intent.accountId)?.name || intent.accountId}</small></div><span className={`state-badge ${intent.status === "unknown" ? "danger" : ""}`}>{intent.status}</span></div>)}
+          {(trading?.intents || []).filter((intent: any) => ["pending", "planned", "submitting", "monitoring", "unknown"].includes(intent.status)).slice(0, 5).map((intent: any) => <div className="adaptive-row" key={intent.id}><div><strong>{intent.symbol} · {intent.side}</strong><small>{intent.channelId} → {accountById.get(intent.accountId)?.name || intent.accountId}</small></div><span className={`state-badge ${intent.status === "unknown" ? "danger" : ""}`}>{intent.status}</span></div>)}
           {!(trading?.intents || []).some((intent: any) => ["pending", "planned", "submitting", "monitoring", "unknown"].includes(intent.status)) && <Empty text="Keine offenen Intents." />}
         </section>
       </div>
@@ -520,7 +511,7 @@ function Accounts({
     setBusy(account.id);
     setMessage("");
     try {
-      await requestJson("/api/trading/accounts/configuration", {
+      await jsonRequest("/api/trading/accounts/configuration", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: account.id, ...change }),
@@ -543,7 +534,7 @@ function Accounts({
     setBusy(releaseTarget.id);
     setMessage("");
     try {
-      await requestJson("/api/trading/accounts/kill-switch/release", {
+      await jsonRequest("/api/trading/accounts/kill-switch/release", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -599,7 +590,7 @@ function Accounts({
                   { id: account.id },
                   "DELETE",
                 ] as const);
-      await requestJson(request[0], {
+      await jsonRequest(request[0], {
         method: request[2],
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request[1]),
@@ -620,7 +611,7 @@ function Accounts({
     setBusy(account.id);
     setMessage("");
     try {
-      await requestJson("/api/trading/accounts/credentials", {
+      await jsonRequest("/api/trading/accounts/credentials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: account.id, credentials: replacement }),
@@ -639,7 +630,7 @@ function Accounts({
     setBusy("create");
     setMessage("");
     try {
-      await requestJson("/api/trading/accounts", {
+      await jsonRequest("/api/trading/accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -1046,7 +1037,10 @@ function Journal({
     if (filters.to) params.set("to", String(new Date(`${filters.to}T23:59:59.999`).getTime()));
     if (filters.channelId) params.set("channelId", filters.channelId);
     if (filters.accountId) params.set("accountId", filters.accountId);
-    if (filters.symbol) params.set("symbol", filters.symbol.trim().toUpperCase());
+    if (filters.symbol) {
+      const normalizedSymbol = filters.symbol.trim().toUpperCase().replace(/\//g, "");
+      if (normalizedSymbol) params.set("symbol", normalizedSymbol);
+    }
     if (filters.status) params.set("status", filters.status);
     return params.toString();
   }, [filters]);
@@ -1056,7 +1050,7 @@ function Journal({
     setLoading(true);
     setError("");
     try {
-      const payload = await requestJson(`/api/trading/journal?${query}`);
+      const payload = await jsonRequest(`/api/trading/journal?${query}`);
       setEntries(payload.entries || []);
       setLastUpdated(Date.now());
     } catch (reason) {
@@ -1076,20 +1070,29 @@ function Journal({
     try {
       const response = await apiFetch(`/api/trading/journal/export?${query}&format=${format}`);
       if (!response.ok) throw new Error(`Export fehlgeschlagen (${response.status}).`);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const disposition = response.headers.get("Content-Disposition") || "";
+      const headerName = /filename="?([^";]+)"?/i.exec(disposition)?.[1];
+      const fallbackName = `tsx-core-trade-journal-${new Date().toISOString().slice(0, 10)}.${format}`;
+      const filename = headerName && /\.[a-z]+$/i.test(headerName) ? headerName : fallbackName;
+      const mime = format === "csv" ? "text/csv;charset=utf-8" : "application/json;charset=utf-8";
+      const typedBlob = new Blob([await response.blob()], { type: mime });
+      const url = URL.createObjectURL(typedBlob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `tsx-core-trade-journal-${new Date().toISOString().slice(0, 10)}.${format}`;
+      anchor.download = filename;
+      anchor.type = mime;
+      anchor.rel = "noopener";
+      document.body.appendChild(anchor);
       anchor.click();
-      URL.revokeObjectURL(url);
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
     }
   };
   const acknowledgeRisk = async (id: unknown) => {
     try {
-      await requestJson("/api/trading/risk/acknowledge", {
+      await jsonRequest("/api/trading/risk/acknowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
@@ -1118,7 +1121,7 @@ function Journal({
         <label><span>Bis</span><Input type="date" value={filters.to} onChange={(event) => setFilters((value) => ({ ...value, to: event.target.value }))} /></label>
         <label><span>Kanal</span><select value={filters.channelId} onChange={(event) => setFilters((value) => ({ ...value, channelId: event.target.value }))}><option value="">Alle Kanäle</option>{channels.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
         <label><span>Konto</span><select value={filters.accountId} onChange={(event) => setFilters((value) => ({ ...value, accountId: event.target.value }))}><option value="">Alle Konten</option>{(trading?.accounts || []).map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
-        <label><span>Symbol</span><Input value={filters.symbol} onChange={(event) => setFilters((value) => ({ ...value, symbol: event.target.value }))} placeholder="BTC/USDT" /></label>
+        <label><span>Symbol</span><Input value={filters.symbol} onChange={(event) => setFilters((value) => ({ ...value, symbol: event.target.value }))} placeholder="BTCUSDT" /></label>
         <label><span>Status</span><select value={filters.status} onChange={(event) => setFilters((value) => ({ ...value, status: event.target.value }))}><option value="">Alle Status</option><option value="completed">Abgeschlossen</option><option value="blocked">Blockiert</option><option value="failed">Fehlgeschlagen</option><option value="open">Offen</option></select></label>
       </section>
       {error && <div className="builder-error">{error}</div>}
@@ -1177,7 +1180,7 @@ function duration(value: unknown): string {
 
 type AnalyticsRange = "24h" | "7d" | "30d" | "90d" | "all" | "custom";
 
-function Analytics({ trading }: { trading: TradingSnapshot | null }) {
+function Analytics({ trading, filtersOpen }: { trading: TradingSnapshot | null; filtersOpen?: boolean }) {
   const [range, setRange] = useState<AnalyticsRange>("30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customUntil, setCustomUntil] = useState("");
@@ -1187,9 +1190,7 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
   const [mode, setMode] = useState("");
   const [status, setStatus] = useState("");
   const [analytics, setAnalytics] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [expectancy, setExpectancy] = useState({
     winRate: "50",
     averageWin: "2",
@@ -1225,7 +1226,6 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
   }, [accountId, channelId, customFrom, customUntil, exchange, mode, range, status]);
   const load = useCallback(async () => {
     if (range === "custom" && (!customFrom || !customUntil)) {
-      setLoading(false);
       return;
     }
     currentQuery.current = query;
@@ -1234,14 +1234,12 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
       return;
     }
     inFlight.current = true;
-    setLoading(true);
     setError("");
     const requestedQuery = query;
     try {
-      const payload = await requestJson(`/api/trading/analytics?${requestedQuery}`);
+      const payload = await jsonRequest(`/api/trading/analytics?${requestedQuery}`);
       if (currentQuery.current === requestedQuery) {
         setAnalytics(payload);
-        setLastUpdated(payload.generatedAt || Date.now());
       }
     } catch (reason) {
       if (currentQuery.current === requestedQuery) {
@@ -1249,7 +1247,6 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
       }
     } finally {
       inFlight.current = false;
-      setLoading(false);
       if (rerun.current) {
         rerun.current = false;
         void load();
@@ -1292,19 +1289,8 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
   );
   return (
     <div className="operations-stack">
-      <div className="operations-section-heading">
-        <div>
-          <h3>Trading-Analyse</h3>
-          <p>
-            Kanal-, Konto- und Ausführungsleistung aus persistierten Messwerten.
-          </p>
-        </div>
-        <div className="refresh-state" aria-live="polite">
-          <RefreshCw className={loading ? "spin" : ""} size={15} />
-          <span>{lastUpdated ? `aktualisiert ${time(lastUpdated)}` : "wird geladen"}</span>
-        </div>
-      </div>
-      <section className="operations-card analytics-filterbar" aria-label="Analysefilter">
+      {filtersOpen && (
+        <section className="operations-card analytics-filterbar" aria-label="Analysefilter">
         <label>
           <span>Zeitraum</span>
           <select value={range} onChange={(event) => setRange(event.target.value as AnalyticsRange)}>
@@ -1328,6 +1314,7 @@ function Analytics({ trading }: { trading: TradingSnapshot | null }) {
         <label><span>Modus</span><select value={mode} onChange={(event) => setMode(event.target.value)}><option value="">Alle Modi</option><option value="paper">Paper</option><option value="testnet">Testnet</option><option value="live">Live</option></select></label>
         <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Alle Status</option><option value="completed">Abgeschlossen</option><option value="blocked">Blockiert</option><option value="failed">Fehlgeschlagen</option><option value="open">Offen</option></select></label>
       </section>
+      )}
       {error && <div className="builder-error">{error}</div>}
       <div className="operations-metrics">
         <Metric label="Realisierter PnL" value={metricNumber(totalPnl)} />
@@ -1533,7 +1520,7 @@ function Logs() {
     let alive = true;
     const poll = async () => {
       try {
-        const payload = await requestJson(
+        const payload = await jsonRequest(
           `/api/logs?after=${cursor.current}&limit=1000`,
         );
         if (!alive) return;
@@ -1621,7 +1608,7 @@ function Backups() {
   const [offsiteObject, setOffsiteObject] = useState("");
   const load = useCallback(
     () =>
-      requestJson("/api/backups")
+      jsonRequest("/api/backups")
         .then((payload) => setBackups(payload.backups || []))
         .catch((reason) => setMessage(reason.message)),
     [],
@@ -1632,7 +1619,7 @@ function Backups() {
   const create = async () => {
     setBusy(true);
     try {
-      const result = await requestJson("/api/operations/backup", {
+      const result = await jsonRequest("/api/operations/backup", {
         method: "POST",
       });
       setMessage(`Verifiziertes Backup erstellt: ${result.artifact}`);
@@ -1646,7 +1633,7 @@ function Backups() {
   const verify = async (name: string) => {
     setBusy(true);
     try {
-      await requestJson(`/api/backups/verify?name=${encodeURIComponent(name)}`);
+      await jsonRequest(`/api/backups/verify?name=${encodeURIComponent(name)}`);
       setMessage(`${name} ist vollständig und lesbar.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
@@ -1663,7 +1650,7 @@ function Backups() {
       return;
     setBusy(true);
     try {
-      await requestJson("/api/backups/restore", {
+      await jsonRequest("/api/backups/restore", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1692,7 +1679,7 @@ function Backups() {
       return;
     setBusy(true);
     try {
-      const payload = await requestJson("/api/backups/recover-offsite", {
+      const payload = await jsonRequest("/api/backups/recover-offsite", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1786,7 +1773,7 @@ function Mcp() {
   });
   const load = useCallback(async () => {
     try {
-      setSnapshot(await requestJson("/api/mcp"));
+      setSnapshot(await jsonRequest("/api/mcp"));
       setError("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -1818,7 +1805,7 @@ function Mcp() {
     setBusy(key);
     setError("");
     try {
-      const result = await requestJson(url, {
+      const result = await jsonRequest(url, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -2199,12 +2186,12 @@ function System({
   const load = useCallback(async () => {
     const [configuration, runtimePayload, secretPayload, recoveryPayload, operationsPayload, accessPayload] =
       await Promise.all([
-        requestJson("/api/config"),
-        requestJson("/api/runtime-settings"),
-        requestJson("/api/secrets"),
-        requestJson("/api/recovery"),
-        requestJson("/api/operations"),
-        requestJson("/api/access"),
+        jsonRequest("/api/config"),
+        jsonRequest("/api/runtime-settings"),
+        jsonRequest("/api/secrets"),
+        jsonRequest("/api/recovery"),
+        jsonRequest("/api/operations"),
+        jsonRequest("/api/access"),
       ]);
     setConfig(configuration);
     setRuntime(runtimePayload.settings);
@@ -2242,7 +2229,7 @@ function System({
     await execute(
       "core",
       async () => {
-        await requestJson("/api/config", {
+        await jsonRequest("/api/config", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2265,7 +2252,7 @@ function System({
           }),
         });
         if (Object.keys(secretUpdates).length)
-          await requestJson("/api/secrets", {
+          await jsonRequest("/api/secrets", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(secretUpdates),
@@ -2279,7 +2266,7 @@ function System({
     await execute(
       "runtime",
       async () => {
-        const payload = await requestJson("/api/runtime-settings", {
+        const payload = await jsonRequest("/api/runtime-settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(runtime),
@@ -2293,7 +2280,7 @@ function System({
     await execute(
       `routing-${action}`,
       () =>
-        requestJson("/api/control", {
+        jsonRequest("/api/control", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
@@ -2309,7 +2296,7 @@ function System({
     await execute(
       "telegram-login",
       () =>
-        requestJson("/api/telegram-login", {
+        jsonRequest("/api/telegram-login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -2329,7 +2316,7 @@ function System({
     const result = await execute(
       `token-${role}`,
       () =>
-        requestJson("/api/access-tokens", {
+        jsonRequest("/api/access-tokens", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ role }),
@@ -2351,7 +2338,7 @@ function System({
     const result = await execute(
       "restart",
       () =>
-        requestJson("/api/restart", {
+        jsonRequest("/api/restart", {
           method: "POST",
           headers: { "X-Destructive-Confirmation": "restart-service" },
         }),
@@ -2368,7 +2355,7 @@ function System({
     if (!window.confirm("Viewer-Key widerrufen und bestehende Viewer-Anmeldungen ungültig machen?")) return;
     await execute(
       "viewer-revoke",
-      () => requestJson("/api/access-tokens/viewer", {
+      () => jsonRequest("/api/access-tokens/viewer", {
         method: "DELETE",
         headers: { "X-Destructive-Confirmation": "disable-viewer-token" },
       }),
@@ -2378,7 +2365,7 @@ function System({
   const replayAudit = async () => {
     await execute(
       "audit-replay",
-      () => requestJson("/api/operations/audit-replay", {
+      () => jsonRequest("/api/operations/audit-replay", {
         method: "POST",
         headers: { "X-Destructive-Confirmation": "replay-audit" },
       }),
@@ -2413,7 +2400,7 @@ function System({
     try {
       if (file.size > 4 * 1024 * 1024) throw new Error("Setup-Bundle ist größer als 4 MB.");
       const bundle = JSON.parse(await file.text());
-      const preview = await requestJson("/api/setup-bundle/preview", {
+      const preview = await jsonRequest("/api/setup-bundle/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bundle }),
@@ -2432,7 +2419,7 @@ function System({
     if (!setupPreview) return;
     const result = await execute(
       "setup-apply",
-      () => requestJson("/api/setup-bundle/apply", {
+      () => jsonRequest("/api/setup-bundle/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2454,7 +2441,7 @@ function System({
     if (dangerConfirmation !== expected) return;
     const result = await execute(
       `danger-${kind}`,
-      () => requestJson(kind === "clear" ? "/api/clear-database" : "/api/factory-reset", {
+      () => jsonRequest(kind === "clear" ? "/api/clear-database" : "/api/factory-reset", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -3051,6 +3038,7 @@ type OperationsWorkspaceProps = {
   ariaLabel?: string;
   title?: string;
   description?: string;
+  filtersOpen?: boolean;
 };
 
 export function OperationsWorkspace({
@@ -3063,6 +3051,7 @@ export function OperationsWorkspace({
   ariaLabel = "Betrieb",
   title,
   description,
+  filtersOpen,
 }: Readonly<OperationsWorkspaceProps>) {
   const [tab, setTab] = useState<OperationTab>(initialTab);
   useEffect(() => {
@@ -3082,7 +3071,7 @@ export function OperationsWorkspace({
         <Accounts trading={trading} catalog={catalog} onRefresh={onRefresh} />
       );
     if (tab === "journal") return <Journal trading={trading} onRefresh={onRefresh} />;
-    if (tab === "analytics") return <Analytics trading={trading} />;
+    if (tab === "analytics") return <Analytics trading={trading} filtersOpen={filtersOpen} />;
     if (tab === "logs") return <Logs />;
     if (tab === "backups") return <Backups />;
     if (tab === "mcp") return <Mcp />;
@@ -3093,7 +3082,7 @@ export function OperationsWorkspace({
         onRefresh={onRefresh}
       />
     );
-  }, [catalog, onRefresh, systemStatus, tab, trading]);
+  }, [catalog, filtersOpen, onRefresh, systemStatus, tab, trading]);
 
   return (
     <section className="operations-workspace" aria-label={ariaLabel}>

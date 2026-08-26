@@ -1307,7 +1307,7 @@ export async function createMcpProposal(input: {
   });
 }
 
-export async function expireMcpProposals(now = Date.now()): Promise<number> {
+async function expireMcpProposals(now = Date.now()): Promise<number> {
   const result = await getDatabase().run(
     `UPDATE mcp_agent_proposals
      SET status = 'expired', error = 'Approval window expired.'

@@ -260,12 +260,28 @@ async function testRuntimeSettingsAndDrain() {
   console.log("\nALL CONCURRENCY QUEUE UNIT TESTS PASSED!");
 }
 
+async function testHostileSettingsInput() {
+  console.log("9. Testing hostile updateSettings input...");
+  const hostileQueue = new ConcurrencyQueue(1, 1000);
+  hostileQueue.updateSettings(Number.NaN, Number.NaN);
+  assert.strictEqual(hostileQueue.maxConcurrency, 1, "NaN concurrency must not be applied");
+  assert.strictEqual(hostileQueue.timeoutMs, 1000, "NaN timeout must not disable the task timeout");
+  let timedOut = false;
+  const slow = hostileQueue.add(async () => { await new Promise(r => setTimeout(r, 5000)); });
+  slow.catch(() => {});
+  await new Promise(r => setTimeout(r, 1300));
+  try { await slow; } catch (err) { timedOut = /timed out/.test(err.message); }
+  assert.strictEqual(timedOut, true, "Timeout must still fire after hostile settings input");
+  console.log("   -> OK");
+}
+
 async function runTests() {
   console.log("=== Running ConcurrencyQueue Unit Tests ===");
   await testConcurrencyLimits();
   await testErrorsAndTimeouts();
   await testPauseAndAbortPropagation();
   await testRuntimeSettingsAndDrain();
+  await testHostileSettingsInput();
 }
 
 await runTests().catch(err => {

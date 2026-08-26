@@ -1412,7 +1412,7 @@ async function copyDatabase(database: Database, destinationPath: string): Promis
   });
 }
 
-export async function verifyDatabaseIntegrity(databasePath: string): Promise<void> {
+async function verifyDatabaseIntegrity(databasePath: string): Promise<void> {
   const inspection = await open({
     filename: path.resolve(databasePath),
     driver: sqlite3.Database,
@@ -2348,7 +2348,26 @@ export async function deleteIncomingMessage(id: number): Promise<void> {
   await database.run(`DELETE FROM incoming_messages WHERE id = ?`, [id]);
 }
 
+export class SignalReferencedError extends Error {
+  constructor() {
+    super('Signal cannot be deleted because trading history still references it.');
+    this.name = 'SignalReferencedError';
+  }
+}
+
+function isForeignKeyConstraint(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: string; message?: string };
+  if (candidate.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') return true;
+  return /foreign key/i.test(String(candidate.message || ''));
+}
+
 export async function deleteProcessedSignal(id: string): Promise<void> {
   const database = getDb();
-  await database.run(`DELETE FROM signals WHERE id = ?`, [id]);
+  try {
+    await database.run(`DELETE FROM signals WHERE id = ?`, [id]);
+  } catch (error) {
+    if (isForeignKeyConstraint(error)) throw new SignalReferencedError();
+    throw error;
+  }
 }

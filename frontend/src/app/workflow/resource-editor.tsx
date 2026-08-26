@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { AlertTriangle, Archive, Check, Plus, Trash2 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { jsonRequest } from "@/lib/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,16 +49,6 @@ type ResourceEditorProps = Readonly<{
   onArchiveResource?: () => Promise<void>;
   onConfigureAccount?: (accountId: string, maximum: number) => Promise<void>;
 }>;
-
-async function requestJson(url: string, init?: RequestInit) {
-  const response = await apiFetch(url, init);
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(
-      payload.error || `Anfrage fehlgeschlagen (${response.status}).`,
-    );
-  return payload;
-}
 
 function lines(value: unknown): string {
   return Array.isArray(value) ? value.join("\n") : "";
@@ -105,7 +95,7 @@ async function publishStrategyDraft(
   );
   if (!selected)
     throw new Error("Die gewählte Strategieversion existiert nicht mehr.");
-  const draft = await requestJson("/api/trading/strategies", {
+  const draft = await jsonRequest("/api/trading/strategies", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -115,7 +105,7 @@ async function publishStrategyDraft(
       configuration: strategyDraft,
     }),
   });
-  const published = await requestJson("/api/trading/strategies/publish", {
+  const published = await jsonRequest("/api/trading/strategies/publish", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: draft.result.id }),
@@ -138,12 +128,12 @@ async function publishContractDraft(
   );
   if (!parent || !source)
     throw new Error("Die gewählte Vertragsversion existiert nicht mehr.");
-  const draft = await requestJson("/api/trading/signal-contracts/versions", {
+  const draft = await jsonRequest("/api/trading/signal-contracts/versions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ contractId: parent.id, sourceVersionId: source.id }),
   });
-  await requestJson("/api/trading/signal-contracts/update", {
+  await jsonRequest("/api/trading/signal-contracts/update", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -154,7 +144,7 @@ async function publishContractDraft(
       definition: contractDraft,
     }),
   });
-  const published = await requestJson("/api/trading/signal-contracts/publish", {
+  const published = await jsonRequest("/api/trading/signal-contracts/publish", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ versionId: draft.result.id }),
@@ -172,7 +162,7 @@ async function createSchemaDraft(
       "Änderungen an einem verwendeten Signal-Schema benötigen eine neue eindeutige Schema-ID.",
     );
   }
-  const created = await requestJson("/api/trading/signal-schemas", {
+  const created = await jsonRequest("/api/trading/signal-schemas", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1262,7 +1252,7 @@ export function ResourceEditor({
       setSchemaDraft(signalSchemaDraft(selected));
     } else setSchemaDraft(null);
     if (kind === "parser" || kind === "schema") {
-      void requestJson("/api/templates")
+      void jsonRequest("/api/templates")
         .then((payload) => {
           const loaded = payload.templates || {};
           setTemplates(loaded);

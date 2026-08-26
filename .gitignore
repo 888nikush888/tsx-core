@@ -26,3 +26,6 @@ secrets/
 *.tsbuildinfo
 __pycache__/
 *.pyc
+
+.projectatlas/
+opencode.json

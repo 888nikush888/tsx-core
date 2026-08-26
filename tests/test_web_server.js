@@ -3,7 +3,7 @@ import { once } from 'events';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import { closeDb, initDb } from '../src/db.js';
+import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
 import { authenticateMcpToken, createMcpProposal } from '../src/mcp_repository.js';
 import { startWebServer, stopWebServer } from '../src/web_server.js';
 import { ManagedSecretStore } from '../src/secret_store.js';
@@ -505,6 +505,19 @@ async function testRequestValidation(baseUrl) {
     method: 'DELETE', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'delete-processed-signal' })
   });
   assert.strictEqual(response.status, 200);
+  await saveSignal('referenced-signal', '-1001', 1, '<signal/>', '<signal/>');
+  await getDatabase().run(
+    `INSERT INTO workflow_signal_runs (id, source_signal_id, channel_id, status, input_sha256, created_at)
+     VALUES (?, ?, ?, 'completed', ?, ?)`,
+    ['run-referenced', 'referenced-signal', '-1001', 'a'.repeat(64), Date.now()]
+  );
+  response = await fetch(`${baseUrl}/api/processed-signals?id=referenced-signal`, {
+    method: 'DELETE', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'delete-processed-signal' })
+  });
+  assert.strictEqual(response.status, 409, 'Referenced signals must fail closed instead of leaking SQLite errors');
+  assert.match((await response.json()).error, /trading history still references/i);
+  await getDatabase().run('DELETE FROM workflow_signal_runs WHERE id = ?', ['run-referenced']);
+  await getDatabase().run('DELETE FROM signals WHERE id = ?', ['referenced-signal']);
 }
 
 async function testTradingStrategyDeletion(baseUrl, appState) {

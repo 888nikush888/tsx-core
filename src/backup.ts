@@ -288,7 +288,7 @@ async function verifyStrategyConfigurationHashes(database: Database): Promise<vo
   }
 }
 
-export async function verifySqliteDatabase(databasePath: string): Promise<void> {
+async function verifySqliteDatabase(databasePath: string): Promise<void> {
   const database = await open({
     filename: path.resolve(databasePath),
     driver: sqlite3.Database,

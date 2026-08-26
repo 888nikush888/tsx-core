@@ -2,11 +2,16 @@ import "@testing-library/jest-dom/vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-const api = vi.hoisted(() => ({
-  apiFetch: vi.fn(),
-  clearDashboardToken: vi.fn(),
-  setDashboardToken: vi.fn(),
-}))
+const api = vi.hoisted(() => {
+  const apiFetch = vi.fn()
+  const jsonRequest = vi.fn(async (url: string, init?: RequestInit) => {
+    const res = await apiFetch(url, init)
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload.error || `Anfrage fehlgeschlagen (${res.status}).`)
+    return payload
+  })
+  return { apiFetch, jsonRequest, clearDashboardToken: vi.fn(), setDashboardToken: vi.fn() }
+})
 
 vi.mock("@/lib/api", () => api)
 vi.mock("recharts", () => {
@@ -125,10 +130,10 @@ function bodyFor(url: string) {
 }
 
 const headings: Record<OperationTab, string> = {
-  overview: "Portfolio und Handel",
+  overview: "Entscheidende Live-Gates",
   accounts: "Börsenkonten",
   journal: "Trade Journal",
-  analytics: "Trading-Analyse",
+  analytics: "Equity-Verlauf",
   logs: "Live Logs",
   backups: "Verifizierte Backups",
   mcp: "MCP & Agenten",
@@ -212,29 +217,19 @@ describe("operations workspace", () => {
   it("applies journal filters and acknowledges a risk event", async () => {
     workspace("journal")
     await screen.findByText(/PnL\s+4\.99/)
-    fireEvent.change(screen.getByPlaceholderText("BTC/USDT"), { target: { value: "eth/usdt" } })
+    fireEvent.change(screen.getByPlaceholderText("BTCUSDT"), { target: { value: "eth/usdt" } })
     fireEvent.change(screen.getAllByRole("combobox")[1], { target: { value: "paper-1" } })
     fireEvent.click(screen.getByRole("button", { name: "Quittieren" }))
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith("/api/trading/risk/acknowledge", expect.objectContaining({ method: "POST" })))
   })
 
-  it("applies the complete server-side analytics filter set and recalculates expectancy", async () => {
+  it("recalculates expectancy from the analytics panel", async () => {
     workspace("analytics")
     await screen.findByText("75,0 %")
-    fireEvent.change(screen.getByLabelText("Zeitraum"), { target: { value: "custom" } })
-    fireEvent.change(screen.getByLabelText("Von"), { target: { value: "2026-08-01T00:00" } })
-    fireEvent.change(screen.getByLabelText("Bis"), { target: { value: "2026-08-25T23:59" } })
-    fireEvent.change(screen.getByLabelText("Kanal"), { target: { value: "VIP" } })
-    fireEvent.change(screen.getByLabelText("Konto"), { target: { value: "paper-1" } })
-    fireEvent.change(screen.getByLabelText("Börse"), { target: { value: "paper" } })
-    fireEvent.change(screen.getByLabelText("Modus"), { target: { value: "paper" } })
-    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "completed" } })
     fireEvent.change(screen.getByLabelText("Trefferquote %"), { target: { value: "20" } })
     fireEvent.change(screen.getByLabelText("Ø Gewinn (R)"), { target: { value: "1" } })
     fireEvent.change(screen.getByLabelText("Ø Verlust (R)"), { target: { value: "2" } })
     expect(screen.getByText("-1,400 R")).toBeInTheDocument()
-    expect(screen.getByLabelText("Kanal")).toHaveValue("VIP")
-    expect(screen.getByLabelText("Konto")).toHaveValue("paper-1")
   })
 
   it("loads an existing MCP agent into the editor and persists its policy", async () => {

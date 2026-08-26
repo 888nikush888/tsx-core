@@ -66,7 +66,6 @@ import {
 } from './workflow_repository.js';
 import type {
   ExchangeOpenState,
-  StrategyConfiguration,
   TradingAccount,
   TradingAccountMode,
   TradingExchange,
@@ -807,5 +806,3 @@ export class TradingWebControl {
     }
   }
 }
-
-export type TradingStrategyConfigurationInput = StrategyConfiguration;
