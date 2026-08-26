@@ -4,6 +4,19 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-08-26
+
+### Fixed
+
+- Workflow-Operationen korrigiert: Overview-Zugriff bereinigt, Journalsymbole normalisiert (BTC/USDT), Regex-Flags (g/y) gestrippt und Cache auf FIFO umgestellt, ReDoS-Dokumentation präzisiert, Queue-Timeout nur bei aktivem XML-Parsing erhöht sowie NaN/Infinity-Validierung im Queue-Settings.
+- Build- und CI-Härtung: UTF-8-BOM aus Paketmanifesten entfernt, Reduced-Motion-Transitions auf 0s gestellt für a11y-Testvertrag, Lockfiles auf 3.2.0 synchronisiert.
+
+### Changed
+
+- Unerreichter Code entfernt (TradingOrderStatus/PositionStatus, TradingStrategyConfigurationInput), zentrale `jsonRequest`-Kapselung, einheitliche Dashboard-Karten (5 Einträge).
+- UI-Polish: kantiges Design (--radius 0), Tab-Indicator-Slide über Base UI Indicator, Motion-Safety, Tabular-Nums und Scrollbar/Selection-Konsistenz.
+- Dokumentation gestrafft: README gekürzt, SECURITY 3.x, QUALITY_OS korrigiert, Designsystem in frontend/DESIGN.md extrahiert.
+
 ## [3.1.1] - 2026-08-26
 
 ### Fixed
