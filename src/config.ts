@@ -353,7 +353,7 @@ function normalizeXmlParsing(cfg: Record<string, any>): void {
   normalizeAiLimits(cfg.xmlParsing);
 }
 
-function ensureQueueCoversParserTimeout(cfg: Record<string, any>): void {
+export function ensureQueueCoversParserTimeout(cfg: Record<string, any>): void {
   if (!isRecord(cfg.forwardOptions) || !isRecord(cfg.xmlParsing?.aiLimits)) return;
   if (cfg.xmlParsing.enabled !== true) return;
   const parserMs = Number(cfg.xmlParsing.aiLimits.requestTimeoutMs);

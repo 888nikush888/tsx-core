@@ -61,6 +61,7 @@ const allTests = [
   'test_supply_chain.js',
   'test_repository_governance.js',
   'test_sonarcloud_export.js',
+  'test_coverage_perfektion.js',
   'test_architecture.js',
   'test_risk_acceptances.js',
   'test_frontend_quality.js',

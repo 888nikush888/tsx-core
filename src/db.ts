@@ -2355,7 +2355,7 @@ export class SignalReferencedError extends Error {
   }
 }
 
-function isForeignKeyConstraint(error: unknown): boolean {
+export function isForeignKeyConstraint(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const candidate = error as { code?: string; message?: string };
   if (candidate.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') return true;
