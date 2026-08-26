@@ -75,6 +75,27 @@ export function normalizeJournalSymbol(symbol: string): string {
   return symbol.trim().toUpperCase().replace(/\//g, "");
 }
 
+export function buildJournalQueryString(filters: {
+  from: string;
+  to: string;
+  channelId: string;
+  accountId: string;
+  symbol: string;
+  status: string;
+}): string {
+  const params = new URLSearchParams({ limit: "500" });
+  if (filters.from) params.set("from", String(new Date(`${filters.from}T00:00:00`).getTime()));
+  if (filters.to) params.set("to", String(new Date(`${filters.to}T23:59:59.999`).getTime()));
+  if (filters.channelId) params.set("channelId", filters.channelId);
+  if (filters.accountId) params.set("accountId", filters.accountId);
+  if (filters.symbol) {
+    const normalizedSymbol = normalizeJournalSymbol(filters.symbol);
+    if (normalizedSymbol) params.set("symbol", normalizedSymbol);
+  }
+  if (filters.status) params.set("status", filters.status);
+  return params.toString();
+}
+
 function Overview({
   trading,
   systemStatus,
@@ -1035,19 +1056,7 @@ function Journal({
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [filters, setFilters] = useState({ from: "", to: "", channelId: "", accountId: "", symbol: "", status: "" });
   const inFlight = useRef(false);
-  const query = useMemo(() => {
-    const params = new URLSearchParams({ limit: "500" });
-    if (filters.from) params.set("from", String(new Date(`${filters.from}T00:00:00`).getTime()));
-    if (filters.to) params.set("to", String(new Date(`${filters.to}T23:59:59.999`).getTime()));
-    if (filters.channelId) params.set("channelId", filters.channelId);
-    if (filters.accountId) params.set("accountId", filters.accountId);
-    if (filters.symbol) {
-      const normalizedSymbol = normalizeJournalSymbol(filters.symbol);
-      if (normalizedSymbol) params.set("symbol", normalizedSymbol);
-    }
-    if (filters.status) params.set("status", filters.status);
-    return params.toString();
-  }, [filters]);
+  const query = useMemo(() => buildJournalQueryString(filters), [filters]);
   const load = useCallback(async () => {
     if (inFlight.current) return;
     inFlight.current = true;
