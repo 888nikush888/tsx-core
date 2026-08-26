@@ -53,4 +53,28 @@ describe("WorkspaceStatusbar rendering", () => {
     );
     expect(container.textContent).toMatch(/zuletzt aktualisiert/);
   });
+
+  it("renders degraded states", () => {
+    const degradedTrading: any = {
+      overview: { runtime: { executionEnabled: false, killSwitchActive: true, killSwitchReason: "test" } },
+      accountIncidents: [{ id: "1", status: "open" }],
+    };
+    const degradedSystem: any = {
+      connectionState: "offline",
+      error: "fail",
+      operations: { backup: {} },
+      mcp: { mode: "inactive" },
+    };
+    const { container } = render(
+      <WorkspaceStatusbar workspace="dashboard" onRefresh={vi.fn(async () => undefined)} trading={degradedTrading} systemStatus={degradedSystem} refreshing={false} lastUpdated={null} />,
+    );
+    expect(container.textContent).toContain("offline");
+    expect(container.textContent).toContain("pausiert");
+    expect(container.textContent).toContain("test");
+    const { container: c2 } = render(
+      <WorkspaceStatusbar workspace="operations" onRefresh={vi.fn(async () => undefined)} trading={degradedTrading} systemStatus={degradedSystem} refreshing={false} lastUpdated={null} />,
+    );
+    expect(c2.textContent).toContain("erreichbar");
+    expect(c2.textContent).toContain("Status in Backups");
+  });
 });

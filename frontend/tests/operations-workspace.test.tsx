@@ -295,4 +295,30 @@ describe("operations workspace", () => {
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith("/api/factory-reset", expect.objectContaining({ method: "POST" })))
     window.open = originalOpen
   })
+
+  it("renders degraded system with fallbacks", async () => {
+    const degradedCatalog: any = {
+      implementation: { library: "", version: "", streaming: "", orderAuthority: "" },
+      exchanges: [],
+    };
+    api.apiFetch.mockImplementation((url: string) => {
+      if (url === "/api/operations") return json({ operations: { audit: { healthy: true }, backup: { healthy: false }, mcp: { healthy: true } } });
+      return json(bodyFor(url));
+    });
+    render(
+      <OperationsWorkspace
+        trading={trading}
+        catalog={degradedCatalog}
+        systemStatus={{ connectionState: "offline", isRunning: false, resolvedSources: [], queue: { running: 0, queued: 5 }, telegramLogin: { state: "idle" } }}
+        onRefresh={vi.fn(async () => undefined)}
+        initialTab="system"
+        availableTabs={["system"]}
+      />,
+    );
+    expect(await screen.findByText("Exchange Engine")).toBeInTheDocument();
+    expect(screen.getByText("ccxt")).toBeInTheDocument();
+    expect(screen.getByText("ccxt-pro")).toBeInTheDocument();
+    expect(screen.getByText("rest")).toBeInTheDocument();
+    expect(await screen.findByText("nicht aktuell – Aktion gesperrt")).toBeInTheDocument();
+  })
 })
