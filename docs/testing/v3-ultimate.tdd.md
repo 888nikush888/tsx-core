@@ -36,4 +36,3 @@ The journeys were derived from the V3 Ultimate request in the implementation thr
 - CI calibration: `d731c30` (`ci: calibrate coverage ratchet to linux runner`).
 - Security RED checkpoint: `80c716e` (`test: require patched executor ssl packages`).
 - The matching GREEN fix is the commit that adds the pinned 3.5.8-r0 packages and this report.
-
