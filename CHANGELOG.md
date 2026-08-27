@@ -16,6 +16,7 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 ### Security
 
 - Nur eine identitätsgebundene, nebenwirkungsfreie `SYMBOL_UNAVAILABLE`-Antwort des Read-only-Market-Snapshot-Endpunkts darf eine Fallback-Stufe aktivieren. Konto-/Executorfehler, 502/503/Timeouts, Risiko- und Vertragsgates sowie unklare Submit-Ergebnisse stoppen die Kette fail-closed; die ursprüngliche Entry-TTL wird nie zurückgesetzt.
+- Das Exchange-Executor-Image pinnt `libcrypto3` und `libssl3` auf 3.5.8-r0 und schließt damit `CVE-2026-14456`; der Supply-Chain-Test erzwingt diese Mindestversion.
 
 ## [3.2.0] - 2026-08-26
 

@@ -19,7 +19,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     EXECUTOR_HOST=0.0.0.0 \
     EXECUTOR_PORT=8090
 WORKDIR /app
-RUN apk add --no-cache "sqlite-libs=3.53.4-r0" \
+RUN apk add --no-cache "sqlite-libs=3.53.4-r0" "libcrypto3=3.5.8-r0" "libssl3=3.5.8-r0" \
     && addgroup --system --gid 65532 executor \
     && adduser --system --uid 65532 --ingroup executor --no-create-home --home /nonexistent executor
 COPY --from=dependencies /install /usr/local
