@@ -227,6 +227,142 @@ export function channelNodesReachingSource(
     .sort((left, right) => left.localeCompare(right));
 }
 
+export type WorkflowConnectionKind = "flow" | "account_fallback";
+
+export type WorkflowConnectionPlan =
+  | { type: "reject"; message: string; cancel: boolean }
+  | {
+      type: "scope";
+      draft: {
+        sourceId: string;
+        targetId: string;
+        kind: WorkflowConnectionKind;
+      };
+    }
+  | { type: "activate"; graph: WorkflowGraph; edgeId: string };
+
+function validConnectionTarget(
+  source: WorkflowGraph["nodes"][number],
+  target: WorkflowGraph["nodes"][number],
+  kind: WorkflowConnectionKind,
+): boolean {
+  if (kind === "account_fallback") {
+    return source.kind === "account" && target.kind === "account" && source.id !== target.id;
+  }
+  return KIND_META[source.kind].order < KIND_META[target.kind].order;
+}
+
+function connectionCandidateGraph(
+  source: WorkflowGraph,
+  kind: WorkflowConnectionKind,
+): WorkflowGraph {
+  const candidate = structuredClone(source);
+  if (kind !== "account_fallback" && candidate.schemaVersion !== 2) return candidate;
+  candidate.schemaVersion = 2;
+  candidate.edges = candidate.edges.map((edge) => ({
+    ...edge,
+    kind: edge.kind || "flow",
+  }));
+  return candidate;
+}
+
+export function planWorkflowConnection(
+  graph: WorkflowGraph,
+  sourceId: string,
+  targetId: string,
+  kind: WorkflowConnectionKind,
+  createEdgeId: () => string,
+): WorkflowConnectionPlan {
+  const source = graph.nodes.find((node) => node.id === sourceId);
+  const target = graph.nodes.find((node) => node.id === targetId);
+  if (!source || !target || !validConnectionTarget(source, target, kind)) {
+    return {
+      type: "reject",
+      cancel: false,
+      message:
+        kind === "account_fallback"
+          ? "Eine Fallback-Verbindung muss zwei unterschiedliche Börsenkonten derselben Spalte verbinden."
+          : "Das Ziel muss rechts vom Ausgangsbaustein in einer späteren Verarbeitungsspalte liegen.",
+    };
+  }
+  const duplicate = graph.edges.some(
+    (edge) => edge.source === source.id && edge.target === target.id,
+  );
+  if (duplicate) {
+    return {
+      type: "reject",
+      cancel: true,
+      message: "Diese Verbindung besteht bereits.",
+    };
+  }
+  const channelNodeIds = channelNodesReachingSource(graph, source.id);
+  if (kind === "account_fallback" && channelNodeIds.length === 0) {
+    return {
+      type: "reject",
+      cancel: true,
+      message:
+        "Das Ausgangskonto wird noch von keinem Kanal erreicht und kann deshalb keine Fallback-Reihenfolge erhalten.",
+    };
+  }
+  if (channelNodeIds.length > 1) {
+    return {
+      type: "scope",
+      draft: { sourceId: source.id, targetId: target.id, kind },
+    };
+  }
+  const candidate = connectionCandidateGraph(graph, kind);
+  const edgeId = createEdgeId();
+  candidate.edges.push({
+    id: edgeId,
+    source: source.id,
+    target: target.id,
+    ...(candidate.schemaVersion === 2 ? { kind } : {}),
+    ...(channelNodeIds.length === 1 ? { channelNodeIds } : {}),
+  });
+  return { type: "activate", graph: candidate, edgeId };
+}
+
+export type WorkflowConnectionState = "idle" | "source" | "target" | "blocked";
+
+export function workflowConnectionState(
+  graph: WorkflowGraph,
+  node: WorkflowGraph["nodes"][number],
+  source: WorkflowGraph["nodes"][number] | null,
+  kind: WorkflowConnectionKind,
+): WorkflowConnectionState {
+  if (!source) return "idle";
+  if (node.id === source.id) return "source";
+  const alreadyConnected = graph.edges.some(
+    (edge) => edge.source === source.id && edge.target === node.id,
+  );
+  if (alreadyConnected) return "blocked";
+  if (kind === "account_fallback") {
+    return source.kind === "account" && node.kind === "account" ? "target" : "blocked";
+  }
+  return KIND_META[node.kind].order > KIND_META[source.kind].order ? "target" : "blocked";
+}
+
+export function workflowNodeMatchesSearch(
+  name: string,
+  kindLabel: string,
+  description: string,
+  query: string,
+): boolean {
+  const normalized = query.trim().toLocaleLowerCase("de-DE");
+  if (!normalized) return true;
+  return `${name} ${kindLabel} ${description}`
+    .toLocaleLowerCase("de-DE")
+    .includes(normalized);
+}
+
+export function workflowPathFocusState(
+  routeIds: string[],
+  selectedPathId: string | null,
+): "idle" | "active" | "dimmed" {
+  if (!selectedPathId) return "idle";
+  return routeIds.includes(selectedPathId) ? "active" : "dimmed";
+}
+
 export function consolidateWorkflowResources(
   source: WorkflowGraph,
   resources: WorkflowResource[],

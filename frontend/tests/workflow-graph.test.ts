@@ -5,8 +5,12 @@ import {
   latestPublishedResources,
   moveWorkflowNode,
   normalizeWorkflowGrid,
+  planWorkflowConnection,
   placedNodesByResourceIdentity,
   resourceBehaviorKey,
+  workflowConnectionState,
+  workflowNodeMatchesSearch,
+  workflowPathFocusState,
 } from "@/app/workflow/workflow-graph";
 import type {
   WorkflowGraph,
@@ -254,5 +258,100 @@ describe("workflow graph controls", () => {
       "channel-b",
     ]);
     expect(channelNodesReachingSource(graph, "only-a")).toEqual(["channel-a"]);
+  });
+
+  it("plans direct, scoped, and rejected connections without UI branching", () => {
+    const graph: WorkflowGraph = {
+      schemaVersion: 1,
+      nodes: [
+        { id: "channel", kind: "channel", resourceVersionId: "channel-v1", position: { x: 0, y: 0 } },
+        { id: "primary", kind: "account", resourceVersionId: "primary-v1", position: { x: 0, y: 0 } },
+        { id: "fallback", kind: "account", resourceVersionId: "fallback-v1", position: { x: 0, y: 150 } },
+      ],
+      edges: [{ id: "flow", source: "channel", target: "primary" }],
+    };
+    const planned = planWorkflowConnection(
+      graph,
+      "primary",
+      "fallback",
+      "account_fallback",
+      () => "fallback-edge",
+    );
+    expect(planned).toMatchObject({ type: "activate", edgeId: "fallback-edge" });
+    if (planned.type !== "activate") throw new Error("Expected activation plan.");
+    expect(planned.graph.schemaVersion).toBe(2);
+    expect(planned.graph.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "flow", kind: "flow" }),
+        expect.objectContaining({
+          id: "fallback-edge",
+          kind: "account_fallback",
+          channelNodeIds: ["channel"],
+        }),
+      ]),
+    );
+    expect(
+      planWorkflowConnection(graph, "channel", "fallback", "account_fallback", () => "unused"),
+    ).toMatchObject({ type: "reject", cancel: false });
+    expect(
+      planWorkflowConnection(graph, "channel", "primary", "flow", () => "unused"),
+    ).toMatchObject({
+      type: "reject",
+      cancel: true,
+      message: "Diese Verbindung besteht bereits.",
+    });
+
+    const unrouted = structuredClone(graph);
+    unrouted.edges = [];
+    expect(
+      planWorkflowConnection(unrouted, "primary", "fallback", "account_fallback", () => "unused"),
+    ).toMatchObject({ type: "reject", cancel: true });
+
+    const shared = structuredClone(graph);
+    shared.nodes.push({
+      id: "channel-b",
+      kind: "channel",
+      resourceVersionId: "channel-b-v1",
+      position: { x: 0, y: 150 },
+    });
+    shared.edges.push({ id: "flow-b", source: "channel-b", target: "primary" });
+    expect(
+      planWorkflowConnection(shared, "primary", "fallback", "account_fallback", () => "unused"),
+    ).toEqual({
+      type: "scope",
+      draft: {
+        sourceId: "primary",
+        targetId: "fallback",
+        kind: "account_fallback",
+      },
+    });
+  });
+
+  it("derives search, path-focus, and connection states independently", () => {
+    const graph: WorkflowGraph = {
+      schemaVersion: 2,
+      nodes: [
+        { id: "primary", kind: "account", resourceVersionId: "primary-v1", position: { x: 0, y: 0 } },
+        { id: "fallback", kind: "account", resourceVersionId: "fallback-v1", position: { x: 0, y: 150 } },
+      ],
+      edges: [],
+    };
+    const source = graph.nodes[0];
+    const target = graph.nodes[1];
+    expect(workflowConnectionState(graph, source, source, "account_fallback")).toBe("source");
+    expect(workflowConnectionState(graph, target, source, "account_fallback")).toBe("target");
+    expect(workflowConnectionState(graph, target, null, "flow")).toBe("idle");
+    expect(workflowConnectionState(
+      { ...graph, edges: [{ id: "existing", source: "primary", target: "fallback" }] },
+      target,
+      source,
+      "account_fallback",
+    )).toBe("blocked");
+    expect(workflowNodeMatchesSearch("Kraken Konto", "Börsenkonto", "live", "kraken")).toBe(true);
+    expect(workflowNodeMatchesSearch("Kraken Konto", "Börsenkonto", "live", "paper")).toBe(false);
+    expect(workflowNodeMatchesSearch("Kraken Konto", "Börsenkonto", "live", "  ")).toBe(true);
+    expect(workflowPathFocusState(["route-a"], "route-a")).toBe("active");
+    expect(workflowPathFocusState(["route-a"], "route-b")).toBe("dimmed");
+    expect(workflowPathFocusState(["route-a"], null)).toBe("idle");
   });
 });

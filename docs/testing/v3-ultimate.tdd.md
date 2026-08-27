@@ -17,12 +17,14 @@ The journeys were derived from the V3 Ultimate request in the implementation thr
 | Only an identity-bound, side-effect-free `SYMBOL_UNAVAILABLE` response advances the chain | `node tests/test_ccxt_exchange.js` and `python -m unittest discover -s /tests -v` in the executor image | Unit/integration | PASS; 502/503, account, risk, contract, timeout, and ambiguous-submit paths stop. |
 | Fallback intents are lazy, atomic, preserve the original entry TTL, and use account-local equity/risk/capacity | `node tests/test_workflow_fallback.js` | Integration | PASS; only the current rank has an intent and the selected account receives its own plan. |
 | Builder arrows, connection inspection, accessibility, desktop, and mobile behavior work | `npm run test:e2e --prefix frontend` | E2E | PASS; 40/40 scenarios across Chromium, Firefox, WebKit, and mobile Chromium. |
-| Frontend route and dialog behavior remains stable | `npm test --prefix frontend` | Unit/component | PASS; 82/82 tests. |
+| Frontend route and dialog behavior remains stable | `npm test --prefix frontend` | Unit/component | PASS; 84/84 tests. |
 | Persistent runs survive backup/setup-bundle boundaries and retention protects active chains | `npm test` | Integration | PASS; all 62 test files. |
 | The executor image must contain the fixed OpenSSL runtime | `node tests/test_supply_chain.js` before the Dockerfile fix | Supply chain / RED | Expected FAIL on missing `libcrypto3=3.5.8-r0`, reproducing the CI finding for CVE-2026-14456. |
 | The executor image contains the fixed OpenSSL runtime | `node tests/test_supply_chain.js` after the Dockerfile fix | Supply chain / GREEN | PASS. |
 | The fixed executor still satisfies its API and exchange contracts | executor-container `unittest discover` | Integration / GREEN | PASS; 29/29 tests. |
 | No High/Critical finding remains in the fixed executor image | `aquasec/trivy:0.70.0 image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 tsx-core-exchange-executor:cve-fix` | Security / GREEN | PASS; Alpine and every detected Python package reported zero findings. |
+| Ordered-connection planning and node presentation are isolated from React rendering | `npm test --prefix frontend` before the helper implementation | Unit/component / RED | Expected FAIL; the new planning and presentation helpers did not exist yet. |
+| Builder behavior remains stable while Sonar cognitive complexity stays within 15 | `npm test --prefix frontend` and local `sonarjs/cognitive-complexity` analysis | Unit/component and static analysis / GREEN | PASS; 84/84 tests and no S3776 violation in the changed Builder modules. |
 
 ## Coverage and gates
 

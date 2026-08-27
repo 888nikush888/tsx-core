@@ -95,8 +95,12 @@ import {
   latestPublishedResources,
   moveWorkflowNode,
   normalizeWorkflowGrid,
+  planWorkflowConnection,
   placedNodesByResourceIdentity,
   resourceBehaviorKey,
+  workflowConnectionState,
+  workflowNodeMatchesSearch,
+  workflowPathFocusState,
 } from "./workflow-graph";
 
 const nodeTypes = { workflow: WorkflowNode, columnHeader: ColumnHeaderNode };
@@ -106,6 +110,24 @@ const WORKFLOW_NODE_DIMENSIONS = { width: 276, height: 112 } as const;
 const COLUMN_HEADER_DIMENSIONS = { width: 276, height: 27 } as const;
 const WORKFLOW_HANDLE_SIZE = 12;
 const WORKFLOW_MIN_ZOOM = 0.05;
+
+function connectionKindIcon(kind?: "flow" | "account_fallback") {
+  return kind === "account_fallback" ? <GitBranch /> : <Link2 />;
+}
+
+function connectionKindLabel(kind?: "flow" | "account_fallback"): string {
+  return kind === "account_fallback" ? "Fallback-Reihenfolge" : "Verbindung";
+}
+
+function connectionKindCreationLabel(kind: "flow" | "account_fallback"): string {
+  return kind === "account_fallback" ? "Fallback-Reihenfolge" : "Verbindung erstellen";
+}
+
+function connectionKindInstruction(kind: "flow" | "account_fallback"): string {
+  return kind === "account_fallback"
+    ? "Wähle das nächste Konto der exklusiven Fallback-Reihenfolge."
+    : "Wähle rechts im Canvas oder hier ein gültiges Ziel.";
+}
 
 function workflowHandles(kind: WorkflowKind): NonNullable<Node["handles"]> {
   const edgeOffset = WORKFLOW_HANDLE_SIZE / 2;
@@ -1251,71 +1273,28 @@ export function WorkflowBuilder() {
 
   const connectNodes = useCallback(
     async (sourceId: string, targetId: string) => {
-      const source = graphRef.current.nodes.find(
-        (node) => node.id === sourceId,
-      );
-      const target = graphRef.current.nodes.find(
-        (node) => node.id === targetId,
-      );
-      const fallbackConnection = connectionKind === "account_fallback";
-      const validTarget = source && target && (fallbackConnection
-        ? source.kind === "account" && target.kind === "account" && source.id !== target.id
-        : KIND_META[source.kind].order < KIND_META[target.kind].order);
-      if (!source || !target || !validTarget) {
-        setNotice({
-          tone: "error",
-          text: fallbackConnection
-            ? "Eine Fallback-Verbindung muss zwei unterschiedliche Börsenkonten derselben Spalte verbinden."
-            : "Das Ziel muss rechts vom Ausgangsbaustein in einer späteren Verarbeitungsspalte liegen.",
-        });
-        return;
-      }
-      if (
-        graphRef.current.edges.some(
-          (edge) => edge.source === source.id && edge.target === target.id,
-        )
-      ) {
-        setNotice({
-          tone: "warning",
-          text: "Diese Verbindung besteht bereits.",
-        });
-        cancelConnection();
-        return;
-      }
-      const upstreamChannels = channelNodesReachingSource(
+      const plan = planWorkflowConnection(
         graphRef.current,
-        source.id,
+        sourceId,
+        targetId,
+        connectionKind,
+        () => newId("edge"),
       );
-      if (fallbackConnection && upstreamChannels.length === 0) {
+      if (plan.type === "reject") {
         setNotice({
-          tone: "error",
-          text: "Das Ausgangskonto wird noch von keinem Kanal erreicht und kann deshalb keine Fallback-Reihenfolge erhalten.",
+          tone: plan.cancel ? "warning" : "error",
+          text: plan.message,
         });
+        if (plan.cancel) cancelConnection();
+        return;
+      }
+      if (plan.type === "scope") {
+        setConnectionDraft(plan.draft);
         cancelConnection();
         return;
       }
-      if (upstreamChannels.length <= 1) {
-        const candidate = structuredClone(graphRef.current);
-        if (fallbackConnection || candidate.schemaVersion === 2) {
-          candidate.schemaVersion = 2;
-          candidate.edges = candidate.edges.map((edge) => ({ ...edge, kind: edge.kind || "flow" }));
-        }
-        const edgeId = newId("edge");
-        candidate.edges.push({
-          id: edgeId,
-          source: source.id,
-          target: target.id,
-          ...(candidate.schemaVersion === 2 ? { kind: connectionKind } : {}),
-          ...(upstreamChannels.length === 1
-            ? { channelNodeIds: [upstreamChannels[0]] }
-            : {}),
-        });
-        const activated = await activateGraph(candidate, "Verbindung aktiviert");
-        if (activated) setSelectedEdgeId(edgeId);
-        cancelConnection();
-        return;
-      }
-      setConnectionDraft({ sourceId: source.id, targetId: target.id, kind: connectionKind });
+      const activated = await activateGraph(plan.graph, "Verbindung aktiviert");
+      if (activated) setSelectedEdgeId(plan.edgeId);
       cancelConnection();
     },
     [activateGraph, cancelConnection, connectionKind],
@@ -1475,33 +1454,22 @@ export function WorkflowBuilder() {
     const query = search.trim().toLocaleLowerCase("de-DE");
     const nodes: Node[] = graph.nodes.map((node) => {
       const resource = resourceById.get(node.resourceVersionId);
+      const nodeSummary = resource ? summary(resource, trading) : node.resourceVersionId;
       const warning = snapshot.workflow?.compiled.warnings.find((item) =>
         item.includes(node.id),
       );
-      const visible =
-        !query ||
-        `${resource?.name || ""} ${KIND_META[node.kind].label} ${resource ? summary(resource, trading) : ""}`
-          .toLocaleLowerCase("de-DE")
-          .includes(query);
-      const sourceOrder = connectionSource
-        ? KIND_META[connectionSource.kind].order
-        : -1;
-      const isExistingTarget = connectionSource
-        ? graph.edges.some(
-            (edge) =>
-              edge.source === connectionSource.id && edge.target === node.id,
-          )
-        : false;
-      const connectionState: WorkflowNodeData["connectionState"] =
-        !connectionSource
-          ? "idle"
-          : node.id === connectionSource.id
-            ? "source"
-            : (connectionKind === "account_fallback"
-                ? connectionSource.kind === "account" && node.kind === "account"
-                : KIND_META[node.kind].order > sourceOrder) && !isExistingTarget
-              ? "target"
-              : "blocked";
+      const visible = workflowNodeMatchesSearch(
+        resource?.name || "",
+        KIND_META[node.kind].label,
+        resource ? nodeSummary : "",
+        query,
+      );
+      const connectionState: WorkflowNodeData["connectionState"] = workflowConnectionState(
+        graph,
+        node,
+        connectionSource,
+        connectionKind,
+      );
       const routeUsage = routeTopology.nodeUsage.get(node.id) || {
         pathCount: 0,
         channelCount: 0,
@@ -1521,9 +1489,7 @@ export function WorkflowBuilder() {
         data: {
           kind: node.kind,
           name: resource?.name || "Fehlende Ressource",
-          summary: resource
-            ? summary(resource, trading)
-            : node.resourceVersionId,
+          summary: nodeSummary,
           version: resource?.version || 0,
           enabled: executableNodeIds.has(node.id),
           warning,
@@ -1534,11 +1500,10 @@ export function WorkflowBuilder() {
             (edge) => edge.source === node.id,
           ).length,
           routeUsage,
-          pathFocusState: !selectedPathId
-            ? "idle"
-            : routeUsage.routeIds.includes(selectedPathId)
-              ? "active"
-              : "dimmed",
+          pathFocusState: workflowPathFocusState(
+            routeUsage.routeIds,
+            selectedPathId,
+          ),
           connectionState,
           onEdit: openEditor,
           onStartConnection: startConnection,
@@ -1559,8 +1524,7 @@ export function WorkflowBuilder() {
     connectionKind,
     connectionSource,
     executableNodeIds,
-    graph.edges,
-    graph.nodes,
+    graph,
     moveNode,
     openEditor,
     resourceById,
@@ -2197,17 +2161,15 @@ export function WorkflowBuilder() {
                 <CardHeader>
                   <div>
                     <Badge variant="secondary">
-                      {connectionKind === "account_fallback" ? <GitBranch /> : <Link2 />}
-                      {connectionKind === "account_fallback" ? "Fallback-Reihenfolge" : "Verbindung erstellen"}
+                      {connectionKindIcon(connectionKind)}
+                      {connectionKindCreationLabel(connectionKind)}
                     </Badge>
                     <CardTitle>
                       {resourceById.get(connectionSource.resourceVersionId)
                         ?.name || "Baustein"}
                     </CardTitle>
                     <CardDescription>
-                      {connectionKind === "account_fallback"
-                        ? "Wähle das nächste Konto der exklusiven Fallback-Reihenfolge."
-                        : "Wähle rechts im Canvas oder hier ein gültiges Ziel."}
+                      {connectionKindInstruction(connectionKind)}
                     </CardDescription>
                   </div>
                   <Button
@@ -2296,8 +2258,8 @@ export function WorkflowBuilder() {
         <DialogContent className="workflow-connection-inspector sm:max-w-lg">
           <DialogHeader>
             <Badge variant="secondary">
-              {selectedConnection?.kind === "account_fallback" ? <GitBranch /> : <Link2 />}
-              {selectedConnection?.kind === "account_fallback" ? "Fallback-Reihenfolge" : "Verbindung"}
+              {connectionKindIcon(selectedConnection?.kind)}
+              {connectionKindLabel(selectedConnection?.kind)}
             </Badge>
             <DialogTitle>
               {selectedConnection?.sourceName} → {selectedConnection?.targetName}
