@@ -26,7 +26,7 @@ The journeys were derived from the V3 Ultimate request in the implementation thr
 
 ## Coverage and gates
 
-- Authoritative clean Linux Node 22 module coverage: 95.06% statements/lines, 83.64% branches, and 99.21% functions. Every value improves the pre-feature baseline of 95.01%, 83.33%, 99.09%, and 95.01% respectively.
+- Clean Linux Node 22 runs measured 95.04-95.06% statements/lines, 83.64-83.65% branches, and 99.21% functions. The cross-platform ratchet remains at its previously documented conservative floor of 95.01%, 83.33%, 99.09%, and 95.01%; every observed post-feature value is higher. A platform-specific sample does not raise this shared floor.
 - Local frontend unit coverage and E2E suites passed; the critical runtime paths are additionally covered by the Node and Python integration suites.
 - Lint, typecheck, production build, architecture, complexity, duplicate ratio, dependency/license policy, SBOM, monitoring, secret boundary, CodeQL, and browser accessibility gates were executed.
 
