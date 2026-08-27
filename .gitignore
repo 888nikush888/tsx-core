@@ -6,6 +6,8 @@ node_modules/
 coverage/
 coverage-full/
 coverage-modules/
+**/coverage.xml
+.coverage
 reports/
 .stryker-incremental.json
 dist/

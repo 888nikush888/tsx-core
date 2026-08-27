@@ -41,12 +41,14 @@ export type WorkflowEdgeRecord = {
   id: string;
   source: string;
   target: string;
+  /** Missing on legacy graph-v1 data and interpreted as a normal flow edge. */
+  kind?: "flow" | "account_fallback";
   /** Missing means that every channel reaching the source is forwarded. */
   channelNodeIds?: string[];
 };
 
 export type WorkflowGraph = {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   nodes: WorkflowNodeRecord[];
   edges: WorkflowEdgeRecord[];
 };
@@ -65,6 +67,21 @@ export type WorkflowRevision = {
       strategyVersionId: string;
       enabled: boolean;
       nodeIds: string[];
+      routeGroupKey?: string;
+      fallbackRank?: number;
+    }>;
+    routeGroups?: Array<{
+      key: string;
+      channelId: string;
+      channelNodeId: string;
+      primaryPathId: string;
+      candidates: Array<{
+        pathId: string;
+        accountId: string;
+        accountNodeId: string;
+        rank: number;
+        enabled: boolean;
+      }>;
     }>;
     warnings: string[];
   };
@@ -272,6 +289,33 @@ export type TradingSnapshot = {
     lastSeenAt: number;
     resolvedAt: number | null;
     details: Record<string, unknown>;
+  }>;
+  fallbackRuns?: Array<{
+    id: string;
+    sourceSignalId: string;
+    workflowRevisionId: string;
+    signalRunId: string;
+    routeGroupKey: string;
+    channelId: string;
+    channelName: string | null;
+    status: "probing" | "selected" | "exhausted" | "stopped";
+    currentRank: number;
+    selectedIntentId: string | null;
+    stopReason: string | null;
+    createdAt: number;
+    updatedAt: number;
+    completedAt: number | null;
+    candidates: Array<{
+      rank: number;
+      executionPathId: string;
+      accountId: string;
+      accountName: string;
+      exchange: TradingAccount["exchange"];
+      mode: TradingAccount["mode"];
+      intentId: string | null;
+      status: "waiting" | "pending" | "unavailable" | "selected" | "stopped";
+      errorCode: string | null;
+    }>;
   }>;
 };
 

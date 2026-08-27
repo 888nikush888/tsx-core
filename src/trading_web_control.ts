@@ -63,6 +63,7 @@ import {
   publishWorkflowResource,
   saveWorkflowRevision,
   updateWorkflowResourceDraft,
+  listWorkflowFallbackRuns,
 } from './workflow_repository.js';
 import type {
   ExchangeOpenState,
@@ -129,6 +130,7 @@ export interface TradingWebSnapshot {
   activity: Awaited<ReturnType<typeof listTradingActivity>>;
   exchangeStreams: Awaited<ReturnType<typeof listExchangeStreamStates>>;
   accountIncidents: Awaited<ReturnType<typeof listTradingAccountIncidents>>;
+  fallbackRuns: Awaited<ReturnType<typeof listWorkflowFallbackRuns>>;
   confirmations: { live: string; emergencyFlatten: string };
 }
 
@@ -193,7 +195,7 @@ export class TradingWebControl {
     const [
       overview, analytics, strategies, signalSchemas, signalContracts, channelRiskPolicies,
       channelRiskEvaluations, workflowAdaptiveRisk, executionAnalytics, channelAnalytics, equityHistory, accounts, routes, intents, activity,
-      exchangeStreams, accountIncidents,
+      exchangeStreams, accountIncidents, fallbackRuns,
     ] = await Promise.all([
       getTradingOverview(),
       getTradingAnalytics(),
@@ -212,6 +214,7 @@ export class TradingWebControl {
       listTradingActivity(200),
       listExchangeStreamStates(),
       listTradingAccountIncidents({ limit: 200 }),
+      listWorkflowFallbackRuns(200),
     ]);
     return {
       overview,
@@ -236,6 +239,7 @@ export class TradingWebControl {
       activity,
       exchangeStreams,
       accountIncidents,
+      fallbackRuns,
       confirmations: { live: LIVE_CONFIRMATION, emergencyFlatten: FLATTEN_CONFIRMATION },
     };
   }

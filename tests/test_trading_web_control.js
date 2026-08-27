@@ -88,6 +88,7 @@ try {
     ['cryptodanielvip', 'loma', 'standard'],
   );
   assert.equal(initial.analytics.accounts.length, 1);
+  assert.deepEqual(initial.fallbackRuns, []);
   assert.equal('credentialRef' in initial.accounts[0], false, 'Credential references must not reach the browser.');
   assert.equal(initial.confirmations.live, 'ENABLE LIVE TRADING');
   const initialPortfolio = await control.portfolioSnapshot(true);

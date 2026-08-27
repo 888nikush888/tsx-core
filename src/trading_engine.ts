@@ -27,6 +27,12 @@ import {
   TradingRiskError,
 } from './trading_risk.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
+import { TradingSymbolUnavailableError } from './trading_errors.js';
+import {
+  advanceWorkflowFallbackOnSymbolUnavailable,
+  markWorkflowFallbackSelected,
+  stopWorkflowFallback,
+} from './workflow_repository.js';
 import { resolveEffectiveChannelRisk, resolveWorkflowAdaptiveRisk } from './trading_channel_risk.js';
 import { validateStrategyConfiguration } from './trading_strategy.js';
 import { recordTradingEquitySnapshot, recordTradingExecutionEvent } from './trading_telemetry.js';
@@ -55,6 +61,7 @@ import type {
 type TradingLogger = (message: string) => void;
 type ReconciliationOptions = { force?: boolean };
 export interface TradingEngineOptions {
+  /** @deprecated Symbol-unavailable isolation is now enforced by the typed executor contract. */
   isolateUnavailableMarketFailures?: boolean;
 }
 type RemoteStateWithIdentity = ExchangeOpenState & { accountFingerprint?: string };
@@ -96,17 +103,6 @@ async function activateAccountKillSwitch(accountId: string, reason: string): Pro
     killSwitchActive: true,
     killSwitchReason: reason,
   });
-}
-
-function unavailableMarketMessage(error: unknown, symbol: string): string | null {
-  const message = error instanceof Error ? error.message : String(error);
-  const normalizedSymbol = symbol.toUpperCase();
-  const hyperliquidCoin = normalizedSymbol.replace(/(?:USDT|USDC|USD)$/, '');
-  const accepted = new Set([
-    `Exchange executor request failed (400): Hyperliquid symbol ${hyperliquidCoin} is unavailable.`,
-    `Exchange executor request failed (400): Bybit symbol ${normalizedSymbol} is unavailable or ambiguous.`,
-  ]);
-  return accepted.has(message) ? message : null;
 }
 
 async function executionPathConfiguration(intent: TradingIntent): Promise<{
@@ -930,19 +926,27 @@ export class TradingEngine {
       );
     }
     const adapter = this.adapter(account.exchange);
-    let accountSnapshot: TradingAccountSnapshot;
+    // Establish account health before evaluating market availability. If both
+    // calls were raced, a fast symbol miss could incorrectly hide a concurrent
+    // account/executor failure and promote the fallback chain.
+    const accountSnapshot: TradingAccountSnapshot = await adapter.accountSnapshot(account);
     let market: TradingMarketSnapshot;
     try {
-      [accountSnapshot, market] = await Promise.all([
-        adapter.accountSnapshot(account),
-        adapter.marketSnapshot(account, intent.symbol),
-      ]);
+      market = await adapter.marketSnapshot(account, intent.symbol);
     } catch (error) {
-      const unavailable = unavailableMarketMessage(error, intent.symbol);
-      if (this.options.isolateUnavailableMarketFailures && unavailable) {
-        throw new TradingRiskError('SYMBOL_UNAVAILABLE', unavailable);
+      if (error instanceof TradingSymbolUnavailableError && Date.now() - intent.createdAt >= maximumPendingAgeMs) {
+        throw new TradingRiskError(
+          'ENTRY_INTENT_EXPIRED',
+          `Trading intent exceeded its ${strategyConfiguration.safety.entryOrderTtlSeconds}s entry TTL during market selection.`,
+        );
       }
       throw error;
+    }
+    if (Date.now() - intent.createdAt >= maximumPendingAgeMs) {
+      throw new TradingRiskError(
+        'ENTRY_INTENT_EXPIRED',
+        `Trading intent exceeded its ${strategyConfiguration.safety.entryOrderTtlSeconds}s entry TTL during account selection.`,
+      );
     }
     await recordTradingEquitySnapshot(account.id, accountSnapshot);
     const channelRisk = pathConfiguration.adaptiveRisk === 'legacy'
@@ -995,6 +999,7 @@ export class TradingEngine {
 
   private async executePendingIntent(intent: TradingIntent): Promise<void> {
     const { account, adapter, plan, effectiveRiskPercent } = await this.preparePendingIntent(intent);
+    await markWorkflowFallbackSelected(intent.id);
     const entry = plan.orders.find(order => order.role === 'entry')!;
     const protectiveStop = plan.orders.find(order => order.role === 'stop_loss')!;
     await setIntentState(intent.id, 'submitting', { plan });
@@ -1115,19 +1120,28 @@ export class TradingEngine {
   }
 
   private async handleIntentFailure(intent: TradingIntent, error: any): Promise<void> {
-    const knownRisk = error instanceof TradingRiskError;
-    const code = knownRisk ? error.code : 'ORDER_OUTCOME_UNKNOWN';
+    const symbolUnavailable = error instanceof TradingSymbolUnavailableError;
+    const knownRisk = error instanceof TradingRiskError || symbolUnavailable;
+    const code = symbolUnavailable ? error.code : error instanceof TradingRiskError ? error.code : 'ORDER_OUTCOME_UNKNOWN';
     const status = knownRisk ? 'blocked' : 'unknown';
-    await setIntentState(intent.id, status, {
-      blockReason: knownRisk ? code : undefined,
-      error: error?.message || String(error),
-    });
+    const message = error?.message || String(error);
+    if (symbolUnavailable) {
+      // Persist the blocked current intent and promotion of the next candidate
+      // in one transaction so a restart cannot strand a probing fallback run.
+      await advanceWorkflowFallbackOnSymbolUnavailable(intent, message);
+    } else {
+      await setIntentState(intent.id, status, {
+        blockReason: knownRisk ? code : undefined,
+        error: message,
+      });
+      await stopWorkflowFallback(intent.id, code);
+    }
     await riskEvent({
       severity: knownRisk ? 'warning' : 'critical',
       code,
       accountId: intent.accountId,
       intentId: intent.id,
-      details: { message: error?.message || String(error) },
+      details: { message },
     });
     this.logger(`[TRADING] intent=${intent.id} ${status}: ${code}`);
   }

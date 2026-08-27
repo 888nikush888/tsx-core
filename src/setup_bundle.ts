@@ -35,7 +35,7 @@ import type {
   WorkflowResourceKind,
 } from './trading_types.js';
 
-const SETUP_BUNDLE_VERSION = 1;
+const SETUP_BUNDLE_VERSION = 2;
 const FORBIDDEN_KEY = /^(?:api(?:hash|key|secret)|password|passphrase|privatekey|walletprivatekey|bearertoken|accesstoken|refreshtoken|authorization|credential(?:s|ref)?|tailscaleidentity|tdlibsession|openrouterapikey|backupencryptionkey)$/i;
 const ROOT_KEYS = new Set([
   'schemaVersion', 'mode', 'exportedAt', 'applicationVersion', 'systemConfig',
@@ -85,10 +85,10 @@ export function assertSetupBundleContainsNoSecrets(value: unknown, path = '$', d
 }
 
 export interface PortableSetupBundle {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   mode: 'replace';
   exportedAt: number;
-  applicationVersion: '3.1.0';
+  applicationVersion: '3.1.0' | '3.2.0';
   systemConfig: Record<string, unknown>;
   workflow: {
     graph: WorkflowGraph;
@@ -186,7 +186,7 @@ export async function exportPortableSetupBundle(systemConfig: Record<string, unk
     schemaVersion: SETUP_BUNDLE_VERSION,
     mode: 'replace',
     exportedAt: Date.now(),
-    applicationVersion: '3.1.0',
+    applicationVersion: '3.2.0',
     systemConfig: structuredClone(systemConfig),
     workflow: {
       graph: active?.graph ?? { schemaVersion: 1, nodes: [], edges: [] },
@@ -250,37 +250,70 @@ function validateGraphNode(nodeValue: unknown, nodeIds: Set<string>): void {
   }
 }
 
-function validateGraphEdge(edgeValue: unknown, edgeIds: Set<string>, nodeIds: Set<string>): void {
+function setupBundleEdgeKind(edge: Record<string, any>, schemaVersion: number): unknown {
+  const kind = edge.kind === undefined && schemaVersion === 1 ? undefined : edge.kind;
+  const valid = schemaVersion === 2
+    ? kind === 'flow' || kind === 'account_fallback'
+    : kind === undefined || kind === 'flow';
+  if (!valid) throw new Error('Setup bundle graph edge kind is invalid.');
+  return kind;
+}
+
+function setupBundleChannelScope(
+  edge: Record<string, any>,
+  nodeKinds: Map<string, WorkflowResourceKind>,
+): unknown[] | undefined {
+  if (edge.channelNodeIds === undefined) return undefined;
+  if (!Array.isArray(edge.channelNodeIds)
+    || edge.channelNodeIds.some((nodeId: unknown) =>
+      typeof nodeId !== 'string' || nodeKinds.get(nodeId) !== 'channel')) {
+    throw new Error('Setup bundle graph edge channel scope is invalid.');
+  }
+  return edge.channelNodeIds;
+}
+
+function validateGraphEdge(
+  edgeValue: unknown,
+  edgeIds: Set<string>,
+  nodeKinds: Map<string, WorkflowResourceKind>,
+  schemaVersion: number,
+): void {
   const edge = object(edgeValue, 'Setup bundle graph edge');
   const id = boundedString(edge.id, 'Setup bundle graph edge id', 128);
-  if (edgeIds.has(id) || !nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
+  if (edgeIds.has(id) || !nodeKinds.has(edge.source) || !nodeKinds.has(edge.target)) {
     throw new Error('Setup bundle graph edge is invalid, duplicated or dangling.');
   }
+  const kind = setupBundleEdgeKind(edge, schemaVersion);
   edgeIds.add(id);
-  const invalidScope = edge.channelNodeIds !== undefined && (!Array.isArray(edge.channelNodeIds)
-    || edge.channelNodeIds.some((nodeId: unknown) => typeof nodeId !== 'string' || !nodeIds.has(nodeId)));
-  if (invalidScope) throw new Error('Setup bundle graph edge channel scope is invalid.');
+  const channelNodeIds = setupBundleChannelScope(edge, nodeKinds);
+  if (kind === 'account_fallback' && (nodeKinds.get(edge.source) !== 'account'
+    || nodeKinds.get(edge.target) !== 'account' || !channelNodeIds?.length)) {
+    throw new Error('Setup bundle account fallback edge is invalid.');
+  }
 }
 
 function validateBundleGraph(value: unknown): WorkflowGraph {
   const graph = object(value, 'Setup bundle graph');
-  if (graph.schemaVersion !== 1 || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)
+  if (![1, 2].includes(graph.schemaVersion) || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)
     || graph.nodes.length > 1_000 || graph.edges.length > 4_000) {
     throw new Error('Setup bundle graph structure is invalid.');
   }
   const nodeIds = new Set<string>();
   for (const nodeValue of graph.nodes) validateGraphNode(nodeValue, nodeIds);
+  const nodeKinds = new Map<string, WorkflowResourceKind>(
+    graph.nodes.map((node: any) => [String(node.id), node.kind as WorkflowResourceKind]),
+  );
   const edgeIds = new Set<string>();
-  for (const edgeValue of graph.edges) validateGraphEdge(edgeValue, edgeIds, nodeIds);
+  for (const edgeValue of graph.edges) validateGraphEdge(edgeValue, edgeIds, nodeKinds, graph.schemaVersion);
   return graph as WorkflowGraph;
 }
 
 function validateBundleHeader(candidate: Record<string, any>): void {
   const unexpected = Object.keys(candidate).filter(key => !ROOT_KEYS.has(key));
   if (unexpected.length > 0) throw new Error(`Setup bundle contains unsupported root field '${unexpected[0]}'.`);
-  const supported = candidate.schemaVersion === SETUP_BUNDLE_VERSION
+  const supported = [1, SETUP_BUNDLE_VERSION].includes(candidate.schemaVersion)
     && candidate.mode === 'replace'
-    && candidate.applicationVersion === '3.1.0';
+    && ['3.1.0', '3.2.0'].includes(candidate.applicationVersion);
   if (!supported) throw new Error('Setup bundle schema or version is unsupported.');
   if (!Number.isSafeInteger(candidate.exportedAt) || candidate.exportedAt < 0) {
     throw new Error('Setup bundle timestamp is invalid.');

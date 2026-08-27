@@ -11,7 +11,7 @@ from aiohttp import web
 
 from ccxt_adapter import CcxtAdapter
 from ccxt_client import CcxtClientRegistry
-from common import ExchangeContractError, RequestDeadline, account_request
+from common import ExchangeContractError, RequestDeadline, SymbolUnavailableError, account_request
 from credentials import CredentialStore
 from stream_hub import ExchangeStreamHub
 
@@ -150,6 +150,13 @@ async def execute(request: web.Request) -> web.Response:
             if not isinstance(payload, dict):
                 raise ExchangeContractError("Request body must be an object.")
             return json_response(await application.handle(request.path, payload))
+    except SymbolUnavailableError as error:
+        return json_response({
+            "error": str(error),
+            "code": error.code,
+            "sideEffects": error.side_effects,
+            "details": error.details,
+        }, error.http_status)
     except (ExchangeContractError, ValueError) as error:
         return json_response({"error": str(error)}, 400)
     except Exception as error:

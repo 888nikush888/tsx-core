@@ -62,7 +62,7 @@ export type WorkflowNodeData = {
   pathFocusState: "idle" | "active" | "dimmed";
   connectionState: "idle" | "source" | "target" | "blocked";
   onEdit: (nodeId: string) => void;
-  onStartConnection: (nodeId: string) => void;
+  onStartConnection: (nodeId: string, kind?: "flow" | "account_fallback") => void;
   onCompleteConnection: (nodeId: string) => void;
   onCancelConnection: () => void;
   onMove: (nodeId: string, direction: "up" | "down") => void;
@@ -111,9 +111,19 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
       </div>
       {node.kind !== "channel" && (
         <Handle
+          id="flow-target"
           type="target"
           position={Position.Left}
           className={`workflow-handle is-target ${node.connectionState === "target" ? "is-ready" : ""}`}
+          isConnectable={node.connectionState !== "blocked"}
+        />
+      )}
+      {node.kind === "account" && (
+        <Handle
+          id="fallback-target"
+          type="target"
+          position={Position.Top}
+          className={`workflow-handle is-target is-fallback ${node.connectionState === "target" ? "is-ready" : ""}`}
           isConnectable={node.connectionState !== "blocked"}
         />
       )}
@@ -189,6 +199,7 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
       {node.kind !== "output" && (
         <>
           <Handle
+            id="flow-source"
             type="source"
             position={Position.Right}
             className="workflow-handle is-source"
@@ -225,6 +236,37 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
                 : "Weiter verbinden"}
             </TooltipContent>
           </Tooltip>
+          {node.kind === "account" && (
+            <>
+              <Handle
+                id="fallback-source"
+                type="source"
+                position={Position.Bottom}
+                className="workflow-handle is-source is-fallback"
+              />
+              <Tooltip>
+                <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant={node.connectionState === "source" ? "secondary" : "outline"}
+                    size="icon-xs"
+                    className="workflow-connect-button workflow-fallback-connect-button nodrag nopan"
+                    aria-label={`Fallback-Konto nach ${node.name} festlegen`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (node.connectionState === "source") node.onCancelConnection();
+                      else node.onStartConnection(id, "account_fallback");
+                    }}
+                  />
+                }
+                >
+                  <GitBranch />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Nächstes Fallback-Konto</TooltipContent>
+              </Tooltip>
+            </>
+          )}
         </>
       )}
     </Card>

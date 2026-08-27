@@ -10,6 +10,7 @@ export type WorkflowEdgeData = {
   routeUsage: WorkflowRouteUsage;
   pathFocusState: "idle" | "active" | "dimmed";
   channelNames?: string[];
+  kind: "flow" | "account_fallback";
 };
 
 export function isAlignedWorkflowEdge(sourceY: number, targetY: number) {
@@ -51,7 +52,7 @@ export function WorkflowEdge({
       path={path}
       markerEnd={markerEnd}
       interactionWidth={32}
-      className={`workflow-edge-path ${selected ? "is-selected" : ""} path-${focusState} ${shared ? "is-shared" : ""}`}
+      className={`workflow-edge-path ${edge?.kind === "account_fallback" ? "is-account-fallback" : ""} ${selected ? "is-selected" : ""} path-${focusState} ${shared ? "is-shared" : ""}`}
     />
   );
 }

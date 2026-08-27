@@ -300,6 +300,75 @@ async function filteredExecutionAnalytics(filters: TradingAnalyticsFilters): Pro
   };
 }
 
+async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Promise<{
+  runs: number;
+  candidates: number;
+  selected: number;
+  exhausted: number;
+  stopped: number;
+  unavailableCandidates: number;
+  selectionRatePercent: number | null;
+  exhaustionRatePercent: number | null;
+  averageSelectedRank: number | null;
+  byAccount: Array<Record<string, unknown>>;
+}> {
+  const rows = (await getDatabase().all<any[]>(
+    `SELECT run.id AS runId, run.channel_id AS channelId, run.status AS fallbackStatus,
+            run.current_rank AS currentRank, run.created_at AS createdAt,
+            candidate.rank, candidate.status AS candidateStatus,
+            candidate.account_id AS accountId, intent.status AS intentStatus,
+            account.exchange, account.mode
+     FROM trading_fallback_runs AS run
+     JOIN trading_fallback_candidates AS candidate ON candidate.fallback_run_id = run.id
+     JOIN trading_accounts AS account ON account.id = candidate.account_id
+     LEFT JOIN trading_trade_intents AS intent ON intent.id = candidate.intent_id
+     WHERE run.created_at >= ? AND run.created_at <= ?
+     ORDER BY run.created_at, run.id, candidate.rank`,
+    [filters.since, filters.until],
+  )).filter(row => analyticsRowMatches(row, filters));
+  const runs = new Map<string, any[]>();
+  const accounts = new Map<string, {
+    accountId: string;
+    exchange: string;
+    mode: string;
+    attempts: number;
+    unavailable: number;
+    selected: number;
+  }>();
+  for (const row of rows) {
+    runs.set(String(row.runId), [...(runs.get(String(row.runId)) ?? []), row]);
+    const aggregate = accounts.get(String(row.accountId)) ?? {
+      accountId: String(row.accountId), exchange: String(row.exchange), mode: String(row.mode),
+      attempts: 0, unavailable: 0, selected: 0,
+    };
+    if (row.candidateStatus !== 'waiting' && row.candidateStatus !== 'stopped') aggregate.attempts += 1;
+    if (row.candidateStatus === 'unavailable') aggregate.unavailable += 1;
+    if (row.candidateStatus === 'selected') aggregate.selected += 1;
+    accounts.set(aggregate.accountId, aggregate);
+  }
+  const selectedRuns = [...runs.values()].filter(candidates =>
+    candidates.some(candidate => candidate.candidateStatus === 'selected'));
+  const exhausted = [...runs.values()].filter(candidates => candidates[0]?.fallbackStatus === 'exhausted').length;
+  const stopped = [...runs.values()].filter(candidates => candidates[0]?.fallbackStatus === 'stopped').length;
+  const selectedRanks = selectedRuns.map(candidates =>
+    Number(candidates.find(candidate => candidate.candidateStatus === 'selected')!.rank));
+  const runCount = runs.size;
+  return {
+    runs: runCount,
+    candidates: rows.length,
+    selected: selectedRuns.length,
+    exhausted,
+    stopped,
+    unavailableCandidates: rows.filter(row => row.candidateStatus === 'unavailable').length,
+    selectionRatePercent: runCount > 0 ? selectedRuns.length / runCount * 100 : null,
+    exhaustionRatePercent: runCount > 0 ? exhausted / runCount * 100 : null,
+    averageSelectedRank: selectedRanks.length > 0
+      ? selectedRanks.reduce((sum, rank) => sum + rank, 0) / selectedRanks.length
+      : null,
+    byAccount: [...accounts.values()].sort((left, right) => left.accountId.localeCompare(right.accountId)),
+  };
+}
+
 function finite(value: unknown): number {
   const parsed = Number(value ?? 0);
   if (!Number.isFinite(parsed)) throw new Error('Trading analytics produced a non-finite value.');
@@ -537,6 +606,7 @@ export async function getFilteredTradingAnalytics(filters: TradingAnalyticsFilte
     equity: Array<Record<string, unknown>>;
   };
   execution: Awaited<ReturnType<typeof filteredExecutionAnalytics>>;
+  fallback: Awaited<ReturnType<typeof filteredFallbackAnalytics>>;
 }> {
   const [rawPositions, rawIntents, rawFills, equityPoints] = await performanceRows(filters.since);
   const positions = rawPositions.filter(row => analyticsRowMatches(row, filters));
@@ -557,6 +627,10 @@ export async function getFilteredTradingAnalytics(filters: TradingAnalyticsFilte
     && point.observedAt <= filters.until
     && (selectedAccounts.size === 0 || selectedAccounts.has(point.accountId)));
   const generatedAt = Date.now();
+  const [execution, fallback] = await Promise.all([
+    filteredExecutionAnalytics(filters),
+    filteredFallbackAnalytics(filters),
+  ]);
   return {
     generatedAt,
     filters,
@@ -570,6 +644,7 @@ export async function getFilteredTradingAnalytics(filters: TradingAnalyticsFilte
         .sort((left, right) => dimensionValue(left.id).localeCompare(dimensionValue(right.id))),
       equity: equityPerformance(filteredEquity),
     },
-    execution: await filteredExecutionAnalytics(filters),
+    execution,
+    fallback,
   };
 }

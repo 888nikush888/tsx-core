@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { CcxtExchangeAdapter } from '../src/ccxt_exchange.js';
+import { TradingSymbolUnavailableError } from '../src/trading_errors.js';
 import { TradingCredentialStore } from '../src/trading_credentials.js';
 import { createTradingAccount, getSignalContractVersion, listTradingStrategies } from '../src/trading_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
@@ -279,6 +280,67 @@ try {
     'Read-only executor requests must retry one bounded transport failure.',
   );
   assert.equal(requests.length - readsBeforeTransportRetry, 2);
+
+  const readsBeforeSymbolMiss = requests.length;
+  nextResponse = {
+    status: 422,
+    body: {
+      error: 'Symbol SOLUSDT is unavailable on the certified linear perpetual market.',
+      code: 'SYMBOL_UNAVAILABLE',
+      sideEffects: false,
+      details: { exchange: 'bybit', accountId: account.id, symbol: 'SOLUSDT' },
+    },
+  };
+  await assert.rejects(
+    adapter.marketSnapshot(account, 'SOLUSDT'),
+    error => error instanceof TradingSymbolUnavailableError
+      && error.code === 'SYMBOL_UNAVAILABLE'
+      && error.sideEffects === false
+      && error.details.symbol === 'SOLUSDT',
+  );
+  assert.equal(requests.length - readsBeforeSymbolMiss, 1, 'A typed symbol miss is deterministic and must not be retried.');
+
+  nextResponse = {
+    status: 422,
+    body: { error: 'unsafe malformed response', code: 'SYMBOL_UNAVAILABLE', sideEffects: true },
+  };
+  await assert.rejects(
+    adapter.marketSnapshot(account, 'SOLUSDT'),
+    /422.*unsafe malformed response.*SYMBOL_UNAVAILABLE/,
+    'Fallback requires the explicit sideEffects=false contract.',
+  );
+
+  nextResponse = {
+    status: 422,
+    body: {
+      error: 'typed code returned from an unsafe mutation endpoint',
+      code: 'SYMBOL_UNAVAILABLE',
+      sideEffects: false,
+      details: { exchange: 'bybit', accountId: account.id, symbol: 'BTCUSDT' },
+    },
+  };
+  await assert.rejects(
+    adapter.submitOrder(account, { symbol: 'BTCUSDT' }),
+    error => !(error instanceof TradingSymbolUnavailableError)
+      && /422.*unsafe mutation endpoint.*SYMBOL_UNAVAILABLE/.test(error.message),
+    'Only the read-only market-snapshot endpoint may activate account fallback.',
+  );
+
+  nextResponse = {
+    status: 422,
+    body: {
+      error: 'typed code with mismatched identity',
+      code: 'SYMBOL_UNAVAILABLE',
+      sideEffects: false,
+      details: { exchange: 'bybit', accountId: 'different-account', symbol: 'SOLUSDT' },
+    },
+  };
+  await assert.rejects(
+    adapter.marketSnapshot(account, 'SOLUSDT'),
+    error => !(error instanceof TradingSymbolUnavailableError)
+      && /422.*mismatched identity.*SYMBOL_UNAVAILABLE/.test(error.message),
+    'The typed fallback response must match the requested account and symbol exactly.',
+  );
 
   const mutationsBeforeFailure = requests.length;
   nextResponse = { status: 503, body: { error: 'executor unavailable', code: 'ORDER_SUBMIT_FAILED' } };

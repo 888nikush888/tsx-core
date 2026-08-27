@@ -331,4 +331,151 @@ describe("workflow builder resilience", () => {
       ),
     );
   });
+
+  it("creates a channel-scoped ordered fallback edge between account blocks", async () => {
+    const graph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          id: "node-channel",
+          kind: "channel",
+          resourceVersionId: "channel-v1",
+          position: { x: 0, y: 0 },
+        },
+        {
+          id: "node-primary",
+          kind: "account",
+          resourceVersionId: "account-primary-v1",
+          position: { x: 0, y: 0 },
+        },
+        {
+          id: "node-fallback",
+          kind: "account",
+          resourceVersionId: "account-fallback-v1",
+          position: { x: 0, y: 180 },
+        },
+      ],
+      edges: [
+        {
+          id: "edge-primary",
+          source: "node-channel",
+          target: "node-primary",
+          channelNodeIds: ["node-channel"],
+        },
+      ],
+    };
+    const workflow = {
+      id: "revision-1",
+      revision: 1,
+      createdAt: 1,
+      graph,
+      compiled: { paths: [], warnings: [] },
+    };
+    api.apiFetch.mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const requestedGraph =
+          url === "/api/workflow/mutate" && typeof init?.body === "string"
+            ? JSON.parse(init.body).graph
+            : null;
+        const payload =
+          url === "/api/workflow"
+            ? {
+                workflow,
+                resources: [
+                  {
+                    id: "channel-v1",
+                    resourceId: "channel",
+                    version: 1,
+                    kind: "channel",
+                    name: "Kanal A",
+                    status: "published",
+                    configuration: { channelId: "-1001" },
+                  },
+                  {
+                    id: "account-primary-v1",
+                    resourceId: "account-primary",
+                    version: 1,
+                    kind: "account",
+                    name: "Kraken zuerst",
+                    status: "published",
+                    configuration: { accountId: "account-primary" },
+                  },
+                  {
+                    id: "account-fallback-v1",
+                    resourceId: "account-fallback",
+                    version: 1,
+                    kind: "account",
+                    name: "Hyperliquid danach",
+                    status: "published",
+                    configuration: { accountId: "account-fallback" },
+                  },
+                ],
+              }
+            : url === "/api/workflow/impact"
+              ? { impact: { destructive: false, changed: [], removed: [] } }
+              : url === "/api/workflow/mutate"
+                ? {
+                    workflow: {
+                      ...workflow,
+                      id: "revision-2",
+                      revision: 2,
+                      graph: requestedGraph,
+                    },
+                  }
+                : {};
+        return new Response(JSON.stringify(payload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    );
+
+    render(<WorkflowBuilder />);
+    await openBuilderWorkspace();
+    await waitFor(() => expect(flow.props).not.toBeNull());
+    if (!flow.props) throw new Error("React Flow props were not captured.");
+    const primary = (flow.props.nodes as Array<any>).find(
+      (node) => node.id === "node-primary",
+    );
+    act(() => primary.data.onStartConnection("node-primary", "account_fallback"));
+
+    await waitFor(() => {
+      const nodes = flow.props?.nodes as Array<any>;
+      expect(
+        nodes.find((node) => node.id === "node-fallback").data.connectionState,
+      ).toBe("target");
+    });
+    expect(
+      screen.getByText("Wähle das nächste Konto der exklusiven Fallback-Reihenfolge."),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /Hyperliquid danach/ }));
+
+    await waitFor(() =>
+      expect(api.apiFetch).toHaveBeenCalledWith(
+        "/api/workflow/mutate",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    const mutateCall = api.apiFetch.mock.calls.find(
+      ([url]) => url === "/api/workflow/mutate",
+    );
+    if (!mutateCall) throw new Error("Workflow mutation was not submitted.");
+    const submitted = JSON.parse((mutateCall[1] as RequestInit).body as string).graph;
+    expect(submitted.schemaVersion).toBe(2);
+    expect(submitted.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "edge-primary",
+          kind: "flow",
+        }),
+        expect.objectContaining({
+          source: "node-primary",
+          target: "node-fallback",
+          kind: "account_fallback",
+          channelNodeIds: ["node-channel"],
+        }),
+      ]),
+    );
+  });
 });

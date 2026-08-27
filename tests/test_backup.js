@@ -21,10 +21,16 @@ import {
   getDatabase,
   getOutboxTask,
   initDb,
+  REQUIRED_DATABASE_TABLES,
   saveSignal
 } from '../src/db.js';
 
 async function createVerifiedArtifact(root, databasePath, backupRoot) {
+  assert.ok(
+    REQUIRED_DATABASE_TABLES.includes('trading_fallback_runs') &&
+      REQUIRED_DATABASE_TABLES.includes('trading_fallback_candidates'),
+    'Verified backups must require the complete ordered-fallback state.',
+  );
   await initDb(databasePath);
   await seedTradingFixtures();
   await enqueueOutboxTask({ id: 'before-backup', type: 'single', chatId: '-1001', messageId: 1, addedAt: 1 });

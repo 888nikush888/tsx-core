@@ -27,13 +27,14 @@ type RouteOverviewProps = {
 };
 
 function RouteSequence({ route }: { route: WorkflowRoute }) {
+  const orderedAccounts = route.fallbackAccounts.map((candidate) => candidate.accountName);
   return (
     <div className="route-sequence" aria-label={`Pfad ${route.channelName} zu ${route.accountName}`}>
       <strong>{route.channelName}</strong>
       <ArrowRight aria-hidden="true" />
       <span>{route.nodeIds.length - 2} Verarbeitungsschritte</span>
       <ArrowRight aria-hidden="true" />
-      <strong>{route.accountName}</strong>
+      <strong>{orderedAccounts.join(" → ")}</strong>
     </div>
   );
 }
@@ -60,8 +61,9 @@ export function RouteOverview({
           </Badge>
           <DialogTitle>Kanäle, Verarbeitung und Börsen</DialogTitle>
           <DialogDescription>
-            Die Matrix zeigt verbindlich, welches Signal auf welchem Konto
-            ausgeführt wird. Ein Haken entspricht einem kompilierten Pfad.
+            Die Matrix zeigt verbindlich, welche exklusive Kontoreihenfolge ein
+            Signal verwendet. Fallback-Konten werden nur versucht, wenn das Paar
+            auf dem vorherigen Konto nicht verfügbar ist.
           </DialogDescription>
         </DialogHeader>
         <div className="route-overview-content">
@@ -131,6 +133,9 @@ export function RouteOverview({
                                 cell.accountId === account.id,
                             );
                             const route = entry?.routes[0];
+                            const fallbackRank = route?.fallbackAccounts.find(
+                              (candidate) => candidate.accountId === account.id,
+                            )?.rank;
                             return (
                               <td key={account.id}>
                                 {route ? (
@@ -147,9 +152,9 @@ export function RouteOverview({
                                     aria-label={`${channel.name} auf ${account.name} hervorheben`}
                                     onClick={() => focus(route.id)}
                                   >
-                                    {entry.routes.length > 1
-                                      ? `${entry.routes.length} Pfade`
-                                      : "1 Pfad"}
+                                    {fallbackRank === undefined || route.fallbackAccounts.length === 1
+                                      ? entry.routes.length > 1 ? `${entry.routes.length} Pfade` : "direkt"
+                                      : `${fallbackRank + 1}. Wahl`}
                                   </Button>
                                 ) : (
                                   <span aria-label="Keine Ausführung">—</span>
@@ -170,7 +175,7 @@ export function RouteOverview({
             <div className="route-list-heading">
               <div>
                 <h3 id="route-list-title">Kompilierte Pfade</h3>
-                <p>Jeder Eintrag kann genau eine Kontoausführung erzeugen.</p>
+                <p>Jeder Eintrag kann höchstens eine Kontoausführung erzeugen.</p>
               </div>
               {selectedPathId && (
                 <Button
@@ -201,7 +206,11 @@ export function RouteOverview({
                   <RouteSequence route={route} />
                   <div className="route-card-detail">
                     <span>Strategie: {route.strategyName}</span>
-                    <span>{route.accountDetail}</span>
+                    <span>
+                      {route.fallbackAccounts.length > 1
+                        ? `Exklusive Reihenfolge: ${route.fallbackAccounts.map((candidate, candidateIndex) => `${candidateIndex + 1}. ${candidate.accountName}`).join(" · ")}`
+                        : route.accountDetail}
+                    </span>
                   </div>
                   <Button
                     type="button"

@@ -47,6 +47,7 @@ const allTests = [
   'test_signal_contract_validation.js',
   'test_trading_core.js',
   'test_workflow_builder.js',
+  'test_workflow_fallback.js',
   'test_workflow_migration.js',
   'test_setup_bundle.js',
   'test_trading_engine.js',

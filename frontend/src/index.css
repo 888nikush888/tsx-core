@@ -585,6 +585,11 @@ button:disabled {
 .workflow-edge-path.is-shared {
   stroke-width: 2.6;
 }
+.workflow-edge-path.is-account-fallback {
+  stroke: var(--chart-4);
+  stroke-width: 2.7;
+  stroke-dasharray: 8 5;
+}
 .workflow-edge-path.path-active {
   stroke: var(--chart-2) !important;
   stroke-width: 3.4;
@@ -1130,6 +1135,17 @@ button:disabled {
   border-color: color-mix(in srgb, var(--node-accent) 38%, var(--border));
   color: color-mix(in oklch, var(--node-accent) 72%, var(--foreground));
   background: var(--card);
+}
+.workflow-handle.is-fallback {
+  background: var(--chart-4) !important;
+}
+.workflow-fallback-connect-button {
+  top: auto;
+  right: 50%;
+  bottom: -14px;
+  transform: translateX(50%);
+  border-color: color-mix(in srgb, var(--chart-4) 52%, var(--border));
+  color: var(--chart-4);
 }
 .workflow-column-header {
   display: flex;

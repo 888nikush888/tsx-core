@@ -88,6 +88,14 @@ const trading = {
   equityHistory: [{ observedAt: now, equity: 10_200 }],
   exchangeStreams: [],
   accountIncidents: [{ id: "incident-1", accountId: "bybit-1", category: "remote_order", severity: "critical", message: "Unverwaltete Börsenorder", status: "open", occurrenceCount: 3, firstSeenAt: now - 1000, lastSeenAt: now, resolvedAt: null, details: {} }],
+  fallbackRuns: [{
+    id: "fallback-run-1", channelId: "VIP", channelName: "VIP Coinsignals", sourceSignalId: "signal-1", routeGroupKey: "VIP:group-1",
+    status: "selected", selectedRank: 1, stopReason: null, createdAt: now, updatedAt: now,
+    candidates: [
+      { id: "candidate-1", rank: 0, accountId: "bybit-1", accountName: "Bybit Test", exchange: "bybit", mode: "testnet", status: "unavailable", reasonCode: "SYMBOL_UNAVAILABLE", intentId: "intent-primary" },
+      { id: "candidate-2", rank: 1, accountId: "paper-1", accountName: "Paper", exchange: "paper", mode: "paper", status: "selected", reasonCode: null, intentId: "intent-1" },
+    ],
+  }],
 } as any
 
 const analytics = {
@@ -100,6 +108,11 @@ const analytics = {
   execution: {
     funnel: { received: 5, submitted: 4, filled: 4 },
     latencyMs: { signalToSubmit: { p95: 850 } },
+  },
+  fallback: {
+    runs: 3, selected: 2, exhausted: 1, stopped: 0, unavailableCandidates: 4,
+    averageSelectedRank: 1.5, selectionRatePercent: 66.7,
+    byAccount: [{ accountId: "paper-1", exchange: "paper", mode: "paper", attempts: 2, selected: 1, unavailable: 1 }],
   },
 }
 
@@ -170,8 +183,10 @@ describe("operations workspace", () => {
       workspace(tab)
       expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument()
       if (tab === "overview") await screen.findByText("Remote Admin")
+      if (tab === "overview") await screen.findByText("VIP Coinsignals")
       if (tab === "journal") await screen.findByText(/PnL\s+4\.99/)
       if (tab === "analytics") await screen.findByText("75,0 %")
+      if (tab === "analytics") await screen.findByText("Fallback-Auswahl je Börsenkonto")
       if (tab === "logs") await screen.findByText(/executor ready/)
       if (tab === "backups") await screen.findByText("backup-v3.1.0")
       if (tab === "mcp") await screen.findByText("Auditor")

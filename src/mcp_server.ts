@@ -51,6 +51,7 @@ import { listExchangeStreamStates } from './exchange_stream_repository.js';
 import { listTradeJournal } from './trade_journal.js';
 import {
   getActiveWorkflow,
+  listWorkflowFallbackRuns,
   listWorkflowResources,
   previewWorkflowImpact,
   simulateWorkflow,
@@ -438,6 +439,13 @@ function registerExtendedReadTools(server: McpServer, agentId: string): void {
     description: 'Reads the active immutable workflow revision, compiled account paths and reusable resource versions.',
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async () => ({ workflow: await getActiveWorkflow(), resources: await listWorkflowResources() }));
+
+  registerTool(server, agentId, 'tsx_workflow_fallback_runs', 'workflow.read', {
+    title: 'Read ordered account fallback runs',
+    description: 'Reads recent exclusive account-selection runs and their candidate outcomes without exposing credentials.',
+    inputSchema: { limit: z.number().int().min(1).max(500).default(100) },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, input => listWorkflowFallbackRuns(input.limit));
 
   registerTool(server, agentId, 'tsx_workflow_simulate', 'workflow.read', {
     title: 'Simulate visual workflow filters',

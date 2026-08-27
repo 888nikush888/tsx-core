@@ -4,6 +4,19 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+### Added
+
+- Exklusive, kanalbezogene Börsenkonto-Fallback-Ketten im visuellen Builder. Kontobausteine können in einer festen Reihenfolge verbunden werden; TSX Core erzeugt erst dann den nächsten Intent, wenn der CCXT-Executor für das aktuelle Konto das normalisierte Futures-Paar eindeutig als nicht verfügbar bestätigt.
+- Persistente Fallback-Läufe mit Kandidatenrang, ausgewähltem Konto, Erschöpfungs-/Stoppgrund sowie Anzeige in Dashboard, Analytics, Workflow-Snapshot und MCP.
+
+### Changed
+
+- Workflow-Graph und portable Setup-Bundles verwenden Schema v2 mit typisierten `flow`- und `account_fallback`-Kanten; bestehende Schema-v1-Workflows bleiben lesbar und werden beim Bearbeiten sicher hochgestuft.
+
+### Security
+
+- Nur eine identitätsgebundene, nebenwirkungsfreie `SYMBOL_UNAVAILABLE`-Antwort des Read-only-Market-Snapshot-Endpunkts darf eine Fallback-Stufe aktivieren. Konto-/Executorfehler, 502/503/Timeouts, Risiko- und Vertragsgates sowie unklare Submit-Ergebnisse stoppen die Kette fail-closed; die ursprüngliche Entry-TTL wird nie zurückgesetzt.
+
 ## [3.2.0] - 2026-08-26
 
 ### Fixed

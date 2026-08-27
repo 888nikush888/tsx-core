@@ -150,7 +150,7 @@ function consolidatedEdges(
     const source = replacement.get(edge.source) || edge.source;
     const target = replacement.get(edge.target) || edge.target;
     if (source === target) continue;
-    const identity = `${source}\u0000${target}`;
+    const identity = `${edge.kind || "flow"}\u0000${source}\u0000${target}`;
     const channelNodeIds = remappedChannelNodeIds(edge, replacement);
     const existing = edgesByIdentity.get(identity);
     if (!existing) {
@@ -251,7 +251,7 @@ export function consolidateWorkflowResources(
   }
   return {
     graph: normalizeWorkflowGrid({
-      schemaVersion: 1,
+      schemaVersion: source.schemaVersion,
       nodes,
       edges: consolidatedEdges(source.edges, replacement),
     }),

@@ -124,6 +124,22 @@ VIP → Filter → Parser → Schema → Vertrag → Strategie
 
 Beide Intents referenzieren dieselbe Signal- und Workflow-Provenienz, besitzen aber eigene Pfad-ID, Strategieversion, Konto, Plan, Order-IDs und Fehlerzustände. Ein nicht bereites Kraken-Konto verhindert den Hyperliquid-Zweig nicht.
 
+## Geordnete Börsen-Fallbacks
+
+Parallele Kontozweige und eine Fallback-Reihenfolge sind zwei unterschiedliche Betriebsarten. Für eine exklusive Reihenfolge wird am ersten Kontobaustein **Nächstes Fallback-Konto** gewählt und Konto A mit Konto B, anschließend B mit C verbunden. Die spezielle gestrichelte Verbindung wird pro Ursprungskanal gespeichert. **Pfade** zeigt die Kette als genau eine Route, zum Beispiel `Hyperliquid → Bybit → Kraken Futures`.
+
+TSX Core legt zunächst ausschließlich für Konto A einen Intent an. Nur wenn der interne CCXT-Executor über den Read-only-Market-Snapshot exakt `SYMBOL_UNAVAILABLE`, `sideEffects=false` und die passende Börsen-, Konto- und Symbolidentität meldet, wird Konto B angelegt und geprüft. Dasselbe gilt danach für Konto C. Sobald ein Konto das Paar unterstützt, endet die Auswahl dort – auch wenn die spätere Planung oder Orderübermittlung scheitert. Es wird daher niemals derselbe Trade wegen eines Timeouts oder unklaren Orderausgangs auf einem weiteren Konto dupliziert.
+
+Kein Fallback findet statt bei:
+
+- 502/503/504, Transportfehler oder Timeout;
+- nicht bereitem, gesperrtem oder nicht abgleichbarem Konto;
+- Kapital-, Positions-, Tagesverlust-, Strategie-, Vertrags- oder sonstigem Risikogate;
+- abgelaufener Entry-TTL;
+- Submit-, Cancel- oder Reconciliation-Fehlern.
+
+Alle Kandidaten erben Parser, Schema, Vertrag, Strategie, Positionsgröße und adaptiven Risiko-Baustein vom ursprünglichen Pfad. Das tatsächlich ausgewählte Konto verwendet jedoch immer sein eigenes Equity, sein kontoweites Positionslimit und seinen eigenen adaptiven Zustand. Die Zeitgrenze beginnt mit dem ursprünglichen Signal und wird beim Wechsel nicht neu gestartet. Ist das Paar auf keinem Konto vorhanden, endet die Route ohne Order als **Überall nicht verfügbar**. Dashboard, Analytics und MCP zeigen jeden Versuch und den abschließenden Grund.
+
 ## Simulation und Aktivierung
 
 **Simulieren** schickt Beispieltext und Inhaltstyp ohne Parser-/Exchange-Nebenwirkung durch die Filter der aktiven Revision. Für jeden passenden Pfad werden Konto, Aktivierungszustand und Blockgrund angezeigt. Die Simulation ersetzt keinen Paper-/Testnet-End-to-End-Test.

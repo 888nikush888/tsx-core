@@ -33,6 +33,9 @@ try {
   await initDb(path.join(directory, 'forwarder.db'));
   await seedTradingFixtures();
   const [account] = await listTradingAccounts();
+  const fallbackAccount = await createTradingAccount({
+    name: 'Bundle fallback account', exchange: 'paper', mode: 'paper', initialBalance: '25000',
+  });
   const [strategy] = (await listTradingStrategies()).filter(item => item.status === 'published');
   const [schema] = (await listTradingSignalSchemas()).filter(item => item.enabled);
   const contract = (await listSignalContracts()).flatMap(item => item.versions)
@@ -51,14 +54,23 @@ try {
     await resource('strategy', 'Bundle strategy', { strategyVersionId: strategy.id }),
     await resource('sizing', 'Bundle sizing', { positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxAdaptiveRiskPercent: '10', maxPositionNotional: '1000000', maxLeverage: 50 }),
     await resource('account', 'Bundle account', { accountId: account.id }),
+    await resource('account', 'Bundle fallback account', { accountId: fallbackAccount.id }),
   ];
-  const nodeIds = ['channel', 'parser', 'schema', 'contract', 'strategy', 'sizing', 'account'];
+  const nodeIds = ['channel', 'parser', 'schema', 'contract', 'strategy', 'sizing', 'account', 'account-fallback'];
   const graph = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     nodes: resources.map((item, index) => ({
       id: nodeIds[index], kind: item.kind, resourceVersionId: item.id, position: { x: index * 316, y: 0 },
     })),
-    edges: nodeIds.slice(0, -1).map((source, index) => ({ id: `edge-${index}`, source, target: nodeIds[index + 1] })),
+    edges: [
+      ...nodeIds.slice(0, -2).map((source, index) => ({
+        id: `edge-${index}`, kind: 'flow', source, target: nodeIds[index + 1],
+      })),
+      {
+        id: 'account-fallback-edge', kind: 'account_fallback', source: 'account',
+        target: 'account-fallback', channelNodeIds: ['channel'],
+      },
+    ],
   };
   const initial = await saveWorkflowRevision({
     baseRevisionId: null,
@@ -70,10 +82,12 @@ try {
     apiId: 123,
     xmlParsing: { timeout: 120_000, aiLimits: { dailyTokenLimit: 10_000 } },
   });
-  assert.equal(bundle.schemaVersion, 1);
+  assert.equal(bundle.schemaVersion, 2);
   assert.equal(bundle.mode, 'replace');
   assert.equal(bundle.workflow.resources.length, resources.length);
-  assert.equal(bundle.accountReferences.length, 1);
+  assert.equal(bundle.accountReferences.length, 2);
+  assert.equal(bundle.workflow.graph.schemaVersion, 2);
+  assert.equal(bundle.workflow.graph.edges.at(-1).kind, 'account_fallback');
   assert.doesNotMatch(JSON.stringify(bundle), /credentialRef|apiSecret|privateKey|bearerToken/i);
   assert.deepEqual(validatePortableSetupBundle(bundle), bundle);
 
@@ -104,7 +118,7 @@ try {
     },
     {
       label: 'unsupported versions',
-      mutate: candidate => { candidate.schemaVersion = 2; },
+      mutate: candidate => { candidate.schemaVersion = 3; },
       error: /schema or version is unsupported/,
     },
     {
@@ -124,7 +138,7 @@ try {
     },
     {
       label: 'unsupported graph schemas',
-      mutate: candidate => { candidate.workflow.graph.schemaVersion = 2; },
+      mutate: candidate => { candidate.workflow.graph.schemaVersion = 3; },
       error: /graph structure is invalid/,
     },
     {
@@ -276,6 +290,7 @@ try {
   const suggestion = await suggestPortableAccountMappings(bundle);
   assert.deepEqual(suggestion.unresolved, []);
   assert.equal(suggestion.automatic[account.id], account.id);
+  assert.equal(suggestion.automatic[fallbackAccount.id], fallbackAccount.id);
   const fallbackReference = {
     sourceAccountId: 'remote-account',
     name: account.name,
@@ -326,6 +341,9 @@ try {
   assert.equal(active.revision, initial.revision + 1);
   assert.notEqual(active.id, initial.id);
   assert.equal(active.graph.nodes.length, graph.nodes.length);
+  assert.equal(active.graph.schemaVersion, 2);
+  assert.equal(active.graph.edges.at(-1).kind, 'account_fallback');
+  assert.equal(active.compiled.routeGroups[0].candidates.length, 2);
   const activeResourceIds = new Set(active.graph.nodes.map(node => node.resourceVersionId));
   assert.equal(activeResourceIds.size, resources.length);
   assert.ok((await listWorkflowResources()).filter(item => item.status === 'published').every(item => activeResourceIds.has(item.id)));

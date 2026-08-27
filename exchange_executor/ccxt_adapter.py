@@ -8,7 +8,7 @@ from typing import Any, Awaitable
 from ccxt.base.errors import BadRequest, InvalidOrder, OrderNotFound
 
 from ccxt_client import CcxtClientRegistry, AccountClients, decimal_text
-from common import ExchangeContractError, RequestDeadline, decimal_string, external_account_id
+from common import ExchangeContractError, RequestDeadline, SymbolUnavailableError, decimal_string, external_account_id
 
 INVALID_CONTRACT_SIZE = "CCXT market has an invalid contract size."
 EMERGENCY_CLEANUP_SLIPPAGE = "0.01"
@@ -286,7 +286,12 @@ class CcxtAdapter:
         candidates.sort(key=lambda market: quote_order.index(market.get("settle") or market.get("quote"))
                         if (market.get("settle") or market.get("quote")) in quote_order else len(quote_order))
         if not candidates:
-            raise ExchangeContractError(f"Symbol {requested_symbol} is unavailable on the certified linear perpetual market.")
+            raise SymbolUnavailableError(
+                f"Symbol {requested_symbol} is unavailable on the certified linear perpetual market.",
+                exchange=clients.account["exchange"],
+                account_id=clients.account["id"],
+                symbol=requested_symbol,
+            )
         return candidates[0]
 
     async def verify(self, account: dict[str, str], deadline: RequestDeadline) -> dict[str, Any]:

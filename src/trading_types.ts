@@ -345,6 +345,8 @@ export interface WorkflowEdge {
   id: string;
   source: string;
   target: string;
+  /** Omitted by legacy schema-v1 graphs and interpreted as a normal flow edge. */
+  kind?: 'flow' | 'account_fallback';
   /**
    * Optional origin-channel routing constraint. When omitted, every channel
    * lineage reaching the source node may traverse this edge. When present,
@@ -355,7 +357,7 @@ export interface WorkflowEdge {
 }
 
 export interface WorkflowGraph {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
 }
@@ -372,10 +374,30 @@ export interface WorkflowExecutionPath {
   contractResourceVersionId: string | null;
   sizingResourceVersionId: string | null;
   adaptiveRiskResourceVersionId: string | null;
+  /** Stable identity shared by mutually exclusive account candidates. */
+  routeGroupKey: string;
+  /** Zero-based position in the account fallback chain. */
+  fallbackRank: number;
   nodeIds: string[];
   effectiveConfiguration: Record<string, unknown>;
   enabled: boolean;
   createdAt: number;
+}
+
+export interface WorkflowRouteCandidate {
+  pathId: string;
+  accountId: string;
+  accountNodeId: string;
+  rank: number;
+  enabled: boolean;
+}
+
+export interface WorkflowRouteGroup {
+  key: string;
+  channelId: string;
+  channelNodeId: string;
+  primaryPathId: string;
+  candidates: WorkflowRouteCandidate[];
 }
 
 export interface WorkflowRevision {
@@ -383,7 +405,7 @@ export interface WorkflowRevision {
   revision: number;
   status: 'active' | 'archived';
   graph: WorkflowGraph;
-  compiled: { paths: WorkflowExecutionPath[]; warnings: string[] };
+  compiled: { paths: WorkflowExecutionPath[]; routeGroups: WorkflowRouteGroup[]; warnings: string[] };
   definitionSha256: string;
   baseRevisionId: string | null;
   createdBy: string;

@@ -369,7 +369,9 @@ async function testWorkflowRevisionApi(baseUrl) {
 
   response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
-  assert.strictEqual((await response.json()).workflow.id, workflow.id);
+  const workflowSnapshot = await response.json();
+  assert.strictEqual(workflowSnapshot.workflow.id, workflow.id);
+  assert.deepEqual(workflowSnapshot.fallbackRuns, []);
 }
 
 async function testWorkflowControlPlane(baseUrl) {
@@ -383,7 +385,8 @@ async function testSetupBundleApi(baseUrl, controls, appState) {
   assert.strictEqual(response.status, 200, 'Authenticated viewers may export the redacted portable setup.');
   assert.match(response.headers.get('content-disposition') || '', /tsx-core-setup-/);
   const bundle = await response.json();
-  assert.equal(bundle.schemaVersion, 1);
+  assert.equal(bundle.schemaVersion, 2);
+  assert.equal(bundle.applicationVersion, '3.2.0');
   assert.equal(bundle.mode, 'replace');
   assert.match(bundle.checksum, /^[a-f0-9]{64}$/);
   assert.doesNotMatch(JSON.stringify(bundle), /must-never-be-returned|must-also-be-redacted/);

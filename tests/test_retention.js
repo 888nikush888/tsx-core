@@ -111,8 +111,9 @@ async function seedTradingRetentionRows(database, strategyId) {
     `INSERT INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at)
      VALUES ('signal-trading-old', '-1001', 30, '<signal/>', '<signal/>', ?),
             ('signal-trading-unknown', '-1001', 31, '<signal/>', '<signal/>', ?),
-            ('signal-trading-critical', '-1001', 32, '<signal/>', '<signal/>', ?)`,
-    [OLD, OLD, OLD]
+            ('signal-trading-critical', '-1001', 32, '<signal/>', '<signal/>', ?),
+            ('signal-fallback-probing', '-1001', 33, '<signal/>', '<signal/>', ?)`,
+    [OLD, OLD, OLD, OLD]
   );
   for (const [id, source, status] of [
     ['intent-old', 'signal-trading-old', 'completed'],
@@ -141,8 +142,108 @@ async function seedTradingRetentionRows(database, strategyId) {
     `INSERT INTO trading_paper_orders (
        exchange_order_id, account_id, client_order_id, symbol, role, side, order_type, status,
        quantity, filled_quantity, reduce_only, leverage, created_at, updated_at
-     ) VALUES ('paper-old', 'paper-default', 'paper-client-old', 'BTCUSDT', 'entry', 'buy', 'limit',
+    ) VALUES ('paper-old', 'paper-default', 'paper-client-old', 'BTCUSDT', 'entry', 'buy', 'limit',
                'filled', '1', '1', 0, 1, ?, ?)`, [OLD, OLD]
+  );
+  await seedFallbackRetentionRows(database, strategyId);
+}
+
+async function seedFallbackRetentionRows(database, strategyId) {
+  await database.run(
+    `INSERT INTO trading_trade_intents (
+       id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id, account_id,
+       exchange, mode, symbol, side, status, signal_json, block_reason, created_at, updated_at
+     ) VALUES ('intent-fallback-probing', 'signal-fallback-probing', 'signal-fallback-probing',
+               '-1001', ?, 'paper-default', 'paper', 'paper', 'ETHUSDT', 'LONG', 'blocked', '{}',
+               'SYMBOL_UNAVAILABLE', ?, ?)`,
+    [strategyId, OLD, OLD],
+  );
+
+  await database.run(
+    `INSERT INTO workflow_revisions (
+       id, revision, status, graph_json, compiled_json,
+       definition_sha256, created_by, created_at
+     ) VALUES ('retention-revision', 1, 'active', '{}', '{}', ?, 'test', ?)`,
+    ['a'.repeat(64), OLD],
+  );
+  await database.run(
+    `INSERT INTO workflow_execution_paths (
+       id, workflow_revision_id, path_key, channel_id, account_id, strategy_version_id,
+       node_ids_json, effective_configuration_json, enabled, created_at, route_group_key, fallback_rank
+     ) VALUES ('retention-path', 'retention-revision', ?, '-1001', 'paper-default', ?,
+               '[]', '{}', 1, ?, 'retention-route', 0)`,
+    ['b'.repeat(64), strategyId, OLD],
+  );
+  await database.run(
+    `INSERT INTO workflow_execution_paths (
+       id, workflow_revision_id, path_key, channel_id, account_id, strategy_version_id,
+       node_ids_json, effective_configuration_json, enabled, created_at, route_group_key, fallback_rank
+     ) VALUES ('retention-path-next', 'retention-revision', ?, '-1001', 'paper-default', ?,
+               '[]', '{}', 1, ?, 'probing-route', 1)`,
+    ['d'.repeat(64), strategyId, OLD],
+  );
+  await database.run(
+    `INSERT INTO workflow_signal_runs (
+       id, source_signal_id, workflow_revision_id, channel_id, status,
+       input_sha256, result_json, created_at, completed_at
+     ) VALUES ('retention-signal-run', 'signal-trading-old', 'retention-revision', '-1001',
+               'completed', ?, '{}', ?, ?)`,
+    ['c'.repeat(64), OLD, OLD],
+  );
+  await database.run(
+    `INSERT INTO workflow_signal_runs (
+       id, source_signal_id, workflow_revision_id, channel_id, status,
+       input_sha256, result_json, created_at, completed_at
+     ) VALUES ('probing-signal-run', 'signal-fallback-probing', 'retention-revision', '-1001',
+               'running', ?, '{}', ?, NULL)`,
+    ['e'.repeat(64), OLD],
+  );
+  await database.run(
+    `UPDATE trading_trade_intents
+     SET signal_run_id = 'retention-signal-run', workflow_revision_id = 'retention-revision',
+         execution_path_id = 'retention-path'
+     WHERE id = 'intent-old'`,
+  );
+  await database.run(
+    `INSERT INTO trading_fallback_runs (
+       id, source_signal_id, workflow_revision_id, signal_run_id, route_group_key,
+       channel_id, status, current_rank, selected_intent_id, created_at, updated_at, completed_at
+     ) VALUES ('retention-fallback-run', 'signal-trading-old', 'retention-revision',
+               'retention-signal-run', 'retention-route', '-1001', 'selected', 0,
+               'intent-old', ?, ?, ?)`,
+    [OLD, OLD, OLD],
+  );
+  await database.run(
+    `INSERT INTO trading_fallback_candidates (
+       fallback_run_id, rank, execution_path_id, account_id, intent_id, status,
+       created_at, updated_at
+     ) VALUES ('retention-fallback-run', 0, 'retention-path', 'paper-default',
+               'intent-old', 'selected', ?, ?)`,
+    [OLD, OLD],
+  );
+  await database.run(
+    `UPDATE trading_trade_intents
+     SET signal_run_id = 'probing-signal-run', workflow_revision_id = 'retention-revision',
+         execution_path_id = 'retention-path'
+     WHERE id = 'intent-fallback-probing'`,
+  );
+  await database.run(
+    `INSERT INTO trading_fallback_runs (
+       id, source_signal_id, workflow_revision_id, signal_run_id, route_group_key,
+       channel_id, status, current_rank, created_at, updated_at
+     ) VALUES ('probing-fallback-run', 'signal-fallback-probing', 'retention-revision',
+               'probing-signal-run', 'probing-route', '-1001', 'probing', 0, ?, ?)`,
+    [OLD, OLD],
+  );
+  await database.run(
+    `INSERT INTO trading_fallback_candidates (
+       fallback_run_id, rank, execution_path_id, account_id, intent_id, status,
+       error_code, created_at, updated_at
+     ) VALUES ('probing-fallback-run', 0, 'retention-path', 'paper-default',
+               'intent-fallback-probing', 'unavailable', 'SYMBOL_UNAVAILABLE', ?, ?),
+              ('probing-fallback-run', 1, 'retention-path-next', 'paper-default',
+               NULL, 'waiting', NULL, ?, ?)`,
+    [OLD, OLD, OLD, OLD],
   );
 }
 
@@ -180,12 +281,22 @@ async function runTests() {
     );
     assert.deepEqual(
       (await inspection.all('SELECT id FROM signals ORDER BY id')).map(row => row.id),
-      ['signal-old-protected', 'signal-recent', 'signal-trading-critical', 'signal-trading-unknown']
+      ['signal-fallback-probing', 'signal-old-protected', 'signal-recent', 'signal-trading-critical', 'signal-trading-unknown']
     );
     assert.deepEqual(
       (await inspection.all('SELECT id FROM trading_trade_intents ORDER BY id')).map(row => row.id),
-      ['intent-critical', 'intent-unknown'],
+      ['intent-critical', 'intent-fallback-probing', 'intent-unknown'],
       'Unknown outcomes and unacknowledged critical trading evidence must never be pruned automatically.'
+    );
+    assert.deepEqual(
+      (await inspection.all('SELECT id FROM trading_fallback_runs ORDER BY id')).map(row => row.id),
+      ['probing-fallback-run'],
+      'Terminal fallback audit rows must be pruned atomically while an active probing chain remains protected.',
+    );
+    assert.equal(
+      Number((await inspection.get("SELECT COUNT(*) AS count FROM workflow_signal_runs WHERE id = 'retention-signal-run'")).count),
+      0,
+      'A workflow signal run must not retain an otherwise prunable source signal.',
     );
     await inspection.close();
 

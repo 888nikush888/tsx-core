@@ -141,4 +141,36 @@ describe("workflow route topology", () => {
       resourceInstanceCount: 2,
     });
   });
+
+  it("represents account fallback candidates as one exclusive ordered route", () => {
+    const graph: WorkflowGraph = {
+      schemaVersion: 2,
+      nodes: [
+        { id: "c1", kind: "channel", resourceVersionId: "channel-a", position: { x: 0, y: 0 } },
+        { id: "p", kind: "parser", resourceVersionId: "parser", position: { x: 2, y: 0 } },
+        { id: "a1", kind: "account", resourceVersionId: "account-a", position: { x: 3, y: 0 } },
+        { id: "a2", kind: "account", resourceVersionId: "account-b", position: { x: 3, y: 100 } },
+      ],
+      edges: [
+        { id: "c1-p", kind: "flow", source: "c1", target: "p" },
+        { id: "p-a1", kind: "flow", source: "p", target: "a1" },
+        { id: "a1-a2", kind: "account_fallback", source: "a1", target: "a2", channelNodeIds: ["c1"] },
+      ],
+    };
+    const paths = [
+      { ...path("c1-a1", "-1001", "kraken", ["c1", "p", "a1"]), routeGroupKey: "group-1", fallbackRank: 0 },
+      { ...path("c1-a2", "-1001", "hyper", ["c1", "p", "a1", "a2"]), routeGroupKey: "group-1", fallbackRank: 1 },
+    ];
+    const topology = buildWorkflowRouteTopology(paths, graph, resources, [], []);
+    expect(topology.routes).toHaveLength(1);
+    expect(topology.routes[0]).toMatchObject({
+      channelId: "-1001",
+      accountId: "kraken",
+      fallbackAccounts: [
+        expect.objectContaining({ accountId: "kraken", rank: 0 }),
+        expect.objectContaining({ accountId: "hyper", rank: 1 }),
+      ],
+    });
+    expect(topology.edgeUsage.get("a1-a2")).toMatchObject({ pathCount: 1, accountCount: 2 });
+  });
 });

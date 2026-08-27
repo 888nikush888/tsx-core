@@ -50,6 +50,7 @@ import {
   deleteWorkflowResourceDraft,
   getActiveWorkflow,
   listWorkflowResources,
+  listWorkflowFallbackRuns,
   publishWorkflowResource,
   previewWorkflowImpact,
   saveWorkflowRevision,
@@ -1651,8 +1652,10 @@ const acknowledgeTradingRiskHandler = (context: RequestContext) =>
 
 async function workflowSnapshotHandler(context: RequestContext): Promise<void> {
   try {
-    const [workflow, resources] = await Promise.all([getActiveWorkflow(), listWorkflowResources()]);
-    sendJson(context.res, 200, { workflow, resources, requestId: context.requestId });
+    const [workflow, resources, fallbackRuns] = await Promise.all([
+      getActiveWorkflow(), listWorkflowResources(), listWorkflowFallbackRuns(200),
+    ]);
+    sendJson(context.res, 200, { workflow, resources, fallbackRuns, requestId: context.requestId });
   } catch (error) {
     sendError(context, error);
   }

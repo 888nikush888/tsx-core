@@ -138,6 +138,8 @@ export const REQUIRED_DATABASE_TABLES = [
   'workflow_active_revision',
   'workflow_execution_paths',
   'workflow_signal_runs',
+  'trading_fallback_runs',
+  'trading_fallback_candidates',
   'workflow_adaptive_risk_state',
   'workflow_adaptive_risk_evaluations',
   'trading_paper_accounts',
@@ -1293,6 +1295,53 @@ const migrations: SchemaMigration[] = [
         CREATE INDEX idx_trading_account_incident_status
           ON trading_account_incidents(account_id, status, last_seen_at DESC);
       `
+  },
+  {
+    version: 18,
+    name: 'ordered_account_fallback_execution',
+    columns: [
+      { table: 'workflow_execution_paths', name: 'route_group_key', sqlDefinition: 'TEXT' },
+      { table: 'workflow_execution_paths', name: 'fallback_rank', sqlDefinition: 'INTEGER NOT NULL DEFAULT 0' },
+    ],
+    sql: `
+        CREATE INDEX IF NOT EXISTS idx_workflow_paths_route_group
+          ON workflow_execution_paths(workflow_revision_id, route_group_key, fallback_rank);
+        CREATE TABLE trading_fallback_runs (
+          id TEXT PRIMARY KEY,
+          source_signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE RESTRICT,
+          workflow_revision_id TEXT NOT NULL REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+          signal_run_id TEXT NOT NULL REFERENCES workflow_signal_runs(id) ON DELETE RESTRICT,
+          route_group_key TEXT NOT NULL,
+          channel_id TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('probing', 'selected', 'exhausted', 'stopped')),
+          current_rank INTEGER NOT NULL DEFAULT 0 CHECK(current_rank >= 0),
+          selected_intent_id TEXT REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+          stop_reason TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          completed_at INTEGER,
+          UNIQUE(source_signal_id, workflow_revision_id, route_group_key)
+        );
+        CREATE INDEX idx_trading_fallback_runs_status
+          ON trading_fallback_runs(status, updated_at DESC);
+        CREATE TABLE trading_fallback_candidates (
+          fallback_run_id TEXT NOT NULL REFERENCES trading_fallback_runs(id) ON DELETE CASCADE,
+          rank INTEGER NOT NULL CHECK(rank >= 0),
+          execution_path_id TEXT NOT NULL REFERENCES workflow_execution_paths(id) ON DELETE RESTRICT,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          intent_id TEXT REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+          status TEXT NOT NULL CHECK(status IN ('waiting', 'pending', 'unavailable', 'selected', 'stopped')),
+          error_code TEXT,
+          details_json TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY(fallback_run_id, rank),
+          UNIQUE(fallback_run_id, execution_path_id),
+          UNIQUE(intent_id)
+        );
+        CREATE INDEX idx_trading_fallback_candidates_account
+          ON trading_fallback_candidates(account_id, status, updated_at DESC);
+      `
   }
 ];
 
@@ -1793,10 +1842,16 @@ function retentionResult(changes: Array<number | undefined>): OperationalRetenti
   };
 }
 
-async function pruneTradingData(database: Database, cutoff: number, batchSize: number): Promise<Array<number | undefined>> {
+async function prepareTradingRetentionCandidates(
+  database: Database,
+  cutoff: number,
+  batchSize: number,
+): Promise<void> {
   await database.exec(`
     DROP TABLE IF EXISTS temp.retention_trade_intents;
+    DROP TABLE IF EXISTS temp.retention_workflow_signal_runs;
     CREATE TEMP TABLE retention_trade_intents (id TEXT PRIMARY KEY);
+    CREATE TEMP TABLE retention_workflow_signal_runs (id TEXT PRIMARY KEY);
   `);
   await database.run(
     `INSERT INTO retention_trade_intents (id)
@@ -1814,6 +1869,55 @@ async function pruneTradingData(database: Database, cutoff: number, batchSize: n
      ORDER BY updated_at ASC LIMIT ?`,
     [cutoff, batchSize]
   );
+  await database.run(
+    `DELETE FROM retention_trade_intents
+     WHERE id IN (
+       SELECT candidate.intent_id
+       FROM trading_fallback_candidates AS candidate
+       JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
+       WHERE candidate.intent_id IS NOT NULL
+         AND (
+           run.status = 'probing'
+           OR EXISTS (
+             SELECT 1
+             FROM trading_fallback_candidates AS sibling
+             WHERE sibling.fallback_run_id = candidate.fallback_run_id
+               AND sibling.intent_id IS NOT NULL
+               AND sibling.intent_id NOT IN (SELECT id FROM retention_trade_intents)
+           )
+         )
+       )`,
+  );
+}
+
+async function deleteRetainedWorkflowState(database: Database): Promise<void> {
+  await database.run(
+    `INSERT OR IGNORE INTO retention_workflow_signal_runs (id)
+     SELECT DISTINCT signal_run_id
+     FROM trading_trade_intents
+     WHERE id IN (SELECT id FROM retention_trade_intents)
+       AND signal_run_id IS NOT NULL`,
+  );
+  await database.run(
+    `DELETE FROM trading_fallback_runs
+     WHERE status IN ('selected', 'exhausted', 'stopped')
+       AND EXISTS (
+         SELECT 1 FROM trading_fallback_candidates AS candidate
+         WHERE candidate.fallback_run_id = trading_fallback_runs.id
+           AND candidate.intent_id IN (SELECT id FROM retention_trade_intents)
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_fallback_candidates AS candidate
+         WHERE candidate.fallback_run_id = trading_fallback_runs.id
+           AND candidate.intent_id IS NOT NULL
+           AND candidate.intent_id NOT IN (SELECT id FROM retention_trade_intents)
+       )`,
+  );
+}
+
+async function pruneTradingData(database: Database, cutoff: number, batchSize: number): Promise<Array<number | undefined>> {
+  await prepareTradingRetentionCandidates(database, cutoff, batchSize);
+  await deleteRetainedWorkflowState(database);
   await database.run('DELETE FROM trading_risk_events WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
   await database.run(`DELETE FROM trading_fills WHERE order_id IN (
     SELECT id FROM trading_orders WHERE intent_id IN (SELECT id FROM retention_trade_intents)
@@ -1821,6 +1925,18 @@ async function pruneTradingData(database: Database, cutoff: number, batchSize: n
   await database.run('DELETE FROM trading_orders WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
   await database.run('DELETE FROM trading_positions WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
   const intents = await database.run('DELETE FROM trading_trade_intents WHERE id IN (SELECT id FROM retention_trade_intents)');
+  await database.run(
+    `DELETE FROM workflow_signal_runs
+     WHERE id IN (SELECT id FROM retention_workflow_signal_runs)
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_trade_intents AS intent
+         WHERE intent.signal_run_id = workflow_signal_runs.id
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_fallback_runs AS run
+         WHERE run.signal_run_id = workflow_signal_runs.id
+       )`,
+  );
   const reconciliations = await database.run(
     `DELETE FROM trading_reconciliation_runs WHERE id IN (
        SELECT id FROM trading_reconciliation_runs

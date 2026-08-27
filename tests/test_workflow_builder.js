@@ -263,7 +263,7 @@ try {
 
   const graphValidationCases = [
     [null, /must be an object/],
-    [{ schemaVersion: 2, nodes: [], edges: [] }, /contract is invalid/],
+    [{ schemaVersion: 3, nodes: [], edges: [] }, /contract is invalid/],
     [{ schemaVersion: 1, nodes: {}, edges: [] }, /contract is invalid/],
     [{ schemaVersion: 1, nodes: [], edges: {} }, /contract is invalid/],
     [{ schemaVersion: 1, nodes: Array(1_001).fill({}), edges: [] }, /exceeds its size limit/],

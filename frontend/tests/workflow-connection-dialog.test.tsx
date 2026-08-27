@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WorkflowConnectionDialog } from "@/app/workflow/workflow-connection-dialog";
@@ -50,5 +51,35 @@ describe("workflow connection routing dialog", () => {
     expect(save.disabled).toBe(false);
     fireEvent.click(save);
     expect(onSave).toHaveBeenCalledWith(["channel-b"]);
+  });
+
+  it("never offers an all-channel scope for account fallback ordering", () => {
+    const onSave = vi.fn();
+    render(
+      <WorkflowConnectionDialog
+        open
+        sourceName="Kraken zuerst"
+        targetName="Hyperliquid danach"
+        channels={[
+          { id: "channel-a", name: "Kanal A" },
+          { id: "channel-b", name: "Kanal B" },
+        ]}
+        requireChannelScope
+        saving={false}
+        onClose={() => undefined}
+        onSave={onSave}
+      />,
+    );
+    expect(screen.queryByText("Alle Kanäle weiterleiten")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Lege fest, für welche Ursprungskanäle dieses Konto das nächste exklusive Fallback ist."),
+    ).toBeInTheDocument();
+    const save = screen.getByRole("button", {
+      name: "Routing übernehmen",
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Kanal A" }));
+    fireEvent.click(save);
+    expect(onSave).toHaveBeenCalledWith(["channel-a"]);
   });
 });

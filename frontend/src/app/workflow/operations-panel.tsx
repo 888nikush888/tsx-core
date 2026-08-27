@@ -352,6 +352,25 @@ function Overview({
         </section>
       </div>
       <section className="operations-card">
+        <h3>Letzte Börsen-Fallbacks</h3>
+        {(trading?.fallbackRuns || []).slice(0, 8).map((run) => (
+          <div className="adaptive-row" key={run.id}>
+            <div>
+              <strong>{run.channelName || run.channelId}</strong>
+              <small>
+                {run.candidates.map((candidate) => `${candidate.rank + 1}. ${candidate.accountName} (${candidate.status})`).join(" → ")}
+              </small>
+            </div>
+            <span className={`state-badge ${run.status === "exhausted" || run.status === "stopped" ? "danger" : run.status === "selected" ? "healthy" : ""}`}>
+              {run.status === "probing" ? "wird geprüft" : run.status === "selected" ? "Konto gewählt" : run.status === "exhausted" ? "Paar nirgends verfügbar" : `gestoppt: ${run.stopReason || "Schutzregel"}`}
+            </span>
+          </div>
+        ))}
+        {!(trading?.fallbackRuns || []).length && (
+          <Empty text="Noch keine Börsen-Fallback-Kette wurde ausgeführt." />
+        )}
+      </section>
+      <section className="operations-card">
         <h3>Handelssteuerung</h3>
         <div className="system-actions">
           <button
@@ -1277,6 +1296,7 @@ function Analytics({ trading, filtersOpen }: { trading: TradingSnapshot | null; 
   const adaptiveStates = trading?.workflowAdaptiveRisk?.states || [];
   const evaluations = trading?.workflowAdaptiveRisk?.evaluations || [];
   const execution = analytics?.execution || {};
+  const fallback = analytics?.fallback || {};
   const totalPnl = channels.reduce(
     (total, item: any) => total + Number(item.realizedPnl || 0),
     0,
@@ -1343,6 +1363,9 @@ function Analytics({ trading, filtersOpen }: { trading: TradingSnapshot | null; 
           </strong>
           <span>Signal → Submit p95</span>
         </div>
+        <Metric label="Fallback-Ketten" value={fallback.runs || 0} />
+        <Metric label="Fallback gewählt" value={fallback.selected || 0} />
+        <Metric label="Überall nicht verfügbar" value={fallback.exhausted || 0} danger={(fallback.exhausted || 0) > 0} />
       </div>
       <div className="analytics-chart-grid">
         <section className="operations-card analytics-chart">
@@ -1455,6 +1478,18 @@ function Analytics({ trading, filtersOpen }: { trading: TradingSnapshot | null; 
         ))}
         {exchanges.length === 0 && (
           <Empty text="Noch keine Börsenausführungen." />
+        )}
+      </section>
+      <section className="operations-card">
+        <h3>Fallback-Auswahl je Börsenkonto</h3>
+        {(fallback.byAccount || []).map((item: any) => (
+          <div className="system-line" key={item.accountId}>
+            <span>{item.accountId} · {item.exchange}/{item.mode}</span>
+            <strong>{item.selected} gewählt · {item.unavailable}× Paar nicht verfügbar · {item.attempts} Versuche</strong>
+          </div>
+        ))}
+        {!(fallback.byAccount || []).length && (
+          <Empty text="Für den gewählten Zeitraum liegen keine Fallback-Versuche vor." />
         )}
       </section>
       <section className="operations-card">

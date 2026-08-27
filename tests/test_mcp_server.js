@@ -65,6 +65,7 @@ try {
     permissions: [
       'system.read', 'contracts.read', 'positions.read', 'signals.read', 'risk.read',
       'strategies.read', 'routes.read', 'analytics.read', 'journal.read',
+      'workflow.read',
       'contracts.write', 'risk.write', 'trading.reconcile', 'trading.kill_switch',
     ],
     eventSubscriptions: ['signal_received'],
@@ -157,6 +158,7 @@ try {
     'tsx_routes_list',
     'tsx_analytics',
     'tsx_trade_journal',
+    'tsx_workflow_fallback_runs',
     'tsx_preflight',
     'tsx_proposals_list',
     'tsx_contract_publish',
@@ -202,6 +204,7 @@ try {
     ['tsx_routes_list', {}],
     ['tsx_analytics', {}],
     ['tsx_trade_journal', { limit: 10 }],
+    ['tsx_workflow_fallback_runs', { limit: 10 }],
     ['tsx_proposals_list', { limit: 10 }],
   ]) {
     const result = await client.callTool({ name: toolName, arguments: argumentsValue });

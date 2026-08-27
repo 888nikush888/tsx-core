@@ -20,9 +20,12 @@ from ccxt_adapter import (
 )
 import ccxt_client
 from ccxt_client import CERTIFIED_EXCHANGES, CcxtClientRegistry, _account_identity, _client_configuration
-from common import ExchangeContractError, RequestDeadline, account_request, decimal_string, external_account_id
+from common import (
+    ExchangeContractError, RequestDeadline, SymbolUnavailableError, account_request,
+    decimal_string, external_account_id,
+)
 from credentials import CredentialError, CredentialStore
-from server import authenticated, executor_error_code
+from server import authenticated, execute, executor_error_code
 from stream_hub import AccountStream, _canonical_payload, _event_type
 
 
@@ -59,6 +62,53 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(mapped["status"], "open")
         partial = _order_result({"id": "order-2", "clientOrderId": "client-2", "status": "open", "filled": "1"})
         self.assertEqual(partial["status"], "partially_filled")
+
+    def test_missing_certified_market_uses_typed_side_effect_free_contract(self) -> None:
+        clients = SimpleNamespace(
+            account={"id": "account-1", "exchange": "krakenfutures", "mode": "testnet"},
+            rest=SimpleNamespace(markets={}),
+        )
+        with self.assertRaises(SymbolUnavailableError) as raised:
+            CcxtAdapter._market(clients, "BTCUSDT")
+        self.assertEqual(raised.exception.code, "SYMBOL_UNAVAILABLE")
+        self.assertEqual(raised.exception.http_status, 422)
+        self.assertFalse(raised.exception.side_effects)
+        self.assertEqual(raised.exception.details, {
+            "exchange": "krakenfutures", "accountId": "account-1", "symbol": "BTCUSDT",
+        })
+
+    def test_http_contract_exposes_typed_side_effect_free_symbol_miss(self) -> None:
+        class MissingMarketApplication:
+            credentials = SimpleNamespace(token=lambda: "executor-token")
+
+            @staticmethod
+            async def handle(_path: str, _payload: dict[str, object]) -> dict[str, object]:
+                raise SymbolUnavailableError(
+                    "Symbol BTCUSDT is unavailable on the certified linear perpetual market.",
+                    exchange="bybit", account_id="account-1", symbol="BTCUSDT",
+                )
+
+        class Request:
+            app = {
+                "application": MissingMarketApplication(),
+                "request_semaphore": asyncio.Semaphore(1),
+            }
+            headers = {"Authorization": "Bearer executor-token"}
+            content_length = 2
+            path = "/v1/market-snapshot"
+
+            @staticmethod
+            async def json(*, loads):
+                return loads("{}")
+
+        response = asyncio.run(execute(Request()))
+        self.assertEqual(response.status, 422)
+        self.assertEqual(json.loads(response.text), {
+            "error": "Symbol BTCUSDT is unavailable on the certified linear perpetual market.",
+            "code": "SYMBOL_UNAVAILABLE",
+            "sideEffects": False,
+            "details": {"exchange": "bybit", "accountId": "account-1", "symbol": "BTCUSDT"},
+        })
 
     def test_contract_amounts_are_normalized_back_to_base_quantity(self) -> None:
         mapped = _market_order_result(

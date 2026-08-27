@@ -10,6 +10,16 @@ class ExchangeContractError(ValueError):
     pass
 
 
+class SymbolUnavailableError(ExchangeContractError):
+    code = "SYMBOL_UNAVAILABLE"
+    http_status = 422
+    side_effects = False
+
+    def __init__(self, message: str, *, exchange: str, account_id: str, symbol: str) -> None:
+        super().__init__(message)
+        self.details = {"exchange": exchange, "accountId": account_id, "symbol": symbol}
+
+
 class RequestDeadline:
     MAX_FUTURE_MS = 35_000
 

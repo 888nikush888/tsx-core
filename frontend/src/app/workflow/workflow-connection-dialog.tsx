@@ -18,6 +18,7 @@ type WorkflowConnectionDialogProps = {
   targetName: string;
   channels: WorkflowConnectionChannel[];
   initialChannelNodeIds?: string[];
+  requireChannelScope?: boolean;
   saving: boolean;
   onClose: () => void;
   onSave: (channelNodeIds?: string[]) => void;
@@ -29,6 +30,7 @@ export function WorkflowConnectionDialog({
   targetName,
   channels,
   initialChannelNodeIds,
+  requireChannelScope = false,
   saving,
   onClose,
   onSave,
@@ -38,9 +40,9 @@ export function WorkflowConnectionDialog({
 
   useEffect(() => {
     if (!open) return;
-    setMode(initialChannelNodeIds ? "selected" : "all");
-    setSelectedIds(initialChannelNodeIds || []);
-  }, [initialChannelNodeIds, open]);
+    setMode(requireChannelScope || initialChannelNodeIds ? "selected" : "all");
+    setSelectedIds(initialChannelNodeIds || (requireChannelScope && channels.length === 1 ? [channels[0].id] : []));
+  }, [channels, initialChannelNodeIds, open, requireChannelScope]);
 
   const toggleChannel = (channelId: string) => {
     setSelectedIds((current) =>
@@ -61,12 +63,13 @@ export function WorkflowConnectionDialog({
             {sourceName} → {targetName}
           </DialogTitle>
           <DialogDescription>
-            Bestimme, welche Ursprungskanäle diese Verbindung benutzen dürfen.
-            Die Auswahl bleibt auch hinter gemeinsam genutzten Bausteinen erhalten.
+            {requireChannelScope
+              ? "Lege fest, für welche Ursprungskanäle dieses Konto das nächste exklusive Fallback ist."
+              : "Bestimme, welche Ursprungskanäle diese Verbindung benutzen dürfen. Die Auswahl bleibt auch hinter gemeinsam genutzten Bausteinen erhalten."}
           </DialogDescription>
         </DialogHeader>
 
-        <fieldset className="workflow-connection-modes">
+        {!requireChannelScope && <fieldset className="workflow-connection-modes">
           <legend>Weiterleitung</legend>
           <label>
             <input
@@ -95,9 +98,9 @@ export function WorkflowConnectionDialog({
               <small>Die Verbindung wird auf feste Ursprungskanäle begrenzt.</small>
             </span>
           </label>
-        </fieldset>
+        </fieldset>}
 
-        {mode === "selected" && (
+        {(requireChannelScope || mode === "selected") && (
           <fieldset className="workflow-connection-channels">
             <legend>Ursprungskanäle auswählen</legend>
             {channels.map((channel) => (
@@ -131,7 +134,7 @@ export function WorkflowConnectionDialog({
                 (selectedIds.length === 0 || channels.length === 0))
             }
             onClick={() =>
-              onSave(mode === "selected" ? selectedIds : undefined)
+              onSave(requireChannelScope || mode === "selected" ? selectedIds : undefined)
             }
           >
             Routing übernehmen

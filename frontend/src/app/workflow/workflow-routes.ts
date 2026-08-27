@@ -17,6 +17,13 @@ export type WorkflowRoute = {
   strategyName: string;
   nodeIds: string[];
   nodeNames: string[];
+  fallbackAccounts: Array<{
+    accountId: string;
+    accountName: string;
+    accountDetail: string;
+    rank: number;
+    enabled: boolean;
+  }>;
 };
 
 export type WorkflowRouteUsage = {
@@ -67,7 +74,8 @@ function nodeIdForKind(
   graph: WorkflowGraph,
   kind: WorkflowKind,
 ) {
-  return path.nodeIds.find(
+  const nodeIds = kind === "account" ? [...path.nodeIds].reverse() : path.nodeIds;
+  return nodeIds.find(
     (nodeId) => graph.nodes.find((node) => node.id === nodeId)?.kind === kind,
   );
 }
@@ -87,7 +95,8 @@ function routeUsage(
   return {
     pathCount: routes.length,
     channelCount: new Set(routes.map((route) => route.channelId)).size,
-    accountCount: new Set(routes.map((route) => route.accountId)).size,
+    accountCount: new Set(routes.flatMap((route) =>
+      route.fallbackAccounts.map((candidate) => candidate.accountId))).size,
     resourceInstanceCount,
     routeIds: routes.map((route) => route.id),
   };
@@ -115,7 +124,7 @@ export function buildWorkflowRouteTopology(
     );
   }
 
-  const routes: WorkflowRoute[] = paths.map((path, index) => {
+  const rawRoutes: WorkflowRoute[] = paths.map((path, index) => {
     const channelNodeId = nodeIdForKind(path, graph, "channel");
     const accountNodeId = nodeIdForKind(path, graph, "account");
     const strategyNodeId = nodeIdForKind(path, graph, "strategy");
@@ -146,6 +155,31 @@ export function buildWorkflowRouteTopology(
       nodeNames: path.nodeIds.map(
         (nodeId) => resourceForNode(nodeId, graph, resources)?.name || nodeId,
       ),
+      fallbackAccounts: [{
+        accountId,
+        accountName: accountResource?.name || account?.name || accountId,
+        accountDetail: account ? `${account.exchange} · ${account.mode}` : accountId,
+        rank: path.fallbackRank ?? 0,
+        enabled: path.enabled,
+      }],
+    };
+  });
+  const routeGroups = new Map<string, WorkflowRoute[]>();
+  rawRoutes.forEach((route, index) => {
+    const path = paths[index];
+    const key = path.routeGroupKey || path.id || route.id;
+    routeGroups.set(key, [...(routeGroups.get(key) ?? []), route]);
+  });
+  const routes = [...routeGroups.values()].map((group) => {
+    const ordered = [...group].sort((left, right) =>
+      left.fallbackAccounts[0].rank - right.fallbackAccounts[0].rank);
+    const primary = ordered[0];
+    const deepest = ordered.at(-1) ?? primary;
+    return {
+      ...primary,
+      nodeIds: [...deepest.nodeIds],
+      nodeNames: [...deepest.nodeNames],
+      fallbackAccounts: ordered.map((route) => route.fallbackAccounts[0]),
     };
   });
 
@@ -173,10 +207,12 @@ export function buildWorkflowRouteTopology(
   const accountMap = new Map<string, { name: string; detail: string }>();
   for (const route of routes) {
     channelMap.set(route.channelId, route.channelName);
-    accountMap.set(route.accountId, {
-      name: route.accountName,
-      detail: route.accountDetail,
-    });
+    for (const candidate of route.fallbackAccounts) {
+      accountMap.set(candidate.accountId, {
+        name: candidate.accountName,
+        detail: candidate.accountDetail,
+      });
+    }
   }
   const channels = [...channelMap]
     .map(([id, name]) => ({ id, name }))
@@ -190,7 +226,8 @@ export function buildWorkflowRouteTopology(
       accountId: account.id,
       routes: routes.filter(
         (route) =>
-          route.channelId === channel.id && route.accountId === account.id,
+          route.channelId === channel.id
+          && route.fallbackAccounts.some((candidate) => candidate.accountId === account.id),
       ),
     })),
   );

@@ -20,6 +20,7 @@ import type {
   TradingExchangeAdapter,
   TradingMarketSnapshot,
 } from './trading_types.js';
+import { TradingSymbolUnavailableError } from './trading_errors.js';
 
 function assertPaperAccount(account: TradingAccount): void {
   if (account.exchange !== 'paper' || account.mode !== 'paper') throw new Error('Paper adapter only accepts paper accounts.');
@@ -261,7 +262,12 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       'SELECT * FROM trading_paper_markets WHERE account_id = ? AND symbol = ?',
       [account.id, symbol],
     );
-    if (!row) throw new Error(`Paper market ${symbol} is not configured.`);
+    if (!row) {
+      throw new TradingSymbolUnavailableError(
+        `Paper market ${symbol} is not configured.`,
+        { exchange: account.exchange, accountId: account.id, symbol },
+      );
+    }
     return {
       symbol: row.symbol,
       markPrice: row.mark_price,

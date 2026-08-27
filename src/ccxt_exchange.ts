@@ -12,10 +12,13 @@ import type {
   TradingExchangeAdapter,
   TradingMarketSnapshot,
 } from './trading_types.js';
+import { TradingSymbolUnavailableError } from './trading_errors.js';
 
 interface ExecutorErrorPayload {
   error?: string;
   code?: string;
+  sideEffects?: boolean;
+  details?: { exchange?: string; accountId?: string; symbol?: string };
 }
 
 class ExecutorHttpError extends Error {
@@ -49,6 +52,29 @@ function accountPayload(account: TradingAccount): Record<string, string> {
 function assertObject(value: unknown, label: string): Record<string, any> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} returned an invalid contract.`);
   return value as Record<string, any>;
+}
+
+function isTypedSymbolUnavailableResponse(input: {
+  endpoint: string;
+  status: number;
+  body: ExecutorErrorPayload;
+  request: Record<string, any>;
+  exchange: CcxtExchangeAdapter['exchange'];
+}): input is typeof input & { body: ExecutorErrorPayload & {
+  error?: string;
+  details: { exchange: string; accountId: string; symbol: string };
+} } {
+  const account = input.request.account;
+  const details = input.body.details;
+  return input.endpoint === '/v1/market-snapshot'
+    && input.status === 422
+    && input.body.code === 'SYMBOL_UNAVAILABLE'
+    && input.body.sideEffects === false
+    && Boolean(account && typeof account === 'object' && !Array.isArray(account))
+    && typeof input.request.symbol === 'string'
+    && details?.exchange === input.exchange
+    && details.accountId === account.id
+    && details.symbol === input.request.symbol;
 }
 
 function assertOrderResult(value: unknown): ExchangeOrderResult {
@@ -384,6 +410,14 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
     });
     const body = await response.json().catch(() => ({})) as ExecutorErrorPayload;
     if (response.ok) return body;
+    if (isTypedSymbolUnavailableResponse({
+      endpoint, status: response.status, body, request: bodyPayload, exchange: this.exchange,
+    })) {
+      throw new TradingSymbolUnavailableError(
+        body.error || 'The requested symbol is unavailable on this exchange account.',
+        body.details,
+      );
+    }
     const code = typeof body.code === 'string' && /^[A-Z][A-Z0-9_]{2,63}$/.test(body.code)
       ? ` [${body.code}]`
       : '';

@@ -6,6 +6,7 @@ import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
 import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { TradingEngine } from '../src/trading_engine.js';
 import { TradingRuntime } from '../src/trading_runtime.js';
+import { TradingSymbolUnavailableError } from '../src/trading_errors.js';
 import {
   createTradingAccount,
   createTradingStrategyDraft,
@@ -188,15 +189,13 @@ async function testUnavailableMarketFailureIsolation(directory) {
   const isolatedAdapter = {
     ...wrappedAdapter(isolated.paper, (...args) => isolated.paper.submitOrder(...args)),
     marketSnapshot: async () => {
-      throw new Error('Exchange executor request failed (400): Hyperliquid symbol ETH is unavailable.');
+      throw new TradingSymbolUnavailableError(
+        'Hyperliquid symbol ETH is unavailable.',
+        { exchange: 'hyperliquid', accountId: isolated.account.id, symbol: 'ETHUSDT' },
+      );
     },
   };
-  await new TradingEngine(
-    [isolatedAdapter],
-    () => undefined,
-    undefined,
-    { isolateUnavailableMarketFailures: true },
-  ).processIntent(isolated.intent.id);
+  await new TradingEngine([isolatedAdapter]).processIntent(isolated.intent.id);
   const intent = await getTradingIntent(isolated.intent.id);
   assert.equal(intent.status, 'blocked');
   assert.equal(intent.blockReason, 'SYMBOL_UNAVAILABLE');

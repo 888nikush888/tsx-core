@@ -585,6 +585,108 @@ test("shared processing and account branches are explicit in the route matrix an
   await expect(page.locator(".workflow-node.path-dimmed")).toHaveCount(2);
 });
 
+test("ordered account fallback is one exclusive route with a dedicated arrow and inspector", async ({
+  page,
+}) => {
+  const resource = (
+    id: string,
+    kind: string,
+    name: string,
+    configuration: Record<string, unknown>,
+  ) => ({
+    id,
+    resourceId: id,
+    version: 1,
+    kind,
+    name,
+    description: "",
+    status: "published",
+    configuration,
+    configurationSha256: id.padEnd(64, "a").slice(0, 64),
+    createdAt: 1,
+    publishedAt: 1,
+  });
+  const resources = [
+    resource("channel-a", "channel", "Kanal A", { channelId: "-1001" }),
+    resource("parser", "parser", "Parser A", { timeoutMs: 120_000, templateName: "default" }),
+    resource("account-a", "account", "Kraken zuerst", { accountId: "kraken" }),
+    resource("account-b", "account", "Hyperliquid danach", { accountId: "hyper" }),
+  ];
+  const paths = [
+    {
+      id: "path-primary",
+      routeGroupKey: "fallback-group-a",
+      fallbackRank: 0,
+      channelId: "-1001",
+      accountId: "kraken",
+      strategyVersionId: "strategy-a",
+      enabled: true,
+      nodeIds: ["c1", "parser", "a1"],
+    },
+    {
+      id: "path-fallback",
+      routeGroupKey: "fallback-group-a",
+      fallbackRank: 1,
+      channelId: "-1001",
+      accountId: "hyper",
+      strategyVersionId: "strategy-a",
+      enabled: true,
+      nodeIds: ["c1", "parser", "a1", "a2"],
+    },
+  ];
+  await mockDashboardApi(page, false, resources, {
+    id: "revision-fallback",
+    revision: 4,
+    createdAt: 1,
+    graph: {
+      schemaVersion: 2,
+      nodes: [
+        { id: "c1", kind: "channel", resourceVersionId: "channel-a", position: { x: 0, y: 0 } },
+        { id: "parser", kind: "parser", resourceVersionId: "parser", position: { x: 0, y: 0 } },
+        { id: "a1", kind: "account", resourceVersionId: "account-a", position: { x: 0, y: 0 } },
+        { id: "a2", kind: "account", resourceVersionId: "account-b", position: { x: 0, y: 150 } },
+      ],
+      edges: [
+        { id: "c1-parser", kind: "flow", source: "c1", target: "parser" },
+        { id: "parser-a1", kind: "flow", source: "parser", target: "a1" },
+        {
+          id: "fallback-a1-a2",
+          kind: "account_fallback",
+          source: "a1",
+          target: "a2",
+          channelNodeIds: ["c1"],
+        },
+      ],
+    },
+    compiled: {
+      paths,
+      routeGroups: [{
+        key: "fallback-group-a",
+        channelId: "-1001",
+        channelNodeId: "c1",
+        primaryPathId: "path-primary",
+        candidates: [
+          { pathId: "path-primary", accountId: "kraken", accountNodeId: "a1", rank: 0, enabled: true },
+          { pathId: "path-fallback", accountId: "hyper", accountNodeId: "a2", rank: 1, enabled: true },
+        ],
+      }],
+      warnings: [],
+    },
+  });
+  await page.goto("/");
+  await openBuilderWorkspace(page);
+
+  await page.getByRole("button", { name: "Pfade anzeigen (1)" }).click();
+  const routeDialog = page.getByRole("dialog", { name: "Kanäle, Verarbeitung und Börsen" });
+  await expect(routeDialog.getByText("Exklusive Reihenfolge: 1. Kraken zuerst · 2. Hyperliquid danach")).toBeVisible();
+  await routeDialog.getByRole("button", { name: "Dialog schließen" }).click();
+  const fallbackEdge = page.locator('.react-flow__edge[data-id="fallback-a1-a2"]');
+  await expect(fallbackEdge.locator(".workflow-edge-path.is-account-fallback")).toHaveCount(1);
+  await fallbackEdge.dispatchEvent("click");
+  await expect(page.getByRole("dialog").getByText("Fallback-Reihenfolge", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog").getByText("Nächstes Fallback für Kanal A")).toBeVisible();
+});
+
 test("a late-column block is brought into view and the canvas can always be reframed", async ({
   page,
 }) => {
