@@ -142,6 +142,8 @@ assert.match(
   executorDockerfile,
   /^ARG PYTHON_IMAGE=python@sha256:31a768b01976652c222e318fe5bd6e7c252f056cbf489c88fa256f1bf0af58e3$/m,
 );
+assert.match(executorDockerfile, /"libcrypto3=3\.5\.8-r0"/);
+assert.match(executorDockerfile, /"libssl3=3\.5\.8-r0"/);
 assert.match(executorDockerfile, /apk add --no-cache "sqlite-libs=3\.53\.4-r0"/);
 assert.match(executorDockerfile, /^USER 65532:65532$/m);
 assert.match(executorDockerfile, /pip install --require-hashes/);
