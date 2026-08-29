@@ -20,6 +20,8 @@ const applicationVex = JSON.parse(await readFile(path.join(root, 'security', 've
 const monitoringCompose = await readFile(path.join(root, 'docker-compose.monitoring.yml'), 'utf8');
 const executorLock = await readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8');
 const ccxtClient = await readFile(path.join(root, 'exchange_executor', 'ccxt_client.py'), 'utf8');
+const ccxtProfiles = await readFile(path.join(root, 'exchange_executor', 'ccxt_profiles.py'), 'utf8');
+const ccxtRegistry = await readFile(path.join(root, 'exchange_executor', 'ccxt_registry.py'), 'utf8');
 const ccxtAdapter = await readFile(path.join(root, 'exchange_executor', 'ccxt_adapter.py'), 'utf8');
 const streamHub = await readFile(path.join(root, 'exchange_executor', 'stream_hub.py'), 'utf8');
 const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf8');
@@ -153,10 +155,34 @@ assert.match(executorLock, /^uvloop==0\.22\.1 ; implementation_name == 'cpython'
 assert.match(executorLock, /^winloop==0\.6\.3 ; .*sys_platform == 'win32' \\/m);
 assert.match(executorLock, /05815e6e7fdf8c8e28602150d7d6f8a9a98050dac3fc133ffff182444e4e6545/);
 assert.match(executorLock, /5509c2659e4bfad6f4f5a9cea5c15ad244121263b423ae92f7ccbc4c04cfd8d9/);
+const pinnedCcxtVersion = executorLock.match(/^ccxt==([^\s]+) \\/m)?.[1];
+assert.equal(pinnedCcxtVersion, '4.5.75');
 assert.match(ccxtClient, /import ccxt\.async_support as ccxt_async/);
 assert.match(ccxtClient, /import ccxt\.pro as ccxt_pro/);
-assert.match(ccxtClient, /CERTIFIED_EXCHANGES = \{"hyperliquid", "bybit", "krakenfutures"\}/);
-assert.match(ccxtClient, /"builderFee": False, "approvedBuilderFee": False/);
+assert.match(ccxtClient, /CERTIFIED_EXCHANGES = set\(PROFILES\)/);
+assert.match(ccxtProfiles, /"builderFee": False, "approvedBuilderFee": False/);
+assert.match(ccxtRegistry, /certification_result\(/);
+assert.match(ccxtRegistry, /ccxt\.__version__/);
+for (const exchange of ['hyperliquid', 'bybit', 'krakenfutures']) {
+  const evidence = JSON.parse(await readFile(
+    path.join(root, 'exchange_executor', 'certifications', `${exchange}.json`),
+    'utf8',
+  ));
+  assert.equal(evidence.exchange, exchange);
+  assert.equal(evidence.status, 'certified');
+  assert.equal(evidence.ccxtVersion, pinnedCcxtVersion);
+  assert.equal(evidence.profileVersion, 1);
+  assert.deepEqual(Object.keys(evidence.tests).sort(), [
+    'accountIdentity',
+    'cancel',
+    'credentialRotation',
+    'marketNormalization',
+    'protectedEntry',
+    'reconciliation',
+    'stream',
+  ]);
+  assert.ok(Object.values(evidence.tests).every((passed) => passed === true));
+}
 assert.match(ccxtAdapter, /clients\.rest\.create_orders/);
 assert.match(ccxtAdapter, /clients\.rest\.fetch_positions/);
 assert.match(streamHub, /clients\.pro\.watch_orders/);

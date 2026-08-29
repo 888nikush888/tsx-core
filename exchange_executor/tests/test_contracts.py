@@ -30,13 +30,14 @@ from stream_hub import AccountStream, _canonical_payload, _event_type
 
 
 class ContractTests(unittest.TestCase):
-    def test_only_certified_ccxt_exchanges_are_accepted(self) -> None:
+    def test_account_contract_accepts_dynamic_exchange_ids_and_rejects_invalid_ids(self) -> None:
         self.assertEqual(CERTIFIED_EXCHANGES, {"hyperliquid", "bybit", "krakenfutures"})
-        for exchange in CERTIFIED_EXCHANGES:
+        for exchange in (*sorted(CERTIFIED_EXCHANGES), "okx", "coinbaseinternational"):
             account = account_request({"account": {"id": "account-1", "exchange": exchange, "mode": "testnet"}})
             self.assertEqual(account["exchange"], exchange)
-        with self.assertRaises(ExchangeContractError):
-            account_request({"account": {"id": "account-1", "exchange": "binance", "mode": "testnet"}})
+        for exchange in ("paper", "Binance", "bad id", "a" * 65):
+            with self.subTest(exchange=exchange), self.assertRaises(ExchangeContractError):
+                account_request({"account": {"id": "account-1", "exchange": exchange, "mode": "testnet"}})
 
     def test_executor_failures_have_stable_secret_free_endpoint_codes(self) -> None:
         self.assertEqual(executor_error_code("/v1/stream-events"), "STREAM_POLL_FAILED")
@@ -191,7 +192,10 @@ class ContractTests(unittest.TestCase):
                 "apiKey": "kraken-key-123", "apiSecret": "kraken-secret-123", "updatedAt": 1,
             }), encoding="utf-8")
             store = CredentialStore(directory)
-            self.assertEqual(store.account(account_id, "krakenfutures")["apiKey"], "kraken-key-123")
+            self.assertEqual(
+                store.account(account_id, "krakenfutures")["credentials"]["apiKey"],
+                "kraken-key-123",
+            )
             with self.assertRaises(CredentialError):
                 store.account(account_id, "bybit")
 
@@ -246,10 +250,17 @@ class RegistryBootstrapTests(unittest.IsolatedAsyncioTestCase):
             "started": asyncio.Event(), "release": asyncio.Event(),
         }
         credentials = SimpleNamespace(account=lambda _account_id, _exchange: {
-            "privateKey": "0x" + "1" * 64,
-            "walletAddress": "0x" + "2" * 40,
+            "credentials": {
+                "privateKey": "0x" + "1" * 64,
+                "walletAddress": "0x" + "2" * 40,
+            },
         })
-        registry = CcxtClientRegistry(credentials)
+        catalog = SimpleNamespace(descriptor=lambda exchange: {
+            "id": exchange,
+            "status": "certified",
+            "modes": ["testnet", "live"],
+        })
+        registry = CcxtClientRegistry(credentials, catalog)
         account = {"id": "account-1", "exchange": "hyperliquid", "mode": "testnet"}
         factory = lambda configuration: DelayedMarketClient(configuration, state)
         with patch.object(ccxt_client.ccxt_async, "hyperliquid", factory), \
