@@ -19,6 +19,25 @@ async function mockDashboardApi(
   workflow: Record<string, unknown> | null = null,
 ) {
   let currentWorkflow = workflow;
+  let revisionSequence = Number(currentWorkflow?.revision || 0);
+  type HistoryEntry = { workflow: Record<string, any> | null; label: string };
+  const undo: HistoryEntry[] = [];
+  const redo: HistoryEntry[] = [];
+  let pendingResource: Record<string, any> | null = null;
+  const historyStatus = () => ({
+    limit: 5,
+    undoCount: undo.length,
+    redoCount: redo.length,
+    canUndo: undo.length > 0,
+    canRedo: redo.length > 0,
+    undoLabel: undo.at(-1)?.label ?? null,
+    redoLabel: redo.at(-1)?.label ?? null,
+  });
+  const copyWorkflow = (value: Record<string, unknown> | null) => value ? structuredClone(value) : null;
+  const pushHistory = (stack: HistoryEntry[], entry: HistoryEntry) => {
+    stack.push(entry);
+    if (stack.length > 5) stack.shift();
+  };
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -76,6 +95,44 @@ async function mockDashboardApi(
       });
       return;
     }
+    if (url.pathname === "/api/workflow/history") {
+      await json(route, historyStatus());
+      return;
+    }
+    if (url.pathname === "/api/workflow/history/impact") {
+      await json(route, {
+        impact: { destructive: false, changed: [], removed: [], confirmation: null },
+      });
+      return;
+    }
+    if (url.pathname === "/api/workflow/history/apply") {
+      const body = request.postDataJSON() as { direction: "undo" | "redo" };
+      const source = body.direction === "undo" ? undo : redo;
+      const destination = body.direction === "undo" ? redo : undo;
+      const target = source.pop();
+      if (!target) {
+        await json(route, { error: `WORKFLOW_HISTORY_${body.direction.toUpperCase()}_EMPTY` }, 409);
+        return;
+      }
+      pushHistory(destination, { workflow: copyWorkflow(currentWorkflow), label: target.label });
+      revisionSequence += 1;
+      currentWorkflow = target.workflow
+        ? {
+            ...copyWorkflow(target.workflow),
+            id: `revision-${revisionSequence}`,
+            revision: revisionSequence,
+            createdAt: Date.now(),
+          }
+        : {
+            id: `revision-${revisionSequence}`,
+            revision: revisionSequence,
+            createdAt: Date.now(),
+            graph: { schemaVersion: 1, nodes: [], edges: [] },
+            compiled: { paths: [], warnings: [] },
+          };
+      await json(route, { workflow: currentWorkflow, history: historyStatus() });
+      return;
+    }
     if (url.pathname === "/api/workflow") {
       await json(route, {
         workflow: currentWorkflow,
@@ -95,17 +152,55 @@ async function mockDashboardApi(
       return;
     }
     if (url.pathname === "/api/workflow/mutate") {
-      const body = request.postDataJSON() as { graph: Record<string, unknown> };
+      const body = request.postDataJSON() as { graph: Record<string, unknown>; historyLabel?: string };
       const previous = currentWorkflow as Record<string, any> | null;
+      pushHistory(undo, {
+        workflow: copyWorkflow(previous),
+        label: body.historyLabel || "Workflow geändert",
+      });
+      redo.length = 0;
+      revisionSequence += 1;
       currentWorkflow = {
         ...(previous || {}),
-        id: `revision-${Number(previous?.revision || 0) + 1}`,
-        revision: Number(previous?.revision || 0) + 1,
+        id: `revision-${revisionSequence}`,
+        revision: revisionSequence,
         createdAt: Date.now(),
         graph: body.graph,
         compiled: previous?.compiled || { paths: [], warnings: [] },
       };
-      await json(route, { workflow: currentWorkflow });
+      await json(route, { workflow: currentWorkflow, history: historyStatus() });
+      return;
+    }
+    if (url.pathname === "/api/workflow/resources" && request.method() === "POST") {
+      const body = request.postDataJSON() as Record<string, any>;
+      const versions = workflowResources.filter((item) => item.resourceId === body.resourceId);
+      const version = Math.max(0, ...versions.map((item) => Number(item.version || 0))) + 1;
+      const resourceId = body.resourceId || `resource-${body.kind}`;
+      pendingResource = {
+        id: `${resourceId}-v${version}`,
+        resourceId,
+        version,
+        kind: body.kind,
+        name: body.name,
+        description: body.description || "",
+        status: "draft",
+        configuration: body.configuration,
+        configurationSha256: "c".repeat(64),
+        createdAt: Date.now(),
+        publishedAt: null,
+      };
+      await json(route, { resource: pendingResource }, 201);
+      return;
+    }
+    if (url.pathname === "/api/workflow/resources/publish") {
+      if (!pendingResource) {
+        await json(route, { error: "No pending resource." }, 409);
+        return;
+      }
+      pendingResource = { ...pendingResource, status: "published", publishedAt: Date.now() };
+      workflowResources.push(pendingResource);
+      await json(route, { resource: pendingResource });
+      pendingResource = null;
       return;
     }
     if (url.pathname === "/api/trading") {
@@ -937,7 +1032,7 @@ test("connections can be created from a clear block action and deleted from the 
   await page.getByRole("button", { name: /„Verbindung aktiviert“ wiederholen/ }).click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
   await expect(page.getByText("Revision 4", { exact: true })).toBeVisible();
-  await page.locator(".react-flow__edge").click();
+  await page.locator(".react-flow__edge").dispatchEvent("click");
   await expect(connectionDialog).toBeVisible();
   await connectionDialog
     .getByRole("button", { name: "Verbindung löschen" })
