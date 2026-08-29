@@ -179,6 +179,59 @@ try {
   await rm(migrationDirectory, { recursive: true, force: true });
 }
 
+const candidateCatalogEntry = {
+  id: 'okx', name: 'OKX', status: 'candidate', reason: null, provider: 'ccxt',
+  ccxt: { rest: true, pro: true }, markets: { linearSwap: true },
+  credentialFields: [{ id: 'apiKey', label: 'API Key', required: true, secret: true }],
+  modes: [], capabilities: { fetchBalance: true },
+};
+const executorCatalogPayload = entry => ({
+  implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
+  exchanges: [entry],
+});
+const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://executor.test') => new ExchangeCatalogClient(
+  { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
+  {
+    baseUrl,
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => payload, ...response }),
+  },
+);
+
+assert.throws(
+  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'https://executor.test'),
+  /plain internal HTTP origin/i,
+);
+
+const invalidCatalogFixtures = [
+  [null, /invalid contract/i],
+  [{ implementation: {}, exchanges: [] }, /implementation metadata/i],
+  [{ ...executorCatalogPayload(candidateCatalogEntry), exchanges: null }, /exchange list/i],
+  [{ ...executorCatalogPayload(candidateCatalogEntry), exchanges: [candidateCatalogEntry, candidateCatalogEntry] }, /duplicate exchange identifiers/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, name: '' }), /exchange name/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, status: 'ready' }), /invalid status/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, provider: 'paper' }), /only contain CCXT/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, ccxt: null }), /CCXT metadata/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, ccxt: { rest: 'yes', pro: true } }), /CCXT metadata/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, markets: null }), /market metadata/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, markets: { linearSwap: 'yes' } }), /market metadata/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, credentialFields: null }), /fields or modes/i],
+  [executorCatalogPayload({
+    ...candidateCatalogEntry,
+    credentialFields: [{ id: 'unknown', label: 'Unknown', required: true, secret: true }],
+  }), /credential field/i],
+  [executorCatalogPayload({
+    ...candidateCatalogEntry,
+    credentialFields: [candidateCatalogEntry.credentialFields[0], candidateCatalogEntry.credentialFields[0]],
+  }), /duplicate credential fields/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, modes: ['paper'] }), /invalid mode/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, modes: ['live'] }), /Non-certified/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, reason: 'invalid\nreason' }), /invalid reason/i],
+  [executorCatalogPayload({ ...candidateCatalogEntry, capabilities: { 'bad-key': true } }), /invalid capabilities/i],
+];
+for (const [payload, pattern] of invalidCatalogFixtures) {
+  await assert.rejects(catalogClientForPayload(payload).executorCatalog(), pattern);
+}
+
 const requests = [];
 const catalogClient = new ExchangeCatalogClient(
   { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
@@ -190,15 +243,9 @@ const catalogClient = new ExchangeCatalogClient(
       return {
         ok: true,
         status: 200,
-        json: async () => ({
-          implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
-          exchanges: [{
-            id: 'okx', name: 'OKX', status: 'candidate', reason: null, provider: 'ccxt',
-            ccxt: { rest: true, pro: true }, markets: { linearSwap: true },
-            credentialFields: [{ id: 'apiKey', label: 'API Key', required: true, secret: true }],
-            modes: [], capabilities: { fetchBalance: true },
-          }],
-        }),
+        json: async () => url.endsWith('/v1/exchange-probe')
+          ? { ...candidateCatalogEntry, reason: 'Public market probe completed.' }
+          : executorCatalogPayload(candidateCatalogEntry),
       };
     },
   },
@@ -212,6 +259,19 @@ assert.equal(requests[0].url, 'http://executor.test/v1/exchange-catalog');
 assert.equal(requests[0].init.headers.Authorization, `Bearer ${'f'.repeat(64)}`);
 await catalogClient.browserCatalog();
 assert.equal(requests.length, 1, 'Catalog responses must use the bounded cache.');
+await assert.rejects(catalogClient.probe('paper'), /does not require/i);
+assert.equal((await catalogClient.probe('okx')).id, 'okx');
+assert.equal(requests.length, 2);
+await catalogClient.browserCatalog();
+assert.equal(requests.length, 3, 'A public probe must invalidate the cached catalog.');
+await assert.rejects(
+  catalogClientForPayload(candidateCatalogEntry, { ok: false, status: 503 }).probe('okx'),
+  /status 503/i,
+);
+await assert.rejects(
+  catalogClientForPayload({ ...candidateCatalogEntry, id: 'bybit' }).probe('okx'),
+  /different exchange/i,
+);
 
 const dynamicAdapter = {
   exchange: 'okx',
