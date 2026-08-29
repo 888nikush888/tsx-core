@@ -73,26 +73,33 @@ function validateCredentialValues(input: unknown): TradingCredentialValues {
   return values;
 }
 
-function normalizedInput(credentials: TradingCredentials): { exchange: string; credentials: TradingCredentialValues } {
-  const exchange = tradingExchangeId(credentials?.exchange);
-  if (exchange === 'paper') throw new Error('Paper accounts do not accept exchange credentials.');
-  let values: TradingCredentialValues;
+function inputCredentialValues(
+  exchange: string,
+  credentials: TradingCredentials,
+): TradingCredentialValues {
   if ('credentials' in credentials) {
-    values = validateCredentialValues(credentials.credentials);
-  } else if (exchange === 'hyperliquid' && 'privateKey' in credentials) {
-    values = {
+    return validateCredentialValues(credentials.credentials);
+  }
+  if (exchange === 'hyperliquid' && 'privateKey' in credentials) {
+    return {
       privateKey: singleLine(credentials.privateKey, 'Hyperliquid private key', 66, 66),
       walletAddress: singleLine(credentials.walletAddress, 'Hyperliquid wallet address', 42, 42),
     };
-  } else if ((exchange === 'bybit' || exchange === 'krakenfutures') && 'apiKey' in credentials) {
+  }
+  if ((exchange === 'bybit' || exchange === 'krakenfutures') && 'apiKey' in credentials) {
     const exchangeName = exchange === 'bybit' ? 'Bybit' : 'Kraken Futures';
-    values = {
+    return {
       apiKey: singleLine(credentials.apiKey, `${exchangeName} API key`, 8, 256),
       secret: singleLine(credentials.apiSecret, `${exchangeName} API secret`, 8, 256),
     };
-  } else {
-    throw new Error('Trading credentials do not match the selected exchange.');
   }
+  throw new Error('Trading credentials do not match the selected exchange.');
+}
+
+function enforceProfileCredentialValues(
+  exchange: string,
+  values: TradingCredentialValues,
+): TradingCredentialValues {
   if (exchange === 'hyperliquid') {
     const privateKey = singleLine(values.privateKey, 'Hyperliquid private key', 66, 66);
     const walletAddress = singleLine(values.walletAddress, 'Hyperliquid wallet address', 42, 42);
@@ -103,15 +110,23 @@ function normalizedInput(credentials: TradingCredentials): { exchange: string; c
       throw new Error('Hyperliquid wallet address must be a 20-byte 0x-prefixed hex value.');
     }
     if (Object.keys(values).length !== 2) throw new Error('Hyperliquid credentials contain unsupported fields.');
-    values = { privateKey, walletAddress };
-  } else if (exchange === 'bybit' || exchange === 'krakenfutures') {
+    return { privateKey, walletAddress };
+  }
+  if (exchange === 'bybit' || exchange === 'krakenfutures') {
     const exchangeName = exchange === 'bybit' ? 'Bybit' : 'Kraken Futures';
     const apiKey = singleLine(values.apiKey, `${exchangeName} API key`, 8, 256);
     const secret = singleLine(values.secret, `${exchangeName} API secret`, 8, 256);
     if (Object.keys(values).length !== 2) throw new Error(`${exchangeName} credentials contain unsupported fields.`);
-    values = { apiKey, secret };
+    return { apiKey, secret };
   }
-  return { exchange, credentials: values };
+  return values;
+}
+
+function normalizedInput(credentials: TradingCredentials): { exchange: string; credentials: TradingCredentialValues } {
+  const exchange = tradingExchangeId(credentials?.exchange);
+  if (exchange === 'paper') throw new Error('Paper accounts do not accept exchange credentials.');
+  const values = inputCredentialValues(exchange, credentials);
+  return { exchange, credentials: enforceProfileCredentialValues(exchange, values) };
 }
 
 function storedCredentials(

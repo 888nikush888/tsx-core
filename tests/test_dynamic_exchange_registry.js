@@ -23,10 +23,7 @@ for (const invalid of ['', 'OKX', '-okx', 'okx!', 'a'.repeat(65), null]) {
   assert.throws(() => tradingExchangeId(invalid), /exchange identifier/i);
 }
 
-async function createVersion18Fixture(databasePath, { orphanEvent = false } = {}) {
-  const fixture = await open({ filename: databasePath, driver: sqlite3.Database });
-  try {
-    await fixture.exec(`
+const VERSION_18_SCHEMA = `
       PRAGMA foreign_keys = OFF;
       CREATE TABLE schema_migrations (
         version INTEGER PRIMARY KEY, name TEXT NOT NULL, checksum TEXT NOT NULL, applied_at INTEGER NOT NULL
@@ -103,7 +100,12 @@ async function createVersion18Fixture(databasePath, { orphanEvent = false } = {}
       );
       CREATE INDEX idx_exchange_events_account_time ON trading_exchange_events(account_id, received_at DESC);
       CREATE INDEX idx_exchange_events_type_time ON trading_exchange_events(event_type, received_at DESC);
-    `);
+`;
+
+async function createVersion18Fixture(databasePath, { orphanEvent = false } = {}) {
+  const fixture = await open({ filename: databasePath, driver: sqlite3.Database });
+  try {
+    await fixture.exec(VERSION_18_SCHEMA);
     for (const migration of expectedDatabaseMigrations().slice(0, 18)) {
       await fixture.run(
         'INSERT INTO schema_migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, 1)',

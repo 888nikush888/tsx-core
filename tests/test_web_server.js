@@ -201,11 +201,8 @@ async function testTradingAnalyticsApi(baseUrl) {
   }
 }
 
-async function testWorkflowResourceApi(baseUrl, appState) {
-  let response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });
-  assert.strictEqual(response.status, 200);
-  assert.strictEqual((await response.json()).workflow, null);
-
+async function testExchangeCatalogApi(baseUrl, appState) {
+  let response;
   const originalTradingControl = appState.tradingControl;
   appState.tradingControl = {
     exchangeCatalog: async () => ({
@@ -242,6 +239,12 @@ async function testWorkflowResourceApi(baseUrl, appState) {
   } finally {
     appState.tradingControl = originalTradingControl;
   }
+}
+
+async function testWorkflowResourceApi(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).workflow, null);
 
   response = await fetch(`${baseUrl}/api/workflow/resources`, {
     method: 'POST',
@@ -407,7 +410,8 @@ async function testWorkflowRevisionApi(baseUrl) {
 }
 
 async function testWorkflowControlPlane(baseUrl, appState) {
-  await testWorkflowResourceApi(baseUrl, appState);
+  await testExchangeCatalogApi(baseUrl, appState);
+  await testWorkflowResourceApi(baseUrl);
   await testWorkflowResourceFamilyArchiveApi(baseUrl);
   await testWorkflowRevisionApi(baseUrl);
 }
