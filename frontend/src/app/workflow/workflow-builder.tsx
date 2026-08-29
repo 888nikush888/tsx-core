@@ -1027,6 +1027,16 @@ type WorkflowSelections = {
   connectionDraft: WorkflowConnectionDraft | null;
 };
 
+export function historyNavigationNotice(
+  label: string | null,
+  direction: "undo" | "redo",
+  revision: number,
+): string {
+  const subject = label ? `„${label}“ ` : "Stand ";
+  const action = direction === "undo" ? "rückgängig gemacht" : "wiederholt";
+  return `${subject}${action}. Stand wurde als Revision ${revision} aktiviert.`;
+}
+
 export function workflowSelectionsAfterHistory(
   current: WorkflowSelections,
   graph: WorkflowGraph,
@@ -1422,7 +1432,7 @@ export function WorkflowBuilder() {
         }
         setNotice({
           tone: "ok",
-          text: `${label ? `„${label}“ ` : "Stand "}${direction === "undo" ? "rückgängig gemacht" : "wiederholt"}. Stand wurde als Revision ${nextWorkflow.revision} aktiviert.`,
+          text: historyNavigationNotice(label, direction, nextWorkflow.revision),
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
