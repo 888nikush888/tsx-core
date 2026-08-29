@@ -49,6 +49,44 @@ def _contract_size(market: dict[str, Any]) -> Decimal:
     return value
 
 
+def _market_mark_price(ticker: dict[str, Any]) -> Decimal:
+    info = ticker.get("info") if isinstance(ticker.get("info"), dict) else {}
+    value = ticker.get("mark") or ticker.get("last") or info.get("markPrice") or info.get("mark_price")
+    if value is None:
+        bid, ask = ticker.get("bid"), ticker.get("ask")
+        if bid is not None and ask is not None:
+            value = (Decimal(str(bid)) + Decimal(str(ask))) / 2
+    if value is None:
+        raise ExchangeContractError("CCXT ticker omitted the mark/last price.")
+    return Decimal(str(value))
+
+
+def _positive_market_limit(limits: dict[str, Any], dimension: str, label: str) -> Decimal:
+    value = (limits.get(dimension) or {}).get("min")
+    if value is None:
+        raise ExchangeContractError(f"CCXT market omits certified {label} metadata.")
+    number = Decimal(str(value))
+    if not number.is_finite() or number <= 0:
+        raise ExchangeContractError(f"CCXT market has invalid certified {label} metadata.")
+    return number
+
+
+def _market_constraints(market: dict[str, Any]) -> dict[str, str]:
+    precision = market.get("precision") or {}
+    limits = market.get("limits") or {}
+    contract_size = _contract_size(market)
+    amount_step = Decimal(_precision_step(precision.get("amount"), "quantity step"))
+    minimum_contracts = _positive_market_limit(limits, "amount", "minimum quantity")
+    minimum_notional = _positive_market_limit(limits, "cost", "minimum notional")
+    return {
+        "priceTick": _precision_step(precision.get("price"), "price tick"),
+        "quantityStep": decimal_text(amount_step * contract_size),
+        "minimumQuantity": decimal_text(minimum_contracts * contract_size),
+        "minimumNotional": decimal_text(minimum_notional),
+        "contractSize": decimal_text(contract_size),
+    }
+
+
 def _clients_profile(clients: AccountClients) -> ExchangeProfile:
     profile = getattr(clients, "profile", None) or profile_for(clients.account["exchange"])
     if profile is None:
@@ -396,43 +434,13 @@ class CcxtAdapter:
         clients = await self._clients(account, deadline)
         market = self._market(clients, symbol)
         ticker = await _within(deadline, clients.rest.fetch_ticker(market["symbol"]))
-        info = ticker.get("info") if isinstance(ticker.get("info"), dict) else {}
-        mark = ticker.get("mark") or ticker.get("last") or info.get("markPrice") or info.get("mark_price")
-        if mark is None:
-            bid, ask = ticker.get("bid"), ticker.get("ask")
-            if bid is not None and ask is not None:
-                mark = (Decimal(str(bid)) + Decimal(str(ask))) / 2
-        if mark is None:
-            raise ExchangeContractError("CCXT ticker omitted the mark/last price.")
-        precision = market.get("precision") or {}
-        limits = market.get("limits") or {}
-        amount_limits = limits.get("amount") or {}
-        cost_limits = limits.get("cost") or {}
-        contract_size = _contract_size(market)
-        amount_step = _precision_step(precision.get("amount"), "quantity step")
-        price_tick = _precision_step(precision.get("price"), "price tick")
-        if amount_limits.get("min") is None:
-            raise ExchangeContractError("CCXT market omits certified minimum quantity metadata.")
-        if cost_limits.get("min") is None:
-            raise ExchangeContractError("CCXT market omits certified minimum notional metadata.")
-        minimum_contracts = Decimal(str(amount_limits["min"]))
-        if not minimum_contracts.is_finite() or minimum_contracts <= 0:
-            raise ExchangeContractError("CCXT market has invalid certified minimum quantity metadata.")
-        minimum_notional = Decimal(str(cost_limits["min"]))
-        if not minimum_notional.is_finite() or minimum_notional <= 0:
-            raise ExchangeContractError("CCXT market has invalid certified minimum notional metadata.")
-        quantity_step = decimal_text(Decimal(amount_step) * contract_size)
-        minimum_quantity = decimal_text(minimum_contracts * contract_size)
+        constraints = _market_constraints(market)
         return {
             "symbol": _canonical_symbol(market),
             "providerSymbol": market["symbol"],
-            "markPrice": decimal_text(mark),
-            "priceTick": price_tick,
-            "quantityStep": quantity_step,
-            "minimumQuantity": minimum_quantity,
-            "minimumNotional": decimal_text(minimum_notional),
+            "markPrice": decimal_text(_market_mark_price(ticker)),
+            **constraints,
             "maxLeverage": await self._maximum_leverage(clients, market, deadline),
-            "contractSize": decimal_text(contract_size),
             "observedAt": int(time.time() * 1_000),
         }
 

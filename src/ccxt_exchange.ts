@@ -15,6 +15,7 @@ import type {
 } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
 import { TradingSymbolUnavailableError } from './trading_errors.js';
+import { internalExecutorOrigin } from './executor_origin.js';
 
 interface ExecutorErrorPayload {
   error?: string;
@@ -39,12 +40,7 @@ export interface VerifiedExternalAccount {
 }
 
 function executorUrl(): string {
-  const value = process.env.EXCHANGE_EXECUTOR_URL?.trim() || 'http://exchange-executor:8090';
-  const parsed = new URL(value);
-  if (parsed.protocol !== 'http:' || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash) {
-    throw new Error('EXCHANGE_EXECUTOR_URL must be a plain internal HTTP origin.');
-  }
-  return parsed.origin;
+  return internalExecutorOrigin(process.env.EXCHANGE_EXECUTOR_URL);
 }
 
 function accountPayload(account: TradingAccount): Record<string, string> {

@@ -1,4 +1,5 @@
 import type { TradingCredentialStore } from './trading_credentials.js';
+import { internalExecutorOrigin } from './executor_origin.js';
 import { tradingExchangeId } from './trading_types.js';
 
 export type ExchangeCertificationStatus =
@@ -60,18 +61,9 @@ const CREDENTIAL_IDS = new Set([
   'privateKey', 'walletAddress', 'token',
 ]);
 
-function plainInternalExecutorOrigin(value: string): string {
-  const parsed = new URL(value);
-  if (parsed.protocol !== 'http:' || parsed.username || parsed.password
-    || parsed.pathname !== '/' || parsed.search || parsed.hash) {
-    throw new Error('Exchange executor catalog URL must be a plain internal HTTP origin.');
-  }
-  return parsed.origin;
-}
-
 function object(value: unknown, label: string): Record<string, any> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${label} returned an invalid contract.`);
+    throw new TypeError(`${label} returned an invalid contract.`);
   }
   return value as Record<string, any>;
 }
@@ -107,14 +99,14 @@ function catalogEntry(value: unknown): ExchangeCatalogEntry {
   if (input.provider !== 'ccxt') throw new Error('Executor catalog may only contain CCXT exchanges.');
   const ccxt = object(input.ccxt, 'Exchange catalog CCXT metadata');
   if (typeof ccxt.rest !== 'boolean' || typeof ccxt.pro !== 'boolean') {
-    throw new Error('Exchange catalog returned invalid CCXT metadata.');
+    throw new TypeError('Exchange catalog returned invalid CCXT metadata.');
   }
   const markets = object(input.markets, 'Exchange catalog market metadata');
   if (markets.linearSwap !== null && typeof markets.linearSwap !== 'boolean') {
     throw new Error('Exchange catalog returned invalid market metadata.');
   }
   if (!Array.isArray(input.credentialFields) || !Array.isArray(input.modes)) {
-    throw new Error('Exchange catalog returned invalid fields or modes.');
+    throw new TypeError('Exchange catalog returned invalid fields or modes.');
   }
   const credentialFields = input.credentialFields.map((value: unknown) => {
     const field = object(value, 'Exchange credential field');
@@ -199,16 +191,14 @@ export class ExchangeCatalogClient {
     private readonly credentials: Pick<TradingCredentialStore, 'getOrCreateExecutorToken'>,
     options: ExchangeCatalogClientOptions = {},
   ) {
-    this.baseUrl = plainInternalExecutorOrigin(
-      options.baseUrl || process.env.EXCHANGE_EXECUTOR_URL?.trim() || 'http://exchange-executor:8090',
-    );
+    this.baseUrl = internalExecutorOrigin(options.baseUrl ?? process.env.EXCHANGE_EXECUTOR_URL);
     this.cacheTtlMs = Math.max(1_000, Math.min(options.cacheTtlMs ?? 15_000, 60_000));
-    this.fetchImpl = options.fetchImpl || (globalThis.fetch as FetchLike);
+    this.fetchImpl = options.fetchImpl ?? (globalThis.fetch as FetchLike);
   }
 
   async executorCatalog(force = false): Promise<ExchangeCatalog> {
     if (!force && this.cached && this.cached.expiresAt > Date.now()) return this.cached.catalog;
-    if (!force && this.inFlight) return this.inFlight;
+    if (!force && this.inFlight !== null) return this.inFlight;
     const request = this.postCatalog('/v1/exchange-catalog', {});
     this.inFlight = request;
     try {
@@ -254,4 +244,3 @@ export class ExchangeCatalogClient {
     return executorCatalog(await response.json());
   }
 }
-

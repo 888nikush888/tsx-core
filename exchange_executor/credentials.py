@@ -18,6 +18,27 @@ class CredentialError(ValueError):
     pass
 
 
+def _credential_text_is_valid(value: Any, *, minimum: int, maximum: int) -> bool:
+    return (
+        isinstance(value, str)
+        and minimum <= len(value) <= maximum
+        and not any(char in value for char in "\r\n\0")
+    )
+
+
+def _validate_hyperliquid_fields(value: dict[str, Any]) -> None:
+    if not re.fullmatch(r"0x[0-9a-fA-F]{64}", str(value.get("privateKey", ""))):
+        raise CredentialError("Hyperliquid private key is invalid.")
+    if not re.fullmatch(r"0x[0-9a-fA-F]{40}", str(value.get("walletAddress", ""))):
+        raise CredentialError("Hyperliquid wallet address is invalid.")
+
+
+def _validate_api_fields(value: dict[str, Any], exchange: str) -> None:
+    for field in ("apiKey", "secret"):
+        if not _credential_text_is_valid(value.get(field), minimum=8, maximum=256):
+            raise CredentialError(f"{exchange} {field} is invalid.")
+
+
 class CredentialStore:
     def __init__(self, root: str) -> None:
         self.root = Path(root).resolve()
@@ -76,7 +97,7 @@ class CredentialStore:
             raise CredentialError("Trading credential fields are invalid.")
         unknown = set(credentials) - CREDENTIAL_FIELDS
         if unknown:
-            raise CredentialError(f"Trading credentials contain an unsupported credential field: {sorted(unknown)[0]}.")
+            raise CredentialError(f"Trading credentials contain an unsupported credential field: {min(unknown)}.")
         return {
             "version": 2,
             "accountId": value["accountId"],
@@ -88,19 +109,13 @@ class CredentialStore:
     @staticmethod
     def _validate_fields(value: dict[str, Any], exchange: str) -> None:
         for field, field_value in value.items():
-            if not isinstance(field_value, str) or not 1 <= len(field_value) <= 4096 or any(char in field_value for char in "\r\n\0"):
+            if not _credential_text_is_valid(field_value, minimum=1, maximum=4096):
                 raise CredentialError(f"{exchange} {field} is invalid.")
         if exchange == "hyperliquid":
-            if not re.fullmatch(r"0x[0-9a-fA-F]{64}", str(value.get("privateKey", ""))):
-                raise CredentialError("Hyperliquid private key is invalid.")
-            if not re.fullmatch(r"0x[0-9a-fA-F]{40}", str(value.get("walletAddress", ""))):
-                raise CredentialError("Hyperliquid wallet address is invalid.")
+            _validate_hyperliquid_fields(value)
             return
         if exchange in {"bybit", "krakenfutures"}:
-            for field in ("apiKey", "secret"):
-                secret = value.get(field)
-                if not isinstance(secret, str) or not 8 <= len(secret) <= 256 or any(char in secret for char in "\r\n\0"):
-                    raise CredentialError(f"{exchange} {field} is invalid.")
+            _validate_api_fields(value, exchange)
         # Dynamically discovered exchanges are validated against the same
         # allowlist here; required fields are enforced by their certified
         # catalog/profile before the control plane writes the file.
