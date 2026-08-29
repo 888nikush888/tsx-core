@@ -84,7 +84,8 @@ Die Reihenfolge der Coverage-Werte ist Statements/Branches/Functions/Lines.
 - CodeQL-Credential-Fingerprint-Fund: im vollständigen GitHub-Lauf auf `c4fb990` bestätigt grün.
 - Linux-Coverage-Drift: im vollständigen GitHub-Lauf auf `c4fb990` bestätigt grün.
 - Container-Registry-Fixture-Drift: im vollständigen GitHub-Lauf auf `c4fb990` bestätigt grün.
-- SonarQube-Cloud-Befunde zu Python-Komplexität, fremdem HTTP-Ursprung und Promise-Korrelation: lokal testgetrieben durch `372e8bf`, `a817e45` und `cad05e2` behoben; der erneute exakte Main-Lauf ist vor Phase 3 zwingend grün abzuwarten.
+- SonarQube-Cloud-Befunde zu Python-Komplexität, fremdem HTTP-Ursprung und Promise-Korrelation: testgetrieben durch `372e8bf`, `a817e45` und `cad05e2` behoben und im exakten Main-Lauf `33265072101` bestätigt grün.
+- Sonar-Analyse `72f6f401-5f40-4551-b36f-89dec3c56a97`: Quality Gate `OK`, Revision exakt passend, 86,5 % neue Coverage, 0,0 % neue Duplikation, 0 Blocker/Critical-Issues und 0 ungeprüfte Security Hotspots.
 - Lokales Monitoring-Image-Gate: **NOT RUN**, da Docker Desktop auf der lokalen Maschine nicht aktiv ist. Der GitHub-Lauf muss dieses Gate in der unterstützten Umgebung bestätigen.
 
 ## Bewusste Grenzen
@@ -96,7 +97,7 @@ Die Reihenfolge der Coverage-Werte ist Statements/Branches/Functions/Lines.
 
 ## Offene TODOs
 
-Keine funktionalen Phase-2-TODOs. Vor Phase 3 müssen der Dokumentationscommit hochgeladen, alle GitHub-Checks einschließlich SonarQube Cloud auf der exakten Main-Revision grün und der lokale Arbeitsbaum sauber sein.
+Keine Phase-2-TODOs. Der vollständige GitHub-Lauf `33265072101` auf Revision `38427ad348c5d28d378de47ed52d11a82b0152b0` ist grün.
 
 ## Bekannte Risiken
 

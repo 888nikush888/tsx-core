@@ -57,7 +57,7 @@ Der anschließende vollständige GitHub-Lauf bestand sämtliche Gates außer Son
 | 12 | Desktop- und Mobilabläufe bleiben über Chromium, Firefox, WebKit und Mobil-Chromium bedienbar. | `npm run test:e2e --prefix frontend` | E2E | PASS, 40/40 |
 | 13 | Katalogantworten mit ungültigem Ursprung, Vertrag, Metadaten, Credentials, Modi, Gründen oder Capabilities werden fail-closed verworfen; Probe-Fehler, Fremd-IDs und Paper-Probes ebenso. | `tests/test_dynamic_exchange_registry.js` | Security/Contract | PASS |
 | 14 | Credential-Fingerprints sind deterministische, 64-stellige HMAC-Werte und ändern sich bei einer Credential-Änderung. | `exchange_executor/tests/test_contracts.py` | Security/Unit | PASS |
-| 15 | Die containerisierte Python-Suite läuft gegen exakt dieselbe Certification-Evidence wie der Executor-Prozess, ohne Tests oder Evidence in das Runtime-Image einzubauen. | `tests/test_supply_chain.js`, GitHub-Container-Gate | Supply Chain/Integration | lokal PASS; erneuter Containerlauf ausstehend |
+| 15 | Die containerisierte Python-Suite läuft gegen exakt dieselbe Certification-Evidence wie der Executor-Prozess, ohne Tests oder Evidence in das Runtime-Image einzubauen. | `tests/test_supply_chain.js`, GitHub-Container-Gate | Supply Chain/Integration | PASS |
 | 16 | Der Executor-Transport akzeptiert Plain-HTTP ausschließlich zu Loopback oder zum privaten Compose-Service; ein konfigurierter Fremdhost wird in Katalog und Handelsclient vor dem Request fail-closed abgelehnt. | `tests/test_dynamic_exchange_registry.js`, `tests/test_ccxt_exchange.js` | Security/Integration | PASS |
 | 17 | Parallele nicht erzwungene Katalogabfragen verwenden exakt dieselbe laufende Anfrage, ohne Promise-Wahrheitswert als fachliche Bedingung zu missbrauchen. | `tests/test_dynamic_exchange_registry.js` | Concurrency/Unit | PASS |
 | 18 | Marktgrenzen, Markpreis und Credential-Textfelder behalten nach der Komplexitätszerlegung ihre Grenz-, Fallback- und Steuerzeichenverträge. | `exchange_executor/tests/test_contracts.py`, `exchange_executor/tests/test_phase2_registry.py` | Unit/Security | PASS |
@@ -88,6 +88,15 @@ Der anschließende vollständige GitHub-Lauf bestand sämtliche Gates außer Son
 `npm run quality:monitoring` wurde lokal ausgeführt, konnte aber ohne laufende Docker-Desktop-Engine kein gehärtetes Prometheus-Image bauen. Dieser umgebungsabhängige Check ist lokal daher **NOT RUN** und nicht als bestanden gewertet. Der unterstützte GitHub-Lauf führt das Gate in seiner vorgesehenen Linux-/Docker-Umgebung aus.
 
 `npm run quality:deployment-images` ist ohne die drei produktiven, digest-gepinnten Image-Variablen nicht anwendbar und wurde nicht als Phase-2-Gate gewertet. Es hat keine Produktivkonfiguration verändert.
+
+## GitHub- und Sonar-Abschluss
+
+- Exakte Main-Revision: `38427ad348c5d28d378de47ed52d11a82b0152b0`
+- GitHub-Actions-Lauf: `33265072101`, Gesamtstatus `success`
+- Erfolgreich: CodeQL, vier Browser-/Accessibility-Gates, vier Mutation-Gates, Linux-Lint/Tests/Coverage/Build/Supply-Chain, Container/SBOM/Vulnerability-Scan, Secret-History-Scan und SonarQube Cloud.
+- Sonar-Analyse: `72f6f401-5f40-4551-b36f-89dec3c56a97`; Revision stimmt exakt überein.
+- Sonar Quality Gate: `OK`; neue Reliability-, Security- und Maintainability-Ratings jeweils A, neue Coverage 86,5 %, neue Duplikation 0,0 % und Hotspot-Review 100 %.
+- Offene Blocker/Critical-Issues: 0; ungeprüfte Security Hotspots: 0.
 
 ## Coverage
 
