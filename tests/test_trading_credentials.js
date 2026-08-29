@@ -25,7 +25,11 @@ try {
   });
   const credentialFile = path.join(directory, 'trading', `${hyperliquidId}.json`);
   assert.equal((await stat(credentialFile)).isFile(), true);
-  assert.match(await readFile(credentialFile, 'utf8'), /"privateKey"/);
+  const storedHyperliquid = JSON.parse(await readFile(credentialFile, 'utf8'));
+  assert.equal(storedHyperliquid.version, 2);
+  assert.equal(storedHyperliquid.credentials.privateKey, `0x${'a'.repeat(64)}`);
+  assert.equal(storedHyperliquid.credentials.walletAddress, `0x${'b'.repeat(40)}`);
+  if (process.platform !== 'win32') assert.equal((await stat(credentialFile)).mode & 0o777, 0o600);
 
   const bybitId = '22222222-2222-4222-8222-222222222222';
   await store.set(bybitId, { exchange: 'bybit', apiKey: 'bybit-key-123', apiSecret: 'bybit-secret-123' });
@@ -50,6 +54,44 @@ try {
     store.set(bybitId, { exchange: 'bybit', apiKey: undefined, apiSecret: 'valid-secret' }),
     /API key is required/,
   );
+  await assert.rejects(
+    store.set(bybitId, {
+      exchange: 'okx',
+      credentials: { apiKey: 'valid-key', secret: 'valid-secret', customParams: '{}' },
+    }),
+    /unsupported credential field/i,
+  );
+
+  const legacyFixtures = [
+    {
+      id: '66666666-6666-4666-8666-666666666666',
+      value: { version: 1, exchange: 'hyperliquid', privateKey: `0x${'c'.repeat(64)}`, walletAddress: `0x${'d'.repeat(40)}` },
+      expected: { privateKey: `0x${'c'.repeat(64)}`, walletAddress: `0x${'d'.repeat(40)}` },
+    },
+    {
+      id: '77777777-7777-4777-8777-777777777777',
+      value: { version: 1, exchange: 'bybit', apiKey: 'legacy-bybit-key', apiSecret: 'legacy-bybit-secret' },
+      expected: { apiKey: 'legacy-bybit-key', secret: 'legacy-bybit-secret' },
+    },
+    {
+      id: '88888888-8888-4888-8888-888888888888',
+      value: { version: 1, exchange: 'krakenfutures', apiKey: 'legacy-kraken-key', apiSecret: 'legacy-kraken-secret' },
+      expected: { apiKey: 'legacy-kraken-key', secret: 'legacy-kraken-secret' },
+    },
+  ];
+  for (const fixture of legacyFixtures) {
+    await writeFile(
+      path.join(directory, 'trading', `${fixture.id}.json`),
+      `${JSON.stringify({ ...fixture.value, accountId: fixture.id, updatedAt: 1 })}\n`,
+      { mode: 0o600 },
+    );
+  }
+  await new TradingCredentialStore(directory).initialize();
+  for (const fixture of legacyFixtures) {
+    const migrated = JSON.parse(await readFile(path.join(directory, 'trading', `${fixture.id}.json`), 'utf8'));
+    assert.equal(migrated.version, 2);
+    assert.deepEqual(migrated.credentials, fixture.expected);
+  }
 
   const promotedHyperliquidId = '33333333-3333-4333-8333-333333333333';
   const hyperliquidCandidate = await store.stageCandidate({

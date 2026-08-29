@@ -53,6 +53,7 @@ const allTests = [
   'test_trading_engine.js',
   'test_trading_failures.js',
   'test_trading_credentials.js',
+  'test_dynamic_exchange_registry.js',
   'test_ccxt_exchange.js',
   'test_trading_web_control.js',
   'test_trading_analytics.js',
