@@ -12,6 +12,10 @@ import type {
   WorkflowEdge,
   WorkflowExecutionPath,
   WorkflowGraph,
+  WorkflowHistoryDirection,
+  WorkflowHistoryEntry,
+  WorkflowHistoryMode,
+  WorkflowHistoryStatus,
   WorkflowNode,
   WorkflowResourceKind,
   WorkflowResourceVersion,
@@ -49,6 +53,10 @@ const REQUIRED_EXECUTION_KINDS = new Set<WorkflowResourceKind>([
 
 const IDENTIFIER = /^[a-zA-Z0-9][a-zA-Z0-9:_-]{0,127}$/;
 export const WORKFLOW_IMPACT_CONFIRMATION = 'ACTIVATE WORKFLOW IMPACT';
+export const WORKFLOW_BUILDER_HISTORY_LIMIT = 5;
+const EMPTY_WORKFLOW_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges: [] };
+const DEFAULT_WORKFLOW_HISTORY_LABEL = 'Workflow geändert';
+const WORKFLOW_HISTORY_ENTRY_KEYS = new Set(['revisionId', 'label', 'capturedAt']);
 
 function object(value: unknown, label: string): Record<string, any> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -93,6 +101,113 @@ function stringArray(value: unknown, label: string, maximum = 100): string[] {
   const values = value.map(item => item.trim()).filter(Boolean);
   if (new Set(values).size !== values.length) throw new Error(`${label} must not contain duplicates.`);
   return values;
+}
+
+interface WorkflowHistoryState {
+  undo: WorkflowHistoryEntry[];
+  redo: WorkflowHistoryEntry[];
+}
+
+function workflowHistoryLabel(value: unknown): string {
+  const label = value === undefined || value === null ? DEFAULT_WORKFLOW_HISTORY_LABEL : value;
+  if (typeof label !== 'string' || !label.trim() || label.trim().length > 160
+    || /[\u0000-\u001f\u007f]/.test(label)) {
+    throw new Error('Workflow history label is invalid.');
+  }
+  return label.trim();
+}
+
+function workflowHistoryEntry(value: unknown, stack: string, index: number): WorkflowHistoryEntry {
+  const candidate = object(value, `Workflow builder history ${stack} entry ${index}`);
+  const keys = Object.keys(candidate);
+  if (keys.length !== WORKFLOW_HISTORY_ENTRY_KEYS.size
+    || keys.some(key => !WORKFLOW_HISTORY_ENTRY_KEYS.has(key))) {
+    throw new Error(`Workflow builder history ${stack} entry ${index} has an invalid contract.`);
+  }
+  const revisionId = candidate.revisionId === null
+    ? null
+    : stringValue(candidate.revisionId, `Workflow builder history ${stack} revision identifier`, 128);
+  if (revisionId !== null && !IDENTIFIER.test(revisionId)) {
+    throw new Error(`Workflow builder history ${stack} revision identifier is invalid.`);
+  }
+  const label = workflowHistoryLabel(candidate.label);
+  const capturedAt = Number(candidate.capturedAt);
+  if (!Number.isSafeInteger(capturedAt) || capturedAt <= 0) {
+    throw new Error(`Workflow builder history ${stack} timestamp is invalid.`);
+  }
+  return { revisionId, label, capturedAt };
+}
+
+function workflowHistoryStack(value: unknown, stack: string): WorkflowHistoryEntry[] {
+  if (!Array.isArray(value) || value.length > WORKFLOW_BUILDER_HISTORY_LIMIT) {
+    throw new Error(`Workflow builder history ${stack} must contain at most ${WORKFLOW_BUILDER_HISTORY_LIMIT} entries.`);
+  }
+  return value.map((entry, index) => workflowHistoryEntry(entry, stack, index));
+}
+
+function workflowHistoryMode(value: unknown): WorkflowHistoryMode {
+  const mode = value ?? 'ignore';
+  if (!['record', 'undo', 'redo', 'ignore', 'reset'].includes(String(mode))) {
+    throw new Error('Workflow history mode is invalid.');
+  }
+  return mode as WorkflowHistoryMode;
+}
+
+function workflowHistoryDirection(value: unknown): WorkflowHistoryDirection {
+  if (value !== 'undo' && value !== 'redo') throw new Error('Workflow history direction must be undo or redo.');
+  return value;
+}
+
+async function loadWorkflowBuilderHistory(): Promise<WorkflowHistoryState> {
+  const row = await getDatabase().get<{ undo_json: string; redo_json: string }>(
+    'SELECT undo_json, redo_json FROM workflow_builder_history WHERE singleton_id = 1',
+  );
+  if (!row) throw new Error('Workflow builder history state is missing.');
+  return {
+    undo: workflowHistoryStack(parseJson(row.undo_json, 'workflow builder history undo'), 'undo'),
+    redo: workflowHistoryStack(parseJson(row.redo_json, 'workflow builder history redo'), 'redo'),
+  };
+}
+
+async function writeWorkflowBuilderHistory(history: WorkflowHistoryState, now: number): Promise<void> {
+  if (!Number.isSafeInteger(now) || now <= 0) throw new Error('Workflow history timestamp is invalid.');
+  const undo = workflowHistoryStack(history.undo, 'undo');
+  const redo = workflowHistoryStack(history.redo, 'redo');
+  const result = await getDatabase().run(
+    `UPDATE workflow_builder_history SET undo_json = ?, redo_json = ?, updated_at = ? WHERE singleton_id = 1`,
+    [normalizedJson(undo), normalizedJson(redo), now],
+  );
+  if (Number(result.changes || 0) !== 1) throw new Error('Workflow builder history state is missing.');
+}
+
+function workflowHistoryStatus(history: WorkflowHistoryState): WorkflowHistoryStatus {
+  const undoEntry = history.undo.at(-1) ?? null;
+  const redoEntry = history.redo.at(-1) ?? null;
+  return {
+    limit: WORKFLOW_BUILDER_HISTORY_LIMIT,
+    undoCount: history.undo.length,
+    redoCount: history.redo.length,
+    canUndo: undoEntry !== null,
+    canRedo: redoEntry !== null,
+    undoLabel: undoEntry?.label ?? null,
+    redoLabel: redoEntry?.label ?? null,
+  };
+}
+
+function pushWorkflowHistoryEntry(
+  stack: WorkflowHistoryEntry[],
+  entry: WorkflowHistoryEntry,
+): WorkflowHistoryEntry[] {
+  return [...stack, entry].slice(-WORKFLOW_BUILDER_HISTORY_LIMIT);
+}
+
+export async function getWorkflowBuilderHistoryStatus(): Promise<WorkflowHistoryStatus> {
+  return workflowHistoryStatus(await loadWorkflowBuilderHistory());
+}
+
+export async function clearWorkflowBuilderHistory(reason: unknown, now = Date.now()): Promise<void> {
+  stringValue(reason, 'Workflow history reset reason', 160);
+  await withDatabaseTransaction(() => writeWorkflowBuilderHistory({ undo: [], redo: [] }, now));
 }
 
 type ResourceConfiguration = Record<string, any>;
@@ -299,6 +414,61 @@ function pathFromRow(row: any): WorkflowExecutionPath {
     effectiveConfiguration: parseJson<Record<string, unknown>>(row.effective_configuration_json, 'workflow path configuration'),
     enabled: Number(row.enabled) === 1, createdAt: Number(row.created_at),
   };
+}
+
+async function workflowRevisionFromRow(row: any): Promise<WorkflowRevision> {
+  const graph = parseJson<WorkflowGraph>(row.graph_json, 'workflow graph');
+  const pathRows = await getDatabase().all<any[]>(
+    'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
+    [row.id],
+  );
+  const storedCompiled = parseJson<{ routeGroups?: WorkflowRouteGroup[]; warnings?: string[] }>(
+    row.compiled_json,
+    'compiled workflow',
+  );
+  const paths = pathRows.map(pathFromRow);
+  if (storedCompiled.routeGroups) {
+    if (sha256({ graph, compiled: { paths, routeGroups: storedCompiled.routeGroups, warnings: storedCompiled.warnings ?? [] } })
+      !== row.definition_sha256) {
+      throw new Error(`Workflow revision ${row.id} failed its integrity check.`);
+    }
+  } else {
+    const legacyPaths = paths.map(({ routeGroupKey: _group, fallbackRank: _rank, ...path }) => path);
+    if (sha256({ graph, compiled: { paths: legacyPaths, warnings: storedCompiled.warnings ?? [] } }) !== row.definition_sha256) {
+      throw new Error(`Workflow revision ${row.id} failed its integrity check.`);
+    }
+  }
+  const routeGroups = storedCompiled.routeGroups ?? paths.map(path => ({
+    key: path.routeGroupKey,
+    channelId: path.channelId,
+    channelNodeId: path.nodeIds.find(nodeId => graph.nodes.find(node => node.id === nodeId)?.kind === 'channel') || '',
+    primaryPathId: path.id,
+    candidates: [{
+      pathId: path.id,
+      accountId: path.accountId,
+      accountNodeId: [...path.nodeIds].reverse()
+        .find(nodeId => graph.nodes.find(node => node.id === nodeId)?.kind === 'account') || '',
+      rank: 0,
+      enabled: path.enabled,
+    }],
+  }));
+  return {
+    id: String(row.id),
+    revision: Number(row.revision),
+    status: row.status,
+    graph,
+    compiled: { paths, routeGroups, warnings: storedCompiled.warnings ?? [] },
+    definitionSha256: String(row.definition_sha256),
+    baseRevisionId: row.base_revision_id || null,
+    createdBy: String(row.created_by),
+    createdAt: Number(row.created_at),
+    archivedAt: row.archived_at === null ? null : Number(row.archived_at),
+  };
+}
+
+async function getWorkflowRevisionById(id: string): Promise<WorkflowRevision | null> {
+  const row = await getDatabase().get<any>('SELECT * FROM workflow_revisions WHERE id = ?', [id]);
+  return row ? workflowRevisionFromRow(row) : null;
 }
 
 export async function listWorkflowResources(kind?: WorkflowResourceKind): Promise<WorkflowResourceVersion[]> {
@@ -924,73 +1094,239 @@ async function compileWorkflow(graph: WorkflowGraph): Promise<{
   return { paths, routeGroups, warnings: [...new Set(warnings)] };
 }
 
+type CompiledWorkflowDraft = Awaited<ReturnType<typeof compileWorkflow>>;
+
+async function activeWorkflowState(): Promise<{
+  activeId: string | null;
+  activePaths: WorkflowExecutionPath[];
+}> {
+  const active = await getDatabase().get<{ revision_id: string }>(
+    'SELECT revision_id FROM workflow_active_revision WHERE singleton_id = 1',
+  );
+  const activeId = active?.revision_id ?? null;
+  const activePaths = activeId
+    ? (await getDatabase().all<any[]>(
+        'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
+        [activeId],
+      )).map(pathFromRow)
+    : [];
+  return { activeId, activePaths };
+}
+
+async function activateCompiledWorkflowRevision(input: {
+  activeId: string | null;
+  graph: WorkflowGraph;
+  compiled: CompiledWorkflowDraft;
+  actorId: string;
+  now: number;
+}): Promise<WorkflowRevision> {
+  const latest = await getDatabase().get<{ revision: number }>('SELECT MAX(revision) AS revision FROM workflow_revisions');
+  const revisionNumber = Number(latest?.revision || 0) + 1;
+  const id = randomUUID();
+  const paths: WorkflowExecutionPath[] = input.compiled.paths
+    .map(path => ({ ...path, workflowRevisionId: id, createdAt: input.now }))
+    .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
+  const compiledPayload = {
+    paths,
+    routeGroups: input.compiled.routeGroups,
+    warnings: input.compiled.warnings,
+  };
+  const definitionSha256 = sha256({ graph: input.graph, compiled: compiledPayload });
+  if (input.activeId) {
+    const archived = await getDatabase().run(
+      `UPDATE workflow_revisions SET status = 'archived', archived_at = ? WHERE id = ? AND status = 'active'`,
+      [input.now, input.activeId],
+    );
+    if (Number(archived.changes || 0) !== 1) throw new Error('WORKFLOW_REVISION_CONFLICT');
+  }
+  await getDatabase().run(
+    `INSERT INTO workflow_revisions (
+       id, revision, status, graph_json, compiled_json, definition_sha256,
+       base_revision_id, created_by, created_at, archived_at
+     ) VALUES (?, ?, 'active', ?, ?, ?, ?, ?, ?, NULL)`,
+    [id, revisionNumber, normalizedJson(input.graph), normalizedJson(compiledPayload), definitionSha256,
+      input.activeId, input.actorId, input.now],
+  );
+  for (const path of paths) {
+    await getDatabase().run(
+      `INSERT INTO workflow_execution_paths (
+         id, workflow_revision_id, path_key, channel_id, account_id, strategy_version_id,
+         parser_resource_version_id, schema_resource_version_id, contract_resource_version_id,
+         sizing_resource_version_id, adaptive_risk_resource_version_id, node_ids_json,
+         effective_configuration_json, route_group_key, fallback_rank, enabled, created_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [path.id, id, path.pathKey, path.channelId, path.accountId, path.strategyVersionId,
+        path.parserResourceVersionId, path.schemaResourceVersionId, path.contractResourceVersionId,
+        path.sizingResourceVersionId, path.adaptiveRiskResourceVersionId, normalizedJson(path.nodeIds),
+        normalizedJson(path.effectiveConfiguration), path.routeGroupKey, path.fallbackRank,
+        path.enabled ? 1 : 0, input.now],
+    );
+  }
+  await getDatabase().run(
+    `INSERT INTO workflow_active_revision (singleton_id, revision_id, updated_at) VALUES (1, ?, ?)
+     ON CONFLICT(singleton_id) DO UPDATE SET revision_id = excluded.revision_id, updated_at = excluded.updated_at`,
+    [id, input.now],
+  );
+  return {
+    id,
+    revision: revisionNumber,
+    status: 'active',
+    graph: input.graph,
+    compiled: compiledPayload,
+    definitionSha256,
+    baseRevisionId: input.activeId,
+    createdBy: input.actorId,
+    createdAt: input.now,
+    archivedAt: null,
+  };
+}
+
+function assertWorkflowConfirmation(impact: WorkflowImpact, confirmation: string | null | undefined): void {
+  if (impact.destructive && confirmation !== WORKFLOW_IMPACT_CONFIRMATION) {
+    throw new Error('WORKFLOW_IMPACT_CONFIRMATION_REQUIRED');
+  }
+}
+
+async function workflowHistoryTarget(entry: WorkflowHistoryEntry): Promise<{
+  graph: WorkflowGraph;
+  compiled: CompiledWorkflowDraft;
+  sourceRevisionId: string | null;
+  sourceDefinitionSha256: string | null;
+}> {
+  if (entry.revisionId === null) {
+    const graph = structuredClone(EMPTY_WORKFLOW_GRAPH);
+    return { graph, compiled: await compileWorkflow(graph), sourceRevisionId: null, sourceDefinitionSha256: null };
+  }
+  try {
+    const source = await getWorkflowRevisionById(entry.revisionId);
+    if (!source) throw new Error('revision does not exist');
+    const graph = validateGraph(source.graph);
+    return {
+      graph,
+      compiled: await compileWorkflow(graph),
+      sourceRevisionId: source.id,
+      sourceDefinitionSha256: source.definitionSha256,
+    };
+  } catch (error) {
+    throw new Error(`Workflow history target is invalid: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+  }
+}
+
 export async function saveWorkflowRevision(input: {
   baseRevisionId: string | null;
   graph: unknown;
   actorId: string;
   confirmation?: string | null;
+  history?: { mode: WorkflowHistoryMode; label?: string };
 }, now = Date.now()): Promise<WorkflowRevision> {
-  const graph = validateGraph(input.graph);
-  const compiled = await compileWorkflow(graph);
   const actorId = stringValue(input.actorId, 'Workflow actor identifier', 128);
+  const mode = workflowHistoryMode(input.history?.mode);
+  if (mode === 'undo' || mode === 'redo') {
+    throw new Error('Workflow undo and redo must use the workflow history apply operation.');
+  }
+  const label = mode === 'record' ? workflowHistoryLabel(input.history?.label) : null;
+  if (!Number.isSafeInteger(now) || now <= 0) throw new Error('Workflow revision timestamp is invalid.');
   return withDatabaseTransaction(async () => {
-    const active = await getDatabase().get<{ revision_id: string }>('SELECT revision_id FROM workflow_active_revision WHERE singleton_id = 1');
-    const activeId = active?.revision_id ?? null;
+    const history = mode === 'reset' ? null : await loadWorkflowBuilderHistory();
+    const graph = validateGraph(input.graph);
+    const compiled = await compileWorkflow(graph);
+    const { activeId, activePaths } = await activeWorkflowState();
     if (activeId !== input.baseRevisionId) throw new Error('WORKFLOW_REVISION_CONFLICT');
-    const activePaths = activeId
-      ? (await getDatabase().all<any[]>(
-          'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
-          [activeId],
-        )).map(pathFromRow)
-      : [];
     const impact = workflowImpact(activePaths, compiled.paths, compiled.warnings);
-    if (impact.destructive && input.confirmation !== WORKFLOW_IMPACT_CONFIRMATION) {
-      throw new Error('WORKFLOW_IMPACT_CONFIRMATION_REQUIRED');
+    assertWorkflowConfirmation(impact, input.confirmation);
+    const revision = await activateCompiledWorkflowRevision({ activeId, graph, compiled, actorId, now });
+    if (mode === 'record') {
+      await writeWorkflowBuilderHistory({
+        undo: pushWorkflowHistoryEntry(history!.undo, { revisionId: activeId, label: label!, capturedAt: now }),
+        redo: [],
+      }, now);
+    } else if (mode === 'reset') {
+      await writeWorkflowBuilderHistory({ undo: [], redo: [] }, now);
     }
-    const latest = await getDatabase().get<{ revision: number }>('SELECT MAX(revision) AS revision FROM workflow_revisions');
-    const revisionNumber = Number(latest?.revision || 0) + 1;
-    const id = randomUUID();
-    const paths: WorkflowExecutionPath[] = compiled.paths
-      .map(path => ({ ...path, workflowRevisionId: id, createdAt: now }))
-      .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
-    const compiledPayload = { paths, routeGroups: compiled.routeGroups, warnings: compiled.warnings };
-    const definitionSha256 = sha256({ graph, compiled: compiledPayload });
-    if (activeId) {
-      await getDatabase().run(
-        `UPDATE workflow_revisions SET status = 'archived', archived_at = ? WHERE id = ? AND status = 'active'`,
-        [now, activeId],
-      );
-    }
-    await getDatabase().run(
-      `INSERT INTO workflow_revisions (
-         id, revision, status, graph_json, compiled_json, definition_sha256,
-         base_revision_id, created_by, created_at, archived_at
-       ) VALUES (?, ?, 'active', ?, ?, ?, ?, ?, ?, NULL)`,
-      [id, revisionNumber, normalizedJson(graph), normalizedJson(compiledPayload), definitionSha256, activeId, actorId, now],
-    );
-    for (const path of paths) {
-      await getDatabase().run(
-        `INSERT INTO workflow_execution_paths (
-           id, workflow_revision_id, path_key, channel_id, account_id, strategy_version_id,
-           parser_resource_version_id, schema_resource_version_id, contract_resource_version_id,
-           sizing_resource_version_id, adaptive_risk_resource_version_id, node_ids_json,
-           effective_configuration_json, route_group_key, fallback_rank, enabled, created_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [path.id, id, path.pathKey, path.channelId, path.accountId, path.strategyVersionId,
-          path.parserResourceVersionId, path.schemaResourceVersionId, path.contractResourceVersionId,
-          path.sizingResourceVersionId, path.adaptiveRiskResourceVersionId, normalizedJson(path.nodeIds),
-          normalizedJson(path.effectiveConfiguration), path.routeGroupKey, path.fallbackRank,
-          path.enabled ? 1 : 0, now],
-      );
-    }
-    await getDatabase().run(
-      `INSERT INTO workflow_active_revision (singleton_id, revision_id, updated_at) VALUES (1, ?, ?)
-       ON CONFLICT(singleton_id) DO UPDATE SET revision_id = excluded.revision_id, updated_at = excluded.updated_at`,
-      [id, now],
-    );
+    return revision;
+  });
+}
+
+export async function previewWorkflowBuilderHistoryImpact(input: {
+  direction: WorkflowHistoryDirection;
+  baseRevisionId: string | null;
+}): Promise<WorkflowImpact> {
+  const direction = workflowHistoryDirection(input.direction);
+  return withDatabaseTransaction(async () => {
+    const history = await loadWorkflowBuilderHistory();
+    const { activeId, activePaths } = await activeWorkflowState();
+    if (activeId !== input.baseRevisionId) throw new Error('WORKFLOW_REVISION_CONFLICT');
+    const entry = history[direction].at(-1);
+    if (!entry) throw new Error(`WORKFLOW_HISTORY_${direction.toUpperCase()}_EMPTY`);
+    const target = await workflowHistoryTarget(entry);
+    return workflowImpact(activePaths, target.compiled.paths, target.compiled.warnings);
+  });
+}
+
+export async function applyWorkflowBuilderHistory(input: {
+  direction: WorkflowHistoryDirection;
+  baseRevisionId: string | null;
+  actorId: string;
+  confirmation?: string | null;
+}, now = Date.now()): Promise<{
+  workflow: WorkflowRevision;
+  history: WorkflowHistoryStatus;
+  audit: {
+    direction: WorkflowHistoryDirection;
+    fromRevisionId: string | null;
+    targetSourceRevisionId: string | null;
+    newRevisionId: string;
+    impact: WorkflowImpact;
+    sourceDefinitionSha256: string | null;
+    newDefinitionSha256: string;
+  };
+}> {
+  const direction = workflowHistoryDirection(input.direction);
+  const actorId = stringValue(input.actorId, 'Workflow actor identifier', 128);
+  if (!Number.isSafeInteger(now) || now <= 0) throw new Error('Workflow revision timestamp is invalid.');
+  return withDatabaseTransaction(async () => {
+    const history = await loadWorkflowBuilderHistory();
+    const { activeId, activePaths } = await activeWorkflowState();
+    if (activeId !== input.baseRevisionId) throw new Error('WORKFLOW_REVISION_CONFLICT');
+    const targetEntry = history[direction].at(-1);
+    if (!targetEntry) throw new Error(`WORKFLOW_HISTORY_${direction.toUpperCase()}_EMPTY`);
+    const target = await workflowHistoryTarget(targetEntry);
+    const impact = workflowImpact(activePaths, target.compiled.paths, target.compiled.warnings);
+    assertWorkflowConfirmation(impact, input.confirmation);
+    const workflow = await activateCompiledWorkflowRevision({
+      activeId,
+      graph: target.graph,
+      compiled: target.compiled,
+      actorId,
+      now,
+    });
+    const currentEntry: WorkflowHistoryEntry = {
+      revisionId: activeId,
+      label: targetEntry.label,
+      capturedAt: now,
+    };
+    const nextHistory: WorkflowHistoryState = direction === 'undo'
+      ? {
+          undo: history.undo.slice(0, -1),
+          redo: pushWorkflowHistoryEntry(history.redo, currentEntry),
+        }
+      : {
+          undo: pushWorkflowHistoryEntry(history.undo, currentEntry),
+          redo: history.redo.slice(0, -1),
+        };
+    await writeWorkflowBuilderHistory(nextHistory, now);
     return {
-      id, revision: revisionNumber, status: 'active', graph, compiled: compiledPayload,
-      definitionSha256, baseRevisionId: activeId, createdBy: actorId, createdAt: now, archivedAt: null,
+      workflow,
+      history: workflowHistoryStatus(nextHistory),
+      audit: {
+        direction,
+        fromRevisionId: activeId,
+        targetSourceRevisionId: target.sourceRevisionId,
+        newRevisionId: workflow.id,
+        impact,
+        sourceDefinitionSha256: target.sourceDefinitionSha256,
+        newDefinitionSha256: workflow.definitionSha256,
+      },
     };
   });
 }
@@ -1218,6 +1554,7 @@ export async function migrateLegacyTradingRoutesToWorkflow(
     graph: { schemaVersion: 1, nodes, edges },
     actorId,
     confirmation: WORKFLOW_IMPACT_CONFIRMATION,
+    history: { mode: 'reset' },
   });
   return { migrated: true, paths: pathCount, skipped };
 }
@@ -1228,48 +1565,7 @@ export async function getActiveWorkflow(): Promise<WorkflowRevision | null> {
      JOIN workflow_active_revision AS active ON active.revision_id = revision.id
      WHERE active.singleton_id = 1`,
   );
-  if (!row) return null;
-  const graph = parseJson<WorkflowGraph>(row.graph_json, 'workflow graph');
-  const pathRows = await getDatabase().all<any[]>(
-    'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key', [row.id],
-  );
-  const storedCompiled = parseJson<{ routeGroups?: WorkflowRouteGroup[]; warnings?: string[] }>(
-    row.compiled_json,
-    'compiled workflow',
-  );
-  const paths = pathRows.map(pathFromRow);
-  if (storedCompiled.routeGroups) {
-    if (sha256({ graph, compiled: { paths, routeGroups: storedCompiled.routeGroups, warnings: storedCompiled.warnings ?? [] } })
-      !== row.definition_sha256) {
-      throw new Error(`Workflow revision ${row.id} failed its integrity check.`);
-    }
-  } else {
-    const legacyPaths = paths.map(({ routeGroupKey: _group, fallbackRank: _rank, ...path }) => path);
-    if (sha256({ graph, compiled: { paths: legacyPaths, warnings: storedCompiled.warnings ?? [] } }) !== row.definition_sha256) {
-      throw new Error(`Workflow revision ${row.id} failed its integrity check.`);
-    }
-  }
-  const routeGroups = storedCompiled.routeGroups ?? paths.map(path => ({
-    key: path.routeGroupKey,
-    channelId: path.channelId,
-    channelNodeId: path.nodeIds.find(nodeId => graph.nodes.find(node => node.id === nodeId)?.kind === 'channel') || '',
-    primaryPathId: path.id,
-    candidates: [{
-      pathId: path.id,
-      accountId: path.accountId,
-      accountNodeId: [...path.nodeIds].reverse()
-        .find(nodeId => graph.nodes.find(node => node.id === nodeId)?.kind === 'account') || '',
-      rank: 0,
-      enabled: path.enabled,
-    }],
-  }));
-  const compiled = { paths, routeGroups, warnings: storedCompiled.warnings ?? [] };
-  return {
-    id: String(row.id), revision: Number(row.revision), status: row.status, graph, compiled,
-    definitionSha256: String(row.definition_sha256), baseRevisionId: row.base_revision_id || null,
-    createdBy: String(row.created_by), createdAt: Number(row.created_at),
-    archivedAt: row.archived_at === null ? null : Number(row.archived_at),
-  };
+  return row ? workflowRevisionFromRow(row) : null;
 }
 
 function keywordFilterReason(keywords: any, text: string): string | null {

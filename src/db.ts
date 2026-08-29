@@ -95,7 +95,8 @@ export const DATABASE_FEATURE_SET = [
   'versioned-visual-workflows-and-account-capacity',
   'path-isolated-adaptive-risk',
   'account-protection-incidents',
-  'dynamic-ccxt-exchange-registry'
+  'dynamic-ccxt-exchange-registry',
+  'server-persistent-workflow-builder-history'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -137,6 +138,7 @@ export const REQUIRED_DATABASE_TABLES = [
   'workflow_resource_versions',
   'workflow_revisions',
   'workflow_active_revision',
+  'workflow_builder_history',
   'workflow_execution_paths',
   'workflow_signal_runs',
   'trading_fallback_runs',
@@ -1444,6 +1446,24 @@ const migrations: SchemaMigration[] = [
           ON trading_exchange_events(account_id, received_at DESC);
         CREATE INDEX idx_exchange_events_type_time
           ON trading_exchange_events(event_type, received_at DESC);
+      `
+  },
+  {
+    version: 20,
+    name: 'server_persistent_workflow_builder_history',
+    columns: [],
+    sql: `
+        CREATE TABLE workflow_builder_history (
+          singleton_id INTEGER PRIMARY KEY CHECK(singleton_id = 1),
+          undo_json TEXT NOT NULL DEFAULT '[]',
+          redo_json TEXT NOT NULL DEFAULT '[]',
+          updated_at INTEGER NOT NULL
+        );
+        INSERT INTO workflow_builder_history (
+          singleton_id, undo_json, redo_json, updated_at
+        ) VALUES (
+          1, '[]', '[]', CAST(strftime('%s','now') AS INTEGER) * 1000
+        );
       `
   }
 ];

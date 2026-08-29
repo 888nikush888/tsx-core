@@ -423,6 +423,25 @@ export interface WorkflowRevision {
   archivedAt: number | null;
 }
 
+export interface WorkflowHistoryEntry {
+  revisionId: string | null;
+  label: string;
+  capturedAt: number;
+}
+
+export type WorkflowHistoryMode = 'record' | 'undo' | 'redo' | 'ignore' | 'reset';
+export type WorkflowHistoryDirection = 'undo' | 'redo';
+
+export interface WorkflowHistoryStatus {
+  limit: 5;
+  undoCount: number;
+  redoCount: number;
+  canUndo: boolean;
+  canRedo: boolean;
+  undoLabel: string | null;
+  redoLabel: string | null;
+}
+
 export interface TradingAccountSnapshot {
   equity: string;
   availableBalance: string;
