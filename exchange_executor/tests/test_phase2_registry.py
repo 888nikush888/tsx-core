@@ -156,6 +156,14 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
         for exchange in ("hyperliquid", "bybit", "krakenfutures"):
             self.assertEqual(entries[exchange]["status"], "certified")
             self.assertEqual(entries[exchange]["provider"], "ccxt")
+            self.assertTrue(entries[exchange]["restAvailable"])
+            self.assertTrue(entries[exchange]["proAvailable"])
+            self.assertEqual(entries[exchange]["requiredCredentials"], ["apiKey", "secret"])
+        self.assertEqual(
+            entries["hyperliquid"]["requiredCredentials"],
+            ["apiKey", "secret"],
+            "Static descriptors expose CCXT's raw credential requirements independently of profile overrides.",
+        )
         self.assertEqual(entries["okx"]["status"], "discovered")
         self.assertEqual(entries["restonly"]["status"], "ineligible")
         self.assertEqual(entries["unsupported"]["status"], "ineligible")
