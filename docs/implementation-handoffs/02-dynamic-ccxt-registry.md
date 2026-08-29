@@ -10,7 +10,7 @@ Phase 2 der Master-Gesamtspezifikation: dynamische Erkennung des installierten C
 
 ## End-Commit
 
-`9f19f0c` (funktions-, security-, coverage-, container- und testvollständiger Code; diese aktualisierte Übergabe folgt als Dokumentationscommit)
+`cad05e2` (funktions-, security-, coverage-, container- und testvollständiger Code; diese aktualisierte Übergabe folgt als Dokumentationscommit)
 
 ## Neue Migrationen
 
@@ -46,6 +46,8 @@ Phase 2 der Master-Gesamtspezifikation: dynamische Erkennung des installierten C
 - Credential-Cache-Fingerprints ohne schwache SHA-256-Vorverarbeitung direkt über den vorhandenen HMAC-Vertrag abgeleitet; der CodeQL-Befund ist durch einen eigenen RED/GREEN-Zyklus abgesichert.
 - Sämtliche negativen Katalog- und Probe-Verträge direkt getestet und den gemeinsamen Coverage-Ratchet ausdrücklich an die verifizierten Linux-/Windows-Werte gebunden.
 - Den schreibgeschützten Container-Testmount unter `/app/tests` an denselben Repository-Bezug wie lokale Executor-Tests gebunden, damit die im Runtime-Image vorhandene Certification-Evidence geprüft wird, ohne Tests in das Image zu kopieren.
+- Den Executor-Ursprung in einer gemeinsamen fail-closed Prüfung auf Loopback und den privaten Compose-Service begrenzt; beliebige externe Plain-HTTP-Ziele werden vor Katalog- oder Handelsrequests abgewiesen.
+- Parallele Katalogabrufe explizit über die vorhandene In-flight-Promise korreliert und die von Sonar beanstandeten Python-Markt- und Credential-Prüfungen in direkt getestete Hilfsfunktionen zerlegt.
 
 ## Betroffene Bereiche
 
@@ -59,12 +61,12 @@ Phase 2 der Master-Gesamtspezifikation: dynamische Erkennung des installierten C
 
 - Backend: 63/63 Testdateien bestanden.
 - Frontend: 16/16 Testdateien und 90/90 Tests bestanden.
-- Python: 39/39 Tests bestanden.
+- Python: 41/41 Tests bestanden.
 - E2E: 40/40 Szenarien auf Chromium, Firefox, WebKit und Mobil-Chromium bestanden.
 - Kritische Backend-Coverage: 97,47/89,03/100/97,47 %.
 - Modul-Coverage (lokaler Windows-Nachweis): 95,40/83,70/99,17/95,40 %.
 - Plattformübergreifender Ratchet: 95,01/83,33/99,09/95,01 %.
-- Python-Coverage: 71 %.
+- Python-Coverage: 79 %.
 - Frontend-Coverage: 60,18/53,28/52,16/60,98 %.
 
 Die Reihenfolge der Coverage-Werte ist Statements/Branches/Functions/Lines.
@@ -79,9 +81,10 @@ Die Reihenfolge der Coverage-Werte ist Statements/Branches/Functions/Lines.
 - Release-, Risk-Acceptance-, Build-Context-, Lizenz-, Dependency- und SBOM-Gates: PASS.
 - NPM-Audits: PASS, 0 Schwachstellen in Backend und Frontend.
 - Supply-Chain-Test für die enge Gitleaks-Ausnahme: PASS nach dokumentiertem RED/GREEN.
-- CodeQL-Credential-Fingerprint-Fund: lokal testgetrieben behoben; erneuter GitHub-CodeQL-Lauf ist vor Phase 3 zwingend grün abzuwarten.
-- Linux-Coverage-Drift: durch vollständige Katalog-Negativtests und den dokumentierten gemeinsamen Ratchet behoben; erneuter GitHub-Lauf ist vor Phase 3 zwingend grün abzuwarten.
-- Container-Registry-Fixture-Drift: durch einen Supply-Chain-RED/GREEN-Zyklus behoben; erneuter GitHub-Containerlauf ist vor Phase 3 zwingend grün abzuwarten.
+- CodeQL-Credential-Fingerprint-Fund: im vollständigen GitHub-Lauf auf `c4fb990` bestätigt grün.
+- Linux-Coverage-Drift: im vollständigen GitHub-Lauf auf `c4fb990` bestätigt grün.
+- Container-Registry-Fixture-Drift: im vollständigen GitHub-Lauf auf `c4fb990` bestätigt grün.
+- SonarQube-Cloud-Befunde zu Python-Komplexität, fremdem HTTP-Ursprung und Promise-Korrelation: lokal testgetrieben durch `372e8bf`, `a817e45` und `cad05e2` behoben; der erneute exakte Main-Lauf ist vor Phase 3 zwingend grün abzuwarten.
 - Lokales Monitoring-Image-Gate: **NOT RUN**, da Docker Desktop auf der lokalen Maschine nicht aktiv ist. Der GitHub-Lauf muss dieses Gate in der unterstützten Umgebung bestätigen.
 
 ## Bewusste Grenzen

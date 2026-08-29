@@ -27,6 +27,7 @@ Quelle ist Phase 2 der Master-Gesamtspezifikation `TSX-Core_4-Plans_MASTER-Gesam
 | Credential-Cache-Fingerprints verwenden den kanonischen Credential-Satz direkt als HMAC-Schlüsselmaterial | `exchange_executor/tests/test_contracts.py`, CodeQL `py/weak-sensitive-data-hashing` | `bd48f11` | `e4bd764` |
 | Der Modul-Coverage-Ratchet bleibt plattformübergreifend konservativ und deckt sämtliche Katalog-Fehlerverträge direkt ab | `tests/test_module_coverage.js`, `tests/test_dynamic_exchange_registry.js` | `c3622ff` | `43e9697` |
 | Containerisierte Executor-Tests behalten denselben Repository-Bezug wie lokale Tests und finden Certification-Evidence | `tests/test_supply_chain.js`, `.github/workflows/quality.yml` | `60c96b7` | `9f19f0c` |
+| Sonar-Gate: Executor-Ursprung ist auf interne HTTP-Ziele begrenzt, parallele Katalogabrufe werden geteilt und die beiden Python-Funktionen bleiben unter dem Komplexitätsbudget | `tests/test_dynamic_exchange_registry.js`, `tests/test_ccxt_exchange.js`, `exchange_executor/tests/test_contracts.py`, `exchange_executor/tests/test_phase2_registry.py` | `372e8bf`, `a817e45` | `cad05e2` |
 
 Die RED-Tests wurden jeweils vor dem Produktionscode ausgeführt. Die Fehler waren die erwarteten fehlenden Registry-, Migrations-, API-, Credential- oder UI-Verträge. Der Produktionscheckpoint `62ebe9c` machte diese Tests grün. Der anschließende Refactor `f0e2831` beseitigte die vom Komplexitäts-Gate gemeldeten Überschreitungen ohne Contract-Änderung; dieselben Credential-, Migrations- und Webtests liefen danach erneut grün.
 
@@ -35,6 +36,8 @@ Der erste GitHub-Lauf erkannte die bewusst künstliche Gate.io-Credential-Zeile 
 Der folgende GitHub-Lauf lieferte zwei weitere echte RED-Nachweise. CodeQL meldete `py/weak-sensitive-data-hashing`, weil der kanonische Credential-Satz vor dem vorhandenen HMAC unnötig mit einfachem SHA-256 vorverarbeitet wurde. Der Regressionstest in `bd48f11` schlug gegen genau diesen Vertrag fehl; `e4bd764` übergibt den kanonischen Satz nun unmittelbar an den HMAC-basierten Cache-Key und machte den Einzeltest sowie alle 39 Executor-Tests grün. Außerdem deckte Linux-CI auf, dass `47f46d4` einen nur unter Windows beobachteten Coverage-Wert als gemeinsame Baseline eingetragen hatte. `c3622ff` reproduzierte die fehlende Plattformkennzeichnung rot und ergänzt direkte Negativ- und Probe-Tests für den vollständigen Katalogvertrag. `43e9697` stellt die zuvor bereits unter Linux und Windows bestätigte konservative Baseline wieder her; der lokale vollständige Modul-Lauf liegt danach klar darüber.
 
 Im Container-Gate waren Anwendung, CCXT 4.5.75 und alle 39 Tests grundsätzlich lauffähig; lediglich zwei Registry-Tests fanden ihre Certification-Evidence nicht, weil das Workflow-Mount den Testbaum von `/app/tests` nach `/tests` verschoben hatte. `60c96b7` hält diesen falschen Repository-Bezug als roten Supply-Chain-Vertrag fest. `9f19f0c` mountet die Tests schreibgeschützt unter `/app/tests`, sodass `Path(__file__).parents[1]` wie lokal auf `/app` und damit auf die im Image vorhandene `/app/certifications` zeigt.
+
+Der anschließende vollständige GitHub-Lauf bestand sämtliche Gates außer SonarQube Cloud. Dessen exportierter Befund enthielt zwei kritische Cognitive-Complexity-Issues sowie je einen Sicherheits- und Zuverlässigkeitsbefund am Executor-Ursprung beziehungsweise an der In-flight-Korrelation. `372e8bf` reproduzierte die Python-Hilfsverträge und den direkten Katalogfall rot; `a817e45` ergänzte den zweiten unabhängigen Clientpfad. `cad05e2` zentralisiert die ausschließlich intern erlaubten Executor-Ursprünge, teilt parallele Katalogabrufe korrekt und zerlegt Markt- sowie Credential-Prüfungen in direkt getestete Hilfsfunktionen. Fremde HTTP-Ziele werden nun vor jedem Request abgelehnt; der Compose-interne HTTP-Transport bleibt ausdrücklich auf Loopback und den privaten Servicenamen begrenzt.
 
 ## Testbare Garantien
 
@@ -55,6 +58,9 @@ Im Container-Gate waren Anwendung, CCXT 4.5.75 und alle 39 Tests grundsätzlich 
 | 13 | Katalogantworten mit ungültigem Ursprung, Vertrag, Metadaten, Credentials, Modi, Gründen oder Capabilities werden fail-closed verworfen; Probe-Fehler, Fremd-IDs und Paper-Probes ebenso. | `tests/test_dynamic_exchange_registry.js` | Security/Contract | PASS |
 | 14 | Credential-Fingerprints sind deterministische, 64-stellige HMAC-Werte und ändern sich bei einer Credential-Änderung. | `exchange_executor/tests/test_contracts.py` | Security/Unit | PASS |
 | 15 | Die containerisierte Python-Suite läuft gegen exakt dieselbe Certification-Evidence wie der Executor-Prozess, ohne Tests oder Evidence in das Runtime-Image einzubauen. | `tests/test_supply_chain.js`, GitHub-Container-Gate | Supply Chain/Integration | lokal PASS; erneuter Containerlauf ausstehend |
+| 16 | Der Executor-Transport akzeptiert Plain-HTTP ausschließlich zu Loopback oder zum privaten Compose-Service; ein konfigurierter Fremdhost wird in Katalog und Handelsclient vor dem Request fail-closed abgelehnt. | `tests/test_dynamic_exchange_registry.js`, `tests/test_ccxt_exchange.js` | Security/Integration | PASS |
+| 17 | Parallele nicht erzwungene Katalogabfragen verwenden exakt dieselbe laufende Anfrage, ohne Promise-Wahrheitswert als fachliche Bedingung zu missbrauchen. | `tests/test_dynamic_exchange_registry.js` | Concurrency/Unit | PASS |
+| 18 | Marktgrenzen, Markpreis und Credential-Textfelder behalten nach der Komplexitätszerlegung ihre Grenz-, Fallback- und Steuerzeichenverträge. | `exchange_executor/tests/test_contracts.py`, `exchange_executor/tests/test_phase2_registry.py` | Unit/Security | PASS |
 
 ## Vollständige lokale Gates
 
@@ -63,7 +69,7 @@ Im Container-Gate waren Anwendung, CCXT 4.5.75 und alle 39 Tests grundsätzlich 
 - `npm run lint:frontend`: PASS
 - `npm test`: PASS, 63/63 Testdateien
 - `npm test --prefix frontend`: PASS, 16/16 Dateien und 90/90 Tests
-- `python -m unittest discover -s exchange_executor/tests -v`: PASS, 39/39 Tests
+- `python -m unittest discover -s exchange_executor/tests -v`: PASS, 41/41 Tests
 - `npm run build`: PASS
 - `npm run quality:architecture`: PASS, 60 Module, 193 interne Imports, 0 Zyklen
 - `npm run quality:complexity`: PASS, 0 Warnungen und Worst-Case-Komplexität 15
@@ -88,7 +94,7 @@ Im Container-Gate waren Anwendung, CCXT 4.5.75 und alle 39 Tests grundsätzlich 
 - Kritische Backend-Suite: 97,47 % Statements, 89,03 % Branches, 100 % Functions, 97,47 % Lines.
 - Testbare Kernmodule auf Windows nach den zusätzlichen Katalog-Vertragstests: 95,40 % Statements, 83,70 % Branches, 99,17 % Functions, 95,40 % Lines.
 - Gemeinsamer Linux-/Windows-Ratchet: 95,01 % Statements, 83,33 % Branches, 99,09 % Functions, 95,01 % Lines; `verifiedPlatforms` macht die Herkunft ausdrücklich prüfbar.
-- Python-Executor: 71 % gesamt; neue Registry 91 %, Profile 91 %, Capabilities 87 %, Symbolresolver 93 %, Certification 72 % und Credentials 73 %.
+- Python-Executor: 79 % gesamt im vollständigen Phase-2-Lauf; die neu extrahierten Credential-Hilfen erreichen 79 % und sind durch Grenz- sowie Steuerzeichentests direkt abgedeckt.
 - Frontend-Gesamtbestand: 60,18 % Statements, 53,28 % Branches, 52,16 % Functions, 60,98 % Lines.
 
 Die neue Exchange-Katalog-Hilfe besitzt direkte Unit-Tests; der bestehende breite Frontend-Bestand bleibt unter 80 %. Über Backend, Frontend und Python liegt die gewichtete Gesamtabdeckung über 80 %, und alle neuen sicherheitskritischen Phase-2-Verträge sind direkt abgedeckt.
@@ -120,3 +126,6 @@ Die neue Exchange-Katalog-Hilfe besitzt direkte Unit-Tests; der bestehende breit
 - GREEN plattformübergreifender Coverage-Ratchet: `43e9697`
 - RED Container-Fixture-Bezug: `60c96b7`
 - GREEN Container-Fixture-Bezug: `9f19f0c`
+- RED Sonar-Komplexität, Katalog-Korrelation und erster Ursprungsvertrag: `372e8bf`
+- RED unabhängiger CCXT-Client-Ursprungsvertrag: `a817e45`
+- GREEN Sonar-Gate-Korrekturen: `cad05e2`
