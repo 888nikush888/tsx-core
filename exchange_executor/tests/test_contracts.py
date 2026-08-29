@@ -16,7 +16,8 @@ sys.path.insert(0, str(ROOT))
 
 from ccxt_adapter import (
     CcxtAdapter, _canonical_symbol, _ledger_funding_amount, _market_order_result, _order_result,
-    _normalized_fill, _normalized_open_order, _reduce_only, _requested_base, _status, _trigger_price,
+    _market_constraints, _market_mark_price, _normalized_fill, _normalized_open_order, _reduce_only,
+    _requested_base, _status, _trigger_price,
 )
 import ccxt_client
 from ccxt_client import (
@@ -36,6 +37,44 @@ from stream_hub import AccountStream, _canonical_payload, _event_type
 
 
 class ContractTests(unittest.TestCase):
+    def test_market_snapshot_helpers_normalize_fallback_price_and_certified_limits(self) -> None:
+        self.assertEqual(
+            _market_mark_price({"info": {"mark_price": "11.5"}}),
+            Decimal("11.5"),
+        )
+        self.assertEqual(
+            _market_mark_price({"bid": "10", "ask": "14"}),
+            Decimal("12"),
+        )
+        with self.assertRaisesRegex(ExchangeContractError, "mark/last"):
+            _market_mark_price({})
+
+        market = {
+            "precision": {"amount": "0.01", "price": "0.1"},
+            "limits": {"amount": {"min": "0.02"}, "cost": {"min": "5"}},
+            "contractSize": "0.5",
+        }
+        self.assertEqual(
+            _market_constraints(market),
+            {
+                "priceTick": "0.1",
+                "quantityStep": "0.005",
+                "minimumQuantity": "0.01",
+                "minimumNotional": "5",
+                "contractSize": "0.5",
+            },
+        )
+        for field, value, message in (
+            ("amount", None, "minimum quantity"),
+            ("amount", "0", "minimum quantity"),
+            ("cost", None, "minimum notional"),
+            ("cost", "NaN", "minimum notional"),
+        ):
+            invalid = {**market, "limits": {key: dict(item) for key, item in market["limits"].items()}}
+            invalid["limits"][field]["min"] = value
+            with self.subTest(field=field, value=value), self.assertRaisesRegex(ExchangeContractError, message):
+                _market_constraints(invalid)
+
     def test_credential_fingerprint_uses_the_canonical_secret_as_hmac_key(self) -> None:
         credentials = {"secret": "secret-value", "apiKey": "api-key"}
         canonical = json.dumps(credentials, sort_keys=True, separators=(",", ":"), ensure_ascii=True)

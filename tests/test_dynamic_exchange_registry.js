@@ -189,7 +189,7 @@ const executorCatalogPayload = entry => ({
   implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
   exchanges: [entry],
 });
-const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://executor.test') => new ExchangeCatalogClient(
+const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://127.0.0.1:8090') => new ExchangeCatalogClient(
   { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
   {
     baseUrl,
@@ -200,6 +200,11 @@ const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://execu
 assert.throws(
   () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'https://executor.test'),
   /plain internal HTTP origin/i,
+);
+assert.throws(
+  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'http://public.example:8090'),
+  /internal executor host/i,
+  'Plain HTTP must never carry the executor bearer token to an external host.',
 );
 
 const invalidCatalogFixtures = [
@@ -236,7 +241,7 @@ const requests = [];
 const catalogClient = new ExchangeCatalogClient(
   { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
   {
-    baseUrl: 'http://executor.test',
+    baseUrl: 'http://127.0.0.1:8090',
     cacheTtlMs: 1_000,
     fetchImpl: async (url, init) => {
       requests.push({ url, init });
@@ -255,7 +260,7 @@ assert.equal(browserCatalog.exchanges[0].id, 'paper');
 assert.equal(browserCatalog.exchanges[0].status, 'certified');
 assert.equal(browserCatalog.exchanges[1].id, 'okx');
 assert.equal(requests.length, 1);
-assert.equal(requests[0].url, 'http://executor.test/v1/exchange-catalog');
+assert.equal(requests[0].url, 'http://127.0.0.1:8090/v1/exchange-catalog');
 assert.equal(requests[0].init.headers.Authorization, `Bearer ${'f'.repeat(64)}`);
 await catalogClient.browserCatalog();
 assert.equal(requests.length, 1, 'Catalog responses must use the bounded cache.');
@@ -272,6 +277,27 @@ await assert.rejects(
   catalogClientForPayload({ ...candidateCatalogEntry, id: 'bybit' }).probe('okx'),
   /different exchange/i,
 );
+
+let releaseCatalogRequest;
+const catalogRequestReleased = new Promise(resolve => { releaseCatalogRequest = resolve; });
+let concurrentCatalogRequests = 0;
+const concurrentCatalogClient = new ExchangeCatalogClient(
+  { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
+  {
+    baseUrl: 'http://127.0.0.1:8090',
+    fetchImpl: async () => {
+      concurrentCatalogRequests += 1;
+      await catalogRequestReleased;
+      return { ok: true, status: 200, json: async () => executorCatalogPayload(candidateCatalogEntry) };
+    },
+  },
+);
+const firstCatalogRequest = concurrentCatalogClient.executorCatalog();
+const sharedCatalogRequest = concurrentCatalogClient.executorCatalog();
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(concurrentCatalogRequests, 1, 'Concurrent non-forced reads must share one pending request.');
+releaseCatalogRequest();
+assert.deepEqual(await firstCatalogRequest, await sharedCatalogRequest);
 
 const dynamicAdapter = {
   exchange: 'okx',

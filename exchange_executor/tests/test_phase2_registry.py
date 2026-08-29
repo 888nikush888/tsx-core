@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from ccxt_registry import CcxtExchangeRegistry
-from credentials import CredentialError, CredentialStore
+from credentials import CredentialError, CredentialStore, _credential_text_is_valid
 from server import Application
 from symbol_resolver import SymbolResolutionError, resolve_symbol
 
@@ -241,6 +241,12 @@ class SymbolResolverTests(unittest.TestCase):
 
 
 class CredentialV2Tests(unittest.TestCase):
+    def test_credential_text_validation_is_bounded_and_rejects_control_characters(self) -> None:
+        self.assertTrue(_credential_text_is_valid("12345678", minimum=8, maximum=256))
+        for invalid in (None, "1234567", "x" * 257, "valid-value\nleak", "bad\0value"):
+            with self.subTest(invalid=invalid):
+                self.assertFalse(_credential_text_is_valid(invalid, minimum=8, maximum=256))
+
     def test_python_reads_v2_and_rejects_unknown_fields(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             trading = Path(directory) / "trading"
