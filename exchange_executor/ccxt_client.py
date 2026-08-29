@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 from dataclasses import dataclass
 from decimal import Decimal
@@ -23,7 +22,7 @@ REQUIRED_PRO_CAPABILITIES = PRO_CAPABILITIES
 
 def _credential_fingerprint(secret: dict[str, Any], exchange: str, mode: str) -> str:
     canonical = json.dumps(secret, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-    return external_account_cache_key(exchange, mode, hashlib.sha256(canonical.encode("utf-8")).hexdigest())
+    return external_account_cache_key(exchange, mode, canonical)
 
 
 def _account_identity(secret: dict[str, Any], exchange: str, _mode: str) -> str:
