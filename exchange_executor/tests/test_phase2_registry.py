@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+import ccxt.async_support as installed_ccxt
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -24,6 +26,7 @@ REST_REQUIRED = {
     "fetchOpenOrders": True,
     "fetchMyTrades": True,
     "createOrder": True,
+    "createOrders": True,
     "cancelOrder": True,
     "setLeverage": True,
 }
@@ -132,6 +135,13 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
             certifications_directory=ROOT / "certifications",
         )
 
+    def test_every_installed_ccxt_rest_exchange_is_statically_discoverable(self) -> None:
+        catalog = CcxtExchangeRegistry().catalog()
+        self.assertEqual(
+            {entry["id"] for entry in catalog["exchanges"]},
+            set(installed_ccxt.exchanges),
+        )
+
     def test_static_discovery_has_no_network_and_certifies_only_evidence_backed_profiles(self) -> None:
         catalog = self.registry().catalog()
         entries = {entry["id"]: entry for entry in catalog["exchanges"]}
@@ -150,6 +160,36 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(entries["restonly"]["status"], "ineligible")
         self.assertEqual(entries["unsupported"]["status"], "ineligible")
         self.assertNotEqual(entries["okx"]["status"], "certified")
+
+    def test_profile_missing_from_installed_ccxt_is_reported_as_deprecated(self) -> None:
+        rest, pro = fake_modules()
+        rest.exchanges.remove("krakenfutures")
+        delattr(rest, "krakenfutures")
+        pro.exchanges.remove("krakenfutures")
+        delattr(pro, "krakenfutures")
+        catalog = CcxtExchangeRegistry(
+            rest_module=rest,
+            pro_module=pro,
+            ccxt_version="4.5.75",
+            certifications_directory=ROOT / "certifications",
+        ).catalog()
+        kraken = next(entry for entry in catalog["exchanges"] if entry["id"] == "krakenfutures")
+        self.assertEqual(kraken["status"], "deprecated")
+        self.assertFalse(kraken["ccxt"]["rest"])
+        self.assertFalse(kraken["ccxt"]["pro"])
+        self.assertEqual(kraken["modes"], [])
+
+    def test_certification_evidence_version_drift_quarantines_exchange(self) -> None:
+        rest, pro = fake_modules()
+        catalog = CcxtExchangeRegistry(
+            rest_module=rest,
+            pro_module=pro,
+            ccxt_version="4.5.76",
+            certifications_directory=ROOT / "certifications",
+        ).catalog()
+        entries = {entry["id"]: entry for entry in catalog["exchanges"]}
+        self.assertEqual(entries["hyperliquid"]["status"], "quarantined")
+        self.assertIn("version", entries["hyperliquid"]["reason"].lower())
 
     async def test_public_probe_only_loads_public_markets_and_never_certifies(self) -> None:
         registry = self.registry()
