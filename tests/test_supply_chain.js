@@ -39,6 +39,10 @@ assert.match(gitleaksConfig, /targetRules = \["generic-api-key"\]/);
 assert.match(gitleaksConfig, /condition = "AND"/);
 assert.match(gitleaksConfig, /regexTarget = "line"/);
 assert.match(gitleaksConfig, /\^monitoring\/\(\?:alertmanager\\\.go\\\.sum\|govulncheck\/go\\\.sum\)\$/);
+assert.match(gitleaksConfig, /description = "Reviewed fake dynamic exchange credential fixture"/);
+assert.match(gitleaksConfig, /\^tests\/test_dynamic_exchange_registry\\\.js\$/);
+assert.match(gitleaksConfig, /gateio-key-\[0-9\]\{3\}/);
+assert.match(gitleaksConfig, /gateio-secret-\[0-9\]\{3\}/);
 const approvedActionReferences = new Set([
   'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9',
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
