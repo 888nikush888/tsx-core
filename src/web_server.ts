@@ -47,6 +47,7 @@ import {
   archiveWorkflowResource,
   archiveWorkflowResourceFamily,
   createWorkflowResourceDraft,
+  clearWorkflowBuilderHistory,
   deleteWorkflowResourceDraft,
   getActiveWorkflow,
   getWorkflowBuilderHistoryStatus,
@@ -348,6 +349,7 @@ function semanticMutationAction(method: string, url: string): string {
     '/api/outbox/acknowledge': 'outbox.acknowledge',
     '/api/workflow/history/impact': 'workflow.history.impact',
     '/api/workflow/history/apply': 'workflow.history.apply',
+    '/api/workflow/history/reset': 'workflow.history.reset',
   };
   if (known[url]) return known[url];
   if (url.startsWith('/api/trading/')) {
@@ -1732,6 +1734,35 @@ async function applyWorkflowHistoryHandler(context: RequestContext): Promise<voi
   }
 }
 
+async function resetWorkflowHistoryHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(
+    context,
+    'reset-workflow-history',
+    'Explicit workflow-history reset confirmation required.',
+  )) return;
+  try {
+    const payload = await readJsonBody(context.req, 4 * 1024);
+    if (payload.confirmation !== 'WORKFLOW-HISTORIE ZURÜCKSETZEN') {
+      throw new HttpError(
+        412,
+        "Workflow history reset requires the exact written confirmation 'WORKFLOW-HISTORIE ZURÜCKSETZEN'.",
+      );
+    }
+    const activeWorkflow = await getActiveWorkflow();
+    await clearWorkflowBuilderHistory('administrator recovery reset');
+    const history = await getWorkflowBuilderHistoryStatus();
+    if (context.mutationAudit) {
+      context.mutationAudit.target = {
+        reason: 'administrator recovery reset',
+        activeWorkflowRevisionId: activeWorkflow?.id ?? null,
+      };
+    }
+    sendJson(context.res, 200, { success: true, history, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
 async function previewWorkflowImpactHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req, 2 * 1024 * 1024);
@@ -2133,6 +2164,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/workflow/impact', previewWorkflowImpactHandler],
   ['POST /api/workflow/history/impact', previewWorkflowHistoryImpactHandler],
   ['POST /api/workflow/history/apply', applyWorkflowHistoryHandler],
+  ['POST /api/workflow/history/reset', resetWorkflowHistoryHandler],
   ['POST /api/workflow/simulate', simulateWorkflowHandler],
   ['POST /api/workflow/resources', createWorkflowResourceHandler],
   ['POST /api/workflow/resources/update', updateWorkflowResourceHandler],
@@ -2297,6 +2329,7 @@ function recoveryAllowsRoute(method: string, url: string): boolean {
     'GET /api/runtime-settings',
     'POST /api/runtime-settings',
     'POST /api/factory-reset',
+    'POST /api/workflow/history/reset',
     'POST /api/restart',
   ]).has(`${method} ${url}`);
 }
