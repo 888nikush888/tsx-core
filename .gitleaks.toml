@@ -8,3 +8,11 @@ condition = "AND"
 regexTarget = "line"
 regexes = ['''^\S+ v\S+(?:/go\.mod)? h1:[A-Za-z0-9+/]{43}=$''']
 paths = ['''^monitoring/(?:alertmanager\.go\.sum|govulncheck/go\.sum)$''']
+
+[[allowlists]]
+description = "Reviewed fake dynamic exchange credential fixture"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*credentials: \{ apiKey: 'gateio-key-[0-9]{3}', secret: 'gateio-secret-[0-9]{3}' \},\s*$''']
+paths = ['''^tests/test_dynamic_exchange_registry\.js$''']
