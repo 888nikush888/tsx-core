@@ -28,8 +28,8 @@ describe("groupExchangeCatalog", () => {
       ],
     } as any);
     expect(grouped.certified.map((item) => item.id)).toEqual(["bybit"]);
-    expect(grouped.candidates.map((item) => item.id)).toEqual(["okx"]);
-    expect(grouped.others.map((item) => item.id)).toEqual(["binance", "restonly", "legacy", "drifted"]);
+    expect(grouped.candidates.map((item) => item.id)).toEqual(["okx", "binance"]);
+    expect(grouped.others.map((item) => item.id)).toEqual(["restonly", "legacy", "drifted"]);
   });
 
   it("only exposes certified entries for account creation", () => {
