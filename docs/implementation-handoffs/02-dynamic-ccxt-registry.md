@@ -10,7 +10,7 @@ Phase 2 der Master-Gesamtspezifikation: dynamische Erkennung des installierten C
 
 ## End-Commit
 
-`43e9697` (funktions-, security-, coverage- und testvollständiger Code; diese aktualisierte Übergabe folgt als Dokumentationscommit)
+`9f19f0c` (funktions-, security-, coverage-, container- und testvollständiger Code; diese aktualisierte Übergabe folgt als Dokumentationscommit)
 
 ## Neue Migrationen
 
@@ -45,6 +45,7 @@ Phase 2 der Master-Gesamtspezifikation: dynamische Erkennung des installierten C
 - Einen Gitleaks-Fehlalarm für die feste künstliche Gate.io-Test-Credential-Zeile mit einer regel-, pfad- und formatgebundenen Ausnahme behoben; echte Secrets bleiben erfasst.
 - Credential-Cache-Fingerprints ohne schwache SHA-256-Vorverarbeitung direkt über den vorhandenen HMAC-Vertrag abgeleitet; der CodeQL-Befund ist durch einen eigenen RED/GREEN-Zyklus abgesichert.
 - Sämtliche negativen Katalog- und Probe-Verträge direkt getestet und den gemeinsamen Coverage-Ratchet ausdrücklich an die verifizierten Linux-/Windows-Werte gebunden.
+- Den schreibgeschützten Container-Testmount unter `/app/tests` an denselben Repository-Bezug wie lokale Executor-Tests gebunden, damit die im Runtime-Image vorhandene Certification-Evidence geprüft wird, ohne Tests in das Image zu kopieren.
 
 ## Betroffene Bereiche
 
@@ -80,6 +81,7 @@ Die Reihenfolge der Coverage-Werte ist Statements/Branches/Functions/Lines.
 - Supply-Chain-Test für die enge Gitleaks-Ausnahme: PASS nach dokumentiertem RED/GREEN.
 - CodeQL-Credential-Fingerprint-Fund: lokal testgetrieben behoben; erneuter GitHub-CodeQL-Lauf ist vor Phase 3 zwingend grün abzuwarten.
 - Linux-Coverage-Drift: durch vollständige Katalog-Negativtests und den dokumentierten gemeinsamen Ratchet behoben; erneuter GitHub-Lauf ist vor Phase 3 zwingend grün abzuwarten.
+- Container-Registry-Fixture-Drift: durch einen Supply-Chain-RED/GREEN-Zyklus behoben; erneuter GitHub-Containerlauf ist vor Phase 3 zwingend grün abzuwarten.
 - Lokales Monitoring-Image-Gate: **NOT RUN**, da Docker Desktop auf der lokalen Maschine nicht aktiv ist. Der GitHub-Lauf muss dieses Gate in der unterstützten Umgebung bestätigen.
 
 ## Bewusste Grenzen

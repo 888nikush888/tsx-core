@@ -26,12 +26,15 @@ Quelle ist Phase 2 der Master-Gesamtspezifikation `TSX-Core_4-Plans_MASTER-Gesam
 | Gitleaks unterscheidet die feste Test-Credential-Zeile von echten Secrets | `tests/test_supply_chain.js`, `.gitleaks.toml` | `f213553` | `0995fb2` |
 | Credential-Cache-Fingerprints verwenden den kanonischen Credential-Satz direkt als HMAC-Schlüsselmaterial | `exchange_executor/tests/test_contracts.py`, CodeQL `py/weak-sensitive-data-hashing` | `bd48f11` | `e4bd764` |
 | Der Modul-Coverage-Ratchet bleibt plattformübergreifend konservativ und deckt sämtliche Katalog-Fehlerverträge direkt ab | `tests/test_module_coverage.js`, `tests/test_dynamic_exchange_registry.js` | `c3622ff` | `43e9697` |
+| Containerisierte Executor-Tests behalten denselben Repository-Bezug wie lokale Tests und finden Certification-Evidence | `tests/test_supply_chain.js`, `.github/workflows/quality.yml` | `60c96b7` | `9f19f0c` |
 
 Die RED-Tests wurden jeweils vor dem Produktionscode ausgeführt. Die Fehler waren die erwarteten fehlenden Registry-, Migrations-, API-, Credential- oder UI-Verträge. Der Produktionscheckpoint `62ebe9c` machte diese Tests grün. Der anschließende Refactor `f0e2831` beseitigte die vom Komplexitäts-Gate gemeldeten Überschreitungen ohne Contract-Änderung; dieselben Credential-, Migrations- und Webtests liefen danach erneut grün.
 
 Der erste GitHub-Lauf erkannte die bewusst künstliche Gate.io-Credential-Zeile als generischen API-Key. `f213553` belegte zunächst per fehlschlagendem Supply-Chain-Test, dass eine eng begrenzte Ausnahme fehlte. `0995fb2` erlaubt ausschließlich die Regel `generic-api-key`, ausschließlich in `tests/test_dynamic_exchange_registry.js` und ausschließlich für das feste Dummy-Zeilenformat mit dreistelliger Zahl. Echte, abweichende oder an anderen Pfaden liegende Secrets bleiben blockiert.
 
 Der folgende GitHub-Lauf lieferte zwei weitere echte RED-Nachweise. CodeQL meldete `py/weak-sensitive-data-hashing`, weil der kanonische Credential-Satz vor dem vorhandenen HMAC unnötig mit einfachem SHA-256 vorverarbeitet wurde. Der Regressionstest in `bd48f11` schlug gegen genau diesen Vertrag fehl; `e4bd764` übergibt den kanonischen Satz nun unmittelbar an den HMAC-basierten Cache-Key und machte den Einzeltest sowie alle 39 Executor-Tests grün. Außerdem deckte Linux-CI auf, dass `47f46d4` einen nur unter Windows beobachteten Coverage-Wert als gemeinsame Baseline eingetragen hatte. `c3622ff` reproduzierte die fehlende Plattformkennzeichnung rot und ergänzt direkte Negativ- und Probe-Tests für den vollständigen Katalogvertrag. `43e9697` stellt die zuvor bereits unter Linux und Windows bestätigte konservative Baseline wieder her; der lokale vollständige Modul-Lauf liegt danach klar darüber.
+
+Im Container-Gate waren Anwendung, CCXT 4.5.75 und alle 39 Tests grundsätzlich lauffähig; lediglich zwei Registry-Tests fanden ihre Certification-Evidence nicht, weil das Workflow-Mount den Testbaum von `/app/tests` nach `/tests` verschoben hatte. `60c96b7` hält diesen falschen Repository-Bezug als roten Supply-Chain-Vertrag fest. `9f19f0c` mountet die Tests schreibgeschützt unter `/app/tests`, sodass `Path(__file__).parents[1]` wie lokal auf `/app` und damit auf die im Image vorhandene `/app/certifications` zeigt.
 
 ## Testbare Garantien
 
@@ -51,6 +54,7 @@ Der folgende GitHub-Lauf lieferte zwei weitere echte RED-Nachweise. CodeQL melde
 | 12 | Desktop- und Mobilabläufe bleiben über Chromium, Firefox, WebKit und Mobil-Chromium bedienbar. | `npm run test:e2e --prefix frontend` | E2E | PASS, 40/40 |
 | 13 | Katalogantworten mit ungültigem Ursprung, Vertrag, Metadaten, Credentials, Modi, Gründen oder Capabilities werden fail-closed verworfen; Probe-Fehler, Fremd-IDs und Paper-Probes ebenso. | `tests/test_dynamic_exchange_registry.js` | Security/Contract | PASS |
 | 14 | Credential-Fingerprints sind deterministische, 64-stellige HMAC-Werte und ändern sich bei einer Credential-Änderung. | `exchange_executor/tests/test_contracts.py` | Security/Unit | PASS |
+| 15 | Die containerisierte Python-Suite läuft gegen exakt dieselbe Certification-Evidence wie der Executor-Prozess, ohne Tests oder Evidence in das Runtime-Image einzubauen. | `tests/test_supply_chain.js`, GitHub-Container-Gate | Supply Chain/Integration | lokal PASS; erneuter Containerlauf ausstehend |
 
 ## Vollständige lokale Gates
 
@@ -114,3 +118,5 @@ Die neue Exchange-Katalog-Hilfe besitzt direkte Unit-Tests; der bestehende breit
 - GREEN HMAC-Credential-Fingerprint: `e4bd764`
 - RED plattformübergreifender Coverage-Vertrag: `c3622ff`
 - GREEN plattformübergreifender Coverage-Ratchet: `43e9697`
+- RED Container-Fixture-Bezug: `60c96b7`
+- GREEN Container-Fixture-Bezug: `9f19f0c`
