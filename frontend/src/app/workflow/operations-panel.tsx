@@ -75,6 +75,16 @@ export function normalizeJournalSymbol(symbol: string): string {
   return symbol.trim().toUpperCase().replace(/\//g, "");
 }
 
+export function resolveDisplayedLeverage(plan: {
+  leverage?: unknown;
+  leverageDecision?: { effective?: unknown } | null;
+} | null | undefined): number | null {
+  const decided = Number(plan?.leverageDecision?.effective);
+  if (Number.isFinite(decided) && decided > 0) return decided;
+  const legacy = Number(plan?.leverage);
+  return Number.isFinite(legacy) && legacy > 0 ? legacy : null;
+}
+
 export function buildJournalQueryString(filters: {
   from: string;
   to: string;
@@ -327,12 +337,13 @@ function Overview({
             const relatedOrders = orders.filter((order: any) => order.intentId === position.intentId);
             const targets = relatedOrders.filter((order: any) => String(order.role).startsWith("take_profit")).map((order: any) => order.triggerPrice || order.price);
             const paperMarket = trading?.activity.paperMarkets?.find((market: any) => market.accountId === position.accountId && market.symbol === position.symbol);
+            const leverage = resolveDisplayedLeverage(intent?.plan);
             return <div className="position-row" role="row" key={position.id}>
               <strong>{position.symbol} · {position.side}<small>{accountById.get(position.accountId)?.name || position.accountId}</small></strong>
               <span>{position.averageEntryPrice || "–"} / {paperMarket?.markPrice || intent?.plan?.markPrice || "–"}</span>
               <span>{position.stopPrice || relatedOrders.find((order: any) => order.role === "stop_loss")?.triggerPrice || "–"}</span>
               <span>{targets.length ? targets.join(" · ") : intent?.signal?.targets?.map((target: any) => target.min ?? target).join(" · ") || "–"}</span>
-              <span>{intent?.plan?.leverage ? `${intent.plan.leverage}×` : "–"}</span>
+              <span>{leverage ? `${leverage}×` : "–"}</span>
               <span>{position.realizedPnl ?? intent?.plan?.unrealizedPnl ?? "–"}</span>
             </div>;
           })}
