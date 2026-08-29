@@ -24,10 +24,14 @@ Quelle ist Phase 2 der Master-Gesamtspezifikation `TSX-Core_4-Plans_MASTER-Gesam
 | Dynamische historische Analytics- und Telemetriegrenzen | `tests/test_trading_analytics.js`, `tests/test_web_server.js` | `5255639` | `62ebe9c` |
 | Vollständige statische Deskriptoren ohne Startup-Netzwerk | `exchange_executor/tests/test_phase2_registry.py` | `0ac86b4` | `62ebe9c` |
 | Gitleaks unterscheidet die feste Test-Credential-Zeile von echten Secrets | `tests/test_supply_chain.js`, `.gitleaks.toml` | `f213553` | `0995fb2` |
+| Credential-Cache-Fingerprints verwenden den kanonischen Credential-Satz direkt als HMAC-Schlüsselmaterial | `exchange_executor/tests/test_contracts.py`, CodeQL `py/weak-sensitive-data-hashing` | `bd48f11` | `e4bd764` |
+| Der Modul-Coverage-Ratchet bleibt plattformübergreifend konservativ und deckt sämtliche Katalog-Fehlerverträge direkt ab | `tests/test_module_coverage.js`, `tests/test_dynamic_exchange_registry.js` | `c3622ff` | `43e9697` |
 
 Die RED-Tests wurden jeweils vor dem Produktionscode ausgeführt. Die Fehler waren die erwarteten fehlenden Registry-, Migrations-, API-, Credential- oder UI-Verträge. Der Produktionscheckpoint `62ebe9c` machte diese Tests grün. Der anschließende Refactor `f0e2831` beseitigte die vom Komplexitäts-Gate gemeldeten Überschreitungen ohne Contract-Änderung; dieselben Credential-, Migrations- und Webtests liefen danach erneut grün.
 
 Der erste GitHub-Lauf erkannte die bewusst künstliche Gate.io-Credential-Zeile als generischen API-Key. `f213553` belegte zunächst per fehlschlagendem Supply-Chain-Test, dass eine eng begrenzte Ausnahme fehlte. `0995fb2` erlaubt ausschließlich die Regel `generic-api-key`, ausschließlich in `tests/test_dynamic_exchange_registry.js` und ausschließlich für das feste Dummy-Zeilenformat mit dreistelliger Zahl. Echte, abweichende oder an anderen Pfaden liegende Secrets bleiben blockiert.
+
+Der folgende GitHub-Lauf lieferte zwei weitere echte RED-Nachweise. CodeQL meldete `py/weak-sensitive-data-hashing`, weil der kanonische Credential-Satz vor dem vorhandenen HMAC unnötig mit einfachem SHA-256 vorverarbeitet wurde. Der Regressionstest in `bd48f11` schlug gegen genau diesen Vertrag fehl; `e4bd764` übergibt den kanonischen Satz nun unmittelbar an den HMAC-basierten Cache-Key und machte den Einzeltest sowie alle 39 Executor-Tests grün. Außerdem deckte Linux-CI auf, dass `47f46d4` einen nur unter Windows beobachteten Coverage-Wert als gemeinsame Baseline eingetragen hatte. `c3622ff` reproduzierte die fehlende Plattformkennzeichnung rot und ergänzt direkte Negativ- und Probe-Tests für den vollständigen Katalogvertrag. `43e9697` stellt die zuvor bereits unter Linux und Windows bestätigte konservative Baseline wieder her; der lokale vollständige Modul-Lauf liegt danach klar darüber.
 
 ## Testbare Garantien
 
@@ -45,6 +49,8 @@ Der erste GitHub-Lauf erkannte die bewusst künstliche Gate.io-Credential-Zeile 
 | 10 | Dynamische syntaktisch gültige Börsenkennungen funktionieren in Analytics und Setup-Bundles; historische Filter brauchen keinen aktuellen Katalogeintrag. | `tests/test_trading_analytics.js`, `tests/test_setup_bundle.js`, `tests/test_web_server.js` | Integration | PASS |
 | 11 | Executor-Katalog und Probe sind authentifiziert, accountlos und übertragen keine Secrets. | `tests/test_web_server.js`, `exchange_executor/tests/test_phase2_registry.py` | API/Security | PASS |
 | 12 | Desktop- und Mobilabläufe bleiben über Chromium, Firefox, WebKit und Mobil-Chromium bedienbar. | `npm run test:e2e --prefix frontend` | E2E | PASS, 40/40 |
+| 13 | Katalogantworten mit ungültigem Ursprung, Vertrag, Metadaten, Credentials, Modi, Gründen oder Capabilities werden fail-closed verworfen; Probe-Fehler, Fremd-IDs und Paper-Probes ebenso. | `tests/test_dynamic_exchange_registry.js` | Security/Contract | PASS |
+| 14 | Credential-Fingerprints sind deterministische, 64-stellige HMAC-Werte und ändern sich bei einer Credential-Änderung. | `exchange_executor/tests/test_contracts.py` | Security/Unit | PASS |
 
 ## Vollständige lokale Gates
 
@@ -53,7 +59,7 @@ Der erste GitHub-Lauf erkannte die bewusst künstliche Gate.io-Credential-Zeile 
 - `npm run lint:frontend`: PASS
 - `npm test`: PASS, 63/63 Testdateien
 - `npm test --prefix frontend`: PASS, 16/16 Dateien und 90/90 Tests
-- `python -m unittest discover -s exchange_executor/tests -v`: PASS, 38/38 Tests
+- `python -m unittest discover -s exchange_executor/tests -v`: PASS, 39/39 Tests
 - `npm run build`: PASS
 - `npm run quality:architecture`: PASS, 60 Module, 193 interne Imports, 0 Zyklen
 - `npm run quality:complexity`: PASS, 0 Warnungen und Worst-Case-Komplexität 15
@@ -76,7 +82,8 @@ Der erste GitHub-Lauf erkannte die bewusst künstliche Gate.io-Credential-Zeile 
 ## Coverage
 
 - Kritische Backend-Suite: 97,47 % Statements, 89,03 % Branches, 100 % Functions, 97,47 % Lines.
-- Testbare Kernmodule: 95,34 % Statements, 83,38 % Branches, 99,10 % Functions, 95,34 % Lines.
+- Testbare Kernmodule auf Windows nach den zusätzlichen Katalog-Vertragstests: 95,40 % Statements, 83,70 % Branches, 99,17 % Functions, 95,40 % Lines.
+- Gemeinsamer Linux-/Windows-Ratchet: 95,01 % Statements, 83,33 % Branches, 99,09 % Functions, 95,01 % Lines; `verifiedPlatforms` macht die Herkunft ausdrücklich prüfbar.
 - Python-Executor: 71 % gesamt; neue Registry 91 %, Profile 91 %, Capabilities 87 %, Symbolresolver 93 %, Certification 72 % und Credentials 73 %.
 - Frontend-Gesamtbestand: 60,18 % Statements, 53,28 % Branches, 52,16 % Functions, 60,98 % Lines.
 
@@ -103,3 +110,7 @@ Die neue Exchange-Katalog-Hilfe besitzt direkte Unit-Tests; der bestehende breit
 - Coverage-Ratchet: `47f46d4`
 - RED enger Gitleaks-Fixture-Vertrag: `f213553`
 - GREEN enger Gitleaks-Fixture-Vertrag: `0995fb2`
+- RED HMAC-Credential-Fingerprint: `bd48f11`
+- GREEN HMAC-Credential-Fingerprint: `e4bd764`
+- RED plattformübergreifender Coverage-Vertrag: `c3622ff`
+- GREEN plattformübergreifender Coverage-Ratchet: `43e9697`

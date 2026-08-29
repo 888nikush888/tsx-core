@@ -10,7 +10,7 @@ Phase 2 der Master-Gesamtspezifikation: dynamische Erkennung des installierten C
 
 ## End-Commit
 
-`47f46d4` (funktions-, refactor- und testvollständiger Code; diese Übergabe folgt als Dokumentationscommit)
+`43e9697` (funktions-, security-, coverage- und testvollständiger Code; diese aktualisierte Übergabe folgt als Dokumentationscommit)
 
 ## Neue Migrationen
 
@@ -43,6 +43,8 @@ Phase 2 der Master-Gesamtspezifikation: dynamische Erkennung des installierten C
 - Dynamische Kennungen durch Datenbank, Telemetrie, Analytics und portable Setup-Bundles geführt.
 - Das vorhandene Komplexitätsbudget nach dem GREEN-Stand ohne Grenzwerterhöhung wiederhergestellt.
 - Einen Gitleaks-Fehlalarm für die feste künstliche Gate.io-Test-Credential-Zeile mit einer regel-, pfad- und formatgebundenen Ausnahme behoben; echte Secrets bleiben erfasst.
+- Credential-Cache-Fingerprints ohne schwache SHA-256-Vorverarbeitung direkt über den vorhandenen HMAC-Vertrag abgeleitet; der CodeQL-Befund ist durch einen eigenen RED/GREEN-Zyklus abgesichert.
+- Sämtliche negativen Katalog- und Probe-Verträge direkt getestet und den gemeinsamen Coverage-Ratchet ausdrücklich an die verifizierten Linux-/Windows-Werte gebunden.
 
 ## Betroffene Bereiche
 
@@ -56,10 +58,11 @@ Phase 2 der Master-Gesamtspezifikation: dynamische Erkennung des installierten C
 
 - Backend: 63/63 Testdateien bestanden.
 - Frontend: 16/16 Testdateien und 90/90 Tests bestanden.
-- Python: 38/38 Tests bestanden.
+- Python: 39/39 Tests bestanden.
 - E2E: 40/40 Szenarien auf Chromium, Firefox, WebKit und Mobil-Chromium bestanden.
 - Kritische Backend-Coverage: 97,47/89,03/100/97,47 %.
-- Modul-Coverage: 95,34/83,38/99,10/95,34 %.
+- Modul-Coverage (lokaler Windows-Nachweis): 95,40/83,70/99,17/95,40 %.
+- Plattformübergreifender Ratchet: 95,01/83,33/99,09/95,01 %.
 - Python-Coverage: 71 %.
 - Frontend-Coverage: 60,18/53,28/52,16/60,98 %.
 
@@ -75,6 +78,8 @@ Die Reihenfolge der Coverage-Werte ist Statements/Branches/Functions/Lines.
 - Release-, Risk-Acceptance-, Build-Context-, Lizenz-, Dependency- und SBOM-Gates: PASS.
 - NPM-Audits: PASS, 0 Schwachstellen in Backend und Frontend.
 - Supply-Chain-Test für die enge Gitleaks-Ausnahme: PASS nach dokumentiertem RED/GREEN.
+- CodeQL-Credential-Fingerprint-Fund: lokal testgetrieben behoben; erneuter GitHub-CodeQL-Lauf ist vor Phase 3 zwingend grün abzuwarten.
+- Linux-Coverage-Drift: durch vollständige Katalog-Negativtests und den dokumentierten gemeinsamen Ratchet behoben; erneuter GitHub-Lauf ist vor Phase 3 zwingend grün abzuwarten.
 - Lokales Monitoring-Image-Gate: **NOT RUN**, da Docker Desktop auf der lokalen Maschine nicht aktiv ist. Der GitHub-Lauf muss dieses Gate in der unterstützten Umgebung bestätigen.
 
 ## Bewusste Grenzen
