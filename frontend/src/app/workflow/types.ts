@@ -94,6 +94,16 @@ export type WorkflowSnapshot = {
   resources: WorkflowResource[];
 };
 
+export type BuilderHistoryStatus = {
+  limit: 5;
+  undoCount: number;
+  redoCount: number;
+  canUndo: boolean;
+  canRedo: boolean;
+  undoLabel: string | null;
+  redoLabel: string | null;
+};
+
 export type StrategyConfiguration = {
   schemaVersion: 1 | 2 | 3 | 4;
   allowedSignalSchemas: string[];

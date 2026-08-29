@@ -36,10 +36,12 @@ import {
   Plus,
   RefreshCw,
   Route as RouteIcon,
+  Redo2,
   Save,
   Search,
   ServerCog,
   Trash2,
+  Undo2,
   X,
 } from "lucide-react";
 import { jsonRequest } from "@/lib/api";
@@ -75,6 +77,7 @@ import {
   KIND_META,
   WORKFLOW_KINDS,
   type ExchangeCatalog,
+  type BuilderHistoryStatus,
   type TradingSnapshot,
   type WorkflowGraph,
   type WorkflowKind,
@@ -106,6 +109,15 @@ import {
 const nodeTypes = { workflow: WorkflowNode, columnHeader: ColumnHeaderNode };
 const edgeTypes = { workflow: WorkflowEdge };
 const EMPTY_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges: [] };
+const EMPTY_BUILDER_HISTORY: BuilderHistoryStatus = {
+  limit: 5,
+  undoCount: 0,
+  redoCount: 0,
+  canUndo: false,
+  canRedo: false,
+  undoLabel: null,
+  redoLabel: null,
+};
 const WORKFLOW_NODE_DIMENSIONS = { width: 276, height: 112 } as const;
 const COLUMN_HEADER_DIMENSIONS = { width: 276, height: 27 } as const;
 const WORKFLOW_HANDLE_SIZE = 12;
@@ -280,6 +292,21 @@ function workflowSnapshot(payload: any): WorkflowSnapshot {
   return { workflow: validWorkflow ? candidate : null, resources };
 }
 
+function builderHistoryStatus(payload: any): BuilderHistoryStatus {
+  const valid = payload?.limit === 5
+    && Number.isSafeInteger(payload.undoCount)
+    && payload.undoCount >= 0
+    && payload.undoCount <= 5
+    && Number.isSafeInteger(payload.redoCount)
+    && payload.redoCount >= 0
+    && payload.redoCount <= 5
+    && typeof payload.canUndo === "boolean"
+    && typeof payload.canRedo === "boolean"
+    && (payload.undoLabel === null || typeof payload.undoLabel === "string")
+    && (payload.redoLabel === null || typeof payload.redoLabel === "string");
+  return valid ? payload : EMPTY_BUILDER_HISTORY;
+}
+
 function tradingSnapshot(payload: any): TradingSnapshot | null {
   const valid =
     payload?.overview?.runtime &&
@@ -439,6 +466,8 @@ function WorkflowStatusbar({
   search,
   selectedPathId,
   routeCount,
+  history,
+  onHistory,
   onSearch,
   onRoutes,
   onSimulation,
@@ -453,6 +482,8 @@ function WorkflowStatusbar({
   search: string;
   selectedPathId: string | null;
   routeCount: number;
+  history: BuilderHistoryStatus;
+  onHistory: (direction: "undo" | "redo") => void;
   onSearch: (value: string) => void;
   onRoutes: () => void;
   onSimulation: () => void;
@@ -463,6 +494,12 @@ function WorkflowStatusbar({
 }>) {
   const enabledPaths =
     snapshot.workflow?.compiled.paths.filter((path) => path.enabled).length || 0;
+  const undoTitle = history.undoLabel
+    ? `„${history.undoLabel}“ rückgängig machen – ${history.undoCount} von ${history.limit}`
+    : `Nichts rückgängig zu machen – 0 von ${history.limit}`;
+  const redoTitle = history.redoLabel
+    ? `„${history.redoLabel}“ wiederholen – ${history.redoCount} von ${history.limit}`
+    : `Nichts zu wiederholen – 0 von ${history.limit}`;
   return (
     <section className="workflow-statusbar" aria-label="Workflow-Status">
       <a className="workflow-status-skip" href="#workflow-canvas">
@@ -485,6 +522,30 @@ function WorkflowStatusbar({
         <span>{graph.edges.length} Verbindungen</span>
       </div>
       <div className="workflow-status-tools">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!history.canUndo || saving}
+          onClick={() => onHistory("undo")}
+          aria-label={undoTitle}
+          title={undoTitle}
+        >
+          <Undo2 data-icon="inline-start" /> Zurück
+          <span className="action-count">{history.undoCount}</span>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!history.canRedo || saving}
+          onClick={() => onHistory("redo")}
+          aria-label={redoTitle}
+          title={redoTitle}
+        >
+          <Redo2 data-icon="inline-start" /> Vorwärts
+          <span className="action-count">{history.redoCount}</span>
+        </Button>
         <Button
           ref={routeTriggerRef}
           type="button"
@@ -958,6 +1019,44 @@ type WorkflowConnectionDraft = {
   kind: "flow" | "account_fallback";
 };
 
+type WorkflowSelections = {
+  selectedEdgeId: string | null;
+  editorNodeId: string | null;
+  selectedPathId: string | null;
+  connectionSourceId: string | null;
+  connectionDraft: WorkflowConnectionDraft | null;
+};
+
+export function workflowSelectionsAfterHistory(
+  current: WorkflowSelections,
+  graph: WorkflowGraph,
+  paths: Array<{ id: string }>,
+): WorkflowSelections {
+  const nodeIds = new Set(graph.nodes.map((node) => node.id));
+  const edgeIds = new Set(graph.edges.map((edge) => edge.id));
+  const pathIds = new Set(paths.map((path) => path.id));
+  const draft = current.connectionDraft;
+  const validDraft = draft
+    && nodeIds.has(draft.sourceId)
+    && nodeIds.has(draft.targetId)
+    && (!draft.edgeId || edgeIds.has(draft.edgeId));
+  return {
+    selectedEdgeId: current.selectedEdgeId && edgeIds.has(current.selectedEdgeId)
+      ? current.selectedEdgeId
+      : null,
+    editorNodeId: current.editorNodeId && nodeIds.has(current.editorNodeId)
+      ? current.editorNodeId
+      : null,
+    selectedPathId: current.selectedPathId && pathIds.has(current.selectedPathId)
+      ? current.selectedPathId
+      : null,
+    connectionSourceId: current.connectionSourceId && nodeIds.has(current.connectionSourceId)
+      ? current.connectionSourceId
+      : null,
+    connectionDraft: validDraft ? draft : null,
+  };
+}
+
 export function WorkflowBuilder() {
   const [snapshot, setSnapshot] = useState<WorkflowSnapshot>({
     workflow: null,
@@ -969,6 +1068,7 @@ export function WorkflowBuilder() {
     null,
   );
   const [graph, setGraph] = useState<WorkflowGraph>(EMPTY_GRAPH);
+  const [history, setHistory] = useState<BuilderHistoryStatus>(EMPTY_BUILDER_HISTORY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<BuilderNoticeValue | null>(null);
@@ -1077,12 +1177,16 @@ export function WorkflowBuilder() {
   }, []);
 
   const load = useCallback(async () => {
-    const [workflowPayload, tradingPayload, statusPayload, catalogPayload] =
+    const historyRequest = jsonRequest("/api/workflow/history")
+      .then(builderHistoryStatus)
+      .catch(() => EMPTY_BUILDER_HISTORY);
+    const [workflowPayload, tradingPayload, statusPayload, catalogPayload, historyPayload] =
       await Promise.all([
         jsonRequest("/api/workflow"),
         jsonRequest("/api/trading"),
         jsonRequest("/api/status"),
         jsonRequest("/api/exchanges/catalog"),
+        historyRequest,
       ]);
     const nextSnapshot = workflowSnapshot(workflowPayload);
     setSnapshot(nextSnapshot);
@@ -1091,6 +1195,7 @@ export function WorkflowBuilder() {
       statusPayload && typeof statusPayload === "object" ? statusPayload : null,
     );
     setCatalog(exchangeCatalog(catalogPayload));
+    setHistory(historyPayload);
     setGraph(normalizeWorkflowGrid(nextSnapshot.workflow?.graph || EMPTY_GRAPH));
     setLastUpdated(Date.now());
     setLoading(false);
@@ -1238,6 +1343,7 @@ export function WorkflowBuilder() {
             baseRevisionId: snapshot.workflow?.id ?? null,
             graph: candidate,
             confirmation,
+            historyLabel: successMessage,
           }),
         });
         setSnapshot((previous) => ({
@@ -1245,6 +1351,7 @@ export function WorkflowBuilder() {
           workflow: payload.workflow,
         }));
         setGraph(structuredClone(payload.workflow.graph));
+        setHistory(builderHistoryStatus(payload.history));
         setNotice({
           tone: impact.destructive ? "warning" : "ok",
           text: `${successMessage} · Revision ${payload.workflow.revision} ist aktiv.`,
@@ -1267,6 +1374,104 @@ export function WorkflowBuilder() {
     },
     [load, snapshot.workflow?.id],
   );
+
+  const navigateHistory = useCallback(
+    async (direction: "undo" | "redo") => {
+      if (saving || !(direction === "undo" ? history.canUndo : history.canRedo)) return;
+      const label = direction === "undo" ? history.undoLabel : history.redoLabel;
+      setSaving(true);
+      setNotice(null);
+      try {
+        const baseRevisionId = snapshot.workflow?.id ?? null;
+        const impactPayload = await jsonRequest("/api/workflow/history/impact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ direction, baseRevisionId }),
+        });
+        const impact = impactPayload.impact;
+        let confirmation: string | null = null;
+        if (impact.destructive) {
+          confirmation = confirmWorkflowImpact(impact);
+          if (!confirmation) return;
+        }
+        const payload = await jsonRequest("/api/workflow/history/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ direction, baseRevisionId, confirmation }),
+        });
+        const nextWorkflow = payload.workflow;
+        const nextGraph = structuredClone(nextWorkflow.graph) as WorkflowGraph;
+        const nextSelections = workflowSelectionsAfterHistory({
+          selectedEdgeId,
+          editorNodeId,
+          selectedPathId,
+          connectionSourceId,
+          connectionDraft,
+        }, nextGraph, nextWorkflow.compiled.paths);
+        setSnapshot((previous) => ({ ...previous, workflow: nextWorkflow }));
+        setGraph(nextGraph);
+        setHistory(builderHistoryStatus(payload.history));
+        setSelectedEdgeId(nextSelections.selectedEdgeId);
+        setEditorNodeId(nextSelections.editorNodeId);
+        setSelectedPathId(nextSelections.selectedPathId);
+        setConnectionSourceId(nextSelections.connectionSourceId);
+        setConnectionDraft(nextSelections.connectionDraft);
+        if (!nextSelections.connectionSourceId) {
+          setConnectionKind("flow");
+          setConnectionSearch("");
+        }
+        setNotice({
+          tone: "ok",
+          text: `${label ? `„${label}“ ` : "Stand "}${direction === "undo" ? "rückgängig gemacht" : "wiederholt"}. Stand wurde als Revision ${nextWorkflow.revision} aktiviert.`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setNotice({
+          tone: "error",
+          text: message.includes("WORKFLOW_REVISION_CONFLICT")
+            ? "Der Workflow wurde parallel geändert. Der aktuelle Stand wird neu geladen."
+            : message,
+        });
+        if (message.includes("WORKFLOW_REVISION_CONFLICT")) await load();
+      } finally {
+        setSaving(false);
+      }
+    },
+    [
+      connectionDraft,
+      connectionSourceId,
+      editorNodeId,
+      history,
+      load,
+      saving,
+      selectedEdgeId,
+      selectedPathId,
+      snapshot.workflow?.id,
+    ],
+  );
+
+  useEffect(() => {
+    if (activeWorkspace !== "builder") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(
+        'input, textarea, select, [contenteditable="true"], [role="dialog"], form, .monaco-editor, [data-code-editor]',
+      )) return;
+      const modifier = event.ctrlKey || event.metaKey;
+      if (!modifier || event.altKey) return;
+      const key = event.key.toLocaleLowerCase("en-US");
+      const direction = key === "y" || (key === "z" && event.shiftKey)
+        ? "redo"
+        : key === "z" && !event.shiftKey
+          ? "undo"
+          : null;
+      if (!direction) return;
+      event.preventDefault();
+      void navigateHistory(direction);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeWorkspace, navigateHistory]);
 
   const cancelConnection = useCallback(() => {
     setConnectionSourceId(null);
@@ -2013,6 +2218,8 @@ export function WorkflowBuilder() {
           search={search}
           selectedPathId={selectedPathId}
           routeCount={routeTopology.routes.length}
+          history={history}
+          onHistory={(direction) => void navigateHistory(direction)}
           onSearch={setSearch}
           onRoutes={() => setRouteOverviewOpen(true)}
           onSimulation={() => setSimulationOpen(true)}

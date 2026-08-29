@@ -33,7 +33,10 @@ vi.mock("@xyflow/react", () => ({
   applyNodeChanges: (_changes: unknown, nodes: unknown) => nodes,
 }));
 
-import { WorkflowBuilder } from "@/app/workflow/workflow-builder";
+import {
+  workflowSelectionsAfterHistory,
+  WorkflowBuilder,
+} from "@/app/workflow/workflow-builder";
 
 const graph = {
   schemaVersion: 1,
@@ -69,6 +72,12 @@ const history = {
 
 function response(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: { "Content-Type": "application/json" } });
+}
+
+function submittedBody(url: string) {
+  const call = api.apiFetch.mock.calls.find(([candidate]) => candidate === url);
+  if (!call) throw new Error(`Expected request was not submitted: ${url}`);
+  return JSON.parse(String((call[1] as RequestInit).body));
 }
 
 function installApi(options?: { historyFails?: boolean; applyConflict?: boolean }) {
@@ -118,12 +127,42 @@ describe("workflow builder history", () => {
     flow.props = null;
   });
 
+  it("preserves valid selections and removes every stale graph, path and connection reference", () => {
+    expect(workflowSelectionsAfterHistory({
+      selectedEdgeId: "edge-1",
+      editorNodeId: "node-channel",
+      selectedPathId: "path-1",
+      connectionSourceId: "node-channel",
+      connectionDraft: { sourceId: "node-channel", targetId: "node-output", kind: "flow" },
+    }, graph, workflow.compiled.paths)).toEqual({
+      selectedEdgeId: "edge-1",
+      editorNodeId: "node-channel",
+      selectedPathId: "path-1",
+      connectionSourceId: "node-channel",
+      connectionDraft: { sourceId: "node-channel", targetId: "node-output", kind: "flow" },
+    });
+    expect(workflowSelectionsAfterHistory({
+      selectedEdgeId: "missing-edge",
+      editorNodeId: "missing-node",
+      selectedPathId: "missing-path",
+      connectionSourceId: "missing-node",
+      connectionDraft: { edgeId: "missing-edge", sourceId: "missing-node", targetId: "node-output", kind: "flow" },
+    }, graph, workflow.compiled.paths)).toEqual({
+      selectedEdgeId: null,
+      editorNodeId: null,
+      selectedPathId: null,
+      connectionSourceId: null,
+      connectionDraft: null,
+    });
+  });
+
   it("loads history independently and keeps the builder usable when only history fails", async () => {
     installApi({ historyFails: true });
     render(<WorkflowBuilder />);
+    expect(screen.queryByRole("button", { name: /rückgängig/ })).not.toBeInTheDocument();
     await openBuilder();
-    expect(screen.getByRole("button", { name: /Zurück/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Vorwärts/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Nichts rückgängig zu machen – 0 von 5" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Nichts zu wiederholen – 0 von 5" })).toBeDisabled();
     expect(screen.getByTestId("workflow-canvas")).toBeVisible();
   });
 
@@ -139,8 +178,7 @@ describe("workflow builder history", () => {
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
       "/api/workflow/history/apply", expect.objectContaining({ method: "POST" }),
     ));
-    const applyCall = api.apiFetch.mock.calls.find(([url]) => url === "/api/workflow/history/apply");
-    const body = JSON.parse(String((applyCall?.[1] as RequestInit).body));
+    const body = submittedBody("/api/workflow/history/apply");
     expect(body).toEqual({ direction: "undo", baseRevisionId: "revision-1", confirmation: null });
     expect(await screen.findByText(/Stand wurde als Revision 2 aktiviert/)).toBeVisible();
     expect(screen.getByText("0 Bausteine")).toBeVisible();
@@ -150,12 +188,6 @@ describe("workflow builder history", () => {
     installApi();
     render(<WorkflowBuilder />);
     await openBuilder();
-    fireEvent.keyDown(window, { key: "y", ctrlKey: true });
-    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
-      "/api/workflow/history/impact", expect.objectContaining({ method: "POST" }),
-    ));
-    expect(JSON.parse(String((api.apiFetch.mock.calls.find(([url]) => url === "/api/workflow/history/impact")?.[1] as RequestInit).body)).direction).toBe("redo");
-
     api.apiFetch.mockClear();
     const search = screen.getByLabelText("Bausteine durchsuchen");
     fireEvent.keyDown(search, { key: "z", ctrlKey: true });
@@ -167,6 +199,65 @@ describe("workflow builder history", () => {
     await screen.findByRole("dialog");
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "z", ctrlKey: true });
     expect(api.apiFetch).not.toHaveBeenCalledWith("/api/workflow/history/impact", expect.anything());
+    fireEvent.click(screen.getByRole("button", { name: "Baustein-Editor schließen" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    fireEvent.keyDown(window, { key: "y", ctrlKey: true });
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/workflow/history/impact", expect.objectContaining({ method: "POST" }),
+    ));
+    expect(submittedBody("/api/workflow/history/impact").direction).toBe("redo");
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/workflow/history/apply", expect.objectContaining({ method: "POST" }),
+    ));
+    api.apiFetch.mockClear();
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true, shiftKey: true });
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/workflow/history/impact", expect.objectContaining({ method: "POST" }),
+    ));
+    expect(submittedBody("/api/workflow/history/impact").direction).toBe("redo");
+  });
+
+  it.each([
+    ["Ctrl+Z", { ctrlKey: true }],
+    ["Cmd+Z", { metaKey: true }],
+  ])("maps %s to undo", async (_label, modifier) => {
+    installApi();
+    render(<WorkflowBuilder />);
+    await openBuilder();
+    fireEvent.keyDown(window, { key: "z", ...modifier });
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/workflow/history/impact", expect.objectContaining({ method: "POST" }),
+    ));
+    expect(submittedBody("/api/workflow/history/impact").direction).toBe("undo");
+  });
+
+  it("disables both history controls while an impact request is pending", async () => {
+    let resolveImpact!: (value: Response) => void;
+    const pendingImpact = new Promise<Response>((resolve) => { resolveImpact = resolve; });
+    installApi();
+    api.apiFetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/workflow/history/impact") return pendingImpact;
+      if (url === "/api/workflow") return response({ workflow, resources });
+      if (url === "/api/workflow/history") return response(history);
+      if (["/api/trading", "/api/status", "/api/exchanges/catalog"].includes(url)) return response({});
+      if (url === "/api/workflow/history/apply") {
+        return response({ workflow, history });
+      }
+      return response({ request: init });
+    });
+    render(<WorkflowBuilder />);
+    await openBuilder();
+    fireEvent.click(screen.getByRole("button", { name: /rückgängig/ }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /rückgängig/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /wiederholen/ })).toBeDisabled();
+    });
+    resolveImpact(response({ impact: { destructive: false, changed: [], removed: [], confirmation: null } }));
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/workflow/history/apply", expect.objectContaining({ method: "POST" }),
+    ));
   });
 
   it("cleans stale selections after history navigation and reloads workflow plus history on conflict", async () => {
@@ -174,10 +265,11 @@ describe("workflow builder history", () => {
     render(<WorkflowBuilder />);
     await openBuilder();
     if (!flow.props) throw new Error("React Flow props unavailable.");
-    act(() => flow.props?.onEdgeClick({ stopPropagation: vi.fn() }, { id: "edge-1" }));
-    expect(await screen.findByRole("dialog", { name: /Verbindung/ })).toBeVisible();
+    const source = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
+    act(() => source.data.onStartConnection("node-channel"));
+    expect(await screen.findByText(/Wähle rechts im Canvas/)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /rückgängig/ }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: /Verbindung/ })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/Wähle rechts im Canvas/)).not.toBeInTheDocument());
 
     cleanup();
     vi.clearAllMocks();
