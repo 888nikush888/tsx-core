@@ -183,7 +183,7 @@ try {
   const storedRevision1 = await getDatabase().get(
     'SELECT graph_json, definition_sha256 FROM workflow_revisions WHERE id = ?', [revision1.id],
   );
-  assert.equal(storedRevision1.graph_json, JSON.stringify(revision1.graph));
+  assert.deepEqual(JSON.parse(storedRevision1.graph_json), revision1.graph);
   assert.equal(storedRevision1.definition_sha256, revision1.definitionSha256);
 
   const revision4 = await saveWorkflowRevision({
