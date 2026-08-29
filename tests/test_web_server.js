@@ -378,8 +378,21 @@ function assertWorkflowHistoryApplyAudit(controls, secondMutation, workflow, und
   assert.equal(typeof applyAudit.target.impact.destructive, 'boolean');
 }
 
-async function testWorkflowHistoryRecoveryApi(baseUrl, controls, activeWorkflowId) {
-  let response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
+async function assertWorkflowHistoryViewerReadOnly(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 403, 'Workflow history metadata must remain administrator-only.');
+  for (const route of ['/api/workflow/history/impact', '/api/workflow/history/apply']) {
+    response = await fetch(`${baseUrl}${route}`, {
+      method: 'POST',
+      headers: headers(VIEWER_TOKEN, {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'forwarder-dashboard',
+      }),
+      body: JSON.stringify({ direction: 'undo', baseRevisionId: null, confirmation: null }),
+    });
+    assert.strictEqual(response.status, 403, `Viewers must never mutate workflow history through ${route}.`);
+  }
+  response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
     method: 'POST',
     headers: headers(VIEWER_TOKEN, {
       'Content-Type': 'application/json',
@@ -389,8 +402,10 @@ async function testWorkflowHistoryRecoveryApi(baseUrl, controls, activeWorkflowI
     body: JSON.stringify({ confirmation: 'WORKFLOW-HISTORIE ZURÜCKSETZEN' }),
   });
   assert.strictEqual(response.status, 403, 'Viewers must never reset workflow history.');
+}
 
-  response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
+async function testWorkflowHistoryRecoveryApi(baseUrl, controls, activeWorkflowId) {
+  let response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
     method: 'POST',
     headers: mutationHeaders({
       'Content-Type': 'application/json',
@@ -427,9 +442,8 @@ async function testWorkflowHistoryRecoveryApi(baseUrl, controls, activeWorkflowI
 
 async function testWorkflowRevisionApi(baseUrl, controls) {
   const graph = { schemaVersion: 1, nodes: [], edges: [] };
-  let response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(VIEWER_TOKEN) });
-  assert.strictEqual(response.status, 403, 'Workflow history metadata must remain administrator-only.');
-  response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(ADMIN_TOKEN) });
+  await assertWorkflowHistoryViewerReadOnly(baseUrl);
+  let response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual(response.status, 200);
   assert.deepEqual(await response.json(), {
     limit: 5, undoCount: 0, redoCount: 0, canUndo: false, canRedo: false,
