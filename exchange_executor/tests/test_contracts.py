@@ -19,10 +19,16 @@ from ccxt_adapter import (
     _normalized_fill, _normalized_open_order, _reduce_only, _requested_base, _status, _trigger_price,
 )
 import ccxt_client
-from ccxt_client import CERTIFIED_EXCHANGES, CcxtClientRegistry, _account_identity, _client_configuration
+from ccxt_client import (
+    CERTIFIED_EXCHANGES,
+    CcxtClientRegistry,
+    _account_identity,
+    _client_configuration,
+    _credential_fingerprint,
+)
 from common import (
     ExchangeContractError, RequestDeadline, SymbolUnavailableError, account_request,
-    decimal_string, external_account_id,
+    decimal_string, external_account_cache_key, external_account_id,
 )
 from credentials import CredentialError, CredentialStore
 from server import authenticated, execute, executor_error_code
@@ -30,6 +36,22 @@ from stream_hub import AccountStream, _canonical_payload, _event_type
 
 
 class ContractTests(unittest.TestCase):
+    def test_credential_fingerprint_uses_the_canonical_secret_as_hmac_key(self) -> None:
+        credentials = {"secret": "secret-value", "apiKey": "api-key"}
+        canonical = json.dumps(credentials, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+        fingerprint = _credential_fingerprint(credentials, "bybit", "testnet")
+
+        self.assertEqual(
+            fingerprint,
+            external_account_cache_key("bybit", "testnet", canonical),
+        )
+        self.assertEqual(len(fingerprint), 64)
+        self.assertNotEqual(
+            fingerprint,
+            _credential_fingerprint({**credentials, "secret": "changed"}, "bybit", "testnet"),
+        )
+
     def test_account_contract_accepts_dynamic_exchange_ids_and_rejects_invalid_ids(self) -> None:
         self.assertEqual(CERTIFIED_EXCHANGES, {"hyperliquid", "bybit", "krakenfutures"})
         for exchange in (*sorted(CERTIFIED_EXCHANGES), "okx", "coinbaseinternational"):
