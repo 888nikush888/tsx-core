@@ -203,6 +203,12 @@ try {
 
   process.env.EXCHANGE_EXECUTOR_URL = 'https://executor.invalid';
   assert.throws(() => new CcxtExchangeAdapter('bybit', credentials), /plain internal HTTP origin/);
+  process.env.EXCHANGE_EXECUTOR_URL = 'http://public.example:8090';
+  assert.throws(
+    () => new CcxtExchangeAdapter('bybit', credentials),
+    /internal executor host/,
+    'Executor order and account requests must not send their bearer token to an external HTTP host.',
+  );
   process.env.EXCHANGE_EXECUTOR_URL = `http://127.0.0.1:${server.address().port}`;
 
   nextResponse = { body: null };
