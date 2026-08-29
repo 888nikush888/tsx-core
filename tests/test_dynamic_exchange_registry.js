@@ -15,7 +15,12 @@ import { createTradingAccount } from '../src/trading_repository.js';
 import { TRADING_EXCHANGE_ID_PATTERN, tradingExchangeId } from '../src/trading_types.js';
 import { TradingWebControl } from '../src/trading_web_control.js';
 
-assert.equal(LATEST_SCHEMA_VERSION, 19, 'Phase 2 must add migration 19.');
+assert.ok(LATEST_SCHEMA_VERSION >= 19, 'Phase 2 migration 19 must remain part of the schema history.');
+assert.equal(
+  expectedDatabaseMigrations().find(migration => migration.version === 19)?.name,
+  'dynamic_ccxt_exchange_registry',
+  'Phase 2 migration 19 must remain immutable when later phases add migrations.',
+);
 assert.equal(tradingExchangeId('okx'), 'okx');
 assert.equal(tradingExchangeId('kraken_futures'), 'kraken_futures');
 assert.match('a-1', TRADING_EXCHANGE_ID_PATTERN);
@@ -153,7 +158,10 @@ try {
   const migrationPath = path.join(migrationDirectory, 'valid-v18.db');
   await createVersion18Fixture(migrationPath);
   await initDb(migrationPath);
-  assert.equal((await getDatabase().get('SELECT MAX(version) AS version FROM schema_migrations')).version, 19);
+  assert.equal(
+    (await getDatabase().get('SELECT MAX(version) AS version FROM schema_migrations')).version,
+    LATEST_SCHEMA_VERSION,
+  );
   assert.equal((await getDatabase().get("SELECT exchange FROM trading_accounts WHERE id = 'legacy-account'")).exchange, 'hyperliquid');
   assert.equal((await getDatabase().get("SELECT status FROM trading_trade_intents WHERE id = 'legacy-intent'")).status, 'monitoring');
   assert.equal((await getDatabase().get("SELECT payload_json FROM trading_exchange_events WHERE id = 'legacy-event'")).payload_json, '{"legacy":true}');

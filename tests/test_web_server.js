@@ -364,6 +364,67 @@ async function testWorkflowResourceFamilyArchiveApi(baseUrl) {
   assert.strictEqual((await response.json()).result.archived.length, 2);
 }
 
+function assertWorkflowHistoryApplyAudit(controls, secondMutation, workflow, undone) {
+  const applyAudit = controls.auditEvents.find(event =>
+    event.phase === 'completed' && event.path === '/api/workflow/history/apply' && event.statusCode === 200);
+  assert.ok(applyAudit, 'History apply must create a completed durable audit event.');
+  assert.equal(applyAudit.action, 'workflow.history.apply');
+  assert.equal(applyAudit.target.direction, 'undo');
+  assert.equal(applyAudit.target.fromRevisionId, secondMutation.workflow.id);
+  assert.equal(applyAudit.target.targetSourceRevisionId, workflow.id);
+  assert.equal(applyAudit.target.newRevisionId, undone.workflow.id);
+  assert.match(applyAudit.target.sourceDefinitionSha256, /^[a-f0-9]{64}$/);
+  assert.match(applyAudit.target.newDefinitionSha256, /^[a-f0-9]{64}$/);
+  assert.equal(typeof applyAudit.target.impact.destructive, 'boolean');
+}
+
+async function testWorkflowHistoryRecoveryApi(baseUrl, controls, activeWorkflowId) {
+  let response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
+    method: 'POST',
+    headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'forwarder-dashboard',
+      'X-Destructive-Confirmation': 'reset-workflow-history',
+    }),
+    body: JSON.stringify({ confirmation: 'WORKFLOW-HISTORIE ZURÜCKSETZEN' }),
+  });
+  assert.strictEqual(response.status, 403, 'Viewers must never reset workflow history.');
+
+  response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
+    method: 'POST',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'reset-workflow-history',
+    }),
+    body: JSON.stringify({ confirmation: 'WRONG' }),
+  });
+  assert.strictEqual(response.status, 412, 'History reset must require the exact written confirmation.');
+  const preserved = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(ADMIN_TOKEN) });
+  assert.equal((await preserved.json()).undoCount, 2, 'Rejected resets must preserve workflow history.');
+
+  response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
+    method: 'POST',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'reset-workflow-history',
+    }),
+    body: JSON.stringify({ confirmation: 'WORKFLOW-HISTORIE ZURÜCKSETZEN' }),
+  });
+  assert.strictEqual(response.status, 200);
+  const reset = await response.json();
+  assert.deepEqual(reset.history, {
+    limit: 5, undoCount: 0, redoCount: 0, canUndo: false, canRedo: false,
+    undoLabel: null, redoLabel: null,
+  });
+  const active = await fetch(`${baseUrl}/api/workflow`, { headers: headers(ADMIN_TOKEN) });
+  assert.equal((await active.json()).workflow.id, activeWorkflowId,
+    'History recovery must not rewrite the active workflow.');
+  const resetAudit = controls.auditEvents.find(event =>
+    event.phase === 'completed' && event.path === '/api/workflow/history/reset' && event.statusCode === 200);
+  assert.ok(resetAudit, 'History recovery must create a completed durable audit event.');
+  assert.equal(resetAudit.action, 'workflow.history.reset');
+}
+
 async function testWorkflowRevisionApi(baseUrl, controls) {
   const graph = { schemaVersion: 1, nodes: [], edges: [] };
   let response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(VIEWER_TOKEN) });
@@ -387,12 +448,10 @@ async function testWorkflowRevisionApi(baseUrl, controls) {
     body: JSON.stringify({ baseRevisionId: null, graph, historyLabel: 'Leeren Workflow angelegt' }),
   });
   assert.strictEqual(response.status, 201);
-  const firstMutation = await response.json();
-  const workflow = firstMutation.workflow;
+  const firstMutation = await response.json(), workflow = firstMutation.workflow;
   assert.strictEqual(workflow.revision, 1);
   assert.equal(firstMutation.history.undoCount, 1);
   assert.equal(firstMutation.history.undoLabel, 'Leeren Workflow angelegt');
-
   response = await fetch(`${baseUrl}/api/workflow/mutate`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
@@ -406,7 +465,6 @@ async function testWorkflowRevisionApi(baseUrl, controls) {
   assert.strictEqual(response.status, 201);
   const secondMutation = await response.json();
   assert.equal(secondMutation.history.undoCount, 2, 'The server must force record mode and ignore a client historyMode.');
-
   response = await fetch(`${baseUrl}/api/workflow/history/impact`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
@@ -442,61 +500,8 @@ async function testWorkflowRevisionApi(baseUrl, controls) {
   assert.equal(redone.workflow.revision, 4);
   assert.equal(redone.history.undoCount, 2);
   assert.equal(redone.history.redoCount, 0);
-  const applyAudit = controls.auditEvents.find(event =>
-    event.phase === 'completed' && event.path === '/api/workflow/history/apply' && event.statusCode === 200);
-  assert.ok(applyAudit, 'History apply must create a completed durable audit event.');
-  assert.equal(applyAudit.action, 'workflow.history.apply');
-  assert.equal(applyAudit.target.direction, 'undo');
-  assert.equal(applyAudit.target.fromRevisionId, secondMutation.workflow.id);
-  assert.equal(applyAudit.target.targetSourceRevisionId, workflow.id);
-  assert.equal(applyAudit.target.newRevisionId, undone.workflow.id);
-  assert.match(applyAudit.target.sourceDefinitionSha256, /^[a-f0-9]{64}$/);
-  assert.match(applyAudit.target.newDefinitionSha256, /^[a-f0-9]{64}$/);
-  assert.equal(typeof applyAudit.target.impact.destructive, 'boolean');
-
-  response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
-    method: 'POST',
-    headers: headers(VIEWER_TOKEN, {
-      'Content-Type': 'application/json',
-      'X-Requested-With': 'forwarder-dashboard',
-      'X-Destructive-Confirmation': 'reset-workflow-history',
-    }),
-    body: JSON.stringify({ confirmation: 'WORKFLOW-HISTORIE ZURÜCKSETZEN' }),
-  });
-  assert.strictEqual(response.status, 403, 'Viewers must never reset workflow history.');
-
-  response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
-    method: 'POST',
-    headers: mutationHeaders({
-      'Content-Type': 'application/json',
-      'X-Destructive-Confirmation': 'reset-workflow-history',
-    }),
-    body: JSON.stringify({ confirmation: 'WRONG' }),
-  });
-  assert.strictEqual(response.status, 412, 'History reset must require the exact written confirmation.');
-  assert.equal((await (await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(ADMIN_TOKEN) })).json()).undoCount, 2,
-    'Rejected resets must preserve workflow history.');
-
-  response = await fetch(`${baseUrl}/api/workflow/history/reset`, {
-    method: 'POST',
-    headers: mutationHeaders({
-      'Content-Type': 'application/json',
-      'X-Destructive-Confirmation': 'reset-workflow-history',
-    }),
-    body: JSON.stringify({ confirmation: 'WORKFLOW-HISTORIE ZURÜCKSETZEN' }),
-  });
-  assert.strictEqual(response.status, 200);
-  const reset = await response.json();
-  assert.deepEqual(reset.history, {
-    limit: 5, undoCount: 0, redoCount: 0, canUndo: false, canRedo: false,
-    undoLabel: null, redoLabel: null,
-  });
-  assert.equal((await (await fetch(`${baseUrl}/api/workflow`, { headers: headers(ADMIN_TOKEN) })).json()).workflow.id,
-    redone.workflow.id, 'History recovery must not rewrite the active workflow.');
-  const resetAudit = controls.auditEvents.find(event =>
-    event.phase === 'completed' && event.path === '/api/workflow/history/reset' && event.statusCode === 200);
-  assert.ok(resetAudit, 'History recovery must create a completed durable audit event.');
-  assert.equal(resetAudit.action, 'workflow.history.reset');
+  assertWorkflowHistoryApplyAudit(controls, secondMutation, workflow, undone);
+  await testWorkflowHistoryRecoveryApi(baseUrl, controls, redone.workflow.id);
 
   response = await fetch(`${baseUrl}/api/workflow/simulate`, {
     method: 'POST',
