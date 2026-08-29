@@ -8,7 +8,9 @@ from typing import Any, Awaitable
 from ccxt.base.errors import BadRequest, InvalidOrder, OrderNotFound
 
 from ccxt_client import CcxtClientRegistry, AccountClients, decimal_text
+from ccxt_profiles import ExchangeProfile, profile_for
 from common import ExchangeContractError, RequestDeadline, SymbolUnavailableError, decimal_string, external_account_id
+from symbol_resolver import SymbolResolutionError, requested_base, resolve_symbol
 
 INVALID_CONTRACT_SIZE = "CCXT market has an invalid contract size."
 EMERGENCY_CLEANUP_SLIPPAGE = "0.01"
@@ -22,20 +24,36 @@ def _canonical_symbol(market: dict[str, Any]) -> str:
 
 
 def _requested_base(symbol: str) -> str:
-    normalized = symbol.upper().replace("/", "").replace("-", "").replace(":", "")
-    for suffix in ("USDTUSDT", "USDCUSDC", "USDUSD", "USDT", "USDC", "USD"):
-        if normalized.endswith(suffix) and len(normalized) > len(suffix):
-            return normalized[: -len(suffix)]
-    raise ExchangeContractError(f"Symbol {symbol} must be a USD, USDC or USDT pair.")
+    """Backward-compatible contract wrapper around the central resolver."""
+    try:
+        return requested_base(symbol)
+    except SymbolResolutionError as error:
+        raise ExchangeContractError(str(error)) from error
 
 
-def _precision_step(value: Any, fallback: str) -> str:
+def _precision_step(value: Any, label: str) -> str:
     if value is None:
-        return fallback
+        raise ExchangeContractError(f"CCXT market omits certified {label} metadata.")
     number = Decimal(str(value))
-    if number <= 0:
-        return fallback
+    if not number.is_finite() or number <= 0:
+        raise ExchangeContractError(f"CCXT market has invalid certified {label} metadata.")
     return decimal_text(number)
+
+
+def _contract_size(market: dict[str, Any]) -> Decimal:
+    if market.get("contractSize") is None:
+        raise ExchangeContractError("CCXT market omits its certified contract size.")
+    value = Decimal(str(market["contractSize"]))
+    if not value.is_finite() or value <= 0:
+        raise ExchangeContractError(INVALID_CONTRACT_SIZE)
+    return value
+
+
+def _clients_profile(clients: AccountClients) -> ExchangeProfile:
+    profile = getattr(clients, "profile", None) or profile_for(clients.account["exchange"])
+    if profile is None:
+        raise ExchangeContractError("CCXT account has no certified exchange profile.")
+    return profile
 
 
 def _status(value: Any) -> str:
@@ -141,21 +159,20 @@ def _market_order_result(
     fallback_client_id: str = "",
 ) -> dict[str, Any]:
     result = _order_result(order, fallback_client_id)
-    contract_size = Decimal(str(market.get("contractSize") or 1))
-    if contract_size <= 0:
-        raise ExchangeContractError(INVALID_CONTRACT_SIZE)
+    contract_size = _contract_size(market)
     result["filledQuantity"] = decimal_text(Decimal(result["filledQuantity"]) * contract_size)
     return result
 
 
 def _normalized_open_order(rest: Any, order: dict[str, Any]) -> dict[str, Any]:
     market = rest.market(order["symbol"])
-    amount = Decimal(str(order.get("amount") or 0)) * Decimal(str(market.get("contractSize") or 1))
+    contract_size = _contract_size(market)
+    amount = Decimal(str(order.get("amount") or 0)) * contract_size
     trigger_price = _trigger_price(order)
     reduce_only = _reduce_only(order)
     result = _remote_order_result(order)
     result["filledQuantity"] = decimal_text(
-        Decimal(result["filledQuantity"]) * Decimal(str(market.get("contractSize") or 1))
+        Decimal(result["filledQuantity"]) * contract_size
     )
     return {
         **result,
@@ -180,7 +197,7 @@ def _normalized_position(rest: Any, position: dict[str, Any]) -> dict[str, Any] 
     return {
         "symbol": _canonical_symbol(market),
         "side": side.upper(),
-        "quantity": decimal_text(contracts * Decimal(str(market.get("contractSize") or 1))),
+        "quantity": decimal_text(contracts * _contract_size(market)),
         "averageEntryPrice": decimal_text(position.get("entryPrice")),
         "unrealizedPnl": decimal_text(position.get("unrealizedPnl")),
     }
@@ -198,7 +215,7 @@ def _normalized_fill(
     client_id = _client_order_id(order or {}) or None
     fee = trade.get("fee") if isinstance(trade.get("fee"), dict) else {}
     market = rest.market(trade["symbol"])
-    base_quantity = Decimal(str(trade.get("amount") or 0)) * Decimal(str(market.get("contractSize") or 1))
+    base_quantity = Decimal(str(trade.get("amount") or 0)) * _contract_size(market)
     return {
         "exchangeFillId": str(trade.get("id") or f"{trade.get('order')}:{trade.get('timestamp')}:{trade.get('amount')}"),
         "clientOrderId": client_id,
@@ -269,30 +286,21 @@ class CcxtAdapter:
 
     @staticmethod
     def _market(clients: AccountClients, requested_symbol: str) -> dict[str, Any]:
-        base = _requested_base(requested_symbol)
-        candidates = [
-            market for market in clients.rest.markets.values()
-            if market.get("base") == base
-            and market.get("contract") is True
-            and market.get("swap") is True
-            and market.get("linear") is True
-            and market.get("active") is not False
-        ]
-        quote_order = {
-            "hyperliquid": ("USDC", "USDT", "USD"),
-            "bybit": ("USDT", "USDC", "USD"),
-            "krakenfutures": ("USD", "USDT", "USDC"),
-        }[clients.account["exchange"]]
-        candidates.sort(key=lambda market: quote_order.index(market.get("settle") or market.get("quote"))
-                        if (market.get("settle") or market.get("quote")) in quote_order else len(quote_order))
-        if not candidates:
+        try:
+            return resolve_symbol(
+                clients.rest.markets,
+                requested_symbol,
+                _clients_profile(clients).settlement_preference,
+            )
+        except SymbolResolutionError as error:
+            if error.code != "SYMBOL_UNAVAILABLE":
+                raise ExchangeContractError(str(error)) from error
             raise SymbolUnavailableError(
                 f"Symbol {requested_symbol} is unavailable on the certified linear perpetual market.",
                 exchange=clients.account["exchange"],
                 account_id=clients.account["id"],
                 symbol=requested_symbol,
-            )
-        return candidates[0]
+            ) from error
 
     async def verify(self, account: dict[str, str], deadline: RequestDeadline) -> dict[str, Any]:
         clients = await self._clients(account, deadline)
@@ -311,18 +319,17 @@ class CcxtAdapter:
                 "privateOrderStream": True,
                 "privateTradeStream": True,
                 "privatePositionStream": True,
-                "builderFeeEnabled": False if account["exchange"] == "hyperliquid" else None,
-                "accountIdentityBinding": "wallet" if account["exchange"] == "hyperliquid" else "api-key",
+                "builderFeeEnabled": _clients_profile(clients).builder_fee_enabled,
+                "accountIdentityBinding": _clients_profile(clients).identity_strategy,
+                "reportingCurrency": _clients_profile(clients).settlement_preference[0],
+                "profileVersion": _clients_profile(clients).profile_version,
+                "protectedEntryStrategy": _clients_profile(clients).protected_entry_strategy,
             },
         }
 
     @staticmethod
     def _balance_values(clients: AccountClients, balance: dict[str, Any]) -> tuple[str, str]:
-        currencies = {
-            "hyperliquid": ("USDC", "USDT", "USD"),
-            "bybit": ("USDT", "USDC", "USD"),
-            "krakenfutures": ("USD", "USDT", "USDC"),
-        }[clients.account["exchange"]]
+        currencies = _clients_profile(clients).settlement_preference
         total = balance.get("total") if isinstance(balance.get("total"), dict) else {}
         free = balance.get("free") if isinstance(balance.get("free"), dict) else {}
         for currency in currencies:
@@ -401,21 +408,29 @@ class CcxtAdapter:
         limits = market.get("limits") or {}
         amount_limits = limits.get("amount") or {}
         cost_limits = limits.get("cost") or {}
-        contract_size = Decimal(str(market.get("contractSize") or 1))
-        if contract_size <= 0:
-            raise ExchangeContractError(INVALID_CONTRACT_SIZE)
-        quantity_step = decimal_text(Decimal(_precision_step(precision.get("amount"), "0.00000001")) * contract_size)
-        minimum_contracts = Decimal(str(amount_limits.get("min") or _precision_step(precision.get("amount"), "0.00000001")))
+        contract_size = _contract_size(market)
+        amount_step = _precision_step(precision.get("amount"), "quantity step")
+        price_tick = _precision_step(precision.get("price"), "price tick")
+        if amount_limits.get("min") is None:
+            raise ExchangeContractError("CCXT market omits certified minimum quantity metadata.")
+        if cost_limits.get("min") is None:
+            raise ExchangeContractError("CCXT market omits certified minimum notional metadata.")
+        minimum_contracts = Decimal(str(amount_limits["min"]))
+        if not minimum_contracts.is_finite() or minimum_contracts <= 0:
+            raise ExchangeContractError("CCXT market has invalid certified minimum quantity metadata.")
+        minimum_notional = Decimal(str(cost_limits["min"]))
+        if not minimum_notional.is_finite() or minimum_notional <= 0:
+            raise ExchangeContractError("CCXT market has invalid certified minimum notional metadata.")
+        quantity_step = decimal_text(Decimal(amount_step) * contract_size)
         minimum_quantity = decimal_text(minimum_contracts * contract_size)
-        minimum_notional = decimal_text(cost_limits.get("min"), "1")
         return {
             "symbol": _canonical_symbol(market),
             "providerSymbol": market["symbol"],
             "markPrice": decimal_text(mark),
-            "priceTick": _precision_step(precision.get("price"), "0.00000001"),
+            "priceTick": price_tick,
             "quantityStep": quantity_step,
             "minimumQuantity": minimum_quantity,
-            "minimumNotional": minimum_notional,
+            "minimumNotional": decimal_text(minimum_notional),
             "maxLeverage": await self._maximum_leverage(clients, market, deadline),
             "contractSize": decimal_text(contract_size),
             "observedAt": int(time.time() * 1_000),
@@ -430,15 +445,13 @@ class CcxtAdapter:
         market = self._market(clients, str(request.get("symbol") or ""))
         symbol = market["symbol"]
         quantity = decimal_string(request.get("quantity"), "quantity", positive=True)
-        contract_size = Decimal(str(market.get("contractSize") or 1))
-        if contract_size <= 0:
-            raise ExchangeContractError(INVALID_CONTRACT_SIZE)
+        contract_size = _contract_size(market)
         contracts = Decimal(quantity) / contract_size
         amount = clients.rest.amount_to_precision(symbol, decimal_text(contracts))
         if Decimal(str(amount)) <= 0:
             raise ExchangeContractError("Order quantity is below the market contract precision.")
         spec = _base_order_spec(clients.rest, request, symbol, amount)
-        if clients.account["exchange"] == "hyperliquid" and spec["type"] == "market":
+        if _clients_profile(clients).market_order_strategy == "reference_slippage" and spec["type"] == "market":
             slippage_percent = decimal_string(
                 request.get("maxSlippagePercent"), "maxSlippagePercent", positive=True,
             )
@@ -552,7 +565,7 @@ class CcxtAdapter:
             amount = clients.rest.amount_to_precision(market["symbol"], abs(contracts))
             reference = None
             params: dict[str, Any] = {"reduceOnly": True}
-            if clients.account["exchange"] == "hyperliquid":
+            if _clients_profile(clients).market_order_strategy == "reference_slippage":
                 reference = await self._market_order_reference(clients, market, side, deadline)
                 params["slippage"] = EMERGENCY_CLEANUP_SLIPPAGE
             await _within(deadline, clients.rest.create_order(
@@ -674,7 +687,7 @@ class CcxtAdapter:
         since: int,
         deadline: RequestDeadline,
     ) -> list[dict[str, Any]]:
-        if account["exchange"] != "krakenfutures":
+        if not _clients_profile(clients).my_trades_requires_symbol:
             return await _within(deadline, clients.rest.fetch_my_trades(None, since, 1_000))
         if not provider_symbols:
             return []

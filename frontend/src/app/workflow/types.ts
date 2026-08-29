@@ -194,7 +194,7 @@ export type SignalContractDefinition = {
 export type TradingAccount = {
   id: string;
   name: string;
-  exchange: "paper" | "hyperliquid" | "bybit" | "krakenfutures";
+  exchange: string;
   mode: "paper" | "testnet" | "live";
   status: string;
   enabled: boolean;
@@ -322,19 +322,33 @@ export type TradingSnapshot = {
 
 export type ExchangeCatalog = {
   implementation: {
-    library: string;
+    library: "ccxt";
     version: string;
-    streaming: string;
-    orderAuthority: string;
+    streaming: "ccxt-pro";
+    orderAuthority: "rest";
   };
   exchanges: Array<{
     id: TradingAccount["exchange"];
     name: string;
+    status:
+      | "discovered"
+      | "candidate"
+      | "certified"
+      | "quarantined"
+      | "ineligible"
+      | "deprecated";
+    reason: string | null;
+    provider: "paper" | "ccxt";
+    ccxt: { rest: boolean; pro: boolean } | null;
+    markets: { linearSwap: boolean | null };
     modes: TradingAccount["mode"][];
-    credentialFields: Array<{ id: string; label: string; secret: boolean }>;
-    certified: boolean;
-    builderFeeEnabled?: boolean;
-    maxConcurrentPositions: { minimum: number; maximum: number };
+    credentialFields: Array<{
+      id: string;
+      label: string;
+      required: boolean;
+      secret: boolean;
+    }>;
+    capabilities: Record<string, unknown>;
   }>;
 };
 

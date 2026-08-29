@@ -162,7 +162,7 @@ assert.match(ccxtClient, /import ccxt\.pro as ccxt_pro/);
 assert.match(ccxtClient, /CERTIFIED_EXCHANGES = set\(PROFILES\)/);
 assert.match(ccxtProfiles, /"builderFee": False, "approvedBuilderFee": False/);
 assert.match(ccxtRegistry, /certification_result\(/);
-assert.match(ccxtRegistry, /ccxt\.__version__/);
+assert.match(ccxtRegistry, /package_version\("ccxt"\)/);
 for (const exchange of ['hyperliquid', 'bybit', 'krakenfutures']) {
   const evidence = JSON.parse(await readFile(
     path.join(root, 'exchange_executor', 'certifications', `${exchange}.json`),

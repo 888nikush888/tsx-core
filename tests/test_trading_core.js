@@ -630,7 +630,7 @@ async function testRepositoryValidation(defaults, accounts) {
   await deleteTradingStrategyVersion(legacyDraft.id);
 
   await assert.rejects(createTradingAccount({ name: '', exchange: 'paper', mode: 'paper' }), /name must contain/);
-  await assert.rejects(createTradingAccount({ name: 'Bad exchange', exchange: 'unknown', mode: 'testnet', credentialRef: 'x' }), /Unsupported exchange/);
+  await assert.rejects(createTradingAccount({ name: 'Bad exchange', exchange: 'Unknown!', mode: 'testnet', credentialRef: 'x' }), /exchange identifier is invalid/i);
   await assert.rejects(createTradingAccount({ name: 'Bad mode', exchange: 'bybit', mode: 'paper', credentialRef: 'x' }), /Paper mode may only/);
   await assert.rejects(createTradingAccount({ name: 'Missing credential', exchange: 'bybit', mode: 'testnet' }), /credential reference/);
   await assert.rejects(

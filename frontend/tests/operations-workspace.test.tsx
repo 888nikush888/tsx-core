@@ -37,10 +37,17 @@ import { OperationsWorkspace, type OperationTab } from "@/app/workflow/operation
 const now = Date.now()
 
 const catalog = {
-  implementation: { library: "ccxt", version: "4.5", streaming: "ccxt-pro", orderAuthority: "rest" },
+  implementation: { library: "ccxt", version: "4.5.75", streaming: "ccxt-pro", orderAuthority: "rest" },
   exchanges: [
-    { id: "paper", name: "Paper", modes: ["paper"], credentialFields: [], certified: true, maxConcurrentPositions: { minimum: 1, maximum: 20 } },
-    { id: "bybit", name: "Bybit", modes: ["testnet", "live"], credentialFields: [{ id: "apiKey", label: "API Key", secret: true }], certified: true, maxConcurrentPositions: { minimum: 1, maximum: 20 } },
+    {
+      id: "paper", name: "Paper", status: "certified", reason: null, provider: "paper", ccxt: null,
+      markets: { linearSwap: true }, modes: ["paper"], credentialFields: [], capabilities: {},
+    },
+    {
+      id: "bybit", name: "Bybit", status: "certified", reason: null, provider: "ccxt",
+      ccxt: { rest: true, pro: true }, markets: { linearSwap: true }, modes: ["testnet", "live"],
+      credentialFields: [{ id: "apiKey", label: "API Key", required: true, secret: true }], capabilities: {},
+    },
   ],
 } as any
 

@@ -1,4 +1,10 @@
 import { getDatabase } from './db.js';
+import { CcxtExchangeAdapter } from './ccxt_exchange.js';
+import {
+  ExchangeCatalogClient,
+  type ExchangeCatalog,
+  type ExchangeCatalogEntry,
+} from './exchange_catalog.js';
 import { PaperExchangeAdapter } from './paper_exchange.js';
 import type { TradingCredentialStore, TradingCredentials } from './trading_credentials.js';
 import { TradingEngine } from './trading_engine.js';
@@ -73,6 +79,7 @@ import type {
   TradingExchangeAdapter,
   TradingMarketSnapshot,
 } from './trading_types.js';
+import { tradingExchangeId } from './trading_types.js';
 
 type VerifiableAdapter = TradingExchangeAdapter & {
   verifyAccount?: (account: TradingAccount) => Promise<{
@@ -141,7 +148,7 @@ export interface TradingPortfolioAccountSnapshot {
   mode: TradingAccountMode;
   enabled: boolean;
   status: string;
-  reportingCurrency: 'QUOTE' | 'USDC' | 'USD';
+  reportingCurrency: string;
   equity: string | null;
   availableBalance: string | null;
   unrealizedPnl: string | null;
@@ -156,10 +163,14 @@ export interface TradingPortfolioSnapshot {
   cached: boolean;
 }
 
-function reportingCurrency(exchange: TradingExchange): 'QUOTE' | 'USDC' | 'USD' {
-  if (exchange === 'paper') return 'QUOTE';
-  return exchange === 'hyperliquid' ? 'USDC' : 'USD';
+function reportingCurrency(account: TradingAccount): string {
+  if (account.exchange === 'paper') return 'QUOTE';
+  const value = account.capabilities?.reportingCurrency;
+  return typeof value === 'string' && /^[A-Z0-9]{2,12}$/.test(value) ? value : 'QUOTE';
 }
+
+type CatalogAccess = Pick<ExchangeCatalogClient, 'browserCatalog' | 'probe'>;
+type AdapterFactory = (exchange: TradingExchange) => VerifiableAdapter;
 
 export class TradingWebControl {
   private readonly adapters = new Map<TradingExchange, VerifiableAdapter>();
@@ -173,10 +184,20 @@ export class TradingWebControl {
     adapters: VerifiableAdapter[],
     private readonly engine: TradingEngine,
     entryRuntime: TradingEntryRuntimeControl | null = null,
+    private readonly catalog: CatalogAccess = new ExchangeCatalogClient(credentials),
+    private readonly adapterFactory: AdapterFactory = exchange => new CcxtExchangeAdapter(exchange, credentials),
   ) {
     this.entryRuntime = entryRuntime;
     this.adapters.set('paper', paper);
     for (const adapter of adapters) this.adapters.set(adapter.exchange, adapter);
+  }
+
+  exchangeCatalog(): Promise<ExchangeCatalog> {
+    return this.catalog.browserCatalog();
+  }
+
+  probeExchange(exchange: unknown): Promise<ExchangeCatalogEntry> {
+    return this.catalog.probe(tradingExchangeId(exchange));
   }
 
   attachEntryRuntime(runtime: TradingEntryRuntimeControl): void {
@@ -271,7 +292,7 @@ export class TradingWebControl {
         mode: account.mode,
         enabled: account.enabled,
         status: account.status,
-        reportingCurrency: reportingCurrency(account.exchange),
+        reportingCurrency: reportingCurrency(account),
       };
       if (!['ready', 'disabled'].includes(account.status)) {
         return { ...base, equity: null, availableBalance: null, unrealizedPnl: null, marginUsed: null, observedAt: null, error: 'Account is not verified.' };
@@ -431,19 +452,29 @@ export class TradingWebControl {
   }
 
   async createAccount(payload: any): Promise<TradingAccount> {
-    const exchange = payload.exchange as TradingExchange;
+    const exchange = tradingExchangeId(payload.exchange);
     const mode = payload.mode as TradingAccountMode;
+    if (exchange === 'paper') {
+      return createTradingAccount({
+        name: identifier(payload.name, 'Account name', 80),
+        exchange,
+        mode,
+        initialBalance: payload.initialBalance,
+        maxConcurrentPositions: payload.maxConcurrentPositions,
+      });
+    }
+    const catalogEntry = await this.certifiedCatalogEntry(exchange, mode);
+    const credentials = this.credentialsFromPayload(catalogEntry, payload.credentials);
+    this.ensureAdapter(exchange);
     const account = await createTradingAccount({
       name: identifier(payload.name, 'Account name', 80),
       exchange,
       mode,
-      credentialRef: exchange === 'paper' ? undefined : 'managed-secret',
-      initialBalance: exchange === 'paper' ? payload.initialBalance : undefined,
+      credentialRef: 'managed-secret',
       maxConcurrentPositions: payload.maxConcurrentPositions,
     });
-    if (exchange === 'paper') return account;
     try {
-      await this.credentials.set(account.id, this.credentialsFromPayload(exchange, payload.credentials));
+      await this.credentials.set(account.id, credentials);
       return await this.verifyAccount(account.id, true);
     } catch (error) {
       await this.credentials.remove(account.id).catch(() => undefined);
@@ -455,6 +486,7 @@ export class TradingWebControl {
   async replaceAccountCredentials(payload: any): Promise<TradingAccount> {
     let account = await this.requiredAccount(payload.id);
     if (account.exchange === 'paper') throw new Error('Paper accounts do not have exchange credentials.');
+    const catalogEntry = await this.certifiedCatalogEntry(account.exchange, account.mode);
     const adapter = this.requiredAdapter(account.exchange);
     if (!adapter.verifyAccount) throw new Error(`The ${account.exchange} adapter cannot verify credentials.`);
 
@@ -491,7 +523,7 @@ export class TradingWebControl {
     });
 
     const candidateId = await this.credentials.stageCandidate(
-      this.credentialsFromPayload(account.exchange, payload.credentials),
+      this.credentialsFromPayload(catalogEntry, payload.credentials),
     );
     try {
       const candidate = { ...account, id: candidateId, credentialRef: 'managed-secret' };
@@ -787,14 +819,58 @@ export class TradingWebControl {
     return adapter;
   }
 
-  private credentialsFromPayload(exchange: TradingExchange, input: any): TradingCredentials {
-    if (exchange === 'hyperliquid') {
-      return { exchange, privateKey: input?.privateKey, walletAddress: input?.walletAddress };
+  private ensureAdapter(exchangeValue: unknown): VerifiableAdapter {
+    const exchange = tradingExchangeId(exchangeValue);
+    if (exchange === 'paper') return this.paper;
+    const existing = this.adapters.get(exchange);
+    if (existing) return existing;
+    const adapter = this.adapterFactory(exchange);
+    if (adapter.exchange !== exchange) {
+      throw new Error('Dynamic adapter factory returned a different exchange identifier.');
     }
-    if (exchange === 'bybit' || exchange === 'krakenfutures') {
-      return { exchange, apiKey: input?.apiKey, apiSecret: input?.apiSecret };
+    this.engine.registerAdapter(adapter);
+    this.adapters.set(exchange, adapter);
+    return adapter;
+  }
+
+  private async certifiedCatalogEntry(
+    exchange: TradingExchange,
+    mode: TradingAccountMode,
+  ): Promise<ExchangeCatalogEntry> {
+    const catalog = await this.catalog.browserCatalog();
+    const entry = catalog.exchanges.find(candidate => candidate.id === exchange);
+    if (!entry) throw new Error(`Exchange ${exchange} is not present in the installed CCXT catalog.`);
+    if (entry.status !== 'certified') {
+      throw new Error(`Exchange ${exchange} is not TSX certified and cannot create an account.`);
     }
-    throw new Error('Paper accounts do not accept credentials.');
+    if (!entry.modes.includes(mode)) {
+      throw new Error(`Account mode ${mode} is not certified for exchange ${exchange}.`);
+    }
+    return entry;
+  }
+
+  private credentialsFromPayload(entry: ExchangeCatalogEntry, input: any): TradingCredentials {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new Error('Exchange credentials are required.');
+    }
+    const allowed = new Set(entry.credentialFields.map(field => field.id));
+    const provided = Object.keys(input);
+    const unexpected = provided.find(field => !allowed.has(field));
+    if (unexpected) throw new Error(`Credential field ${unexpected} is not allowed for ${entry.id}.`);
+    const values: Record<string, string> = {};
+    for (const field of entry.credentialFields) {
+      const value = input[field.id];
+      if (field.required && (typeof value !== 'string' || !value.trim())) {
+        throw new Error(`${field.label} is required.`);
+      }
+      if (value !== undefined) {
+        if (typeof value !== 'string' || value.length > 4096 || /[\r\n\0]/.test(value)) {
+          throw new Error(`${field.label} has an invalid format.`);
+        }
+        if (value.trim()) values[field.id] = value.trim();
+      }
+    }
+    return { exchange: entry.id, credentials: values };
   }
 
   private async reconcileEnabledAccounts(): Promise<void> {

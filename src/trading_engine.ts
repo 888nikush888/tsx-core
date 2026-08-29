@@ -57,6 +57,7 @@ import type {
   TradingPlan,
   StrategyConfiguration,
 } from './trading_types.js';
+import { tradingExchangeId } from './trading_types.js';
 
 type TradingLogger = (message: string) => void;
 type ReconciliationOptions = { force?: boolean };
@@ -771,7 +772,15 @@ export class TradingEngine {
     private readonly clockGuard: ClockHealthMonitor = new ClockGuard(),
     private readonly options: TradingEngineOptions = {},
   ) {
-    for (const adapter of adapters) this.adapters.set(adapter.exchange, adapter);
+    for (const adapter of adapters) this.registerAdapter(adapter);
+  }
+
+  registerAdapter(adapter: TradingExchangeAdapter): void {
+    const exchange = tradingExchangeId(adapter?.exchange);
+    const existing = this.adapters.get(exchange);
+    if (existing === adapter) return;
+    if (existing) throw new Error(`An adapter is already registered for exchange ${exchange}.`);
+    this.adapters.set(exchange, adapter);
   }
 
   private adapter(exchange: TradingExchange): TradingExchangeAdapter {

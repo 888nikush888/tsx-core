@@ -9,9 +9,11 @@ import type {
   ExchangeStreamEventType,
   TradingAccount,
   TradingAccountSnapshot,
+  TradingExchange,
   TradingExchangeAdapter,
   TradingMarketSnapshot,
 } from './trading_types.js';
+import { tradingExchangeId } from './trading_types.js';
 import { TradingSymbolUnavailableError } from './trading_errors.js';
 
 interface ExecutorErrorPayload {
@@ -181,11 +183,12 @@ function assertStreamBatch(value: unknown): ExchangeStreamBatch {
 }
 
 export class CcxtExchangeAdapter implements TradingExchangeAdapter {
-  readonly exchange: 'hyperliquid' | 'bybit' | 'krakenfutures';
+  readonly exchange: TradingExchange;
   private readonly baseUrl: string;
 
-  constructor(exchange: 'hyperliquid' | 'bybit' | 'krakenfutures', private readonly credentials: TradingCredentialStore) {
-    this.exchange = exchange;
+  constructor(exchange: string, private readonly credentials: TradingCredentialStore) {
+    this.exchange = tradingExchangeId(exchange);
+    if (this.exchange === 'paper') throw new Error('Paper trading must use the isolated paper adapter.');
     this.baseUrl = executorUrl();
   }
 

@@ -10,25 +10,15 @@ from typing import Any
 import ccxt.async_support as ccxt_async
 import ccxt.pro as ccxt_pro
 
+from ccxt_capabilities import PRO_CAPABILITIES, REST_CAPABILITIES
+from ccxt_profiles import PROFILES, ExchangeProfile, profile_for
+from ccxt_registry import CcxtExchangeRegistry
 from common import ExchangeContractError, external_account_cache_key
 from credentials import CredentialStore
 
-CERTIFIED_EXCHANGES = {"hyperliquid", "bybit", "krakenfutures"}
-REQUIRED_REST_CAPABILITIES = (
-    "fetchBalance",
-    "fetchPositions",
-    "fetchOpenOrders",
-    "fetchMyTrades",
-    "createOrder",
-    "createOrders",
-    "cancelOrder",
-    "setLeverage",
-)
-REQUIRED_PRO_CAPABILITIES = (
-    "watchOrders",
-    "watchMyTrades",
-    "watchPositions",
-)
+CERTIFIED_EXCHANGES = set(PROFILES)
+REQUIRED_REST_CAPABILITIES = REST_CAPABILITIES
+REQUIRED_PRO_CAPABILITIES = PRO_CAPABILITIES
 
 
 def _credential_fingerprint(secret: dict[str, Any], exchange: str, mode: str) -> str:
@@ -40,28 +30,32 @@ def _account_identity(secret: dict[str, Any], exchange: str, _mode: str) -> str:
     # This value is only retained inside the executor process. The adapter
     # applies external_account_id exactly once before it crosses the trust
     # boundary, preserving bindings created by the certified native adapters.
-    return secret["walletAddress"].lower() if exchange == "hyperliquid" else secret["apiKey"]
+    profile = profile_for(exchange)
+    if profile is None:
+        raise ExchangeContractError("Exchange has no certified identity profile.")
+    if profile.identity_strategy == "wallet_address":
+        return secret["walletAddress"].lower()
+    # Existing bindings intentionally retain the credential-binding semantics
+    # of the first rollout. Phase 2 does not migrate external account ids.
+    if profile.identity_strategy == "credential_binding":
+        return secret["apiKey"]
+    for field in ("uid", "accountId", "login"):
+        if secret.get(field):
+            return str(secret[field])
+    raise ExchangeContractError("Certified account identity cannot be derived from credentials.")
 
 
 def _client_configuration(account: dict[str, str], secret: dict[str, Any]) -> dict[str, Any]:
-    options: dict[str, Any] = {"defaultType": "swap"}
+    profile = profile_for(account["exchange"])
+    if profile is None:
+        raise ExchangeContractError("Exchange has no certified TSX profile.")
+    options = profile.client_options()
     configuration: dict[str, Any] = {
         "enableRateLimit": True,
         "timeout": 10_000,
         "options": options,
     }
-    if account["exchange"] == "hyperliquid":
-        configuration.update({
-            "privateKey": secret["privateKey"],
-            "walletAddress": secret["walletAddress"],
-        })
-        # CCXT's optional Hyperliquid builder integration must never charge a
-        # fee for TSX Core orders.
-        options.update({"builderFee": False, "approvedBuilderFee": False})
-    else:
-        configuration.update({"apiKey": secret["apiKey"], "secret": secret["apiSecret"]})
-        if account["exchange"] == "bybit":
-            options.update({"defaultSubType": "linear", "defaultSettle": "USDT"})
+    configuration.update(secret)
     return configuration
 
 
@@ -94,6 +88,7 @@ class AccountClients:
     rest: Any
     pro: Any
     lock: asyncio.Lock
+    profile: ExchangeProfile
     markets_loaded: bool = False
     market_load_task: asyncio.Task[None] | None = None
 
@@ -136,16 +131,24 @@ class AccountClients:
 
 
 class CcxtClientRegistry:
-    def __init__(self, credentials: CredentialStore) -> None:
+    def __init__(
+        self,
+        credentials: CredentialStore,
+        exchange_catalog: CcxtExchangeRegistry | None = None,
+    ) -> None:
         self.credentials = credentials
+        self.exchange_catalog = exchange_catalog or CcxtExchangeRegistry()
         self._clients: dict[str, AccountClients] = {}
         self._lock = asyncio.Lock()
 
     async def account(self, account: dict[str, str]) -> AccountClients:
         exchange = account["exchange"]
-        if exchange not in CERTIFIED_EXCHANGES:
-            raise ExchangeContractError("Exchange is not in the certified CCXT allowlist.")
-        secret = self.credentials.account(account["id"], exchange)
+        descriptor = self.exchange_catalog.descriptor(exchange)
+        if descriptor is None or descriptor.get("status") != "certified":
+            raise ExchangeContractError("Exchange is not certified for TSX trading.")
+        if account["mode"] not in descriptor.get("modes", []):
+            raise ExchangeContractError("Account mode is not certified for this exchange.")
+        secret = self.credentials.account(account["id"], exchange)["credentials"]
         fingerprint = _credential_fingerprint(secret, exchange, account["mode"])
         cache_key = account["id"]
         async with self._lock:
@@ -179,6 +182,9 @@ class CcxtClientRegistry:
         if existing:
             await existing.close()
         exchange = account["exchange"]
+        profile = profile_for(exchange)
+        if profile is None:
+            raise ExchangeContractError("Certified exchange profile is unavailable.")
         configuration = _client_configuration(account, secret)
         rest_class = getattr(ccxt_async, exchange, None)
         pro_class = getattr(ccxt_pro, exchange, None)
@@ -192,7 +198,7 @@ class CcxtClientRegistry:
         _assert_capabilities(pro, REQUIRED_PRO_CAPABILITIES, f"{exchange} Pro")
         return AccountClients(
             dict(account), fingerprint, _account_identity(secret, exchange, account["mode"]),
-            rest, pro, asyncio.Lock(),
+            rest, pro, asyncio.Lock(), profile,
         )
 
     @staticmethod

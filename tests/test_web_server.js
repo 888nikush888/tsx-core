@@ -177,13 +177,18 @@ async function testTradingAnalyticsApi(baseUrl) {
     modes: ['paper'],
     statuses: ['filled', 'blocked'],
   });
+  response = await fetch(`${baseUrl}/api/trading/analytics?exchange=binance`, {
+    headers: headers(VIEWER_TOKEN),
+  });
+  assert.strictEqual(response.status, 200, 'Historical analytics must accept a valid deprecated exchange identifier.');
+  assert.deepStrictEqual((await response.json()).filters.exchanges, ['binance']);
 
   const invalidQueries = [
     'since=not-a-number',
     'since=-1',
     'since=2&until=1',
     `until=${Date.now() + 120_000}`,
-    'exchange=binance',
+    'exchange=Binance!',
     'mode=production',
     `channelId=${'x'.repeat(129)}`,
     `status=${Array.from({ length: 101 }, (_, index) => `status-${index}`).join(',')}`,
@@ -196,20 +201,47 @@ async function testTradingAnalyticsApi(baseUrl) {
   }
 }
 
-async function testWorkflowResourceApi(baseUrl) {
+async function testWorkflowResourceApi(baseUrl, appState) {
   let response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
   assert.strictEqual((await response.json()).workflow, null);
 
-  response = await fetch(`${baseUrl}/api/exchanges/catalog`, { headers: headers(VIEWER_TOKEN) });
-  assert.strictEqual(response.status, 200);
-  const catalog = await response.json();
-  assert.deepStrictEqual(catalog.implementation, {
-    library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',
-  });
-  assert.deepStrictEqual(catalog.exchanges.map(exchange => exchange.id), [
-    'paper', 'hyperliquid', 'bybit', 'krakenfutures',
-  ]);
+  const originalTradingControl = appState.tradingControl;
+  appState.tradingControl = {
+    exchangeCatalog: async () => ({
+      implementation: {
+        library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',
+      },
+      exchanges: ['paper', 'hyperliquid', 'bybit', 'krakenfutures'].map(id => ({
+        id, name: id, status: 'certified', reason: null,
+        provider: id === 'paper' ? 'paper' : 'ccxt',
+        ccxt: id === 'paper' ? null : { rest: true, pro: true },
+        markets: { linearSwap: true }, credentialFields: [],
+        modes: id === 'paper' ? ['paper'] : ['testnet', 'live'], capabilities: {},
+      })),
+    }),
+    probeExchange: async exchange => ({ id: exchange, status: 'candidate' }),
+  };
+  try {
+    response = await fetch(`${baseUrl}/api/exchanges/catalog`, { headers: headers(VIEWER_TOKEN) });
+    assert.strictEqual(response.status, 200);
+    const catalog = await response.json();
+    assert.deepStrictEqual(catalog.implementation, {
+      library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',
+    });
+    assert.deepStrictEqual(catalog.exchanges.map(exchange => exchange.id), [
+      'paper', 'hyperliquid', 'bybit', 'krakenfutures',
+    ]);
+    response = await fetch(`${baseUrl}/api/exchanges/probe`, {
+      method: 'POST',
+      headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ exchange: 'okx' }),
+    });
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual((await response.json()).result.status, 'candidate');
+  } finally {
+    appState.tradingControl = originalTradingControl;
+  }
 
   response = await fetch(`${baseUrl}/api/workflow/resources`, {
     method: 'POST',
@@ -374,8 +406,8 @@ async function testWorkflowRevisionApi(baseUrl) {
   assert.deepEqual(workflowSnapshot.fallbackRuns, []);
 }
 
-async function testWorkflowControlPlane(baseUrl) {
-  await testWorkflowResourceApi(baseUrl);
+async function testWorkflowControlPlane(baseUrl, appState) {
+  await testWorkflowResourceApi(baseUrl, appState);
   await testWorkflowResourceFamilyArchiveApi(baseUrl);
   await testWorkflowRevisionApi(baseUrl);
 }
@@ -1506,7 +1538,7 @@ async function runTests() {
     await testAuthenticationAndReads(baseUrl);
     await testOperatorReadContracts(baseUrl, appState);
     await testTradingAnalyticsApi(baseUrl);
-    await testWorkflowControlPlane(baseUrl);
+    await testWorkflowControlPlane(baseUrl, appState);
     await testSetupBundleApi(baseUrl, controls, appState);
     await testTelegramWebLogin(baseUrl);
     await testRequestValidation(baseUrl);

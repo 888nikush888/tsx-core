@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { getDatabase } from './db.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
 import type { TradingAccountSnapshot, TradingEquityPoint } from './trading_types.js';
+import { tradingExchangeId } from './trading_types.js';
 
 export const TRADING_EVENT_TYPES = [
   'signal_received',
@@ -107,6 +108,9 @@ export async function recordTradingExecutionEvent(input: {
   const details = input.details ?? {};
   const serialized = JSON.stringify(details);
   if (serialized.length > 16 * 1024) throw new Error('Trading event details exceed 16 KiB.');
+  const exchange = input.exchange === undefined || input.exchange === null || input.exchange === ''
+    ? null
+    : tradingExchangeId(input.exchange);
   const result = await getDatabase().run(
     `INSERT OR IGNORE INTO trading_execution_events (
        id, intent_id, channel_id, account_id, exchange, mode, event_type,
@@ -117,7 +121,7 @@ export async function recordTradingExecutionEvent(input: {
       identifier(input.intentId, 'Trading intent identifier'),
       identifier(input.channelId, 'Trading channel identifier'),
       identifier(input.accountId, 'Trading account identifier', 64),
-      identifier(input.exchange, 'Trading exchange', 32),
+      exchange,
       identifier(input.mode, 'Trading account mode', 32),
       input.eventType,
       occurredAt,

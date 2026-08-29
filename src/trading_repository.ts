@@ -28,6 +28,7 @@ import type {
   TradingStrategyVersion,
   TradingSignalSchema,
 } from './trading_types.js';
+import { tradingExchangeId } from './trading_types.js';
 
 function boolean(value: unknown): boolean {
   return Number(value) === 1;
@@ -608,7 +609,7 @@ function validateTradingAccountInput(input: {
 }
 
 function validateTradingAccountType(exchange: TradingExchange, mode: TradingAccountMode): boolean {
-  if (!['paper', 'hyperliquid', 'bybit', 'krakenfutures'].includes(exchange)) throw new Error('Unsupported exchange.');
+  tradingExchangeId(exchange);
   if (!['paper', 'testnet', 'live'].includes(mode)) throw new Error('Unsupported account mode.');
   const paper = exchange === 'paper';
   if (paper !== (mode === 'paper')) throw new Error('Paper mode may only be used with the paper exchange.');

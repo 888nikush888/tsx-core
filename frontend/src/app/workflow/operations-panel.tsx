@@ -40,6 +40,7 @@ import {
   YAxis,
 } from "recharts";
 import type { ExchangeCatalog, TradingAccount, TradingSnapshot } from "./types";
+import { groupExchangeCatalog } from "./exchange-catalog";
 
 export type OperationTab =
   | "overview"
@@ -558,6 +559,28 @@ function Accounts({
   const [releaseTarget, setReleaseTarget] = useState<TradingAccount | null>(null);
   const [releaseConfirmation, setReleaseConfirmation] = useState("");
   const exchange = catalog?.exchanges.find((item) => item.id === form.exchange);
+  const catalogGroups = useMemo(
+    () => (catalog ? groupExchangeCatalog(catalog) : null),
+    [catalog],
+  );
+
+  const probeCandidate = async (exchangeId: string) => {
+    setBusy(`probe:${exchangeId}`);
+    setMessage("");
+    try {
+      await jsonRequest("/api/exchanges/probe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exchange: exchangeId }),
+      });
+      setMessage("Öffentlicher Kompatibilitätstest abgeschlossen. Eine Zertifizierung erfolgt dadurch nicht automatisch.");
+      await onRefresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy("");
+    }
+  };
 
   const updateAccount = async (
     account: TradingAccount,
@@ -721,11 +744,58 @@ function Accounts({
         <button
           type="button"
           className="secondary-button"
+          disabled={!catalogGroups || catalogGroups.creatable.length === 0}
           onClick={() => setCreating((value) => !value)}
         >
           <Plus size={15} /> Konto
         </button>
       </div>
+      {!catalogGroups && (
+        <div className="account-warning">
+          <AlertTriangle size={15} />
+          <span>Exchange-Katalog nicht erreichbar. Bestehende Konten bleiben davon unberührt; neue Konten sind gesperrt.</span>
+        </div>
+      )}
+      {catalogGroups && (
+        <div className="exchange-catalog-groups">
+          <section className="operations-card">
+            <h4>Zertifiziert</h4>
+            {catalogGroups.certified.map((item) => (
+              <div className="system-line" key={item.id}>
+                <span>{item.name}</span>
+                <strong>{item.modes.join(" · ")}</strong>
+              </div>
+            ))}
+          </section>
+          <section className="operations-card">
+            <h4>Kandidaten</h4>
+            {catalogGroups.candidates.map((item) => (
+              <div className="system-line" key={item.id}>
+                <span>{item.name}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={Boolean(busy)}
+                  onClick={() => void probeCandidate(item.id)}
+                >
+                  {busy === `probe:${item.id}` ? "Prüfe…" : "Öffentlich testen"}
+                </Button>
+              </div>
+            ))}
+            {catalogGroups.candidates.length === 0 && <Empty text="Keine Kandidaten." />}
+          </section>
+          <section className="operations-card">
+            <h4>Weitere / nicht kompatibel</h4>
+            {catalogGroups.others.map((item) => (
+              <div className="system-line" key={item.id}>
+                <span>{item.name} · {item.status}</span>
+                <strong>{item.reason || "Noch nicht für TSX zertifiziert"}</strong>
+              </div>
+            ))}
+            {catalogGroups.others.length === 0 && <Empty text="Keine weiteren Einträge." />}
+          </section>
+        </div>
+      )}
       {message && (
         <div className="builder-error">
           <AlertTriangle size={16} />
@@ -757,7 +827,7 @@ function Accounts({
                 });
               }}
             >
-              {catalog?.exchanges.map((item) => (
+              {catalogGroups?.creatable.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
@@ -811,6 +881,7 @@ function Accounts({
               <input
                 type={field.secret ? "password" : "text"}
                 autoComplete="off"
+                required={field.required}
                 value={form.credentials[field.id] || ""}
                 onChange={(event) =>
                   setForm({
@@ -1223,7 +1294,15 @@ function duration(value: unknown): string {
 
 type AnalyticsRange = "24h" | "7d" | "30d" | "90d" | "all" | "custom";
 
-function Analytics({ trading, filtersOpen }: { trading: TradingSnapshot | null; filtersOpen?: boolean }) {
+function Analytics({
+  trading,
+  catalog,
+  filtersOpen,
+}: {
+  trading: TradingSnapshot | null;
+  catalog: ExchangeCatalog | null;
+  filtersOpen?: boolean;
+}) {
   const [range, setRange] = useState<AnalyticsRange>("30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customUntil, setCustomUntil] = useState("");
@@ -1331,6 +1410,18 @@ function Analytics({ trading, filtersOpen }: { trading: TradingSnapshot | null; 
     () => [...new Set((trading?.channelAnalytics?.channels || []).map((item: any) => String(item.id)))],
     [trading?.channelAnalytics?.channels],
   );
+  const exchangeOptions = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const entry of catalog?.exchanges || []) labels.set(entry.id, entry.name);
+    for (const account of trading?.accounts || []) {
+      if (!labels.has(account.exchange)) labels.set(account.exchange, account.exchange);
+    }
+    for (const item of trading?.channelAnalytics?.exchanges || []) {
+      const id = String(item.id || item.exchange || "");
+      if (id && !labels.has(id)) labels.set(id, id);
+    }
+    return [...labels].sort((left, right) => left[1].localeCompare(right[1]));
+  }, [catalog, trading?.accounts, trading?.channelAnalytics?.exchanges]);
   return (
     <div className="operations-stack">
       {filtersOpen && (
@@ -1354,7 +1445,7 @@ function Analytics({ trading, filtersOpen }: { trading: TradingSnapshot | null; 
         )}
         <label><span>Kanal</span><select value={channelId} onChange={(event) => setChannelId(event.target.value)}><option value="">Alle Kanäle</option>{channelOptions.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
         <label><span>Konto</span><select value={accountId} onChange={(event) => setAccountId(event.target.value)}><option value="">Alle Konten</option>{(trading?.accounts || []).map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
-        <label><span>Börse</span><select value={exchange} onChange={(event) => setExchange(event.target.value)}><option value="">Alle Börsen</option><option value="paper">Paper</option><option value="hyperliquid">Hyperliquid</option><option value="bybit">Bybit</option><option value="krakenfutures">Kraken Futures</option></select></label>
+        <label><span>Börse</span><select value={exchange} onChange={(event) => setExchange(event.target.value)}><option value="">Alle Börsen</option>{exchangeOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
         <label><span>Modus</span><select value={mode} onChange={(event) => setMode(event.target.value)}><option value="">Alle Modi</option><option value="paper">Paper</option><option value="testnet">Testnet</option><option value="live">Live</option></select></label>
         <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Alle Status</option><option value="completed">Abgeschlossen</option><option value="blocked">Blockiert</option><option value="failed">Fehlgeschlagen</option><option value="open">Offen</option></select></label>
       </section>
@@ -3068,8 +3159,8 @@ function System({
         </div>
         {catalog?.exchanges.map((exchange) => (
           <div className="system-line" key={exchange.id}>
-            <span>{exchange.name}</span>
-            <strong>{exchange.modes.join(" · ")}</strong>
+            <span>{exchange.name} · {exchange.status}</span>
+            <strong>{exchange.reason || exchange.modes.join(" · ") || "nicht ausführbar"}</strong>
           </div>
         ))}
       </section>
@@ -3130,7 +3221,7 @@ export function OperationsWorkspace({
         <Accounts trading={trading} catalog={catalog} onRefresh={onRefresh} />
       );
     if (tab === "journal") return <Journal trading={trading} onRefresh={onRefresh} />;
-    if (tab === "analytics") return <Analytics trading={trading} filtersOpen={filtersOpen} />;
+    if (tab === "analytics") return <Analytics trading={trading} catalog={catalog} filtersOpen={filtersOpen} />;
     if (tab === "logs") return <Logs />;
     if (tab === "backups") return <Backups />;
     if (tab === "mcp") return <Mcp />;

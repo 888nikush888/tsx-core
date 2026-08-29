@@ -79,6 +79,7 @@ import {
   getTradingSignalSchemaForTemplate,
   getTradingOperationalSnapshot,
   getTradingRuntimeState,
+  listTradingAccounts,
   listTradingSignalSchemas,
 } from './trading_repository.js';
 import {
@@ -95,6 +96,7 @@ import {
   type TradingCredentialStore,
 } from './trading_credentials.js';
 import { CcxtExchangeAdapter } from './ccxt_exchange.js';
+import { ExchangeCatalogClient } from './exchange_catalog.js';
 import { TradingWebControl } from './trading_web_control.js';
 import { ClockGuard, clockDriftLimitFromEnvironment } from './clock_guard.js';
 import { recordTradingExecutionEvent } from './trading_telemetry.js';
@@ -1585,7 +1587,7 @@ async function initializeCoreRuntime(
   } catch (error: any) {
     addLog(`[WARN] Legacy visual-workflow migration was not activated; existing routing remains intact: ${error.message}`);
   }
-  const tradingEngine = composeTradingControl(tradingCredentials, clockGuard);
+  const tradingEngine = await composeTradingControl(tradingCredentials, clockGuard);
   if (!tradingWebControl || !auditTrail) throw new Error('MCP control dependencies are unavailable.');
   tradingRuntime = new TradingRuntime(
     tradingEngine,
@@ -1611,13 +1613,19 @@ async function initializeCoreRuntime(
   return { databasePath, retentionPolicy };
 }
 
-function composeTradingControl(tradingCredentials: TradingCredentialStore, clockGuard: ClockGuard): TradingEngine {
+async function composeTradingControl(
+  tradingCredentials: TradingCredentialStore,
+  clockGuard: ClockGuard,
+): Promise<TradingEngine> {
   const paperAdapter = new PaperExchangeAdapter();
-  const hyperliquidAdapter = new CcxtExchangeAdapter('hyperliquid', tradingCredentials);
-  const bybitAdapter = new CcxtExchangeAdapter('bybit', tradingCredentials);
-  const krakenFuturesAdapter = new CcxtExchangeAdapter('krakenfutures', tradingCredentials);
+  const exchangeIds = [...new Set(
+    (await listTradingAccounts())
+      .map(account => account.exchange)
+      .filter(exchange => exchange !== 'paper'),
+  )];
+  const ccxtAdapters = exchangeIds.map(exchange => new CcxtExchangeAdapter(exchange, tradingCredentials));
   const tradingEngine = new TradingEngine(
-    [paperAdapter, hyperliquidAdapter, bybitAdapter, krakenFuturesAdapter],
+    [paperAdapter, ...ccxtAdapters],
     addLog,
     clockGuard,
     { isolateUnavailableMarketFailures: process.env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES === 'true' },
@@ -1625,8 +1633,11 @@ function composeTradingControl(tradingCredentials: TradingCredentialStore, clock
   tradingWebControl = new TradingWebControl(
     tradingCredentials,
     paperAdapter,
-    [hyperliquidAdapter, bybitAdapter, krakenFuturesAdapter],
+    ccxtAdapters,
     tradingEngine,
+    null,
+    new ExchangeCatalogClient(tradingCredentials),
+    exchange => new CcxtExchangeAdapter(exchange, tradingCredentials),
   );
   return tradingEngine;
 }
@@ -1985,7 +1996,7 @@ async function run() {
     addLog('[CRITICAL] Managed settings or secrets are invalid. Routing and background operations remain disabled until repaired in the dashboard and restarted.');
     try {
       await initDb();
-      composeTradingControl(tradingCredentials, clockGuard);
+      await composeTradingControl(tradingCredentials, clockGuard);
     } catch (error: any) {
       addLog(`[CRITICAL] Trading safety state could not be loaded in recovery mode; factory reset remains blocked until database recovery: ${error.message}`);
     }

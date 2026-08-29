@@ -406,7 +406,7 @@ function validateBundleAccountReference(referenceValue: unknown): void {
   const reference = object(referenceValue, 'Setup bundle account reference');
   boundedString(reference.sourceAccountId, 'Setup bundle account id', 128);
   boundedString(reference.name, 'Setup bundle account name', 160);
-  boundedString(reference.exchange, 'Setup bundle account exchange', 32);
+  boundedString(reference.exchange, 'Setup bundle account exchange', 64);
   boundedString(reference.mode, 'Setup bundle account mode', 32);
 }
 

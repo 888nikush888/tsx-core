@@ -1,4 +1,12 @@
-export type TradingExchange = 'paper' | 'hyperliquid' | 'bybit' | 'krakenfutures';
+export type TradingExchange = string;
+export const TRADING_EXCHANGE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+
+export function tradingExchangeId(value: unknown): TradingExchange {
+  if (typeof value !== 'string' || !TRADING_EXCHANGE_ID_PATTERN.test(value)) {
+    throw new Error('Trading exchange identifier is invalid.');
+  }
+  return value;
+}
 export type TradingAccountMode = 'paper' | 'testnet' | 'live';
 export type TradingAccountStatus = 'unverified' | 'ready' | 'disabled' | 'error' | 'degraded';
 export type TradingSide = 'LONG' | 'SHORT';

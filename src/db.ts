@@ -94,7 +94,8 @@ export const DATABASE_FEATURE_SET = [
   'persistent-mcp-runtime-modes',
   'versioned-visual-workflows-and-account-capacity',
   'path-isolated-adaptive-risk',
-  'account-protection-incidents'
+  'account-protection-incidents',
+  'dynamic-ccxt-exchange-registry'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -1341,6 +1342,108 @@ const migrations: SchemaMigration[] = [
         );
         CREATE INDEX idx_trading_fallback_candidates_account
           ON trading_fallback_candidates(account_id, status, updated_at DESC);
+      `
+  },
+  {
+    version: 19,
+    name: 'dynamic_ccxt_exchange_registry',
+    columns: [],
+    foreignKeysOff: true,
+    sql: `
+        CREATE TABLE trading_accounts_next (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80),
+          exchange TEXT NOT NULL CHECK(length(exchange) BETWEEN 1 AND 64),
+          mode TEXT NOT NULL CHECK(mode IN ('paper', 'testnet', 'live')),
+          status TEXT NOT NULL CHECK(status IN ('unverified', 'ready', 'disabled', 'error', 'degraded')),
+          enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0, 1)),
+          credential_ref TEXT,
+          external_account_id TEXT,
+          max_concurrent_positions INTEGER NOT NULL DEFAULT 20 CHECK(max_concurrent_positions BETWEEN 1 AND 20),
+          kill_switch_active INTEGER NOT NULL DEFAULT 0 CHECK(kill_switch_active IN (0, 1)),
+          kill_switch_reason TEXT,
+          capabilities_json TEXT,
+          last_verified_at INTEGER,
+          last_reconciled_at INTEGER,
+          last_error TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          CHECK((exchange = 'paper' AND mode = 'paper' AND credential_ref IS NULL)
+             OR (exchange <> 'paper' AND mode <> 'paper' AND credential_ref IS NOT NULL))
+        );
+        INSERT INTO trading_accounts_next (
+          id, name, exchange, mode, status, enabled, credential_ref, external_account_id,
+          max_concurrent_positions, kill_switch_active, kill_switch_reason, capabilities_json,
+          last_verified_at, last_reconciled_at, last_error, created_at, updated_at
+        )
+        SELECT id, name, exchange, mode, status, enabled, credential_ref, external_account_id,
+               max_concurrent_positions, kill_switch_active, kill_switch_reason, capabilities_json,
+               last_verified_at, last_reconciled_at, last_error, created_at, updated_at
+        FROM trading_accounts;
+        DROP TABLE trading_accounts;
+        ALTER TABLE trading_accounts_next RENAME TO trading_accounts;
+        CREATE UNIQUE INDEX uq_trading_external_account_identity
+          ON trading_accounts(exchange, mode, external_account_id)
+          WHERE external_account_id IS NOT NULL;
+        CREATE INDEX idx_trading_accounts_runtime
+          ON trading_accounts(enabled, status, exchange, created_at);
+
+        CREATE TABLE trading_trade_intents_next (
+          id TEXT PRIMARY KEY,
+          source_signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE RESTRICT,
+          root_source_signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE RESTRICT,
+          signal_run_id TEXT REFERENCES workflow_signal_runs(id) ON DELETE RESTRICT,
+          workflow_revision_id TEXT REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+          execution_path_id TEXT REFERENCES workflow_execution_paths(id) ON DELETE RESTRICT,
+          channel_id TEXT NOT NULL,
+          strategy_version_id TEXT NOT NULL REFERENCES trading_strategy_versions(id) ON DELETE RESTRICT,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          exchange TEXT NOT NULL CHECK(length(exchange) BETWEEN 1 AND 64),
+          mode TEXT NOT NULL CHECK(mode IN ('paper', 'testnet', 'live')),
+          symbol TEXT NOT NULL,
+          side TEXT NOT NULL CHECK(side IN ('LONG', 'SHORT')),
+          status TEXT NOT NULL CHECK(status IN ('pending', 'planned', 'submitting', 'monitoring', 'completed', 'blocked', 'failed', 'unknown')),
+          signal_json TEXT NOT NULL,
+          plan_json TEXT,
+          block_reason TEXT,
+          last_error TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        INSERT INTO trading_trade_intents_next
+        SELECT * FROM trading_trade_intents;
+        DROP TABLE trading_trade_intents;
+        ALTER TABLE trading_trade_intents_next RENAME TO trading_trade_intents;
+        CREATE INDEX idx_trading_intents_status
+          ON trading_trade_intents(status, created_at);
+        CREATE INDEX idx_trading_intents_account_status
+          ON trading_trade_intents(account_id, status, created_at);
+        CREATE UNIQUE INDEX uq_trading_intent_execution_path
+          ON trading_trade_intents(root_source_signal_id, execution_path_id)
+          WHERE execution_path_id IS NOT NULL;
+
+        CREATE TABLE trading_exchange_events_next (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          exchange TEXT NOT NULL CHECK(length(exchange) BETWEEN 1 AND 64 AND exchange <> 'paper'),
+          mode TEXT NOT NULL CHECK(mode IN ('testnet', 'live')),
+          event_key TEXT NOT NULL CHECK(length(event_key) = 64),
+          event_type TEXT NOT NULL CHECK(event_type IN ('order', 'execution', 'position', 'market', 'candle', 'stream_status')),
+          symbol TEXT,
+          sequence INTEGER,
+          occurred_at INTEGER NOT NULL,
+          received_at INTEGER NOT NULL,
+          payload_json TEXT NOT NULL,
+          UNIQUE(account_id, event_key)
+        );
+        INSERT INTO trading_exchange_events_next
+        SELECT * FROM trading_exchange_events;
+        DROP TABLE trading_exchange_events;
+        ALTER TABLE trading_exchange_events_next RENAME TO trading_exchange_events;
+        CREATE INDEX idx_exchange_events_account_time
+          ON trading_exchange_events(account_id, received_at DESC);
+        CREATE INDEX idx_exchange_events_type_time
+          ON trading_exchange_events(event_type, received_at DESC);
       `
   }
 ];

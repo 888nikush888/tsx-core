@@ -56,6 +56,11 @@ async function createVersion18Fixture(databasePath, { orphanEvent = false } = {}
         ON trading_accounts(exchange, mode, external_account_id) WHERE external_account_id IS NOT NULL;
       CREATE INDEX idx_trading_accounts_runtime
         ON trading_accounts(enabled, status, exchange, created_at);
+      CREATE TABLE signals (id TEXT PRIMARY KEY);
+      CREATE TABLE trading_strategy_versions (id TEXT PRIMARY KEY);
+      CREATE TABLE workflow_signal_runs (id TEXT PRIMARY KEY);
+      CREATE TABLE workflow_revisions (id TEXT PRIMARY KEY);
+      CREATE TABLE workflow_execution_paths (id TEXT PRIMARY KEY);
       CREATE TABLE trading_trade_intents (
         id TEXT PRIMARY KEY,
         source_signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE RESTRICT,
@@ -114,6 +119,21 @@ async function createVersion18Fixture(databasePath, { orphanEvent = false } = {}
       'legacy-credential', '1'.repeat(64), 7, 0, 100, 200,
     );
     await fixture.run(
+      "INSERT INTO signals (id) VALUES ('legacy-signal')",
+    );
+    await fixture.run(
+      "INSERT INTO trading_strategy_versions (id) VALUES ('legacy-strategy')",
+    );
+    await fixture.run(
+      `INSERT INTO trading_trade_intents (
+         id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id,
+         account_id, exchange, mode, symbol, side, status, signal_json, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      'legacy-intent', 'legacy-signal', 'legacy-signal', 'legacy-channel', 'legacy-strategy',
+      'legacy-account', 'hyperliquid', 'testnet', 'BTCUSDT', 'LONG', 'monitoring',
+      '{"legacy":true}', 250, 251,
+    );
+    await fixture.run(
       `INSERT INTO trading_exchange_events (
          id, account_id, exchange, mode, event_key, event_type, symbol,
          sequence, occurred_at, received_at, payload_json
@@ -133,6 +153,7 @@ try {
   await initDb(migrationPath);
   assert.equal((await getDatabase().get('SELECT MAX(version) AS version FROM schema_migrations')).version, 19);
   assert.equal((await getDatabase().get("SELECT exchange FROM trading_accounts WHERE id = 'legacy-account'")).exchange, 'hyperliquid');
+  assert.equal((await getDatabase().get("SELECT status FROM trading_trade_intents WHERE id = 'legacy-intent'")).status, 'monitoring');
   assert.equal((await getDatabase().get("SELECT payload_json FROM trading_exchange_events WHERE id = 'legacy-event'")).payload_json, '{"legacy":true}');
   assert.deepEqual(await getDatabase().all('PRAGMA foreign_key_check'), []);
   await closeDb();
@@ -362,6 +383,31 @@ try {
   );
   assert.equal((await control.exchangeCatalog()).exchanges[0].id, 'gateio');
   assert.equal((await control.probeExchange('okx')).status, 'candidate');
+
+  const unavailableCatalog = {
+    browserCatalog: async () => { throw new Error('catalog offline'); },
+    probe: async () => { throw new Error('catalog offline'); },
+  };
+  const existingAccountControl = new TradingWebControl(
+    credentials, paper, [gateioAdapter], dynamicEngine, null, unavailableCatalog,
+  );
+  const verifiedExisting = await existingAccountControl.verifyAccount(created.id, true);
+  assert.equal(verifiedExisting.status, 'ready', 'Existing adapters must keep working while catalog access is down.');
+  const accountCountBeforeCatalogFailure = Number(
+    (await getDatabase().get('SELECT COUNT(*) AS count FROM trading_accounts')).count,
+  );
+  await assert.rejects(
+    existingAccountControl.createAccount({
+      name: 'Catalog outage account', exchange: 'gateio', mode: 'testnet',
+      maxConcurrentPositions: 1, credentials: { apiKey: 'key', secret: 'secret' },
+    }),
+    /catalog offline/,
+  );
+  assert.equal(
+    Number((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_accounts')).count),
+    accountCountBeforeCatalogFailure,
+    'Catalog failure must block new accounts without mutating account state.',
+  );
 } finally {
   await closeDb();
   await rm(directory, { recursive: true, force: true });

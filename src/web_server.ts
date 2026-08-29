@@ -58,6 +58,7 @@ import {
   updateWorkflowResourceDraft,
 } from './workflow_repository.js';
 import { getFilteredTradingAnalytics } from './trading_telemetry.js';
+import { tradingExchangeId } from './trading_types.js';
 import {
   applyPortableSetupBundle,
   assertSetupBundleContainsNoSecrets,
@@ -1523,7 +1524,9 @@ async function tradingAnalyticsHandler(context: RequestContext): Promise<void> {
     }
     const exchanges = analyticsQueryValues(context, 'exchange');
     const modes = analyticsQueryValues(context, 'mode');
-    if (exchanges.some(value => !['paper', 'hyperliquid', 'bybit', 'krakenfutures'].includes(value))) {
+    try {
+      exchanges.forEach(tradingExchangeId);
+    } catch {
       throw new HttpError(400, 'Trading analytics exchange filter is invalid.');
     }
     if (modes.some(value => !['paper', 'testnet', 'live'].includes(value))) {
@@ -1692,48 +1695,17 @@ async function previewWorkflowImpactHandler(context: RequestContext): Promise<vo
   }
 }
 
-function exchangeCatalogHandler(context: RequestContext): void {
-  sendJson(context.res, 200, {
-    implementation: {
-      library: 'ccxt',
-      version: '4.5.75',
-      streaming: 'ccxt-pro',
-      orderAuthority: 'rest',
-    },
-    exchanges: [
-      {
-        id: 'paper', name: 'Paper Trading', modes: ['paper'], credentialFields: [],
-        certified: true, maxConcurrentPositions: { minimum: 1, maximum: 20 },
-      },
-      {
-        id: 'hyperliquid', name: 'Hyperliquid', modes: ['testnet', 'live'],
-        credentialFields: [
-          { id: 'privateKey', label: 'Private Key', secret: true },
-          { id: 'walletAddress', label: 'Wallet Address', secret: false },
-        ],
-        certified: true, builderFeeEnabled: false,
-        maxConcurrentPositions: { minimum: 1, maximum: 20 },
-      },
-      {
-        id: 'bybit', name: 'Bybit', modes: ['testnet', 'live'],
-        credentialFields: [
-          { id: 'apiKey', label: 'API Key', secret: true },
-          { id: 'apiSecret', label: 'API Secret', secret: true },
-        ],
-        certified: true, maxConcurrentPositions: { minimum: 1, maximum: 20 },
-      },
-      {
-        id: 'krakenfutures', name: 'Kraken Futures', modes: ['testnet', 'live'],
-        credentialFields: [
-          { id: 'apiKey', label: 'API Key', secret: true },
-          { id: 'apiSecret', label: 'API Secret', secret: true },
-        ],
-        certified: true, maxConcurrentPositions: { minimum: 1, maximum: 20 },
-      },
-    ],
-    requestId: context.requestId,
-  });
+async function exchangeCatalogHandler(context: RequestContext): Promise<void> {
+  try {
+    const catalog = await requireTradingControl(context).exchangeCatalog();
+    sendJson(context.res, 200, { ...catalog, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, new HttpError(503, `Exchange catalog unavailable: ${errorMessage(error)}`));
+  }
 }
+
+const probeExchangeHandler = (context: RequestContext) =>
+  tradingMutation(context, (control, payload) => control.probeExchange(payload.exchange));
 
 async function simulateWorkflowHandler(context: RequestContext): Promise<void> {
   try {
@@ -2062,6 +2034,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/backups/restore', restoreBackupHandler],
   ['GET /api/trading', tradingSnapshotHandler],
   ['GET /api/exchanges/catalog', exchangeCatalogHandler],
+  ['POST /api/exchanges/probe', probeExchangeHandler],
   ['GET /api/trading/portfolio', tradingPortfolioHandler],
   ['GET /api/trading/analytics', tradingAnalyticsHandler],
   ['GET /api/trading/journal', tradingJournalHandler],

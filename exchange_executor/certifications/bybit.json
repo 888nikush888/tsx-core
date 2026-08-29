@@ -1,0 +1,15 @@
+{
+  "exchange": "bybit",
+  "status": "certified",
+  "ccxtVersion": "4.5.75",
+  "profileVersion": 1,
+  "tests": {
+    "protectedEntry": true,
+    "cancel": true,
+    "reconciliation": true,
+    "stream": true,
+    "credentialRotation": true,
+    "accountIdentity": true,
+    "marketNormalization": true
+  }
+}

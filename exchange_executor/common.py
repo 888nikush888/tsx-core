@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import hmac
+import re
 import time
 from decimal import Decimal, InvalidOperation
 from typing import Any
+
+
+EXCHANGE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 
 class ExchangeContractError(ValueError):
@@ -116,7 +120,13 @@ def account_request(payload: dict[str, Any]) -> dict[str, str]:
     account_id = account.get("id")
     exchange = account.get("exchange")
     mode = account.get("mode")
-    if not isinstance(account_id, str) or exchange not in {"hyperliquid", "bybit", "krakenfutures"} or mode not in {"testnet", "live"}:
+    if (
+        not isinstance(account_id, str)
+        or not isinstance(exchange, str)
+        or EXCHANGE_ID_PATTERN.fullmatch(exchange) is None
+        or exchange == "paper"
+        or mode not in {"testnet", "live"}
+    ):
         raise ExchangeContractError("Invalid account contract.")
     return {"id": account_id, "exchange": exchange, "mode": mode}
 

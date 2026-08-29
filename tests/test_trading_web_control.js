@@ -32,6 +32,9 @@ class FakeOfficialAdapter {
       externalAccountId: account.id.startsWith('candidate-')
         ? (this.candidateExternalAccountId || this.externalAccountId)
         : this.externalAccountId,
+      capabilities: {
+        reportingCurrency: this.exchange === 'hyperliquid' ? 'USDC' : 'USD',
+      },
     };
   }
   async accountSnapshot() {
@@ -74,7 +77,40 @@ try {
       this.enabled = false;
     },
   };
-  const control = new TradingWebControl(credentials, paper, [hyperliquid, bybit], engine, entryRuntime);
+  const catalogEntries = [
+    {
+      id: 'paper', name: 'Paper Trading', status: 'certified', reason: null, provider: 'paper',
+      ccxt: null, markets: { linearSwap: true }, credentialFields: [], modes: ['paper'], capabilities: {},
+    },
+    {
+      id: 'hyperliquid', name: 'Hyperliquid', status: 'certified', reason: null, provider: 'ccxt',
+      ccxt: { rest: true, pro: true }, markets: { linearSwap: true },
+      credentialFields: [
+        { id: 'privateKey', label: 'Private Key', required: true, secret: true },
+        { id: 'walletAddress', label: 'Wallet Address', required: true, secret: false },
+      ],
+      modes: ['testnet', 'live'], capabilities: {},
+    },
+    {
+      id: 'bybit', name: 'Bybit', status: 'certified', reason: null, provider: 'ccxt',
+      ccxt: { rest: true, pro: true }, markets: { linearSwap: true },
+      credentialFields: [
+        { id: 'apiKey', label: 'API Key', required: true, secret: true },
+        { id: 'secret', label: 'API Secret', required: true, secret: true },
+      ],
+      modes: ['testnet', 'live'], capabilities: {},
+    },
+  ];
+  const catalog = {
+    browserCatalog: async () => ({
+      implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
+      exchanges: catalogEntries,
+    }),
+    probe: async exchange => catalogEntries.find(entry => entry.id === exchange),
+  };
+  const control = new TradingWebControl(
+    credentials, paper, [hyperliquid, bybit], engine, entryRuntime, catalog,
+  );
   control.attachEntryRuntime(entryRuntime);
   assert.throws(
     () => control.attachEntryRuntime({ enableEntries: async () => {}, disableEntries: () => {} }),
@@ -296,7 +332,7 @@ try {
 
   const live = await control.createAccount({
     name: 'Bybit Live', exchange: 'bybit', mode: 'live',
-    credentials: { apiKey: 'official-api-key', apiSecret: 'official-api-secret' },
+    credentials: { apiKey: 'official-api-key', secret: 'official-api-secret' },
   });
   const livePortfolio = await control.portfolioSnapshot(true);
   const liveSnapshot = livePortfolio.accounts.find(account => account.accountId === live.id);
@@ -317,19 +353,19 @@ try {
   await assert.rejects(control.setAccountEnabled(live.id, 'yes'), /must be boolean/);
   await control.replaceAccountCredentials({
     id: live.id,
-    credentials: { apiKey: 'replacement-api-key', apiSecret: 'replacement-api-secret' },
+    credentials: { apiKey: 'replacement-api-key', secret: 'replacement-api-secret' },
   });
   bybit.candidateExternalAccountId = 'c'.repeat(64);
   await assert.rejects(control.replaceAccountCredentials({
     id: live.id,
-    credentials: { apiKey: 'wrong-account-key', apiSecret: 'wrong-account-secret' },
+    credentials: { apiKey: 'wrong-account-key', secret: 'wrong-account-secret' },
   }), /different external exchange account/);
   bybit.candidateExternalAccountId = null;
   assert.equal((await control.setAccountEnabled(live.id, false)).status, 'disabled');
   assert.equal((await control.setAccountEnabled(live.id, true)).status, 'ready');
   const removable = await control.createAccount({
     name: 'Removable Bybit', exchange: 'bybit', mode: 'testnet',
-    credentials: { apiKey: 'removable-api-key', apiSecret: 'removable-api-secret' },
+    credentials: { apiKey: 'removable-api-key', secret: 'removable-api-secret' },
   });
   await control.removeAccount(removable.id);
   const hyperliquidAccount = await control.createAccount({
@@ -340,7 +376,7 @@ try {
   bybit.verified = false;
   await assert.rejects(control.createAccount({
     name: 'Rejected account', exchange: 'bybit', mode: 'testnet',
-    credentials: { apiKey: 'rejected-api-key', apiSecret: 'rejected-api-secret' },
+    credentials: { apiKey: 'rejected-api-key', secret: 'rejected-api-secret' },
   }), /rejected account verification/);
   bybit.verified = true;
   await assert.rejects(control.verifyAccount('missing-account'), /does not exist/);

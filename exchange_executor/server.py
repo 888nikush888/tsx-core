@@ -11,6 +11,7 @@ from aiohttp import web
 
 from ccxt_adapter import CcxtAdapter
 from ccxt_client import CcxtClientRegistry
+from ccxt_registry import CcxtExchangeRegistry
 from common import ExchangeContractError, RequestDeadline, SymbolUnavailableError, account_request
 from credentials import CredentialStore
 from stream_hub import ExchangeStreamHub
@@ -19,6 +20,8 @@ MAX_BODY_BYTES = 128 * 1024
 MAX_IN_FLIGHT_REQUESTS = 8
 
 EXECUTOR_ERROR_CODES = {
+    "/v1/exchange-catalog": "EXCHANGE_CATALOG_FAILED",
+    "/v1/exchange-probe": "EXCHANGE_PROBE_FAILED",
     "/v1/verify-account": "ACCOUNT_VERIFY_FAILED",
     "/v1/account-snapshot": "ACCOUNT_SNAPSHOT_FAILED",
     "/v1/market-snapshot": "MARKET_SNAPSHOT_FAILED",
@@ -56,7 +59,8 @@ class Application:
     def __init__(self, secret_directory: str) -> None:
         self.credentials = CredentialStore(secret_directory)
         load_token_with_retry(self.credentials)
-        self.registry = CcxtClientRegistry(self.credentials)
+        self.exchange_catalog = CcxtExchangeRegistry()
+        self.registry = CcxtClientRegistry(self.credentials, self.exchange_catalog)
         self.adapter = CcxtAdapter(self.registry)
         self.streams = ExchangeStreamHub(self.registry)
 
@@ -87,6 +91,10 @@ class Application:
         return await self.streams.poll(account, cursor, symbols)
 
     async def handle(self, path: str, payload: dict[str, Any]) -> Any:
+        if path == "/v1/exchange-catalog":
+            return self.exchange_catalog.catalog()
+        if path == "/v1/exchange-probe":
+            return await self.exchange_catalog.probe(required_string(payload, "exchange"))
         deadline = RequestDeadline.from_payload(payload)
         account = account_request(payload)
         if path == "/v1/verify-account":

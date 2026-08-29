@@ -1819,6 +1819,24 @@ button:disabled {
   font-size: 12px;
   font-weight: 650;
 }
+.exchange-catalog-groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.exchange-catalog-groups h4 {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 650;
+}
+.exchange-catalog-groups .system-line {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.exchange-catalog-groups .system-line strong {
+  max-width: 180px;
+  text-align: right;
+  font-size: 9px;
+}
 .gate-row,
 .event-row,
 .system-line,
@@ -2681,6 +2699,7 @@ button:disabled {
   .builder-field-grid.three,
   .schema-overview-grid,
   .contract-toggle-grid,
+  .exchange-catalog-groups,
   .account-create {
     grid-template-columns: 1fr;
   }
@@ -2835,4 +2854,3 @@ button:disabled {
   border: 1px dashed color-mix(in oklch, var(--border) 80%, var(--muted-foreground));
   border-radius: 0;
 }
-

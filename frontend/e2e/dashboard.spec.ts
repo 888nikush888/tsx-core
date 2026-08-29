@@ -142,7 +142,41 @@ async function mockDashboardApi(
           streaming: "ccxt-pro",
           orderAuthority: "rest",
         },
-        exchanges: [],
+        exchanges: [
+          {
+            id: "paper", name: "Paper Trading", status: "certified", reason: null,
+            provider: "paper", ccxt: null, markets: { linearSwap: true },
+            credentialFields: [], modes: ["paper"], capabilities: {},
+          },
+          {
+            id: "bybit", name: "Bybit", status: "certified", reason: null,
+            provider: "ccxt", ccxt: { rest: true, pro: true }, markets: { linearSwap: null },
+            credentialFields: [
+              { id: "apiKey", label: "API Key", required: true, secret: true },
+              { id: "secret", label: "API Secret", required: true, secret: true },
+            ],
+            modes: ["testnet", "live"], capabilities: {},
+          },
+          {
+            id: "okx", name: "OKX", status: "candidate", reason: null,
+            provider: "ccxt", ccxt: { rest: true, pro: true }, markets: { linearSwap: true },
+            credentialFields: [], modes: [], capabilities: {},
+          },
+          {
+            id: "binance", name: "Binance", status: "discovered", reason: null,
+            provider: "ccxt", ccxt: { rest: true, pro: true }, markets: { linearSwap: null },
+            credentialFields: [], modes: [], capabilities: {},
+          },
+        ],
+      });
+      return;
+    }
+    if (url.pathname === "/api/exchanges/probe") {
+      const exchange = JSON.parse(request.postData() || "{}").exchange;
+      await json(route, {
+        id: exchange, name: String(exchange).toUpperCase(), status: "candidate", reason: null,
+        provider: "ccxt", ccxt: { rest: true, pro: true }, markets: { linearSwap: true },
+        credentialFields: [], modes: [], capabilities: {},
       });
       return;
     }
@@ -973,6 +1007,12 @@ test("builder dialogs expose names, trap keyboard focus and close without access
   await operationsButton.click();
   const operations = page.getByRole("region", { name: "Betrieb" });
   await expect(operations).toBeVisible();
+  await expect(operations.getByRole("heading", { name: "Zertifiziert" })).toBeVisible();
+  await expect(operations.getByText("Bybit")).toBeVisible();
+  await expect(operations.getByText("OKX")).toBeVisible();
+  await expect(operations.getByText("Binance")).toBeVisible();
+  await operations.getByRole("button", { name: "Öffentlich testen" }).first().click();
+  await expect(operations.getByText(/Kompatibilitätstest abgeschlossen/)).toBeVisible();
   await operations.getByRole("button", { name: "Konto" }).click();
   await operations.getByLabel("Name").fill("Ungespeicherter Entwurf");
   await operations.getByRole("button", { name: "Abbrechen" }).click();
