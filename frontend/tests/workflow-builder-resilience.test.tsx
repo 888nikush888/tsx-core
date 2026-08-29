@@ -44,6 +44,7 @@ vi.mock("@xyflow/react", () => ({
 
 import {
   confirmWorkflowImpact,
+  workflowResourceSummary,
   WorkflowBuilder,
 } from "@/app/workflow/workflow-builder";
 
@@ -57,6 +58,17 @@ describe("workflow builder resilience", () => {
     cleanup();
     vi.clearAllMocks();
     flow.props = null;
+  });
+
+  it("summarizes sizing leverage as default and maximum with legacy fallback", () => {
+    const base = {
+      id: "sizing-v1", resourceId: "sizing", version: 1, kind: "sizing", name: "Sizing", description: "",
+      status: "published", configuration: { riskPerTradePercent: "5", maxAdaptiveRiskPercent: "10", defaultLeverage: 3, maxLeverage: 10 },
+      configurationSha256: "a".repeat(64), createdAt: 1, publishedAt: 1,
+    } as any;
+    expect(workflowResourceSummary(base, null)).toContain("Hebel 3×/10×");
+    expect(workflowResourceSummary({ ...base, configuration: { ...base.configuration, defaultLeverage: undefined } }, null))
+      .toContain("Hebel 10×/10×");
   });
 
   it("stays visible when an older or partially unavailable API omits optional collections", async () => {

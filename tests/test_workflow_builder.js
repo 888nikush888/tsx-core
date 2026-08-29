@@ -71,6 +71,9 @@ try {
     ['sizing', { riskPerTradePercent: '1', maxLeverage: 1.5 }, /between 1 and 50/],
     ['sizing', { riskPerTradePercent: '1', maxLeverage: 0 }, /between 1 and 50/],
     ['sizing', { riskPerTradePercent: '1', maxLeverage: 51 }, /between 1 and 50/],
+    ['sizing', { riskPerTradePercent: '1', defaultLeverage: 0, maxLeverage: 10 }, /Default leverage must be between 1 and 50/],
+    ['sizing', { riskPerTradePercent: '1', defaultLeverage: 51, maxLeverage: 50 }, /Default leverage must be between 1 and 50/],
+    ['sizing', { riskPerTradePercent: '1', defaultLeverage: 11, maxLeverage: 10 }, /Default leverage must not exceed maximum leverage/],
     ['adaptive_risk', { tiers: '5' }, /between one and twenty tiers/],
     ['adaptive_risk', { tiers: [] }, /between one and twenty tiers/],
     ['adaptive_risk', { tiers: Array.from({ length: 21 }, () => ({ riskPercent: '1' })) }, /between one and twenty tiers/],
@@ -136,6 +139,9 @@ try {
   ];
   for (const [kind, configuration] of defaultResourceCases) {
     const draft = await createWorkflowResourceDraft({ kind, name: `Defaults for ${kind}`, configuration });
+    if (kind === 'sizing') {
+      assert.equal(draft.configuration.defaultLeverage, draft.configuration.maxLeverage);
+    }
     assert.equal(await deleteWorkflowResourceDraft(draft.id), true);
   }
 
@@ -157,7 +163,7 @@ try {
     strategy: await resource('strategy', 'Execution strategy', { strategyVersionId: strategy.id }),
     sizingA: await resource('sizing', 'Hyper-style fixed 10%', {
       positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '10', maxAdaptiveRiskPercent: '10',
-      maxPositionNotional: '1000000000', maxLeverage: 50,
+      maxPositionNotional: '1000000000', defaultLeverage: 3, maxLeverage: 10,
     }),
     sizingB: await resource('sizing', 'Kraken-style adaptive 5%', {
       positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxAdaptiveRiskPercent: '10',
@@ -449,6 +455,13 @@ try {
     baseRevisionId: null, graph, actorId: 'test:admin', confirmation: WORKFLOW_IMPACT_CONFIRMATION,
   });
   assert.equal(workflow.compiled.paths.length, 2);
+  const primarySizing = workflow.compiled.paths.find(path => path.accountId === firstAccount.id)
+    .effectiveConfiguration.strategyConfiguration.sizing;
+  assert.equal(primarySizing.defaultLeverage, 3);
+  assert.equal(primarySizing.maxLeverage, 10);
+  assert.equal(workflow.compiled.paths.find(path => path.accountId === secondAccount.id)
+    .effectiveConfiguration.strategyConfiguration.sizing.defaultLeverage, 50,
+  'Legacy workflow sizing resources must retain default=max semantics.');
   assert.deepEqual(
     workflow.graph.nodes.find(candidate => candidate.id === 'sizing-a').position,
     { x: 9 * 316, y: 0 },

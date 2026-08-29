@@ -78,7 +78,9 @@ describe('workflow resource contracts', () => {
   })
 
   it('defaults sizing to margin capital and account capacity to the concrete account', () => {
-    expect(defaultConfiguration('sizing', trading)).toMatchObject({ positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxLeverage: 50 })
+    expect(defaultConfiguration('sizing', trading)).toMatchObject({
+      positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', defaultLeverage: 50, maxLeverage: 50,
+    })
     expect(defaultConfiguration('account', trading)).toEqual({ accountId: 'account-1' })
   })
 
@@ -107,14 +109,33 @@ describe('workflow resource contracts', () => {
       return response({ templates: { default: 'BASE PROMPT' } })
     })
     const onSave = editor('strategy')
+    expect(screen.getByLabelText('Standard-Hebel')).toHaveValue(50)
+    fireEvent.change(screen.getByLabelText('Standard-Hebel'), { target: { value: '7' } })
     fireEvent.change(screen.getByLabelText('Max. Slippage (%)'), { target: { value: '0.75' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ configuration: { strategyVersionId: 'strategy-v2' } })))
     expect(api.apiFetch).toHaveBeenCalledWith('/api/trading/strategies', expect.objectContaining({
       method: 'POST',
-      body: expect.stringContaining('"maxSlippagePercent":"0.75"'),
+      body: expect.stringMatching(/"schemaVersion":4[\s\S]*"defaultLeverage":7[\s\S]*"maxLeverage":50[\s\S]*"maxSlippagePercent":"0.75"/),
     }))
     expect(screen.queryByLabelText(/Strategiedefinition/)).not.toBeInTheDocument()
+  })
+
+  it('blocks invalid default leverage in both sizing editors before save', async () => {
+    const sizingSave = editor('sizing')
+    fireEvent.change(screen.getByLabelText('Standard-Hebel'), { target: { value: '20' } })
+    fireEvent.change(screen.getByLabelText('Maximaler Hebel'), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    expect(await screen.findByText(/Standard-Hebel darf den maximalen Hebel nicht überschreiten/)).toBeVisible()
+    expect(sizingSave).not.toHaveBeenCalled()
+    cleanup()
+
+    const strategySave = editor('strategy')
+    fireEvent.change(screen.getByLabelText('Standard-Hebel'), { target: { value: '20' } })
+    fireEvent.change(screen.getByLabelText('Maximaler Hebel'), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    expect(await screen.findByText(/Standard-Hebel darf den maximalen Hebel nicht überschreiten/)).toBeVisible()
+    expect(strategySave).not.toHaveBeenCalled()
   })
 
   it('publishes a new independent contract version from the contract popup', async () => {

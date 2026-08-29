@@ -30,6 +30,7 @@ import {
   adaptiveStopLossDecision,
   adaptiveTargetAllocations,
   resolveDailyLossLimit,
+  resolveLeverageDecision,
   allocateTargetQuantities,
   createTradingPlan,
 } from '../src/trading_risk.js';
@@ -134,7 +135,28 @@ function testDecimalAndStrategyContracts() {
   assert.equal(normalizedLegacy.exits.stopLossMode, 'configured');
   invalidConfiguration(value => { value.exits.targetAllocationMode = 'unsupported'; }, /targetAllocationMode/);
   invalidConfiguration(value => { value.exits.stopLossMode = 'unsupported'; }, /stopLossMode/);
-  invalidConfiguration(value => { value.schemaVersion = 4; }, /Unsupported strategy schema/);
+  const schemaFour = configuration();
+  schemaFour.schemaVersion = 4;
+  schemaFour.sizing.defaultLeverage = 3;
+  schemaFour.sizing.maxLeverage = 10;
+  assert.deepEqual(validateStrategyConfiguration(schemaFour).sizing, {
+    ...schemaFour.sizing,
+    defaultLeverage: 3,
+    maxLeverage: 10,
+  });
+  invalidConfiguration(value => {
+    value.schemaVersion = 4;
+    value.sizing.defaultLeverage = 10;
+    value.sizing.maxLeverage = 5;
+  }, /defaultLeverage.*must not exceed.*maxLeverage/);
+  invalidConfiguration(value => { value.schemaVersion = 4; value.sizing.defaultLeverage = 0; }, /defaultLeverage.*between 1 and 50/);
+  invalidConfiguration(value => { value.schemaVersion = 4; value.sizing.defaultLeverage = 51; }, /defaultLeverage.*between 1 and 50/);
+  invalidConfiguration(value => { value.sizing.maxLeverage = 51; }, /maxLeverage.*between 1 and 50/);
+  const legacyLeverage = configuration();
+  legacyLeverage.schemaVersion = 3;
+  legacyLeverage.sizing.maxLeverage = 7;
+  delete legacyLeverage.sizing.defaultLeverage;
+  assert.equal(validateStrategyConfiguration(legacyLeverage).sizing.defaultLeverage, 7);
   invalidConfiguration(value => { value.sizing.maxAdaptiveRiskPercent = '0.5'; }, /must not be below/);
   invalidConfiguration(value => { value.sizing.positionSizingMode = 'balance_percent'; }, /positionSizingMode/);
   invalidConfiguration(value => { value.unsupported = true; }, /unsupported fields/);
@@ -169,6 +191,87 @@ function testDecimalAndStrategyContracts() {
   assert.deepEqual(adaptiveTargetAllocations(5), ['50', '25', '12.5', '6.25', '6.25']);
   assert.throws(() => adaptiveTargetAllocations(0), /between one and twenty/);
 
+}
+
+function testSignalLeverageContracts() {
+  const withoutLeverage = STANDARD_SIGNAL.replace('<leverage>3</leverage>\n', '');
+  assert.equal(validateSignalXml(withoutLeverage, 'default').execution.suggestedLeverage, undefined);
+  for (const leverage of [1, 125]) {
+    const xml = STANDARD_SIGNAL.replace('<leverage>3</leverage>', `<leverage>${leverage}</leverage>`);
+    assert.equal(validateSignalXml(xml, 'default').execution.suggestedLeverage, leverage);
+  }
+  for (const leverage of ['0', '126', '2.5']) {
+    const xml = STANDARD_SIGNAL.replace('<leverage>3</leverage>', `<leverage>${leverage}</leverage>`);
+    assert.throws(() => validateSignalXml(xml, 'default'), /integer between 1 and 125/);
+  }
+}
+
+function testLeverageDecisionContracts() {
+  const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
+  const strategy = configuration();
+  strategy.schemaVersion = 4;
+  strategy.sizing.defaultLeverage = 3;
+  strategy.sizing.maxLeverage = 10;
+  const market = { ...planInput(executable).market, maxLeverage: 20 };
+  assert.deepEqual(resolveLeverageDecision(
+    { ...executable, suggestedLeverage: undefined }, strategy, market,
+  ), {
+    requested: 3,
+    requestedSource: 'strategy_default',
+    strategyMaximum: 10,
+    marketMaximum: 20,
+    effective: 3,
+    cappedBy: null,
+  });
+  assert.deepEqual(resolveLeverageDecision(
+    { ...executable, suggestedLeverage: 2 }, strategy, market,
+  ), {
+    requested: 2,
+    requestedSource: 'signal',
+    strategyMaximum: 10,
+    marketMaximum: 20,
+    effective: 2,
+    cappedBy: null,
+  });
+  assert.equal(resolveLeverageDecision(
+    { ...executable, suggestedLeverage: 20 }, strategy, { ...market, maxLeverage: 50 },
+  ).cappedBy, 'strategy');
+  assert.deepEqual(resolveLeverageDecision(
+    { ...executable, suggestedLeverage: 8 }, strategy, { ...market, maxLeverage: 5 },
+  ), {
+    requested: 8,
+    requestedSource: 'signal',
+    strategyMaximum: 10,
+    marketMaximum: 5,
+    effective: 5,
+    cappedBy: 'market',
+  });
+  assert.equal(resolveLeverageDecision(
+    { ...executable, suggestedLeverage: 20 }, strategy, { ...market, maxLeverage: 10 },
+  ).cappedBy, 'strategy_and_market');
+
+  const legacy = configuration();
+  legacy.schemaVersion = 3;
+  legacy.sizing.maxLeverage = 5;
+  delete legacy.sizing.defaultLeverage;
+  const legacySignal = { ...executable, suggestedLeverage: undefined };
+  const legacyPlan = createTradingPlan({ ...planInput(legacySignal), strategy: legacy });
+  assert.equal(legacyPlan.leverage, 5);
+  assert.equal(legacyPlan.leverageDecision.requestedSource, 'strategy_default');
+  assert.equal(legacyPlan.leverageDecision.effective, 5);
+
+  for (const positionSizingMode of ['risk_percent', 'equity_percent_notional', 'equity_percent_margin']) {
+    const modeStrategy = structuredClone(strategy);
+    modeStrategy.sizing.positionSizingMode = positionSizingMode;
+    modeStrategy.sizing.defaultLeverage = 4;
+    modeStrategy.sizing.maxPositionNotional = '1000000';
+    const plan = createTradingPlan({
+      ...planInput({ ...executable, suggestedLeverage: undefined }),
+      strategy: modeStrategy,
+    });
+    assert.equal(plan.leverage, 4, `${positionSizingMode} must use the same effective leverage.`);
+    assert.equal(plan.leverageDecision.effective, 4);
+  }
 }
 
 function planInput(executable) {
@@ -981,6 +1084,8 @@ async function runRepositoryTests() {
 }
 
 testDecimalAndStrategyContracts();
+testSignalLeverageContracts();
+testLeverageDecisionContracts();
 testAdaptivePlanContracts();
 testTradingPlanContracts();
 testRiskPriceBoundaries();
