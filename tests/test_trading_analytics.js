@@ -214,6 +214,18 @@ try {
     eventType: 'signal_validated',
     channelId: 'profit-channel',
   }), true);
+  assert.equal(await recordTradingExecutionEvent({
+    eventType: 'signal_validated',
+    exchange: 'x'.repeat(64),
+  }), true);
+  await assert.rejects(recordTradingExecutionEvent({
+    eventType: 'signal_validated',
+    exchange: 'x'.repeat(65),
+  }), /exchange identifier is invalid/);
+  await assert.rejects(recordTradingExecutionEvent({
+    eventType: 'signal_validated',
+    exchange: 'Invalid-Exchange',
+  }), /exchange identifier is invalid/);
   await getDatabase().run(
     `INSERT INTO trading_execution_events (
        id, intent_id, event_type, occurred_at, details_json
