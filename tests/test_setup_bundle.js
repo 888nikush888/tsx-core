@@ -299,6 +299,21 @@ try {
     mutate(candidate);
     assert.throws(() => validatePortableSetupBundle(candidate), error, label);
   }
+  const maximumExchangeIdentifierBundle = structuredClone(bundle);
+  maximumExchangeIdentifierBundle.accountReferences[0].exchange = 'x'.repeat(64);
+  maximumExchangeIdentifierBundle.checksum = checksumBundle(maximumExchangeIdentifierBundle);
+  assert.deepEqual(
+    validatePortableSetupBundle(maximumExchangeIdentifierBundle),
+    maximumExchangeIdentifierBundle,
+    'Portable bundles must preserve every exchange id accepted by the dynamic registry.',
+  );
+  const oversizedExchangeIdentifierBundle = structuredClone(maximumExchangeIdentifierBundle);
+  oversizedExchangeIdentifierBundle.accountReferences[0].exchange += 'x';
+  oversizedExchangeIdentifierBundle.checksum = checksumBundle(oversizedExchangeIdentifierBundle);
+  assert.throws(
+    () => validatePortableSetupBundle(oversizedExchangeIdentifierBundle),
+    /account exchange is invalid/,
+  );
   let nested = {};
   for (let depth = 0; depth < 42; depth += 1) nested = { nested };
   assert.throws(() => assertSetupBundleContainsNoSecrets(nested), /nesting exceeds the safety limit/);
