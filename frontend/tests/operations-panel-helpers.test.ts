@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildJournalQueryString, normalizeJournalSymbol } from "@/app/workflow/operations-panel";
+import {
+  buildJournalQueryString,
+  normalizeJournalSymbol,
+  resolveDisplayedLeverage,
+} from "@/app/workflow/operations-panel";
 
 describe("normalizeJournalSymbol", () => {
   it("trims, uppercases and removes slashes", () => {
@@ -74,5 +78,26 @@ describe("buildJournalQueryString", () => {
     expect(p.get("accountId")).toBe("a1");
     expect(p.get("symbol")).toBe("ETHUSDT");
     expect(p.get("status")).toBe("filled");
+  });
+});
+
+describe("resolveDisplayedLeverage", () => {
+  it("prefers the effective leverage decision for new plans", () => {
+    expect(resolveDisplayedLeverage({
+      leverage: 50,
+      leverageDecision: {
+        source: "signal",
+        requested: 75,
+        strategyDefault: 10,
+        strategyMaximum: 50,
+        effective: 50,
+        capped: true,
+      },
+    })).toBe(50);
+  });
+
+  it("falls back to the legacy leverage field", () => {
+    expect(resolveDisplayedLeverage({ leverage: 20 })).toBe(20);
+    expect(resolveDisplayedLeverage(null)).toBeNull();
   });
 });
