@@ -167,6 +167,16 @@ assert.match(ccxtClient, /CERTIFIED_EXCHANGES = set\(PROFILES\)/);
 assert.match(ccxtProfiles, /"builderFee": False, "approvedBuilderFee": False/);
 assert.match(ccxtRegistry, /certification_result\(/);
 assert.match(ccxtRegistry, /package_version\("ccxt"\)/);
+assert.match(
+  workflow,
+  /-v "\$PWD\/exchange_executor\/tests:\/app\/tests:ro"[\s\S]*?-m unittest discover -s \/app\/tests -v/,
+  'Container verification must mount executor tests below /app so their repository-relative certification fixtures remain valid.',
+);
+assert.doesNotMatch(
+  workflow,
+  /exchange_executor\/tests:\/tests:ro[\s\S]*?-m unittest discover -s \/tests/,
+  'Mounting executor tests at /tests breaks their repository-relative certification evidence lookup.',
+);
 for (const exchange of ['hyperliquid', 'bybit', 'krakenfutures']) {
   const evidence = JSON.parse(await readFile(
     path.join(root, 'exchange_executor', 'certifications', `${exchange}.json`),
