@@ -34,6 +34,7 @@ vi.mock("@xyflow/react", () => ({
 }));
 
 import {
+  historyNavigationNotice,
   workflowSelectionsAfterHistory,
   WorkflowBuilder,
 } from "@/app/workflow/workflow-builder";
@@ -125,6 +126,15 @@ describe("workflow builder history", () => {
     cleanup();
     vi.clearAllMocks();
     flow.props = null;
+  });
+
+  it("formats history navigation notices outside the navigation callback", () => {
+    expect(historyNavigationNotice("Sizing V2 aktivieren", "undo", 3)).toBe(
+      "„Sizing V2 aktivieren“ rückgängig gemacht. Stand wurde als Revision 3 aktiviert.",
+    );
+    expect(historyNavigationNotice(null, "redo", 4)).toBe(
+      "Stand wiederholt. Stand wurde als Revision 4 aktiviert.",
+    );
   });
 
   it("preserves valid selections and removes every stale graph, path and connection reference", () => {
