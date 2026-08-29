@@ -474,6 +474,9 @@ describe("workflow builder resilience", () => {
     );
     if (!mutateCall) throw new Error("Workflow mutation was not submitted.");
     const submitted = JSON.parse((mutateCall[1] as RequestInit).body as string).graph;
+    const submittedRequest = JSON.parse((mutateCall[1] as RequestInit).body as string);
+    expect(submittedRequest.historyLabel).toBe("Verbindung aktiviert");
+    expect(submittedRequest.historyMode).toBeUndefined();
     expect(submitted.schemaVersion).toBe(2);
     expect(submitted.edges).toEqual(
       expect.arrayContaining([
