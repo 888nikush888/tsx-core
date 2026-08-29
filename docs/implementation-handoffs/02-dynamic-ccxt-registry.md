@@ -42,6 +42,7 @@ Phase 2 der Master-Gesamtspezifikation: dynamische Erkennung des installierten C
 - Account-Anlage und UI auf Certification- und Modusprüfung umgestellt; Kandidaten können öffentlich geprüft werden.
 - Dynamische Kennungen durch Datenbank, Telemetrie, Analytics und portable Setup-Bundles geführt.
 - Das vorhandene Komplexitätsbudget nach dem GREEN-Stand ohne Grenzwerterhöhung wiederhergestellt.
+- Einen Gitleaks-Fehlalarm für die feste künstliche Gate.io-Test-Credential-Zeile mit einer regel-, pfad- und formatgebundenen Ausnahme behoben; echte Secrets bleiben erfasst.
 
 ## Betroffene Bereiche
 
@@ -73,6 +74,7 @@ Die Reihenfolge der Coverage-Werte ist Statements/Branches/Functions/Lines.
 - Duplikate: PASS, 0,83 % bei einer Grenze von 5 %.
 - Release-, Risk-Acceptance-, Build-Context-, Lizenz-, Dependency- und SBOM-Gates: PASS.
 - NPM-Audits: PASS, 0 Schwachstellen in Backend und Frontend.
+- Supply-Chain-Test für die enge Gitleaks-Ausnahme: PASS nach dokumentiertem RED/GREEN.
 - Lokales Monitoring-Image-Gate: **NOT RUN**, da Docker Desktop auf der lokalen Maschine nicht aktiv ist. Der GitHub-Lauf muss dieses Gate in der unterstützten Umgebung bestätigen.
 
 ## Bewusste Grenzen

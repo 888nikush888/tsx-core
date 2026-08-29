@@ -23,8 +23,11 @@ Quelle ist Phase 2 der Master-Gesamtspezifikation `TSX-Core_4-Plans_MASTER-Gesam
 | Vollständiger installierter Katalog und Versionsdrift | `exchange_executor/tests/test_phase2_registry.py`, `tests/test_supply_chain.js` | `dc03db3` | `62ebe9c` |
 | Dynamische historische Analytics- und Telemetriegrenzen | `tests/test_trading_analytics.js`, `tests/test_web_server.js` | `5255639` | `62ebe9c` |
 | Vollständige statische Deskriptoren ohne Startup-Netzwerk | `exchange_executor/tests/test_phase2_registry.py` | `0ac86b4` | `62ebe9c` |
+| Gitleaks unterscheidet die feste Test-Credential-Zeile von echten Secrets | `tests/test_supply_chain.js`, `.gitleaks.toml` | `f213553` | `0995fb2` |
 
 Die RED-Tests wurden jeweils vor dem Produktionscode ausgeführt. Die Fehler waren die erwarteten fehlenden Registry-, Migrations-, API-, Credential- oder UI-Verträge. Der Produktionscheckpoint `62ebe9c` machte diese Tests grün. Der anschließende Refactor `f0e2831` beseitigte die vom Komplexitäts-Gate gemeldeten Überschreitungen ohne Contract-Änderung; dieselben Credential-, Migrations- und Webtests liefen danach erneut grün.
+
+Der erste GitHub-Lauf erkannte die bewusst künstliche Gate.io-Credential-Zeile als generischen API-Key. `f213553` belegte zunächst per fehlschlagendem Supply-Chain-Test, dass eine eng begrenzte Ausnahme fehlte. `0995fb2` erlaubt ausschließlich die Regel `generic-api-key`, ausschließlich in `tests/test_dynamic_exchange_registry.js` und ausschließlich für das feste Dummy-Zeilenformat mit dreistelliger Zahl. Echte, abweichende oder an anderen Pfaden liegende Secrets bleiben blockiert.
 
 ## Testbare Garantien
 
@@ -98,4 +101,5 @@ Die neue Exchange-Katalog-Hilfe besitzt direkte Unit-Tests; der bestehende breit
 - GREEN Produktion: `62ebe9c`
 - GREEN Refactor/Komplexität: `f0e2831`
 - Coverage-Ratchet: `47f46d4`
-
+- RED enger Gitleaks-Fixture-Vertrag: `f213553`
+- GREEN enger Gitleaks-Fixture-Vertrag: `0995fb2`
