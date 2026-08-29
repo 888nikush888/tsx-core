@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { closeDb, initDb } from '../src/db.js';
+import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 import {
   listTradingAccounts,
@@ -11,6 +11,7 @@ import {
 } from '../src/trading_repository.js';
 import {
   getActiveWorkflow,
+  getWorkflowBuilderHistoryStatus,
   migrateLegacyTradingRoutesToWorkflow,
   previewWorkflowImpact,
   WORKFLOW_IMPACT_CONFIRMATION,
@@ -35,6 +36,12 @@ try {
   config.xmlParsing.saveToFile = true;
   config.xmlParsing.aiLimits.requestTimeoutMs = 120_000;
 
+  await getDatabase().run(
+    `UPDATE workflow_builder_history SET undo_json = ?, redo_json = ?, updated_at = ? WHERE singleton_id = 1`,
+    [JSON.stringify([{ revisionId: null, label: 'Vor Legacy-Migration', capturedAt: Date.now() }]), '[]', Date.now()],
+  );
+  assert.equal((await getWorkflowBuilderHistoryStatus()).undoCount, 1);
+
   const migrated = await migrateLegacyTradingRoutesToWorkflow(config);
   assert.deepEqual(migrated, { migrated: true, paths: 1, skipped: [] });
   const active = await getActiveWorkflow();
@@ -50,6 +57,8 @@ try {
   assert.match(resources.parser.prompt, /Extract a cryptocurrency trading signal/);
   assert.deepEqual(resources.regex.patterns, ['(?:LONG|SHORT)']);
   assert.equal(resources.output.mode, 'telegram_original');
+  assert.equal((await getWorkflowBuilderHistoryStatus()).undoCount, 0,
+    'A successful legacy migration must invalidate pre-migration builder history.');
 
   assert.deepEqual(
     await migrateLegacyTradingRoutesToWorkflow(config),

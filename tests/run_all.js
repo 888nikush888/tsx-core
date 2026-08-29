@@ -48,6 +48,7 @@ const allTests = [
   'test_trading_core.js',
   'test_workflow_builder.js',
   'test_workflow_history.js',
+  'test_workflow_history_barriers.js',
   'test_workflow_fallback.js',
   'test_workflow_migration.js',
   'test_setup_bundle.js',

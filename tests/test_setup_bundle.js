@@ -15,6 +15,7 @@ import {
 import {
   createWorkflowResourceDraft,
   getActiveWorkflow,
+  getWorkflowBuilderHistoryStatus,
   listWorkflowResources,
   publishWorkflowResource,
   saveWorkflowRevision,
@@ -368,6 +369,14 @@ try {
   delete legacyBundle.workflow.resources.find(item => item.kind === 'sizing').configuration.defaultLeverage;
   legacyBundle.checksum = checksumBundle(legacyBundle);
   assert.deepEqual(validatePortableSetupBundle(legacyBundle), legacyBundle);
+  const historySeed = await saveWorkflowRevision({
+    baseRevisionId: initial.id,
+    graph,
+    actorId: 'test:setup-history-seed',
+    confirmation: WORKFLOW_IMPACT_CONFIRMATION,
+    history: { mode: 'record', label: 'Vor Setup-Import' },
+  });
+  assert.equal((await getWorkflowBuilderHistoryStatus()).undoCount, 1);
   const applied = await applyPortableSetupBundle({
     bundle: legacyBundle,
     accountMappings: suggestion.automatic,
@@ -375,7 +384,7 @@ try {
   });
   assert.equal(applied.importedResources, resources.length);
   const active = await getActiveWorkflow();
-  assert.equal(active.revision, initial.revision + 1);
+  assert.equal(active.revision, historySeed.revision + 1);
   assert.notEqual(active.id, initial.id);
   assert.equal(active.graph.nodes.length, graph.nodes.length);
   assert.equal(active.graph.schemaVersion, 2);
@@ -394,8 +403,18 @@ try {
     (await listSignalContracts()).flatMap(item => item.versions).find(item => item.id === contract.id)?.status,
     'archived',
   );
+  assert.equal((await getWorkflowBuilderHistoryStatus()).undoCount, 0,
+    'A successful replacement import must invalidate all prior builder history.');
 
-  const beforeRollback = active.id;
+  const rollbackSeed = await saveWorkflowRevision({
+    baseRevisionId: active.id,
+    graph: active.graph,
+    actorId: 'test:setup-rollback-history',
+    confirmation: WORKFLOW_IMPACT_CONFIRMATION,
+    history: { mode: 'record', label: 'Vor fehlgeschlagenem Import' },
+  });
+  const historyBeforeRollback = await getWorkflowBuilderHistoryStatus();
+  const beforeRollback = rollbackSeed.id;
   await assert.rejects(
     applyPortableSetupBundle({
       bundle,
@@ -406,6 +425,8 @@ try {
     /simulated configuration failure/,
   );
   assert.equal((await getActiveWorkflow()).id, beforeRollback, 'A failed setup application must roll back its workflow revision.');
+  assert.deepEqual(await getWorkflowBuilderHistoryStatus(), historyBeforeRollback,
+    'A failed setup replacement must roll back its history reset.');
   console.log('Portable setup bundle tests passed.');
 } finally {
   await closeDb().catch(() => undefined);

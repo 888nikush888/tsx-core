@@ -364,9 +364,17 @@ async function testWorkflowResourceFamilyArchiveApi(baseUrl) {
   assert.strictEqual((await response.json()).result.archived.length, 2);
 }
 
-async function testWorkflowRevisionApi(baseUrl) {
+async function testWorkflowRevisionApi(baseUrl, controls) {
   const graph = { schemaVersion: 1, nodes: [], edges: [] };
-  let response = await fetch(`${baseUrl}/api/workflow/impact`, {
+  let response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 403, 'Workflow history metadata must remain administrator-only.');
+  response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    limit: 5, undoCount: 0, redoCount: 0, canUndo: false, canRedo: false,
+    undoLabel: null, redoLabel: null,
+  });
+  response = await fetch(`${baseUrl}/api/workflow/impact`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ baseRevisionId: null, graph }),
@@ -376,11 +384,75 @@ async function testWorkflowRevisionApi(baseUrl) {
   response = await fetch(`${baseUrl}/api/workflow/mutate`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ baseRevisionId: null, graph }),
+    body: JSON.stringify({ baseRevisionId: null, graph, historyLabel: 'Leeren Workflow angelegt' }),
   });
   assert.strictEqual(response.status, 201);
-  const workflow = (await response.json()).workflow;
+  const firstMutation = await response.json();
+  const workflow = firstMutation.workflow;
   assert.strictEqual(workflow.revision, 1);
+  assert.equal(firstMutation.history.undoCount, 1);
+  assert.equal(firstMutation.history.undoLabel, 'Leeren Workflow angelegt');
+
+  response = await fetch(`${baseUrl}/api/workflow/mutate`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      baseRevisionId: workflow.id,
+      graph,
+      historyLabel: 'Zweite Änderung',
+      historyMode: 'reset',
+    }),
+  });
+  assert.strictEqual(response.status, 201);
+  const secondMutation = await response.json();
+  assert.equal(secondMutation.history.undoCount, 2, 'The server must force record mode and ignore a client historyMode.');
+
+  response = await fetch(`${baseUrl}/api/workflow/history/impact`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ direction: 'undo', baseRevisionId: secondMutation.workflow.id }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.equal((await response.json()).impact.destructive, false);
+
+  response = await fetch(`${baseUrl}/api/workflow/history/apply`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      direction: 'undo',
+      baseRevisionId: secondMutation.workflow.id,
+      confirmation: null,
+      targetRevisionId: 'browser-must-not-select-this',
+    }),
+  });
+  assert.strictEqual(response.status, 200);
+  const undone = await response.json();
+  assert.equal(undone.workflow.revision, 3);
+  assert.equal(undone.history.undoCount, 1);
+  assert.equal(undone.history.redoCount, 1);
+  assert.equal(undone.targetRevisionId, undefined, 'History responses must not expose selectable target IDs.');
+
+  response = await fetch(`${baseUrl}/api/workflow/history/apply`, {
+    method: 'POST',
+    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ direction: 'redo', baseRevisionId: undone.workflow.id, confirmation: null }),
+  });
+  assert.strictEqual(response.status, 200);
+  const redone = await response.json();
+  assert.equal(redone.workflow.revision, 4);
+  assert.equal(redone.history.undoCount, 2);
+  assert.equal(redone.history.redoCount, 0);
+  const applyAudit = controls.auditEvents.find(event =>
+    event.phase === 'completed' && event.path === '/api/workflow/history/apply' && event.statusCode === 200);
+  assert.ok(applyAudit, 'History apply must create a completed durable audit event.');
+  assert.equal(applyAudit.action, 'workflow.history.apply');
+  assert.equal(applyAudit.target.direction, 'undo');
+  assert.equal(applyAudit.target.fromRevisionId, secondMutation.workflow.id);
+  assert.equal(applyAudit.target.targetSourceRevisionId, workflow.id);
+  assert.equal(applyAudit.target.newRevisionId, undone.workflow.id);
+  assert.match(applyAudit.target.sourceDefinitionSha256, /^[a-f0-9]{64}$/);
+  assert.match(applyAudit.target.newDefinitionSha256, /^[a-f0-9]{64}$/);
+  assert.equal(typeof applyAudit.target.impact.destructive, 'boolean');
 
   response = await fetch(`${baseUrl}/api/workflow/simulate`, {
     method: 'POST',
@@ -405,7 +477,7 @@ async function testWorkflowRevisionApi(baseUrl) {
   response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
   const workflowSnapshot = await response.json();
-  assert.strictEqual(workflowSnapshot.workflow.id, workflow.id);
+  assert.strictEqual(workflowSnapshot.workflow.id, redone.workflow.id);
   assert.deepEqual(workflowSnapshot.fallbackRuns, []);
 }
 
@@ -413,7 +485,7 @@ async function testWorkflowControlPlane(baseUrl, appState) {
   await testExchangeCatalogApi(baseUrl, appState);
   await testWorkflowResourceApi(baseUrl);
   await testWorkflowResourceFamilyArchiveApi(baseUrl);
-  await testWorkflowRevisionApi(baseUrl);
+  await testWorkflowRevisionApi(baseUrl, appState.controls);
 }
 
 async function testSetupBundleApi(baseUrl, controls, appState) {
