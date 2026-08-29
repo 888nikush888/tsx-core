@@ -123,7 +123,7 @@ function assertCryptoShaurmaGrounding() {
   const xml = `<signal><action>LONG</action><pair>ICNTUSDT</pair>
 <entry_range><min>0.1205</min><max>0.1205</max></entry_range>
 <targets><target id="1">0.1226</target><target id="2">0.1240</target><target id="3">0.1255</target><target id="4">0.1290</target><target id="5">0.1340</target></targets>
-<stoploss>0.1174</stoploss><leverage>15.87</leverage></signal>`;
+<stoploss>0.1174</stoploss><leverage>15</leverage></signal>`;
   const source = `#ICNT LONG — вход отложенный, не сейчас (!), а строго по указанной цене.
 Биржа / Exchange: ByBit
 Вход / Entry: 0.1205
@@ -133,13 +133,17 @@ TP3: 0.1255
 TP4: 0.1290
 TP5: 0.1340
 Stoploss: 0.1174
-В этом трейде используем кросс-плечо x15.87 на 5.00% депозита.`;
+В этом трейде используем кросс-плечо x15 на 5.00% депозита.`;
   const signal = validateSignalXml(xml, undefined, selection);
   assert.equal(signal.execution.suggestedLeverage, 15);
   assert.doesNotThrow(() => assertSignalGrounded(signal, source));
   assert.throws(
-    () => assertSignalGrounded(signal, source.replace('x15.87', 'x16.87')),
-    /15\.87.*not grounded|field 'leverage'.*does not exactly match/,
+    () => validateSignalXml(xml.replace('<leverage>15</leverage>', '<leverage>15.87</leverage>'), undefined, selection),
+    /integer between 1 and 125/,
+  );
+  assert.throws(
+    () => assertSignalGrounded(signal, source.replace('x15', 'x16')),
+    /not grounded|field 'leverage'.*does not exactly match/,
   );
 }
 
