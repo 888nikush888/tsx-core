@@ -925,15 +925,81 @@ test("connections can be created from a clear block action and deleted from the 
     .getByRole("button", { name: /Connection target/ })
     .click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
+  await expect(page.getByText("Revision 2", { exact: true })).toBeVisible();
   const connectionDialog = page.getByRole("dialog", {
     name: "Connection source → Connection target",
   });
+  await expect(connectionDialog).toBeVisible();
+  await connectionDialog.getByRole("button", { name: "Dialog schließen" }).click();
+  await page.getByRole("button", { name: /„Verbindung aktiviert“ rückgängig machen/ }).click();
+  await expect(page.locator(".react-flow__edge")).toHaveCount(0);
+  await expect(page.getByText("Revision 3", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /„Verbindung aktiviert“ wiederholen/ }).click();
+  await expect(page.locator(".react-flow__edge")).toHaveCount(1);
+  await expect(page.getByText("Revision 4", { exact: true })).toBeVisible();
+  await page.locator(".react-flow__edge").click();
   await expect(connectionDialog).toBeVisible();
   await connectionDialog
     .getByRole("button", { name: "Verbindung löschen" })
     .click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(0);
   await expect(page.locator(".workflow-node")).toHaveCount(2);
+});
+
+test("sizing resource history restores exact default leverage versions", async ({ page }) => {
+  const resources = [{
+    id: "sizing-v1",
+    resourceId: "sizing",
+    version: 1,
+    kind: "sizing",
+    name: "Sizing",
+    description: "Versioned sizing",
+    status: "published",
+    configuration: {
+      positionSizingMode: "equity_percent_margin",
+      riskPerTradePercent: "5",
+      maxAdaptiveRiskPercent: "10",
+      maxPositionNotional: "1000000",
+      defaultLeverage: 3,
+      maxLeverage: 50,
+    },
+    configurationSha256: "a".repeat(64),
+    createdAt: 1,
+    publishedAt: 1,
+  }];
+  const workflow = {
+    id: "revision-1",
+    revision: 1,
+    createdAt: 1,
+    graph: {
+      schemaVersion: 1,
+      nodes: [{
+        id: "node-sizing",
+        kind: "sizing",
+        resourceVersionId: "sizing-v1",
+        position: { x: 0, y: 0 },
+      }],
+      edges: [],
+    },
+    compiled: { paths: [], warnings: [] },
+  };
+  await mockDashboardApi(page, false, resources, workflow);
+  await page.goto("/");
+  await openBuilderWorkspace(page);
+  const sizingNode = page.locator('.react-flow__node[data-id="node-sizing"]');
+  await expect(sizingNode).toContainText("Hebel 3×/50×");
+  await sizingNode.click();
+  const editor = page.getByRole("dialog", { name: "Baustein bearbeiten" });
+  await editor.getByLabel("Standard-Hebel").fill("7");
+  await editor.getByRole("button", { name: "Version speichern & aktivieren" }).click();
+  await expect(sizingNode).toContainText("Hebel 7×/50×");
+  await expect(page.getByText("Revision 2", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /„Sizing aktualisiert“ rückgängig machen/ }).click();
+  await expect(sizingNode).toContainText("Hebel 3×/50×");
+  await expect(page.getByText("Revision 3", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /„Sizing aktualisiert“ wiederholen/ }).click();
+  await expect(sizingNode).toContainText("Hebel 7×/50×");
+  await expect(page.getByText("Revision 4", { exact: true })).toBeVisible();
 });
 
 test("builder dialogs expose names, trap keyboard focus and close without accessibility violations", async ({
