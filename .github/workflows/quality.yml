@@ -357,7 +357,7 @@ jobs:
           docker run --rm --entrypoint /nodejs/bin/node tsx-core:${{ github.sha }} -e "Promise.all([import('sqlite3'),import('tdl'),import('prebuilt-tdlib')]).then(()=>console.log('native-import-ok')).catch(error=>{console.error(error);process.exit(1)})"
           test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
           docker run --rm --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -c "from importlib.metadata import version; import ccxt.async_support, ccxt.pro; assert version('ccxt') == '4.5.75'"
-          docker run --rm -e PYTHONPATH=/app -v "$PWD/exchange_executor/tests:/tests:ro" --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -m unittest discover -s /tests -v
+          docker run --rm -e PYTHONPATH=/app -v "$PWD/exchange_executor/tests:/app/tests:ro" --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -m unittest discover -s /app/tests -v
           test "$(docker image inspect tsx-core-prometheus:${{ github.sha }} --format '{{.Architecture}}/{{.Config.User}}')" = amd64/65534:65534
           docker run --rm --entrypoint /usr/bin/prometheus tsx-core-prometheus:${{ github.sha }} --version
           docker run --rm --entrypoint /usr/bin/promtool tsx-core-prometheus:${{ github.sha }} --version
