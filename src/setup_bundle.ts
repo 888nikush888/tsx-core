@@ -673,6 +673,7 @@ export async function applyPortableSetupBundle(input: {
       graph: remapImportedGraph(bundle, resourceMap),
       actorId: input.actorId,
       confirmation: WORKFLOW_IMPACT_CONFIRMATION,
+      history: { mode: 'reset' },
     });
     await archiveReplacedResources(importedResourceIds);
     await retireReplacedModels(maps);

@@ -8,7 +8,6 @@ import {
   archiveTradingStrategyVersion,
   createSignalContract,
   createTradingAccount,
-  createTradingSignalSchema,
   createTradingStrategyDraft,
   deleteSignalContractDraft,
   deleteSignalContractVersion,
@@ -16,6 +15,7 @@ import {
   deleteTradingSignalSchema,
   deleteTradingStrategyVersion,
   listSignalContracts,
+  listTradingSignalSchemas,
   listTradingStrategies,
   publishSignalContractVersion,
   publishTradingStrategyVersion,
@@ -100,14 +100,8 @@ try {
   const deletableStrategy = await publishTradingStrategyVersion(deletableStrategyDraft.id);
   await assertResetAfter('published strategy delete', () => deleteTradingStrategyVersion(deletableStrategy.id));
 
-  const schemaContract = await publishedContract('barrier-schema-contract', referenceContract.definition);
-  const schema = await createTradingSignalSchema({
-    id: 'barrier-schema',
-    name: 'Barrier schema',
-    contractVersionId: schemaContract.id,
-    templateName: 'default',
-    enabled: true,
-  });
+  const schema = (await listTradingSignalSchemas())[0];
+  assert.ok(schema);
   await assertResetAfter('signal schema delete', () => deleteTradingSignalSchema(schema.id));
 
   const archivableContract = await publishedContract('barrier-archive-contract', referenceContract.definition);

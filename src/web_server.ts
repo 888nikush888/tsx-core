@@ -49,9 +49,12 @@ import {
   createWorkflowResourceDraft,
   deleteWorkflowResourceDraft,
   getActiveWorkflow,
+  getWorkflowBuilderHistoryStatus,
   listWorkflowResources,
   listWorkflowFallbackRuns,
+  applyWorkflowBuilderHistory,
   publishWorkflowResource,
+  previewWorkflowBuilderHistoryImpact,
   previewWorkflowImpact,
   saveWorkflowRevision,
   simulateWorkflow,
@@ -343,6 +346,8 @@ function semanticMutationAction(method: string, url: string): string {
     '/api/database': 'database.clear',
     '/api/outbox/retry': 'outbox.retry',
     '/api/outbox/acknowledge': 'outbox.acknowledge',
+    '/api/workflow/history/impact': 'workflow.history.impact',
+    '/api/workflow/history/apply': 'workflow.history.apply',
   };
   if (known[url]) return known[url];
   if (url.startsWith('/api/trading/')) {
@@ -1664,6 +1669,18 @@ async function workflowSnapshotHandler(context: RequestContext): Promise<void> {
   }
 }
 
+async function workflowHistoryStatusHandler(context: RequestContext): Promise<void> {
+  if (context.actor?.role !== 'admin') {
+    sendJson(context.res, 403, { error: 'Administrator role required.', requestId: context.requestId });
+    return;
+  }
+  try {
+    sendJson(context.res, 200, await getWorkflowBuilderHistoryStatus());
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
 async function saveWorkflowHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req, 2 * 1024 * 1024);
@@ -1672,8 +1689,44 @@ async function saveWorkflowHandler(context: RequestContext): Promise<void> {
       graph: payload.graph,
       actorId: context.actor?.id || 'dashboard:admin',
       confirmation: payload.confirmation ?? null,
+      history: { mode: 'record', label: payload.historyLabel },
     });
-    sendJson(context.res, 201, { success: true, workflow, requestId: context.requestId });
+    const history = await getWorkflowBuilderHistoryStatus();
+    sendJson(context.res, 201, { success: true, workflow, history, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function previewWorkflowHistoryImpactHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 64 * 1024);
+    const impact = await previewWorkflowBuilderHistoryImpact({
+      direction: payload.direction,
+      baseRevisionId: payload.baseRevisionId ?? null,
+    });
+    sendJson(context.res, 200, { success: true, impact, requestId: context.requestId });
+  } catch (error) {
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
+}
+
+async function applyWorkflowHistoryHandler(context: RequestContext): Promise<void> {
+  try {
+    const payload = await readJsonBody(context.req, 64 * 1024);
+    const result = await applyWorkflowBuilderHistory({
+      direction: payload.direction,
+      baseRevisionId: payload.baseRevisionId ?? null,
+      actorId: context.actor?.id || 'dashboard:admin',
+      confirmation: payload.confirmation ?? null,
+    });
+    if (context.mutationAudit) context.mutationAudit.target = result.audit;
+    sendJson(context.res, 200, {
+      success: true,
+      workflow: result.workflow,
+      history: result.history,
+      requestId: context.requestId,
+    });
   } catch (error) {
     sendError(context, new HttpError(409, errorMessage(error)));
   }
@@ -2075,8 +2128,11 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/emergency-flatten', emergencyFlattenHandler],
   ['POST /api/trading/risk/acknowledge', acknowledgeTradingRiskHandler],
   ['GET /api/workflow', workflowSnapshotHandler],
+  ['GET /api/workflow/history', workflowHistoryStatusHandler],
   ['POST /api/workflow/mutate', saveWorkflowHandler],
   ['POST /api/workflow/impact', previewWorkflowImpactHandler],
+  ['POST /api/workflow/history/impact', previewWorkflowHistoryImpactHandler],
+  ['POST /api/workflow/history/apply', applyWorkflowHistoryHandler],
   ['POST /api/workflow/simulate', simulateWorkflowHandler],
   ['POST /api/workflow/resources', createWorkflowResourceHandler],
   ['POST /api/workflow/resources/update', updateWorkflowResourceHandler],

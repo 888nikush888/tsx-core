@@ -537,16 +537,20 @@ export async function publishWorkflowResource(id: string, now = Date.now()): Pro
 }
 
 export async function archiveWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
-  const active = await getActiveWorkflow();
-  if (active?.graph.nodes.some(node => node.resourceVersionId === id)) {
-    throw new Error('The active workflow must stop referencing this resource before it can be archived.');
-  }
-  const result = await getDatabase().run(
-    `UPDATE workflow_resource_versions SET status = 'archived', archived_at = ? WHERE id = ? AND status = 'published'`,
-    [now, id],
-  );
-  if (Number(result.changes || 0) !== 1) throw new Error('Only a published workflow resource can be archived.');
-  return resourceFromRow(await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]));
+  return withDatabaseTransaction(async () => {
+    const active = await getActiveWorkflow();
+    if (active?.graph.nodes.some(node => node.resourceVersionId === id)) {
+      throw new Error('The active workflow must stop referencing this resource before it can be archived.');
+    }
+    const result = await getDatabase().run(
+      `UPDATE workflow_resource_versions SET status = 'archived', archived_at = ? WHERE id = ? AND status = 'published'`,
+      [now, id],
+    );
+    if (Number(result.changes || 0) !== 1) throw new Error('Only a published workflow resource can be archived.');
+    const archived = resourceFromRow(await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]));
+    await clearWorkflowBuilderHistory('published workflow resource archived', now);
+    return archived;
+  });
 }
 
 export async function archiveWorkflowResourceFamily(
@@ -576,10 +580,12 @@ export async function archiveWorkflowResourceFamily(
     if (Number(result.changes || 0) !== rows.length) {
       throw new Error('The workflow resource family changed while it was being archived.');
     }
-    return (await database.all<any[]>(
+    const archived = (await database.all<any[]>(
       'SELECT * FROM workflow_resource_versions WHERE resource_id = ? ORDER BY version',
       [logicalId],
     )).filter(row => publishedIds.has(String(row.id))).map(resourceFromRow);
+    await clearWorkflowBuilderHistory('published workflow resource family archived', now);
+    return archived;
   });
 }
 

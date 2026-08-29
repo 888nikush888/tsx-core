@@ -29,6 +29,7 @@ import type {
   TradingSignalSchema,
 } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
+import { clearWorkflowBuilderHistory } from './workflow_repository.js';
 
 function boolean(value: unknown): boolean {
   return Number(value) === 1;
@@ -327,24 +328,28 @@ export async function publishSignalContractVersion(versionId: unknown, now = Dat
 
 export async function archiveSignalContractVersion(versionId: unknown, now = Date.now()): Promise<SignalContractVersion> {
   const id = contractVersionIdentifier(versionId);
-  const used = await getDatabase().get<{ count: number }>(
-    `SELECT COUNT(*) AS count FROM trading_signal_schemas
-     WHERE contract_version_id = ? AND enabled = 1`,
-    [id],
-  );
-  if (Number(used?.count || 0) > 0) {
-    throw new Error('Enabled signal schema profiles must be moved before archiving this contract version.');
-  }
-  const result = await getDatabase().run(
-    `UPDATE trading_signal_contract_versions SET status = 'archived', archived_at = ?
-     WHERE id = ? AND status = 'published'`,
-    [now, id],
-  );
-  if (Number(result.changes || 0) !== 1) throw new Error('Only a published contract version can be archived.');
-  return contractVersionFromRow(await getDatabase().get(
-    'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
-    [id],
-  ));
+  return transaction(async () => {
+    const used = await getDatabase().get<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM trading_signal_schemas
+       WHERE contract_version_id = ? AND enabled = 1`,
+      [id],
+    );
+    if (Number(used?.count || 0) > 0) {
+      throw new Error('Enabled signal schema profiles must be moved before archiving this contract version.');
+    }
+    const result = await getDatabase().run(
+      `UPDATE trading_signal_contract_versions SET status = 'archived', archived_at = ?
+       WHERE id = ? AND status = 'published'`,
+      [now, id],
+    );
+    if (Number(result.changes || 0) !== 1) throw new Error('Only a published contract version can be archived.');
+    const archived = contractVersionFromRow(await getDatabase().get(
+      'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
+      [id],
+    ));
+    await clearWorkflowBuilderHistory('published signal contract archived', now);
+    return archived;
+  });
 }
 
 async function signalContractVersionDeletionTarget(
@@ -395,6 +400,7 @@ export async function deleteSignalContractVersion(versionId: unknown): Promise<b
       throw new Error('Signal schema profiles must be moved or deleted before deleting this contract version.');
     }
     await removeSignalContractVersionRecord(id, row.contractId);
+    await clearWorkflowBuilderHistory('published signal contract deleted');
     return true;
   });
 }
@@ -510,7 +516,9 @@ export async function deleteTradingSignalSchema(id: string): Promise<boolean> {
   return transaction(async () => {
     await assertSignalSchemaNotActivelyRouted(normalizedId);
     const result = await getDatabase().run('DELETE FROM trading_signal_schemas WHERE id = ?', [normalizedId]);
-    return Number(result.changes || 0) === 1;
+    const deleted = Number(result.changes || 0) === 1;
+    if (deleted) await clearWorkflowBuilderHistory('signal schema deleted');
+    return deleted;
   });
 }
 
@@ -1303,15 +1311,19 @@ export async function acknowledgeTradingRiskEvent(id: string, now = Date.now()):
 }
 
 export async function archiveTradingStrategyVersion(id: string): Promise<TradingStrategyVersion> {
-  const activeRoute = await getDatabase().get<{ count: number }>(
-    'SELECT COUNT(*) AS count FROM trading_routes WHERE strategy_version_id = ? AND enabled = 1', [id],
-  );
-  if (Number(activeRoute?.count || 0) > 0) throw new Error('An active routed strategy version cannot be archived.');
-  const result = await getDatabase().run(
-    "UPDATE trading_strategy_versions SET status = 'archived' WHERE id = ? AND status = 'published'", [id],
-  );
-  if (Number(result.changes || 0) !== 1) throw new Error('Only a published strategy version can be archived.');
-  return (await getTradingStrategyVersion(id))!;
+  return transaction(async () => {
+    const activeRoute = await getDatabase().get<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM trading_routes WHERE strategy_version_id = ? AND enabled = 1', [id],
+    );
+    if (Number(activeRoute?.count || 0) > 0) throw new Error('An active routed strategy version cannot be archived.');
+    const result = await getDatabase().run(
+      "UPDATE trading_strategy_versions SET status = 'archived' WHERE id = ? AND status = 'published'", [id],
+    );
+    if (Number(result.changes || 0) !== 1) throw new Error('Only a published strategy version can be archived.');
+    const archived = (await getTradingStrategyVersion(id))!;
+    await clearWorkflowBuilderHistory('published trading strategy archived');
+    return archived;
+  });
 }
 
 export async function deleteTradingStrategyVersion(id: string): Promise<boolean> {
@@ -1335,7 +1347,9 @@ export async function deleteTradingStrategyVersion(id: string): Promise<boolean>
       throw new Error('Strategy deletion requires all channel routes using this version to be removed first.');
     }
     const result = await getDatabase().run('DELETE FROM trading_strategy_versions WHERE id = ?', [id]);
-    return Number(result.changes || 0) === 1;
+    const deleted = Number(result.changes || 0) === 1;
+    if (deleted) await clearWorkflowBuilderHistory('published trading strategy deleted');
+    return deleted;
   });
 }
 
@@ -1351,7 +1365,9 @@ export async function deleteTradingAccount(id: string): Promise<boolean> {
       throw new Error('Account deletion requires all routes to be removed and no retained trade history. Disable it instead.');
     }
     const result = await getDatabase().run('DELETE FROM trading_accounts WHERE id = ?', [id]);
-    return Number(result.changes || 0) === 1;
+    const deleted = Number(result.changes || 0) === 1;
+    if (deleted) await clearWorkflowBuilderHistory('trading account deleted');
+    return deleted;
   });
 }
 
