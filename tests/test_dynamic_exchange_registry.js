@@ -4,9 +4,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb, LATEST_SCHEMA_VERSION } from '../src/db.js';
 import { ExchangeCatalogClient } from '../src/exchange_catalog.js';
+import { PaperExchangeAdapter } from '../src/paper_exchange.js';
+import { TradingCredentialStore } from '../src/trading_credentials.js';
 import { TradingEngine } from '../src/trading_engine.js';
 import { createTradingAccount } from '../src/trading_repository.js';
 import { TRADING_EXCHANGE_ID_PATTERN, tradingExchangeId } from '../src/trading_types.js';
+import { TradingWebControl } from '../src/trading_web_control.js';
 
 assert.equal(LATEST_SCHEMA_VERSION, 19, 'Phase 2 must add migration 19.');
 assert.equal(tradingExchangeId('okx'), 'okx');
@@ -95,6 +98,78 @@ try {
     'idx_exchange_events_type_time',
   ]) assert.equal(indexes.has(expected), true, `Migration 19 must preserve ${expected}.`);
   assert.deepEqual(await getDatabase().all('PRAGMA foreign_key_check'), []);
+
+  const credentials = new TradingCredentialStore(path.join(directory, 'secrets'));
+  await credentials.initialize();
+  const paper = new PaperExchangeAdapter();
+  const dynamicEngine = new TradingEngine([paper]);
+  const registered = [];
+  const gateioAdapter = {
+    exchange: 'gateio',
+    verifyAccount: async () => ({
+      verified: true,
+      equity: '1000',
+      externalAccountId: '9'.repeat(64),
+      capabilities: { reportingCurrency: 'USDT' },
+    }),
+    accountSnapshot: async () => ({}),
+    marketSnapshot: async () => ({}),
+    submitOrder: async () => ({}),
+    cancelOrder: async () => ({}),
+    openState: async () => ({ orders: [], positions: [], fills: [], observedAt: Date.now() }),
+  };
+  const controlCatalog = {
+    browserCatalog: async () => ({
+      implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
+      exchanges: [
+        {
+          id: 'gateio', name: 'Gate.io', status: 'certified', reason: null, provider: 'ccxt',
+          ccxt: { rest: true, pro: true }, markets: { linearSwap: true },
+          credentialFields: [
+            { id: 'apiKey', label: 'API Key', required: true, secret: true },
+            { id: 'secret', label: 'API Secret', required: true, secret: true },
+          ],
+          modes: ['testnet', 'live'], capabilities: {},
+        },
+        {
+          id: 'okx', name: 'OKX', status: 'candidate', reason: null, provider: 'ccxt',
+          ccxt: { rest: true, pro: true }, markets: { linearSwap: true },
+          credentialFields: [], modes: [], capabilities: {},
+        },
+      ],
+    }),
+    probe: async exchange => ({ id: exchange, status: 'candidate' }),
+  };
+  const control = new TradingWebControl(
+    credentials,
+    paper,
+    [],
+    dynamicEngine,
+    null,
+    controlCatalog,
+    exchange => {
+      registered.push(exchange);
+      if (exchange !== 'gateio') throw new Error('Unexpected adapter creation.');
+      return gateioAdapter;
+    },
+  );
+  await assert.rejects(
+    control.createAccount({
+      name: 'Blocked candidate', exchange: 'okx', mode: 'testnet',
+      maxConcurrentPositions: 2, credentials: {},
+    }),
+    /certified/i,
+  );
+  const created = await control.createAccount({
+    name: 'Certified dynamic account', exchange: 'gateio', mode: 'testnet',
+    maxConcurrentPositions: 2,
+    credentials: { apiKey: 'gateio-key-123', secret: 'gateio-secret-123' },
+  });
+  assert.equal(created.exchange, 'gateio');
+  assert.equal(created.status, 'ready');
+  assert.deepEqual(registered, ['gateio']);
+  assert.equal((await control.exchangeCatalog()).exchanges[0].id, 'gateio');
+  assert.equal((await control.probeExchange('okx')).status, 'candidate');
 } finally {
   await closeDb();
   await rm(directory, { recursive: true, force: true });
