@@ -689,8 +689,8 @@ function dynamicOptionalValues(root: XmlNode, definition: SignalContractDefiniti
   const leverage = definition.leveragePath
     ? contractDecimal(root, definition.leveragePath, false)
     : undefined;
-  if (leverage && (compareDecimals(leverage, '1') < 0 || compareDecimals(leverage, '125') > 0)) {
-    throw new SignalValidationError('Leverage must be between 1 and 125.');
+  if (leverage && (!/^[1-9]\d{0,2}$/.test(leverage) || Number(leverage) > 125)) {
+    throw new SignalValidationError('Leverage must be an integer between 1 and 125.');
   }
   const risk = definition.riskPercentPath
     ? contractDecimal(root, definition.riskPercentPath, false)
@@ -772,7 +772,7 @@ function validateDynamicContract(
       entry: entry ? { type: 'range', ...entry } : { type: 'market' },
       targets,
       stopLoss,
-      suggestedLeverage: optional.leverage ? Math.floor(Number(optional.leverage)) : undefined,
+      suggestedLeverage: optional.leverage ? Number(optional.leverage) : undefined,
       suggestedRiskPercent: optional.risk,
       averagingPrice: optional.averaging,
     },

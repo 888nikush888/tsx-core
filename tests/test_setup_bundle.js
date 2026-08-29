@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -27,6 +28,18 @@ import {
   validatePortableSetupBundle,
 } from '../src/setup_bundle.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
+
+function checksumBundle(bundle) {
+  const canonical = value => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(Object.keys(value).sort((left, right) => left.localeCompare(right))
+      .map(key => [key, canonical(value[key])]));
+  };
+  const payload = structuredClone(bundle);
+  delete payload.checksum;
+  return createHash('sha256').update(JSON.stringify(canonical(payload))).digest('hex');
+}
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-setup-bundle-'));
 try {
@@ -88,6 +101,9 @@ try {
   assert.equal(bundle.accountReferences.length, 2);
   assert.equal(bundle.workflow.graph.schemaVersion, 2);
   assert.equal(bundle.workflow.graph.edges.at(-1).kind, 'account_fallback');
+  assert.equal(bundle.models.strategies[0].configuration.schemaVersion, 4);
+  assert.equal(bundle.models.strategies[0].configuration.sizing.defaultLeverage, 3);
+  assert.equal(bundle.workflow.resources.find(item => item.kind === 'sizing').configuration.defaultLeverage, 50);
   assert.doesNotMatch(JSON.stringify(bundle), /credentialRef|apiSecret|privateKey|bearerToken/i);
   assert.deepEqual(validatePortableSetupBundle(bundle), bundle);
 
@@ -331,8 +347,14 @@ try {
     applyPortableSetupBundle({ bundle, accountMappings: {}, actorId: 'test:missing-map' }),
     /not mapped to a verified compatible local account/,
   );
+  const legacyBundle = structuredClone(bundle);
+  legacyBundle.models.strategies[0].configuration.schemaVersion = 3;
+  delete legacyBundle.models.strategies[0].configuration.sizing.defaultLeverage;
+  delete legacyBundle.workflow.resources.find(item => item.kind === 'sizing').configuration.defaultLeverage;
+  legacyBundle.checksum = checksumBundle(legacyBundle);
+  assert.deepEqual(validatePortableSetupBundle(legacyBundle), legacyBundle);
   const applied = await applyPortableSetupBundle({
-    bundle,
+    bundle: legacyBundle,
     accountMappings: suggestion.automatic,
     actorId: 'test:setup-import',
   });
@@ -347,6 +369,10 @@ try {
   const activeResourceIds = new Set(active.graph.nodes.map(node => node.resourceVersionId));
   assert.equal(activeResourceIds.size, resources.length);
   assert.ok((await listWorkflowResources()).filter(item => item.status === 'published').every(item => activeResourceIds.has(item.id)));
+  const importedStrategy = (await listTradingStrategies()).find(item => item.status === 'published');
+  assert.equal(importedStrategy.configuration.schemaVersion, 4);
+  assert.equal(importedStrategy.configuration.sizing.defaultLeverage, 3);
+  assert.equal((await listWorkflowResources('sizing')).find(item => item.status === 'published').configuration.defaultLeverage, 50);
   assert.equal((await listTradingStrategies()).find(item => item.id === strategy.id)?.status, 'archived');
   assert.equal((await listTradingSignalSchemas()).find(item => item.id === schema.id)?.enabled, false);
   assert.equal(

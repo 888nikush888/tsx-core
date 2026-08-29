@@ -15,7 +15,7 @@ export function signalSchemaIdentifier(value: unknown, label = 'Signal schema id
 }
 
 export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   allowedSignalSchemas: ['standard', 'cryptodanielvip', 'loma'],
   allowedSymbols: [],
   allowedSides: ['LONG', 'SHORT'],
@@ -30,6 +30,7 @@ export const DEFAULT_STRATEGY_CONFIGURATION: StrategyConfiguration = {
     riskPerTradePercent: '1',
     maxAdaptiveRiskPercent: '1',
     maxPositionNotional: '1000',
+    defaultLeverage: 3,
     maxLeverage: 3,
   },
   exits: {
@@ -78,7 +79,7 @@ function exactKeys(value: Record<string, any>, name: string, keys: string[]): vo
 function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
   'schemaVersion' | 'allowedSignalSchemas' | 'allowedSymbols' | 'allowedSides'
 > {
-  if (![1, 2, 3].includes(value.schemaVersion)) throw new Error('Unsupported strategy schema version.');
+  if (![1, 2, 3, 4].includes(value.schemaVersion)) throw new Error('Unsupported strategy schema version.');
   if (!Array.isArray(value.allowedSignalSchemas) || value.allowedSignalSchemas.some(schema => typeof schema !== 'string')) {
     throw new Error('allowedSignalSchemas must be an array of strings.');
   }
@@ -112,10 +113,11 @@ function validateEntry(input: unknown): StrategyConfiguration['entry'] {
   };
 }
 
-function validateSizing(input: unknown, schemaVersion: 1 | 2 | 3): StrategyConfiguration['sizing'] {
+function validateSizing(input: unknown, schemaVersion: 1 | 2 | 3 | 4): StrategyConfiguration['sizing'] {
   const value = object(input, 'sizing');
   exactKeys(value, 'sizing', [
-    'positionSizingMode', 'riskPerTradePercent', 'maxAdaptiveRiskPercent', 'maxPositionNotional', 'maxLeverage',
+    'positionSizingMode', 'riskPerTradePercent', 'maxAdaptiveRiskPercent', 'maxPositionNotional',
+    'defaultLeverage', 'maxLeverage',
   ]);
   const positionSizingMode = value.positionSizingMode ?? 'risk_percent';
   if (!['risk_percent', 'equity_percent_notional', 'equity_percent_margin'].includes(positionSizingMode)) {
@@ -128,12 +130,23 @@ function validateSizing(input: unknown, schemaVersion: 1 | 2 | 3): StrategyConfi
   if (maxAdaptiveRiskPercent && compareDecimal(maxAdaptiveRiskPercent, riskPerTradePercent) < 0) {
     throw new Error('sizing.maxAdaptiveRiskPercent must not be below the baseline risk.');
   }
+  const maxLeverage = integer(value.maxLeverage, 'sizing.maxLeverage', 1, 50);
+  if (schemaVersion === 4 && value.defaultLeverage === undefined) {
+    throw new Error('sizing.defaultLeverage is required for strategy schema version 4.');
+  }
+  const defaultLeverage = value.defaultLeverage === undefined
+    ? maxLeverage
+    : integer(value.defaultLeverage, 'sizing.defaultLeverage', 1, 50);
+  if (defaultLeverage > maxLeverage) {
+    throw new Error('sizing.defaultLeverage must not exceed sizing.maxLeverage.');
+  }
   return {
     positionSizingMode,
     riskPerTradePercent,
     ...(maxAdaptiveRiskPercent ? { maxAdaptiveRiskPercent } : {}),
     maxPositionNotional: decimal(value.maxPositionNotional, { positive: true }),
-    maxLeverage: integer(value.maxLeverage, 'sizing.maxLeverage', 1, 50),
+    defaultLeverage,
+    maxLeverage,
   };
 }
 
@@ -180,7 +193,7 @@ function validateExits(input: unknown): StrategyConfiguration['exits'] {
   };
 }
 
-function validateSafety(input: unknown, schemaVersion: 1 | 2 | 3): StrategyConfiguration['safety'] {
+function validateSafety(input: unknown, schemaVersion: 1 | 2 | 3 | 4): StrategyConfiguration['safety'] {
   const value = object(input, 'safety');
   const supportedKeys = [
     'maxDailyLossMode', 'maxDailyLoss', 'maxSlippagePercent',
@@ -224,6 +237,19 @@ export function validateStrategyConfiguration(input: unknown): StrategyConfigura
   };
 }
 
+/** Normalize any accepted legacy strategy into the schema used for newly persisted versions. */
+export function strategyConfigurationForNewVersion(input: unknown): StrategyConfiguration {
+  const configuration = validateStrategyConfiguration(input);
+  return {
+    ...configuration,
+    schemaVersion: 4,
+    sizing: {
+      ...configuration.sizing,
+      defaultLeverage: configuration.sizing.defaultLeverage ?? configuration.sizing.maxLeverage,
+    },
+  };
+}
+
 export function strategyConfigurationSha256(configuration: StrategyConfiguration): string {
   return createHash('sha256').update(JSON.stringify(configuration)).digest('hex');
 }
@@ -240,7 +266,7 @@ export function createStrategyVersion(input: {
   if (!name || name.length > 80) throw new Error('Strategy name must contain between 1 and 80 characters.');
   const description = input.description?.trim() || '';
   if (description.length > 500) throw new Error('Strategy description must not exceed 500 characters.');
-  const configuration = validateStrategyConfiguration(input.configuration);
+  const configuration = strategyConfigurationForNewVersion(input.configuration);
   return {
     id: randomUUID(),
     strategyId: input.strategyId || randomUUID(),

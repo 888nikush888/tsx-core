@@ -178,7 +178,7 @@ function workflowHandles(kind: WorkflowKind): NonNullable<Node["handles"]> {
   return handles;
 }
 
-function summary(
+export function workflowResourceSummary(
   resource: WorkflowResource,
   trading: TradingSnapshot | null,
 ): string {
@@ -216,8 +216,11 @@ function summary(
     strategy: () =>
       trading?.strategies.find((item) => item.id === value.strategyVersionId)
         ?.name || String(value.strategyVersionId),
-    sizing: () =>
-      `${value.riskPerTradePercent}% Basis · ${value.maxAdaptiveRiskPercent}% max · ${value.maxLeverage}×`,
+    sizing: () => {
+      const maximum = Number(value.maxLeverage);
+      const fallback = Number(value.defaultLeverage ?? maximum);
+      return `${value.riskPerTradePercent}% Basis · ${value.maxAdaptiveRiskPercent}% max · Hebel ${fallback}×/${maximum}×`;
+    },
     adaptive_risk: () =>
       value.enabled === false
         ? "deaktiviert"
@@ -1389,7 +1392,7 @@ export function WorkflowBuilder() {
           node,
           name: resource?.name || "Fehlende Ressource",
           description: resource
-            ? summary(resource, trading)
+            ? workflowResourceSummary(resource, trading)
             : node.resourceVersionId,
         };
       })
@@ -1454,7 +1457,7 @@ export function WorkflowBuilder() {
     const query = search.trim().toLocaleLowerCase("de-DE");
     const nodes: Node[] = graph.nodes.map((node) => {
       const resource = resourceById.get(node.resourceVersionId);
-      const nodeSummary = resource ? summary(resource, trading) : node.resourceVersionId;
+      const nodeSummary = resource ? workflowResourceSummary(resource, trading) : node.resourceVersionId;
       const warning = snapshot.workflow?.compiled.warnings.find((item) =>
         item.includes(node.id),
       );

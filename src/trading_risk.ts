@@ -12,6 +12,7 @@ import {
 } from './trading_decimal.js';
 import type {
   ExecutableSignal,
+  LeverageDecision,
   PlannedOrder,
   StrategyConfiguration,
   TradingAccountSnapshot,
@@ -91,8 +92,28 @@ function riskDistance(signal: ExecutableSignal, price: string): string {
   return subtractDecimal(signal.stopLoss, price);
 }
 
-function selectedLeverage(signal: ExecutableSignal, strategy: StrategyConfiguration, market: TradingMarketSnapshot): number {
-  return Math.min(strategy.sizing.maxLeverage, market.maxLeverage, signal.suggestedLeverage || strategy.sizing.maxLeverage);
+export function resolveLeverageDecision(
+  signal: ExecutableSignal,
+  strategy: StrategyConfiguration,
+  market: TradingMarketSnapshot,
+): LeverageDecision {
+  const requestedSource = signal.suggestedLeverage !== undefined ? 'signal' : 'strategy_default';
+  const requested = signal.suggestedLeverage
+    ?? strategy.sizing.defaultLeverage
+    ?? strategy.sizing.maxLeverage;
+  const strategyMaximum = strategy.sizing.maxLeverage;
+  const marketMaximum = market.maxLeverage;
+  const effective = Math.min(requested, strategyMaximum, marketMaximum);
+  const strategyCaps = requested > strategyMaximum && strategyMaximum === effective;
+  const marketCaps = requested > marketMaximum && marketMaximum === effective;
+  const cappedBy = strategyCaps && marketCaps
+    ? 'strategy_and_market'
+    : strategyCaps
+      ? 'strategy'
+      : marketCaps
+        ? 'market'
+        : null;
+  return { requested, requestedSource, strategyMaximum, marketMaximum, effective, cappedBy };
 }
 
 function positionQuantity(input: {
@@ -346,7 +367,8 @@ export function createTradingPlan(input: {
   const configuredRisk = sizingMode === 'risk_percent' && input.signal.suggestedRiskPercent
     ? minDecimal(selectedRisk, input.signal.suggestedRiskPercent)
     : selectedRisk;
-  const leverage = selectedLeverage(input.signal, input.strategy, input.market);
+  const leverageDecision = resolveLeverageDecision(input.signal, input.strategy, input.market);
+  const leverage = leverageDecision.effective;
   const configuredRiskAmount = divideDecimal(multiplyDecimal(input.account.equity, configuredRisk), '100');
   const quantity = sizingMode === 'equity_percent_notional'
     ? equityPercentPositionQuantity({
@@ -389,6 +411,7 @@ export function createTradingPlan(input: {
     notional,
     riskAmount,
     leverage,
+    leverageDecision,
     entryTimeoutSeconds: input.strategy.entry.timeoutSeconds,
     entryOrderTtlSeconds: input.strategy.safety.entryOrderTtlSeconds,
     maxSlippagePercent: input.strategy.safety.maxSlippagePercent,

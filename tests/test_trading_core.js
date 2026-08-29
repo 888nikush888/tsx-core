@@ -149,6 +149,10 @@ function testDecimalAndStrategyContracts() {
     value.sizing.defaultLeverage = 10;
     value.sizing.maxLeverage = 5;
   }, /defaultLeverage.*must not exceed.*maxLeverage/);
+  invalidConfiguration(value => {
+    value.schemaVersion = 4;
+    delete value.sizing.defaultLeverage;
+  }, /defaultLeverage.*required/);
   invalidConfiguration(value => { value.schemaVersion = 4; value.sizing.defaultLeverage = 0; }, /defaultLeverage.*between 1 and 50/);
   invalidConfiguration(value => { value.schemaVersion = 4; value.sizing.defaultLeverage = 51; }, /defaultLeverage.*between 1 and 50/);
   invalidConfiguration(value => { value.sizing.maxLeverage = 51; }, /maxLeverage.*between 1 and 50/);
@@ -263,6 +267,8 @@ function testLeverageDecisionContracts() {
   for (const positionSizingMode of ['risk_percent', 'equity_percent_notional', 'equity_percent_margin']) {
     const modeStrategy = structuredClone(strategy);
     modeStrategy.sizing.positionSizingMode = positionSizingMode;
+    modeStrategy.sizing.riskPerTradePercent = '5';
+    modeStrategy.sizing.maxAdaptiveRiskPercent = '5';
     modeStrategy.sizing.defaultLeverage = 4;
     modeStrategy.sizing.maxPositionNotional = '1000000';
     const plan = createTradingPlan({
@@ -1064,6 +1070,8 @@ async function runRepositoryTests() {
     const accounts = await listTradingAccounts();
     assert.equal(defaults.length, 1);
     assert.equal(defaults[0].status, 'published');
+    assert.equal(defaults[0].configuration.schemaVersion, 4);
+    assert.equal(defaults[0].configuration.sizing.defaultLeverage, 3);
     assert.equal(accounts.length, 1);
     assert.equal(accounts[0].mode, 'paper');
     const deletable = await createTradingStrategyDraft({
@@ -1072,6 +1080,17 @@ async function runRepositoryTests() {
     });
     assert.equal(await deleteTradingStrategyVersion(deletable.id), true);
     assert.equal(await deleteTradingStrategyVersion(deletable.id), false);
+    const legacyDraftConfiguration = configuration();
+    legacyDraftConfiguration.schemaVersion = 3;
+    legacyDraftConfiguration.sizing.maxLeverage = 7;
+    delete legacyDraftConfiguration.sizing.defaultLeverage;
+    const normalizedDraft = await createTradingStrategyDraft({
+      name: 'Normalized legacy draft',
+      configuration: legacyDraftConfiguration,
+    });
+    assert.equal(normalizedDraft.configuration.schemaVersion, 4);
+    assert.equal(normalizedDraft.configuration.sizing.defaultLeverage, 7);
+    assert.equal(await deleteTradingStrategyVersion(normalizedDraft.id), true);
     await testSignalSchemaRepository();
     await testDynamicContractsAndChannelRisk();
     await testRepositoryValidation(defaults, accounts);

@@ -7,6 +7,7 @@ import { recordTradingExecutionEvent } from './trading_telemetry.js';
 import {
   createStrategyVersion,
   signalSchemaIdentifier,
+  strategyConfigurationForNewVersion,
   strategyConfigurationSha256,
   validateStrategyConfiguration,
 } from './trading_strategy.js';
@@ -550,7 +551,7 @@ export async function updateTradingStrategyDraft(id: string, input: {
   description?: string;
   configuration: unknown;
 }): Promise<TradingStrategyVersion> {
-  const configuration = validateStrategyConfiguration(input.configuration);
+  const configuration = strategyConfigurationForNewVersion(input.configuration);
   await assertSignalSchemasAvailable(configuration);
   const name = input.name?.trim();
   const description = input.description?.trim() || '';

@@ -52,7 +52,7 @@ try {
       ...structuredClone(DEFAULT_STRATEGY_CONFIGURATION),
       sizing: {
         positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '10',
-        maxAdaptiveRiskPercent: '10', maxPositionNotional: '1000000000', maxLeverage: 1,
+        maxAdaptiveRiskPercent: '10', maxPositionNotional: '1000000000', defaultLeverage: 1, maxLeverage: 1,
       },
       safety: { ...structuredClone(DEFAULT_STRATEGY_CONFIGURATION.safety), maxDailyLoss: '100000' },
     },

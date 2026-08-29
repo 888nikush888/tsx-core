@@ -95,6 +95,15 @@ async function publishStrategyDraft(
   );
   if (!selected)
     throw new Error("Die gewählte Strategieversion existiert nicht mehr.");
+  const publishConfiguration: StrategyConfiguration = {
+    ...strategyDraft,
+    schemaVersion: 4,
+    sizing: {
+      ...strategyDraft.sizing,
+      defaultLeverage:
+        strategyDraft.sizing.defaultLeverage ?? strategyDraft.sizing.maxLeverage,
+    },
+  };
   const draft = await jsonRequest("/api/trading/strategies", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -102,7 +111,7 @@ async function publishStrategyDraft(
       strategyId: selected.strategyId,
       name: selected.name,
       description: selected.description,
-      configuration: strategyDraft,
+      configuration: publishConfiguration,
     }),
   });
   const published = await jsonRequest("/api/trading/strategies/publish", {
@@ -264,6 +273,27 @@ async function prepareConfiguration(
   drafts: ConfigurationDrafts,
 ): Promise<Record<string, unknown>> {
   const configuration = structuredClone(drafts.configuration);
+  const leverageSizing: Record<string, unknown> | StrategyConfiguration["sizing"] | null =
+    drafts.kind === "strategy"
+      ? drafts.strategyDraft?.sizing ?? null
+      : drafts.kind === "sizing"
+        ? configuration
+        : null;
+  if (leverageSizing) {
+    const maximum = Number(leverageSizing.maxLeverage);
+    const fallback = Number(leverageSizing.defaultLeverage ?? maximum);
+    if (!Number.isSafeInteger(fallback) || fallback < 1 || fallback > 50) {
+      throw new Error("Standard-Hebel muss eine ganze Zahl zwischen 1 und 50 sein.");
+    }
+    if (!Number.isSafeInteger(maximum) || maximum < 1 || maximum > 50) {
+      throw new Error("Maximaler Hebel muss eine ganze Zahl zwischen 1 und 50 sein.");
+    }
+    if (fallback > maximum) {
+      throw new Error("Standard-Hebel darf den maximalen Hebel nicht überschreiten.");
+    }
+    leverageSizing.defaultLeverage = fallback;
+    leverageSizing.maxLeverage = maximum;
+  }
   if (drafts.kind === "parser")
     applyParserDraft(configuration, drafts.templateContent);
   await applyStrategyChanges(configuration, drafts);
@@ -303,6 +333,7 @@ export function defaultConfiguration(
       riskPerTradePercent: "5",
       maxAdaptiveRiskPercent: "10",
       maxPositionNotional: "1000000000",
+      defaultLeverage: 50,
       maxLeverage: 50,
     },
     adaptive_risk: {
@@ -568,7 +599,24 @@ function StrategyForm({
               }
             />
           </Field>
-          <Field label="Max. Leverage">
+          <Field
+            label="Standard-Hebel"
+            hint="Wird verwendet, wenn das Signal keinen Hebel enthält."
+          >
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={value.sizing.defaultLeverage ?? value.sizing.maxLeverage}
+              onChange={(event) =>
+                section("sizing", { defaultLeverage: Number(event.target.value) })
+              }
+            />
+          </Field>
+          <Field
+            label="Maximaler Hebel"
+            hint="Begrenzt Signal-Leverage; das Exchange-Limit kann zusätzlich niedriger sein."
+          >
             <input
               type="number"
               min={1}
@@ -1862,7 +1910,27 @@ export function ResourceEditor({
                   }
                 />
               </Field>
-              <Field label="Max. Leverage">
+              <Field
+                label="Standard-Hebel"
+                hint="Wird verwendet, wenn das Signal keinen Hebel enthält."
+              >
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={numberValue(
+                    configuration.defaultLeverage,
+                    numberValue(configuration.maxLeverage, 50),
+                  )}
+                  onChange={(event) =>
+                    set("defaultLeverage", Number(event.target.value))
+                  }
+                />
+              </Field>
+              <Field
+                label="Maximaler Hebel"
+                hint="Begrenzt Signal-Leverage; das Exchange-Limit kann zusätzlich niedriger sein."
+              >
                 <input
                   type="number"
                   min={1}

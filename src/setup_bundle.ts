@@ -17,7 +17,7 @@ import {
   validateChannelRiskPolicyInput,
 } from './trading_channel_risk.js';
 import { validateSignalContractDefinition } from './signal_contract.js';
-import { validateStrategyConfiguration } from './trading_strategy.js';
+import { strategyConfigurationForNewVersion, validateStrategyConfiguration } from './trading_strategy.js';
 import {
   createWorkflowResourceDraft,
   getActiveWorkflow,
@@ -154,7 +154,7 @@ export async function exportPortableSetupBundle(systemConfig: Record<string, unk
       sourceVersionId: strategy.id,
       name: strategy.name,
       description: strategy.description,
-      configuration: strategy.configuration,
+      configuration: strategyConfigurationForNewVersion(strategy.configuration),
     }));
   const schemaIds = new Set(resources
     .filter(resource => resource.kind === 'schema')

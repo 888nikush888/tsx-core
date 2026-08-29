@@ -95,7 +95,7 @@ export type WorkflowSnapshot = {
 };
 
 export type StrategyConfiguration = {
-  schemaVersion: 1 | 2 | 3;
+  schemaVersion: 1 | 2 | 3 | 4;
   allowedSignalSchemas: string[];
   allowedSymbols: string[];
   allowedSides: Array<"LONG" | "SHORT">;
@@ -113,6 +113,7 @@ export type StrategyConfiguration = {
     riskPerTradePercent: string;
     maxAdaptiveRiskPercent?: string;
     maxPositionNotional: string;
+    defaultLeverage: number;
     maxLeverage: number;
   };
   exits: {

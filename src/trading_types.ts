@@ -44,7 +44,7 @@ export interface ExecutableSignal {
 }
 
 export interface StrategyConfiguration {
-  schemaVersion: 1 | 2 | 3;
+  schemaVersion: 1 | 2 | 3 | 4;
   allowedSignalSchemas: string[];
   allowedSymbols: string[];
   allowedSides: TradingSide[];
@@ -60,6 +60,8 @@ export interface StrategyConfiguration {
     riskPerTradePercent: string;
     maxAdaptiveRiskPercent?: string;
     maxPositionNotional: string;
+    /** Fallback leverage when the signal contains no explicit leverage. */
+    defaultLeverage: number;
     maxLeverage: number;
   };
   exits: {
@@ -456,6 +458,8 @@ export interface TradingPlan {
   notional: string;
   riskAmount: string;
   leverage: number;
+  /** Optional for plans persisted before strategy schema v4. */
+  leverageDecision?: LeverageDecision;
   entryTimeoutSeconds: number;
   entryOrderTtlSeconds: number;
   maxSlippagePercent: string;
@@ -465,6 +469,15 @@ export interface TradingPlan {
   stopLossMode: StopLossMode;
   orders: PlannedOrder[];
   createdAt: number;
+}
+
+export interface LeverageDecision {
+  requested: number;
+  requestedSource: 'signal' | 'strategy_default';
+  strategyMaximum: number;
+  marketMaximum: number;
+  effective: number;
+  cappedBy: null | 'strategy' | 'market' | 'strategy_and_market';
 }
 
 export interface ExchangeOrderRequest extends PlannedOrder {

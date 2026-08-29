@@ -109,30 +109,33 @@ describe('workflow resource contracts', () => {
       return response({ templates: { default: 'BASE PROMPT' } })
     })
     const onSave = editor('strategy')
-    expect(screen.getByLabelText('Standard-Hebel')).toHaveValue(50)
-    fireEvent.change(screen.getByLabelText('Standard-Hebel'), { target: { value: '7' } })
+    expect(screen.getByLabelText(/Standard-Hebel/)).toHaveValue(50)
+    fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '7' } })
     fireEvent.change(screen.getByLabelText('Max. Slippage (%)'), { target: { value: '0.75' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ configuration: { strategyVersionId: 'strategy-v2' } })))
-    expect(api.apiFetch).toHaveBeenCalledWith('/api/trading/strategies', expect.objectContaining({
-      method: 'POST',
-      body: expect.stringMatching(/"schemaVersion":4[\s\S]*"defaultLeverage":7[\s\S]*"maxLeverage":50[\s\S]*"maxSlippagePercent":"0.75"/),
-    }))
+    const strategyRequest = api.apiFetch.mock.calls.find(([url]) => url === '/api/trading/strategies')?.[1] as RequestInit
+    const submitted = JSON.parse(String(strategyRequest.body))
+    expect(submitted.configuration).toMatchObject({
+      schemaVersion: 4,
+      sizing: { defaultLeverage: 7, maxLeverage: 50 },
+      safety: { maxSlippagePercent: '0.75' },
+    })
     expect(screen.queryByLabelText(/Strategiedefinition/)).not.toBeInTheDocument()
   })
 
   it('blocks invalid default leverage in both sizing editors before save', async () => {
     const sizingSave = editor('sizing')
-    fireEvent.change(screen.getByLabelText('Standard-Hebel'), { target: { value: '20' } })
-    fireEvent.change(screen.getByLabelText('Maximaler Hebel'), { target: { value: '10' } })
+    fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '20' } })
+    fireEvent.change(screen.getByLabelText(/Maximaler Hebel/), { target: { value: '10' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
     expect(await screen.findByText(/Standard-Hebel darf den maximalen Hebel nicht überschreiten/)).toBeVisible()
     expect(sizingSave).not.toHaveBeenCalled()
     cleanup()
 
     const strategySave = editor('strategy')
-    fireEvent.change(screen.getByLabelText('Standard-Hebel'), { target: { value: '20' } })
-    fireEvent.change(screen.getByLabelText('Maximaler Hebel'), { target: { value: '10' } })
+    fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '20' } })
+    fireEvent.change(screen.getByLabelText(/Maximaler Hebel/), { target: { value: '10' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
     expect(await screen.findByText(/Standard-Hebel darf den maximalen Hebel nicht überschreiten/)).toBeVisible()
     expect(strategySave).not.toHaveBeenCalled()

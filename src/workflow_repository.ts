@@ -139,9 +139,16 @@ function validateSizingConfiguration(value: ResourceConfiguration): Record<strin
   if (Number(maximum) < Number(baseline)) {
     throw new Error('Maximum adaptive risk must not be below the baseline sizing percentage.');
   }
-  const leverage = Number(value.maxLeverage ?? 1);
-  if (!Number.isSafeInteger(leverage) || leverage < 1 || leverage > 50) {
+  const maxLeverage = Number(value.maxLeverage ?? 1);
+  if (!Number.isSafeInteger(maxLeverage) || maxLeverage < 1 || maxLeverage > 50) {
     throw new Error('Maximum leverage must be between 1 and 50.');
+  }
+  const defaultLeverage = value.defaultLeverage === undefined ? maxLeverage : Number(value.defaultLeverage);
+  if (!Number.isSafeInteger(defaultLeverage) || defaultLeverage < 1 || defaultLeverage > 50) {
+    throw new Error('Default leverage must be between 1 and 50.');
+  }
+  if (defaultLeverage > maxLeverage) {
+    throw new Error('Default leverage must not exceed maximum leverage.');
   }
   return {
     ...value,
@@ -149,7 +156,8 @@ function validateSizingConfiguration(value: ResourceConfiguration): Record<strin
     riskPerTradePercent: baseline,
     maxAdaptiveRiskPercent: maximum,
     maxPositionNotional: decimal(value.maxPositionNotional ?? '1000000000', { positive: true }),
-    maxLeverage: leverage,
+    defaultLeverage,
+    maxLeverage,
   };
 }
 
@@ -764,14 +772,16 @@ function compiledEffectiveConfiguration(
   baseStrategy: StrategyConfiguration,
   configs: Record<string, any>,
 ): Record<string, unknown> {
+  const normalizedSizing = validateSizingConfiguration(configs.sizing);
+  const normalizedConfigs = { ...configs, sizing: normalizedSizing };
   const effectiveStrategy: StrategyConfiguration = {
     ...baseStrategy,
-    schemaVersion: 3,
-    sizing: { ...baseStrategy.sizing, ...configs.sizing },
+    schemaVersion: 4,
+    sizing: { ...baseStrategy.sizing, ...normalizedSizing },
     safety: { ...baseStrategy.safety, maxConcurrentPositions: undefined },
   };
   delete effectiveStrategy.safety.maxConcurrentPositions;
-  return { resources: configs, strategyConfiguration: validateStrategyConfiguration(effectiveStrategy) };
+  return { resources: normalizedConfigs, strategyConfiguration: validateStrategyConfiguration(effectiveStrategy) };
 }
 
 function resourceVersionForKind(byKind: Map<WorkflowResourceKind, WorkflowNode>, kind: WorkflowResourceKind): string | null {
