@@ -291,6 +291,106 @@ async function testAccountCapacitySpansStrategies(databasePath) {
   await closeDb();
 }
 
+async function verifyProtectedTradeLifecycle(paper, account, intent, engine) {
+  const processed = await getTradingIntent(intent.id);
+  assert.equal(processed.status, 'monitoring');
+  assert.equal(processed.plan.quantity, '0.016');
+  assert.equal(processed.plan.riskAmount, '100');
+  assert.equal(processed.plan.notional, '968');
+  const localOrders = await getDatabase().all(
+    'SELECT role, status, quantity, trigger_price FROM trading_orders WHERE intent_id = ? ORDER BY role, created_at',
+    [intent.id],
+  );
+  assert.equal(localOrders.find(order => order.role === 'entry').status, 'filled');
+  assert.equal(localOrders.find(order => order.role === 'stop_loss').status, 'open');
+  assert.equal(localOrders.filter(order => order.role === 'take_profit').length, 2);
+  await paper.setMarket(account.id, {
+    symbol: 'BTCUSDT', markPrice: '62000', priceTick: '0.1', quantityStep: '0.001',
+    minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
+  });
+  await engine.reconcileAccount(account.id);
+  const remoteAfterTarget = await paper.openState(account);
+  const positionAfterTarget = remoteAfterTarget.positions[0];
+  assert.equal(positionAfterTarget.quantity, '0.008', 'First take profit must reduce the position.');
+  const activeStops = remoteAfterTarget.orders.filter(order => order.role === 'stop_loss' && order.status === 'open');
+  assert.equal(activeStops.length, 1, 'Exactly one protective stop must remain active.');
+  assert.equal(activeStops[0].quantity, '0.008', 'Protective stop must track remaining quantity.');
+  assert.equal(activeStops[0].triggerPrice, '60500', 'Stop must move to break-even after target one.');
+  await paper.setMarket(account.id, {
+    symbol: 'BTCUSDT', markPrice: '58000', priceTick: '0.1', quantityStep: '0.001',
+    minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
+  });
+  await engine.reconcileAccount(account.id);
+  assert.equal((await paper.openState(account)).positions.length, 0, 'Protective stop must close the remaining position.');
+  assert.equal((await getTradingIntent(intent.id)).status, 'completed');
+  const localPosition = await getDatabase().get('SELECT * FROM trading_positions WHERE intent_id = ?', [intent.id]);
+  assert.equal(localPosition.status, 'closed');
+  assert.equal(localPosition.quantity, '0');
+  assert.equal(localPosition.realized_pnl, '-8');
+}
+
+async function verifyNotificationReplay(paper, account, intent) {
+  const notifications = await getDatabase().all(
+    `SELECT dedupe_key, event_type, details_json FROM trading_notification_events
+     WHERE intent_id = ? ORDER BY seq`,
+    [intent.id],
+  );
+  for (const eventType of ['position_opened', 'take_profit_filled', 'stop_loss_filled', 'stop_moved', 'position_closed']) {
+    assert.equal(notifications.filter(event => event.event_type === eventType).length, 1);
+  }
+  assert.ok(
+    notifications.filter(event => ['take_profit_filled', 'stop_loss_filled'].includes(event.event_type))
+      .every(event => JSON.parse(event.details_json).exchangeFillId),
+    'Fill notifications must retain their deterministic exchange fill identity.',
+  );
+  const fillsBeforeRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
+  const runsBeforeRestart = await getDatabase().get(
+    'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
+  );
+  const restartedEngine = new TradingEngine([paper]);
+  await restartedEngine.reconcileAccount(account.id);
+  const fillsAfterRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
+  assert.equal(fillsAfterRestart.count, fillsBeforeRestart.count, 'Fill replay must be idempotent after restart.');
+  assert.equal(
+    (await getDatabase().get('SELECT COUNT(*) AS count FROM trading_notification_events WHERE intent_id = ?', [intent.id])).count,
+    notifications.length,
+    'Reconciliation replay must not duplicate viewer notifications.',
+  );
+  const runsAfterRestart = await getDatabase().get(
+    'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
+  );
+  assert.equal(runsAfterRestart.count, runsBeforeRestart.count, 'Unchanged successful reconciliation state must coalesce instead of appending a full snapshot.');
+  const compact = await getDatabase().get(
+    `SELECT remote_snapshot_json FROM trading_reconciliation_runs
+     WHERE account_id = ? AND status = 'succeeded' ORDER BY completed_at DESC LIMIT 1`,
+    [account.id],
+  );
+  const compactPayload = JSON.parse(compact.remote_snapshot_json);
+  assert.equal(compactPayload.version, 2);
+  assert.match(compactPayload.stateDigest, /^[a-f0-9]{64}$/);
+  assert.equal('orders' in compactPayload, false, 'Reconciliation evidence must not duplicate the full provider response.');
+  return restartedEngine;
+}
+
+async function verifyBoundedReconciliationHistory(paper, account, engine) {
+  const now = Date.now();
+  for (let index = 0; index < 300; index += 1) {
+    await getDatabase().run(
+      `INSERT INTO trading_reconciliation_runs (
+         id, account_id, status, last_error, started_at, completed_at
+       ) VALUES (?, ?, 'failed', 'bounded-test', ?, ?)`,
+      [`bounded-${index}`, account.id, now + index, now + index],
+    );
+  }
+  await engine.pruneReconciliationRuns(account.id);
+  const boundedRuns = await getDatabase().get(
+    'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
+  );
+  assert.equal(boundedRuns.count, 256, 'Per-account reconciliation evidence must remain bounded.');
+  const snapshot = await paper.accountSnapshot(await getTradingAccount(account.id));
+  assert.equal(snapshot.equity, '9992', 'Paper equity must include exact realized PnL and stop slippage.');
+}
+
 async function run() {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-engine-'));
   try {
@@ -300,113 +400,9 @@ async function run() {
     const engine = new TradingEngine([paper]);
     await engine.processIntent(intent.id);
 
-    const processed = await getTradingIntent(intent.id);
-    assert.equal(processed.status, 'monitoring');
-    assert.equal(processed.plan.quantity, '0.016');
-    assert.equal(processed.plan.riskAmount, '100');
-    assert.equal(processed.plan.notional, '968');
-    const localOrders = await getDatabase().all(
-      'SELECT role, status, quantity, trigger_price FROM trading_orders WHERE intent_id = ? ORDER BY role, created_at',
-      [intent.id],
-    );
-    assert.equal(localOrders.find(order => order.role === 'entry').status, 'filled');
-    assert.equal(localOrders.find(order => order.role === 'stop_loss').status, 'open');
-    assert.equal(localOrders.filter(order => order.role === 'take_profit').length, 2);
-
-    await paper.setMarket(account.id, {
-      symbol: 'BTCUSDT', markPrice: '62000', priceTick: '0.1', quantityStep: '0.001',
-      minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
-    });
-    await engine.reconcileAccount(account.id);
-    const remoteAfterTarget = await paper.openState(account);
-    const positionAfterTarget = remoteAfterTarget.positions[0];
-    assert.equal(positionAfterTarget.quantity, '0.008', 'First take profit must reduce the position.');
-    const activeStops = remoteAfterTarget.orders.filter(order => order.role === 'stop_loss' && order.status === 'open');
-    assert.equal(activeStops.length, 1, 'Exactly one protective stop must remain active.');
-    assert.equal(activeStops[0].quantity, '0.008', 'Protective stop must track remaining quantity.');
-    assert.equal(activeStops[0].triggerPrice, '60500', 'Stop must move to break-even after target one.');
-
-    await paper.setMarket(account.id, {
-      symbol: 'BTCUSDT', markPrice: '58000', priceTick: '0.1', quantityStep: '0.001',
-      minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
-    });
-    await engine.reconcileAccount(account.id);
-    const remoteClosed = await paper.openState(account);
-    assert.equal(remoteClosed.positions.length, 0, 'Protective stop must close the remaining position.');
-    assert.equal((await getTradingIntent(intent.id)).status, 'completed');
-    const localPosition = await getDatabase().get('SELECT * FROM trading_positions WHERE intent_id = ?', [intent.id]);
-    assert.equal(localPosition.status, 'closed');
-    assert.equal(localPosition.quantity, '0');
-    assert.equal(localPosition.realized_pnl, '-8');
-
-    const notificationsBeforeRestart = await getDatabase().all(
-      `SELECT dedupe_key, event_type, details_json FROM trading_notification_events
-       WHERE intent_id = ? ORDER BY seq`,
-      [intent.id],
-    );
-    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'position_opened').length, 1);
-    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'take_profit_filled').length, 1);
-    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'stop_loss_filled').length, 1);
-    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'stop_moved').length, 1);
-    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'position_closed').length, 1);
-    assert.ok(
-      notificationsBeforeRestart
-        .filter(event => ['take_profit_filled', 'stop_loss_filled'].includes(event.event_type))
-        .every(event => JSON.parse(event.details_json).exchangeFillId),
-      'Fill notifications must retain their deterministic exchange fill identity.',
-    );
-
-    const fillsBeforeRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
-    const runsBeforeRestart = await getDatabase().get(
-      'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
-    );
-    const restartedEngine = new TradingEngine([paper]);
-    await restartedEngine.reconcileAccount(account.id);
-    const fillsAfterRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
-    assert.equal(fillsAfterRestart.count, fillsBeforeRestart.count, 'Fill replay must be idempotent after restart.');
-    assert.equal(
-      (await getDatabase().get(
-        'SELECT COUNT(*) AS count FROM trading_notification_events WHERE intent_id = ?', [intent.id],
-      )).count,
-      notificationsBeforeRestart.length,
-      'Reconciliation replay must not duplicate viewer notifications.',
-    );
-    const runsAfterRestart = await getDatabase().get(
-      'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
-    );
-    assert.equal(
-      runsAfterRestart.count,
-      runsBeforeRestart.count,
-      'Unchanged successful reconciliation state must coalesce instead of appending a full snapshot.',
-    );
-    const compact = await getDatabase().get(
-      `SELECT remote_snapshot_json FROM trading_reconciliation_runs
-       WHERE account_id = ? AND status = 'succeeded' ORDER BY completed_at DESC LIMIT 1`,
-      [account.id],
-    );
-    const compactPayload = JSON.parse(compact.remote_snapshot_json);
-    assert.equal(compactPayload.version, 2);
-    assert.match(compactPayload.stateDigest, /^[a-f0-9]{64}$/);
-    assert.equal('orders' in compactPayload, false, 'Reconciliation evidence must not duplicate the full provider response.');
-
-    const now = Date.now();
-    for (let index = 0; index < 300; index += 1) {
-      await getDatabase().run(
-        `INSERT INTO trading_reconciliation_runs (
-           id, account_id, status, last_error, started_at, completed_at
-         ) VALUES (?, ?, 'failed', 'bounded-test', ?, ?)`,
-        [`bounded-${index}`, account.id, now + index, now + index],
-      );
-    }
-    await restartedEngine.pruneReconciliationRuns(account.id);
-    const boundedRuns = await getDatabase().get(
-      'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
-    );
-    assert.equal(boundedRuns.count, 256, 'Per-account reconciliation evidence must remain bounded.');
-
-    const readyAccount = await getTradingAccount(account.id);
-    const snapshot = await paper.accountSnapshot(readyAccount);
-    assert.equal(snapshot.equity, '9992', 'Paper equity must include exact realized PnL and stop slippage.');
+    await verifyProtectedTradeLifecycle(paper, account, intent, engine);
+    const restartedEngine = await verifyNotificationReplay(paper, account, intent);
+    await verifyBoundedReconciliationHistory(paper, account, restartedEngine);
 
     await closeDb();
     await testAdaptiveTargetAndStopManagement(path.join(directory, 'adaptive.db'));

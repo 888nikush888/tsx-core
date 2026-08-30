@@ -2655,28 +2655,31 @@ async function internalViewerPayload(context: RequestContext, relativePath: stri
     if (!settings) throw new HttpError(503, 'Telegram viewer settings are unavailable.');
     return { settings: settings.snapshot() };
   }
-  if (relativePath === '/summary') return viewerSummary();
-  if (relativePath === '/system') return viewerSystem();
-  if (relativePath === '/accounts') return viewerAccounts({ limit, offset });
-  if (relativePath === '/positions') return viewerPositions({ limit, offset });
-  if (relativePath === '/orders') return viewerOrders({ limit, offset });
-  if (relativePath === '/trades') return viewerTrades({ limit, offset });
-  if (relativePath === '/performance') return viewerPerformance({ days: query.get('days') ?? undefined });
-  if (relativePath === '/risk') return viewerRisk({ limit, offset });
-  if (relativePath === '/incidents') return viewerIncidents({ limit, offset });
-  if (relativePath === '/events') {
-    return listTradingNotificationEvents({ afterSeq: query.get('afterSeq') ?? undefined, limit });
-  }
-  if (relativePath === '/test-events') {
-    return listTelegramViewerTestEvents({ afterSeq: query.get('afterSeq') ?? undefined, limit });
-  }
+  const collectionLoaders: Record<string, () => unknown> = {
+    '/summary': () => viewerSummary(),
+    '/system': () => viewerSystem(),
+    '/accounts': () => viewerAccounts({ limit, offset }),
+    '/positions': () => viewerPositions({ limit, offset }),
+    '/orders': () => viewerOrders({ limit, offset }),
+    '/trades': () => viewerTrades({ limit, offset }),
+    '/performance': () => viewerPerformance({ days: query.get('days') ?? undefined }),
+    '/risk': () => viewerRisk({ limit, offset }),
+    '/incidents': () => viewerIncidents({ limit, offset }),
+    '/events': () => listTradingNotificationEvents({ afterSeq: query.get('afterSeq') ?? undefined, limit }),
+    '/test-events': () => listTelegramViewerTestEvents({ afterSeq: query.get('afterSeq') ?? undefined, limit }),
+  };
+  const collectionLoader = collectionLoaders[relativePath];
+  if (collectionLoader) return collectionLoader();
   const detail = /^\/(accounts|positions|orders|trades)\/([^/]+)$/.exec(relativePath);
   if (detail) {
     const id = decodedViewerId(detail[2]);
-    const payload = detail[1] === 'accounts' ? await viewerAccounts({ id })
-      : detail[1] === 'positions' ? await viewerPositions({ id })
-        : detail[1] === 'orders' ? await viewerOrders({ id })
-          : await viewerTrades({ id });
+    const detailLoaders = {
+      accounts: viewerAccounts,
+      positions: viewerPositions,
+      orders: viewerOrders,
+      trades: viewerTrades,
+    };
+    const payload = await detailLoaders[detail[1] as keyof typeof detailLoaders]({ id });
     const value = (payload as Record<string, unknown>)[detail[1].slice(0, -1)];
     if (!value) throw new HttpError(404, 'Viewer resource not found.');
     return payload;

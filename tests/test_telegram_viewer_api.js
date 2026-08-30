@@ -123,6 +123,90 @@ async function seedViewerReadModels(now) {
   );
 }
 
+async function verifyInternalViewerApi(baseUrl, serviceToken) {
+  let response = await fetch(`${baseUrl}/internal/viewer/v1/summary`);
+  assert.strictEqual(response.status, 401, 'Internal viewer API must reject anonymous access');
+  response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization('w'.repeat(43)) });
+  assert.strictEqual(response.status, 401, 'Internal viewer API must reject an incorrect service token');
+  response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization(ADMIN) });
+  assert.strictEqual(response.status, 401, 'Dashboard tokens must be rejected by the internal viewer API');
+  response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization(serviceToken) });
+  assert.strictEqual(response.status, 200);
+  const summary = await response.json();
+  assert.strictEqual(summary.accounts.total, 2);
+  assert.strictEqual(JSON.stringify(summary).includes('credential-ref'), false, 'Viewer projections must not leak credential references');
+
+  response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { method: 'POST', headers: authorization(serviceToken) });
+  assert.strictEqual(response.status, 405, 'Internal viewer API must be GET-only');
+  response = await fetch(`${baseUrl}/api/status`, { headers: authorization(serviceToken) });
+  assert.strictEqual(response.status, 401, 'Viewer service token must be useless on dashboard APIs');
+  response = await fetch(`${baseUrl}/api/trading`, { headers: authorization(serviceToken) });
+  assert.strictEqual(response.status, 401, 'Viewer service token must be useless on trading APIs');
+
+  const routes = [
+    '/config', '/system', '/accounts', '/accounts/account-dynamic', '/positions', '/positions/position-1',
+    '/orders', '/orders/order-1', '/trades', '/trades/intent-1', '/performance', '/risk', '/incidents',
+    '/events?afterSeq=0', '/test-events?afterSeq=0',
+  ];
+  const payloads = new Map();
+  for (const route of routes) {
+    response = await fetch(`${baseUrl}/internal/viewer/v1${route}`, { headers: authorization(serviceToken) });
+    assert.strictEqual(response.status, 200, `${route} must expose a bounded read model`);
+    payloads.set(route, await response.json());
+  }
+  assert.strictEqual(payloads.get('/accounts').accounts[0].exchange, 'coinbaseinternational');
+  assert.strictEqual(payloads.get('/accounts').accounts[0].reportingCurrency, 'USDC');
+  assert.deepStrictEqual(payloads.get('/positions').positions[0].leverage, {
+    requested: 12, effective: 7, source: 'signal', cappedBy: 'exchange', legacy: 7,
+  });
+  assert.strictEqual(payloads.get('/events?afterSeq=0').events.length, 1);
+  assert.strictEqual(payloads.get('/test-events?afterSeq=0').events.length, 1);
+  response = await fetch(`${baseUrl}/internal/viewer/v1/accounts?limit=1&offset=1`, { headers: authorization(serviceToken) });
+  assert.strictEqual(response.status, 200);
+  const secondAccountPage = await response.json();
+  assert.deepStrictEqual(secondAccountPage.pagination, { offset: 1, limit: 1, hasMore: false });
+  assert.strictEqual(secondAccountPage.accounts.length, 1);
+}
+
+async function verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents) {
+  let response = await fetch(`${baseUrl}/api/telegram-viewer`, { headers: authorization(DASHBOARD_VIEWER) });
+  assert.strictEqual(response.status, 200, 'Dashboard viewers may inspect non-secret viewer status');
+  const dashboard = await response.json();
+  assert.strictEqual(dashboard.secrets.botToken.configured, true);
+  assert.strictEqual(JSON.stringify(dashboard).includes(serviceToken), false);
+  assert.strictEqual(dashboard.service.lastTestEventId, 77, 'Web status must expose the viewer test-delivery cursor.');
+  response = await fetch(`${baseUrl}/api/telegram-viewer/settings`, {
+    method: 'POST', headers: mutationHeaders(), body: JSON.stringify({
+      ...settings.snapshot(), enabled: true, allowedUserIds: ['123456789'], eventPollingIntervalMs: 2500,
+    }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual(settings.snapshot().enabled, true);
+  response = await fetch(`${baseUrl}/api/telegram-viewer/token`, {
+    method: 'POST', headers: mutationHeaders(), body: JSON.stringify({ token: '987654321:abcdefghijklmnopqrstuvwxyzABCDE' }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual(JSON.stringify(await response.json()).includes('987654321:'), false, 'Bot token must never be echoed');
+  response = await fetch(`${baseUrl}/api/telegram-viewer/service-token/rotate`, {
+    method: 'POST', headers: mutationHeaders(), body: '{}',
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual(JSON.stringify(await response.json()).includes(await secrets.serviceToken()), false, 'Service token must never be disclosed');
+  response = await fetch(`${baseUrl}/api/telegram-viewer/test`, {
+    method: 'POST', headers: mutationHeaders(), body: JSON.stringify({ message: 'Web control test' }),
+  });
+  assert.strictEqual(response.status, 202);
+  response = await fetch(`${baseUrl}/api/telegram-viewer/token`, { method: 'DELETE', headers: mutationHeaders() });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual(secrets.status().botToken.configured, false);
+  response = await fetch(`${baseUrl}/api/telegram-viewer/settings`, {
+    method: 'POST', headers: authorization(DASHBOARD_VIEWER), body: JSON.stringify(settings.snapshot()),
+  });
+  assert.strictEqual(response.status, 403, 'Dashboard viewers must not mutate viewer configuration');
+  assert.ok(auditEvents.some(event => event.action === 'telegram-viewer.settings.update'));
+  assert.strictEqual(JSON.stringify(auditEvents).includes('987654321:'), false, 'Audit records must not contain viewer tokens');
+}
+
 async function run() {
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-api-'));
   let started = false;
@@ -167,94 +251,8 @@ async function run() {
     assert.ok(address && typeof address === 'object');
     const baseUrl = `http://127.0.0.1:${address.port}`;
 
-    let response = await fetch(`${baseUrl}/internal/viewer/v1/summary`);
-    assert.strictEqual(response.status, 401, 'Internal viewer API must reject anonymous access');
-    response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization('w'.repeat(43)) });
-    assert.strictEqual(response.status, 401, 'Internal viewer API must reject an incorrect service token');
-    response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization(ADMIN) });
-    assert.strictEqual(response.status, 401, 'Dashboard tokens must be rejected by the internal viewer API');
-    response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization(serviceToken) });
-    assert.strictEqual(response.status, 200);
-    const summary = await response.json();
-    assert.strictEqual(summary.accounts.total, 2);
-    assert.strictEqual(JSON.stringify(summary).includes('credential-ref'), false, 'Viewer projections must not leak credential references');
-
-    response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, {
-      method: 'POST', headers: authorization(serviceToken),
-    });
-    assert.strictEqual(response.status, 405, 'Internal viewer API must be GET-only');
-    response = await fetch(`${baseUrl}/api/status`, { headers: authorization(serviceToken) });
-    assert.strictEqual(response.status, 401, 'Viewer service token must be useless on dashboard APIs');
-    response = await fetch(`${baseUrl}/api/trading`, { headers: authorization(serviceToken) });
-    assert.strictEqual(response.status, 401, 'Viewer service token must be useless on trading APIs');
-
-    const routes = [
-      '/config', '/system', '/accounts', '/accounts/account-dynamic', '/positions', '/positions/position-1',
-      '/orders', '/orders/order-1', '/trades', '/trades/intent-1', '/performance', '/risk', '/incidents',
-      '/events?afterSeq=0', '/test-events?afterSeq=0',
-    ];
-    const payloads = new Map();
-    for (const route of routes) {
-      response = await fetch(`${baseUrl}/internal/viewer/v1${route}`, { headers: authorization(serviceToken) });
-      assert.strictEqual(response.status, 200, `${route} must expose a bounded read model`);
-      payloads.set(route, await response.json());
-    }
-    assert.strictEqual(payloads.get('/accounts').accounts[0].exchange, 'coinbaseinternational');
-    assert.strictEqual(payloads.get('/accounts').accounts[0].reportingCurrency, 'USDC');
-    assert.deepStrictEqual(payloads.get('/positions').positions[0].leverage, {
-      requested: 12, effective: 7, source: 'signal', cappedBy: 'exchange', legacy: 7,
-    });
-    assert.strictEqual(payloads.get('/events?afterSeq=0').events.length, 1);
-    assert.strictEqual(payloads.get('/test-events?afterSeq=0').events.length, 1);
-
-    response = await fetch(`${baseUrl}/internal/viewer/v1/accounts?limit=1&offset=1`, {
-      headers: authorization(serviceToken),
-    });
-    assert.strictEqual(response.status, 200);
-    const secondAccountPage = await response.json();
-    assert.deepStrictEqual(secondAccountPage.pagination, { offset: 1, limit: 1, hasMore: false });
-    assert.strictEqual(secondAccountPage.accounts.length, 1);
-
-    response = await fetch(`${baseUrl}/api/telegram-viewer`, { headers: authorization(DASHBOARD_VIEWER) });
-    assert.strictEqual(response.status, 200, 'Dashboard viewers may inspect non-secret viewer status');
-    let dashboard = await response.json();
-    assert.strictEqual(dashboard.secrets.botToken.configured, true);
-    assert.strictEqual(JSON.stringify(dashboard).includes(serviceToken), false);
-    assert.strictEqual(dashboard.service.lastTestEventId, 77, 'Web status must expose the viewer test-delivery cursor.');
-
-    response = await fetch(`${baseUrl}/api/telegram-viewer/settings`, {
-      method: 'POST', headers: mutationHeaders(), body: JSON.stringify({
-        ...settings.snapshot(), enabled: true, allowedUserIds: ['123456789'], eventPollingIntervalMs: 2500,
-      }),
-    });
-    assert.strictEqual(response.status, 200);
-    assert.strictEqual(settings.snapshot().enabled, true);
-    response = await fetch(`${baseUrl}/api/telegram-viewer/token`, {
-      method: 'POST', headers: mutationHeaders(), body: JSON.stringify({ token: '987654321:abcdefghijklmnopqrstuvwxyzABCDE' }),
-    });
-    assert.strictEqual(response.status, 200);
-    assert.strictEqual(JSON.stringify(await response.json()).includes('987654321:'), false, 'Bot token must never be echoed');
-    response = await fetch(`${baseUrl}/api/telegram-viewer/service-token/rotate`, {
-      method: 'POST', headers: mutationHeaders(), body: '{}',
-    });
-    assert.strictEqual(response.status, 200);
-    assert.strictEqual(JSON.stringify(await response.json()).includes(await secrets.serviceToken()), false, 'Service token must never be disclosed');
-    response = await fetch(`${baseUrl}/api/telegram-viewer/test`, {
-      method: 'POST', headers: mutationHeaders(), body: JSON.stringify({ message: 'Web control test' }),
-    });
-    assert.strictEqual(response.status, 202);
-    response = await fetch(`${baseUrl}/api/telegram-viewer/token`, {
-      method: 'DELETE', headers: mutationHeaders(),
-    });
-    assert.strictEqual(response.status, 200);
-    assert.strictEqual(secrets.status().botToken.configured, false);
-
-    response = await fetch(`${baseUrl}/api/telegram-viewer/settings`, {
-      method: 'POST', headers: authorization(DASHBOARD_VIEWER), body: JSON.stringify(settings.snapshot()),
-    });
-    assert.strictEqual(response.status, 403, 'Dashboard viewers must not mutate viewer configuration');
-    assert.ok(auditEvents.some(event => event.action === 'telegram-viewer.settings.update'));
-    assert.strictEqual(JSON.stringify(auditEvents).includes('987654321:'), false, 'Audit records must not contain viewer tokens');
+    await verifyInternalViewerApi(baseUrl, serviceToken);
+    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);
     console.log('TELEGRAM VIEWER API SECURITY TESTS PASSED');
   } finally {
     if (started) await stopWebServer();

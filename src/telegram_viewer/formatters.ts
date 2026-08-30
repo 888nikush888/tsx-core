@@ -30,20 +30,25 @@ function listMessage(title: string, items: string[]): string {
   return clipped([`TSX Core · ${title}`, ...(items.length > 0 ? items : ['Keine Einträge.'])].join('\n'));
 }
 
+function optionalLeverageLine(label: string, value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  return `${label}: ${value}`;
+}
+
 function leverageLines(value: unknown): string[] {
   if (typeof value === 'number' || typeof value === 'string') {
     return value === '' || !Number.isFinite(Number(value)) ? [] : [`Leverage: ${value}`];
   }
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
   const leverage = value as Record<string, unknown>;
-  return [
-    leverage.effective !== null && leverage.effective !== undefined ? `Effective: ${leverage.effective}` : null,
-    leverage.requested !== null && leverage.requested !== undefined ? `Requested: ${leverage.requested}` : null,
-    leverage.source ? `Source: ${leverage.source}` : null,
-    leverage.cappedBy ? `CappedBy: ${leverage.cappedBy}` : null,
-    leverage.effective === undefined && leverage.legacy !== null && leverage.legacy !== undefined
-      ? `Leverage: ${leverage.legacy}` : null,
-  ].filter((item): item is string => item !== null);
+  const lines = [
+    optionalLeverageLine('Effective', leverage.effective),
+    optionalLeverageLine('Requested', leverage.requested),
+    optionalLeverageLine('Source', leverage.source),
+    optionalLeverageLine('CappedBy', leverage.cappedBy),
+  ];
+  if (leverage.effective === undefined) lines.push(optionalLeverageLine('Leverage', leverage.legacy));
+  return lines.filter((item): item is string => item !== null);
 }
 
 export function formatSummary(payload: Record<string, any>): string {

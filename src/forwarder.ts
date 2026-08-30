@@ -1708,6 +1708,14 @@ async function startMonitoringRuntime(
   }
 }
 
+async function resetTelegramViewerState(
+  settings?: ManagedTelegramViewerSettingsStore,
+  secrets?: TelegramViewerSecretStore,
+): Promise<void> {
+  await secrets?.clear();
+  await settings?.reset();
+}
+
 async function performCompleteFactoryReset(
   runtime: RuntimeConfiguration,
   secretStore: ManagedSecretStore,
@@ -1763,8 +1771,7 @@ async function performCompleteFactoryReset(
   const sharedMcpMaintenance = await beginMcpSharedMaintenance('factory reset', operationalDatabasePath());
   await closeDb();
   await tradingCredentials.clear();
-  await telegramViewerSecrets?.clear();
-  await telegramViewerSettings?.reset();
+  await resetTelegramViewerState(telegramViewerSettings, telegramViewerSecrets);
   await secretStore.clear();
   await runtimeSettings.reset();
   await fsPromises.rm(configPath, { force: true });
@@ -1883,6 +1890,34 @@ async function restoreNamedBackup(artifactName: string) {
   }
 }
 
+function dashboardRecoveryState(
+  runtime: RuntimeConfiguration,
+  runtimeSettings: ManagedRuntimeSettingsStore,
+  secretStore: ManagedSecretStore,
+) {
+  const runtimeRecovery = runtimeSettings.recoveryStatus();
+  const secretRecovery = secretStore.recoveryStatus();
+  const active = Boolean(runtime.configurationRecoveryReason) || runtimeRecovery.active || secretRecovery.length > 0;
+  return {
+    active,
+    allowLoopbackLocalSession: active
+      && process.env.DASHBOARD_RECOVERY_LOCAL_TRUST?.trim().toLowerCase() === 'true',
+    issues: [
+      ...(runtime.configurationRecoveryReason
+        ? [{ component: 'configuration' as const, reason: runtime.configurationRecoveryReason }]
+        : []),
+      ...(runtimeRecovery.active && runtimeRecovery.reason
+        ? [{ component: 'runtimeSettings' as const, reason: runtimeRecovery.reason }]
+        : []),
+      ...secretRecovery.map((issue) => ({
+        component: 'managedSecret' as const,
+        name: issue.name,
+        reason: issue.reason,
+      })),
+    ],
+  };
+}
+
 function startDashboardRuntime(
   runtime: RuntimeConfiguration,
   secretStore: ManagedSecretStore,
@@ -1892,11 +1927,7 @@ function startDashboardRuntime(
   telegramViewerSecrets?: TelegramViewerSecretStore,
 ): void {
   const webPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 8080;
-  const runtimeRecovery = runtimeSettings.recoveryStatus();
-  const secretRecovery = secretStore.recoveryStatus();
-  const recoveryActive = Boolean(runtime.configurationRecoveryReason) || runtimeRecovery.active || secretRecovery.length > 0;
-  const allowLoopbackLocalSession = recoveryActive
-    && process.env.DASHBOARD_RECOVERY_LOCAL_TRUST?.trim().toLowerCase() === 'true';
+  const recovery = dashboardRecoveryState(runtime, runtimeSettings, secretStore);
   startWebServer(webPort, {
       config: runtime.config,
       state,
@@ -1964,23 +1995,7 @@ function startDashboardRuntime(
           telegramViewerSecrets,
         );
       },
-      recovery: {
-        active: recoveryActive,
-        allowLoopbackLocalSession,
-        issues: [
-          ...(runtime.configurationRecoveryReason
-            ? [{ component: 'configuration' as const, reason: runtime.configurationRecoveryReason }]
-            : []),
-          ...(runtimeRecovery.active && runtimeRecovery.reason
-            ? [{ component: 'runtimeSettings' as const, reason: runtimeRecovery.reason }]
-            : []),
-          ...secretRecovery.map((issue) => ({
-            component: 'managedSecret' as const,
-            name: issue.name,
-            reason: issue.reason,
-          })),
-        ],
-      },
+      recovery,
       requestRestart: () => {
         setTimeout(() => {
           void shutdown(0).finally(() => process.exit(process.exitCode || 0));

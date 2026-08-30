@@ -81,6 +81,112 @@ function fakeBot() {
   };
 }
 
+function verifyFormatters() {
+  const longEvent = {
+    seq: 2, id: 'event-2', dedupeKey: 'event:2', eventType: 'execution_failed', intentId: null,
+    channelId: null, accountId: null, exchange: 'dynamicexchange', mode: 'live',
+    occurredAt: 1_700_000_000_000, createdAt: 1_700_000_000_001,
+    details: { message: 'x'.repeat(10_000) },
+  };
+  const formatted = formatTelegramViewerEvent(longEvent, SETTINGS);
+  assert.ok(formatted.length <= 4096, 'Telegram messages must respect the platform message limit');
+  assert.match(formatted, /dynamicexchange/);
+  assert.strictEqual(formatNotification(longEvent, SETTINGS), formatted);
+  const formatterOutputs = [
+    formatSummary({ accounts: { total: 1 }, positions: { active: 1 }, incidents: { open: 0 } }),
+    formatAccounts({ accounts: [{ name: 'OKX Main', exchange: 'okx', mode: 'live', status: 'ready' }] }),
+    formatPositions({ positions: [{
+      symbol: 'BTC/USDT:USDT', exchange: 'okx', status: 'open',
+      leverage: { requested: 12, effective: 7, source: 'signal', cappedBy: 'exchange' },
+    }] }),
+    formatPositions({ positions: [{ symbol: 'ETH/USDT:USDT', exchange: 'legacyexchange', leverage: 5 }] }),
+    formatOrders({ orders: [] }), formatTrades({ trades: [] }), formatPerformance({ groups: [] }),
+    formatRisk({ events: [] }), formatSystem({ executionEnabled: true, killSwitchActive: false }),
+    formatEvents({ events: [] }),
+  ];
+  assert.ok(formatterOutputs.every(output => typeof output === 'string' && output.length <= 4096));
+  assert.match(formatterOutputs[1], /okx/i, 'Dynamic exchange names must be formatted as opaque strings.');
+  assert.match(formatterOutputs[2], /Effective.*7/i);
+  assert.match(formatterOutputs[2], /Requested.*12/i);
+  assert.match(formatterOutputs[2], /Source.*signal/i);
+  assert.match(formatterOutputs[2], /CappedBy.*exchange/i);
+  assert.match(formatterOutputs[3], /Leverage.*5/i, 'Legacy leverage must format without a decision object.');
+  const projectionOutputs = [
+    formatTelegramViewerProjection('summary', {}),
+    formatTelegramViewerProjection('accounts', { account: { id: 'single-account', equity: 0, reportingCurrency: 'USD' } }),
+    formatTelegramViewerProjection('positions', { position: { id: 'single-position', quantity: 0, leverage: '' } }),
+    formatTelegramViewerProjection('orders', { order: { id: 'single-order', filledQuantity: 0 } }),
+    formatTelegramViewerProjection('trades', { trade: { id: 'single-trade', realizedPnl: 0, leverage: { legacy: 3 } } }),
+    formatTelegramViewerProjection('performance', { group: { accountId: 'account-1', trades: 0, realizedPnl: 0 } }),
+    formatTelegramViewerProjection('incidents', { event: { id: 'incident-1', acknowledgedAt: 1 } }),
+    formatTelegramViewerProjection('system', { executionEnabled: false, liveTradingEnabled: true, killSwitchActive: true }),
+    formatTelegramViewerProjection('events', { event: { id: 'event-3', mode: 'paper' } }),
+    formatTelegramViewerProjection('unsupported', {}),
+    formatPositions({ positions: [
+      { id: 'invalid-leverage', leverage: 'not-a-number' },
+      { id: 'array-leverage', leverage: [] },
+      { id: 'partial-leverage', leverage: { effective: null, requested: null, source: '', cappedBy: '', legacy: null } },
+    ] }),
+  ];
+  assert.ok(projectionOutputs.every(output => typeof output === 'string'));
+  const navigation = telegramViewerMenu('accounts', { offset: 20, limit: 20, hasMore: true }).inline_keyboard.flat();
+  assert.ok(navigation.some(button => button.callback_data === 'page:accounts:0'));
+  assert.ok(navigation.some(button => button.callback_data === 'page:accounts:2'));
+  assert.strictEqual(telegramViewerMenu('summary', { offset: 0, limit: 20, hasMore: true }).inline_keyboard.length, 5);
+}
+
+async function verifyCallbackFailure(directory) {
+  const state = new TelegramViewerStateRepository(path.join(directory, 'callback-state.db'));
+  await state.initialize();
+  const bot = fakeBot();
+  const core = fakeCore();
+  core.get = async () => { throw new Error('projection unavailable'); };
+  const service = new TelegramViewerService({ core, bot, state });
+  await service.refreshSettings();
+  bot.updates.push({
+    update_id: 1,
+    callback_query: { id: 'callback-error', from: { id: 1001 }, data: 'menu:positions', message: { chat: { id: 1001, type: 'private' } } },
+  });
+  await assert.rejects(service.pollTelegramOnce(), /projection unavailable/);
+  assert.deepStrictEqual(bot.answered, [{ id: 'callback-error', text: 'Daten konnten nicht geladen werden.' }]);
+  assert.strictEqual(await state.telegramOffset(), 2);
+  await state.close();
+}
+
+async function verifyViewerModes(directory, state) {
+  const mutedState = new TelegramViewerStateRepository(path.join(directory, 'muted-state.db'));
+  await mutedState.initialize();
+  const mutedCore = fakeCore();
+  mutedCore.config = async () => ({
+    settings: {
+      ...structuredClone(SETTINGS),
+      notifications: { ...structuredClone(SETTINGS.notifications), positionOpened: false },
+    },
+  });
+  const mutedBot = fakeBot();
+  const muted = new TelegramViewerService({ core: mutedCore, bot: mutedBot, state: mutedState });
+  await muted.refreshSettings();
+  await muted.pollEventsOnce();
+  assert.strictEqual(mutedBot.sent.length, 0, 'A disabled notification type must not be delivered.');
+  await mutedState.close();
+  const disabledCore = fakeCore();
+  disabledCore.config = async () => ({ settings: { ...structuredClone(SETTINGS), enabled: false } });
+  const disabledBot = fakeBot();
+  const disabled = new TelegramViewerService({ core: disabledCore, bot: disabledBot, state, now: () => 1_700_000_030_000 });
+  await disabled.refreshSettings();
+  await disabled.pollTelegramOnce();
+  await disabled.pollEventsOnce();
+  assert.deepStrictEqual(disabledCore.calls, [], 'Disabled viewer must not request sensitive projections or event data');
+  assert.strictEqual(disabledBot.sent.length, 0, 'Disabled viewer must not send notifications');
+}
+
+function verifyViewerStatus(service) {
+  const status = service.status();
+  assert.strictEqual(status.ready, true);
+  assert.strictEqual(status.enabled, true);
+  assert.strictEqual(JSON.stringify(status).includes('token'), false);
+}
+
 async function run() {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-service-'));
   try {
@@ -177,104 +283,11 @@ async function run() {
     assert.strictEqual(bot.sent.length, deliveredCount, 'Restart must not redeliver an acknowledged event');
     assert.strictEqual(await state.telegramOffset(), 23, 'Telegram offset must survive restart');
 
-    const longEvent = {
-      seq: 2, id: 'event-2', dedupeKey: 'event:2', eventType: 'execution_failed', intentId: null,
-      channelId: null, accountId: null, exchange: 'dynamicexchange', mode: 'live',
-      occurredAt: 1_700_000_000_000, createdAt: 1_700_000_000_001,
-      details: { message: 'x'.repeat(10_000) },
-    };
-    const formatted = formatTelegramViewerEvent(longEvent, SETTINGS);
-    assert.ok(formatted.length <= 4096, 'Telegram messages must respect the platform message limit');
-    assert.match(formatted, /dynamicexchange/);
-    assert.strictEqual(formatNotification(longEvent, SETTINGS), formatted);
-    const formatterOutputs = [
-      formatSummary({ accounts: { total: 1 }, positions: { active: 1 }, incidents: { open: 0 } }),
-      formatAccounts({ accounts: [{ name: 'OKX Main', exchange: 'okx', mode: 'live', status: 'ready' }] }),
-      formatPositions({ positions: [{
-        symbol: 'BTC/USDT:USDT', exchange: 'okx', status: 'open',
-        leverage: { requested: 12, effective: 7, source: 'signal', cappedBy: 'exchange' },
-      }] }),
-      formatPositions({ positions: [{ symbol: 'ETH/USDT:USDT', exchange: 'legacyexchange', leverage: 5 }] }),
-      formatOrders({ orders: [] }), formatTrades({ trades: [] }), formatPerformance({ groups: [] }),
-      formatRisk({ events: [] }), formatSystem({ executionEnabled: true, killSwitchActive: false }),
-      formatEvents({ events: [] }),
-    ];
-    assert.ok(formatterOutputs.every(output => typeof output === 'string' && output.length <= 4096));
-    assert.match(formatterOutputs[1], /okx/i, 'Dynamic exchange names must be formatted as opaque strings.');
-    assert.match(formatterOutputs[2], /Effective.*7/i);
-    assert.match(formatterOutputs[2], /Requested.*12/i);
-    assert.match(formatterOutputs[2], /Source.*signal/i);
-    assert.match(formatterOutputs[2], /CappedBy.*exchange/i);
-    assert.match(formatterOutputs[3], /Leverage.*5/i, 'Legacy leverage must format without a decision object.');
-    const projectionOutputs = [
-      formatTelegramViewerProjection('summary', {}),
-      formatTelegramViewerProjection('accounts', { account: { id: 'single-account', equity: 0, reportingCurrency: 'USD' } }),
-      formatTelegramViewerProjection('positions', { position: { id: 'single-position', quantity: 0, leverage: '' } }),
-      formatTelegramViewerProjection('orders', { order: { id: 'single-order', filledQuantity: 0 } }),
-      formatTelegramViewerProjection('trades', { trade: { id: 'single-trade', realizedPnl: 0, leverage: { legacy: 3 } } }),
-      formatTelegramViewerProjection('performance', { group: { accountId: 'account-1', trades: 0, realizedPnl: 0 } }),
-      formatTelegramViewerProjection('incidents', { event: { id: 'incident-1', acknowledgedAt: 1 } }),
-      formatTelegramViewerProjection('system', { executionEnabled: false, liveTradingEnabled: true, killSwitchActive: true }),
-      formatTelegramViewerProjection('events', { event: { id: 'event-3', mode: 'paper' } }),
-      formatTelegramViewerProjection('unsupported', {}),
-      formatPositions({ positions: [
-        { id: 'invalid-leverage', leverage: 'not-a-number' },
-        { id: 'array-leverage', leverage: [] },
-        { id: 'partial-leverage', leverage: { effective: null, requested: null, source: '', cappedBy: '', legacy: null } },
-      ] }),
-    ];
-    assert.ok(projectionOutputs.every(output => typeof output === 'string'));
-    const navigation = telegramViewerMenu('accounts', { offset: 20, limit: 20, hasMore: true }).inline_keyboard.flat();
-    assert.ok(navigation.some(button => button.callback_data === 'page:accounts:0'));
-    assert.ok(navigation.some(button => button.callback_data === 'page:accounts:2'));
-    assert.strictEqual(telegramViewerMenu('summary', { offset: 0, limit: 20, hasMore: true }).inline_keyboard.length, 5);
+    verifyFormatters();
+    await verifyCallbackFailure(directory);
+    await verifyViewerModes(directory, state);
 
-    const callbackState = new TelegramViewerStateRepository(path.join(directory, 'callback-state.db'));
-    await callbackState.initialize();
-    const callbackBot = fakeBot();
-    const callbackCore = fakeCore();
-    callbackCore.get = async () => { throw new Error('projection unavailable'); };
-    const callbackService = new TelegramViewerService({ core: callbackCore, bot: callbackBot, state: callbackState });
-    await callbackService.refreshSettings();
-    callbackBot.updates.push({
-      update_id: 1,
-      callback_query: { id: 'callback-error', from: { id: 1001 }, data: 'menu:positions', message: { chat: { id: 1001, type: 'private' } } },
-    });
-    await assert.rejects(callbackService.pollTelegramOnce(), /projection unavailable/);
-    assert.deepStrictEqual(callbackBot.answered, [{ id: 'callback-error', text: 'Daten konnten nicht geladen werden.' }]);
-    assert.strictEqual(await callbackState.telegramOffset(), 2);
-    await callbackState.close();
-
-    const mutedState = new TelegramViewerStateRepository(path.join(directory, 'muted-state.db'));
-    await mutedState.initialize();
-    const mutedCore = fakeCore();
-    mutedCore.config = async () => ({
-      settings: {
-        ...structuredClone(SETTINGS),
-        notifications: { ...structuredClone(SETTINGS.notifications), positionOpened: false },
-      },
-    });
-    const mutedBot = fakeBot();
-    const muted = new TelegramViewerService({ core: mutedCore, bot: mutedBot, state: mutedState });
-    await muted.refreshSettings();
-    await muted.pollEventsOnce();
-    assert.strictEqual(mutedBot.sent.length, 0, 'A disabled notification type must not be delivered.');
-    await mutedState.close();
-
-    const disabledCore = fakeCore();
-    disabledCore.config = async () => ({ settings: { ...structuredClone(SETTINGS), enabled: false } });
-    const disabledBot = fakeBot();
-    const disabled = new TelegramViewerService({ core: disabledCore, bot: disabledBot, state, now: () => 1_700_000_030_000 });
-    await disabled.refreshSettings();
-    await disabled.pollTelegramOnce();
-    await disabled.pollEventsOnce();
-    assert.deepStrictEqual(disabledCore.calls, [], 'Disabled viewer must not request sensitive projections or event data');
-    assert.strictEqual(disabledBot.sent.length, 0, 'Disabled viewer must not send notifications');
-
-    const status = restarted.status();
-    assert.strictEqual(status.ready, true);
-    assert.strictEqual(status.enabled, true);
-    assert.strictEqual(JSON.stringify(status).includes('token'), false);
+    verifyViewerStatus(restarted);
     await state.close();
     console.log('TELEGRAM VIEWER SERVICE TESTS PASSED');
   } finally {
