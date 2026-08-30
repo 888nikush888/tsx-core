@@ -6,6 +6,7 @@ import type {
   ExchangeStreamEvent,
   TradingAccount,
 } from './trading_types.js';
+import { recordTradingNotificationBestEffort } from './trading_notifications.js';
 
 const MAXIMUM_EVENT_JSON_BYTES = 64 * 1024;
 const MAXIMUM_RETAINED_EVENTS_PER_ACCOUNT = 5_000;
@@ -88,7 +89,7 @@ async function updateStreamState(
   account: TradingAccount,
   batch: ExchangeStreamBatch,
   inserted: number,
-): Promise<void> {
+): Promise<{ previousStatus: string | null; status: string }> {
   const now = Date.now();
   const existing = await database.get<ExistingStreamState>(
     `SELECT status, last_poll_at, last_error
@@ -99,7 +100,9 @@ async function updateStreamState(
   const error = batch.gap
     ? 'WebSocket event cursor gap detected; REST reconciliation required.'
     : batch.health.lastError;
-  if (!requiresStateUpdate(existing, { status, error, inserted, gap: batch.gap, now })) return;
+  if (!requiresStateUpdate(existing, { status, error, inserted, gap: batch.gap, now })) {
+    return { previousStatus: existing?.status ?? null, status };
+  }
   await database.run(
     `INSERT INTO trading_exchange_stream_state (
        account_id, status, cursor, gap_count, last_event_at, last_poll_at,
@@ -116,6 +119,7 @@ async function updateStreamState(
     [account.id, status, batch.nextCursor, batch.gap ? 1 : 0,
       batch.health.lastEventAt, now, error, now],
   );
+  return { previousStatus: existing?.status ?? null, status };
 }
 
 async function pruneExchangeEvents(database: Database, accountId: string): Promise<void> {
@@ -139,12 +143,33 @@ export async function persistExchangeStreamBatch(
     throw new Error('Paper accounts do not accept external exchange stream events.');
   }
   validateBatch(batch);
-  return withDatabaseTransaction(async database => {
+  const persisted = await withDatabaseTransaction(async database => {
     const { inserted, stateChanges } = await insertExchangeEvents(database, account, batch.events);
-    await updateStreamState(database, account, batch, inserted);
+    const transition = await updateStreamState(database, account, batch, inserted);
     await pruneExchangeEvents(database, account.id);
-    return { inserted, stateChanges, gap: batch.gap };
+    return { inserted, stateChanges, gap: batch.gap, transition };
   });
+  if (persisted.transition.previousStatus !== persisted.transition.status) {
+    const recovered = persisted.transition.previousStatus === 'degraded'
+      && persisted.transition.status === 'healthy';
+    const degraded = persisted.transition.status === 'degraded';
+    if (recovered || degraded) {
+      await recordTradingNotificationBestEffort({
+        dedupeKey: `stream-${recovered ? 'recovered' : 'degraded'}:${account.id}:${batch.nextCursor}`,
+        eventType: recovered ? 'exchange_stream_recovered' : 'exchange_stream_degraded',
+        accountId: account.id,
+        exchange: account.exchange,
+        mode: account.mode,
+        occurredAt: Date.now(),
+        details: {
+          status: persisted.transition.status,
+          cursor: batch.nextCursor,
+          gap: batch.gap,
+        },
+      });
+    }
+  }
+  return { inserted: persisted.inserted, stateChanges: persisted.stateChanges, gap: persisted.gap };
 }
 
 export async function recordExchangeStreamFailure(
@@ -177,6 +202,21 @@ export async function recordExchangeStreamFailure(
        updated_at = excluded.updated_at`,
     [accountId, now, message, now],
   );
+  if (existing?.status !== 'degraded') {
+    const account = await getDatabase().get<{ exchange: string; mode: string }>(
+      'SELECT exchange, mode FROM trading_accounts WHERE id = ?',
+      [accountId],
+    );
+    await recordTradingNotificationBestEffort({
+      dedupeKey: `stream-degraded:${accountId}:${now}`,
+      eventType: 'exchange_stream_degraded',
+      accountId,
+      exchange: account?.exchange,
+      mode: account?.mode,
+      occurredAt: now,
+      details: { status: 'degraded', failure: true },
+    });
+  }
 }
 
 export async function markExchangeStreamsStopped(): Promise<void> {

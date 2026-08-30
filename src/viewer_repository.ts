@@ -24,8 +24,7 @@ function identifier(value: unknown, label: string, nullable = false): string | n
 
 function channelIdentifier(value: unknown): string | null {
   if (value === null || value === undefined) return null;
-  if (typeof value !== 'string'
-    || (!/^-?[1-9][0-9]{0,24}$/.test(value) && !IDENTIFIER_PATTERN.test(value))) {
+  if (typeof value !== 'string' || !/^-?[A-Za-z0-9][A-Za-z0-9:._/-]{0,254}$/.test(value)) {
     throw new Error('Notification channel identifier is invalid.');
   }
   return value;

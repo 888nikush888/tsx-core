@@ -36,6 +36,7 @@ import {
 import { resolveEffectiveChannelRisk, resolveWorkflowAdaptiveRisk } from './trading_channel_risk.js';
 import { validateStrategyConfiguration } from './trading_strategy.js';
 import { recordTradingEquitySnapshot, recordTradingExecutionEvent } from './trading_telemetry.js';
+import { recordTradingNotificationBestEffort } from './trading_notifications.js';
 import {
   listTradingAccountIncidents,
   recordTradingAccountIncident,
@@ -1152,6 +1153,17 @@ export class TradingEngine {
       intentId: intent.id,
       details: { message },
     });
+    await recordTradingNotificationBestEffort({
+      dedupeKey: `${knownRisk ? 'intent-blocked' : 'execution-failed'}:${intent.id}:${code}`,
+      eventType: knownRisk ? 'intent_blocked' : 'execution_failed',
+      intentId: intent.id,
+      channelId: intent.channelId,
+      accountId: intent.accountId,
+      exchange: intent.exchange,
+      mode: intent.mode,
+      occurredAt: Date.now(),
+      details: { code, symbol: intent.symbol, status },
+    });
     this.logger(`[TRADING] intent=${intent.id} ${status}: ${code}`);
   }
 
@@ -1462,6 +1474,20 @@ export class TradingEngine {
         Date.now(),
       ],
     );
+    const account = await getTradingAccount(accountId);
+    await recordTradingNotificationBestEffort({
+      dedupeKey: `reconciliation-failed:${accountId}:${runId}`,
+      eventType: 'reconciliation_failed',
+      accountId,
+      exchange: account?.exchange,
+      mode: account?.mode,
+      occurredAt: Date.now(),
+      details: {
+        category,
+        failureKind: error instanceof ReconciliationMismatchError ? 'mismatch' : 'failed',
+        errorName: error instanceof Error ? error.name : 'Error',
+      },
+    });
     await this.pruneReconciliationRuns(accountId);
   }
 
@@ -1646,9 +1672,39 @@ export class TradingEngine {
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [randomUUID(), localOrder.id, account.id, fill.exchangeFillId, fill.price, fill.quantity, fill.fee, fill.feeAsset, fill.filledAt, JSON.stringify(fill.raw)],
     );
-    if (Number(inserted.changes || 0) !== 1 || localOrder.role !== 'entry') return;
+    if (Number(inserted.changes || 0) !== 1) return;
     const intent = await getTradingIntent(localOrder.intent_id);
     if (!intent) return;
+    const notificationType = localOrder.role === 'entry'
+      ? 'partial_fill'
+      : localOrder.role === 'take_profit'
+        ? 'take_profit_filled'
+        : localOrder.role === 'stop_loss'
+          ? 'stop_loss_filled'
+          : null;
+    if (notificationType) {
+      await recordTradingNotificationBestEffort({
+        dedupeKey: `fill:${account.id}:${fill.exchangeFillId}`,
+        eventType: notificationType,
+        intentId: intent.id,
+        channelId: intent.channelId,
+        accountId: account.id,
+        exchange: account.exchange,
+        mode: account.mode,
+        occurredAt: fill.filledAt,
+        details: {
+          exchangeFillId: fill.exchangeFillId,
+          orderId: localOrder.id,
+          role: localOrder.role,
+          symbol: intent.symbol,
+          price: fill.price,
+          quantity: fill.quantity,
+          fee: fill.fee,
+          feeAsset: fill.feeAsset,
+        },
+      });
+    }
+    if (localOrder.role !== 'entry') return;
     await this.recordEntryFillEvents(intent, fill.filledAt, localOrder.status === 'filled');
   }
 
@@ -1860,6 +1916,24 @@ export class TradingEngine {
         accountId: account.id,
         intentId: intent.id,
         details: {
+          fromTrigger: activeStop.triggerPrice,
+          toTrigger: decision.trigger,
+          filledTargets,
+          reason: decision.reason,
+          referenceTargetIndex: decision.referenceTargetIndex,
+        },
+      });
+      await recordTradingNotificationBestEffort({
+        dedupeKey: `stop-move:${intent.id}:${decision.trigger}:${protectedStop.exchangeOrderId || protectedStop.clientOrderId}`,
+        eventType: 'stop_moved',
+        intentId: intent.id,
+        channelId: intent.channelId,
+        accountId: account.id,
+        exchange: account.exchange,
+        mode: account.mode,
+        occurredAt: remote.observedAt,
+        details: {
+          symbol: intent.symbol,
           fromTrigger: activeStop.triggerPrice,
           toTrigger: decision.trigger,
           filledTargets,
