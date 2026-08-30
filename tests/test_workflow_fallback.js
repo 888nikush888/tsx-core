@@ -24,6 +24,7 @@ import {
   publishWorkflowResource,
   previewWorkflowImpact,
   saveWorkflowRevision,
+  simulateWorkflow,
 } from '../src/workflow_repository.js';
 import { getFilteredTradingAnalytics } from '../src/trading_telemetry.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
@@ -94,9 +95,14 @@ try {
     id: `${source}-${target}`, kind: 'flow', source, target,
     ...(channelNodeIds ? { channelNodeIds } : {}),
   });
-  const fallback = (source, target, channelNodeIds) => ({
+  const fullFallbackPolicy = [
+    'SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED',
+  ];
+  const pairOnlyFallbackPolicy = ['SYMBOL_UNAVAILABLE'];
+  const fallback = (source, target, channelNodeIds, fallbackOn = fullFallbackPolicy) => ({
     id: `${source}-${target}-fallback`, kind: 'account_fallback', source, target,
     ...(channelNodeIds ? { channelNodeIds } : {}),
+    fallbackOn,
   });
   const nodes = [
     node('channel-a', 'channel', resources.channelA.id, 0),
@@ -118,12 +124,12 @@ try {
     flow('sizing', 'adaptive'), flow('adaptive', 'account-a'), flow('account-a', 'output'),
   ];
   const graph = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     nodes,
     edges: [
       ...baseEdges,
       fallback('account-a', 'account-b', ['channel-a']),
-      fallback('account-b', 'account-c', ['channel-a']),
+      fallback('account-b', 'account-c', ['channel-a'], pairOnlyFallbackPolicy),
     ],
   };
 
@@ -132,7 +138,7 @@ try {
   const workflow = await saveWorkflowRevision({
     baseRevisionId: null, graph, actorId: 'test:fallback', confirmation: WORKFLOW_IMPACT_CONFIRMATION,
   });
-  assert.equal(workflow.graph.schemaVersion, 2);
+  assert.equal(workflow.graph.schemaVersion, 3);
   assert.equal(workflow.compiled.routeGroups.length, 2);
   const fallbackGroup = workflow.compiled.routeGroups.find(group => group.channelId === '-100-fallback-a');
   const directGroup = workflow.compiled.routeGroups.find(group => group.channelId === '-100-fallback-b');
@@ -141,12 +147,48 @@ try {
     [primaryAccount.id, fallbackAccount.id, thirdAccount.id],
   );
   assert.deepEqual(fallbackGroup.candidates.map(candidate => candidate.rank), [0, 1, 2]);
+  assert.deepEqual(fallbackGroup.candidates.map(candidate => candidate.fallbackOn), [
+    fullFallbackPolicy, pairOnlyFallbackPolicy, [],
+  ]);
   assert.deepEqual(directGroup.candidates.map(candidate => candidate.accountId), [primaryAccount.id]);
   const fallbackPath = workflow.compiled.paths.find(candidate => candidate.accountId === fallbackAccount.id);
   assert.equal(fallbackPath.fallbackRank, 1);
   assert.equal(fallbackPath.routeGroupKey, fallbackGroup.key);
   assert.equal(fallbackPath.effectiveConfiguration.strategyConfiguration.sizing.riskPerTradePercent, '10');
   assert.equal((await getActiveWorkflow()).definitionSha256, workflow.definitionSha256);
+  const simulation = await simulateWorkflow({ channelId: '-100-fallback-a', text: 'BTCUSDT LONG' });
+  assert.deepEqual(simulation.paths.map(path => ({
+    accountId: path.accountId,
+    fallbackRank: path.fallbackRank,
+    fallbackOn: path.fallbackOn,
+    routeGroupKey: path.routeGroupKey,
+  })), [
+    { accountId: primaryAccount.id, fallbackRank: 0, fallbackOn: fullFallbackPolicy, routeGroupKey: fallbackGroup.key },
+    { accountId: fallbackAccount.id, fallbackRank: 1, fallbackOn: pairOnlyFallbackPolicy, routeGroupKey: fallbackGroup.key },
+    { accountId: thirdAccount.id, fallbackRank: 2, fallbackOn: [], routeGroupKey: fallbackGroup.key },
+  ]);
+
+  async function seedActivePosition(account, symbol, suffix) {
+    const sourceSignalId = `capacity-seed-${suffix}`;
+    const intentId = `capacity-intent-${suffix}`;
+    const now = Date.now();
+    await saveSignal(sourceSignalId, '-100-fallback-a', 100 + suffix.length, '<signal/>', '<signal/>');
+    await getDatabase().run(
+      `INSERT INTO trading_trade_intents (
+         id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id, account_id,
+         exchange, mode, symbol, side, status, signal_json, plan_json, created_at, updated_at
+       ) VALUES (?, ?, ?, '-100-fallback-a', ?, ?, 'paper', 'paper', ?, 'LONG', 'monitoring', '{}', NULL, ?, ?)`,
+      [intentId, sourceSignalId, sourceSignalId, strategy.id, account.id, symbol, now, now],
+    );
+    await getDatabase().run(
+      `INSERT INTO trading_positions (
+         id, intent_id, account_id, strategy_version_id, channel_id, symbol, side, status,
+         quantity, average_entry_price, stop_price, realized_pnl, opened_at, closed_at, updated_at
+       ) VALUES (?, ?, ?, ?, '-100-fallback-a', ?, 'LONG', 'open', '1', '1', '0.5', '0', ?, NULL, ?)`,
+      [`capacity-position-${suffix}`, intentId, account.id, strategy.id, symbol, now, now],
+    );
+    return intentId;
+  }
 
   await assert.rejects(
     previewWorkflowImpact({
@@ -386,6 +428,121 @@ try {
     [riskRun.id],
   )).count), 0, 'Risk and runtime gates must stop the route instead of activating fallback.');
   await updateTradingRuntimeState({ executionEnabled: true });
+
+  const capacitySeedIntentId = await seedActivePosition(primaryAccount, 'OTHERUSDT', 'full');
+  await getDatabase().run(
+    'UPDATE trading_accounts SET max_concurrent_positions = 1 WHERE id = ?',
+    [primaryAccount.id],
+  );
+  await paper.setMarket(fallbackAccount.id, {
+    symbol: 'LTCUSDT', markPrice: '100', priceTick: '0.1', quantityStep: '0.001',
+    minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
+  });
+  const capacityCalls = { account: 0, market: 0 };
+  const capacityAdapter = {
+    exchange: 'paper',
+    accountSnapshot: account => {
+      if (account.id === primaryAccount.id) capacityCalls.account += 1;
+      return paper.accountSnapshot(account);
+    },
+    marketSnapshot: (account, symbol) => {
+      if (account.id === primaryAccount.id) capacityCalls.market += 1;
+      return paper.marketSnapshot(account, symbol);
+    },
+    submitOrder: (...args) => paper.submitOrder(...args),
+    submitProtectedEntry: (...args) => paper.submitProtectedEntry(...args),
+    cancelOrder: (...args) => paper.cancelOrder(...args),
+    openState: (...args) => paper.openState(...args),
+  };
+  await saveSignal('fallback-capacity', '-100-fallback-a', 20, '<signal/>', '<signal/>');
+  const [capacityPrimary] = await createWorkflowTradingIntents({
+    sourceSignalId: 'fallback-capacity', channelId: '-100-fallback-a',
+    sourceText: 'LTCUSDT LONG', signal: { ...signal, symbol: 'LTCUSDT' },
+  });
+  await new TradingEngine([capacityAdapter]).processIntent(capacityPrimary.id);
+  assert.equal((await getTradingIntent(capacityPrimary.id)).blockReason, 'MAX_CONCURRENT_POSITIONS');
+  assert.deepEqual(capacityCalls, { account: 0, market: 0 },
+    'Local capacity fallback must happen before exchange account and market calls.');
+  const capacityPromoted = await getDatabase().get(
+    `SELECT candidate.status, candidate.intent_id AS intentId FROM trading_fallback_candidates AS candidate
+     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
+     WHERE run.source_signal_id = 'fallback-capacity' AND candidate.rank = 1`,
+  );
+  assert.equal(capacityPromoted.status, 'pending');
+  await getDatabase().run(
+    'UPDATE trading_accounts SET max_concurrent_positions = 1 WHERE id = ?',
+    [fallbackAccount.id],
+  );
+  await new TradingEngine([capacityAdapter]).processIntent(capacityPromoted.intentId);
+  assert.equal((await getTradingIntent(capacityPromoted.intentId)).blockReason, 'MAX_CONCURRENT_POSITIONS');
+  assert.deepEqual(
+    await getDatabase().get(
+      `SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-capacity'`,
+    ),
+    { status: 'stopped', stopReason: 'MAX_CONCURRENT_POSITIONS' },
+    'The A→B full-capacity policy must not leak into the pair-only B→C edge.',
+  );
+  assert.equal(Number((await getDatabase().get(
+    `SELECT COUNT(*) AS count FROM trading_fallback_candidates AS candidate
+     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
+     WHERE run.source_signal_id = 'fallback-capacity' AND candidate.rank = 2 AND candidate.intent_id IS NOT NULL`,
+  )).count), 0);
+  await getDatabase().run(
+    'UPDATE trading_accounts SET max_concurrent_positions = 10 WHERE id = ?',
+    [fallbackAccount.id],
+  );
+
+  await getDatabase().run(
+    `INSERT INTO trading_orders (
+       id, intent_id, account_id, client_order_id, exchange_order_id, role, side, order_type,
+       status, price, trigger_price, quantity, filled_quantity, reduce_only, request_json,
+       response_json, last_error, created_at, updated_at
+     ) VALUES ('capacity-unknown-order', ?, ?, 'capacity-unknown-client', NULL, 'entry', 'buy',
+               'limit', 'unknown', '1', NULL, '1', '0', 0, '{}', NULL, 'unknown', ?, ?)`,
+    [capacitySeedIntentId, primaryAccount.id, Date.now(), Date.now()],
+  );
+  await saveSignal('fallback-hard-safety', '-100-fallback-a', 21, '<signal/>', '<signal/>');
+  const [hardSafetyPrimary] = await createWorkflowTradingIntents({
+    sourceSignalId: 'fallback-hard-safety', channelId: '-100-fallback-a',
+    sourceText: 'LINKUSDT LONG', signal: { ...signal, symbol: 'LINKUSDT' },
+  });
+  await new TradingEngine([capacityAdapter]).processIntent(hardSafetyPrimary.id);
+  assert.equal((await getTradingIntent(hardSafetyPrimary.id)).blockReason, 'UNRESOLVED_ORDER',
+    'An unresolved order must win over an otherwise eligible capacity fallback.');
+  assert.deepEqual(
+    await getDatabase().get(
+      `SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-hard-safety'`,
+    ),
+    { status: 'stopped', stopReason: 'UNRESOLVED_ORDER' },
+  );
+  assert.equal(Number((await getDatabase().get(
+    `SELECT COUNT(*) AS count FROM trading_fallback_candidates AS candidate
+     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
+     WHERE run.source_signal_id = 'fallback-hard-safety' AND candidate.rank > 0 AND candidate.intent_id IS NOT NULL`,
+  )).count), 0);
+  await getDatabase().run("DELETE FROM trading_orders WHERE id = 'capacity-unknown-order'");
+
+  await getDatabase().run(
+    'UPDATE trading_accounts SET max_concurrent_positions = 10 WHERE id = ?',
+    [primaryAccount.id],
+  );
+  await seedActivePosition(primaryAccount, 'DOTUSDT', 'owned');
+  await paper.setMarket(fallbackAccount.id, {
+    symbol: 'DOTUSDT', markPrice: '10', priceTick: '0.01', quantityStep: '0.01',
+    minimumQuantity: '0.01', minimumNotional: '10', maxLeverage: 50,
+  });
+  await saveSignal('fallback-owned', '-100-fallback-a', 22, '<signal/>', '<signal/>');
+  const [ownedPrimary] = await createWorkflowTradingIntents({
+    sourceSignalId: 'fallback-owned', channelId: '-100-fallback-a',
+    sourceText: 'DOTUSDT LONG', signal: { ...signal, symbol: 'DOTUSDT' },
+  });
+  await new TradingEngine([capacityAdapter]).processIntent(ownedPrimary.id);
+  assert.equal((await getTradingIntent(ownedPrimary.id)).blockReason, 'SYMBOL_ALREADY_OWNED');
+  assert.equal((await getDatabase().get(
+    `SELECT candidate.status FROM trading_fallback_candidates AS candidate
+     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
+     WHERE run.source_signal_id = 'fallback-owned' AND candidate.rank = 1`,
+  )).status, 'pending');
 
   await saveSignal('fallback-submit-stop', '-100-fallback-a', 5, '<signal/>', '<signal/>');
   await paper.setMarket(primaryAccount.id, {
