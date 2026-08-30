@@ -54,6 +54,7 @@ const allTests = [
   'test_telegram_viewer_core.js',
   'test_telegram_viewer_api.js',
   'test_telegram_viewer_service.js',
+  'test_telegram_viewer_runtime.js',
   'test_setup_bundle.js',
   'test_trading_engine.js',
   'test_trading_failures.js',
