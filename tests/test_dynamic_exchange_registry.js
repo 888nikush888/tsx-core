@@ -62,7 +62,12 @@ const VERSION_18_SCHEMA = `
       CREATE TABLE trading_strategy_versions (id TEXT PRIMARY KEY);
       CREATE TABLE workflow_signal_runs (id TEXT PRIMARY KEY);
       CREATE TABLE workflow_revisions (id TEXT PRIMARY KEY);
-      CREATE TABLE workflow_execution_paths (id TEXT PRIMARY KEY);
+      CREATE TABLE workflow_execution_paths (
+        id TEXT PRIMARY KEY,
+        workflow_revision_id TEXT REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+        route_group_key TEXT,
+        fallback_rank INTEGER NOT NULL DEFAULT 0
+      );
       CREATE TABLE trading_trade_intents (
         id TEXT PRIMARY KEY,
         source_signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE RESTRICT,
@@ -89,6 +94,41 @@ const VERSION_18_SCHEMA = `
       CREATE INDEX idx_trading_intents_account_status ON trading_trade_intents(account_id, status, created_at);
       CREATE UNIQUE INDEX uq_trading_intent_execution_path
         ON trading_trade_intents(root_source_signal_id, execution_path_id) WHERE execution_path_id IS NOT NULL;
+      CREATE TABLE trading_fallback_runs (
+        id TEXT PRIMARY KEY,
+        source_signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE RESTRICT,
+        workflow_revision_id TEXT NOT NULL REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+        signal_run_id TEXT NOT NULL REFERENCES workflow_signal_runs(id) ON DELETE RESTRICT,
+        route_group_key TEXT NOT NULL,
+        channel_id TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('probing', 'selected', 'exhausted', 'stopped')),
+        current_rank INTEGER NOT NULL DEFAULT 0 CHECK(current_rank >= 0),
+        selected_intent_id TEXT REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+        stop_reason TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        UNIQUE(source_signal_id, workflow_revision_id, route_group_key)
+      );
+      CREATE INDEX idx_trading_fallback_runs_status
+        ON trading_fallback_runs(status, updated_at DESC);
+      CREATE TABLE trading_fallback_candidates (
+        fallback_run_id TEXT NOT NULL REFERENCES trading_fallback_runs(id) ON DELETE CASCADE,
+        rank INTEGER NOT NULL CHECK(rank >= 0),
+        execution_path_id TEXT NOT NULL REFERENCES workflow_execution_paths(id) ON DELETE RESTRICT,
+        account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+        intent_id TEXT REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+        status TEXT NOT NULL CHECK(status IN ('waiting', 'pending', 'unavailable', 'selected', 'stopped')),
+        error_code TEXT,
+        details_json TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY(fallback_run_id, rank),
+        UNIQUE(fallback_run_id, execution_path_id),
+        UNIQUE(intent_id)
+      );
+      CREATE INDEX idx_trading_fallback_candidates_account
+        ON trading_fallback_candidates(account_id, status, updated_at DESC);
       CREATE TABLE trading_exchange_events (
         id TEXT PRIMARY KEY,
         account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
