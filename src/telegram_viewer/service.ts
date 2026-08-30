@@ -109,7 +109,7 @@ export class TelegramViewerService {
   private async processCallback(callback: any): Promise<void> {
     const chat = callback?.message?.chat;
     if (!this.authorized(chat, callback?.from) || !validTelegramViewerCallback(callback?.data)) return;
-    const [kind, requestedResource, page] = callback.data.split(':');
+    const [, requestedResource, page] = callback.data.split(':');
     const resource = requestedResource === 'refresh' ? 'summary' : requestedResource;
     try {
       await this.sendProjection(chat.id, resource, page ? Number(page) : 0);
@@ -118,7 +118,6 @@ export class TelegramViewerService {
       await this.dependencies.bot.answerCallbackQuery(String(callback.id), 'Daten konnten nicht geladen werden.');
       throw error;
     }
-    void kind;
   }
 
   async pollTelegramOnce(): Promise<void> {

@@ -81,6 +81,7 @@ import {
   telegramViewerSecretStoreFromEnvironment,
   type TelegramViewerSecretStore,
 } from './telegram_viewer_secrets.js';
+import { requireTrustedServiceUrl } from './telegram_viewer/internal_transport.js';
 import {
   createTradingIntent,
   getSignalContractVersion,
@@ -2005,9 +2006,12 @@ function startDashboardRuntime(
 }
 
 async function getTelegramViewerServiceStatus(secrets: TelegramViewerSecretStore): Promise<Record<string, unknown>> {
-  const configured = process.env.TELEGRAM_VIEWER_STATUS_URL || 'http://telegram-viewer:8081/status';
+  const configured = requireTrustedServiceUrl(
+    process.env.TELEGRAM_VIEWER_STATUS_URL,
+    'TELEGRAM_VIEWER_STATUS_URL',
+    ['telegram-viewer', 'localhost', '127.0.0.1', '[::1]'],
+  );
   const endpoint = new URL(configured);
-  if (!['http:', 'https:'].includes(endpoint.protocol)) throw new Error('Telegram viewer status URL is invalid.');
   const response = await fetch(endpoint, {
     method: 'GET',
     headers: { Authorization: `Bearer ${await secrets.serviceToken()}`, Accept: 'application/json' },

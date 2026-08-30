@@ -3,6 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { TelegramBotApiClient, TelegramViewerCoreApiClient } from './clients.js';
 import { startTelegramViewerHealthServer } from './health_server.js';
+import { requireTrustedServiceUrl } from './internal_transport.js';
 import { TelegramViewerService } from './service.js';
 import { TelegramViewerStateRepository } from './state_repository.js';
 
@@ -55,7 +56,12 @@ export async function runTelegramViewer(): Promise<void> {
   const botToken = () => readRuntimeSecret(secretDirectory, 'bot_token', BOT_TOKEN_PATTERN);
   const state = new TelegramViewerStateRepository(process.env.TELEGRAM_VIEWER_STATE_DB || '/app/state/viewer_state.db');
   await state.initialize();
-  const core = new TelegramViewerCoreApiClient(process.env.TELEGRAM_VIEWER_CORE_URL || 'http://forwarder:3000', serviceToken);
+  const coreUrl = requireTrustedServiceUrl(
+    process.env.TELEGRAM_VIEWER_CORE_URL,
+    'TELEGRAM_VIEWER_CORE_URL',
+    ['forwarder', 'localhost', '127.0.0.1', '[::1]'],
+  );
+  const core = new TelegramViewerCoreApiClient(coreUrl, serviceToken);
   const bot = new TelegramBotApiClient(botToken, process.env.TELEGRAM_BOT_API_BASE || 'https://api.telegram.org/bot');
   const service = new TelegramViewerService({ core, bot, state });
   await service.refreshSettings();

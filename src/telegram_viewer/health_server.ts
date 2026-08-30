@@ -28,7 +28,7 @@ export function startTelegramViewerHealthServer(options: {
         send(response, 405, { error: 'Method not allowed.' });
         return;
       }
-      const pathname = new URL(request.url || '/', 'http://viewer.local').pathname;
+      const pathname = new URL(request.url || '/', 'https://viewer.local').pathname;
       const status = options.status();
       if (pathname === '/healthz' || pathname === '/health') {
         send(response, status.healthy === false ? 503 : 200, { healthy: status.healthy !== false });

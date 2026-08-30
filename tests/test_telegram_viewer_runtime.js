@@ -104,6 +104,14 @@ function verifyTrustedInternalTransport() {
     /TELEGRAM_VIEWER_CORE_URL must be configured/i,
   );
   assert.throws(
+    () => requireTrustedServiceUrl('   ', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
+    /TELEGRAM_VIEWER_CORE_URL must be configured/i,
+  );
+  assert.throws(
+    () => requireTrustedServiceUrl('not a url', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
+    /TELEGRAM_VIEWER_CORE_URL is invalid/i,
+  );
+  assert.throws(
     () => requireTrustedServiceUrl('http://public.example.test/status', 'TELEGRAM_VIEWER_STATUS_URL', ['telegram-viewer']),
     /cleartext transport.*trusted internal host/i,
     'Bearer credentials must never be sent over cleartext to an arbitrary host.',
@@ -114,6 +122,10 @@ function verifyTrustedInternalTransport() {
   );
   assert.throws(
     () => requireTrustedServiceUrl('https://user:password@example.test', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
+    /embedded credentials/i,
+  );
+  assert.throws(
+    () => requireTrustedServiceUrl('https://:password@example.test', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
     /embedded credentials/i,
   );
 }

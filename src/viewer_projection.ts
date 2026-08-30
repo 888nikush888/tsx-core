@@ -58,23 +58,39 @@ function reportingCurrency(capabilitiesJson: unknown): string | null {
   return null;
 }
 
-function leveragePresentation(planJson: unknown): Record<string, unknown> | null {
-  const plan = safeJson(planJson);
-  const legacy = Number(plan.leverage);
-  const decision = plan.leverageDecision;
+function finiteNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function decisionLeveragePresentation(
+  decision: unknown,
+  legacy: number | null,
+): Record<string, unknown> | null {
   if (decision && typeof decision === 'object' && !Array.isArray(decision)) {
     const source = decision as Record<string, unknown>;
-    const requested = Number(source.requested);
-    const effective = Number(source.effective);
+    const effective = finiteNumber(source.effective);
     return {
-      requested: Number.isFinite(requested) ? requested : null,
-      effective: Number.isFinite(effective) ? effective : (Number.isFinite(legacy) ? legacy : null),
-      source: typeof source.source === 'string' ? source.source : null,
-      cappedBy: typeof source.cappedBy === 'string' ? source.cappedBy : null,
-      legacy: Number.isFinite(legacy) ? legacy : null,
+      requested: finiteNumber(source.requested),
+      effective: effective ?? legacy,
+      source: optionalString(source.source),
+      cappedBy: optionalString(source.cappedBy),
+      legacy,
     };
   }
-  return Number.isFinite(legacy)
+  return null;
+}
+
+function leveragePresentation(planJson: unknown): Record<string, unknown> | null {
+  const plan = safeJson(planJson);
+  const legacy = finiteNumber(plan.leverage);
+  const decision = decisionLeveragePresentation(plan.leverageDecision, legacy);
+  if (decision) return decision;
+  return legacy !== null
     ? { requested: null, effective: legacy, source: 'legacy', cappedBy: null, legacy }
     : null;
 }
