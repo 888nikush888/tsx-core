@@ -118,6 +118,7 @@ const analytics = {
   },
   fallback: {
     runs: 3, selected: 2, exhausted: 1, stopped: 0, unavailableCandidates: 4,
+    skippedByReason: { SYMBOL_UNAVAILABLE: 1, MAX_CONCURRENT_POSITIONS: 2, SYMBOL_ALREADY_OWNED: 1 },
     averageSelectedRank: 1.5, selectionRatePercent: 66.7,
     byAccount: [{ accountId: "paper-1", exchange: "paper", mode: "paper", attempts: 2, selected: 1, unavailable: 1 }],
   },
@@ -213,7 +214,12 @@ describe("operations workspace", () => {
       if (tab === "overview") await screen.findByText("VIP Coinsignals")
       if (tab === "journal") await screen.findByText(/PnL\s+4\.99/)
       if (tab === "analytics") await screen.findByText("75,0 %")
-      if (tab === "analytics") await screen.findByText("Fallback-Auswahl je Börsenkonto")
+      if (tab === "analytics") {
+        await screen.findByText("Fallback-Auswahl je Börsenkonto")
+        await screen.findByRole("heading", { name: "Fallback-Übersprünge" })
+        await screen.findByText("Account voll")
+        await screen.findByText("Pair bereits offen")
+      }
       if (tab === "logs") await screen.findByText(/executor ready/)
       if (tab === "backups") await screen.findByText("backup-v3.1.0")
       if (tab === "mcp") await screen.findByText("Auditor")
