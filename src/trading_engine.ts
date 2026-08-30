@@ -60,6 +60,7 @@ import type {
   WorkflowFallbackReason,
 } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
+import { isWorkflowFallbackReason } from './workflow_fallback_policy.js';
 
 type TradingLogger = (message: string) => void;
 type ReconciliationOptions = { force?: boolean };
@@ -1150,9 +1151,7 @@ export class TradingEngine {
     const code = symbolUnavailable ? error.code : error instanceof TradingRiskError ? error.code : 'ORDER_OUTCOME_UNKNOWN';
     const status = knownRisk ? 'blocked' : 'unknown';
     const message = error?.message || String(error);
-    const fallbackReason: WorkflowFallbackReason | null = [
-      'SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED',
-    ].includes(code) ? code as WorkflowFallbackReason : null;
+    const fallbackReason: WorkflowFallbackReason | null = isWorkflowFallbackReason(code) ? code : null;
     if (fallbackReason) {
       // Persist the blocked current intent and promotion of the next candidate
       // in one transaction so a restart cannot strand a probing fallback run.

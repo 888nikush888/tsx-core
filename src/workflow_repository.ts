@@ -4,7 +4,6 @@ import { decimal } from './trading_decimal.js';
 import { parseRegex, safeRegexTest } from './filters.js';
 import { loadSignalPromptTemplate } from './signal_parser.js';
 import { validateStrategyConfiguration } from './trading_strategy.js';
-import { WORKFLOW_FALLBACK_REASONS } from './trading_types.js';
 import type { Config } from './config.js';
 import type {
   ExecutableSignal,
@@ -24,6 +23,11 @@ import type {
   WorkflowRevision,
   WorkflowRouteGroup,
 } from './trading_types.js';
+import {
+  LEGACY_WORKFLOW_FALLBACK_POLICY,
+  canonicalWorkflowFallbackPolicy,
+  isWorkflowFallbackReason,
+} from './workflow_fallback_policy.js';
 
 const RESOURCE_KINDS = new Set<WorkflowResourceKind>([
   'channel', 'content_filter', 'keyword_filter', 'regex', 'parser', 'schema',
@@ -59,10 +63,6 @@ export const WORKFLOW_BUILDER_HISTORY_LIMIT = 5;
 const EMPTY_WORKFLOW_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges: [] };
 const DEFAULT_WORKFLOW_HISTORY_LABEL = 'Workflow geändert';
 const WORKFLOW_HISTORY_ENTRY_KEYS = new Set(['revisionId', 'label', 'capturedAt']);
-const WORKFLOW_FALLBACK_REASON_ORDER = new Map<WorkflowFallbackReason, number>(
-  WORKFLOW_FALLBACK_REASONS.map((reason, index) => [reason, index]),
-);
-const LEGACY_FALLBACK_POLICY: WorkflowFallbackReason[] = ['SYMBOL_UNAVAILABLE'];
 
 function object(value: unknown, label: string): Record<string, any> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -660,15 +660,13 @@ function workflowEdgeFallbackPolicy(
   if (!Array.isArray(edge.fallbackOn) || edge.fallbackOn.length < 1 || edge.fallbackOn.length > 3) {
     throw new Error(`Account fallback edge ${id} fallback policy must contain between one and three reasons.`);
   }
-  if (edge.fallbackOn.some((reason: unknown) => typeof reason !== 'string'
-    || !WORKFLOW_FALLBACK_REASON_ORDER.has(reason as WorkflowFallbackReason))) {
+  if (edge.fallbackOn.some((reason: unknown) => !isWorkflowFallbackReason(reason))) {
     throw new Error(`Account fallback edge ${id} contains an unsupported fallback reason.`);
   }
   if (new Set(edge.fallbackOn).size !== edge.fallbackOn.length) {
     throw new Error(`Account fallback edge ${id} fallback policy contains a duplicate reason.`);
   }
-  return [...edge.fallbackOn]
-    .sort((left, right) => WORKFLOW_FALLBACK_REASON_ORDER.get(left)! - WORKFLOW_FALLBACK_REASON_ORDER.get(right)!);
+  return canonicalWorkflowFallbackPolicy(edge.fallbackOn);
 }
 
 function workflowEdgeChannelScope(
@@ -941,7 +939,7 @@ function fallbackSuccessorsForChannel(
     }
     successors.set(edge.source, {
       target: edge.target,
-      fallbackOn: [...(edge.fallbackOn ?? LEGACY_FALLBACK_POLICY)],
+      fallbackOn: [...(edge.fallbackOn ?? LEGACY_WORKFLOW_FALLBACK_POLICY)],
     });
     predecessors.set(edge.target, edge.source);
   }
