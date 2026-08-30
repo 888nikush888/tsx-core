@@ -5,6 +5,8 @@ import { once } from 'node:events';
 import { TelegramBotApiClient, TelegramViewerCoreApiClient } from '../src/telegram_viewer/clients.js';
 import { startTelegramViewerHealthServer } from '../src/telegram_viewer/health_server.js';
 
+const SERVICE_TOKEN = 's'.repeat(43);
+
 async function close(server) {
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
@@ -16,7 +18,7 @@ async function run() {
     response.setHeader('Content-Type', 'application/json');
     if (request.url.startsWith('/internal/viewer/v1/')) {
       assert.strictEqual(request.method, 'GET');
-      assert.strictEqual(request.headers.authorization, 'Bearer service-secret');
+      assert.strictEqual(request.headers.authorization, `Bearer ${SERVICE_TOKEN}`);
       response.end(JSON.stringify(request.url.includes('/config')
         ? { settings: { enabled: false } }
         : { events: [], nextSeq: 0 }));
@@ -31,7 +33,7 @@ async function run() {
   assert.ok(upstreamAddress && typeof upstreamAddress === 'object');
   const upstreamUrl = `http://127.0.0.1:${upstreamAddress.port}`;
   try {
-    const core = new TelegramViewerCoreApiClient(upstreamUrl, 'service-secret');
+    const core = new TelegramViewerCoreApiClient(upstreamUrl, SERVICE_TOKEN);
     await core.config();
     await core.get('events', { afterSeq: 0, limit: 10 });
     const bot = new TelegramBotApiClient('123456789:abcdefghijklmnopqrstuvwxyzABCDE', `${upstreamUrl}/bot`);
@@ -42,7 +44,7 @@ async function run() {
     assert.ok(requests.every(request => !request.url.includes('setWebhook')), 'Viewer must use long polling, never webhooks');
 
     const health = startTelegramViewerHealthServer({
-      host: '127.0.0.1', port: 0, serviceToken: 'service-secret',
+      host: '127.0.0.1', port: 0, serviceToken: SERVICE_TOKEN,
       status: () => ({ healthy: true, ready: true, enabled: false, lastError: null }),
     });
     await once(health, 'listening');
@@ -56,9 +58,9 @@ async function run() {
     assert.strictEqual(response.status, 200);
     response = await fetch(`${base}/status`);
     assert.strictEqual(response.status, 401);
-    response = await fetch(`${base}/status`, { headers: { Authorization: 'Bearer service-secret' } });
+    response = await fetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
     assert.strictEqual(response.status, 200);
-    assert.strictEqual(JSON.stringify(await response.json()).includes('service-secret'), false);
+    assert.strictEqual(JSON.stringify(await response.json()).includes(SERVICE_TOKEN), false);
     response = await fetch(`${base}/health`, { method: 'POST' });
     assert.strictEqual(response.status, 405);
     await close(health);

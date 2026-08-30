@@ -55,6 +55,19 @@ export class TelegramViewerService {
     return this.settings;
   }
 
+  recordFailure(error: unknown): void {
+    this.lastError = error instanceof Error ? error.message.slice(0, 500) : 'Viewer operation failed.';
+  }
+
+  recordHealthyPoll(): void {
+    this.lastError = null;
+    this.lastPollAt = this.now();
+  }
+
+  pollingInterval(): number {
+    return this.settings?.eventPollingIntervalMs ?? 2_000;
+  }
+
   private authorized(chat: any, from: any): boolean {
     return Boolean(
       this.settings?.enabled
@@ -115,7 +128,7 @@ export class TelegramViewerService {
         }
       }
     }
-    this.lastPollAt = this.now();
+    this.recordHealthyPoll();
   }
 
   private notificationEnabled(event: TradingNotificationEvent): boolean {
