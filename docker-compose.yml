@@ -187,7 +187,7 @@ services:
     environment:
       TELEGRAM_VIEWER_CORE_URL: "http://forwarder:8080"
       TELEGRAM_VIEWER_SECRET_DIR: "/app/secrets"
-      TELEGRAM_VIEWER_STATE_DB: "/app/state/viewer-state.db"
+      TELEGRAM_VIEWER_STATE_DB: "/app/state/viewer_state.db"
       TELEGRAM_VIEWER_HEALTH_PORT: "8081"
     volumes:
       - telegram_viewer_secrets:/app/secrets:ro
@@ -209,7 +209,7 @@ services:
         - CMD
         - /nodejs/bin/node
         - -e
-        - "fetch('http://127.0.0.1:8081/health',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+        - "fetch('http://127.0.0.1:8081/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 5s
       start_period: 20s

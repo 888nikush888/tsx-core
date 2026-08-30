@@ -30,11 +30,11 @@ export function startTelegramViewerHealthServer(options: {
       }
       const pathname = new URL(request.url || '/', 'http://viewer.local').pathname;
       const status = options.status();
-      if (pathname === '/health') {
+      if (pathname === '/healthz' || pathname === '/health') {
         send(response, status.healthy === false ? 503 : 200, { healthy: status.healthy !== false });
         return;
       }
-      if (pathname === '/ready') {
+      if (pathname === '/readyz' || pathname === '/ready') {
         send(response, status.ready === true ? 200 : 503, { ready: status.ready === true });
         return;
       }

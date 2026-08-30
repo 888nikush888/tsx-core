@@ -43,8 +43,8 @@ async function resilientLoop(operation: () => Promise<void>, interval: () => num
 export async function runTelegramViewer(): Promise<void> {
   const secretDirectory = process.env.TELEGRAM_VIEWER_SECRET_DIR || '/run/secrets/telegram-viewer';
   const serviceToken = () => readRuntimeSecret(secretDirectory, 'viewer_service_token', SERVICE_TOKEN_PATTERN);
-  const botToken = await readRuntimeSecret(secretDirectory, 'bot_token', BOT_TOKEN_PATTERN);
-  const state = new TelegramViewerStateRepository(process.env.TELEGRAM_VIEWER_STATE_DB || '/app/state/viewer-state.db');
+  const botToken = () => readRuntimeSecret(secretDirectory, 'bot_token', BOT_TOKEN_PATTERN);
+  const state = new TelegramViewerStateRepository(process.env.TELEGRAM_VIEWER_STATE_DB || '/app/state/viewer_state.db');
   await state.initialize();
   const core = new TelegramViewerCoreApiClient(process.env.TELEGRAM_VIEWER_CORE_URL || 'http://forwarder:3000', serviceToken);
   const bot = new TelegramBotApiClient(botToken, process.env.TELEGRAM_BOT_API_BASE || 'https://api.telegram.org/bot');

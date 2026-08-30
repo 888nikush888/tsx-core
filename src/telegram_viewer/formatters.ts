@@ -1,7 +1,7 @@
 import type { TelegramViewerSettings, TradingNotificationEvent } from '../viewer_types.js';
 
 const TELEGRAM_MESSAGE_LIMIT = 4096;
-const CALLBACK_PATTERN = /^(menu:(summary|accounts|positions|orders|trades|performance|risk|incidents|help)|page:(accounts|positions|orders|trades|risk|incidents):[0-9]{1,4})$/;
+const CALLBACK_PATTERN = /^(menu:(summary|accounts|positions|orders|trades|performance|risk|system|events|refresh|help)|page:(accounts|positions|orders|trades|risk|incidents|events):[0-9]{1,4})$/;
 
 function clipped(value: string): string {
   if (value.length <= TELEGRAM_MESSAGE_LIMIT) return value;
@@ -73,13 +73,20 @@ export function telegramViewerMenu(): { inline_keyboard: Array<Array<{ text: str
       [{ text: 'Status', callback_data: 'menu:summary' }, { text: 'Konten', callback_data: 'menu:accounts' }],
       [{ text: 'Positionen', callback_data: 'menu:positions' }, { text: 'Orders', callback_data: 'menu:orders' }],
       [{ text: 'Trades', callback_data: 'menu:trades' }, { text: 'Performance', callback_data: 'menu:performance' }],
-      [{ text: 'Risiko', callback_data: 'menu:risk' }, { text: 'Incidents', callback_data: 'menu:incidents' }],
+      [{ text: 'Risiko', callback_data: 'menu:risk' }, { text: 'System', callback_data: 'menu:system' }],
+      [{ text: 'Events', callback_data: 'menu:events' }, { text: 'Aktualisieren', callback_data: 'menu:refresh' }],
     ],
   };
 }
 
 export const TELEGRAM_VIEWER_HELP = [
-  'TSX Core Telegram Viewer',
+  '🤖 TSX CORE',
+  '🟢 System online',
   'Nur lesender Zugriff. Handels- und Konfigurationsaktionen sind nicht möglich.',
-  '/status /accounts /positions /orders /trades /performance /risk /incidents /help',
+  '/status /accounts /positions /orders /trades /performance /risk /system /events /refresh /help',
+].join('\n');
+
+export const TELEGRAM_VIEWER_UNKNOWN_COMMAND = [
+  'TSX Core Telegram Viewer',
+  'Dieser Befehl ist nicht verfügbar. Der Viewer bietet ausschließlich lesenden Zugriff.',
 ].join('\n');

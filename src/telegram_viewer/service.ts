@@ -3,6 +3,7 @@ import {
   formatTelegramViewerEvent,
   formatTelegramViewerProjection,
   TELEGRAM_VIEWER_HELP,
+  TELEGRAM_VIEWER_UNKNOWN_COMMAND,
   telegramViewerMenu,
   validTelegramViewerCallback,
 } from './formatters.js';
@@ -31,6 +32,7 @@ const NOTIFICATION_SETTING: Partial<Record<TradingNotificationEvent['eventType']
 const COMMAND_RESOURCES: Record<string, string> = {
   '/status': 'summary', '/accounts': 'accounts', '/positions': 'positions', '/orders': 'orders',
   '/trades': 'trades', '/performance': 'performance', '/risk': 'risk', '/incidents': 'incidents',
+  '/system': 'system', '/events': 'events', '/refresh': 'summary',
 };
 
 export class TelegramViewerService {
@@ -38,6 +40,7 @@ export class TelegramViewerService {
   private initializedAt = Date.now();
   private lastPollAt: number | null = null;
   private lastError: string | null = null;
+  private lastTest: Record<string, unknown> | null = null;
 
   constructor(private readonly dependencies: {
     core: TelegramViewerCoreClient;
@@ -51,6 +54,7 @@ export class TelegramViewerService {
   async refreshSettings(): Promise<TelegramViewerSettings> {
     const response = await this.dependencies.core.config();
     this.settings = response.settings;
+    this.lastTest = await this.dependencies.state.lastTest();
     this.lastError = null;
     return this.settings;
   }
@@ -93,13 +97,20 @@ export class TelegramViewerService {
       return;
     }
     const resource = COMMAND_RESOURCES[command];
-    if (resource) await this.sendProjection(message.chat.id, resource);
+    if (resource) {
+      await this.sendProjection(message.chat.id, resource);
+      return;
+    }
+    await this.dependencies.bot.sendMessage(message.chat.id, TELEGRAM_VIEWER_UNKNOWN_COMMAND, {
+      reply_markup: telegramViewerMenu(),
+    });
   }
 
   private async processCallback(callback: any): Promise<void> {
     const chat = callback?.message?.chat;
     if (!this.authorized(chat, callback?.from) || !validTelegramViewerCallback(callback?.data)) return;
-    const [kind, resource, page] = callback.data.split(':');
+    const [kind, requestedResource, page] = callback.data.split(':');
+    const resource = requestedResource === 'refresh' ? 'summary' : requestedResource;
     try {
       const payload = await this.dependencies.core.get(resource, page ? { limit: 20, offset: Number(page) * 20 } : { limit: 20 });
       await this.dependencies.bot.sendMessage(chat.id, formatTelegramViewerProjection(resource, payload), {
@@ -176,14 +187,20 @@ export class TelegramViewerService {
         await this.dependencies.bot.sendMessage(delivery.userId, text, { reply_markup: telegramViewerMenu() });
         await this.dependencies.state.markDelivered(delivery.id, now);
         if (delivery.kind === 'test') {
-          await this.dependencies.state.setLastTest({ sourceSeq: delivery.sourceSeq, status: 'delivered', attemptedAt: now, deliveredAt: now });
+          this.lastTest = { sourceSeq: delivery.sourceSeq, status: 'delivered', attemptedAt: now, deliveredAt: now, error: null };
+          await this.dependencies.state.setLastTest(this.lastTest as {
+            sourceSeq: number; status: string; attemptedAt: number; deliveredAt: number;
+          });
         }
       } catch (error) {
         await this.dependencies.state.markFailed(delivery.id, delivery.attempts, error, now);
         if (delivery.kind === 'test') {
-          await this.dependencies.state.setLastTest({
+          this.lastTest = {
             sourceSeq: delivery.sourceSeq, status: 'retrying', attemptedAt: now,
             error: error instanceof Error ? error.message : 'Telegram delivery failed.',
+          };
+          await this.dependencies.state.setLastTest(this.lastTest as {
+            sourceSeq: number; status: string; attemptedAt: number; error: string;
           });
         }
       }
@@ -199,6 +216,8 @@ export class TelegramViewerService {
       initializedAt: this.initializedAt,
       lastPollAt: this.lastPollAt,
       lastError: this.lastError,
+      lastTestEventId: this.lastTest?.sourceSeq ?? null,
+      lastTest: this.lastTest,
     };
   }
 }
