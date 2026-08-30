@@ -19,6 +19,8 @@ const vulncheckSumLock = await readFile(path.join(root, 'monitoring', 'govulnche
 const applicationVex = JSON.parse(await readFile(path.join(root, 'security', 'vex', 'CVE-2026-14456.openvex.json'), 'utf8'));
 const monitoringCompose = await readFile(path.join(root, 'docker-compose.monitoring.yml'), 'utf8');
 const executorLock = await readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8');
+const executorDevLock = await readFile(path.join(root, 'exchange_executor', 'requirements-dev.lock'), 'utf8');
+const rootManifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 const ccxtClient = await readFile(path.join(root, 'exchange_executor', 'ccxt_client.py'), 'utf8');
 const ccxtProfiles = await readFile(path.join(root, 'exchange_executor', 'ccxt_profiles.py'), 'utf8');
 const ccxtRegistry = await readFile(path.join(root, 'exchange_executor', 'ccxt_registry.py'), 'utf8');
@@ -161,6 +163,9 @@ assert.match(executorLock, /05815e6e7fdf8c8e28602150d7d6f8a9a98050dac3fc133ffff1
 assert.match(executorLock, /5509c2659e4bfad6f4f5a9cea5c15ad244121263b423ae92f7ccbc4c04cfd8d9/);
 const pinnedCcxtVersion = executorLock.match(/^ccxt==([^\s]+) \\/m)?.[1];
 assert.equal(pinnedCcxtVersion, '4.5.75');
+assert.match(executorDevLock, /^ruff==0\.15\.7 \\/m);
+assert.equal(rootManifest.scripts['lint:python'], 'python -m ruff check exchange_executor');
+assert.match(workflow, /python -m ruff check exchange_executor/);
 assert.match(ccxtClient, /import ccxt\.async_support as ccxt_async/);
 assert.match(ccxtClient, /import ccxt\.pro as ccxt_pro/);
 assert.match(ccxtClient, /CERTIFIED_EXCHANGES = set\(PROFILES\)/);
