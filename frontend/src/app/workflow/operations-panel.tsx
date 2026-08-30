@@ -10,6 +10,7 @@ import {
   Landmark,
   Plus,
   RefreshCw,
+  Send,
   ServerCog,
   Terminal,
 } from "lucide-react";
@@ -50,6 +51,7 @@ export type OperationTab =
   | "logs"
   | "backups"
   | "mcp"
+  | "telegram-viewer"
   | "system";
 
 const TABS: Array<{ id: OperationTab; label: string; description: string; icon: typeof Activity }> =
@@ -61,6 +63,7 @@ const TABS: Array<{ id: OperationTab; label: string; description: string; icon: 
     { id: "logs", label: "Logs", description: "Live-Diagnose", icon: Terminal },
     { id: "backups", label: "Backups", description: "Sicherung und Restore", icon: DatabaseBackup },
     { id: "mcp", label: "MCP", description: "Agenten und Rechte", icon: Bot },
+    { id: "telegram-viewer", label: "Telegram Viewer", description: "Nur lesender Bot", icon: Send },
     { id: "system", label: "System", description: "Zugriff und Wartung", icon: ServerCog },
   ];
 
@@ -2308,6 +2311,192 @@ function Mcp() {
   );
 }
 
+type TelegramViewerSettings = {
+  enabled: boolean;
+  allowedUserIds: string[];
+  timezone: string;
+  locale: string;
+  eventPollingIntervalMs: number;
+  notifications: Record<string, boolean>;
+  display: { detailLevel: "compact" | "normal" | "detailed"; pnlMode: "absolute" | "absolute_and_percent"; timeFormat: "24h" };
+};
+
+const TELEGRAM_NOTIFICATION_LABELS: Array<[string, string]> = [
+  ["positionOpened", "Position eröffnet"],
+  ["takeProfitFilled", "Take Profit ausgeführt"],
+  ["stopLossFilled", "Stop Loss ausgeführt"],
+  ["positionClosed", "Position geschlossen"],
+  ["executionFailed", "Ausführung fehlgeschlagen"],
+  ["accountIncidentOpened", "Konto-Incident eröffnet"],
+  ["accountIncidentResolved", "Konto-Incident gelöst"],
+  ["exchangeStreamDegraded", "Börsenstream gestört"],
+  ["exchangeStreamRecovered", "Börsenstream wiederhergestellt"],
+  ["killSwitchActivated", "Kill-Switch aktiviert"],
+  ["signalReceived", "Signal empfangen"],
+  ["signalValidated", "Signal validiert"],
+  ["intentCreated", "Intent erzeugt"],
+  ["exchangeAcknowledged", "Börse bestätigt"],
+];
+
+function TelegramViewer() {
+  const [payload, setPayload] = useState<any>(null);
+  const [settings, setSettings] = useState<TelegramViewerSettings | null>(null);
+  const [allowedUsers, setAllowedUsers] = useState("");
+  const [botToken, setBotToken] = useState("");
+  const [testMessage, setTestMessage] = useState("TSX Core Telegram Viewer Test");
+  const [busy, setBusy] = useState("");
+  const [message, setMessage] = useState("");
+  const formInitialized = useRef(false);
+
+  const load = useCallback(async (initializeForm = false) => {
+    try {
+      const next = await jsonRequest("/api/telegram-viewer");
+      setPayload(next);
+      if (initializeForm || !formInitialized.current) {
+        setSettings(next.settings);
+        setAllowedUsers((next.settings?.allowedUserIds || []).join("\n"));
+        formInitialized.current = true;
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Telegram Viewer konnte nicht geladen werden.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void load(true);
+    const timer = window.setInterval(() => void load(false), 3_000);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
+  const mutate = useCallback(async (label: string, url: string, init: RequestInit) => {
+    setBusy(label);
+    setMessage("");
+    try {
+      await jsonRequest(url, init);
+      setMessage(`${label} erfolgreich.`);
+      await load(false);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : `${label} fehlgeschlagen.`);
+    } finally {
+      setBusy("");
+    }
+  }, [load]);
+
+  const saveSettings = async () => {
+    if (!settings) return;
+    const users = allowedUsers.split(/[\s,;]+/).map((value) => value.trim()).filter(Boolean);
+    await mutate("Einstellungen gespeichert", "/api/telegram-viewer/settings", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...settings, allowedUserIds: users }),
+    });
+  };
+
+  const setToken = async () => {
+    const token = botToken;
+    setBotToken("");
+    await mutate("Bot-Token aktualisiert", "/api/telegram-viewer/token", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }),
+    });
+  };
+
+  if (!settings || !payload) return <Empty text={message || "Telegram Viewer wird geladen …"} />;
+  const service = payload.service || {};
+  const botConfigured = payload.secrets?.botToken?.configured === true;
+  return (
+    <div className="operations-stack">
+      <div className="operations-section-heading">
+        <div>
+          <h3>Telegram Viewer</h3>
+          <p>Separater, ausschließlich lesender Bot ohne Handels-, Konfigurations- oder Börsenzugriff.</p>
+        </div>
+        <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => void load(false)}><RefreshCw /> Aktualisieren</Button>
+      </div>
+
+      {message && <section className="operations-card" aria-live="polite"><p>{message}</p></section>}
+      {payload.settingsRecovery?.active && (
+        <section className="operations-card critical-dashboard-alert" role="alert">
+          <h3>Einstellungen im sicheren Ausgangszustand</h3><p>{payload.settingsRecovery.reason}</p>
+        </section>
+      )}
+
+      <div className="operations-metrics">
+        <Metric label="Dienst" value={service.reachable && service.healthy ? "gesund" : "nicht erreichbar"} />
+        <Metric label="Bereitschaft" value={service.ready ? "bereit" : "wartet"} />
+        <Metric label="Bot-Token" value={botConfigured ? "konfiguriert" : "fehlt"} />
+        <Metric label="Letzte Abfrage" value={time(service.lastPollAt)} />
+      </div>
+
+      <section className="operations-card system-form">
+        <h3>Betrieb und Zugriff</h3>
+        <label className="builder-toggle">
+          <input aria-label="Viewer aktiv" type="checkbox" checked={settings.enabled}
+            onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })} />
+          <span aria-hidden="true" /> Viewer aktiv
+        </label>
+        <div className="builder-field-grid">
+          <label>Erlaubte Telegram User IDs
+            <textarea aria-label="Erlaubte Telegram User IDs" rows={5} value={allowedUsers}
+              onChange={(event) => setAllowedUsers(event.target.value)} placeholder="Eine numerische User ID pro Zeile" />
+          </label>
+          <label>Zeitzone<Input value={settings.timezone} onChange={(event) => setSettings({ ...settings, timezone: event.target.value })} /></label>
+          <label>Sprache/Locale<Input value={settings.locale} onChange={(event) => setSettings({ ...settings, locale: event.target.value })} /></label>
+          <label>Abfrageintervall (ms)<Input aria-label="Abfrageintervall (ms)" type="number" min={1000} max={60000}
+            value={settings.eventPollingIntervalMs} onChange={(event) => setSettings({ ...settings, eventPollingIntervalMs: Number(event.target.value) })} /></label>
+          <label>Detailstufe<select value={settings.display.detailLevel}
+            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, detailLevel: event.target.value as TelegramViewerSettings["display"]["detailLevel"] } })}>
+            <option value="compact">Kompakt</option><option value="normal">Normal</option><option value="detailed">Detailliert</option>
+          </select></label>
+          <label>PnL-Anzeige<select value={settings.display.pnlMode}
+            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, pnlMode: event.target.value as TelegramViewerSettings["display"]["pnlMode"] } })}>
+            <option value="absolute">Absolut</option><option value="absolute_and_percent">Absolut und Prozent</option>
+          </select></label>
+        </div>
+        <div className="system-actions"><Button type="button" disabled={Boolean(busy)} onClick={() => void saveSettings()}>Einstellungen speichern</Button></div>
+      </section>
+
+      <section className="operations-card system-form">
+        <h3>Benachrichtigungen</h3>
+        <div className="builder-field-grid">
+          {TELEGRAM_NOTIFICATION_LABELS.map(([key, label]) => (
+            <label className="builder-toggle" key={key}>
+              <input type="checkbox" checked={Boolean(settings.notifications[key])}
+                onChange={(event) => setSettings({ ...settings, notifications: { ...settings.notifications, [key]: event.target.checked } })} />
+              <span aria-hidden="true" /> {label}
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section className="operations-card system-form">
+        <h3>Bot-Token</h3>
+        <strong>{botConfigured ? "Bot-Token konfiguriert" : "Kein Bot-Token konfiguriert"}</strong>
+        <p className="operations-help">Der gespeicherte Wert wird niemals angezeigt.</p>
+        <label>Neuer Bot-Token<Input aria-label="Neuer Bot-Token" type="password" autoComplete="off" value={botToken}
+          onChange={(event) => setBotToken(event.target.value)} placeholder="123456789:…" /></label>
+        <div className="system-actions">
+          <Button type="button" disabled={Boolean(busy) || !botToken} onClick={() => void setToken()}>Bot-Token setzen</Button>
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !botConfigured}
+            onClick={() => window.confirm("Bot-Token wirklich löschen?") && void mutate("Bot-Token gelöscht", "/api/telegram-viewer/token", { method: "DELETE" })}>Bot-Token löschen</Button>
+          <Button type="button" variant="outline" disabled={Boolean(busy)}
+            onClick={() => window.confirm("Internes Viewer-Dienst-Token rotieren?") && void mutate("Dienst-Token rotiert", "/api/telegram-viewer/service-token/rotate", { method: "POST" })}>Dienst-Token rotieren</Button>
+        </div>
+      </section>
+
+      <section className="operations-card system-form">
+        <h3>Diagnose und Test</h3>
+        <div className="system-line"><span>Erlaubte Benutzer</span><strong>{service.allowedUsers ?? settings.allowedUserIds.length}</strong></div>
+        <div className="system-line"><span>Letzter Fehler</span><strong>{service.lastError || "–"}</strong></div>
+        <div className="system-line"><span>Letzter Test</span><strong>{service.lastTest ? `${service.lastTest.status} · ${time(service.lastTest.attemptedAt)}` : "–"}</strong></div>
+        <label>Testnachricht<Input aria-label="Testnachricht" value={testMessage} onChange={(event) => setTestMessage(event.target.value)} /></label>
+        <div className="system-actions"><Button type="button" disabled={Boolean(busy) || !testMessage.trim()}
+          onClick={() => void mutate("Test angenommen", "/api/telegram-viewer/test", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: testMessage }),
+          })}>Test senden</Button></div>
+      </section>
+    </div>
+  );
+}
+
 function System({
   catalog,
   systemStatus,
@@ -3225,6 +3414,7 @@ export function OperationsWorkspace({
     if (tab === "logs") return <Logs />;
     if (tab === "backups") return <Backups />;
     if (tab === "mcp") return <Mcp />;
+    if (tab === "telegram-viewer") return <TelegramViewer />;
     return (
       <System
         catalog={catalog}

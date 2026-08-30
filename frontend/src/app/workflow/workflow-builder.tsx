@@ -358,8 +358,9 @@ function operationalWorkspaceView(workspace: WorkflowWorkspace) {
           "logs",
           "backups",
           "mcp",
+          "telegram-viewer",
           "system",
-        ] as Array<"accounts" | "journal" | "logs" | "backups" | "mcp" | "system">,
+        ] as Array<"accounts" | "journal" | "logs" | "backups" | "mcp" | "telegram-viewer" | "system">,
       };
   }
 }
