@@ -158,6 +158,8 @@ async function run() {
 
     let response = await fetch(`${baseUrl}/internal/viewer/v1/summary`);
     assert.strictEqual(response.status, 401, 'Internal viewer API must reject anonymous access');
+    response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization('w'.repeat(43)) });
+    assert.strictEqual(response.status, 401, 'Internal viewer API must reject an incorrect service token');
     response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization(ADMIN) });
     assert.strictEqual(response.status, 401, 'Dashboard tokens must be rejected by the internal viewer API');
     response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization(serviceToken) });
@@ -172,6 +174,8 @@ async function run() {
     assert.strictEqual(response.status, 405, 'Internal viewer API must be GET-only');
     response = await fetch(`${baseUrl}/api/status`, { headers: authorization(serviceToken) });
     assert.strictEqual(response.status, 401, 'Viewer service token must be useless on dashboard APIs');
+    response = await fetch(`${baseUrl}/api/trading`, { headers: authorization(serviceToken) });
+    assert.strictEqual(response.status, 401, 'Viewer service token must be useless on trading APIs');
 
     const routes = [
       '/config', '/system', '/accounts', '/accounts/account-dynamic', '/positions', '/positions/position-1',

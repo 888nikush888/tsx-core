@@ -28,6 +28,7 @@ import {
 import { recordTradingExecutionEvent } from '../src/trading_telemetry.js';
 import { recordTradingAccountIncident, resolveTradingAccountIncidents } from '../src/trading_incidents.js';
 import { recordTradingNotificationBestEffort } from '../src/trading_notifications.js';
+import { updateTradingAccountConfiguration } from '../src/trading_repository.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-telegram-viewer-core-'));
 const databasePath = path.join(directory, 'forwarder.db');
@@ -171,6 +172,20 @@ try {
       kill_switch_active, created_at, updated_at)
      VALUES ('viewer-incident-account', 'Viewer incident account', 'paper', 'paper', 'ready', 1, 20, 0, ?, ?)`,
     [1_700_000_002_100, 1_700_000_002_100],
+  );
+  await updateTradingAccountConfiguration('viewer-incident-account', {
+    killSwitchActive: true,
+    killSwitchReason: 'Viewer contract test',
+  });
+  await updateTradingAccountConfiguration('viewer-incident-account', {
+    killSwitchActive: true,
+    killSwitchReason: 'Viewer contract test repeated',
+  });
+  assert.equal(
+    (await listTradingNotificationEvents({ afterSeq: 0, limit: 100 })).events
+      .filter(event => event.eventType === 'kill_switch_activated' && event.accountId === 'viewer-incident-account').length,
+    1,
+    'An account kill-switch transition must produce exactly one notification event.',
   );
   const incident = await recordTradingAccountIncident({
     accountId: 'viewer-incident-account', category: 'reconciliation_transient', severity: 'warning',

@@ -3,7 +3,21 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { formatTelegramViewerEvent, telegramViewerMenu, validTelegramViewerCallback } from '../src/telegram_viewer/formatters.js';
+import {
+  formatAccounts,
+  formatEvents,
+  formatNotification,
+  formatOrders,
+  formatPerformance,
+  formatPositions,
+  formatRisk,
+  formatSummary,
+  formatSystem,
+  formatTrades,
+  formatTelegramViewerEvent,
+  telegramViewerMenu,
+  validTelegramViewerCallback,
+} from '../src/telegram_viewer/formatters.js';
 import { TelegramViewerService } from '../src/telegram_viewer/service.js';
 import { TelegramViewerStateRepository } from '../src/telegram_viewer/state_repository.js';
 
@@ -74,21 +88,24 @@ async function run() {
       { update_id: 10, message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: '/status' } },
       { update_id: 11, message: { chat: { id: -1, type: 'group' }, from: { id: 1001 }, text: '/status' } },
       { update_id: 12, message: { chat: { id: 2002, type: 'private' }, from: { id: 2002 }, text: '/status' } },
+      { update_id: 13, message: { chat: { id: -2, type: 'supergroup' }, from: { id: 1001 }, text: '/status' } },
+      { update_id: 14, message: { chat: { id: -3, type: 'channel' }, from: { id: 1001 }, text: '/status' } },
+      { update_id: 15, message: { chat: { id: 1001, type: 'private' }, from: { id: 1001, username: 'changed' }, text: '/accounts' } },
     );
     await service.pollTelegramOnce();
-    assert.strictEqual(bot.sent.length, 1, 'Only an allowed user in a private chat may use the viewer');
+    assert.strictEqual(bot.sent.length, 2, 'Only an allowed user in a private chat may use the viewer');
     assert.match(bot.sent[0].text, /Konten|accounts/i);
-    assert.strictEqual(await state.telegramOffset(), 13, 'Telegram update offset must be persisted');
+    assert.strictEqual(await state.telegramOffset(), 16, 'Telegram update offset must be persisted');
 
     bot.updates.push({
-      update_id: 13,
+      update_id: 16,
       message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: '/unknown' },
     });
     await service.pollTelegramOnce();
     assert.match(bot.sent.at(-1).text, /nur lesend|viewer/i, 'Unknown commands must receive a neutral viewer hint.');
 
     bot.updates.push({
-      update_id: 14,
+      update_id: 17,
       callback_query: { id: 'callback-1', from: { id: 1001 }, data: 'menu:positions', message: { chat: { id: 1001, type: 'private' } } },
     });
     await service.pollTelegramOnce();
@@ -121,7 +138,7 @@ async function run() {
     assert.strictEqual(restarted.status().lastTestEventId, 1, 'Last test delivery status must survive restart.');
     await restarted.pollEventsOnce();
     assert.strictEqual(bot.sent.length, deliveredCount, 'Restart must not redeliver an acknowledged event');
-    assert.strictEqual(await state.telegramOffset(), 15, 'Telegram offset must survive restart');
+    assert.strictEqual(await state.telegramOffset(), 18, 'Telegram offset must survive restart');
 
     const longEvent = {
       seq: 2, id: 'event-2', dedupeKey: 'event:2', eventType: 'execution_failed', intentId: null,
@@ -132,6 +149,42 @@ async function run() {
     const formatted = formatTelegramViewerEvent(longEvent, SETTINGS);
     assert.ok(formatted.length <= 4096, 'Telegram messages must respect the platform message limit');
     assert.match(formatted, /dynamicexchange/);
+    assert.strictEqual(formatNotification(longEvent, SETTINGS), formatted);
+    const formatterOutputs = [
+      formatSummary({ accounts: { total: 1 }, positions: { active: 1 }, incidents: { open: 0 } }),
+      formatAccounts({ accounts: [{ name: 'OKX Main', exchange: 'okx', mode: 'live', status: 'ready' }] }),
+      formatPositions({ positions: [{
+        symbol: 'BTC/USDT:USDT', exchange: 'okx', status: 'open',
+        leverage: { requested: 12, effective: 7, source: 'signal', cappedBy: 'exchange' },
+      }] }),
+      formatPositions({ positions: [{ symbol: 'ETH/USDT:USDT', exchange: 'legacyexchange', leverage: 5 }] }),
+      formatOrders({ orders: [] }), formatTrades({ trades: [] }), formatPerformance({ groups: [] }),
+      formatRisk({ events: [] }), formatSystem({ executionEnabled: true, killSwitchActive: false }),
+      formatEvents({ events: [] }),
+    ];
+    assert.ok(formatterOutputs.every(output => typeof output === 'string' && output.length <= 4096));
+    assert.match(formatterOutputs[1], /okx/i, 'Dynamic exchange names must be formatted as opaque strings.');
+    assert.match(formatterOutputs[2], /Effective.*7/i);
+    assert.match(formatterOutputs[2], /Requested.*12/i);
+    assert.match(formatterOutputs[2], /Source.*signal/i);
+    assert.match(formatterOutputs[2], /CappedBy.*exchange/i);
+    assert.match(formatterOutputs[3], /Leverage.*5/i, 'Legacy leverage must format without a decision object.');
+
+    const mutedState = new TelegramViewerStateRepository(path.join(directory, 'muted-state.db'));
+    await mutedState.initialize();
+    const mutedCore = fakeCore();
+    mutedCore.config = async () => ({
+      settings: {
+        ...structuredClone(SETTINGS),
+        notifications: { ...structuredClone(SETTINGS.notifications), positionOpened: false },
+      },
+    });
+    const mutedBot = fakeBot();
+    const muted = new TelegramViewerService({ core: mutedCore, bot: mutedBot, state: mutedState });
+    await muted.refreshSettings();
+    await muted.pollEventsOnce();
+    assert.strictEqual(mutedBot.sent.length, 0, 'A disabled notification type must not be delivered.');
+    await mutedState.close();
 
     const disabledCore = fakeCore();
     disabledCore.config = async () => ({ settings: { ...structuredClone(SETTINGS), enabled: false } });
