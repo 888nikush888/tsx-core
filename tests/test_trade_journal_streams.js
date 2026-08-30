@@ -184,6 +184,15 @@ try {
   let stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
   assert.equal(stream.status, 'degraded');
   assert.equal(stream.gapCount, 1);
+  assert.equal(
+    (await getDatabase().get(
+      `SELECT COUNT(*) AS count FROM trading_notification_events
+       WHERE account_id = ? AND event_type = 'exchange_stream_degraded'`,
+      [bybit.id],
+    )).count,
+    1,
+    'The first stream degradation transition must emit one viewer event.',
+  );
   await recordExchangeStreamFailure(bybit.id, new Error('socket offline'));
   stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
   assert.match(stream.lastError, /socket offline/);
@@ -198,6 +207,30 @@ try {
   await recordExchangeStreamFailure(bybit.id, cyclicFailure);
   stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
   assert.equal(stream.lastError, 'Unknown exchange stream error.');
+  assert.equal(
+    (await getDatabase().get(
+      `SELECT COUNT(*) AS count FROM trading_notification_events
+       WHERE account_id = ? AND event_type = 'exchange_stream_degraded'`,
+      [bybit.id],
+    )).count,
+    1,
+    'Repeated failures while already degraded must not duplicate the transition event.',
+  );
+  await persistExchangeStreamBatch(bybit, {
+    events: [],
+    nextCursor: 4,
+    gap: false,
+    health: { status: 'healthy', startedAt: Date.now(), lastEventAt: Date.now(), lastError: null },
+  });
+  assert.equal(
+    (await getDatabase().get(
+      `SELECT COUNT(*) AS count FROM trading_notification_events
+       WHERE account_id = ? AND event_type = 'exchange_stream_recovered'`,
+      [bybit.id],
+    )).count,
+    1,
+    'A healthy state after degradation must emit one recovery event.',
+  );
   const now = Date.now();
   await saveSignal('stream-pending-signal', '-journal-channel', 43, XML, XML);
   await saveSignal('stream-unknown-signal', '-journal-channel', 44, XML, XML);

@@ -209,6 +209,22 @@ async function assertAdaptiveStopManagement({ paper, account, intent, engine }) 
     reason: 'target_ladder_after_target', referenceTargetIndex: 1,
   });
 
+  const notificationTypesBeforeClose = (await getDatabase().all(
+    `SELECT event_type FROM trading_notification_events
+     WHERE intent_id = ? ORDER BY seq`,
+    [intent.id],
+  )).map(event => event.event_type);
+  assert.equal(
+    notificationTypesBeforeClose.filter(type => type === 'stop_moved').length,
+    2,
+    'Every actual adaptive stop move must produce one non-blocking viewer event.',
+  );
+  assert.equal(
+    notificationTypesBeforeClose.filter(type => type === 'take_profit_filled').length,
+    3,
+    'Every persisted take-profit fill must produce one viewer event before final close.',
+  );
+
   await setPaperMark(paper, account.id, '65000');
   await engine.reconcileAccount(account.id);
   remote = await paper.openState(account);
@@ -263,6 +279,15 @@ async function testAccountCapacitySpansStrategies(databasePath) {
   assert.equal(rejected.status, 'blocked');
   assert.equal(rejected.blockReason, 'MAX_CONCURRENT_POSITIONS');
   assert.notEqual(firstIntent.strategyVersionId, secondIntent.strategyVersionId);
+  const blockedNotifications = await getDatabase().all(
+    `SELECT event_type, details_json FROM trading_notification_events
+     WHERE intent_id = ? ORDER BY seq`,
+    [secondIntent.id],
+  );
+  assert.equal(blockedNotifications.filter(event => event.event_type === 'intent_blocked').length, 1);
+  assert.equal(JSON.parse(
+    blockedNotifications.find(event => event.event_type === 'intent_blocked').details_json,
+  ).code, 'MAX_CONCURRENT_POSITIONS');
   await closeDb();
 }
 
@@ -314,6 +339,23 @@ async function run() {
     assert.equal(localPosition.quantity, '0');
     assert.equal(localPosition.realized_pnl, '-8');
 
+    const notificationsBeforeRestart = await getDatabase().all(
+      `SELECT dedupe_key, event_type, details_json FROM trading_notification_events
+       WHERE intent_id = ? ORDER BY seq`,
+      [intent.id],
+    );
+    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'position_opened').length, 1);
+    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'take_profit_filled').length, 1);
+    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'stop_loss_filled').length, 1);
+    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'stop_moved').length, 1);
+    assert.equal(notificationsBeforeRestart.filter(event => event.event_type === 'position_closed').length, 1);
+    assert.ok(
+      notificationsBeforeRestart
+        .filter(event => ['take_profit_filled', 'stop_loss_filled'].includes(event.event_type))
+        .every(event => JSON.parse(event.details_json).exchangeFillId),
+      'Fill notifications must retain their deterministic exchange fill identity.',
+    );
+
     const fillsBeforeRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
     const runsBeforeRestart = await getDatabase().get(
       'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
@@ -322,6 +364,13 @@ async function run() {
     await restartedEngine.reconcileAccount(account.id);
     const fillsAfterRestart = await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills');
     assert.equal(fillsAfterRestart.count, fillsBeforeRestart.count, 'Fill replay must be idempotent after restart.');
+    assert.equal(
+      (await getDatabase().get(
+        'SELECT COUNT(*) AS count FROM trading_notification_events WHERE intent_id = ?', [intent.id],
+      )).count,
+      notificationsBeforeRestart.length,
+      'Reconciliation replay must not duplicate viewer notifications.',
+    );
     const runsAfterRestart = await getDatabase().get(
       'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
     );
