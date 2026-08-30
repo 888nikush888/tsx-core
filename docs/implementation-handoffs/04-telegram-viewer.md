@@ -7,7 +7,7 @@ Phase 4 der Master-Gesamtspezifikation: separater, read-only Telegram-Bot mit ei
 ## Ausgangs- und Endstand
 
 - Ausgangsstand: `9351026` (abgeschlossene Phase 3).
-- Funktions- und Qualitätsstand: `8217ff3`.
+- Funktionsstand: `e1b41f7`.
 - Diese Übergabe folgt als eigener Dokumentationscommit.
 
 ## Architektur und Sicherheitsgrenzen
@@ -33,6 +33,7 @@ telegram-viewer ── authenticated GET ──► forwarder /internal/viewer/v1
 - Die interne API akzeptiert ausschließlich das getrennte Service-Token, vergleicht es constant-time und erlaubt nur GET.
 - Dashboard-Tokens funktionieren nicht auf der internen API; das Viewer-Token funktioniert weder auf `/api/*` noch auf Trading-, Executor- oder MCP-Pfaden.
 - Telegram-Netzwerkzugriffe existieren nur im separaten Viewer-Prozess, nie in Trading-Transaktionen.
+- Viewer-Core- und Status-URLs müssen explizit gesetzt werden. HTTPS ist allgemein zulässig; internes HTTP nur zu den fest erlaubten Container-/Loopback-Peers. Fremde Klartext-Hosts, eingebettete URL-Credentials und andere Protokolle werden abgewiesen.
 
 ## Datenhaltung und Contracts
 
@@ -105,10 +106,10 @@ Viewer-Rollen dürfen ungefährlichen Status lesen. Aktivieren, Deaktivieren, To
 - Frontend: 17/17 Testdateien, 101/101 Tests bestanden.
 - Python-Executor: 41/41 Tests bestanden.
 - Kritische Backend-Coverage: 97,47/89,03/100/97,47 %.
-- Modul-Coverage lokal: 95,37/83,35/99,20/95,37 %; gemeinsamer Ratchet 95,01/83,33/99,09/95,01 %.
+- Modul-Coverage lokal: 95,36/83,40/99,21/95,36 %; gemeinsamer Ratchet 95,01/83,33/99,09/95,01 %.
 - Frontend-Coverage: 62,43/56,10/54,49/63,27 %.
 - Python-Coverage: 74 %.
-- Architektur: 73 Module, 228 interne Imports, 0 Zyklen.
+- Architektur: 74 Module, 230 interne Imports, 0 Zyklen.
 - Komplexität: 0 Warnungen, Worst-Case 15, keine Funktion über 100 Zeilen.
 - Duplikation: 0,97 % bei 5-%-Grenze.
 - Build, Lint, Typecheck, SBOM, Audits und Compose-Konfiguration: PASS.
@@ -127,5 +128,4 @@ Die vollständige TDD- und Anforderungsmatrix steht in `docs/testing/phase-4-tel
 
 ## Offene TODOs
 
-Keine funktionalen Phase-4-TODOs. Container-, Browser-, Mutation-, CodeQL- und Sonar-Nachweise werden durch den exakten GitHub-`main`-Workflow abgeschlossen.
-
+Keine funktionalen Phase-4-TODOs. Der exakte GitHub-`main`-Workflow ist das verbindliche Abschlussgate für Container, Browsermatrix, Mutation, CodeQL und SonarQube Cloud.

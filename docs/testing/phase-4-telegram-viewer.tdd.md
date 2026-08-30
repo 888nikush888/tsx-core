@@ -23,8 +23,9 @@ Der Telegram Viewer ist ein technisch getrennter, ausschließlich lesender Diens
 | Secret-Mount- und Runtime-Grenzen | `fa6bdec` | `332dcae` |
 | Begrenzte, resiliente Laufzeitschleifen | `3b88758` | `332dcae` |
 | Komplexitäts-, Struktur- und Qualitätsgrenzen | bestehende Quality-Gates | `cf019c9`, `8217ff3` |
+| Vertrauensgebundener interner Transport und Sonar-Abschluss | `f4dabc0` | `e1b41f7` |
 
-Die RED-Tests wurden vor den jeweiligen Produktionsänderungen festgehalten. Der abschließende Refactor verändert keine Handelssemantik; er hält das bestehende Null-Warnungen-Komplexitätsbudget ein und wird durch dieselben Integrations- und Coverage-Tests abgesichert.
+Die RED-Tests wurden vor den jeweiligen Produktionsänderungen festgehalten. Der abschließende Refactor verändert keine Handelssemantik; er hält das bestehende Null-Warnungen-Komplexitätsbudget ein und wird durch dieselben Integrations- und Coverage-Tests abgesichert. Die internen Viewer-Endpunkte sind nun zwingend explizit konfiguriert: HTTPS ist allgemein zulässig, Klartext-HTTP ausschließlich für die eng begrenzten Container- und Loopback-Peers. Eingebettete URL-Zugangsdaten, fremde Klartext-Hosts und andere Protokolle werden fail-closed abgewiesen.
 
 ## Anforderungsabdeckung 1–58
 
@@ -92,11 +93,11 @@ Die RED-Tests wurden vor den jeweiligen Produktionsänderungen festgehalten. Der
 ## Lokale Abschlussgates
 
 - `npm run test:coverage`: PASS, 70/70 Testdateien; 97,47/89,03/100/97,47 %.
-- `npm run test:coverage:modules`: PASS; 95,37/83,35/99,20/95,37 %, gemeinsamer Windows-/Linux-Ratchet unverändert 95,01/83,33/99,09/95,01 %.
+- `npm run test:coverage:modules`: PASS; 95,36/83,40/99,21/95,36 %, gemeinsamer Windows-/Linux-Ratchet unverändert 95,01/83,33/99,09/95,01 %.
 - `npm run test:coverage --prefix frontend`: PASS, 17/17 Dateien und 101/101 Tests; 62,43/56,10/54,49/63,27 %.
 - Python-Executor: PASS, 41/41 Tests, 74 % Coverage bei 60-%-Grenze.
 - Typecheck, Backend-/Frontend-Lint und Build: PASS.
-- Architektur: PASS, 73 Module, 228 interne Imports, 0 Zyklen.
+- Architektur: PASS, 74 Module, 230 interne Imports, 0 Zyklen.
 - Komplexität: PASS, 0 Warnungen, Worst-Case 15, keine Funktion über 100 Zeilen.
 - Frontend-Erreichbarkeit: PASS, 37/37 Module.
 - Duplikate: PASS, 0,97 % bei 5-%-Grenze.
@@ -116,4 +117,3 @@ Die Coverage-Reihenfolge ist Statements/Branches/Functions/Lines. Der höhere lo
 - Der Viewer führt keine Konfigurations- oder Handelsaktionen aus.
 - Notification-Auslieferung ist at least once; deterministische Delivery-Keys verhindern Duplikate nach erfolgreicher Bestätigung.
 - Keine Serverbereitstellung ist Bestandteil dieser lokalen Phase; GitHub `main` ist das Ziel.
-
