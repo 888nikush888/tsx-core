@@ -40,6 +40,8 @@ assert.doesNotMatch(viewerService, /^\s+ports:/m, 'Viewer must not publish a hos
 assert.match(viewerService, /command:\s*\["dist\/telegram_viewer\/runtime\.js"\]/);
 assert.match(viewerService, /telegram_viewer_secrets:\/app\/secrets:ro/);
 assert.match(viewerService, /telegram_viewer_state:\/app\/state/);
+assert.match(viewerService, /TELEGRAM_VIEWER_STATE_DB:\s*["']?\/app\/state\/viewer_state\.db["']?/);
+assert.match(viewerService, /\/healthz/);
 assert.doesNotMatch(viewerService, /forwarder_secrets|EXCHANGE_EXECUTOR|MCP_/);
 assert.match(viewerService, /condition:\s*service_healthy/);
 assert.match(viewerService, /read_only:\s*true/);

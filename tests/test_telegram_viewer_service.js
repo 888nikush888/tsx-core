@@ -36,7 +36,11 @@ function fakeCore() {
     get: async (resource, query = {}) => {
       calls.push(resource);
       if (resource === 'events') return { events: Number(query.afterSeq || 0) < 1 ? [event] : [], nextSeq: 1 };
-      if (resource === 'test-events') return { events: [], nextSeq: Number(query.afterSeq || 0) };
+      if (resource === 'test-events') {
+        return Number(query.afterSeq || 0) < 1
+          ? { events: [{ seq: 1, id: 'test-1', message: 'Viewer test', createdAt: 1_700_000_009_000 }], nextSeq: 1 }
+          : { events: [], nextSeq: 1 };
+      }
       if (resource === 'summary') return { accounts: { total: 1 }, positions: { active: 1 }, incidents: { open: 0 } };
       return { [resource]: [] };
     },
@@ -78,11 +82,21 @@ async function run() {
 
     bot.updates.push({
       update_id: 13,
+      message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: '/unknown' },
+    });
+    await service.pollTelegramOnce();
+    assert.match(bot.sent.at(-1).text, /nur lesend|viewer/i, 'Unknown commands must receive a neutral viewer hint.');
+
+    bot.updates.push({
+      update_id: 14,
       callback_query: { id: 'callback-1', from: { id: 1001 }, data: 'menu:positions', message: { chat: { id: 1001, type: 'private' } } },
     });
     await service.pollTelegramOnce();
     assert.strictEqual(bot.answered.length, 1);
     assert.strictEqual(validTelegramViewerCallback('menu:positions'), true);
+    for (const callback of ['menu:system', 'menu:events', 'menu:refresh']) {
+      assert.strictEqual(validTelegramViewerCallback(callback), true);
+    }
     assert.strictEqual(validTelegramViewerCallback('menu:positions;delete_all'), false);
     assert.ok(telegramViewerMenu().inline_keyboard.flat().every(button => validTelegramViewerCallback(button.callback_data)));
 
@@ -94,15 +108,20 @@ async function run() {
     await service.deliverPendingOnce(1_700_000_012_000);
     assert.strictEqual((await state.pendingDeliveries(1_700_000_020_000)).length, 0);
 
+    await service.pollTestEventsOnce();
+    assert.strictEqual(service.status().lastTestEventId, 1);
+    assert.strictEqual((await state.lastTest()).status, 'delivered');
+
     const deliveredCount = bot.sent.length;
     await state.close();
     state = new TelegramViewerStateRepository(databasePath);
     await state.initialize();
     const restarted = new TelegramViewerService({ core, bot, state, now: () => 1_700_000_020_000 });
     await restarted.refreshSettings();
+    assert.strictEqual(restarted.status().lastTestEventId, 1, 'Last test delivery status must survive restart.');
     await restarted.pollEventsOnce();
     assert.strictEqual(bot.sent.length, deliveredCount, 'Restart must not redeliver an acknowledged event');
-    assert.strictEqual(await state.telegramOffset(), 14, 'Telegram offset must survive restart');
+    assert.strictEqual(await state.telegramOffset(), 15, 'Telegram offset must survive restart');
 
     const longEvent = {
       seq: 2, id: 'event-2', dedupeKey: 'event:2', eventType: 'execution_failed', intentId: null,
