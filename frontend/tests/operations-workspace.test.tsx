@@ -141,6 +141,22 @@ function bodyFor(url: string) {
     proposals: [{ id: "proposal-1", status: "pending", action: "trade.preview", agentName: "Auditor", expiresAt: now + 10_000, preflight: { allowed: true, blockers: [] } }],
     sessions: [{ id: "session-1", disconnectedAt: null }], actions: [{ id: "action-1", outcome: "succeeded", toolName: "trading.snapshot", agentName: "Auditor", durationMs: 15, completedAt: now }],
   }
+  if (url === "/api/telegram-viewer") return {
+    settings: {
+      enabled: false, allowedUserIds: ["1001"], timezone: "Europe/Berlin", locale: "de-DE",
+      eventPollingIntervalMs: 2000,
+      notifications: {
+        positionOpened: true, takeProfitFilled: true, stopLossFilled: true, positionClosed: true,
+        executionFailed: true, accountIncidentOpened: true, accountIncidentResolved: true,
+        exchangeStreamDegraded: true, exchangeStreamRecovered: true, killSwitchActivated: true,
+        signalReceived: false, signalValidated: false, intentCreated: false, exchangeAcknowledged: false,
+      },
+      display: { detailLevel: "normal", pnlMode: "absolute_and_percent", timeFormat: "24h" },
+    },
+    settingsRecovery: { active: false, reason: null },
+    secrets: { botToken: { configured: true, updatedAt: now }, serviceToken: { configured: true, updatedAt: now } },
+    service: { healthy: true, ready: true, reachable: true, enabled: false, allowedUsers: 1, lastPollAt: now, lastTest: null },
+  }
   if (url === "/api/config") return { apiId: 12345, targetChannel: "", xmlParsing: { primaryModel: "model-a", fallbackModel: "model-b", externalDataPolicyAccepted: true, aiLimits: { requestTimeoutMs: 120_000 } } }
   if (url === "/api/runtime-settings") return { settings: { dashboardAuthMode: "tailscale", dashboardLocalTrust: false, dashboardAllowedOrigin: "https://tsx.test", tailscaleServeTrustedProxy: true, tailscaleAdminUsers: "admin@example.com", tailscaleViewerUsers: "", enterpriseMode: false, auditRemoteRequired: false, backupOffsiteRequired: false, workerCount: 2 } }
   if (url === "/api/secrets") return { secrets: { telegramApiHash: { configured: true }, openRouterApiKey: { configured: true }, auditWebhookToken: { configured: false } } }
@@ -157,6 +173,7 @@ const headings: Record<OperationTab, string> = {
   logs: "Live Logs",
   backups: "Verifizierte Backups",
   mcp: "MCP & Agenten",
+  "telegram-viewer": "Telegram Viewer",
   system: "Telegram-Routing",
 }
 
@@ -197,9 +214,33 @@ describe("operations workspace", () => {
       if (tab === "logs") await screen.findByText(/executor ready/)
       if (tab === "backups") await screen.findByText("backup-v3.1.0")
       if (tab === "mcp") await screen.findByText("Auditor")
+      if (tab === "telegram-viewer") await screen.findByText("Bot-Token konfiguriert")
       if (tab === "system") await screen.findByDisplayValue("model-a")
     },
   )
+
+  it("configures the read-only Telegram viewer without disclosing tokens", async () => {
+    workspace("telegram-viewer")
+    await screen.findByText("Bot-Token konfiguriert")
+    fireEvent.click(screen.getByLabelText("Viewer aktiv"))
+    fireEvent.change(screen.getByLabelText("Erlaubte Telegram User IDs"), { target: { value: "1001\n2002" } })
+    fireEvent.change(screen.getByLabelText("Abfrageintervall (ms)"), { target: { value: "2500" } })
+    fireEvent.click(screen.getByRole("button", { name: "Einstellungen speichern" }))
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/telegram-viewer/settings", expect.objectContaining({ method: "POST" }),
+    ))
+    fireEvent.change(screen.getByLabelText("Neuer Bot-Token"), { target: { value: "123456789:abcdefghijklmnopqrstuvwxyzABCDE" } })
+    fireEvent.click(screen.getByRole("button", { name: "Bot-Token setzen" }))
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/telegram-viewer/token", expect.objectContaining({ method: "POST" }),
+    ))
+    expect(screen.queryByText(/123456789:/)).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText("Testnachricht"), { target: { value: "Sicherer Test" } })
+    fireEvent.click(screen.getByRole("button", { name: "Test senden" }))
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/telegram-viewer/test", expect.objectContaining({ method: "POST" }),
+    ))
+  })
 
   it("exercises safe account editing and account kill-switch release", async () => {
     workspace("accounts")
