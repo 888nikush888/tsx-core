@@ -43,6 +43,9 @@ describe("workflow fallback policy", () => {
     expect(screen.getByRole("radio", { name: /Empfohlen/i })).toBeChecked();
     expect(screen.getByText(/Kill-Switch/)).toBeInTheDocument();
     expect(screen.getByText(/nicht übersprungen/)).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /Kill-Switch/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /Tagesverlust/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /ungeklärte Orders/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Fallback übernehmen/i }));
     expect(onSave).toHaveBeenCalledWith(RECOMMENDED_FALLBACK_POLICY, false);
   });

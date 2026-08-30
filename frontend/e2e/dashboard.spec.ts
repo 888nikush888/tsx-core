@@ -824,6 +824,12 @@ test("ordered account fallback is one exclusive route with a dedicated arrow and
   await expect(page.getByRole("radio", { name: /Empfohlen/ })).toBeChecked();
   await page.getByRole("radio", { name: /Nur Handelspaar/ }).check();
   await page.getByRole("button", { name: "Fallback übernehmen" }).click();
+  await expect(page.locator(".workflow-fallback-edge-label")).toHaveText("Paar");
+  await page.getByRole("dialog").getByRole("button", { name: "Dialog schließen" }).click();
+  await page.getByRole("button", { name: /„Fallback-Regel aktualisiert“ rückgängig machen/ }).click();
+  await expect(page.locator(".workflow-fallback-edge-label")).toHaveText("Paar · Voll · Belegt");
+  await page.getByRole("button", { name: /„Fallback-Regel aktualisiert“ wiederholen/ }).click();
+  await expect(page.locator(".workflow-fallback-edge-label")).toHaveText("Paar");
 });
 
 test("a late-column block is brought into view and the canvas can always be reframed", async ({
