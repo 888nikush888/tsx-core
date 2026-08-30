@@ -1,9 +1,13 @@
 import assert from 'node:assert';
 import http from 'node:http';
 import { once } from 'node:events';
+import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 import { TelegramBotApiClient, TelegramViewerCoreApiClient } from '../src/telegram_viewer/clients.js';
 import { startTelegramViewerHealthServer } from '../src/telegram_viewer/health_server.js';
+import { readRuntimeSecret } from '../src/telegram_viewer/runtime.js';
 
 const SERVICE_TOKEN = 's'.repeat(43);
 
@@ -12,6 +16,7 @@ async function close(server) {
 }
 
 async function run() {
+  const secretRoot = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-runtime-secrets-'));
   const requests = [];
   const upstream = http.createServer((request, response) => {
     requests.push({ method: request.method, url: request.url, authorization: request.headers.authorization });
@@ -33,6 +38,26 @@ async function run() {
   assert.ok(upstreamAddress && typeof upstreamAddress === 'object');
   const upstreamUrl = `http://127.0.0.1:${upstreamAddress.port}`;
   try {
+    await writeFile(path.join(secretRoot, 'viewer_service_token'), SERVICE_TOKEN, 'utf8');
+    assert.strictEqual(
+      await readRuntimeSecret(secretRoot, 'viewer_service_token', /^[A-Za-z0-9_-]{43}$/),
+      SERVICE_TOKEN,
+    );
+    await writeFile(path.join(secretRoot, 'invalid'), 'contains whitespace', 'utf8');
+    await assert.rejects(
+      readRuntimeSecret(secretRoot, 'invalid', /^[A-Za-z0-9_-]{20,}$/),
+      /secret value/i,
+    );
+    await mkdir(path.join(secretRoot, 'directory-secret'));
+    await assert.rejects(
+      readRuntimeSecret(secretRoot, 'directory-secret', /^[A-Za-z0-9_-]{20,}$/),
+      /secret file/i,
+    );
+    await symlink(path.join(secretRoot, 'viewer_service_token'), path.join(secretRoot, 'linked-secret'));
+    await assert.rejects(
+      readRuntimeSecret(secretRoot, 'linked-secret', /^[A-Za-z0-9_-]{20,}$/),
+      /secret file/i,
+    );
     const core = new TelegramViewerCoreApiClient(upstreamUrl, SERVICE_TOKEN);
     await core.config();
     await core.get('events', { afterSeq: 0, limit: 10 });
@@ -73,6 +98,7 @@ async function run() {
     console.log('TELEGRAM VIEWER RUNTIME TESTS PASSED');
   } finally {
     await close(upstream);
+    await rm(secretRoot, { recursive: true, force: true });
   }
 }
 
