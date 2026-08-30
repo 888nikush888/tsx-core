@@ -56,6 +56,13 @@ function fakeCore() {
           : { events: [], nextSeq: 1 };
       }
       if (resource === 'summary') return { accounts: { total: 1 }, positions: { active: 1 }, incidents: { open: 0 } };
+      if (resource === 'accounts') {
+        const offset = Number(query.offset || 0);
+        return {
+          accounts: [{ id: offset === 0 ? 'account-1' : 'account-21', name: 'Account', exchange: 'okx' }],
+          pagination: { offset, limit: 20, hasMore: offset === 0 },
+        };
+      }
       return { [resource]: [] };
     },
   };
@@ -96,6 +103,11 @@ async function run() {
     assert.strictEqual(bot.sent.length, 2, 'Only an allowed user in a private chat may use the viewer');
     assert.match(bot.sent[0].text, /Konten|accounts/i);
     assert.strictEqual(await state.telegramOffset(), 16, 'Telegram update offset must be persisted');
+    assert.ok(
+      bot.sent.at(-1).options.reply_markup.inline_keyboard.flat()
+        .some(button => button.callback_data === 'page:accounts:1'),
+      'A bounded account page with more rows must expose a next-page callback.',
+    );
 
     bot.updates.push({
       update_id: 16,
@@ -116,6 +128,13 @@ async function run() {
     }
     assert.strictEqual(validTelegramViewerCallback('menu:positions;delete_all'), false);
     assert.ok(telegramViewerMenu().inline_keyboard.flat().every(button => validTelegramViewerCallback(button.callback_data)));
+
+    bot.updates.push({
+      update_id: 18,
+      callback_query: { id: 'callback-page-1', from: { id: 1001 }, data: 'page:accounts:1', message: { chat: { id: 1001, type: 'private' } } },
+    });
+    await service.pollTelegramOnce();
+    assert.ok(core.calls.includes('accounts:20'), 'The second page must request a real server-side offset.');
 
     bot.failNext = true;
     await service.pollEventsOnce();
@@ -138,7 +157,7 @@ async function run() {
     assert.strictEqual(restarted.status().lastTestEventId, 1, 'Last test delivery status must survive restart.');
     await restarted.pollEventsOnce();
     assert.strictEqual(bot.sent.length, deliveredCount, 'Restart must not redeliver an acknowledged event');
-    assert.strictEqual(await state.telegramOffset(), 18, 'Telegram offset must survive restart');
+    assert.strictEqual(await state.telegramOffset(), 19, 'Telegram offset must survive restart');
 
     const longEvent = {
       seq: 2, id: 'event-2', dedupeKey: 'event:2', eventType: 'execution_failed', intentId: null,

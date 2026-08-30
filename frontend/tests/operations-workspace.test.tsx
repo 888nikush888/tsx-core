@@ -155,7 +155,10 @@ function bodyFor(url: string) {
     },
     settingsRecovery: { active: false, reason: null },
     secrets: { botToken: { configured: true, updatedAt: now }, serviceToken: { configured: true, updatedAt: now } },
-    service: { healthy: true, ready: true, reachable: true, enabled: false, allowedUsers: 1, lastPollAt: now, lastTest: null },
+    service: {
+      healthy: true, ready: true, reachable: true, enabled: false, allowedUsers: 1, lastPollAt: now,
+      lastTestEventId: 77, lastTest: { sourceSeq: 77, status: "delivered", attemptedAt: now, deliveredAt: now, error: null },
+    },
   }
   if (url === "/api/config") return { apiId: 12345, targetChannel: "", xmlParsing: { primaryModel: "model-a", fallbackModel: "model-b", externalDataPolicyAccepted: true, aiLimits: { requestTimeoutMs: 120_000 } } }
   if (url === "/api/runtime-settings") return { settings: { dashboardAuthMode: "tailscale", dashboardLocalTrust: false, dashboardAllowedOrigin: "https://tsx.test", tailscaleServeTrustedProxy: true, tailscaleAdminUsers: "admin@example.com", tailscaleViewerUsers: "", enterpriseMode: false, auditRemoteRequired: false, backupOffsiteRequired: false, workerCount: 2 } }
@@ -222,6 +225,10 @@ describe("operations workspace", () => {
   it("configures the read-only Telegram viewer without disclosing tokens", async () => {
     workspace("telegram-viewer")
     await screen.findByText("Bot-Token konfiguriert")
+    for (const heading of ["Status", "Allgemein", "Zugriff", "Benachrichtigungen", "Darstellung", "Diagnose", "Testnachricht"]) {
+      expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument()
+    }
+    expect(screen.getByText(/delivered/)).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText("Viewer aktiv"))
     fireEvent.change(screen.getByLabelText("Erlaubte Telegram User IDs"), { target: { value: "1001\n2002" } })
     fireEvent.change(screen.getByLabelText("Abfrageintervall (ms)"), { target: { value: "2500" } })

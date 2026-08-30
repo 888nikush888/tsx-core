@@ -55,6 +55,14 @@ async function seedViewerReadModels(now) {
     ],
   );
   await db.run(
+     `INSERT INTO trading_accounts
+     (id, name, exchange, mode, status, enabled, credential_ref, max_concurrent_positions,
+      kill_switch_active, created_at, updated_at)
+     VALUES ('account-second', 'Second account', 'okx', 'testnet', 'ready', 1,
+             'managed:account-second', 20, 0, ?, ?)`,
+    [now - 1, now - 1],
+  );
+  await db.run(
     `INSERT INTO signals (id, chat_id, message_id, xml_content, normalized_content, created_at)
      VALUES ('signal-1', '-1001', 1, '<signal/>', '<signal/>', ?)`,
     [now],
@@ -143,7 +151,10 @@ async function run() {
       authenticator,
       telegramViewerSettings: settings,
       telegramViewerSecrets: secrets,
-      getTelegramViewerStatus: async () => ({ healthy: true, ready: true, lastPollAt: now, lastTest: null }),
+      getTelegramViewerStatus: async () => ({
+        healthy: true, ready: true, lastPollAt: now, lastTestEventId: 77,
+        lastTest: { sourceSeq: 77, status: 'delivered', attemptedAt: now, deliveredAt: now, error: null },
+      }),
       auditTrail: {
         record: async event => { auditEvents.push(event); },
         snapshot: () => ({ healthy: true }), replayRemote: async () => 0, flush: async () => {},
@@ -165,7 +176,7 @@ async function run() {
     response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization(serviceToken) });
     assert.strictEqual(response.status, 200);
     const summary = await response.json();
-    assert.strictEqual(summary.accounts.total, 1);
+    assert.strictEqual(summary.accounts.total, 2);
     assert.strictEqual(JSON.stringify(summary).includes('credential-ref'), false, 'Viewer projections must not leak credential references');
 
     response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, {
@@ -196,11 +207,20 @@ async function run() {
     assert.strictEqual(payloads.get('/events?afterSeq=0').events.length, 1);
     assert.strictEqual(payloads.get('/test-events?afterSeq=0').events.length, 1);
 
+    response = await fetch(`${baseUrl}/internal/viewer/v1/accounts?limit=1&offset=1`, {
+      headers: authorization(serviceToken),
+    });
+    assert.strictEqual(response.status, 200);
+    const secondAccountPage = await response.json();
+    assert.deepStrictEqual(secondAccountPage.pagination, { offset: 1, limit: 1, hasMore: false });
+    assert.strictEqual(secondAccountPage.accounts.length, 1);
+
     response = await fetch(`${baseUrl}/api/telegram-viewer`, { headers: authorization(DASHBOARD_VIEWER) });
     assert.strictEqual(response.status, 200, 'Dashboard viewers may inspect non-secret viewer status');
     let dashboard = await response.json();
     assert.strictEqual(dashboard.secrets.botToken.configured, true);
     assert.strictEqual(JSON.stringify(dashboard).includes(serviceToken), false);
+    assert.strictEqual(dashboard.service.lastTestEventId, 77, 'Web status must expose the viewer test-delivery cursor.');
 
     response = await fetch(`${baseUrl}/api/telegram-viewer/settings`, {
       method: 'POST', headers: mutationHeaders(), body: JSON.stringify({

@@ -137,6 +137,16 @@ try {
     /details/i,
   );
 
+  const tradingStateBeforeTest = await getDatabase().get(
+    `SELECT execution_enabled, live_trading_enabled, kill_switch_active
+     FROM trading_runtime_state WHERE singleton_id = 1`,
+  );
+  const tradingRowsBeforeTest = await getDatabase().get(
+    `SELECT
+       (SELECT COUNT(*) FROM trading_trade_intents) AS intents,
+       (SELECT COUNT(*) FROM trading_positions) AS positions,
+       (SELECT COUNT(*) FROM trading_orders) AS orders`,
+  );
   const testEvent = await createTelegramViewerTestEvent({
     createdBy: 'dashboard:admin', message: 'TSX Viewer Test', now: 1_700_000_001_000,
   });
@@ -150,6 +160,16 @@ try {
     0,
     'The test-event path must not insert a trading execution event.',
   );
+  assert.deepEqual(await getDatabase().get(
+    `SELECT execution_enabled, live_trading_enabled, kill_switch_active
+     FROM trading_runtime_state WHERE singleton_id = 1`,
+  ), tradingStateBeforeTest, 'A viewer test event must not mutate trading runtime state.');
+  assert.deepEqual(await getDatabase().get(
+    `SELECT
+       (SELECT COUNT(*) FROM trading_trade_intents) AS intents,
+       (SELECT COUNT(*) FROM trading_positions) AS positions,
+       (SELECT COUNT(*) FROM trading_orders) AS orders`,
+  ), tradingRowsBeforeTest, 'A viewer test event must not create or mutate trading entities.');
 
   assert.equal(await recordTradingNotificationBestEffort({
     dedupeKey: 'invalid-best-effort', eventType: 'not-a-real-event', occurredAt: Date.now(), details: {},
