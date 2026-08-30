@@ -71,6 +71,25 @@ import {
   validatePortableSetupBundle,
   type PortableSetupBundle,
 } from './setup_bundle.js';
+import type { ManagedTelegramViewerSettingsStore } from './telegram_viewer_settings.js';
+import type { TelegramViewerSecretStore } from './telegram_viewer_secrets.js';
+import { constantTimeStringEqual } from './secure_compare.js';
+import {
+  createTelegramViewerTestEvent,
+  listTelegramViewerTestEvents,
+  listTradingNotificationEvents,
+} from './viewer_repository.js';
+import {
+  viewerAccounts,
+  viewerIncidents,
+  viewerOrders,
+  viewerPerformance,
+  viewerPositions,
+  viewerRisk,
+  viewerSummary,
+  viewerSystem,
+  viewerTrades,
+} from './viewer_projection.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TEMPLATES_DIR = path.join(__dirname, '../templates');
@@ -164,6 +183,11 @@ interface WebServerState {
   performFactoryReset?: () => Promise<void>;
   requestRestart?: () => void;
   runtimeSettings?: Pick<ManagedRuntimeSettingsStore, 'snapshot' | 'set' | 'recoveryStatus'>;
+  telegramViewerSettings?: Pick<ManagedTelegramViewerSettingsStore, 'snapshot' | 'set' | 'recoveryStatus'>;
+  telegramViewerSecrets?: Pick<TelegramViewerSecretStore,
+    'status' | 'readBotToken' | 'setBotToken' | 'deleteBotToken' | 'serviceToken' | 'rotateServiceToken'
+  >;
+  getTelegramViewerStatus?: () => Promise<Record<string, unknown>>;
   tradingControl?: TradingWebControl;
   recovery?: {
     active: boolean;
@@ -350,6 +374,11 @@ function semanticMutationAction(method: string, url: string): string {
     '/api/workflow/history/impact': 'workflow.history.impact',
     '/api/workflow/history/apply': 'workflow.history.apply',
     '/api/workflow/history/reset': 'workflow.history.reset',
+    '/api/telegram-viewer/settings': 'telegram-viewer.settings.update',
+    '/api/telegram-viewer/token': method === 'DELETE'
+      ? 'telegram-viewer.token.delete' : 'telegram-viewer.token.update',
+    '/api/telegram-viewer/service-token/rotate': 'telegram-viewer.service-token.rotate',
+    '/api/telegram-viewer/test': 'telegram-viewer.test.create',
   };
   if (known[url]) return known[url];
   if (url.startsWith('/api/trading/')) {
@@ -389,6 +418,12 @@ function auditDomainState(context: RequestContext, action: string): unknown {
   if (action.startsWith('configuration.')) return safeAuditValue(publicConfig(appState.config));
   if (action.startsWith('secrets.') || action.startsWith('access-token.')) return secretAuditState(context);
   if (action.startsWith('runtime.settings.')) return runtimeAuditState(context);
+  if (action.startsWith('telegram-viewer.')) {
+    return safeAuditValue({
+      settings: context.appState.telegramViewerSettings?.snapshot(),
+      secrets: context.appState.telegramViewerSecrets?.status(),
+    });
+  }
   if (action.startsWith('routing.') || action.startsWith('telegram.')) return routingAuditState(context);
   if (action.startsWith('system.')) {
     return safeAuditValue({ recovery: appState.recovery?.active ?? false, isRunning: appState.state.isRunning });
@@ -2074,6 +2109,93 @@ async function rejectMcpProposalHandler(context: RequestContext): Promise<void> 
   }
 }
 
+function requireTelegramViewerControl(context: RequestContext): {
+  settings: NonNullable<WebServerState['telegramViewerSettings']>;
+  secrets: NonNullable<WebServerState['telegramViewerSecrets']>;
+} {
+  const settings = context.appState.telegramViewerSettings;
+  const secrets = context.appState.telegramViewerSecrets;
+  if (!settings || !secrets) throw new HttpError(503, 'Telegram viewer control is unavailable.');
+  return { settings, secrets };
+}
+
+async function telegramViewerStatusHandler(context: RequestContext): Promise<void> {
+  try {
+    const { settings, secrets } = requireTelegramViewerControl(context);
+    let service: Record<string, unknown> = { healthy: false, ready: false, reachable: false };
+    try {
+      service = context.appState.getTelegramViewerStatus
+        ? { ...(await context.appState.getTelegramViewerStatus()), reachable: true }
+        : service;
+    } catch (error) {
+      service = { ...service, error: errorMessage(error) };
+    }
+    sendJson(context.res, 200, {
+      settings: settings.snapshot(),
+      settingsRecovery: settings.recoveryStatus(),
+      secrets: secrets.status(),
+      service,
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function updateTelegramViewerSettingsHandler(context: RequestContext): Promise<void> {
+  try {
+    const { settings } = requireTelegramViewerControl(context);
+    sendJson(context.res, 200, { settings: await settings.set(await readJsonBody(context.req, 64 * 1024)) });
+  } catch (error) {
+    sendError(context, new HttpError(error instanceof HttpError ? error.statusCode : 400, errorMessage(error)));
+  }
+}
+
+async function updateTelegramViewerTokenHandler(context: RequestContext): Promise<void> {
+  try {
+    const { secrets } = requireTelegramViewerControl(context);
+    const payload = await readJsonBody(context.req, 2 * 1024);
+    await secrets.setBotToken(payload?.token);
+    sendJson(context.res, 200, { success: true, secrets: secrets.status() });
+  } catch (error) {
+    sendError(context, new HttpError(error instanceof HttpError ? error.statusCode : 400, errorMessage(error)));
+  }
+}
+
+async function deleteTelegramViewerTokenHandler(context: RequestContext): Promise<void> {
+  try {
+    const { secrets } = requireTelegramViewerControl(context);
+    await secrets.deleteBotToken();
+    sendJson(context.res, 200, { success: true, secrets: secrets.status() });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function rotateTelegramViewerServiceTokenHandler(context: RequestContext): Promise<void> {
+  try {
+    const { secrets } = requireTelegramViewerControl(context);
+    await secrets.rotateServiceToken();
+    sendJson(context.res, 200, { success: true, secrets: secrets.status(), restartRecommended: true });
+  } catch (error) {
+    sendError(context, error);
+  }
+}
+
+async function createTelegramViewerTestHandler(context: RequestContext): Promise<void> {
+  try {
+    requireTelegramViewerControl(context);
+    const payload = await readJsonBody(context.req, 4 * 1024);
+    const event = await createTelegramViewerTestEvent({
+      createdBy: context.actor?.id || 'dashboard:admin',
+      message: typeof payload?.message === 'string' ? payload.message : 'TSX Core Telegram Viewer test',
+    });
+    sendJson(context.res, 202, { accepted: true, event: { id: event.id, seq: event.seq, createdAt: event.createdAt } });
+  } catch (error) {
+    sendError(context, new HttpError(error instanceof HttpError ? error.statusCode : 400, errorMessage(error)));
+  }
+}
+
 const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/status', statusHandler],
   ['GET /api/access', accessStatusHandler],
@@ -2178,6 +2300,12 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['DELETE /api/mcp/agents', deleteMcpAgentHandler],
   ['POST /api/mcp/proposals/approve', approveMcpProposalHandler],
   ['POST /api/mcp/proposals/reject', rejectMcpProposalHandler],
+  ['GET /api/telegram-viewer', telegramViewerStatusHandler],
+  ['POST /api/telegram-viewer/settings', updateTelegramViewerSettingsHandler],
+  ['POST /api/telegram-viewer/token', updateTelegramViewerTokenHandler],
+  ['DELETE /api/telegram-viewer/token', deleteTelegramViewerTokenHandler],
+  ['POST /api/telegram-viewer/service-token/rotate', rotateTelegramViewerServiceTokenHandler],
+  ['POST /api/telegram-viewer/test', createTelegramViewerTestHandler],
 ]);
 
 function bootstrapStatusHandler(
@@ -2486,6 +2614,90 @@ async function handleAuthenticatedApiRequest(
   await invokeApiHandler(context, method, handler);
 }
 
+function bearerCredential(header: string | undefined): string | null {
+  if (typeof header !== 'string') return null;
+  const match = /^Bearer ([A-Za-z0-9_-]{20,256})$/.exec(header);
+  return match?.[1] ?? null;
+}
+
+async function authenticateInternalViewerRequest(context: RequestContext): Promise<boolean> {
+  const secrets = context.appState.telegramViewerSecrets;
+  if (!secrets) {
+    sendJson(context.res, 503, { error: 'Telegram viewer service authentication is unavailable.', requestId: context.requestId });
+    return false;
+  }
+  const expected = await secrets.serviceToken();
+  const candidate = bearerCredential(
+    typeof context.req.headers.authorization === 'string' ? context.req.headers.authorization : undefined,
+  );
+  if (!expected || !constantTimeStringEqual(expected, candidate)) {
+    context.res.setHeader('WWW-Authenticate', 'Bearer realm="tsx-internal-viewer"');
+    sendJson(context.res, 401, { error: 'Valid viewer service token required.', requestId: context.requestId });
+    return false;
+  }
+  return true;
+}
+
+function decodedViewerId(encoded: string): string {
+  try {
+    return decodeURIComponent(encoded);
+  } catch {
+    throw new HttpError(400, 'Viewer resource identifier is malformed.');
+  }
+}
+
+async function internalViewerPayload(context: RequestContext, relativePath: string): Promise<unknown> {
+  const query = context.parsedUrl.searchParams;
+  const limit = query.get('limit') ?? undefined;
+  if (relativePath === '/config') {
+    const settings = context.appState.telegramViewerSettings;
+    if (!settings) throw new HttpError(503, 'Telegram viewer settings are unavailable.');
+    return { settings: settings.snapshot() };
+  }
+  if (relativePath === '/summary') return viewerSummary();
+  if (relativePath === '/system') return viewerSystem();
+  if (relativePath === '/accounts') return viewerAccounts({ limit });
+  if (relativePath === '/positions') return viewerPositions({ limit });
+  if (relativePath === '/orders') return viewerOrders({ limit });
+  if (relativePath === '/trades') return viewerTrades({ limit });
+  if (relativePath === '/performance') return viewerPerformance({ days: query.get('days') ?? undefined });
+  if (relativePath === '/risk') return viewerRisk({ limit });
+  if (relativePath === '/incidents') return viewerIncidents({ limit });
+  if (relativePath === '/events') {
+    return listTradingNotificationEvents({ afterSeq: query.get('afterSeq') ?? undefined, limit });
+  }
+  if (relativePath === '/test-events') {
+    return listTelegramViewerTestEvents({ afterSeq: query.get('afterSeq') ?? undefined, limit });
+  }
+  const detail = /^\/(accounts|positions|orders|trades)\/([^/]+)$/.exec(relativePath);
+  if (detail) {
+    const id = decodedViewerId(detail[2]);
+    const payload = detail[1] === 'accounts' ? await viewerAccounts({ id })
+      : detail[1] === 'positions' ? await viewerPositions({ id })
+        : detail[1] === 'orders' ? await viewerOrders({ id })
+          : await viewerTrades({ id });
+    const value = (payload as Record<string, unknown>)[detail[1].slice(0, -1)];
+    if (!value) throw new HttpError(404, 'Viewer resource not found.');
+    return payload;
+  }
+  throw new HttpError(404, 'Internal viewer endpoint not found.');
+}
+
+async function handleInternalViewerRequest(context: RequestContext, method: string, url: string): Promise<void> {
+  if (method !== 'GET') {
+    context.res.setHeader('Allow', 'GET');
+    sendJson(context.res, 405, { error: 'Internal viewer API is read-only.', requestId: context.requestId });
+    return;
+  }
+  if (!(await authenticateInternalViewerRequest(context))) return;
+  try {
+    const payload = await internalViewerPayload(context, url.slice('/internal/viewer/v1'.length));
+    sendJson(context.res, 200, payload);
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
+  }
+}
+
 async function handleRequest(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -2507,6 +2719,10 @@ async function handleRequest(
   }
   if (method === 'OPTIONS') {
     handleOptions(res);
+    return;
+  }
+  if (url === '/internal/viewer/v1' || url.startsWith('/internal/viewer/v1/')) {
+    await handleInternalViewerRequest(context, method, url);
     return;
   }
   if (!url.startsWith('/api/')) {
