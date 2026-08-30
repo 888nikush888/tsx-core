@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   FALLBACK_REASON_ORDER,
+  FALLBACK_REASON_PRESENTATION,
   PAIR_ONLY_FALLBACK_POLICY,
   RECOMMENDED_FALLBACK_POLICY,
   fallbackPolicyPreset,
@@ -68,6 +69,67 @@ describe("workflow fallback policy", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: /gesamte Kette/i }));
     fireEvent.click(screen.getByRole("button", { name: /Fallback übernehmen/i }));
     expect(onSave).toHaveBeenCalledWith(PAIR_ONLY_FALLBACK_POLICY, true);
+  });
+
+  it("supports a non-empty custom policy and prevents an empty policy from being saved", () => {
+    const onSave = vi.fn();
+    render(
+      <WorkflowFallbackPolicyDialog
+        open
+        mode="create"
+        sourceName="Bybit"
+        targetName="Kraken"
+        saving={false}
+        onClose={() => undefined}
+        onSave={onSave}
+      />,
+    );
+    fireEvent.click(screen.getByRole("radio", { name: /Nur Handelspaar/i }));
+    const pair = screen.getByRole("checkbox", { name: /Handelspaar nicht verfügbar/i });
+    fireEvent.click(pair);
+    expect(screen.getByRole("button", { name: /Fallback übernehmen/i })).toBeDisabled();
+    const capacity = screen.getByRole("checkbox", { name: /Positionslimit erreicht/i });
+    fireEvent.click(capacity);
+    expect(screen.getByRole("radio", { name: /Benutzerdefiniert/i })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: /Fallback übernehmen/i }));
+    expect(onSave).toHaveBeenCalledWith(["MAX_CONCURRENT_POSITIONS"], false);
+  });
+
+  it("resets to the recommended preset and closes safely while saving", () => {
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <WorkflowFallbackPolicyDialog
+        open={false}
+        mode="edit"
+        sourceName="Bybit"
+        targetName="Kraken"
+        initialFallbackOn={PAIR_ONLY_FALLBACK_POLICY}
+        saving
+        onClose={onClose}
+        onSave={() => undefined}
+      />,
+    );
+    rerender(
+      <WorkflowFallbackPolicyDialog
+        open
+        mode="edit"
+        sourceName="Bybit"
+        targetName="Kraken"
+        initialFallbackOn={PAIR_ONLY_FALLBACK_POLICY}
+        saving
+        onClose={onClose}
+        onSave={() => undefined}
+      />,
+    );
+    fireEvent.click(screen.getByRole("radio", { name: /Empfohlen/i }));
+    for (const reason of FALLBACK_REASON_ORDER) {
+      expect(screen.getByRole("checkbox", {
+        name: new RegExp(FALLBACK_REASON_PRESENTATION[reason].title, "i"),
+      })).toBeChecked();
+    }
+    expect(screen.getByRole("button", { name: /Fallback übernehmen/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Dialog schließen" }));
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("upgrades legacy policies and edits exactly one connected channel chain", () => {

@@ -6,6 +6,15 @@ import { WorkflowSimulationResult } from "../src/app/workflow/workflow-simulatio
 afterEach(cleanup);
 
 describe("workflow fallback simulation", () => {
+  it("shows executor errors and channels without a complete route", () => {
+    const { rerender } = render(<WorkflowSimulationResult result={{ error: "Simulation fehlgeschlagen" }} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Simulation fehlgeschlagen");
+
+    rerender(<WorkflowSimulationResult result={{ paths: [] }} />);
+    expect(screen.getByText(/kein vollständiger Pfad/i)).toBeVisible();
+  });
+
   it("shows the ordered account chain and each transition policy without mutating an exchange", () => {
     render(<WorkflowSimulationResult result={{
       active: true,
@@ -44,5 +53,33 @@ describe("workflow fallback simulation", () => {
     expect(screen.getByText("A→B: Paar · Voll · Belegt")).toBeVisible();
     expect(screen.getByText("B→C: Paar")).toBeVisible();
     expect(screen.getByText(/reine Vorschau/i)).toBeVisible();
+  });
+
+  it("keeps independent routes separate and explains disabled or rejected accounts", () => {
+    render(<WorkflowSimulationResult result={{
+      active: false,
+      paths: [
+        {
+          id: "route-a",
+          accountId: "Bybit Main",
+          enabled: false,
+          allowed: true,
+        },
+        {
+          id: "route-b",
+          accountId: "Kraken Futures",
+          enabled: true,
+          allowed: false,
+          reason: "Risikoprüfung fehlgeschlagen",
+        },
+      ],
+    }} />);
+
+    expect(screen.getAllByText("Bybit Main")).toHaveLength(2);
+    expect(screen.getAllByText("Kraken Futures")).toHaveLength(2);
+    expect(screen.getAllByText("BLOCK")).toHaveLength(2);
+    expect(screen.getByText("Konto nicht bereit")).toBeVisible();
+    expect(screen.getByText("Risikoprüfung fehlgeschlagen")).toBeVisible();
+    expect(screen.queryByText(/A→B:/)).not.toBeInTheDocument();
   });
 });
