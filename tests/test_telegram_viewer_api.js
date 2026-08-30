@@ -161,6 +161,10 @@ async function verifyInternalViewerApi(baseUrl, serviceToken) {
   });
   assert.strictEqual(payloads.get('/events?afterSeq=0').events.length, 1);
   assert.strictEqual(payloads.get('/test-events?afterSeq=0').events.length, 1);
+  for (const route of ['/accounts/missing-account', '/unknown']) {
+    response = await fetch(`${baseUrl}/internal/viewer/v1${route}`, { headers: authorization(serviceToken) });
+    assert.strictEqual(response.status, 404, `${route} must fail closed without exposing another resource.`);
+  }
   response = await fetch(`${baseUrl}/internal/viewer/v1/accounts?limit=1&offset=1`, { headers: authorization(serviceToken) });
   assert.strictEqual(response.status, 200);
   const secondAccountPage = await response.json();
