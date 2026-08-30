@@ -1,0 +1,141 @@
+import assert from 'node:assert';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
+import { formatTelegramViewerEvent, telegramViewerMenu, validTelegramViewerCallback } from '../src/telegram_viewer/formatters.js';
+import { TelegramViewerService } from '../src/telegram_viewer/service.js';
+import { TelegramViewerStateRepository } from '../src/telegram_viewer/state_repository.js';
+
+const SETTINGS = {
+  enabled: true,
+  allowedUserIds: ['1001'],
+  timezone: 'Europe/Berlin',
+  locale: 'de-DE',
+  eventPollingIntervalMs: 1000,
+  notifications: {
+    positionOpened: true, takeProfitFilled: true, stopLossFilled: true, positionClosed: true,
+    executionFailed: true, accountIncidentOpened: true, accountIncidentResolved: true,
+    exchangeStreamDegraded: true, exchangeStreamRecovered: true, killSwitchActivated: true,
+    signalReceived: true, signalValidated: true, intentCreated: true, exchangeAcknowledged: true,
+  },
+  display: { detailLevel: 'normal', pnlMode: 'absolute_and_percent', timeFormat: '24h' },
+};
+
+function fakeCore() {
+  const calls = [];
+  const event = {
+    seq: 1, id: 'event-1', dedupeKey: 'event:1', eventType: 'position_opened', intentId: 'intent-1',
+    channelId: '-100', accountId: 'account-1', exchange: 'futureexchange', mode: 'testnet',
+    occurredAt: 1_700_000_000_000, createdAt: 1_700_000_000_001,
+    details: { symbol: 'BTC/USDT:USDT', side: 'LONG', quantity: '0.01' },
+  };
+  return {
+    calls,
+    config: async () => { calls.push('config'); return { settings: structuredClone(SETTINGS) }; },
+    get: async (resource, query = {}) => {
+      calls.push(resource);
+      if (resource === 'events') return { events: Number(query.afterSeq || 0) < 1 ? [event] : [], nextSeq: 1 };
+      if (resource === 'test-events') return { events: [], nextSeq: Number(query.afterSeq || 0) };
+      if (resource === 'summary') return { accounts: { total: 1 }, positions: { active: 1 }, incidents: { open: 0 } };
+      return { [resource]: [] };
+    },
+  };
+}
+
+function fakeBot() {
+  return {
+    updates: [], sent: [], answered: [], failNext: false,
+    async getUpdates() { const updates = this.updates; this.updates = []; return updates; },
+    async sendMessage(chatId, text, options) {
+      if (this.failNext) { this.failNext = false; throw new Error('temporary telegram failure'); }
+      this.sent.push({ chatId, text, options }); return { message_id: this.sent.length };
+    },
+    async answerCallbackQuery(id, text) { this.answered.push({ id, text }); },
+  };
+}
+
+async function run() {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-service-'));
+  try {
+    const databasePath = path.join(directory, 'viewer-state.db');
+    let state = new TelegramViewerStateRepository(databasePath);
+    await state.initialize();
+    const core = fakeCore();
+    const bot = fakeBot();
+    const service = new TelegramViewerService({ core, bot, state, now: () => 1_700_000_010_000 });
+
+    await service.refreshSettings();
+    bot.updates.push(
+      { update_id: 10, message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: '/status' } },
+      { update_id: 11, message: { chat: { id: -1, type: 'group' }, from: { id: 1001 }, text: '/status' } },
+      { update_id: 12, message: { chat: { id: 2002, type: 'private' }, from: { id: 2002 }, text: '/status' } },
+    );
+    await service.pollTelegramOnce();
+    assert.strictEqual(bot.sent.length, 1, 'Only an allowed user in a private chat may use the viewer');
+    assert.match(bot.sent[0].text, /Konten|accounts/i);
+    assert.strictEqual(await state.telegramOffset(), 13, 'Telegram update offset must be persisted');
+
+    bot.updates.push({
+      update_id: 13,
+      callback_query: { id: 'callback-1', from: { id: 1001 }, data: 'menu:positions', message: { chat: { id: 1001, type: 'private' } } },
+    });
+    await service.pollTelegramOnce();
+    assert.strictEqual(bot.answered.length, 1);
+    assert.strictEqual(validTelegramViewerCallback('menu:positions'), true);
+    assert.strictEqual(validTelegramViewerCallback('menu:positions;delete_all'), false);
+    assert.ok(telegramViewerMenu().inline_keyboard.flat().every(button => validTelegramViewerCallback(button.callback_data)));
+
+    bot.failNext = true;
+    await service.pollEventsOnce();
+    assert.strictEqual(await state.eventCursor(), 1, 'Fetched events may advance the cursor after durable delivery creation');
+    assert.strictEqual((await state.pendingDeliveries(1_700_000_010_000)).length, 0, 'Failed delivery must use bounded backoff');
+    assert.strictEqual((await state.pendingDeliveries(1_700_000_012_000)).length, 1);
+    await service.deliverPendingOnce(1_700_000_012_000);
+    assert.strictEqual((await state.pendingDeliveries(1_700_000_020_000)).length, 0);
+
+    const deliveredCount = bot.sent.length;
+    await state.close();
+    state = new TelegramViewerStateRepository(databasePath);
+    await state.initialize();
+    const restarted = new TelegramViewerService({ core, bot, state, now: () => 1_700_000_020_000 });
+    await restarted.refreshSettings();
+    await restarted.pollEventsOnce();
+    assert.strictEqual(bot.sent.length, deliveredCount, 'Restart must not redeliver an acknowledged event');
+    assert.strictEqual(await state.telegramOffset(), 14, 'Telegram offset must survive restart');
+
+    const longEvent = {
+      seq: 2, id: 'event-2', dedupeKey: 'event:2', eventType: 'execution_failed', intentId: null,
+      channelId: null, accountId: null, exchange: 'dynamicexchange', mode: 'live',
+      occurredAt: 1_700_000_000_000, createdAt: 1_700_000_000_001,
+      details: { message: 'x'.repeat(10_000) },
+    };
+    const formatted = formatTelegramViewerEvent(longEvent, SETTINGS);
+    assert.ok(formatted.length <= 4096, 'Telegram messages must respect the platform message limit');
+    assert.match(formatted, /dynamicexchange/);
+
+    const disabledCore = fakeCore();
+    disabledCore.config = async () => ({ settings: { ...structuredClone(SETTINGS), enabled: false } });
+    const disabledBot = fakeBot();
+    const disabled = new TelegramViewerService({ core: disabledCore, bot: disabledBot, state, now: () => 1_700_000_030_000 });
+    await disabled.refreshSettings();
+    await disabled.pollTelegramOnce();
+    await disabled.pollEventsOnce();
+    assert.deepStrictEqual(disabledCore.calls, [], 'Disabled viewer must not request sensitive projections or event data');
+    assert.strictEqual(disabledBot.sent.length, 0, 'Disabled viewer must not send notifications');
+
+    const status = restarted.status();
+    assert.strictEqual(status.ready, true);
+    assert.strictEqual(status.enabled, true);
+    assert.strictEqual(JSON.stringify(status).includes('token'), false);
+    await state.close();
+    console.log('TELEGRAM VIEWER SERVICE TESTS PASSED');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+run().catch(error => {
+  console.error(error);
+  process.exit(1);
+});
