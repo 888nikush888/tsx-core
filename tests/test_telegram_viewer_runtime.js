@@ -18,9 +18,31 @@ async function close(server) {
 async function run() {
   const secretRoot = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-runtime-secrets-'));
   const requests = [];
+  let responseMode = 'ok';
   const upstream = http.createServer((request, response) => {
     requests.push({ method: request.method, url: request.url, authorization: request.headers.authorization });
     response.setHeader('Content-Type', 'application/json');
+    if (responseMode === 'malformed') {
+      responseMode = 'ok';
+      response.end('{not-json');
+      return;
+    }
+    if (responseMode === 'unavailable') {
+      responseMode = 'ok';
+      response.statusCode = 503;
+      response.end(JSON.stringify({ error: 'temporarily unavailable' }));
+      return;
+    }
+    if (responseMode === 'telegram-rejected') {
+      responseMode = 'ok';
+      response.end(JSON.stringify({ ok: false, description: 'rejected' }));
+      return;
+    }
+    if (responseMode === 'telegram-non-array') {
+      responseMode = 'ok';
+      response.end(JSON.stringify({ ok: true, result: {} }));
+      return;
+    }
     if (request.url.startsWith('/internal/viewer/v1/')) {
       assert.strictEqual(request.method, 'GET');
       assert.strictEqual(request.headers.authorization, `Bearer ${SERVICE_TOKEN}`);
@@ -42,6 +64,10 @@ async function run() {
     assert.strictEqual(
       await readRuntimeSecret(secretRoot, 'viewer_service_token', /^[A-Za-z0-9_-]{43}$/),
       SERVICE_TOKEN,
+    );
+    await assert.rejects(
+      readRuntimeSecret(path.join(secretRoot, 'viewer_service_token'), 'nested', /^[A-Za-z0-9_-]{20,}$/),
+      /secret mount/i,
     );
     await writeFile(path.join(secretRoot, 'invalid'), 'contains whitespace', 'utf8');
     await assert.rejects(
@@ -69,19 +95,41 @@ async function run() {
       recordFailure(error) { loopState.failures.push(error); },
     };
     await resilientLoop(async () => undefined, () => 250, loopService, 1);
+    await resilientLoop(async () => undefined, () => 0, loopService, 2);
     await resilientLoop(async () => { throw new Error('short failure'); }, () => 250, loopService, 1);
     await resilientLoop(async () => { throw 'non-error failure'; }, () => 250, loopService, 1);
-    assert.strictEqual(loopState.healthy, 1);
+    assert.strictEqual(loopState.healthy, 3);
     assert.strictEqual(loopState.failures.length, 2);
     const core = new TelegramViewerCoreApiClient(upstreamUrl, SERVICE_TOKEN);
     await core.config();
     await core.get('events', { afterSeq: 0, limit: 10 });
+    assert.throws(() => new TelegramViewerCoreApiClient('file:///tmp/viewer', SERVICE_TOKEN), /url is invalid/i);
+    await assert.rejects(core.get('delete-everything'), /resource is not allowed/i);
+    await assert.rejects(new TelegramViewerCoreApiClient(upstreamUrl, '').config(), /credential is unavailable/i);
+    responseMode = 'malformed';
+    await assert.rejects(core.config(), /malformed json/i);
+    responseMode = 'unavailable';
+    await assert.rejects(core.config(), /status 503/i);
     let activeBotToken = '123456789:abcdefghijklmnopqrstuvwxyzABCDE';
     const bot = new TelegramBotApiClient(() => activeBotToken, `${upstreamUrl}/bot`);
+    assert.throws(() => new TelegramBotApiClient('invalid'), /bot token is invalid/i);
+    assert.throws(
+      () => new TelegramBotApiClient('123456789:abcdefghijklmnopqrstuvwxyzABCDE', 'file:///tmp/bot'),
+      /api url is invalid/i,
+    );
     assert.strictEqual((await bot.getUpdates(0)).length, 1);
+    responseMode = 'telegram-non-array';
+    assert.deepStrictEqual(await bot.getUpdates(0), []);
     activeBotToken = '987654321:ABCDEFGHIJKLMNOPQRSTUVWXYZabcde';
     await bot.sendMessage('1001', 'hello', { reply_markup: { inline_keyboard: [] } });
     await bot.answerCallbackQuery('callback');
+    await bot.answerCallbackQuery('callback-with-text', 'acknowledged');
+    await assert.rejects(bot.call('deleteWebhook', {}), /method is not allowed/i);
+    responseMode = 'telegram-rejected';
+    await assert.rejects(bot.sendMessage('1001', 'rejected'), /rejected the request/i);
+    activeBotToken = 'x'.repeat(25);
+    await assert.rejects(bot.getUpdates(0), /bot token is invalid/i);
+    activeBotToken = '987654321:ABCDEFGHIJKLMNOPQRSTUVWXYZabcde';
     assert.ok(requests.every(request => request.method === 'GET' || request.url.includes('/bot')));
     assert.ok(requests.every(request => !request.url.includes('setWebhook')), 'Viewer must use long polling, never webhooks');
 

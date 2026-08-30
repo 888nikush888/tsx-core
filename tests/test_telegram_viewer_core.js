@@ -15,9 +15,13 @@ import {
 import {
   DEFAULT_TELEGRAM_VIEWER_SETTINGS,
   ManagedTelegramViewerSettingsStore,
+  telegramViewerSettingsFromEnvironment,
   validateTelegramViewerSettings,
 } from '../src/telegram_viewer_settings.js';
-import { TelegramViewerSecretStore } from '../src/telegram_viewer_secrets.js';
+import {
+  TelegramViewerSecretStore,
+  telegramViewerSecretStoreFromEnvironment,
+} from '../src/telegram_viewer_secrets.js';
 import {
   createTelegramViewerTestEvent,
   listTelegramViewerTestEvents,
@@ -245,6 +249,71 @@ try {
     () => validateTelegramViewerSettings({ ...defaults, unknown: true }),
     /unknown/i,
   );
+  assert.throws(() => validateTelegramViewerSettings(null), /object/i);
+  assert.throws(
+    () => validateTelegramViewerSettings({ enabled: false }),
+    /missing/i,
+  );
+  assert.throws(
+    () => validateTelegramViewerSettings({ ...defaults, enabled: 'yes' }),
+    /true or false/i,
+  );
+  for (const timezone of ['', 'Not/A-Timezone', 'UTC\nEurope']) {
+    assert.throws(
+      () => validateTelegramViewerSettings({ ...defaults, timezone }),
+      /timezone/i,
+    );
+  }
+  for (const locale of ['', '_invalid', 'de-DE\n']) {
+    assert.throws(
+      () => validateTelegramViewerSettings({ ...defaults, locale }),
+      /locale/i,
+    );
+  }
+  assert.throws(
+    () => validateTelegramViewerSettings({ ...defaults, allowedUserIds: '123' }),
+    /user ids/i,
+  );
+  assert.throws(
+    () => validateTelegramViewerSettings({ ...defaults, allowedUserIds: Array.from({ length: 101 }, (_, index) => String(index + 1)) }),
+    /user ids/i,
+  );
+  assert.throws(
+    () => validateTelegramViewerSettings({ ...defaults, notifications: null }),
+    /notifications.*object/i,
+  );
+  assert.throws(
+    () => validateTelegramViewerSettings({
+      ...defaults,
+      notifications: { ...defaults.notifications, positionOpened: 'yes' },
+    }),
+    /true or false/i,
+  );
+  assert.throws(
+    () => validateTelegramViewerSettings({
+      ...defaults,
+      notifications: { ...defaults.notifications, unexpected: true },
+    }),
+    /unknown/i,
+  );
+  assert.throws(
+    () => validateTelegramViewerSettings({ ...defaults, display: null }),
+    /display.*object/i,
+  );
+  for (const display of [
+    { ...defaults.display, detailLevel: 'verbose' },
+    { ...defaults.display, pnlMode: 'percent_only' },
+    { ...defaults.display, timeFormat: '12h' },
+  ]) {
+    assert.throws(
+      () => validateTelegramViewerSettings({ ...defaults, display }),
+      /detail level|pnl mode|time format/i,
+    );
+  }
+  assert.throws(
+    () => validateTelegramViewerSettings({ ...defaults, eventPollingIntervalMs: Number.NaN }),
+    /polling/i,
+  );
 
   const settingsStore = new ManagedTelegramViewerSettingsStore(settingsPath);
   await settingsStore.initialize();
@@ -260,6 +329,20 @@ try {
   });
   assert.equal(configuredSettings.allowedUserIds[0], '241170476');
   assert.deepEqual(JSON.parse(await readFile(settingsPath, 'utf8')), configuredSettings);
+  await settingsStore.reset();
+  assert.deepEqual(settingsStore.snapshot(), defaults);
+  assert.equal(settingsStore.recoveryStatus().active, false);
+  assert.equal(
+    telegramViewerSettingsFromEnvironment({ TELEGRAM_VIEWER_SETTINGS_PATH: settingsPath }) instanceof ManagedTelegramViewerSettingsStore,
+    true,
+  );
+  assert.equal(telegramViewerSettingsFromEnvironment({}) instanceof ManagedTelegramViewerSettingsStore, true);
+  const recoverableSettingsPath = path.join(directory, 'config', 'recoverable-viewer-settings.json');
+  await writeFile(recoverableSettingsPath, '{invalid json');
+  const recoverableSettings = new ManagedTelegramViewerSettingsStore(recoverableSettingsPath);
+  await recoverableSettings.initialize({ recoverInvalidFile: true });
+  assert.equal(recoverableSettings.recoveryStatus().active, true);
+  assert.match(recoverableSettings.recoveryStatus().reason, /json/i);
   await writeFile(settingsPath, JSON.stringify({ ...configuredSettings, padding: 'x'.repeat(140_000) }));
   await assert.rejects(
     new ManagedTelegramViewerSettingsStore(settingsPath).initialize(),
@@ -284,6 +367,14 @@ try {
   await secretStore.deleteBotToken();
   assert.equal(await secretStore.readBotToken(), null);
   assert.deepEqual((await readdir(secretDirectory)).sort(), ['viewer_service_token']);
+  assert.equal(
+    telegramViewerSecretStoreFromEnvironment({ TELEGRAM_VIEWER_SECRET_DIR: secretDirectory }) instanceof TelegramViewerSecretStore,
+    true,
+  );
+  assert.equal(telegramViewerSecretStoreFromEnvironment({}) instanceof TelegramViewerSecretStore, true);
+  await secretStore.clear();
+  await secretStore.clear();
+  assert.equal(await secretStore.serviceToken(), '');
 
   if (process.platform !== 'win32') {
     const symlinkPath = path.join(directory, 'viewer-settings-link.json');

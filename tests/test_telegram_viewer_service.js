@@ -15,6 +15,7 @@ import {
   formatSystem,
   formatTrades,
   formatTelegramViewerEvent,
+  formatTelegramViewerProjection,
   telegramViewerMenu,
   validTelegramViewerCallback,
 } from '../src/telegram_viewer/formatters.js';
@@ -90,7 +91,13 @@ async function run() {
     const bot = fakeBot();
     const service = new TelegramViewerService({ core, bot, state, now: () => 1_700_000_010_000 });
 
+    assert.strictEqual(service.pollingInterval(), 2_000);
     await service.refreshSettings();
+    assert.strictEqual(service.pollingInterval(), 1_000);
+    service.recordFailure('opaque failure');
+    assert.strictEqual(service.status().healthy, false);
+    assert.strictEqual(service.status().lastError, 'Viewer operation failed.');
+    service.recordHealthyPoll();
     bot.updates.push(
       { update_id: 10, message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: '/status' } },
       { update_id: 11, message: { chat: { id: -1, type: 'group' }, from: { id: 1001 }, text: '/status' } },
@@ -98,26 +105,28 @@ async function run() {
       { update_id: 13, message: { chat: { id: -2, type: 'supergroup' }, from: { id: 1001 }, text: '/status' } },
       { update_id: 14, message: { chat: { id: -3, type: 'channel' }, from: { id: 1001 }, text: '/status' } },
       { update_id: 15, message: { chat: { id: 1001, type: 'private' }, from: { id: 1001, username: 'changed' }, text: '/accounts' } },
+      { update_id: 16, message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: '/start' } },
+      { update_id: 17, message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: null } },
     );
     await service.pollTelegramOnce();
-    assert.strictEqual(bot.sent.length, 2, 'Only an allowed user in a private chat may use the viewer');
+    assert.strictEqual(bot.sent.length, 4, 'Only an allowed user in a private chat may use the viewer');
     assert.match(bot.sent[0].text, /Konten|accounts/i);
-    assert.strictEqual(await state.telegramOffset(), 16, 'Telegram update offset must be persisted');
+    assert.strictEqual(await state.telegramOffset(), 18, 'Telegram update offset must be persisted');
     assert.ok(
-      bot.sent.at(-1).options.reply_markup.inline_keyboard.flat()
-        .some(button => button.callback_data === 'page:accounts:1'),
+      bot.sent.some(message => message.options.reply_markup.inline_keyboard.flat()
+        .some(button => button.callback_data === 'page:accounts:1')),
       'A bounded account page with more rows must expose a next-page callback.',
     );
 
     bot.updates.push({
-      update_id: 16,
+      update_id: 18,
       message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: '/unknown' },
     });
     await service.pollTelegramOnce();
     assert.match(bot.sent.at(-1).text, /nur lesend|viewer/i, 'Unknown commands must receive a neutral viewer hint.');
 
     bot.updates.push({
-      update_id: 17,
+      update_id: 19,
       callback_query: { id: 'callback-1', from: { id: 1001 }, data: 'menu:positions', message: { chat: { id: 1001, type: 'private' } } },
     });
     await service.pollTelegramOnce();
@@ -130,11 +139,17 @@ async function run() {
     assert.ok(telegramViewerMenu().inline_keyboard.flat().every(button => validTelegramViewerCallback(button.callback_data)));
 
     bot.updates.push({
-      update_id: 18,
+      update_id: 20,
       callback_query: { id: 'callback-page-1', from: { id: 1001 }, data: 'page:accounts:1', message: { chat: { id: 1001, type: 'private' } } },
     });
     await service.pollTelegramOnce();
     assert.ok(core.calls.includes('accounts:20'), 'The second page must request a real server-side offset.');
+    bot.updates.push(
+      { update_id: 21, callback_query: { id: 'callback-refresh', from: { id: 1001 }, data: 'menu:refresh', message: { chat: { id: 1001, type: 'private' } } } },
+      { update_id: 22, callback_query: { id: 'callback-invalid', from: { id: 1001 }, data: 'delete:everything', message: { chat: { id: 1001, type: 'private' } } } },
+    );
+    await service.pollTelegramOnce();
+    assert.ok(core.calls.includes('summary:0'));
 
     bot.failNext = true;
     await service.pollEventsOnce();
@@ -144,7 +159,10 @@ async function run() {
     await service.deliverPendingOnce(1_700_000_012_000);
     assert.strictEqual((await state.pendingDeliveries(1_700_000_020_000)).length, 0);
 
+    bot.failNext = true;
     await service.pollTestEventsOnce();
+    assert.strictEqual(service.status().lastTest.status, 'retrying');
+    await service.deliverPendingOnce(1_700_000_012_000);
     assert.strictEqual(service.status().lastTestEventId, 1);
     assert.strictEqual((await state.lastTest()).status, 'delivered');
 
@@ -157,7 +175,7 @@ async function run() {
     assert.strictEqual(restarted.status().lastTestEventId, 1, 'Last test delivery status must survive restart.');
     await restarted.pollEventsOnce();
     assert.strictEqual(bot.sent.length, deliveredCount, 'Restart must not redeliver an acknowledged event');
-    assert.strictEqual(await state.telegramOffset(), 19, 'Telegram offset must survive restart');
+    assert.strictEqual(await state.telegramOffset(), 23, 'Telegram offset must survive restart');
 
     const longEvent = {
       seq: 2, id: 'event-2', dedupeKey: 'event:2', eventType: 'execution_failed', intentId: null,
@@ -188,6 +206,44 @@ async function run() {
     assert.match(formatterOutputs[2], /Source.*signal/i);
     assert.match(formatterOutputs[2], /CappedBy.*exchange/i);
     assert.match(formatterOutputs[3], /Leverage.*5/i, 'Legacy leverage must format without a decision object.');
+    const projectionOutputs = [
+      formatTelegramViewerProjection('summary', {}),
+      formatTelegramViewerProjection('accounts', { account: { id: 'single-account', equity: 0, reportingCurrency: 'USD' } }),
+      formatTelegramViewerProjection('positions', { position: { id: 'single-position', quantity: 0, leverage: '' } }),
+      formatTelegramViewerProjection('orders', { order: { id: 'single-order', filledQuantity: 0 } }),
+      formatTelegramViewerProjection('trades', { trade: { id: 'single-trade', realizedPnl: 0, leverage: { legacy: 3 } } }),
+      formatTelegramViewerProjection('performance', { group: { accountId: 'account-1', trades: 0, realizedPnl: 0 } }),
+      formatTelegramViewerProjection('incidents', { event: { id: 'incident-1', acknowledgedAt: 1 } }),
+      formatTelegramViewerProjection('system', { executionEnabled: false, liveTradingEnabled: true, killSwitchActive: true }),
+      formatTelegramViewerProjection('events', { event: { id: 'event-3', mode: 'paper' } }),
+      formatTelegramViewerProjection('unsupported', {}),
+      formatPositions({ positions: [
+        { id: 'invalid-leverage', leverage: 'not-a-number' },
+        { id: 'array-leverage', leverage: [] },
+        { id: 'partial-leverage', leverage: { effective: null, requested: null, source: '', cappedBy: '', legacy: null } },
+      ] }),
+    ];
+    assert.ok(projectionOutputs.every(output => typeof output === 'string'));
+    const navigation = telegramViewerMenu('accounts', { offset: 20, limit: 20, hasMore: true }).inline_keyboard.flat();
+    assert.ok(navigation.some(button => button.callback_data === 'page:accounts:0'));
+    assert.ok(navigation.some(button => button.callback_data === 'page:accounts:2'));
+    assert.strictEqual(telegramViewerMenu('summary', { offset: 0, limit: 20, hasMore: true }).inline_keyboard.length, 5);
+
+    const callbackState = new TelegramViewerStateRepository(path.join(directory, 'callback-state.db'));
+    await callbackState.initialize();
+    const callbackBot = fakeBot();
+    const callbackCore = fakeCore();
+    callbackCore.get = async () => { throw new Error('projection unavailable'); };
+    const callbackService = new TelegramViewerService({ core: callbackCore, bot: callbackBot, state: callbackState });
+    await callbackService.refreshSettings();
+    callbackBot.updates.push({
+      update_id: 1,
+      callback_query: { id: 'callback-error', from: { id: 1001 }, data: 'menu:positions', message: { chat: { id: 1001, type: 'private' } } },
+    });
+    await assert.rejects(callbackService.pollTelegramOnce(), /projection unavailable/);
+    assert.deepStrictEqual(callbackBot.answered, [{ id: 'callback-error', text: 'Daten konnten nicht geladen werden.' }]);
+    assert.strictEqual(await callbackState.telegramOffset(), 2);
+    await callbackState.close();
 
     const mutedState = new TelegramViewerStateRepository(path.join(directory, 'muted-state.db'));
     await mutedState.initialize();

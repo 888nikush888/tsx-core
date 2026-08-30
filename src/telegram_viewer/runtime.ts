@@ -9,7 +9,7 @@ import { TelegramViewerStateRepository } from './state_repository.js';
 const BOT_TOKEN_PATTERN = /^[1-9][0-9]{4,19}:[A-Za-z0-9_-]{20,128}$/;
 const SERVICE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
-async function readRuntimeSecret(directory: string, fileName: string, pattern: RegExp): Promise<string> {
+export async function readRuntimeSecret(directory: string, fileName: string, pattern: RegExp): Promise<string> {
   const root = path.resolve(directory);
   const rootStats = await fs.lstat(root);
   if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) throw new Error('Viewer secret mount is invalid.');
@@ -21,12 +21,18 @@ async function readRuntimeSecret(directory: string, fileName: string, pattern: R
   return value;
 }
 
-function delay(milliseconds: number): Promise<void> {
+export function delay(milliseconds: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-async function resilientLoop(operation: () => Promise<void>, interval: () => number, service: TelegramViewerService): Promise<never> {
-  for (;;) {
+export async function resilientLoop(
+  operation: () => Promise<void>,
+  interval: () => number,
+  service: Pick<TelegramViewerService, 'recordHealthyPoll' | 'recordFailure'>,
+  maximumIterations = Number.POSITIVE_INFINITY,
+): Promise<void> {
+  let iterations = 0;
+  while (iterations < maximumIterations) {
     const startedAt = Date.now();
     try {
       await operation();
@@ -36,7 +42,10 @@ async function resilientLoop(operation: () => Promise<void>, interval: () => num
       const message = error instanceof Error ? error.message : 'Viewer cycle failed.';
       console.error(`[TELEGRAM VIEWER] ${message.replace(/[A-Za-z0-9_-]{20,}/g, '[REDACTED]')}`);
     }
-    await delay(Math.max(250, interval() - (Date.now() - startedAt)));
+    iterations += 1;
+    if (iterations < maximumIterations) {
+      await delay(Math.max(250, interval() - (Date.now() - startedAt)));
+    }
   }
 }
 
