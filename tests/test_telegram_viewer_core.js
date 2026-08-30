@@ -25,6 +25,9 @@ import {
   recordTradingNotificationEvent,
   TRADING_NOTIFICATION_EVENT_TYPES,
 } from '../src/viewer_repository.js';
+import { recordTradingExecutionEvent } from '../src/trading_telemetry.js';
+import { recordTradingAccountIncident, resolveTradingAccountIncidents } from '../src/trading_incidents.js';
+import { recordTradingNotificationBestEffort } from '../src/trading_notifications.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-telegram-viewer-core-'));
 const databasePath = path.join(directory, 'forwarder.db');
@@ -146,6 +149,45 @@ try {
     0,
     'The test-event path must not insert a trading execution event.',
   );
+
+  assert.equal(await recordTradingNotificationBestEffort({
+    dedupeKey: 'invalid-best-effort', eventType: 'not-a-real-event', occurredAt: Date.now(), details: {},
+  }), false, 'Notification persistence failures must never escape into a trading call site.');
+  await recordTradingExecutionEvent({
+    eventType: 'signal_received', occurredAt: 1_700_000_002_000, channelId: '-100123',
+    correlationId: 'telegram-message-77', details: { telegramMessageId: '77' },
+  });
+  await recordTradingExecutionEvent({
+    eventType: 'signal_received', occurredAt: 1_700_000_002_000, channelId: '-100123',
+    correlationId: 'telegram-message-77', details: { telegramMessageId: '77' },
+  });
+  let notificationTypes = (await listTradingNotificationEvents({ afterSeq: 0, limit: 100 })).events.map(event => event.eventType);
+  assert.equal(notificationTypes.filter(type => type === 'signal_received').length, 1,
+    'Existing execution telemetry must fan out once to the generic notification log.');
+
+  await getDatabase().run(
+    `INSERT INTO trading_accounts
+     (id, name, exchange, mode, status, enabled, max_concurrent_positions,
+      kill_switch_active, created_at, updated_at)
+     VALUES ('viewer-incident-account', 'Viewer incident account', 'paper', 'paper', 'ready', 1, 20, 0, ?, ?)`,
+    [1_700_000_002_100, 1_700_000_002_100],
+  );
+  const incident = await recordTradingAccountIncident({
+    accountId: 'viewer-incident-account', category: 'reconciliation_transient', severity: 'warning',
+    message: 'Temporary executor outage', now: 1_700_000_002_200,
+  });
+  await recordTradingAccountIncident({
+    accountId: 'viewer-incident-account', category: 'reconciliation_transient', severity: 'warning',
+    message: 'Temporary executor outage', now: 1_700_000_002_300,
+  });
+  assert.equal(await resolveTradingAccountIncidents(
+    'viewer-incident-account', ['reconciliation_transient'], 1_700_000_002_400,
+  ), 1);
+  const incidentEvents = (await listTradingNotificationEvents({ afterSeq: 0, limit: 100 })).events
+    .filter(event => event.details.incidentId === incident.id);
+  assert.deepEqual(incidentEvents.map(event => event.eventType), ['account_incident_opened', 'account_incident_resolved']);
+  notificationTypes = incidentEvents.map(event => event.eventType);
+  assert.equal(notificationTypes.length, 2, 'Incident retries must not create repeated open notifications.');
 
   const defaults = validateTelegramViewerSettings(DEFAULT_TELEGRAM_VIEWER_SETTINGS);
   assert.equal(defaults.enabled, false);
