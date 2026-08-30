@@ -387,6 +387,9 @@ function validateBundleModels(value: unknown): void {
   if (!collectionNames.every(key => Array.isArray(models[key]))) {
     throw new Error('Setup bundle model collections are invalid.');
   }
+  if (collectionNames.some(key => models[key].length > 1_000)) {
+    throw new Error('Setup bundle model collections exceed the safety limit.');
+  }
   models.contracts.forEach(validateBundleContract);
   models.schemas.forEach(validateBundleSchema);
   models.strategies.forEach(validateBundleStrategy);
