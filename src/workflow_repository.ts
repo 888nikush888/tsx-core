@@ -423,69 +423,93 @@ function pathFromRow(row: any): WorkflowExecutionPath {
   };
 }
 
+type StoredCompiledWorkflow = {
+  paths?: WorkflowExecutionPath[];
+  routeGroups?: WorkflowRouteGroup[];
+  warnings?: string[];
+};
+
+function workflowIntegrityCompiled(
+  graph: WorkflowGraph,
+  paths: WorkflowExecutionPath[],
+  stored: StoredCompiledWorkflow,
+): Record<string, unknown> {
+  if (!stored.routeGroups) {
+    const legacyPaths = paths.map(({
+      routeGroupKey: _group,
+      fallbackRank: _rank,
+      fallbackOn: _policy,
+      ...path
+    }) => path);
+    return { paths: legacyPaths, warnings: stored.warnings ?? [] };
+  }
+  const hasStoredPolicies = Boolean(
+    stored.paths?.some(path => Array.isArray(path.fallbackOn))
+    || stored.routeGroups.some(group => group.candidates.some(candidate => Array.isArray(candidate.fallbackOn))),
+  );
+  const stripLegacyPolicy = graph.schemaVersion < 3 && !hasStoredPolicies;
+  const integrityPaths = stripLegacyPolicy
+    ? paths.map(({ fallbackOn: _policy, ...path }) => path)
+    : paths;
+  const routeGroups = stripLegacyPolicy
+    ? stored.routeGroups.map(group => ({
+      ...group,
+      candidates: group.candidates.map(({ fallbackOn: _policy, ...candidate }) => candidate),
+    }))
+    : stored.routeGroups;
+  return { paths: integrityPaths, routeGroups, warnings: stored.warnings ?? [] };
+}
+
+function legacyRouteGroup(graph: WorkflowGraph, path: WorkflowExecutionPath): WorkflowRouteGroup {
+  const nodeKind = (nodeId: string) => graph.nodes.find(node => node.id === nodeId)?.kind;
+  return {
+    key: path.routeGroupKey,
+    channelId: path.channelId,
+    channelNodeId: path.nodeIds.find(nodeId => nodeKind(nodeId) === 'channel') || '',
+    primaryPathId: path.id,
+    candidates: [{
+      pathId: path.id,
+      accountId: path.accountId,
+      accountNodeId: [...path.nodeIds].reverse().find(nodeId => nodeKind(nodeId) === 'account') || '',
+      rank: 0,
+      enabled: path.enabled,
+      fallbackOn: path.fallbackOn,
+    }],
+  };
+}
+
+function hydratedRouteGroups(
+  graph: WorkflowGraph,
+  paths: WorkflowExecutionPath[],
+  stored: StoredCompiledWorkflow,
+): WorkflowRouteGroup[] {
+  const groups = stored.routeGroups ?? paths.map(path => legacyRouteGroup(graph, path));
+  const policyByPath = new Map(paths.map(path => [path.id, path.fallbackOn]));
+  return groups.map(group => ({
+    ...group,
+    candidates: group.candidates.map(candidate => ({
+      ...candidate,
+      fallbackOn: candidate.fallbackOn ?? policyByPath.get(candidate.pathId) ?? [],
+    })),
+  }));
+}
+
 async function workflowRevisionFromRow(row: any): Promise<WorkflowRevision> {
   const graph = parseJson<WorkflowGraph>(row.graph_json, 'workflow graph');
   const pathRows = await getDatabase().all<any[]>(
     'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
     [row.id],
   );
-  const storedCompiled = parseJson<{
-    paths?: WorkflowExecutionPath[];
-    routeGroups?: WorkflowRouteGroup[];
-    warnings?: string[];
-  }>(
+  const storedCompiled = parseJson<StoredCompiledWorkflow>(
     row.compiled_json,
     'compiled workflow',
   );
   const paths = pathRows.map(pathFromRow);
-  if (storedCompiled.routeGroups) {
-    const storedHasFallbackPolicies = Boolean(
-      storedCompiled.paths?.some(path => Array.isArray(path.fallbackOn))
-      || storedCompiled.routeGroups.some(group => group.candidates.some(candidate => Array.isArray(candidate.fallbackOn))),
-    );
-    const integrityPaths = graph.schemaVersion < 3 && !storedHasFallbackPolicies
-      ? paths.map(({ fallbackOn: _policy, ...path }) => path)
-      : paths;
-    const integrityRouteGroups = graph.schemaVersion < 3 && !storedHasFallbackPolicies
-      ? storedCompiled.routeGroups.map(group => ({
-        ...group,
-        candidates: group.candidates.map(({ fallbackOn: _policy, ...candidate }) => candidate),
-      }))
-      : storedCompiled.routeGroups;
-    if (sha256({
-      graph,
-      compiled: { paths: integrityPaths, routeGroups: integrityRouteGroups, warnings: storedCompiled.warnings ?? [] },
-    })
-      !== row.definition_sha256) {
-      throw new Error(`Workflow revision ${row.id} failed its integrity check.`);
-    }
-  } else {
-    const legacyPaths = paths.map(({ routeGroupKey: _group, fallbackRank: _rank, fallbackOn: _policy, ...path }) => path);
-    if (sha256({ graph, compiled: { paths: legacyPaths, warnings: storedCompiled.warnings ?? [] } }) !== row.definition_sha256) {
-      throw new Error(`Workflow revision ${row.id} failed its integrity check.`);
-    }
+  const integrity = sha256({ graph, compiled: workflowIntegrityCompiled(graph, paths, storedCompiled) });
+  if (integrity !== row.definition_sha256) {
+    throw new Error(`Workflow revision ${row.id} failed its integrity check.`);
   }
-  const routeGroups = (storedCompiled.routeGroups ?? paths.map(path => ({
-    key: path.routeGroupKey,
-    channelId: path.channelId,
-    channelNodeId: path.nodeIds.find(nodeId => graph.nodes.find(node => node.id === nodeId)?.kind === 'channel') || '',
-    primaryPathId: path.id,
-    candidates: [{
-      pathId: path.id,
-      accountId: path.accountId,
-      accountNodeId: [...path.nodeIds].reverse()
-        .find(nodeId => graph.nodes.find(node => node.id === nodeId)?.kind === 'account') || '',
-      rank: 0,
-      enabled: path.enabled,
-      fallbackOn: path.fallbackOn,
-    }],
-  }))).map(group => ({
-    ...group,
-    candidates: group.candidates.map(candidate => ({
-      ...candidate,
-      fallbackOn: candidate.fallbackOn ?? paths.find(path => path.id === candidate.pathId)?.fallbackOn ?? [],
-    })),
-  }));
+  const routeGroups = hydratedRouteGroups(graph, paths, storedCompiled);
   return {
     id: String(row.id),
     revision: Number(row.revision),
@@ -2070,153 +2094,202 @@ export interface WorkflowFallbackAdvanceResult {
   reason: WorkflowFallbackReason;
 }
 
+function fallbackAdvanceResult(
+  current: any,
+  nextAccountId: unknown,
+  reason: WorkflowFallbackReason,
+  advanced: boolean,
+): WorkflowFallbackAdvanceResult {
+  return {
+    advanced,
+    runId: String(current.fallback_run_id),
+    fromAccountId: String(current.account_id),
+    toAccountId: nextAccountId === null ? null : String(nextAccountId),
+    reason,
+  };
+}
+
+async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: any; next: any }> {
+  const current = await getDatabase().get<any>(
+    `SELECT candidate.fallback_run_id, candidate.rank, run.status AS run_status,
+            run.current_rank, run.created_at AS run_created_at,
+            candidate.account_id, candidate.fallback_on_json
+     FROM trading_fallback_candidates AS candidate
+     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
+     WHERE candidate.intent_id = ?`,
+    [intentId],
+  );
+  if (!current) return { current: null, next: null };
+  const next = await getDatabase().get<any>(
+    `SELECT candidate.rank, candidate.execution_path_id, candidate.account_id AS candidate_account_id,
+            path.*, account.exchange, account.mode,
+            account.status AS account_status, account.enabled AS account_enabled,
+            account.kill_switch_active AS account_kill_switch_active
+     FROM trading_fallback_candidates AS candidate
+     JOIN workflow_execution_paths AS path ON path.id = candidate.execution_path_id
+     JOIN trading_accounts AS account ON account.id = candidate.account_id
+     WHERE candidate.fallback_run_id = ? AND candidate.rank > ?
+     ORDER BY candidate.rank LIMIT 1`,
+    [current.fallback_run_id, current.rank],
+  );
+  return { current, next };
+}
+
+async function exhaustFallbackRun(
+  current: any,
+  intent: TradingIntent,
+  reason: WorkflowFallbackReason,
+  message: string,
+  now: number,
+): Promise<WorkflowFallbackAdvanceResult> {
+  await getDatabase().run(
+    `UPDATE trading_fallback_candidates
+     SET status = 'unavailable', error_code = ?, details_json = ?, updated_at = ?
+     WHERE fallback_run_id = ? AND rank = ?`,
+    [reason, normalizedJson({ message, symbol: intent.symbol }), now, current.fallback_run_id, current.rank],
+  );
+  await getDatabase().run(
+    `UPDATE trading_fallback_runs
+     SET status = 'exhausted', stop_reason = ?, updated_at = ?, completed_at = ? WHERE id = ?`,
+    [reason, now, now, current.fallback_run_id],
+  );
+  await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);
+  return fallbackAdvanceResult(current, null, reason, false);
+}
+
+async function stopDisallowedFallback(
+  current: any,
+  next: any,
+  intent: TradingIntent,
+  reason: WorkflowFallbackReason,
+  message: string,
+  policy: WorkflowFallbackReason[],
+  now: number,
+): Promise<WorkflowFallbackAdvanceResult> {
+  await getDatabase().run(
+    `UPDATE trading_fallback_candidates
+     SET status = 'stopped', error_code = ?, details_json = ?, updated_at = ?
+     WHERE fallback_run_id = ? AND rank = ?`,
+    [reason, normalizedJson({ message, symbol: intent.symbol, policy }), now,
+      current.fallback_run_id, current.rank],
+  );
+  await getDatabase().run(
+    `UPDATE trading_fallback_candidates SET status = 'stopped', error_code = ?, updated_at = ?
+     WHERE fallback_run_id = ? AND status = 'waiting'`,
+    [reason, now, current.fallback_run_id],
+  );
+  await getDatabase().run(
+    `UPDATE trading_fallback_runs
+     SET status = 'stopped', stop_reason = ?, updated_at = ?, completed_at = ? WHERE id = ?`,
+    [reason, now, now, current.fallback_run_id],
+  );
+  await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);
+  return fallbackAdvanceResult(current, next.candidate_account_id, reason, false);
+}
+
+async function insertPromotedFallbackIntent(
+  current: any,
+  next: any,
+  intent: TradingIntent,
+  now: number,
+): Promise<{ id: string; status: 'blocked' | 'pending'; blockReason: string | null }> {
+  const runtime = await getDatabase().get<any>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
+  const path = pathFromRow(next);
+  const account = await getDatabase().get<any>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
+  const blockReason = workflowIntentBlockReason(path, account, runtime);
+  const status = blockReason ? 'blocked' : 'pending';
+  const id = randomUUID();
+  await getDatabase().run(
+    `INSERT INTO trading_trade_intents (
+       id, source_signal_id, root_source_signal_id, signal_run_id, workflow_revision_id,
+       execution_path_id, channel_id, strategy_version_id, account_id, exchange, mode,
+       symbol, side, status, signal_json, plan_json, block_reason, last_error, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?)`,
+    [id, intent.sourceSignalId, intent.rootSourceSignalId, intent.signalRunId,
+      intent.workflowRevisionId, path.id, intent.channelId, path.strategyVersionId, path.accountId,
+      account.exchange, account.mode, intent.symbol, intent.side, status, normalizedJson(intent.signal),
+      blockReason, Number(current.run_created_at), now],
+  );
+  return { id, status, blockReason };
+}
+
+async function promoteFallbackCandidate(
+  current: any,
+  next: any,
+  intent: TradingIntent,
+  reason: WorkflowFallbackReason,
+  message: string,
+  now: number,
+): Promise<WorkflowFallbackAdvanceResult> {
+  await getDatabase().run(
+    `UPDATE trading_fallback_candidates
+     SET status = 'unavailable', error_code = ?, details_json = ?, updated_at = ?
+     WHERE fallback_run_id = ? AND rank = ?`,
+    [reason, normalizedJson({ message, symbol: intent.symbol }), now, current.fallback_run_id, current.rank],
+  );
+  const promoted = await insertPromotedFallbackIntent(current, next, intent, now);
+  await getDatabase().run(
+    `UPDATE trading_fallback_candidates
+     SET intent_id = ?, status = ?, error_code = ?, updated_at = ?
+     WHERE fallback_run_id = ? AND rank = ?`,
+    [promoted.id, promoted.status === 'pending' ? 'pending' : 'stopped', promoted.blockReason,
+      now, current.fallback_run_id, next.rank],
+  );
+  if (promoted.status === 'pending') {
+    await getDatabase().run(
+      `UPDATE trading_fallback_runs SET current_rank = ?, updated_at = ? WHERE id = ?`,
+      [next.rank, now, current.fallback_run_id],
+    );
+    await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);
+    return fallbackAdvanceResult(current, next.candidate_account_id, reason, true);
+  }
+  await getDatabase().run(
+    `UPDATE trading_fallback_runs
+     SET status = 'stopped', current_rank = ?, stop_reason = ?, updated_at = ?, completed_at = ? WHERE id = ?`,
+    [next.rank, promoted.blockReason, now, now, current.fallback_run_id],
+  );
+  await getDatabase().run(
+    `UPDATE trading_fallback_candidates SET status = 'stopped', error_code = ?, updated_at = ?
+     WHERE fallback_run_id = ? AND status = 'waiting'`,
+    [promoted.blockReason, now, current.fallback_run_id],
+  );
+  await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);
+  return fallbackAdvanceResult(current, next.candidate_account_id, reason, false);
+}
+
+async function advanceWorkflowFallbackTransaction(
+  intent: TradingIntent,
+  reason: WorkflowFallbackReason,
+  message: string,
+  now: number,
+): Promise<WorkflowFallbackAdvanceResult | null> {
+  await getDatabase().run(
+    `UPDATE trading_trade_intents
+     SET status = 'blocked', block_reason = ?, last_error = ?, updated_at = ?
+     WHERE id = ?`,
+    [reason, message, now, intent.id],
+  );
+  const { current, next } = await loadFallbackAdvanceRows(intent.id);
+  const active = current?.run_status === 'probing'
+    && Number(current.current_rank) === Number(current.rank);
+  if (!active) return null;
+  if (!next) return exhaustFallbackRun(current, intent, reason, message, now);
+  const policy = parseJson<WorkflowFallbackReason[]>(
+    current.fallback_on_json || '[]',
+    'fallback candidate policy',
+  );
+  return policy.includes(reason)
+    ? promoteFallbackCandidate(current, next, intent, reason, message, now)
+    : stopDisallowedFallback(current, next, intent, reason, message, policy, now);
+}
+
 export async function advanceWorkflowFallbackOnEligibleFailure(
   intent: TradingIntent,
   reason: WorkflowFallbackReason,
   message: string,
   now = Date.now(),
 ): Promise<WorkflowFallbackAdvanceResult | null> {
-  return withDatabaseTransaction(async () => {
-    await getDatabase().run(
-      `UPDATE trading_trade_intents
-       SET status = 'blocked', block_reason = ?, last_error = ?, updated_at = ?
-       WHERE id = ?`,
-      [reason, message, now, intent.id],
-    );
-    const current = await getDatabase().get<any>(
-      `SELECT candidate.fallback_run_id, candidate.rank, run.status AS run_status,
-              run.current_rank, run.created_at AS run_created_at,
-              candidate.account_id, candidate.fallback_on_json
-       FROM trading_fallback_candidates AS candidate
-       JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
-       WHERE candidate.intent_id = ?`,
-      [intent.id],
-    );
-    if (!current || current.run_status !== 'probing' || Number(current.current_rank) !== Number(current.rank)) return null;
-    const next = await getDatabase().get<any>(
-      `SELECT candidate.rank, candidate.execution_path_id, candidate.account_id AS candidate_account_id,
-              path.*, account.exchange, account.mode,
-              account.status AS account_status, account.enabled AS account_enabled,
-              account.kill_switch_active AS account_kill_switch_active
-       FROM trading_fallback_candidates AS candidate
-       JOIN workflow_execution_paths AS path ON path.id = candidate.execution_path_id
-       JOIN trading_accounts AS account ON account.id = candidate.account_id
-       WHERE candidate.fallback_run_id = ? AND candidate.rank > ?
-       ORDER BY candidate.rank LIMIT 1`,
-      [current.fallback_run_id, current.rank],
-    );
-    if (!next) {
-      await getDatabase().run(
-        `UPDATE trading_fallback_candidates
-         SET status = 'unavailable', error_code = ?, details_json = ?, updated_at = ?
-         WHERE fallback_run_id = ? AND rank = ?`,
-        [reason, normalizedJson({ message, symbol: intent.symbol }), now, current.fallback_run_id, current.rank],
-      );
-      await getDatabase().run(
-        `UPDATE trading_fallback_runs
-         SET status = 'exhausted', stop_reason = ?, updated_at = ?, completed_at = ? WHERE id = ?`,
-        [reason, now, now, current.fallback_run_id],
-      );
-      await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);
-      return {
-        advanced: false,
-        runId: String(current.fallback_run_id),
-        fromAccountId: String(current.account_id),
-        toAccountId: null,
-        reason,
-      };
-    }
-    const fallbackOn = parseJson<WorkflowFallbackReason[]>(current.fallback_on_json || '[]', 'fallback candidate policy');
-    if (!fallbackOn.includes(reason)) {
-      await getDatabase().run(
-        `UPDATE trading_fallback_candidates
-         SET status = 'stopped', error_code = ?, details_json = ?, updated_at = ?
-         WHERE fallback_run_id = ? AND rank = ?`,
-        [reason, normalizedJson({ message, symbol: intent.symbol, policy: fallbackOn }), now,
-          current.fallback_run_id, current.rank],
-      );
-      await getDatabase().run(
-        `UPDATE trading_fallback_candidates SET status = 'stopped', error_code = ?, updated_at = ?
-         WHERE fallback_run_id = ? AND status = 'waiting'`,
-        [reason, now, current.fallback_run_id],
-      );
-      await getDatabase().run(
-        `UPDATE trading_fallback_runs
-         SET status = 'stopped', stop_reason = ?, updated_at = ?, completed_at = ? WHERE id = ?`,
-        [reason, now, now, current.fallback_run_id],
-      );
-      await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);
-      return {
-        advanced: false,
-        runId: String(current.fallback_run_id),
-        fromAccountId: String(current.account_id),
-        toAccountId: String(next.candidate_account_id),
-        reason,
-      };
-    }
-    await getDatabase().run(
-      `UPDATE trading_fallback_candidates
-       SET status = 'unavailable', error_code = ?, details_json = ?, updated_at = ?
-       WHERE fallback_run_id = ? AND rank = ?`,
-      [reason, normalizedJson({ message, symbol: intent.symbol }), now, current.fallback_run_id, current.rank],
-    );
-    const runtime = await getDatabase().get<any>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
-    const path = pathFromRow(next);
-    const account = await getDatabase().get<any>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
-    const blockReason = workflowIntentBlockReason(path, account, runtime);
-    const status = blockReason ? 'blocked' : 'pending';
-    const nextIntentId = randomUUID();
-    await getDatabase().run(
-      `INSERT INTO trading_trade_intents (
-         id, source_signal_id, root_source_signal_id, signal_run_id, workflow_revision_id,
-         execution_path_id, channel_id, strategy_version_id, account_id, exchange, mode,
-         symbol, side, status, signal_json, plan_json, block_reason, last_error, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?)`,
-      [nextIntentId, intent.sourceSignalId, intent.rootSourceSignalId, intent.signalRunId,
-        intent.workflowRevisionId, path.id, intent.channelId, path.strategyVersionId, path.accountId,
-        account.exchange, account.mode, intent.symbol, intent.side, status, normalizedJson(intent.signal),
-        blockReason, Number(current.run_created_at), now],
-    );
-    await getDatabase().run(
-      `UPDATE trading_fallback_candidates
-       SET intent_id = ?, status = ?, error_code = ?, updated_at = ?
-       WHERE fallback_run_id = ? AND rank = ?`,
-      [nextIntentId, status === 'pending' ? 'pending' : 'stopped', blockReason,
-        now, current.fallback_run_id, next.rank],
-    );
-    if (status === 'pending') {
-      await getDatabase().run(
-        `UPDATE trading_fallback_runs SET current_rank = ?, updated_at = ? WHERE id = ?`,
-        [next.rank, now, current.fallback_run_id],
-      );
-      await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);
-      return {
-        advanced: true,
-        runId: String(current.fallback_run_id),
-        fromAccountId: String(current.account_id),
-        toAccountId: String(next.candidate_account_id),
-        reason,
-      };
-    }
-    await getDatabase().run(
-      `UPDATE trading_fallback_runs
-       SET status = 'stopped', current_rank = ?, stop_reason = ?, updated_at = ?, completed_at = ? WHERE id = ?`,
-      [next.rank, blockReason, now, now, current.fallback_run_id],
-    );
-    await getDatabase().run(
-      `UPDATE trading_fallback_candidates SET status = 'stopped', error_code = ?, updated_at = ?
-       WHERE fallback_run_id = ? AND status = 'waiting'`,
-      [blockReason, now, current.fallback_run_id],
-    );
-    await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);
-    return {
-      advanced: false,
-      runId: String(current.fallback_run_id),
-      fromAccountId: String(current.account_id),
-      toAccountId: String(next.candidate_account_id),
-      reason,
-    };
-  });
+  return withDatabaseTransaction(() => advanceWorkflowFallbackTransaction(intent, reason, message, now));
 }
 
 export async function markWorkflowFallbackSelected(intentId: string, now = Date.now()): Promise<void> {

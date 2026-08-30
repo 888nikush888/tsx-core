@@ -32,6 +32,7 @@ import {
   advanceWorkflowFallbackOnEligibleFailure,
   markWorkflowFallbackSelected,
   stopWorkflowFallback,
+  type WorkflowFallbackAdvanceResult,
 } from './workflow_repository.js';
 import { resolveEffectiveChannelRisk, resolveWorkflowAdaptiveRisk } from './trading_channel_risk.js';
 import { validateStrategyConfiguration } from './trading_strategy.js';
@@ -325,6 +326,52 @@ function assertPublishedStrategy(
   if (strategy?.status !== 'published') {
     throw new TradingRiskError('STRATEGY_NOT_PUBLISHED', 'Strategy version is not published.');
   }
+}
+
+interface IntentFailureClassification {
+  code: string;
+  fallbackReason: WorkflowFallbackReason | null;
+  knownRisk: boolean;
+  message: string;
+  status: 'blocked' | 'unknown';
+}
+
+function classifyIntentFailure(error: unknown): IntentFailureClassification {
+  const symbolUnavailable = error instanceof TradingSymbolUnavailableError;
+  const riskError = error instanceof TradingRiskError;
+  const knownRisk = symbolUnavailable || riskError;
+  const code = knownRisk ? error.code : 'ORDER_OUTCOME_UNKNOWN';
+  return {
+    code,
+    fallbackReason: isWorkflowFallbackReason(code) ? code : null,
+    knownRisk,
+    message: error instanceof Error ? error.message : String(error),
+    status: knownRisk ? 'blocked' : 'unknown',
+  };
+}
+
+async function recordFallbackAdvanceNotification(
+  intent: TradingIntent,
+  result: WorkflowFallbackAdvanceResult | null,
+): Promise<void> {
+  if (!result?.advanced || !result.toAccountId) return;
+  await recordTradingNotificationBestEffort({
+    dedupeKey: `workflow-fallback:${result.runId}:${result.fromAccountId}:${result.toAccountId}:${result.reason}`,
+    eventType: 'workflow_fallback_candidate_skipped',
+    intentId: intent.id,
+    channelId: intent.channelId,
+    accountId: intent.accountId,
+    exchange: intent.exchange,
+    mode: intent.mode,
+    occurredAt: Date.now(),
+    details: {
+      runId: result.runId,
+      fromAccountId: result.fromAccountId,
+      toAccountId: result.toAccountId,
+      reason: result.reason,
+      symbol: intent.symbol,
+    },
+  });
 }
 
 async function assertAccountRiskBudget(
@@ -1146,35 +1193,12 @@ export class TradingEngine {
   }
 
   private async handleIntentFailure(intent: TradingIntent, error: any): Promise<void> {
-    const symbolUnavailable = error instanceof TradingSymbolUnavailableError;
-    const knownRisk = error instanceof TradingRiskError || symbolUnavailable;
-    const code = symbolUnavailable ? error.code : error instanceof TradingRiskError ? error.code : 'ORDER_OUTCOME_UNKNOWN';
-    const status = knownRisk ? 'blocked' : 'unknown';
-    const message = error?.message || String(error);
-    const fallbackReason: WorkflowFallbackReason | null = isWorkflowFallbackReason(code) ? code : null;
+    const { code, fallbackReason, knownRisk, message, status } = classifyIntentFailure(error);
     if (fallbackReason) {
       // Persist the blocked current intent and promotion of the next candidate
       // in one transaction so a restart cannot strand a probing fallback run.
       const result = await advanceWorkflowFallbackOnEligibleFailure(intent, fallbackReason, message);
-      if (result?.advanced && result.toAccountId) {
-        await recordTradingNotificationBestEffort({
-          dedupeKey: `workflow-fallback:${result.runId}:${result.fromAccountId}:${result.toAccountId}:${fallbackReason}`,
-          eventType: 'workflow_fallback_candidate_skipped',
-          intentId: intent.id,
-          channelId: intent.channelId,
-          accountId: intent.accountId,
-          exchange: intent.exchange,
-          mode: intent.mode,
-          occurredAt: Date.now(),
-          details: {
-            runId: result.runId,
-            fromAccountId: result.fromAccountId,
-            toAccountId: result.toAccountId,
-            reason: fallbackReason,
-            symbol: intent.symbol,
-          },
-        });
-      }
+      await recordFallbackAdvanceNotification(intent, result);
     } else {
       await setIntentState(intent.id, status, {
         blockReason: knownRisk ? code : undefined,
