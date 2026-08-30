@@ -37,6 +37,18 @@ try {
   assert.equal(readConfigSync(syncPath).apiId, 12345);
   assert.deepEqual((await readdir(root)).filter(name => name.endsWith('.tmp')), []);
 
+  const invalidChannels = structuredClone(DEFAULT_CONFIG);
+  invalidChannels.sourceChannels = null;
+  assert.throws(
+    () => writeConfigSync(invalidChannels, syncPath),
+    /sourceChannels must be an array of strings/,
+  );
+  assert.deepEqual(
+    JSON.parse(await readFile(syncPath, 'utf8')),
+    savedSync,
+    'Rejected configuration must not replace the last valid file.',
+  );
+
   const asyncPath = path.join(root, 'async.json');
   const asyncConfig = structuredClone(DEFAULT_CONFIG);
   asyncConfig.targetChannel = '@valid_target';

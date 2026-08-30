@@ -263,6 +263,16 @@ try {
       mutate: candidate => { candidate.models.strategies = {}; },
       error: /model collections are invalid/,
     },
+    ...['contracts', 'schemas', 'strategies', 'channelRiskPolicies'].map(collection => ({
+      label: `too many ${collection}`,
+      mutate: candidate => {
+        candidate.models[collection] = Array.from(
+          { length: 1_001 },
+          () => structuredClone(candidate.models[collection][0]),
+        );
+      },
+      error: /model collections exceed the safety limit/,
+    })),
     {
       label: 'missing schema contracts',
       mutate: candidate => { candidate.models.schemas[0].sourceContractVersionId = 'missing-contract'; },

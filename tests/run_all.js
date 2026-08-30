@@ -74,6 +74,7 @@ const allTests = [
   'test_architecture.js',
   'test_risk_acceptances.js',
   'test_frontend_quality.js',
+  'test_frontend_bundle.js',
   'test_frontend_behavior.js',
   'test_release_artifacts.js',
   'test_complexity_budget.js',
