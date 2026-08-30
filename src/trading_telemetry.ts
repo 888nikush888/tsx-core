@@ -3,6 +3,7 @@ import { getDatabase } from './db.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
 import type { TradingAccountSnapshot, TradingEquityPoint } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
+import { recordExecutionNotificationBestEffort } from './trading_notifications.js';
 
 export const TRADING_EVENT_TYPES = [
   'signal_received',
@@ -129,6 +130,11 @@ export async function recordTradingExecutionEvent(input: {
       identifier(input.correlationId, 'Trading correlation identifier'),
     ],
   );
+  await recordExecutionNotificationBestEffort({
+    ...input,
+    occurredAt,
+    exchange,
+  });
   return Number(result.changes || 0) === 1;
 }
 

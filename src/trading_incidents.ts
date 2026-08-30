@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import { getDatabase } from './db.js';
+import { recordTradingNotificationBestEffort } from './trading_notifications.js';
 
 export type TradingIncidentCategory =
   | 'reconciliation_transient'
@@ -105,7 +106,18 @@ export async function recordTradingAccountIncident(input: {
     [row.id, row.account_id, row.fingerprint, row.category, row.severity,
       row.message, row.details_json, row.first_seen_at, row.last_seen_at],
   );
-  return incidentFromRow(row);
+  const incident = incidentFromRow(row);
+  await recordTradingNotificationBestEffort({
+    dedupeKey: `incident-open:${incident.id}`,
+    eventType: 'account_incident_opened',
+    accountId: incident.accountId,
+    occurredAt: incident.firstSeenAt,
+    details: {
+      incidentId: incident.id, category: incident.category, severity: incident.severity,
+      message: incident.message, occurrenceCount: incident.occurrenceCount,
+    },
+  });
+  return incident;
 }
 
 export async function resolveTradingAccountIncidents(
@@ -115,12 +127,30 @@ export async function resolveTradingAccountIncidents(
 ): Promise<number> {
   if (categories.length === 0) return 0;
   const placeholders = categories.map(() => '?').join(', ');
+  const incidents = await getDatabase().all<any[]>(
+    `SELECT id, category, severity, message, occurrence_count
+     FROM trading_account_incidents
+     WHERE account_id = ? AND status = 'open' AND category IN (${placeholders})`,
+    [accountId, ...categories],
+  );
   const result = await getDatabase().run(
     `UPDATE trading_account_incidents
      SET status = 'resolved', resolved_at = ?, last_seen_at = ?
      WHERE account_id = ? AND status = 'open' AND category IN (${placeholders})`,
     [now, now, accountId, ...categories],
   );
+  for (const incident of incidents) {
+    await recordTradingNotificationBestEffort({
+      dedupeKey: `incident-resolved:${incident.id}`,
+      eventType: 'account_incident_resolved',
+      accountId,
+      occurredAt: now,
+      details: {
+        incidentId: String(incident.id), category: String(incident.category), severity: String(incident.severity),
+        message: String(incident.message), occurrenceCount: Number(incident.occurrence_count),
+      },
+    });
+  }
   return Number(result.changes || 0);
 }
 
