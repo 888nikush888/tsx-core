@@ -80,6 +80,7 @@ import {
   type BuilderHistoryStatus,
   type TradingSnapshot,
   type WorkflowGraph,
+  type WorkflowFallbackReason,
   type WorkflowKind,
   type WorkflowResource,
   type WorkflowSnapshot,
@@ -91,6 +92,14 @@ import {
 } from "./workflow-node";
 import { WorkflowEdge, type WorkflowEdgeData } from "./workflow-edge";
 import { WorkflowConnectionDialog } from "./workflow-connection-dialog";
+import { WorkflowFallbackPolicyDialog } from "./workflow-fallback-policy-dialog";
+import { formatAccountCapacitySummary } from "./account-capacity";
+import { WorkflowSimulationResult } from "./workflow-simulation-result";
+import {
+  applyWorkflowFallbackPolicy,
+  fallbackPolicyShortLabel,
+  upgradeWorkflowGraphForFallbackPolicy,
+} from "./workflow-fallback-policy";
 import { buildWorkflowRouteTopology } from "./workflow-routes";
 import {
   consolidateWorkflowResources,
@@ -200,7 +209,7 @@ export function workflowResourceSummary(
       (item) => item.id === value.accountId,
     );
     return account
-      ? `${account.exchange} · ${account.mode} · max ${account.maxConcurrentPositions}`
+      ? formatAccountCapacitySummary(account, trading?.activity.positions || [])
       : String(value.accountId);
   }
   const summaries: Partial<Record<WorkflowKind, () => string>> = {
@@ -383,28 +392,6 @@ function connectionScopeDescription(selectedConnection: {
   return selectedConnection?.channelNames?.length
     ? `${selectedConnection.kind === "account_fallback" ? "Nächstes Fallback" : "Nur"} für ${selectedConnection.channelNames.join(", ")}`
     : "Für alle Ursprungskanäle dieses Pfads.";
-}
-
-function SimulationResult({ result }: Readonly<{ result: any }>) {
-  if (result.error) {
-    return <div className="builder-error" role="alert">{result.error}</div>;
-  }
-  return (
-    <>
-      {result.paths?.map((path: any) => {
-        const passed = path.allowed && path.enabled;
-        const reason = path.reason || (path.enabled ? "Filter erfüllt" : "Konto nicht bereit");
-        return (
-          <div key={path.id} className={passed ? "pass" : "blocked"}>
-            <span>{passed ? "PASS" : "BLOCK"}</span>
-            <strong>{path.accountId}</strong>
-            <small>{reason}</small>
-          </div>
-        );
-      })}
-      {result.paths?.length === 0 && <EmptySimulation />}
-    </>
-  );
 }
 
 const WORKSPACES: Array<{
@@ -1107,6 +1094,9 @@ export function WorkflowBuilder() {
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [connectionDraft, setConnectionDraft] =
     useState<WorkflowConnectionDraft | null>(null);
+  const [fallbackPolicyOpen, setFallbackPolicyOpen] = useState(false);
+  const [pendingFallbackChannelNodeIds, setPendingFallbackChannelNodeIds] =
+    useState<string[] | undefined>(undefined);
   const [routeOverviewOpen, setRouteOverviewOpen] = useState(false);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const libraryTriggerRef = useRef<HTMLButtonElement>(null);
@@ -1509,6 +1499,13 @@ export function WorkflowBuilder() {
       }
       if (plan.type === "scope") {
         setConnectionDraft(plan.draft);
+        if (plan.draft.kind === "account_fallback") {
+          const channelNodeIds = channelNodesReachingSource(graphRef.current, plan.draft.sourceId);
+          if (channelNodeIds.length === 1) {
+            setPendingFallbackChannelNodeIds(channelNodeIds);
+            setFallbackPolicyOpen(true);
+          }
+        }
         cancelConnection();
         return;
       }
@@ -1522,9 +1519,13 @@ export function WorkflowBuilder() {
   const saveConnectionRouting = useCallback(
     async (channelNodeIds?: string[]) => {
       if (!connectionDraft) return;
+      if (connectionDraft.kind === "account_fallback") {
+        setPendingFallbackChannelNodeIds(channelNodeIds);
+        setFallbackPolicyOpen(true);
+        return;
+      }
       const candidate = structuredClone(graphRef.current);
-      if (connectionDraft.kind === "account_fallback" || candidate.schemaVersion === 2) {
-        candidate.schemaVersion = 2;
+      if (candidate.schemaVersion >= 2) {
         candidate.edges = candidate.edges.map((edge) => ({ ...edge, kind: edge.kind || "flow" }));
       }
       let edgeId = connectionDraft.edgeId;
@@ -1539,7 +1540,7 @@ export function WorkflowBuilder() {
           id: edgeId,
           source: connectionDraft.sourceId,
           target: connectionDraft.targetId,
-          ...(candidate.schemaVersion === 2 ? { kind: connectionDraft.kind } : {}),
+          ...(candidate.schemaVersion >= 2 ? { kind: connectionDraft.kind } : {}),
           ...(channelNodeIds ? { channelNodeIds: [...channelNodeIds] } : {}),
         });
       }
@@ -1556,6 +1557,45 @@ export function WorkflowBuilder() {
     },
     [activateGraph, connectionDraft],
   );
+
+  const saveFallbackPolicy = useCallback(async (
+    fallbackOn: WorkflowFallbackReason[],
+    applyToChain: boolean,
+  ) => {
+    if (!connectionDraft || connectionDraft.kind !== "account_fallback") return;
+    let candidate = upgradeWorkflowGraphForFallbackPolicy(graphRef.current);
+    let edgeId = connectionDraft.edgeId;
+    if (edgeId) {
+      const edge = candidate.edges.find((item) => item.id === edgeId);
+      if (!edge) return;
+      edge.kind = "account_fallback";
+      edge.channelNodeIds = [...(pendingFallbackChannelNodeIds || edge.channelNodeIds || [])];
+      edge.fallbackOn = [...fallbackOn];
+    } else {
+      edgeId = newId("edge");
+      candidate.edges.push({
+        id: edgeId,
+        source: connectionDraft.sourceId,
+        target: connectionDraft.targetId,
+        kind: "account_fallback",
+        channelNodeIds: [...(pendingFallbackChannelNodeIds || [])],
+        fallbackOn: [...fallbackOn],
+      });
+    }
+    candidate = applyWorkflowFallbackPolicy(candidate, edgeId, fallbackOn, applyToChain);
+    const activated = await activateGraph(
+      candidate,
+      applyToChain ? "Fallback-Regel der Kontokette aktualisiert" : connectionDraft.edgeId
+        ? "Fallback-Regel aktualisiert"
+        : "Fallback-Verbindung aktiviert",
+    );
+    if (activated) {
+      setSelectedEdgeId(edgeId);
+      setFallbackPolicyOpen(false);
+      setPendingFallbackChannelNodeIds(undefined);
+      setConnectionDraft(null);
+    }
+  }, [activateGraph, connectionDraft, pendingFallbackChannelNodeIds]);
 
   const removeEdge = useCallback(
     async (edgeId: string) => {
@@ -1775,6 +1815,7 @@ export function WorkflowBuilder() {
           data: {
             routeUsage,
             kind: edge.kind || "flow",
+            fallbackOn: edge.fallbackOn,
             channelNames: edge.channelNodeIds?.map((channelNodeId) => {
               const channelNode = graph.nodes.find(
                 (node) => node.id === channelNodeId,
@@ -1834,6 +1875,7 @@ export function WorkflowBuilder() {
           : channelNodeId;
       }),
       kind: edge.kind || "flow",
+      fallbackOn: edge.fallbackOn,
       canEditScope: edge.kind === "account_fallback" ? upstreamChannels.length > 0 : upstreamChannels.length > 1,
     };
   }, [graph, resourceById, selectedEdgeId]);
@@ -1872,6 +1914,7 @@ export function WorkflowBuilder() {
       channels,
       initialChannelNodeIds: existing?.channelNodeIds,
       kind: connectionDraft.kind,
+      initialFallbackOn: existing?.fallbackOn,
     };
   }, [connectionDraft, graph, resourceById]);
 
@@ -2460,7 +2503,7 @@ export function WorkflowBuilder() {
       )}
 
       <WorkflowConnectionDialog
-        open={Boolean(connectionDialog)}
+        open={Boolean(connectionDialog) && !fallbackPolicyOpen}
         sourceName={connectionDialog?.sourceName || "Quelle"}
         targetName={connectionDialog?.targetName || "Ziel"}
         channels={connectionDialog?.channels || []}
@@ -2470,6 +2513,22 @@ export function WorkflowBuilder() {
         onClose={() => setConnectionDraft(null)}
         onSave={(channelNodeIds) =>
           void saveConnectionRouting(channelNodeIds)
+        }
+      />
+      <WorkflowFallbackPolicyDialog
+        open={Boolean(connectionDialog) && fallbackPolicyOpen}
+        mode={connectionDraft?.edgeId ? "edit" : "create"}
+        sourceName={connectionDialog?.sourceName || "Quelle"}
+        targetName={connectionDialog?.targetName || "Ziel"}
+        initialFallbackOn={connectionDialog?.initialFallbackOn}
+        saving={saving}
+        onClose={() => {
+          setFallbackPolicyOpen(false);
+          setPendingFallbackChannelNodeIds(undefined);
+          setConnectionDraft(null);
+        }}
+        onSave={(fallbackOn, applyToChain) =>
+          void saveFallbackPolicy(fallbackOn, applyToChain)
         }
       />
       <Dialog
@@ -2487,6 +2546,9 @@ export function WorkflowBuilder() {
             </DialogTitle>
             <DialogDescription>
               {connectionScopeDescription(selectedConnection)}
+              {selectedConnection?.kind === "account_fallback"
+                ? ` · Wechsel bei: ${fallbackPolicyShortLabel(selectedConnection.fallbackOn)}`
+                : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="workflow-connection-inspector-actions">
@@ -2627,7 +2689,7 @@ export function WorkflowBuilder() {
           </div>
           {simulationResult && (
             <div className="simulation-result" aria-live="polite">
-              <SimulationResult result={simulationResult} />
+              <WorkflowSimulationResult result={simulationResult} />
             </div>
           )}
         </DialogContent>
@@ -2640,13 +2702,5 @@ export function WorkflowBuilder() {
         onFocusPath={setSelectedPathId}
       />
     </main>
-  );
-}
-
-function EmptySimulation() {
-  return (
-    <div className="operations-empty">
-      Für diesen Kanal existiert kein vollständiger Pfad.
-    </div>
   );
 }

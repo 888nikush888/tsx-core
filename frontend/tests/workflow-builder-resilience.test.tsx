@@ -462,6 +462,9 @@ describe("workflow builder resilience", () => {
       screen.getByText("Wähle das nächste Konto der exklusiven Fallback-Reihenfolge."),
     ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /Hyperliquid danach/ }));
+    expect(await screen.findByRole("heading", { name: "Kraken zuerst → Hyperliquid danach" })).toBeVisible();
+    expect(screen.getByRole("radio", { name: /Empfohlen/ })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Fallback übernehmen" }));
 
     await waitFor(() =>
       expect(api.apiFetch).toHaveBeenCalledWith(
@@ -475,9 +478,9 @@ describe("workflow builder resilience", () => {
     if (!mutateCall) throw new Error("Workflow mutation was not submitted.");
     const submitted = JSON.parse((mutateCall[1] as RequestInit).body as string).graph;
     const submittedRequest = JSON.parse((mutateCall[1] as RequestInit).body as string);
-    expect(submittedRequest.historyLabel).toBe("Verbindung aktiviert");
+    expect(submittedRequest.historyLabel).toBe("Fallback-Verbindung aktiviert");
     expect(submittedRequest.historyMode).toBeUndefined();
-    expect(submitted.schemaVersion).toBe(2);
+    expect(submitted.schemaVersion).toBe(3);
     expect(submitted.edges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -489,6 +492,11 @@ describe("workflow builder resilience", () => {
           target: "node-fallback",
           kind: "account_fallback",
           channelNodeIds: ["node-channel"],
+          fallbackOn: [
+            "SYMBOL_UNAVAILABLE",
+            "MAX_CONCURRENT_POSITIONS",
+            "SYMBOL_ALREADY_OWNED",
+          ],
         }),
       ]),
     );

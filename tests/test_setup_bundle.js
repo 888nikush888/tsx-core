@@ -156,9 +156,9 @@ try {
       mutate: candidate => { candidate.workflow.resources = {}; },
       error: /resources are invalid/,
     },
-    {
-      label: 'unsupported graph schemas',
-      mutate: candidate => { candidate.workflow.graph.schemaVersion = 3; },
+      {
+        label: 'unsupported graph schemas',
+        mutate: candidate => { candidate.workflow.graph.schemaVersion = 4; },
       error: /graph structure is invalid/,
     },
     {
@@ -424,9 +424,25 @@ try {
   assert.equal((await getWorkflowBuilderHistoryStatus()).undoCount, 0,
     'A successful replacement import must invalidate all prior builder history.');
 
+  const legacyV2Bundle = structuredClone(bundle);
+  legacyV2Bundle.workflow.graph.schemaVersion = 2;
+  for (const edge of legacyV2Bundle.workflow.graph.edges) delete edge.fallbackOn;
+  legacyV2Bundle.checksum = checksumBundle(legacyV2Bundle);
+  assert.deepEqual(validatePortableSetupBundle(legacyV2Bundle), legacyV2Bundle);
+  await applyPortableSetupBundle({
+    bundle: legacyV2Bundle,
+    accountMappings: suggestion.automatic,
+    actorId: 'test:setup-v2-import',
+  });
+  const legacyV2Active = await getActiveWorkflow();
+  assert.equal(legacyV2Active.graph.schemaVersion, 2);
+  assert.equal(legacyV2Active.graph.edges.at(-1).fallbackOn, undefined);
+  assert.deepEqual(legacyV2Active.compiled.routeGroups[0].candidates[0].fallbackOn, ['SYMBOL_UNAVAILABLE']);
+  assert.deepEqual(legacyV2Active.compiled.routeGroups[0].candidates[1].fallbackOn, []);
+
   const rollbackSeed = await saveWorkflowRevision({
-    baseRevisionId: active.id,
-    graph: active.graph,
+    baseRevisionId: legacyV2Active.id,
+    graph: legacyV2Active.graph,
     actorId: 'test:setup-rollback-history',
     confirmation: WORKFLOW_IMPACT_CONFIRMATION,
     history: { mode: 'record', label: 'Vor fehlgeschlagenem Import' },

@@ -351,6 +351,14 @@ export interface WorkflowNode {
   position: { x: number; y: number };
 }
 
+export const WORKFLOW_FALLBACK_REASONS = [
+  'SYMBOL_UNAVAILABLE',
+  'MAX_CONCURRENT_POSITIONS',
+  'SYMBOL_ALREADY_OWNED',
+] as const;
+
+export type WorkflowFallbackReason = typeof WORKFLOW_FALLBACK_REASONS[number];
+
 export interface WorkflowEdge {
   id: string;
   source: string;
@@ -364,10 +372,12 @@ export interface WorkflowEdge {
    * continue to the target.
    */
   channelNodeIds?: string[];
+  /** Eligible, typed pre-selection reasons that may advance this account edge. */
+  fallbackOn?: WorkflowFallbackReason[];
 }
 
 export interface WorkflowGraph {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
 }
@@ -388,6 +398,8 @@ export interface WorkflowExecutionPath {
   routeGroupKey: string;
   /** Zero-based position in the account fallback chain. */
   fallbackRank: number;
+  /** Snapshotted policy for advancing from this candidate to the next one. */
+  fallbackOn: WorkflowFallbackReason[];
   nodeIds: string[];
   effectiveConfiguration: Record<string, unknown>;
   enabled: boolean;
@@ -400,6 +412,7 @@ export interface WorkflowRouteCandidate {
   accountNodeId: string;
   rank: number;
   enabled: boolean;
+  fallbackOn: WorkflowFallbackReason[];
 }
 
 export interface WorkflowRouteGroup {

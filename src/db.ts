@@ -206,6 +206,7 @@ const MIGRATION_COLUMN_DEFINITIONS = new Set([
   'TEXT',
   'INTEGER',
   "TEXT NOT NULL DEFAULT 'pending'",
+  "TEXT NOT NULL DEFAULT '[]'",
   'INTEGER NOT NULL DEFAULT 0',
 ]);
 
@@ -1502,6 +1503,32 @@ const migrations: SchemaMigration[] = [
         );
         CREATE INDEX idx_telegram_viewer_test_events_created
           ON telegram_viewer_test_events(seq);
+      `
+  },
+  {
+    version: 22,
+    name: 'configurable_account_fallback_policy',
+    columns: [
+      { table: 'workflow_execution_paths', name: 'fallback_on_json', sqlDefinition: "TEXT NOT NULL DEFAULT '[]'" },
+      { table: 'trading_fallback_candidates', name: 'fallback_on_json', sqlDefinition: "TEXT NOT NULL DEFAULT '[]'" },
+    ],
+    sql: `
+        UPDATE workflow_execution_paths AS current
+        SET fallback_on_json = '["SYMBOL_UNAVAILABLE"]'
+        WHERE current.route_group_key IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM workflow_execution_paths AS successor
+            WHERE successor.workflow_revision_id = current.workflow_revision_id
+              AND successor.route_group_key = current.route_group_key
+              AND successor.fallback_rank > current.fallback_rank
+          );
+
+        UPDATE trading_fallback_candidates
+        SET fallback_on_json = COALESCE((
+          SELECT path.fallback_on_json
+          FROM workflow_execution_paths AS path
+          WHERE path.id = trading_fallback_candidates.execution_path_id
+        ), '[]');
       `
   }
 ];

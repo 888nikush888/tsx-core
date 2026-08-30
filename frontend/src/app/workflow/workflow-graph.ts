@@ -304,7 +304,7 @@ export function planWorkflowConnection(
         "Das Ausgangskonto wird noch von keinem Kanal erreicht und kann deshalb keine Fallback-Reihenfolge erhalten.",
     };
   }
-  if (channelNodeIds.length > 1) {
+  if (kind === "account_fallback" || channelNodeIds.length > 1) {
     return {
       type: "scope",
       draft: { sourceId: source.id, targetId: target.id, kind },

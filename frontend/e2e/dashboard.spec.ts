@@ -750,6 +750,7 @@ test("ordered account fallback is one exclusive route with a dedicated arrow and
       accountId: "kraken",
       strategyVersionId: "strategy-a",
       enabled: true,
+      fallbackOn: ["SYMBOL_UNAVAILABLE", "MAX_CONCURRENT_POSITIONS", "SYMBOL_ALREADY_OWNED"],
       nodeIds: ["c1", "parser", "a1"],
     },
     {
@@ -760,6 +761,7 @@ test("ordered account fallback is one exclusive route with a dedicated arrow and
       accountId: "hyper",
       strategyVersionId: "strategy-a",
       enabled: true,
+      fallbackOn: [],
       nodeIds: ["c1", "parser", "a1", "a2"],
     },
   ];
@@ -768,7 +770,7 @@ test("ordered account fallback is one exclusive route with a dedicated arrow and
     revision: 4,
     createdAt: 1,
     graph: {
-      schemaVersion: 2,
+      schemaVersion: 3,
       nodes: [
         { id: "c1", kind: "channel", resourceVersionId: "channel-a", position: { x: 0, y: 0 } },
         { id: "parser", kind: "parser", resourceVersionId: "parser", position: { x: 0, y: 0 } },
@@ -784,6 +786,7 @@ test("ordered account fallback is one exclusive route with a dedicated arrow and
           source: "a1",
           target: "a2",
           channelNodeIds: ["c1"],
+          fallbackOn: ["SYMBOL_UNAVAILABLE", "MAX_CONCURRENT_POSITIONS", "SYMBOL_ALREADY_OWNED"],
         },
       ],
     },
@@ -795,8 +798,8 @@ test("ordered account fallback is one exclusive route with a dedicated arrow and
         channelNodeId: "c1",
         primaryPathId: "path-primary",
         candidates: [
-          { pathId: "path-primary", accountId: "kraken", accountNodeId: "a1", rank: 0, enabled: true },
-          { pathId: "path-fallback", accountId: "hyper", accountNodeId: "a2", rank: 1, enabled: true },
+          { pathId: "path-primary", accountId: "kraken", accountNodeId: "a1", rank: 0, enabled: true, fallbackOn: ["SYMBOL_UNAVAILABLE", "MAX_CONCURRENT_POSITIONS", "SYMBOL_ALREADY_OWNED"] },
+          { pathId: "path-fallback", accountId: "hyper", accountNodeId: "a2", rank: 1, enabled: true, fallbackOn: [] },
         ],
       }],
       warnings: [],
@@ -807,13 +810,20 @@ test("ordered account fallback is one exclusive route with a dedicated arrow and
 
   await page.getByRole("button", { name: "Pfade anzeigen (1)" }).click();
   const routeDialog = page.getByRole("dialog", { name: "Kanäle, Verarbeitung und Börsen" });
-  await expect(routeDialog.getByText("Exklusive Reihenfolge: 1. Kraken zuerst · 2. Hyperliquid danach")).toBeVisible();
+  await expect(routeDialog.getByText("Exklusive Reihenfolge: 1. Kraken zuerst (Paar · Voll · Belegt) · 2. Hyperliquid danach")).toBeVisible();
   await routeDialog.getByRole("button", { name: "Dialog schließen" }).click();
   const fallbackEdge = page.locator('.react-flow__edge[data-id="fallback-a1-a2"]');
   await expect(fallbackEdge.locator(".workflow-edge-path.is-account-fallback")).toHaveCount(1);
   await fallbackEdge.dispatchEvent("click");
   await expect(page.getByRole("dialog").getByText("Fallback-Reihenfolge", { exact: true })).toBeVisible();
   await expect(page.getByRole("dialog").getByText("Nächstes Fallback für Kanal A")).toBeVisible();
+  await expect(page.getByRole("dialog").getByText(/Wechsel bei: Paar · Voll · Belegt/)).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Routing bearbeiten" }).click();
+  await expect(page.getByRole("checkbox", { name: "Kanal A" })).toBeChecked();
+  await page.getByRole("button", { name: "Routing übernehmen" }).click();
+  await expect(page.getByRole("radio", { name: /Empfohlen/ })).toBeChecked();
+  await page.getByRole("radio", { name: /Nur Handelspaar/ }).check();
+  await page.getByRole("button", { name: "Fallback übernehmen" }).click();
 });
 
 test("a late-column block is brought into view and the canvas can always be reframed", async ({

@@ -29,7 +29,7 @@ import {
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
 import { TradingSymbolUnavailableError } from './trading_errors.js';
 import {
-  advanceWorkflowFallbackOnSymbolUnavailable,
+  advanceWorkflowFallbackOnEligibleFailure,
   markWorkflowFallbackSelected,
   stopWorkflowFallback,
 } from './workflow_repository.js';
@@ -57,6 +57,7 @@ import type {
   TradingMarketSnapshot,
   TradingPlan,
   StrategyConfiguration,
+  WorkflowFallbackReason,
 } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
 
@@ -264,17 +265,29 @@ async function loadCapacityState(intent: TradingIntent): Promise<CapacityState> 
   };
 }
 
-function assertCapacityState(state: CapacityState, maxConcurrent: number): void {
-  if (state.accountPositionCount >= maxConcurrent) {
-    throw new TradingRiskError('MAX_CONCURRENT_POSITIONS', 'Exchange-account concurrent-position limit is reached.');
-  }
-  if (state.symbolOwned) throw new TradingRiskError('SYMBOL_ALREADY_OWNED', 'Another route already owns this account and symbol.');
+function assertAccountSafetyState(state: CapacityState): void {
   if (state.unknownOrderCount > 0) {
     throw new TradingRiskError('UNRESOLVED_ORDER', 'Account has an order with unknown outcome; new entries are fail-closed.');
   }
   if (state.criticalRiskCount > 0) {
     throw new TradingRiskError('UNACKNOWLEDGED_CRITICAL_RISK', 'Account has an unacknowledged critical risk event.');
   }
+}
+
+function candidateCapacitySkipReason(
+  state: CapacityState,
+  maxConcurrent: number,
+): Extract<WorkflowFallbackReason, 'SYMBOL_ALREADY_OWNED' | 'MAX_CONCURRENT_POSITIONS'> | null {
+  if (state.symbolOwned) return 'SYMBOL_ALREADY_OWNED';
+  if (state.accountPositionCount >= maxConcurrent) return 'MAX_CONCURRENT_POSITIONS';
+  return null;
+}
+
+function throwCapacitySkip(reason: NonNullable<ReturnType<typeof candidateCapacitySkipReason>>): never {
+  if (reason === 'SYMBOL_ALREADY_OWNED') {
+    throw new TradingRiskError(reason, 'Another route already owns this account and symbol.');
+  }
+  throw new TradingRiskError(reason, 'Exchange-account concurrent-position limit is reached.');
 }
 
 function reservedPlanRisk(activePlans: CapacityState['activePlans'], maxDailyLoss: string): string {
@@ -313,16 +326,14 @@ function assertPublishedStrategy(
   }
 }
 
-async function assertCapacity(
+async function assertAccountRiskBudget(
   intent: TradingIntent,
-  maxConcurrent: number,
+  state: CapacityState,
   maxDailyLoss: string,
   newRiskAmount: string,
   unrealizedPnl = '0',
   fundingPnlToday = '0',
 ): Promise<void> {
-  const state = await loadCapacityState(intent);
-  assertCapacityState(state, maxConcurrent);
   const startOfDay = new Date().setUTCHours(0, 0, 0, 0);
   const pnl = signedDecimal(addSignedDecimal(
     addSignedDecimal(await realizedPnlSince(intent.accountId, startOfDay), unrealizedPnl),
@@ -935,6 +946,10 @@ export class TradingEngine {
         `Trading intent exceeded its ${strategyConfiguration.safety.entryOrderTtlSeconds}s entry TTL before execution.`,
       );
     }
+    const capacityState = await loadCapacityState(intent);
+    assertAccountSafetyState(capacityState);
+    const capacitySkipReason = candidateCapacitySkipReason(capacityState, account.maxConcurrentPositions);
+    if (capacitySkipReason) throwCapacitySkip(capacitySkipReason);
     const adapter = this.adapter(account.exchange);
     // Establish account health before evaluating market availability. If both
     // calls were raced, a fast symbol miss could incorrectly hide a concurrent
@@ -990,9 +1005,9 @@ export class TradingEngine {
       market,
       effectiveRiskPercent: channelRisk.riskPercent,
     });
-    await assertCapacity(
+    await assertAccountRiskBudget(
       intent,
-      account.maxConcurrentPositions,
+      capacityState,
       resolveDailyLossLimit(strategyConfiguration.safety, accountSnapshot.equity),
       plan.riskAmount,
       accountSnapshot.unrealizedPnl,
@@ -1135,10 +1150,32 @@ export class TradingEngine {
     const code = symbolUnavailable ? error.code : error instanceof TradingRiskError ? error.code : 'ORDER_OUTCOME_UNKNOWN';
     const status = knownRisk ? 'blocked' : 'unknown';
     const message = error?.message || String(error);
-    if (symbolUnavailable) {
+    const fallbackReason: WorkflowFallbackReason | null = [
+      'SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED',
+    ].includes(code) ? code as WorkflowFallbackReason : null;
+    if (fallbackReason) {
       // Persist the blocked current intent and promotion of the next candidate
       // in one transaction so a restart cannot strand a probing fallback run.
-      await advanceWorkflowFallbackOnSymbolUnavailable(intent, message);
+      const result = await advanceWorkflowFallbackOnEligibleFailure(intent, fallbackReason, message);
+      if (result?.advanced && result.toAccountId) {
+        await recordTradingNotificationBestEffort({
+          dedupeKey: `workflow-fallback:${result.runId}:${result.fromAccountId}:${result.toAccountId}:${fallbackReason}`,
+          eventType: 'workflow_fallback_candidate_skipped',
+          intentId: intent.id,
+          channelId: intent.channelId,
+          accountId: intent.accountId,
+          exchange: intent.exchange,
+          mode: intent.mode,
+          occurredAt: Date.now(),
+          details: {
+            runId: result.runId,
+            fromAccountId: result.fromAccountId,
+            toAccountId: result.toAccountId,
+            reason: fallbackReason,
+            symbol: intent.symbol,
+          },
+        });
+      }
     } else {
       await setIntentState(intent.id, status, {
         blockReason: knownRisk ? code : undefined,

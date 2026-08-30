@@ -19,6 +19,7 @@ export const TRADING_NOTIFICATION_EVENT_TYPES = [
   'signal_validated',
   'intent_created',
   'exchange_ack',
+  'workflow_fallback_candidate_skipped',
 ] as const;
 
 export type TradingNotificationEventType = typeof TRADING_NOTIFICATION_EVENT_TYPES[number];
@@ -74,4 +75,3 @@ export interface TelegramViewerSettings {
     timeFormat: '24h';
   };
 }
-

@@ -76,6 +76,7 @@ try {
     'signal_validated',
     'intent_created',
     'exchange_ack',
+    'workflow_fallback_candidate_skipped',
   ]);
 
   const inserted = await recordTradingNotificationEvent({

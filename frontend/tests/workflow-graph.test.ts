@@ -277,19 +277,10 @@ describe("workflow graph controls", () => {
       "account_fallback",
       () => "fallback-edge",
     );
-    expect(planned).toMatchObject({ type: "activate", edgeId: "fallback-edge" });
-    if (planned.type !== "activate") throw new Error("Expected activation plan.");
-    expect(planned.graph.schemaVersion).toBe(2);
-    expect(planned.graph.edges).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "flow", kind: "flow" }),
-        expect.objectContaining({
-          id: "fallback-edge",
-          kind: "account_fallback",
-          channelNodeIds: ["channel"],
-        }),
-      ]),
-    );
+    expect(planned).toEqual({
+      type: "scope",
+      draft: { sourceId: "primary", targetId: "fallback", kind: "account_fallback" },
+    });
     expect(
       planWorkflowConnection(graph, "channel", "fallback", "account_fallback", () => "unused"),
     ).toMatchObject({ type: "reject", cancel: false });

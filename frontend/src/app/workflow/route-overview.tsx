@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { WorkflowRoute, WorkflowRouteTopology } from "./workflow-routes";
+import { fallbackPolicyShortLabel } from "./workflow-fallback-policy";
 
 type RouteOverviewProps = {
   open: boolean;
@@ -27,7 +28,10 @@ type RouteOverviewProps = {
 };
 
 function RouteSequence({ route }: { route: WorkflowRoute }) {
-  const orderedAccounts = route.fallbackAccounts.map((candidate) => candidate.accountName);
+  const orderedAccounts = route.fallbackAccounts.map((candidate, index) =>
+    index < route.fallbackAccounts.length - 1
+      ? `${candidate.accountName} [${fallbackPolicyShortLabel(candidate.fallbackOn)}]`
+      : candidate.accountName);
   return (
     <div className="route-sequence" aria-label={`Pfad ${route.channelName} zu ${route.accountName}`}>
       <strong>{route.channelName}</strong>
@@ -62,8 +66,8 @@ export function RouteOverview({
           <DialogTitle>Kanäle, Verarbeitung und Börsen</DialogTitle>
           <DialogDescription>
             Die Matrix zeigt verbindlich, welche exklusive Kontoreihenfolge ein
-            Signal verwendet. Fallback-Konten werden nur versucht, wenn das Paar
-            auf dem vorherigen Konto nicht verfügbar ist.
+            Signal verwendet. Jede Kontoverbindung zeigt, welche sicheren
+            Verfügbarkeits- oder Kapazitätsgründe den nächsten Versuch erlauben.
           </DialogDescription>
         </DialogHeader>
         <div className="route-overview-content">
@@ -208,7 +212,7 @@ export function RouteOverview({
                     <span>Strategie: {route.strategyName}</span>
                     <span>
                       {route.fallbackAccounts.length > 1
-                        ? `Exklusive Reihenfolge: ${route.fallbackAccounts.map((candidate, candidateIndex) => `${candidateIndex + 1}. ${candidate.accountName}`).join(" · ")}`
+                        ? `Exklusive Reihenfolge: ${route.fallbackAccounts.map((candidate, candidateIndex) => `${candidateIndex + 1}. ${candidate.accountName}${candidateIndex < route.fallbackAccounts.length - 1 ? ` (${fallbackPolicyShortLabel(candidate.fallbackOn)})` : ""}`).join(" · ")}`
                         : route.accountDetail}
                     </span>
                   </div>

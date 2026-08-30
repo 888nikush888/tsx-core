@@ -42,6 +42,7 @@ import {
 } from "recharts";
 import type { ExchangeCatalog, TradingAccount, TradingSnapshot } from "./types";
 import { groupExchangeCatalog } from "./exchange-catalog";
+import { fallbackPolicyShortLabel } from "./workflow-fallback-policy";
 
 export type OperationTab =
   | "overview"
@@ -373,11 +374,17 @@ function Overview({
             <div>
               <strong>{run.channelName || run.channelId}</strong>
               <small>
-                {run.candidates.map((candidate) => `${candidate.rank + 1}. ${candidate.accountName} (${candidate.status})`).join(" → ")}
+                {run.candidates.map((candidate) => {
+                  const policy = candidate.fallbackOn.length
+                    ? fallbackPolicyShortLabel(candidate.fallbackOn)
+                    : "Ende der Kette";
+                  const reason = candidate.errorCode ? ` · ${candidate.errorCode}` : "";
+                  return `${candidate.rank + 1}. ${candidate.accountName} (${candidate.status}${reason}) · ${policy}`;
+                }).join(" → ")}
               </small>
             </div>
             <span className={`state-badge ${run.status === "exhausted" || run.status === "stopped" ? "danger" : run.status === "selected" ? "healthy" : ""}`}>
-              {run.status === "probing" ? "wird geprüft" : run.status === "selected" ? "Konto gewählt" : run.status === "exhausted" ? "Paar nirgends verfügbar" : `gestoppt: ${run.stopReason || "Schutzregel"}`}
+              {run.status === "probing" ? "wird geprüft" : run.status === "selected" ? "Konto gewählt" : run.status === "exhausted" ? `Kette ausgeschöpft: ${run.stopReason || "kein Kandidat"}` : `gestoppt: ${run.stopReason || "Schutzregel"}`}
             </span>
           </div>
         ))}
@@ -1390,6 +1397,11 @@ function Analytics({
   const evaluations = trading?.workflowAdaptiveRisk?.evaluations || [];
   const execution = analytics?.execution || {};
   const fallback = analytics?.fallback || {};
+  const fallbackSkipReasons = [
+    ["SYMBOL_UNAVAILABLE", "Pair fehlt"],
+    ["MAX_CONCURRENT_POSITIONS", "Account voll"],
+    ["SYMBOL_ALREADY_OWNED", "Pair bereits offen"],
+  ] as const;
   const totalPnl = channels.reduce(
     (total, item: any) => total + Number(item.realizedPnl || 0),
     0,
@@ -1470,7 +1482,7 @@ function Analytics({
         </div>
         <Metric label="Fallback-Ketten" value={fallback.runs || 0} />
         <Metric label="Fallback gewählt" value={fallback.selected || 0} />
-        <Metric label="Überall nicht verfügbar" value={fallback.exhausted || 0} danger={(fallback.exhausted || 0) > 0} />
+        <Metric label="Kette ausgeschöpft" value={fallback.exhausted || 0} danger={(fallback.exhausted || 0) > 0} />
       </div>
       <div className="analytics-chart-grid">
         <section className="operations-card analytics-chart">
@@ -1586,11 +1598,20 @@ function Analytics({
         )}
       </section>
       <section className="operations-card">
+        <h3>Fallback-Übersprünge</h3>
+        {fallbackSkipReasons.map(([reason, label]) => (
+          <div className="system-line" key={reason}>
+            <span>{label}</span>
+            <strong>{fallback.skippedByReason?.[reason] || 0}</strong>
+          </div>
+        ))}
+      </section>
+      <section className="operations-card">
         <h3>Fallback-Auswahl je Börsenkonto</h3>
         {(fallback.byAccount || []).map((item: any) => (
           <div className="system-line" key={item.accountId}>
             <span>{item.accountId} · {item.exchange}/{item.mode}</span>
-            <strong>{item.selected} gewählt · {item.unavailable}× Paar nicht verfügbar · {item.attempts} Versuche</strong>
+            <strong>{item.selected} gewählt · {item.unavailable} übersprungen · {item.attempts} Versuche</strong>
           </div>
         ))}
         {!(fallback.byAccount || []).length && (

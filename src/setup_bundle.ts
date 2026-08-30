@@ -18,6 +18,7 @@ import {
 } from './trading_channel_risk.js';
 import { validateSignalContractDefinition } from './signal_contract.js';
 import { strategyConfigurationForNewVersion, validateStrategyConfiguration } from './trading_strategy.js';
+import { WORKFLOW_FALLBACK_REASONS } from './trading_types.js';
 import {
   createWorkflowResourceDraft,
   getActiveWorkflow,
@@ -32,6 +33,7 @@ import type {
   StrategyConfiguration,
   TradingAccount,
   WorkflowGraph,
+  WorkflowFallbackReason,
   WorkflowResourceKind,
 } from './trading_types.js';
 
@@ -252,11 +254,39 @@ function validateGraphNode(nodeValue: unknown, nodeIds: Set<string>): void {
 
 function setupBundleEdgeKind(edge: Record<string, any>, schemaVersion: number): unknown {
   const kind = edge.kind === undefined && schemaVersion === 1 ? undefined : edge.kind;
-  const valid = schemaVersion === 2
+  const valid = schemaVersion === 2 || schemaVersion === 3
     ? kind === 'flow' || kind === 'account_fallback'
     : kind === undefined || kind === 'flow';
   if (!valid) throw new Error('Setup bundle graph edge kind is invalid.');
   return kind;
+}
+
+function validateSetupBundleFallbackPolicy(
+  edge: Record<string, any>,
+  kind: unknown,
+  schemaVersion: number,
+): void {
+  if (kind !== 'account_fallback') {
+    if (edge.fallbackOn !== undefined) throw new Error('Setup bundle flow edge fallback policy is invalid.');
+    return;
+  }
+  if (schemaVersion < 3) {
+    if (edge.fallbackOn !== undefined) throw new Error('Setup bundle legacy fallback policy is invalid.');
+    return;
+  }
+  if (!Array.isArray(edge.fallbackOn) || edge.fallbackOn.length < 1 || edge.fallbackOn.length > 3) {
+    throw new Error('Setup bundle account fallback policy is invalid.');
+  }
+  const fallbackOn = edge.fallbackOn as unknown[];
+  if (new Set(fallbackOn).size !== fallbackOn.length
+    || fallbackOn.some(reason => typeof reason !== 'string'
+      || !WORKFLOW_FALLBACK_REASONS.includes(reason as WorkflowFallbackReason))) {
+    throw new Error('Setup bundle account fallback policy is invalid.');
+  }
+  const canonical = WORKFLOW_FALLBACK_REASONS.filter(reason => fallbackOn.includes(reason));
+  if (canonical.some((reason, index) => reason !== fallbackOn[index])) {
+    throw new Error('Setup bundle account fallback policy must use canonical reason order.');
+  }
 }
 
 function setupBundleChannelScope(
@@ -284,6 +314,7 @@ function validateGraphEdge(
     throw new Error('Setup bundle graph edge is invalid, duplicated or dangling.');
   }
   const kind = setupBundleEdgeKind(edge, schemaVersion);
+  validateSetupBundleFallbackPolicy(edge, kind, schemaVersion);
   edgeIds.add(id);
   const channelNodeIds = setupBundleChannelScope(edge, nodeKinds);
   if (kind === 'account_fallback' && (nodeKinds.get(edge.source) !== 'account'
@@ -294,7 +325,7 @@ function validateGraphEdge(
 
 function validateBundleGraph(value: unknown): WorkflowGraph {
   const graph = object(value, 'Setup bundle graph');
-  if (![1, 2].includes(graph.schemaVersion) || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)
+  if (![1, 2, 3].includes(graph.schemaVersion) || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)
     || graph.nodes.length > 1_000 || graph.edges.length > 4_000) {
     throw new Error('Setup bundle graph structure is invalid.');
   }

@@ -8,6 +8,7 @@ import {
   fallbackPolicyPreset,
   fallbackPolicyShortLabel,
   normalizeWorkflowFallbackPolicy,
+  applyWorkflowFallbackPolicy,
 } from "@/app/workflow/workflow-fallback-policy";
 import { WorkflowFallbackPolicyDialog } from "@/app/workflow/workflow-fallback-policy-dialog";
 
@@ -64,5 +65,24 @@ describe("workflow fallback policy", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: /gesamte Kette/i }));
     fireEvent.click(screen.getByRole("button", { name: /Fallback übernehmen/i }));
     expect(onSave).toHaveBeenCalledWith(PAIR_ONLY_FALLBACK_POLICY, true);
+  });
+
+  it("upgrades legacy policies and edits exactly one connected channel chain", () => {
+    const graph = {
+      schemaVersion: 2 as const,
+      nodes: [],
+      edges: [
+        { id: "a-b", kind: "account_fallback" as const, source: "a", target: "b", channelNodeIds: ["channel-a"] },
+        { id: "b-c", kind: "account_fallback" as const, source: "b", target: "c", channelNodeIds: ["channel-a"] },
+        { id: "x-y", kind: "account_fallback" as const, source: "x", target: "y", channelNodeIds: ["channel-b"] },
+      ],
+    };
+    const updated = applyWorkflowFallbackPolicy(graph, "a-b", RECOMMENDED_FALLBACK_POLICY, true);
+    expect(updated.schemaVersion).toBe(3);
+    expect(updated.edges.map((edge) => [edge.id, edge.fallbackOn])).toEqual([
+      ["a-b", RECOMMENDED_FALLBACK_POLICY],
+      ["b-c", RECOMMENDED_FALLBACK_POLICY],
+      ["x-y", PAIR_ONLY_FALLBACK_POLICY],
+    ]);
   });
 });

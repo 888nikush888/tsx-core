@@ -50,6 +50,7 @@ const allTests = [
   'test_workflow_history.js',
   'test_workflow_history_barriers.js',
   'test_workflow_fallback.js',
+  'test_configurable_fallback_migration.js',
   'test_workflow_migration.js',
   'test_telegram_viewer_core.js',
   'test_telegram_viewer_api.js',

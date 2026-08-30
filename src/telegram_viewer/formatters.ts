@@ -137,8 +137,11 @@ export function formatTelegramViewerEvent(
     timeStyle: 'medium',
     hourCycle: 'h23',
   }).format(new Date(event.occurredAt));
+  const title = event.eventType === 'workflow_fallback_candidate_skipped'
+    ? '↪️ Fallback-Kandidat übersprungen'
+    : event.eventType.replaceAll('_', ' ');
   const lines = [
-    `TSX Core · ${event.eventType.replaceAll('_', ' ')}`,
+    `TSX Core · ${title}`,
     `Zeit: ${occurredAt}`,
     event.exchange ? `Börse: ${event.exchange}${event.mode ? ` (${event.mode})` : ''}` : null,
     event.accountId ? `Konto: ${event.accountId}` : null,

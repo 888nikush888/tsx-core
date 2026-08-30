@@ -1,6 +1,7 @@
 import type {
   TradingAccount,
   WorkflowGraph,
+  WorkflowFallbackReason,
   WorkflowKind,
   WorkflowResource,
   WorkflowRevision,
@@ -23,6 +24,7 @@ export type WorkflowRoute = {
     accountDetail: string;
     rank: number;
     enabled: boolean;
+    fallbackOn: WorkflowFallbackReason[];
   }>;
 };
 
@@ -161,6 +163,7 @@ export function buildWorkflowRouteTopology(
         accountDetail: account ? `${account.exchange} · ${account.mode}` : accountId,
         rank: path.fallbackRank ?? 0,
         enabled: path.enabled,
+        fallbackOn: [...(path.fallbackOn || [])],
       }],
     };
   });

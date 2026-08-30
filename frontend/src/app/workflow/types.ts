@@ -37,6 +37,14 @@ export type WorkflowNodeRecord = {
   position: { x: number; y: number };
 };
 
+export const WORKFLOW_FALLBACK_REASONS = [
+  "SYMBOL_UNAVAILABLE",
+  "MAX_CONCURRENT_POSITIONS",
+  "SYMBOL_ALREADY_OWNED",
+] as const;
+
+export type WorkflowFallbackReason = (typeof WORKFLOW_FALLBACK_REASONS)[number];
+
 export type WorkflowEdgeRecord = {
   id: string;
   source: string;
@@ -45,10 +53,11 @@ export type WorkflowEdgeRecord = {
   kind?: "flow" | "account_fallback";
   /** Missing means that every channel reaching the source is forwarded. */
   channelNodeIds?: string[];
+  fallbackOn?: WorkflowFallbackReason[];
 };
 
 export type WorkflowGraph = {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   nodes: WorkflowNodeRecord[];
   edges: WorkflowEdgeRecord[];
 };
@@ -69,6 +78,7 @@ export type WorkflowRevision = {
       nodeIds: string[];
       routeGroupKey?: string;
       fallbackRank?: number;
+      fallbackOn: WorkflowFallbackReason[];
     }>;
     routeGroups?: Array<{
       key: string;
@@ -81,6 +91,7 @@ export type WorkflowRevision = {
         accountNodeId: string;
         rank: number;
         enabled: boolean;
+        fallbackOn: WorkflowFallbackReason[];
       }>;
     }>;
     warnings: string[];
@@ -326,6 +337,7 @@ export type TradingSnapshot = {
       intentId: string | null;
       status: "waiting" | "pending" | "unavailable" | "selected" | "stopped";
       errorCode: string | null;
+      fallbackOn: WorkflowFallbackReason[];
     }>;
   }>;
 };

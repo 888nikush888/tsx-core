@@ -317,6 +317,7 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
   exhausted: number;
   stopped: number;
   unavailableCandidates: number;
+  skippedByReason: Record<string, number>;
   selectionRatePercent: number | null;
   exhaustionRatePercent: number | null;
   averageSelectedRank: number | null;
@@ -325,7 +326,7 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
   const rows = (await getDatabase().all<any[]>(
     `SELECT run.id AS runId, run.channel_id AS channelId, run.status AS fallbackStatus,
             run.current_rank AS currentRank, run.created_at AS createdAt,
-            candidate.rank, candidate.status AS candidateStatus,
+            candidate.rank, candidate.status AS candidateStatus, candidate.error_code AS errorCode,
             candidate.account_id AS accountId, intent.status AS intentStatus,
             account.exchange, account.mode
      FROM trading_fallback_runs AS run
@@ -363,6 +364,10 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
   const selectedRanks = selectedRuns.map(candidates =>
     Number(candidates.find(candidate => candidate.candidateStatus === 'selected')!.rank));
   const runCount = runs.size;
+  const skippedByReason = Object.fromEntries([
+    'SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED',
+  ].map(reason => [reason, rows.filter(row =>
+    row.candidateStatus === 'unavailable' && row.errorCode === reason).length]));
   return {
     runs: runCount,
     candidates: rows.length,
@@ -370,6 +375,7 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
     exhausted,
     stopped,
     unavailableCandidates: rows.filter(row => row.candidateStatus === 'unavailable').length,
+    skippedByReason,
     selectionRatePercent: runCount > 0 ? selectedRuns.length / runCount * 100 : null,
     exhaustionRatePercent: runCount > 0 ? exhausted / runCount * 100 : null,
     averageSelectedRank: selectedRanks.length > 0

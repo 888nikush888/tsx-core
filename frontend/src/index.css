@@ -590,6 +590,22 @@ button:disabled {
   stroke-width: 2.7;
   stroke-dasharray: 8 5;
 }
+
+.workflow-fallback-edge-label {
+  position: absolute;
+  z-index: 6;
+  border: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
+  border-radius: 999px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  padding: 0.15rem 0.45rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 1px 5px color-mix(in srgb, black 14%, transparent);
+}
 .workflow-edge-path.path-active {
   stroke: var(--chart-2) !important;
   stroke-width: 3.4;
@@ -1558,6 +1574,12 @@ button:disabled {
 }
 .duplicate-resource-notice {
   grid-template-columns: auto 1fr auto;
+}
+
+.workflow-connection-dialog {
+  max-height: min(90dvh, 780px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .workflow-connection-modes,
