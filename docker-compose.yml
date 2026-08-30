@@ -24,6 +24,9 @@ services:
       CONFIG_PATH: "/app/config/config.json"
       RUNTIME_SETTINGS_PATH: "/app/config/runtime-settings.json"
       MANAGED_SECRET_DIR: "/app/secrets"
+      TELEGRAM_VIEWER_SETTINGS_PATH: "/app/config/telegram-viewer-settings.json"
+      TELEGRAM_VIEWER_SECRET_DIR: "/app/telegram_viewer_secrets"
+      TELEGRAM_VIEWER_STATUS_URL: "http://telegram-viewer:8081/status"
       TEMPLATES_DIR: "/app/templates"
       EXCHANGE_EXECUTOR_URL: "http://exchange-executor:8090"
       # Browser-visible address of the independently gated MCP service.
@@ -31,6 +34,7 @@ services:
     volumes:
       - forwarder_config:/app/config
       - forwarder_secrets:/app/secrets
+      - telegram_viewer_secrets:/app/telegram_viewer_secrets
       - forwarder_templates:/app/templates
       - forwarder_session_data:/app/session_data
       - forwarder_session_files:/app/session_files
@@ -67,6 +71,9 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+    networks:
+      - core-network
+      - viewer-network
 
   exchange-executor:
     build:
@@ -109,6 +116,8 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+    networks:
+      - core-network
 
   mcp-server:
     build:
@@ -160,6 +169,58 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+    networks:
+      - core-network
+
+  telegram-viewer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${FORWARDER_IMAGE:-tsx-core:local}
+    command: ["dist/telegram_viewer/runtime.js"]
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      forwarder:
+        condition: service_healthy
+    environment:
+      TELEGRAM_VIEWER_CORE_URL: "http://forwarder:8080"
+      TELEGRAM_VIEWER_SECRET_DIR: "/app/secrets"
+      TELEGRAM_VIEWER_STATE_DB: "/app/state/viewer-state.db"
+      TELEGRAM_VIEWER_HEALTH_PORT: "8081"
+    volumes:
+      - telegram_viewer_secrets:/app/secrets:ro
+      - telegram_viewer_state:/app/state
+    expose:
+      - "8081"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: ${TELEGRAM_VIEWER_MEMORY_LIMIT:-256m}
+    cpus: ${TELEGRAM_VIEWER_CPU_LIMIT:-0.25}
+    healthcheck:
+      test:
+        - CMD
+        - /nodejs/bin/node
+        - -e
+        - "fetch('http://127.0.0.1:8081/health',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - viewer-network
 
 volumes:
   forwarder_config:
@@ -170,3 +231,9 @@ volumes:
   forwarder_signals:
   forwarder_logs:
   forwarder_backups:
+  telegram_viewer_secrets:
+  telegram_viewer_state:
+
+networks:
+  core-network:
+  viewer-network:

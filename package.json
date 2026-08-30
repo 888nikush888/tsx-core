@@ -13,6 +13,7 @@
     "build": "tsc && npm run build --prefix frontend",
     "clean:artifacts": "node scripts/clean_artifacts.js",
     "start": "node dist/forwarder.js",
+    "start:telegram-viewer": "node dist/telegram_viewer/runtime.js",
     "dev": "tsx src/forwarder.ts",
     "test:js": "node tests/run_all.js",
     "test:ai-eval": "tsx tests/evaluate_signal_golden_set.js",
@@ -89,4 +90,3 @@
     "typescript-eslint": "8.63.0"
   }
 }
-

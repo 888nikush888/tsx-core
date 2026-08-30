@@ -35,7 +35,8 @@ RUN apt-get update \
 FROM base AS runtime-layout
 RUN mkdir -p /runtime/app/config /runtime/app/secrets /runtime/app/templates \
       /runtime/app/session_data /runtime/app/session_files /runtime/app/signals \
-      /runtime/app/logs /runtime/app/backups \
+      /runtime/app/logs /runtime/app/backups /runtime/app/state \
+      /runtime/app/telegram_viewer_secrets \
     && chown -R 65532:65532 /runtime/app
 
 FROM ${RUNTIME_IMAGE} AS runner
@@ -56,7 +57,7 @@ COPY --from=builder --chown=65532:65532 /app/frontend/dist ./frontend/dist
 COPY --chown=65532:65532 config.json.example ./config/config.json
 
 USER 65532:65532
-EXPOSE 8080 8091 9100
+EXPOSE 8080 8081 8091 9100
 STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:9100/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]

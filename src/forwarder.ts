@@ -74,6 +74,14 @@ import {
   type ManagedRuntimeSettingsStore,
 } from './runtime_settings.js';
 import {
+  telegramViewerSettingsFromEnvironment,
+  type ManagedTelegramViewerSettingsStore,
+} from './telegram_viewer_settings.js';
+import {
+  telegramViewerSecretStoreFromEnvironment,
+  type TelegramViewerSecretStore,
+} from './telegram_viewer_secrets.js';
+import {
   createTradingIntent,
   getSignalContractVersion,
   getTradingSignalSchemaForTemplate,
@@ -1705,6 +1713,8 @@ async function performCompleteFactoryReset(
   secretStore: ManagedSecretStore,
   runtimeSettings: ManagedRuntimeSettingsStore,
   tradingCredentials: TradingCredentialStore,
+  telegramViewerSettings?: ManagedTelegramViewerSettingsStore,
+  telegramViewerSecrets?: TelegramViewerSecretStore,
 ): Promise<void> {
   secretStore.assertClearable();
   if (!tradingWebControl) throw new Error('Factory reset requires initialized trading safety controls.');
@@ -1753,6 +1763,8 @@ async function performCompleteFactoryReset(
   const sharedMcpMaintenance = await beginMcpSharedMaintenance('factory reset', operationalDatabasePath());
   await closeDb();
   await tradingCredentials.clear();
+  await telegramViewerSecrets?.clear();
+  await telegramViewerSettings?.reset();
   await secretStore.clear();
   await runtimeSettings.reset();
   await fsPromises.rm(configPath, { force: true });
@@ -1876,6 +1888,8 @@ function startDashboardRuntime(
   secretStore: ManagedSecretStore,
   runtimeSettings: ManagedRuntimeSettingsStore,
   tradingCredentials: TradingCredentialStore,
+  telegramViewerSettings?: ManagedTelegramViewerSettingsStore,
+  telegramViewerSecrets?: TelegramViewerSecretStore,
 ): void {
   const webPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 8080;
   const runtimeRecovery = runtimeSettings.recoveryStatus();
@@ -1921,6 +1935,11 @@ function startDashboardRuntime(
       auditTrail,
       secretStore,
       runtimeSettings,
+      telegramViewerSettings,
+      telegramViewerSecrets,
+      getTelegramViewerStatus: telegramViewerSecrets
+        ? () => getTelegramViewerServiceStatus(telegramViewerSecrets)
+        : undefined,
       tradingControl: tradingWebControl ?? undefined,
       getOperationsStatus: () => ({
         backup: backupScheduler?.getStatus() ?? null,
@@ -1936,7 +1955,14 @@ function startDashboardRuntime(
       recoverOffsiteBackup: recoverNamedOffsiteBackup,
       restoreBackup: restoreNamedBackup,
       performFactoryReset: async () => {
-        await performCompleteFactoryReset(runtime, secretStore, runtimeSettings, tradingCredentials);
+        await performCompleteFactoryReset(
+          runtime,
+          secretStore,
+          runtimeSettings,
+          tradingCredentials,
+          telegramViewerSettings,
+          telegramViewerSecrets,
+        );
       },
       recovery: {
         active: recoveryActive,
@@ -1961,6 +1987,23 @@ function startDashboardRuntime(
         }, 150).unref();
       }
   });
+}
+
+async function getTelegramViewerServiceStatus(secrets: TelegramViewerSecretStore): Promise<Record<string, unknown>> {
+  const configured = process.env.TELEGRAM_VIEWER_STATUS_URL || 'http://telegram-viewer:8081/status';
+  const endpoint = new URL(configured);
+  if (!['http:', 'https:'].includes(endpoint.protocol)) throw new Error('Telegram viewer status URL is invalid.');
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${await secrets.serviceToken()}`, Accept: 'application/json' },
+    signal: AbortSignal.timeout(3_000),
+  });
+  const text = await response.text();
+  if (Buffer.byteLength(text, 'utf8') > 64 * 1024) throw new Error('Telegram viewer status response is too large.');
+  if (!response.ok) throw new Error(`Telegram viewer status request failed with status ${response.status}.`);
+  const payload = JSON.parse(text);
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Telegram viewer status is malformed.');
+  return payload as Record<string, unknown>;
 }
 
 async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<boolean> {
@@ -1990,6 +2033,18 @@ async function run() {
   await secretStore.initialize({ recoverInvalidManagedFiles: true });
   const tradingCredentials = tradingCredentialStoreFromEnvironment();
   await tradingCredentials.initialize();
+  let telegramViewerSettings: ManagedTelegramViewerSettingsStore | undefined;
+  let telegramViewerSecrets: TelegramViewerSecretStore | undefined;
+  try {
+    telegramViewerSettings = telegramViewerSettingsFromEnvironment();
+    await telegramViewerSettings.initialize({ recoverInvalidFile: true });
+    telegramViewerSecrets = telegramViewerSecretStoreFromEnvironment();
+    await telegramViewerSecrets.initialize({ recoverInvalidBotToken: true });
+  } catch (error: any) {
+    telegramViewerSettings = undefined;
+    telegramViewerSecrets = undefined;
+    addLog(`[ERROR] Telegram viewer control could not initialize; core routing and trading remain unaffected: ${error.message}`);
+  }
   const runtime = loadRuntimeConfiguration();
   if (runtimeSettings.recoveryStatus().active || secretStore.recoveryStatus().length > 0 || runtime.configurationRecoveryReason) {
     state.connectionState = 'recovery-required';
@@ -2000,11 +2055,15 @@ async function run() {
     } catch (error: any) {
       addLog(`[CRITICAL] Trading safety state could not be loaded in recovery mode; factory reset remains blocked until database recovery: ${error.message}`);
     }
-    startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
+    startDashboardRuntime(
+      runtime, secretStore, runtimeSettings, tradingCredentials, telegramViewerSettings, telegramViewerSecrets,
+    );
     return;
   }
   const { databasePath, retentionPolicy } = await initializeCoreRuntime(tradingCredentials, clockGuard, runtime.config);
-  startDashboardRuntime(runtime, secretStore, runtimeSettings, tradingCredentials);
+  startDashboardRuntime(
+    runtime, secretStore, runtimeSettings, tradingCredentials, telegramViewerSettings, telegramViewerSecrets,
+  );
   let operationalGatesHealthy = true;
   try {
     await startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes, clockGuard);
