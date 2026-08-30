@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   closeDb,
   DATABASE_FEATURE_SET,
+  expectedDatabaseMigrations,
   getDatabase,
   initDb,
   LATEST_SCHEMA_VERSION,
@@ -36,7 +37,9 @@ try {
   await initDb(databasePath);
   await seedTradingFixtures();
 
-  assert.equal(LATEST_SCHEMA_VERSION, 20);
+  assert.ok(LATEST_SCHEMA_VERSION >= 20);
+  assert.equal(expectedDatabaseMigrations().find((migration) => migration.version === 20)?.name,
+    'server_persistent_workflow_builder_history');
   assert.ok(REQUIRED_DATABASE_TABLES.includes('workflow_builder_history'));
   assert.ok(DATABASE_FEATURE_SET.includes('server-persistent-workflow-builder-history'));
   assert.equal(WORKFLOW_BUILDER_HISTORY_LIMIT, 5);

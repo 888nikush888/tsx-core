@@ -96,7 +96,8 @@ export const DATABASE_FEATURE_SET = [
   'path-isolated-adaptive-risk',
   'account-protection-incidents',
   'dynamic-ccxt-exchange-registry',
-  'server-persistent-workflow-builder-history'
+  'server-persistent-workflow-builder-history',
+  'telegram-viewer-notification-delivery'
 ] as const;
 
 export const REQUIRED_DATABASE_TABLES = [
@@ -139,6 +140,8 @@ export const REQUIRED_DATABASE_TABLES = [
   'workflow_revisions',
   'workflow_active_revision',
   'workflow_builder_history',
+  'trading_notification_events',
+  'telegram_viewer_test_events',
   'workflow_execution_paths',
   'workflow_signal_runs',
   'trading_fallback_runs',
@@ -1464,6 +1467,41 @@ const migrations: SchemaMigration[] = [
         ) VALUES (
           1, '[]', '[]', CAST(strftime('%s','now') AS INTEGER) * 1000
         );
+      `
+  },
+  {
+    version: 21,
+    name: 'trading_notification_and_telegram_viewer_support',
+    columns: [],
+    sql: `
+        CREATE TABLE trading_notification_events (
+          seq INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT NOT NULL UNIQUE,
+          dedupe_key TEXT NOT NULL UNIQUE,
+          event_type TEXT NOT NULL,
+          intent_id TEXT,
+          channel_id TEXT,
+          account_id TEXT,
+          exchange TEXT,
+          mode TEXT,
+          occurred_at INTEGER NOT NULL,
+          created_at INTEGER NOT NULL,
+          details_json TEXT NOT NULL
+        );
+        CREATE INDEX idx_trading_notification_events_created
+          ON trading_notification_events(seq);
+        CREATE INDEX idx_trading_notification_events_type_time
+          ON trading_notification_events(event_type, occurred_at DESC);
+
+        CREATE TABLE telegram_viewer_test_events (
+          seq INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT NOT NULL UNIQUE,
+          created_at INTEGER NOT NULL,
+          created_by TEXT NOT NULL,
+          message TEXT NOT NULL
+        );
+        CREATE INDEX idx_telegram_viewer_test_events_created
+          ON telegram_viewer_test_events(seq);
       `
   }
 ];
