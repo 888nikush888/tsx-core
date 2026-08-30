@@ -4,6 +4,7 @@ import { constantTimeStringEqual } from './secure_compare.js';
 import { signalContractDefinitionSha256, validateSignalContractDefinition } from './signal_contract.js';
 import { decimal } from './trading_decimal.js';
 import { recordTradingExecutionEvent } from './trading_telemetry.js';
+import { recordTradingNotificationBestEffort } from './trading_notifications.js';
 import {
   createStrategyVersion,
   signalSchemaIdentifier,
@@ -770,13 +771,25 @@ export async function updateTradingAccountConfiguration(
   const killSwitch = accountKillSwitch(input, current);
   const capabilitiesJson = accountCapabilitiesJson(input.capabilities, current);
   const lastReconciledAt = accountReconciledAt(input.lastReconciledAt, current);
+  const updatedAt = Date.now();
   await getDatabase().run(
     `UPDATE trading_accounts SET max_concurrent_positions = ?, kill_switch_active = ?,
        kill_switch_reason = ?, capabilities_json = ?, last_reconciled_at = ?, updated_at = ?
      WHERE id = ?`,
     [maxConcurrentPositions, killSwitch.active ? 1 : 0, killSwitch.reason, capabilitiesJson,
-      lastReconciledAt, Date.now(), id],
+      lastReconciledAt, updatedAt, id],
   );
+  if (!current.killSwitchActive && killSwitch.active) {
+    await recordTradingNotificationBestEffort({
+      dedupeKey: `account-kill-switch:${id}:${updatedAt}`,
+      eventType: 'kill_switch_activated',
+      accountId: id,
+      exchange: current.exchange,
+      mode: current.mode,
+      occurredAt: updatedAt,
+      details: { scope: 'account', reason: killSwitch.reason, accountName: current.name },
+    });
+  }
   return (await getTradingAccount(id))!;
 }
 
