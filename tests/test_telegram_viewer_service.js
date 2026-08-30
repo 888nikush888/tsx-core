@@ -48,7 +48,7 @@ function fakeCore() {
     calls,
     config: async () => { calls.push('config'); return { settings: structuredClone(SETTINGS) }; },
     get: async (resource, query = {}) => {
-      calls.push(resource);
+      calls.push(`${resource}:${Number(query.offset || 0)}`);
       if (resource === 'events') return { events: Number(query.afterSeq || 0) < 1 ? [event] : [], nextSeq: 1 };
       if (resource === 'test-events') {
         return Number(query.afterSeq || 0) < 1

@@ -82,10 +82,10 @@ export class TelegramViewerService {
     );
   }
 
-  private async sendProjection(chatId: string | number, resource: string): Promise<void> {
-    const payload = await this.dependencies.core.get(resource, { limit: 20 });
+  private async sendProjection(chatId: string | number, resource: string, page = 0): Promise<void> {
+    const payload = await this.dependencies.core.get(resource, { limit: 20, offset: page * 20 });
     await this.dependencies.bot.sendMessage(chatId, formatTelegramViewerProjection(resource, payload), {
-      reply_markup: telegramViewerMenu(),
+      reply_markup: telegramViewerMenu(resource, payload.pagination),
     });
   }
 
@@ -112,10 +112,7 @@ export class TelegramViewerService {
     const [kind, requestedResource, page] = callback.data.split(':');
     const resource = requestedResource === 'refresh' ? 'summary' : requestedResource;
     try {
-      const payload = await this.dependencies.core.get(resource, page ? { limit: 20, offset: Number(page) * 20 } : { limit: 20 });
-      await this.dependencies.bot.sendMessage(chat.id, formatTelegramViewerProjection(resource, payload), {
-        reply_markup: telegramViewerMenu(),
-      });
+      await this.sendProjection(chat.id, resource, page ? Number(page) : 0);
       await this.dependencies.bot.answerCallbackQuery(String(callback.id));
     } catch (error) {
       await this.dependencies.bot.answerCallbackQuery(String(callback.id), 'Daten konnten nicht geladen werden.');

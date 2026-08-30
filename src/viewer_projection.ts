@@ -9,6 +9,24 @@ function boundedLimit(value: unknown): number {
   return Math.min(parsed, MAX_LIMIT);
 }
 
+function boundedOffset(value: unknown): number {
+  const parsed = Number(value ?? 0);
+  if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > 100_000) {
+    throw new Error('Viewer projection offset is invalid.');
+  }
+  return parsed;
+}
+
+function paginated<T>(rows: T[], limit: number, offset: number): {
+  rows: T[];
+  pagination: { offset: number; limit: number; hasMore: boolean };
+} {
+  return {
+    rows: rows.slice(0, limit),
+    pagination: { offset, limit, hasMore: rows.length > limit },
+  };
+}
+
 function optionalIdentifier(value: unknown): string | null {
   if (value === undefined || value === null || value === '') return null;
   if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9:._/-]{0,255}$/.test(value)) {
@@ -97,12 +115,19 @@ const ACCOUNT_SELECT = `
     WHERE snapshot.account_id = account.id ORDER BY snapshot.observed_at DESC LIMIT 1
   )`;
 
-export async function viewerAccounts(input: { id?: unknown; limit?: unknown } = {}): Promise<Record<string, unknown>> {
+export async function viewerAccounts(input: { id?: unknown; limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
   const id = optionalIdentifier(input.id);
-  const rows = id
-    ? await getDatabase().all<any[]>(`${ACCOUNT_SELECT} WHERE account.id = ? LIMIT 1`, [id])
-    : await getDatabase().all<any[]>(`${ACCOUNT_SELECT} ORDER BY account.created_at DESC LIMIT ?`, [boundedLimit(input.limit)]);
-  return id ? { account: rows[0] ? accountFromRow(rows[0]) : null } : { accounts: rows.map(accountFromRow) };
+  if (id) {
+    const rows = await getDatabase().all<any[]>(`${ACCOUNT_SELECT} WHERE account.id = ? LIMIT 1`, [id]);
+    return { account: rows[0] ? accountFromRow(rows[0]) : null };
+  }
+  const limit = boundedLimit(input.limit);
+  const offset = boundedOffset(input.offset);
+  const page = paginated(await getDatabase().all<any[]>(
+    `${ACCOUNT_SELECT} ORDER BY account.created_at DESC, account.id LIMIT ? OFFSET ?`,
+    [limit + 1, offset],
+  ), limit, offset);
+  return { accounts: page.rows.map(accountFromRow), pagination: page.pagination };
 }
 
 function positionFromRow(row: any): Record<string, unknown> {
@@ -127,12 +152,18 @@ const POSITION_SELECT = `
   JOIN trading_accounts AS account ON account.id = position.account_id
   JOIN trading_trade_intents AS intent ON intent.id = position.intent_id`;
 
-export async function viewerPositions(input: { id?: unknown; limit?: unknown } = {}): Promise<Record<string, unknown>> {
+export async function viewerPositions(input: { id?: unknown; limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
   const id = optionalIdentifier(input.id);
-  const rows = id
-    ? await getDatabase().all<any[]>(`${POSITION_SELECT} WHERE position.id = ? LIMIT 1`, [id])
-    : await getDatabase().all<any[]>(`${POSITION_SELECT} ORDER BY position.updated_at DESC LIMIT ?`, [boundedLimit(input.limit)]);
-  return id ? { position: rows[0] ? positionFromRow(rows[0]) : null } : { positions: rows.map(positionFromRow) };
+  if (id) {
+    const rows = await getDatabase().all<any[]>(`${POSITION_SELECT} WHERE position.id = ? LIMIT 1`, [id]);
+    return { position: rows[0] ? positionFromRow(rows[0]) : null };
+  }
+  const limit = boundedLimit(input.limit);
+  const offset = boundedOffset(input.offset);
+  const page = paginated(await getDatabase().all<any[]>(
+    `${POSITION_SELECT} ORDER BY position.updated_at DESC, position.id LIMIT ? OFFSET ?`, [limit + 1, offset],
+  ), limit, offset);
+  return { positions: page.rows.map(positionFromRow), pagination: page.pagination };
 }
 
 function orderFromRow(row: any): Record<string, unknown> {
@@ -154,12 +185,18 @@ const ORDER_SELECT = `
          orders.last_error, orders.created_at, orders.updated_at
   FROM trading_orders AS orders JOIN trading_accounts AS account ON account.id = orders.account_id`;
 
-export async function viewerOrders(input: { id?: unknown; limit?: unknown } = {}): Promise<Record<string, unknown>> {
+export async function viewerOrders(input: { id?: unknown; limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
   const id = optionalIdentifier(input.id);
-  const rows = id
-    ? await getDatabase().all<any[]>(`${ORDER_SELECT} WHERE orders.id = ? LIMIT 1`, [id])
-    : await getDatabase().all<any[]>(`${ORDER_SELECT} ORDER BY orders.updated_at DESC LIMIT ?`, [boundedLimit(input.limit)]);
-  return id ? { order: rows[0] ? orderFromRow(rows[0]) : null } : { orders: rows.map(orderFromRow) };
+  if (id) {
+    const rows = await getDatabase().all<any[]>(`${ORDER_SELECT} WHERE orders.id = ? LIMIT 1`, [id]);
+    return { order: rows[0] ? orderFromRow(rows[0]) : null };
+  }
+  const limit = boundedLimit(input.limit);
+  const offset = boundedOffset(input.offset);
+  const page = paginated(await getDatabase().all<any[]>(
+    `${ORDER_SELECT} ORDER BY orders.updated_at DESC, orders.id LIMIT ? OFFSET ?`, [limit + 1, offset],
+  ), limit, offset);
+  return { orders: page.rows.map(orderFromRow), pagination: page.pagination };
 }
 
 function tradeFromRow(row: any): Record<string, unknown> {
@@ -185,12 +222,18 @@ const TRADE_SELECT = `
   JOIN trading_accounts AS account ON account.id = intent.account_id
   LEFT JOIN trading_positions AS position ON position.intent_id = intent.id`;
 
-export async function viewerTrades(input: { id?: unknown; limit?: unknown } = {}): Promise<Record<string, unknown>> {
+export async function viewerTrades(input: { id?: unknown; limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
   const id = optionalIdentifier(input.id);
-  const rows = id
-    ? await getDatabase().all<any[]>(`${TRADE_SELECT} WHERE intent.id = ? LIMIT 1`, [id])
-    : await getDatabase().all<any[]>(`${TRADE_SELECT} ORDER BY intent.updated_at DESC LIMIT ?`, [boundedLimit(input.limit)]);
-  return id ? { trade: rows[0] ? tradeFromRow(rows[0]) : null } : { trades: rows.map(tradeFromRow) };
+  if (id) {
+    const rows = await getDatabase().all<any[]>(`${TRADE_SELECT} WHERE intent.id = ? LIMIT 1`, [id]);
+    return { trade: rows[0] ? tradeFromRow(rows[0]) : null };
+  }
+  const limit = boundedLimit(input.limit);
+  const offset = boundedOffset(input.offset);
+  const page = paginated(await getDatabase().all<any[]>(
+    `${TRADE_SELECT} ORDER BY intent.updated_at DESC, intent.id LIMIT ? OFFSET ?`, [limit + 1, offset],
+  ), limit, offset);
+  return { trades: page.rows.map(tradeFromRow), pagination: page.pagination };
 }
 
 export async function viewerSystem(): Promise<Record<string, unknown>> {
@@ -255,29 +298,35 @@ export async function viewerPerformance(input: { days?: unknown } = {}): Promise
   };
 }
 
-export async function viewerRisk(input: { limit?: unknown } = {}): Promise<Record<string, unknown>> {
+export async function viewerRisk(input: { limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
+  const limit = boundedLimit(input.limit);
+  const offset = boundedOffset(input.offset);
   const rows = await getDatabase().all<any[]>(
     `SELECT id, severity, code, account_id, intent_id, created_at, acknowledged_at
-     FROM trading_risk_events ORDER BY created_at DESC LIMIT ?`, [boundedLimit(input.limit)],
+     FROM trading_risk_events ORDER BY created_at DESC, id LIMIT ? OFFSET ?`, [limit + 1, offset],
   );
-  return { events: rows.map(row => ({
+  const page = paginated(rows, limit, offset);
+  return { events: page.rows.map(row => ({
     id: String(row.id), severity: String(row.severity), code: String(row.code),
     accountId: row.account_id === null ? null : String(row.account_id),
     intentId: row.intent_id === null ? null : String(row.intent_id), createdAt: Number(row.created_at),
     acknowledgedAt: row.acknowledged_at === null ? null : Number(row.acknowledged_at),
-  })) };
+  })), pagination: page.pagination };
 }
 
-export async function viewerIncidents(input: { limit?: unknown } = {}): Promise<Record<string, unknown>> {
+export async function viewerIncidents(input: { limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
+  const limit = boundedLimit(input.limit);
+  const offset = boundedOffset(input.offset);
   const rows = await getDatabase().all<any[]>(
     `SELECT id, account_id, category, severity, message, status, occurrence_count,
             first_seen_at, last_seen_at, resolved_at
-     FROM trading_account_incidents ORDER BY last_seen_at DESC LIMIT ?`, [boundedLimit(input.limit)],
+     FROM trading_account_incidents ORDER BY last_seen_at DESC, id LIMIT ? OFFSET ?`, [limit + 1, offset],
   );
-  return { incidents: rows.map(row => ({
+  const page = paginated(rows, limit, offset);
+  return { incidents: page.rows.map(row => ({
     id: String(row.id), accountId: String(row.account_id), category: String(row.category), severity: String(row.severity),
     message: String(row.message), status: String(row.status), occurrenceCount: Number(row.occurrence_count),
     firstSeenAt: Number(row.first_seen_at), lastSeenAt: Number(row.last_seen_at),
     resolvedAt: row.resolved_at === null ? null : Number(row.resolved_at),
-  })) };
+  })), pagination: page.pagination };
 }

@@ -168,16 +168,25 @@ export function validTelegramViewerCallback(value: unknown): value is string {
   return typeof value === 'string' && CALLBACK_PATTERN.test(value);
 }
 
-export function telegramViewerMenu(): { inline_keyboard: Array<Array<{ text: string; callback_data: string }>> } {
-  return {
-    inline_keyboard: [
+export function telegramViewerMenu(
+  resource?: string,
+  pagination?: { offset: number; limit: number; hasMore: boolean },
+): { inline_keyboard: Array<Array<{ text: string; callback_data: string }>> } {
+  const inlineKeyboard = [
       [{ text: 'Status', callback_data: 'menu:summary' }, { text: 'Konten', callback_data: 'menu:accounts' }],
       [{ text: 'Positionen', callback_data: 'menu:positions' }, { text: 'Orders', callback_data: 'menu:orders' }],
       [{ text: 'Trades', callback_data: 'menu:trades' }, { text: 'Performance', callback_data: 'menu:performance' }],
       [{ text: 'Risiko', callback_data: 'menu:risk' }, { text: 'System', callback_data: 'menu:system' }],
       [{ text: 'Events', callback_data: 'menu:events' }, { text: 'Aktualisieren', callback_data: 'menu:refresh' }],
-    ],
-  };
+  ];
+  if (resource && pagination && ['accounts', 'positions', 'orders', 'trades', 'risk', 'incidents'].includes(resource)) {
+    const page = Math.floor(pagination.offset / pagination.limit);
+    const navigation: Array<{ text: string; callback_data: string }> = [];
+    if (page > 0) navigation.push({ text: '← Zurück', callback_data: `page:${resource}:${page - 1}` });
+    if (pagination.hasMore) navigation.push({ text: 'Weiter →', callback_data: `page:${resource}:${page + 1}` });
+    if (navigation.length > 0) inlineKeyboard.push(navigation);
+  }
+  return { inline_keyboard: inlineKeyboard };
 }
 
 export const TELEGRAM_VIEWER_HELP = [

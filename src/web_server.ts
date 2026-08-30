@@ -2649,6 +2649,7 @@ function decodedViewerId(encoded: string): string {
 async function internalViewerPayload(context: RequestContext, relativePath: string): Promise<unknown> {
   const query = context.parsedUrl.searchParams;
   const limit = query.get('limit') ?? undefined;
+  const offset = query.get('offset') ?? undefined;
   if (relativePath === '/config') {
     const settings = context.appState.telegramViewerSettings;
     if (!settings) throw new HttpError(503, 'Telegram viewer settings are unavailable.');
@@ -2656,13 +2657,13 @@ async function internalViewerPayload(context: RequestContext, relativePath: stri
   }
   if (relativePath === '/summary') return viewerSummary();
   if (relativePath === '/system') return viewerSystem();
-  if (relativePath === '/accounts') return viewerAccounts({ limit });
-  if (relativePath === '/positions') return viewerPositions({ limit });
-  if (relativePath === '/orders') return viewerOrders({ limit });
-  if (relativePath === '/trades') return viewerTrades({ limit });
+  if (relativePath === '/accounts') return viewerAccounts({ limit, offset });
+  if (relativePath === '/positions') return viewerPositions({ limit, offset });
+  if (relativePath === '/orders') return viewerOrders({ limit, offset });
+  if (relativePath === '/trades') return viewerTrades({ limit, offset });
   if (relativePath === '/performance') return viewerPerformance({ days: query.get('days') ?? undefined });
-  if (relativePath === '/risk') return viewerRisk({ limit });
-  if (relativePath === '/incidents') return viewerIncidents({ limit });
+  if (relativePath === '/risk') return viewerRisk({ limit, offset });
+  if (relativePath === '/incidents') return viewerIncidents({ limit, offset });
   if (relativePath === '/events') {
     return listTradingNotificationEvents({ afterSeq: query.get('afterSeq') ?? undefined, limit });
   }

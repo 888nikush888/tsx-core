@@ -2419,29 +2419,42 @@ function TelegramViewer() {
         </section>
       )}
 
-      <div className="operations-metrics">
-        <Metric label="Dienst" value={service.reachable && service.healthy ? "gesund" : "nicht erreichbar"} />
-        <Metric label="Bereitschaft" value={service.ready ? "bereit" : "wartet"} />
-        <Metric label="Bot-Token" value={botConfigured ? "konfiguriert" : "fehlt"} />
-        <Metric label="Letzte Abfrage" value={time(service.lastPollAt)} />
-      </div>
+      <section className="operations-card system-form">
+        <h3>Status</h3>
+        <div className="operations-metrics">
+          <Metric label="Dienst" value={service.reachable && service.healthy ? "gesund" : "nicht erreichbar"} />
+          <Metric label="Bereitschaft" value={service.ready ? "bereit" : "wartet"} />
+          <Metric label="Bot-Token" value={botConfigured ? "konfiguriert" : "fehlt"} />
+          <Metric label="Letzte Abfrage" value={time(service.lastPollAt)} />
+        </div>
+      </section>
 
       <section className="operations-card system-form">
-        <h3>Betrieb und Zugriff</h3>
+        <h3>Allgemein</h3>
         <label className="builder-toggle">
           <input aria-label="Viewer aktiv" type="checkbox" checked={settings.enabled}
             onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })} />
           <span aria-hidden="true" /> Viewer aktiv
         </label>
         <div className="builder-field-grid">
-          <label>Erlaubte Telegram User IDs
-            <textarea aria-label="Erlaubte Telegram User IDs" rows={5} value={allowedUsers}
-              onChange={(event) => setAllowedUsers(event.target.value)} placeholder="Eine numerische User ID pro Zeile" />
-          </label>
           <label>Zeitzone<Input value={settings.timezone} onChange={(event) => setSettings({ ...settings, timezone: event.target.value })} /></label>
           <label>Sprache/Locale<Input value={settings.locale} onChange={(event) => setSettings({ ...settings, locale: event.target.value })} /></label>
           <label>Abfrageintervall (ms)<Input aria-label="Abfrageintervall (ms)" type="number" min={1000} max={60000}
             value={settings.eventPollingIntervalMs} onChange={(event) => setSettings({ ...settings, eventPollingIntervalMs: Number(event.target.value) })} /></label>
+        </div>
+      </section>
+
+      <section className="operations-card system-form">
+        <h3>Zugriff</h3>
+        <label>Erlaubte Telegram User IDs
+          <textarea aria-label="Erlaubte Telegram User IDs" rows={5} value={allowedUsers}
+            onChange={(event) => setAllowedUsers(event.target.value)} placeholder="Eine numerische User ID pro Zeile" />
+        </label>
+      </section>
+
+      <section className="operations-card system-form">
+        <h3>Darstellung</h3>
+        <div className="builder-field-grid">
           <label>Detailstufe<select value={settings.display.detailLevel}
             onChange={(event) => setSettings({ ...settings, display: { ...settings.display, detailLevel: event.target.value as TelegramViewerSettings["display"]["detailLevel"] } })}>
             <option value="compact">Kompakt</option><option value="normal">Normal</option><option value="detailed">Detailliert</option>
@@ -2483,10 +2496,14 @@ function TelegramViewer() {
       </section>
 
       <section className="operations-card system-form">
-        <h3>Diagnose und Test</h3>
+        <h3>Diagnose</h3>
         <div className="system-line"><span>Erlaubte Benutzer</span><strong>{service.allowedUsers ?? settings.allowedUserIds.length}</strong></div>
         <div className="system-line"><span>Letzter Fehler</span><strong>{service.lastError || "–"}</strong></div>
         <div className="system-line"><span>Letzter Test</span><strong>{service.lastTest ? `${service.lastTest.status} · ${time(service.lastTest.attemptedAt)}` : "–"}</strong></div>
+      </section>
+
+      <section className="operations-card system-form">
+        <h3>Testnachricht</h3>
         <label>Testnachricht<Input aria-label="Testnachricht" value={testMessage} onChange={(event) => setTestMessage(event.target.value)} /></label>
         <div className="system-actions"><Button type="button" disabled={Boolean(busy) || !testMessage.trim()}
           onClick={() => void mutate("Test angenommen", "/api/telegram-viewer/test", {
