@@ -269,7 +269,7 @@ try {
 
   const graphValidationCases = [
     [null, /must be an object/],
-    [{ schemaVersion: 3, nodes: [], edges: [] }, /contract is invalid/],
+    [{ schemaVersion: 4, nodes: [], edges: [] }, /contract is invalid/],
     [{ schemaVersion: 1, nodes: {}, edges: [] }, /contract is invalid/],
     [{ schemaVersion: 1, nodes: [], edges: {} }, /contract is invalid/],
     [{ schemaVersion: 1, nodes: Array(1_001).fill({}), edges: [] }, /exceeds its size limit/],
@@ -331,6 +331,66 @@ try {
   for (const [candidate, expected] of graphValidationCases) {
     await assert.rejects(previewWorkflowImpact({ baseRevisionId: null, graph: candidate }), expected);
   }
+  const configurableFallbackBase = {
+    schemaVersion: 3,
+    nodes: [
+      node('fallback-channel', 'channel', resources.channel.id, 0, 0),
+      node('fallback-account-a', 'account', resources.accountA.id, 316, 0),
+      node('fallback-account-b', 'account', resources.accountB.id, 316, 150),
+    ],
+    edges: [
+      { id: 'fallback-flow', kind: 'flow', source: 'fallback-channel', target: 'fallback-account-a' },
+    ],
+  };
+  const configurableFallbackValidationCases = [
+    [{
+      ...configurableFallbackBase,
+      edges: [...configurableFallbackBase.edges, {
+        id: 'fallback-missing-policy', kind: 'account_fallback', source: 'fallback-account-a',
+        target: 'fallback-account-b', channelNodeIds: ['fallback-channel'],
+      }],
+    }, /fallback policy/i],
+    [{
+      ...configurableFallbackBase,
+      edges: [...configurableFallbackBase.edges, {
+        id: 'fallback-empty-policy', kind: 'account_fallback', source: 'fallback-account-a',
+        target: 'fallback-account-b', channelNodeIds: ['fallback-channel'], fallbackOn: [],
+      }],
+    }, /fallback policy/i],
+    [{
+      ...configurableFallbackBase,
+      edges: [...configurableFallbackBase.edges, {
+        id: 'fallback-duplicate-policy', kind: 'account_fallback', source: 'fallback-account-a',
+        target: 'fallback-account-b', channelNodeIds: ['fallback-channel'],
+        fallbackOn: ['SYMBOL_UNAVAILABLE', 'SYMBOL_UNAVAILABLE'],
+      }],
+    }, /duplicate/i],
+    [{
+      ...configurableFallbackBase,
+      edges: [...configurableFallbackBase.edges, {
+        id: 'fallback-unknown-policy', kind: 'account_fallback', source: 'fallback-account-a',
+        target: 'fallback-account-b', channelNodeIds: ['fallback-channel'], fallbackOn: ['EXECUTOR_UNAVAILABLE'],
+      }],
+    }, /fallback reason/i],
+    [{
+      ...configurableFallbackBase,
+      edges: [{ ...configurableFallbackBase.edges[0], fallbackOn: ['SYMBOL_UNAVAILABLE'] }],
+    }, /flow edge.*fallback policy/i],
+  ];
+  for (const [candidate, expected] of configurableFallbackValidationCases) {
+    await assert.rejects(previewWorkflowImpact({ baseRevisionId: null, graph: candidate }), expected);
+  }
+  await previewWorkflowImpact({
+    baseRevisionId: null,
+    graph: {
+      ...configurableFallbackBase,
+      edges: [...configurableFallbackBase.edges, {
+        id: 'fallback-full-policy', kind: 'account_fallback', source: 'fallback-account-a',
+        target: 'fallback-account-b', channelNodeIds: ['fallback-channel'],
+        fallbackOn: ['SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED'],
+      }],
+    },
+  });
   const unpublishedChannel = await createWorkflowResourceDraft({
     kind: 'channel', name: 'Unpublished channel', configuration: { channelId: '-100-unpublished' },
   });

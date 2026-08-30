@@ -72,7 +72,7 @@ try {
   ];
   const nodeIds = ['channel', 'parser', 'schema', 'contract', 'strategy', 'sizing', 'account', 'account-fallback'];
   const graph = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     nodes: resources.map((item, index) => ({
       id: nodeIds[index], kind: item.kind, resourceVersionId: item.id, position: { x: index * 316, y: 0 },
     })),
@@ -83,6 +83,7 @@ try {
       {
         id: 'account-fallback-edge', kind: 'account_fallback', source: 'account',
         target: 'account-fallback', channelNodeIds: ['channel'],
+        fallbackOn: ['SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED'],
       },
     ],
   };
@@ -100,8 +101,10 @@ try {
   assert.equal(bundle.mode, 'replace');
   assert.equal(bundle.workflow.resources.length, resources.length);
   assert.equal(bundle.accountReferences.length, 2);
-  assert.equal(bundle.workflow.graph.schemaVersion, 2);
+  assert.equal(bundle.workflow.graph.schemaVersion, 3);
   assert.equal(bundle.workflow.graph.edges.at(-1).kind, 'account_fallback');
+  assert.deepEqual(bundle.workflow.graph.edges.at(-1).fallbackOn,
+    ['SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED']);
   assert.equal(bundle.models.strategies[0].configuration.schemaVersion, 4);
   assert.equal(bundle.models.strategies[0].configuration.sizing.defaultLeverage, 3);
   assert.equal(bundle.workflow.resources.find(item => item.kind === 'sizing').configuration.defaultLeverage, 50);
@@ -397,9 +400,14 @@ try {
   assert.equal(active.revision, historySeed.revision + 1);
   assert.notEqual(active.id, initial.id);
   assert.equal(active.graph.nodes.length, graph.nodes.length);
-  assert.equal(active.graph.schemaVersion, 2);
+  assert.equal(active.graph.schemaVersion, 3);
   assert.equal(active.graph.edges.at(-1).kind, 'account_fallback');
+  assert.deepEqual(active.graph.edges.at(-1).fallbackOn,
+    ['SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED']);
   assert.equal(active.compiled.routeGroups[0].candidates.length, 2);
+  assert.deepEqual(active.compiled.routeGroups[0].candidates[0].fallbackOn,
+    ['SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED']);
+  assert.deepEqual(active.compiled.routeGroups[0].candidates[1].fallbackOn, []);
   const activeResourceIds = new Set(active.graph.nodes.map(node => node.resourceVersionId));
   assert.equal(activeResourceIds.size, resources.length);
   assert.ok((await listWorkflowResources()).filter(item => item.status === 'published').every(item => activeResourceIds.has(item.id)));

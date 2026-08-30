@@ -41,6 +41,7 @@ function path(
     strategyVersionId: "strategy-v1",
     enabled: true,
     nodeIds,
+    fallbackOn: [],
   };
 }
 
@@ -172,5 +173,35 @@ describe("workflow route topology", () => {
       ],
     });
     expect(topology.edgeUsage.get("a1-a2")).toMatchObject({ pathCount: 1, accountCount: 2 });
+  });
+
+  it("carries the snapshotted V3 policy between ordered account candidates", () => {
+    const fallbackOn = [
+      "SYMBOL_UNAVAILABLE",
+      "MAX_CONCURRENT_POSITIONS",
+      "SYMBOL_ALREADY_OWNED",
+    ] as const;
+    const graph: WorkflowGraph = {
+      schemaVersion: 3,
+      nodes: [
+        { id: "c1", kind: "channel", resourceVersionId: "channel-a", position: { x: 0, y: 0 } },
+        { id: "a1", kind: "account", resourceVersionId: "account-a", position: { x: 3, y: 0 } },
+        { id: "a2", kind: "account", resourceVersionId: "account-b", position: { x: 3, y: 100 } },
+      ],
+      edges: [
+        { id: "c1-a1", kind: "flow", source: "c1", target: "a1" },
+        { id: "a1-a2", kind: "account_fallback", source: "a1", target: "a2", channelNodeIds: ["c1"], fallbackOn: [...fallbackOn] },
+      ],
+    };
+    const paths = [
+      { ...path("c1-a1", "-1001", "kraken", ["c1", "a1"]), routeGroupKey: "group-v3", fallbackRank: 0, fallbackOn: [...fallbackOn] },
+      { ...path("c1-a2", "-1001", "hyper", ["c1", "a1", "a2"]), routeGroupKey: "group-v3", fallbackRank: 1, fallbackOn: [] },
+    ];
+
+    const topology = buildWorkflowRouteTopology(paths, graph, resources, [], []);
+    expect(topology.routes[0].fallbackAccounts).toEqual([
+      expect.objectContaining({ accountId: "kraken", fallbackOn: [...fallbackOn] }),
+      expect.objectContaining({ accountId: "hyper", fallbackOn: [] }),
+    ]);
   });
 });
