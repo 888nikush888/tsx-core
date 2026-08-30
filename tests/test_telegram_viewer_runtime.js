@@ -7,7 +7,7 @@ import path from 'node:path';
 
 import { TelegramBotApiClient, TelegramViewerCoreApiClient } from '../src/telegram_viewer/clients.js';
 import { startTelegramViewerHealthServer } from '../src/telegram_viewer/health_server.js';
-import { readRuntimeSecret } from '../src/telegram_viewer/runtime.js';
+import { delay, readRuntimeSecret, resilientLoop } from '../src/telegram_viewer/runtime.js';
 
 const SERVICE_TOKEN = 's'.repeat(43);
 
@@ -53,11 +53,26 @@ async function run() {
       readRuntimeSecret(secretRoot, 'directory-secret', /^[A-Za-z0-9_-]{20,}$/),
       /secret file/i,
     );
-    await symlink(path.join(secretRoot, 'viewer_service_token'), path.join(secretRoot, 'linked-secret'));
-    await assert.rejects(
-      readRuntimeSecret(secretRoot, 'linked-secret', /^[A-Za-z0-9_-]{20,}$/),
-      /secret file/i,
-    );
+    try {
+      await symlink(path.join(secretRoot, 'viewer_service_token'), path.join(secretRoot, 'linked-secret'));
+      await assert.rejects(
+        readRuntimeSecret(secretRoot, 'linked-secret', /^[A-Za-z0-9_-]{20,}$/),
+        /secret file/i,
+      );
+    } catch (error) {
+      if (error?.code !== 'EPERM') throw error;
+    }
+    await delay(0);
+    const loopState = { healthy: 0, failures: [] };
+    const loopService = {
+      recordHealthyPoll() { loopState.healthy += 1; },
+      recordFailure(error) { loopState.failures.push(error); },
+    };
+    await resilientLoop(async () => undefined, () => 250, loopService, 1);
+    await resilientLoop(async () => { throw new Error('short failure'); }, () => 250, loopService, 1);
+    await resilientLoop(async () => { throw 'non-error failure'; }, () => 250, loopService, 1);
+    assert.strictEqual(loopState.healthy, 1);
+    assert.strictEqual(loopState.failures.length, 2);
     const core = new TelegramViewerCoreApiClient(upstreamUrl, SERVICE_TOKEN);
     await core.config();
     await core.get('events', { afterSeq: 0, limit: 10 });
