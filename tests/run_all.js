@@ -52,6 +52,7 @@ const allTests = [
   'test_workflow_fallback.js',
   'test_workflow_migration.js',
   'test_telegram_viewer_core.js',
+  'test_telegram_viewer_api.js',
   'test_setup_bundle.js',
   'test_trading_engine.js',
   'test_trading_failures.js',
