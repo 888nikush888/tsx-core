@@ -1,0 +1,4 @@
+target-version = "py312"
+
+[lint.per-file-ignores]
+"exchange_executor/tests/*.py" = ["E402"]

@@ -272,6 +272,7 @@ npm ci --prefix frontend --no-audit --no-fund
 npm run typecheck
 npm run lint
 npm run lint:frontend
+npm run lint:python
 npm test
 npm run test:coverage
 npm run test:coverage:modules

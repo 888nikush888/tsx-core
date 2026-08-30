@@ -165,7 +165,7 @@ const pinnedCcxtVersion = executorLock.match(/^ccxt==([^\s]+) \\/m)?.[1];
 assert.equal(pinnedCcxtVersion, '4.5.75');
 assert.match(executorDevLock, /^ruff==0\.15\.7 \\/m);
 assert.equal(rootManifest.scripts['lint:python'], 'python -m ruff check exchange_executor');
-assert.match(workflow, /python -m ruff check exchange_executor/);
+assert.match(workflow, /npm run lint:python/);
 assert.match(ccxtClient, /import ccxt\.async_support as ccxt_async/);
 assert.match(ccxtClient, /import ccxt\.pro as ccxt_pro/);
 assert.match(ccxtClient, /CERTIFIED_EXCHANGES = set\(PROFILES\)/);

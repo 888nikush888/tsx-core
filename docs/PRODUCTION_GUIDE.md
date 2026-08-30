@@ -54,6 +54,7 @@ npm run build
 npm test
 npm run lint
 npm run lint:frontend
+npm run lint:python
 npm run typecheck
 npm run test:coverage
 npm run test:coverage:modules

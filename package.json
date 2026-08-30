@@ -33,6 +33,7 @@
     "test:mutation": "node scripts/run_mutation_shards.js",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"scripts/**/*.js\" \"*.js\" --quiet",
     "lint:frontend": "npm run lint --prefix frontend",
+    "lint:python": "python -m ruff check exchange_executor",
     "lint:report": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"scripts/**/*.js\" \"*.js\"",
     "typecheck": "tsc --noEmit",
     "quality:duplicates": "jscpd src --min-lines 5 --min-tokens 50 --threshold 5 --reporters console,json --output reports/jscpd",

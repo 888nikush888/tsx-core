@@ -63,6 +63,7 @@ jobs:
         run: |
           npm run lint
           npm run lint:frontend
+          npm run lint:python
           npm run typecheck
           npm run quality:architecture
           npm run quality:complexity

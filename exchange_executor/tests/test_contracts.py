@@ -323,7 +323,8 @@ class RegistryBootstrapTests(unittest.IsolatedAsyncioTestCase):
         })
         registry = CcxtClientRegistry(credentials, catalog)
         account = {"id": "account-1", "exchange": "hyperliquid", "mode": "testnet"}
-        factory = lambda configuration: DelayedMarketClient(configuration, state)
+        def factory(configuration):
+            return DelayedMarketClient(configuration, state)
         with patch.object(ccxt_client.ccxt_async, "hyperliquid", factory), \
              patch.object(ccxt_client.ccxt_pro, "hyperliquid", factory):
             first = asyncio.create_task(registry.account(account))

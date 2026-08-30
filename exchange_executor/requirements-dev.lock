@@ -1,3 +1,5 @@
 # Linux x86_64 / CPython 3.12 quality-only dependency. Runtime images do not install this file.
 coverage==7.10.7 \
     --hash=sha256:314f2c326ded3f4b09be11bc282eb2fc861184bc95748ae67b360ac962770be7
+ruff==0.15.7 \
+    --hash=sha256:dce0896488562f09a27b9c91b1f58a097457143931f3c4d519690dea54e624c5
