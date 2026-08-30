@@ -99,8 +99,8 @@ const trading = {
     id: "fallback-run-1", channelId: "VIP", channelName: "VIP Coinsignals", sourceSignalId: "signal-1", routeGroupKey: "VIP:group-1",
     status: "selected", selectedRank: 1, stopReason: null, createdAt: now, updatedAt: now,
     candidates: [
-      { id: "candidate-1", rank: 0, accountId: "bybit-1", accountName: "Bybit Test", exchange: "bybit", mode: "testnet", status: "unavailable", reasonCode: "SYMBOL_UNAVAILABLE", intentId: "intent-primary" },
-      { id: "candidate-2", rank: 1, accountId: "paper-1", accountName: "Paper", exchange: "paper", mode: "paper", status: "selected", reasonCode: null, intentId: "intent-1" },
+      { id: "candidate-1", rank: 0, accountId: "bybit-1", accountName: "Bybit Test", exchange: "bybit", mode: "testnet", status: "unavailable", errorCode: "MAX_CONCURRENT_POSITIONS", fallbackOn: ["SYMBOL_UNAVAILABLE", "MAX_CONCURRENT_POSITIONS"], intentId: "intent-primary" },
+      { id: "candidate-2", rank: 1, accountId: "paper-1", accountName: "Paper", exchange: "paper", mode: "paper", status: "selected", errorCode: null, fallbackOn: [], intentId: "intent-1" },
     ],
   }],
 } as any
@@ -211,7 +211,11 @@ describe("operations workspace", () => {
       workspace(tab)
       expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument()
       if (tab === "overview") await screen.findByText("Remote Admin")
-      if (tab === "overview") await screen.findByText("VIP Coinsignals")
+      if (tab === "overview") {
+        await screen.findByText("VIP Coinsignals")
+        await screen.findByText(/Paar · Voll/)
+        await screen.findByText(/MAX_CONCURRENT_POSITIONS/)
+      }
       if (tab === "journal") await screen.findByText(/PnL\s+4\.99/)
       if (tab === "analytics") await screen.findByText("75,0 %")
       if (tab === "analytics") {
