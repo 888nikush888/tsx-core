@@ -16,7 +16,7 @@ const ANALYZED_TEXT_EXTENSIONS = new Set([
   '.py', '.sh', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml',
 ]);
 const ANALYZED_TEXT_BASENAMES = new Set([
-  '.dockerignore', '.editorconfig', '.env.example', '.gitattributes', '.gitignore',
+  '.dockerignore', '.editorconfig', '.env.example', '.gitattributes', '.gitignore', '.npmrc',
   'config.json.example', 'Dockerfile', 'LICENSE', 'Makefile',
 ]);
 
@@ -234,13 +234,19 @@ const missingOwner = structuredClone(validGovernance);
 missingOwner.codeowners = '# no owner\n';
 assert.equal(evaluateGithubGovernance(missingOwner).passed, false);
 
-const [workflow, codeowners, sonarCloud, editorConfig, gitAttributes] = await Promise.all([
+const [workflow, codeowners, sonarCloud, editorConfig, gitAttributes, nodeVersion, pythonVersion, npmConfig] = await Promise.all([
   readFile('.github/workflows/quality.yml', 'utf8'),
   readFile('.github/CODEOWNERS', 'utf8'),
   readFile('sonar-project.properties', 'utf8'),
   readFile('.editorconfig', 'utf8'),
   readFile('.gitattributes', 'utf8'),
+  readFile('.nvmrc', 'utf8'),
+  readFile('.python-version', 'utf8'),
+  readFile('.npmrc', 'utf8'),
 ]);
+assert.equal(nodeVersion.trim(), '22', 'Local Node version managers must select the supported major.');
+assert.equal(pythonVersion.trim(), '3.12', 'Local Python version managers must select the CI runtime.');
+assert.match(npmConfig, /^engine-strict=true$/m, 'npm installs must reject unsupported runtimes.');
 assert.match(codeowners, /^\*\s+@888nikush888\s*$/m);
 assert.doesNotMatch(workflow, /^\s{2}release:\s*$/m);
 assert.doesNotMatch(workflow, /create-github-app-token|PR risk approval gate|release-governance|pr-risk-publisher/);
