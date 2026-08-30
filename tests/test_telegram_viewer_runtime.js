@@ -7,6 +7,7 @@ import path from 'node:path';
 
 import { TelegramBotApiClient, TelegramViewerCoreApiClient } from '../src/telegram_viewer/clients.js';
 import { startTelegramViewerHealthServer } from '../src/telegram_viewer/health_server.js';
+import { requireTrustedServiceUrl } from '../src/telegram_viewer/internal_transport.js';
 import { delay, readRuntimeSecret, resilientLoop } from '../src/telegram_viewer/runtime.js';
 
 const SERVICE_TOKEN = 's'.repeat(43);
@@ -87,6 +88,36 @@ async function verifyResilientLoop() {
   assert.strictEqual(loopState.failures.length, 2);
 }
 
+function verifyTrustedInternalTransport() {
+  assert.strictEqual(
+    requireTrustedServiceUrl('http://forwarder:8080', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
+    'http://forwarder:8080/',
+    'Cleartext transport is allowed only for an explicitly trusted container peer.',
+  );
+  assert.strictEqual(
+    requireTrustedServiceUrl('https://viewer.example.test/status', 'TELEGRAM_VIEWER_STATUS_URL', ['telegram-viewer']),
+    'https://viewer.example.test/status',
+    'TLS endpoints may be configured outside the isolated container network.',
+  );
+  assert.throws(
+    () => requireTrustedServiceUrl(undefined, 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
+    /TELEGRAM_VIEWER_CORE_URL must be configured/i,
+  );
+  assert.throws(
+    () => requireTrustedServiceUrl('http://public.example.test/status', 'TELEGRAM_VIEWER_STATUS_URL', ['telegram-viewer']),
+    /cleartext transport.*trusted internal host/i,
+    'Bearer credentials must never be sent over cleartext to an arbitrary host.',
+  );
+  assert.throws(
+    () => requireTrustedServiceUrl('file:///tmp/viewer', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
+    /protocol/i,
+  );
+  assert.throws(
+    () => requireTrustedServiceUrl('https://user:password@example.test', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
+    /embedded credentials/i,
+  );
+}
+
 async function verifyApiClients(upstreamUrl, requests, responseState) {
   const core = new TelegramViewerCoreApiClient(upstreamUrl, SERVICE_TOKEN);
   await core.config();
@@ -161,6 +192,7 @@ async function run() {
   try {
     await verifyRuntimeSecrets(secretRoot);
     await verifyResilientLoop();
+    verifyTrustedInternalTransport();
     const activeBotToken = await verifyApiClients(upstreamUrl, requests, responseState);
     await verifyHealthServer(requests, activeBotToken);
     console.log('TELEGRAM VIEWER RUNTIME TESTS PASSED');
