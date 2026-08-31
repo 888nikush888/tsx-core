@@ -99,8 +99,12 @@ export interface TradingSignalSchema {
   name: string;
   description: string;
   parserSchema: ExecutableSignalSchemaContract;
-  contractVersionId: string;
-  contractDefinition: SignalContractDefinition;
+  /** Builder-owned normalized output structure. */
+  definition: SignalContractDefinition;
+  definitionSha256: string;
+  /** Optional legacy fallback; visual workflows use their connected contract node. */
+  contractVersionId: string | null;
+  contractDefinition: SignalContractDefinition | null;
   templateName: string;
   enabled: boolean;
   createdAt: number;

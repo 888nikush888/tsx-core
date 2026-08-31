@@ -108,6 +108,7 @@ import {
   latestPublishedResources,
   moveWorkflowNode,
   normalizeWorkflowGrid,
+  parserSourcesForSchema,
   planWorkflowConnection,
   placedNodesByResourceIdentity,
   resourceBehaviorKey,
@@ -2061,6 +2062,14 @@ export function WorkflowBuilder() {
   const selectedNode = selectedGraphNode(graph, editorNodeId);
   const selectedResource = resourceForNode(selectedNode, resourceById);
   const editorKind = newKind || selectedNode?.kind || "channel";
+  const editorParserSources = useMemo(
+    () => parserSourcesForSchema(
+      graph,
+      snapshot.resources,
+      selectedNode?.kind === "schema" ? selectedNode.id : null,
+    ),
+    [graph, selectedNode, snapshot.resources],
+  );
   const operationalView = operationalWorkspaceView(activeWorkspace);
 
   const saveResource = async (value: {
@@ -2704,6 +2713,7 @@ export function WorkflowBuilder() {
         kind={editorKind}
         resource={selectedResource}
         trading={trading}
+        parserSources={editorParserSources}
         onClose={() => {
           setEditorNodeId(null);
           setNewKind(null);

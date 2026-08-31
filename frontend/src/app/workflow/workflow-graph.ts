@@ -227,6 +227,43 @@ export function channelNodesReachingSource(
     .sort((left, right) => left.localeCompare(right));
 }
 
+export function parserSourcesForSchema(
+  graph: WorkflowGraph,
+  resources: WorkflowResource[],
+  schemaNodeId: string | null,
+): Array<{
+  nodeId: string;
+  resourceVersionId: string;
+  name: string;
+  templateName: string;
+  connected: boolean;
+}> {
+  const byVersionId = resourceMap(resources);
+  const connectedParserIds = new Set(
+    schemaNodeId
+      ? graph.edges
+          .filter(edge => edge.kind !== "account_fallback" && edge.target === schemaNodeId)
+          .map(edge => edge.source)
+      : [],
+  );
+  return graph.nodes
+    .filter(node => node.kind === "parser")
+    .map(node => {
+      const resource = byVersionId.get(node.resourceVersionId);
+      return {
+        nodeId: node.id,
+        resourceVersionId: node.resourceVersionId,
+        name: resource?.name || "Fehlender Parser-Baustein",
+        templateName: String(resource?.configuration.templateName || "inline"),
+        connected: connectedParserIds.has(node.id),
+      };
+    })
+    .sort((left, right) =>
+      Number(right.connected) - Number(left.connected)
+      || left.name.localeCompare(right.name, "de-DE"),
+    );
+}
+
 export type WorkflowConnectionKind = "flow" | "account_fallback";
 
 export type WorkflowConnectionPlan =

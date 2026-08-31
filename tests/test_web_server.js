@@ -578,7 +578,7 @@ async function testSetupBundleApi(baseUrl, controls, appState) {
   assert.strictEqual(response.status, 200, 'Authenticated viewers may export the redacted portable setup.');
   assert.match(response.headers.get('content-disposition') || '', /tsx-core-setup-/);
   const bundle = await response.json();
-  assert.equal(bundle.schemaVersion, 2);
+  assert.equal(bundle.schemaVersion, 3);
   assert.equal(bundle.applicationVersion, '3.2.0');
   assert.equal(bundle.mode, 'replace');
   assert.match(bundle.checksum, /^[a-f0-9]{64}$/);

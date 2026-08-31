@@ -361,6 +361,7 @@ export class TradingWebControl {
       description: payload.description,
       parserSchema: payload.parserSchema,
       contractVersionId: payload.contractVersionId,
+      definition: payload.definition,
       templateName: payload.templateName,
       enabled: payload.enabled,
     });
@@ -372,6 +373,7 @@ export class TradingWebControl {
       description: payload.description,
       parserSchema: payload.parserSchema,
       contractVersionId: payload.contractVersionId,
+      definition: payload.definition,
       templateName: payload.templateName,
       enabled: payload.enabled,
     });

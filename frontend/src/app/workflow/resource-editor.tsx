@@ -39,6 +39,7 @@ type ResourceEditorProps = Readonly<{
   kind: WorkflowKind;
   resource: WorkflowResource | null;
   trading: TradingSnapshot | null;
+  parserSources?: BuilderParserSource[];
   onClose: () => void;
   onSave: (value: {
     name: string;
@@ -49,6 +50,14 @@ type ResourceEditorProps = Readonly<{
   onArchiveResource?: () => Promise<void>;
   onDeleteResource?: () => Promise<void>;
   onConfigureAccount?: (accountId: string, maximum: number) => Promise<void>;
+}>;
+
+export type BuilderParserSource = Readonly<{
+  nodeId: string;
+  resourceVersionId: string;
+  name: string;
+  templateName: string;
+  connected: boolean;
 }>;
 
 function lines(value: unknown): string {
@@ -296,8 +305,7 @@ async function createSchemaDraft(
       id,
       name: schemaDraft.name,
       description: schemaDraft.description,
-      parserSchema: schemaDraft.parserSchema,
-      contractVersionId: schemaDraft.contractVersionId,
+      definition: schemaDraft.definition,
       templateName: id,
       enabled: schemaDraft.enabled !== false,
     }),
@@ -312,27 +320,23 @@ type SignalSchemaDraft = Readonly<{
   originalId: string;
   name: string;
   description: string;
-  parserSchema: string;
-  contractVersionId: string;
+  definition: SignalContractDefinition;
   enabled: boolean;
   copying: boolean;
 }>;
 
 function signalSchemaDraft(
   schema: TradingSignalSchema | undefined,
-  trading: TradingSnapshot | null,
 ): SignalSchemaDraft {
-  const defaultContract = trading?.signalContracts
-    .flatMap((contract) => contract.versions)
-    .find((version) => version.status === "published");
   return schema
     ? {
         id: schema.id,
         originalId: schema.id,
         name: schema.name,
         description: schema.description,
-        parserSchema: schema.parserSchema,
-        contractVersionId: schema.contractVersionId,
+        definition: structuredClone(
+          schema.definition || schema.contractDefinition || defaultContractDefinition(),
+        ),
         enabled: schema.enabled,
         copying: false,
       }
@@ -341,8 +345,7 @@ function signalSchemaDraft(
         originalId: "",
         name: "Neues Signal-Schema",
         description: "",
-        parserSchema: "standard",
-        contractVersionId: defaultContract?.id || "",
+        definition: defaultContractDefinition(),
         enabled: true,
         copying: true,
       };
@@ -932,9 +935,11 @@ function StrategyForm({
 function ContractForm({
   value,
   onChange,
+  mode = "contract",
 }: Readonly<{
   value: SignalContractDefinition;
   onChange: (value: SignalContractDefinition) => void;
+  mode?: "schema" | "contract";
 }>) {
   const section = <
     Name extends "entry" | "targets" | "geometry" | "grounding",
@@ -956,10 +961,11 @@ function ContractForm({
     <div className="strategy-form contract-form">
       <section>
         <div className="strategy-section-heading">
-          <strong>Signal-Felder</strong>
+          <strong>{mode === "schema" ? "Normalisierte Signal-Felder" : "Signal-Felder"}</strong>
           <small>
-            XML-Pfade für Richtung, Paar, Stop sowie optionale Angaben. Das
-            Root-Element bleibt aus Sicherheitsgründen „signal“.
+            {mode === "schema"
+              ? "Diese Pfade und Typen bilden die Ausgabe des verbundenen Parser-Bausteins. Das Root-Element bleibt aus Sicherheitsgründen „signal“."
+              : "XML-Pfade für Richtung, Paar, Stop sowie optionale Angaben. Das Root-Element bleibt aus Sicherheitsgründen „signal“."}
           </small>
         </div>
         <div className="builder-field-grid three">
@@ -1016,8 +1022,8 @@ function ContractForm({
 
       <section>
         <div className="strategy-section-heading">
-          <strong>Entry-Vertrag</strong>
-          <small>Welche Entry-Formen und XML-Pfade zulässig sind.</small>
+          <strong>{mode === "schema" ? "Entry-Struktur" : "Entry-Vertrag"}</strong>
+          <small>{mode === "schema" ? "Wie der Parser Market- und Range-Entries normalisiert." : "Welche Entry-Formen und XML-Pfade zulässig sind."}</small>
         </div>
         <div className="builder-field-grid three">
           <Field label="Entry-Modus">
@@ -1081,8 +1087,8 @@ function ContractForm({
 
       <section>
         <div className="strategy-section-heading">
-          <strong>Target-Vertrag</strong>
-          <small>Form, Anzahl und Reihenfolge der Take-Profits.</small>
+          <strong>{mode === "schema" ? "Target-Struktur" : "Target-Vertrag"}</strong>
+          <small>{mode === "schema" ? "Wie Take-Profits in der normalisierten Parserausgabe aufgebaut sind." : "Form, Anzahl und Reihenfolge der Take-Profits."}</small>
         </div>
         <div className="builder-field-grid three">
           <Field label="Container-Pfad">
@@ -1369,6 +1375,7 @@ export function ResourceEditor({
   kind,
   resource,
   trading,
+  parserSources = [],
   onClose,
   onSave,
   onDeleteNode,
@@ -1445,7 +1452,7 @@ export function ResourceEditor({
       const selected = trading?.signalSchemas.find(
         (item) => item.id === nextConfiguration.schemaId,
       );
-      setSchemaDraft(signalSchemaDraft(selected, trading));
+      setSchemaDraft(signalSchemaDraft(selected));
     } else setSchemaDraft(null);
     setTemplateContent(
       kind === "parser" && typeof nextConfiguration.prompt === "string"
@@ -1739,7 +1746,7 @@ export function ResourceEditor({
                     <small>
                       {schemaDraft.originalId
                         ? "Eine Änderung erzeugt automatisch eine neue unveränderliche Schema-ID."
-                        : "Definiere die ausführbare Parserstruktur direkt in diesem Baustein."}
+                        : "Baue hier die normalisierte Ausgabestruktur des Signals. Der konkrete Parser kommt aus den Verbindungen im Builder."}
                     </small>
                   </div>
                   <div className="builder-field-grid three">
@@ -1772,45 +1779,6 @@ export function ResourceEditor({
                         }
                       />
                     </Field>
-                    <Field
-                      label="Parser-Schema"
-                      hint="Legt fest, welche normalisierte Signalstruktur der Parser ausgibt."
-                    >
-                      <select
-                        aria-label="Parser-Schema"
-                        value={schemaDraft.parserSchema}
-                        onChange={(event) =>
-                          updateSchemaDraft({ parserSchema: event.target.value })
-                        }
-                      >
-                        <option value="standard">Standard</option>
-                        <option value="cryptodanielvip">CryptoDaniel VIP</option>
-                        <option value="loma">Loma</option>
-                      </select>
-                    </Field>
-                    <Field
-                      label="Standard-Vertragsversion"
-                      hint="Nur Fallback; ein verbundener Vertragsbaustein hat Vorrang."
-                    >
-                      <select
-                        value={schemaDraft.contractVersionId}
-                        onChange={(event) =>
-                          updateSchemaDraft({
-                            contractVersionId: event.target.value,
-                          })
-                        }
-                      >
-                        {trading?.signalContracts.flatMap((contract) =>
-                          contract.versions
-                            .filter((version) => version.status === "published")
-                            .map((version) => (
-                              <option key={version.id} value={version.id}>
-                                {contract.name} · v{version.version}
-                              </option>
-                            )),
-                        )}
-                      </select>
-                    </Field>
                     <Field label="Beschreibung">
                       <input
                         value={schemaDraft.description}
@@ -1825,19 +1793,45 @@ export function ResourceEditor({
                       label="Schema aktiv"
                     />
                   </div>
-                  <p className="builder-info">
-                    Die Vertragsversion ist der sichere Fallback für ältere
-                    Pfade. Im visuellen Workflow hat ein verbundener
-                    Vertragsbaustein Vorrang.
-                  </p>
-                  {!schemaDraft.contractVersionId && (
-                    <Alert variant="destructive">
-                      <AlertTriangle />
-                      <AlertDescription>
-                        Erstelle und veröffentliche zuerst einen Signal-Vertrag.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  <section className="schema-parser-sources" aria-label="Parserquelle aus Builder">
+                    <div className="strategy-section-heading">
+                      <strong>Parserquelle aus dem Builder</strong>
+                      <small>
+                        Das Parser-Schema wird nicht mehr aus fest eingebauten
+                        Profilen gewählt, sondern über die Verbindungen im Builder
+                        bestimmt.
+                      </small>
+                    </div>
+                    {parserSources.length > 0 ? (
+                      <div className="schema-parser-source-list">
+                        {parserSources.map((source) => (
+                          <div className="builder-locked-note" key={source.nodeId}>
+                            <Check size={16} />
+                            <span>
+                              <strong>{source.name}</strong>
+                              {source.connected
+                                ? " · mit diesem Schema verbunden"
+                                : " · im Builder verfügbar; nach dem Verbinden aktiv"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <Alert>
+                        <AlertTriangle />
+                        <AlertDescription>
+                          Im Builder ist noch kein KI-Parser vorhanden. Das Schema
+                          kann gespeichert werden, bleibt aber ohne verbundenen
+                          Parser inert.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </section>
+                  <ContractForm
+                    mode="schema"
+                    value={schemaDraft.definition}
+                    onChange={(definition) => updateSchemaDraft({ definition })}
+                  />
                 </div>
               )}
             </>

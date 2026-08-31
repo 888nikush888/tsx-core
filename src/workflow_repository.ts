@@ -3,6 +3,7 @@ import { getDatabase, withDatabaseTransaction } from './db.js';
 import { decimal } from './trading_decimal.js';
 import { parseRegex, safeRegexTest } from './filters.js';
 import { loadSignalPromptTemplate } from './signal_parser.js';
+import { composeSignalSchemaContract } from './signal_contract.js';
 import { validateStrategyConfiguration } from './trading_strategy.js';
 import type { Config } from './config.js';
 import type {
@@ -1057,13 +1058,23 @@ async function loadCompiledPathDependencies(
   const [account, strategy, schema, contract] = await Promise.all([
     getDatabase().get<any>('SELECT id, enabled, status FROM trading_accounts WHERE id = ?', [accountId]),
     getDatabase().get<any>('SELECT status, configuration_json FROM trading_strategy_versions WHERE id = ?', [strategyVersionId]),
-    getDatabase().get<any>('SELECT enabled FROM trading_signal_schemas WHERE id = ?', [schemaId]),
-    getDatabase().get<any>('SELECT status FROM trading_signal_contract_versions WHERE id = ?', [configs.contract.contractVersionId]),
+    getDatabase().get<any>(
+      'SELECT enabled, definition_json FROM trading_signal_schemas WHERE id = ?',
+      [schemaId],
+    ),
+    getDatabase().get<any>(
+      'SELECT status, definition_json FROM trading_signal_contract_versions WHERE id = ?',
+      [configs.contract.contractVersionId],
+    ),
   ]);
   if (!account) throw new Error(`Workflow account ${accountId} does not exist.`);
   if (strategy?.status !== 'published') throw new Error(`Workflow strategy ${strategyVersionId} is not published.`);
   if (!schema || Number(schema.enabled) !== 1) throw new Error(`Workflow signal schema ${schemaId} is unavailable.`);
   if (contract?.status !== 'published') throw new Error('Workflow contract node must reference a published contract.');
+  composeSignalSchemaContract(
+    parseJson(schema.definition_json, 'workflow signal schema definition'),
+    parseJson(contract.definition_json, 'workflow signal contract definition'),
+  );
   const baseStrategy = validateStrategyConfiguration(parseJson(strategy.configuration_json, 'strategy configuration'));
   if (!baseStrategy.allowedSignalSchemas.includes(schemaId)) {
     throw new Error('Workflow strategy does not allow the selected signal schema. Publish a compatible strategy version first.');

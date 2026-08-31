@@ -257,8 +257,11 @@ export type TradingSnapshot = {
     name: string;
     description: string;
     parserSchema: string;
+    definition: SignalContractDefinition;
+    definitionSha256?: string;
+    contractDefinition?: SignalContractDefinition | null;
     enabled: boolean;
-    contractVersionId: string;
+    contractVersionId: string | null;
     templateName: string;
   }>;
   signalContracts: Array<{

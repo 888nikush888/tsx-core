@@ -5,10 +5,12 @@ import type {
   SignalContractDefinition,
 } from './trading_types.js';
 import { validateSignalContractDefinition } from './signal_contract.js';
+import { composeSignalSchemaContract } from './signal_contract.js';
 
 export interface ExecutableSignalSchemaSelection {
   id: string;
   parserSchema: ExecutableSignalSchemaContract;
+  schemaDefinition?: SignalContractDefinition;
   contractVersionId?: string;
   contractDefinition?: SignalContractDefinition;
 }
@@ -102,10 +104,14 @@ function createXmlNode(token: string): XmlNode {
     text: '',
     children: [],
   };
-  if (node.id !== undefined && node.name !== 'target') {
+  return node;
+}
+
+function assertAllowedIdAttributes(node: XmlNode, targetItemTag: string): void {
+  if (node.id !== undefined && node.name !== targetItemTag) {
     throw new SignalValidationError(`Attribute 'id' is not allowed on '${node.name}'.`);
   }
-  return node;
+  node.children.forEach(child => assertAllowedIdAttributes(child, targetItemTag));
 }
 
 function consumeTagToken(token: string, stack: XmlNode[], root: XmlNode | null): XmlNode | null {
@@ -787,6 +793,27 @@ function schemaForTemplate(templateName?: string): string {
   return 'standard';
 }
 
+function executableDefinition(
+  executableSchema?: ExecutableSignalSchemaSelection | null,
+): SignalContractDefinition | undefined {
+  const schemaDefinition = executableSchema?.schemaDefinition;
+  const contractDefinition = executableSchema?.contractDefinition;
+  if (schemaDefinition && contractDefinition) {
+    return composeSignalSchemaContract(schemaDefinition, contractDefinition);
+  }
+  return schemaDefinition ?? contractDefinition;
+}
+
+function validateLegacyParserSchema(
+  root: XmlNode,
+  parserSchema: string,
+): Omit<ValidatedSignal, 'xml' | 'schema'> {
+  if (parserSchema === 'cryptodanielvip') return validateCryptoDaniel(root);
+  if (parserSchema === 'loma') return validateLoma(root);
+  if (parserSchema === 'speculantca') return validateSpeculant(root);
+  return validateStandard(root);
+}
+
 export function validateSignalXml(
   xml: string,
   templateName?: string,
@@ -799,12 +826,14 @@ export function validateSignalXml(
   const root = parseXml(normalizedXml);
   const parserSchema = executableSchema?.parserSchema ?? schemaForTemplate(templateName);
   const schema = executableSchema?.id ?? parserSchema;
+  const dynamicDefinition = executableDefinition(executableSchema);
   let common: Omit<ValidatedSignal, 'xml' | 'schema'>;
-  if (executableSchema?.contractDefinition) common = validateDynamicContract(root, executableSchema.contractDefinition);
-  else if (parserSchema === 'cryptodanielvip') common = validateCryptoDaniel(root);
-  else if (parserSchema === 'loma') common = validateLoma(root);
-  else if (parserSchema === 'speculantca') common = validateSpeculant(root);
-  else common = validateStandard(root);
+  if (dynamicDefinition) {
+    const validatedDefinition = validateSignalContractDefinition(dynamicDefinition);
+    assertAllowedIdAttributes(root, validatedDefinition.targets.itemTag);
+    common = validateDynamicContract(root, validatedDefinition);
+  } else common = validateLegacyParserSchema(root, parserSchema);
+  if (!dynamicDefinition) assertAllowedIdAttributes(root, 'target');
   if (executableSchema === null) delete common.execution;
   else if (common.execution) common.execution = { ...common.execution, schema };
   return { xml: normalizedXml, schema, ...common };

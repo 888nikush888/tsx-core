@@ -37,7 +37,7 @@ import type {
   WorkflowResourceKind,
 } from './trading_types.js';
 
-const SETUP_BUNDLE_VERSION = 2;
+const SETUP_BUNDLE_VERSION = 3;
 const FORBIDDEN_KEY = /^(?:api(?:hash|key|secret)|password|passphrase|privatekey|walletprivatekey|bearertoken|accesstoken|refreshtoken|authorization|credential(?:s|ref)?|tailscaleidentity|tdlibsession|openrouterapikey|backupencryptionkey)$/i;
 const ROOT_KEYS = new Set([
   'schemaVersion', 'mode', 'exportedAt', 'applicationVersion', 'systemConfig',
@@ -87,7 +87,7 @@ export function assertSetupBundleContainsNoSecrets(value: unknown, path = '$', d
 }
 
 export interface PortableSetupBundle {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   mode: 'replace';
   exportedAt: number;
   applicationVersion: '3.1.0' | '3.2.0';
@@ -115,7 +115,8 @@ export interface PortableSetupBundle {
       name: string;
       description: string;
       parserSchema: string;
-      sourceContractVersionId: string;
+      definition?: SignalContractDefinition;
+      sourceContractVersionId?: string;
       templateName: string;
       enabled: boolean;
     }>;
@@ -168,7 +169,10 @@ export async function exportPortableSetupBundle(systemConfig: Record<string, unk
     .filter(resource => resource.kind === 'contract')
     .map(resource => String(resource.configuration.contractVersionId)));
   const schemas = (await listTradingSignalSchemas()).filter(schema => schemaIds.has(schema.id));
-  const contractVersionIds = new Set([...explicitContractIds, ...schemas.map(schema => schema.contractVersionId)]);
+  const contractVersionIds = new Set([
+    ...explicitContractIds,
+    ...schemas.map(schema => schema.contractVersionId).filter((id): id is string => Boolean(id)),
+  ]);
   const contracts = (await listSignalContracts()).flatMap(contract => contract.versions
     .filter(version => contractVersionIds.has(version.id))
     .map(version => ({
@@ -208,7 +212,10 @@ export async function exportPortableSetupBundle(systemConfig: Record<string, unk
         name: schema.name,
         description: schema.description,
         parserSchema: schema.parserSchema,
-        sourceContractVersionId: schema.contractVersionId,
+        definition: schema.definition,
+        ...(schema.contractVersionId
+          ? { sourceContractVersionId: schema.contractVersionId }
+          : {}),
         templateName: schema.templateName,
         enabled: schema.enabled,
       })),
@@ -342,7 +349,7 @@ function validateBundleGraph(value: unknown): WorkflowGraph {
 function validateBundleHeader(candidate: Record<string, any>): void {
   const unexpected = Object.keys(candidate).filter(key => !ROOT_KEYS.has(key));
   if (unexpected.length > 0) throw new Error(`Setup bundle contains unsupported root field '${unexpected[0]}'.`);
-  const supported = [1, SETUP_BUNDLE_VERSION].includes(candidate.schemaVersion)
+  const supported = [1, 2, SETUP_BUNDLE_VERSION].includes(candidate.schemaVersion)
     && candidate.mode === 'replace'
     && ['3.1.0', '3.2.0'].includes(candidate.applicationVersion);
   if (!supported) throw new Error('Setup bundle schema or version is unsupported.');
@@ -387,13 +394,16 @@ function validateBundleContract(contractValue: unknown): void {
   validateSignalContractDefinition(contract.definition);
 }
 
-function validateBundleSchema(schemaValue: unknown): void {
+function validateBundleSchema(schemaValue: unknown, bundleVersion: number): void {
   const schema = object(schemaValue, 'Setup bundle parser schema');
   boundedString(schema.sourceId, 'Setup bundle schema id', 128);
   boundedString(schema.name, 'Setup bundle schema name', 160);
   boundedString(schema.description, 'Setup bundle schema description', 2_000, true);
   boundedString(schema.parserSchema, 'Setup bundle parser schema type', 64);
-  boundedString(schema.sourceContractVersionId, 'Setup bundle schema contract reference', 128);
+  if (schema.sourceContractVersionId !== undefined) {
+    boundedString(schema.sourceContractVersionId, 'Setup bundle schema contract reference', 128);
+  }
+  if (bundleVersion >= 3) validateSignalContractDefinition(schema.definition);
   boundedString(schema.templateName, 'Setup bundle parser template', 128);
   if (typeof schema.enabled !== 'boolean') throw new Error('Setup bundle parser schema enabled state is invalid.');
 }
@@ -412,7 +422,7 @@ function uniqueModelIdentifiers(values: any[], key: string, label: string): Set<
   return identifiers;
 }
 
-function validateBundleModels(value: unknown): void {
+function validateBundleModels(value: unknown, bundleVersion: number): void {
   const models = object(value, 'Setup bundle models');
   const collectionNames = ['contracts', 'schemas', 'strategies', 'channelRiskPolicies'];
   if (!collectionNames.every(key => Array.isArray(models[key]))) {
@@ -422,13 +432,14 @@ function validateBundleModels(value: unknown): void {
     throw new Error('Setup bundle model collections exceed the safety limit.');
   }
   models.contracts.forEach(validateBundleContract);
-  models.schemas.forEach(validateBundleSchema);
+  models.schemas.forEach((schema: unknown) => validateBundleSchema(schema, bundleVersion));
   models.strategies.forEach(validateBundleStrategy);
   models.channelRiskPolicies.forEach(validateChannelRiskPolicyInput);
   const contractIds = uniqueModelIdentifiers(models.contracts, 'sourceVersionId', 'contract');
   const schemaIds = uniqueModelIdentifiers(models.schemas, 'sourceId', 'schema');
   uniqueModelIdentifiers(models.strategies, 'sourceVersionId', 'strategy');
-  if (models.schemas.some((schema: any) => !contractIds.has(schema.sourceContractVersionId))) {
+  if (models.schemas.some((schema: any) => schema.sourceContractVersionId
+    && !contractIds.has(schema.sourceContractVersionId))) {
     throw new Error('Setup bundle schema references a missing contract.');
   }
   const missingStrategySchema = models.strategies.some((strategy: any) =>
@@ -462,7 +473,7 @@ export function validatePortableSetupBundle(value: unknown): PortableSetupBundle
   const candidate = object(value, 'Setup bundle');
   validateBundleHeader(candidate);
   validateBundleWorkflow(candidate.workflow);
-  validateBundleModels(candidate.models);
+  validateBundleModels(candidate.models, candidate.schemaVersion);
   validateBundleAccountReferences(candidate.accountReferences);
   validateBundleChecksum(candidate);
   return structuredClone(candidate) as PortableSetupBundle;
@@ -541,8 +552,12 @@ async function importSchemas(
   const schemas = new Map<string, string>();
   const templates = new Map<string, string>();
   for (const [index, schema] of bundle.models.schemas.entries()) {
-    const contractVersionId = contractMap.get(schema.sourceContractVersionId);
-    if (!contractVersionId) throw new Error(`Imported schema '${schema.name}' references a missing contract.`);
+    const contractVersionId = schema.sourceContractVersionId
+      ? contractMap.get(schema.sourceContractVersionId)
+      : undefined;
+    if (schema.sourceContractVersionId && !contractVersionId) {
+      throw new Error(`Imported schema '${schema.name}' references a missing contract.`);
+    }
     const templateName = `import-${randomUUID().replaceAll('-', '').slice(0, 24)}`;
     const created = await createTradingSignalSchema({
       id: importedIdentifier('s', index),
@@ -550,6 +565,7 @@ async function importSchemas(
       description: schema.description,
       parserSchema: schema.parserSchema,
       contractVersionId,
+      definition: schema.definition,
       templateName,
       enabled: schema.enabled,
     });

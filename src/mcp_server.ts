@@ -665,8 +665,9 @@ function registerConfigurationTools(server: McpServer, agentId: string): void {
     id: z.string().min(1).max(40),
     name: z.string().min(1).max(80),
     description: z.string().max(500).default(''),
-    parserSchema: z.enum(['standard', 'cryptodanielvip', 'loma']),
-    contractVersionId: z.string().min(1).max(64),
+    parserSchema: z.enum(['standard', 'cryptodanielvip', 'loma']).optional(),
+    contractVersionId: z.string().min(1).max(64).optional(),
+    definition: z.record(z.string(), z.unknown()).optional(),
     templateName: z.string().min(1).max(128),
     enabled: z.boolean(),
   };

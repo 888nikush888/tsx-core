@@ -827,6 +827,7 @@ async function parseWorkflowPlan(
     {
       id: configuredSchema.id,
       parserSchema: configuredSchema.parserSchema,
+      schemaDefinition: configuredSchema.definition,
       contractVersionId: contractVersion.id,
       contractDefinition: contractVersion.definition,
     },
@@ -933,6 +934,7 @@ function parserSchemaOverride(configuredSchema: any): any {
   return {
     id: configuredSchema.id,
     parserSchema: configuredSchema.parserSchema,
+    schemaDefinition: configuredSchema.definition,
     contractVersionId: configuredSchema.contractVersionId,
     contractDefinition: configuredSchema.contractDefinition,
   };

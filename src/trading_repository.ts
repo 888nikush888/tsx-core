@@ -24,6 +24,7 @@ import type {
   TradingRoute,
   TradingRuntimeState,
   StrategyConfiguration,
+  SignalContractDefinition,
   SignalContract,
   SignalContractVersion,
   TradingStrategyVersion,
@@ -428,9 +429,11 @@ export async function duplicateSignalContract(input: {
 
 export async function listTradingSignalSchemas(): Promise<TradingSignalSchema[]> {
   const rows = await getDatabase().all<any[]>(
-    `SELECT schema.*, version.definition_json, version.definition_sha256
+    `SELECT schema.*,
+            version.definition_json AS contract_definition_json,
+            version.definition_sha256 AS contract_definition_sha256
      FROM trading_signal_schemas AS schema
-     JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
+     LEFT JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
      ORDER BY schema.enabled DESC, schema.name, schema.id`,
   );
   return rows.map(signalSchemaFromRow);
@@ -439,11 +442,13 @@ export async function listTradingSignalSchemas(): Promise<TradingSignalSchema[]>
 export async function getTradingSignalSchemaForTemplate(templateName?: string): Promise<TradingSignalSchema | null> {
   const normalized = templateName?.trim() || 'default';
   const row = await getDatabase().get(
-    `SELECT schema.*, version.definition_json, version.definition_sha256
+    `SELECT schema.*,
+            version.definition_json AS contract_definition_json,
+            version.definition_sha256 AS contract_definition_sha256
      FROM trading_signal_schemas AS schema
-     JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
+     LEFT JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
      WHERE schema.template_name = ? COLLATE NOCASE AND schema.enabled = 1
-       AND version.status = 'published'`,
+       AND (schema.contract_version_id IS NULL OR version.status = 'published')`,
     [normalized],
   );
   return row ? signalSchemaFromRow(row) : null;
@@ -455,23 +460,29 @@ export async function createTradingSignalSchema(input: {
   description?: unknown;
   parserSchema?: unknown;
   contractVersionId?: unknown;
+  definition?: unknown;
   templateName: unknown;
   enabled: unknown;
 }, now = Date.now()): Promise<TradingSignalSchema> {
   const validated = await signalSchemaInput(input, true);
   await getDatabase().run(
     `INSERT INTO trading_signal_schemas (
-       id, name, description, parser_schema, contract_version_id, template_name, enabled, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       id, name, description, parser_schema, contract_version_id, template_name,
+       definition_json, definition_sha256, enabled, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       validated.id, validated.name, validated.description, validated.parserSchema,
-      validated.contractVersionId, validated.templateName, validated.enabled ? 1 : 0, now, now,
+      validated.contractVersionId, validated.templateName,
+      JSON.stringify(validated.definition), validated.definitionSha256,
+      validated.enabled ? 1 : 0, now, now,
     ],
   );
   const row = await getDatabase().get(
-    `SELECT schema.*, version.definition_json, version.definition_sha256
+    `SELECT schema.*,
+            version.definition_json AS contract_definition_json,
+            version.definition_sha256 AS contract_definition_sha256
      FROM trading_signal_schemas AS schema
-     JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
+     LEFT JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
      WHERE schema.id = ?`,
     [validated.id],
   );
@@ -483,28 +494,47 @@ export async function updateTradingSignalSchema(id: string, input: {
   description?: unknown;
   parserSchema?: unknown;
   contractVersionId?: unknown;
+  definition?: unknown;
   templateName: unknown;
   enabled: unknown;
 }, now = Date.now()): Promise<TradingSignalSchema> {
   const normalizedId = signalSchemaIdentifier(id);
-  const validated = await signalSchemaInput(input, false);
+  const current = await getDatabase().get<any>(
+    `SELECT parser_schema, contract_version_id, definition_json
+     FROM trading_signal_schemas WHERE id = ?`,
+    [normalizedId],
+  );
+  if (!current) throw new Error('Signal schema does not exist.');
+  const validated = await signalSchemaInput({
+    ...input,
+    parserSchema: input.parserSchema ?? current.parser_schema,
+    contractVersionId: input.contractVersionId === undefined
+      ? current.contract_version_id
+      : input.contractVersionId,
+    definition: input.definition === undefined
+      ? parseJson(current.definition_json, 'signal schema definition')
+      : input.definition,
+  }, false);
   return transaction(async () => {
     await assertSignalSchemaNotActivelyRouted(normalizedId);
     const result = await getDatabase().run(
       `UPDATE trading_signal_schemas
        SET name = ?, description = ?, parser_schema = ?, contract_version_id = ?,
-           template_name = ?, enabled = ?, updated_at = ?
+           template_name = ?, definition_json = ?, definition_sha256 = ?, enabled = ?, updated_at = ?
        WHERE id = ?`,
       [
         validated.name, validated.description, validated.parserSchema, validated.contractVersionId, validated.templateName,
+        JSON.stringify(validated.definition), validated.definitionSha256,
         validated.enabled ? 1 : 0, now, normalizedId,
       ],
     );
     if (Number(result.changes || 0) !== 1) throw new Error('Signal schema does not exist.');
     const row = await getDatabase().get(
-      `SELECT schema.*, version.definition_json, version.definition_sha256
+      `SELECT schema.*,
+              version.definition_json AS contract_definition_json,
+              version.definition_sha256 AS contract_definition_sha256
        FROM trading_signal_schemas AS schema
-       JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
+       LEFT JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
        WHERE schema.id = ?`,
       [normalizedId],
     );
@@ -1083,18 +1113,29 @@ function dashboardDecimal(value: unknown): string {
 }
 
 function signalSchemaFromRow(row: any): TradingSignalSchema {
-  const definition = validateSignalContractDefinition(parseJson(row.definition_json, 'signal contract definition'));
+  const definition = validateSignalContractDefinition(parseJson(row.definition_json, 'signal schema definition'));
   const definitionHash = signalContractDefinitionSha256(definition);
   if (!constantTimeStringEqual(definitionHash, String(row.definition_sha256))) {
-    throw new Error(`Signal schema ${row.id} references a contract that failed its integrity check.`);
+    throw new Error(`Signal schema ${row.id} failed its integrity check.`);
+  }
+  const contractDefinition = row.contract_definition_json
+    ? validateSignalContractDefinition(parseJson(row.contract_definition_json, 'fallback signal contract definition'))
+    : null;
+  if (contractDefinition) {
+    const contractHash = signalContractDefinitionSha256(contractDefinition);
+    if (!constantTimeStringEqual(contractHash, String(row.contract_definition_sha256))) {
+      throw new Error(`Signal schema ${row.id} references a fallback contract that failed its integrity check.`);
+    }
   }
   return {
     id: String(row.id),
     name: String(row.name),
     description: String(row.description || ''),
     parserSchema: row.parser_schema,
-    contractVersionId: String(row.contract_version_id),
-    contractDefinition: definition,
+    definition,
+    definitionSha256: definitionHash,
+    contractVersionId: row.contract_version_id === null ? null : String(row.contract_version_id),
+    contractDefinition,
     templateName: String(row.template_name),
     enabled: boolean(row.enabled),
     createdAt: Number(row.created_at),
@@ -1141,9 +1182,19 @@ function requestedParserContract(value: unknown): ExecutableSignalSchemaContract
   throw new Error('Signal schema parser contract is unsupported.');
 }
 
-async function publishedContractVersion(contractVersionId: string): Promise<{ contract_id: string }> {
-  const version = await getDatabase().get<{ contract_id: string; status: string }>(
-    'SELECT contract_id, status FROM trading_signal_contract_versions WHERE id = ?',
+async function publishedContractVersion(contractVersionId: string): Promise<{
+  contract_id: string;
+  definition_json: string;
+  definition_sha256: string;
+}> {
+  const version = await getDatabase().get<{
+    contract_id: string;
+    status: string;
+    definition_json: string;
+    definition_sha256: string;
+  }>(
+    `SELECT contract_id, status, definition_json, definition_sha256
+     FROM trading_signal_contract_versions WHERE id = ?`,
     [contractVersionId],
   );
   if (version?.status !== 'published') {
@@ -1163,6 +1214,7 @@ async function signalSchemaInput(input: {
   description?: unknown;
   parserSchema?: unknown;
   contractVersionId?: unknown;
+  definition?: unknown;
   templateName?: unknown;
   enabled?: unknown;
 }, requireId: boolean): Promise<{
@@ -1170,7 +1222,9 @@ async function signalSchemaInput(input: {
   name: string;
   description: string;
   parserSchema: ExecutableSignalSchemaContract;
-  contractVersionId: string;
+  contractVersionId: string | null;
+  definition: SignalContractDefinition;
+  definitionSha256: string;
   templateName: string;
   enabled: boolean;
 }> {
@@ -1180,14 +1234,33 @@ async function signalSchemaInput(input: {
   if (typeof input.enabled !== 'boolean') throw new Error('Signal schema enabled state must be boolean.');
   const contractVersionId = input.contractVersionId
     ? contractVersionIdentifier(input.contractVersionId)
-    : `${requestedParserSchema ?? 'standard'}:v1`;
-  const version = await publishedContractVersion(contractVersionId);
+    : input.definition === undefined && requestedParserSchema
+      ? `${requestedParserSchema}:v1`
+      : null;
+  const version = contractVersionId
+    ? await publishedContractVersion(contractVersionId)
+    : null;
+  if (input.definition === undefined && !version) {
+    throw new Error('Signal schema definition is required when no fallback contract is selected.');
+  }
+  const definition = validateSignalContractDefinition(
+    input.definition === undefined
+      ? parseJson(version!.definition_json, 'fallback signal contract definition')
+      : input.definition,
+  );
+  const definitionSha256 = signalContractDefinitionSha256(definition);
+  if (version && input.definition === undefined
+    && !constantTimeStringEqual(definitionSha256, version.definition_sha256)) {
+    throw new Error('Signal schema fallback contract failed its integrity check.');
+  }
   return {
     id,
     name,
     description,
-    parserSchema: requestedParserSchema ?? executableParserContract(version.contract_id),
+    parserSchema: requestedParserSchema ?? (version ? executableParserContract(version.contract_id) : 'standard'),
     contractVersionId,
+    definition,
+    definitionSha256,
     templateName,
     enabled: input.enabled,
   };

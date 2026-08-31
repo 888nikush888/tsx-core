@@ -230,6 +230,46 @@ export function validateSignalContractDefinition(input: unknown): SignalContract
   return definition;
 }
 
+/**
+ * Builds the executable definition for a visual workflow. The schema owns the
+ * normalized XML structure. The independently connected contract contributes
+ * validation policy without being allowed to silently rename parser output.
+ */
+export function composeSignalSchemaContract(
+  schemaInput: unknown,
+  contractInput: unknown,
+): SignalContractDefinition {
+  const schema = validateSignalContractDefinition(schemaInput);
+  const contract = validateSignalContractDefinition(contractInput);
+  const contractFields = new Map(
+    contract.additionalFields.map(field => [field.path, field]),
+  );
+  return validateSignalContractDefinition({
+    ...schema,
+    targets: {
+      ...schema.targets,
+      minimumItems: contract.targets.minimumItems,
+      maximumItems: contract.targets.maximumItems,
+    },
+    additionalFields: schema.additionalFields.map(field => {
+      const policy = contractFields.get(field.path);
+      return policy
+        ? {
+            ...field,
+            required: policy.required,
+            allowedValues: policy.allowedValues,
+            minimum: policy.minimum,
+            maximum: policy.maximum,
+            maximumLength: policy.maximumLength,
+            pattern: policy.pattern,
+          }
+        : field;
+    }),
+    geometry: contract.geometry,
+    grounding: contract.grounding,
+  });
+}
+
 export function signalContractDefinitionSha256(definition: SignalContractDefinition): string {
   return createHash('sha256').update(JSON.stringify(validateSignalContractDefinition(definition))).digest('hex');
 }

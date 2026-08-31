@@ -821,17 +821,7 @@ async function testDynamicContractsAndChannelRisk() {
   await testChannelRiskPolicies();
 }
 
-async function testSignalSchemaRepository() {
-  const builtIns = await listTradingSignalSchemas();
-  assert.deepEqual(
-    builtIns.map(schema => schema.id).sort(),
-    ['cryptodanielvip', 'loma', 'standard'],
-  );
-  assert.equal((await getTradingSignalSchemaForTemplate()).id, 'standard');
-  const validSchemaInput = {
-    name: 'Validation profile', description: '', parserSchema: 'standard',
-    templateName: 'validation-template', enabled: true,
-  };
+async function testStandaloneBuilderSignalSchema() {
   const standaloneDefinition = structuredClone(
     BUILTIN_SIGNAL_CONTRACTS.find(contract => contract.id === 'standard').definition,
   );
@@ -848,6 +838,20 @@ async function testSignalSchemaRepository() {
   assert.equal(standalone.definition.actionPath, 'direction');
   assert.match(standalone.definitionSha256, /^[a-f0-9]{64}$/);
   await deleteTradingSignalSchema(standalone.id);
+}
+
+async function testSignalSchemaRepository() {
+  const builtIns = await listTradingSignalSchemas();
+  assert.deepEqual(
+    builtIns.map(schema => schema.id).sort(),
+    ['cryptodanielvip', 'loma', 'standard'],
+  );
+  assert.equal((await getTradingSignalSchemaForTemplate()).id, 'standard');
+  const validSchemaInput = {
+    name: 'Validation profile', description: '', parserSchema: 'standard',
+    templateName: 'validation-template', enabled: true,
+  };
+  await testStandaloneBuilderSignalSchema();
   await assert.rejects(
     createTradingSignalSchema({ id: 'invalid-name', ...validSchemaInput, name: '' }),
     /name must contain/,

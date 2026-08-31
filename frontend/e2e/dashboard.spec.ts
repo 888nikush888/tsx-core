@@ -507,7 +507,13 @@ test("parser, schema, contract and strategy are authored directly in their block
 
   await openNew("Signal-Schema");
   await expect(page.getByLabel("Schema-ID")).toBeVisible();
-  await expect(page.getByLabel("Parser-Schema")).toBeVisible();
+  await expect(page.getByLabel("Parser-Schema")).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "Parserquelle aus Builder" }),
+  ).toContainText("noch kein KI-Parser vorhanden");
+  await expect(page.getByLabel("Richtungspfad")).toBeVisible();
+  await expect(page.getByLabel("Paarpfad")).toBeVisible();
+  await expect(page.getByLabel("Stop-Loss-Pfad")).toBeVisible();
   await page.getByRole("button", { name: "Abbrechen" }).click();
 
   await openNew("Signal-Vertrag");

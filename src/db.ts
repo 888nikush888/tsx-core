@@ -1530,6 +1530,30 @@ const migrations: SchemaMigration[] = [
           WHERE path.id = trading_fallback_candidates.execution_path_id
         ), '[]');
       `
+  },
+  {
+    version: 23,
+    name: 'builder_signal_schema_definitions',
+    columns: [
+      { table: 'trading_signal_schemas', name: 'definition_json', sqlDefinition: 'TEXT' },
+      { table: 'trading_signal_schemas', name: 'definition_sha256', sqlDefinition: 'TEXT' },
+    ],
+    sql: `
+        UPDATE trading_signal_schemas
+        SET definition_json = COALESCE(definition_json, (
+              SELECT version.definition_json
+              FROM trading_signal_contract_versions AS version
+              WHERE version.id = trading_signal_schemas.contract_version_id
+            )),
+            definition_sha256 = COALESCE(definition_sha256, (
+              SELECT version.definition_sha256
+              FROM trading_signal_contract_versions AS version
+              WHERE version.id = trading_signal_schemas.contract_version_id
+            ));
+
+        CREATE INDEX IF NOT EXISTS idx_trading_signal_schemas_definition
+          ON trading_signal_schemas(definition_sha256);
+      `
   }
 ];
 

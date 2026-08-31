@@ -97,7 +97,7 @@ try {
     apiId: 123,
     xmlParsing: { timeout: 120_000, aiLimits: { dailyTokenLimit: 10_000 } },
   });
-  assert.equal(bundle.schemaVersion, 2);
+  assert.equal(bundle.schemaVersion, 3);
   assert.equal(bundle.mode, 'replace');
   assert.equal(bundle.workflow.resources.length, resources.length);
   assert.equal(bundle.accountReferences.length, 2);
@@ -106,6 +106,7 @@ try {
   assert.deepEqual(bundle.workflow.graph.edges.at(-1).fallbackOn,
     ['SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED']);
   assert.equal(bundle.models.strategies[0].configuration.schemaVersion, 4);
+  assert.equal(bundle.models.schemas[0].definition.rootTag, 'signal');
   assert.equal(bundle.models.strategies[0].configuration.sizing.defaultLeverage, 3);
   assert.equal(bundle.workflow.resources.find(item => item.kind === 'sizing').configuration.defaultLeverage, 50);
   assert.doesNotMatch(JSON.stringify(bundle), /credentialRef|apiSecret|privateKey|bearerToken/i);
@@ -138,7 +139,7 @@ try {
     },
     {
       label: 'unsupported versions',
-      mutate: candidate => { candidate.schemaVersion = 3; },
+      mutate: candidate => { candidate.schemaVersion = 4; },
       error: /schema or version is unsupported/,
     },
     {
