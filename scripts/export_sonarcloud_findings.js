@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -50,8 +50,71 @@ function exporterConfiguration(environment) {
     hostUrl: environment.SONAR_HOST_URL?.trim() || DEFAULT_SONAR_HOST_URL,
     branch: environment.SONAR_BRANCH?.trim() || 'main',
     expectedRevision: environment.SONAR_EXPECTED_REVISION?.trim(),
-    outputDirectory: path.resolve(environment.SONAR_EXPORT_DIR?.trim() || 'reports/sonarcloud')
+    outputDirectory: path.resolve(environment.SONAR_EXPORT_DIR?.trim() || 'reports/sonarcloud'),
+    reportTaskFile: path.resolve(environment.SONAR_REPORT_TASK_FILE?.trim() || '.scannerwork/report-task.txt')
   };
+}
+
+function parseReportTask(text) {
+  const properties = {};
+  for (const line of text.split(/\r?\n/u)) {
+    const separator = line.indexOf('=');
+    if (separator <= 0) continue;
+    properties[line.slice(0, separator).trim()] = line.slice(separator + 1).trim();
+  }
+  return properties;
+}
+
+function safeDiagnosticMessage(value) {
+  return String(value ?? '').replaceAll('\r', ' ').replaceAll('\n', ' ').slice(0, 4_000);
+}
+
+function computeTaskEvidence(task) {
+  return {
+    id: task.id,
+    type: task.type,
+    componentKey: task.componentKey,
+    status: task.status,
+    submittedAt: task.submittedAt,
+    startedAt: task.startedAt,
+    executedAt: task.executedAt,
+    executionTimeMs: task.executionTimeMs,
+    warningCount: task.warningCount,
+    errorMessage: task.errorMessage ? safeDiagnosticMessage(task.errorMessage) : null,
+    hasErrorStacktrace: Boolean(task.errorStacktrace)
+  };
+}
+
+async function readComputeTask(configuration, options) {
+  let reportTask;
+  try {
+    reportTask = await readFile(configuration.reportTaskFile, 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+
+  const properties = parseReportTask(reportTask);
+  if (!properties.ceTaskUrl) throw new Error('SonarCloud report-task.txt contains no ceTaskUrl.');
+  const taskUrl = new URL(properties.ceTaskUrl);
+  const allowedOrigin = new URL(configuration.hostUrl).origin;
+  if (taskUrl.origin !== allowedOrigin || taskUrl.pathname !== '/api/ce/task') {
+    throw new Error('SonarCloud report-task.txt contains an untrusted ceTaskUrl.');
+  }
+
+  const response = await sonarGet(taskUrl.toString(), {}, options);
+  if (!response.task?.id || !response.task.status) throw new Error('SonarCloud returned an invalid compute task.');
+  if (response.task.componentKey && response.task.componentKey !== configuration.projectKey) {
+    throw new Error('SonarCloud compute task belongs to a different project.');
+  }
+
+  const evidence = computeTaskEvidence(response.task);
+  await writeFile(path.join(configuration.outputDirectory, 'ce-task.json'), `${JSON.stringify(evidence, null, 2)}\n`, 'utf8');
+  if (evidence.status !== 'SUCCESS') {
+    const detail = evidence.errorMessage || `terminal status is '${evidence.status}'`;
+    throw new Error(`SonarCloud compute task '${evidence.id}' failed: ${detail}`);
+  }
+  return evidence;
 }
 
 function validatedAnalysis(analysisResponse, configuration) {
@@ -65,7 +128,7 @@ function validatedAnalysis(analysisResponse, configuration) {
   return analysis;
 }
 
-function exportSummary(configuration, analysis, issues, hotspots, qualityGate, generatedAt) {
+function exportSummary(configuration, analysis, issues, hotspots, qualityGate, computeTask, generatedAt) {
   const expectedRevision = configuration.expectedRevision;
   return {
     generatedAt,
@@ -80,6 +143,7 @@ function exportSummary(configuration, analysis, issues, hotspots, qualityGate, g
     },
     expectedRevision: expectedRevision || null,
     revisionMatchesExpectation: expectedRevision ? analysis.revision === expectedRevision : null,
+    computeTask,
     openIssueCount: issues.length,
     blockerOrCriticalIssueCount: issues.filter(issue => ['BLOCKER', 'CRITICAL'].includes(issue.severity)).length,
     toReviewHotspotCount: hotspots.length,
@@ -90,6 +154,8 @@ function exportSummary(configuration, analysis, issues, hotspots, qualityGate, g
 export async function exportFindings({ environment = process.env, fetchImpl = fetch, now = () => new Date() } = {}) {
   const configuration = exporterConfiguration(environment);
   const options = { fetchImpl, hostUrl: configuration.hostUrl, token: configuration.token };
+  await mkdir(configuration.outputDirectory, { recursive: true });
+  const computeTask = await readComputeTask(configuration, options);
 
   const analysisResponse = await sonarGet('/api/project_analyses/search', {
     project: configuration.projectKey, branch: configuration.branch, ps: 1
@@ -105,9 +171,8 @@ export async function exportFindings({ environment = process.env, fetchImpl = fe
   const qualityGate = await sonarGet('/api/qualitygates/project_status', {
     projectKey: configuration.projectKey, branch: configuration.branch
   }, options);
-  const summary = exportSummary(configuration, analysis, issues, hotspots, qualityGate, now().toISOString());
+  const summary = exportSummary(configuration, analysis, issues, hotspots, qualityGate, computeTask, now().toISOString());
 
-  await mkdir(configuration.outputDirectory, { recursive: true });
   await Promise.all([
     writeFile(path.join(configuration.outputDirectory, 'open-issues.tsv'), toTsv(issues, [
       'key', 'type', 'severity', 'impacts', 'rule', 'component', 'line', 'message', 'status', 'creationDate', 'updateDate'
@@ -126,8 +191,8 @@ if (isDirectExecution) {
   try {
     const summary = await exportFindings();
     console.log(`SonarCloud export complete: ${summary.openIssueCount} open issues, ${summary.toReviewHotspotCount} hotspots to review.`);
-  } catch {
-    console.error('SonarCloud export failed.');
+  } catch (error) {
+    console.error(`SonarCloud export failed: ${safeDiagnosticMessage(error?.message || error)}`);
     process.exitCode = 1;
   }
 }

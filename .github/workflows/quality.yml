@@ -158,6 +158,7 @@ jobs:
           SONAR_PROJECT_KEY: 888nikush888_telegram-tdlib-forwarder-private
           SONAR_BRANCH: main
           SONAR_EXPECTED_REVISION: ${{ github.sha }}
+          SONAR_REPORT_TASK_FILE: .scannerwork/report-task.txt
         run: |
           npm run quality:sonar-export
           jq --exit-status '.revisionMatchesExpectation == true and .qualityGate.status == "OK" and .toReviewHotspotCount == 0 and .blockerOrCriticalIssueCount == 0' reports/sonarcloud/summary.json
