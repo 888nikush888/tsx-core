@@ -264,6 +264,13 @@ const sonarSources = sonarPaths('sonar\\.sources');
 const sonarTests = sonarPaths('sonar\\.tests');
 assert.ok(sonarSources.length > 0, 'Sonar production sources must be explicit.');
 assert.ok(sonarTests.length > 0, 'Sonar test sources must be explicit.');
+assert.ok(sonarSources.includes('src'), 'Sonar must analyze the Node/TypeScript production runtime.');
+assert.ok(sonarSources.includes('frontend/src'), 'Sonar must analyze the frontend production runtime.');
+assert.ok(sonarSources.includes('exchange_executor/server.py'), 'Sonar must analyze the Python executor runtime.');
+for (const nonProductScope of ['scripts', '.github', 'Dockerfile', 'docker-compose.yml']) {
+  assert.equal(sonarSources.includes(nonProductScope), false,
+    `Sonar licensed LOC must stay scoped to product code; '${nonProductScope}' has an independent repository gate.`);
+}
 for (const configuredPath of [...sonarSources, ...sonarTests]) {
   await access(configuredPath);
 }
