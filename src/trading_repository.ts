@@ -1186,7 +1186,7 @@ async function signalSchemaInput(input: {
     id,
     name,
     description,
-    parserSchema: executableParserContract(version.contract_id),
+    parserSchema: requestedParserSchema ?? executableParserContract(version.contract_id),
     contractVersionId,
     templateName,
     enabled: input.enabled,

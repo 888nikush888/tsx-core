@@ -1528,7 +1528,7 @@ button:disabled {
   gap: 10px;
   width: 100%;
   min-height: 64px;
-  padding: 10px 43px 10px 10px;
+  padding: 10px 76px 10px 10px;
   color: var(--foreground);
   text-align: left;
   border: 0;
@@ -1564,12 +1564,19 @@ button:disabled {
   height: 15px;
   color: var(--node-accent);
 }
+.library-resource-archive,
 .library-resource-delete {
   position: absolute;
   top: 50%;
-  right: 8px;
   z-index: 2;
   transform: translateY(-50%);
+}
+.library-resource-archive {
+  right: 40px;
+  color: var(--muted-foreground);
+}
+.library-resource-delete {
+  right: 8px;
   color: var(--destructive);
 }
 .duplicate-resource-notice {

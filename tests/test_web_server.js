@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { once } from 'events';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
@@ -86,10 +86,12 @@ async function testAuthenticationAndReads(baseUrl) {
   assert.strictEqual(publicConfig.nested.OPENROUTER_API_KEY, undefined, 'Nested secrets must be redacted');
   assert.strictEqual(publicConfig.nested.AUDIT_WEBHOOK_TOKEN, undefined, 'Audit credentials must be redacted');
   assert.strictEqual(publicConfig.nested.backupEncryptionKey, undefined, 'Managed enterprise secrets must be redacted');
-  for (const route of ['/api/logs', '/api/metrics-history', '/api/incoming-messages', '/api/processed-signals', '/api/dashboard-analytics', '/api/templates']) {
+  for (const route of ['/api/logs', '/api/metrics-history', '/api/incoming-messages', '/api/processed-signals', '/api/dashboard-analytics']) {
     response = await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) });
     assert.strictEqual(response.status, 200, `${route} must satisfy its authenticated read contract`);
   }
+  response = await fetch(`${baseUrl}/api/templates`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(response.status, 404, 'Global prompt-template management must no longer be exposed.');
 }
 
 async function testOperatorReadContracts(baseUrl, appState) {
@@ -664,7 +666,6 @@ async function testRequestValidation(baseUrl) {
     ['/api/processed-signals', { method: 'DELETE', headers: mutationHeaders() }, 400],
     ['/api/config', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '[]' }, 400],
     ['/api/import', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{}' }, 400],
-    ['/api/templates', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"../escape","content":"x"}' }, 400],
     ['/api/access-tokens', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"role":"owner"}' }, 400],
     ['/api/access-tokens/viewer', { method: 'DELETE', headers: mutationHeaders() }, 412],
     ['/api/operations/audit-replay', { method: 'POST', headers: mutationHeaders() }, 412],
@@ -1134,25 +1135,6 @@ async function testSensitiveMutations(baseUrl, controls) {
   });
   assert.strictEqual(response.status, 200);
   assert.strictEqual(controls.acknowledgeCalls, 1);
-}
-
-async function testEditableDefaultTemplate(baseUrl, templatesDirectory) {
-  const customDefault = 'Return the configured signal schema and preserve source values exactly.';
-  let response = await fetch(`${baseUrl}/api/templates`, {
-    method: 'POST',
-    headers: mutationHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ name: 'default', content: customDefault })
-  });
-  assert.strictEqual(response.status, 200, 'Administrator must be able to override the default prompt');
-  assert.strictEqual(await readFile(path.join(templatesDirectory, 'default.txt'), 'utf8'), customDefault);
-  response = await fetch(`${baseUrl}/api/templates`, { headers: headers(VIEWER_TOKEN) });
-  assert.strictEqual((await response.json()).templates.default, customDefault);
-  response = await fetch(`${baseUrl}/api/templates?name=default`, {
-    method: 'DELETE', headers: mutationHeaders()
-  });
-  assert.strictEqual(response.status, 200, 'Deleting the override must restore the built-in default prompt');
-  response = await fetch(`${baseUrl}/api/templates`, { headers: headers(VIEWER_TOKEN) });
-  assert.notStrictEqual((await response.json()).templates.default, customDefault);
 }
 
 async function testAccessTokenManagement(baseUrl) {
@@ -1652,7 +1634,6 @@ async function runTests() {
   const previousWebHost = process.env.WEB_HOST;
   const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
   const previousLocalTrust = process.env.DASHBOARD_LOCAL_TRUST;
-  const previousTemplatesDirectory = process.env.TEMPLATES_DIR;
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-web-test-'));
   const staticDirectory = path.resolve('frontend/dist/.directory-response-test');
   const staticAsset = path.resolve('frontend/dist/assets/.static-response-test.js');
@@ -1667,7 +1648,6 @@ async function runTests() {
     delete process.env.DASHBOARD_VIEWER_TOKEN;
     delete process.env.WEB_HOST;
     process.env.DASHBOARD_AUTH_MODE = 'token';
-    process.env.TEMPLATES_DIR = path.join(testDir, 'templates');
 
     const controls = {
       stopCalls: 0,
@@ -1710,7 +1690,6 @@ async function runTests() {
     await testAuditedControl(baseUrl, controls);
     await testMissingAuditFailsClosed(baseUrl, appState);
     await testSensitiveMutations(baseUrl, controls);
-    await testEditableDefaultTemplate(baseUrl, process.env.TEMPLATES_DIR);
     await testOperationsControl(baseUrl, controls);
     await testMutationSerialization(baseUrl, controls);
     await testUnavailableControlContracts(baseUrl, appState);
@@ -1739,8 +1718,6 @@ async function runTests() {
     else process.env.DASHBOARD_AUTH_MODE = previousAuthMode;
     if (previousLocalTrust === undefined) delete process.env.DASHBOARD_LOCAL_TRUST;
     else process.env.DASHBOARD_LOCAL_TRUST = previousLocalTrust;
-    if (previousTemplatesDirectory === undefined) delete process.env.TEMPLATES_DIR;
-    else process.env.TEMPLATES_DIR = previousTemplatesDirectory;
   }
 }
 

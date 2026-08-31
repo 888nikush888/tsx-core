@@ -84,11 +84,43 @@ function submittedBody(url: string) {
 
 function installApi(options?: { historyFails?: boolean; applyConflict?: boolean }) {
   let workflowLoads = 0;
+  let pendingResource: Record<string, unknown> | null = null;
   api.apiFetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url === "/api/workflow") {
       workflowLoads += 1;
       return response({ workflow, resources });
+    }
+    if (url === "/api/workflow/resources" && init?.method === "DELETE") {
+      return response({ success: true, result: { deleted: 1 } });
+    }
+    if (url === "/api/workflow/resources" && init?.method === "POST") {
+      const body = JSON.parse(String(init.body));
+      pendingResource = {
+        id: `${body.resourceId || "new-resource"}-v2`,
+        resourceId: body.resourceId || "new-resource",
+        version: 2,
+        kind: body.kind,
+        name: body.name,
+        description: body.description,
+        status: "draft",
+        configuration: body.configuration,
+      };
+      return response({ resource: pendingResource }, 201);
+    }
+    if (url === "/api/workflow/resources/publish") {
+      pendingResource = { ...pendingResource, status: "published" };
+      return response({ resource: pendingResource });
+    }
+    if (url === "/api/workflow/impact") {
+      return response({ impact: { destructive: false, changed: [], removed: [], confirmation: null } });
+    }
+    if (url === "/api/workflow/mutate") {
+      const body = JSON.parse(String(init?.body));
+      return response({
+        workflow: { ...workflow, id: "revision-2", revision: 2, graph: body.graph },
+        history,
+      }, 201);
     }
     if (url === "/api/workflow/history") {
       if (options?.historyFails) return response({ error: "history unavailable" }, 503);
@@ -214,6 +246,50 @@ describe("workflow builder history", () => {
     expect(screen.getByRole("button", { name: "Nichts rückgängig zu machen – 0 von 5" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Nichts zu wiederholen – 0 von 5" })).toBeDisabled();
     expect(screen.getByTestId("workflow-canvas")).toBeVisible();
+  });
+
+  it("permanently deletes an unused resource family only after explicit UI confirmation", async () => {
+    installApi();
+    render(<WorkflowBuilder />);
+    await openBuilder();
+    fireEvent.click(screen.getByRole("button", { name: /Baustein$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Telegram-Kanal/ }));
+    fireEvent.click(screen.getByRole("button", { name: "VIP endgültig löschen" }));
+    expect(screen.getByText(/keine historische oder aktive Workflowrevision/)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Ja, endgültig löschen" }));
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/workflow/resources",
+      expect.objectContaining({
+        method: "DELETE",
+        headers: expect.objectContaining({
+          "X-Destructive-Confirmation": "delete-workflow-resource-permanently",
+        }),
+      }),
+    ));
+    const deletion = api.apiFetch.mock.calls.find(([url, init]) =>
+      url === "/api/workflow/resources" && (init as RequestInit)?.method === "DELETE");
+    expect(JSON.parse(String((deletion?.[1] as RequestInit).body))).toEqual({
+      resourceId: "channel",
+      operation: "delete",
+    });
+    expect(await screen.findByText("VIP wurde endgültig gelöscht.")).toBeVisible();
+  });
+
+  it("refreshes the trading snapshot after a resource version is saved and activated", async () => {
+    installApi();
+    render(<WorkflowBuilder />);
+    await openBuilder();
+    if (!flow.props) throw new Error("React Flow props unavailable.");
+    const channel = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
+    act(() => flow.props?.onNodeClick({}, channel));
+    fireEvent.change(await screen.findByLabelText(/Telegram-Kanal-ID/), {
+      target: { value: "-1002" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Version speichern & aktivieren" }));
+    await waitFor(() => {
+      expect(api.apiFetch.mock.calls.filter(([url]) => url === "/api/trading")).toHaveLength(2);
+    });
+    expect(await screen.findByText(/Revision 2 ist aktiv/)).toBeVisible();
   });
 
   it("shows bounded counts, labels and executes undo without accepting a target revision", async () => {

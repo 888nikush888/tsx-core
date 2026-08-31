@@ -47,6 +47,7 @@ type ResourceEditorProps = Readonly<{
   }) => Promise<boolean>;
   onDeleteNode?: () => Promise<void>;
   onArchiveResource?: () => Promise<void>;
+  onDeleteResource?: () => Promise<void>;
   onConfigureAccount?: (accountId: string, maximum: number) => Promise<void>;
 }>;
 
@@ -76,25 +77,115 @@ function applyParserDraft(
   configuration: Record<string, unknown>,
   templateContent: string,
 ): void {
-  const templateName = textValue(configuration.templateName).trim();
-  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(templateName))
-    throw new Error("Der Vorlagenname ist ungültig.");
   if (!templateContent.trim())
     throw new Error("Der Parser-Prompt darf nicht leer sein.");
+  configuration.templateName = "inline";
   configuration.prompt = templateContent.trim();
   configuration.saveToFile = false;
+}
+
+function defaultStrategyConfiguration(
+  trading: TradingSnapshot | null,
+): StrategyConfiguration {
+  const schemas = (trading?.signalSchemas || [])
+    .filter((schema) => schema.enabled)
+    .map((schema) => schema.id);
+  return {
+    schemaVersion: 4,
+    allowedSignalSchemas: schemas,
+    allowedSymbols: [],
+    allowedSides: ["LONG", "SHORT"],
+    entry: {
+      orderType: "limit",
+      rangePrice: "midpoint",
+      postOnly: false,
+      timeoutSeconds: 10,
+    },
+    sizing: {
+      positionSizingMode: "risk_percent",
+      riskPerTradePercent: "1",
+      maxAdaptiveRiskPercent: "1",
+      maxPositionNotional: "1000",
+      defaultLeverage: 3,
+      maxLeverage: 3,
+    },
+    exits: {
+      targetAllocationMode: "manual",
+      targetAllocationsPercent: ["50", "50"],
+      stopLossMode: "configured",
+      moveStopToBreakEvenAfterTarget: 1,
+      trailingStopPercent: null,
+      closeRemainderAtLastTarget: true,
+    },
+    safety: {
+      maxDailyLossMode: "absolute",
+      maxDailyLoss: "100",
+      maxSlippagePercent: "0.5",
+      entryOrderTtlSeconds: 900,
+      requireProtectiveStop: true,
+    },
+  };
+}
+
+function defaultContractDefinition(): SignalContractDefinition {
+  return {
+    schemaVersion: 1,
+    rootTag: "signal",
+    actionPath: "action",
+    pairPath: "pair",
+    entry: {
+      mode: "optional_range",
+      marketValues: [],
+      rangeValues: [],
+      minimumPath: "entry_range.min",
+      maximumPath: "entry_range.max",
+    },
+    targets: {
+      containerPath: "targets",
+      itemTag: "target",
+      shape: "scalar",
+      minimumPath: "min",
+      maximumPath: "max",
+      minimumItems: 1,
+      maximumItems: 20,
+      sequentialIds: true,
+    },
+    stopLossPath: "stoploss",
+    leveragePath: "leverage",
+    additionalFields: [],
+    geometry: {
+      stopOnLossSide: true,
+      targetsOnProfitSide: true,
+      orderedTargets: true,
+      orderedRanges: true,
+    },
+    grounding: {
+      action: true,
+      pair: true,
+      entry: true,
+      targets: true,
+      stopLoss: true,
+      leverage: true,
+      riskPercent: true,
+      averagingPrice: true,
+    },
+  };
 }
 
 async function publishStrategyDraft(
   configuration: Record<string, unknown>,
   trading: TradingSnapshot | null,
   strategyDraft: StrategyConfiguration,
+  metadata: { name: string; description: string },
 ): Promise<void> {
   const selected = trading?.strategies.find(
     (item) => item.id === configuration.strategyVersionId,
   );
-  if (!selected)
-    throw new Error("Die gewählte Strategieversion existiert nicht mehr.");
+  if (strategyDraft.allowedSignalSchemas.length === 0) {
+    throw new Error(
+      "Die Strategie benötigt mindestens ein aktives Signal-Schema. Erstelle zuerst einen Schema-Baustein.",
+    );
+  }
   const publishConfiguration: StrategyConfiguration = {
     ...strategyDraft,
     schemaVersion: 4,
@@ -108,9 +199,9 @@ async function publishStrategyDraft(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      strategyId: selected.strategyId,
-      name: selected.name,
-      description: selected.description,
+      ...(selected ? { strategyId: selected.strategyId } : {}),
+      name: metadata.name,
+      description: metadata.description,
       configuration: publishConfiguration,
     }),
   });
@@ -126,6 +217,8 @@ async function publishContractDraft(
   configuration: Record<string, unknown>,
   trading: TradingSnapshot | null,
   contractDraft: SignalContractDefinition,
+  contractId: string,
+  metadata: { name: string; description: string },
 ): Promise<void> {
   const parent = trading?.signalContracts.find((contract) =>
     contract.versions.some(
@@ -135,8 +228,33 @@ async function publishContractDraft(
   const source = parent?.versions.find(
     (version) => version.id === configuration.contractVersionId,
   );
-  if (!parent || !source)
-    throw new Error("Die gewählte Vertragsversion existiert nicht mehr.");
+  if (!parent || !source) {
+    const normalizedId = contractId.trim();
+    if (!normalizedId) throw new Error("Die Vertrags-ID darf nicht leer sein.");
+    const created = await jsonRequest("/api/trading/signal-contracts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: normalizedId,
+        name: metadata.name,
+        description: metadata.description,
+        definition: contractDraft,
+      }),
+    });
+    const versionId = created.result?.versions?.[0]?.id;
+    if (!versionId)
+      throw new Error("Der neue Signal-Vertrag enthält keine Entwurfsversion.");
+    const published = await jsonRequest(
+      "/api/trading/signal-contracts/publish",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ versionId }),
+      },
+    );
+    configuration.contractVersionId = published.result.id;
+    return;
+  }
   const draft = await jsonRequest("/api/trading/signal-contracts/versions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -148,8 +266,8 @@ async function publishContractDraft(
     body: JSON.stringify({
       contractId: parent.id,
       versionId: draft.result.id,
-      name: parent.name,
-      description: parent.description,
+      name: metadata.name,
+      description: metadata.description,
       definition: contractDraft,
     }),
   });
@@ -178,8 +296,9 @@ async function createSchemaDraft(
       id,
       name: schemaDraft.name,
       description: schemaDraft.description,
+      parserSchema: schemaDraft.parserSchema,
       contractVersionId: schemaDraft.contractVersionId,
-      templateName: schemaDraft.templateName,
+      templateName: id,
       enabled: schemaDraft.enabled !== false,
     }),
   });
@@ -193,27 +312,40 @@ type SignalSchemaDraft = Readonly<{
   originalId: string;
   name: string;
   description: string;
+  parserSchema: string;
   contractVersionId: string;
-  templateName: string;
   enabled: boolean;
   copying: boolean;
 }>;
 
 function signalSchemaDraft(
   schema: TradingSignalSchema | undefined,
-): SignalSchemaDraft | null {
+  trading: TradingSnapshot | null,
+): SignalSchemaDraft {
+  const defaultContract = trading?.signalContracts
+    .flatMap((contract) => contract.versions)
+    .find((version) => version.status === "published");
   return schema
     ? {
         id: schema.id,
         originalId: schema.id,
         name: schema.name,
         description: schema.description,
+        parserSchema: schema.parserSchema,
         contractVersionId: schema.contractVersionId,
-        templateName: schema.templateName,
         enabled: schema.enabled,
         copying: false,
       }
-    : null;
+    : {
+        id: "new-schema",
+        originalId: "",
+        name: "Neues Signal-Schema",
+        description: "",
+        parserSchema: "standard",
+        contractVersionId: defaultContract?.id || "",
+        enabled: true,
+        copying: true,
+      };
 }
 
 function uniqueSchemaCopyId(
@@ -237,8 +369,11 @@ type ConfigurationDrafts = Readonly<{
   strategyTouched: boolean;
   contractDraft: SignalContractDefinition | null;
   contractTouched: boolean;
+  contractId: string;
   schemaDraft: SignalSchemaDraft | null;
   schemaTouched: boolean;
+  resourceName: string;
+  resourceDescription: string;
 }>;
 
 async function applyStrategyChanges(
@@ -252,6 +387,7 @@ async function applyStrategyChanges(
     configuration,
     drafts.trading,
     drafts.strategyDraft,
+    { name: drafts.resourceName, description: drafts.resourceDescription },
   );
 }
 
@@ -266,6 +402,8 @@ async function applyContractChanges(
     configuration,
     drafts.trading,
     drafts.contractDraft,
+    drafts.contractId,
+    { name: drafts.resourceName, description: drafts.resourceDescription },
   );
 }
 
@@ -310,24 +448,17 @@ export function defaultConfiguration(
   kind: WorkflowKind,
   trading: TradingSnapshot | null,
 ): Record<string, unknown> {
-  const strategy = trading?.strategies.find(
-    (item) => item.status === "published",
-  );
-  const schema = trading?.signalSchemas.find((item) => item.enabled);
-  const contract = trading?.signalContracts
-    .flatMap((item) => item.versions)
-    .find((item) => item.status === "published");
   const account = trading?.accounts[0];
   const defaults: Record<WorkflowKind, Record<string, unknown>> = {
     channel: { channelId: "" },
     content_filter: { allowedTypes: ["text"] },
     keyword_filter: { allowedKeywords: [], blockedKeywords: [] },
     regex: { patterns: [], mode: "all" },
-    parser: { templateName: "default", timeoutMs: 120_000, saveToFile: false },
-    schema: { schemaId: schema?.id || "" },
-    contract: { contractVersionId: contract?.id || "" },
+    parser: { templateName: "inline", timeoutMs: 120_000, saveToFile: false },
+    schema: { schemaId: "" },
+    contract: { contractVersionId: "" },
     dedupe: { enabled: true, cooldownHours: 24 },
-    strategy: { strategyVersionId: strategy?.id || "" },
+    strategy: { strategyVersionId: "" },
     sizing: {
       positionSizingMode: "equity_percent_margin",
       riskPerTradePercent: "5",
@@ -1242,6 +1373,7 @@ export function ResourceEditor({
   onSave,
   onDeleteNode,
   onArchiveResource,
+  onDeleteResource,
   onConfigureAccount,
 }: ResourceEditorProps) {
   const [name, setName] = useState("");
@@ -1251,7 +1383,6 @@ export function ResourceEditor({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [templates, setTemplates] = useState<Record<string, string>>({});
   const [templateContent, setTemplateContent] = useState("");
   const [strategyDraft, setStrategyDraft] =
     useState<StrategyConfiguration | null>(null);
@@ -1259,8 +1390,10 @@ export function ResourceEditor({
   const [contractDraft, setContractDraft] =
     useState<SignalContractDefinition | null>(null);
   const [contractTouched, setContractTouched] = useState(false);
+  const [contractId, setContractId] = useState("new-contract");
   const [schemaDraft, setSchemaDraft] = useState<SignalSchemaDraft | null>(null);
   const [archiveConfirmation, setArchiveConfirmation] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(false);
   const meta = KIND_META[kind];
 
   useEffect(() => {
@@ -1279,48 +1412,48 @@ export function ResourceEditor({
         (item) => item.id === nextConfiguration.strategyVersionId,
       );
       setStrategyDraft(
-        selected ? structuredClone(selected.configuration) : null,
+        selected
+          ? structuredClone(selected.configuration)
+          : defaultStrategyConfiguration(trading),
       );
+      setStrategyTouched(!selected);
     } else if (kind === "contract") {
-      const selected = trading?.signalContracts
-        .flatMap((contract) => contract.versions)
-        .find((item) => item.id === nextConfiguration.contractVersionId);
-      setContractDraft(
-        selected ? structuredClone(selected.definition) : null,
+      const parent = trading?.signalContracts.find((contract) =>
+        contract.versions.some(
+          (version) => version.id === nextConfiguration.contractVersionId,
+        ),
       );
+      const selected = parent?.versions.find(
+        (item) => item.id === nextConfiguration.contractVersionId,
+      );
+      setContractDraft(
+        selected
+          ? structuredClone(selected.definition)
+          : defaultContractDefinition(),
+      );
+      setContractId(parent?.id || "new-contract");
+      setContractTouched(!selected);
     }
     if (kind !== "strategy") setStrategyDraft(null);
     if (kind !== "contract") setContractDraft(null);
-    setStrategyTouched(false);
-    setContractTouched(false);
+    if (kind !== "strategy") setStrategyTouched(false);
+    if (kind !== "contract") {
+      setContractTouched(false);
+      setContractId("new-contract");
+    }
     if (kind === "schema") {
       const selected = trading?.signalSchemas.find(
         (item) => item.id === nextConfiguration.schemaId,
       );
-      setSchemaDraft(signalSchemaDraft(selected));
+      setSchemaDraft(signalSchemaDraft(selected, trading));
     } else setSchemaDraft(null);
-    if (kind === "parser" || kind === "schema") {
-      void jsonRequest("/api/templates")
-        .then((payload) => {
-          const loaded = payload.templates || {};
-          setTemplates(loaded);
-          if (kind === "parser") {
-            setTemplateContent(
-              typeof nextConfiguration.prompt === "string"
-                ? nextConfiguration.prompt
-                : String(
-                    loaded[
-                      textValue(nextConfiguration.templateName, "default")
-                    ] || "",
-                  ),
-            );
-          }
-        })
-        .catch((reason) =>
-          setError(reason instanceof Error ? reason.message : String(reason)),
-        );
-    }
+    setTemplateContent(
+      kind === "parser" && typeof nextConfiguration.prompt === "string"
+        ? nextConfiguration.prompt
+        : "",
+    );
     setArchiveConfirmation(false);
+    setDeleteConfirmation(false);
     setError("");
   }, [kind, meta.short, open, resource, trading]);
 
@@ -1354,8 +1487,11 @@ export function ResourceEditor({
         strategyTouched,
         contractDraft,
         contractTouched,
+        contractId,
         schemaDraft,
         schemaTouched: schemaDraft?.copying === true,
+        resourceName: name,
+        resourceDescription: description,
       });
       const activated = await onSave({
         name,
@@ -1387,6 +1523,39 @@ export function ResourceEditor({
       setSaving(false);
       setArchiveConfirmation(false);
     }
+  };
+
+  const deleteResource = async () => {
+    if (!onDeleteResource) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onDeleteResource();
+      onClose();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setSaving(false);
+      setDeleteConfirmation(false);
+    }
+  };
+
+  const updateSchemaDraft = (changes: Partial<SignalSchemaDraft>) => {
+    if (!schemaDraft) return;
+    const copying = schemaDraft.copying || Boolean(schemaDraft.originalId);
+    const id =
+      !schemaDraft.copying && schemaDraft.originalId
+        ? uniqueSchemaCopyId(
+            schemaDraft.originalId,
+            trading?.signalSchemas || [],
+          )
+        : schemaDraft.id;
+    setSchemaDraft({
+      ...schemaDraft,
+      ...changes,
+      id: changes.id ?? id,
+      copying,
+    });
   };
 
   return (
@@ -1511,21 +1680,6 @@ export function ResourceEditor({
           {kind === "parser" && (
             <>
               <div className="builder-field-grid three">
-                <Field label="Prompt-Vorlage">
-                  <input
-                    list="parser-template-names"
-                    value={textValue(configuration.templateName, "default")}
-                    onChange={(event) => {
-                      set("templateName", event.target.value);
-                      setTemplateContent(templates[event.target.value] || "");
-                    }}
-                  />
-                  <datalist id="parser-template-names">
-                    {Object.keys(templates).map((template) => (
-                      <option key={template} value={template} />
-                    ))}
-                  </datalist>
-                </Field>
                 <Field label="Zeitlimit in ms" hint="2.000 bis 120.000">
                   <input
                     type="number"
@@ -1574,96 +1728,38 @@ export function ResourceEditor({
           )}
           {kind === "schema" && (
             <>
-              <Field
-                label="Verwendetes Signal-Schema"
-                hint="Ordnet die Ausgabe des KI-Parsers einer bekannten Signalstruktur zu."
-              >
-                <select
-                  value={textValue(configuration.schemaId)}
-                  onChange={(event) => {
-                    const id = event.target.value;
-                    set("schemaId", id);
-                    setSchemaDraft(
-                      signalSchemaDraft(
-                        trading?.signalSchemas.find((item) => item.id === id),
-                      ),
-                    );
-                  }}
-                >
-                  {trading?.signalSchemas
-                    .filter((item) => item.enabled)
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} · {item.id}
-                      </option>
-                    ))}
-                </select>
-              </Field>
-              {schemaDraft && !schemaDraft.copying && (
-                <div className="schema-overview">
-                  <div className="strategy-section-heading">
-                    <strong>{schemaDraft.name}</strong>
-                    <small>{schemaDraft.description || "Keine Beschreibung"}</small>
-                  </div>
-                  <div className="schema-overview-grid">
-                    <span>
-                      <small>Schema-ID</small>
-                      <strong>{schemaDraft.originalId}</strong>
-                    </span>
-                    <span>
-                      <small>Parser-Vorlage</small>
-                      <strong>{schemaDraft.templateName}</strong>
-                    </span>
-                    <span>
-                      <small>Fallback-Vertrag</small>
-                      <strong>{schemaDraft.contractVersionId}</strong>
-                    </span>
-                    <Badge variant={schemaDraft.enabled ? "outline" : "secondary"}>
-                      {schemaDraft.enabled ? "aktiv" : "inaktiv"}
-                    </Badge>
-                  </div>
-                  <p className="builder-info">
-                    Der separate Vertragsbaustein im Canvas hat Vorrang. Der
-                    hier angezeigte Vertrag dient nur als Fallback für ältere
-                    Routen ohne eigenen Vertragsbaustein.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSchemaDraft({
-                        ...schemaDraft,
-                        id: uniqueSchemaCopyId(
-                          schemaDraft.originalId,
-                          trading?.signalSchemas || [],
-                        ),
-                        name: `${schemaDraft.name} · Kopie`,
-                        copying: true,
-                      });
-                    }}
-                  >
-                    <Plus data-icon="inline-start" /> Als neues Schema duplizieren
-                  </Button>
-                </div>
-              )}
-              {schemaDraft?.copying && (
+              {schemaDraft && (
                 <div className="schema-copy-editor">
                   <div className="strategy-section-heading">
-                    <strong>Neue unveränderliche Schema-Zuordnung</strong>
+                    <strong>
+                      {schemaDraft.originalId
+                        ? "Signal-Schema bearbeiten"
+                        : "Neues Signal-Schema"}
+                    </strong>
                     <small>
-                      Das bestehende Schema bleibt unverändert. Beim Speichern
-                      wird eine neue Schema-ID angelegt und dieser Baustein
-                      darauf umgestellt.
+                      {schemaDraft.originalId
+                        ? "Eine Änderung erzeugt automatisch eine neue unveränderliche Schema-ID."
+                        : "Definiere die ausführbare Parserstruktur direkt in diesem Baustein."}
                     </small>
                   </div>
                   <div className="builder-field-grid three">
-                    <Field label="Neue Schema-ID" hint="Muss eindeutig sein.">
+                    <Field
+                      label={
+                        schemaDraft.originalId && schemaDraft.copying
+                          ? "Neue Schema-ID"
+                          : "Schema-ID"
+                      }
+                      hint="Muss eindeutig sein und mit einem Kleinbuchstaben beginnen."
+                    >
                       <input
-                        aria-label="Neue Schema-ID"
+                        aria-label={
+                          schemaDraft.originalId && schemaDraft.copying
+                            ? "Neue Schema-ID"
+                            : "Schema-ID"
+                        }
                         value={schemaDraft.id}
                         onChange={(event) =>
-                          setSchemaDraft({ ...schemaDraft, id: event.target.value })
+                          updateSchemaDraft({ id: event.target.value })
                         }
                       />
                     </Field>
@@ -1672,26 +1768,25 @@ export function ResourceEditor({
                         aria-label="Schema-Name"
                         value={schemaDraft.name}
                         onChange={(event) =>
-                          setSchemaDraft({ ...schemaDraft, name: event.target.value })
+                          updateSchemaDraft({ name: event.target.value })
                         }
                       />
                     </Field>
-                    <Field label="Prompt-Vorlage">
-                      <input
-                        list="schema-template-names"
-                        value={schemaDraft.templateName}
+                    <Field
+                      label="Parser-Schema"
+                      hint="Legt fest, welche normalisierte Signalstruktur der Parser ausgibt."
+                    >
+                      <select
+                        aria-label="Parser-Schema"
+                        value={schemaDraft.parserSchema}
                         onChange={(event) =>
-                          setSchemaDraft({
-                            ...schemaDraft,
-                            templateName: event.target.value,
-                          })
+                          updateSchemaDraft({ parserSchema: event.target.value })
                         }
-                      />
-                      <datalist id="schema-template-names">
-                        {Object.keys(templates).map((template) => (
-                          <option key={template} value={template} />
-                        ))}
-                      </datalist>
+                      >
+                        <option value="standard">Standard</option>
+                        <option value="cryptodanielvip">CryptoDaniel VIP</option>
+                        <option value="loma">Loma</option>
+                      </select>
                     </Field>
                     <Field
                       label="Standard-Vertragsversion"
@@ -1700,8 +1795,7 @@ export function ResourceEditor({
                       <select
                         value={schemaDraft.contractVersionId}
                         onChange={(event) =>
-                          setSchemaDraft({
-                            ...schemaDraft,
+                          updateSchemaDraft({
                             contractVersionId: event.target.value,
                           })
                         }
@@ -1721,68 +1815,49 @@ export function ResourceEditor({
                       <input
                         value={schemaDraft.description}
                         onChange={(event) =>
-                          setSchemaDraft({
-                            ...schemaDraft,
-                            description: event.target.value,
-                          })
+                          updateSchemaDraft({ description: event.target.value })
                         }
                       />
                     </Field>
                     <Toggle
                       checked={schemaDraft.enabled}
-                      onChange={(enabled) =>
-                        setSchemaDraft({ ...schemaDraft, enabled })
-                      }
-                      label="Neues Schema aktiv"
+                      onChange={(enabled) => updateSchemaDraft({ enabled })}
+                      label="Schema aktiv"
                     />
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSchemaDraft(
-                        signalSchemaDraft(
-                          trading?.signalSchemas.find(
-                            (item) => item.id === configuration.schemaId,
-                          ),
-                        ),
-                      );
-                    }}
-                  >
-                    Kopie verwerfen
-                  </Button>
+                  <p className="builder-info">
+                    Die Vertragsversion ist der sichere Fallback für ältere
+                    Pfade. Im visuellen Workflow hat ein verbundener
+                    Vertragsbaustein Vorrang.
+                  </p>
+                  {!schemaDraft.contractVersionId && (
+                    <Alert variant="destructive">
+                      <AlertTriangle />
+                      <AlertDescription>
+                        Erstelle und veröffentliche zuerst einen Signal-Vertrag.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               )}
             </>
           )}
           {kind === "contract" && (
             <>
-              <Field label="Veröffentlichte Vertragsversion">
-                <select
-                  value={textValue(configuration.contractVersionId)}
-                  onChange={(event) => {
-                    const id = event.target.value;
-                    set("contractVersionId", id);
-                    const selected = trading?.signalContracts
-                      .flatMap((contract) => contract.versions)
-                      .find((version) => version.id === id);
-                    setContractDraft(
-                      selected ? structuredClone(selected.definition) : null,
-                    );
-                    setContractTouched(false);
-                  }}
-                >
-                  {trading?.signalContracts.flatMap((contract) =>
-                    contract.versions
-                      .filter((version) => version.status === "published")
-                      .map((version) => (
-                        <option key={version.id} value={version.id}>
-                          {contract.name} · v{version.version}
-                        </option>
-                      )),
-                  )}
-                </select>
+              <Field
+                label="Vertrags-ID"
+                hint={
+                  configuration.contractVersionId
+                    ? "Die logische ID eines veröffentlichten Vertrags bleibt unveränderlich."
+                    : "Kleinbuchstaben, Zahlen, Unterstrich oder Bindestrich."
+                }
+              >
+                <input
+                  aria-label="Vertrags-ID"
+                  value={contractId}
+                  disabled={Boolean(configuration.contractVersionId)}
+                  onChange={(event) => setContractId(event.target.value)}
+                />
               </Field>
               {contractDraft ? (
                 <ContractForm
@@ -1824,38 +1899,25 @@ export function ResourceEditor({
           )}
           {kind === "strategy" && (
             <>
-              <Field label="Veröffentlichte Strategie">
-                <select
-                  value={textValue(configuration.strategyVersionId)}
-                  onChange={(event) => {
-                    const id = event.target.value;
-                    set("strategyVersionId", id);
-                    const selected = trading?.strategies.find(
-                      (item) => item.id === id,
-                    );
-                    setStrategyDraft(
-                      selected ? structuredClone(selected.configuration) : null,
-                    );
-                    setStrategyTouched(false);
-                  }}
-                >
-                  {trading?.strategies
-                    .filter((item) => item.status === "published")
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} · v{item.version}
-                      </option>
-                    ))}
-                </select>
-              </Field>
               {strategyDraft ? (
-                <StrategyForm
-                  value={strategyDraft}
-                  onChange={(next) => {
-                    setStrategyDraft(next);
-                    setStrategyTouched(true);
-                  }}
-                />
+                <>
+                  {strategyDraft.allowedSignalSchemas.length === 0 && (
+                    <Alert variant="destructive">
+                      <AlertTriangle />
+                      <AlertDescription>
+                        Erstelle zuerst mindestens einen aktiven
+                        Signal-Schema-Baustein.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <StrategyForm
+                    value={strategyDraft}
+                    onChange={(next) => {
+                      setStrategyDraft(next);
+                      setStrategyTouched(true);
+                    }}
+                  />
+                </>
               ) : (
                 <Alert variant="destructive">
                   <AlertTriangle />
@@ -2136,10 +2198,10 @@ export function ResourceEditor({
             </Field>
           )}
           {archiveConfirmation && (
-            <Alert variant="destructive" className="builder-delete-confirmation">
+            <Alert className="builder-delete-confirmation">
               <AlertTriangle />
               <AlertDescription>
-                <strong>„{name}“ dauerhaft aus der Bibliothek archivieren?</strong>
+                <strong>„{name}“ aus der aktiven Bibliothek archivieren?</strong>
                 <p>
                   Der Baustein und seine Verbindungen werden aus dem aktiven
                   Canvas entfernt. Alte Revisionen bleiben für Audit und
@@ -2166,6 +2228,38 @@ export function ResourceEditor({
               </AlertDescription>
             </Alert>
           )}
+          {deleteConfirmation && (
+            <Alert variant="destructive" className="builder-delete-confirmation">
+              <AlertTriangle />
+              <AlertDescription>
+                <strong>„{name}“ unwiderruflich aus der Bibliothek löschen?</strong>
+                <p>
+                  Das ist nur möglich, wenn keine aktive oder historische
+                  Workflowrevision eine Version dieses Bausteins verwendet.
+                  Verwendete Bausteine können aus Auditgründen nur archiviert
+                  werden.
+                </p>
+                <span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDeleteConfirmation(false)}
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => void deleteResource()}
+                  >
+                    Ja, endgültig löschen
+                  </Button>
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
         <DialogFooter className="builder-modal-footer">
           {onDeleteNode && (
@@ -2181,11 +2275,21 @@ export function ResourceEditor({
           {onArchiveResource && (
             <Button
               type="button"
-              variant="destructive"
+              variant="outline"
               disabled={saving}
               onClick={() => setArchiveConfirmation(true)}
             >
-              <Trash2 data-icon="inline-start" /> Dauerhaft archivieren
+              <Archive data-icon="inline-start" /> Dauerhaft archivieren
+            </Button>
+          )}
+          {onDeleteResource && (
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={saving}
+              onClick={() => setDeleteConfirmation(true)}
+            >
+              <Trash2 data-icon="inline-start" /> Endgültig löschen
             </Button>
           )}
           <span />

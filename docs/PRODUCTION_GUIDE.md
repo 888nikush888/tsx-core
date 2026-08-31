@@ -82,7 +82,7 @@ npm audit --prefix frontend --omit=dev --audit-level=moderate
 
 ## 4. Nicht geheime Anwendungskonfiguration
 
-Im normalen Docker-Betrieb wird keine Host-Datei vorbereitet. Compose initialisiert `forwarder_config`; das Dashboard schreibt die validierte Konfiguration atomar nach `/app/config/config.json`. Unter **Signale & Nachrichten → Kanäle** werden API ID, Quellen und Ziel gepflegt, unter **Verarbeitung** und **Filter** die Routingregeln und unter **KI-Parser** Modelle, Budgets und Templates. Der Import/Export im Bereich **System & Backup** enthält ausschließlich Nicht-Secrets.
+Im normalen Docker-Betrieb wird keine Host-Datei vorbereitet. Compose initialisiert `forwarder_config`; das Dashboard schreibt die validierte Konfiguration atomar nach `/app/config/config.json`. Kanäle, Filter, Parser-Prompt, Signal-Schema, Signal-Vertrag und Strategie werden direkt als Bausteine im Builder gepflegt. Der Import/Export im Bereich **System & Backup** enthält ausschließlich Nicht-Secrets.
 
 Regeln:
 
@@ -197,7 +197,7 @@ Der Reset betrifft konkret:
 | `runtime-settings.json` | wird auf `DEFAULT_RUNTIME_SETTINGS` gesetzt; Standalone/Token/Local-Trust, Zeit-, Backup-, Retention-, Audit- und Kapazitätswerte erhalten ihre Defaults |
 | Managed-Secret-Store | Telegram API Hash, OpenRouter-Key, Admin-/Viewer-Keys, Audit-/Alert-/Backup-Tokens und AES-Schlüssel werden entfernt |
 | Trading-Credential-Store | Hyperliquid-/Bybit-Zugangsdaten und interner Executor-Key werden entfernt |
-| `templates/` | alle lokalen Template-Overrides werden geleert; der eingebaute Default-Prompt greift wieder |
+| `templates/` | nur noch für die Rückwärtskompatibilität alter Installationen erhaltene Promptdateien werden geleert; neue Builder-Prompts liegen in versionierten Bausteinen |
 | `session_data/` | SQLite einschließlich Inbox/Outbox, Signalen, Budgets, Migrationen, Signalverträgen/-profilen, Strategien, Kanalrisiko/-evaluationen, Equity-/Execution-Telemetrie, MCP-Modus/-Agenten/-Sitzungen/-Aktionen/-Requests, Routen, Intents, Orders, Fills, Positionen und Risk Events sowie Lock-/Crash-Zustand wird entfernt |
 | `session_files/` | TDLib-Dateien und lokale Telegram-Sitzung werden entfernt; eine erneute Anmeldung ist erforderlich |
 | konfiguriertes Signalverzeichnis und `signals/` | gespeicherte XML-Signale werden entfernt |
@@ -288,7 +288,7 @@ Der Dashboard-Tab **MCP-Agenten** ist ebenfalls admin-gesteuert. Agenten-Tokens 
 
 ## 10. Automatische KI-Verarbeitung ohne Human-in-the-loop
 
-Vor jedem Provideraufruf greifen Zeichen-, Token-, Request-, Tagesbudget-, Timeout-, Retry- und Backoff-Grenzen. Akzeptiert wird nur exakt gültiges XML mit erlaubten Werten, lückenlosen Targets und konsistenter LONG-/SHORT-Geometrie. Providerfehler, Timeouts, unbekannte Templates, Schemaabweichungen und Budgetüberschreitungen führen zu keiner Weiterleitung.
+Vor jedem Provideraufruf greifen Zeichen-, Token-, Request-, Tagesbudget-, Timeout-, Retry- und Backoff-Grenzen. Akzeptiert wird nur exakt gültiges XML mit erlaubten Werten, lückenlosen Targets und konsistenter LONG-/SHORT-Geometrie. Providerfehler, Timeouts, fehlende oder ungültige Baustein-Prompts, Schemaabweichungen und Budgetüberschreitungen führen zu keiner Weiterleitung.
 
 Vor Aktivierung muss unter **Signale & Nachrichten → KI-Parser** die Option **Externe Datenverarbeitung freigegeben** gesetzt werden. Diese administrative Freigabe bestätigt für alle konfigurierten Quellen Rechtsgrundlage, Data-Owner-Zustimmung, Provider-/DPA-Vertrag, Region und Retention, weil die vollständige Telegram-Nachricht an OpenRouter übertragen wird. Sie ist kein Human-in-the-loop im Nachrichtenpfad; fehlt sie, blockiert der Dienst jeden AI-Aufruf fail closed.
 

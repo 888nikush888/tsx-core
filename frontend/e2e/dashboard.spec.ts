@@ -479,6 +479,45 @@ test("the block library offers published resources for reuse and a separate crea
   await expect(
     page.getByRole("button", { name: /VIP Coinsignals Version 1/ }),
   ).toContainText("Version 1");
+  await expect(
+    page.getByRole("button", { name: "VIP Coinsignals dauerhaft archivieren" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "VIP Coinsignals endgültig löschen" }),
+  ).toBeVisible();
+});
+
+test("parser, schema, contract and strategy are authored directly in their blocks", async ({
+  page,
+}) => {
+  await mockDashboardApi(page);
+  await page.goto("/");
+  await openBuilderWorkspace(page);
+
+  const openNew = async (kindName: string) => {
+    await page.getByRole("button", { name: /Baustein$/ }).click();
+    await page.getByRole("button", { name: kindName }).click();
+    await page.getByRole("button", { name: /Neuen Baustein erstellen/ }).click();
+  };
+
+  await openNew("KI-Parser");
+  await expect(page.getByLabel("Parser-Prompt")).toBeVisible();
+  await expect(page.getByText("Prompt-Vorlage")).toHaveCount(0);
+  await page.getByRole("button", { name: "Abbrechen" }).click();
+
+  await openNew("Signal-Schema");
+  await expect(page.getByLabel("Schema-ID")).toBeVisible();
+  await expect(page.getByLabel("Parser-Schema")).toBeVisible();
+  await page.getByRole("button", { name: "Abbrechen" }).click();
+
+  await openNew("Signal-Vertrag");
+  await expect(page.getByLabel("Vertrags-ID")).toBeVisible();
+  await expect(page.getByLabel("Maximal Targets")).toBeVisible();
+  await page.getByRole("button", { name: "Abbrechen" }).click();
+
+  await openNew("Strategie");
+  await expect(page.getByLabel("Standard-Hebel")).toBeVisible();
+  await expect(page.getByLabel("Max. Slippage (%)")).toBeVisible();
 });
 
 test("workflow nodes and connections render when resize callbacks are unavailable", async ({

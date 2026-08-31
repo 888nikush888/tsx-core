@@ -26,6 +26,7 @@ import {
 } from "@xyflow/react";
 import {
   AlertTriangle,
+  Archive,
   BarChart3,
   Check,
   Filter,
@@ -811,24 +812,30 @@ function ResourceLibraryDialog({
   resources,
   placedResources,
   archiveTarget,
+  deleteTarget,
   onClose,
   onSelectKind,
   onCreate,
   onAdd,
   onSelectArchive,
+  onSelectDelete,
   onArchive,
+  onDelete,
 }: Readonly<{
   open: boolean;
   selectedKind: WorkflowKind | null;
   resources: WorkflowResource[];
   placedResources: Map<string, WorkflowGraph["nodes"][number]>;
   archiveTarget: WorkflowResource | null;
+  deleteTarget: WorkflowResource | null;
   onClose: () => void;
   onSelectKind: (kind: WorkflowKind | null) => void;
   onCreate: (kind: WorkflowKind) => void;
   onAdd: (resource: WorkflowResource) => void;
   onSelectArchive: (resource: WorkflowResource | null) => void;
+  onSelectDelete: (resource: WorkflowResource | null) => void;
   onArchive: (resource: WorkflowResource) => void;
+  onDelete: (resource: WorkflowResource) => void;
 }>) {
   return (
     <Dialog
@@ -945,6 +952,40 @@ function ResourceLibraryDialog({
                 </AlertDescription>
               </Alert>
             )}
+            {deleteTarget && (
+              <Alert
+                variant="destructive"
+                className="library-delete-confirmation"
+              >
+                <AlertTriangle />
+                <AlertDescription>
+                  <strong>„{deleteTarget.name}“ endgültig löschen?</strong>
+                  <p>
+                    Das ist nur möglich, wenn keine historische oder aktive
+                    Workflowrevision eine Version dieses Bausteins verwendet.
+                    Andernfalls bleibt aus Auditgründen nur Archivieren.
+                  </p>
+                  <span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSelectDelete(null)}
+                    >
+                      Abbrechen
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onDelete(deleteTarget)}
+                    >
+                      Ja, endgültig löschen
+                    </Button>
+                  </span>
+                </AlertDescription>
+              </Alert>
+            )}
             {resources
               .filter((resource) => resource.kind === selectedKind)
               .map((resource) => {
@@ -984,9 +1025,19 @@ function ResourceLibraryDialog({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      className="library-resource-delete"
+                      className="library-resource-archive"
                       aria-label={`${resource.name} dauerhaft archivieren`}
                       onClick={() => onSelectArchive(resource)}
+                    >
+                      <Archive />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="library-resource-delete"
+                      aria-label={`${resource.name} endgültig löschen`}
+                      onClick={() => onSelectDelete(resource)}
                     >
                       <Trash2 />
                     </Button>
@@ -1112,6 +1163,8 @@ export function WorkflowBuilder() {
   const [libraryKind, setLibraryKind] = useState<WorkflowKind | null>(null);
   const [libraryArchiveTarget, setLibraryArchiveTarget] =
     useState<WorkflowResource | null>(null);
+  const [libraryDeleteTarget, setLibraryDeleteTarget] =
+    useState<WorkflowResource | null>(null);
   const [simulationOpen, setSimulationOpen] = useState(false);
   const [simulation, setSimulation] = useState({
     channelId: "",
@@ -1148,6 +1201,7 @@ export function WorkflowBuilder() {
     setKindPickerOpen(false);
     setLibraryKind(null);
     setLibraryArchiveTarget(null);
+    setLibraryDeleteTarget(null);
     window.setTimeout(() => libraryTriggerRef.current?.focus(), 0);
   }, []);
   const closeSimulation = useCallback(() => {
@@ -2046,6 +2100,8 @@ export function WorkflowBuilder() {
       base ? `${value.name} aktualisiert` : `${value.name} hinzugefügt`,
     );
     if (activated) {
+      const tradingPayload = await jsonRequest("/api/trading");
+      setTrading(tradingSnapshot(tradingPayload));
       setSnapshot((previous) => ({
         ...previous,
         resources: [...previous.resources, resource],
@@ -2064,6 +2120,7 @@ export function WorkflowBuilder() {
       setKindPickerOpen(false);
       setLibraryKind(null);
       setLibraryArchiveTarget(null);
+      setLibraryDeleteTarget(null);
       setSearch("");
       setNotice({
         tone: "warning",
@@ -2133,10 +2190,34 @@ export function WorkflowBuilder() {
     });
     setEditorNodeId(null);
     setLibraryArchiveTarget(null);
+    setLibraryDeleteTarget(null);
     await load();
     setNotice({
       tone: "ok",
       text: `${resource.name} wurde dauerhaft aus der aktiven Bibliothek archiviert. Alte Revisionen bleiben prüfbar.`,
+    });
+  };
+
+  const deleteResourceFamily = async (resource: WorkflowResource) => {
+    await jsonRequest("/api/workflow/resources", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Destructive-Confirmation":
+          "delete-workflow-resource-permanently",
+      },
+      body: JSON.stringify({
+        resourceId: resource.resourceId,
+        operation: "delete",
+      }),
+    });
+    setEditorNodeId(null);
+    setLibraryArchiveTarget(null);
+    setLibraryDeleteTarget(null);
+    await load();
+    setNotice({
+      tone: "ok",
+      text: `${resource.name} wurde endgültig gelöscht.`,
     });
   };
 
@@ -2619,6 +2700,11 @@ export function WorkflowBuilder() {
             ? () => archiveResourceFamily(selectedResource)
             : undefined
         }
+        onDeleteResource={
+          selectedResource
+            ? () => deleteResourceFamily(selectedResource)
+            : undefined
+        }
         onConfigureAccount={configureAccount}
       />
       <ResourceLibraryDialog
@@ -2627,6 +2713,7 @@ export function WorkflowBuilder() {
         resources={publishedLibrary}
         placedResources={placedResources}
         archiveTarget={libraryArchiveTarget}
+        deleteTarget={libraryDeleteTarget}
         onClose={closeLibrary}
         onSelectKind={setLibraryKind}
         onCreate={(kind) => {
@@ -2635,9 +2722,24 @@ export function WorkflowBuilder() {
           setLibraryKind(null);
         }}
         onAdd={(resource) => void addExistingResource(resource)}
-        onSelectArchive={setLibraryArchiveTarget}
+        onSelectArchive={(resource) => {
+          setLibraryArchiveTarget(resource);
+          if (resource) setLibraryDeleteTarget(null);
+        }}
+        onSelectDelete={(resource) => {
+          setLibraryDeleteTarget(resource);
+          if (resource) setLibraryArchiveTarget(null);
+        }}
         onArchive={(resource) =>
           void archiveResourceFamily(resource).catch((error) => {
+            setNotice({
+              tone: "error",
+              text: error instanceof Error ? error.message : String(error),
+            });
+          })
+        }
+        onDelete={(resource) =>
+          void deleteResourceFamily(resource).catch((error) => {
             setNotice({
               tone: "error",
               text: error instanceof Error ? error.message : String(error),

@@ -24,7 +24,6 @@ import {
 import type { ManagedSecretStore } from './secret_store.js';
 import type { TelegramLoginSnapshot } from './telegram_login.js';
 import type { ManagedRuntimeSettingsStore } from './runtime_settings.js';
-import { DEFAULT_SIGNAL_PROMPT } from './signal_parser.js';
 import type { TradingWebControl } from './trading_web_control.js';
 import {
   approveMcpProposal,
@@ -48,6 +47,7 @@ import {
   archiveWorkflowResourceFamily,
   createWorkflowResourceDraft,
   clearWorkflowBuilderHistory,
+  deleteWorkflowResourceFamily,
   deleteWorkflowResourceDraft,
   getActiveWorkflow,
   getWorkflowBuilderHistoryStatus,
@@ -92,7 +92,6 @@ import {
 } from './viewer_projection.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_TEMPLATES_DIR = path.join(__dirname, '../templates');
 const STATIC_ROOT = path.resolve(__dirname, '../frontend/dist');
 const SETUP_PREVIEW_TTL_MS = 15 * 60 * 1_000;
 const SETUP_APPLY_CONFIRMATION = 'REPLACE EXISTING SETUP';
@@ -138,10 +137,6 @@ const MIME_TYPES: Record<string, string> = {
   '.ico': 'image/x-icon',
   '.json': 'application/json',
 };
-
-function templatesDirectory(): string {
-  return path.resolve(process.env.TEMPLATES_DIR?.trim() || DEFAULT_TEMPLATES_DIR);
-}
 
 interface WebServerState {
   config: any;
@@ -1159,88 +1154,6 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
   }
 }
 
-async function readTemplate(file: string): Promise<string | null> {
-  try {
-    return await fsPromises.readFile(path.join(templatesDirectory(), file), 'utf8');
-  } catch (error) {
-    addLog(`[WARN] Template '${file}' could not be read: ${errorMessage(error)}`);
-    return null;
-  }
-}
-
-async function getTemplatesHandler(context: RequestContext): Promise<void> {
-  try {
-    const directory = templatesDirectory();
-    await fsPromises.mkdir(directory, { recursive: true });
-    const files = await fsPromises.readdir(directory);
-    const defaultOverride = files.includes('default.txt') ? await readTemplate('default.txt') : null;
-    const templates: Record<string, string> = {
-      default: defaultOverride?.trim() ? defaultOverride : DEFAULT_SIGNAL_PROMPT,
-    };
-    for (const file of files.filter((name) => name.endsWith('.txt') && name !== 'default.txt')) {
-      const content = await readTemplate(file);
-      if (content !== null) templates[file.slice(0, -4)] = content;
-    }
-    sendJson(context.res, 200, { templates });
-  } catch (error) {
-    sendError(context, error);
-  }
-}
-
-function requireTemplateName(name: unknown): string {
-  if (typeof name !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(name)) {
-    throw new HttpError(400, 'Invalid template name.');
-  }
-  return name;
-}
-
-async function postTemplateHandler(context: RequestContext): Promise<void> {
-  try {
-    const payload = await readJsonBody(context.req, 128 * 1024);
-    const name = requireTemplateName(payload.name);
-    if (typeof payload.content !== 'string' || Buffer.byteLength(payload.content, 'utf8') > 96 * 1024) {
-      throw new HttpError(400, 'Template content must be a string no larger than 96 KiB.');
-    }
-    if (name === 'default' && !payload.content.trim()) {
-      throw new HttpError(400, 'The default template override must not be empty.');
-    }
-    const directory = templatesDirectory();
-    await fsPromises.mkdir(directory, { recursive: true });
-    const destination = path.join(directory, `${name}.txt`);
-    const temporary = `${destination}.${process.pid}.${Date.now()}.tmp`;
-    try {
-      await fsPromises.writeFile(temporary, payload.content, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
-      await fsPromises.rename(temporary, destination);
-    } catch (error) {
-      await fsPromises.unlink(temporary).catch(() => undefined);
-      throw error;
-    }
-    addLog(`[INFO] request_id=${context.requestId} Template '${name}' saved.`);
-    sendJson(context.res, 200, { success: true, requestId: context.requestId });
-  } catch (error) {
-    sendError(context, error);
-  }
-}
-
-async function deleteTemplateHandler(context: RequestContext): Promise<void> {
-  const name = context.parsedUrl.searchParams.get('name');
-  if (!name || !/^[a-zA-Z0-9_-]{1,64}$/.test(name)) {
-    sendJson(context.res, 400, { error: 'Invalid template name for deletion.' });
-    return;
-  }
-  try {
-    await fsPromises.unlink(path.join(templatesDirectory(), `${name}.txt`));
-    addLog(`[INFO] Template '${name}' deleted via Web Dashboard.`);
-    sendJson(context.res, 200, { success: true });
-  } catch (error: any) {
-    if (error?.code === 'ENOENT') {
-      sendJson(context.res, 404, { error: 'Template not found.' });
-      return;
-    }
-    sendError(context, error);
-  }
-}
-
 function requireCurrentVerifiedBackup(context: RequestContext): void {
   const operations = context.appState.getOperationsStatus?.() as any;
   const backup = operations?.backup;
@@ -1878,13 +1791,31 @@ async function publishWorkflowResourceHandler(context: RequestContext): Promise<
 }
 
 async function deleteWorkflowResourceHandler(context: RequestContext): Promise<void> {
-  if (!requireConfirmation(context, 'delete-workflow-resource', 'Explicit workflow resource deletion confirmation required.')) return;
   try {
     const payload = await readJsonBody(context.req, 8 * 1024);
+    const operation = payload.operation ?? 'archive';
+    if (operation !== 'archive' && operation !== 'delete') {
+      throw new HttpError(400, 'Workflow resource operation must be archive or delete.');
+    }
+    const confirmation = operation === 'delete'
+      ? 'delete-workflow-resource-permanently'
+      : 'delete-workflow-resource';
+    const message = operation === 'delete'
+      ? 'Explicit permanent workflow resource deletion confirmation required.'
+      : 'Explicit workflow resource archival confirmation required.';
+    if (!requireConfirmation(context, confirmation, message)) return;
     if (typeof payload.resourceId === 'string') {
+      if (operation === 'delete') {
+        const deleted = await deleteWorkflowResourceFamily(payload.resourceId);
+        sendJson(context.res, 200, { success: true, result: { deleted }, requestId: context.requestId });
+        return;
+      }
       const archived = await archiveWorkflowResourceFamily(payload.resourceId);
       sendJson(context.res, 200, { success: true, result: { archived }, requestId: context.requestId });
       return;
+    }
+    if (operation === 'delete') {
+      throw new Error('Permanent workflow resource deletion requires a logical resource identifier.');
     }
     const resource = (await listWorkflowResources()).find(item => item.id === payload.id);
     if (!resource) throw new Error('Workflow resource does not exist.');
@@ -2222,9 +2153,6 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/setup-bundle/export', exportSetupBundleHandler],
   ['POST /api/setup-bundle/preview', previewSetupBundleHandler],
   ['POST /api/setup-bundle/apply', applySetupBundleHandler],
-  ['GET /api/templates', getTemplatesHandler],
-  ['POST /api/templates', postTemplateHandler],
-  ['DELETE /api/templates', deleteTemplateHandler],
   ['POST /api/factory-reset', factoryResetHandler],
   ['POST /api/clear-database', clearDatabaseHandler],
   ['GET /api/operations', operationsHandler],

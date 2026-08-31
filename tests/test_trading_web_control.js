@@ -154,7 +154,9 @@ try {
     enabled: false,
   });
   assert.equal(editedSchema.enabled, false);
-  assert.equal(editedSchema.parserSchema, 'cryptodanielvip');
+  assert.equal(editedSchema.parserSchema, 'standard',
+    'Changing the fallback contract must not silently replace the explicitly selected parser schema.');
+  assert.equal(editedSchema.contractVersionId, 'cryptodanielvip:v1');
   assert.equal((await control.snapshot()).signalSchemas.some(schema => schema.id === 'web-desk'), true);
   assert.equal(await control.removeSignalSchema('web-desk'), true);
   const contractDefinition = structuredClone(

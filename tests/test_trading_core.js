@@ -872,6 +872,18 @@ async function testSignalSchemaRepository() {
   }, 1_700_000_000_010);
   assert.equal(created.id, 'desk-alpha');
   assert.equal((await getTradingSignalSchemaForTemplate('DESK-ALPHA-TEMPLATE')).id, 'desk-alpha');
+  const independentlyConfigured = await createTradingSignalSchema({
+    id: 'independent-parser-contract',
+    name: 'Independent parser and contract',
+    description: 'The executable parser schema must not be overwritten by the fallback contract.',
+    parserSchema: 'loma',
+    contractVersionId: 'standard:v1',
+    templateName: 'independent-parser-contract',
+    enabled: true,
+  });
+  assert.equal(independentlyConfigured.parserSchema, 'loma');
+  assert.equal(independentlyConfigured.contractVersionId, 'standard:v1');
+  await deleteTradingSignalSchema(independentlyConfigured.id);
   await assert.rejects(createTradingSignalSchema({
     id: 'desk-beta', name: 'Desk Beta', parserSchema: 'standard',
     templateName: 'DESK-ALPHA-TEMPLATE', enabled: true,

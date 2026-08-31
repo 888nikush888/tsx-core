@@ -44,7 +44,7 @@ Der aktuelle Stand ergänzt den Blueprint um weitere fail-closed Kontrollen:
 - **Execution-Telemetrie:** Persistierte Ereignisse messen die Kette von Signalempfang über Exchange-Ack/First Fill bis Positionsschluss und speisen Latenz-/Funnel-Auswertung.
 - **Tailnet und Agenten:** Tailscale Serve ermöglicht Remote-Zugriff ohne öffentlichen Port; der standardmäßig mitgestartete, ab Werk logisch deaktivierte MCP-Dienst besitzt gehashte Agenten-Tokens, dauerhafte Rechte, persistente Aktiv-/Standby-/Deaktiviert-Modi, Ereignis-Push und eine auditierte Kontrollbrücke.
 - **Manueller Alternativmodus:** Für Strategien, die nicht die Blueprint-Staffel verwenden, bleiben exakt summierte TP-Prozente sowie konfiguriertes Break-even und Prozent-Trailing verfügbar.
-- **Immutability:** Publizierte Workflowressourcen, Strategie- und Vertragsversionen bleiben unveränderlich. Auch der konkrete Parser-Prompt liegt in der gehashten Ressourcenrevision; globale Templates können aktive Pfade nicht rückwirkend verändern.
+- **Immutability:** Publizierte Workflowressourcen, Strategie- und Vertragsversionen bleiben unveränderlich. Auch der konkrete Parser-Prompt liegt in der gehashten Ressourcenrevision; eine separate globale Prompt-Vorlagenverwaltung existiert nicht mehr.
 
 ## Web-UI-Abdeckung
 

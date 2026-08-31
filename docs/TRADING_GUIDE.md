@@ -46,7 +46,11 @@ Inhaltstyp, Keyword- und Regex-Filter laufen vor dem KI-Aufruf. Regex erhält Re
 
 ### Parser
 
-Der Parser-Dialog verwaltet Prompt-Vorlage, Primär-/Fallbackmodell und ein Zeitlimit zwischen 2 und 120 Sekunden. Der konkrete Prompttext wird direkt im Parser-Baustein gespeichert und durch dessen Konfigurationshash unveränderlich an die Revision gebunden. Eine spätere Änderung der gleichnamigen globalen Vorlage verändert einen aktiven Workflow nicht. Serverseitige Schutz- und Grounding-Regeln bleiben nicht editierbar und werden zusätzlich angehängt. Der Parser-Baustein erzwingt Datenbankspeicherung.
+Der Parser-Dialog verwaltet den Prompt direkt im Baustein sowie Primär-/Fallbackmodell und ein Zeitlimit zwischen 2 und 120 Sekunden. Eine separate globale Prompt-Vorlagenverwaltung gibt es nicht mehr. Der konkrete Prompttext wird durch den Konfigurationshash unveränderlich an die Bausteinrevision gebunden. Serverseitige Schutz- und Grounding-Regeln bleiben nicht editierbar und werden zusätzlich angehängt. Der Parser-Baustein erzwingt Datenbankspeicherung.
+
+Signal-Schema, Signal-Vertrag und Strategie werden ebenfalls direkt in ihrem jeweiligen Baustein erstellt und bearbeitet. Beim Speichern erzeugt TSX Core die notwendige unveränderliche Fachversion und trägt deren ID automatisch in den Baustein ein; eine bereits vorhandene Version muss beim Anlegen nicht mehr ausgewählt werden. Änderungen an einem verwendeten Signal-Schema erzeugen automatisch eine neue eindeutige Schema-ID, statt das bestehende Profil rückwirkend zu verändern.
+
+Für gespeicherte Bausteine sind drei Aktionen bewusst getrennt: **Nur vom Canvas lösen** entfernt ausschließlich die aktive Platzierung, **Archivieren** entfernt die Familie aus der aktiven Bibliothek und erhält die Audit-Historie, **Endgültig löschen** entfernt alle Versionen der Familie. Eine endgültige Löschung ist nur zulässig, solange keine aktive oder historische Workflowrevision eine dieser Versionen referenziert; andernfalls bleibt der Vorgang fail-closed und der Baustein kann nur archiviert werden.
 
 Identische Parser-, Schema-, Vertrags- und Dedupe-Konfigurationen mehrerer Börsenzweige werden gruppiert. Das Telegram-Signal wird einmal geparst und erst danach in unabhängige Trade Intents aufgefächert.
 Duplikate werden innerhalb dieser unveränderlichen Pfadgruppe erkannt. Zwei bewusst unterschiedliche Parser- oder Vertragszweige blockieren sich daher nicht gegenseitig.

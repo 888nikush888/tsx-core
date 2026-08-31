@@ -654,6 +654,39 @@ export async function deleteWorkflowResourceDraft(id: string): Promise<boolean> 
   return Number(result.changes || 0) === 1;
 }
 
+export async function deleteWorkflowResourceFamily(resourceId: string): Promise<number> {
+  const logicalId = stringValue(resourceId, 'Workflow resource identifier', 128);
+  return withDatabaseTransaction(async database => {
+    const rows = await database.all<Array<{ id: string }>>(
+      'SELECT id FROM workflow_resource_versions WHERE resource_id = ?',
+      [logicalId],
+    );
+    if (rows.length === 0) throw new Error('Workflow resource family does not exist.');
+    const versionIds = new Set(rows.map(row => String(row.id)));
+    const revisions = await database.all<Array<{ id: string; graph_json: string }>>(
+      'SELECT id, graph_json FROM workflow_revisions ORDER BY revision',
+    );
+    for (const revision of revisions) {
+      const graph = parseJson<WorkflowGraph>(revision.graph_json, `workflow revision ${revision.id} graph`);
+      if (graph.nodes.some(node => versionIds.has(node.resourceVersionId))) {
+        throw new Error(
+          'Workflow resource deletion is blocked because historical workflow revisions reference it. Archive it instead.',
+        );
+      }
+    }
+    const result = await database.run(
+      'DELETE FROM workflow_resource_versions WHERE resource_id = ?',
+      [logicalId],
+    );
+    const deleted = Number(result.changes || 0);
+    if (deleted !== rows.length) {
+      throw new Error('The workflow resource family changed while it was being deleted.');
+    }
+    await clearWorkflowBuilderHistory('unused workflow resource family permanently deleted');
+    return deleted;
+  });
+}
+
 function workflowEdgeKind(edge: Record<string, any>, id: string, schemaVersion: 1 | 2 | 3): WorkflowEdge['kind'] {
   const kind = edge.kind === undefined && schemaVersion === 1 ? undefined : edge.kind;
   if ((schemaVersion === 2 || schemaVersion === 3) && kind !== 'flow' && kind !== 'account_fallback') {

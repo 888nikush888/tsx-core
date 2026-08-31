@@ -61,9 +61,18 @@ function editor(
   kind: any,
   onSave = vi.fn(async () => true),
   snapshot: any = trading,
+  resource: any = null,
 ) {
-  render(<ResourceEditor open kind={kind} resource={null} trading={snapshot} onClose={vi.fn()} onSave={onSave} />)
+  render(<ResourceEditor open kind={kind} resource={resource} trading={snapshot} onClose={vi.fn()} onSave={onSave} />)
   return onSave
+}
+
+function workflowResource(kind: any, configuration: Record<string, unknown>) {
+  return {
+    id: `${kind}-resource-v1`, resourceId: `${kind}-resource`, version: 1, kind,
+    name: `Existing ${kind}`, description: '', status: 'published', configuration,
+    configurationSha256: 'a'.repeat(64), createdAt: 1, publishedAt: 1,
+  }
 }
 
 describe('workflow resource contracts', () => {
@@ -130,7 +139,7 @@ describe('workflow resource contracts', () => {
     expect(submitted).not.toHaveProperty('strategyId')
     expect(submitted.configuration).toMatchObject({
       allowedSignalSchemas: ['standard'],
-      sizing: { defaultLeverage: 5, maxLeverage: 3 },
+      sizing: { defaultLeverage: 5, maxLeverage: 5 },
     })
   })
 
@@ -140,7 +149,10 @@ describe('workflow resource contracts', () => {
       if (url === '/api/trading/strategies/publish') return response({ result: { id: 'strategy-v2' } })
       return response({ success: true, result: {} })
     })
-    const onSave = editor('strategy')
+    const onSave = editor(
+      'strategy', undefined, trading,
+      workflowResource('strategy', { strategyVersionId: 'strategy-v1' }),
+    )
     expect(screen.getByLabelText(/Standard-Hebel/)).toHaveValue(50)
     fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '7' } })
     fireEvent.change(screen.getByLabelText('Max. Slippage (%)'), { target: { value: '0.75' } })
@@ -165,7 +177,10 @@ describe('workflow resource contracts', () => {
     expect(sizingSave).not.toHaveBeenCalled()
     cleanup()
 
-    const strategySave = editor('strategy')
+    const strategySave = editor(
+      'strategy', undefined, trading,
+      workflowResource('strategy', { strategyVersionId: 'strategy-v1' }),
+    )
     fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '20' } })
     fireEvent.change(screen.getByLabelText(/Maximaler Hebel/), { target: { value: '10' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
@@ -179,7 +194,10 @@ describe('workflow resource contracts', () => {
       if (url.endsWith('/publish')) return response({ result: { id: 'standard:v2' } })
       return response({ result: { id: 'standard:v2' } })
     })
-    const onSave = editor('contract')
+    const onSave = editor(
+      'contract', undefined, trading,
+      workflowResource('contract', { contractVersionId: 'standard:v1' }),
+    )
     fireEvent.change(screen.getByLabelText('Maximal Targets'), { target: { value: '10' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ configuration: { contractVersionId: 'standard:v2' } })))
@@ -246,7 +264,10 @@ describe('workflow resource contracts', () => {
       if (url === '/api/trading/signal-schemas') return response({ result: { id: 'standard-copy' } }, 201)
       return response({ success: true, result: {} })
     })
-    const onSave = editor('schema')
+    const onSave = editor(
+      'schema', undefined, trading,
+      workflowResource('schema', { schemaId: 'standard' }),
+    )
     expect(screen.getByLabelText('Schema-Name')).toHaveValue('Standard')
     fireEvent.change(screen.getByLabelText('Schema-Name'), { target: { value: 'Standard Copy' } })
     await waitFor(() => expect(screen.getByLabelText('Neue Schema-ID')).toHaveValue('standard-copy'))
@@ -284,7 +305,7 @@ describe('workflow resource contracts', () => {
     expect(onDeleteNode).toHaveBeenCalledOnce()
     expect(onArchiveResource).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Dauerhaft archivieren' }))
-    expect(screen.getByText(/dauerhaft aus der Bibliothek archivieren/)).toBeInTheDocument()
+    expect(screen.getByText(/aus der aktiven Bibliothek archivieren/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Ja, dauerhaft archivieren' }))
     await waitFor(() => expect(onArchiveResource).toHaveBeenCalledOnce())
     expect(onDeleteResource).not.toHaveBeenCalled()
