@@ -1148,6 +1148,13 @@ function restoreTriggerFocusWhenClosed(
     window.setTimeout(() => triggerRef.current?.focus(), 0);
 }
 
+function workflowRenderMode(
+  loading: boolean,
+  activeWorkspace: WorkflowWorkspace,
+): WorkflowWorkspace | "loading" {
+  return loading ? "loading" : activeWorkspace;
+}
+
 export function WorkflowBuilder() {
   const [snapshot, setSnapshot] = useState<WorkflowSnapshot>({
     workflow: null,
@@ -2302,69 +2309,70 @@ export function WorkflowBuilder() {
     }
   };
 
-  if (loading)
-    return (
-      <div className="builder-loading">
-        <Logo variant="mark" size={32} />
-        <span>Lade aktive Workflow-Revision…</span>
-      </div>
-    );
-
-  if (activeWorkspace === "analytics") {
-    return (
-      <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
-        <WorkflowTopbar />
-        <WorkflowNavigation activeWorkspace={activeWorkspace} onChange={setActiveWorkspace} />
-        <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
-          <div className="workflow-status-tools" style={{ marginLeft: 0, width: "100%" }}>
-            <span className="workspace-last-updated" style={{ marginRight: "auto" }}>
-              {lastUpdated ? `zuletzt aktualisiert ${new Date(lastUpdated).toLocaleTimeString("de-DE")}` : "noch nicht aktualisiert"}
-            </span>
-            <Button type="button" variant="outline" size="sm" onClick={() => setAnalyticsFiltersOpen((value) => !value)}>
-              <Filter size={14} data-icon="inline-start" /> Filter
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => void refreshOperationalState()}>
-              <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
-            </Button>
-          </div>
-        </section>
-        <OperationsWorkspace
-          trading={trading}
-          catalog={catalog}
-          systemStatus={systemStatus}
-          onRefresh={refreshOperationalState}
-          initialTab="analytics"
-          availableTabs={["analytics"]}
-          ariaLabel="Analytics"
-          filtersOpen={analyticsFiltersOpen}
-        />
-      </main>
-    );
-  }
-  if (activeWorkspace === "dashboard") {
-    return (
-      <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
-        <WorkflowTopbar />
-        <WorkflowNavigation activeWorkspace={activeWorkspace} onChange={setActiveWorkspace} />
-        <WorkspaceStatusbar
-          workspace={activeWorkspace}
-          onRefresh={refreshOperationalState}
-          trading={trading}
-          systemStatus={systemStatus}
-          refreshing={refreshing}
-          lastUpdated={lastUpdated}
-        />
-        <OperationsWorkspace
-          trading={trading}
-          catalog={catalog}
-          systemStatus={systemStatus}
-          onRefresh={refreshOperationalState}
-          initialTab="overview"
-          availableTabs={["overview"]}
-          ariaLabel="Dashboard"
-        />
-      </main>
-    );
+  switch (workflowRenderMode(loading, activeWorkspace)) {
+    case "loading":
+      return (
+        <div className="builder-loading">
+          <Logo variant="mark" size={32} />
+          <span>Lade aktive Workflow-Revision…</span>
+        </div>
+      );
+    case "analytics":
+      return (
+        <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
+          <WorkflowTopbar />
+          <WorkflowNavigation activeWorkspace={activeWorkspace} onChange={setActiveWorkspace} />
+          <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
+            <div className="workflow-status-tools" style={{ marginLeft: 0, width: "100%" }}>
+              <span className="workspace-last-updated" style={{ marginRight: "auto" }}>
+                {lastUpdated ? `zuletzt aktualisiert ${new Date(lastUpdated).toLocaleTimeString("de-DE")}` : "noch nicht aktualisiert"}
+              </span>
+              <Button type="button" variant="outline" size="sm" onClick={() => setAnalyticsFiltersOpen((value) => !value)}>
+                <Filter size={14} data-icon="inline-start" /> Filter
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => void refreshOperationalState()}>
+                <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
+              </Button>
+            </div>
+          </section>
+          <OperationsWorkspace
+            trading={trading}
+            catalog={catalog}
+            systemStatus={systemStatus}
+            onRefresh={refreshOperationalState}
+            initialTab="analytics"
+            availableTabs={["analytics"]}
+            ariaLabel="Analytics"
+            filtersOpen={analyticsFiltersOpen}
+          />
+        </main>
+      );
+    case "dashboard":
+      return (
+        <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
+          <WorkflowTopbar />
+          <WorkflowNavigation activeWorkspace={activeWorkspace} onChange={setActiveWorkspace} />
+          <WorkspaceStatusbar
+            workspace="dashboard"
+            onRefresh={refreshOperationalState}
+            trading={trading}
+            systemStatus={systemStatus}
+            refreshing={refreshing}
+            lastUpdated={lastUpdated}
+          />
+          <OperationsWorkspace
+            trading={trading}
+            catalog={catalog}
+            systemStatus={systemStatus}
+            onRefresh={refreshOperationalState}
+            initialTab="overview"
+            availableTabs={["overview"]}
+            ariaLabel="Dashboard"
+          />
+        </main>
+      );
+    default:
+      break;
   }
   return (
     <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
