@@ -1457,6 +1457,7 @@ export async function deleteTradingAccount(id: string): Promise<boolean> {
       if (isForeignKeyConstraint(error)) {
         throw new Error(
           'Account deletion is blocked because retained operational or protection history references it. Disable it instead.',
+          { cause: error },
         );
       }
       throw error;
