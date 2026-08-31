@@ -1030,6 +1030,21 @@ async function testRepositoryRouting(defaults, accounts) {
   await assert.rejects(deleteTradingAccount(removableAccount.id), /all routes to be removed/);
   assert.equal(await deleteTradingRoute('-temporary'), true);
   assert.equal(await deleteTradingAccount(removableAccount.id), true);
+
+  const retainedHistoryAccount = await createTradingAccount({
+    name: 'Retained account history', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
+  });
+  await getDatabase().run(
+    `INSERT INTO trading_reconciliation_runs (
+       id, account_id, status, last_error, started_at, completed_at
+     ) VALUES ('retained-account-reconciliation', ?, 'failed', 'test failure', ?, ?)`,
+    [retainedHistoryAccount.id, Date.now(), Date.now()],
+  );
+  await assert.rejects(
+    deleteTradingAccount(retainedHistoryAccount.id),
+    /retained operational or protection history references it/i,
+    'Account deletion must return a stable domain error instead of leaking a SQLite foreign-key failure.',
+  );
 }
 
 async function testOperationalDatabaseClearPreservesTrading() {

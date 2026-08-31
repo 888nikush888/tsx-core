@@ -776,6 +776,70 @@ async function testRemoteAccountIdentityBinding(directory) {
   await closeDb();
 }
 
+async function testReconciliationDigestAcceptsMissingClientOrderIds(directory) {
+  await initDb(path.join(directory, 'nullable-client-order-digest.db'));
+  await seedTradingFixtures();
+  const [account] = await listTradingAccounts();
+  const terminalOrder = (exchangeOrderId, status) => ({
+    clientOrderId: null,
+    exchangeOrderId,
+    status,
+    filledQuantity: status === 'filled' ? '1' : '0',
+    averagePrice: status === 'filled' ? '3000' : null,
+    error: null,
+    raw: {},
+    symbol: 'ETHUSDT',
+    role: 'entry',
+    side: 'buy',
+    quantity: '1',
+    price: '3000',
+    triggerPrice: null,
+    reduceOnly: false,
+  });
+  const adapter = {
+    exchange: 'paper',
+    openState: async () => ({
+      orders: [
+        terminalOrder('remote-order-b', 'cancelled'),
+        terminalOrder('remote-order-a', 'filled'),
+      ],
+      positions: [],
+      fills: [{
+        exchangeFillId: 'remote-fill-a',
+        clientOrderId: null,
+        exchangeOrderId: 'remote-order-a',
+        price: '3000',
+        quantity: '1',
+        fee: '0',
+        feeAsset: null,
+        filledAt: Date.now(),
+        raw: {},
+      }],
+      observedAt: Date.now(),
+    }),
+  };
+
+  await new TradingEngine([adapter]).reconcileAccount(account.id);
+
+  assert.equal(
+    (await getDatabase().get(
+      "SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ? AND status = 'succeeded'",
+      [account.id],
+    )).count,
+    1,
+    'A valid remote snapshot must remain digestible when the exchange omits client order identifiers.',
+  );
+  assert.equal(
+    (await getDatabase().get(
+      "SELECT COUNT(*) AS count FROM trading_account_incidents WHERE account_id = ? AND category = 'unresolved_fill'",
+      [account.id],
+    )).count,
+    1,
+    'Unmapped fills remain visible as a warning instead of crashing reconciliation.',
+  );
+  await closeDb();
+}
+
 async function testProtectionOnlyStartupRequiresExplicitEntryEnable(directory) {
   const { paper, intent } = await setup(path.join(directory, 'protection-only-startup.db'));
   const runtime = new TradingRuntime(new TradingEngine([paper]), 60_000);
@@ -1072,6 +1136,7 @@ async function run() {
     await testEntryExpiryFailureActivatesKillSwitch(directory);
     await testRuntimeIsolatesAccountFailures(directory);
     await testRemoteAccountIdentityBinding(directory);
+    await testReconciliationDigestAcceptsMissingClientOrderIds(directory);
     await testProtectionOnlyStartupRequiresExplicitEntryEnable(directory);
     await testClockDriftBlocksEveryEntryPath(directory);
     await testAccountDailyRiskIncludesExistingLoss(directory);
