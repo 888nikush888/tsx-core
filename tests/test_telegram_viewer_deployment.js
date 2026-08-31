@@ -56,6 +56,16 @@ assert.match(dockerfile, /\/runtime\/app\/telegram_viewer_secrets/);
 assert.strictEqual(packageJson.scripts['start:telegram-viewer'], 'node dist/telegram_viewer/runtime.js');
 assert.match(forwarder, /telegramViewerSettingsFromEnvironment/);
 assert.match(forwarder, /telegramViewerSecretStoreFromEnvironment/);
+const configuredModeStart = forwarder.indexOf('async function runConfiguredMode');
+const configuredModeEnd = forwarder.indexOf('\nasync function run()', configuredModeStart);
+assert.ok(configuredModeStart >= 0 && configuredModeEnd > configuredModeStart);
+const configuredMode = forwarder.slice(configuredModeStart, configuredModeEnd);
+assert.match(configuredMode, /startForwardingNonInteractive\(runtime\.config\)/);
+assert.doesNotMatch(
+  configuredMode,
+  /routingConfigurationIsComplete/,
+  'Startup must let the workflow-aware routing path merge Builder channels before validation.',
+);
 assert.doesNotMatch(viewerSource, /from ['"]\.\.\/(trading_engine|trading_runtime|ccxt_exchange|mcp_|trading_credentials)/);
 assert.doesNotMatch(viewerSource, /credential_ref|MANAGED_SECRET_DIR|EXCHANGE_EXECUTOR_URL/);
 

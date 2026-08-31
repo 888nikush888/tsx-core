@@ -2026,17 +2026,14 @@ async function getTelegramViewerServiceStatus(secrets: TelegramViewerSecretStore
 }
 
 async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<boolean> {
-  const { apiId, apiHash } = routingCredentials(runtime.config);
-  if (!routingConfigurationIsComplete(runtime.config, apiId, apiHash)) {
-    state.connectionState = 'configuration-required';
-    addLog('[INFO] Web setup required; routing remains stopped until configuration is complete.');
-    return false;
-  }
   addLog('[INFO] Starting configured Docker service.');
   try {
     await startForwardingNonInteractive(runtime.config);
     return true;
   } catch (error: any) {
+    if (error?.message === 'Non-interactive routing configuration is incomplete.') {
+      state.connectionState = 'configuration-required';
+    }
     addLog(`[ERROR] Automatic routing start failed; dashboard remains available: ${error.message}`);
     return false;
   }
