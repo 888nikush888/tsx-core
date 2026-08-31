@@ -13,6 +13,7 @@ import {
   archiveWorkflowResourceFamily,
   createWorkflowResourceDraft,
   createWorkflowTradingIntents,
+  deleteWorkflowResourceFamily,
   deleteWorkflowResourceDraft,
   getActiveWorkflow,
   getWorkflowSignalPlans,
@@ -244,6 +245,20 @@ try {
   assert.equal((await archiveWorkflowResourceFamily(removableV1.resourceId)).length, 2);
   assert.equal(
     (await listWorkflowResources('output')).filter(item => item.resourceId === removableV1.resourceId && item.status === 'published').length,
+    0,
+  );
+
+  const deletableV1 = await resource('output', 'Deletable family v1', { mode: 'none' });
+  const deletableV2Draft = await createWorkflowResourceDraft({
+    resourceId: deletableV1.resourceId,
+    kind: 'output',
+    name: 'Deletable family v2',
+    configuration: { mode: 'audit_only' },
+  });
+  await publishWorkflowResource(deletableV2Draft.id);
+  assert.equal(await deleteWorkflowResourceFamily(deletableV1.resourceId), 2);
+  assert.equal(
+    (await listWorkflowResources('output')).filter(item => item.resourceId === deletableV1.resourceId).length,
     0,
   );
 
@@ -658,6 +673,10 @@ try {
   await assert.rejects(
     archiveWorkflowResourceFamily(resources.channel.resourceId),
     /must stop referencing this resource/,
+  );
+  await assert.rejects(
+    deleteWorkflowResourceFamily(resources.channel.resourceId),
+    /historical workflow revisions reference it/i,
   );
   console.log('Workflow builder tests passed.');
 } finally {

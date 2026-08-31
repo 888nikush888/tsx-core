@@ -358,10 +358,30 @@ async function testWorkflowResourceFamilyArchiveApi(baseUrl) {
       'Content-Type': 'application/json',
       'X-Destructive-Confirmation': 'delete-workflow-resource',
     }),
-    body: JSON.stringify({ resourceId: familyV1.resourceId }),
+    body: JSON.stringify({ resourceId: familyV1.resourceId, operation: 'archive' }),
   });
   assert.strictEqual(response.status, 200);
   assert.strictEqual((await response.json()).result.archived.length, 2);
+
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'DELETE',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'delete-workflow-resource',
+    }),
+    body: JSON.stringify({ resourceId: familyV1.resourceId, operation: 'delete' }),
+  });
+  assert.strictEqual(response.status, 412, 'Permanent deletion requires its own exact confirmation.');
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'DELETE',
+    headers: mutationHeaders({
+      'Content-Type': 'application/json',
+      'X-Destructive-Confirmation': 'delete-workflow-resource-permanently',
+    }),
+    body: JSON.stringify({ resourceId: familyV1.resourceId, operation: 'delete' }),
+  });
+  assert.strictEqual(response.status, 200);
+  assert.strictEqual((await response.json()).result.deleted, 2);
 }
 
 function assertWorkflowHistoryApplyAudit(controls, secondMutation, workflow, undone) {
