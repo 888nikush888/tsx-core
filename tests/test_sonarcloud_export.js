@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { exportFindings, toTsv } from '../scripts/export_sonarcloud_findings.js';
@@ -45,7 +45,8 @@ try {
     SONAR_BRANCH: 'main',
     SONAR_EXPECTED_REVISION: revision,
     SONAR_EXPORT_DIR: outputDirectory,
-    SONAR_HOST_URL: 'https://sonarcloud.example'
+    SONAR_HOST_URL: 'https://sonarcloud.example',
+    SONAR_REPORT_TASK_FILE: path.join(outputDirectory, 'missing-report-task.txt')
   };
   const summary = await exportFindings({
     environment,
@@ -81,6 +82,43 @@ try {
     exportFindings({ environment, fetchImpl: async () => jsonResponse({}, 401) }),
     /HTTP 401/
   );
+
+  const failedTaskFile = path.join(outputDirectory, 'failed-report-task.txt');
+  await writeFile(failedTaskFile, [
+    'projectKey=organization_project',
+    'ceTaskId=task-failed',
+    'ceTaskUrl=https://sonarcloud.example/api/ce/task?id=task-failed'
+  ].join('\n'), 'utf8');
+  const failedTaskCalls = [];
+  await assert.rejects(
+    exportFindings({
+      environment: { ...environment, SONAR_REPORT_TASK_FILE: failedTaskFile },
+      fetchImpl: async (url, options) => {
+        failedTaskCalls.push(new URL(url));
+        assert.equal(options.headers.authorization, 'Bearer test-token');
+        return jsonResponse({
+          task: {
+            id: 'task-failed',
+            type: 'REPORT',
+            componentKey: 'organization_project',
+            status: 'FAILED',
+            submittedAt: '2026-07-23T10:00:00+0000',
+            errorMessage: 'Maximum allowed lines of code exceeded.',
+            errorStacktrace: 'internal stack details must not be persisted'
+          }
+        });
+      }
+    }),
+    /compute task 'task-failed' failed: Maximum allowed lines of code exceeded\./
+  );
+  assert.deepEqual(failedTaskCalls.map(call => call.pathname), ['/api/ce/task']);
+  const failedTaskEvidence = JSON.parse(await readFile(path.join(outputDirectory, 'ce-task.json'), 'utf8'));
+  assert.equal(failedTaskEvidence.id, 'task-failed');
+  assert.equal(failedTaskEvidence.status, 'FAILED');
+  assert.equal(failedTaskEvidence.errorMessage, 'Maximum allowed lines of code exceeded.');
+  assert.equal(failedTaskEvidence.hasErrorStacktrace, true);
+  assert.equal('errorStacktrace' in failedTaskEvidence, false);
+
   assert.doesNotMatch(toTsv([{ message: 'line 1\nline 2\tvalue' }], ['message']), /\tvalue|line 1\nline 2/);
 } finally {
   await rm(outputDirectory, { recursive: true, force: true });

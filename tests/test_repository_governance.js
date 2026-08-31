@@ -257,6 +257,7 @@ assert.match(sonarCloud, /^sonar\.qualitygate\.wait=true$/m);
 assert.match(workflow, /name: SonarQube Cloud quality gate/);
 assert.match(workflow, /SonarSource\/sonarqube-scan-action@[a-f0-9]{40}/);
 assert.match(workflow, /SONAR_EXPECTED_REVISION: \$\{\{ github\.sha \}\}/);
+assert.match(workflow, /SONAR_REPORT_TASK_FILE: \.scannerwork\/report-task\.txt/);
 const sonarPaths = name => sonarCloud.match(new RegExp(`^${name}=(.+)$`, 'm'))?.[1]
   .split(',').map(value => value.trim()).filter(Boolean) ?? [];
 const sonarSources = sonarPaths('sonar\\.sources');
