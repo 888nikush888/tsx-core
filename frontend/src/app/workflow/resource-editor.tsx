@@ -1370,6 +1370,107 @@ function ContractForm({
   );
 }
 
+function SignalSchemaResourceFields({
+  schemaDraft,
+  parserSources,
+  onChange,
+}: Readonly<{
+  schemaDraft: SignalSchemaDraft | null;
+  parserSources: BuilderParserSource[];
+  onChange: (changes: Partial<SignalSchemaDraft>) => void;
+}>) {
+  if (!schemaDraft) return null;
+  const copiedSchema = Boolean(schemaDraft.originalId && schemaDraft.copying);
+  const schemaIdLabel = copiedSchema ? "Neue Schema-ID" : "Schema-ID";
+
+  return (
+    <div className="schema-copy-editor">
+      <div className="strategy-section-heading">
+        <strong>
+          {schemaDraft.originalId
+            ? "Signal-Schema bearbeiten"
+            : "Neues Signal-Schema"}
+        </strong>
+        <small>
+          {schemaDraft.originalId
+            ? "Eine Änderung erzeugt automatisch eine neue unveränderliche Schema-ID."
+            : "Baue hier die normalisierte Ausgabestruktur des Signals. Der konkrete Parser kommt aus den Verbindungen im Builder."}
+        </small>
+      </div>
+      <div className="builder-field-grid three">
+        <Field
+          label={schemaIdLabel}
+          hint="Muss eindeutig sein und mit einem Kleinbuchstaben beginnen."
+        >
+          <input
+            aria-label={schemaIdLabel}
+            value={schemaDraft.id}
+            onChange={(event) => onChange({ id: event.target.value })}
+          />
+        </Field>
+        <Field label="Schema-Name">
+          <input
+            aria-label="Schema-Name"
+            value={schemaDraft.name}
+            onChange={(event) => onChange({ name: event.target.value })}
+          />
+        </Field>
+        <Field label="Beschreibung">
+          <input
+            value={schemaDraft.description}
+            onChange={(event) => onChange({ description: event.target.value })}
+          />
+        </Field>
+        <Toggle
+          checked={schemaDraft.enabled}
+          onChange={(enabled) => onChange({ enabled })}
+          label="Schema aktiv"
+        />
+      </div>
+      <section
+        className="schema-parser-sources"
+        aria-label="Parserquelle aus Builder"
+      >
+        <div className="strategy-section-heading">
+          <strong>Parserquelle aus dem Builder</strong>
+          <small>
+            Das Parser-Schema wird nicht mehr aus fest eingebauten Profilen
+            gewählt, sondern über die Verbindungen im Builder bestimmt.
+          </small>
+        </div>
+        {parserSources.length > 0 ? (
+          <div className="schema-parser-source-list">
+            {parserSources.map((source) => (
+              <div className="builder-locked-note" key={source.nodeId}>
+                <Check size={16} />
+                <span>
+                  <strong>{source.name}</strong>
+                  {source.connected
+                    ? " · mit diesem Schema verbunden"
+                    : " · im Builder verfügbar; nach dem Verbinden aktiv"}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Alert>
+            <AlertTriangle />
+            <AlertDescription>
+              Im Builder ist noch kein KI-Parser vorhanden. Das Schema kann
+              gespeichert werden, bleibt aber ohne verbundenen Parser inert.
+            </AlertDescription>
+          </Alert>
+        )}
+      </section>
+      <ContractForm
+        mode="schema"
+        value={schemaDraft.definition}
+        onChange={(definition) => onChange({ definition })}
+      />
+    </div>
+  );
+}
+
 export function ResourceEditor({
   open,
   kind,
@@ -1734,107 +1835,11 @@ export function ResourceEditor({
             </>
           )}
           {kind === "schema" && (
-            <>
-              {schemaDraft && (
-                <div className="schema-copy-editor">
-                  <div className="strategy-section-heading">
-                    <strong>
-                      {schemaDraft.originalId
-                        ? "Signal-Schema bearbeiten"
-                        : "Neues Signal-Schema"}
-                    </strong>
-                    <small>
-                      {schemaDraft.originalId
-                        ? "Eine Änderung erzeugt automatisch eine neue unveränderliche Schema-ID."
-                        : "Baue hier die normalisierte Ausgabestruktur des Signals. Der konkrete Parser kommt aus den Verbindungen im Builder."}
-                    </small>
-                  </div>
-                  <div className="builder-field-grid three">
-                    <Field
-                      label={
-                        schemaDraft.originalId && schemaDraft.copying
-                          ? "Neue Schema-ID"
-                          : "Schema-ID"
-                      }
-                      hint="Muss eindeutig sein und mit einem Kleinbuchstaben beginnen."
-                    >
-                      <input
-                        aria-label={
-                          schemaDraft.originalId && schemaDraft.copying
-                            ? "Neue Schema-ID"
-                            : "Schema-ID"
-                        }
-                        value={schemaDraft.id}
-                        onChange={(event) =>
-                          updateSchemaDraft({ id: event.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field label="Schema-Name">
-                      <input
-                        aria-label="Schema-Name"
-                        value={schemaDraft.name}
-                        onChange={(event) =>
-                          updateSchemaDraft({ name: event.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field label="Beschreibung">
-                      <input
-                        value={schemaDraft.description}
-                        onChange={(event) =>
-                          updateSchemaDraft({ description: event.target.value })
-                        }
-                      />
-                    </Field>
-                    <Toggle
-                      checked={schemaDraft.enabled}
-                      onChange={(enabled) => updateSchemaDraft({ enabled })}
-                      label="Schema aktiv"
-                    />
-                  </div>
-                  <section className="schema-parser-sources" aria-label="Parserquelle aus Builder">
-                    <div className="strategy-section-heading">
-                      <strong>Parserquelle aus dem Builder</strong>
-                      <small>
-                        Das Parser-Schema wird nicht mehr aus fest eingebauten
-                        Profilen gewählt, sondern über die Verbindungen im Builder
-                        bestimmt.
-                      </small>
-                    </div>
-                    {parserSources.length > 0 ? (
-                      <div className="schema-parser-source-list">
-                        {parserSources.map((source) => (
-                          <div className="builder-locked-note" key={source.nodeId}>
-                            <Check size={16} />
-                            <span>
-                              <strong>{source.name}</strong>
-                              {source.connected
-                                ? " · mit diesem Schema verbunden"
-                                : " · im Builder verfügbar; nach dem Verbinden aktiv"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <Alert>
-                        <AlertTriangle />
-                        <AlertDescription>
-                          Im Builder ist noch kein KI-Parser vorhanden. Das Schema
-                          kann gespeichert werden, bleibt aber ohne verbundenen
-                          Parser inert.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </section>
-                  <ContractForm
-                    mode="schema"
-                    value={schemaDraft.definition}
-                    onChange={(definition) => updateSchemaDraft({ definition })}
-                  />
-                </div>
-              )}
-            </>
+            <SignalSchemaResourceFields
+              schemaDraft={schemaDraft}
+              parserSources={parserSources}
+              onChange={updateSchemaDraft}
+            />
           )}
           {kind === "contract" && (
             <>
