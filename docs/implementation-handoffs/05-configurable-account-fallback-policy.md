@@ -4,7 +4,7 @@
 
 - Quellplan: `TSX-Core_Konfigurierbarer-Account-Fallback_Ultimativer-Plan_AKTUALISIERT.md`, SHA-256 `20D96EA5D58220311B6C9BCC97B820DCC0A1D7E2EDDB689B72FC91C1110A614C`.
 - Start-Commit: `aa4f9e80f639b893f62ca419cd80352e04766de9`.
-- Funktions- und Test-Endstand: `98743df218d5d26facfbfc6cfeb9a5a815b8f194`.
+- Funktions- und Test-Endstand: `5e75d482dbef7a9e8fa7c6832e82b3acc73a423e`.
 - Datenbankschema: Migration 22 `configurable_account_fallback_policy`.
 - Umsetzung ausschließlich lokal auf `main`; kein Server-Rollout und kein Release-Tag.
 
@@ -58,7 +58,7 @@ Ungeklärte Orders, kritische Risikoereignisse, Daily-Loss/Daily-Risk, globale o
 - Node: 72/72 Testdateien bestanden.
 - Kritische Node-Coverage: 96,81 % Statements, 89,02 % Branches, 100 % Funktionen, 96,81 % Lines.
 - Modul-Coverage: 95,14 % Statements/Lines, 83,64 % Branches und 99,15 % Funktionen; damit oberhalb des gemeinsamen Cross-Platform-Ratchets.
-- Frontend: 20/20 Testdateien, 113/113 Tests bestanden.
+- Frontend: 20/20 Testdateien, 114/114 Tests bestanden.
 - Neue Frontend-Module: Policy-Dialog 96,66/100/92,30/96,29 %, Policy-Helfer 92,72/81,81/100/97,50 %, Simulation 100/88,46/100/100 %.
 - Python Executor: 41/41 Tests, 74 % Gesamt-Coverage.
 - Browser/WCAG: 44/44 Szenarien auf Chromium, Firefox, WebKit und Mobile Chromium.
@@ -68,6 +68,15 @@ Ungeklärte Orders, kritische Risikoereignisse, Daily-Loss/Daily-Risk, globale o
 - Root- und Frontend-Audit: 0 Schwachstellen auf `moderate` oder höher.
 - Lint, Python-Lint, Typecheck, Build, Lizenz-, Dependency-, Release-, Risk-Acceptance-, Build-Context- und SBOM-Gates: bestanden.
 - Frontend-Produktionschunks: 325,52 KiB, 368,36 KiB und 436,87 KiB; alle unter 500 KiB.
+
+## Abschließender GitHub- und Sonar-Nachweis
+
+- Quality-OS-Lauf `33364316415` auf der exakten Revision `5e75d482dbef7a9e8fa7c6832e82b3acc73a423e`: erfolgreich.
+- SonarQube-Compute-Task `AaBWkJ2g35XyEGcKE3hP`: `SUCCESS`, ohne Warnung oder Fehler.
+- SonarQube Quality Gate: `OK`; New-Code-Coverage 88,4 %, New-Code-Duplizierung 0,1 %.
+- Offene Security Hotspots: 0; offene Blocker/Critical Findings: 0.
+- Die lizenzierte Sonar-Analyse ist auf deploybaren Node/TypeScript-, Frontend- und Python-Code begrenzt. CI-, Docker-/Monitoring- und Repository-Werkzeuge bleiben durch ihre spezialisierten Required Checks abgedeckt.
+- Bei einem serverseitig fehlgeschlagenen Sonar-Compute-Task wird dessen bereinigte Ursache künftig ohne Stacktrace oder Geheimnisse als CI-Artefakt erhalten; das Gate bleibt fail-closed.
 
 Die vollständige Test-zu-Anforderung-Matrix steht in `docs/testing/configurable-account-fallback-policy.tdd.md`.
 

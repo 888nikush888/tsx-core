@@ -26,6 +26,12 @@ Quelle ist `TSX-Core_Konfigurierbarer-Account-Fallback_Ultimativer-Plan_AKTUALIS
 | Komplexitäts-Refactor | `8ac3847945a8215b70d1c94772520ac7e2aeecb2` | Advance- und Hydration-Logik wurden zerlegt; Gate blieb bei 0 Warnungen. |
 | Migration-Fixture | `fce82acf37e23e6651e8254c3bb1ed626c63916d` | V18→V22 und V21→V22 laufen mit vollständiger Legacy-Struktur. |
 | Coverage-Nachweis | `98743df218d5d26facfbfc6cfeb9a5a815b8f194` | Dialog-, Fehler-, Empty- und Block-Pfade wurden ergänzt. |
+| RED – Sonar-Compute-Task-Diagnose | `3f1c3664d5a6ab726e1f48e457aea4db38d681b0` | Fehlgeschlagene Compute Tasks konnten ihre bereinigte Ursache noch nicht als Evidenz sichern. |
+| GREEN – Sonar-Compute-Task-Diagnose | `56cbe94a49f8fc13942dbb245eb1e59d568e6970` | Compute-Task-Status und Fehlermeldung werden fail-closed und ohne Stacktrace exportiert. |
+| RED – produktbezogenes Sonar-LOC-Budget | `a5a873d2eca7e97a7a49c5ff3cfa8aa9fd2b2623` | Das 50.000-LOC-Kontingent war noch nicht auf deploybaren Produktcode begrenzt. |
+| GREEN – produktbezogenes Sonar-LOC-Budget | `f6d1a803518f30971920ad0fdde1f6a7ed1c2dcc` | TypeScript-, Frontend- und Python-Produktcode bleiben analysiert; spezialisierte Repository-Gates decken Nicht-Produkt-Artefakte ab. |
+| RED – isoliertes Flow-Upsert | `a5b02d7f2d9bfa8609af4b91a41833cfc3a3eadd` | Die komplexe Connection-Persistenz war noch nicht als separat testbare Operation verfügbar. |
+| GREEN – Sonar-Komplexitätsremediation | `5e75d482dbef7a9e8fa7c6832e82b3acc73a423e` | Flow-Upserts sind isoliert getestet; der letzte Critical Finding wurde beseitigt. |
 
 ## Test-Spezifikation
 
@@ -60,7 +66,7 @@ Quelle ist `TSX-Core_Konfigurierbarer-Account-Fallback_Ultimativer-Plan_AKTUALIS
 | `npm test` | PASS, 72/72 Testdateien |
 | `npm run test:coverage` | PASS, 96,81 % Statements/Lines, 89,02 % Branches, 100 % Funktionen |
 | `npm run test:coverage:modules` | PASS, 95,14/83,64/99,15/95,14 % |
-| `npm run test:coverage --prefix frontend` | PASS, 20/20 Dateien und 113/113 Tests; neue Feature-Module jeweils über 80 % relevanter Abdeckung |
+| `npm run test:coverage --prefix frontend` | PASS, 20/20 Dateien und 114/114 Tests; neue Feature-Module jeweils über 80 % relevanter Abdeckung |
 | `coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v` | PASS, 41/41 Tests |
 | `coverage report --fail-under=60` | PASS, 74 % |
 | `npm run test:e2e --prefix frontend` | PASS, 44/44 über vier Playwright-Projekte |
@@ -69,6 +75,7 @@ Quelle ist `TSX-Core_Konfigurierbarer-Account-Fallback_Ultimativer-Plan_AKTUALIS
 | `npm audit` für Root und Frontend | PASS, 0 Schwachstellen |
 | Lizenz-, Dependency-, Duplikations- und SBOM-Gates | PASS; Duplikation 1,02 % |
 | `npm run build` | PASS; größter JS-Chunk 436,87 KiB |
+| GitHub Quality OS `33364316415` | PASS auf `5e75d482dbef7a9e8fa7c6832e82b3acc73a423e`; Sonar Gate OK, 0 ungeprüfte Hotspots, 0 Blocker/Critical Findings |
 
 ## Coverage und bekannte Lücken
 
