@@ -832,6 +832,22 @@ async function testSignalSchemaRepository() {
     name: 'Validation profile', description: '', parserSchema: 'standard',
     templateName: 'validation-template', enabled: true,
   };
+  const standaloneDefinition = structuredClone(
+    BUILTIN_SIGNAL_CONTRACTS.find(contract => contract.id === 'standard').definition,
+  );
+  standaloneDefinition.actionPath = 'direction';
+  const standalone = await createTradingSignalSchema({
+    id: 'standalone-builder-schema',
+    name: 'Standalone Builder Schema',
+    description: 'Created directly in the schema block without a fallback contract.',
+    definition: standaloneDefinition,
+    templateName: 'standalone-builder-schema',
+    enabled: true,
+  });
+  assert.equal(standalone.contractVersionId, null);
+  assert.equal(standalone.definition.actionPath, 'direction');
+  assert.match(standalone.definitionSha256, /^[a-f0-9]{64}$/);
+  await deleteTradingSignalSchema(standalone.id);
   await assert.rejects(
     createTradingSignalSchema({ id: 'invalid-name', ...validSchemaInput, name: '' }),
     /name must contain/,

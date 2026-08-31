@@ -32,7 +32,23 @@ const trading = {
       safety: { maxDailyLossMode: 'equity_percent', maxDailyLoss: '5', maxSlippagePercent: '0.5', entryOrderTtlSeconds: 900, requireProtectiveStop: true },
     },
   }],
-  signalSchemas: [{ id: 'standard', name: 'Standard', description: 'schema', parserSchema: 'standard', enabled: true, contractVersionId: 'standard:v1', templateName: 'default' }],
+  signalSchemas: [{
+    id: 'standard', name: 'Standard', description: 'schema', parserSchema: 'standard', enabled: true,
+    contractVersionId: 'standard:v1', templateName: 'default',
+    definition: {
+      schemaVersion: 1,
+      rootTag: 'signal',
+      actionPath: 'action',
+      pairPath: 'pair',
+      entry: { mode: 'optional_range', marketValues: [], rangeValues: [], minimumPath: 'entry_range.min', maximumPath: 'entry_range.max' },
+      targets: { containerPath: 'targets', itemTag: 'target', shape: 'scalar', minimumPath: 'min', maximumPath: 'max', minimumItems: 1, maximumItems: 20, sequentialIds: true },
+      stopLossPath: 'stoploss',
+      leveragePath: 'leverage',
+      additionalFields: [],
+      geometry: { stopOnLossSide: true, targetsOnProfitSide: true, orderedTargets: true, orderedRanges: true },
+      grounding: { action: true, pair: true, entry: true, targets: true, stopLoss: true, leverage: false, riskPercent: false, averagingPrice: false },
+    },
+  }],
   signalContracts: [{ id: 'standard', name: 'Standard Contract', description: 'contract', versions: [{
     id: 'standard:v1', contractId: 'standard', version: 1, status: 'published',
     definition: {
@@ -62,8 +78,23 @@ function editor(
   onSave = vi.fn(async () => true),
   snapshot: any = trading,
   resource: any = null,
+  parserSources: any[] = [{
+    nodeId: 'parser-node',
+    resourceVersionId: 'parser-resource-v1',
+    name: 'Parser 1',
+    templateName: 'inline',
+    connected: false,
+  }],
 ) {
-  render(<ResourceEditor open kind={kind} resource={resource} trading={snapshot} onClose={vi.fn()} onSave={onSave} />)
+  render(<ResourceEditor
+    open
+    kind={kind}
+    resource={resource}
+    trading={snapshot}
+    parserSources={parserSources}
+    onClose={vi.fn()}
+    onSave={onSave}
+  />)
   return onSave
 }
 
@@ -242,21 +273,31 @@ describe('workflow resource contracts', () => {
     expect(screen.queryByLabelText('Verwendetes Signal-Schema')).not.toBeInTheDocument()
     expect(screen.queryByText('Prompt-Vorlage')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Schema-ID')).toHaveValue('new-schema')
-    expect(screen.getByLabelText('Parser-Schema')).toHaveValue('standard')
+    expect(screen.queryByLabelText('Parser-Schema')).not.toBeInTheDocument()
+    expect(screen.getByText('Parser 1')).toBeVisible()
+    expect(screen.getByText(/über die Verbindungen im Builder/)).toBeVisible()
+    expect(screen.getByLabelText('Richtungspfad')).toHaveValue('action')
+    expect(screen.getByLabelText('Paarpfad')).toHaveValue('pair')
+    expect(screen.getByLabelText('Stop-Loss-Pfad')).toHaveValue('stoploss')
     fireEvent.change(screen.getByLabelText('Schema-ID'), { target: { value: 'fresh-schema' } })
     fireEvent.change(screen.getByLabelText('Schema-Name'), { target: { value: 'Fresh Schema' } })
+    fireEvent.change(screen.getByLabelText('Richtungspfad'), { target: { value: 'direction' } })
     fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
       configuration: { schemaId: 'fresh-schema' },
     })))
     expect(api.apiFetch).toHaveBeenCalledWith('/api/trading/signal-schemas', expect.objectContaining({
       method: 'POST',
-      body: expect.stringContaining('"parserSchema":"standard"'),
+      body: expect.stringContaining('"actionPath":"direction"'),
     }))
     const request = api.apiFetch.mock.calls.find(([url]) => url === '/api/trading/signal-schemas')?.[1] as RequestInit
-    expect(JSON.parse(String(request.body))).toMatchObject({
-      id: 'fresh-schema', name: 'Fresh Schema', templateName: 'fresh-schema', enabled: true,
+    const submitted = JSON.parse(String(request.body))
+    expect(submitted).toMatchObject({
+      id: 'fresh-schema', name: 'Fresh Schema', enabled: true,
+      definition: { actionPath: 'direction', pairPath: 'pair', stopLossPath: 'stoploss' },
     })
+    expect(submitted).not.toHaveProperty('parserSchema')
+    expect(submitted).not.toHaveProperty('contractVersionId')
   })
 
   it('edits an existing schema directly while persisting an immutable copy', async () => {

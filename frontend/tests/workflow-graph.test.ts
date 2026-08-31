@@ -5,6 +5,7 @@ import {
   latestPublishedResources,
   moveWorkflowNode,
   normalizeWorkflowGrid,
+  parserSourcesForSchema,
   planWorkflowConnection,
   placedNodesByResourceIdentity,
   resourceBehaviorKey,
@@ -258,6 +259,32 @@ describe("workflow graph controls", () => {
       "channel-b",
     ]);
     expect(channelNodesReachingSource(graph, "only-a")).toEqual(["channel-a"]);
+  });
+
+  it("derives schema parser sources from parser blocks placed and connected in the builder", () => {
+    const graph: WorkflowGraph = {
+      schemaVersion: 1,
+      nodes: [
+        { id: "parser-a", kind: "parser", resourceVersionId: "parser-a-v1", position: { x: 0, y: 0 } },
+        { id: "parser-b", kind: "parser", resourceVersionId: "parser-b-v1", position: { x: 0, y: 150 } },
+        { id: "schema", kind: "schema", resourceVersionId: "schema-v1", position: { x: 0, y: 0 } },
+      ],
+      edges: [{ id: "parser-schema", source: "parser-b", target: "schema" }],
+    };
+    const resources: WorkflowResource[] = [
+      { ...resource("parser-a-v1", "parser-a", 1), kind: "parser", name: "Parser A", configuration: { templateName: "inline-a", prompt: "A" } },
+      { ...resource("parser-b-v1", "parser-b", 1), kind: "parser", name: "Parser B", configuration: { templateName: "inline-b", prompt: "B" } },
+      { ...resource("schema-v1", "schema", 1), kind: "schema", name: "Schema", configuration: { schemaId: "schema" } },
+    ];
+
+    expect(parserSourcesForSchema(graph, resources, "schema")).toEqual([
+      expect.objectContaining({ name: "Parser B", templateName: "inline-b", connected: true }),
+      expect.objectContaining({ name: "Parser A", templateName: "inline-a", connected: false }),
+    ]);
+    expect(parserSourcesForSchema(graph, resources, null).map((source) => source.name)).toEqual([
+      "Parser A",
+      "Parser B",
+    ]);
   });
 
   it("plans direct, scoped, and rejected connections without UI branching", () => {

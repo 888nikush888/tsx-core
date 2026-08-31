@@ -42,10 +42,10 @@ const secretDirectory = path.join(directory, 'viewer-secrets');
 try {
   await initDb(databasePath);
 
-  assert.equal(LATEST_SCHEMA_VERSION, 22);
+  assert.equal(LATEST_SCHEMA_VERSION, 23);
   assert.deepEqual(expectedDatabaseMigrations().at(-1), {
-    version: 22,
-    name: 'configurable_account_fallback_policy',
+    version: 23,
+    name: 'builder_signal_schema_definitions',
     checksum: expectedDatabaseMigrations().at(-1).checksum,
   });
   assert.ok(DATABASE_FEATURE_SET.includes('telegram-viewer-notification-delivery'));

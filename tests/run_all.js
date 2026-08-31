@@ -45,6 +45,7 @@ const allTests = [
   'test_integration.js',
   'test_signal_parser.js',
   'test_signal_contract_validation.js',
+  'test_signal_schema_migration.js',
   'test_trading_core.js',
   'test_workflow_builder.js',
   'test_workflow_history.js',

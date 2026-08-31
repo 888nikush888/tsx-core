@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   BUILTIN_SIGNAL_CONTRACTS,
+  composeSignalSchemaContract,
   signalContractDefinitionSha256,
   validateSignalContractDefinition,
 } from '../src/signal_contract.js';
@@ -17,6 +18,53 @@ function rejects(mutator, pattern) {
 }
 
 assert.match(signalContractDefinitionSha256(standard()), /^[a-f0-9]{64}$/);
+
+const builderSchema = standard();
+builderSchema.actionPath = 'direction';
+builderSchema.pairPath = 'market';
+builderSchema.stopLossPath = 'protective_stop';
+builderSchema.targets = {
+  ...builderSchema.targets,
+  containerPath: 'take_profits',
+  itemTag: 'price',
+  minimumItems: 1,
+  maximumItems: 20,
+};
+const connectedContract = standard();
+connectedContract.targets = {
+  ...connectedContract.targets,
+  minimumItems: 1,
+  maximumItems: 1,
+};
+connectedContract.geometry.orderedTargets = false;
+const composed = composeSignalSchemaContract(builderSchema, connectedContract);
+assert.equal(composed.actionPath, 'direction');
+assert.equal(composed.pairPath, 'market');
+assert.equal(composed.stopLossPath, 'protective_stop');
+assert.equal(composed.targets.containerPath, 'take_profits');
+assert.equal(composed.targets.maximumItems, 1);
+assert.equal(composed.geometry.orderedTargets, false);
+const builderXml = `<signal>
+<direction>LONG</direction><market>BTCUSD</market>
+<entry_range><min>100</min><max>101</max></entry_range>
+<take_profits><price id="1">110</price></take_profits><protective_stop>90</protective_stop>
+</signal>`;
+assert.equal(validateSignalXml(builderXml, undefined, {
+  id: 'builder-schema',
+  parserSchema: 'standard',
+  schemaDefinition: builderSchema,
+  contractDefinition: connectedContract,
+}).execution.symbol, 'BTCUSD');
+assert.throws(() => validateSignalXml(
+  builderXml.replace('</take_profits>', '<price id="2">120</price></take_profits>'),
+  undefined,
+  {
+    id: 'builder-schema',
+    parserSchema: 'standard',
+    schemaDefinition: builderSchema,
+    contractDefinition: connectedContract,
+  },
+), /between 1 and 1/);
 assert.throws(() => validateSignalContractDefinition(null), /must be an object/);
 rejects(value => { value.unsupported = true; }, /unsupported fields/);
 rejects(value => { value.schemaVersion = 2; }, /schema version/);
