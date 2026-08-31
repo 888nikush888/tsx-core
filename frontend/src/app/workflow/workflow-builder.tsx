@@ -1140,6 +1140,14 @@ export function workflowSelectionsAfterHistory(
   };
 }
 
+function restoreTriggerFocusWhenClosed(
+  open: boolean,
+  triggerRef: { current: HTMLButtonElement | null },
+): void {
+  if (!open)
+    window.setTimeout(() => triggerRef.current?.focus(), 0);
+}
+
 export function WorkflowBuilder() {
   const [snapshot, setSnapshot] = useState<WorkflowSnapshot>({
     workflow: null,
@@ -1210,8 +1218,7 @@ export function WorkflowBuilder() {
   }, []);
   const changeRouteOverview = useCallback((open: boolean) => {
     setRouteOverviewOpen(open);
-    if (!open)
-      window.setTimeout(() => routeTriggerRef.current?.focus(), 0);
+    restoreTriggerFocusWhenClosed(open, routeTriggerRef);
   }, []);
   const graphRef = useRef(graph);
   graphRef.current = graph;
