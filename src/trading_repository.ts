@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { getDatabase, withDatabaseTransaction } from './db.js';
+import { getDatabase, isForeignKeyConstraint, withDatabaseTransaction } from './db.js';
 import { constantTimeStringEqual } from './secure_compare.js';
 import { signalContractDefinitionSha256, validateSignalContractDefinition } from './signal_contract.js';
 import { decimal } from './trading_decimal.js';
@@ -1450,7 +1450,17 @@ export async function deleteTradingAccount(id: string): Promise<boolean> {
     if (Number(references?.routes || 0) > 0 || Number(references?.intents || 0) > 0) {
       throw new Error('Account deletion requires all routes to be removed and no retained trade history. Disable it instead.');
     }
-    const result = await getDatabase().run('DELETE FROM trading_accounts WHERE id = ?', [id]);
+    let result;
+    try {
+      result = await getDatabase().run('DELETE FROM trading_accounts WHERE id = ?', [id]);
+    } catch (error) {
+      if (isForeignKeyConstraint(error)) {
+        throw new Error(
+          'Account deletion is blocked because retained operational or protection history references it. Disable it instead.',
+        );
+      }
+      throw error;
+    }
     const deleted = Number(result.changes || 0) === 1;
     if (deleted) await clearWorkflowBuilderHistory('trading account deleted');
     return deleted;

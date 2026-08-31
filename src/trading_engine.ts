@@ -448,12 +448,15 @@ async function hasTerminalClosureProof(intentId: string): Promise<boolean> {
 function remoteStateDigest(remote: ExchangeOpenState): string {
   const stable = {
     orders: remote.orders.map(order => ({
-      id: order.clientOrderId,
+      clientOrderId: order.clientOrderId,
+      exchangeOrderId: order.exchangeOrderId,
       status: order.status,
       filled: order.filledQuantity,
       quantity: order.quantity,
       trigger: order.triggerPrice,
-    })).sort((left, right) => left.id.localeCompare(right.id)),
+    })).sort((left, right) =>
+      left.exchangeOrderId.localeCompare(right.exchangeOrderId)
+      || String(left.clientOrderId || '').localeCompare(String(right.clientOrderId || ''))),
     positions: remote.positions.map(position => ({
       symbol: position.symbol,
       side: position.side,
