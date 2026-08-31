@@ -35,6 +35,7 @@ vi.mock("@xyflow/react", () => ({
 
 import {
   historyNavigationNotice,
+  upsertFlowConnection,
   workflowSelectionsAfterHistory,
   WorkflowBuilder,
 } from "@/app/workflow/workflow-builder";
@@ -164,6 +165,45 @@ describe("workflow builder history", () => {
       connectionSourceId: null,
       connectionDraft: null,
     });
+  });
+
+  it("upserts flow connections while replacing or removing their channel scope", () => {
+    const versionedGraph = {
+      ...graph,
+      schemaVersion: 3 as const,
+      edges: [{
+        ...graph.edges[0],
+        kind: "flow" as const,
+        channelNodeIds: ["node-channel"],
+      }],
+    };
+    const updated = upsertFlowConnection(versionedGraph, {
+      edgeId: "edge-1",
+      sourceId: "node-channel",
+      targetId: "node-output",
+      kind: "flow",
+    }, undefined, () => "unused");
+    expect(updated?.edgeId).toBe("edge-1");
+    expect(updated?.graph.edges[0]).not.toHaveProperty("channelNodeIds");
+
+    const created = upsertFlowConnection(versionedGraph, {
+      sourceId: "node-channel",
+      targetId: "node-output",
+      kind: "flow",
+    }, ["node-channel"], () => "edge-2");
+    expect(created?.edgeId).toBe("edge-2");
+    expect(created?.graph.edges.at(-1)).toMatchObject({
+      id: "edge-2",
+      kind: "flow",
+      channelNodeIds: ["node-channel"],
+    });
+
+    expect(upsertFlowConnection(versionedGraph, {
+      edgeId: "missing-edge",
+      sourceId: "node-channel",
+      targetId: "node-output",
+      kind: "flow",
+    }, [], () => "unused")).toBeNull();
   });
 
   it("loads history independently and keeps the builder usable when only history fails", async () => {
