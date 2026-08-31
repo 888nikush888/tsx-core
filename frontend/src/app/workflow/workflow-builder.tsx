@@ -1007,6 +1007,40 @@ type WorkflowConnectionDraft = {
   kind: "flow" | "account_fallback";
 };
 
+export function upsertFlowConnection(
+  graph: WorkflowGraph,
+  draft: WorkflowConnectionDraft,
+  channelNodeIds: string[] | undefined,
+  createEdgeId: () => string,
+): { graph: WorkflowGraph; edgeId: string } | null {
+  const candidate = structuredClone(graph);
+  if (candidate.schemaVersion >= 2) {
+    candidate.edges = candidate.edges.map((edge) => ({ ...edge, kind: edge.kind || "flow" }));
+  }
+  const withChannelScope = (edge: WorkflowGraph["edges"][number]) => {
+    const { channelNodeIds: _previousScope, ...unscopedEdge } = edge;
+    return channelNodeIds
+      ? { ...unscopedEdge, channelNodeIds: [...channelNodeIds] }
+      : unscopedEdge;
+  };
+
+  if (draft.edgeId) {
+    const edgeIndex = candidate.edges.findIndex((edge) => edge.id === draft.edgeId);
+    if (edgeIndex < 0) return null;
+    candidate.edges[edgeIndex] = withChannelScope(candidate.edges[edgeIndex]);
+    return { graph: candidate, edgeId: draft.edgeId };
+  }
+
+  const edgeId = createEdgeId();
+  candidate.edges.push(withChannelScope({
+    id: edgeId,
+    source: draft.sourceId,
+    target: draft.targetId,
+    ...(candidate.schemaVersion >= 2 ? { kind: draft.kind } : {}),
+  }));
+  return { graph: candidate, edgeId };
+}
+
 type WorkflowSelections = {
   selectedEdgeId: string | null;
   editorNodeId: string | null;
@@ -1524,34 +1558,21 @@ export function WorkflowBuilder() {
         setFallbackPolicyOpen(true);
         return;
       }
-      const candidate = structuredClone(graphRef.current);
-      if (candidate.schemaVersion >= 2) {
-        candidate.edges = candidate.edges.map((edge) => ({ ...edge, kind: edge.kind || "flow" }));
-      }
-      let edgeId = connectionDraft.edgeId;
-      if (edgeId) {
-        const edge = candidate.edges.find((item) => item.id === edgeId);
-        if (!edge) return;
-        if (channelNodeIds) edge.channelNodeIds = [...channelNodeIds];
-        else delete edge.channelNodeIds;
-      } else {
-        edgeId = newId("edge");
-        candidate.edges.push({
-          id: edgeId,
-          source: connectionDraft.sourceId,
-          target: connectionDraft.targetId,
-          ...(candidate.schemaVersion >= 2 ? { kind: connectionDraft.kind } : {}),
-          ...(channelNodeIds ? { channelNodeIds: [...channelNodeIds] } : {}),
-        });
-      }
+      const update = upsertFlowConnection(
+        graphRef.current,
+        connectionDraft,
+        channelNodeIds,
+        () => newId("edge"),
+      );
+      if (!update) return;
       const activated = await activateGraph(
-        candidate,
+        update.graph,
         connectionDraft.edgeId
           ? "Routing der Verbindung aktualisiert"
           : "Verbindung aktiviert",
       );
       if (activated) {
-        setSelectedEdgeId(edgeId);
+        setSelectedEdgeId(update.edgeId);
         setConnectionDraft(null);
       }
     },
