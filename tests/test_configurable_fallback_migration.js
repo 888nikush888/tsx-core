@@ -33,6 +33,15 @@ try {
         execution_path_id TEXT NOT NULL,
         PRIMARY KEY(fallback_run_id, rank)
       );
+      CREATE TABLE trading_signal_contract_versions (
+        id TEXT PRIMARY KEY,
+        definition_json TEXT NOT NULL,
+        definition_sha256 TEXT NOT NULL
+      );
+      CREATE TABLE trading_signal_schemas (
+        id TEXT PRIMARY KEY,
+        contract_version_id TEXT
+      );
       INSERT INTO workflow_execution_paths VALUES ('primary', 'revision', 'route', 0);
       INSERT INTO workflow_execution_paths VALUES ('fallback', 'revision', 'route', 1);
       INSERT INTO workflow_execution_paths VALUES ('direct', 'revision', 'direct-route', 0);

@@ -42,3 +42,7 @@
 | `npm run build` und separater Frontend-Build | PASS |
 
 Die globale historische Frontendabdeckung liegt weiterhin unter 80 %. Für diese Änderung wird deshalb zusätzlich die Abdeckung der neu hinzugefügten ausführbaren Zeilen ausgewiesen; sie überschreitet 80 %, ohne vorhandene Grenzwerte zu lockern oder Code künstlich auszunehmen. Es wurden keine neuen Tests übersprungen oder deaktiviert.
+
+## Spätere Ablösung der Profilauswahl
+
+Der historische Checkpoint in Zeile 5 dokumentiert den damaligen Zwischenstand. Seit 31.08.2026 wird die Parserquelle im Builder nicht mehr über ein unabhängiges fest eingebautes Schema-Dropdown gewählt. Maßgeblich ist die Canvas-Verbindung vom Parser zum Schema; das Schema besitzt seine normalisierte Feldstruktur selbst. Die aktuelle TDD-Evidenz steht in `builder-owned-signal-schema.tdd.md`.

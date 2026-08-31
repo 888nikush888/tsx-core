@@ -26,3 +26,5 @@ Strategie-, Vertrags- und Schema-Profiländerungen sind reproduzierbar, auditier
 Die Profilverwaltung und adaptiven TP-/SL-Modi wurden am 22./23.07.2026 als additive Konkretisierung dieser Entscheidung umgesetzt. Der weiterhin offene Gesamtvergleich zum ursprünglichen Blueprint steht in `docs/TRADING_BLUEPRINT_V4_GAP_ANALYSIS.md`.
 
 Ergänzung 24.08.2026: ADR 0012 ersetzt die börsenspezifische SDK-Grenze durch CCXT REST/CCXT Pro, verschiebt die Positionskapazität auf das Börsenkonto und führt visuelle Fan-out-Workflows ein. Alleinige Positionshoheit, REST-Autorität und fail-closed Trading-Sicherheit bleiben unverändert.
+
+Ergänzung 31.08.2026: Im visuellen Workflow besitzt der Signal-Schema-Baustein die normalisierte XML-Struktur selbst. Die Parserquelle wird ausschließlich durch den verbundenen Parser-Baustein bestimmt; fest eingebaute Parserprofil-Auswahlen sind keine Builder-Oberfläche mehr. Ein verbundener Vertrag ergänzt beziehungsweise verschärft Validierungsregeln, darf aber die vom Schema definierten Pfade nicht still umbenennen. Bestehende Profil- und Vertragsreferenzen bleiben ausschließlich als rückwärtskompatible interne Schnittstelle erhalten.

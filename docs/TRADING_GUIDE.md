@@ -50,6 +50,8 @@ Der Parser-Dialog verwaltet den Prompt direkt im Baustein sowie Primär-/Fallbac
 
 Signal-Schema, Signal-Vertrag und Strategie werden ebenfalls direkt in ihrem jeweiligen Baustein erstellt und bearbeitet. Beim Speichern erzeugt TSX Core die notwendige unveränderliche Fachversion und trägt deren ID automatisch in den Baustein ein; eine bereits vorhandene Version muss beim Anlegen nicht mehr ausgewählt werden. Änderungen an einem verwendeten Signal-Schema erzeugen automatisch eine neue eindeutige Schema-ID, statt das bestehende Profil rückwirkend zu verändern.
 
+Der Parser wird nicht im Schema-Dialog aus einer fest eingebauten Profilliste ausgewählt. Quelle ist ausschließlich der tatsächliche Parser-Baustein im Canvas: Eine Verbindung `KI-Parser → Signal-Schema` bindet dessen Prompt, Modelle und Zeitlimit an den kompilierten Ausführungspfad. Der Schema-Dialog zeigt die im Builder vorhandenen Parser und kennzeichnet die direkt verbundene Quelle. Ohne verbundenen Parser bleibt das Schema inert.
+
 Für gespeicherte Bausteine sind drei Aktionen bewusst getrennt: **Nur vom Canvas lösen** entfernt ausschließlich die aktive Platzierung, **Archivieren** entfernt die Familie aus der aktiven Bibliothek und erhält die Audit-Historie, **Endgültig löschen** entfernt alle Versionen der Familie. Eine endgültige Löschung ist nur zulässig, solange keine aktive oder historische Workflowrevision eine dieser Versionen referenziert; andernfalls bleibt der Vorgang fail-closed und der Baustein kann nur archiviert werden.
 
 Identische Parser-, Schema-, Vertrags- und Dedupe-Konfigurationen mehrerer Börsenzweige werden gruppiert. Das Telegram-Signal wird einmal geparst und erst danach in unabhängige Trade Intents aufgefächert.
@@ -57,9 +59,9 @@ Duplikate werden innerhalb dieser unveränderlichen Pfadgruppe erkannt. Zwei bew
 
 ### Schema und Vertrag
 
-Das Schema bestimmt die ausführbare Parserform (`standard`, `cryptodanielvip` oder `loma`). Eine fachliche Schemaänderung erhält eine neue eindeutige Schema-ID; verwendete Profile werden nicht still mutiert. Die ausgewählte Strategieversion muss diese ID in `allowedSignalSchemas` erlauben.
+Das Schema beschreibt direkt die normalisierte Parserausgabe: Root-Element, XML-Pfade für Richtung, Paar, Entry, Targets, Stop und optionale Werte, Target-Elementform sowie Zusatzfelder. Eine fachliche Schemaänderung erhält eine neue eindeutige Schema-ID; verwendete Definitionen werden nicht still mutiert. Die ausgewählte Strategieversion muss diese ID in `allowedSignalSchemas` erlauben.
 
-Der Vertrag ist ein unabhängiger, versionierter Baustein. Seine Definition legt XML-Pfade, Entry-Form, Target-Form und -Anzahl, Stop, Leverage, Zusatzfelder, Geometrie und Quelltext-Grounding fest. Eine Bearbeitung im Dialog erzeugt eine neue veröffentlichte Vertragsversion. Im visuellen Workflow bestimmt der verbundene Vertrag die Definition; die im Schema gespeicherte Vertragsversion ist nur der Default für Alt-/Nicht-Workflow-Pfade.
+Der Vertrag ist ein unabhängiger, versionierter Sicherheitsbaustein. Im visuellen Workflow darf er die vom Schema festgelegten Feldnamen und Pfade nicht umbenennen. Er verschärft die zulässige Target-Anzahl, passende Zusatzfeldregeln, Preisgeometrie und Quelltext-Grounding. Schema und Vertrag werden beim Aktivieren des Workflows vorab zusammengesetzt und vollständig validiert; eine inkompatible Kombination bleibt fail-closed. Die gespeicherte Parserprofil- und Vertragsreferenz existiert nur noch für kompatible Alt-/API-Pfade und entscheidet nicht über die Parserquelle des Builders.
 
 ### Strategie
 

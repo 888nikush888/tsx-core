@@ -145,6 +145,15 @@ const VERSION_18_SCHEMA = `
       );
       CREATE INDEX idx_exchange_events_account_time ON trading_exchange_events(account_id, received_at DESC);
       CREATE INDEX idx_exchange_events_type_time ON trading_exchange_events(event_type, received_at DESC);
+      CREATE TABLE trading_signal_contract_versions (
+        id TEXT PRIMARY KEY,
+        definition_json TEXT NOT NULL,
+        definition_sha256 TEXT NOT NULL
+      );
+      CREATE TABLE trading_signal_schemas (
+        id TEXT PRIMARY KEY,
+        contract_version_id TEXT
+      );
 `;
 
 async function createVersion18Fixture(databasePath, { orphanEvent = false } = {}) {

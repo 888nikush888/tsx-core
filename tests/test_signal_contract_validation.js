@@ -30,6 +30,22 @@ builderSchema.targets = {
   minimumItems: 1,
   maximumItems: 20,
 };
+builderSchema.additionalFields = [
+  {
+    path: 'memo',
+    type: 'text',
+    required: false,
+    allowedValues: [],
+    maximumLength: 100,
+  },
+  {
+    path: 'schema_only',
+    type: 'text',
+    required: false,
+    allowedValues: [],
+    maximumLength: 100,
+  },
+];
 const connectedContract = standard();
 connectedContract.targets = {
   ...connectedContract.targets,
@@ -37,6 +53,14 @@ connectedContract.targets = {
   maximumItems: 1,
 };
 connectedContract.geometry.orderedTargets = false;
+connectedContract.additionalFields = [{
+  path: 'memo',
+  type: 'text',
+  required: true,
+  allowedValues: ['OK'],
+  maximumLength: 2,
+  pattern: '^OK$',
+}];
 const composed = composeSignalSchemaContract(builderSchema, connectedContract);
 assert.equal(composed.actionPath, 'direction');
 assert.equal(composed.pairPath, 'market');
@@ -44,10 +68,18 @@ assert.equal(composed.stopLossPath, 'protective_stop');
 assert.equal(composed.targets.containerPath, 'take_profits');
 assert.equal(composed.targets.maximumItems, 1);
 assert.equal(composed.geometry.orderedTargets, false);
+assert.equal(composed.additionalFields[0].path, 'memo');
+assert.equal(composed.additionalFields[0].required, true);
+assert.deepEqual(composed.additionalFields[0].allowedValues, ['OK']);
+assert.equal(composed.additionalFields[0].maximumLength, 2);
+assert.equal(composed.additionalFields[0].pattern, '^OK$');
+assert.equal(composed.additionalFields[1].path, 'schema_only');
+assert.equal(composed.additionalFields[1].required, false);
+assert.equal(composed.additionalFields[1].maximumLength, 100);
 const builderXml = `<signal>
 <direction>LONG</direction><market>BTCUSD</market>
 <entry_range><min>100</min><max>101</max></entry_range>
-<take_profits><price id="1">110</price></take_profits><protective_stop>90</protective_stop>
+<take_profits><price id="1">110</price></take_profits><protective_stop>90</protective_stop><memo>OK</memo>
 </signal>`;
 assert.equal(validateSignalXml(builderXml, undefined, {
   id: 'builder-schema',
@@ -65,6 +97,16 @@ assert.throws(() => validateSignalXml(
     contractDefinition: connectedContract,
   },
 ), /between 1 and 1/);
+assert.throws(() => validateSignalXml(
+  builderXml.replace('<memo>OK</memo>', ''),
+  undefined,
+  {
+    id: 'builder-schema',
+    parserSchema: 'standard',
+    schemaDefinition: builderSchema,
+    contractDefinition: connectedContract,
+  },
+), /must appear exactly once/);
 assert.throws(() => validateSignalContractDefinition(null), /must be an object/);
 rejects(value => { value.unsupported = true; }, /unsupported fields/);
 rejects(value => { value.schemaVersion = 2; }, /schema version/);
