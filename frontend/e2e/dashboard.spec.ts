@@ -434,6 +434,73 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
   ).toBeVisible();
 });
 
+test("mobile navigation, touch targets and operational typography remain polished without horizontal hunting", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockDashboardApi(page);
+  await page.goto("/");
+
+  const mainNavigation = page.getByRole("navigation", { name: "Hauptbereiche" });
+  const mainTabs = mainNavigation.getByRole("tab");
+  await expect(mainTabs).toHaveCount(4);
+  expect(
+    await mainNavigation.evaluate((navigation) => {
+      const bounds = navigation.getBoundingClientRect();
+      return navigation.scrollWidth <= navigation.clientWidth + 1
+        && [...navigation.querySelectorAll<HTMLElement>("[role='tab']")].every((tab) => {
+          const tabBounds = tab.getBoundingClientRect();
+          return tabBounds.left >= bounds.left - 1 && tabBounds.right <= bounds.right + 1;
+        });
+    }),
+  ).toBe(true);
+
+  const topControls = page.locator(".workflow-topbar button, .workflow-status-tools button");
+  expect(
+    await topControls.evaluateAll((controls) => controls.every((control) => {
+      const bounds = control.getBoundingClientRect();
+      return bounds.width >= 40 && bounds.height >= 40;
+    })),
+  ).toBe(true);
+
+  await page.getByRole("tab", { name: "Betrieb" }).click();
+  const operations = page.getByRole("region", { name: "Betrieb" });
+  const operationsTabs = operations.getByRole("tablist", { name: "Betriebsbereiche" });
+  expect(
+    await operationsTabs.evaluate((tablist) => {
+      const bounds = tablist.getBoundingClientRect();
+      return tablist.scrollWidth <= tablist.clientWidth + 1
+        && [...tablist.querySelectorAll<HTMLElement>("[role='tab']")].every((tab) => {
+          const tabBounds = tab.getBoundingClientRect();
+          return tabBounds.left >= bounds.left - 1 && tabBounds.right <= bounds.right + 1;
+        });
+    }),
+  ).toBe(true);
+
+  const accountActions = operations.locator(".account-actions button");
+  expect(await accountActions.count()).toBeGreaterThan(0);
+  expect(
+    await accountActions.evaluateAll((buttons) => buttons.every((button) => {
+      const bounds = button.getBoundingClientRect();
+      return bounds.height >= 40 && Number.parseFloat(getComputedStyle(button).fontSize) >= 11;
+    })),
+  ).toBe(true);
+
+  expect(
+    await operations.locator(".operations-card").first().evaluate((card) => ({
+      radius: Number.parseFloat(getComputedStyle(card).borderTopLeftRadius),
+    })),
+  ).toEqual({ radius: expect.toBeGreaterThanOrEqual(8) });
+  expect(
+    await operations.locator(".operations-card h3").first().evaluate((heading) =>
+      Number.parseFloat(getComputedStyle(heading).fontSize)),
+  ).toBeGreaterThanOrEqual(14);
+  expect(
+    await operations.locator(".operations-section-heading p").first().evaluate((paragraph) =>
+      Number.parseFloat(getComputedStyle(paragraph).fontSize)),
+  ).toBeGreaterThanOrEqual(12);
+});
+
 test("first local startup visibly generates and displays the administrator recovery token", async ({
   page,
 }) => {
