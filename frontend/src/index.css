@@ -2823,14 +2823,21 @@ button:disabled {
   }
   .operations-tab-list [data-slot="tabs-trigger"] > span {
     align-items: center;
+    width: 100%;
     min-width: 0;
   }
   .operations-tab-list [data-slot="tabs-trigger"] strong {
+    display: -webkit-box;
+    width: 100%;
     max-width: 100%;
     overflow: hidden;
     font-size: 10px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
   .operations-tab-list [data-slot="tabs-trigger"] small {
     display: none;
