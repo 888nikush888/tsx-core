@@ -3,7 +3,8 @@ import { readFile, readdir } from 'node:fs/promises';
 
 const [
   prometheus, rules, alertmanager, compose, applicationCompose, checker, workflow,
-  prometheusDockerfile, alertmanagerDockerfile, alertmanagerModuleLock, alertmanagerSumLock,
+  prometheusDockerfile, prometheusModuleLock, prometheusSumLock,
+  alertmanagerDockerfile, alertmanagerModuleLock, alertmanagerSumLock,
   vulncheckModuleLock, vulncheckSumLock, vexFiles,
 ] = await Promise.all([
   readFile('monitoring/prometheus.yml', 'utf8'),
@@ -14,6 +15,8 @@ const [
   readFile('scripts/check_monitoring.js', 'utf8'),
   readFile('.github/workflows/quality.yml', 'utf8'),
   readFile('monitoring/prometheus.Dockerfile', 'utf8'),
+  readFile('monitoring/prometheus.go.mod', 'utf8'),
+  readFile('monitoring/prometheus.go.sum', 'utf8'),
   readFile('monitoring/alertmanager.Dockerfile', 'utf8'),
   readFile('monitoring/alertmanager.go.mod', 'utf8'),
   readFile('monitoring/alertmanager.go.sum', 'utf8'),
@@ -86,6 +89,11 @@ assert.match(prometheusDockerfile, /-trimpath -buildvcs=false -tags=netgo,builti
 assert.match(prometheusDockerfile, /-o \/out\/rootfs\/usr\/bin\/prometheus \.\/cmd\/prometheus/);
 assert.match(prometheusDockerfile, /-o \/out\/rootfs\/usr\/bin\/promtool \.\/cmd\/promtool/);
 assert.match(prometheusDockerfile, /GOFLAGS=-mod=readonly/);
+assert.match(prometheusDockerfile, /COPY --chmod=0444 monitoring\/prometheus\.go\.mod monitoring\/prometheus\.go\.sum/);
+assert.doesNotMatch(prometheusDockerfile, /\bgo (?:get|install)\b/);
+assert.match(prometheusModuleLock, /golang\.org\/x\/crypto v0\.55\.0/);
+assert.match(prometheusSumLock, /golang\.org\/x\/crypto v0\.55\.0 h1:/);
+assert.match(prometheusDockerfile, /test "\$\(go list -m -f '\{\{\.Version\}\}' golang\.org\/x\/crypto\)" = "v0\.55\.0"/);
 assert.match(prometheusDockerfile, /COPY --chmod=0444 monitoring\/govulncheck\/go\.mod monitoring\/govulncheck\/go\.sum/);
 assert.doesNotMatch(prometheusDockerfile, /\bgo install\b/);
 assert.match(prometheusDockerfile, /^FROM builder AS security-audit$/m);
