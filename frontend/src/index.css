@@ -452,9 +452,22 @@ button:disabled {
 }
 .workspace-status-item {
   flex: 0 1 auto;
-  gap: 7px !important;
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 7px !important;
+  row-gap: 1px !important;
+  align-content: center;
   min-width: 0;
   white-space: nowrap;
+}
+.workspace-status-item > .status-dot {
+  grid-row: 1 / 3;
+  align-self: center;
+}
+.workspace-status-item > span:not(.status-dot),
+.workspace-status-item > strong {
+  grid-column: 2;
 }
 .workspace-status-item > strong {
   max-width: 190px;
