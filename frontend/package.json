@@ -8,6 +8,7 @@
     "npm": ">=10.9 <11"
   },
   "overrides": {
+    "browserslist": "4.28.8",
     "undici": "7.29.0"
   },
   "scripts": {
@@ -54,4 +55,3 @@
     "vitest": "4.1.10"
   }
 }
-
