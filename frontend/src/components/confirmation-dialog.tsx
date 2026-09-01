@@ -22,6 +22,23 @@ export type ConfirmationDialogOptions = {
   destructive?: boolean;
 };
 
+function confirmationInputIsValid(
+  options: ConfirmationDialogOptions | null,
+  input: string,
+): boolean {
+  if (options?.confirmationText) return input === options.confirmationText;
+  if (options?.inputRequired) return input.trim().length > 0;
+  return true;
+}
+
+function confirmationInputLabel(options: ConfirmationDialogOptions | null): string {
+  if (options?.inputLabel) return options.inputLabel;
+  if (options?.confirmationText) {
+    return `Zur Bestätigung exakt „${options.confirmationText}“ eingeben`;
+  }
+  return "Eingabe";
+}
+
 export function useConfirmationDialog() {
   const [options, setOptions] = useState<ConfirmationDialogOptions | null>(null);
   const [input, setInput] = useState("");
@@ -46,11 +63,7 @@ export function useConfirmationDialog() {
   }, []);
 
   const needsInput = Boolean(options?.confirmationText || options?.inputLabel || options?.inputRequired);
-  const valid = options?.confirmationText
-    ? input === options.confirmationText
-    : options?.inputRequired
-      ? input.trim().length > 0
-      : true;
+  const valid = confirmationInputIsValid(options, input);
 
   const confirmationDialog = (
     <Dialog open={Boolean(options)} onOpenChange={(open) => !open && settle(null)}>
@@ -63,9 +76,7 @@ export function useConfirmationDialog() {
         </DialogHeader>
         {needsInput && (
           <label className="app-confirmation-input">
-            {options?.inputLabel || (options?.confirmationText
-              ? `Zur Bestätigung exakt „${options.confirmationText}“ eingeben`
-              : "Eingabe")}
+            {confirmationInputLabel(options)}
             <Input
               autoFocus
               autoComplete="off"

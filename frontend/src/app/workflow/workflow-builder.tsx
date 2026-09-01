@@ -70,7 +70,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
-import { useConfirmationDialog } from "@/components/confirmation-dialog";
+import {
+  useConfirmationDialog,
+  type ConfirmationDialogOptions,
+} from "@/components/confirmation-dialog";
 import { OperationsWorkspace } from "./operations-panel";
 import { RouteOverview } from "./route-overview";
 import { ResourceEditor } from "./resource-editor";
@@ -1092,6 +1095,66 @@ type WorkflowSelections = {
   connectionDraft: WorkflowConnectionDraft | null;
 };
 
+type HistoryDirection = "undo" | "redo";
+
+type HistoryNavigationPlan = {
+  allowed: boolean;
+  label: string | null;
+  title: string;
+  confirmLabel: string;
+};
+
+function historyNavigationPlan(
+  direction: HistoryDirection,
+  history: BuilderHistoryStatus,
+): HistoryNavigationPlan {
+  if (direction === "undo") {
+    return {
+      allowed: history.canUndo,
+      label: history.undoLabel,
+      title: "Workflow-Änderung rückgängig machen",
+      confirmLabel: "Rückgängig machen",
+    };
+  }
+  return {
+    allowed: history.canRedo,
+    label: history.redoLabel,
+    title: "Workflow-Änderung wiederholen",
+    confirmLabel: "Wiederholen",
+  };
+}
+
+async function requestHistoryNavigationConfirmation(
+  impact: any,
+  plan: HistoryNavigationPlan,
+  confirm: (options: ConfirmationDialogOptions) => Promise<string | null>,
+): Promise<{ accepted: boolean; confirmation: string | null }> {
+  if (!impact.destructive) return { accepted: true, confirmation: null };
+  const required = typeof impact.confirmation === "string" ? impact.confirmation : undefined;
+  const accepted = await confirm({
+    title: plan.title,
+    description: workflowImpactDescription(impact),
+    confirmationText: required,
+    confirmLabel: plan.confirmLabel,
+    destructive: true,
+  });
+  return {
+    accepted: accepted !== null,
+    confirmation: accepted === null ? null : required || null,
+  };
+}
+
+function historyNavigationError(error: unknown): { message: string; reload: boolean } {
+  const message = error instanceof Error ? error.message : String(error);
+  const reload = message.includes("WORKFLOW_REVISION_CONFLICT");
+  return {
+    message: reload
+      ? "Der Workflow wurde parallel geändert. Der aktuelle Stand wird neu geladen."
+      : message,
+    reload,
+  };
+}
+
 export function historyNavigationNotice(
   label: string | null,
   direction: "undo" | "redo",
@@ -1481,8 +1544,8 @@ export function WorkflowBuilder() {
 
   const navigateHistory = useCallback(
     async (direction: "undo" | "redo") => {
-      if (saving || !(direction === "undo" ? history.canUndo : history.canRedo)) return;
-      const label = direction === "undo" ? history.undoLabel : history.redoLabel;
+      const plan = historyNavigationPlan(direction, history);
+      if (saving || !plan.allowed) return;
       setSaving(true);
       setNotice(null);
       try {
@@ -1493,23 +1556,16 @@ export function WorkflowBuilder() {
           body: JSON.stringify({ direction, baseRevisionId }),
         });
         const impact = impactPayload.impact;
-        let confirmation: string | null = null;
-        if (impact.destructive) {
-          const required = typeof impact.confirmation === "string" ? impact.confirmation : undefined;
-          const accepted = await confirm({
-            title: direction === "undo" ? "Workflow-Änderung rückgängig machen" : "Workflow-Änderung wiederholen",
-            description: workflowImpactDescription(impact),
-            confirmationText: required,
-            confirmLabel: direction === "undo" ? "Rückgängig machen" : "Wiederholen",
-            destructive: true,
-          });
-          if (!accepted) return;
-          confirmation = required || null;
-        }
+        const approval = await requestHistoryNavigationConfirmation(impact, plan, confirm);
+        if (!approval.accepted) return;
         const payload = await jsonRequest("/api/workflow/history/apply", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ direction, baseRevisionId, confirmation }),
+          body: JSON.stringify({
+            direction,
+            baseRevisionId,
+            confirmation: approval.confirmation,
+          }),
         });
         const nextWorkflow = payload.workflow;
         const nextGraph = structuredClone(nextWorkflow.graph) as WorkflowGraph;
@@ -1534,17 +1590,15 @@ export function WorkflowBuilder() {
         }
         setNotice({
           tone: "ok",
-          text: historyNavigationNotice(label, direction, nextWorkflow.revision),
+          text: historyNavigationNotice(plan.label, direction, nextWorkflow.revision),
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const failure = historyNavigationError(error);
         setNotice({
           tone: "error",
-          text: message.includes("WORKFLOW_REVISION_CONFLICT")
-            ? "Der Workflow wurde parallel geändert. Der aktuelle Stand wird neu geladen."
-            : message,
+          text: failure.message,
         });
-        if (message.includes("WORKFLOW_REVISION_CONFLICT")) await load();
+        if (failure.reload) await load();
       } finally {
         setSaving(false);
       }

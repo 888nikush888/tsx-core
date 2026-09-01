@@ -183,11 +183,11 @@ function EquityChart({
   points,
   accounts,
   emptyText,
-}: {
+}: Readonly<{
   points: Array<Record<string, any>>;
   accounts: Array<Record<string, any>>;
   emptyText: string;
-}) {
+}>) {
   const groups = useMemo(() => buildEquityChartGroups(points, accounts), [accounts, points]);
   if (groups.length === 0) return <Empty text={emptyText} />;
   return (
