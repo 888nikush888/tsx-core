@@ -17,6 +17,7 @@ async function mockDashboardApi(
   firstRun = false,
   workflowResources: Array<Record<string, unknown>> = [],
   workflow: Record<string, unknown> | null = null,
+  tradingAccounts: Array<Record<string, unknown>> = [],
 ) {
   let currentWorkflow = workflow;
   let revisionSequence = Number(currentWorkflow?.revision || 0);
@@ -212,14 +213,14 @@ async function mockDashboardApi(
             killSwitchActive: false,
             killSwitchReason: null,
           },
-          accountCount: 0,
+          accountCount: tradingAccounts.length,
           enabledRouteCount: 0,
           openPositionCount: 0,
           pendingIntentCount: 0,
           unknownOrderCount: 0,
           latestReconciliationAt: null,
         },
-        accounts: [],
+        accounts: tradingAccounts,
         strategies: [],
         signalSchemas: [],
         signalContracts: [],
@@ -438,7 +439,19 @@ test("mobile navigation, touch targets and operational typography remain polishe
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await mockDashboardApi(page);
+  await mockDashboardApi(page, false, [], null, [{
+    id: "paper-mobile",
+    name: "Paper Mobil",
+    exchange: "paper",
+    mode: "paper",
+    status: "ready",
+    enabled: true,
+    maxConcurrentPositions: 8,
+    killSwitchActive: false,
+    killSwitchReason: null,
+    lastReconciledAt: Date.now(),
+    lastError: null,
+  }]);
   await page.goto("/");
 
   const mainNavigation = page.getByRole("navigation", { name: "Hauptbereiche" });
@@ -457,11 +470,17 @@ test("mobile navigation, touch targets and operational typography remain polishe
 
   const topControls = page.locator(".workflow-topbar button, .workflow-status-tools button");
   expect(
-    await topControls.evaluateAll((controls) => controls.every((control) => {
-      const bounds = control.getBoundingClientRect();
-      return bounds.width >= 40 && bounds.height >= 40;
-    })),
-  ).toBe(true);
+    await topControls.evaluateAll((controls) => controls
+      .map((control) => {
+        const bounds = control.getBoundingClientRect();
+        return {
+          label: control.getAttribute("aria-label") ?? control.textContent?.trim() ?? "button",
+          width: bounds.width,
+          height: bounds.height,
+        };
+      })
+      .filter(({ width, height }) => width < 40 || height < 40)),
+  ).toEqual([]);
 
   await page.getByRole("tab", { name: "Betrieb" }).click();
   const operations = page.getByRole("region", { name: "Betrieb" });
@@ -477,6 +496,18 @@ test("mobile navigation, touch targets and operational typography remain polishe
     }),
   ).toBe(true);
 
+  expect(
+    await operations.locator(".operations-card").first().evaluate((card) =>
+      Number.parseFloat(getComputedStyle(card).borderTopLeftRadius)),
+  ).toBeGreaterThanOrEqual(8);
+  expect(
+    await operations.locator(".operations-section-heading h3").first().evaluate((heading) =>
+      Number.parseFloat(getComputedStyle(heading).fontSize)),
+  ).toBeGreaterThanOrEqual(14);
+  expect(
+    await operations.locator(".operations-section-heading p").first().evaluate((paragraph) =>
+      Number.parseFloat(getComputedStyle(paragraph).fontSize)),
+  ).toBeGreaterThanOrEqual(12);
   const accountActions = operations.locator(".account-actions button");
   expect(await accountActions.count()).toBeGreaterThan(0);
   expect(
@@ -485,20 +516,6 @@ test("mobile navigation, touch targets and operational typography remain polishe
       return bounds.height >= 40 && Number.parseFloat(getComputedStyle(button).fontSize) >= 11;
     })),
   ).toBe(true);
-
-  expect(
-    await operations.locator(".operations-card").first().evaluate((card) => ({
-      radius: Number.parseFloat(getComputedStyle(card).borderTopLeftRadius),
-    })),
-  ).toEqual({ radius: expect.toBeGreaterThanOrEqual(8) });
-  expect(
-    await operations.locator(".operations-card h3").first().evaluate((heading) =>
-      Number.parseFloat(getComputedStyle(heading).fontSize)),
-  ).toBeGreaterThanOrEqual(14);
-  expect(
-    await operations.locator(".operations-section-heading p").first().evaluate((paragraph) =>
-      Number.parseFloat(getComputedStyle(paragraph).fontSize)),
-  ).toBeGreaterThanOrEqual(12);
 });
 
 test("first local startup visibly generates and displays the administrator recovery token", async ({

@@ -80,7 +80,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --radius: 0rem;
+  --radius: 0.625rem;
 }
 
 .dark {
@@ -309,11 +309,11 @@ button {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 34px;
+  min-height: 40px;
   padding: 0 12px;
   border: 1px solid transparent;
-  border-radius: 0;
-  font-size: 10px;
+  border-radius: var(--radius-md);
+  font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -348,7 +348,7 @@ button {
   color: color-mix(in oklch, var(--destructive) 78%, white);
 }
 .icon-button {
-  width: 34px;
+  width: 40px;
   padding: 0;
   color: var(--muted-foreground);
   border-color: var(--border);
@@ -527,12 +527,12 @@ button:disabled {
 .workflow-canvas .react-flow__controls {
   overflow: hidden;
   border: 1px solid var(--builder-border);
-  border-radius: 0;
-  box-shadow: none;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px var(--builder-elevation);
 }
 .workflow-canvas .react-flow__controls-button {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   color: var(--muted-foreground);
   border: 0;
   border-bottom: 1px solid var(--builder-border);
@@ -541,7 +541,7 @@ button:disabled {
 }
 .workflow-canvas .react-flow__minimap {
   border: 1px solid var(--builder-border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: var(--card);
 }
 .workflow-canvas .react-flow__edge-path {
@@ -929,7 +929,7 @@ button:disabled {
   padding: 0;
   color: var(--foreground);
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   background: color-mix(in oklch, var(--card) 97%, var(--node-accent));
   box-shadow:
     0 10px 28px var(--builder-elevation),
@@ -954,6 +954,7 @@ button:disabled {
   pointer-events: none;
   transform: translateY(2px);
   border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   background: var(--card);
   box-shadow: 0 5px 18px var(--builder-elevation);
   transition:
@@ -1730,7 +1731,7 @@ button:disabled {
   height: auto;
   padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: var(--card);
   text-align: left;
 }
@@ -1775,8 +1776,9 @@ button:disabled {
   gap: 5px;
   padding: 13px;
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   background: var(--card);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 7%, transparent);
 }
 .operation-metric strong {
   font-size: 20px;
@@ -1784,7 +1786,7 @@ button:disabled {
 }
 .operation-metric span {
   color: var(--builder-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 .operation-metric.danger strong {
   color: var(--builder-red);
@@ -1836,16 +1838,17 @@ button:disabled {
 }
 .position-row small { color: var(--muted-foreground); font-size: 8px; font-weight: 450; }
 .operations-card {
-  padding: 14px;
+  padding: 16px;
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   background: var(--card);
   color: var(--card-foreground);
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--foreground) 7%, transparent);
 }
 .operations-card h3,
 .operations-section-heading h3 {
   margin: 0 0 10px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 650;
 }
 .exchange-catalog-groups {
@@ -1874,9 +1877,9 @@ button:disabled {
   grid-template-columns: auto minmax(110px, 0.7fr) 1fr;
   align-items: center;
   gap: 10px;
-  min-height: 34px;
+  min-height: 40px;
   border-top: 1px solid var(--border);
-  font-size: 10px;
+  font-size: 11px;
 }
 .gate-row:first-of-type {
   border-top: 0;
@@ -1897,7 +1900,7 @@ button:disabled {
 }
 .severity {
   padding: 3px 5px;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   color: var(--builder-info);
   background: color-mix(in oklch, var(--builder-info) 10%, transparent);
   font-size: 8px;
@@ -1919,13 +1922,13 @@ button:disabled {
 .operations-section-heading p {
   margin: 0;
   color: var(--builder-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .operations-empty {
   padding: 25px 10px;
   text-align: center;
   color: var(--builder-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 .refresh-state {
   display: inline-flex;
@@ -2112,20 +2115,20 @@ button:disabled {
   gap: 4px;
 }
 .account-card-title strong {
-  font-size: 12px;
+  font-size: 14px;
 }
 .account-card-title span {
   color: var(--builder-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 .state-badge {
   display: inline-flex;
   width: fit-content;
   padding: 3px 6px;
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   color: var(--muted-foreground);
-  font-size: 8px !important;
+  font-size: 9px !important;
   text-transform: uppercase;
 }
 .state-badge.healthy {
@@ -2147,11 +2150,11 @@ button:disabled {
   flex-direction: column;
   gap: 5px;
   color: var(--builder-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 .account-grid > div strong {
   color: var(--foreground);
-  font-size: 10px;
+  font-size: 12px;
 }
 .account-warning {
   display: flex;
@@ -2160,9 +2163,9 @@ button:disabled {
   margin-top: 11px;
   padding: 8px;
   color: var(--destructive);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: color-mix(in oklch, var(--destructive) 8%, transparent);
-  font-size: 9px;
+  font-size: 11px;
 }
 .account-warning span {
   flex: 1;
@@ -2175,6 +2178,7 @@ button:disabled {
   margin-top: 8px;
   padding: 9px 10px;
   border: 1px solid color-mix(in oklch, var(--builder-warning) 28%, var(--border));
+  border-radius: var(--radius-md);
   background: color-mix(in oklch, var(--builder-warning) 6%, transparent);
 }
 .account-incident > div,
@@ -2184,20 +2188,22 @@ button:disabled {
   gap: 5px;
 }
 .account-incident strong {
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.45;
 }
 .account-incident small,
 .kill-switch-confirmation {
   color: var(--muted-foreground);
-  font-size: 9px;
+  font-size: 10px;
 }
 .account-warning button,
 .backup-row button {
+  min-height: 40px;
+  padding: 0 8px;
   color: var(--destructive);
   border: 0;
   background: transparent;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -2208,13 +2214,13 @@ button:disabled {
   margin-top: 10px;
 }
 .account-actions button {
-  min-height: 27px;
-  padding: 0 7px;
+  min-height: 40px;
+  padding: 0 10px;
   color: var(--muted-foreground);
   border: 1px solid var(--builder-border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: transparent;
-  font-size: 8px;
+  font-size: 11px;
   cursor: pointer;
 }
 .account-actions button.danger-text {
@@ -2227,7 +2233,7 @@ button:disabled {
   margin-top: 10px;
   padding: 10px;
   border: 1px solid color-mix(in oklch, var(--builder-warning) 28%, var(--border));
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: color-mix(in oklch, var(--builder-warning) 6%, transparent);
 }
 .credential-replace p,
@@ -2264,7 +2270,7 @@ button:disabled {
 .journal-list article {
   padding: 11px;
   border: 1px solid var(--builder-border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: var(--builder-surface);
 }
 .journal-list article > div {
@@ -2286,7 +2292,7 @@ button:disabled {
   padding: 9px;
   color: var(--builder-green);
   border: 1px solid var(--builder-border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: var(--builder-surface-strong);
   font:
     9px/1.6 ui-monospace,
@@ -2307,7 +2313,7 @@ button:disabled {
   grid-template-columns: 1fr auto;
   padding: 0 10px;
   border: 1px solid var(--builder-border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: var(--builder-surface);
 }
 .backup-row > div {
@@ -2375,10 +2381,10 @@ button:disabled {
   margin-bottom: 10px;
 }
 .mcp-mode-grid button {
-  min-height: 34px;
+  min-height: 40px;
   color: var(--muted-foreground);
   border: 1px solid var(--builder-border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: var(--builder-surface);
   font-size: 9px;
   font-weight: 750;
@@ -2668,30 +2674,48 @@ button:disabled {
     font-size: 0;
   }
   .workflow-actions [data-slot="button"] {
-    width: 34px;
+    width: 40px;
+    min-height: 40px;
     padding: 0;
     font-size: 0;
+  }
+  .workflow-topbar [data-slot="button"] {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
   }
   .workflow-actions .action-count {
     display: none;
   }
   .workflow-navigation {
     padding: 0 12px;
-    overflow-x: auto;
+    overflow: visible;
+  }
+  .workflow-navigation [data-slot="tabs"] {
+    width: 100%;
+    min-width: 0;
   }
   .workflow-navigation-list {
-    gap: 8px;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100% !important;
+    min-width: 0;
+    gap: 4px;
   }
 .workflow-navigation-list [data-slot="tabs-indicator"] {
   z-index: 1;
 }
 .workflow-navigation-list [data-slot="tabs-trigger"] {
-    min-width: 92px;
+    width: 100%;
+    min-width: 0;
+    padding: 0 4px;
+    font-size: 12px;
   }
   .workflow-statusbar {
     min-height: 42px;
     padding: 0 12px;
-    overflow-x: auto;
+    overflow: hidden;
   }
   .workflow-statusbar > div {
     flex: 0 0 auto;
@@ -2710,12 +2734,44 @@ button:disabled {
     padding-right: 0;
   }
   .workflow-status-tools [data-slot="button"] {
-    width: 34px;
+    width: 40px;
+    min-height: 40px;
     padding: 0;
     font-size: 0;
     white-space: nowrap;
   }
   .workflow-status-tools .action-count {
+    display: none;
+  }
+  .workspace-statusbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 54px;
+    align-items: center;
+    column-gap: 8px;
+  }
+  .workspace-statusbar > div:first-child {
+    min-width: 0;
+    padding: 0;
+    border-right: 0;
+  }
+  .workspace-statusbar > div:first-child strong,
+  .workspace-statusbar > div:first-child span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .workspace-statusbar > .workspace-status-item {
+    display: none;
+  }
+  .workspace-statusbar > .workflow-status-tools {
+    justify-content: flex-end;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+  .workspace-statusbar .workspace-last-updated {
     display: none;
   }
   .builder-modal,
@@ -2750,8 +2806,44 @@ button:disabled {
     padding-right: 12px;
   }
   .operations-tab-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
     padding-left: 12px;
     padding-right: 12px;
+  }
+  .operations-tab-list [data-slot="tabs-trigger"] {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 7px 3px;
+    text-align: center;
+  }
+  .operations-tab-list [data-slot="tabs-trigger"] > span {
+    align-items: center;
+    min-width: 0;
+  }
+  .operations-tab-list [data-slot="tabs-trigger"] strong {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .operations-tab-list [data-slot="tabs-trigger"] small {
+    display: none;
+  }
+  .account-grid {
+    grid-template-columns: 1fr;
+  }
+  .account-actions button {
+    flex: 1 1 calc(50% - 5px);
+  }
+  .workflow-canvas .react-flow__controls-button {
+    width: 40px;
+    height: 40px;
   }
   .expectancy-grid,
   .setup-diff-grid,
