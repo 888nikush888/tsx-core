@@ -491,7 +491,9 @@ test("mobile navigation, touch targets and operational typography remain polishe
       return tablist.scrollWidth <= tablist.clientWidth + 1
         && [...tablist.querySelectorAll<HTMLElement>("[role='tab']")].every((tab) => {
           const tabBounds = tab.getBoundingClientRect();
-          return tabBounds.left >= bounds.left - 1 && tabBounds.right <= bounds.right + 1;
+          return tabBounds.left >= bounds.left - 1
+            && tabBounds.right <= bounds.right + 1
+            && tab.scrollWidth <= tab.clientWidth + 1;
         });
     }),
   ).toBe(true);
