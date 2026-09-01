@@ -22,6 +22,8 @@ ENV CGO_ENABLED=0 \
     SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
 WORKDIR /src
 
+COPY --chmod=0444 monitoring/prometheus.go.mod monitoring/prometheus.go.sum /tmp/prometheus-lock/
+
 ADD --checksum=sha256:beffc32fe1e56dd49c2146589e63182414c5fea1cc555343d29d58a7ee49332d \
     https://codeload.github.com/prometheus/prometheus/tar.gz/bb5dff00cf8fdfbf5c65e0531aa835fa238a43a2 /tmp/prometheus.tar.gz
 ADD --checksum=sha256:6a2255eb51cbe8735a58b4955d3b211920e91331590654bf81b1c1d4a4b32e9d \
@@ -30,9 +32,13 @@ ADD --checksum=sha256:6a2255eb51cbe8735a58b4955d3b211920e91331590654bf81b1c1d4a4
 RUN test "$(go env GOVERSION)" = "go1.26.6" \
     && tar -xzf /tmp/prometheus.tar.gz --strip-components=1 -C /src \
     && tar -xzf /tmp/prometheus-web-ui.tar.gz -C /src/web/ui \
+    && install -m 0444 /tmp/prometheus-lock/prometheus.go.mod /src/go.mod \
+    && install -m 0444 /tmp/prometheus-lock/prometheus.go.sum /src/go.sum \
     && test "$(cat VERSION)" = "3.13.2" \
+    && test "$(go list -m -f '{{.Version}}' golang.org/x/crypto)" = "v0.55.0" \
     && test -f web/ui/static/mantine-ui/index.html \
     && rm /tmp/prometheus.tar.gz /tmp/prometheus-web-ui.tar.gz \
+    && go mod download \
     && go mod verify \
     && PREBUILT_ASSETS_STATIC_DIR=web/ui/static make assets-compress
 

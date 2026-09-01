@@ -6,9 +6,13 @@ HIGH/CRITICAL container gate without suppression.
 The official Prometheus v3.13.2 binary was built with Go 1.26.5. The pinned
 `monitoring/prometheus.Dockerfile` rebuilds verified commit
 `bb5dff00cf8fdfbf5c65e0531aa835fa238a43a2` and the checksum-verified release
-web UI with Go 1.26.6, retaining the upstream source and dependency versions.
-The static non-root runtime, reproducible metadata, SBOM, Trivy gate and
-`govulncheck` source/binary reachability checks apply without suppression.
+web UI with Go 1.26.6. The checked-in `prometheus.go.mod` and
+`prometheus.go.sum` locks retain the upstream source while lifting
+`golang.org/x/crypto` to v0.55.0 (and the minimum-version-selected companion
+`golang.org/x/*` modules) to remediate CVE-2026-56854. The build verifies that
+exact security floor before compilation. The static non-root runtime,
+reproducible metadata, SBOM, Trivy gate and `govulncheck` source/binary
+reachability checks apply without suppression.
 
 The official Alertmanager v0.33.1 binaries contain vulnerable Go modules.
 `monitoring/alertmanager.Dockerfile` therefore rebuilds both `alertmanager` and
