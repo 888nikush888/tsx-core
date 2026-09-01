@@ -80,7 +80,8 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
+  --radius: 0rem;
+  --shell-inline: 22px;
 }
 
 .dark {
@@ -191,7 +192,7 @@ button {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   min-height: 68px;
-  padding: 0 22px;
+  padding: 0 var(--shell-inline);
   border-bottom: 1px solid var(--builder-border);
   background: color-mix(in oklch, var(--background) 94%, transparent);
   backdrop-filter: blur(18px);
@@ -260,7 +261,7 @@ button {
   display: flex;
   align-items: end;
   min-height: 46px;
-  padding: 0 22px;
+  padding: 0 var(--shell-inline);
   border-bottom: 1px solid var(--border);
   background: var(--background);
 }
@@ -365,7 +366,7 @@ button:disabled {
   display: flex;
   align-items: stretch;
   min-height: 48px;
-  padding: 0 22px;
+  padding: 0 var(--shell-inline);
   border-bottom: 1px solid var(--border);
   background: var(--builder-surface);
 }
@@ -444,6 +445,10 @@ button:disabled {
 }
 .analytics-statusbar .workflow-status-tools {
   margin-left: 0;
+  width: 100%;
+}
+.analytics-statusbar .workspace-last-updated {
+  margin-right: auto;
 }
 .workspace-status-item {
   flex: 0 1 auto;
@@ -595,7 +600,7 @@ button:disabled {
   position: absolute;
   z-index: 6;
   border: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--popover);
   color: var(--popover-foreground);
   padding: 0.15rem 0.45rem;
@@ -1695,7 +1700,7 @@ button:disabled {
 .operations-workspace-header {
   display: flex;
   justify-content: space-between;
-  padding: 20px 22px 16px;
+  padding: 20px var(--shell-inline) 16px;
   border-bottom: 1px solid var(--border);
 }
 .operations-workspace-header h2 {
@@ -1719,7 +1724,7 @@ button:disabled {
   justify-content: stretch;
   gap: 7px;
   overflow-x: auto;
-  padding: 10px 22px;
+  padding: 10px var(--shell-inline);
   background: transparent;
 }
 .operations-tab-list [data-slot="tabs-trigger"] {
@@ -1757,7 +1762,7 @@ button:disabled {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  padding: 18px;
+  padding: 18px var(--shell-inline);
   scrollbar-color: var(--muted) transparent;
 }
 .operations-stack {
@@ -1806,6 +1811,9 @@ button:disabled {
 .critical-dashboard-alert > svg { margin-top: 1px; }
 .critical-dashboard-alert h3 { margin-bottom: 5px; }
 .critical-dashboard-alert p { margin: 2px 0; font-size: 9px; }
+.critical-dashboard-alert [data-slot="button"] {
+  margin-top: 8px;
+}
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1988,6 +1996,49 @@ button:disabled {
 .analytics-chart .recharts-responsive-container {
   margin-top: 8px;
   font-size: 8px;
+}
+.equity-chart-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.equity-chart-group + .equity-chart-group {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.equity-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-height: 22px;
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: 9px;
+}
+.equity-chart-legend strong {
+  color: var(--foreground);
+  font-size: 10px;
+}
+.equity-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.equity-chart-legend i {
+  width: 12px;
+  height: 2px;
+}
+.app-confirmation-description {
+  white-space: pre-line;
+}
+.app-confirmation-input {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 600;
 }
 .expectancy-grid {
   display: grid;
@@ -2195,6 +2246,16 @@ button:disabled {
 .kill-switch-confirmation {
   color: var(--muted-foreground);
   font-size: 10px;
+}
+.account-incident-overview .operations-section-heading {
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.incident-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
 }
 .account-warning button,
 .backup-row button {
@@ -2659,9 +2720,12 @@ button:disabled {
   }
 }
 @media (max-width: 720px) {
+  :root {
+    --shell-inline: 12px;
+  }
   .workflow-topbar {
     min-height: 60px;
-    padding: 0 12px;
+    padding: 0 var(--shell-inline);
   }
   .workflow-actions {
     gap: 4px;
@@ -2689,7 +2753,7 @@ button:disabled {
     display: none;
   }
   .workflow-navigation {
-    padding: 0 12px;
+    padding: 0 var(--shell-inline);
     overflow: visible;
   }
   .workflow-navigation [data-slot="tabs"] {
@@ -2714,7 +2778,7 @@ button:disabled {
   }
   .workflow-statusbar {
     min-height: 42px;
-    padding: 0 12px;
+    padding: 0 var(--shell-inline);
     overflow: hidden;
   }
   .workflow-statusbar > div {
@@ -2802,15 +2866,15 @@ button:disabled {
   }
   .operations-workspace-header,
   .operations-content {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: var(--shell-inline);
+    padding-right: var(--shell-inline);
   }
   .operations-tab-list {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
     overflow: visible;
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: var(--shell-inline);
+    padding-right: var(--shell-inline);
   }
   .operations-tab-list [data-slot="tabs-trigger"] {
     grid-template-columns: 1fr;

@@ -621,7 +621,9 @@ export async function publishTradingStrategyVersion(id: string, now = Date.now()
 }
 
 export async function listTradingAccounts(): Promise<TradingAccount[]> {
-  const rows = await getDatabase().all<any[]>('SELECT * FROM trading_accounts ORDER BY name, created_at');
+  const rows = await getDatabase().all<any[]>(
+    'SELECT * FROM trading_accounts WHERE retired_at IS NULL ORDER BY name, created_at',
+  );
   return rows.map(accountFromRow);
 }
 
@@ -731,7 +733,7 @@ export async function updateTradingAccountState(
      SET status = ?, enabled = ?, last_error = ?, last_verified_at = ?,
          external_account_id = CASE WHEN ? = 1 THEN ? ELSE external_account_id END,
          updated_at = ?
-     WHERE id = ?`,
+     WHERE id = ? AND retired_at IS NULL`,
     [
       state.status,
       state.enabled ? 1 : 0,
@@ -744,7 +746,7 @@ export async function updateTradingAccountState(
     ],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Trading account does not exist.');
-  return accountFromRow(await getDatabase().get('SELECT * FROM trading_accounts WHERE id = ?', [id]));
+  return (await getTradingAccount(id))!;
 }
 
 type TradingAccountConfigurationUpdate = {
@@ -805,7 +807,7 @@ export async function updateTradingAccountConfiguration(
   await getDatabase().run(
     `UPDATE trading_accounts SET max_concurrent_positions = ?, kill_switch_active = ?,
        kill_switch_reason = ?, capabilities_json = ?, last_reconciled_at = ?, updated_at = ?
-     WHERE id = ?`,
+     WHERE id = ? AND retired_at IS NULL`,
     [maxConcurrentPositions, killSwitch.active ? 1 : 0, killSwitch.reason, capabilitiesJson,
       lastReconciledAt, updatedAt, id],
   );
@@ -970,7 +972,10 @@ export async function getTradingIntent(id: string): Promise<TradingIntent | null
 }
 
 export async function getTradingAccount(id: string): Promise<TradingAccount | null> {
-  const row = await getDatabase().get('SELECT * FROM trading_accounts WHERE id = ?', [id]);
+  const row = await getDatabase().get(
+    'SELECT * FROM trading_accounts WHERE id = ? AND retired_at IS NULL',
+    [id],
+  );
   return row ? accountFromRow(row) : null;
 }
 
@@ -978,7 +983,7 @@ export async function getTradingOverview(): Promise<TradingOverview> {
   const [runtime, counts, reconciliation] = await Promise.all([
     getTradingRuntimeState(),
     getDatabase().get<any>(`SELECT
-      (SELECT COUNT(*) FROM trading_accounts) AS accounts,
+      (SELECT COUNT(*) FROM trading_accounts WHERE retired_at IS NULL) AS accounts,
       (CASE WHEN EXISTS (SELECT 1 FROM workflow_active_revision WHERE singleton_id = 1)
         THEN (SELECT COUNT(*) FROM workflow_execution_paths AS path
               JOIN workflow_active_revision AS active ON active.revision_id = path.workflow_revision_id
@@ -1439,28 +1444,51 @@ export async function deleteTradingStrategyVersion(id: string): Promise<boolean>
   });
 }
 
+function assertTradingAccountRemovalSafe(references: Record<string, unknown>): void {
+  if (numeric(references.routes) > 0 || numeric(references.active_paths) > 0) {
+    throw new Error('Account removal requires all routes to be removed and all active Builder paths using this account to be removed first.');
+  }
+  if (numeric(references.active_intents) > 0 || numeric(references.active_positions) > 0) {
+    throw new Error('Account removal is refused while active or unresolved trades still reference this account.');
+  }
+}
+
 export async function deleteTradingAccount(id: string): Promise<boolean> {
   return transaction(async () => {
+    const existing = await getDatabase().get<{ id: string }>(
+      'SELECT id FROM trading_accounts WHERE id = ? AND retired_at IS NULL',
+      [id],
+    );
+    if (!existing) return false;
     const references = await getDatabase().get<any>(
       `SELECT
          (SELECT COUNT(*) FROM trading_routes WHERE account_id = ?) AS routes,
-         (SELECT COUNT(*) FROM trading_trade_intents WHERE account_id = ?) AS intents`,
-      [id, id],
+         (SELECT COUNT(*) FROM workflow_execution_paths AS path
+            JOIN workflow_active_revision AS active ON active.revision_id = path.workflow_revision_id
+            WHERE active.singleton_id = 1 AND path.account_id = ?) AS active_paths,
+         (SELECT COUNT(*) FROM trading_trade_intents
+            WHERE account_id = ? AND status IN ('pending', 'planned', 'submitting', 'monitoring', 'unknown')) AS active_intents,
+         (SELECT COUNT(*) FROM trading_positions
+            WHERE account_id = ? AND status IN ('opening', 'open', 'closing', 'emergency') AND quantity <> '0') AS active_positions`,
+      [id, id, id, id],
     );
-    if (Number(references?.routes || 0) > 0 || Number(references?.intents || 0) > 0) {
-      throw new Error('Account deletion requires all routes to be removed and no retained trade history. Disable it instead.');
-    }
+    assertTradingAccountRemovalSafe(references || {});
     let result;
     try {
       result = await getDatabase().run('DELETE FROM trading_accounts WHERE id = ?', [id]);
     } catch (error) {
       if (isForeignKeyConstraint(error)) {
-        throw new Error(
-          'Account deletion is blocked because retained operational or protection history references it. Disable it instead.',
-          { cause: error },
+        result = await getDatabase().run(
+          `UPDATE trading_accounts
+           SET status = 'disabled', enabled = 0, external_account_id = NULL,
+               kill_switch_active = 0, kill_switch_reason = NULL,
+               last_error = NULL, retired_at = ?, updated_at = ?
+           WHERE id = ? AND retired_at IS NULL`,
+          [Date.now(), Date.now(), id],
         );
+      } else {
+        throw error;
       }
-      throw error;
     }
     const deleted = Number(result.changes || 0) === 1;
     if (deleted) await clearWorkflowBuilderHistory('trading account deleted');

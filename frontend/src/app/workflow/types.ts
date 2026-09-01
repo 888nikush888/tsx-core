@@ -222,6 +222,7 @@ export type TradingAccount = {
   maxConcurrentPositions: number;
   killSwitchActive: boolean;
   killSwitchReason: string | null;
+  capabilities?: Record<string, unknown> | null;
   lastReconciledAt: number | null;
   lastError: string | null;
   credentials?: { configured: boolean };

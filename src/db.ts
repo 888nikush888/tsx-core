@@ -224,10 +224,24 @@ function validatedMigrationColumnDefinition(definition: string): string {
   return definition;
 }
 
-async function ensureColumn(database: Database, table: string, column: string, definition: string): Promise<void> {
+async function ensureColumn(
+  database: Database,
+  table: string,
+  column: string,
+  definition: string,
+  optionalTable = false,
+): Promise<void> {
   const quotedTable = quotedMigrationIdentifier(table, 'table');
   const quotedColumn = quotedMigrationIdentifier(column, 'column');
   const safeDefinition = validatedMigrationColumnDefinition(definition);
+  const tableExists = await database.get<{ name: string }>(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+    [table],
+  );
+  if (!tableExists) {
+    if (optionalTable) return;
+    throw new Error(`Database migration table ${table} does not exist.`);
+  }
   const columns = await database.all<Array<{ name: string }>>(
     'SELECT name FROM pragma_table_info(?)',
     [table],
@@ -241,6 +255,7 @@ interface MigrationColumn {
   table: string;
   name: string;
   sqlDefinition: string;
+  optionalTable?: boolean;
 }
 
 interface SchemaMigration {
@@ -1554,6 +1569,16 @@ const migrations: SchemaMigration[] = [
         CREATE INDEX IF NOT EXISTS idx_trading_signal_schemas_definition
           ON trading_signal_schemas(definition_sha256);
       `
+  },
+  {
+    version: 24,
+    name: 'retirable_trading_accounts',
+    columns: [
+      { table: 'trading_accounts', name: 'retired_at', sqlDefinition: 'INTEGER', optionalTable: true },
+    ],
+    sql: `
+        SELECT 1;
+      `
   }
 ];
 
@@ -1587,7 +1612,7 @@ export function expectedDatabaseMigrations(): DatabaseMigrationDescriptor[] {
 
 async function applyMigration(database: Database, migration: SchemaMigration): Promise<void> {
   for (const column of migration.columns) {
-    await ensureColumn(database, column.table, column.name, column.sqlDefinition);
+    await ensureColumn(database, column.table, column.name, column.sqlDefinition, column.optionalTable);
   }
   await database.exec(migration.sql);
 }

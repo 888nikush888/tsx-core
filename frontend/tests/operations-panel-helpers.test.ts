@@ -1,9 +1,40 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildEquityChartGroups,
   buildJournalQueryString,
   normalizeJournalSymbol,
   resolveDisplayedLeverage,
 } from "@/app/workflow/operations-panel";
+
+describe("buildEquityChartGroups", () => {
+  it("never joins account balances that use different reporting currencies", () => {
+    const points = [
+      { accountId: "hyper", observedAt: 1000, equity: "1153.24" },
+      { accountId: "paper", observedAt: 1001, equity: "10000" },
+      { accountId: "hyper", observedAt: 2000, equity: "1160.00" },
+    ];
+    const accounts = [
+      { id: "hyper", name: "Hyper Test", exchange: "hyperliquid", mode: "testnet", capabilities: { reportingCurrency: "USDC" } },
+      { id: "paper", name: "Paper", exchange: "paper", mode: "paper", capabilities: null },
+    ];
+
+    expect(buildEquityChartGroups(points, accounts)).toEqual([
+      {
+        currency: "QUOTE",
+        series: [{ accountId: "paper", dataKey: "account_0", name: "Paper" }],
+        points: [{ observedAt: 1001, account_0: 10000 }],
+      },
+      {
+        currency: "USDC",
+        series: [{ accountId: "hyper", dataKey: "account_0", name: "Hyper Test" }],
+        points: [
+          { observedAt: 1000, account_0: 1153.24 },
+          { observedAt: 2000, account_0: 1160 },
+        ],
+      },
+    ]);
+  });
+});
 
 describe("normalizeJournalSymbol", () => {
   it("trims, uppercases and removes slashes", () => {

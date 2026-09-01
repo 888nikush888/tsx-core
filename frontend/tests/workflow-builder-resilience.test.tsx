@@ -43,7 +43,7 @@ vi.mock("@xyflow/react", () => ({
 }));
 
 import {
-  confirmWorkflowImpact,
+  workflowImpactDescription,
   workflowResourceSummary,
   WorkflowBuilder,
 } from "@/app/workflow/workflow-builder";
@@ -93,22 +93,15 @@ describe("workflow builder resilience", () => {
     expect(screen.getByText("Noch keine aktive Revision")).toBeVisible();
   });
 
-  it("requires the exact server-issued phrase for destructive workflow activation", () => {
-    const prompt = vi.spyOn(window, "prompt");
+  it("describes every server-reported destructive workflow impact", () => {
     const impact = {
       changed: [{ channelId: "-1001", accountId: "account-1" }],
       removed: [],
       destructive: true,
       confirmation: "ACTIVATE WORKFLOW IMPACT",
     };
-    prompt.mockReturnValue("yes");
-    expect(confirmWorkflowImpact(impact)).toBeNull();
-    prompt.mockReturnValue("ACTIVATE WORKFLOW IMPACT");
-    expect(confirmWorkflowImpact(impact)).toBe("ACTIVATE WORKFLOW IMPACT");
-    expect(prompt).toHaveBeenLastCalledWith(
-      expect.stringContaining("Zur Bestätigung exakt eingeben"),
-    );
-    prompt.mockRestore();
+    expect(workflowImpactDescription(impact)).toContain("1 Pfad(e) werden geändert");
+    expect(workflowImpactDescription(impact)).toContain("-1001 → account-1");
   });
 
   it("provides initial dimensions so nodes remain renderable before browser measurement callbacks", async () => {

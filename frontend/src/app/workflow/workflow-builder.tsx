@@ -70,6 +70,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
+import { useConfirmationDialog } from "@/components/confirmation-dialog";
 import { OperationsWorkspace } from "./operations-panel";
 import { RouteOverview } from "./route-overview";
 import { ResourceEditor } from "./resource-editor";
@@ -263,7 +264,7 @@ function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-function impactText(impact: any): string {
+export function workflowImpactDescription(impact: any): string {
   const lines = [
     `${impact.changed?.length || 0} Pfad(e) werden geändert.`,
     `${impact.removed?.length || 0} Pfad(e) werden entfernt.`,
@@ -275,16 +276,6 @@ function impactText(impact: any): string {
     lines.push(`• ${path.channelId} → ${path.accountId}`);
   }
   return `${lines.join("\n")}\n\nDiese Änderung sofort als aktive Revision übernehmen?`;
-}
-
-export function confirmWorkflowImpact(impact: any): string | null {
-  const required =
-    typeof impact?.confirmation === "string" ? impact.confirmation : "";
-  if (!required) return null;
-  const entered = window.prompt(
-    `${impactText(impact)}\n\nZur Bestätigung exakt eingeben:\n${required}`,
-  );
-  return entered === required ? required : null;
 }
 
 function workflowSnapshot(payload: any): WorkflowSnapshot {
@@ -701,8 +692,8 @@ export function WorkspaceStatusbar({
   if (!copy) {
     return (
       <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
-        <div className="workflow-status-tools" style={{ margin: 0, width: "100%" }}>
-          <span className="workspace-last-updated" style={{ marginRight: "auto" }}>
+        <div className="workflow-status-tools">
+          <span className="workspace-last-updated">
             {lastUpdated
               ? `zuletzt aktualisiert ${new Date(lastUpdated).toLocaleTimeString("de-DE")}`
               : "noch nicht aktualisiert"}
@@ -1171,6 +1162,7 @@ export function WorkflowBuilder() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<BuilderNoticeValue | null>(null);
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [activeWorkspace, setActiveWorkspace] =
     useState<WorkflowWorkspace>("dashboard");
   const [editorNodeId, setEditorNodeId] = useState<string | null>(null);
@@ -1437,8 +1429,16 @@ export function WorkflowBuilder() {
         const impact = impactPayload.impact;
         let confirmation: string | null = null;
         if (impact.destructive) {
-          confirmation = confirmWorkflowImpact(impact);
-          if (!confirmation) return false;
+          const required = typeof impact.confirmation === "string" ? impact.confirmation : undefined;
+          const accepted = await confirm({
+            title: "Workflow-Änderung bestätigen",
+            description: workflowImpactDescription(impact),
+            confirmationText: required,
+            confirmLabel: "Aktive Revision ändern",
+            destructive: true,
+          });
+          if (!accepted) return false;
+          confirmation = required || null;
         }
         const payload = await jsonRequest("/api/workflow/mutate", {
           method: "POST",
@@ -1476,7 +1476,7 @@ export function WorkflowBuilder() {
         setSaving(false);
       }
     },
-    [load, snapshot.workflow?.id],
+    [confirm, load, snapshot.workflow?.id],
   );
 
   const navigateHistory = useCallback(
@@ -1495,8 +1495,16 @@ export function WorkflowBuilder() {
         const impact = impactPayload.impact;
         let confirmation: string | null = null;
         if (impact.destructive) {
-          confirmation = confirmWorkflowImpact(impact);
-          if (!confirmation) return;
+          const required = typeof impact.confirmation === "string" ? impact.confirmation : undefined;
+          const accepted = await confirm({
+            title: direction === "undo" ? "Workflow-Änderung rückgängig machen" : "Workflow-Änderung wiederholen",
+            description: workflowImpactDescription(impact),
+            confirmationText: required,
+            confirmLabel: direction === "undo" ? "Rückgängig machen" : "Wiederholen",
+            destructive: true,
+          });
+          if (!accepted) return;
+          confirmation = required || null;
         }
         const payload = await jsonRequest("/api/workflow/history/apply", {
           method: "POST",
@@ -1542,6 +1550,7 @@ export function WorkflowBuilder() {
       }
     },
     [
+      confirm,
       connectionDraft,
       connectionSourceId,
       editorNodeId,
@@ -2332,8 +2341,8 @@ export function WorkflowBuilder() {
           <WorkflowTopbar />
           <WorkflowNavigation activeWorkspace={activeWorkspace} onChange={setActiveWorkspace} />
           <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
-            <div className="workflow-status-tools" style={{ marginLeft: 0, width: "100%" }}>
-              <span className="workspace-last-updated" style={{ marginRight: "auto" }}>
+            <div className="workflow-status-tools">
+              <span className="workspace-last-updated">
                 {lastUpdated ? `zuletzt aktualisiert ${new Date(lastUpdated).toLocaleTimeString("de-DE")}` : "noch nicht aktualisiert"}
               </span>
               <Button type="button" variant="outline" size="sm" onClick={() => setAnalyticsFiltersOpen((value) => !value)}>
@@ -2377,6 +2386,7 @@ export function WorkflowBuilder() {
             initialTab="overview"
             availableTabs={["overview"]}
             ariaLabel="Dashboard"
+            onOpenIncidents={() => setActiveWorkspace("operations")}
           />
         </main>
       );
@@ -2842,6 +2852,7 @@ export function WorkflowBuilder() {
           )}
         </DialogContent>
       </Dialog>
+      {confirmationDialog}
       <RouteOverview
         open={routeOverviewOpen}
         topology={routeTopology}

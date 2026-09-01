@@ -275,6 +275,32 @@ describe("operations workspace", () => {
     fireEvent.change(screen.getByLabelText(/Zur Bestätigung exakt/), { target: { value: "RELEASE ACCOUNT KILL SWITCH" } })
     fireEvent.click(screen.getByRole("button", { name: "Prüfen und freigeben" }))
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith("/api/trading/accounts/kill-switch/release", expect.objectContaining({ method: "POST" })))
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Löschen" })[0])
+    expect(screen.getByRole("heading", { name: "Konto entfernen" })).toBeInTheDocument()
+    expect(screen.getByText(/Abgeschlossene Trades.*erhalten/i)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/KONTO ENTFERNEN/), { target: { value: "KONTO ENTFERNEN" } })
+    fireEvent.click(screen.getByRole("button", { name: "Konto entfernen" }))
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
+      "/api/trading/accounts", expect.objectContaining({ method: "DELETE" }),
+    ))
+  })
+
+  it("opens the incident workspace directly from the dashboard alert", async () => {
+    const onOpenIncidents = vi.fn()
+    render(
+      <OperationsWorkspace
+        trading={trading}
+        catalog={catalog}
+        systemStatus={{ connectionState: "connected" }}
+        onRefresh={vi.fn(async () => undefined)}
+        initialTab="overview"
+        availableTabs={["overview"]}
+        onOpenIncidents={onOpenIncidents}
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Incidents prüfen" }))
+    expect(onOpenIncidents).toHaveBeenCalledOnce()
   })
 
   it("filters, copies, pauses and clears the local log view", async () => {

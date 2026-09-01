@@ -343,6 +343,25 @@ test("local startup unlocks the responsive workflow builder without a bearer pro
     "aria-selected",
     "true",
   );
+  const expectShellAlignment = async () => {
+    const selectors = [
+      ".workflow-topbar .workflow-brand",
+      ".workflow-navigation-list [role='tab']",
+      ".workflow-statusbar > div:first-of-type",
+      ".operations-content > .operations-stack",
+    ];
+    const leftEdges = await Promise.all(selectors.map(async (selector) =>
+      Math.round((await page.locator(selector).first().boundingBox())?.x ?? -1000),
+    ));
+    expect(Math.max(...leftEdges) - Math.min(...leftEdges)).toBeLessThanOrEqual(1);
+  };
+  await expectShellAlignment();
+  await page.getByRole("tab", { name: "Analytics" }).click();
+  await expect(page.getByRole("region", { name: "Analytics" })).toBeVisible();
+  await expectShellAlignment();
+  await page.getByRole("tab", { name: "Betrieb" }).click();
+  await expect(page.getByRole("region", { name: "Betrieb" })).toBeVisible();
+  await expectShellAlignment();
   expect(
     await page.locator(".workflow-statusbar").evaluate((statusbar) => {
       if (window.innerWidth <= 720) {
@@ -498,10 +517,18 @@ test("mobile navigation, touch targets and operational typography remain polishe
     }),
   ).toBe(true);
 
+  const mobileLeftEdges = await Promise.all([
+    ".workflow-topbar .workflow-brand",
+    ".workflow-navigation-list [role='tab']",
+    ".workflow-statusbar > div:first-of-type",
+    ".operations-content > .operations-stack",
+  ].map(async (selector) => Math.round((await page.locator(selector).first().boundingBox())?.x ?? -1000)));
+  expect(Math.max(...mobileLeftEdges) - Math.min(...mobileLeftEdges)).toBeLessThanOrEqual(1);
+
   expect(
     await operations.locator(".operations-card").first().evaluate((card) =>
       Number.parseFloat(getComputedStyle(card).borderTopLeftRadius)),
-  ).toBeGreaterThanOrEqual(8);
+  ).toBe(0);
   expect(
     await operations.locator(".operations-section-heading h3").first().evaluate((heading) =>
       Number.parseFloat(getComputedStyle(heading).fontSize)),

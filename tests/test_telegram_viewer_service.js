@@ -81,6 +81,20 @@ function fakeBot() {
   };
 }
 
+function assertNoInlineMenu(message, label) {
+  assert.strictEqual(message.options, undefined, label);
+}
+
+function assertUnknownResponse(message) {
+  assert.match(message.text, /nur lesend|viewer/i, 'Unknown commands must receive a neutral viewer hint.');
+  assertNoInlineMenu(message, 'Unknown-command hints must not attach the full viewer menu.');
+}
+
+async function deliverWithoutInlineMenu(service, bot, now, label) {
+  await service.deliverPendingOnce(now);
+  assertNoInlineMenu(bot.sent.at(-1), label);
+}
+
 function verifyFormatters() {
   const longEvent = {
     seq: 2, id: 'event-2', dedupeKey: 'event:2', eventType: 'execution_failed', intentId: null,
@@ -215,11 +229,12 @@ async function run() {
       { update_id: 17, message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: null } },
     );
     await service.pollTelegramOnce();
+    assert.ok(bot.sent[2].options?.reply_markup, 'The menu remains available on explicit /start and /help requests.');
     assert.strictEqual(bot.sent.length, 4, 'Only an allowed user in a private chat may use the viewer');
     assert.match(bot.sent[0].text, /Konten|accounts/i);
     assert.strictEqual(await state.telegramOffset(), 18, 'Telegram update offset must be persisted');
     assert.ok(
-      bot.sent.some(message => message.options.reply_markup.inline_keyboard.flat()
+      bot.sent.some(message => message.options?.reply_markup?.inline_keyboard.flat()
         .some(button => button.callback_data === 'page:accounts:1')),
       'A bounded account page with more rows must expose a next-page callback.',
     );
@@ -229,7 +244,7 @@ async function run() {
       message: { chat: { id: 1001, type: 'private' }, from: { id: 1001 }, text: '/unknown' },
     });
     await service.pollTelegramOnce();
-    assert.match(bot.sent.at(-1).text, /nur lesend|viewer/i, 'Unknown commands must receive a neutral viewer hint.');
+    assertUnknownResponse(bot.sent.at(-1));
 
     bot.updates.push({
       update_id: 19,
@@ -262,13 +277,14 @@ async function run() {
     assert.strictEqual(await state.eventCursor(), 1, 'Fetched events may advance the cursor after durable delivery creation');
     assert.strictEqual((await state.pendingDeliveries(1_700_000_010_000)).length, 0, 'Failed delivery must use bounded backoff');
     assert.strictEqual((await state.pendingDeliveries(1_700_000_012_000)).length, 1);
-    await service.deliverPendingOnce(1_700_000_012_000);
+    await deliverWithoutInlineMenu(service, bot, 1_700_000_012_000, 'Automatic event notifications must not attach the full viewer menu.');
     assert.strictEqual((await state.pendingDeliveries(1_700_000_020_000)).length, 0);
 
     bot.failNext = true;
     await service.pollTestEventsOnce();
     assert.strictEqual(service.status().lastTest.status, 'retrying');
     await service.deliverPendingOnce(1_700_000_012_000);
+    assertNoInlineMenu(bot.sent.at(-1), 'Viewer test messages must not attach the full viewer menu.');
     assert.strictEqual(service.status().lastTestEventId, 1);
     assert.strictEqual((await state.lastTest()).status, 'delivered');
 

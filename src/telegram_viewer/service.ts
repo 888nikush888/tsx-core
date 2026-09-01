@@ -101,9 +101,7 @@ export class TelegramViewerService {
       await this.sendProjection(message.chat.id, resource);
       return;
     }
-    await this.dependencies.bot.sendMessage(message.chat.id, TELEGRAM_VIEWER_UNKNOWN_COMMAND, {
-      reply_markup: telegramViewerMenu(),
-    });
+    await this.dependencies.bot.sendMessage(message.chat.id, TELEGRAM_VIEWER_UNKNOWN_COMMAND);
   }
 
   private async processCallback(callback: any): Promise<void> {
@@ -180,7 +178,7 @@ export class TelegramViewerService {
         const text = delivery.kind === 'notification'
           ? formatTelegramViewerEvent(delivery.payload.event as TradingNotificationEvent, this.settings)
           : `TSX Core · Test\n${String((delivery.payload.test as any)?.message ?? 'Testnachricht')}`.slice(0, 4096);
-        await this.dependencies.bot.sendMessage(delivery.userId, text, { reply_markup: telegramViewerMenu() });
+        await this.dependencies.bot.sendMessage(delivery.userId, text);
         await this.dependencies.state.markDelivered(delivery.id, now);
         if (delivery.kind === 'test') {
           this.lastTest = { sourceSeq: delivery.sourceSeq, status: 'delivered', attemptedAt: now, deliveredAt: now, error: null };

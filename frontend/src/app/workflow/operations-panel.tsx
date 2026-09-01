@@ -15,6 +15,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { apiFetch, clearDashboardToken, jsonRequest, setDashboardToken } from "@/lib/api";
+import { useConfirmationDialog } from "@/components/confirmation-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -111,17 +112,137 @@ export function buildJournalQueryString(filters: {
   return params.toString();
 }
 
+type EquityChartSeries = {
+  accountId: string;
+  dataKey: string;
+  name: string;
+};
+
+export type EquityChartGroup = {
+  currency: string;
+  series: EquityChartSeries[];
+  points: Array<Record<string, number>>;
+};
+
+function accountReportingCurrency(account: Record<string, any> | undefined): string {
+  if (account?.exchange === "paper") return "QUOTE";
+  const value = account?.capabilities?.reportingCurrency;
+  return typeof value === "string" && /^[A-Z0-9]{2,12}$/.test(value)
+    ? value
+    : "QUOTE";
+}
+
+export function buildEquityChartGroups(
+  inputPoints: Array<Record<string, any>>,
+  inputAccounts: Array<Record<string, any>>,
+): EquityChartGroup[] {
+  const accounts = new Map(inputAccounts.map((account) => [String(account.id), account]));
+  const grouped = new Map<string, Map<string, Array<{ observedAt: number; equity: number }>>>();
+  for (const point of inputPoints) {
+    const observedAt = Number(point.observedAt);
+    const equity = Number(point.equity);
+    if (!Number.isFinite(observedAt) || !Number.isFinite(equity)) continue;
+    const accountId = point.accountId == null ? "aggregate" : String(point.accountId);
+    const currency = accountReportingCurrency(accounts.get(accountId));
+    const byAccount = grouped.get(currency) ?? new Map();
+    byAccount.set(accountId, [...(byAccount.get(accountId) ?? []), { observedAt, equity }]);
+    grouped.set(currency, byAccount);
+  }
+  return [...grouped.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([currency, byAccount]) => {
+      const accountIds = [...byAccount.keys()].sort((left, right) => {
+        const leftName = String(accounts.get(left)?.name ?? left);
+        const rightName = String(accounts.get(right)?.name ?? right);
+        return leftName.localeCompare(rightName, "de-DE");
+      });
+      const series = accountIds.map((accountId, index) => ({
+        accountId,
+        dataKey: `account_${index}`,
+        name: String(accounts.get(accountId)?.name ?? (accountId === "aggregate" ? "Equity" : accountId)),
+      }));
+      const rows = new Map<number, Record<string, number>>();
+      for (const item of series) {
+        for (const point of byAccount.get(item.accountId) ?? []) {
+          const row = rows.get(point.observedAt) ?? { observedAt: point.observedAt };
+          row[item.dataKey] = point.equity;
+          rows.set(point.observedAt, row);
+        }
+      }
+      return {
+        currency,
+        series,
+        points: [...rows.values()].sort((left, right) => left.observedAt - right.observedAt),
+      };
+    });
+}
+
+const EQUITY_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+
+function EquityChart({
+  points,
+  accounts,
+  emptyText,
+}: {
+  points: Array<Record<string, any>>;
+  accounts: Array<Record<string, any>>;
+  emptyText: string;
+}) {
+  const groups = useMemo(() => buildEquityChartGroups(points, accounts), [accounts, points]);
+  if (groups.length === 0) return <Empty text={emptyText} />;
+  return (
+    <div className="equity-chart-groups">
+      {groups.map((group) => (
+        <div className="equity-chart-group" key={group.currency}>
+          <div className="equity-chart-legend">
+            <strong>{group.currency}</strong>
+            {group.series.map((series, index) => (
+              <span key={series.accountId}>
+                <i style={{ background: EQUITY_COLORS[index % EQUITY_COLORS.length] }} />
+                {series.name}
+              </span>
+            ))}
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={group.points}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="observedAt" tickFormatter={(value) => new Date(value).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} minTickGap={28} />
+              <YAxis width={64} domain={["auto", "auto"]} />
+              <Tooltip labelFormatter={(value) => time(value)} formatter={(value) => `${metricNumber(value)} ${group.currency}`} />
+              {group.series.map((series, index) => (
+                <Line
+                  key={series.accountId}
+                  type="monotone"
+                  dataKey={series.dataKey}
+                  name={series.name}
+                  connectNulls
+                  dot={false}
+                  stroke={EQUITY_COLORS[index % EQUITY_COLORS.length]}
+                  strokeWidth={2}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Overview({
   trading,
   systemStatus,
   onRefresh,
+  onOpenIncidents,
 }: {
   trading: TradingSnapshot | null;
   systemStatus: Record<string, any> | null;
   onRefresh: () => Promise<void>;
+  onOpenIncidents?: () => void;
 }) {
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [portfolio, setPortfolio] = useState<any>({ accounts: [] });
   const [signals, setSignals] = useState<any[]>([]);
   const [access, setAccess] = useState<any>(null);
@@ -205,13 +326,13 @@ function Overview({
   };
   const setLive = async () => {
     const enabled = runtime?.liveTradingEnabled !== true;
-    if (
-      enabled &&
-      window.prompt(
-        "Live-Handel freigeben. ENABLE LIVE TRADING exakt eingeben:",
-      ) !== "ENABLE LIVE TRADING"
-    )
-      return;
+    if (enabled && !await confirm({
+      title: "Live-Handel freigeben",
+      description: "Orders dürfen danach an live geschaltete Börsenkonten gesendet werden.",
+      confirmationText: "ENABLE LIVE TRADING",
+      confirmLabel: "Live freigeben",
+      destructive: true,
+    })) return;
     await mutate("live", "/api/trading/runtime", {
       action: "live",
       enabled,
@@ -221,9 +342,14 @@ function Overview({
   const setKillSwitch = async () => {
     const active = runtime?.killSwitchActive !== true;
     if (active) {
-      const reason = window
-        .prompt("Grund für die globale Handelssperre:")
-        ?.trim();
+      const reason = await confirm({
+        title: "Globalen Kill-Switch aktivieren",
+        description: "Neue Handelsaktivität wird systemweit gesperrt.",
+        inputLabel: "Grund für die globale Handelssperre",
+        inputRequired: true,
+        confirmLabel: "Kill-Switch aktivieren",
+        destructive: true,
+      });
       if (!reason) return;
       await mutate("kill", "/api/trading/runtime", {
         action: "kill-switch",
@@ -231,12 +357,12 @@ function Overview({
         reason,
       });
     } else {
-      if (
-        !window.confirm(
-          "Globale Sperre erst nach vollständigem Börsenabgleich aufheben?",
-        )
-      )
-        return;
+      if (!await confirm({
+        title: "Globale Sperre lösen",
+        description: "Vor der Freigabe muss ein vollständiger Börsenabgleich erfolgt sein.",
+        confirmLabel: "Sperre prüfen & lösen",
+        destructive: true,
+      })) return;
       await mutate("kill", "/api/trading/runtime", {
         action: "kill-switch",
         active: false,
@@ -244,18 +370,20 @@ function Overview({
     }
   };
   const emergencyFlatten = async () => {
-    if (
-      window.prompt(
-        "Alle von TSX Core verwalteten Positionen schließen. FLATTEN MANAGED POSITIONS exakt eingeben:",
-      ) !== "FLATTEN MANAGED POSITIONS"
-    )
-      return;
+    if (!await confirm({
+      title: "Verwaltete Positionen schließen",
+      description: "Alle von TSX Core verwalteten Positionen werden als Notfallmaßnahme geschlossen.",
+      confirmationText: "FLATTEN MANAGED POSITIONS",
+      confirmLabel: "Positionen schließen",
+      destructive: true,
+    })) return;
     await mutate("flatten", "/api/trading/emergency-flatten", {
       confirmation: "FLATTEN MANAGED POSITIONS",
     });
   };
    return (
     <div className="operations-stack">
+      {confirmationDialog}
       {message && <div className="builder-error">{message}</div>}
       {openIncidents.length > 0 && (
         <section className="operations-card critical-dashboard-alert" aria-live="assertive">
@@ -263,6 +391,11 @@ function Overview({
           <div>
             <h3>{openIncidents.length} aktive Konto-Incident{openIncidents.length === 1 ? "" : "s"}</h3>
             {openIncidents.slice(0, 3).map((incident) => <p key={incident.id}>{accountById.get(incident.accountId)?.name || incident.accountId}: {incident.message} · {incident.occurrenceCount}×</p>)}
+            {onOpenIncidents && (
+              <Button type="button" variant="outline" size="sm" onClick={onOpenIncidents}>
+                Incidents prüfen
+              </Button>
+            )}
           </div>
         </section>
       )}
@@ -311,17 +444,11 @@ function Overview({
       <div className="dashboard-grid">
         <section className="operations-card analytics-chart dashboard-equity-card">
           <h3>Equity-Verlauf</h3>
-          {(trading?.equityHistory || []).length ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={trading?.equityHistory || []}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="observedAt" tickFormatter={(value) => new Date(value).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} minTickGap={24} />
-                <YAxis width={62} domain={["auto", "auto"]} />
-                <Tooltip labelFormatter={(value) => time(value)} formatter={(value) => metricNumber(value)} />
-                <Line type="monotone" dataKey="equity" dot={false} stroke="var(--chart-1)" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : <Empty text="Noch keine Equity-Messwerte." />}
+          <EquityChart
+            points={trading?.equityHistory || []}
+            accounts={trading?.accounts || []}
+            emptyText="Noch keine Equity-Messwerte."
+          />
         </section>
         <section className="operations-card">
           <h3>Remote-Zugriff und Betrieb</h3>
@@ -568,11 +695,13 @@ function Accounts({
   const [replacement, setReplacement] = useState<Record<string, string>>({});
   const [releaseTarget, setReleaseTarget] = useState<TradingAccount | null>(null);
   const [releaseConfirmation, setReleaseConfirmation] = useState("");
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const exchange = catalog?.exchanges.find((item) => item.id === form.exchange);
   const catalogGroups = useMemo(
     () => (catalog ? groupExchangeCatalog(catalog) : null),
     [catalog],
   );
+  const openIncidents = (trading?.accountIncidents || []).filter((incident) => incident.status === "open");
 
   const probeCandidate = async (exchangeId: string) => {
     setBusy(`probe:${exchangeId}`);
@@ -644,13 +773,13 @@ function Accounts({
     account: TradingAccount,
     action: "verify" | "reconcile" | "toggle" | "delete",
   ) => {
-    if (
-      action === "delete" &&
-      window.prompt(
-        `Konto „${account.name}“ endgültig entfernen. DELETE eingeben:`,
-      ) !== "DELETE"
-    )
-      return;
+    if (action === "delete" && !await confirm({
+      title: "Konto entfernen",
+      description: `„${account.name}“ wird aus dem aktiven Setup entfernt. Abgeschlossene Trades, Abgleiche und Incidents bleiben für Journal und Audit erhalten. Offene Positionen, Orders oder aktive Builder-Pfade verhindern die Entfernung.`,
+      confirmationText: "KONTO ENTFERNEN",
+      confirmLabel: "Konto entfernen",
+      destructive: true,
+    })) return;
     setBusy(account.id);
     setMessage("");
     try {
@@ -743,6 +872,7 @@ function Accounts({
   return (
     <>
       <div className="operations-stack">
+      {confirmationDialog}
       <div className="operations-section-heading">
         <div>
           <h3>Börsenkonten</h3>
@@ -812,6 +942,41 @@ function Accounts({
           {message}
         </div>
       )}
+      <section className="operations-card account-incident-overview" aria-label="Offene Konto-Incidents">
+        <div className="operations-section-heading">
+          <div>
+            <h3>Offene Konto-Incidents</h3>
+            <p>
+              Warnungen werden bei einem sauberen Kontoabgleich automatisch gelöst. Bei einer Kontosperre zuerst abgleichen und anschließend „Prüfen &amp; freigeben“ verwenden.
+            </p>
+          </div>
+          <Badge variant={openIncidents.some((incident) => incident.severity === "critical") ? "destructive" : "outline"}>
+            {openIncidents.length} offen
+          </Badge>
+        </div>
+        {openIncidents.map((incident) => {
+          const account = trading?.accounts.find((candidate) => candidate.id === incident.accountId);
+          return (
+            <div className="account-incident" key={`overview-${incident.id}`}>
+              <div>
+                <strong>{account?.name || incident.accountId} · {incident.message}</strong>
+                <small>{incident.category} · {incident.occurrenceCount} Beobachtungen · zuletzt {time(incident.lastSeenAt)}</small>
+              </div>
+              <div className="incident-actions">
+                <Badge variant={incident.severity === "critical" ? "destructive" : "outline"}>
+                  {incident.severity === "critical" ? "kritisch" : "Warnung"}
+                </Badge>
+                {account && (
+                  <Button type="button" variant="outline" size="sm" disabled={busy === account.id} onClick={() => void accountAction(account, "reconcile")}>
+                    Abgleichen
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {openIncidents.length === 0 && <Empty text="Keine offenen Konto-Incidents." />}
+      </section>
       {creating && (
         <section className="operations-card account-create">
           <label>
@@ -1487,17 +1652,11 @@ function Analytics({
       <div className="analytics-chart-grid">
         <section className="operations-card analytics-chart">
           <h3>Equity-Verlauf</h3>
-          {equity.length ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={equity}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="observedAt" tickFormatter={(value) => new Date(value).toLocaleDateString("de-DE")} minTickGap={28} />
-                <YAxis width={64} domain={["auto", "auto"]} />
-                <Tooltip labelFormatter={(value) => time(value)} formatter={(value) => metricNumber(value)} />
-                <Line type="monotone" dataKey="equity" stroke="var(--chart-1)" dot={false} strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : <Empty text="Für diese Auswahl liegen keine Equity-Punkte vor." />}
+          <EquityChart
+            points={equity}
+            accounts={trading?.accounts || []}
+            emptyText="Für diese Auswahl liegen keine Equity-Punkte vor."
+          />
         </section>
         <section className="operations-card analytics-chart">
           <h3>Drawdown</h3>
@@ -1522,7 +1681,7 @@ function Analytics({
                 <XAxis dataKey="id" minTickGap={18} />
                 <YAxis width={64} />
                 <Tooltip formatter={(value) => metricNumber(value)} />
-                <Bar dataKey="realizedPnl" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="realizedPnl" fill="var(--chart-2)" radius={0} />
               </BarChart>
             </ResponsiveContainer>
           ) : <Empty text="Keine abgeschlossenen Trades in dieser Auswahl." />}
@@ -1536,7 +1695,7 @@ function Analytics({
                 <XAxis type="number" allowDecimals={false} />
                 <YAxis type="category" dataKey="name" width={110} />
                 <Tooltip />
-                <Bar dataKey="value" fill="var(--chart-3)" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="value" fill="var(--chart-3)" radius={0} />
               </BarChart>
             </ResponsiveContainer>
           ) : <Empty text="Keine Ausführungsereignisse in dieser Auswahl." />}
@@ -1780,6 +1939,7 @@ function Backups() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [offsiteObject, setOffsiteObject] = useState("");
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const load = useCallback(
     () =>
       jsonRequest("/api/backups")
@@ -1816,12 +1976,13 @@ function Backups() {
     }
   };
   const restore = async (name: string) => {
-    if (
-      window.prompt(
-        `${name} vollständig wiederherstellen und den Dienst neu starten. RESTORE eingeben:`,
-      ) !== "RESTORE"
-    )
-      return;
+    if (!await confirm({
+      title: "Backup wiederherstellen",
+      description: `${name} wird vollständig wiederhergestellt; anschließend startet der Dienst neu.`,
+      confirmationText: "RESTORE",
+      confirmLabel: "Wiederherstellen",
+      destructive: true,
+    })) return;
     setBusy(true);
     try {
       await jsonRequest("/api/backups/restore", {
@@ -1844,13 +2005,13 @@ function Backups() {
   };
   const recover = async () => {
     const objectName = offsiteObject.trim();
-    if (
-      !objectName ||
-      window.prompt(
-        `${objectName} herunterladen, entschlüsseln und verifizieren. RECOVER eingeben:`,
-      ) !== "RECOVER"
-    )
-      return;
+    if (!objectName || !await confirm({
+      title: "Off-site-Backup zurückholen",
+      description: `${objectName} wird heruntergeladen, entschlüsselt und vor der Verwendung verifiziert.`,
+      confirmationText: "RECOVER",
+      confirmLabel: "Backup zurückholen",
+      destructive: true,
+    })) return;
     setBusy(true);
     try {
       const payload = await jsonRequest("/api/backups/recover-offsite", {
@@ -1872,6 +2033,7 @@ function Backups() {
   };
   return (
     <div className="operations-stack">
+      {confirmationDialog}
       <div className="operations-section-heading">
         <div>
           <h3>Verifizierte Backups</h3>
@@ -1939,6 +2101,7 @@ function Mcp() {
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState("");
   const [issuedToken, setIssuedToken] = useState("");
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [form, setForm] = useState({
     name: "",
     permissions: [] as string[],
@@ -2000,7 +2163,12 @@ function Mcp() {
   };
   const runtime = async (mode: string) => {
     if (mode === snapshot?.runtime?.mode) return;
-    if (!window.confirm(`MCP-Laufzeit wirklich auf „${mode}“ setzen?`)) return;
+    if (!await confirm({
+      title: "MCP-Laufzeit ändern",
+      description: `Die MCP-Laufzeit wird auf „${mode}“ gesetzt.`,
+      confirmLabel: "Modus ändern",
+      destructive: mode === "disabled",
+    })) return;
     await call(
       `runtime-${mode}`,
       "/api/mcp/runtime",
@@ -2056,13 +2224,12 @@ function Mcp() {
     }));
   };
   const rotate = async () => {
-    if (
-      !selected ||
-      !window.confirm(
-        `Token von „${selected.name}“ rotieren und alle Sitzungen trennen?`,
-      )
-    )
-      return;
+    if (!selected || !await confirm({
+      title: "Agent-Token rotieren",
+      description: `Der Token von „${selected.name}“ wird ersetzt und alle bestehenden Sitzungen werden getrennt.`,
+      confirmLabel: "Token rotieren",
+      destructive: true,
+    })) return;
     const result = await call(
       "rotate-agent",
       "/api/mcp/agents/rotate",
@@ -2072,13 +2239,13 @@ function Mcp() {
     if (result?.token) setIssuedToken(result.token);
   };
   const remove = async () => {
-    if (
-      !selected ||
-      window.prompt(
-        `Agent „${selected.name}“ endgültig widerrufen. DELETE eingeben:`,
-      ) !== "DELETE"
-    )
-      return;
+    if (!selected || !await confirm({
+      title: "MCP-Agent widerrufen",
+      description: `Agent „${selected.name}“ wird endgültig gelöscht und verliert sofort seinen Zugriff.`,
+      confirmationText: "DELETE",
+      confirmLabel: "Agent löschen",
+      destructive: true,
+    })) return;
     const result = await call(
       "delete-agent",
       "/api/mcp/agents",
@@ -2093,7 +2260,14 @@ function Mcp() {
     }
   };
   const decide = async (proposal: any, approve: boolean) => {
-    const reason = approve ? undefined : window.prompt("Ablehnungsgrund:");
+    const reason = approve ? undefined : await confirm({
+      title: "MCP-Vorschlag ablehnen",
+      description: `Der Vorschlag „${proposal.action}“ wird nicht ausgeführt.`,
+      inputLabel: "Ablehnungsgrund",
+      inputRequired: true,
+      confirmLabel: "Ablehnen",
+      destructive: true,
+    });
     if (!approve && !reason) return;
     await call(
       `${approve ? "approve" : "reject"}-${proposal.id}`,
@@ -2105,6 +2279,7 @@ function Mcp() {
   const showEditor = creating || selected;
   return (
     <div className="operations-stack">
+      {confirmationDialog}
       <div className="operations-section-heading">
         <div>
           <h3>MCP & Agenten</h3>
@@ -2367,6 +2542,7 @@ function TelegramViewer() {
   const [testMessage, setTestMessage] = useState("TSX Core Telegram Viewer Test");
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const formInitialized = useRef(false);
 
   const load = useCallback(async (initializeForm = false) => {
@@ -2420,11 +2596,32 @@ function TelegramViewer() {
     });
   };
 
+  const deleteBotToken = async () => {
+    if (!await confirm({
+      title: "Bot-Token löschen",
+      description: "Der Telegram Viewer kann danach keine Nachrichten mehr senden, bis ein neuer Bot-Token gesetzt wurde.",
+      confirmLabel: "Bot-Token löschen",
+      destructive: true,
+    })) return;
+    await mutate("Bot-Token gelöscht", "/api/telegram-viewer/token", { method: "DELETE" });
+  };
+
+  const rotateServiceToken = async () => {
+    if (!await confirm({
+      title: "Viewer-Dienst-Token rotieren",
+      description: "Der interne Viewer-Dienst erhält einen neuen Zugriffstoken und muss die Verbindung erneuern.",
+      confirmLabel: "Dienst-Token rotieren",
+      destructive: true,
+    })) return;
+    await mutate("Dienst-Token rotiert", "/api/telegram-viewer/service-token/rotate", { method: "POST" });
+  };
+
   if (!settings || !payload) return <Empty text={message || "Telegram Viewer wird geladen …"} />;
   const service = payload.service || {};
   const botConfigured = payload.secrets?.botToken?.configured === true;
   return (
     <div className="operations-stack">
+      {confirmationDialog}
       <div className="operations-section-heading">
         <div>
           <h3>Telegram Viewer</h3>
@@ -2510,9 +2707,9 @@ function TelegramViewer() {
         <div className="system-actions">
           <Button type="button" disabled={Boolean(busy) || !botToken} onClick={() => void setToken()}>Bot-Token setzen</Button>
           <Button type="button" variant="destructive" disabled={Boolean(busy) || !botConfigured}
-            onClick={() => window.confirm("Bot-Token wirklich löschen?") && void mutate("Bot-Token gelöscht", "/api/telegram-viewer/token", { method: "DELETE" })}>Bot-Token löschen</Button>
+            onClick={() => void deleteBotToken()}>Bot-Token löschen</Button>
           <Button type="button" variant="outline" disabled={Boolean(busy)}
-            onClick={() => window.confirm("Internes Viewer-Dienst-Token rotieren?") && void mutate("Dienst-Token rotiert", "/api/telegram-viewer/service-token/rotate", { method: "POST" })}>Dienst-Token rotieren</Button>
+            onClick={() => void rotateServiceToken()}>Dienst-Token rotieren</Button>
         </div>
       </section>
 
@@ -2560,6 +2757,7 @@ function System({
   const [issuedToken, setIssuedToken] = useState("");
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const load = useCallback(async () => {
     const [configuration, runtimePayload, secretPayload, recoveryPayload, operationsPayload, accessPayload] =
       await Promise.all([
@@ -2684,12 +2882,12 @@ function System({
     setLoginName({ firstName: "", lastName: "" });
   };
   const rotateToken = async (role: "admin" | "viewer") => {
-    if (
-      !window.confirm(
-        `${role === "admin" ? "Admin" : "Viewer"}-Key wirklich rotieren?`,
-      )
-    )
-      return;
+    if (!await confirm({
+      title: `${role === "admin" ? "Admin" : "Viewer"}-Key rotieren`,
+      description: "Der bisherige Key wird sofort ungültig. Der neue Wert wird nur einmal angezeigt.",
+      confirmLabel: "Key rotieren",
+      destructive: true,
+    })) return;
     const result = await execute(
       `token-${role}`,
       () =>
@@ -2706,12 +2904,12 @@ function System({
     }
   };
   const restart = async () => {
-    if (
-      !window.confirm(
-        "Dienst kontrolliert neu starten und die gespeicherten Runtime-Einstellungen aktivieren?",
-      )
-    )
-      return;
+    if (!await confirm({
+      title: "Dienst neu starten",
+      description: "TSX Core wird kontrolliert neu gestartet und aktiviert die gespeicherten Laufzeiteinstellungen.",
+      confirmLabel: "Neu starten",
+      destructive: true,
+    })) return;
     const result = await execute(
       "restart",
       () =>
@@ -2729,7 +2927,12 @@ function System({
     }
   };
   const revokeViewer = async () => {
-    if (!window.confirm("Viewer-Key widerrufen und bestehende Viewer-Anmeldungen ungültig machen?")) return;
+    if (!await confirm({
+      title: "Viewer-Key widerrufen",
+      description: "Der Viewer-Key und alle damit bestehenden Viewer-Anmeldungen werden ungültig.",
+      confirmLabel: "Viewer-Key widerrufen",
+      destructive: true,
+    })) return;
     await execute(
       "viewer-revoke",
       () => jsonRequest("/api/access-tokens/viewer", {
@@ -2855,6 +3058,7 @@ function System({
   );
   return (
     <div className="operations-stack">
+      {confirmationDialog}
       {message && <div className="builder-info">{message}</div>}
       {recovery?.active && (
         <div className="builder-error">
@@ -3416,6 +3620,7 @@ type OperationsWorkspaceProps = {
   title?: string;
   description?: string;
   filtersOpen?: boolean;
+  onOpenIncidents?: () => void;
 };
 
 export function OperationsWorkspace({
@@ -3429,6 +3634,7 @@ export function OperationsWorkspace({
   title,
   description,
   filtersOpen,
+  onOpenIncidents,
 }: Readonly<OperationsWorkspaceProps>) {
   const [tab, setTab] = useState<OperationTab>(initialTab);
   useEffect(() => {
@@ -3441,6 +3647,7 @@ export function OperationsWorkspace({
           trading={trading}
           systemStatus={systemStatus}
           onRefresh={onRefresh}
+          onOpenIncidents={onOpenIncidents}
         />
       );
     if (tab === "accounts")
@@ -3460,7 +3667,7 @@ export function OperationsWorkspace({
         onRefresh={onRefresh}
       />
     );
-  }, [catalog, filtersOpen, onRefresh, systemStatus, tab, trading]);
+  }, [catalog, filtersOpen, onOpenIncidents, onRefresh, systemStatus, tab, trading]);
 
   return (
     <section className="operations-workspace" aria-label={ariaLabel}>

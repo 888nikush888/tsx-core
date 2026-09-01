@@ -48,6 +48,7 @@ import {
   deleteTradingStrategyVersion,
   deleteSignalContractDraft,
   deleteSignalContractVersion,
+  getTradingAccount,
   getTradingOverview,
   getTradingOperationalSnapshot,
   getTradingSignalSchemaForTemplate,
@@ -945,6 +946,20 @@ async function testSignalSchemaRepository() {
   assert.equal(await deleteTradingSignalSchema('desk-alpha'), false);
 }
 
+async function assertRetiredAccountHistory(accountId) {
+  assert.equal(await getTradingAccount(accountId), null,
+    'A retired account must no longer be addressable through active-account APIs.');
+  assert.ok(!(await listTradingAccounts()).some(account => account.id === accountId));
+  const row = await getDatabase().get(
+    'SELECT enabled, status, retired_at AS retiredAt FROM trading_accounts WHERE id = ?', [accountId],
+  );
+  assert.deepEqual({ enabled: row.enabled, status: row.status }, { enabled: 0, status: 'disabled' });
+  assert.ok(Number(row.retiredAt) > 0);
+  assert.ok(await getDatabase().get(
+    'SELECT id FROM trading_reconciliation_runs WHERE id = ?', ['retained-account-reconciliation'],
+  ), 'Removing an account must preserve its reconciliation history for auditability.');
+}
+
 async function testRepositoryRouting(defaults, accounts) {
   const draft = await createTradingStrategyDraft({
     name: 'Second channel strategy',
@@ -1040,11 +1055,9 @@ async function testRepositoryRouting(defaults, accounts) {
      ) VALUES ('retained-account-reconciliation', ?, 'failed', 'test failure', ?, ?)`,
     [retainedHistoryAccount.id, Date.now(), Date.now()],
   );
-  await assert.rejects(
-    deleteTradingAccount(retainedHistoryAccount.id),
-    /retained operational or protection history references it/i,
-    'Account deletion must return a stable domain error instead of leaking a SQLite foreign-key failure.',
-  );
+  assert.equal(await deleteTradingAccount(retainedHistoryAccount.id), true,
+    'An inactive account with retained audit history must be removed from the active setup.');
+  await assertRetiredAccountHistory(retainedHistoryAccount.id);
 }
 
 async function testOperationalDatabaseClearPreservesTrading() {
