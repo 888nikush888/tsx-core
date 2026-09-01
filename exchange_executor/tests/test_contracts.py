@@ -566,6 +566,43 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(stream.poll(99)["gap"])
         await stream.close()
 
+    async def test_transient_channel_failure_is_debounced_and_other_channels_cannot_recover_it(self) -> None:
+        for exchange in ("hyperliquid", "bybit", "krakenfutures"):
+            with self.subTest(exchange=exchange):
+                now = [100.0]
+                clients = SimpleNamespace(pro=FakePro(), credential_fingerprint="a" * 64)
+                stream = AccountStream(
+                    {"id": f"stream-{exchange}", "exchange": exchange, "mode": "testnet"},
+                    clients,
+                    monotonic=lambda: now[0],
+                )
+                stream._status = "healthy"
+                stream._record_channel_failure("orders", TimeoutError("idle timeout"))
+
+                self.assertEqual(stream.poll(0)["health"], {
+                    "status": "healthy",
+                    "startedAt": None,
+                    "lastEventAt": None,
+                    "lastError": None,
+                })
+                now[0] += 14.9
+                self.assertEqual(stream.poll(0)["health"]["status"], "healthy")
+
+                stream._record_channel_success("trades")
+                now[0] += 0.2
+                degraded = stream.poll(0)["health"]
+                self.assertEqual(degraded["status"], "degraded")
+                self.assertEqual(degraded["lastError"], "CCXT_PRO_ORDERS_FAILED: TimeoutError")
+
+                stream._record_channel_success("positions")
+                self.assertEqual(
+                    stream.poll(0)["health"]["status"], "degraded",
+                    "Success on another watcher must not hide the failed orders channel.",
+                )
+                stream._record_channel_success("orders")
+                self.assertEqual(stream.poll(0)["health"]["status"], "healthy")
+                await stream.close()
+
 
 class ProtectedEntryTests(unittest.IsolatedAsyncioTestCase):
     def deadline(self):

@@ -15,6 +15,7 @@ MAX_BUFFERED_EVENTS = 2_000
 MAX_EVENTS_PER_POLL = 500
 MAX_EVENT_BYTES = 64 * 1024
 STREAM_RETRY_MAX_SECONDS = 30.0
+STREAM_DEGRADED_GRACE_SECONDS = 15.0
 
 
 def _canonical_payload(value: Any) -> tuple[Any, str]:
@@ -46,7 +47,13 @@ def _records(value: Any) -> list[dict[str, Any]]:
 
 
 class AccountStream:
-    def __init__(self, account: dict[str, str], clients: AccountClients) -> None:
+    def __init__(
+        self,
+        account: dict[str, str],
+        clients: AccountClients,
+        *,
+        monotonic: Callable[[], float] | None = None,
+    ) -> None:
         self.account = dict(account)
         self.clients = clients
         self.credential_fingerprint = clients.credential_fingerprint
@@ -56,8 +63,9 @@ class AccountStream:
         self._symbols: set[str] = set()
         self._started_at: int | None = None
         self._last_event_at: int | None = None
-        self._last_error: str | None = None
         self._status = "starting"
+        self._monotonic = monotonic or time.monotonic
+        self._channel_failures: dict[str, tuple[float, str]] = {}
         self._closed = False
         self._lock = asyncio.Lock()
 
@@ -83,6 +91,7 @@ class AccountStream:
                 ticker = self._tasks.pop("tickers", None)
                 if ticker:
                     ticker.cancel()
+                self._record_channel_success("tickers")
                 if requested and self.clients.pro.has.get("watchTickers") is True:
                     provider_symbols = [CcxtAdapter._market(self.clients, symbol)["symbol"] for symbol in sorted(requested)]
                     self._tasks["tickers"] = asyncio.create_task(
@@ -96,16 +105,38 @@ class AccountStream:
             try:
                 value = await operation()
                 attempt = 0
-                self._status = "healthy"
-                self._last_error = None
+                self._record_channel_success(channel)
                 self._ingest(channel, value)
             except asyncio.CancelledError:
                 raise
             except Exception as error:
                 attempt = min(attempt + 1, 16)
-                self._status = "degraded"
-                self._last_error = f"CCXT_PRO_{channel.upper()}_FAILED: {type(error).__name__}"[:500]
+                self._record_channel_failure(channel, error)
                 await asyncio.sleep(min(STREAM_RETRY_MAX_SECONDS, 2 ** (attempt - 1)))
+
+    def _record_channel_success(self, channel: str) -> None:
+        self._channel_failures.pop(channel, None)
+
+    def _record_channel_failure(self, channel: str, error: Exception) -> None:
+        message = f"CCXT_PRO_{channel.upper()}_FAILED: {type(error).__name__}"[:500]
+        first_failed_at = self._channel_failures.get(channel, (self._monotonic(), message))[0]
+        self._channel_failures[channel] = (first_failed_at, message)
+
+    def _health(self) -> tuple[str, str | None]:
+        if self._status != "healthy":
+            return self._status, None
+        now = self._monotonic()
+        sustained = sorted(
+            (
+                (channel, first_failed_at, message)
+                for channel, (first_failed_at, message) in self._channel_failures.items()
+                if now - first_failed_at >= STREAM_DEGRADED_GRACE_SECONDS
+            ),
+            key=lambda item: (item[1], item[0]),
+        )
+        if not sustained:
+            return "healthy", None
+        return "degraded", sustained[0][2]
 
     def _ingest(self, channel: str, value: Any) -> None:
         received_at = int(time.time() * 1_000)
@@ -143,6 +174,7 @@ class AccountStream:
             self._last_event_at = received_at
 
     def poll(self, cursor: int) -> dict[str, Any]:
+        status, last_error = self._health()
         first = self._events[0]["cursor"] if self._events else self._cursor + 1
         gap = cursor > self._cursor or (cursor + 1 < first)
         events = [] if gap else [event for event in self._events if event["cursor"] > cursor][:MAX_EVENTS_PER_POLL]
@@ -152,10 +184,10 @@ class AccountStream:
             "nextCursor": next_cursor,
             "gap": gap,
             "health": {
-                "status": self._status,
+                "status": status,
                 "startedAt": self._started_at,
                 "lastEventAt": self._last_event_at,
-                "lastError": self._last_error,
+                "lastError": last_error,
             },
         }
 
