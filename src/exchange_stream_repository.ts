@@ -110,7 +110,7 @@ async function updateStreamState(
      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(account_id) DO UPDATE SET
        status = excluded.status,
-       cursor = MAX(trading_exchange_stream_state.cursor, excluded.cursor),
+       cursor = excluded.cursor,
        gap_count = trading_exchange_stream_state.gap_count + excluded.gap_count,
        last_event_at = COALESCE(excluded.last_event_at, trading_exchange_stream_state.last_event_at),
        last_poll_at = excluded.last_poll_at,
@@ -155,7 +155,7 @@ export async function persistExchangeStreamBatch(
     const degraded = persisted.transition.status === 'degraded';
     if (recovered || degraded) {
       await recordTradingNotificationBestEffort({
-        dedupeKey: `stream-${recovered ? 'recovered' : 'degraded'}:${account.id}:${batch.nextCursor}`,
+        dedupeKey: `stream-${recovered ? 'recovered' : 'degraded'}:${account.id}:${randomUUID()}`,
         eventType: recovered ? 'exchange_stream_recovered' : 'exchange_stream_degraded',
         accountId: account.id,
         exchange: account.exchange,
@@ -208,7 +208,7 @@ export async function recordExchangeStreamFailure(
       [accountId],
     );
     await recordTradingNotificationBestEffort({
-      dedupeKey: `stream-degraded:${accountId}:${now}`,
+      dedupeKey: `stream-degraded:${accountId}:${randomUUID()}`,
       eventType: 'exchange_stream_degraded',
       accountId,
       exchange: account?.exchange,

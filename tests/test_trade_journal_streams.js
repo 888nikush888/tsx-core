@@ -232,6 +232,25 @@ try {
     'A healthy state after degradation must emit one recovery event.',
   );
   const now = Date.now();
+  // A quiet account can reconnect repeatedly at the same cursor. Each actual
+  // transition must be delivered once, even after an executor cursor restart.
+  for (const cursor of [4, 4, 0]) {
+    const batch = {
+      events: [], nextCursor: cursor, gap: false,
+      health: { status: 'degraded', startedAt: Date.now(), lastEventAt: null, lastError: 'offline' },
+    };
+    await persistExchangeStreamBatch(bybit, batch);
+    await persistExchangeStreamBatch(bybit, batch);
+    await persistExchangeStreamBatch(bybit, { ...batch, health: { ...batch.health, status: 'healthy', lastError: null } });
+  }
+  for (const eventType of ['exchange_stream_degraded', 'exchange_stream_recovered']) {
+    assert.equal((await getDatabase().get(
+      'SELECT COUNT(*) AS count FROM trading_notification_events WHERE account_id = ? AND event_type = ?',
+      [bybit.id, eventType],
+    )).count, 4, 'Distinct outages at the same cursor must not suppress later notifications.');
+  }
+  stream = (await listExchangeStreamStates()).find(item => item.accountId === bybit.id);
+  assert.equal(stream.cursor, 0, 'The displayed cursor must follow the current executor session.');
   await saveSignal('stream-pending-signal', '-journal-channel', 43, XML, XML);
   await saveSignal('stream-unknown-signal', '-journal-channel', 44, XML, XML);
   await getDatabase().run(

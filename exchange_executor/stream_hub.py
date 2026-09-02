@@ -7,9 +7,12 @@ import time
 from collections import deque
 from typing import Any, Awaitable, Callable
 
+from ccxt.base.errors import NetworkError
+
 from ccxt_adapter import CcxtAdapter, _canonical_symbol
 from ccxt_client import AccountClients, CcxtClientRegistry
 from common import ExchangeContractError
+from stream_transport import StreamTransportObserver
 
 MAX_BUFFERED_EVENTS = 2_000
 MAX_EVENTS_PER_POLL = 500
@@ -53,6 +56,7 @@ class AccountStream:
         clients: AccountClients,
         *,
         monotonic: Callable[[], float] | None = None,
+        retry_sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self.account = dict(account)
         self.clients = clients
@@ -66,6 +70,9 @@ class AccountStream:
         self._status = "starting"
         self._monotonic = monotonic or time.monotonic
         self._channel_failures: dict[str, tuple[float, str]] = {}
+        self._network_retries: dict[str, tuple[str, tuple[str, ...]] | None] = {}
+        self._transport = StreamTransportObserver(clients.pro)
+        self._retry_sleep = retry_sleep
         self._closed = False
         self._lock = asyncio.Lock()
 
@@ -102,6 +109,8 @@ class AccountStream:
     async def _watch(self, channel: str, operation: Callable[[], Awaitable[Any]]) -> None:
         attempt = 0
         while not self._closed:
+            self._transport.begin(channel)
+            token = self._transport.channel.set(channel)
             try:
                 value = await operation()
                 attempt = 0
@@ -112,19 +121,35 @@ class AccountStream:
             except Exception as error:
                 attempt = min(attempt + 1, 16)
                 self._record_channel_failure(channel, error)
-                await asyncio.sleep(min(STREAM_RETRY_MAX_SECONDS, 2 ** (attempt - 1)))
+                await self._retry_sleep(min(STREAM_RETRY_MAX_SECONDS, 2 ** (attempt - 1)))
+            finally:
+                self._transport.channel.reset(token)
 
     def _record_channel_success(self, channel: str) -> None:
         self._channel_failures.pop(channel, None)
+        self._network_retries.pop(channel, None)
 
     def _record_channel_failure(self, channel: str, error: Exception) -> None:
         message = f"CCXT_PRO_{channel.upper()}_FAILED: {type(error).__name__}"[:500]
+        recoverable = isinstance(error, NetworkError) and (
+            channel not in self._channel_failures or channel in self._network_retries
+        )
         first_failed_at = self._channel_failures.get(channel, (self._monotonic(), message))[0]
         self._channel_failures[channel] = (first_failed_at, message)
+        self._network_retries.pop(channel, None)
+        if recoverable:
+            self._network_retries[channel] = self._transport.key(channel)
 
     def _health(self) -> tuple[str, str | None]:
         if self._status != "healthy":
             return self._status, None
+        for channel, key in list(self._network_retries.items()):
+            if self._transport.recovered(channel, key):
+                self._record_channel_success(channel)
+                print(
+                    f"executor_stream_transport_recovered exchange={self.account['exchange']} channel={channel}",
+                    flush=True,
+                )
         now = self._monotonic()
         sustained = sorted(
             (
@@ -198,6 +223,7 @@ class AccountStream:
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        self._transport.close()
         self._status = "stopped"
 
 
