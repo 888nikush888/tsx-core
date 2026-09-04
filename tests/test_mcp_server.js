@@ -10,6 +10,8 @@ import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { McpControlBridge } from '../src/mcp_control_bridge.js';
 import { createMcpAgent, setMcpRuntimeMode } from '../src/mcp_repository.js';
 import { beginMcpSharedMaintenance } from '../src/mcp_maintenance.js';
+import { acquireProcessLock } from '../src/process_lock.js';
+import { STARTUP_GATES, StartupAuthority } from '../src/startup_authority.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 
 async function availablePort() {
@@ -57,6 +59,7 @@ let child;
 let client;
 let bridge;
 let serverOutput = '';
+const processOwner = await acquireProcessLock(path.join(directory, '.process_active'));
 try {
   await initDb(databasePath);
   await seedTradingFixtures();
@@ -101,6 +104,10 @@ try {
   await waitForRuntimeMode(`http://127.0.0.1:${port}/healthz`, child, 'active');
   health = await fetch(`http://127.0.0.1:${port}/healthz`).then(response => response.json());
   assert.equal(health.acceptingConnections, true);
+  const startup = new StartupAuthority();
+  startup.beginRecovery();
+  for (const gate of STARTUP_GATES) startup.completeGate(gate);
+  startup.release();
   bridge = new McpControlBridge(
     {
       setRuntime(payload) {
@@ -117,6 +124,7 @@ try {
     { record: async () => undefined },
     () => undefined,
     50,
+    startup,
   );
   await bridge.start();
 
@@ -309,7 +317,9 @@ try {
   await bridge.stop();
   bridge = null;
   await closeDb();
-  const maintenance = await beginMcpSharedMaintenance('protocol test', databasePath);
+  const maintenance = await beginMcpSharedMaintenance('protocol test', databasePath, processOwner);
+  await maintenance.waitForQuiescence();
+  await maintenance.assertQuiescent();
   if (child.exitCode === null) {
     await Promise.race([
       new Promise(resolve => child.once('exit', resolve)),
@@ -330,5 +340,6 @@ try {
     await new Promise(resolve => child.once('exit', resolve));
   }
   await closeDb().catch(() => undefined);
+  await processOwner.release();
   await rm(directory, { recursive: true, force: true });
 }

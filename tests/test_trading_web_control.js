@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { closeDb, initDb } from '../src/db.js';
+import { setTimeout as delay } from 'node:timers/promises';
+import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { TradingCredentialStore } from '../src/trading_credentials.js';
 import { TradingEngine } from '../src/trading_engine.js';
@@ -10,6 +11,10 @@ import { seedTradingFixtures } from './trading_fixtures.js';
 import { BUILTIN_SIGNAL_CONTRACTS } from '../src/signal_contract.js';
 import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import { TradingWebControl } from '../src/trading_web_control.js';
+import { completeSafetyState } from './fixtures/safety_acquisition.js';
+import { getAccountBaseline, requiredAccountEvidenceSince } from '../src/trading_account_baseline.js';
+import { historyCheckpoints } from '../src/trading_history_repository.js';
+import { getTradingAccount, getTradingRuntimeState } from '../src/trading_repository.js';
 
 class FakeOfficialAdapter {
   constructor(exchange) {
@@ -24,11 +29,18 @@ class FakeOfficialAdapter {
   }
   verified = true;
   verificationError = null;
+  credentialGeneration = 'c'.repeat(64);
+  candidateCredentialGeneration = null;
+  scopedCurrentReads = false;
+  trace = [];
   async verifyAccount(account) {
+    this.trace.push({ kind: 'verify', accountId: account.id });
     if (this.verificationError) throw this.verificationError;
     return {
       verified: this.verified,
       equity: '1000',
+      credentialGeneration: account.id.startsWith('candidate-')
+        ? (this.candidateCredentialGeneration ?? this.credentialGeneration) : this.credentialGeneration,
       externalAccountId: account.id.startsWith('candidate-')
         ? (this.candidateExternalAccountId || this.externalAccountId)
         : this.externalAccountId,
@@ -46,7 +58,131 @@ class FakeOfficialAdapter {
   }
   async submitOrder() { throw new Error('Not used by control-plane contract test.'); }
   async cancelOrder() { throw new Error('Not used by control-plane contract test.'); }
-  async openState() { return structuredClone(this.remote); }
+  async openState(account) {
+    this.trace.push({ kind: 'read', accountId: account.id, statuses: this.remote.orders.map(order => order.status) });
+    // Synthetic source evidence exercises the real control-plane safety consumers, not provider acceptance.
+    const previous = (await historyCheckpoints(account, await requiredAccountEvidenceSince(account)))
+      .find(checkpoint => checkpoint.source === 'fills');
+    const state = completeSafetyState(structuredClone(this.remote));
+    const now = state.observedAt;
+    state.acquisition.history = [{ baseRevision: previous.revision, pages: 1, checkpoint: {
+      ...previous, revision: previous.revision + 1, cursor: null, scannedThrough: now, completeness: 'complete', reason: null,
+      coverage: { version: 1, profile: this.exchange === 'bybit' ? 'bybit_v5_linear_endpoint_v1' : 'hyperliquid_retained_fills_v1',
+        since: previous.baselineSince, through: now },
+    } }];
+    if (this.scopedCurrentReads) {
+      for (const source of state.acquisition.sources.filter(row => ['orders', 'positions'].includes(row.source))) {
+        source.scopes = [{ scope: 'synthetic:account:all', pages: 1, complete: true }];
+      }
+    }
+    return state;
+  }
+}
+
+async function classifiedTerminalHistory(account, adapter, engine) {
+  adapter.scopedCurrentReads = true;
+  await engine.reconcileAccount(account.id);
+  await delay(2); // The second original observation must begin strictly after the first completes.
+  await engine.reconcileAccount(account.id);
+  const baseline = await getAccountBaseline(await getTradingAccount(account.id));
+  assert.ok(baseline, 'The real baseline consumer must establish the synthetic flat account boundary first.');
+  adapter.remote.orders = ['filled', 'cancelled', 'rejected'].map((status, index) => ({
+    exchangeOrderId: `historical-rotation-${index}`, clientOrderId: null, symbol: 'BTCUSDC', providerSymbol: 'BTC',
+    role: 'entry', side: 'buy', status, quantity: '1', filledQuantity: status === 'filled' ? '1' : '0',
+    price: '100', averagePrice: status === 'filled' ? '100' : null, triggerPrice: null, reduceOnly: false,
+    providerTimestamp: baseline.boundary - 60_000 - index,
+  }));
+  await engine.reconcileAccount(account.id);
+  const rows = await historicalCredentialEvidence(account.id);
+  assert.equal(rows.length, 3);
+  for (const row of rows) {
+    assert.equal(row.classification, 'external', 'Old terminal originals must be classified, not dropped or relabelled owned.');
+    assert.equal(row.external_baseline_id, baseline.id);
+    assert.equal(row.account_fingerprint, account.externalAccountId);
+  }
+  return rows;
+}
+
+async function historicalCredentialEvidence(accountId) {
+  return getDatabase().all(`SELECT id, account_fingerprint, provider_id, provider_symbol, identity_key, content_hash,
+    payload_json, classification, external_baseline_id, first_seen_at FROM trading_remote_evidence
+    WHERE account_id=? ORDER BY provider_id`, [accountId]);
+}
+
+async function openOrderPreventsCredentialPromotion({ account, adapter, engine, control, credentialPath, entryRuntime }) {
+  const originalReconcile = engine.reconcileAccount;
+  const terminalOrders = structuredClone(adapter.remote.orders);
+  const storedBefore = await readFile(credentialPath, 'utf8');
+  const filesBefore = (await readdir(path.dirname(credentialPath))).sort();
+  adapter.trace = [];
+  engine.reconcileAccount = async function (...args) {
+    const result = await originalReconcile.apply(this, args);
+    if (args[0] === account.id) {
+      // A genuinely new open obligation appears after the real reconciliation, before the final maintenance read.
+      adapter.remote.orders = [...terminalOrders, { ...terminalOrders[1], exchangeOrderId: 'rotation-late-open',
+        status: 'open', providerTimestamp: Date.now() }];
+    }
+    return result;
+  };
+  try {
+    await assert.rejects(control.replaceAccountCredentials({ id: account.id,
+      credentials: { privateKey: `0x${'e'.repeat(64)}`, walletAddress: `0x${'b'.repeat(40)}` } }),
+    /Credentials cannot be replaced while the exchange account has open orders or positions/);
+    assert.ok(adapter.trace.filter(event => event.kind === 'read').at(-1).statuses.includes('open'));
+    assert.equal(adapter.trace.filter(event => event.kind === 'verify').length, 1,
+      'Only the old credential is verified; an active final read must prevent candidate staging/verification.');
+    assert.equal(await readFile(credentialPath, 'utf8'), storedBefore, 'An open obligation must preserve the original credential file exactly.');
+    assert.deepEqual((await readdir(path.dirname(credentialPath))).sort(), filesBefore, 'No staged candidate file may remain after the rejected rotation.');
+    const current = await getTradingAccount(account.id);
+    assert.equal(current.credentialGeneration, account.credentialGeneration);
+    assert.equal(current.enabled, false);
+    assert.equal((await getTradingRuntimeState()).killSwitchActive, true);
+    assert.equal((await getTradingRuntimeState()).executionEnabled, false);
+    assert.equal(entryRuntime.enabled, false);
+  } finally {
+    engine.reconcileAccount = originalReconcile;
+    adapter.remote.orders = terminalOrders;
+  }
+  await control.verifyAccount(account.id);
+}
+
+async function terminalHistoryAllowsCredentialRotation({ account, adapter, engine, control, directory, entryRuntime }) {
+  const originals = await classifiedTerminalHistory(account, adapter, engine);
+  const terminalOrders = structuredClone(adapter.remote.orders);
+  const credentialPath = path.join(directory, 'secrets', 'trading', `${account.id}.json`);
+  const oldCredentials = JSON.parse(await readFile(credentialPath, 'utf8'));
+  adapter.candidateCredentialGeneration = 'd'.repeat(64);
+  adapter.trace = [];
+  try {
+    const rotated = await control.replaceAccountCredentials({ id: account.id,
+      credentials: { privateKey: `0x${'c'.repeat(64)}`, walletAddress: `0x${'b'.repeat(40)}` } });
+    assert.equal(rotated.externalAccountId, account.externalAccountId);
+    assert.equal(rotated.credentialGeneration, 'd'.repeat(64));
+    assert.equal(rotated.enabled, false);
+    assert.equal(rotated.status, 'ready');
+    const stored = JSON.parse(await readFile(credentialPath, 'utf8'));
+    assert.notEqual(stored.credentials.privateKey, oldCredentials.credentials.privateKey);
+    assert.equal(stored.credentials.privateKey, `0x${'c'.repeat(64)}`);
+    assert.equal(adapter.trace[0].kind, 'verify');
+    assert.equal(adapter.trace[0].accountId, account.id, 'Old binding is verified before any maintenance read.');
+    assert.ok(adapter.trace.at(-1).accountId.startsWith('candidate-'));
+    const reads = adapter.trace.filter(event => event.kind === 'read');
+    assert.ok(reads.length >= 3, 'Real drain/reconciliation and the final maintenance read all run.');
+    assert.ok(reads.every(event => event.statuses.join(',') === 'filled,cancelled,rejected'));
+    assert.deepEqual(adapter.remote.orders, terminalOrders);
+    assert.deepEqual(await historicalCredentialEvidence(account.id), originals, 'Original IDs, payloads and classification survive rotation.');
+    assert.equal((await getTradingRuntimeState()).killSwitchActive, true);
+    assert.equal((await getTradingRuntimeState()).executionEnabled, false);
+    assert.equal(entryRuntime.enabled, false);
+    adapter.credentialGeneration = rotated.credentialGeneration;
+    await openOrderPreventsCredentialPromotion({ account: rotated, adapter, engine, control, credentialPath, entryRuntime });
+    assert.deepEqual(await historicalCredentialEvidence(account.id), originals);
+    assert.deepEqual(await getDatabase().all('PRAGMA foreign_key_check'), []);
+  } finally {
+    adapter.candidateCredentialGeneration = null;
+    adapter.scopedCurrentReads = false;
+    adapter.remote.orders = [];
+  }
 }
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-web-control-'));
@@ -332,12 +468,12 @@ try {
   assert.equal(entryRuntime.enabled, true, 'A successful dashboard enable must open the in-memory entry latch.');
   assert.equal(entryRuntime.enableCalls, 1);
 
-  const live = await control.createAccount({
+  const bybitPortfolioAccount = await control.createAccount({
     name: 'Bybit Live', exchange: 'bybit', mode: 'live',
     credentials: { apiKey: 'official-api-key', secret: 'official-api-secret' },
   });
   const livePortfolio = await control.portfolioSnapshot(true);
-  const liveSnapshot = livePortfolio.accounts.find(account => account.accountId === live.id);
+  const liveSnapshot = livePortfolio.accounts.find(account => account.accountId === bybitPortfolioAccount.id);
   assert.deepEqual(liveSnapshot && {
     reportingCurrency: liveSnapshot.reportingCurrency,
     equity: liveSnapshot.equity,
@@ -351,18 +487,26 @@ try {
   assert.equal(bybit.snapshotCalls, callsAfterLiveRefresh, 'Cached dashboard refresh must not call the exchange again.');
   await control.portfolioSnapshot(true);
   assert.equal(bybit.snapshotCalls, callsAfterLiveRefresh + 1, 'Forced dashboard refresh must call the official adapter.');
-  await assert.rejects(control.configurePaper({ accountId: live.id }), /requires a paper account/);
-  await assert.rejects(control.setAccountEnabled(live.id, 'yes'), /must be boolean/);
-  await control.replaceAccountCredentials({
-    id: live.id,
+  await assert.rejects(control.configurePaper({ accountId: bybitPortfolioAccount.id }), /requires a paper account/);
+  await assert.rejects(control.setAccountEnabled(bybitPortfolioAccount.id, 'yes'), /must be boolean/);
+  await assert.rejects(control.replaceAccountCredentials({
+    id: bybitPortfolioAccount.id,
     credentials: { apiKey: 'replacement-api-key', secret: 'replacement-api-secret' },
+  }), error => error instanceof AggregateError && error.errors.some(cause => /FILL_OPTION_SCOPE_UNPROVED/.test(cause.message)),
+  'Linear endpoint EOF cannot authorize credential replacement for an account with unproved option history.');
+  await control.removeAccount(bybitPortfolioAccount.id);
+  // Positive generic credential-maintenance tests use a separate, explicitly synthetic complete-source profile.
+  const live = await control.createAccount({
+    name: 'Hyperliquid control fixture', exchange: 'hyperliquid', mode: 'live',
+    credentials: { privateKey: `0x${'a'.repeat(64)}`, walletAddress: `0x${'b'.repeat(40)}` },
   });
-  bybit.candidateExternalAccountId = 'c'.repeat(64);
+  await terminalHistoryAllowsCredentialRotation({ account: live, adapter: hyperliquid, engine, control, directory, entryRuntime });
+  hyperliquid.candidateExternalAccountId = 'c'.repeat(64);
   await assert.rejects(control.replaceAccountCredentials({
     id: live.id,
-    credentials: { apiKey: 'wrong-account-key', secret: 'wrong-account-secret' },
+    credentials: { privateKey: `0x${'d'.repeat(64)}`, walletAddress: `0x${'e'.repeat(40)}` },
   }), /different external exchange account/);
-  bybit.candidateExternalAccountId = null;
+  hyperliquid.candidateExternalAccountId = null;
   assert.equal((await control.setAccountEnabled(live.id, false)).status, 'disabled');
   assert.equal((await control.setAccountEnabled(live.id, true)).status, 'ready');
   const removable = await control.createAccount({
@@ -395,7 +539,7 @@ try {
   let runtime = (await control.snapshot()).overview.runtime;
   assert.equal(runtime.killSwitchActive, true);
   assert.equal(runtime.executionEnabled, false);
-  await control.setRuntime({ action: 'kill-switch', active: false });
+  await control.setRuntime({ action: 'kill-switch', active: false, confirmation: 'RELEASE GLOBAL KILL SWITCH' });
   runtime = (await control.snapshot()).overview.runtime;
   assert.equal(runtime.killSwitchActive, false);
   entryRuntime.failNextEnable = true;
@@ -430,8 +574,10 @@ try {
   }, 'test:control');
   assert.equal(activatedWorkflow.createdBy, 'test:control');
 
-  bybit.remote.positions.push({ symbol: 'BTC', side: 'LONG', quantity: '1', averageEntryPrice: '60000', unrealizedPnl: '0' });
-  await assert.rejects(control.assertFactoryResetSafe(), /open orders or positions/);
+  hyperliquid.remote.positions.push({ symbol: 'BTC', side: 'LONG', quantity: '1', averageEntryPrice: '60000', unrealizedPnl: '0' });
+  await assert.rejects(control.assertFactoryResetSafe(), error => error instanceof AggregateError
+    && error.errors.some(cause => /Unmanaged remote order or position/.test(cause.message)),
+  'Foreign exposure now blocks the reset at its mandatory entry-drain proof, before any deletion.');
 } finally {
   await closeDb();
   await rm(directory, { recursive: true, force: true });

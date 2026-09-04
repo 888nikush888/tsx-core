@@ -2,17 +2,21 @@ from __future__ import annotations
 
 import asyncio
 import json
-from dataclasses import dataclass
+import hmac
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from typing import Any
 
 import ccxt.async_support as ccxt_async
 import ccxt.pro as ccxt_pro
+from ccxt.async_support.base.exchange import Exchange as CcxtExchange
 
 from ccxt_capabilities import PRO_CAPABILITIES, REST_CAPABILITIES
 from ccxt_profiles import PROFILES, ExchangeProfile, profile_for
 from ccxt_registry import CcxtExchangeRegistry
-from common import ExchangeContractError, external_account_cache_key
+from ccxt_sdk_policy import client_class
+from common import ExchangeContractError, RequestDeadline, external_account_cache_key, external_account_id
 from credentials import CredentialStore
 
 CERTIFIED_EXCHANGES = set(PROFILES)
@@ -23,6 +27,10 @@ REQUIRED_PRO_CAPABILITIES = PRO_CAPABILITIES
 def _credential_fingerprint(secret: dict[str, Any], exchange: str, mode: str) -> str:
     canonical = json.dumps(secret, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return external_account_cache_key(exchange, mode, canonical)
+
+
+def credential_generation(clients: AccountClients) -> str:
+    return external_account_cache_key("credential-generation", "v1", clients.credential_fingerprint)
 
 
 def _account_identity(secret: dict[str, Any], exchange: str, _mode: str) -> str:
@@ -42,6 +50,27 @@ def _account_identity(secret: dict[str, Any], exchange: str, _mode: str) -> str:
         if secret.get(field):
             return str(secret[field])
     raise ExchangeContractError("Certified account identity cannot be derived from credentials.")
+
+
+def _assert_hyperliquid_master_key_binding(secret: dict[str, Any], exchange: str) -> None:
+    if exchange != "hyperliquid":
+        return
+    try:
+        private_key = str(secret["privateKey"])
+        wallet_address = str(secret["walletAddress"])
+        if not private_key.startswith("0x") or len(private_key) != 66:
+            raise ValueError("invalid private key")
+        # Use the cryptographic primitive shipped with the exact pinned CCXT
+        # runtime rather than a second wallet library or an SDK client object.
+        derived_address = CcxtExchange.eth_get_address_from_private_key(private_key)
+    except Exception as error:
+        raise ExchangeContractError(
+            "Hyperliquid credentials are not bound to the configured master wallet."
+        ) from error
+    if not hmac.compare_digest(derived_address.lower(), wallet_address.lower()):
+        raise ExchangeContractError(
+            "Hyperliquid credentials are not bound to the configured master wallet."
+        )
 
 
 def _client_configuration(account: dict[str, str], secret: dict[str, Any]) -> dict[str, Any]:
@@ -139,8 +168,43 @@ class CcxtClientRegistry:
         self.exchange_catalog = exchange_catalog or CcxtExchangeRegistry()
         self._clients: dict[str, AccountClients] = {}
         self._lock = asyncio.Lock()
+        self._account_locks: dict[str, asyncio.Lock] = {}
+        self._closing = False
 
     async def account(self, account: dict[str, str]) -> AccountClients:
+        async with self._account_locks.setdefault(account["id"], asyncio.Lock()):
+            return await self._account_locked(account)
+
+    @asynccontextmanager
+    async def mutation(self, account: dict[str, str], deadline: RequestDeadline):
+        # The lease pins the client until the entire side-effecting request has
+        # settled. A concurrent read/rotation cannot close it mid-dispatch.
+        lock = self._account_locks.setdefault(account["id"], asyncio.Lock())
+        await asyncio.wait_for(lock.acquire(), timeout=deadline.sdk_timeout_seconds())
+        try:
+            clients = await asyncio.wait_for(self._account_locked(account), timeout=deadline.sdk_timeout_seconds())
+            self.assert_binding(account, clients)
+            # Keep per-request binding off the shared read/stream client object.
+            yield replace(clients, account=dict(account))
+        finally:
+            lock.release()
+
+    def assert_binding(self, account: dict[str, str], clients: AccountClients) -> None:
+        expected = account.get("expectedAccountFingerprint")
+        generation = account.get("credentialGeneration")
+        identity = external_account_id(account["exchange"], account["mode"], clients.account_identity)
+        if not expected or not generation:
+            raise ExchangeContractError("A verified account fingerprint and credential generation are required for writes.")
+        if not hmac.compare_digest(expected, identity) or not hmac.compare_digest(generation, credential_generation(clients)):
+            raise ExchangeContractError("Account fingerprint or credential generation changed before the exchange mutation.")
+        secret = self.credentials.account(account["id"], account["exchange"])["credentials"]
+        current = _credential_fingerprint(secret, account["exchange"], account["mode"])
+        if not hmac.compare_digest(current, clients.credential_fingerprint):
+            raise ExchangeContractError("Credentials changed while the exchange mutation was being prepared.")
+
+    async def _account_locked(self, account: dict[str, str]) -> AccountClients:
+        if self._closing:
+            raise ExchangeContractError("Exchange client registry is shutting down.")
         exchange = account["exchange"]
         descriptor = self.exchange_catalog.descriptor(exchange)
         if descriptor is None or descriptor.get("status") != "certified":
@@ -148,15 +212,18 @@ class CcxtClientRegistry:
         if account["mode"] not in descriptor.get("modes", []):
             raise ExchangeContractError("Account mode is not certified for this exchange.")
         secret = self.credentials.account(account["id"], exchange)["credentials"]
+        # The currently certified Hyperliquid scope is deliberately master-key
+        # only. Agent-wallet keys remain quarantined until their grant can be
+        # read back and bound to the same credential generation.
+        _assert_hyperliquid_master_key_binding(secret, exchange)
         fingerprint = _credential_fingerprint(secret, exchange, account["mode"])
         cache_key = account["id"]
-        async with self._lock:
-            existing = self._clients.get(cache_key)
-            if existing and existing.credential_fingerprint == fingerprint:
-                clients = existing
-            else:
-                clients = await self._replace_clients(account, secret, fingerprint, existing)
-                self._clients[cache_key] = clients
+        existing = self._clients.get(cache_key)
+        if existing and existing.credential_fingerprint == fingerprint:
+            clients = existing
+        else:
+            clients = await self._replace_clients(account, secret, fingerprint, existing)
+            self._clients[cache_key] = clients
         try:
             await clients.load_markets()
             return clients
@@ -189,8 +256,8 @@ class CcxtClientRegistry:
         pro_class = getattr(ccxt_pro, exchange, None)
         if rest_class is None or pro_class is None:
             raise ExchangeContractError("Certified CCXT exchange class is unavailable.")
-        rest = rest_class(configuration)
-        pro = pro_class(configuration)
+        rest = client_class(exchange, rest_class)(configuration)
+        pro = client_class(exchange, pro_class)(configuration)
         if account["mode"] == "testnet":
             await self._enable_sandbox(rest, pro)
         _assert_capabilities(rest, REQUIRED_REST_CAPABILITIES, f"{exchange} REST")
@@ -210,7 +277,10 @@ class CcxtClientRegistry:
             raise ExchangeContractError("Exchange testnet mode is not supported by CCXT.") from error
 
     async def close(self) -> None:
-        async with self._lock:
-            clients = list(self._clients.values())
-            self._clients.clear()
-        await asyncio.gather(*(client.close() for client in clients), return_exceptions=True)
+        self._closing = True
+        for account_id in sorted(self._account_locks):
+            async with self._account_locks[account_id]:
+                async with self._lock:
+                    client = self._clients.pop(account_id, None)
+                if client is not None:
+                    await client.close()

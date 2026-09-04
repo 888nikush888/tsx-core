@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { completeLegacyIngressFixture } from './fixtures/legacy_ingress_schema.js';
 import {
   closeDb, expectedDatabaseMigrations, getDatabase, initDb, LATEST_SCHEMA_VERSION,
 } from '../src/db.js';
@@ -59,6 +60,10 @@ const VERSION_18_SCHEMA = `
       CREATE INDEX idx_trading_accounts_runtime
         ON trading_accounts(enabled, status, exchange, created_at);
       CREATE TABLE signals (id TEXT PRIMARY KEY);
+      CREATE TABLE trading_orders (
+        id TEXT PRIMARY KEY, account_id TEXT NOT NULL, exchange_order_id TEXT, response_json TEXT, role TEXT NOT NULL DEFAULT 'entry'
+      );
+      CREATE TABLE trading_positions (id TEXT PRIMARY KEY, account_id TEXT, status TEXT, updated_at INTEGER);
       CREATE TABLE trading_strategy_versions (id TEXT PRIMARY KEY);
       CREATE TABLE workflow_signal_runs (id TEXT PRIMARY KEY);
       CREATE TABLE workflow_revisions (id TEXT PRIMARY KEY);
@@ -197,6 +202,7 @@ async function createVersion18Fixture(databasePath, { orphanEvent = false } = {}
       'legacy-event', orphanEvent ? 'missing-account' : 'legacy-account', 'hyperliquid', 'testnet',
       '2'.repeat(64), 'order', 'BTCUSDT', 9, 300, 301, '{"legacy":true}',
     );
+    await completeLegacyIngressFixture(fixture);
   } finally {
     await fixture.close();
   }
@@ -429,6 +435,7 @@ try {
       verified: true,
       equity: '1000',
       externalAccountId: '9'.repeat(64),
+      credentialGeneration: 'c'.repeat(64),
       capabilities: { reportingCurrency: 'USDT' },
     }),
     accountSnapshot: async () => ({}),

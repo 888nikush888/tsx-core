@@ -1,9 +1,12 @@
 import assert from 'assert';
-import { mkdtemp, readdir, rm, unlink, writeFile } from 'fs/promises';
+import { mkdtemp, readdir, rm } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { acquireProcessLock } from '../src/process_lock.js';
+import { beginMcpOfflineMaintenance } from '../src/mcp_maintenance.js';
+import { restorePreMigrationSnapshot } from '../src/migration_recovery.js';
 import {
   acknowledgeOutboxTask,
   claimOutboxTask,
@@ -29,7 +32,6 @@ import {
   recoverInterruptedOutboxTasks,
   removeMediaGroupBuffer,
   reserveAiUsage,
-  restorePreMigrationSnapshot,
   commitAiUsage,
   requeueOutboxTask,
   saveIncomingMessage,
@@ -111,7 +113,8 @@ async function testOutboxLifecycle() {
     assert.strictEqual(await getLastForwardedAt(), 1_700_000_000_000);
 
     const legacyTask = await getOutboxTask('legacy-task');
-    assert.strictEqual(legacyTask.status, 'pending', 'Legacy rows must migrate to pending');
+    assert.strictEqual(legacyTask.status, 'needs_review', 'Unproven legacy rows must never replay automatically');
+    assert.equal(await claimOutboxTask('legacy-task'), null);
     assert.strictEqual(legacyTask.attempts, 0);
     assert.strictEqual(legacyTask.updatedAt, 1000);
 
@@ -183,17 +186,19 @@ async function testAuxiliaryPersistence() {
     assert.strictEqual((await getMediaGroupBuffers())['group-1'], undefined);
 
     const usageDay = '2030-01-02';
-    assert.strictEqual(await reserveAiUsage(usageDay, 600, 2, 1000), true);
+    const firstReservation = await reserveAiUsage(usageDay, 600, 2, 1000);
+    assert.ok(firstReservation.id);
     assert.strictEqual(await reserveAiUsage(usageDay, 500, 2, 1000), false, 'Token reservations must fail closed at the daily limit');
-    await commitAiUsage(usageDay, 600, 450);
+    await commitAiUsage(firstReservation.id, 600, 450);
     assert.deepStrictEqual(await getAiUsage(usageDay), {
       requestCount: 1,
       usedTokens: 450,
       reservedTokens: 0
     });
-    assert.strictEqual(await reserveAiUsage(usageDay, 500, 2, 1000), true);
+    const secondReservation = await reserveAiUsage(usageDay, 500, 2, 1000);
+    assert.ok(secondReservation.id);
     assert.strictEqual(await reserveAiUsage(usageDay, 1, 2, 1000), false, 'Request count must fail closed at the daily limit');
-    await commitAiUsage(usageDay, 500, 500);
+    await commitAiUsage(secondReservation.id, 500, 500);
     assert.deepStrictEqual(await getAiUsage(usageDay), {
       requestCount: 2,
       usedTokens: 950,
@@ -262,18 +267,22 @@ async function testMigrationRecovery(testDir, dbPath) {
       .filter(name => name.startsWith('pre-migration-v0-to-v') && name.endsWith('.db'));
     assert.strictEqual(migrationSnapshots.length, 1, 'Legacy upgrade must create one verified pre-migration snapshot');
     const migrationSnapshot = path.join(migrationBackupDirectory, migrationSnapshots[0]);
-    await writeFile(path.join(testDir, '.process_active'), 'active', 'utf8');
     await assert.rejects(
       restorePreMigrationSnapshot(migrationSnapshot, dbPath, testDir),
-      /restore refused.*process_active/
+      /genuine.*lease/i
     );
-    await unlink(path.join(testDir, '.process_active'));
 
     const tamperDb = await open({ filename: dbPath, driver: sqlite3.Database });
     await tamperDb.run("UPDATE schema_migrations SET checksum = ? WHERE version = 1", ['0'.repeat(64)]);
     await tamperDb.close();
     await assert.rejects(initDb(dbPath), /checksum or name does not match/);
-    const restored = await restorePreMigrationSnapshot(migrationSnapshot, dbPath, testDir);
+    const owner = await acquireProcessLock(path.join(testDir, '.process_active'));
+    const maintenanceLease = await beginMcpOfflineMaintenance('isolated outbox migration recovery', dbPath, owner);
+    let restored;
+    try {
+      await maintenanceLease.waitForQuiescence();
+      restored = await restorePreMigrationSnapshot(migrationSnapshot, dbPath, testDir, { maintenanceLease });
+    } finally { await maintenanceLease.release(); await owner.release(); }
     assert.ok(restored.previousDatabase, 'Tampered database must be preserved for forensic rollback');
     const restoredLegacyDb = await open({ filename: dbPath, driver: sqlite3.Database });
     const restoredLegacyTask = await restoredLegacyDb.get("SELECT id FROM pending_tasks WHERE id = 'legacy-task'");

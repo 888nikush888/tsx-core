@@ -90,7 +90,7 @@ export interface PortableSetupBundle {
   schemaVersion: 1 | 2 | 3;
   mode: 'replace';
   exportedAt: number;
-  applicationVersion: '3.1.0' | '3.2.0';
+  applicationVersion: '3.1.0' | '3.2.0' | '3.3.0';
   systemConfig: Record<string, unknown>;
   workflow: {
     graph: WorkflowGraph;
@@ -192,7 +192,7 @@ export async function exportPortableSetupBundle(systemConfig: Record<string, unk
     schemaVersion: SETUP_BUNDLE_VERSION,
     mode: 'replace',
     exportedAt: Date.now(),
-    applicationVersion: '3.2.0',
+    applicationVersion: '3.3.0',
     systemConfig: structuredClone(systemConfig),
     workflow: {
       graph: active?.graph ?? { schemaVersion: 1, nodes: [], edges: [] },
@@ -351,7 +351,7 @@ function validateBundleHeader(candidate: Record<string, any>): void {
   if (unexpected.length > 0) throw new Error(`Setup bundle contains unsupported root field '${unexpected[0]}'.`);
   const supported = [1, 2, SETUP_BUNDLE_VERSION].includes(candidate.schemaVersion)
     && candidate.mode === 'replace'
-    && ['3.1.0', '3.2.0'].includes(candidate.applicationVersion);
+    && ['3.1.0', '3.2.0', '3.3.0'].includes(candidate.applicationVersion);
   if (!supported) throw new Error('Setup bundle schema or version is unsupported.');
   if (!Number.isSafeInteger(candidate.exportedAt) || candidate.exportedAt < 0) {
     throw new Error('Setup bundle timestamp is invalid.');

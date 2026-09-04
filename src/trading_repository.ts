@@ -2,8 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { getDatabase, isForeignKeyConstraint, withDatabaseTransaction } from './db.js';
 import { constantTimeStringEqual } from './secure_compare.js';
 import { signalContractDefinitionSha256, validateSignalContractDefinition } from './signal_contract.js';
-import { decimal } from './trading_decimal.js';
-import { recordTradingExecutionEvent } from './trading_telemetry.js';
+import { addDecimal, addSignedDecimal, decimal, multiplyExactSignedDecimal } from './trading_decimal.js';
+import { moneyLedgerSnapshot } from './trading_money_ledger.js';
+import { projectAllFillAccounting } from './trading_fill_accounting.js';
+import { closedMoneyStatistics } from './trading_money_reporting.js';
+import { analyticsPositionMoneyRow, recordTradingExecutionEvent } from './trading_telemetry.js';
+import type { MoneyValue } from './trading_money_value.js';
 import { recordTradingNotificationBestEffort } from './trading_notifications.js';
 import {
   createStrategyVersion,
@@ -32,6 +36,7 @@ import type {
 } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
 import { clearWorkflowBuilderHistory } from './workflow_repository.js';
+import { countUnprovedProtection } from './trading_protection_projection.js';
 
 function boolean(value: unknown): boolean {
   return Number(value) === 1;
@@ -88,6 +93,7 @@ function accountFromRow(row: any): TradingAccount {
     enabled: boolean(row.enabled),
     credentialRef: row.credential_ref || null,
     externalAccountId: row.external_account_id || null,
+    credentialGeneration: row.credential_generation || null,
     maxConcurrentPositions: Number(row.max_concurrent_positions ?? 20),
     killSwitchActive: boolean(row.kill_switch_active),
     killSwitchReason: row.kill_switch_reason || null,
@@ -711,27 +717,38 @@ export async function createTradingAccount(input: {
   return accountFromRow(await getDatabase().get('SELECT * FROM trading_accounts WHERE id = ?', [id]));
 }
 
-export async function updateTradingAccountState(
-  id: string,
-  state: {
+type TradingAccountStateUpdate = {
     status: TradingAccountStatus;
     enabled: boolean;
     error?: string | null;
     verifiedAt?: number | null;
     externalAccountId?: string | null;
-  },
-): Promise<TradingAccount> {
+    credentialGeneration?: string | null;
+};
+
+function validateAccountStateUpdate(state: TradingAccountStateUpdate): void {
   if (!['unverified', 'ready', 'disabled', 'error', 'degraded'].includes(state.status)) throw new Error('Unsupported account status.');
   if (state.enabled && state.status !== 'ready') throw new Error('Only a verified ready account can be enabled.');
-  const updatesExternalAccountId = Object.hasOwn(state, 'externalAccountId');
   const externalAccountId = state.externalAccountId?.trim() || null;
   if (externalAccountId && (externalAccountId.length > 256 || /[\x00-\x1f\x7f]/.test(externalAccountId))) {
     throw new Error('External account identity must contain at most 256 printable characters.');
   }
+  if (state.credentialGeneration != null && !/^[a-f0-9]{64}$/.test(state.credentialGeneration)) {
+    throw new Error('Credential generation must be a verified executor binding.');
+  }
+}
+
+export async function updateTradingAccountState(id: string, state: TradingAccountStateUpdate): Promise<TradingAccount> {
+  validateAccountStateUpdate(state);
+  return withDatabaseTransaction(() => updateTradingAccountStateOwned(id, state));
+}
+
+async function updateTradingAccountStateOwned(id: string, state: TradingAccountStateUpdate): Promise<TradingAccount> {
   const result = await getDatabase().run(
     `UPDATE trading_accounts
      SET status = ?, enabled = ?, last_error = ?, last_verified_at = ?,
          external_account_id = CASE WHEN ? = 1 THEN ? ELSE external_account_id END,
+         credential_generation = CASE WHEN ? = 1 THEN ? ELSE credential_generation END,
          updated_at = ?
      WHERE id = ? AND retired_at IS NULL`,
     [
@@ -739,14 +756,18 @@ export async function updateTradingAccountState(
       state.enabled ? 1 : 0,
       state.error || null,
       state.verifiedAt ?? null,
-      updatesExternalAccountId ? 1 : 0,
-      externalAccountId,
+      Object.hasOwn(state, 'externalAccountId') ? 1 : 0,
+      state.externalAccountId?.trim() || null,
+      Object.hasOwn(state, 'credentialGeneration') ? 1 : 0,
+      state.credentialGeneration ?? null,
       Date.now(),
       id,
     ],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Trading account does not exist.');
-  return (await getTradingAccount(id))!;
+  const account = await getTradingAccount(id);
+  if (!account) throw new Error('Trading account changed while its state was updated.');
+  return account;
 }
 
 type TradingAccountConfigurationUpdate = {
@@ -797,6 +818,13 @@ export async function updateTradingAccountConfiguration(
   id: string,
   input: TradingAccountConfigurationUpdate,
 ): Promise<TradingAccount> {
+  return withDatabaseTransaction(() => updateTradingAccountConfigurationOwned(id, input));
+}
+
+async function updateTradingAccountConfigurationOwned(
+  id: string,
+  input: TradingAccountConfigurationUpdate,
+): Promise<TradingAccount> {
   const current = await getTradingAccount(id);
   if (!current) throw new Error('Trading account does not exist.');
   const maxConcurrentPositions = accountPositionLimit(input.maxConcurrentPositions, current.maxConcurrentPositions);
@@ -804,13 +832,14 @@ export async function updateTradingAccountConfiguration(
   const capabilitiesJson = accountCapabilitiesJson(input.capabilities, current);
   const lastReconciledAt = accountReconciledAt(input.lastReconciledAt, current);
   const updatedAt = Date.now();
-  await getDatabase().run(
+  const update = await getDatabase().run(
     `UPDATE trading_accounts SET max_concurrent_positions = ?, kill_switch_active = ?,
        kill_switch_reason = ?, capabilities_json = ?, last_reconciled_at = ?, updated_at = ?
      WHERE id = ? AND retired_at IS NULL`,
     [maxConcurrentPositions, killSwitch.active ? 1 : 0, killSwitch.reason, capabilitiesJson,
       lastReconciledAt, updatedAt, id],
   );
+  if (update.changes !== 1) throw new Error('Trading account changed or was retired before its configuration update.');
   if (!current.killSwitchActive && killSwitch.active) {
     await recordTradingNotificationBestEffort({
       dedupeKey: `account-kill-switch:${id}:${updatedAt}`,
@@ -822,7 +851,9 @@ export async function updateTradingAccountConfiguration(
       details: { scope: 'account', reason: killSwitch.reason, accountName: current.name },
     });
   }
-  return (await getTradingAccount(id))!;
+  const updated = await getTradingAccount(id);
+  if (!updated) throw new Error('Trading account disappeared during its configuration update.');
+  return updated;
 }
 
 export async function listTradingRoutes(): Promise<TradingRoute[]> {
@@ -1032,13 +1063,17 @@ export async function listTradingActivity(limit = 200): Promise<{
        FROM trading_orders ORDER BY updated_at DESC LIMIT ?`, [limit]),
     database.all<any[]>(
       `SELECT id, order_id AS orderId, account_id AS accountId, exchange_fill_id AS exchangeFillId,
+              provider_symbol AS providerSymbol, remote_fill_key AS remoteFillKey, identity_status AS identityStatus,
               price, quantity, fee, fee_asset AS feeAsset, filled_at AS filledAt
        FROM trading_fills ORDER BY filled_at DESC LIMIT ?`, [limit]),
     database.all<any[]>(
       `SELECT id, intent_id AS intentId, account_id AS accountId, strategy_version_id AS strategyVersionId,
               channel_id AS channelId, symbol, side, status, quantity,
               average_entry_price AS averageEntryPrice, stop_price AS stopPrice,
-              realized_pnl AS realizedPnl, opened_at AS openedAt, closed_at AS closedAt, updated_at AS updatedAt
+              ledger_realized_pnl AS realizedPnl, ledger_realized_value_json AS realizedPnlValueJson,
+              CASE WHEN EXISTS(SELECT 1 FROM trading_accounting_pending pending WHERE pending.intent_id=trading_positions.intent_id)
+                THEN 'unresolved' ELSE accounting_status END AS accountingStatus, reporting_currency AS reportingCurrency,
+              opened_at AS openedAt, closed_at AS closedAt, updated_at AS updatedAt
        FROM trading_positions ORDER BY updated_at DESC LIMIT ?`, [limit]),
     database.all<any[]>(
       `SELECT id, severity, code, account_id AS accountId, intent_id AS intentId,
@@ -1060,7 +1095,11 @@ export async function listTradingActivity(limit = 200): Promise<{
   return {
     orders: orders.map(row => ({ ...row, reduceOnly: boolean(row.reduceOnly) })),
     fills,
-    positions,
+    positions: positions.map(row => {
+      const { realizedPnlValueJson: ignored, ...position } = analyticsPositionMoneyRow(row);
+      void ignored;
+      return position;
+    }),
     riskEvents: riskEvents.map(row => ({
       ...row,
       details: parseJson(row.detailsJson, 'risk event details'),
@@ -1075,15 +1114,34 @@ export async function listTradingActivity(limit = 200): Promise<{
 export type TradingAnalyticsWindow = '24h' | '7d' | '30d' | 'all';
 
 export interface TradingWindowAnalytics {
-  realizedPnl: string;
-  grossProfit: string;
-  grossLoss: string;
+  realizedPnl: string | null;
+  realizedPnlValue: MoneyValue | null;
+  grossProfit: string | null;
+  grossLoss: string | null;
+  grossProfitValue: MoneyValue | null;
+  grossLossValue: MoneyValue | null;
+  closedRealizedPnl: string | null;
+  closedRealizedPnlValue: MoneyValue | null;
+  closedReportingCurrency: string | null;
+  closedAccountingStatus: 'complete' | 'unresolved';
+  reportingCurrency: string | null;
+  accountingStatus: 'complete' | 'unresolved';
+  pricePnl: string | null;
+  funding: string | null;
+  signedFees: string | null;
+  pricePnlValue: MoneyValue | null;
+  fundingValue: MoneyValue | null;
+  signedFeesValue: MoneyValue | null;
+  valuedSubtotalByCurrency: Record<string, string | null>;
+  valuedSubtotalValuesByCurrency: Record<string, MoneyValue>;
   closedTrades: number;
   wins: number;
   losses: number;
   breakeven: number;
+  uncertainOutcomeCount: number;
   fills: number;
-  volume: string;
+  volume: string | null;
+  volumeByAsset: Record<string, string>;
   fees: Record<string, string>;
   intents: number;
   completedIntents: number;
@@ -1102,19 +1160,14 @@ export interface TradingAccountAnalytics {
 
 function emptyTradingWindow(): TradingWindowAnalytics {
   return {
-    realizedPnl: '0', grossProfit: '0', grossLoss: '0', closedTrades: 0, wins: 0, losses: 0, breakeven: 0,
-    fills: 0, volume: '0', fees: {}, intents: 0, completedIntents: 0,
+    realizedPnl: null, grossProfit: null, grossLoss: null, reportingCurrency: null, accountingStatus: 'unresolved',
+    realizedPnlValue: null, grossProfitValue: null, grossLossValue: null, closedRealizedPnl: null, closedRealizedPnlValue: null,
+    closedReportingCurrency: null, closedAccountingStatus: 'unresolved', uncertainOutcomeCount: 0,
+    pricePnlValue: null, fundingValue: null, signedFeesValue: null, valuedSubtotalByCurrency: {}, valuedSubtotalValuesByCurrency: {},
+    pricePnl: null, funding: null, signedFees: null, closedTrades: 0, wins: 0, losses: 0, breakeven: 0,
+    fills: 0, volume: null, volumeByAsset: {}, fees: {}, intents: 0, completedIntents: 0,
     rejectedIntents: 0, riskEvents: 0, criticalRiskEvents: 0,
   };
-}
-
-function dashboardDecimal(value: unknown): string {
-  const parsed = Number(value ?? 0);
-  if (!Number.isFinite(parsed)) throw new Error('Trading analytics produced a non-finite decimal.');
-  let formatted = parsed.toFixed(8);
-  while (formatted.endsWith('0')) formatted = formatted.slice(0, -1);
-  if (formatted.endsWith('.')) formatted = formatted.slice(0, -1);
-  return formatted || '0';
 }
 
 function signalSchemaFromRow(row: any): TradingSignalSchema {
@@ -1298,37 +1351,40 @@ async function assertSignalSchemaNotActivelyRouted(id: string): Promise<void> {
   }
 }
 
-async function tradingAnalyticsWindow(since: number | null): Promise<Map<string, TradingWindowAnalytics>> {
+function windowLedgerFields(ledger: Awaited<ReturnType<typeof moneyLedgerSnapshot>>) {
+  const currency = ledger.reportingCurrency;
+  return { realizedPnl: ledger.amount, realizedPnlValue: ledger.value, reportingCurrency: currency,
+    accountingStatus: ledger.valuationStatus === 'valued' ? 'complete' : 'unresolved',
+    pricePnl: ledger.pricePnl, signedFees: ledger.fees, funding: ledger.funding,
+    pricePnlValue: ledger.pricePnlValue, signedFeesValue: ledger.feesValue, fundingValue: ledger.fundingValue,
+    valuedSubtotalByCurrency: currency ? { [currency]: ledger.valuedSubtotal } : {},
+    valuedSubtotalValuesByCurrency: currency ? { [currency]: ledger.valuedSubtotalValue } : {} };
+}
+
+async function tradingAnalyticsWindow(since: number | null, until: number): Promise<Map<string, TradingWindowAnalytics>> {
   const database = getDatabase();
-  const filter = since === null ? '' : ' AND closed_at >= ?';
-  const parameters = since === null ? [] : [since];
+  const parameters = [since ?? 0, until];
   const [positions, fills, intents, risks] = await Promise.all([
     database.all<any[]>(
-      `SELECT account_id AS accountId,
-              COUNT(*) AS closedTrades,
-              SUM(CASE WHEN CAST(realized_pnl AS REAL) > 0 THEN 1 ELSE 0 END) AS wins,
-              SUM(CASE WHEN CAST(realized_pnl AS REAL) < 0 THEN 1 ELSE 0 END) AS losses,
-              SUM(CASE WHEN CAST(realized_pnl AS REAL) = 0 THEN 1 ELSE 0 END) AS breakeven,
-              COALESCE(SUM(CAST(realized_pnl AS REAL)), 0) AS realizedPnl,
-              COALESCE(SUM(CASE WHEN CAST(realized_pnl AS REAL) > 0 THEN CAST(realized_pnl AS REAL) ELSE 0 END), 0) AS grossProfit,
-              COALESCE(SUM(CASE WHEN CAST(realized_pnl AS REAL) < 0 THEN -CAST(realized_pnl AS REAL) ELSE 0 END), 0) AS grossLoss
-       FROM trading_positions WHERE status = 'closed'${filter} GROUP BY account_id`, parameters),
+      `SELECT position.account_id AS accountId, ledger_realized_pnl AS realizedPnl, reporting_currency AS reportingCurrency,
+         ledger_realized_value_json AS realizedPnlValueJson,
+         CASE WHEN pending.intent_id IS NOT NULL THEN 'unresolved' ELSE accounting_status END AS accountingStatus
+       FROM trading_positions position LEFT JOIN trading_accounting_pending pending ON pending.intent_id=position.intent_id
+       WHERE status = 'closed' AND closed_at >= ? AND closed_at < ?`, parameters),
     database.all<any[]>(
-      `SELECT account_id AS accountId, fee_asset AS feeAsset, COUNT(*) AS fills,
-              COALESCE(SUM(CAST(price AS REAL) * CAST(quantity AS REAL)), 0) AS volume,
-              COALESCE(SUM(CAST(fee AS REAL)), 0) AS fees
-       FROM trading_fills WHERE 1 = 1${since === null ? '' : ' AND filled_at >= ?'}
-       GROUP BY account_id, fee_asset`, parameters),
+      `SELECT account_id AS accountId, fee_asset AS feeAsset, fee, price, quantity,
+        json_extract(accounting_json, '$.settlementAsset') AS settlementAsset
+       FROM trading_fills WHERE filled_at >= ? AND filled_at < ?`, parameters),
     database.all<any[]>(
       `SELECT account_id AS accountId, COUNT(*) AS intents,
               SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completedIntents,
               SUM(CASE WHEN status IN ('blocked', 'failed', 'unknown') THEN 1 ELSE 0 END) AS rejectedIntents
-       FROM trading_trade_intents WHERE 1 = 1${since === null ? '' : ' AND created_at >= ?'}
+       FROM trading_trade_intents WHERE created_at >= ? AND created_at < ?
        GROUP BY account_id`, parameters),
     database.all<any[]>(
       `SELECT account_id AS accountId, COUNT(*) AS riskEvents,
               SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) AS criticalRiskEvents
-       FROM trading_risk_events WHERE account_id IS NOT NULL${since === null ? '' : ' AND created_at >= ?'}
+       FROM trading_risk_events WHERE account_id IS NOT NULL AND created_at >= ? AND created_at < ?
        GROUP BY account_id`, parameters),
   ]);
   const result = new Map<string, TradingWindowAnalytics>();
@@ -1341,19 +1397,26 @@ async function tradingAnalyticsWindow(since: number | null): Promise<Map<string,
     result.set(id, current);
     return current;
   };
-  for (const row of positions) Object.assign(metrics(row.accountId), {
-    realizedPnl: dashboardDecimal(row.realizedPnl),
-    grossProfit: dashboardDecimal(row.grossProfit), grossLoss: dashboardDecimal(row.grossLoss),
-    closedTrades: numeric(row.closedTrades), wins: numeric(row.wins),
-    losses: numeric(row.losses), breakeven: numeric(row.breakeven),
-  });
+  const accounts = await database.all<Array<{ id: string }>>('SELECT id FROM trading_accounts');
+  for (const account of accounts) {
+    const ledger = await moneyLedgerSnapshot(account.id, since ?? 0, until);
+    const closed = closedMoneyStatistics(positions.filter(row => row.accountId === account.id).map(analyticsPositionMoneyRow));
+    Object.assign(metrics(account.id), closed, {
+      closedRealizedPnl: closed.realizedPnl, closedRealizedPnlValue: closed.realizedPnlValue,
+      closedReportingCurrency: closed.reportingCurrency, closedAccountingStatus: closed.accountingStatus,
+      ...windowLedgerFields(ledger),
+    });
+  }
   for (const row of fills) {
     const current = metrics(row.accountId);
-    current.fills += numeric(row.fills);
-    current.volume = dashboardDecimal(Number(current.volume) + Number(row.volume || 0));
+    current.fills += 1;
+    const settlement = String(row.settlementAsset ?? 'UNKNOWN');
+    current.volumeByAsset[settlement] = addDecimal(current.volumeByAsset[settlement] ?? '0', multiplyExactSignedDecimal(row.price, row.quantity));
     const asset = String(row.feeAsset || 'UNKNOWN').toUpperCase();
-    current.fees[asset] = dashboardDecimal(Number(current.fees[asset] || 0) + Number(row.fees || 0));
+    current.fees[asset] = addSignedDecimal(current.fees[asset] ?? '0', row.fee);
   }
+  for (const current of result.values()) current.volume = Object.keys(current.volumeByAsset).length === 1
+    && current.volumeByAsset.UNKNOWN === undefined ? Object.values(current.volumeByAsset)[0]! : null;
   for (const row of intents) Object.assign(metrics(row.accountId), {
     intents: numeric(row.intents), completedIntents: numeric(row.completedIntents),
     rejectedIntents: numeric(row.rejectedIntents),
@@ -1369,6 +1432,7 @@ export async function getTradingAnalytics(now = Date.now()): Promise<{
   accounts: TradingAccountAnalytics[];
 }> {
   if (!Number.isSafeInteger(now) || now <= 0) throw new Error('Trading analytics timestamp is invalid.');
+  await projectAllFillAccounting();
   const windows: Array<[TradingAnalyticsWindow, number | null]> = [
     ['24h', now - 24 * 60 * 60 * 1_000],
     ['7d', now - 7 * 24 * 60 * 60 * 1_000],
@@ -1377,7 +1441,7 @@ export async function getTradingAnalytics(now = Date.now()): Promise<{
   ];
   const [accounts, snapshots] = await Promise.all([
     listTradingAccounts(),
-    Promise.all(windows.map(([, since]) => tradingAnalyticsWindow(since))),
+    Promise.all(windows.map(([, since]) => tradingAnalyticsWindow(since, now + 1))),
   ]);
   return {
     generatedAt: now,
@@ -1522,12 +1586,6 @@ export async function getTradingOperationalSnapshot(): Promise<{
       (SELECT COUNT(*) FROM trading_positions WHERE status IN ('opening', 'open', 'closing', 'emergency') AND quantity <> '0') AS open_positions,
       (SELECT COUNT(*) FROM trading_trade_intents WHERE status IN ('pending', 'planned', 'submitting', 'monitoring')) AS pending_intents,
       (SELECT COUNT(*) FROM trading_orders WHERE status = 'unknown') AS unknown_orders,
-      (SELECT COUNT(*) FROM trading_positions AS position
-        WHERE position.status IN ('open', 'closing', 'emergency') AND position.quantity <> '0'
-          AND NOT EXISTS (
-            SELECT 1 FROM trading_orders AS stop
-            WHERE stop.intent_id = position.intent_id AND stop.role = 'stop_loss' AND stop.status = 'open'
-          )) AS unprotected_positions,
       (SELECT COUNT(*) FROM trading_risk_events WHERE severity = 'critical' AND acknowledged_at IS NULL) AS critical_risk,
       (SELECT COUNT(*) FROM trading_trade_intents) AS intent_count,
       (SELECT COUNT(*) FROM trading_fills) AS fill_count,
@@ -1541,7 +1599,7 @@ export async function getTradingOperationalSnapshot(): Promise<{
     openPositions: numeric(values?.open_positions),
     pendingIntents: numeric(values?.pending_intents),
     unknownOrders: numeric(values?.unknown_orders),
-    unprotectedPositions: numeric(values?.unprotected_positions),
+    unprotectedPositions: await countUnprovedProtection(),
     unacknowledgedCriticalRiskEvents: numeric(values?.critical_risk),
     intentCount: numeric(values?.intent_count),
     fillCount: numeric(values?.fill_count),

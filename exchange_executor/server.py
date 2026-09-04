@@ -10,10 +10,13 @@ from typing import Any
 from aiohttp import web
 
 from ccxt_adapter import CcxtAdapter
+from entry_deadline import EntryDeadline, EntryDeadlineError
 from ccxt_client import CcxtClientRegistry
 from ccxt_registry import CcxtExchangeRegistry
-from common import ExchangeContractError, RequestDeadline, SymbolUnavailableError, account_request
+from common import ExchangeContractError, IncompleteCurrentStateError, RequestDeadline, SymbolUnavailableError, UnresolvedOrderOutcome, account_request
 from credentials import CredentialStore
+from entry_price_constraints import EntryPriceConstraintError
+from leverage_tiers import TierEvidenceError
 from stream_hub import ExchangeStreamHub
 
 MAX_BODY_BYTES = 128 * 1024
@@ -23,6 +26,7 @@ EXECUTOR_ERROR_CODES = {
     "/v1/exchange-catalog": "EXCHANGE_CATALOG_FAILED",
     "/v1/exchange-probe": "EXCHANGE_PROBE_FAILED",
     "/v1/verify-account": "ACCOUNT_VERIFY_FAILED",
+    "/v1/entry-constraints": "ENTRY_CONSTRAINTS_FAILED",
     "/v1/account-snapshot": "ACCOUNT_SNAPSHOT_FAILED",
     "/v1/market-snapshot": "MARKET_SNAPSHOT_FAILED",
     "/v1/submit-order": "ORDER_SUBMIT_FAILED",
@@ -95,10 +99,16 @@ class Application:
             return self.exchange_catalog.catalog()
         if path == "/v1/exchange-probe":
             return await self.exchange_catalog.probe(required_string(payload, "exchange"))
+        if path in {'/v1/submit-order', '/v1/submit-protected-entry'}:
+            entry = payload.get('entry' if path == '/v1/submit-protected-entry' else 'request')
+            if isinstance(entry, dict):
+                EntryDeadline(entry)
         deadline = RequestDeadline.from_payload(payload)
         account = account_request(payload)
         if path == "/v1/verify-account":
             return await self.adapter.verify(account, deadline)
+        if path == "/v1/entry-constraints":
+            return await self.adapter.entry_constraints(account, required_string(payload, "symbol"), deadline)
         if path == "/v1/account-snapshot":
             return await self.adapter.account_snapshot(account, deadline)
         if path == "/v1/market-snapshot":
@@ -113,9 +123,11 @@ class Application:
                 required_string(payload, "clientOrderId"),
                 required_string(payload, "symbol"),
                 deadline,
+                payload.get("exchangeOrderId"),
+                payload.get("providerSymbol"),
             )
         if path == "/v1/open-state":
-            return await self.adapter.open_state(account, deadline)
+            return await self.adapter.open_state(account, deadline, payload.get("recovery"))
         if path == "/v1/stream-events":
             return await self._stream_events(account, payload, deadline)
         raise ExchangeContractError("Unknown executor endpoint.")
@@ -158,13 +170,17 @@ async def execute(request: web.Request) -> web.Response:
             if not isinstance(payload, dict):
                 raise ExchangeContractError("Request body must be an object.")
             return json_response(await application.handle(request.path, payload))
-    except SymbolUnavailableError as error:
+    except (SymbolUnavailableError, UnresolvedOrderOutcome, IncompleteCurrentStateError) as error:
         return json_response({
             "error": str(error),
             "code": error.code,
             "sideEffects": error.side_effects,
             "details": error.details,
         }, error.http_status)
+    except (EntryPriceConstraintError, EntryDeadlineError) as error:
+        return json_response({"error": str(error), "code": error.code}, error.http_status)
+    except TierEvidenceError as error:
+        return json_response({'error': str(error), 'code': error.code}, 422)
     except (ExchangeContractError, ValueError) as error:
         return json_response({"error": str(error)}, 400)
     except Exception as error:

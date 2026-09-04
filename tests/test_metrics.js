@@ -20,6 +20,10 @@ const HEALTHY_OPERATIONAL_METRICS = {
   backupOffsiteHealthy: true,
   backupOffsiteRequired: true,
   backupOffsiteLastSuccessAt: 1_700_000_150_000,
+  backupConfigurationCoherentAt: 1_700_000_101_000,
+  backupRestoreEligibleAt: 1_700_000_090_000,
+  backupRestoreEligibilityCheckedAt: 1_700_000_102_000,
+  backupRestoreDrillAt: 1_700_000_080_000,
   retentionHealthy: true,
   retentionLastSuccessAt: 1_700_000_200_000,
   retentionDeletedTotal: 12,
@@ -134,6 +138,11 @@ async function runTests() {
   assert.match(metrics, /tg_forwarder_last_confirmed_delivery_timestamp_seconds 1700000000/);
   assert.match(metrics, /tg_forwarder_backup_healthy 1/);
   assert.match(metrics, /tg_forwarder_backup_last_success_timestamp_seconds 1700000100/);
+  assert.match(metrics, /tg_forwarder_backup_configuration_coherent_timestamp_seconds 1700000101/);
+  assert.match(metrics, /tg_forwarder_backup_restore_eligible_timestamp_seconds 1700000090/);
+  assert.match(metrics, /tg_forwarder_backup_restore_eligibility_checked_timestamp_seconds 1700000102/);
+  assert.match(metrics, /tg_forwarder_backup_restore_drill_timestamp_seconds 1700000080/);
+  assert.ok(!metrics.includes('restore-verified'), 'Offsite integrity must not claim an actual restore drill.');
   assert.match(metrics, /tg_forwarder_backup_offsite_healthy 1/);
   assert.match(metrics, /tg_forwarder_backup_offsite_required 1/);
   assert.match(metrics, /tg_forwarder_backup_offsite_last_success_timestamp_seconds 1700000150/);

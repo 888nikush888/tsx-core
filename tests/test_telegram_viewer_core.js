@@ -42,11 +42,14 @@ const secretDirectory = path.join(directory, 'viewer-secrets');
 try {
   await initDb(databasePath);
 
-  assert.equal(LATEST_SCHEMA_VERSION, 24);
-  assert.deepEqual(expectedDatabaseMigrations().at(-1), {
-    version: 24,
-    name: 'retirable_trading_accounts',
-    checksum: expectedDatabaseMigrations().at(-1).checksum,
+  assert.equal((await getDatabase().get('SELECT MAX(version) version FROM schema_migrations')).version, LATEST_SCHEMA_VERSION);
+  const appliedMigrations = await getDatabase().all('SELECT version,name,checksum FROM schema_migrations ORDER BY version');
+  assert.deepEqual(appliedMigrations, expectedDatabaseMigrations(), 'Every actual applied migration must match this binary, including its checksum.');
+  const quantityMigration = expectedDatabaseMigrations().find(migration => migration.version === 42);
+  assert.deepEqual(quantityMigration, {
+    version: 42,
+    name: 'immutable_observed_fill_quantity_normalization',
+    checksum: quantityMigration.checksum,
   });
   assert.ok(DATABASE_FEATURE_SET.includes('telegram-viewer-notification-delivery'));
   for (const table of ['trading_notification_events', 'telegram_viewer_test_events']) {

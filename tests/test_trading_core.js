@@ -32,7 +32,11 @@ import {
   resolveDailyLossLimit,
   resolveLeverageDecision,
   allocateTargetQuantities,
+  assertEntryNotExpired,
+  assertEntryPriceBoundary,
+  createEntryPriceBoundary,
   createTradingPlan,
+  resolveEntryExpiresAt,
 } from '../src/trading_risk.js';
 import {
   createTradingIntent,
@@ -302,6 +306,186 @@ function assertTradingRiskError(operation, code, message) {
   });
 }
 
+function testEntryBoundaryRoundingContracts() {
+  const input = { referencePrice: '100.00', priceTick: '0.10', maxSlippagePercent: '0.250' };
+  for (const [side, limitPrice] of [['LONG', '100.2'], ['SHORT', '99.8']]) {
+    assert.deepEqual(createEntryPriceBoundary({ ...input, side }), {
+      version: 1, referencePrice: '100', priceTick: '0.1', maxSlippagePercent: '0.25', limitPrice,
+    }, 'Tick rounding must tighten, never widen, the maximum permitted entry price movement.');
+  }
+  for (const [side, limitPrice] of [['LONG', '105'], ['SHORT', '95']]) {
+    assert.equal(createEntryPriceBoundary({
+      side, referencePrice: '100', priceTick: '1', maxSlippagePercent: '5',
+    }).limitPrice, limitPrice, 'An exact bound on a tick must not move by one extra tick.');
+    assert.equal(createEntryPriceBoundary({
+      side, referencePrice: '0.000000000000000003', priceTick: '0.000000000000000001', maxSlippagePercent: '5',
+    }).limitPrice, '0.000000000000000003', 'Rounding must preserve the permitted bound at 18-decimal precision.');
+  }
+  for (const field of ['referencePrice', 'priceTick', 'maxSlippagePercent']) {
+    assert.throws(() => createEntryPriceBoundary({ ...input, side: 'LONG', [field]: '0' }), /greater than zero/);
+  }
+  assert.throws(() => createEntryPriceBoundary({
+    ...input, side: 'LONG', maxSlippagePercent: '5.000000000000000001',
+  }), /must not exceed 5/);
+  assertTradingRiskError(() => createEntryPriceBoundary({ ...input, side: 'FLAT' }),
+    'ENTRY_PRICE_BOUND_UNPROVEN', /Entry boundary side is invalid/);
+}
+
+function marketBoundaryInput(side = 'LONG') {
+  const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
+  const input = planInput(executable);
+  input.strategy.entry.orderType = 'market';
+  input.signal = side === 'LONG' ? executable : {
+    ...executable, action: 'SHORT', stopLoss: '62000',
+    targets: ['59000', '58000'].map(price => ({ min: price, max: price })),
+  };
+  return input;
+}
+
+function testEntryBoundaryDispatchContracts() {
+  for (const side of ['LONG', 'SHORT']) {
+    const plan = createTradingPlan(marketBoundaryInput(side));
+    const entry = plan.orders[0];
+    assert.doesNotThrow(() => assertEntryPriceBoundary(plan, entry));
+    const forbiddenChanges = [
+      { role: 'stop_loss' }, { reduceOnly: true }, { orderType: 'market' },
+      { timeInForce: undefined }, { timeInForce: 'GTC' }, { postOnly: true },
+      { price: addDecimal(entry.price, '0.1') }, { price: subtractDecimal(entry.price, '0.1') },
+      { side: side === 'LONG' ? 'sell' : 'buy' },
+    ];
+    for (const change of forbiddenChanges) {
+      assertTradingRiskError(() => assertEntryPriceBoundary(plan, { ...entry, ...change }),
+        'ENTRY_PRICE_BOUND_UNPROVEN', /original price-limited IOC contract/);
+    }
+    for (const change of [
+      { version: 2 }, { referencePrice: '60000.1' }, { maxSlippagePercent: '0.25' },
+      { priceTick: '0.10' }, { limitPrice: addDecimal(entry.price, '0.1') },
+    ]) {
+      const changedPlan = { ...plan, entryPriceBoundary: { ...plan.entryPriceBoundary, ...change } };
+      assertTradingRiskError(() => assertEntryPriceBoundary(changedPlan, entry),
+        'ENTRY_PRICE_BOUND_UNPROVEN', /Original entry price boundary is invalid or changed/);
+    }
+  }
+}
+
+function testMissingAndRevalidatedEntryBoundaries() {
+  const ordinaryInput = planInput(validateSignalXml(STANDARD_SIGNAL, 'default').execution);
+  const ordinaryPlan = createTradingPlan(ordinaryInput);
+  assert.doesNotThrow(() => assertEntryPriceBoundary(ordinaryPlan, ordinaryPlan.orders[0]));
+  for (const change of [{ orderType: 'market' }, { timeInForce: 'IOC' }]) {
+    assertTradingRiskError(() => assertEntryPriceBoundary(ordinaryPlan, { ...ordinaryPlan.orders[0], ...change }),
+      'ENTRY_PRICE_BOUND_UNPROVEN', /Market-based entry requires its original price boundary/);
+  }
+  const marketInput = marketBoundaryInput();
+  const original = createTradingPlan(marketInput);
+  const boundary = structuredClone(original.entryPriceBoundary);
+  const revalidated = createTradingPlan({
+    ...marketInput, entryPriceBoundary: boundary, market: { ...marketInput.market, markPrice: '60100' },
+  });
+  assert.deepEqual(revalidated.entryPriceBoundary, boundary);
+  assert.equal(revalidated.orders[0].price, original.orders[0].price);
+  assert.equal(revalidated.entryPrice, original.entryPrice);
+  assert.equal(revalidated.quantity, original.quantity, 'Market drift must not silently rebuild a more generous entry contract.');
+  assertTradingRiskError(() => createTradingPlan({ ...ordinaryInput, entryPriceBoundary: boundary }),
+    'ENTRY_PRICE_BOUND_UNPROVEN', /Ordinary signal limits must not become market IOC entries/);
+  assertTradingRiskError(() => createTradingPlan({
+    ...marketInput, entryPriceBoundary: boundary, market: { ...marketInput.market, priceTick: '1' },
+  }), 'ENTRY_PRICE_BOUND_UNPROVEN', /Market tick changed since original entry planning/);
+}
+
+function testOriginalEntryDeadlineBounds() {
+  const origin = 1_700_000_000_000;
+  assert.equal(resolveEntryExpiresAt(origin, 10), origin + 10_000);
+  assert.equal(resolveEntryExpiresAt(origin, 86_400), origin + 86_400_000);
+  assert.equal(resolveEntryExpiresAt(1, 10), 10_001);
+  assert.equal(resolveEntryExpiresAt(Number.MAX_SAFE_INTEGER - 10_000, 10), Number.MAX_SAFE_INTEGER);
+  for (const earlier of [undefined, null, origin + 10_000, origin + 20_000]) {
+    assert.equal(resolveEntryExpiresAt(origin, 10, earlier), origin + 10_000);
+  }
+  assert.equal(resolveEntryExpiresAt(origin, 10, origin + 1_000), origin + 1_000);
+  assert.equal(resolveEntryExpiresAt(origin, 10, origin - 1), origin - 1, 'An already expired original deadline must never revive.');
+  for (const invalidOrigin of [0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER - 9_999]) {
+    assertTradingRiskError(() => resolveEntryExpiresAt(invalidOrigin, 10),
+      'ENTRY_DEADLINE_UNPROVEN', /Original entry origin or deadline cannot be proven/);
+  }
+  for (const invalidTtl of [0, 9, 86_401, 10.5, NaN, Infinity]) {
+    assertTradingRiskError(() => resolveEntryExpiresAt(origin, invalidTtl),
+      'ENTRY_DEADLINE_UNPROVEN', /Original entry origin or deadline cannot be proven/);
+  }
+  for (const invalidEarlier of [0, -1, 1.5, NaN, Infinity, String(origin)]) {
+    assertTradingRiskError(() => resolveEntryExpiresAt(origin, 10, invalidEarlier),
+      'ENTRY_DEADLINE_UNPROVEN', /Persisted entry deadline is invalid/);
+  }
+}
+
+function testAbsoluteEntryExpiryFence() {
+  const deadline = 1_700_000_010_000;
+  assert.doesNotThrow(() => assertEntryNotExpired(deadline, deadline - 1));
+  assert.doesNotThrow(() => assertEntryNotExpired(1, 0));
+  assert.doesNotThrow(() => assertEntryNotExpired(Date.now() + 60_000));
+  for (const now of [deadline, deadline + 1]) {
+    assertTradingRiskError(() => assertEntryNotExpired(deadline, now),
+      'ENTRY_INTENT_EXPIRED', /Original entry deadline has expired/);
+  }
+  assertTradingRiskError(() => assertEntryNotExpired(1),
+    'ENTRY_INTENT_EXPIRED', /Original entry deadline has expired/);
+  for (const invalid of [undefined, null, 0, -1, 1.5, NaN, Infinity, String(deadline)]) {
+    assertTradingRiskError(() => assertEntryNotExpired(invalid, deadline - 1),
+      'ENTRY_DEADLINE_UNPROVEN', /Absolute entry deadline cannot be proven/);
+  }
+  for (const invalidNow of [NaN, Infinity, 1.5]) {
+    assertTradingRiskError(() => assertEntryNotExpired(deadline, invalidNow),
+      'ENTRY_DEADLINE_UNPROVEN', /Absolute entry deadline cannot be proven/);
+  }
+}
+
+function testPlanOriginalTimingAndOrderIdentity() {
+  const input = planInput(validateSignalXml(STANDARD_SIGNAL, 'default').execution);
+  const origin = 1_700_000_000_000;
+  const first = createTradingPlan({ ...input, now: origin });
+  assert.equal(first.createdAt, origin);
+  assert.equal(first.entryExpiresAt, origin + 900_000);
+  const replay = createTradingPlan({ ...input, now: origin + 100_000, entryOriginAt: origin });
+  assert.equal(replay.createdAt, origin + 100_000);
+  assert.equal(replay.entryExpiresAt, first.entryExpiresAt, 'Later processing must not restart the signal TTL.');
+  const expiredReplay = createTradingPlan({
+    ...input, now: origin + 100_000, entryOriginAt: origin, entryExpiresAt: origin + 1_000,
+  });
+  assert.equal(expiredReplay.entryExpiresAt, origin + 1_000);
+  const identities = first.orders.map(order => order.clientOrderId);
+  assert.deepEqual(identities, [
+    '0x37cd1df7bcbcaf3bc9ae36ee879adc24', '0x5c9e77cef1ac1b069619f7a1158909bd',
+    '0x8cd55a94a5393d69d9738410cca633fc', '0x6118f0d31ec16f177762e79f792985a4',
+  ], 'Persisted IDs bind the original intent, economic leg and target index using the fixed SHA-256/128-bit contract.');
+  assert.deepEqual(replay.orders.map(order => order.clientOrderId), identities);
+  const unrelated = createTradingPlan({ ...input, intentId: 'unrelated-intent', now: origin });
+  assert.equal(new Set([...identities, ...unrelated.orders.map(order => order.clientOrderId)]).size, 8);
+}
+
+function testShortRangeAndLeverageBoundaryChoices() {
+  const input = marketBoundaryInput('SHORT');
+  input.strategy.entry.orderType = 'limit';
+  for (const [rangePrice, entryPrice] of [['near', '60000'], ['far', '61000']]) {
+    const strategy = structuredClone(input.strategy);
+    strategy.entry.rangePrice = rangePrice;
+    assert.equal(createTradingPlan({ ...input, strategy }).entryPrice, entryPrice);
+  }
+  const marketOnly = createTradingPlan({ ...input, signal: { ...input.signal, entry: { type: 'market' } } });
+  assert.equal(marketOnly.entryPrice, input.market.markPrice);
+  assert.equal(marketOnly.orders[0].timeInForce, 'IOC');
+  for (const [requested, strategyMaximum, marketMaximum, effective, cappedBy] of [
+    [10, 10, 20, 10, null], [10, 20, 10, 10, null], [10, 10, 10, 10, null],
+    [20, 15, 10, 10, 'market'], [20, 10, 15, 10, 'strategy'],
+  ]) {
+    const strategy = structuredClone(input.strategy);
+    strategy.sizing.maxLeverage = strategyMaximum;
+    assert.deepEqual(resolveLeverageDecision({ ...input.signal, suggestedLeverage: requested },
+      strategy, { ...input.market, maxLeverage: marketMaximum }), {
+      requested, requestedSource: 'signal', strategyMaximum, marketMaximum, effective, cappedBy,
+    }, 'The binding cap, not every exceeded ceiling, determines the execution explanation.');
+  }
+}
+
 function testAdaptivePlanContracts() {
   const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
   const input = planInput(executable);
@@ -389,6 +573,85 @@ function assertPortfolioSizingModes(input) {
   assert.equal(capitalSizedPlan.riskAmount, '36');
 }
 
+function testProtectiveOrderLegContracts() {
+  const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
+  for (const [action, openingSide, closingSide, stopLoss, targetPrice] of [
+    ['LONG', 'buy', 'sell', '59000', '62000.2'],
+    ['SHORT', 'sell', 'buy', '62000', '58000.2'],
+  ]) {
+    const input = planInput({ ...executable, action, stopLoss,
+      targets: [{ min: targetPrice, max: targetPrice }] });
+    input.market.priceTick = '1';
+    input.strategy.exits.targetAllocationsPercent = ['100'];
+    input.strategy.entry.postOnly = true;
+    const plan = createTradingPlan(input);
+    const [entry, stop, target] = plan.orders;
+    assert.equal(plan.orders.length, 3);
+    assert.deepEqual({ role: entry.role, side: entry.side, orderType: entry.orderType,
+      price: entry.price, triggerPrice: entry.triggerPrice, reduceOnly: entry.reduceOnly,
+      postOnly: entry.postOnly, targetIndex: entry.targetIndex, timeInForce: entry.timeInForce },
+    { role: 'entry', side: openingSide, orderType: 'limit', price: '60500', triggerPrice: null,
+      reduceOnly: false, postOnly: true, targetIndex: null, timeInForce: undefined });
+    assert.deepEqual({ role: stop.role, side: stop.side, orderType: stop.orderType,
+      price: stop.price, triggerPrice: stop.triggerPrice, reduceOnly: stop.reduceOnly,
+      postOnly: stop.postOnly, targetIndex: stop.targetIndex, timeInForce: stop.timeInForce },
+    { role: 'stop_loss', side: closingSide, orderType: 'stop_market', price: null, triggerPrice: stopLoss,
+      reduceOnly: true, postOnly: false, targetIndex: null, timeInForce: undefined });
+    assert.deepEqual({ role: target.role, side: target.side, orderType: target.orderType,
+      price: target.price, triggerPrice: target.triggerPrice, reduceOnly: target.reduceOnly,
+      postOnly: target.postOnly, targetIndex: target.targetIndex, timeInForce: target.timeInForce },
+    { role: 'take_profit', side: closingSide, orderType: 'limit', price: action === 'LONG' ? '62000' : '58001',
+      triggerPrice: null, reduceOnly: true, postOnly: false, targetIndex: 1, timeInForce: undefined });
+    assert.equal(entry.quantity, plan.quantity);
+    assert.equal(stop.quantity, entry.quantity, 'The initial stop protects the entire opening amount.');
+    assert.equal(target.quantity, entry.quantity, 'A sole target must close the whole remaining amount.');
+  }
+  assert.deepEqual(allocateTargetQuantities('1', ['33', '33', '34'], '0.1'), ['0.3', '0.3', '0.4'],
+    'The final target receives the exact rounding remainder, not another rounded percentage.');
+}
+
+function minimumSizingInput(mode) {
+  const strategy = configuration('10');
+  Object.assign(strategy.sizing, { positionSizingMode: mode, maxPositionNotional: '100000',
+    maxLeverage: 5, defaultLeverage: 5 });
+  strategy.exits.targetAllocationsPercent = ['100'];
+  return { intentId: 'exact-sizing-minimum', strategy, account: { equity: '1000', availableBalance: '1000' },
+    signal: { schema: 'standard', action: 'LONG', symbol: 'BTCUSDT', stopLoss: '90',
+      entry: { type: 'range', min: '100', max: '100' }, targets: [{ min: '120', max: '120' }] },
+    market: { symbol: 'BTCUSDT', markPrice: '100', priceTick: '0.1', quantityStep: '0.1',
+      minimumQuantity: '0.1', minimumNotional: '1', maxLeverage: 5, observedAt: Date.now() } };
+}
+
+function testSizingMinimumInclusivityAndBudgetCaps() {
+  for (const [mode, quantity, notional, prefix] of [
+    ['risk_percent', '10', '1000', 'Risk-limited'],
+    ['equity_percent_notional', '1', '100', 'Portfolio-sized'],
+    ['equity_percent_margin', '5', '500', 'Capital-sized'],
+  ]) {
+    const input = minimumSizingInput(mode);
+    const exact = createTradingPlan({ ...input,
+      market: { ...input.market, minimumQuantity: quantity, minimumNotional: notional } });
+    assert.equal(exact.quantity, quantity, `${mode}: equality with both provider minima is valid.`);
+    assert.equal(exact.notional, notional);
+    assertTradingRiskError(() => createTradingPlan({ ...input,
+      market: { ...input.market, minimumQuantity: addDecimal(quantity, '0.000000000000000001') } }),
+    'QUANTITY_BELOW_MINIMUM', new RegExp(`${prefix} quantity is below`));
+    assertTradingRiskError(() => createTradingPlan({ ...input,
+      market: { ...input.market, minimumNotional: addDecimal(notional, '0.000000000000000001') } }),
+    'NOTIONAL_BELOW_MINIMUM', new RegExp(`${prefix} notional is below`));
+    const capped = structuredClone(input);
+    capped.strategy.sizing.maxPositionNotional = '95';
+    const cappedPlan = createTradingPlan(capped);
+    assert.equal(cappedPlan.quantity, '0.9', `${mode}: quantity rounds down within the maximum notional.`);
+    assert.equal(cappedPlan.notional, '90');
+    const balanceLimited = createTradingPlan({ ...input, account: { equity: '1000', availableBalance: '19' } });
+    assert.equal(balanceLimited.quantity, '0.9', `${mode}: buying power cannot exceed available balance times leverage.`);
+    assert.equal(balanceLimited.notional, '90');
+    assertTradingRiskError(() => createTradingPlan({ ...input, account: { equity: '1000', availableBalance: '0.1' } }),
+      'QUANTITY_BELOW_MINIMUM', new RegExp(`${prefix} quantity is below`));
+  }
+}
+
 function testTradingPlanContracts() {
   const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
   const input = planInput(executable);
@@ -410,14 +673,7 @@ function testTradingPlanContracts() {
   farStrategy.entry.rangePrice = 'far';
   assert.equal(createTradingPlan({ ...input, strategy: farStrategy }).entryPrice, '60000');
 
-  const marketStrategy = configuration();
-  marketStrategy.entry.orderType = 'market';
-  marketStrategy.entry.postOnly = false;
-  const marketPlan = createTradingPlan({ ...input, strategy: marketStrategy });
-  assert.equal(marketPlan.entryPrice, input.market.markPrice);
-  assert.equal(marketPlan.orders[0].orderType, 'market');
-  assert.equal(marketPlan.orders[0].price, null);
-  assert.equal(marketPlan.orders[0].postOnly, false);
+  assertMarketPlanContract(input);
 
   const shortSignal = {
     ...executable,
@@ -494,6 +750,19 @@ function testTradingPlanContracts() {
   }), /notional is below the exchange minimum/i);
 }
 
+function assertMarketPlanContract(input) {
+  const marketStrategy = configuration();
+  marketStrategy.entry.orderType = 'market';
+  marketStrategy.entry.postOnly = false;
+  const marketPlan = createTradingPlan({ ...input, strategy: marketStrategy });
+  assert.equal(marketPlan.entryPrice, input.market.markPrice);
+  assert.equal(marketPlan.orders[0].orderType, 'limit');
+  assert.equal(marketPlan.orders[0].timeInForce, 'IOC');
+  assert.equal(marketPlan.entryPriceBoundary.referencePrice, input.market.markPrice);
+  assert.equal(marketPlan.orders[0].price, marketPlan.entryPriceBoundary.limitPrice);
+  assert.equal(marketPlan.orders[0].postOnly, false);
+}
+
 function testRiskPriceBoundaries() {
   const executable = validateSignalXml(STANDARD_SIGNAL, 'default').execution;
   const input = planInput(executable);
@@ -519,7 +788,8 @@ function testRiskPriceBoundaries() {
     signal: { ...executable, entry: { type: 'market', min: '60000.2', max: '60000.4' } },
   });
   assert.equal(signalMarket.entryPrice, '60001', 'A signal-level market entry must override a limit strategy.');
-  assert.equal(signalMarket.orders[0].orderType, 'market');
+  assert.equal(signalMarket.orders[0].orderType, 'limit');
+  assert.equal(signalMarket.orders[0].timeInForce, 'IOC');
   assert.throws(
     () => createTradingPlan({
       ...input,
@@ -1165,7 +1435,16 @@ async function runRepositoryTests() {
 testDecimalAndStrategyContracts();
 testSignalLeverageContracts();
 testLeverageDecisionContracts();
+testEntryBoundaryRoundingContracts();
+testEntryBoundaryDispatchContracts();
+testMissingAndRevalidatedEntryBoundaries();
+testOriginalEntryDeadlineBounds();
+testAbsoluteEntryExpiryFence();
+testPlanOriginalTimingAndOrderIdentity();
+testShortRangeAndLeverageBoundaryChoices();
 testAdaptivePlanContracts();
+testProtectiveOrderLegContracts();
+testSizingMinimumInclusivityAndBudgetCaps();
 testTradingPlanContracts();
 testRiskPriceBoundaries();
 testRiskGuardBoundaries();

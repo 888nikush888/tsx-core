@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { McpControlBridge } from '../src/mcp_control_bridge.js';
+import { STARTUP_GATES, StartupAuthority } from '../src/startup_authority.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 import {
   approveMcpProposal,
@@ -199,11 +200,16 @@ try {
     },
   };
   const auditEvents = [];
+  const startup = new StartupAuthority();
+  startup.beginRecovery();
+  for (const gate of STARTUP_GATES) startup.completeGate(gate);
+  startup.release();
   const bridge = new McpControlBridge(
     fakeControl,
     { record: async event => { auditEvents.push(event); } },
     () => undefined,
     50,
+    startup,
   );
   await bridge.start();
   const controlRequest = await enqueueMcpControlRequest({

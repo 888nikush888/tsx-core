@@ -4,7 +4,7 @@ import path from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createGunzip, createGzip } from 'node:zlib';
-import { isSupportedBackupArtifactFileName, listBackupArtifactFiles, verifyBackupArtifact } from './backup.js';
+import { inspectBackupArtifact, isSupportedBackupArtifactFileName, listBackupArtifactFiles, verifyBackupArtifact } from './backup.js';
 import { enterpriseMode } from './runtime_profile.js';
 
 const ENCRYPTED_MAGIC = Buffer.from('TGFE1\0', 'ascii');
@@ -25,6 +25,9 @@ export interface BackupReplicationResult {
   sha256: string;
   size: number;
   verifiedAt: number;
+  artifactSha256: string;
+  artifactCreatedAt: string;
+  restoreDrill: null;
 }
 
 export interface BackupReplicator {
@@ -38,6 +41,9 @@ export interface BackupRecoveryResult {
   sha256: string;
   size: number;
   verifiedAt: number;
+  artifactSha256: string;
+  artifactCreatedAt: string;
+  restoreDrill: null;
 }
 
 interface HttpsBackupReplicatorOptions {
@@ -413,8 +419,10 @@ export class HttpsBackupReplicator implements BackupReplicator {
         throw new Error('Off-site backup verification checksum does not match the uploaded object.');
       }
       await decryptArtifact(downloadedPath, restoredPath, this.options.encryptionKey, expansionLimit);
-      await verifyBackupArtifact(restoredPath);
-      return { objectName, sha256, size: encryptedStats.size, verifiedAt: Date.now() };
+      const remoteEvidence = await inspectBackupArtifact(restoredPath);
+      // Bind the actual downloaded/decrypted manifest, never merely the upload source.
+      return { objectName, sha256, size: encryptedStats.size, verifiedAt: Date.now(), artifactSha256: remoteEvidence.artifactSha256,
+        artifactCreatedAt: remoteEvidence.artifactCreatedAt, restoreDrill: null };
     } finally {
       await Promise.all([
         fs.rm(encryptedPath, { force: true }),
@@ -464,9 +472,10 @@ export class HttpsBackupReplicator implements BackupReplicator {
         throw new Error('Off-site backup recovery checksum does not match the remote object metadata.');
       }
       await decryptArtifact(encryptedPath, temporaryArtifact, this.options.encryptionKey, expansionLimit);
-      await verifyBackupArtifact(temporaryArtifact);
+      const remoteEvidence = await inspectBackupArtifact(temporaryArtifact);
       await fs.rename(temporaryArtifact, finalPath);
-      return { objectName: validatedName, artifactPath: finalPath, sha256, size, verifiedAt: Date.now() };
+      return { objectName: validatedName, artifactPath: finalPath, sha256, size, verifiedAt: Date.now(), artifactSha256: remoteEvidence.artifactSha256,
+        artifactCreatedAt: remoteEvidence.artifactCreatedAt, restoreDrill: null };
     } finally {
       await Promise.all([
         fs.rm(encryptedPath, { force: true }),

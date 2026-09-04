@@ -11,9 +11,12 @@ import {
   parseBackupEncryptionKey
 } from '../src/backup_replication.js';
 import { closeDb, initDb } from '../src/db.js';
+import { enrollBackupFixture } from './fixtures/backup_generation_fixture.js';
 
 const root = await mkdtemp(path.join(os.tmpdir(), 'forwarder-offsite-test-'));
 const previousConfigPath = process.env.CONFIG_PATH;
+const previousRuntimeSettingsPath = process.env.RUNTIME_SETTINGS_PATH;
+const previousTemplatesDirectory = process.env.TEMPLATES_DIR;
 const token = 't'.repeat(64);
 const key = Buffer.alloc(32, 7);
 const longTemplateName = `${'t'.repeat(120)}.txt`;
@@ -21,6 +24,7 @@ const objects = new Map();
 const objectHashes = new Map();
 let tamperDownloads = false;
 let includeRetentionReceipt = true;
+let beforeDownload = async () => {};
 const server = http.createServer(async (request, response) => {
   if (request.headers.authorization !== `Bearer ${token}`) {
     response.writeHead(401).end();
@@ -42,6 +46,7 @@ const server = http.createServer(async (request, response) => {
     return;
   }
   if (request.method === 'GET' && objects.has(request.url)) {
+    await beforeDownload();
     const stored = Buffer.from(objects.get(request.url));
     if (tamperDownloads) stored[Math.floor(stored.length / 2)] ^= 1;
     response.writeHead(200, {
@@ -55,12 +60,15 @@ const server = http.createServer(async (request, response) => {
 
 try {
   process.env.CONFIG_PATH = path.join(root, 'config', 'config.json');
+  process.env.RUNTIME_SETTINGS_PATH = path.join(root, 'config', 'runtime-settings.json');
+  process.env.TEMPLATES_DIR = path.join(root, 'templates');
   await initDb(path.join(root, 'state', 'forwarder.db'));
   await mkdir(path.join(root, 'config'), { recursive: true });
   await mkdir(path.join(root, 'templates'), { recursive: true });
   await writeFile(path.join(root, 'config', 'runtime-settings.json'), JSON.stringify({ backupIntervalMs: 60_000 }), 'utf8');
   await writeFile(path.join(root, 'templates', 'default.xml'), '<template/>', 'utf8');
   await writeFile(path.join(root, 'templates', longTemplateName), '<long-template/>', 'utf8');
+  await enrollBackupFixture({ apiId: 123 }, path.join(root, 'state', 'forwarder.db'));
   const artifact = await createBackupArtifact(path.join(root, 'backups'), { apiId: 123 });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -78,10 +86,30 @@ try {
   assert.match(result.sha256, /^[a-f0-9]{64}$/);
   assert.ok(result.size > 0);
   assert.equal(objects.size, 1);
+  const manifestPath = path.join(artifact, 'manifest.json');
+  const originalManifest = await readFile(manifestPath);
+  const { createHash } = await import('node:crypto');
+  const originalArtifactSha = createHash('sha256').update(originalManifest).digest('hex');
+  assert.equal(result.artifactSha256, originalArtifactSha);
+  assert.equal(result.restoreDrill, null, 'Remote round-trip verification is not an actual restore drill.');
+  let currentEncryptedSha = result.sha256;
+  try {
+    beforeDownload = async () => {
+      const changed = JSON.parse(originalManifest);
+      changed.createdAt = new Date(Date.parse(changed.createdAt) - 1000).toISOString();
+      await writeFile(manifestPath, JSON.stringify(changed));
+    };
+    const changedDuringDownload = await replicator.replicate(artifact);
+    currentEncryptedSha = changedDuringDownload.sha256;
+    assert.equal(changedDuringDownload.artifactSha256, originalArtifactSha, 'Off-site proof comes from the downloaded/decrypted manifest, not the subsequently changed local artifact.');
+    assert.notEqual(createHash('sha256').update(await readFile(manifestPath)).digest('hex'), originalArtifactSha);
+  } finally { beforeDownload = async () => {}; await writeFile(manifestPath, originalManifest); }
 
   const recovered = await replicator.recover(result.objectName, path.join(root, 'recovered'));
   assert.equal(path.basename(recovered.artifactPath), result.objectName.replace(/\.tgfb$/, ''));
-  assert.equal(recovered.sha256, result.sha256);
+  assert.equal(recovered.sha256, currentEncryptedSha);
+  assert.equal(recovered.artifactSha256, originalArtifactSha);
+  assert.equal(recovered.restoreDrill, null);
   assert.deepEqual(JSON.parse(await readFile(path.join(recovered.artifactPath, 'runtime-settings.json'), 'utf8')), { backupIntervalMs: 60_000 });
   assert.equal(await readFile(path.join(recovered.artifactPath, 'templates', 'default.xml'), 'utf8'), '<template/>');
   assert.equal(await readFile(path.join(recovered.artifactPath, 'templates', longTemplateName), 'utf8'), '<long-template/>');
@@ -150,4 +178,8 @@ try {
   await rm(root, { recursive: true, force: true });
   if (previousConfigPath === undefined) delete process.env.CONFIG_PATH;
   else process.env.CONFIG_PATH = previousConfigPath;
+  if (previousRuntimeSettingsPath === undefined) delete process.env.RUNTIME_SETTINGS_PATH;
+  else process.env.RUNTIME_SETTINGS_PATH = previousRuntimeSettingsPath;
+  if (previousTemplatesDirectory === undefined) delete process.env.TEMPLATES_DIR;
+  else process.env.TEMPLATES_DIR = previousTemplatesDirectory;
 }

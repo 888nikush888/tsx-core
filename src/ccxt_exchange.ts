@@ -1,10 +1,12 @@
 import { getDatabase } from './db.js';
-import { compareDecimal } from './trading_decimal.js';
+import { correlateNativeOrderEvidence } from './trading_order_identity_bindings.js';
+import { correlateRemoteFills, correlateRemoteOrders, type LocalCorrelationOrder } from './exchange_order_correlation.js';
 import type { TradingCredentialStore } from './trading_credentials.js';
 import type {
   ExchangeOpenState,
   ExchangeOrderRequest,
   ExchangeOrderResult,
+  ExchangeEntryConstraints,
   ExchangeStreamBatch,
   ExchangeStreamEventType,
   TradingAccount,
@@ -14,14 +16,29 @@ import type {
   TradingMarketSnapshot,
 } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
-import { TradingSymbolUnavailableError } from './trading_errors.js';
+import { exchangeRecoveryQuery } from './trading_recovery.js';
+import { reserveScheduledRecovery, failScheduledRecovery, scheduledRecoveryDeadline, usesScheduledFxRecovery } from './trading_recovery_schedule_repository.js';
+import { requireFxAccountContext } from './trading_fx_repository.js';
+import { validateRecoveryScheduleProgress } from './trading_recovery_schedule_contract.js';
+import { assertHistoryResponse } from './exchange_history_contract.js';
+import { assertCompleteFillCoverage } from './exchange_history_coverage.js';
+import { assertAccountLogResponse } from './trading_account_log_contract.js';
+import { assertAccountModeResponse } from './trading_account_mode_contract.js';
+import { observedFundingEvidence } from './trading_funding_observation.js';
+import { bindAccountReportingCurrency } from './trading_money_ledger.js';
+import { assertAccountModeObservation, assertEntryModeEvidence, rejectModeReadback } from './trading_execution_constraints.js';
+import { TradingSymbolUnavailableError, TradingUnresolvedOrderError } from './trading_errors.js';
 import { internalExecutorOrigin } from './executor_origin.js';
+import { captureEntryDeadline } from './exchange_entry_deadline.js';
+import {
+  confirmedOrderEvidence, validateAccountSnapshot, validateMarketSnapshot, validateOpenState, validateOrderResult,
+} from './exchange_contract_validation.js';
 
 interface ExecutorErrorPayload {
   error?: string;
   code?: string;
   sideEffects?: boolean;
-  details?: { exchange?: string; accountId?: string; symbol?: string };
+  details?: { exchange?: string; accountId?: string; symbol?: string; confirmedOrders?: unknown };
 }
 
 class ExecutorHttpError extends Error {
@@ -33,9 +50,12 @@ class ExecutorHttpError extends Error {
 
 export interface VerifiedExternalAccount {
   verified: boolean;
+  entryAllowed: false;
+  reason: null;
   equity: string;
   externalAccountId: string;
   accountFingerprint: string;
+  credentialGeneration: string;
   capabilities?: Record<string, unknown>;
 }
 
@@ -45,6 +65,18 @@ function executorUrl(): string {
 
 function accountPayload(account: TradingAccount): Record<string, string> {
   return { id: account.id, exchange: account.exchange, mode: account.mode };
+}
+
+function boundAccountPayload(account: TradingAccount): Record<string, string> {
+  if (!account.externalAccountId || !/^[a-f0-9]{64}$/.test(account.externalAccountId)
+    || !account.credentialGeneration || !/^[a-f0-9]{64}$/.test(account.credentialGeneration)) {
+    throw new Error('Verify the exchange account before submitting or cancelling orders: identity binding is missing.');
+  }
+  return {
+    ...accountPayload(account),
+    expectedAccountFingerprint: account.externalAccountId,
+    credentialGeneration: account.credentialGeneration,
+  };
 }
 
 function assertObject(value: unknown, label: string): Record<string, any> {
@@ -75,17 +107,6 @@ function isTypedSymbolUnavailableResponse(input: {
     && details.symbol === input.request.symbol;
 }
 
-function assertOrderResult(value: unknown): ExchangeOrderResult {
-  const result = assertObject(value, 'Exchange executor');
-  if (typeof result.clientOrderId !== 'string' || typeof result.exchangeOrderId !== 'string') {
-    throw new TypeError('Exchange executor returned an invalid order identifier contract.');
-  }
-  if (!['open', 'partially_filled', 'filled', 'cancelled', 'rejected', 'unknown'].includes(result.status)) {
-    throw new Error('Exchange executor returned an invalid order status.');
-  }
-  return result as ExchangeOrderResult;
-}
-
 const STREAM_EVENT_TYPES = new Set<ExchangeStreamEventType>([
   'order',
   'execution',
@@ -97,11 +118,18 @@ const STREAM_EVENT_TYPES = new Set<ExchangeStreamEventType>([
 
 const RETRYABLE_READ_ENDPOINTS = new Set([
   '/v1/verify-account',
+  '/v1/entry-constraints',
   '/v1/account-snapshot',
   '/v1/market-snapshot',
   '/v1/open-state',
   '/v1/stream-events',
 ]);
+
+function executorReadAttempts(endpoint: string, payload: Record<string, any>): number {
+  const budgeted = endpoint === '/v1/open-state'
+    && (payload.recovery?.accountLogs !== undefined || payload.recovery?.recoverySchedule !== undefined);
+  return !budgeted && RETRYABLE_READ_ENDPOINTS.has(endpoint) ? 3 : 1;
+}
 
 function retryableExecutorStatus(status: number): boolean {
   return status === 502 || status === 503 || status === 504;
@@ -193,37 +221,56 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
       await this.post('/v1/verify-account', { account: accountPayload(account) }, 30_000),
       'Exchange executor',
     );
-    if (result.verified !== true || typeof result.equity !== 'string'
+    if (typeof result.verified !== 'boolean' || typeof result.equity !== 'string'
       || typeof result.externalAccountId !== 'string' || !/^[a-f0-9]{64}$/.test(result.externalAccountId)
+      || typeof result.credentialGeneration !== 'string' || !/^[a-f0-9]{64}$/.test(result.credentialGeneration)
       || result.accountFingerprint !== result.externalAccountId) {
       throw new Error('Exchange executor returned an invalid verified-account identity contract.');
     }
+    if (result.verified === false) rejectModeReadback(result.reason);
     if (result.capabilities !== undefined && (!result.capabilities || typeof result.capabilities !== 'object'
       || Array.isArray(result.capabilities))) {
       throw new Error('Exchange executor returned invalid account capabilities.');
     }
+    assertAccountModeObservation(account, result);
     return result as unknown as VerifiedExternalAccount;
   }
 
   async accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
     const result = assertObject(
-      await this.post('/v1/account-snapshot', { account: accountPayload(account) }, 30_000),
+      await this.post('/v1/account-snapshot', { account: boundAccountPayload(account) }, 30_000),
       'Exchange executor',
     );
     for (const field of ['equity', 'availableBalance', 'unrealizedPnl', 'marginUsed', 'fundingPnlToday']) {
-      if (typeof result[field] !== 'string') {
+      if (typeof result[field] !== 'string' && !(field === 'fundingPnlToday' && result[field] === null)) {
         throw new TypeError(`Exchange executor account snapshot omitted ${field}.`);
       }
     }
-    return result as TradingAccountSnapshot;
+    const snapshot = validateAccountSnapshot(result);
+    if (snapshot.accounting && snapshot.accounting.accountFingerprint !== account.externalAccountId) {
+      throw new Error('Accounting evidence does not match the requested account fingerprint.');
+    }
+    if (!snapshot.accounting) throw new Error('Account snapshot omitted its accounting reporting unit.');
+    await bindAccountReportingCurrency({ accountId: account.id, accountFingerprint: snapshot.accounting.accountFingerprint,
+      profile: account.exchange, reportingCurrency: snapshot.accounting.reportingCurrency, settlementAssets: snapshot.accounting.settlementAssets,
+      source: snapshot.accounting.source, verifiedAt: snapshot.accounting.observedAt });
+    const funding = await observedFundingEvidence(account);
+    return { ...snapshot, fundingPnlToday: funding.observation?.amount ?? null,
+      fundingPnlTodayValue: funding.observation?.value ?? null, accounting: { ...snapshot.accounting, funding } };
+  }
+
+  async entryConstraints(account: TradingAccount, symbol: string): Promise<ExchangeEntryConstraints> {
+    const evidence = await this.post('/v1/entry-constraints', { account: boundAccountPayload(account), symbol }) as ExchangeEntryConstraints;
+    assertEntryModeEvidence(account, symbol, evidence);
+    return evidence;
   }
 
   async marketSnapshot(account: TradingAccount, symbol: string): Promise<TradingMarketSnapshot> {
-    return this.post(
-      '/v1/market-snapshot',
-      { account: accountPayload(account), symbol },
+    return validateMarketSnapshot(await this.post(
+        '/v1/market-snapshot',
+        { account: boundAccountPayload(account), symbol },
       30_000,
-    ) as Promise<TradingMarketSnapshot>;
+    ), symbol);
   }
 
   async submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult> {
@@ -232,11 +279,11 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
       && request.timeoutSeconds <= 30
       ? request.timeoutSeconds
       : 12;
-    return assertOrderResult(await this.post(
+    return validateOrderResult(await this.post(
       '/v1/submit-order',
-      { account: accountPayload(account), request },
+      { account: boundAccountPayload(account), request },
       timeoutSeconds * 1_000,
-    ));
+    ), request);
   }
 
   async submitProtectedEntry(
@@ -251,105 +298,91 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
       : 12;
     const result = assertObject(await this.post(
       '/v1/submit-protected-entry',
-      { account: accountPayload(account), entry, protectiveStop },
+      { account: boundAccountPayload(account), entry, protectiveStop },
       timeoutSeconds * 1_000,
     ), 'Exchange executor');
+    const confirmed = confirmedOrderEvidence([result.entry, result.protectiveStop], [entry, protectiveStop]);
+    if (confirmed.length !== 2) {
+      throw new TradingUnresolvedOrderError('Protected order acknowledgement is incomplete or has conflicting identities.', confirmed);
+    }
     return {
-      entry: assertOrderResult(result.entry),
-      protectiveStop: assertOrderResult(result.protectiveStop),
+      entry: confirmed[0],
+      protectiveStop: confirmed[1],
     };
   }
 
   async cancelOrder(account: TradingAccount, clientOrderId: string): Promise<ExchangeOrderResult> {
-    const local = await getDatabase().get<{ symbol: string }>(
-      `SELECT intent.symbol FROM trading_orders AS orders
+    const local = await getDatabase().get<{ symbol: string; exchange_order_id: string | null; provider_symbol: string | null; quantity: string }>(
+      `SELECT intent.symbol, orders.exchange_order_id, orders.provider_symbol, orders.quantity FROM trading_orders AS orders
        JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id
        WHERE orders.account_id = ? AND orders.client_order_id = ?`,
       [account.id, clientOrderId],
     );
     if (!local) throw new Error('Cannot cancel an order without a local symbol mapping.');
-    return assertOrderResult(await this.post('/v1/cancel-order', {
-      account: accountPayload(account),
+    return validateOrderResult(await this.post('/v1/cancel-order', {
+      account: boundAccountPayload(account),
       clientOrderId,
+      exchangeOrderId: local.exchange_order_id,
+      providerSymbol: local.provider_symbol,
       symbol: local.symbol,
-    }));
+    }), { clientOrderId, exchangeOrderId: local.exchange_order_id, quantity: local.quantity });
   }
 
   async openState(account: TradingAccount): Promise<ExchangeOpenState> {
-    const state = assertObject(
-      await this.post('/v1/open-state', { account: accountPayload(account) }, 30_000),
+    account = structuredClone(account);
+    const initial = await exchangeRecoveryQuery(account);
+    const recovery = usesScheduledFxRecovery(account) ? await reserveScheduledRecovery(account, initial) : initial;
+    try { return await this.readOpenState(account, recovery); } catch (error) {
+      if (recovery.recoverySchedule) await failScheduledRecovery(account, recovery.recoverySchedule.attemptId, 'read_failed');
+      throw error;
+    }
+  }
+
+  private async readOpenState(account: TradingAccount, recovery: Awaited<ReturnType<typeof exchangeRecoveryQuery>>): Promise<ExchangeOpenState> {
+    const absoluteDeadline = await scheduledRecoveryDeadline(account, recovery);
+    const response = assertObject(
+      await this.post('/v1/open-state', { account: recovery.accountLogs || recovery.readAccountMode || recovery.recoverySchedule
+        ? boundAccountPayload(account) : accountPayload(account), recovery }, 30_000, absoluteDeadline),
       'Exchange executor',
     );
-    if (!Array.isArray(state.orders) || !Array.isArray(state.positions) || !Array.isArray(state.fills)) {
+    if (!Array.isArray(response.orders) || !Array.isArray(response.positions) || !Array.isArray(response.fills)) {
       throw new TypeError('Exchange executor returned an invalid open-state contract.');
     }
-    if (typeof state.accountFingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(state.accountFingerprint)) {
+    if (typeof response.accountFingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(response.accountFingerprint)) {
       throw new Error('Exchange executor returned an invalid account fingerprint.');
     }
-    const localOrders = await getDatabase().all<Array<{
-      client_order_id: string;
-      exchange_order_id: string | null;
-      role: string;
-      symbol: string;
-      trigger_price: string | null;
-      reduce_only: number;
-      side: string;
-      quantity: string;
-    }>>(
-      `SELECT orders.client_order_id, orders.exchange_order_id, orders.role, intent.symbol,
+    if (!response.acquisition) throw new Error('Exchange executor omitted acquisition evidence.');
+    const state = validateOpenState(response, account.externalAccountId);
+    assertHistoryResponse(recovery.history, state.acquisition!.history);
+    assertCompleteFillCoverage(account.exchange, state.acquisition!, recovery.since);
+    const requested = new Set(recovery.orders.map(order => order.clientOrderId));
+    if (state.acquisition!.checkedOrders.length !== requested.size
+      || state.acquisition!.checkedOrders.some(order => !requested.has(order.clientOrderId))) {
+      throw new Error('Exchange acquisition evidence does not match the requested recovery scope.');
+    }
+    assertAccountLogResponse(recovery.accountLogs, state.acquisition!.accountLogs);
+    assertAccountModeResponse(recovery.readAccountMode, state.acquisition!.accountMode,
+      { accountFingerprint: account.externalAccountId, credentialGeneration: account.credentialGeneration });
+    if (recovery.recoverySchedule) {
+      const context = await requireFxAccountContext(account);
+      validateRecoveryScheduleProgress(state.acquisition!.recoverySchedule, recovery, state.acquisition!, {
+        accountId: account.id, accountFingerprint: account.externalAccountId!, credentialGeneration: account.credentialGeneration!,
+        mode: context.mode, executionProfileHash: context.profileHash,
+      });
+    } else if (state.acquisition!.recoverySchedule || state.acquisition!.fxEvidence) throw new Error('Unexpected scheduled recovery evidence.');
+    state.orders = await correlateNativeOrderEvidence(account, state.orders);
+    const localOrders = await getDatabase().all<LocalCorrelationOrder[]>(
+      `SELECT orders.client_order_id, orders.exchange_order_id, orders.provider_symbol, orders.role, intent.symbol,
               orders.trigger_price, orders.reduce_only, orders.side, orders.quantity
        FROM trading_orders AS orders
        JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id
        WHERE orders.account_id = ?`,
       [account.id],
     );
-    const roles = new Map(localOrders.map(order => [order.client_order_id, order.role]));
-    const byExchangeId = new Map(localOrders
-      .filter(order => Boolean(order.exchange_order_id))
-      .map(order => [order.exchange_order_id!, order]));
-    const decimalEquals = (left: unknown, right: unknown) => {
-      if (typeof left !== 'string' || typeof right !== 'string') return false;
-      try {
-        return compareDecimal(left, right) === 0;
-      } catch {
-        return false;
-      }
-    };
-    state.orders = state.orders.map((order: any) => {
-      const exactClient = typeof order.clientOrderId === 'string'
-        ? localOrders.find(local => local.client_order_id === order.clientOrderId)
-        : undefined;
-      const exactExchange = typeof order.exchangeOrderId === 'string'
-        ? byExchangeId.get(order.exchangeOrderId)
-        : undefined;
-      const attachedStops = exactClient || exactExchange ? [] : localOrders.filter(local =>
-        local.role === 'stop_loss'
-        && local.symbol === order.symbol
-        && local.reduce_only === 1
-        && local.side === order.side
-        && decimalEquals(local.trigger_price, order.triggerPrice)
-        && decimalEquals(local.quantity, order.quantity)
-        && order.reduceOnly === true);
-      const local = exactClient || exactExchange || (attachedStops.length === 1 ? attachedStops[0] : undefined);
-      const clientOrderId = local?.client_order_id || order.clientOrderId || null;
-      return {
-        ...order,
-        clientOrderId,
-        role: roles.get(clientOrderId) || order.role || 'entry',
-      };
-    });
-    state.fills = state.fills.map((fill: any) => {
-      const exactClient = typeof fill.clientOrderId === 'string'
-        ? localOrders.find(local => local.client_order_id === fill.clientOrderId)
-        : undefined;
-      const exactExchange = typeof fill.exchangeOrderId === 'string'
-        ? byExchangeId.get(fill.exchangeOrderId)
-        : undefined;
-      return {
-        ...fill,
-        clientOrderId: exactClient?.client_order_id || exactExchange?.client_order_id || fill.clientOrderId || null,
-      };
-    });
+    // Parameter similarity is not an ownership proof, including attached stops.
+    // Unbound provider-created stops await explicit parent/batch evidence.
+    state.orders = correlateRemoteOrders(localOrders, state.orders);
+    state.fills = correlateRemoteFills(localOrders, state.fills);
     return state as ExchangeOpenState;
   }
 
@@ -370,13 +403,17 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
     }, 30_000));
   }
 
-  private async post(endpoint: string, payload: unknown, timeoutMs = 12_000): Promise<unknown> {
+  private async post(endpoint: string, payload: unknown, timeoutMs = 12_000, absoluteDeadline = Infinity): Promise<unknown> {
+    const originalPayload = assertObject(payload, 'Exchange executor request');
+    const entryDeadline = captureEntryDeadline(endpoint, originalPayload);
+    const bodyPayload = structuredClone(originalPayload);
+    const deadlineAt = Math.min(Date.now() + Math.max(1, timeoutMs - 250), entryDeadline.expiresAt ?? Infinity, absoluteDeadline);
     const token = await this.credentials.getOrCreateExecutorToken();
-    const bodyPayload = assertObject(payload, 'Exchange executor request');
-    const deadlineAt = Date.now() + Math.max(1, timeoutMs - 250);
-    const maximumAttempts = RETRYABLE_READ_ENDPOINTS.has(endpoint) ? 3 : 1;
+    entryDeadline.assertCurrent();
+    const maximumAttempts = executorReadAttempts(endpoint, bodyPayload);
     let lastError: unknown;
     for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+      entryDeadline.assertCurrent();
       const remainingMs = deadlineAt - Date.now();
       if (remainingMs <= 0) break;
       try {
@@ -409,6 +446,16 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
     });
     const body = await response.json().catch(() => ({})) as ExecutorErrorPayload;
     if (response.ok) return body;
+    if (body.code === 'ORDER_OUTCOME_UNRESOLVED' && body.sideEffects === true
+      && ['/v1/submit-order', '/v1/submit-protected-entry', '/v1/cancel-order'].includes(endpoint)) {
+      const requests = endpoint === '/v1/submit-protected-entry'
+        ? [bodyPayload.entry, bodyPayload.protectiveStop]
+        : [bodyPayload.request || bodyPayload];
+      throw new TradingUnresolvedOrderError(
+        'Exchange order outcome is unresolved; authoritative reconciliation is required.',
+        confirmedOrderEvidence(body.details?.confirmedOrders, requests),
+      );
+    }
     if (isTypedSymbolUnavailableResponse({
       endpoint, status: response.status, body, request: bodyPayload, exchange: this.exchange,
     })) {

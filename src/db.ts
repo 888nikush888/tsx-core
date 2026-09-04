@@ -1,12 +1,276 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'node:path';
-import { copyFile, mkdir, rename, rm, stat } from 'node:fs/promises';
+import { mkdir, rename, stat, lstat, open as openFile, readFile, readdir, realpath, unlink } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+const MARKER_NAME = '.mcp-maintenance';
+const PARTICIPANTS = '.mcp-participants';
+const ACKS = '.mcp-maintenance-acks';
+const GENERATION = '.mcp-maintenance-generation';
+const PROCESS_INSTANCE = randomUUID();
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+let handleGeneration = 0;
+
+export type MaintenanceDatabaseEvidence =
+  | { databaseState: 'present'; databaseIdentity: string }
+  | { databaseState: 'absent'; databaseIdentity: null };
+
+export type McpMaintenanceRequest = MaintenanceDatabaseEvidence & {
+  version: 1;
+  nonce: string;
+  generation: number;
+  ownerPid: number;
+  ownerInstance: string;
+  databasePath: string;
+  reason: string;
+  createdAt: number;
+  deadlineAt: number;
+};
+
+export interface ParticipantRecord {
+  version: 1;
+  id: string;
+  pid: number;
+  instance: string;
+  generation: number;
+  databasePath: string;
+  databaseIdentity: string | null;
+  state: 'opening' | 'open' | 'closing' | 'closed' | 'close_failed';
+  updatedAt: number;
+}
+
+export interface DatabaseMaintenanceParticipant {
+  readonly id: string;
+  afterOpen(): Promise<void>;
+  closeStarted(): Promise<void>;
+  closeSucceeded(): Promise<void>;
+  closeFailed(): Promise<void>;
+}
+
+export function operationalDatabasePath(): string {
+  return path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
+}
+
+export function mcpMaintenanceMarkerPath(databasePath = operationalDatabasePath()): string {
+  return path.join(path.dirname(path.resolve(databasePath)), MARKER_NAME);
+}
+
+async function exists(file: string): Promise<boolean> {
+  try { await lstat(file); return true; } catch (error: any) { if (error?.code === 'ENOENT') return false; throw error; }
+}
+
+export async function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
+  // Any existing artifact blocks entry, including malformed, directory or symlink markers.
+  return exists(mcpMaintenanceMarkerPath(databasePath));
+}
+
+async function canonicalDatabase(databasePath: string): Promise<string> {
+  const resolved = path.resolve(databasePath);
+  return path.join(await realpath(path.dirname(resolved)), path.basename(resolved));
+}
+
+export async function databaseFileIdentity(databasePath = operationalDatabasePath()): Promise<string> {
+  const information = await lstat(path.resolve(databasePath), { bigint: true });
+  if (!information.isFile() || information.isSymbolicLink()) throw new Error('Operational database path is not a regular file.');
+  return `${information.dev}:${information.ino}`;
+}
+
+async function assertDatabaseAbsent(databasePath: string): Promise<void> {
+  for (const suffix of ['', '-wal', '-shm']) {
+    if (await exists(`${databasePath}${suffix}`)) throw new Error('Absent database scope contains an existing DB, WAL or SHM artifact.');
+  }
+}
+
+async function databaseTargetEvidence(databasePath: string, allowAbsent: boolean): Promise<MaintenanceDatabaseEvidence> {
+  try { return { databaseState: 'present', databaseIdentity: await databaseFileIdentity(databasePath) }; }
+  catch (error: any) { if (error?.code !== 'ENOENT' || !allowAbsent) throw error; }
+  await assertDatabaseAbsent(databasePath);
+  return { databaseState: 'absent', databaseIdentity: null };
+}
+
+async function assertDatabaseTargetEvidence(request: McpMaintenanceRequest): Promise<void> {
+  if (request.databaseState === 'absent') return assertDatabaseAbsent(request.databasePath);
+  if (await databaseFileIdentity(request.databasePath) !== request.databaseIdentity) throw new Error('Database changed before maintenance quiescence.');
+}
+
+async function privateDirectory(directory: string): Promise<void> {
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const metadata = await lstat(directory);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()) throw new Error('Maintenance registry path is not a private regular directory.');
+}
+
+async function jsonFile(file: string): Promise<Record<string, unknown>> {
+  const metadata = await lstat(file);
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 8192) throw new Error('Maintenance evidence path is unsafe or oversized.');
+  const value: unknown = JSON.parse(await readFile(file, 'utf8'));
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid maintenance evidence object.');
+  return value as Record<string, unknown>;
+}
+
+async function exclusiveJson(file: string, value: object): Promise<void> {
+  const handle = await openFile(file, 'wx', 0o600);
+  try { await handle.writeFile(JSON.stringify(value)); await handle.sync(); } finally { await handle.close(); }
+}
+
+async function replaceJson(file: string, value: object): Promise<void> {
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  await exclusiveJson(temporary, value);
+  try { await rename(temporary, file); } finally { await unlink(temporary).catch((error: any) => { if (error?.code !== 'ENOENT') throw error; }); }
+}
+
+function natural(value: unknown, minimum = 0): boolean { return Number.isSafeInteger(value) && Number(value) >= minimum; }
+function uuid(value: unknown): boolean { return typeof value === 'string' && UUID.test(value); }
+
+function validateRequest(row: Record<string, unknown>): McpMaintenanceRequest {
+  const fields = ['version', 'nonce', 'generation', 'ownerPid', 'ownerInstance', 'databasePath', 'databaseState', 'databaseIdentity', 'reason', 'createdAt', 'deadlineAt'];
+  if (Object.keys(row).length !== fields.length || fields.some(field => !(field in row)) || row.version !== 1
+    || !uuid(row.nonce) || !uuid(row.ownerInstance) || !natural(row.generation, 1) || !natural(row.ownerPid, 1)) {
+    throw new Error('Invalid maintenance request ownership or generation.');
+  }
+  validateRequestBounds(row);
+  return row as unknown as McpMaintenanceRequest;
+}
+
+function validateRequestBounds(row: Record<string, unknown>): void {
+  if (typeof row.databasePath !== 'string' || !path.isAbsolute(row.databasePath) || row.databasePath.length > 2048
+    || typeof row.reason !== 'string' || !row.reason.trim() || row.reason.length > 200 || /[\r\n\0]/.test(row.reason)) {
+    throw new Error('Invalid maintenance request database scope or reason.');
+  }
+  validateMaintenanceDatabaseIdentity(row);
+  if (!natural(row.createdAt) || !natural(row.deadlineAt) || Number(row.deadlineAt) <= Number(row.createdAt)
+    || Number(row.deadlineAt) - Number(row.createdAt) > 30000) throw new Error('Invalid bounded maintenance deadline.');
+}
+
+function validateMaintenanceDatabaseIdentity(row: Record<string, unknown>): void {
+  const validIdentity = row.databaseState === 'absent'
+    ? row.databaseIdentity === null
+    : row.databaseState === 'present' && typeof row.databaseIdentity === 'string' && /^\d+:\d+$/.test(row.databaseIdentity);
+  if (!validIdentity) throw new Error('Invalid discriminated maintenance database identity.');
+}
+
+export async function readMcpMaintenanceRequest(databasePath = operationalDatabasePath()): Promise<McpMaintenanceRequest | null> {
+  const marker = mcpMaintenanceMarkerPath(databasePath);
+  if (!await exists(marker)) return null;
+  const request = validateRequest(await jsonFile(marker));
+  if (request.databasePath !== await canonicalDatabase(databasePath)) throw new Error('Maintenance marker belongs to a different database scope.');
+  return request;
+}
+
+function validateParticipant(row: Record<string, unknown>): ParticipantRecord {
+  if (row.version !== 1 || !uuid(row.id) || !uuid(row.instance) || !natural(row.pid, 1) || !natural(row.generation, 1)
+    || !natural(row.updatedAt) || typeof row.databasePath !== 'string' || !path.isAbsolute(row.databasePath)) {
+    throw new Error('Invalid maintenance participant ownership.');
+  }
+  if (!['opening', 'open', 'closing', 'closed', 'close_failed'].includes(String(row.state))
+    || (row.databaseIdentity !== null && (typeof row.databaseIdentity !== 'string' || !/^\d+:\d+$/.test(row.databaseIdentity)))) {
+    throw new Error('Invalid maintenance participant state.');
+  }
+  return row as unknown as ParticipantRecord;
+}
+
+async function participants(databasePath: string): Promise<ParticipantRecord[]> {
+  const directory = path.join(path.dirname(databasePath), PARTICIPANTS);
+  if (!await exists(directory)) return [];
+  await privateDirectory(directory);
+  const files = await readdir(directory);
+  if (files.length > 4096) throw new Error('Maintenance participant registry exceeds its bounded scope; explicit review required.');
+  const result: ParticipantRecord[] = [];
+  for (const file of files) {
+    if (/^[0-9a-f-]{36}\.json\.[0-9a-f-]{36}\.tmp$/.test(file)) continue; // Atomic replacement leaves the old record authoritative.
+    if (!file.endsWith('.json') || !uuid(file.slice(0, -5))) throw new Error('Unknown maintenance participant artifact.');
+    const participant = validateParticipant(await jsonFile(path.join(directory, file)));
+    if (`${participant.id}.json` !== file) throw new Error('Maintenance participant identity differs from its file.');
+    if (participant.state !== 'closed' && participant.databasePath !== databasePath) throw new Error('Active participant belongs to another database scope.');
+    result.push(participant);
+  }
+  return result;
+}
+
+async function acknowledgeClosedParticipant(record: ParticipantRecord): Promise<void> {
+  const request = await readMcpMaintenanceRequest(record.databasePath);
+  if (!request) return;
+  if (record.databaseIdentity !== null && record.databaseIdentity !== request.databaseIdentity) throw new Error('Closed participant database identity differs from maintenance.');
+  const directory = path.join(path.dirname(record.databasePath), ACKS);
+  await privateDirectory(directory);
+  const ack = { version: 1, nonce: request.nonce, generation: request.generation, ownerInstance: request.ownerInstance,
+    databaseState: request.databaseState, databaseIdentity: request.databaseIdentity, participantId: record.id, participantInstance: record.instance,
+    participantGeneration: record.generation, pid: record.pid, closedAt: record.updatedAt, acknowledgedAt: Date.now() };
+  await replaceJson(path.join(directory, `${request.nonce}.${record.id}.json`), ack);
+}
+
+/** Register before SQLite open. Only a successfully awaited real close may invoke closeSucceeded. */
+export async function registerDatabaseMaintenanceParticipant(databasePath: string): Promise<DatabaseMaintenanceParticipant> {
+  await mkdir(path.dirname(path.resolve(databasePath)), { recursive: true, mode: 0o700 });
+  const canonical = await canonicalDatabase(databasePath);
+  if (await mcpMaintenanceActive(canonical)) throw new Error('Database maintenance is active; registration refused before SQLite open.');
+  const directory = path.join(path.dirname(canonical), PARTICIPANTS);
+  await privateDirectory(directory);
+  let record: ParticipantRecord = { version: 1, id: randomUUID(), pid: process.pid, instance: PROCESS_INSTANCE,
+    generation: ++handleGeneration, databasePath: canonical, databaseIdentity: null, state: 'opening', updatedAt: Date.now() };
+  const file = path.join(directory, `${record.id}.json`);
+  await exclusiveJson(file, record);
+  const writeState = async (state: ParticipantRecord['state']) => {
+    record = { ...record, state, updatedAt: Date.now() };
+    await replaceJson(file, record);
+  };
+  if (await mcpMaintenanceActive(canonical)) {
+    await writeState('closed'); // No SQLite handle was opened.
+    await acknowledgeClosedParticipant(record);
+    throw new Error('Database maintenance started during registration; SQLite open refused.');
+  }
+  return Object.freeze({
+    id: record.id,
+    async afterOpen() {
+      if (record.state !== 'opening') throw new Error('Database participant cannot reopen a closed or changed generation.');
+      record = { ...record, databaseIdentity: await databaseFileIdentity(canonical) };
+      await writeState('open');
+      if (await mcpMaintenanceActive(canonical)) throw new Error('Database maintenance started during SQLite open; close the handle before acknowledging.');
+    },
+    async closeStarted() { if (record.state !== 'closed') await writeState('closing'); },
+    async closeSucceeded() { await writeState('closed'); await acknowledgeClosedParticipant(record); },
+    async closeFailed() { await writeState('close_failed'); },
+  });
+}
+
+async function nextGeneration(databasePath: string): Promise<number> {
+  const file = path.join(path.dirname(databasePath), GENERATION);
+  let generation = 0;
+  if (await exists(file)) {
+    const previous = await jsonFile(file);
+    if (previous.version !== 1 || previous.databasePath !== databasePath || !natural(previous.generation, 1)) throw new Error('Invalid maintenance generation scope.');
+    generation = Number(previous.generation);
+  }
+  if (!Number.isSafeInteger(generation + 1)) throw new Error('Maintenance generation exhausted.');
+  await replaceJson(file, { version: 1, databasePath, generation: generation + 1 });
+  return generation + 1;
+}
+
+async function matchingAcknowledgement(request: McpMaintenanceRequest, record: ParticipantRecord): Promise<boolean> {
+  if (record.state !== 'closed') return false;
+  const file = path.join(path.dirname(request.databasePath), ACKS, `${request.nonce}.${record.id}.json`);
+  if (!await exists(file)) return false;
+  const ack = await jsonFile(file);
+  const expected = { version: 1, nonce: request.nonce, generation: request.generation, ownerInstance: request.ownerInstance,
+    databaseState: request.databaseState, databaseIdentity: request.databaseIdentity, participantId: record.id, participantInstance: record.instance,
+    participantGeneration: record.generation, pid: record.pid };
+  if (Object.entries(expected).some(([key, value]) => ack[key] !== value)) return false;
+  return natural(ack.closedAt) && natural(ack.acknowledgedAt) && Number(ack.closedAt) <= Number(ack.acknowledgedAt)
+    && Number(ack.acknowledgedAt) >= request.createdAt && Number(ack.acknowledgedAt) <= request.deadlineAt;
+}
+
+/** Filesystem-only DB evidence; coordinator ownership is enforced by its outer lease. */
+export const databaseMaintenanceEvidence = Object.freeze({
+  canonicalDatabase, participants, nextGeneration, exclusiveJson, matchingAcknowledgement,
+  databaseTargetEvidence, assertDatabaseTargetEvidence,
+  processInstance: PROCESS_INSTANCE,
+  protectedEntries: Object.freeze([MARKER_NAME, PARTICIPANTS, ACKS, GENERATION, '.process_active']),
+});
+
 let db: Database | null = null;
 let guardedDb: Database | null = null;
+let databaseParticipant: DatabaseMaintenanceParticipant | null = null;
 
 class SerializedDatabaseAccess {
   private tail: Promise<void> = Promise.resolve();
@@ -15,6 +279,8 @@ class SerializedDatabaseAccess {
   isOwnedByCurrentOperation(): boolean {
     return this.owner.getStore() !== undefined;
   }
+
+  withoutOwnership<T>(operation: () => T): T { return this.owner.exit(operation); }
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.isOwnedByCurrentOperation()) return operation();
@@ -107,6 +373,11 @@ export const REQUIRED_DATABASE_TABLES = [
   'media_group_buffer',
   'forwarding_stats',
   'incoming_messages',
+  'incoming_work',
+  'incoming_album_groups',
+  'signal_parser_attempts',
+  'ai_usage_reservations',
+  'ai_usage_legacy',
   'ai_usage_daily',
   'trading_signal_schemas',
   'trading_signal_contracts',
@@ -129,6 +400,40 @@ export const REQUIRED_DATABASE_TABLES = [
   'trading_trade_intents',
   'trading_orders',
   'trading_fills',
+  'trading_fill_quantity_evidence',
+  'trading_fx_receipts',
+  'trading_fx_conversions',
+  'trading_fx_conversion_receipts',
+  'trading_fx_money_valuations',
+  'trading_fx_valuation_work',
+  'trading_recovery_schedules',
+  'trading_recovery_schedule_attempts',
+  'trading_order_identity_bindings',
+  'trading_money_bindings',
+  'trading_money_events',
+  'trading_money_valuations',
+  'trading_money_conflicts',
+  'trading_accounting_pending',
+  'trading_accounting_projections',
+  'trading_accounting_projection_evidence',
+  'trading_risk_contracts',
+  'trading_account_log_checkpoints',
+  'trading_account_log_receipts',
+  'trading_account_log_records',
+  'trading_account_log_consumers',
+  'trading_kraken_log_occurrences',
+  'trading_kraken_cashleg_evidence',
+  'trading_account_mode_observations',
+  'trading_account_baseline_bindings',
+  'trading_risk_observations',
+  'trading_risk_current',
+  'trading_remote_evidence',
+  'trading_acquisition_evidence',
+  'trading_history_checkpoints',
+  'trading_operations',
+  'trading_take_profit_allocations',
+  'trading_account_baselines',
+  'trading_order_generations',
   'trading_positions',
   'trading_risk_events',
   'trading_reconciliation_runs',
@@ -155,7 +460,7 @@ export const REQUIRED_DATABASE_TABLES = [
   'trading_paper_positions'
 ] as const;
 
-export type OutboxStatus = 'pending' | 'preparing' | 'sending' | 'completed' | 'failed' | 'unknown';
+export type OutboxStatus = 'pending' | 'preparing' | 'sending' | 'completed' | 'failed' | 'unknown' | 'needs_review';
 
 export interface OutboxTask {
   id: string;
@@ -173,6 +478,8 @@ export interface OutboxTask {
   lastError?: string;
   config?: any;
   result?: any;
+  workflowRevisionId?: string | null;
+  ingressWorkId?: string;
 }
 
 export interface SignalProvenance {
@@ -184,6 +491,8 @@ export interface SignalProvenance {
   promptTokens: number;
   completionTokens: number;
   parserVersion: string;
+  workflowRevisionId?: string | null;
+  attemptId?: string;
 }
 
 export interface OperationalRetentionResult {
@@ -206,6 +515,7 @@ const MIGRATION_COLUMN_DEFINITIONS = new Set([
   'TEXT',
   'INTEGER',
   "TEXT NOT NULL DEFAULT 'pending'",
+  "TEXT NOT NULL DEFAULT 'unresolved'",
   "TEXT NOT NULL DEFAULT '[]'",
   'INTEGER NOT NULL DEFAULT 0',
 ]);
@@ -265,6 +575,7 @@ interface SchemaMigration {
   sql: string;
   /** Required only for audited table rebuilds that preserve existing foreign-key names. */
   foreignKeysOff?: boolean;
+  preflight?: 'remote-order-identities-v1' | 'fill-money-identities-v1';
 }
 
 const migrations: SchemaMigration[] = [
@@ -1579,6 +1890,828 @@ const migrations: SchemaMigration[] = [
     sql: `
         SELECT 1;
       `
+  },
+  {
+    version: 25,
+    name: 'guarded_trading_mutation_identity',
+    preflight: 'remote-order-identities-v1',
+    columns: [
+      { table: 'trading_trade_intents', name: 'state_version', sqlDefinition: 'INTEGER NOT NULL DEFAULT 0' },
+      { table: 'trading_orders', name: 'state_version', sqlDefinition: 'INTEGER NOT NULL DEFAULT 0' },
+      { table: 'trading_orders', name: 'average_price', sqlDefinition: 'TEXT' },
+      { table: 'trading_orders', name: 'provider_symbol', sqlDefinition: 'TEXT' },
+      { table: 'trading_orders', name: 'remote_order_key', sqlDefinition: 'TEXT' },
+      { table: 'trading_accounts', name: 'state_version', sqlDefinition: 'INTEGER NOT NULL DEFAULT 0' },
+      { table: 'trading_accounts', name: 'credential_generation', sqlDefinition: 'TEXT' },
+    ],
+    sql: `
+        UPDATE trading_orders
+        SET provider_symbol = json_extract(response_json, '$.symbol')
+        WHERE exchange_order_id IS NOT NULL AND json_valid(response_json)
+          AND json_type(response_json, '$.symbol') = 'text'
+          AND length(json_extract(response_json, '$.symbol')) BETWEEN 1 AND 256;
+        UPDATE trading_orders
+        SET remote_order_key = json_array('v1',
+          (SELECT exchange FROM trading_accounts WHERE id = trading_orders.account_id),
+          provider_symbol, exchange_order_id)
+        WHERE provider_symbol IS NOT NULL AND exchange_order_id IS NOT NULL;
+        CREATE UNIQUE INDEX uq_trading_remote_order_identity
+          ON trading_orders(account_id, remote_order_key) WHERE remote_order_key IS NOT NULL;
+
+        CREATE TRIGGER trading_intent_terminal_guard
+        BEFORE UPDATE OF status ON trading_trade_intents
+        WHEN OLD.status IN ('completed', 'blocked', 'failed') AND NEW.status <> OLD.status
+        BEGIN SELECT RAISE(ABORT, 'Terminal trading intent cannot change state'); END;
+        CREATE TRIGGER trading_intent_state_version
+        AFTER UPDATE ON trading_trade_intents WHEN NEW.state_version = OLD.state_version
+        BEGIN UPDATE trading_trade_intents SET state_version = OLD.state_version + 1 WHERE id = NEW.id; END;
+        CREATE TRIGGER trading_order_state_version
+        AFTER UPDATE ON trading_orders WHEN NEW.state_version = OLD.state_version
+        BEGIN UPDATE trading_orders SET state_version = OLD.state_version + 1 WHERE id = NEW.id; END;
+        CREATE TRIGGER trading_account_state_version
+        AFTER UPDATE ON trading_accounts WHEN NEW.state_version = OLD.state_version
+        BEGIN UPDATE trading_accounts SET state_version = OLD.state_version + 1 WHERE id = NEW.id; END;
+      `
+  },
+  {
+    version: 26,
+    name: 'durable_remote_execution_evidence',
+    columns: [],
+    sql: `
+        CREATE TABLE trading_remote_evidence (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          provider TEXT NOT NULL,
+          kind TEXT NOT NULL CHECK(kind IN ('fill', 'order')),
+          source TEXT NOT NULL,
+          provider_id TEXT,
+          provider_symbol TEXT,
+          identity_key TEXT NOT NULL,
+          content_hash TEXT NOT NULL CHECK(length(content_hash) = 64),
+          payload_json TEXT NOT NULL CHECK(length(payload_json) <= 16384),
+          reason TEXT NOT NULL,
+          classification TEXT NOT NULL CHECK(classification IN ('unresolved', 'conflict', 'managed', 'external')),
+          first_seen_at INTEGER NOT NULL,
+          last_seen_at INTEGER NOT NULL,
+          occurrence_count INTEGER NOT NULL DEFAULT 1 CHECK(occurrence_count > 0),
+          UNIQUE(account_id, identity_key, content_hash)
+        );
+        CREATE INDEX idx_trading_remote_evidence_account ON trading_remote_evidence(account_id, classification);
+      `
+  },
+  {
+    version: 27,
+    name: 'durable_exchange_operation_journal',
+    columns: [],
+    sql: `
+        CREATE TABLE trading_operations (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          intent_id TEXT NOT NULL REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+          kind TEXT NOT NULL CHECK(kind IN ('submit', 'protected_entry', 'cancel')),
+          logical_key TEXT NOT NULL,
+          generation INTEGER NOT NULL CHECK(generation > 0),
+          account_fingerprint TEXT,
+          credential_generation TEXT,
+          request_hash TEXT NOT NULL CHECK(length(request_hash) = 64),
+          request_json TEXT NOT NULL,
+          expected_orders_json TEXT NOT NULL,
+          phase TEXT NOT NULL CHECK(phase IN ('prepared', 'dispatching', 'acknowledged', 'unresolved', 'resolved', 'abandoned')),
+          evidence_json TEXT,
+          last_error TEXT,
+          state_version INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE(account_id, logical_key, generation)
+        );
+        CREATE UNIQUE INDEX uq_trading_operation_inflight
+          ON trading_operations(account_id, logical_key) WHERE phase IN ('prepared', 'dispatching', 'unresolved');
+        CREATE INDEX idx_trading_operations_recovery ON trading_operations(account_id, phase);
+        CREATE TABLE trading_order_generations (
+          intent_id TEXT NOT NULL REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+          slot TEXT NOT NULL,
+          generation INTEGER NOT NULL CHECK(generation > 0),
+          client_order_id TEXT NOT NULL,
+          PRIMARY KEY(intent_id, slot)
+        );
+      `
+  },
+  {
+    version: 28,
+    name: 'exchange_acquisition_and_recovery_evidence',
+    columns: [{ table: 'trading_orders', name: 'last_recovery_attempt_at', sqlDefinition: 'INTEGER' }],
+    sql: `
+        CREATE TABLE trading_acquisition_evidence (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          account_fingerprint TEXT,
+          payload_json TEXT NOT NULL CHECK(length(payload_json) <= 131072),
+          started_at INTEGER NOT NULL,
+          completed_at INTEGER NOT NULL,
+          received_at INTEGER NOT NULL
+        );
+        CREATE INDEX idx_trading_acquisition_account ON trading_acquisition_evidence(account_id, received_at);
+      `
+  },
+  {
+    version: 29,
+    name: 'resumable_exchange_history',
+    columns: [],
+    sql: `
+        CREATE TABLE trading_history_checkpoints (
+          account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+          account_fingerprint TEXT NOT NULL,
+          source TEXT NOT NULL CHECK(source IN ('orders', 'fills')),
+          provider_symbol TEXT NOT NULL,
+          revision INTEGER NOT NULL CHECK(revision >= 0),
+          checkpoint_json TEXT NOT NULL CHECK(length(checkpoint_json) <= 8192),
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY(account_id, account_fingerprint, source, provider_symbol)
+        );
+      `
+  },
+  {
+    version: 30,
+    name: 'durable_entry_drain_intent',
+    columns: [
+      { table: 'trading_orders', name: 'entry_drain_requested_at', sqlDefinition: 'INTEGER' },
+      { table: 'trading_orders', name: 'entry_drain_attempted_at', sqlDefinition: 'INTEGER' },
+      { table: 'trading_orders', name: 'entry_drain_reason', sqlDefinition: 'TEXT' },
+    ],
+    sql: `CREATE INDEX idx_trading_entry_drain ON trading_orders(account_id, entry_drain_attempted_at)
+          WHERE role = 'entry' AND entry_drain_requested_at IS NOT NULL;`
+  },
+  {
+    version: 31,
+    name: 'persistent_emergency_exit',
+    columns: [
+      { table: 'trading_positions', name: 'emergency_requested_at', sqlDefinition: 'INTEGER' },
+      { table: 'trading_positions', name: 'emergency_reason', sqlDefinition: 'TEXT' },
+    ],
+    sql: `UPDATE trading_positions SET emergency_requested_at = updated_at,
+            emergency_reason = 'Recovered existing emergency position' WHERE status = 'emergency';
+          CREATE INDEX idx_trading_emergency_positions ON trading_positions(account_id, emergency_requested_at)
+            WHERE emergency_requested_at IS NOT NULL AND status <> 'closed';`
+  },
+  {
+    version: 32,
+    name: 'durable_take_profit_allocation',
+    columns: [],
+    sql: `CREATE TABLE trading_take_profit_allocations (
+      intent_id TEXT PRIMARY KEY REFERENCES trading_trade_intents(id) ON DELETE CASCADE,
+      plan_hash TEXT NOT NULL,
+      target_totals_json TEXT NOT NULL CHECK (json_valid(target_totals_json)),
+      observed_fills_json TEXT NOT NULL CHECK (json_valid(observed_fills_json)),
+      completed_targets_json TEXT NOT NULL CHECK (json_valid(completed_targets_json)),
+      unallocated_quantity TEXT NOT NULL,
+      state_version INTEGER NOT NULL DEFAULT 1,
+      updated_at INTEGER NOT NULL
+    );`
+  },
+  {
+    version: 33,
+    name: 'proven_flat_account_baseline',
+    columns: [
+      { table: 'trading_remote_evidence', name: 'account_fingerprint', sqlDefinition: 'TEXT' },
+      { table: 'trading_remote_evidence', name: 'external_baseline_id', sqlDefinition: 'TEXT' },
+      { table: 'trading_remote_evidence', name: 'baseline_reviewed_at', sqlDefinition: 'INTEGER NOT NULL DEFAULT 0' },
+    ],
+    sql: `CREATE TABLE trading_account_baselines (
+      id TEXT PRIMARY KEY,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL,
+      credential_generation TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('candidate', 'established')),
+      boundary_at INTEGER NOT NULL,
+      first_completed_at INTEGER NOT NULL,
+      last_observed_at INTEGER NOT NULL,
+      first_evidence_json TEXT NOT NULL CHECK(json_valid(first_evidence_json)),
+      proof_json TEXT CHECK(proof_json IS NULL OR json_valid(proof_json)),
+      UNIQUE(account_id, account_fingerprint)
+    );
+    CREATE INDEX idx_remote_evidence_baseline_review ON trading_remote_evidence
+      (account_id, account_fingerprint, classification, baseline_reviewed_at);`
+  },
+  {
+    version: 34,
+    name: 'durable_ingress_pinned_workflow_ai_reservations',
+    columns: [
+      { table: 'signals', name: 'workflow_revision_id', sqlDefinition: 'TEXT' },
+      { table: 'pending_tasks', name: 'workflow_revision_id', sqlDefinition: 'TEXT' },
+      { table: 'pending_tasks', name: 'ingress_work_id', sqlDefinition: 'TEXT' },
+    ],
+    sql: `CREATE TABLE incoming_work (
+      id TEXT PRIMARY KEY, chat_id TEXT NOT NULL, message_id INTEGER NOT NULL,
+      message_json TEXT, config_json TEXT, workflow_revision_id TEXT REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+      status TEXT NOT NULL CHECK(status IN ('pending', 'routed', 'filtered', 'album_waiting', 'needs_review')),
+      reason TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+      UNIQUE(chat_id, message_id)
+    );
+    CREATE INDEX idx_incoming_work_pending ON incoming_work(status, created_at);
+    CREATE TABLE incoming_album_groups (
+      id TEXT PRIMARY KEY, chat_id TEXT NOT NULL, media_group_id TEXT NOT NULL,
+      work_ids_json TEXT NOT NULL, config_json TEXT NOT NULL, ready_at INTEGER NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('waiting', 'completed', 'needs_review')),
+      UNIQUE(chat_id, media_group_id)
+    );
+    INSERT INTO incoming_work (id, chat_id, message_id, status, reason, created_at, updated_at)
+      SELECT 'legacy_' || id, COALESCE(chat_id, 'legacy-unresolved:' || id), COALESCE(message_id, -id), 'needs_review',
+        'Legacy inbox has no durable classification provenance; historical replay is blocked.', COALESCE(created_at, 0), COALESCE(created_at, 0)
+      FROM incoming_messages WHERE status = 'received';
+    UPDATE incoming_messages SET status = 'needs_review' WHERE status = 'received';
+    UPDATE pending_tasks SET status = 'needs_review',
+      last_error = 'Legacy outbox has no proven workflow revision; automatic historical replay is blocked.'
+      WHERE status IN ('pending', 'preparing', 'failed');
+    UPDATE pending_tasks SET workflow_revision_id = (
+      SELECT MIN(run.workflow_revision_id) FROM workflow_signal_runs AS run
+      JOIN signals AS signal ON signal.id = run.source_signal_id
+      WHERE signal.chat_id = pending_tasks.chat_id AND signal.message_id = pending_tasks.message_id
+      HAVING COUNT(DISTINCT run.workflow_revision_id) = 1
+    );
+    UPDATE pending_tasks SET last_error = 'Legacy revision bound from unique existing signal provenance; explicit review remains required.'
+      WHERE status = 'needs_review' AND workflow_revision_id IS NOT NULL;
+    CREATE TABLE signal_parser_attempts (
+      id TEXT PRIMARY KEY, signal_id TEXT NOT NULL REFERENCES signals(id) ON DELETE CASCADE,
+      provenance_json TEXT NOT NULL, created_at INTEGER NOT NULL
+    );
+    CREATE TABLE ai_usage_legacy (
+      usage_day TEXT PRIMARY KEY, request_count INTEGER NOT NULL, used_tokens INTEGER NOT NULL,
+      reserved_tokens INTEGER NOT NULL, updated_at INTEGER NOT NULL
+    );
+    INSERT INTO ai_usage_legacy SELECT * FROM ai_usage_daily;
+    CREATE TABLE ai_usage_reservations (
+      id TEXT PRIMARY KEY, usage_day TEXT NOT NULL, allowance INTEGER NOT NULL CHECK(allowance > 0),
+      status TEXT NOT NULL CHECK(status IN ('reserved', 'settled_known', 'settled_unknown')),
+      actual_tokens INTEGER CHECK(actual_tokens >= 0), created_at INTEGER NOT NULL, settled_at INTEGER
+    );
+    CREATE INDEX idx_ai_usage_reservations_day ON ai_usage_reservations(usage_day, status);`
+  },
+  {
+    version: 35,
+    name: 'immutable_monetary_events_and_currency_valuations',
+    columns: [],
+    sql: `CREATE TABLE trading_money_bindings (
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, reporting_currency TEXT NOT NULL,
+      profile TEXT NOT NULL, settlement_assets_json TEXT NOT NULL CHECK(json_valid(settlement_assets_json)),
+      source TEXT NOT NULL, verified_at INTEGER NOT NULL, content_json TEXT NOT NULL CHECK(json_valid(content_json)),
+      PRIMARY KEY(account_id, account_fingerprint)
+    );
+    CREATE TABLE trading_money_events (
+      id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, provider_event_id TEXT NOT NULL,
+      kind TEXT NOT NULL CHECK(kind IN ('fee', 'funding', 'realized_price_pnl')),
+      source TEXT NOT NULL, basis TEXT NOT NULL CHECK(basis IN ('fill', 'provider')),
+      occurred_at INTEGER NOT NULL, amount TEXT NOT NULL, asset TEXT,
+      intent_id TEXT, fill_id TEXT, content_json TEXT NOT NULL CHECK(json_valid(content_json)),
+      recorded_at INTEGER NOT NULL,
+      UNIQUE(account_id, account_fingerprint, provider_event_id, kind)
+    );
+    CREATE INDEX idx_trading_money_events_window ON trading_money_events(account_id, occurred_at);
+    CREATE TABLE trading_money_valuations (
+      event_id TEXT PRIMARY KEY REFERENCES trading_money_events(id) ON DELETE RESTRICT,
+      reporting_currency TEXT NOT NULL, reporting_amount TEXT NOT NULL, rate TEXT NOT NULL,
+      source TEXT NOT NULL, valued_at INTEGER NOT NULL, evidence_id TEXT NOT NULL,
+      content_json TEXT NOT NULL CHECK(json_valid(content_json)), recorded_at INTEGER NOT NULL
+    );
+    CREATE TABLE trading_money_conflicts (
+      id TEXT PRIMARY KEY, event_id TEXT NOT NULL REFERENCES trading_money_events(id) ON DELETE RESTRICT,
+      kind TEXT NOT NULL CHECK(kind IN ('event', 'valuation')),
+      received_json TEXT NOT NULL CHECK(json_valid(received_json)), recorded_at INTEGER NOT NULL,
+      UNIQUE(event_id, kind, received_json)
+    );`
+  },
+  {
+    version: 36,
+    name: 'fill_accounting_provenance_and_replayable_money_projection',
+    columns: [
+      { table: 'trading_fills', name: 'account_fingerprint', sqlDefinition: 'TEXT' },
+      { table: 'trading_fills', name: 'accounting_json', sqlDefinition: 'TEXT' },
+      { table: 'trading_fills', name: 'accounting_conflict', sqlDefinition: 'INTEGER NOT NULL DEFAULT 0' },
+      { table: 'trading_positions', name: 'ledger_realized_pnl', sqlDefinition: 'TEXT' },
+      { table: 'trading_positions', name: 'accounting_status', sqlDefinition: "TEXT NOT NULL DEFAULT 'unresolved'" },
+      { table: 'trading_positions', name: 'reporting_currency', sqlDefinition: 'TEXT' },
+    ],
+    sql: `CREATE TABLE trading_accounting_pending (
+      intent_id TEXT PRIMARY KEY REFERENCES trading_trade_intents(id) ON DELETE CASCADE,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      revision INTEGER NOT NULL DEFAULT 1
+    );
+    CREATE TABLE trading_accounting_projections (
+      intent_id TEXT PRIMARY KEY REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      evidence_hash TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('complete', 'unresolved')),
+      reason TEXT, reporting_currency TEXT, realized_pnl TEXT, updated_at INTEGER NOT NULL
+    );
+    CREATE TABLE trading_accounting_projection_evidence (
+      id TEXT PRIMARY KEY, intent_id TEXT NOT NULL, account_id TEXT NOT NULL,
+      evidence_json TEXT NOT NULL CHECK(json_valid(evidence_json)), status TEXT NOT NULL,
+      reason TEXT, created_at INTEGER NOT NULL
+    );
+    CREATE INDEX idx_accounting_pending_account ON trading_accounting_pending(account_id, intent_id);
+    CREATE INDEX idx_accounting_projection_account ON trading_accounting_projections(account_id, status);
+    CREATE INDEX idx_money_events_intent ON trading_money_events(intent_id, occurred_at);
+    INSERT INTO trading_accounting_pending (intent_id, account_id)
+      SELECT DISTINCT intent.id, intent.account_id FROM trading_trade_intents intent
+      WHERE EXISTS (SELECT 1 FROM trading_positions position WHERE position.intent_id = intent.id)
+        OR EXISTS (SELECT 1 FROM trading_orders orders JOIN trading_fills fills ON fills.order_id = orders.id WHERE orders.intent_id = intent.id);
+    CREATE TRIGGER trading_accounting_fill_insert AFTER INSERT ON trading_fills BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id)
+        SELECT intent_id, account_id FROM trading_orders WHERE id = NEW.order_id
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;
+    CREATE TRIGGER trading_accounting_fill_update AFTER UPDATE ON trading_fills BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id)
+        SELECT intent_id, account_id FROM trading_orders WHERE id = NEW.order_id
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;
+    CREATE TRIGGER trading_accounting_order_update AFTER UPDATE OF filled_quantity, quantity, role, side, reduce_only, provider_symbol ON trading_orders
+      WHEN NEW.filled_quantity IS NOT OLD.filled_quantity OR NEW.quantity IS NOT OLD.quantity OR NEW.role IS NOT OLD.role
+        OR NEW.side IS NOT OLD.side OR NEW.reduce_only IS NOT OLD.reduce_only OR NEW.provider_symbol IS NOT OLD.provider_symbol BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id) VALUES (NEW.intent_id, NEW.account_id)
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;
+    CREATE TRIGGER trading_accounting_position_insert AFTER INSERT ON trading_positions BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id) VALUES (NEW.intent_id, NEW.account_id)
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;
+    CREATE TRIGGER trading_accounting_binding_insert AFTER INSERT ON trading_money_bindings BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id)
+        SELECT id, account_id FROM trading_trade_intents WHERE account_id = NEW.account_id
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;
+    CREATE TRIGGER trading_accounting_valuation_insert AFTER INSERT ON trading_money_valuations BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id)
+        SELECT intent_id, account_id FROM trading_money_events WHERE id = NEW.event_id AND intent_id IS NOT NULL
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;
+    CREATE TRIGGER trading_accounting_conflict_insert AFTER INSERT ON trading_money_conflicts BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id)
+        SELECT intent_id, account_id FROM trading_money_events WHERE id = NEW.event_id AND intent_id IS NOT NULL
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;`
+  },
+  {
+    version: 37,
+    name: 'derived_current_risk_reservations_with_provenance',
+    columns: [],
+    sql: `CREATE TABLE trading_risk_contracts (
+      intent_id TEXT PRIMARY KEY REFERENCES trading_trade_intents(id) ON DELETE RESTRICT,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, credential_generation TEXT,
+      metadata_json TEXT NOT NULL CHECK(json_valid(metadata_json)), observed_at INTEGER NOT NULL
+    );
+    CREATE TABLE trading_risk_observations (
+      id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, credential_generation TEXT, entry_epoch TEXT NOT NULL,
+      observed_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, utc_day INTEGER NOT NULL,
+      evidence_json TEXT NOT NULL CHECK(json_valid(evidence_json)), recorded_at INTEGER NOT NULL
+    );
+    CREATE INDEX idx_risk_observations_account ON trading_risk_observations(account_id, observed_at);
+    CREATE TABLE trading_risk_current (
+      account_id TEXT PRIMARY KEY REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      observation_id TEXT NOT NULL REFERENCES trading_risk_observations(id) ON DELETE RESTRICT,
+      balance_json TEXT CHECK(balance_json IS NULL OR json_valid(balance_json)), balance_reason TEXT
+    );
+    CREATE TRIGGER trading_risk_contract_immutable BEFORE UPDATE ON trading_risk_contracts BEGIN
+      SELECT RAISE(ABORT, 'Original risk contract is immutable');
+    END;
+    CREATE TRIGGER trading_risk_observation_immutable BEFORE UPDATE ON trading_risk_observations BEGIN
+      SELECT RAISE(ABORT, 'Original risk observation is immutable');
+    END;`
+  },
+  {
+    version: 38,
+    name: 'durable_account_log_receipts_and_independent_consumers',
+    columns: [],
+    sql: `CREATE TABLE trading_account_log_checkpoints (
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, namespace TEXT NOT NULL, revision INTEGER NOT NULL,
+      payload_json TEXT NOT NULL CHECK(json_valid(payload_json)), updated_at INTEGER NOT NULL,
+      PRIMARY KEY(account_id, account_fingerprint, namespace)
+    );
+    CREATE TABLE trading_account_log_receipts (
+      sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, credential_generation TEXT NOT NULL, namespace TEXT NOT NULL,
+      base_revision INTEGER NOT NULL, payload_json TEXT NOT NULL CHECK(json_valid(payload_json)), recorded_at INTEGER NOT NULL
+    );
+    CREATE INDEX idx_account_log_receipts_account ON trading_account_log_receipts(account_id, sequence);
+    CREATE TABLE trading_account_log_records (
+      receipt_id TEXT NOT NULL REFERENCES trading_account_log_receipts(id) ON DELETE RESTRICT,
+      ordinal INTEGER NOT NULL, payload_json TEXT NOT NULL CHECK(json_valid(payload_json)),
+      PRIMARY KEY(receipt_id, ordinal)
+    );
+    CREATE TABLE trading_account_log_consumers (
+      receipt_id TEXT NOT NULL REFERENCES trading_account_log_receipts(id) ON DELETE RESTRICT,
+      consumer TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('pending','complete','unresolved')),
+      result_json TEXT CHECK(result_json IS NULL OR json_valid(result_json)), updated_at INTEGER NOT NULL,
+      PRIMARY KEY(receipt_id, consumer)
+    );
+    CREATE INDEX idx_account_log_consumer_pending ON trading_account_log_consumers(consumer, status, updated_at);
+    CREATE TRIGGER trading_account_log_receipt_immutable BEFORE UPDATE ON trading_account_log_receipts BEGIN
+      SELECT RAISE(ABORT, 'Original account-log receipt is immutable');
+    END;
+    CREATE TRIGGER trading_account_log_record_immutable BEFORE UPDATE ON trading_account_log_records BEGIN
+      SELECT RAISE(ABORT, 'Original account-log record is immutable');
+    END;`
+  },
+  {
+    version: 39,
+    name: 'observed_account_mode_and_explicit_baseline_origin',
+    columns: [],
+    sql: `CREATE TABLE trading_account_mode_observations (
+      evidence_hash TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, credential_generation TEXT NOT NULL, profile TEXT NOT NULL,
+      provider_account_uid TEXT NOT NULL, started_at INTEGER NOT NULL, completed_at INTEGER NOT NULL,
+      payload_json TEXT NOT NULL CHECK(json_valid(payload_json) AND length(payload_json) < 8192)
+    );
+    CREATE INDEX idx_account_mode_observations ON trading_account_mode_observations(account_id, profile, completed_at);
+    CREATE TABLE trading_account_baseline_bindings (
+      baseline_id TEXT NOT NULL REFERENCES trading_account_baselines(id) ON DELETE RESTRICT,
+      profile TEXT NOT NULL, account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, credential_generation TEXT NOT NULL, provider_account_uid TEXT NOT NULL,
+      first_mode_hash TEXT NOT NULL REFERENCES trading_account_mode_observations(evidence_hash) ON DELETE RESTRICT,
+      second_mode_hash TEXT NOT NULL REFERENCES trading_account_mode_observations(evidence_hash) ON DELETE RESTRICT,
+      boundary_at INTEGER NOT NULL, proof_json TEXT NOT NULL CHECK(json_valid(proof_json) AND length(proof_json) < 8192),
+      PRIMARY KEY(baseline_id, profile)
+    );
+    CREATE TRIGGER trading_account_mode_immutable BEFORE UPDATE ON trading_account_mode_observations BEGIN
+      SELECT RAISE(ABORT, 'Original account-mode observation is immutable');
+    END;
+    CREATE TRIGGER trading_account_baseline_binding_immutable BEFORE UPDATE ON trading_account_baseline_bindings BEGIN
+      SELECT RAISE(ABORT, 'Original account baseline binding is immutable');
+    END;`
+  },
+  {
+    version: 40,
+    name: 'native_fill_namespaces_and_original_order_bindings',
+    columns: [],
+    foreignKeysOff: true,
+    preflight: 'fill-money-identities-v1',
+    sql: `
+    CREATE TABLE trading_order_identity_bindings (
+      order_id TEXT PRIMARY KEY REFERENCES trading_orders(id) ON DELETE RESTRICT,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      operation_id TEXT NOT NULL REFERENCES trading_operations(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, credential_generation TEXT NOT NULL,
+      profile TEXT NOT NULL, remote_order_key TEXT NOT NULL,
+      request_hash TEXT NOT NULL CHECK(length(request_hash)=64),
+      evidence_hash TEXT NOT NULL CHECK(length(evidence_hash)=64),
+      evidence_json TEXT NOT NULL CHECK(json_valid(evidence_json) AND length(evidence_json)<8192),
+      bound_at INTEGER NOT NULL, UNIQUE(account_id,remote_order_key)
+    );
+    CREATE TRIGGER trading_order_identity_immutable BEFORE UPDATE ON trading_order_identity_bindings BEGIN
+      SELECT RAISE(ABORT, 'Original order identity binding is immutable');
+    END;
+    CREATE TABLE trading_fills_v40 (
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL REFERENCES trading_orders(id) ON DELETE RESTRICT,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      exchange_fill_id TEXT NOT NULL, price TEXT NOT NULL, quantity TEXT NOT NULL,
+      fee TEXT NOT NULL DEFAULT '0', fee_asset TEXT, filled_at INTEGER NOT NULL, raw_json TEXT NOT NULL,
+      account_fingerprint TEXT, accounting_json TEXT, accounting_conflict INTEGER NOT NULL DEFAULT 0,
+      provider_symbol TEXT, remote_fill_key TEXT,
+      identity_status TEXT NOT NULL DEFAULT 'legacy_unresolved' CHECK(identity_status IN ('legacy_unresolved','proven','conflict')),
+      identity_json TEXT CHECK(identity_json IS NULL OR (json_valid(identity_json) AND length(identity_json)<8192)),
+      CHECK((remote_fill_key IS NULL AND identity_json IS NULL) OR (remote_fill_key IS NOT NULL AND identity_json IS NOT NULL))
+    );
+    INSERT INTO trading_fills_v40(id,order_id,account_id,exchange_fill_id,price,quantity,fee,fee_asset,filled_at,raw_json,
+      account_fingerprint,accounting_json,accounting_conflict)
+      SELECT id,order_id,account_id,exchange_fill_id,price,quantity,fee,fee_asset,filled_at,raw_json,
+        account_fingerprint,accounting_json,accounting_conflict FROM trading_fills;
+    DROP TRIGGER trading_accounting_fill_insert;
+    DROP TRIGGER trading_accounting_fill_update;
+    DROP TABLE trading_fills;
+    ALTER TABLE trading_fills_v40 RENAME TO trading_fills;
+    CREATE INDEX idx_trading_fills_order ON trading_fills(order_id,filled_at);
+    CREATE UNIQUE INDEX uq_trading_fill_native_identity ON trading_fills(account_id,remote_fill_key) WHERE remote_fill_key IS NOT NULL;
+    CREATE INDEX idx_trading_fill_legacy_identity ON trading_fills(account_id,exchange_fill_id) WHERE remote_fill_key IS NULL;
+    CREATE TRIGGER trading_accounting_fill_insert AFTER INSERT ON trading_fills BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id)
+        SELECT intent_id, account_id FROM trading_orders WHERE id = NEW.order_id
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;
+    CREATE TRIGGER trading_accounting_fill_update AFTER UPDATE ON trading_fills BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id)
+        SELECT intent_id, account_id FROM trading_orders WHERE id = NEW.order_id
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;
+    CREATE TABLE trading_money_events_v40 (
+      id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, provider_event_id TEXT NOT NULL,
+      kind TEXT NOT NULL CHECK(kind IN ('fee','funding','realized_price_pnl')),
+      source TEXT NOT NULL, basis TEXT NOT NULL CHECK(basis IN ('fill','provider')),
+      occurred_at INTEGER NOT NULL, amount TEXT NOT NULL, asset TEXT,
+      intent_id TEXT, fill_id TEXT, content_json TEXT NOT NULL CHECK(json_valid(content_json)), recorded_at INTEGER NOT NULL
+    );
+    INSERT INTO trading_money_events_v40 SELECT * FROM trading_money_events;
+    DROP TRIGGER trading_accounting_valuation_insert;
+    DROP TRIGGER trading_accounting_conflict_insert;
+    DROP TABLE trading_money_events;
+    ALTER TABLE trading_money_events_v40 RENAME TO trading_money_events;
+    CREATE INDEX idx_trading_money_events_window ON trading_money_events(account_id,occurred_at);
+    CREATE INDEX idx_money_events_intent ON trading_money_events(intent_id,occurred_at);
+    CREATE UNIQUE INDEX uq_money_provider_identity ON trading_money_events(account_id,account_fingerprint,provider_event_id,kind) WHERE basis='provider';
+    CREATE UNIQUE INDEX uq_money_fill_identity ON trading_money_events(account_id,account_fingerprint,fill_id,kind) WHERE basis='fill' AND fill_id IS NOT NULL;
+    CREATE TRIGGER trading_accounting_valuation_insert AFTER INSERT ON trading_money_valuations BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id)
+        SELECT intent_id, account_id FROM trading_money_events WHERE id = NEW.event_id AND intent_id IS NOT NULL
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;
+    CREATE TRIGGER trading_accounting_conflict_insert AFTER INSERT ON trading_money_conflicts BEGIN
+      INSERT INTO trading_accounting_pending (intent_id, account_id)
+        SELECT intent_id, account_id FROM trading_money_events WHERE id = NEW.event_id AND intent_id IS NOT NULL
+        ON CONFLICT(intent_id) DO UPDATE SET revision = revision + 1;
+    END;`
+  },
+  {
+    version: 41,
+    name: 'immutable_kraken_cashleg_native_asset_evidence',
+    columns: [],
+    sql: `CREATE TABLE trading_kraken_log_occurrences (
+      receipt_id TEXT NOT NULL, ordinal INTEGER NOT NULL,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL, credential_generation TEXT NOT NULL,
+      provider_account_uid TEXT, execution_uid TEXT, booking_uid TEXT, log_id TEXT,
+      PRIMARY KEY(receipt_id,ordinal),
+      FOREIGN KEY(receipt_id,ordinal) REFERENCES trading_account_log_records(receipt_id,ordinal) ON DELETE RESTRICT
+    );
+    CREATE INDEX idx_kraken_occurrence_execution ON trading_kraken_log_occurrences(account_id,account_fingerprint,execution_uid);
+    CREATE INDEX idx_kraken_occurrence_booking ON trading_kraken_log_occurrences(account_id,account_fingerprint,booking_uid);
+    CREATE INDEX idx_kraken_occurrence_log ON trading_kraken_log_occurrences(account_id,account_fingerprint,log_id);
+    INSERT INTO trading_kraken_log_occurrences
+      SELECT record.receipt_id,record.ordinal,receipt.account_id,receipt.account_fingerprint,receipt.credential_generation,
+        json_extract(receipt.payload_json,'$.providerAccountUid'),json_extract(record.payload_json,'$.execution'),
+        json_extract(record.payload_json,'$.booking_uid'),json_extract(record.payload_json,'$.id')
+      FROM trading_account_log_records record JOIN trading_account_log_receipts receipt ON receipt.id=record.receipt_id
+      WHERE receipt.namespace='kraken_account_log_v3';
+    CREATE TRIGGER trading_kraken_occurrence_insert AFTER INSERT ON trading_account_log_records
+      WHEN EXISTS(SELECT 1 FROM trading_account_log_receipts WHERE id=NEW.receipt_id AND namespace='kraken_account_log_v3') BEGIN
+      INSERT INTO trading_kraken_log_occurrences
+        SELECT NEW.receipt_id,NEW.ordinal,account_id,account_fingerprint,credential_generation,
+          json_extract(payload_json,'$.providerAccountUid'),json_extract(NEW.payload_json,'$.execution'),
+          json_extract(NEW.payload_json,'$.booking_uid'),json_extract(NEW.payload_json,'$.id')
+        FROM trading_account_log_receipts WHERE id=NEW.receipt_id;
+    END;
+    CREATE TABLE trading_kraken_cashleg_evidence (
+      id TEXT PRIMARY KEY, event_id TEXT NOT NULL UNIQUE REFERENCES trading_money_events(id) ON DELETE RESTRICT,
+      fill_id TEXT NOT NULL REFERENCES trading_fills(id) ON DELETE RESTRICT,
+      cash_receipt_id TEXT NOT NULL, cash_ordinal INTEGER NOT NULL,
+      position_receipt_id TEXT NOT NULL, position_ordinal INTEGER NOT NULL,
+      proof_json TEXT NOT NULL CHECK(json_valid(proof_json) AND length(proof_json)<32768), recorded_at INTEGER NOT NULL,
+      FOREIGN KEY(cash_receipt_id,cash_ordinal) REFERENCES trading_kraken_log_occurrences(receipt_id,ordinal) ON DELETE RESTRICT,
+      FOREIGN KEY(position_receipt_id,position_ordinal) REFERENCES trading_kraken_log_occurrences(receipt_id,ordinal) ON DELETE RESTRICT
+    );
+    CREATE TRIGGER trading_kraken_occurrence_immutable BEFORE UPDATE ON trading_kraken_log_occurrences BEGIN
+      SELECT RAISE(ABORT,'Original Kraken occurrence is immutable');
+    END;
+    CREATE TRIGGER trading_kraken_occurrence_no_delete BEFORE DELETE ON trading_kraken_log_occurrences BEGIN
+      SELECT RAISE(ABORT,'Original Kraken occurrence must be retained');
+    END;
+    CREATE TRIGGER trading_kraken_cashleg_immutable BEFORE UPDATE ON trading_kraken_cashleg_evidence BEGIN
+      SELECT RAISE(ABORT,'Original Kraken cashleg proof is immutable');
+    END;
+    CREATE TRIGGER trading_kraken_cashleg_no_delete BEFORE DELETE ON trading_kraken_cashleg_evidence BEGIN
+      SELECT RAISE(ABORT,'Original Kraken cashleg proof must be retained');
+    END;`
+  },
+  {
+    version: 42,
+    name: 'immutable_observed_fill_quantity_normalization',
+    columns: [],
+    sql: `CREATE TABLE trading_fill_quantity_evidence (
+      id TEXT PRIMARY KEY CHECK(length(id)=64),
+      fill_id TEXT NOT NULL REFERENCES trading_fills(id) ON DELETE RESTRICT,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL CHECK(length(account_fingerprint)=64),
+      credential_generation TEXT NOT NULL CHECK(length(credential_generation)=64),
+      remote_fill_key TEXT NOT NULL, provider_account_uid TEXT NOT NULL,
+      original_raw_hash TEXT NOT NULL CHECK(length(original_raw_hash)=64),
+      normalization_json TEXT NOT NULL CHECK(json_valid(normalization_json) AND length(normalization_json)<32768),
+      acquisition_json TEXT NOT NULL CHECK(json_valid(acquisition_json) AND length(acquisition_json)<262144),
+      observation_kind TEXT NOT NULL CHECK(observation_kind IN ('initial','later_observation')),
+      recorded_at INTEGER NOT NULL
+    );
+    CREATE INDEX idx_fill_quantity_evidence_fill ON trading_fill_quantity_evidence(fill_id,recorded_at);
+    CREATE TRIGGER trading_fill_quantity_immutable BEFORE UPDATE ON trading_fill_quantity_evidence BEGIN
+      SELECT RAISE(ABORT,'Original fill quantity observation is immutable');
+    END;
+    CREATE TRIGGER trading_fill_quantity_no_delete BEFORE DELETE ON trading_fill_quantity_evidence BEGIN
+      SELECT RAISE(ABORT,'Original fill quantity observation must be retained');
+    END;`
+  },
+  {
+    version: 43,
+    name: 'immutable_account_bound_fx_evidence',
+    columns: [],
+    sql: `CREATE TABLE trading_fx_receipts (
+      id TEXT PRIMARY KEY CHECK(length(id)=64),
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL CHECK(length(account_fingerprint)=64),
+      credential_generation TEXT NOT NULL CHECK(length(credential_generation)=64),
+      mode TEXT NOT NULL CHECK(mode IN ('live','testnet')),
+      profile_hash TEXT NOT NULL CHECK(length(profile_hash)=64),
+      receipt_hash TEXT NOT NULL CHECK(length(receipt_hash)=64), leg_id TEXT NOT NULL,
+      provider_response_at INTEGER NOT NULL CHECK(provider_response_at>=0),
+      acquisition_started_at INTEGER NOT NULL CHECK(acquisition_started_at>=0),
+      acquisition_completed_at INTEGER NOT NULL CHECK(acquisition_completed_at>=acquisition_started_at),
+      payload_json TEXT NOT NULL CHECK(json_valid(payload_json) AND length(CAST(payload_json AS BLOB))<131072 AND instr(payload_json,char(0))=0),
+      recorded_at INTEGER NOT NULL,
+      UNIQUE(id,account_id), UNIQUE(account_id,account_fingerprint,credential_generation,receipt_hash)
+    );
+    CREATE INDEX idx_fx_receipt_asof ON trading_fx_receipts
+      (account_id,account_fingerprint,credential_generation,mode,profile_hash,provider_response_at);
+    CREATE TABLE trading_fx_conversions (
+      id TEXT PRIMARY KEY CHECK(length(id)=64),
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      account_fingerprint TEXT NOT NULL CHECK(length(account_fingerprint)=64),
+      credential_generation TEXT NOT NULL CHECK(length(credential_generation)=64),
+      evidence_hash TEXT NOT NULL CHECK(length(evidence_hash)=64),
+      payload_json TEXT NOT NULL CHECK(json_valid(payload_json) AND length(CAST(payload_json AS BLOB))<16384 AND instr(payload_json,char(0))=0),
+      recorded_at INTEGER NOT NULL, UNIQUE(id,account_id)
+    );
+    CREATE TABLE trading_fx_conversion_receipts (
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      conversion_id TEXT NOT NULL, receipt_id TEXT NOT NULL,
+      ordinal INTEGER NOT NULL CHECK(ordinal BETWEEN 0 AND 2),
+      PRIMARY KEY(conversion_id,ordinal), UNIQUE(conversion_id,receipt_id),
+      FOREIGN KEY(conversion_id,account_id) REFERENCES trading_fx_conversions(id,account_id) ON DELETE RESTRICT,
+      FOREIGN KEY(receipt_id,account_id) REFERENCES trading_fx_receipts(id,account_id) ON DELETE RESTRICT
+    );
+    CREATE TRIGGER trading_fx_receipt_immutable BEFORE UPDATE ON trading_fx_receipts BEGIN
+      SELECT RAISE(ABORT,'Original FX receipt is immutable'); END;
+    CREATE TRIGGER trading_fx_receipt_no_delete BEFORE DELETE ON trading_fx_receipts BEGIN
+      SELECT RAISE(ABORT,'Original FX receipt must be retained'); END;
+    CREATE TRIGGER trading_fx_conversion_immutable BEFORE UPDATE ON trading_fx_conversions BEGIN
+      SELECT RAISE(ABORT,'Original FX conversion is immutable'); END;
+    CREATE TRIGGER trading_fx_conversion_no_delete BEFORE DELETE ON trading_fx_conversions BEGIN
+      SELECT RAISE(ABORT,'Original FX conversion must be retained'); END;
+    CREATE TRIGGER trading_fx_reference_immutable BEFORE UPDATE ON trading_fx_conversion_receipts BEGIN
+      SELECT RAISE(ABORT,'Original FX reference is immutable'); END;
+    CREATE TRIGGER trading_fx_reference_no_delete BEFORE DELETE ON trading_fx_conversion_receipts BEGIN
+      SELECT RAISE(ABORT,'Original FX reference must be retained'); END;`
+  },
+  {
+    version: 44,
+    name: 'durable_shared_recovery_schedule',
+    columns: [],
+    sql: `CREATE TABLE trading_recovery_schedules (
+      id TEXT PRIMARY KEY CHECK(length(id)=64),
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      binding_json TEXT NOT NULL CHECK(json_valid(binding_json)),
+      revision INTEGER NOT NULL DEFAULT 0 CHECK(revision>=0),
+      phase INTEGER NOT NULL DEFAULT 0 CHECK(phase BETWEEN 0 AND 3),
+      fx_rotation INTEGER NOT NULL DEFAULT 0 CHECK(fx_rotation BETWEEN 0 AND 3),
+      logs_first INTEGER NOT NULL DEFAULT 0 CHECK(logs_first IN (0,1)),
+      history_after TEXT, next_due_at INTEGER NOT NULL DEFAULT 0 CHECK(next_due_at>=0),
+      cooldown_until INTEGER NOT NULL DEFAULT 0 CHECK(cooldown_until>=0), updated_at INTEGER NOT NULL
+    );
+    CREATE TABLE trading_recovery_schedule_attempts (
+      id TEXT PRIMARY KEY, schedule_id TEXT NOT NULL REFERENCES trading_recovery_schedules(id) ON DELETE RESTRICT,
+      account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      base_revision INTEGER NOT NULL CHECK(base_revision>=0), phase INTEGER NOT NULL CHECK(phase BETWEEN 0 AND 3),
+      advances_phase INTEGER NOT NULL CHECK(advances_phase IN (0,1)), history_selection TEXT,
+      status TEXT NOT NULL CHECK(status IN ('reserved','succeeded','failed')),
+      request_json TEXT NOT NULL CHECK(json_valid(request_json) AND length(request_json)<262144),
+      response_json TEXT CHECK(response_json IS NULL OR json_valid(response_json)),
+      calls INTEGER CHECK(calls IS NULL OR calls BETWEEN 0 AND 5), error_code TEXT,
+      started_at INTEGER NOT NULL, lease_until INTEGER NOT NULL CHECK(lease_until>=started_at),
+      completed_at INTEGER CHECK(completed_at IS NULL OR completed_at>=started_at)
+    );
+    CREATE UNIQUE INDEX idx_recovery_schedule_active ON trading_recovery_schedule_attempts(schedule_id)
+      WHERE status='reserved' AND advances_phase=1;
+    CREATE INDEX idx_recovery_schedule_account ON trading_recovery_schedules(account_id,next_due_at);
+    CREATE TRIGGER recovery_attempt_terminal_immutable BEFORE UPDATE ON trading_recovery_schedule_attempts
+      WHEN OLD.status<>'reserved' BEGIN SELECT RAISE(ABORT,'Completed recovery attempt is immutable'); END;
+    CREATE TRIGGER recovery_attempt_request_immutable BEFORE UPDATE ON trading_recovery_schedule_attempts
+      WHEN NEW.id<>OLD.id OR NEW.schedule_id<>OLD.schedule_id OR NEW.account_id<>OLD.account_id
+        OR NEW.base_revision<>OLD.base_revision OR NEW.phase<>OLD.phase OR NEW.advances_phase<>OLD.advances_phase
+        OR NEW.request_json<>OLD.request_json OR NEW.started_at<>OLD.started_at OR NEW.lease_until<>OLD.lease_until
+        OR NEW.history_selection IS NOT OLD.history_selection
+      BEGIN SELECT RAISE(ABORT,'Recovery request reservation is immutable'); END;
+    CREATE TRIGGER recovery_attempt_no_delete BEFORE DELETE ON trading_recovery_schedule_attempts
+      BEGIN SELECT RAISE(ABORT,'Recovery attempt must be retained'); END;`
+  },
+  {
+    version: 45,
+    name: 'exact_event_fx_valuations_and_replay',
+    columns: [
+      { table: 'trading_accounting_projections', name: 'value_json', sqlDefinition: 'TEXT' },
+      { table: 'trading_positions', name: 'ledger_realized_value_json', sqlDefinition: 'TEXT' },
+    ],
+    sql: `CREATE UNIQUE INDEX uq_money_event_account ON trading_money_events(id,account_id);
+    CREATE TABLE trading_fx_money_valuations (
+      event_id TEXT PRIMARY KEY, account_id TEXT NOT NULL, conversion_id TEXT NOT NULL,
+      reporting_currency TEXT NOT NULL CHECK(reporting_currency IN ('USD','USDT','USDC')),
+      payload_json TEXT NOT NULL CHECK(json_valid(payload_json) AND length(CAST(payload_json AS BLOB))<16384 AND instr(payload_json,char(0))=0),
+      content_hash TEXT NOT NULL CHECK(length(content_hash)=64), recorded_at INTEGER NOT NULL,
+      FOREIGN KEY(event_id,account_id) REFERENCES trading_money_events(id,account_id) ON DELETE RESTRICT,
+      FOREIGN KEY(conversion_id,account_id) REFERENCES trading_fx_conversions(id,account_id) ON DELETE RESTRICT
+    );
+    CREATE INDEX idx_fx_money_conversion ON trading_fx_money_valuations(conversion_id);
+    CREATE TRIGGER fx_money_valuation_immutable BEFORE UPDATE ON trading_fx_money_valuations BEGIN
+      SELECT RAISE(ABORT,'Original FX money valuation is immutable'); END;
+    CREATE TRIGGER fx_money_valuation_no_delete BEFORE DELETE ON trading_fx_money_valuations BEGIN
+      SELECT RAISE(ABORT,'Original FX money valuation must be retained'); END;
+    CREATE TRIGGER fx_money_valuation_exclusive BEFORE INSERT ON trading_fx_money_valuations
+      WHEN EXISTS(SELECT 1 FROM trading_money_valuations WHERE event_id=NEW.event_id) BEGIN
+      SELECT RAISE(ABORT,'Monetary event already has a decimal valuation'); END;
+    CREATE TRIGGER decimal_money_valuation_exclusive BEFORE INSERT ON trading_money_valuations
+      WHEN EXISTS(SELECT 1 FROM trading_fx_money_valuations WHERE event_id=NEW.event_id) BEGIN
+      SELECT RAISE(ABORT,'Monetary event already has an FX valuation'); END;
+    CREATE TRIGGER fx_money_projection_pending AFTER INSERT ON trading_fx_money_valuations BEGIN
+      INSERT INTO trading_accounting_pending (intent_id,account_id)
+        SELECT intent_id,account_id FROM trading_money_events WHERE id=NEW.event_id AND intent_id IS NOT NULL
+        ON CONFLICT(intent_id) DO UPDATE SET revision=revision+1;
+    END;
+    CREATE TRIGGER fx_original_variant_projection_pending AFTER INSERT ON trading_fx_receipts BEGIN
+      INSERT INTO trading_accounting_pending (intent_id,account_id)
+        SELECT DISTINCT event.intent_id,event.account_id FROM trading_fx_receipts original
+          JOIN trading_fx_conversion_receipts ref ON ref.receipt_id=original.id AND ref.account_id=original.account_id
+          JOIN trading_fx_money_valuations valuation ON valuation.conversion_id=ref.conversion_id AND valuation.account_id=ref.account_id
+          JOIN trading_money_events event ON event.id=valuation.event_id AND event.account_id=valuation.account_id
+        WHERE original.account_id=NEW.account_id AND original.account_fingerprint=NEW.account_fingerprint
+          AND original.credential_generation=NEW.credential_generation AND original.mode=NEW.mode
+          AND original.profile_hash=NEW.profile_hash AND original.leg_id=NEW.leg_id
+          AND original.provider_response_at=NEW.provider_response_at AND original.receipt_hash<>NEW.receipt_hash
+          AND event.intent_id IS NOT NULL
+        ON CONFLICT(intent_id) DO UPDATE SET revision=revision+1;
+    END;
+    CREATE TABLE trading_fx_valuation_work (
+      event_id TEXT PRIMARY KEY, account_id TEXT NOT NULL, last_attempt_at INTEGER NOT NULL CHECK(last_attempt_at>=0), reason TEXT,
+      FOREIGN KEY(event_id,account_id) REFERENCES trading_money_events(id,account_id) ON DELETE RESTRICT
+    );
+    CREATE INDEX idx_fx_valuation_work_due ON trading_fx_valuation_work(account_id,last_attempt_at);`
+  },
+  {
+    version: 46,
+    name: 'exact_adaptive_risk_money_and_source_provenance',
+    columns: [],
+    sql: `CREATE TABLE trading_channel_risk_evaluations_v46 (
+      id TEXT PRIMARY KEY, channel_id TEXT NOT NULL, policy_version INTEGER NOT NULL,
+      week_started_at INTEGER NOT NULL, week_ended_at INTEGER NOT NULL,
+      closed_trades INTEGER NOT NULL, wins INTEGER NOT NULL, losses INTEGER NOT NULL,
+      realized_pnl TEXT, starting_equity TEXT NOT NULL, return_percent TEXT,
+      previous_tier INTEGER NOT NULL, recommended_tier INTEGER NOT NULL, applied_tier INTEGER NOT NULL,
+      action TEXT NOT NULL CHECK(action IN ('hold', 'increase', 'decrease', 'block')),
+      reason TEXT NOT NULL, created_at INTEGER NOT NULL,
+      realized_pnl_value_json TEXT CHECK(realized_pnl_value_json IS NULL OR
+        (json_valid(realized_pnl_value_json) AND length(CAST(realized_pnl_value_json AS BLOB))<16384 AND instr(realized_pnl_value_json,char(0))=0)),
+      return_percent_value_json TEXT CHECK(return_percent_value_json IS NULL OR
+        (json_valid(return_percent_value_json) AND length(CAST(return_percent_value_json AS BLOB))<16384 AND instr(return_percent_value_json,char(0))=0)),
+      reporting_currency TEXT,
+      source_hash TEXT CHECK(source_hash IS NULL OR
+        (length(source_hash)=64 AND length(CAST(source_hash AS BLOB))=64 AND source_hash NOT GLOB '*[^0-9a-f]*')),
+      source_json TEXT CHECK(source_json IS NULL OR
+        (json_valid(source_json) AND length(CAST(source_json AS BLOB))<262144 AND instr(source_json,char(0))=0)),
+      invalidated_at INTEGER CHECK(invalidated_at IS NULL OR invalidated_at>=0),
+      invalidation_reason TEXT,
+      CHECK((source_hash IS NULL)=(source_json IS NULL)),
+      UNIQUE(channel_id, policy_version, week_started_at)
+    );
+    INSERT INTO trading_channel_risk_evaluations_v46
+      (rowid,id,channel_id,policy_version,week_started_at,week_ended_at,closed_trades,wins,losses,
+       realized_pnl,starting_equity,return_percent,previous_tier,recommended_tier,applied_tier,action,reason,created_at)
+    SELECT rowid,id,channel_id,policy_version,week_started_at,week_ended_at,closed_trades,wins,losses,
+      realized_pnl,starting_equity,return_percent,previous_tier,recommended_tier,applied_tier,action,reason,created_at
+    FROM trading_channel_risk_evaluations;
+    DROP TABLE trading_channel_risk_evaluations;
+    ALTER TABLE trading_channel_risk_evaluations_v46 RENAME TO trading_channel_risk_evaluations;
+    CREATE INDEX idx_channel_risk_evaluation_week ON trading_channel_risk_evaluations(channel_id, week_started_at DESC);
+    CREATE TABLE workflow_adaptive_risk_evaluations_v46 (
+      id TEXT PRIMARY KEY,
+      state_key TEXT NOT NULL REFERENCES workflow_adaptive_risk_state(state_key) ON DELETE RESTRICT,
+      policy_sha256 TEXT NOT NULL CHECK(length(policy_sha256) = 64),
+      week_started_at INTEGER NOT NULL, week_ended_at INTEGER NOT NULL,
+      closed_trades INTEGER NOT NULL, wins INTEGER NOT NULL, losses INTEGER NOT NULL,
+      realized_pnl TEXT, starting_equity TEXT NOT NULL, return_percent TEXT,
+      previous_tier INTEGER NOT NULL, recommended_tier INTEGER NOT NULL, applied_tier INTEGER NOT NULL,
+      action TEXT NOT NULL CHECK(action IN ('hold', 'increase', 'decrease', 'block')),
+      reason TEXT NOT NULL, created_at INTEGER NOT NULL,
+      realized_pnl_value_json TEXT CHECK(realized_pnl_value_json IS NULL OR
+        (json_valid(realized_pnl_value_json) AND length(CAST(realized_pnl_value_json AS BLOB))<16384 AND instr(realized_pnl_value_json,char(0))=0)),
+      return_percent_value_json TEXT CHECK(return_percent_value_json IS NULL OR
+        (json_valid(return_percent_value_json) AND length(CAST(return_percent_value_json AS BLOB))<16384 AND instr(return_percent_value_json,char(0))=0)),
+      reporting_currency TEXT,
+      source_hash TEXT CHECK(source_hash IS NULL OR
+        (length(source_hash)=64 AND length(CAST(source_hash AS BLOB))=64 AND source_hash NOT GLOB '*[^0-9a-f]*')),
+      source_json TEXT CHECK(source_json IS NULL OR
+        (json_valid(source_json) AND length(CAST(source_json AS BLOB))<262144 AND instr(source_json,char(0))=0)),
+      invalidated_at INTEGER CHECK(invalidated_at IS NULL OR invalidated_at>=0),
+      invalidation_reason TEXT,
+      CHECK((source_hash IS NULL)=(source_json IS NULL)),
+      UNIQUE(state_key, policy_sha256, week_started_at)
+    );
+    INSERT INTO workflow_adaptive_risk_evaluations_v46
+      (rowid,id,state_key,policy_sha256,week_started_at,week_ended_at,closed_trades,wins,losses,
+       realized_pnl,starting_equity,return_percent,previous_tier,recommended_tier,applied_tier,action,reason,created_at)
+    SELECT rowid,id,state_key,policy_sha256,week_started_at,week_ended_at,closed_trades,wins,losses,
+      realized_pnl,starting_equity,return_percent,previous_tier,recommended_tier,applied_tier,action,reason,created_at
+    FROM workflow_adaptive_risk_evaluations;
+    DROP TABLE workflow_adaptive_risk_evaluations;
+    ALTER TABLE workflow_adaptive_risk_evaluations_v46 RENAME TO workflow_adaptive_risk_evaluations;
+    CREATE INDEX idx_workflow_adaptive_risk_evaluations ON workflow_adaptive_risk_evaluations(state_key, week_ended_at DESC);`
   }
 ];
 
@@ -1592,6 +2725,7 @@ function migrationChecksum(migration: SchemaMigration): string {
       columns: migration.columns,
       sql: migration.sql,
       ...(migration.foreignKeysOff ? { foreignKeysOff: true } : {}),
+      ...(migration.preflight ? { preflight: migration.preflight } : {}),
     }))
     .digest('hex');
 }
@@ -1610,7 +2744,38 @@ export function expectedDatabaseMigrations(): DatabaseMigrationDescriptor[] {
   }));
 }
 
+/** A duplicate provider identity must be diagnosed without deleting historical rows. */
+async function assertUniqueLegacyRemoteOrders(database: Database): Promise<void> {
+  const duplicates = await database.all<Array<{
+    accountId: string; exchange: string; providerSymbol: string; exchangeOrderId: string; localOrderIds: string;
+  }>>(`
+    WITH candidates AS (
+      SELECT orders.id, orders.account_id, account.exchange, orders.exchange_order_id,
+        CASE WHEN json_valid(orders.response_json) THEN json_extract(orders.response_json, '$.symbol') END AS symbol
+      FROM trading_orders orders JOIN trading_accounts account ON account.id = orders.account_id
+      WHERE orders.exchange_order_id IS NOT NULL
+    )
+    SELECT account_id AS accountId, exchange, symbol AS providerSymbol,
+      exchange_order_id AS exchangeOrderId, json_group_array(id) AS localOrderIds
+    FROM candidates
+    WHERE typeof(symbol) = 'text' AND length(symbol) BETWEEN 1 AND 256
+    GROUP BY account_id, exchange, symbol, exchange_order_id HAVING COUNT(*) > 1
+    ORDER BY account_id, symbol, exchange_order_id
+  `);
+  if (duplicates.length === 0) return;
+  throw new Error(`Remote order identity migration has conflicting local rows; no data was removed: ${JSON.stringify(duplicates)}`);
+}
+
 async function applyMigration(database: Database, migration: SchemaMigration): Promise<void> {
+  if (migration.preflight === 'remote-order-identities-v1') {
+    await assertUniqueLegacyRemoteOrders(database);
+  }
+  if (migration.preflight === 'fill-money-identities-v1') {
+    const duplicates = await database.all(`SELECT account_id,account_fingerprint,fill_id,kind,json_group_array(id) AS event_ids
+      FROM trading_money_events WHERE basis='fill' AND fill_id IS NOT NULL
+      GROUP BY account_id,account_fingerprint,fill_id,kind HAVING COUNT(*)>1`);
+    if (duplicates.length) throw new Error(`Fill money identity migration has ambiguous originals; no data was removed: ${JSON.stringify(duplicates)}`);
+  }
   for (const column of migration.columns) {
     await ensureColumn(database, column.table, column.name, column.sqlDefinition, column.optionalTable);
   }
@@ -1698,7 +2863,7 @@ async function copyDatabase(database: Database, destinationPath: string): Promis
   });
 }
 
-async function verifyDatabaseIntegrity(databasePath: string): Promise<void> {
+export async function verifyDatabaseIntegrity(databasePath: string): Promise<void> {
   const inspection = await open({
     filename: path.resolve(databasePath),
     driver: sqlite3.Database,
@@ -1726,20 +2891,27 @@ async function createPreMigrationSnapshot(database: Database, databasePath: stri
 export async function initDb(
   dbPath = process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db')
 ): Promise<void> {
+  await serializedDatabaseAccess.execute(() => initializeDatabase(dbPath));
+}
+
+async function initializeDatabase(dbPath: string): Promise<void> {
   if (db) {
     throw new Error('Database is already initialized. Call closeDb() before reinitializing.');
   }
+  // A previous native close may have succeeded while its durable acknowledgement failed.
+  await databaseParticipant?.closeSucceeded();
+  databaseParticipant = null;
   const resolvedDbPath = path.resolve(dbPath);
   const databaseExisted = await stat(resolvedDbPath).then(stats => stats.isFile() && stats.size > 0).catch((error: any) => {
     if (error.code === 'ENOENT') return false;
     throw error;
   });
   await mkdir(path.dirname(resolvedDbPath), { recursive: true });
-  const openedDatabase = await open({
-    filename: resolvedDbPath,
-    driver: sqlite3.Database
-  });
+  const participant = await registerDatabaseMaintenanceParticipant(resolvedDbPath);
+  let openedDatabase: Database | null = null;
   try {
+    openedDatabase = await open({ filename: resolvedDbPath, driver: sqlite3.Database });
+    await participant.afterOpen();
     await openedDatabase.exec(`
       PRAGMA journal_mode = WAL;
       PRAGMA synchronous = FULL;
@@ -1752,14 +2924,32 @@ export async function initDb(
           console.log(`[INFO] Verified pre-migration database snapshot created: ${snapshot}`);
         }
       : undefined);
+    if (await mcpMaintenanceActive(resolvedDbPath)) throw new Error('Database maintenance started during initialization; handle will close without admitting work.');
     db = openedDatabase;
     guardedDb = createGuardedDatabase(openedDatabase);
+    databaseParticipant = participant;
   } catch (error) {
-    await openedDatabase.close().catch(() => {});
+    await closeFailedInitialization(openedDatabase, participant);
     db = null;
     guardedDb = null;
     throw error;
   }
+}
+
+async function closeFailedInitialization(database: Database | null, participant: DatabaseMaintenanceParticipant): Promise<void> {
+  try {
+    await database?.close();
+  } catch (error) {
+    // Keep the actual handle for a subsequent close attempt; never acknowledge it as closed.
+    db = database;
+    guardedDb = null;
+    databaseParticipant = participant;
+    await participant.closeFailed();
+    throw error;
+  }
+  databaseParticipant = participant;
+  await participant.closeSucceeded();
+  databaseParticipant = null;
 }
 
 export async function getSchemaVersion(): Promise<number> {
@@ -1769,11 +2959,20 @@ export async function getSchemaVersion(): Promise<number> {
 
 export async function closeDb(): Promise<void> {
   await serializedDatabaseAccess.execute(async () => {
-    if (!db) return;
+    if (!db) {
+      await databaseParticipant?.closeSucceeded();
+      databaseParticipant = null;
+      return;
+    }
     const database = db;
-    db = null;
+    const participant = databaseParticipant;
     guardedDb = null;
-    await database.close();
+    await participant?.closeStarted();
+    try { await database.close(); }
+    catch (error) { await participant?.closeFailed(); throw error; }
+    db = null;
+    await participant?.closeSucceeded();
+    databaseParticipant = null;
   });
 }
 
@@ -1782,88 +2981,6 @@ export async function backupDatabase(destinationPath: string): Promise<void> {
   await serializedDatabaseAccess.execute(() => copyDatabase(rawDatabase(), destinationPath));
 }
 
-async function pathExists(filePath: string): Promise<boolean> {
-  return stat(filePath).then(() => true).catch((error: any) => {
-    if (error.code === 'ENOENT') return false;
-    throw error;
-  });
-}
-
-interface PreservedDatabaseSet {
-  previousDatabase: string | null;
-  sidecars: Array<{ original: string; preserved: string }>;
-}
-
-async function validateMigrationRestoreRequest(snapshot: string, target: string, stateDirectory: string): Promise<void> {
-  if (db) throw new Error('Migration snapshot restore requires the database connection to be closed.');
-  if (snapshot === target) throw new Error('Migration snapshot and target database must be different files.');
-  const snapshotStats = await stat(snapshot);
-  if (!snapshotStats.isFile() || snapshotStats.size < 1) throw new Error('Migration snapshot must be a non-empty regular file.');
-  for (const lockName of ['.process_active', '.routing_active']) {
-    if (await pathExists(path.join(stateDirectory, lockName))) {
-      throw new Error(`Migration restore refused while '${lockName}' exists.`);
-    }
-  }
-  await verifyDatabaseIntegrity(snapshot);
-}
-
-async function preserveDatabaseSet(target: string, restoreId: string): Promise<PreservedDatabaseSet> {
-  const preservationBase = `${target}.pre-migration-restore-${restoreId}`;
-  const previousDatabase = await pathExists(target) ? preservationBase : null;
-  if (previousDatabase) await rename(target, previousDatabase);
-  const sidecars: PreservedDatabaseSet['sidecars'] = [];
-  for (const suffix of ['-wal', '-shm']) {
-    const original = `${target}${suffix}`;
-    if (await pathExists(original)) {
-      const preserved = `${preservationBase}${suffix}`;
-      await rename(original, preserved);
-      sidecars.push({ original, preserved });
-    }
-  }
-  return { previousDatabase, sidecars };
-}
-
-async function rollbackMigrationRestore(
-  target: string,
-  temporary: string,
-  preserved: PreservedDatabaseSet,
-  installed: boolean
-): Promise<void> {
-  if (installed) await rm(target, { force: true });
-  if (preserved.previousDatabase && await pathExists(preserved.previousDatabase)) {
-    await rename(preserved.previousDatabase, target);
-  }
-  for (const sidecar of preserved.sidecars.slice().reverse()) {
-    if (await pathExists(sidecar.preserved)) await rename(sidecar.preserved, sidecar.original);
-  }
-  await rm(temporary, { force: true });
-}
-
-export async function restorePreMigrationSnapshot(
-  snapshotPath: string,
-  targetDatabasePath = process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'),
-  stateDirectory = path.dirname(path.resolve(targetDatabasePath))
-): Promise<{ previousDatabase: string | null }> {
-  const snapshot = path.resolve(snapshotPath);
-  const target = path.resolve(targetDatabasePath);
-  await validateMigrationRestoreRequest(snapshot, target, path.resolve(stateDirectory));
-  await mkdir(path.dirname(target), { recursive: true });
-  const restoreId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
-  const temporary = `${target}.migration-restore-${restoreId}.tmp`;
-  let preserved: PreservedDatabaseSet = { previousDatabase: null, sidecars: [] };
-  let installed = false;
-  try {
-    await copyFile(snapshot, temporary);
-    await verifyDatabaseIntegrity(temporary);
-    preserved = await preserveDatabaseSet(target, restoreId);
-    await rename(temporary, target);
-    installed = true;
-    return { previousDatabase: preserved.previousDatabase };
-  } catch (error) {
-    await rollbackMigrationRestore(target, temporary, preserved, installed);
-    throw error;
-  }
-}
 
 // Helper to make sure db is initialized
 export function getDatabase(): Database {
@@ -1900,6 +3017,18 @@ export async function withDatabaseTransaction<T>(
       await database.exec('ROLLBACK').catch(() => undefined);
       throw error;
     }
+  });
+}
+
+/** Durable dispatching must already be committed. No adapter continuation inherits the DB owner. */
+export async function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start: () => Promise<T>): Promise<{ pending: Promise<T> }> {
+  if (serializedDatabaseAccess.isOwnedByCurrentOperation()) throw new Error('Exchange dispatch cannot inherit a database transaction.');
+  return withDatabaseTransaction(async () => {
+    await verify();
+    const pending = serializedDatabaseAccess.withoutOwnership(start);
+    // A promptly rejected provider promise is handled even while the short read fence commits.
+    void pending.catch(() => undefined);
+    return { pending };
   });
 }
 
@@ -1949,6 +3078,13 @@ function signalProvenanceParameters(provenance?: SignalProvenance): Array<string
   ];
 }
 
+export class SignalConflictError extends Error {
+  constructor(id: string) {
+    super(`Signal ${id} conflict: immutable source, content or workflow differs; review required.`);
+    this.name = 'SignalConflictError';
+  }
+}
+
 export async function saveSignal(
   id: string,
   chatId: string,
@@ -1956,62 +3092,94 @@ export async function saveSignal(
   xmlContent: string,
   normalizedContent: string,
   provenance?: SignalProvenance
-): Promise<void> {
-  const database = getDb();
-  await database.run(
-    `INSERT OR REPLACE INTO signals (
+): Promise<any> {
+  return withDatabaseTransaction(async database => {
+    await database.run(
+    `INSERT INTO signals (
        id, chat_id, message_id, xml_content, normalized_content, created_at,
        template_name, schema_name, prompt_sha256, model, provider_request_id,
-       prompt_tokens, completion_tokens, parser_version
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       prompt_tokens, completion_tokens, parser_version, workflow_revision_id
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`,
     [
       id, chatId, messageId, xmlContent, normalizedContent, Date.now(),
-      ...signalProvenanceParameters(provenance)
+      ...signalProvenanceParameters(provenance), provenance?.workflowRevisionId ?? null
     ]
-  );
+    );
+    const existing = await database.get<any>('SELECT * FROM signals WHERE id = ?', [id]);
+    if (existing.chat_id !== chatId || existing.message_id !== messageId
+      || existing.normalized_content !== normalizedContent
+      || existing.workflow_revision_id !== (provenance?.workflowRevisionId ?? null)) {
+      throw new SignalConflictError(id);
+    }
+    if (provenance) {
+      const attemptId = provenance.attemptId || createHash('sha256').update(JSON.stringify([id, provenance])).digest('hex');
+      await database.run(
+        'INSERT OR IGNORE INTO signal_parser_attempts VALUES (?, ?, ?, ?)',
+        [attemptId, id, JSON.stringify(provenance), Date.now()]
+      );
+    }
+    return existing;
+  });
+}
+
+export interface AiUsageReservation {
+  id: string;
+  usageDay: string;
+  allowance: number;
+  status: 'reserved';
 }
 
 export async function reserveAiUsage(
-  usageDay: string,
-  tokenAllowance: number,
-  dailyRequestLimit: number,
-  dailyTokenLimit: number
-): Promise<boolean> {
+  usageDay: string, tokenAllowance: number, dailyRequestLimit: number, dailyTokenLimit: number,
+): Promise<AiUsageReservation | false> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(usageDay)) throw new Error('usageDay must use YYYY-MM-DD.');
   if (![tokenAllowance, dailyRequestLimit, dailyTokenLimit].every(value => Number.isSafeInteger(value) && value > 0)) {
     throw new Error('AI usage limits must be positive safe integers.');
   }
-  const database = getDb();
-  const now = Date.now();
-  await database.run(
-    `INSERT OR IGNORE INTO ai_usage_daily (usage_day, request_count, used_tokens, reserved_tokens, updated_at)
-     VALUES (?, 0, 0, 0, ?)`,
-    [usageDay, now]
-  );
-  const result = await database.run(
-    `UPDATE ai_usage_daily
-     SET request_count = request_count + 1,
-         reserved_tokens = reserved_tokens + ?,
-         updated_at = ?
-     WHERE usage_day = ?
-       AND request_count < ?
-       AND used_tokens + reserved_tokens + ? <= ?`,
-    [tokenAllowance, now, usageDay, dailyRequestLimit, tokenAllowance, dailyTokenLimit]
-  );
-  return Number(result.changes || 0) === 1;
+  return withDatabaseTransaction(async database => {
+    const now = Date.now();
+    await database.run('INSERT OR IGNORE INTO ai_usage_daily VALUES (?, 0, 0, 0, ?)', [usageDay, now]);
+    const updated = await database.run(
+      `UPDATE ai_usage_daily SET request_count = request_count + 1,
+        reserved_tokens = reserved_tokens + ?, updated_at = ?
+       WHERE usage_day = ? AND request_count < ? AND used_tokens + reserved_tokens + ? <= ?`,
+      [tokenAllowance, now, usageDay, dailyRequestLimit, tokenAllowance, dailyTokenLimit]
+    );
+    if (!updated.changes) return false;
+    const id = randomUUID();
+    await database.run(
+      "INSERT INTO ai_usage_reservations VALUES (?, ?, ?, 'reserved', NULL, ?, NULL)",
+      [id, usageDay, tokenAllowance, now]
+    );
+    return { id, usageDay, allowance: tokenAllowance, status: 'reserved' };
+  });
 }
 
-export async function commitAiUsage(usageDay: string, tokenAllowance: number, actualTokens: number): Promise<void> {
-  const safeActual = Number.isSafeInteger(actualTokens) && actualTokens >= 0 ? actualTokens : tokenAllowance;
-  const result = await getDb().run(
-    `UPDATE ai_usage_daily
-     SET reserved_tokens = MAX(0, reserved_tokens - ?),
-         used_tokens = used_tokens + ?,
-         updated_at = ?
-     WHERE usage_day = ?`,
-    [tokenAllowance, safeActual, Date.now(), usageDay]
-  );
-  if (Number(result.changes || 0) !== 1) throw new Error(`No AI usage reservation exists for ${usageDay}.`);
+/** Retries must use the same ID and the same known/unknown settlement. Never refunds a crashed attempt. */
+export async function commitAiUsage(reservationId: string, allowance: number, actualTokens: number | null): Promise<void> {
+  const known = actualTokens !== null && Number.isSafeInteger(actualTokens) && actualTokens >= 0;
+  const actual = known ? actualTokens : allowance;
+  const status = known ? 'settled_known' : 'settled_unknown';
+  await withDatabaseTransaction(async database => {
+    const row = await database.get<any>('SELECT * FROM ai_usage_reservations WHERE id = ?', [reservationId]);
+    if (!row) throw new Error(`No AI usage reservation exists for ${reservationId}.`);
+    if (row.allowance !== allowance) throw new Error('AI settlement conflict: allowance differs.');
+    if (row.status !== 'reserved') {
+      if (row.status === status && row.actual_tokens === actual) return;
+      throw new Error('AI settlement conflict: reservation already settled differently.');
+    }
+    const now = Date.now();
+    const updated = await database.run(
+      `UPDATE ai_usage_daily SET reserved_tokens = reserved_tokens - ?, used_tokens = used_tokens + ?, updated_at = ?
+       WHERE usage_day = ? AND reserved_tokens >= ?`,
+      [allowance, actual, now, row.usage_day, allowance]
+    );
+    if (!updated.changes) throw new Error('AI usage aggregate is inconsistent; reservation remains bound.');
+    await database.run(
+      'UPDATE ai_usage_reservations SET status = ?, actual_tokens = ?, settled_at = ? WHERE id = ?',
+      [status, actual, now, reservationId]
+    );
+  });
 }
 
 export async function getAiUsage(usageDay: string): Promise<{ requestCount: number; usedTokens: number; reservedTokens: number }> {
@@ -2033,7 +3201,8 @@ export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, numb
     sending: 0,
     completed: 0,
     failed: 0,
-    unknown: 0
+    unknown: 0,
+    needs_review: 0
   };
   const rows = await getDb().all<Array<{ status: OutboxStatus; count: number }>>(
     `SELECT status, COUNT(*) AS count FROM pending_tasks GROUP BY status`
@@ -2103,6 +3272,37 @@ async function prepareTradingRetentionCandidates(
          SELECT 1 FROM trading_journal_entries AS journal
          WHERE journal.intent_id = trading_trade_intents.id
        )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_operations AS operation
+         WHERE operation.intent_id = trading_trade_intents.id
+           AND operation.phase IN ('prepared', 'dispatching', 'unresolved')
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_accounting_pending WHERE intent_id = trading_trade_intents.id
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_accounting_projections WHERE intent_id = trading_trade_intents.id
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_accounting_projection_evidence WHERE intent_id = trading_trade_intents.id
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_money_events WHERE intent_id = trading_trade_intents.id
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_risk_contracts WHERE intent_id = trading_trade_intents.id
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_order_identity_bindings binding JOIN trading_orders owned ON owned.id=binding.order_id
+         WHERE owned.intent_id=trading_trade_intents.id
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM trading_orders AS owned_order
+         WHERE owned_order.intent_id = trading_trade_intents.id
+           AND (owned_order.filled_quantity <> '0' OR EXISTS (
+             SELECT 1 FROM trading_fills WHERE order_id = owned_order.id
+           ))
+       )
      ORDER BY updated_at ASC LIMIT ?`,
     [cutoff, batchSize]
   );
@@ -2155,10 +3355,9 @@ async function deleteRetainedWorkflowState(database: Database): Promise<void> {
 async function pruneTradingData(database: Database, cutoff: number, batchSize: number): Promise<Array<number | undefined>> {
   await prepareTradingRetentionCandidates(database, cutoff, batchSize);
   await deleteRetainedWorkflowState(database);
+  await database.run("DELETE FROM trading_operations WHERE intent_id IN (SELECT id FROM retention_trade_intents) AND phase IN ('acknowledged', 'resolved', 'abandoned')");
+  await database.run('DELETE FROM trading_order_generations WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
   await database.run('DELETE FROM trading_risk_events WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
-  await database.run(`DELETE FROM trading_fills WHERE order_id IN (
-    SELECT id FROM trading_orders WHERE intent_id IN (SELECT id FROM retention_trade_intents)
-  )`);
   await database.run('DELETE FROM trading_orders WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
   await database.run('DELETE FROM trading_positions WHERE intent_id IN (SELECT id FROM retention_trade_intents)');
   const intents = await database.run('DELETE FROM trading_trade_intents WHERE id IN (SELECT id FROM retention_trade_intents)');
@@ -2186,6 +3385,16 @@ async function pruneTradingData(database: Database, cutoff: number, batchSize: n
     `DELETE FROM trading_paper_orders WHERE exchange_order_id IN (
        SELECT exchange_order_id FROM trading_paper_orders
        WHERE status IN ('filled', 'cancelled', 'rejected') AND updated_at < ?
+         AND filled_quantity = '0'
+         AND NOT EXISTS (
+           SELECT 1 FROM trading_paper_fills WHERE exchange_order_id = trading_paper_orders.exchange_order_id
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM trading_orders AS owned_order
+           WHERE owned_order.account_id = trading_paper_orders.account_id
+             AND (owned_order.exchange_order_id = trading_paper_orders.exchange_order_id
+               OR owned_order.client_order_id = trading_paper_orders.client_order_id)
+         )
        ORDER BY updated_at ASC LIMIT ?
      )`,
     [cutoff, batchSize]
@@ -2233,7 +3442,7 @@ export async function pruneOperationalData(
              SELECT 1 FROM pending_tasks AS task
              WHERE task.chat_id = signal.chat_id
                AND task.message_id = signal.message_id
-               AND task.status IN ('pending', 'preparing', 'sending', 'failed', 'unknown')
+               AND task.status IN ('pending', 'preparing', 'sending', 'failed', 'unknown', 'needs_review')
            )
            AND NOT EXISTS (
              SELECT 1 FROM trading_trade_intents AS intent
@@ -2254,7 +3463,10 @@ export async function pruneOperationalData(
     const aiUsage = await database.run(
       `DELETE FROM ai_usage_daily WHERE usage_day IN (
          SELECT usage_day FROM ai_usage_daily
-         WHERE usage_day < ? ORDER BY usage_day ASC LIMIT ?
+         WHERE usage_day < ? AND reserved_tokens = 0
+           AND NOT EXISTS (SELECT 1 FROM ai_usage_reservations AS reservation
+             WHERE reservation.usage_day = ai_usage_daily.usage_day AND reservation.status = 'reserved')
+         ORDER BY usage_day ASC LIMIT ?
        )`,
       [cutoffDay, batchSize]
     );
@@ -2351,12 +3563,14 @@ function mapOutboxRow(row: any): OutboxTask {
     completedAt: row.completed_at === null ? undefined : Number(row.completed_at),
     lastError: row.last_error || undefined,
     config: parseJsonField(row.config_json, 'config_json', row.id),
-    result: parseJsonField(row.result_json, 'result_json', row.id)
+    result: parseJsonField(row.result_json, 'result_json', row.id),
+    workflowRevisionId: row.workflow_revision_id || null,
+    ingressWorkId: row.ingress_work_id || undefined
   };
 }
 
 // Durable inbox/outbox API
-export async function enqueueOutboxTask(task: {
+export interface EnqueueOutboxTaskInput {
   id: string;
   type: 'single' | 'mediaGroup';
   chatId: string;
@@ -2365,7 +3579,12 @@ export async function enqueueOutboxTask(task: {
   mediaGroupId?: string;
   addedAt: number;
   config?: any;
-}): Promise<boolean> {
+  workflowRevisionId?: string | null;
+  ingressWorkId?: string;
+  needsReview?: boolean;
+}
+
+function validateOutboxTask(task: EnqueueOutboxTaskInput): void {
   if (!task.id || !['single', 'mediaGroup'].includes(task.type)) {
     throw new Error('Outbox task id and type are required.');
   }
@@ -2375,13 +3594,17 @@ export async function enqueueOutboxTask(task: {
   if (task.type === 'mediaGroup' && (!Array.isArray(task.messageIds) || task.messageIds.length === 0 || task.messageIds.some(id => !Number.isSafeInteger(id)))) {
     throw new Error(`Media-group outbox task ${task.id} requires safe messageIds.`);
   }
+}
+
+export async function enqueueOutboxTask(task: EnqueueOutboxTaskInput): Promise<boolean> {
+  validateOutboxTask(task);
   const database = getDb();
   const now = Date.now();
   const result = await database.run(
     `INSERT INTO pending_tasks (
        id, type, chat_id, message_id, message_ids, media_group_id, added_at,
-       status, attempts, updated_at, config_json
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+       status, attempts, updated_at, config_json, workflow_revision_id, ingress_work_id
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
      ON CONFLICT(id) DO NOTHING`,
     [
       task.id,
@@ -2391,8 +3614,11 @@ export async function enqueueOutboxTask(task: {
       task.messageIds ? JSON.stringify(task.messageIds) : null,
       task.mediaGroupId || null,
       task.addedAt,
+      task.needsReview ? 'needs_review' : 'pending',
       now,
-      task.config === undefined ? null : JSON.stringify(task.config)
+      task.config === undefined ? null : JSON.stringify(task.config),
+      task.workflowRevisionId ?? null,
+      task.ingressWorkId ?? null
     ]
   );
   return Number(result.changes || 0) === 1;
@@ -2446,11 +3672,11 @@ export async function failOutboxTask(id: string, error: unknown): Promise<Outbox
   message = message.slice(0, 4000);
   const row = await database.get<{ status: OutboxStatus }>(
     `UPDATE pending_tasks
-     SET status = CASE WHEN status = 'sending' THEN 'unknown' ELSE 'failed' END,
+     SET status = CASE WHEN status = 'sending' THEN 'unknown' WHEN ? THEN 'needs_review' ELSE 'failed' END,
          updated_at = ?, last_error = ?, completed_at = NULL, result_json = NULL
      WHERE id = ? AND status IN ('preparing', 'sending')
      RETURNING status`,
-    [Date.now(), message, id]
+    [error instanceof SignalConflictError || (error instanceof Error && error.name === 'AiUsageSettlementError') ? 1 : 0, Date.now(), message, id]
   );
   if (!row) throw new Error(`Outbox task ${id} cannot be failed from its current state.`);
   return row.status;

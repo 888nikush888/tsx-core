@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { completeLegacyIngressFixture } from './fixtures/legacy_ingress_schema.js';
 import {
   closeDb,
   expectedDatabaseMigrations,
@@ -21,6 +22,12 @@ try {
       CREATE TABLE schema_migrations (
         version INTEGER PRIMARY KEY, name TEXT NOT NULL, checksum TEXT NOT NULL, applied_at INTEGER NOT NULL
       );
+      CREATE TABLE trading_accounts (id TEXT PRIMARY KEY, exchange TEXT NOT NULL);
+      CREATE TABLE trading_trade_intents (id TEXT PRIMARY KEY, status TEXT NOT NULL);
+      CREATE TABLE trading_orders (
+        id TEXT PRIMARY KEY, account_id TEXT NOT NULL, exchange_order_id TEXT, response_json TEXT, role TEXT NOT NULL DEFAULT 'entry'
+      );
+      CREATE TABLE trading_positions (id TEXT PRIMARY KEY, account_id TEXT, status TEXT, updated_at INTEGER);
       CREATE TABLE workflow_execution_paths (
         id TEXT PRIMARY KEY,
         workflow_revision_id TEXT NOT NULL,
@@ -48,6 +55,7 @@ try {
       INSERT INTO trading_fallback_candidates VALUES ('run', 0, 'primary');
       INSERT INTO trading_fallback_candidates VALUES ('run', 1, 'fallback');
     `);
+    await completeLegacyIngressFixture(fixture);
     for (const migration of expectedDatabaseMigrations().slice(0, 21)) {
       await fixture.run(
         'INSERT INTO schema_migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, 1)',

@@ -1,21 +1,14 @@
 from __future__ import annotations
 
-import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
+import ccxt
+
+from ccxt_certification_evidence import ReceiptError, read_receipt, validate_receipt
+from ccxt_implementation_reviews import APPROVED_IMPLEMENTATION_RECEIPTS
 from ccxt_profiles import ExchangeProfile
-
-REQUIRED_TEST_FLAGS = (
-    "protectedEntry",
-    "cancel",
-    "reconciliation",
-    "stream",
-    "credentialRotation",
-    "accountIdentity",
-    "marketNormalization",
-)
 
 
 @dataclass(frozen=True)
@@ -30,25 +23,21 @@ def certification_result(
     ccxt_version: str,
     profile: ExchangeProfile,
 ) -> CertificationResult:
-    destination = directory / f"{exchange}.json"
+    # No manifest-selected commands, imports, source paths, or automatic approval.
+    if not re.fullmatch(r'[a-z][a-z0-9_]{1,63}', exchange) or exchange != profile.id:
+        return CertificationResult(False, 'Implementation exchange identifier is invalid.')
+    if ccxt_version != '4.5.75' or ccxt.__version__ != ccxt_version:
+        return CertificationResult(False, 'Implementation evidence does not match the installed CCXT version.')
+    approved = APPROVED_IMPLEMENTATION_RECEIPTS.get((exchange, profile.profile_version), ())
+    if not approved:
+        return CertificationResult(False, 'Independent implementation review is pending; legacy certification flags are insufficient.')
     try:
-        value: Any = json.loads(destination.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return CertificationResult(False, "Certification evidence is missing or invalid.")
-    if not isinstance(value, dict) or set(value) != {
-        "exchange", "status", "ccxtVersion", "profileVersion", "tests"
-    }:
-        return CertificationResult(False, "Certification evidence has an invalid schema.")
-    if value.get("exchange") != exchange or value.get("status") != "certified":
-        return CertificationResult(False, "Certification evidence does not certify this exchange.")
-    if value.get("ccxtVersion") != ccxt_version:
-        return CertificationResult(False, "Certification evidence does not match the installed CCXT version.")
-    if value.get("profileVersion") != profile.profile_version:
-        return CertificationResult(False, "Certification evidence does not match the current profile version.")
-    tests = value.get("tests")
-    if not isinstance(tests, dict) or set(tests) != set(REQUIRED_TEST_FLAGS):
-        return CertificationResult(False, "Certification evidence has an invalid test matrix.")
-    if any(tests.get(flag) is not True for flag in REQUIRED_TEST_FLAGS):
-        return CertificationResult(False, "Certification evidence contains an unpassed required test.")
+        value = read_receipt(directory / f'{exchange}.json', approved)
+        validate_receipt(value, exchange, ccxt_version, profile, Path(__file__).resolve().parent,
+                         Path(ccxt.__file__).resolve().parent)
+    except ReceiptError as error:
+        return CertificationResult(False, str(error))
+    except (OSError, ValueError, TypeError, KeyError, RecursionError, UnicodeError):
+        # Never expose a file path, hostile JSON payload, or raw exception.
+        return CertificationResult(False, 'Implementation evidence is missing or invalid.')
     return CertificationResult(True, None)
-

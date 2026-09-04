@@ -1,14 +1,16 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import {
-  addSignedDecimal,
   compareDecimal,
   decimal,
-  divideDecimal,
-  multiplyDecimal,
   signedDecimal,
 } from './trading_decimal.js';
 import { recordTradingExecutionEvent } from './trading_telemetry.js';
+import { channelClosedMoneyValuePerformance } from './trading_money_reporting.js';
+import { intentMoneyTotals } from './trading_fill_accounting.js';
+import { moneyValueFromDecimal, validateMoneyValue, type MoneyValue } from './trading_money_value.js';
+import { channelReturnThreshold, channelReturnValue } from './trading_channel_risk_math.js';
 import type {
   ChannelRiskEvaluation,
   ChannelRiskMode,
@@ -112,9 +114,8 @@ function evaluationFromRow(row: any): ChannelRiskEvaluation {
     closedTrades: Number(row.closed_trades),
     wins: Number(row.wins),
     losses: Number(row.losses),
-    realizedPnl: signedDecimal(String(row.realized_pnl)),
+    ...evaluationMoneyFields(row),
     startingEquity: decimal(String(row.starting_equity), { positive: true }),
-    returnPercent: signedDecimal(String(row.return_percent)),
     previousTier: Number(row.previous_tier),
     recommendedTier: Number(row.recommended_tier),
     appliedTier: Number(row.applied_tier),
@@ -122,6 +123,23 @@ function evaluationFromRow(row: any): ChannelRiskEvaluation {
     reason: String(row.reason),
     createdAt: Number(row.created_at),
   };
+}
+
+function storedMoneyValue(encoded: string | null, scalar: string | null): MoneyValue | null {
+  if (!encoded) return scalar === null ? null : moneyValueFromDecimal(scalar);
+  const value = validateMoneyValue(JSON.parse(encoded));
+  if (value.decimal !== scalar) throw new Error('Stored adaptive-risk scalar differs from its exact value.');
+  return value;
+}
+
+function evaluationMoneyFields(row: any) {
+  const realizedPnl = row.realized_pnl === null ? null : signedDecimal(String(row.realized_pnl));
+  const returnPercent = row.return_percent === null ? null : signedDecimal(String(row.return_percent));
+  const source = row.source_json ? JSON.parse(row.source_json) : null;
+  return { realizedPnl, returnPercent, realizedPnlValue: storedMoneyValue(row.realized_pnl_value_json, realizedPnl),
+    returnPercentValue: storedMoneyValue(row.return_percent_value_json, returnPercent),
+    returnPercentReason: source?.returnPercentReason ?? null, reportingCurrency: row.reporting_currency ?? null,
+    sourceHash: row.source_hash ?? null, invalidatedAt: row.invalidated_at ?? null, invalidationReason: row.invalidation_reason ?? null };
 }
 
 export async function listChannelRiskPolicies(): Promise<ChannelRiskPolicy[]> {
@@ -271,55 +289,106 @@ function currentWeekStart(now: number): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) - day * 24 * 60 * 60 * 1_000;
 }
 
-function signedPercent(numerator: string, denominator: string): string {
-  const normalized = signedDecimal(numerator);
-  const negative = normalized.startsWith('-');
-  const magnitude = negative ? normalized.slice(1) : normalized;
-  const percent = divideDecimal(multiplyDecimal(magnitude, '100'), denominator);
-  return negative && percent !== '0' ? `-${percent}` : percent;
-}
+type Performance = Awaited<ReturnType<typeof channelClosedMoneyValuePerformance>>;
+type CapitalRequest = { channelId: string; accountId?: string; reportingCurrency?: string; currentEquity: string;
+  since: number; until: number; now: number; performanceAccountId: string | null };
+type CapitalProof = { accountId: string; fingerprint: string; generation: string | null; exchange: string;
+  reportingCurrency: string; equity: string; basis: string; observedAt: number; snapshotId: string | null };
+type ChannelEvidence = { version: 1; scope: { channelId: string; accountId: string | null; since: number; until: number };
+  capital: CapitalProof; performance: Performance; positions: unknown[]; returnPercentReason: string | null };
+const sourceHash = (value: string) => createHash('sha256').update(value).digest('hex');
+const unresolvedRisk = (reason: string): never => { throw new Error(`Adaptive risk is unresolved: ${reason}`); };
 
-async function closedPerformance(channelId: string, since: number, until: number): Promise<{
-  closedTrades: number;
-  wins: number;
-  losses: number;
-  realizedPnl: string;
-}> {
-  const rows = await getDatabase().all<Array<{ realized_pnl: string }>>(
-    `SELECT realized_pnl FROM trading_positions
-     WHERE channel_id = ? AND status = 'closed' AND closed_at >= ? AND closed_at < ?
-     ORDER BY closed_at`,
-    [channelId, since, until],
-  );
-  let realizedPnl = '0';
-  let wins = 0;
-  let losses = 0;
+async function performanceSources(request: CapitalRequest) {
+  const rows = await getDatabase().all<any[]>(`SELECT p.id,p.intent_id,p.account_id,p.closed_at,p.reporting_currency,
+    p.accounting_status,p.ledger_realized_pnl,p.ledger_realized_value_json,projection.evidence_hash
+    FROM trading_positions p LEFT JOIN trading_accounting_projections projection ON projection.intent_id=p.intent_id
+    WHERE p.channel_id=? AND (? IS NULL OR p.account_id=?) AND p.status='closed' AND p.closed_at>=? AND p.closed_at<?
+    ORDER BY p.id LIMIT 1001`, [request.channelId, request.performanceAccountId, request.performanceAccountId, request.since, request.until]);
+  if (rows.length > 1000) unresolvedRisk('closed-position source budget exceeded; no source was omitted.');
+  const sources = [];
   for (const row of rows) {
-    const pnl = signedDecimal(row.realized_pnl);
-    realizedPnl = addSignedDecimal(realizedPnl, pnl);
-    if (pnl.startsWith('-')) losses += 1;
-    else if (pnl !== '0') wins += 1;
+    const totals = await intentMoneyTotals(row.intent_id);
+    if (row.accounting_status !== 'complete' || !row.evidence_hash || !totals.value || totals.currency !== row.reporting_currency) {
+      unresolvedRisk('closed-position original valuation is incomplete.');
+    }
+    const value = row.ledger_realized_value_json ? validateMoneyValue(JSON.parse(row.ledger_realized_value_json)) : null;
+    if (value ? !isDeepStrictEqual(value, totals.value) : row.ledger_realized_pnl !== totals.amount) unresolvedRisk('closed-position valuation changed.');
+    sources.push({ id: row.id, intentId: row.intent_id, accountId: row.account_id, closedAt: row.closed_at,
+      projectionHash: row.evidence_hash, valuationHash: totals.valuationHash });
   }
-  return { closedTrades: rows.length, wins, losses, realizedPnl };
+  return sources;
 }
 
-async function startingEquity(channelId: string, since: number, fallback: string): Promise<string> {
-  const row = await getDatabase().get<{ equity: string }>(
-    `SELECT snapshot.equity
-     FROM trading_routes AS route
-     JOIN trading_equity_snapshots AS snapshot ON snapshot.account_id = route.account_id
-     WHERE route.channel_id = ? AND snapshot.observed_at >= ?
-     ORDER BY snapshot.observed_at LIMIT 1`,
-    [channelId, since],
-  );
-  return row ? decimal(row.equity, { positive: true }) : decimal(fallback, { positive: true });
+async function capitalAccount(request: CapitalRequest, positions: Array<{ accountId: string }>) {
+  const ids = new Set(positions.map(row => row.accountId));
+  if (request.accountId) ids.add(request.accountId);
+  if (!ids.size) {
+    const routes = await getDatabase().all<Array<{ account_id: string }>>('SELECT DISTINCT account_id FROM trading_routes WHERE channel_id=? LIMIT 2', [request.channelId]);
+    routes.forEach(row => ids.add(row.account_id));
+  }
+  if (ids.size !== 1) return unresolvedRisk('ambiguous account/equity context for channel history.');
+  const accountId = [...ids][0]!;
+  const row = await getDatabase().get<any>(`SELECT a.exchange,a.mode,a.external_account_id,a.credential_generation,b.reporting_currency
+    FROM trading_accounts a JOIN trading_money_bindings b ON b.account_id=a.id AND b.account_fingerprint=
+    CASE WHEN a.exchange='paper' THEN 'paper:'||a.id ELSE a.external_account_id END WHERE a.id=?`, [accountId]);
+  if (!row || (!request.reportingCurrency && (row.exchange !== 'paper' || row.reporting_currency !== 'USDT'))
+    || (request.reportingCurrency && request.reportingCurrency !== row.reporting_currency)) return unresolvedRisk('reporting currency is not bound to the input capital.');
+  return { accountId, fingerprint: row.exchange === 'paper' ? `paper:${accountId}` : row.external_account_id,
+    generation: row.credential_generation, exchange: row.exchange, reportingCurrency: row.reporting_currency };
+}
+
+async function capitalEvidence(request: CapitalRequest, positions: Array<{ accountId: string }>, pinned?: CapitalProof): Promise<CapitalProof> {
+  const binding = await capitalAccount(request, positions);
+  if (pinned?.basis === 'current_bound_input') return { ...binding, equity: decimal(pinned.equity, { positive: true }),
+    basis: pinned.basis, observedAt: pinned.observedAt, snapshotId: null };
+  // Legacy live snapshots have no historical currency/fingerprint and cannot be relabelled using today's account.
+  const row = binding.exchange === 'paper' && binding.reportingCurrency === 'USDT'
+    ? await getDatabase().get<{ id: string; equity: string; observed_at: number }>(`SELECT id,equity,observed_at FROM trading_equity_snapshots
+      WHERE account_id=? AND observed_at>=? AND observed_at<? ORDER BY observed_at,id LIMIT 1`, [binding.accountId, request.since, request.until]) : undefined;
+  if (row) return { ...binding, equity: decimal(row.equity, { positive: true }), basis: 'paper_native_historical', observedAt: row.observed_at, snapshotId: row.id };
+  return { ...binding, equity: decimal(request.currentEquity, { positive: true }), basis: 'current_bound_input', observedAt: request.now, snapshotId: null };
+}
+
+async function collectChannelEvidence(request: CapitalRequest, pinned?: CapitalProof) {
+  const performance = await channelClosedMoneyValuePerformance(request.channelId, request.performanceAccountId, request.since, request.until);
+  if (performance.accountingStatus !== 'complete' || !performance.realizedPnlValue) unresolvedRisk('closed history is incomplete or mixes reporting currencies.');
+  const positions = await performanceSources(request), capital = await capitalEvidence(request, positions, pinned);
+  if (performance.reportingCurrency !== null && performance.reportingCurrency !== capital.reportingCurrency) unresolvedRisk('performance and capital reporting currencies differ.');
+  const percent = channelReturnValue(performance.realizedPnlValue!, capital.equity);
+  const source: ChannelEvidence = { version: 1, scope: { channelId: request.channelId, accountId: request.performanceAccountId,
+    since: request.since, until: request.until }, capital, performance, positions, returnPercentReason: percent.reason };
+  const json = JSON.stringify(source);
+  if (Buffer.byteLength(json) >= 262144) unresolvedRisk('original source byte budget exceeded; no source was omitted.');
+  return { source, json, hash: sourceHash(json), percent };
+}
+
+async function assertCachedEvidence(row: any, request: CapitalRequest): Promise<void> {
+  if (row.invalidated_at !== null && row.invalidated_at !== undefined) unresolvedRisk(row.invalidation_reason ?? 'previous evaluation is invalidated.');
+  if (!row.source_json || !row.source_hash || Buffer.byteLength(row.source_json) >= 262144
+    || row.source_json.includes('\0') || sourceHash(row.source_json) !== row.source_hash) unresolvedRisk('original evaluation provenance is missing or invalid.');
+  const original = JSON.parse(row.source_json) as ChannelEvidence;
+  if (original.version !== 1 || !original.capital) unresolvedRisk('original evaluation provenance is invalid.');
+  const current = await collectChannelEvidence(request, original.capital);
+  if (current.hash !== row.source_hash) unresolvedRisk('original evaluation sources changed; a new explicit policy is required.');
+  assertOriginalEvaluationAmounts(row, current);
+}
+
+function assertOriginalEvaluationAmounts(row: any, evidence: Awaited<ReturnType<typeof collectChannelEvidence>>): void {
+  const { performance, capital } = evidence.source;
+  if (row.starting_equity !== capital.equity || row.reporting_currency !== capital.reportingCurrency
+    || row.realized_pnl !== performance.realizedPnl || row.return_percent !== (evidence.percent.value?.decimal ?? null)
+    || !isDeepStrictEqual(storedMoneyValue(row.realized_pnl_value_json, row.realized_pnl), performance.realizedPnlValue)
+    || !isDeepStrictEqual(storedMoneyValue(row.return_percent_value_json, row.return_percent), evidence.percent.value)) {
+    unresolvedRisk('stored evaluation values disagree with their original source.');
+  }
 }
 
 function recommendation(policy: ChannelRiskPolicy, performance: {
   closedTrades: number;
-  realizedPnl: string;
-  returnPercent: string;
-}): { tier: number; action: ChannelRiskEvaluation['action']; reason: string } {
+  realizedPnlValue: MoneyValue;
+  equity: string;
+}): { tier: number; action: ChannelRiskEvaluation['action']; reason: string; uncertain?: boolean } {
   if (policy.lockedTier !== null) {
     return { tier: policy.lockedTier, action: 'hold', reason: `Tier is manually locked at ${policy.lockedTier}.` };
   }
@@ -330,22 +399,23 @@ function recommendation(policy: ChannelRiskPolicy, performance: {
       reason: `Only ${performance.closedTrades} closed trades; ${policy.minimumClosedTrades} required.`,
     };
   }
-  if (performance.realizedPnl.startsWith('-')) {
-    const magnitude = performance.returnPercent.slice(1);
-    if (compareDecimal(magnitude, policy.lossThresholdPercent) >= 0) {
+  const loss = channelReturnThreshold(performance.realizedPnlValue, performance.equity, policy.lossThresholdPercent, true);
+  const profit = channelReturnThreshold(performance.realizedPnlValue, performance.equity, policy.profitThresholdPercent);
+  if (loss === 'reached') {
       return {
         tier: Math.max(0, policy.currentTier - 1),
         action: 'decrease',
         reason: `Loss threshold ${policy.lossThresholdPercent}% reached.`,
       };
-    }
-  } else if (compareDecimal(performance.returnPercent, policy.profitThresholdPercent) >= 0) {
+  } else if (profit === 'reached') {
     return {
       tier: Math.min(policy.tiers.length - 1, policy.currentTier + 1),
       action: 'increase',
       reason: `Profit threshold ${policy.profitThresholdPercent}% reached.`,
     };
   }
+  if (loss === 'uncertain' || profit === 'uncertain') return { tier: policy.currentTier, action: 'hold', uncertain: true,
+    reason: 'RISK_PRECISION_UNCERTAIN: the original monetary interval overlaps a policy threshold.' };
   return { tier: policy.currentTier, action: 'hold', reason: 'Weekly performance remained inside the neutral band.' };
 }
 
@@ -362,21 +432,19 @@ async function shouldBlockWeakChannel(policy: ChannelRiskPolicy, action: Channel
 
 async function evaluatePolicy(
   policy: ChannelRiskPolicy,
-  currentEquity: string,
-  now: number,
+  request: CapitalRequest,
 ): Promise<ChannelRiskEvaluation> {
-  const weekEndedAt = currentWeekStart(now);
+  const now = request.now, weekEndedAt = request.until;
   const weekStartedAt = weekEndedAt - policy.lookbackWeeks * WEEK_MS;
   const existing = await getDatabase().get<any>(
     `SELECT * FROM trading_channel_risk_evaluations
      WHERE channel_id = ? AND policy_version = ? AND week_started_at = ?`,
     [policy.channelId, policy.policyVersion, weekStartedAt],
   );
-  if (existing) return evaluationFromRow(existing);
-  const performance = await closedPerformance(policy.channelId, weekStartedAt, weekEndedAt);
-  const equity = await startingEquity(policy.channelId, weekStartedAt, currentEquity);
-  const returnPercent = signedPercent(performance.realizedPnl, equity);
-  let suggested = recommendation(policy, { ...performance, returnPercent });
+  if (existing) { await assertCachedEvidence(existing, request); return evaluationFromRow(existing); }
+  const evidence = await collectChannelEvidence(request);
+  const { performance, capital } = evidence.source, equity = capital.equity;
+  let suggested = recommendation(policy, { closedTrades: performance.closedTrades, realizedPnlValue: performance.realizedPnlValue!, equity });
   if (await shouldBlockWeakChannel(policy, suggested.action)) {
     suggested = { ...suggested, action: 'block', reason: `${policy.weakWeeksBeforeBlock} consecutive weak evaluations.` };
   }
@@ -385,7 +453,7 @@ async function evaluatePolicy(
   let blockReason = policy.blockReason;
   if (policy.mode === 'automatic') {
     appliedTier = suggested.tier;
-    if (suggested.action === 'block') {
+    if (suggested.action === 'block' || suggested.uncertain) {
       blocked = true;
       blockReason = suggested.reason;
     }
@@ -400,8 +468,15 @@ async function evaluatePolicy(
     wins: performance.wins,
     losses: performance.losses,
     realizedPnl: performance.realizedPnl,
+    realizedPnlValue: performance.realizedPnlValue,
     startingEquity: equity,
-    returnPercent,
+    returnPercent: evidence.percent.value?.decimal ?? null,
+    returnPercentValue: evidence.percent.value,
+    returnPercentReason: evidence.percent.reason,
+    reportingCurrency: capital.reportingCurrency,
+    sourceHash: evidence.hash,
+    invalidatedAt: null,
+    invalidationReason: null,
     previousTier: policy.currentTier,
     recommendedTier: suggested.tier,
     appliedTier,
@@ -414,14 +489,17 @@ async function evaluatePolicy(
       `INSERT INTO trading_channel_risk_evaluations (
          id, channel_id, policy_version, week_started_at, week_ended_at,
          closed_trades, wins, losses, realized_pnl, starting_equity, return_percent,
-         previous_tier, recommended_tier, applied_tier, action, reason, created_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         previous_tier, recommended_tier, applied_tier, action, reason, created_at,
+         realized_pnl_value_json,return_percent_value_json,reporting_currency,source_hash,source_json
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         evaluation.id, evaluation.channelId, evaluation.policyVersion,
         evaluation.weekStartedAt, evaluation.weekEndedAt, evaluation.closedTrades,
         evaluation.wins, evaluation.losses, evaluation.realizedPnl, evaluation.startingEquity,
         evaluation.returnPercent, evaluation.previousTier, evaluation.recommendedTier,
         evaluation.appliedTier, evaluation.action, evaluation.reason, evaluation.createdAt,
+        JSON.stringify(evaluation.realizedPnlValue), evaluation.returnPercentValue ? JSON.stringify(evaluation.returnPercentValue) : null,
+        evaluation.reportingCurrency, evidence.hash, evidence.json,
       ],
     );
     if (policy.mode === 'automatic') {
@@ -440,6 +518,8 @@ export async function resolveEffectiveChannelRisk(input: {
   channelId: string;
   strategy: StrategyConfiguration;
   currentEquity: string;
+  accountId?: string;
+  reportingCurrency?: string;
   now?: number;
 }): Promise<{ riskPercent: string; blocked: boolean; reason: string; policy: ChannelRiskPolicy | null }> {
   const row = await getDatabase().get<any>(
@@ -463,8 +543,9 @@ export async function resolveEffectiveChannelRisk(input: {
       policy,
     };
   }
-  if (policy.mode !== 'fixed') {
-    await evaluatePolicy(policy, input.currentEquity, input.now ?? Date.now());
+  let warning: string | null = null;
+  if (policy.mode !== 'fixed' && policy.lockedTier === null) {
+    warning = await evaluateChannelPolicySafely(policy, input);
     policy = policyFromRow(await getDatabase().get(
       'SELECT * FROM trading_channel_risk_policies WHERE channel_id = ?',
       [policy.channelId],
@@ -482,7 +563,34 @@ export async function resolveEffectiveChannelRisk(input: {
   const riskPercent = policy.mode === 'shadow' || policy.mode === 'fixed'
     ? input.strategy.sizing.riskPerTradePercent
     : policy.tiers[tier]!.riskPercent;
-  return { riskPercent, blocked: false, reason: `Channel policy ${policy.mode} tier ${tier}.`, policy };
+  return { riskPercent, blocked: false, reason: warning ?? `Channel policy ${policy.mode} tier ${tier}.`, policy };
+}
+
+async function evaluateChannelPolicySafely(policy: ChannelRiskPolicy, input: { channelId: string; currentEquity: string;
+  accountId?: string; reportingCurrency?: string; now?: number }): Promise<string | null> {
+  const now = input.now ?? Date.now(), until = currentWeekStart(now);
+  const request = { ...input, now, until, since: until - policy.lookbackWeeks * WEEK_MS, performanceAccountId: null };
+  try {
+    const evaluation = await withDatabaseTransaction(() => evaluatePolicy(policy, request));
+    return evaluation.reason.includes('RISK_PRECISION_UNCERTAIN') ? evaluation.reason : null;
+  } catch (error) { return invalidateChannelEvaluation(policy, request, error); }
+}
+
+function failureReason(error: unknown): string {
+  const reason = error instanceof Error ? error.message : 'Unproved monetary history.';
+  return (reason.startsWith('Adaptive risk is unresolved:') ? reason : `Adaptive risk is unresolved: ${reason}`).slice(0, 2048);
+}
+
+async function invalidateChannelEvaluation(policy: ChannelRiskPolicy, request: CapitalRequest, error: unknown): Promise<string> {
+  const reason = failureReason(error);
+  await withDatabaseTransaction(async db => {
+    await db.run(`UPDATE trading_channel_risk_evaluations SET invalidated_at=COALESCE(invalidated_at,?),
+      invalidation_reason=COALESCE(invalidation_reason,?) WHERE channel_id=? AND policy_version=? AND week_started_at=?`,
+    [request.now, reason, policy.channelId, policy.policyVersion, request.since]);
+    if (policy.mode === 'automatic') await db.run(`UPDATE trading_channel_risk_policies SET blocked=1,block_reason=?,updated_at=?
+      WHERE channel_id=? AND policy_version=?`, [reason, request.now, policy.channelId, policy.policyVersion]);
+  });
+  return policy.mode === 'shadow' ? `Shadow only: ${reason}` : reason;
 }
 
 type WorkflowAdaptiveRiskConfiguration = {
@@ -504,39 +612,6 @@ function workflowPolicyHash(configuration: WorkflowAdaptiveRiskConfiguration): s
   return createHash('sha256').update(JSON.stringify(configuration)).digest('hex');
 }
 
-async function workflowClosedPerformance(
-  channelId: string,
-  accountId: string,
-  since: number,
-  until: number,
-): Promise<{ closedTrades: number; wins: number; losses: number; realizedPnl: string }> {
-  const rows = await getDatabase().all<Array<{ realized_pnl: string }>>(
-    `SELECT realized_pnl FROM trading_positions
-     WHERE channel_id = ? AND account_id = ? AND status = 'closed'
-       AND closed_at >= ? AND closed_at < ? ORDER BY closed_at`,
-    [channelId, accountId, since, until],
-  );
-  let realizedPnl = '0';
-  let wins = 0;
-  let losses = 0;
-  for (const row of rows) {
-    const pnl = signedDecimal(row.realized_pnl);
-    realizedPnl = addSignedDecimal(realizedPnl, pnl);
-    if (pnl.startsWith('-')) losses += 1;
-    else if (pnl !== '0') wins += 1;
-  }
-  return { closedTrades: rows.length, wins, losses, realizedPnl };
-}
-
-async function workflowStartingEquity(accountId: string, since: number, fallback: string): Promise<string> {
-  const row = await getDatabase().get<{ equity: string }>(
-    `SELECT equity FROM trading_equity_snapshots
-     WHERE account_id = ? AND observed_at >= ? ORDER BY observed_at LIMIT 1`,
-    [accountId, since],
-  );
-  return row ? decimal(row.equity, { positive: true }) : decimal(fallback, { positive: true });
-}
-
 type WorkflowAdaptiveRiskInput = {
   channelId: string;
   accountId: string;
@@ -544,6 +619,7 @@ type WorkflowAdaptiveRiskInput = {
   configuration: WorkflowAdaptiveRiskConfiguration;
   strategy: StrategyConfiguration;
   currentEquity: string;
+  reportingCurrency?: string;
   now?: number;
 };
 
@@ -639,9 +715,7 @@ async function persistWorkflowRiskEvaluation(input: {
   policyHash: string;
   weekStartedAt: number;
   weekEndedAt: number;
-  performance: { closedTrades: number; wins: number; losses: number; realizedPnl: string };
-  equity: string;
-  returnPercent: string;
+  evidence: Awaited<ReturnType<typeof collectChannelEvidence>>;
   currentTier: number;
   suggested: ReturnType<typeof recommendation>;
   appliedTier: number;
@@ -650,18 +724,22 @@ async function persistWorkflowRiskEvaluation(input: {
   now: number;
 }): Promise<void> {
   const value = input;
+  const { performance, capital } = value.evidence.source;
   await withDatabaseTransaction(async database => {
     await database.run(
       `INSERT INTO workflow_adaptive_risk_evaluations (
          id, state_key, policy_sha256, week_started_at, week_ended_at, closed_trades,
          wins, losses, realized_pnl, starting_equity, return_percent, previous_tier,
-         recommended_tier, applied_tier, action, reason, created_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         recommended_tier, applied_tier, action, reason, created_at,
+         realized_pnl_value_json,return_percent_value_json,reporting_currency,source_hash,source_json
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [randomUUID(), value.stateKey, value.policyHash, value.weekStartedAt, value.weekEndedAt,
-        value.performance.closedTrades, value.performance.wins, value.performance.losses,
-        value.performance.realizedPnl, value.equity, value.returnPercent, value.currentTier,
+        performance.closedTrades, performance.wins, performance.losses,
+        performance.realizedPnl, capital.equity, value.evidence.percent.value?.decimal ?? null, value.currentTier,
         value.suggested.tier, value.appliedTier, value.suggested.action,
-        value.mode === 'shadow' ? `Shadow only: ${value.suggested.reason}` : value.suggested.reason, value.now],
+        value.mode === 'shadow' ? `Shadow only: ${value.suggested.reason}` : value.suggested.reason, value.now,
+        JSON.stringify(performance.realizedPnlValue), value.evidence.percent.value ? JSON.stringify(value.evidence.percent.value) : null,
+        capital.reportingCurrency, value.evidence.hash, value.evidence.json],
     );
     if (value.mode === 'automatic') {
       await database.run(
@@ -681,26 +759,29 @@ async function evaluateWorkflowRiskState(input: {
   now: number;
 }): Promise<any> {
   const { request, state, stateKey, policyHash, now } = input;
-  if (request.configuration.mode === 'fixed') return state;
+  if (request.configuration.mode === 'fixed' || request.configuration.lockedTier !== null || request.configuration.manuallyBlocked) return state;
   const currentTier = Math.min(Number(state.current_tier), request.configuration.tiers.length - 1);
   const weekEndedAt = currentWeekStart(now);
   const weekStartedAt = weekEndedAt - request.configuration.lookbackWeeks * WEEK_MS;
   const existing = await getDatabase().get(
-    `SELECT id FROM workflow_adaptive_risk_evaluations
+    `SELECT * FROM workflow_adaptive_risk_evaluations
      WHERE state_key = ? AND policy_sha256 = ? AND week_started_at = ?`,
     [stateKey, policyHash, weekStartedAt],
   );
-  if (existing) return state;
-  const performance = await workflowClosedPerformance(request.channelId, request.accountId, weekStartedAt, weekEndedAt);
-  const equity = await workflowStartingEquity(request.accountId, weekStartedAt, request.currentEquity);
-  const returnPercent = signedPercent(performance.realizedPnl, equity);
+  const capitalRequest = { ...request, now, since: weekStartedAt, until: weekEndedAt, performanceAccountId: request.accountId };
+  if (existing) {
+    await assertCachedEvidence(existing, capitalRequest);
+    return { ...state, warning: String((existing as any).reason).includes('RISK_PRECISION_UNCERTAIN') ? (existing as any).reason : undefined };
+  }
+  const evidence = await collectChannelEvidence(capitalRequest);
+  const { performance, capital } = evidence.source;
   const policy = syntheticWorkflowPolicy(request, currentTier, now);
-  const initialSuggestion = recommendation(policy, { ...performance, returnPercent });
+  const initialSuggestion = recommendation(policy, { closedTrades: performance.closedTrades, realizedPnlValue: performance.realizedPnlValue!, equity: capital.equity });
   const suggested = await applyWorkflowWeakStreak(stateKey, request.configuration, initialSuggestion);
   const appliedTier = request.configuration.mode === 'automatic' ? suggested.tier : currentTier;
-  const blocked = request.configuration.mode === 'automatic' && suggested.action === 'block';
+  const blocked = request.configuration.mode === 'automatic' && (suggested.action === 'block' || suggested.uncertain === true);
   await persistWorkflowRiskEvaluation({
-    stateKey, policyHash, weekStartedAt, weekEndedAt, performance, equity, returnPercent,
+    stateKey, policyHash, weekStartedAt, weekEndedAt, evidence,
     currentTier, suggested, appliedTier, blocked, mode: request.configuration.mode, now,
   });
   return {
@@ -708,6 +789,7 @@ async function evaluateWorkflowRiskState(input: {
     current_tier: appliedTier,
     blocked: blocked ? 1 : 0,
     block_reason: blocked ? suggested.reason : null,
+    warning: suggested.uncertain ? `${request.configuration.mode === 'shadow' ? 'Shadow only: ' : ''}${suggested.reason}` : undefined,
   };
 }
 
@@ -731,7 +813,7 @@ function resolvedWorkflowRisk(input: WorkflowAdaptiveRiskInput, state: any): {
   return {
     riskPercent,
     blocked: false,
-    reason: `Workflow adaptive-risk ${input.configuration.mode} tier ${selectedTier} for account ${input.accountId}.`,
+    reason: state.warning ?? `Workflow adaptive-risk ${input.configuration.mode} tier ${selectedTier} for account ${input.accountId}.`,
   };
 }
 
@@ -743,8 +825,27 @@ export async function resolveWorkflowAdaptiveRisk(input: WorkflowAdaptiveRiskInp
   const policyHash = workflowPolicyHash(input.configuration);
   const stateKey = createHash('sha256').update(`${input.channelId}\0${input.accountId}\0${resourceId}`).digest('hex');
   const initialState = await loadWorkflowRiskState({ request: input, resourceId, stateKey, policyHash, now });
-  const state = await evaluateWorkflowRiskState({ request: input, state: initialState, stateKey, policyHash, now });
+  if (Number(initialState.blocked) === 1 && String(initialState.block_reason).startsWith('Adaptive risk is unresolved:')) {
+    return resolvedWorkflowRisk(input, initialState);
+  }
+  let state;
+  try { state = await withDatabaseTransaction(() => evaluateWorkflowRiskState({ request: input, state: initialState, stateKey, policyHash, now })); }
+  catch (error) { state = await invalidateWorkflowEvaluation(input, initialState, stateKey, policyHash, now, error); }
   return resolvedWorkflowRisk(input, state);
+}
+
+async function invalidateWorkflowEvaluation(request: WorkflowAdaptiveRiskInput, state: any, stateKey: string,
+  policyHash: string, now: number, error: unknown) {
+  const reason = failureReason(error), blocked = request.configuration.mode === 'automatic';
+  await withDatabaseTransaction(async db => {
+    await db.run(`UPDATE workflow_adaptive_risk_evaluations SET invalidated_at=COALESCE(invalidated_at,?),
+      invalidation_reason=COALESCE(invalidation_reason,?) WHERE state_key=? AND policy_sha256=? AND week_started_at=?`,
+    [now, reason, stateKey, policyHash, currentWeekStart(now) - request.configuration.lookbackWeeks * WEEK_MS]);
+    if (blocked) await db.run('UPDATE workflow_adaptive_risk_state SET blocked=1,block_reason=?,updated_at=? WHERE state_key=? AND policy_sha256=?',
+      [reason, now, stateKey, policyHash]);
+  });
+  return { ...state, blocked: blocked ? 1 : state.blocked, block_reason: blocked ? reason : state.block_reason,
+    warning: blocked ? reason : `Shadow only: ${reason}` };
 }
 
 interface WorkflowRiskStateAnalytics {
@@ -756,7 +857,9 @@ interface WorkflowRiskStateAnalytics {
 interface WorkflowRiskEvaluationAnalytics {
   id: string; stateKey: string; channelId: string; accountId: string; resourceId: string; resourceName: string;
   weekStartedAt: number; weekEndedAt: number; closedTrades: number; wins: number; losses: number;
-  realizedPnl: string; startingEquity: string; returnPercent: string; previousTier: number;
+  realizedPnl: string | null; realizedPnlValue: MoneyValue | null; startingEquity: string; returnPercent: string | null;
+  returnPercentValue: MoneyValue | null; returnPercentReason: string | null; reportingCurrency: string | null;
+  sourceHash: string | null; invalidatedAt: number | null; invalidationReason: string | null; previousTier: number;
   recommendedTier: number; appliedTier: number; action: string; reason: string; createdAt: number;
 }
 
@@ -776,8 +879,7 @@ function workflowRiskEvaluationAnalytics(row: any): WorkflowRiskEvaluationAnalyt
     accountId: String(row.account_id), resourceId: String(row.resource_id), resourceName: String(row.resource_name),
     weekStartedAt: Number(row.week_started_at), weekEndedAt: Number(row.week_ended_at),
     closedTrades: Number(row.closed_trades), wins: Number(row.wins), losses: Number(row.losses),
-    realizedPnl: signedDecimal(row.realized_pnl), startingEquity: decimal(row.starting_equity, { positive: true }),
-    returnPercent: signedDecimal(row.return_percent), previousTier: Number(row.previous_tier),
+    ...evaluationMoneyFields(row), startingEquity: decimal(row.starting_equity, { positive: true }), previousTier: Number(row.previous_tier),
     recommendedTier: Number(row.recommended_tier), appliedTier: Number(row.applied_tier), action: String(row.action),
     reason: String(row.reason), createdAt: Number(row.created_at),
   };

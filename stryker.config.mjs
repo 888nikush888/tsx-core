@@ -12,8 +12,8 @@ const shardDefinitions = {
     command: 'node --import tsx tests/test_signal_parser.js && node --import tsx tests/test_signal_contract_validation.js',
   },
   'trading-risk': {
-    mutate: ['src/trading_risk.ts:45-146'],
-    command: 'node --import tsx tests/test_trading_core.js',
+    mutate: ['src/trading_risk.ts'],
+    command: 'node --import tsx tests/test_trading_core.js && node --import tsx tests/test_trading_leverage_tiers.js',
   },
 };
 
@@ -29,7 +29,9 @@ const config = {
     command: shard.command,
   },
   coverageAnalysis: 'off',
-  incremental: true,
+  // Stryker --force alone retains historical out-of-scope mutants in its report.
+  // A forced gate must contain only the freshly instrumented current source.
+  incremental: !process.argv.includes('--force'),
   incrementalFile: `reports/stryker-${shardName}${shardName === 'trading-risk' ? '-sizing-v1' : ''}-incremental.json`,
   concurrency: 1,
   timeoutMS: 10_000,

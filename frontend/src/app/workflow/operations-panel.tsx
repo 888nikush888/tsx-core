@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -44,6 +44,8 @@ import {
 import type { ExchangeCatalog, TradingAccount, TradingSnapshot } from "./types";
 import { groupExchangeCatalog } from "./exchange-catalog";
 import { fallbackPolicyShortLabel } from "./workflow-fallback-policy";
+import { MoneyAmount, MoneySummaryAmount } from "./money-amount";
+import { moneyChartGroups, moneyDisplay } from "./money-display";
 
 export type OperationTab =
   | "overview"
@@ -359,13 +361,15 @@ function Overview({
     } else {
       if (!await confirm({
         title: "Globale Sperre lösen",
-        description: "Vor der Freigabe muss ein vollständiger Börsenabgleich erfolgt sein.",
+        description: "Konten, Orders und Stop-Schutz werden frisch geprüft. Einzelne Kontosperren bleiben bestehen; die Ausführung startet nicht automatisch.",
+        confirmationText: "RELEASE GLOBAL KILL SWITCH",
         confirmLabel: "Sperre prüfen & lösen",
         destructive: true,
       })) return;
       await mutate("kill", "/api/trading/runtime", {
         action: "kill-switch",
         active: false,
+        confirmation: "RELEASE GLOBAL KILL SWITCH",
       });
     }
   };
@@ -476,7 +480,7 @@ function Overview({
               <span>{position.stopPrice || relatedOrders.find((order: any) => order.role === "stop_loss")?.triggerPrice || "–"}</span>
               <span>{targets.length ? targets.join(" · ") : intent?.signal?.targets?.map((target: any) => target.min ?? target).join(" · ") || "–"}</span>
               <span>{leverage ? `${leverage}×` : "–"}</span>
-              <span>{position.realizedPnl ?? intent?.plan?.unrealizedPnl ?? "–"}</span>
+              <span><MoneyAmount value={position.realizedPnlValue} amount={position.realizedPnl} currency={position.reportingCurrency} status={position.accountingStatus} /></span>
             </div>;
           })}
           {openPositions.length === 0 && <Empty text="Keine aktive Position." />}
@@ -614,7 +618,7 @@ function Metric({
   danger = false,
 }: {
   label: string;
-  value: number | string;
+  value: ReactNode;
   danger?: boolean;
 }) {
   return (
@@ -1428,7 +1432,8 @@ function Journal({
             </p>
             <small>
               {time(entry.createdAt)} · PnL{" "}
-              {entry.position?.realizedPnl ?? "offen"}
+              {entry.money ? <MoneySummaryAmount summary={entry.money} /> : <MoneyAmount value={entry.position?.realizedPnlValue}
+                amount={entry.position?.realizedPnl} currency={entry.position?.reportingCurrency} status={entry.position?.accountingStatus} />}
             </small>
           </article>
         ))}
@@ -1450,6 +1455,7 @@ function Journal({
 }
 
 function metricNumber(value: unknown, digits = 2): string {
+  if (value === null || value === undefined || value === "") return "–";
   const parsed = Number(value);
   return Number.isFinite(parsed)
     ? new Intl.NumberFormat("de-DE", {
@@ -1567,10 +1573,8 @@ function Analytics({
     ["MAX_CONCURRENT_POSITIONS", "Account voll"],
     ["SYMBOL_ALREADY_OWNED", "Pair bereits offen"],
   ] as const;
-  const totalPnl = channels.reduce(
-    (total, item: any) => total + Number(item.realizedPnl || 0),
-    0,
-  );
+  const totalMoney = analytics?.performance?.total;
+  const channelMoneyCharts = moneyChartGroups(channels);
   const closedTrades = channels.reduce(
     (total, item: any) => total + Number(item.closedTrades || 0),
     0,
@@ -1632,7 +1636,7 @@ function Analytics({
       )}
       {error && <div className="builder-error">{error}</div>}
       <div className="operations-metrics">
-        <Metric label="Realisierter PnL" value={metricNumber(totalPnl)} />
+        <Metric label="Realisierter PnL" value={<MoneySummaryAmount summary={totalMoney} />} />
         <Metric label="Geschlossene Trades" value={closedTrades} />
         <Metric
           label="Max. Drawdown %"
@@ -1674,17 +1678,22 @@ function Analytics({
         </section>
         <section className="operations-card analytics-chart">
           <h3>Realisierter PnL je Kanal</h3>
-          {channels.length ? (
+          {channelMoneyCharts.length ? channelMoneyCharts.map((group) => (
+            <div key={group.currency}>
+            <h4>{group.currency} · Diagramm näherungsweise</h4>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={channels}>
+              <BarChart data={group.points}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="id" minTickGap={18} />
                 <YAxis width={64} />
-                <Tooltip formatter={(value) => metricNumber(value)} />
-                <Bar dataKey="realizedPnl" fill="var(--chart-2)" radius={0} />
+                <Tooltip formatter={(_value, _name, item) => moneyDisplay({ value: item.payload?.realizedPnlValue,
+                  currency: group.currency, status: item.payload?.accountingStatus }).label} />
+                <Bar dataKey="chartPnl" fill="var(--chart-2)" radius={0} />
               </BarChart>
             </ResponsiveContainer>
-          ) : <Empty text="Keine abgeschlossenen Trades in dieser Auswahl." />}
+            </div>
+          )) : <Empty text="Keine eindeutig bewerteten Kanalbeträge für dieses Diagramm." />}
+          <small>Währungen bleiben getrennt. Ungeklärte Beträge und reine Wertgrenzen erscheinen nur in der Tabelle, nicht als Nullbalken.</small>
         </section>
         <section className="operations-card analytics-chart">
           <h3>Ausführungs-Funnel</h3>
@@ -1724,7 +1733,7 @@ function Analytics({
                 {item.wins} / {item.losses}
               </span>
               <span>{metricNumber(item.winRatePercent, 1)} %</span>
-              <span>{metricNumber(item.realizedPnl)}</span>
+              <MoneySummaryAmount summary={item} />
               <span>
                 {item.averageEntrySlippageBps == null
                   ? "–"
@@ -1812,7 +1821,8 @@ function Analytics({
               </strong>
               <small>
                 {item.reason} · {item.closedTrades} Trades · PnL{" "}
-                {metricNumber(item.realizedPnl)}
+                <MoneyAmount value={item.realizedPnlValue} amount={item.realizedPnl} currency={item.reportingCurrency}
+                  status={item.invalidatedAt ? "unresolved" : item.accountingStatus} />
               </small>
             </div>
             <span>
@@ -1967,8 +1977,10 @@ function Backups() {
   const verify = async (name: string) => {
     setBusy(true);
     try {
-      await jsonRequest(`/api/backups/verify?name=${encodeURIComponent(name)}`);
-      setMessage(`${name} ist vollständig und lesbar.`);
+      const result = await jsonRequest(`/api/backups/verify?name=${encodeURIComponent(name)}`);
+      const proof = result.evidence;
+      const eligibility = proof?.restoreEligibility?.status || "unknown";
+      setMessage(`${name}: Integrität geprüft; gemeinsame Konfiguration ${proof?.configurationCoherent ? "belegt" : "nicht belegt"}; artefaktlokaler Restore ${eligibility}. Kein Offsite- oder Restore-Probelaufnachweis. ${(proof?.restoreEligibility?.reasons || []).join("; ")}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -3559,7 +3571,13 @@ function System({
       <section className="operations-card">
         <h3>Audit und Diagnose</h3>
         <div className="system-line"><span>Audit-Zustand</span><strong>{operations?.audit?.healthy === false ? "gestört" : "bereit"}</strong></div>
-        <div className="system-line"><span>Letzte erfolgreiche Sicherung</span><strong>{time(operations?.backup?.lastSuccessAt)}</strong></div>
+        <div className="system-line"><span>Letzte Integritätsprüfung</span><strong>{time(operations?.backup?.integrityVerified?.verifiedAt)}</strong></div>
+        <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt))}</strong></div>
+        <div className="system-line"><span>Gemeinsame Konfiguration geprüft</span><strong>{time(operations?.backup?.configurationCoherent?.verifiedAt)}</strong></div>
+        <div className="system-line"><span>Offsite zurückgelesen und geprüft</span><strong>{time(operations?.backup?.offsiteVerified?.verifiedAt)}</strong></div>
+        <div className="system-line"><span>Letzte artefaktlokale Restore-Prüfung</span><strong>{operations?.backup?.restoreEligibility?.status || "unknown"} · {time(operations?.backup?.restoreEligibility?.checkedAt)}</strong></div>
+        <div className="system-line"><span>Letzter tatsächlich durchgeführter Probelauf</span><strong>{time(operations?.backup?.restoreDrill?.performedAt)}</strong></div>
+        <p>Die Restore-Prüfung betrifft nur das Artefakt. Sie belegt weder heutige Börsenflatheit noch eine spätere Handelsfreigabe.</p>
         <div className="system-actions">
           <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => void replayAudit()}>Audit erneut übertragen</Button>
           <Button
@@ -3598,11 +3616,11 @@ function System({
       <section className="operations-card danger-zone">
         <h3>Gefahrenzone</h3>
         <p>Nur mit Administratorrolle und einer aktuellen, gesunden Sicherung. „Datenbank leeren“ bewahrt Trading-Zustand gemäß Serverrichtlinie; Factory Reset entfernt die vollständige lokale Installation.</p>
-        <div className="system-line"><span>Sicherung</span><strong>{operations?.backup?.healthy ? `gesund · ${time(operations.backup.lastSuccessAt)}` : "nicht aktuell – Aktion gesperrt"}</strong></div>
+        <div className="system-line"><span>Sicherung</span><strong>{operations?.backup?.healthy && operations?.backup?.restoreEligibility?.status === "eligible" ? `lokal wiederherstellbar · ${time(operations.backup.integrityVerified?.verifiedAt)}` : "nicht aktuell oder nicht wiederherstellbar – Aktion gesperrt"}</strong></div>
         <label><span>Bestätigung</span><Input autoComplete="off" value={dangerConfirmation} onChange={(event) => setDangerConfirmation(event.target.value)} placeholder="DATENBANK LEEREN oder FACTORY RESET" /></label>
         <div className="system-actions">
-          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || dangerConfirmation !== "DATENBANK LEEREN"} onClick={() => void dangerAction("clear")}>Datenbank leeren</Button>
-          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || dangerConfirmation !== "FACTORY RESET"} onClick={() => void dangerAction("factory")}>Factory Reset</Button>
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "DATENBANK LEEREN"} onClick={() => void dangerAction("clear")}>Datenbank leeren</Button>
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "FACTORY RESET"} onClick={() => void dangerAction("factory")}>Factory Reset</Button>
         </div>
       </section>
     </div>

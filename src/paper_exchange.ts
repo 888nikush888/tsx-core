@@ -7,11 +7,13 @@ import {
   divideDecimal,
   minDecimal,
   multiplyDecimal,
+  multiplyExactSignedDecimal,
   signedDecimal,
   signedDifference,
   subtractDecimal,
 } from './trading_decimal.js';
 import type {
+  ExchangeFillAccounting,
   ExchangeOpenState,
   ExchangeOrderRequest,
   ExchangeOrderResult,
@@ -19,11 +21,48 @@ import type {
   TradingAccountSnapshot,
   TradingExchangeAdapter,
   TradingMarketSnapshot,
+  TradingLeverageTierEvidence,
 } from './trading_types.js';
 import { TradingSymbolUnavailableError } from './trading_errors.js';
+import { assertEntryPriceBoundary } from './trading_risk.js';
+
+/** Deterministic simulated liquidity. Defaults retain the normal immediate-fill paper behavior. */
+export interface PaperExecutionOptions {
+  maximumFillQuantity?: string;
+  reduceOnlyRemainder?: 'cancel_when_flat' | 'retain';
+}
 
 function assertPaperAccount(account: TradingAccount): void {
   if (account.exchange !== 'paper' || account.mode !== 'paper') throw new Error('Paper adapter only accepts paper accounts.');
+}
+
+function paperAccounting(symbol: string): ExchangeFillAccounting {
+  return { version: 1, source: 'paper-contract-v1', providerSymbol: symbol, settlementAsset: 'USDT', linear: true, quantityUnit: 'base' };
+}
+
+interface PaperMarkedPosition { side: string; quantity: string; average_entry_price: string; mark_price: string | null }
+function paperUnrealized(position: PaperMarkedPosition): string | null {
+  if (position.mark_price === null) return null;
+  const distance = position.side === 'LONG' ? signedDifference(position.mark_price, position.average_entry_price)
+    : signedDifference(position.average_entry_price, position.mark_price);
+  return multiplyExactSignedDecimal(distance, position.quantity);
+}
+
+async function paperBalanceAmounts(accountId: string, row: { equity: string; available_balance: string }) {
+  const positions = await getDatabase().all<PaperMarkedPosition[]>(`SELECT position.side, position.quantity, position.average_entry_price, market.mark_price
+    FROM trading_paper_positions position LEFT JOIN trading_paper_markets market
+    ON market.account_id = position.account_id AND market.symbol = position.symbol WHERE position.account_id = ?`, [accountId]);
+  let unrealizedPnl = '0';
+  for (const position of positions) {
+    const value = paperUnrealized(position);
+    if (value === null) throw new Error('Paper account valuation is unresolved: current mark is missing.');
+    unrealizedPnl = addSignedDecimal(unrealizedPnl, value);
+  }
+  const equity = addSignedDecimal(row.equity, unrealizedPnl);
+  if (equity.startsWith('-') || equity === '0') throw new Error('Paper account equity is nonpositive; new entries are blocked.');
+  const free = addSignedDecimal(row.available_balance, unrealizedPnl);
+  return { equity, availableBalance: free.startsWith('-') ? '0' : free, unrealizedPnl,
+    marginUsed: subtractDecimal(decimal(row.equity), decimal(row.available_balance)) };
 }
 
 function boolean(value: unknown): boolean {
@@ -52,6 +91,8 @@ function orderResult(row: any): ExchangeOrderResult {
 function orderCanFill(row: any, markPrice: string): boolean {
   if (row.order_type === 'market') return true;
   if (row.order_type === 'stop_market') {
+    // A triggered market stop cannot become a dormant trigger again after a partial fill.
+    if (compareDecimal(row.filled_quantity, '0') > 0) return true;
     return row.side === 'sell'
       ? compareDecimal(markPrice, row.trigger_price) <= 0
       : compareDecimal(markPrice, row.trigger_price) >= 0;
@@ -118,13 +159,13 @@ async function cancelOrphanedReduceOrders(accountId: string, symbol: string, now
   );
 }
 
-async function updateClosingPosition(row: any, requestedQuantity: string, fillPrice: string, now: number): Promise<string> {
+async function updateClosingPosition(row: any, requestedQuantity: string, fillPrice: string, now: number, options: PaperExecutionOptions): Promise<{ quantity: string; flat: boolean }> {
   const database = getDatabase();
   const position = await database.get<any>(
     'SELECT * FROM trading_paper_positions WHERE account_id = ? AND symbol = ?',
     [row.account_id, row.symbol],
   );
-  if (!position) return '0';
+  if (!position) return { quantity: '0', flat: true };
   const expectedSide = position.side === 'LONG' ? 'sell' : 'buy';
   if (row.side !== expectedSide) throw new Error('Reduce-only paper order has the wrong side.');
   const fillQuantity = minDecimal(requestedQuantity, position.quantity);
@@ -151,7 +192,7 @@ async function updateClosingPosition(row: any, requestedQuantity: string, fillPr
   );
   if (remaining === '0') {
     await database.run('DELETE FROM trading_paper_positions WHERE account_id = ? AND symbol = ?', [row.account_id, row.symbol]);
-    await cancelOrphanedReduceOrders(row.account_id, row.symbol, now);
+    if (options.reduceOnlyRemainder !== 'retain') await cancelOrphanedReduceOrders(row.account_id, row.symbol, now);
   } else {
     await database.run(
       `UPDATE trading_paper_positions
@@ -160,20 +201,38 @@ async function updateClosingPosition(row: any, requestedQuantity: string, fillPr
       [remaining, remainingMargin, addSignedDecimal(position.realized_pnl, pnl), now, row.account_id, row.symbol],
     );
   }
-  return fillQuantity;
+  return { quantity: fillQuantity, flat: remaining === '0' };
 }
 
-async function fillOrder(row: any, markPrice: string, now: number): Promise<any> {
-  const fillPrice = row.order_type === 'limit' ? row.price : markPrice;
-  let fillQuantity = row.quantity;
-  if (boolean(row.reduce_only)) fillQuantity = await updateClosingPosition(row, row.quantity, fillPrice, now);
-  else await updateOpeningPosition(row, fillQuantity, fillPrice, now);
-  const status = fillQuantity === '0' ? 'cancelled' : 'filled';
+function partialFillAverage(row: any, fillQuantity: string, fillPrice: string, cumulative: string): string | null {
+  if (cumulative === '0') return null;
+  const previousCost = compareDecimal(row.filled_quantity, '0') > 0
+    ? multiplyDecimal(row.filled_quantity, decimal(row.average_price, { positive: true })) : '0';
+  return divideDecimal(addSignedDecimal(previousCost, multiplyDecimal(fillQuantity, fillPrice)), cumulative);
+}
+
+async function fillOrder(row: any, markPrice: string, now: number, options: PaperExecutionOptions, immediatePrice?: string): Promise<any> {
+  const fillPrice = immediatePrice ?? (row.order_type === 'limit' ? row.price : markPrice);
+  const remaining = subtractDecimal(row.quantity, row.filled_quantity);
+  const requested = minDecimal(remaining, options.maximumFillQuantity ?? remaining);
+  let fillQuantity = requested;
+  let flat = false;
+  if (boolean(row.reduce_only)) {
+    const closed = await updateClosingPosition(row, requested, fillPrice, now, options);
+    fillQuantity = closed.quantity;
+    flat = closed.flat;
+  } else {
+    await updateOpeningPosition(row, fillQuantity, fillPrice, now);
+  }
+  const cumulative = addSignedDecimal(row.filled_quantity, fillQuantity);
+  let status = cumulative === '0' ? 'open' : 'partially_filled';
+  if (flat && options.reduceOnlyRemainder !== 'retain') status = 'cancelled';
+  if (compareDecimal(cumulative, row.quantity) === 0) status = 'filled';
   await getDatabase().run(
     `UPDATE trading_paper_orders
      SET status = ?, filled_quantity = ?, average_price = ?, updated_at = ?
      WHERE exchange_order_id = ?`,
-    [status, fillQuantity, fillQuantity === '0' ? null : fillPrice, now, row.exchange_order_id],
+    [status, cumulative, partialFillAverage(row, fillQuantity, fillPrice, cumulative), now, row.exchange_order_id],
   );
   if (fillQuantity !== '0') {
     const fillId = `paper-fill-${randomUUID()}`;
@@ -189,7 +248,7 @@ async function fillOrder(row: any, markPrice: string, now: number): Promise<any>
   return getDatabase().get('SELECT * FROM trading_paper_orders WHERE exchange_order_id = ?', [row.exchange_order_id]);
 }
 
-async function settleOpenOrders(accountId: string, symbol: string, markPrice: string, now: number): Promise<void> {
+async function settleOpenOrders(accountId: string, symbol: string, markPrice: string, now: number, options: PaperExecutionOptions): Promise<void> {
   const orders = await getDatabase().all<any[]>(
     `SELECT * FROM trading_paper_orders
      WHERE account_id = ? AND symbol = ? AND status IN ('open', 'partially_filled')
@@ -201,12 +260,23 @@ async function settleOpenOrders(accountId: string, symbol: string, markPrice: st
       'SELECT * FROM trading_paper_orders WHERE exchange_order_id = ?',
       [order.exchange_order_id],
     );
-    if (current?.status === 'open' && orderCanFill(current, markPrice)) await fillOrder(current, markPrice, now);
+    if (current && ['open', 'partially_filled'].includes(current.status) && orderCanFill(current, markPrice)) {
+      await fillOrder(current, markPrice, now, options);
+    }
   }
 }
 
 export class PaperExchangeAdapter implements TradingExchangeAdapter {
   readonly exchange = 'paper' as const;
+  private readonly executionOptions: PaperExecutionOptions;
+
+  constructor(options: PaperExecutionOptions = {}) {
+    if (options.reduceOnlyRemainder !== undefined && !['cancel_when_flat', 'retain'].includes(options.reduceOnlyRemainder)) {
+      throw new Error('Invalid paper reduce-only remainder policy.');
+    }
+    this.executionOptions = { ...options, maximumFillQuantity: options.maximumFillQuantity === undefined
+      ? undefined : decimal(options.maximumFillQuantity, { positive: true }) };
+  }
 
   async setBalance(accountId: string, equity: string, availableBalance = equity, now = Date.now()): Promise<void> {
     const normalizedEquity = decimal(equity, { positive: true });
@@ -239,20 +309,29 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
            updated_at = excluded.updated_at`,
         [accountId, symbol, ...values, market.maxLeverage, now],
       );
-      await settleOpenOrders(accountId, symbol, values[0]!, now);
+      await settleOpenOrders(accountId, symbol, values[0]!, now, this.executionOptions);
     });
   }
 
   async accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
+    return withDatabaseTransaction(() => this.readAccountSnapshot(account));
+  }
+
+  private async readAccountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
     assertPaperAccount(account);
     const row = await getDatabase().get<any>('SELECT * FROM trading_paper_accounts WHERE account_id = ?', [account.id]);
     if (!row) throw new Error('Paper account state is missing.');
+    const observedAt = Date.now();
+    const amounts = await paperBalanceAmounts(account.id, row);
     return {
-      equity: decimal(row.equity, { positive: true }),
-      availableBalance: decimal(row.available_balance),
-      unrealizedPnl: '0',
-      marginUsed: subtractDecimal(decimal(row.equity), decimal(row.available_balance)),
+      ...amounts,
       fundingPnlToday: '0',
+      accounting: {
+        accountFingerprint: `paper:${account.id}`, reportingCurrency: 'USDT', settlementAssets: ['USDT'],
+        source: 'paper-contract-v1', observedAt, unrealizedPnlSemantics: 'price_only',
+        funding: { status: 'complete', since: new Date(observedAt).setUTCHours(0, 0, 0, 0), until: observedAt,
+          cursor: null, source: 'paper:funding-v1', reason: null, nextReadAt: 0, events: [] },
+      },
     };
   }
 
@@ -275,13 +354,34 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       quantityStep: row.quantity_step,
       minimumQuantity: row.minimum_quantity,
       minimumNotional: row.minimum_notional,
-      maxLeverage: Number(row.max_leverage),
+      maxLeverage: Math.min(50, Number(row.max_leverage)),
       observedAt: Number(row.updated_at),
+      accounting: paperAccounting(row.symbol),
+      leverageTiers: await this.simulatedTierEvidence(account, row),
     };
+  }
+
+  private async simulatedTierEvidence(account: TradingAccount, market: any): Promise<TradingLeverageTierEvidence> {
+    const observedAt = Date.now();
+    const [position, orders] = await Promise.all([
+      getDatabase().get<{ quantity: string }>('SELECT quantity FROM trading_paper_positions WHERE account_id = ? AND symbol = ?', [account.id, market.symbol]),
+      getDatabase().get<{ count: number }>(`SELECT COUNT(*) AS count FROM trading_paper_orders WHERE account_id = ? AND symbol = ?
+        AND status IN ('open','partially_filled','unknown')`, [account.id, market.symbol]),
+    ]);
+    return { version: 1, exchange: 'paper', symbol: market.symbol, providerSymbol: market.symbol,
+      accountFingerprint: account.id, credentialGeneration: 'paper', ccxtVersion: 'paper', profileHash: 'paper-v1',
+      source: 'paper_simulated_complete_tiers_v1', currency: 'USDT', contractSize: '1', markPrice: market.mark_price,
+      observedAt, expiresAt: observedAt + 10_000,
+      scope: { complete: true, positionQuantity: position?.quantity ?? '0', openOrderCount: Number(orders!.count) },
+      tiers: [{ lowerBound: '0', upperBound: null, maxLeverage: Math.min(50, Number(market.max_leverage)) }] };
   }
 
   async submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult> {
     assertPaperAccount(account);
+    if (request.timeInForce !== undefined || request.entryPriceBoundary) {
+      assertEntryPriceBoundary({ side: request.side === 'buy' ? 'LONG' : 'SHORT',
+        entryPriceBoundary: request.entryPriceBoundary, maxSlippagePercent: request.entryPriceBoundary?.maxSlippagePercent ?? '' }, request);
+    }
     return transaction(async () => {
       const existing = await getDatabase().get<any>(
         'SELECT * FROM trading_paper_orders WHERE account_id = ? AND client_order_id = ?',
@@ -305,7 +405,12 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
         ],
       );
       let row = await getDatabase().get<any>('SELECT * FROM trading_paper_orders WHERE exchange_order_id = ?', [exchangeOrderId]);
-      if (orderCanFill(row, market.markPrice)) row = await fillOrder(row, market.markPrice, now);
+      if (orderCanFill(row, market.markPrice)) row = await fillOrder(row, market.markPrice, now, this.executionOptions,
+        request.timeInForce === 'IOC' ? market.markPrice : undefined);
+      if (request.timeInForce === 'IOC' && ['open', 'partially_filled'].includes(row.status)) {
+        await getDatabase().run("UPDATE trading_paper_orders SET status = 'cancelled', updated_at = ? WHERE exchange_order_id = ?", [now, exchangeOrderId]);
+        row = { ...row, status: 'cancelled', updated_at: now };
+      }
       return orderResult(row);
     });
   }
@@ -346,15 +451,25 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
 
   async openState(account: TradingAccount): Promise<ExchangeOpenState> {
     assertPaperAccount(account);
+    return withDatabaseTransaction(() => this.readOpenState(account));
+  }
+
+  private async readOpenState(account: TradingAccount): Promise<ExchangeOpenState> {
+    const startedAt = Date.now();
     const [orders, positions, fills] = await Promise.all([
       getDatabase().all<any[]>('SELECT * FROM trading_paper_orders WHERE account_id = ? ORDER BY created_at', [account.id]),
-      getDatabase().all<any[]>('SELECT * FROM trading_paper_positions WHERE account_id = ? ORDER BY symbol', [account.id]),
+      getDatabase().all<any[]>(`SELECT position.*, market.mark_price FROM trading_paper_positions position
+        LEFT JOIN trading_paper_markets market ON market.account_id = position.account_id AND market.symbol = position.symbol
+        WHERE position.account_id = ? ORDER BY position.symbol`, [account.id]),
       getDatabase().all<any[]>('SELECT * FROM trading_paper_fills WHERE account_id = ? ORDER BY filled_at', [account.id]),
     ]);
+    const symbols = new Map(orders.map(order => [order.exchange_order_id, order.symbol]));
+    const completedAt = Date.now();
     return {
       orders: orders.map(row => ({
         ...orderResult(row),
         symbol: row.symbol,
+        providerSymbol: row.symbol,
         role: row.role,
         side: row.side,
         quantity: row.quantity,
@@ -364,23 +479,33 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       })),
       positions: positions.map(row => ({
         symbol: row.symbol,
+        providerSymbol: row.symbol,
         side: row.side,
         quantity: row.quantity,
         averageEntryPrice: row.average_entry_price,
-        unrealizedPnl: '0',
+        unrealizedPnl: paperUnrealized(row),
+        markPrice: row.mark_price ?? null,
+        accounting: paperAccounting(row.symbol),
       })),
       fills: fills.map(row => ({
         exchangeFillId: row.exchange_fill_id,
         clientOrderId: row.client_order_id,
         exchangeOrderId: row.exchange_order_id,
+        symbol: symbols.get(row.exchange_order_id),
+        providerSymbol: symbols.get(row.exchange_order_id),
         price: row.price,
         quantity: row.quantity,
         fee: row.fee,
         feeAsset: row.fee_asset || null,
         filledAt: Number(row.filled_at),
+        accounting: paperAccounting(symbols.get(row.exchange_order_id)!),
         raw: JSON.parse(row.raw_json),
       })),
-      observedAt: Date.now(),
+      unresolvedEvents: [],
+      observedAt: completedAt,
+      acquisition: { version: 1, startedAt, completedAt, checkedOrders: [],
+        sources: (['orders', 'positions', 'fills', 'targeted_orders'] as const).map(source => ({ source, startedAt, completedAt,
+          completeness: 'complete', reason: null, since: source === 'fills' ? 0 : null })) },
     };
   }
 }

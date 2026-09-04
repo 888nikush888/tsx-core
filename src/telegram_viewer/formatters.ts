@@ -1,16 +1,22 @@
 import type { TelegramViewerSettings, TradingNotificationEvent } from '../viewer_types.js';
+import { moneyValueFromDecimal, validateMoneyValue, type MoneyValue } from '../trading_money_value.js';
 
 const TELEGRAM_MESSAGE_LIMIT = 4096;
 const CALLBACK_PATTERN = /^(menu:(summary|accounts|positions|orders|trades|performance|risk|system|events|refresh|help)|page:(accounts|positions|orders|trades|risk|incidents|events):[0-9]{1,4})$/;
 
 function clipped(value: string): string {
   if (value.length <= TELEGRAM_MESSAGE_LIMIT) return value;
-  return `${value.slice(0, TELEGRAM_MESSAGE_LIMIT - 1)}…`;
+  const suffix = '\n… Weitere Einträge im Viewer.';
+  const prefix = value.slice(0, TELEGRAM_MESSAGE_LIMIT - suffix.length);
+  // Do not truncate a fraction/bound and leave it looking like a complete numeric claim.
+  return `${prefix.slice(0, Math.max(0, prefix.lastIndexOf('\n')))}${suffix}`;
 }
 
 function safeDetails(details: Record<string, unknown>): string[] {
+  const hasMoney = 'realizedPnl' in details || 'realizedPnlValue' in details;
   return Object.entries(details)
-    .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value))
+    .filter(([key, value]) => !(hasMoney && ['realizedPnl', 'reportingCurrency', 'accountingStatus'].includes(key))
+      && ['string', 'number', 'boolean'].includes(typeof value))
     .slice(0, 12)
     .map(([key, value]) => `${key}: ${String(value).slice(0, 500)}`);
 }
@@ -24,6 +30,57 @@ function values(payload: Record<string, any>, key: string): any[] {
 
 function line(parts: unknown[]): string {
   return parts.filter(value => value !== null && value !== undefined && value !== '').join(' · ');
+}
+
+function currencyUnit(value: unknown): string | null {
+  return typeof value === 'string' && /^[A-Z][A-Z0-9]{1,15}$/.test(value) ? value : null;
+}
+
+function exactMoneyText(value: MoneyValue): string {
+  if (value.decimal !== null) return `${value.decimal} (exakt)`;
+  if (value.exact) return `${value.exact.numerator}/${value.exact.denominator}`;
+  return `[${value.lower}, ${value.upper}] (konservative Grenzen)`;
+}
+
+function moneyText(summary: Record<string, any>): string | null {
+  if (summary.accountingStatus !== undefined && summary.accountingStatus !== 'complete') return null;
+  const currency = currencyUnit(summary.reportingCurrency);
+  try {
+    if (summary.realizedPnlValue === undefined) {
+      if (typeof summary.realizedPnl !== 'string') return null;
+      const value = moneyValueFromDecimal(summary.realizedPnl);
+      const suffix = summary.accountingStatus === 'complete' && currency ? ' (vollständig; exakt)' : '';
+      return `${value.decimal}${currency ? ` ${currency}` : ' (Währung ungeklärt)'}${suffix}`;
+    }
+    if (!currency || summary.realizedPnlValue === null || summary.accountingStatus !== 'complete') return null;
+    const value = validateMoneyValue(summary.realizedPnlValue);
+    if (value.decimal !== summary.realizedPnl) return null;
+    return `${exactMoneyText(value)} ${currency} (vollständig)`;
+  } catch { return null; }
+}
+
+function subtotalLines(label: string, summary: Record<string, any>): string[] {
+  const values = summary.valuedSubtotalValuesByCurrency;
+  if (!values || typeof values !== 'object' || Array.isArray(values)) return [];
+  return Object.entries(values).flatMap(([currency, input]) => {
+    if (!currencyUnit(currency)) return [];
+    try { return [`${label} bewertete Teilsumme: ${exactMoneyText(validateMoneyValue(input))} ${currency}`]; }
+    catch { return []; }
+  });
+}
+
+function moneyLines(label: string, summary: Record<string, any>): string[] {
+  if (!('realizedPnl' in summary) && !('realizedPnlValue' in summary)) return [];
+  const text = moneyText(summary);
+  return text ? [`${label} ${text}`] : [`${label} ungeklärt`, ...subtotalLines(label, summary)];
+}
+
+function accountingLines(item: Record<string, any>): string[] {
+  const components: Array<[string, string]> = [['pricePnl', 'Preis-PnL'], ['signedFees', 'Gebühren (signiert)'], ['funding', 'Funding']];
+  return [...moneyLines('PnL', item), ...components.flatMap(([key, label]) => {
+    const value = item[key];
+    return value && typeof value === 'object' && !Array.isArray(value) ? moneyLines(label, value) : [];
+  })];
 }
 
 function listMessage(title: string, items: string[]): string {
@@ -76,6 +133,7 @@ export function formatPositions(payload: Record<string, any>): string {
     item.quantity !== undefined ? `Menge: ${item.quantity}` : null,
     item.averageEntryPrice !== null && item.averageEntryPrice !== undefined ? `Entry: ${item.averageEntryPrice}` : null,
     item.stopPrice !== null && item.stopPrice !== undefined ? `Stop: ${item.stopPrice}` : null,
+    ...accountingLines(item),
   ].filter((value): value is string => Boolean(value)).join('\n'));
   return listMessage('Positionen', items);
 }
@@ -91,18 +149,16 @@ export function formatTrades(payload: Record<string, any>): string {
   return listMessage('Trades', values(payload, 'trades').map(item => {
     const summary = line([
       item.symbol || item.id || 'Trade', item.exchange, item.mode, item.side, item.status,
-      item.realizedPnl !== null && item.realizedPnl !== undefined ? `PnL ${item.realizedPnl}` : null,
     ]);
-    return [summary, ...leverageLines(item.leverage)].join('\n');
+    return [summary, ...leverageLines(item.leverage), ...accountingLines(item)].join('\n');
   }));
 }
 
 export function formatPerformance(payload: Record<string, any>): string {
-  return listMessage('Performance', values(payload, 'groups').map(item => line([
+  return listMessage('Performance', values(payload, 'groups').map(item => [line([
     item.channelId || item.accountId || 'Gruppe', item.exchange, item.mode,
     item.trades !== undefined ? `${item.trades} Trades` : null,
-    item.realizedPnl !== undefined ? `PnL ${item.realizedPnl}` : null,
-  ])));
+  ]), ...accountingLines(item)].join('\n')));
 }
 
 export function formatRisk(payload: Record<string, any>): string {
@@ -148,6 +204,7 @@ export function formatTelegramViewerEvent(
     event.channelId ? `Kanal: ${event.channelId}` : null,
     event.intentId ? `Intent: ${event.intentId}` : null,
     ...safeDetails(event.details),
+    ...accountingLines(event.details),
   ].filter((line): line is string => Boolean(line));
   return clipped(lines.join('\n'));
 }

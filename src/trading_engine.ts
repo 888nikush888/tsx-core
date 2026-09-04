@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
+import { fillDigestIdentity } from './trading_fill_identity.js';
+import { tradingAccountTargetIds } from './trading_account_targets.js';
 import {
   getTradingAccount,
   getTradingIntent,
@@ -9,11 +11,9 @@ import {
   updateTradingRuntimeState,
 } from './trading_repository.js';
 import {
-  addSignedDecimal,
   compareDecimal,
   divideDecimal,
   multiplyDecimal,
-  signedDecimal,
   signedDifference,
   subtractDecimal,
   addDecimal,
@@ -21,15 +21,32 @@ import {
 } from './trading_decimal.js';
 import {
   adaptiveStopLossDecision,
-  allocateTargetQuantities,
+  assertEntryNotExpired,
+  assertEntryPriceBoundary,
   createTradingPlan,
+  resolveEntryExpiresAt,
   resolveDailyLossLimit,
   TradingRiskError,
 } from './trading_risk.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
-import { TradingSymbolUnavailableError } from './trading_errors.js';
+import { assertBoundedEntryProfile, assertEntryModeEvidence, readEntryModeEvidence } from './trading_execution_constraints.js';
+import { LeverageTierError } from './trading_leverage_tiers.js';
+import { FxEvidenceError } from './trading_fx_contract.js';
+import { prepareSizingFx } from './trading_fx_sizing.js';
+import { assertLocalTierScope, assertPlanTierDecision, assertTierEvidence } from './trading_leverage_admission.js';
+import { assertAccountingFresh, assertEntryAccountingReady, assertPersistedMoneyReady } from './trading_accounting.js';
+import { intentMoneyTotals, projectAccountFillAccounting } from './trading_fill_accounting.js';
+import { bindRiskContract } from './trading_risk_repository.js';
+import { assertRiskAdmissionFresh, createRiskAdmission, verifyRiskAdmission } from './trading_risk_admission.js';
+import { requestFromOrder } from './trading_order_request.js';
+import { OrderIdentityBindingError, prepareProtectedOrderIdentityRequests } from './trading_order_identity.js';
+import { assertEntrySafetyFresh, proveEntrySafety, type EntrySafetyObservation } from './trading_entry_safety.js';
+import { assertCandidateNeverSent } from './trading_entry_candidate.js';
+import { refreshReconciledRisk } from './trading_risk_reconciliation.js';
+import { TradingSymbolUnavailableError, TradingUnresolvedOrderError } from './trading_errors.js';
 import {
   advanceWorkflowFallbackOnEligibleFailure,
+  isWorkflowExecutionAuthorized,
   markWorkflowFallbackSelected,
   stopWorkflowFallback,
   type WorkflowFallbackAdvanceResult,
@@ -39,19 +56,19 @@ import { validateStrategyConfiguration } from './trading_strategy.js';
 import { recordTradingEquitySnapshot, recordTradingExecutionEvent } from './trading_telemetry.js';
 import { recordTradingNotificationBestEffort } from './trading_notifications.js';
 import {
-  listTradingAccountIncidents,
   recordTradingAccountIncident,
   resolveTradingAccountIncidents,
   type TradingIncidentCategory,
 } from './trading_incidents.js';
 import type {
   ExchangeOpenState,
-  ExchangeOrderRequest,
   ExchangeOrderResult,
+  ExchangeEntryConstraints,
   ExchangeStreamBatch,
   PlannedOrder,
   TradingAccount,
   TradingAccountSnapshot,
+  TradingAccountingEvidence,
   TradingExchange,
   TradingExchangeAdapter,
   TradingIntent,
@@ -62,21 +79,89 @@ import type {
 } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
 import { isWorkflowFallbackReason } from './workflow_fallback_policy.js';
+import { EntryAdmissionRevokedError, TradingMutationCoordinator, type TradingMutationContext } from './trading_mutation_coordinator.js';
+import { createGeneratedTradingOrder, persistTradingOrderResult as storeOrderResult, persistTradingRemoteOrder, transitionTradingIntent as setIntentState } from './trading_order_repository.js';
+import { economicEvidence, persistCorrelatedFill, recordAcquisitionEvidence, recordRemoteEvidence, resolveManagedHistoricalEvidence, unresolvedEvidenceCount } from './trading_evidence_repository.js';
+import { failScheduledRecovery, scheduledRecoveryDue, usesScheduledFxRecovery } from './trading_recovery_schedule_repository.js';
+import { projectAccountLogMoney } from './trading_account_log_money.js';
+import { assertAccountOwnership } from './trading_ownership.js';
+import { observeAccountBaseline } from './trading_account_baseline.js';
+import { abandonUndispatchedPlan, hasUndispatchedPlanProof, recoverPreparedExits, recoverUndispatchedPlan, runJournaledExchangeWrite, resolveObservedOperations, unresolvedOperationCount, type TradingDispatchWitness } from './trading_recovery.js';
+import { entryCancelRetryAuthorized, markEntryDrainAttempt, pendingEntryDrainCount, requestEntryDrain, requestedEntryDrains, type EntryCommitment } from './trading_entry_commitment.js';
+import { CancelBudgetExhaustedError, claimCancelAttempt, consumeCancelAttempt, type CancelAttemptPermit } from './trading_cancel_budget.js';
+import { resolveActiveCancelAttempts } from './trading_cancel_recovery.js';
+import { CancellationEvidenceError } from './trading_cancel_evidence.js';
+import { pendingCancelOrderIds, prepareCancelDispatch } from './trading_exit_cancel.js';
+import { loadTradeLifecycle, retireUndispatchedExit } from './trading_lifecycle.js';
+import { collectAccountSafetyEvidence, type ReconciledAccountEvidence } from './trading_safety_repository.js';
+import { assertTradingSafety, evaluateTradingSafety, type SafetyPurpose, type TradingSafetyProof } from './trading_safety_proof.js';
+import { prepareEmergencyReduction, requestEmergencyExit } from './trading_emergency.js';
+import { loadProtectionOrders, protectiveStopCoverage, requiredStopQuantity } from './trading_protection.js';
+import { createProtectionObserver, type ProtectionObservation } from './trading_protection_observation.js';
+import { assertProtectionObservationFresh } from './trading_protection_projection.js';
+import { collectProtectionReceipt, ProtectionProofRejectedError } from './trading_protection_proof.js';
+import { protectionAccountSource, protectionSourceDigest } from './trading_protection_sources.js';
+import { correlateRemoteFills, correlateRemoteOrders, type LocalCorrelationOrder } from './exchange_order_correlation.js';
+import { loadTakeProfitAllocation, prepareTargetOrder, targetIndexFromOrderRow, targetOrderCoverage, type TakeProfitOrderRow } from './trading_take_profit.js';
 
 type TradingLogger = (message: string) => void;
-type ReconciliationOptions = { force?: boolean };
+type ReconciliationOptions = { force?: boolean; mutation?: TradingMutationContext };
 export interface TradingEngineOptions {
   /** @deprecated Symbol-unavailable isolation is now enforced by the typed executor contract. */
   isolateUnavailableMarketFailures?: boolean;
+  /** The production composition supplies its process-wide startup gate. Unit adapters may be isolated. */
+  entryAuthority?: () => boolean;
 }
 type RemoteStateWithIdentity = ExchangeOpenState & { accountFingerprint?: string };
+type SafetyObservation = ProtectionObservation;
 type OpenEntryRow = {
   intent_id: string;
   account_id: string;
   client_order_id: string;
   created_at?: number;
   plan_json?: string;
+  intent_created_at?: number;
+  signal_run_id?: string | null;
+  run_created_at?: number;
 };
+
+function originalEntryOrigin(intentCreatedAt: number | undefined, signalRunId?: string | null, runCreatedAt?: number): number {
+  if (signalRunId && (!Number.isSafeInteger(runCreatedAt) || Number(runCreatedAt) <= 0)) {
+    throw new TradingRiskError('ENTRY_DEADLINE_UNPROVEN', 'Original workflow run time cannot be proven.');
+  }
+  return signalRunId ? Math.min(Number(intentCreatedAt), Number(runCreatedAt)) : Number(intentCreatedAt);
+}
+
+async function intentEntryDeadline(intent: TradingIntent, ttlSeconds: number): Promise<number> {
+  const run = intent.signalRunId ? await getDatabase().get<{ created_at: number }>(
+    'SELECT created_at FROM workflow_signal_runs WHERE id = ? AND workflow_revision_id = ?',
+    [intent.signalRunId, intent.workflowRevisionId]) : null;
+  const origin = originalEntryOrigin(intent.createdAt, intent.signalRunId, run?.created_at);
+  return resolveEntryExpiresAt(origin, ttlSeconds, (intent.plan as TradingPlan | null)?.entryExpiresAt);
+}
+
+function entryExpirationReason(row: OpenEntryRow, now: number): string | null {
+  try {
+    const plan = row.plan_json ? JSON.parse(row.plan_json) as TradingPlan : null;
+    if (!plan) return 'ENTRY_DEADLINE_UNPROVEN';
+    const origin = originalEntryOrigin(row.intent_created_at, row.signal_run_id, row.run_created_at);
+    const deadline = resolveEntryExpiresAt(origin, plan.entryOrderTtlSeconds, plan.entryExpiresAt);
+    return now >= deadline ? 'ENTRY_TTL_EXPIRED' : null;
+  } catch { return 'ENTRY_DEADLINE_UNPROVEN'; }
+}
+
+async function persistRevalidatedEntryDeadline(intent: TradingIntent, plan: TradingPlan): Promise<void> {
+  const original = intent.plan as TradingPlan;
+  if (JSON.stringify({ ...original, entryExpiresAt: plan.entryExpiresAt }) !== JSON.stringify(plan)) {
+    throw new TradingRiskError('PREPARED_PLAN_NO_LONGER_VALID', 'Persisted plan no longer matches current market, sizing or risk constraints.');
+  }
+  if (JSON.stringify(original) === JSON.stringify(plan)) return;
+  const updated = await getDatabase().run(
+    `UPDATE trading_trade_intents SET plan_json = ?, updated_at = ?
+     WHERE id = ? AND plan_json = ? AND status IN ('planned', 'submitting')`,
+    [JSON.stringify(plan), Date.now(), intent.id, JSON.stringify(original)]);
+  if (updated.changes !== 1) throw new TradingRiskError('ENTRY_DEADLINE_UNPROVEN', 'Persisted entry changed while deriving its original deadline.');
+}
 
 const MIN_PERIODIC_RECONCILIATION_MS = 10_000;
 const MAX_RECONCILIATION_ROWS_PER_ACCOUNT = 256;
@@ -88,7 +173,16 @@ class ReconciliationMismatchError extends Error {
   }
 }
 
+class ReconciliationContinuationRequiredError extends Error {
+  readonly code = 'RECONCILIATION_CONTINUATION_REQUIRED';
+  constructor() {
+    super('Exit synchronization requires another fresh reconciliation; the bounded pass budget is exhausted.');
+    this.name = 'ReconciliationContinuationRequiredError';
+  }
+}
+
 function transientReconciliationFailure(error: unknown): boolean {
+  if (error instanceof ReconciliationContinuationRequiredError) return true;
   const message = error instanceof Error ? error.message : String(error);
   return /(?:\b50[234]\b|timeout|timed out|abort(?:ed|error)?|fetch failed|econn(?:reset|refused)|temporarily unavailable)/i.test(message);
 }
@@ -138,33 +232,19 @@ async function executionPathConfiguration(intent: TradingIntent): Promise<{
   };
 }
 
-function replacementStopId(intentId: string, quantity: string, trigger: string): string {
-  const identity = `${intentId}:stop:${quantity}:${trigger}`;
-  return `0x${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
-}
-
-function replacementTakeProfitId(intentId: string, targetIndex: number, quantity: string, price: string): string {
-  const identity = `${intentId}:take-profit:${targetIndex}:${quantity}:${price}:${randomUUID()}`;
-  return `0x${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
-}
-
 async function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(operation);
 }
 
-function requestFromOrder(
-  account: TradingAccount,
-  plan: TradingPlan,
-  order: PlannedOrder,
-): ExchangeOrderRequest & { maxSlippagePercent: string } {
-  return {
-    ...order,
-    accountId: account.id,
-    symbol: plan.symbol,
-    leverage: plan.leverage,
-    timeoutSeconds: order.role === 'entry' ? plan.entryTimeoutSeconds : 12,
-    maxSlippagePercent: plan.maxSlippagePercent,
-  };
+function pathChannelRisk(intent: TradingIntent, path: Awaited<ReturnType<typeof executionPathConfiguration>>, snapshot: TradingAccountSnapshot) {
+  if (path.adaptiveRisk === 'legacy') return resolveEffectiveChannelRisk({ channelId: intent.channelId,
+    accountId: intent.accountId, reportingCurrency: snapshot.accounting?.reportingCurrency,
+    strategy: path.strategy, currentEquity: snapshot.equity });
+  if (path.adaptiveRisk) return resolveWorkflowAdaptiveRisk({ channelId: intent.channelId, accountId: intent.accountId,
+    adaptiveResourceVersionId: path.adaptiveRisk.resourceVersionId, configuration: path.adaptiveRisk.configuration,
+    strategy: path.strategy, currentEquity: snapshot.equity, reportingCurrency: snapshot.accounting?.reportingCurrency });
+  return { riskPercent: path.strategy.sizing.riskPerTradePercent, blocked: false,
+    reason: 'Workflow path uses fixed sizing without adaptive risk.' };
 }
 
 function assertEntrySlippage(intent: TradingIntent, plan: TradingPlan, result: ExchangeOrderResult): void {
@@ -177,14 +257,6 @@ function assertEntrySlippage(intent: TradingIntent, plan: TradingPlan, result: E
   if (compareDecimal(percent, plan.maxSlippagePercent) > 0) {
     throw new TradingRiskError('MAX_SLIPPAGE', `Filled entry slippage ${percent}% exceeds ${plan.maxSlippagePercent}%.`);
   }
-}
-
-async function setIntentState(id: string, status: string, options: { plan?: TradingPlan; blockReason?: string; error?: string } = {}): Promise<void> {
-  await getDatabase().run(
-    `UPDATE trading_trade_intents SET status = ?, plan_json = COALESCE(?, plan_json),
-       block_reason = ?, last_error = ?, updated_at = ? WHERE id = ?`,
-    [status, options.plan ? JSON.stringify(options.plan) : null, options.blockReason || null, options.error || null, Date.now(), id],
-  );
 }
 
 async function riskEvent(input: {
@@ -212,49 +284,42 @@ async function riskEvent(input: {
   );
 }
 
-async function realizedPnlSince(accountId: string, since: number): Promise<string> {
-  const rows = await getDatabase().all<Array<{ realized_pnl: string }>>(
-    `SELECT realized_pnl FROM trading_positions
-     WHERE account_id = ? AND closed_at IS NOT NULL AND closed_at >= ?`,
-    [accountId, since],
-  );
-  return rows.reduce((total, row) => addSignedDecimal(total, row.realized_pnl), '0');
-}
-
 interface CapacityState {
   accountPositionCount: number;
   symbolOwned: boolean;
   unknownOrderCount: number;
   criticalRiskCount: number;
-  activePlans: Array<{ plan_json: string | null }>;
+  transientIncidentCount: number;
+  criticalIncidentCount: number;
 }
 
 async function loadCapacityState(intent: TradingIntent): Promise<CapacityState> {
   const database = getDatabase();
-  const [accountPositions, owner, unknownOrders, criticalRisks, activePlans] = await Promise.all([
+  const [accountPositions, owner, unknownOrders, criticalRisks, incidents] = await Promise.all([
     database.get<{ count: number }>(
       `SELECT COUNT(*) AS count FROM trading_positions
-       WHERE account_id = ? AND status IN ('opening', 'open', 'closing', 'emergency')`,
-      [intent.accountId],
+       WHERE account_id = ? AND intent_id <> ? AND status IN ('opening', 'open', 'closing', 'emergency')`,
+      [intent.accountId, intent.id],
     ),
     database.get<{ id: string }>(
       `SELECT id FROM trading_positions
-       WHERE account_id = ? AND symbol = ? AND status IN ('opening', 'open', 'closing', 'emergency') LIMIT 1`,
-      [intent.accountId, intent.symbol],
+       WHERE account_id = ? AND symbol = ? AND intent_id <> ? AND status IN ('opening', 'open', 'closing', 'emergency') LIMIT 1`,
+      [intent.accountId, intent.symbol, intent.id],
     ),
     database.get<{ count: number }>(
-      `SELECT COUNT(*) AS count FROM trading_orders WHERE account_id = ? AND status = 'unknown'`,
-      [intent.accountId],
+      `SELECT COUNT(*) AS count FROM trading_orders
+       WHERE account_id = ? AND intent_id <> ? AND status IN ('submitting', 'cancel_pending', 'unknown')`,
+      [intent.accountId, intent.id],
     ),
     database.get<{ count: number }>(
       `SELECT COUNT(*) AS count FROM trading_risk_events
        WHERE account_id = ? AND severity = 'critical' AND acknowledged_at IS NULL`,
       [intent.accountId],
     ),
-    database.all<Array<{ plan_json: string | null }>>(
-      `SELECT intent.plan_json FROM trading_positions AS position
-       JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
-       WHERE position.account_id = ? AND position.status IN ('opening', 'open', 'closing', 'emergency')`,
+    database.get<{ transient: number; critical: number }>(
+      `SELECT SUM(CASE WHEN category = 'reconciliation_transient' THEN 1 ELSE 0 END) AS transient,
+              SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) AS critical
+       FROM trading_account_incidents WHERE account_id = ? AND status = 'open'`,
       [intent.accountId],
     ),
   ]);
@@ -263,11 +328,18 @@ async function loadCapacityState(intent: TradingIntent): Promise<CapacityState> 
     symbolOwned: Boolean(owner),
     unknownOrderCount: Number(unknownOrders?.count || 0),
     criticalRiskCount: Number(criticalRisks?.count || 0),
-    activePlans,
+    transientIncidentCount: Number(incidents?.transient || 0),
+    criticalIncidentCount: Number(incidents?.critical || 0),
   };
 }
 
 function assertAccountSafetyState(state: CapacityState): void {
+  if (state.transientIncidentCount > 0) {
+    throw new TradingRiskError('ACCOUNT_EXECUTOR_UNAVAILABLE', 'The exchange executor is temporarily unavailable; new entries remain blocked until reconciliation succeeds.');
+  }
+  if (state.criticalIncidentCount > 0) {
+    throw new TradingRiskError('ACCOUNT_INCIDENT_UNRESOLVED', 'Account has an unresolved critical safety incident.');
+  }
   if (state.unknownOrderCount > 0) {
     throw new TradingRiskError('UNRESOLVED_ORDER', 'Account has an order with unknown outcome; new entries are fail-closed.');
   }
@@ -292,17 +364,6 @@ function throwCapacitySkip(reason: NonNullable<ReturnType<typeof candidateCapaci
   throw new TradingRiskError(reason, 'Exchange-account concurrent-position limit is reached.');
 }
 
-function reservedPlanRisk(activePlans: CapacityState['activePlans'], maxDailyLoss: string): string {
-  return activePlans.reduce((total, row) => {
-    if (!row.plan_json) return total;
-    try {
-      return addDecimal(total, (JSON.parse(row.plan_json) as TradingPlan).riskAmount);
-    } catch {
-      return addDecimal(total, maxDailyLoss);
-    }
-  }, '0');
-}
-
 function assertExecutionPreconditions(
   account: Awaited<ReturnType<typeof getTradingAccount>>,
   runtime: Awaited<ReturnType<typeof getTradingRuntimeState>>,
@@ -314,6 +375,9 @@ function assertExecutionPreconditions(
   }
   if (account.killSwitchActive) {
     throw new TradingRiskError('ACCOUNT_KILL_SWITCH_ACTIVE', 'Trading account kill switch is active.');
+  }
+  if (account.exchange !== 'paper' && (!account.externalAccountId || !account.credentialGeneration)) {
+    throw new TradingRiskError('ACCOUNT_IDENTITY_UNVERIFIED', 'Verify the account credential generation before creating new orders.');
   }
   if (account.mode === 'live' && !runtime.liveTradingEnabled) {
     throw new TradingRiskError('LIVE_TRADING_DISABLED', 'Live trading is disabled.');
@@ -328,6 +392,34 @@ function assertPublishedStrategy(
   }
 }
 
+async function assertExecutionAuthorization(intent: TradingIntent): Promise<void> {
+  const database = getDatabase();
+  // A pinned workflow remains pinned across publication; do not silently swap
+  // it for the newest path. Explicitly disabled/missing authorization is fatal.
+  const authorized = intent.executionPathId
+    ? await database.get(
+        `SELECT id FROM workflow_execution_paths WHERE id = ? AND workflow_revision_id = ?
+         AND channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1`,
+        [intent.executionPathId, intent.workflowRevisionId, intent.channelId, intent.accountId, intent.strategyVersionId],
+      )
+    : await database.get(
+        `SELECT channel_id FROM trading_routes WHERE channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1`,
+        [intent.channelId, intent.accountId, intent.strategyVersionId],
+      );
+  if (!authorized) throw new TradingRiskError('ROUTE_NO_LONGER_AUTHORIZED', 'The execution route was removed, changed or disabled.');
+  if (intent.executionPathId && !await isWorkflowExecutionAuthorized(intent.executionPathId)) {
+    throw new TradingRiskError('ROUTE_NO_LONGER_AUTHORIZED', 'The pinned workflow execution path is no longer authorized by the current graph.');
+  }
+  const schema = await database.get('SELECT id FROM trading_signal_schemas WHERE id = ? AND enabled = 1', [intent.signal.schema]);
+  if (!schema) throw new TradingRiskError('SIGNAL_SCHEMA_UNAVAILABLE', 'The signal schema is no longer enabled.');
+  if (await unresolvedEvidenceCount(intent.accountId) > 0) {
+    throw new TradingRiskError('UNRESOLVED_REMOTE_EVIDENCE', 'Unresolved remote execution evidence blocks new entries.');
+  }
+  if (await unresolvedOperationCount(intent.accountId) > 0) {
+    throw new TradingRiskError('UNRESOLVED_EXCHANGE_OPERATION', 'An in-flight or unresolved exchange operation requires recovery.');
+  }
+}
+
 interface IntentFailureClassification {
   code: string;
   fallbackReason: WorkflowFallbackReason | null;
@@ -336,16 +428,20 @@ interface IntentFailureClassification {
   status: 'blocked' | 'unknown';
 }
 
-function classifyIntentFailure(error: unknown): IntentFailureClassification {
+function classifyIntentFailure(error: unknown, unresolvedDispatch: boolean): IntentFailureClassification {
   const symbolUnavailable = error instanceof TradingSymbolUnavailableError;
-  const riskError = error instanceof TradingRiskError;
-  const knownRisk = symbolUnavailable || riskError;
+  const riskError = error instanceof TradingRiskError || error instanceof LeverageTierError || error instanceof FxEvidenceError;
+  const knownCause = symbolUnavailable || riskError;
+  // The durable operation wins over an exception label: a late validation/TTL
+  // failure cannot prove that an already handed-off write never reached the venue.
+  const knownRisk = knownCause && !unresolvedDispatch;
   const code = knownRisk ? error.code : 'ORDER_OUTCOME_UNKNOWN';
+  const message = error instanceof Error ? error.message : String(error);
   return {
     code,
     fallbackReason: isWorkflowFallbackReason(code) ? code : null,
     knownRisk,
-    message: error instanceof Error ? error.message : String(error),
+    message: knownCause && unresolvedDispatch ? `[${error.code}] ${message}` : message,
     status: knownRisk ? 'blocked' : 'unknown',
   };
 }
@@ -374,82 +470,22 @@ async function recordFallbackAdvanceNotification(
   });
 }
 
-async function assertAccountRiskBudget(
-  intent: TradingIntent,
-  state: CapacityState,
-  maxDailyLoss: string,
-  newRiskAmount: string,
-  unrealizedPnl = '0',
-  fundingPnlToday = '0',
-): Promise<void> {
-  const startOfDay = new Date().setUTCHours(0, 0, 0, 0);
-  const pnl = signedDecimal(addSignedDecimal(
-    addSignedDecimal(await realizedPnlSince(intent.accountId, startOfDay), unrealizedPnl),
-    fundingPnlToday,
-  ));
-  const loss = pnl.startsWith('-') ? pnl.slice(1) : '0';
-  if (compareDecimal(loss, maxDailyLoss) >= 0) {
-    throw new TradingRiskError('MAX_DAILY_LOSS', 'Account daily-loss limit is reached.');
-  }
-  const reservedRisk = reservedPlanRisk(state.activePlans, maxDailyLoss);
-  if (compareDecimal(addDecimal(addDecimal(loss, reservedRisk), newRiskAmount), maxDailyLoss) > 0) {
-    throw new TradingRiskError('MAX_DAILY_RISK', 'Account loss plus reserved trade risk exceeds the daily-loss budget.');
-  }
+async function provedEntryAverage(intentId: string): Promise<string> {
+  const fills = await getDatabase().all<Array<{ price: string; quantity: string }>>(
+    `SELECT fills.price, fills.quantity FROM trading_fills AS fills JOIN trading_orders AS orders ON orders.id = fills.order_id
+     WHERE orders.intent_id = ? AND orders.role = 'entry'`, [intentId]);
+  const cost = fills.reduce((total, fill) => addDecimal(total, multiplyDecimal(fill.price, fill.quantity)), '0');
+  const quantity = fills.reduce((total, fill) => addDecimal(total, fill.quantity), '0');
+  return divideDecimal(cost, quantity);
 }
 
-async function calculateIntentPnl(intentId: string, side: 'LONG' | 'SHORT', entryPrice: string): Promise<string> {
-  const fills = await getDatabase().all<Array<{ role: string; price: string; quantity: string; fee: string }>>(
-    `SELECT orders.role, fills.price, fills.quantity, fills.fee
-     FROM trading_fills AS fills JOIN trading_orders AS orders ON orders.id = fills.order_id
-     WHERE orders.intent_id = ?`,
-    [intentId],
-  );
-  return fills.reduce((total, fill) => {
-    if (fill.role === 'entry') return addSignedDecimal(total, `-${fill.fee}`);
-    const difference = side === 'LONG'
-      ? signedDifference(fill.price, entryPrice)
-      : signedDifference(entryPrice, fill.price);
-    const gross = multiplyDecimal(difference.startsWith('-') ? difference.slice(1) : difference, fill.quantity);
-    const signedGross = difference.startsWith('-') && gross !== '0' ? `-${gross}` : gross;
-    return addSignedDecimal(addSignedDecimal(total, signedGross), `-${fill.fee}`);
-  }, '0');
-}
-
-async function hasTerminalClosureProof(intentId: string): Promise<boolean> {
-  const [fills, terminalExit, unresolved] = await Promise.all([
-    getDatabase().all<Array<{ role: string; quantity: string }>>(
-      `SELECT orders.role, fills.quantity FROM trading_fills AS fills
-       JOIN trading_orders AS orders ON orders.id = fills.order_id
-       WHERE orders.intent_id = ?`,
-      [intentId],
-    ),
-    getDatabase().get<{ count: number }>(
-      `SELECT COUNT(*) AS count FROM trading_orders
-       WHERE intent_id = ? AND role <> 'entry' AND status = 'filled'`,
-      [intentId],
-    ),
-    getDatabase().get<{ count: number }>(
-      `SELECT COUNT(*) AS count FROM trading_orders
-       WHERE intent_id = ? AND role IN ('entry', 'flatten')
-         AND status IN ('submitting', 'unknown', 'cancel_pending')`,
-      [intentId],
-    ),
-  ]);
-  if (Number(terminalExit?.count || 0) === 0 || Number(unresolved?.count || 0) > 0) return false;
-  let opened = '0';
-  let closed = '0';
-  for (const fill of fills) {
-    if (fill.role === 'entry') opened = addDecimal(opened, fill.quantity);
-    else closed = addDecimal(closed, fill.quantity);
-  }
-  return compareDecimal(opened, '0') > 0 && compareDecimal(closed, opened) >= 0;
-}
-
-function remoteStateDigest(remote: ExchangeOpenState): string {
+function remoteStateDigest(account: TradingAccount, remote: ExchangeOpenState): string {
   const stable = {
+    version: 3,
     orders: remote.orders.map(order => ({
       clientOrderId: order.clientOrderId,
       exchangeOrderId: order.exchangeOrderId,
+      providerSymbol: order.providerSymbol ?? order.symbol,
       status: order.status,
       filled: order.filledQuantity,
       quantity: order.quantity,
@@ -459,20 +495,21 @@ function remoteStateDigest(remote: ExchangeOpenState): string {
       || String(left.clientOrderId || '').localeCompare(String(right.clientOrderId || ''))),
     positions: remote.positions.map(position => ({
       symbol: position.symbol,
+      providerSymbol: position.providerSymbol ?? null,
       side: position.side,
       quantity: position.quantity,
       entry: position.averageEntryPrice,
     })).sort((left, right) => `${left.symbol}:${left.side}`.localeCompare(`${right.symbol}:${right.side}`)),
-    fillIds: remote.fills.map(fill => fill.exchangeFillId).sort((left, right) => left.localeCompare(right)),
+    fillIds: remote.fills.map(fill => JSON.stringify(fillDigestIdentity(account, fill))).sort((left, right) => left.localeCompare(right)),
   };
   return createHash('sha256').update(JSON.stringify(stable)).digest('hex');
 }
 
-function compactRemoteSnapshot(remote: RemoteStateWithIdentity): string {
+function compactRemoteSnapshot(account: TradingAccount, remote: RemoteStateWithIdentity): string {
   return JSON.stringify({
-    version: 2,
+    version: 3,
     accountFingerprint: remote.accountFingerprint || null,
-    stateDigest: remoteStateDigest(remote),
+    stateDigest: remoteStateDigest(account, remote),
     observedAt: remote.observedAt,
     counts: {
       orders: remote.orders.length,
@@ -515,28 +552,10 @@ async function persistPlan(intent: TradingIntent, plan: TradingPlan): Promise<vo
   });
 }
 
-async function storeOrderResult(intentId: string, result: ExchangeOrderResult): Promise<void> {
-  await getDatabase().run(
-    `UPDATE trading_orders SET exchange_order_id = ?, status = ?, filled_quantity = ?,
-       response_json = ?, last_error = ?, updated_at = ?
-     WHERE intent_id = ? AND client_order_id = ?`,
-    [
-      result.exchangeOrderId || null,
-      result.status,
-      result.filledQuantity,
-      JSON.stringify(result.raw),
-      result.error,
-      Date.now(),
-      intentId,
-      result.clientOrderId,
-    ],
-  );
-}
-
 async function markOrderSubmitting(intentId: string, clientOrderId: string): Promise<void> {
   const update = await getDatabase().run(
     `UPDATE trading_orders SET status = 'submitting', updated_at = ?
-     WHERE intent_id = ? AND client_order_id = ? AND status IN ('created', 'rejected')`,
+     WHERE intent_id = ? AND client_order_id = ? AND status = 'created'`,
     [Date.now(), intentId, clientOrderId],
   );
   if (Number(update.changes || 0) !== 1) throw new Error(`Order ${clientOrderId} is not submit-ready.`);
@@ -549,22 +568,60 @@ async function submitTrackedOrder(input: {
   plan: TradingPlan;
   order: PlannedOrder;
 }): Promise<ExchangeOrderResult> {
-  await markOrderSubmitting(input.intent.id, input.order.clientOrderId);
+  if (input.order.role === 'entry') throw new Error('Entries require protected dispatch and final admission.');
+  let dispatched = false;
   try {
-    const result = await input.adapter.submitOrder(
-      input.account,
-      requestFromOrder(input.account, input.plan, input.order),
-    );
-    await storeOrderResult(input.intent.id, result);
-    return result;
+    const request = requestFromOrder(input.account, input.plan, input.order);
+    return await runJournaledExchangeWrite({
+      account: input.account, intentId: input.intent.id, kind: 'submit', clientOrderIds: [input.order.clientOrderId], request,
+      beforeDispatch: () => markOrderSubmitting(input.intent.id, input.order.clientOrderId),
+      guard: () => {},
+      send: () => { dispatched = true; return input.adapter.submitOrder(input.account, request); },
+      persist: async result => { await storeOrderResult(input.intent.id, input.order.clientOrderId, result); return [result]; },
+    });
   } catch (error: any) {
-    await getDatabase().run(
+    if (dispatched) await getDatabase().run(
       `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
-       WHERE intent_id = ? AND client_order_id = ?`,
+       WHERE intent_id = ? AND client_order_id = ? AND status IN ('submitting', 'unknown')`,
       [error?.message || 'Order outcome is unknown.', Date.now(), input.intent.id, input.order.clientOrderId],
     );
     throw error;
   }
+}
+
+async function cancelTrackedOrder(
+  adapter: TradingExchangeAdapter, account: TradingAccount, intentId: string, clientOrderId: string,
+  remote?: ExchangeOpenState, permit = claimCancelAttempt(account.id, clientOrderId),
+): Promise<ExchangeOrderResult> {
+  const authorization = await prepareCancelDispatch(account, intentId, clientOrderId, remote);
+  return runJournaledExchangeWrite({
+    account, intentId, kind: 'cancel', clientOrderIds: [clientOrderId], request: { clientOrderId },
+    beforeDispatch: async () => {
+      const update = await getDatabase().run(
+        `UPDATE trading_orders SET status = 'cancel_pending', updated_at = ?
+         WHERE intent_id = ? AND account_id = ? AND client_order_id = ? AND status IN ('open', 'partially_filled', 'submitting', 'unknown', 'cancel_pending')`,
+        [Date.now(), intentId, account.id, clientOrderId],
+      );
+      if (update.changes !== 1) throw new Error('Order is not eligible for cancellation without reconciliation.');
+    },
+    beforeSend: authorization.beforeSend,
+    guard: authorization.guard,
+    send: () => { consumeCancelAttempt(permit, account.id, clientOrderId); return adapter.cancelOrder(account, clientOrderId); },
+    persist: async result => {
+      await storeOrderResult(intentId, clientOrderId, result);
+      return [result];
+    },
+  });
+}
+
+async function resumeTakeProfitCancels(adapter: TradingExchangeAdapter, account: TradingAccount, intentId: string,
+  rows: TakeProfitOrderRow[], remote: ExchangeOpenState): Promise<boolean> {
+  const pending = rows.filter(row => row.status === 'cancel_pending');
+  for (const row of pending) {
+    const result = await cancelTrackedOrder(adapter, account, intentId, row.client_order_id, remote);
+    if (!['cancelled', 'filled'].includes(result.status)) throw new ReconciliationMismatchError('Take-profit cancellation remains unresolved.');
+  }
+  return pending.length > 0;
 }
 
 async function openLocalPosition(intent: TradingIntent, result: ExchangeOrderResult): Promise<void> {
@@ -578,96 +635,18 @@ async function openLocalPosition(intent: TradingIntent, result: ExchangeOrderRes
   );
 }
 
-async function adjustedTakeProfits(intentId: string, plan: TradingPlan, quantity: string): Promise<PlannedOrder[]> {
-  const takeProfits = plan.orders.filter(order => order.role === 'take_profit');
-  const states = await getDatabase().all<Array<{ client_order_id: string; status: string }>>(
-    `SELECT client_order_id, status FROM trading_orders
-     WHERE intent_id = ? AND role = 'take_profit'`,
-    [intentId],
-  );
-  const plannedIds = new Set(takeProfits.map(order => order.clientOrderId));
-  const plannedStates = states.filter(state => plannedIds.has(state.client_order_id));
-  if (plannedStates.length !== takeProfits.length) {
-    throw new Error('Take-profit order state does not match the immutable trade plan.');
-  }
-  if (plannedStates.some(state => state.status !== 'created')) {
-    return takeProfits;
-  }
-  const quantities = allocateTargetQuantities(quantity, plan.targetAllocationsPercent, plan.quantityStep);
-  const adjusted = takeProfits.map((order, index) => ({ ...order, quantity: quantities[index]! }));
-  for (const order of adjusted) {
-    await getDatabase().run(
-      `UPDATE trading_orders SET quantity = ?, request_json = ?, updated_at = ?
-       WHERE intent_id = ? AND client_order_id = ? AND status = 'created'`,
-      [order.quantity, JSON.stringify(order), Date.now(), intentId, order.clientOrderId],
-    );
-  }
-  return adjusted;
-}
-
-type TakeProfitOrderRow = {
-  client_order_id: string;
-  status: string;
-  price: string | null;
-  quantity: string;
-  filled_quantity: string;
-  request_json: string;
-};
-
-function targetIndexFromOrderRow(row: TakeProfitOrderRow): number | null {
+async function completedTakeProfitTargets(intent: TradingIntent, plan: TradingPlan, remote: ExchangeOpenState): Promise<number> {
   try {
-    const targetIndex = (JSON.parse(row.request_json) as PlannedOrder).targetIndex;
-    return Number.isSafeInteger(targetIndex) && Number(targetIndex) > 0 ? Number(targetIndex) : null;
-  } catch {
-    return null;
+    return (await loadTakeProfitAllocation(intent.id, plan, remote))?.completed ?? 0;
+  } catch (error) {
+    const message = 'Take-profit allocation is unresolved; own stop protection remains independently managed.';
+    await recordTradingAccountIncident({ accountId: intent.accountId, category: 'reconciliation_contract', severity: 'critical', message,
+      details: { intentId: intent.id, reason: error instanceof Error ? error.message.slice(0, 300) : 'Unknown allocation failure' } });
+    await activateAccountKillSwitch(intent.accountId, message);
+    // No new tightening based on unproved TP progress. desiredProtectiveStop still preserves the safest existing trigger.
+    // ensureTakeProfitCoverage surfaces the allocation error after the independent protective action.
+    return 0;
   }
-}
-
-async function terminalEntryFill(intentId: string): Promise<{ quantity: string } | null> {
-  const entry = await getDatabase().get<{ status: string; filled_quantity: string }>(
-    `SELECT status, filled_quantity FROM trading_orders
-     WHERE intent_id = ? AND role = 'entry' ORDER BY created_at LIMIT 1`,
-    [intentId],
-  );
-  if (!entry || !['filled', 'cancelled'].includes(entry.status) || compareDecimal(entry.filled_quantity, '0') <= 0) {
-    return null;
-  }
-  return { quantity: entry.filled_quantity };
-}
-
-async function desiredTakeProfitQuantities(intentId: string, plan: TradingPlan): Promise<string[] | null> {
-  const entry = await terminalEntryFill(intentId);
-  if (!entry) return null;
-  return allocateTargetQuantities(entry.quantity, plan.targetAllocationsPercent, plan.quantityStep);
-}
-
-async function completedTakeProfitTargets(intentId: string, plan: TradingPlan): Promise<number> {
-  const desired = await desiredTakeProfitQuantities(intentId, plan);
-  if (!desired) return 0;
-  const rows = await getDatabase().all<TakeProfitOrderRow[]>(
-    `SELECT client_order_id, status, price, quantity, filled_quantity, request_json
-     FROM trading_orders WHERE intent_id = ? AND role = 'take_profit'`,
-    [intentId],
-  );
-  let completed = 0;
-  for (let index = 0; index < desired.length; index += 1) {
-    const filled = rows
-      .filter(row => targetIndexFromOrderRow(row) === index + 1)
-      .reduce((total, row) => addDecimal(total, row.filled_quantity), '0');
-    if (compareDecimal(filled, desired[index]!) >= 0) completed += 1;
-  }
-  return completed;
-}
-
-async function requiredProtectiveQuantity(intentId: string, plan: TradingPlan, positionQuantity: string): Promise<string> {
-  const entryState = await getDatabase().get<{ status: string }>(
-    `SELECT status FROM trading_orders WHERE intent_id = ? AND role = 'entry'
-     ORDER BY created_at LIMIT 1`,
-    [intentId],
-  );
-  return entryState && ['open', 'partially_filled'].includes(entryState.status)
-    ? plan.quantity
-    : positionQuantity;
 }
 
 async function assertTerminalEntrySlippage(
@@ -691,52 +670,7 @@ async function assertTerminalEntrySlippage(
 async function createReplacementStop(intent: TradingIntent, plan: TradingPlan, quantity: string, trigger: string): Promise<PlannedOrder> {
   const original = plan.orders.find(order => order.role === 'stop_loss');
   if (!original) throw new Error('Trade plan has no protective stop.');
-  const replacement: PlannedOrder = {
-    ...original,
-    clientOrderId: replacementStopId(intent.id, quantity, trigger),
-    quantity,
-    triggerPrice: trigger,
-  };
-  await getDatabase().run(
-    `INSERT OR IGNORE INTO trading_orders (
-       id, intent_id, account_id, client_order_id, exchange_order_id, role,
-       side, order_type, status, price, trigger_price, quantity, filled_quantity,
-       reduce_only, request_json, response_json, last_error, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, NULL, 'stop_loss', ?, 'stop_market', 'created', NULL, ?, ?, '0', 1, ?, NULL, NULL, ?, ?)`,
-    [
-      randomUUID(), intent.id, intent.accountId, replacement.clientOrderId, replacement.side,
-      replacement.triggerPrice, replacement.quantity, JSON.stringify(replacement), Date.now(), Date.now(),
-    ],
-  );
-  return replacement;
-}
-
-async function createReplacementTakeProfit(
-  intent: TradingIntent,
-  original: PlannedOrder,
-  quantity: string,
-): Promise<PlannedOrder> {
-  if (original.role !== 'take_profit' || !original.targetIndex || !original.price) {
-    throw new Error('Trade plan has an invalid take-profit order.');
-  }
-  const replacement: PlannedOrder = {
-    ...original,
-    clientOrderId: replacementTakeProfitId(intent.id, original.targetIndex, quantity, original.price),
-    quantity,
-  };
-  const now = Date.now();
-  await getDatabase().run(
-    `INSERT INTO trading_orders (
-       id, intent_id, account_id, client_order_id, exchange_order_id, role,
-       side, order_type, status, price, trigger_price, quantity, filled_quantity,
-       reduce_only, request_json, response_json, last_error, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, NULL, 'take_profit', ?, 'limit', 'created', ?, NULL, ?, '0', 1, ?, NULL, NULL, ?, ?)`,
-    [
-      randomUUID(), intent.id, intent.accountId, replacement.clientOrderId, replacement.side,
-      replacement.price, replacement.quantity, JSON.stringify(replacement), now, now,
-    ],
-  );
-  return replacement;
+  return createGeneratedTradingOrder(intent, { ...original, quantity, triggerPrice: trigger });
 }
 
 type ProtectiveStopDecision = {
@@ -803,16 +737,21 @@ async function desiredProtectiveStop(input: {
 function matchingActiveStops(
   remote: ExchangeOpenState,
   intentOrderIds: Set<string>,
-  symbol: string,
+  local: { account_id: string; intent_id: string; symbol: string; side: 'LONG' | 'SHORT' },
 ) {
   return remote.orders.filter(order =>
-    intentOrderIds.has(order.clientOrderId)
-    && (order.role === 'stop_loss' || (order.reduceOnly && order.triggerPrice !== null))
-    && order.status === 'open'
-    && order.symbol === symbol);
+    intentOrderIds.has(order.clientOrderId!)
+    && protectiveStopCoverage({ ...order, accountId: local.account_id, intentId: local.intent_id }, {
+      accountId: local.account_id, intentId: local.intent_id, symbol: local.symbol, side: local.side,
+      quantity: '0', minimumTrigger: null,
+    }).protected);
 }
 
 type ActiveStop = ReturnType<typeof matchingActiveStops>[number];
+
+function replacementStopExecuted(existing: ActiveStop | undefined, accepted: ActiveStop): boolean {
+  return !existing && compareDecimal(accepted.filledQuantity!, '0') > 0;
+}
 
 function safestActiveStop(activeStops: ActiveStop[], side: 'LONG' | 'SHORT'): ActiveStop | undefined {
   return activeStops.reduce<ActiveStop | undefined>((best, candidate) => {
@@ -826,8 +765,12 @@ function safestActiveStop(activeStops: ActiveStop[], side: 'LONG' | 'SHORT'): Ac
 }
 
 export class TradingEngine {
+  readonly mutations = new TradingMutationCoordinator();
   private readonly adapters = new Map<TradingExchange, TradingExchangeAdapter>();
   private readonly lastPeriodicReconciliationAt = new Map<string, number>();
+  private readonly preparationRecoveryCursors = new Map<string, { id: string; created_at: number }>();
+  private readonly safetyObservations = new WeakMap<ExchangeOpenState, SafetyObservation>();
+  private readonly protectionObserver = createProtectionObserver(id => this.mutations.entryEpoch(id));
 
   constructor(
     adapters: TradingExchangeAdapter[],
@@ -853,13 +796,77 @@ export class TradingEngine {
   }
 
   async processIntent(intentId: string): Promise<void> {
+    if (this.options.entryAuthority?.() === false) return;
     const intent = await getTradingIntent(intentId);
-    if (intent?.status !== 'pending') return;
+    if (!intent || !['pending', 'planned', 'submitting'].includes(intent.status)) return;
+    await this.mutations.run(intent.accountId, async context => {
+      const current = await getTradingIntent(intentId);
+      if (!current || !['pending', 'planned', 'submitting'].includes(current.status)) return;
+      if (this.options.entryAuthority?.() === false) return;
+      const epoch = this.mutations.entryEpoch(current.accountId);
+      try {
+        if (current.status !== 'pending' && !await recoverUndispatchedPlan(current)) return;
+        await this.assertClockSafeForEntry();
+        await this.executePendingIntent(current, context, epoch);
+      } catch (error: any) {
+        await this.handleIntentFailure(current, error instanceof EntryAdmissionRevokedError
+          ? new TradingRiskError(error.code, error.message) : error);
+      }
+    });
+  }
+
+  /** Revoked original preparations retire even while entries are paused. This path cannot call an adapter. */
+  async retireUnauthorizedPreparations(accountId: string): Promise<number> {
+    return this.mutations.run(accountId, async () => {
+      const rows = await this.preparationRecoveryBatch(accountId);
+      let retired = 0;
+      const failures: unknown[] = [];
+      for (const row of rows) {
+        try { retired += await this.retireUnauthorizedPreparation(row.id); }
+        catch (error) { failures.push(error); }
+      }
+      if (failures.length) throw new AggregateError(failures, `Local preparation recovery has ${failures.length} unresolved error(s).`);
+      return retired;
+    });
+  }
+
+  private async preparationRecoveryBatch(accountId: string): Promise<Array<{ id: string; created_at: number }>> {
+    const cursor = this.preparationRecoveryCursors.get(accountId);
+    const rows = await getDatabase().all<Array<{ id: string; created_at: number }>>(
+      `SELECT id, created_at FROM trading_trade_intents WHERE account_id = ? AND status IN ('planned', 'submitting')
+       AND (? IS NULL OR created_at > ? OR (created_at = ? AND id > ?)) ORDER BY created_at, id LIMIT 100`,
+      [accountId, cursor?.created_at ?? null, cursor?.created_at ?? null, cursor?.created_at ?? null, cursor?.id ?? null]);
+    if (!rows.length && cursor) {
+      this.preparationRecoveryCursors.delete(accountId);
+      return this.preparationRecoveryBatch(accountId);
+    }
+    if (rows.length) this.preparationRecoveryCursors.set(accountId, rows[rows.length - 1]!);
+    return rows;
+  }
+
+  private async retireUnauthorizedPreparation(intentId: string): Promise<number> {
+    return transaction(async () => {
+      const intent = await getTradingIntent(intentId);
+      if (!intent || !await hasUndispatchedPlanProof(intent, true)) return 0;
+      const failure = await this.preparationAuthorityFailure(intent);
+      if (!failure) return 0;
+      await this.handleIntentFailure(intent, failure);
+      return 1;
+    });
+  }
+
+  private async preparationAuthorityFailure(intent: TradingIntent): Promise<TradingRiskError | null> {
     try {
-      await this.assertClockSafeForEntry();
-      await this.executePendingIntent(intent);
-    } catch (error: any) {
-      await this.handleIntentFailure(intent, error);
+      const [account, runtime, strategy] = await Promise.all([
+        getTradingAccount(intent.accountId), getTradingRuntimeState(), getTradingStrategyVersion(intent.strategyVersionId),
+      ]);
+      assertExecutionPreconditions(account, runtime);
+      assertPublishedStrategy(strategy);
+      await assertExecutionAuthorization(intent);
+      return null;
+    } catch (error) {
+      if (error instanceof TradingRiskError) return error;
+      throw error;
     }
   }
 
@@ -874,105 +881,186 @@ export class TradingEngine {
     throw new TradingRiskError('CLOCK_DRIFT_UNSAFE', clock.reason || 'System clock drift is unsafe.');
   }
 
-  async cancelOpenEntries(accountId?: string): Promise<number> {
-    const parameters: unknown[] = [];
-    const accountFilter = accountId ? ' AND orders.account_id = ?' : '';
-    if (accountId) parameters.push(accountId);
-    const rows = await getDatabase().all<OpenEntryRow[]>(
-      `SELECT orders.intent_id, orders.account_id, orders.client_order_id
-       FROM trading_orders AS orders
-       WHERE orders.role = 'entry' AND orders.status IN ('open', 'partially_filled')${accountFilter}
-       ORDER BY orders.created_at`,
-      parameters,
-    );
-    return this.cancelEntryRows(rows);
+  private assertStartupEntryAuthority(): void {
+    if (this.options.entryAuthority?.() === false) {
+      throw new TradingRiskError('STARTUP_NOT_READY', 'Startup or maintenance authorization blocks new entries.');
+    }
+  }
+
+  async cancelOpenEntries(accountId?: string, context?: TradingMutationContext): Promise<number> {
+    const release = this.mutations.holdEntries(accountId);
+    try {
+      const accountIds = accountId ? [accountId] : await tradingAccountTargetIds(true);
+      let cancelled = 0;
+      const failures: unknown[] = [];
+      for (const id of accountIds) {
+        try {
+          cancelled += await this.mutations.run(id, async () => {
+            await requestEntryDrain(id, 'Operator requested entry drain');
+            return this.drainAndProveEntries(id);
+          }, context);
+        } catch (error) { failures.push(error); }
+      }
+      if (failures.length) throw new AggregateError(failures, `Entry drain unresolved for ${failures.length} account(s); cancellation remains pending.`);
+      return cancelled;
+    } finally { release(); }
+  }
+
+  private async drainRequestedEntriesOwned(accountId: string): Promise<number> {
+    let cancelled = 0;
+    const failures: unknown[] = [];
+    for (const row of await requestedEntryDrains(accountId)) {
+      try { cancelled += await this.drainEntryCommitment(row); }
+      catch (error) { failures.push(error); }
+    }
+    const pending = await pendingEntryDrainCount(accountId);
+    if (pending > 0 || failures.length) {
+      await activateAccountKillSwitch(accountId, `Entry drain unresolved for account ${accountId}`);
+      throw new AggregateError(failures, `Entry drain unresolved: ${pending} commitment(s) require fresh cancellation evidence.`);
+    }
+    return cancelled;
+  }
+
+  private async drainAndProveEntries(accountId: string, intentIds?: string[]): Promise<number> {
+    let cancelled = 0;
+    // A failed cancel must not prevent the fresh fill/position read or protection of owned exposure.
+    try { cancelled = await this.drainRequestedEntriesOwned(accountId); } catch { /* Prove the resulting state, never the acknowledgement alone. */ }
+    try {
+      const reconciled = await this.reconcileAccountOwned(accountId, { force: true }, true);
+      if (!reconciled) throw new ReconciliationMismatchError('Entry drain lacks a completed authoritative reconciliation.');
+      await transaction(async () => {
+        const scopes = intentIds?.length ? [...new Set(intentIds)] : [undefined];
+        for (const intentId of scopes) {
+          const proof = await this.collectLifecycleProof(reconciled.account, reconciled.remote, 'entriesDrained', intentId, reconciled.accountVersion);
+          if (cancelled > 0) await riskEvent({ severity: 'info', code: 'ENTRY_DRAIN_PROVED', accountId, intentId, details: { proof } });
+          await this.assertLifecycleCommitCurrent(proof);
+        }
+      });
+      return cancelled;
+    } catch (error) {
+      await activateAccountKillSwitch(accountId, `Entry drain lacks a current safety proof for account ${accountId}`);
+      throw error;
+    }
+  }
+
+  private async drainEntryCommitment(row: EntryCommitment): Promise<number> {
+    const permit = claimCancelAttempt(row.account_id, row.client_order_id);
+    // Rotate even currently unresolvable obligations so they cannot starve other owned entries.
+    await markEntryDrainAttempt(row.account_id, row.client_order_id);
+    if (row.status === 'created' || row.status === 'submitting') {
+      const intent = await getTradingIntent(row.intent_id);
+      if (intent && await transaction(async () => {
+        if (!await abandonUndispatchedPlan(intent)) return false;
+        await setIntentState(intent.id, 'failed', { error: 'Undispatched entry abandoned by persistent drain request.' });
+        return true;
+      })) return 1;
+    }
+    const active = ['open', 'partially_filled'].includes(row.status)
+      || (row.status === 'cancel_pending' && await entryCancelRetryAuthorized(row.account_id, row.client_order_id));
+    if (!active || !row.exchange_order_id || !row.provider_symbol) {
+      throw new ReconciliationMismatchError('Entry cancellation requires a recovered exact active order identity.');
+    }
+    return this.cancelEntryRow(row, permit);
   }
 
   async cancelExpiredEntries(now = Date.now()): Promise<number> {
     const candidates = await getDatabase().all<OpenEntryRow[]>(
       `SELECT orders.intent_id, orders.account_id, orders.client_order_id,
-              orders.created_at, intent.plan_json
+              orders.created_at, intent.plan_json, intent.created_at AS intent_created_at,
+              intent.signal_run_id, run.created_at AS run_created_at
        FROM trading_orders AS orders
        JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id
-       WHERE orders.role = 'entry' AND orders.status IN ('open', 'partially_filled')
+       LEFT JOIN workflow_signal_runs AS run ON run.id = intent.signal_run_id AND run.workflow_revision_id = intent.workflow_revision_id
+       WHERE orders.role = 'entry' AND orders.status IN ('created', 'submitting', 'open', 'partially_filled', 'cancel_pending', 'unknown')
        ORDER BY orders.created_at`,
     );
-    const expired = candidates.filter(row => {
-      if (!row.plan_json || row.created_at === undefined) return false;
-      const plan = JSON.parse(row.plan_json) as TradingPlan;
-      return now - Number(row.created_at) >= plan.entryOrderTtlSeconds * 1_000;
-    });
+    const expired = candidates.map(row => ({ ...row, expiryReason: entryExpirationReason(row, now) }))
+      .filter(row => row.expiryReason !== null);
     const cancelled = await this.cancelEntryRows(expired);
     for (const row of expired) {
       await riskEvent({
-        severity: 'info', code: 'ENTRY_TTL_EXPIRED', accountId: row.account_id, intentId: row.intent_id,
+        severity: 'info', code: row.expiryReason!, accountId: row.account_id, intentId: row.intent_id,
         details: { clientOrderId: row.client_order_id },
       });
     }
     return cancelled;
   }
 
-  private async cancelEntryRows(rows: OpenEntryRow[]): Promise<number> {
+  private async cancelEntryRows(rows: OpenEntryRow[], context?: TradingMutationContext): Promise<number> {
     let cancelled = 0;
+    const failures: unknown[] = [];
+    const accounts = new Map<string, Set<string>>();
     for (const row of rows) {
+      if (!accounts.has(row.account_id)) accounts.set(row.account_id, new Set());
+      accounts.get(row.account_id)!.add(row.intent_id);
+    }
+    for (const [accountId, intents] of accounts) {
+      try {
+        cancelled += await this.mutations.run(accountId, async () => {
+          for (const intentId of intents) await requestEntryDrain(accountId, 'Entry time-to-live expired', intentId);
+          return this.drainAndProveEntries(accountId, [...intents]);
+        }, context);
+      } catch (error) { failures.push(error); }
+    }
+    if (failures.length) throw new AggregateError(failures, 'Entry expiry drain remains unresolved.');
+    return cancelled;
+  }
+
+  private async cancelEntryRow(row: OpenEntryRow, permit: CancelAttemptPermit): Promise<number> {
       const account = await getTradingAccount(row.account_id);
       if (!account) throw new Error('Open entry references a missing trading account.');
       try {
-        const result = await this.adapter(account.exchange).cancelOrder(account, row.client_order_id);
-        await storeOrderResult(row.intent_id, result);
-        if (result.status === 'cancelled' || result.status === 'filled') cancelled += 1;
+        const result = await cancelTrackedOrder(this.adapter(account.exchange), account, row.intent_id, row.client_order_id, undefined, permit);
+        if (!['cancelled', 'filled', 'rejected'].includes(result.status)) {
+          throw new ReconciliationMismatchError(`Entry cancellation remains unresolved (${result.status}).`);
+        }
+        return 1;
       } catch (error: any) {
         await getDatabase().run(
           `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
-           WHERE account_id = ? AND client_order_id = ?`,
+           WHERE account_id = ? AND client_order_id = ? AND status IN ('submitting', 'open', 'partially_filled', 'cancel_pending', 'unknown')`,
           [error?.message || String(error), Date.now(), row.account_id, row.client_order_id],
         );
         await activateAccountKillSwitch(row.account_id, `Entry cancellation outcome unknown for account ${row.account_id}`);
         throw error;
       }
-    }
-    return cancelled;
   }
 
-  async emergencyFlattenManaged(accountId?: string): Promise<number> {
-    const parameters: unknown[] = [];
-    const accountFilter = accountId ? ' AND position.account_id = ?' : '';
-    if (accountId) parameters.push(accountId);
-    const positions = await getDatabase().all<Array<{
-      intent_id: string;
-      account_id: string;
-      plan_json: string;
-    }>>(
-      `SELECT position.intent_id, position.account_id, intent.plan_json
-       FROM trading_positions AS position
-       JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
-       WHERE position.status IN ('opening', 'open', 'closing', 'emergency')
-         AND position.quantity <> '0'${accountFilter}
-       ORDER BY position.updated_at`,
-      parameters,
-    );
-    let flattened = 0;
-    for (const position of positions) {
-      const [account, intent] = await Promise.all([
-        getTradingAccount(position.account_id),
-        getTradingIntent(position.intent_id),
-      ]);
-      if (!account || !intent || !position.plan_json) {
-        throw new Error('Managed position is missing its recoverable account, intent or plan.');
+  async emergencyFlattenManaged(accountId?: string, context?: TradingMutationContext): Promise<number> {
+    const release = this.mutations.holdEntries(accountId);
+    try {
+      const accounts = accountId ? [{ id: accountId }] : await getDatabase().all<Array<{ id: string }>>(
+        "SELECT DISTINCT account_id AS id FROM trading_positions WHERE status IN ('opening', 'open', 'closing', 'emergency') ORDER BY account_id");
+      let requested = 0;
+      const failures: unknown[] = [];
+      const prepared: string[] = [];
+      for (const account of accounts) {
+        try {
+          const count = await this.mutations.run(account.id, () => this.prepareAccountEmergency(account.id), context);
+          requested += count;
+          if (count > 0) prepared.push(account.id);
+        } catch (error) { failures.push(error); }
       }
-      await this.emergencyFlatten(
-        this.adapter(account.exchange),
-        account,
-        intent,
-        JSON.parse(position.plan_json) as TradingPlan,
-        'Operator requested emergency flatten through the dashboard.',
-      );
-      flattened += 1;
-    }
-    return flattened;
+      // Capture all selected accounts before the first provider call can fail or the process can die in flight.
+      for (const id of prepared) {
+        try { await this.mutations.run(id, () => this.reconcileAccountOwned(id, { force: true }), context); }
+        catch (error) { failures.push(error); }
+      }
+      if (failures.length) throw new AggregateError(failures, `Emergency exit remains pending or unresolved on ${failures.length} account(s).`);
+      return requested;
+    } finally { release(); }
   }
 
-  private async preparePendingIntent(intent: TradingIntent) {
+  private async prepareAccountEmergency(accountId: string): Promise<number> {
+    const positions = await getDatabase().all<Array<{ intent_id: string }>>(
+      "SELECT intent_id FROM trading_positions WHERE account_id = ? AND status IN ('opening', 'open', 'closing', 'emergency')", [accountId]);
+    if (!positions.length) return 0;
+    await activateAccountKillSwitch(accountId, 'Operator requested emergency exit');
+    for (const position of positions) await requestEmergencyExit(accountId, position.intent_id, 'Operator requested emergency exit');
+    return positions.length;
+  }
+
+  private async preparePendingIntent(intent: TradingIntent, epoch: string) {
     const [account, strategy, runtime, pathConfiguration] = await Promise.all([
       getTradingAccount(intent.accountId),
       getTradingStrategyVersion(intent.strategyVersionId),
@@ -981,22 +1069,14 @@ export class TradingEngine {
     ]);
     assertExecutionPreconditions(account, runtime);
     assertPublishedStrategy(strategy);
-    const accountIncidents = await listTradingAccountIncidents({ accountId: intent.accountId, limit: 100 });
-    if (accountIncidents.some(incident => incident.category === 'reconciliation_transient')) {
-      throw new TradingRiskError(
-        'ACCOUNT_EXECUTOR_UNAVAILABLE',
-        'The exchange executor is temporarily unavailable; new entries remain blocked until reconciliation succeeds.',
-      );
+    if (intent.plan) {
+      const original = intent.plan as TradingPlan;
+      assertEntryPriceBoundary(original, original.orders.find(order => order.role === 'entry')!);
     }
+    await assertExecutionAuthorization(intent);
     const strategyConfiguration = pathConfiguration.strategy;
-    const maximumPendingAgeMs = strategyConfiguration.safety.entryOrderTtlSeconds * 1_000;
-    const pendingAgeMs = Date.now() - intent.createdAt;
-    if (pendingAgeMs >= maximumPendingAgeMs) {
-      throw new TradingRiskError(
-        'ENTRY_INTENT_EXPIRED',
-        `Trading intent exceeded its ${strategyConfiguration.safety.entryOrderTtlSeconds}s entry TTL before execution.`,
-      );
-    }
+    const entryExpiresAt = await intentEntryDeadline(intent, strategyConfiguration.safety.entryOrderTtlSeconds);
+    assertEntryNotExpired(entryExpiresAt);
     const capacityState = await loadCapacityState(intent);
     assertAccountSafetyState(capacityState);
     const capacitySkipReason = candidateCapacitySkipReason(capacityState, account.maxConcurrentPositions);
@@ -1005,76 +1085,94 @@ export class TradingEngine {
     // Establish account health before evaluating market availability. If both
     // calls were raced, a fast symbol miss could incorrectly hide a concurrent
     // account/executor failure and promote the fallback chain.
+    const requestedAt = Date.now();
+    const reconciled = await this.reconcileEntryCandidate(account, intent);
+    const balanceStartedAt = Date.now();
     const accountSnapshot: TradingAccountSnapshot = await adapter.accountSnapshot(account);
+    const observation: EntrySafetyObservation = { reconciled, epoch, requestedAt, verificationAccount: account,
+      balance: accountSnapshot, balanceStartedAt, balanceCompletedAt: Date.now() };
+    await this.assertCandidateCapacityCurrent(intent);
+    const accounting = await assertEntryAccountingReady(account, accountSnapshot);
+    const entrySafety = await proveEntrySafety(observation, intent.id, intent.plan as TradingPlan | null);
     let market: TradingMarketSnapshot;
     try {
       market = await adapter.marketSnapshot(account, intent.symbol);
     } catch (error) {
-      if (error instanceof TradingSymbolUnavailableError && Date.now() - intent.createdAt >= maximumPendingAgeMs) {
-        throw new TradingRiskError(
-          'ENTRY_INTENT_EXPIRED',
-          `Trading intent exceeded its ${strategyConfiguration.safety.entryOrderTtlSeconds}s entry TTL during market selection.`,
-        );
-      }
+      if (error instanceof TradingSymbolUnavailableError) assertEntryNotExpired(entryExpiresAt);
       throw error;
     }
-    if (Date.now() - intent.createdAt >= maximumPendingAgeMs) {
-      throw new TradingRiskError(
-        'ENTRY_INTENT_EXPIRED',
-        `Trading intent exceeded its ${strategyConfiguration.safety.entryOrderTtlSeconds}s entry TTL during account selection.`,
-      );
-    }
+    assertEntryNotExpired(entryExpiresAt);
+    const tiers = assertTierEvidence(account, intent.symbol, market);
+    await assertLocalTierScope(account.id, intent.id, intent.symbol, tiers.providerSymbol);
+    await readEntryModeEvidence(adapter, account, intent.symbol);
     await recordTradingEquitySnapshot(account.id, accountSnapshot);
-    const channelRisk = pathConfiguration.adaptiveRisk === 'legacy'
-      ? await resolveEffectiveChannelRisk({
-          channelId: intent.channelId,
-          strategy: strategyConfiguration,
-          currentEquity: accountSnapshot.equity,
-        })
-      : pathConfiguration.adaptiveRisk
-        ? await resolveWorkflowAdaptiveRisk({
-            channelId: intent.channelId,
-            accountId: intent.accountId,
-            adaptiveResourceVersionId: pathConfiguration.adaptiveRisk.resourceVersionId,
-            configuration: pathConfiguration.adaptiveRisk.configuration,
-            strategy: strategyConfiguration,
-            currentEquity: accountSnapshot.equity,
-          })
-      : {
-          riskPercent: strategyConfiguration.sizing.riskPerTradePercent,
-          blocked: false,
-          reason: 'Workflow path uses fixed sizing without adaptive risk.',
-        };
+    const channelRisk = await pathChannelRisk(intent, pathConfiguration, accountSnapshot);
     if (channelRisk.blocked) {
       throw new TradingRiskError('CHANNEL_BLOCKED', channelRisk.reason);
     }
+    const sizingFx = await prepareSizingFx(account, accountSnapshot, market, (intent.plan as TradingPlan | null)?.fxSizing);
     const plan = createTradingPlan({
       intentId: intent.id,
       signal: intent.signal,
       strategy: strategyConfiguration,
       account: accountSnapshot,
       market,
+      fxConversion: sizingFx,
       effectiveRiskPercent: channelRisk.riskPercent,
+      entryOriginAt: intent.createdAt,
+      entryExpiresAt,
+      entryPriceBoundary: (intent.plan as TradingPlan | null)?.entryPriceBoundary,
+      // Recovery revalidates the original plan; it must not renew its creation time.
+      now: (intent.plan as TradingPlan | null)?.createdAt,
     });
-    await assertAccountRiskBudget(
-      intent,
-      capacityState,
-      resolveDailyLossLimit(strategyConfiguration.safety, accountSnapshot.equity),
-      plan.riskAmount,
-      accountSnapshot.unrealizedPnl,
-      accountSnapshot.fundingPnlToday,
-    );
-    await persistPlan(intent, plan);
+    assertBoundedEntryProfile(account, plan);
+    assertPlanTierDecision(account, plan, market);
+    const currentCapacity = await loadCapacityState(intent);
+    assertAccountSafetyState(currentCapacity);
+    const changedCapacity = candidateCapacitySkipReason(currentCapacity, (await getTradingAccount(account.id))!.maxConcurrentPositions);
+    if (changedCapacity) throwCapacitySkip(changedCapacity);
+    const riskProof = await createRiskAdmission({ account, intentId: intent.id, plan, market, snapshot: accountSnapshot,
+      budget: resolveDailyLossLimit(strategyConfiguration.safety, accountSnapshot.equity), epoch, sizingFx });
+    await bindRiskContract(account, intent.id, market);
+    if (intent.plan) await persistRevalidatedEntryDeadline(intent, plan);
+    else await persistPlan(intent, plan);
     return {
       account,
       adapter,
       plan,
       effectiveRiskPercent: channelRisk.riskPercent,
+      accounting,
+      riskProof,
+      observation,
+      entrySafety,
     };
   }
 
-  private async executePendingIntent(intent: TradingIntent): Promise<void> {
-    const { account, adapter, plan, effectiveRiskPercent } = await this.preparePendingIntent(intent);
+  private async reconcileEntryCandidate(account: TradingAccount, intent: TradingIntent): Promise<ReconciledAccountEvidence> {
+    await assertCandidateNeverSent(account, intent.id, intent.plan as TradingPlan | null);
+    try {
+      const reconciled = await this.reconcileAccountOwned(account.id, { force: true });
+      if (!reconciled) throw new Error('ACQUISITION_MISSING');
+      return reconciled;
+    } catch (error) {
+      // Account incidents and isolation have already been persisted. This particular candidate has not been sent.
+      const code = reconciliationIncidentCategory(error) === 'reconciliation_transient'
+        ? 'ACCOUNT_EXECUTOR_UNAVAILABLE' : 'ENTRY_SAFETY_UNPROVEN';
+      throw new TradingRiskError(code, `ACCOUNT_RECONCILIATION_FAILED: ${reconciliationErrorMessage(error)}`);
+    }
+  }
+
+  private async assertCandidateCapacityCurrent(intent: TradingIntent): Promise<void> {
+    const capacity = await loadCapacityState(intent);
+    assertAccountSafetyState(capacity);
+    const account = await getTradingAccount(intent.accountId);
+    if (!account) throw new TradingRiskError('ENTRY_SAFETY_UNPROVEN', 'ACCOUNT_MISSING');
+    const reason = candidateCapacitySkipReason(capacity, account.maxConcurrentPositions);
+    if (reason) throwCapacitySkip(reason);
+  }
+
+  private async executePendingIntent(intent: TradingIntent, context: TradingMutationContext, epoch: string): Promise<void> {
+    const { account, adapter, plan, effectiveRiskPercent, accounting, riskProof, observation, entrySafety } = await this.preparePendingIntent(intent, epoch);
     await markWorkflowFallbackSelected(intent.id);
     const entry = plan.orders.find(order => order.role === 'entry')!;
     const protectiveStop = plan.orders.find(order => order.role === 'stop_loss')!;
@@ -1088,6 +1186,9 @@ export class TradingEngine {
       mode: intent.mode,
       details: { symbol: intent.symbol, effectiveRiskPercent },
     });
+    let entryMode: ExchangeEntryConstraints | null = null;
+    let tierMarket: TradingMarketSnapshot | null = null;
+    let dispatchSafety = entrySafety;
     const protectedResult = await submitTrackedProtectedEntry({
       adapter,
       account,
@@ -1095,7 +1196,27 @@ export class TradingEngine {
       plan,
       entry,
       stop: protectiveStop,
+      beforeDispatch: async () => {
+        ({ entryMode, tierMarket } = await this.assertFinalEntryAdmission(intent, account, plan, context, epoch, accounting));
+      },
+      beforeSend: async witness => {
+        await verifyRiskAdmission(riskProof, plan);
+        dispatchSafety = await proveEntrySafety(observation, intent.id, plan, witness);
+      },
+      commitDispatch: () => {
+        this.mutations.assertEntryEpoch(context, epoch);
+        assertEntryNotExpired(plan.entryExpiresAt);
+        this.assertStartupEntryAuthority();
+        assertEntryModeEvidence(account, intent.symbol, entryMode);
+        assertBoundedEntryProfile(account, plan);
+        if (!tierMarket) throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Final tier read is missing.');
+        assertPlanTierDecision(account, plan, tierMarket);
+        assertRiskAdmissionFresh(riskProof);
+        assertEntrySafetyFresh(dispatchSafety);
+      },
     });
+    await riskEvent({ severity: 'info', code: 'ENTRY_SAFETY_PROVED', accountId: account.id, intentId: intent.id,
+      details: { proof: dispatchSafety, phase: 'protected_dispatch_acknowledged' } });
     const entryResult = protectedResult.entry;
     await recordTradingExecutionEvent({
       eventType: 'exchange_ack',
@@ -1133,8 +1254,56 @@ export class TradingEngine {
     );
     await this.enforceEntrySlippage(adapter, account, intent, plan, entryResult);
     await this.submitInitialExits(adapter, account, intent, plan, entryResult);
-    await setIntentState(intent.id, 'monitoring', { plan });
+    const current = await getTradingIntent(intent.id);
+    if (current && ['submitting', 'unknown'].includes(current.status)) await setIntentState(intent.id, 'monitoring', { plan });
     this.logger(`[TRADING] intent=${intent.id} submitted status=${entryResult.status}`);
+  }
+
+  private async assertFinalEntryAdmission(
+    intent: TradingIntent, preparedAccount: TradingAccount, plan: TradingPlan,
+    context: TradingMutationContext, epoch: string, accounting: TradingAccountingEvidence,
+  ): Promise<{ entryMode: ExchangeEntryConstraints | null; tierMarket: TradingMarketSnapshot }> {
+    this.assertStartupEntryAuthority();
+    this.mutations.assertEntryEpoch(context, epoch);
+    await this.assertClockSafeForEntry();
+    const [account, runtime, current, strategy] = await Promise.all([
+      getTradingAccount(intent.accountId), getTradingRuntimeState(),
+      getTradingIntent(intent.id), getTradingStrategyVersion(intent.strategyVersionId),
+    ]);
+    assertExecutionPreconditions(account, runtime);
+    assertPublishedStrategy(strategy);
+    if (account.externalAccountId !== preparedAccount.externalAccountId
+      || account.credentialGeneration !== preparedAccount.credentialGeneration
+      || account.credentialRef !== preparedAccount.credentialRef) {
+      throw new TradingRiskError('ACCOUNT_IDENTITY_CHANGED', 'Account identity changed while the entry was prepared.');
+    }
+    assertBoundedEntryProfile(account, plan);
+    if (current?.status !== 'submitting') {
+      throw new TradingRiskError('ENTRY_INTENT_EXPIRED', 'Entry is no longer authorized or its original TTL expired.');
+    }
+    if (JSON.stringify((current.plan as TradingPlan | null)?.entryPriceBoundary ?? null) !== JSON.stringify(plan.entryPriceBoundary ?? null)) {
+      throw new TradingRiskError('ENTRY_PRICE_BOUND_UNPROVEN', 'Persisted original entry price boundary changed during admission.');
+    }
+    if (JSON.stringify((current.plan as TradingPlan | null)?.leverageTierDecision) !== JSON.stringify(plan.leverageTierDecision)) {
+      throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Persisted original tier decision changed during admission.');
+    }
+    assertEntryNotExpired(await intentEntryDeadline(current, plan.entryOrderTtlSeconds));
+    await assertExecutionAuthorization(intent);
+    const capacity = await loadCapacityState(intent);
+    assertAccountSafetyState(capacity);
+    const skipReason = candidateCapacitySkipReason(capacity, account.maxConcurrentPositions);
+    if (skipReason) throwCapacitySkip(skipReason);
+    assertAccountingFresh(accounting);
+    await assertPersistedMoneyReady(account.id);
+    const tierMarket = await this.adapter(account.exchange).marketSnapshot(account, intent.symbol);
+    assertPlanTierDecision(account, plan, tierMarket);
+    await assertLocalTierScope(account.id, intent.id, intent.symbol, tierMarket.leverageTiers!.providerSymbol);
+    const entryMode = await readEntryModeEvidence(this.adapter(account.exchange), account, intent.symbol);
+    if (entryMode && entryMode.providerSymbol !== tierMarket.leverageTiers!.providerSymbol) {
+      throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Mode and tier provider-symbol binding disagree.');
+    }
+    this.mutations.assertEntryEpoch(context, epoch);
+    return { entryMode, tierMarket };
   }
 
   private async validateProtectedEntryOutcome(
@@ -1147,17 +1316,15 @@ export class TradingEngine {
   ): Promise<void> {
     const entryResult = protectedResult.entry;
     if (entryResult.status === 'rejected') {
-      if (['open', 'partially_filled'].includes(protectedResult.protectiveStop.status)) {
-        const cancelled = await adapter.cancelOrder(account, protectiveStop.clientOrderId);
-        await storeOrderResult(intent.id, cancelled);
-      }
+      // Terminal acknowledgement alone cannot justify removing a stop. Fresh lifecycle cleanup owns this cancellation.
       throw new TradingRiskError('ENTRY_REJECTED', entryResult.error || 'Entry order rejected.');
     }
-    if (!['open', 'partially_filled', 'filled'].includes(entryResult.status)) {
+    const terminalIoc = Boolean(plan.entryPriceBoundary) && entryResult.status === 'cancelled';
+    if (!terminalIoc && !['open', 'partially_filled', 'filled'].includes(entryResult.status)) {
       throw new Error(`Protected entry outcome is ${entryResult.status}.`);
     }
     await openLocalPosition(intent, entryResult);
-    if (!['open', 'filled'].includes(protectedResult.protectiveStop.status)) {
+    if (!['open', 'partially_filled', 'filled'].includes(protectedResult.protectiveStop.status)) {
       const error = new Error(
         `Provider-native protective stop status is ${protectedResult.protectiveStop.status}.`,
       );
@@ -1188,27 +1355,36 @@ export class TradingEngine {
     plan: TradingPlan,
     entryResult: ExchangeOrderResult,
   ): Promise<void> {
-    if (entryResult.status === 'filled') {
-      await this.submitExits(adapter, account, intent, plan);
+    if (entryResult.status === 'filled' || (plan.entryPriceBoundary && entryResult.status === 'cancelled')) {
+      // TP quantities require a real fill ledger and current position, not just an entry acknowledgement.
+      try { await this.reconcileAccountOwned(account.id, { force: true }); } catch (error) {
+        if (!(error instanceof ReconciliationContinuationRequiredError)) throw error;
+        // Durable orders remain managed. The transient reconciliation incident blocks other new entries.
+      }
     } else if (entryResult.status === 'partially_filled') {
-      await this.ensureExitProtection(adapter, account, intent, plan);
+      await this.ensureExitProtection(account);
     }
   }
 
   private async handleIntentFailure(intent: TradingIntent, error: any): Promise<void> {
-    const { code, fallbackReason, knownRisk, message, status } = classifyIntentFailure(error);
-    if (fallbackReason) {
-      // Persist the blocked current intent and promotion of the next candidate
-      // in one transaction so a restart cannot strand a probing fallback run.
-      const result = await advanceWorkflowFallbackOnEligibleFailure(intent, fallbackReason, message);
-      await recordFallbackAdvanceNotification(intent, result);
-    } else {
+    const unresolved = await getDatabase().get(
+      `SELECT 1 FROM trading_operations WHERE intent_id = ? AND account_id = ?
+       AND phase IN ('dispatching', 'unresolved') LIMIT 1`, [intent.id, intent.accountId]);
+    const { code, fallbackReason, knownRisk, message, status } = classifyIntentFailure(error, Boolean(unresolved));
+    if (status === 'unknown') await this.isolateUnresolvedDispatch(intent);
+    const fallback = await transaction(async () => {
+      // A terminal rejection and release of a proven unsent reservation commit together.
+      const current = knownRisk ? await getTradingIntent(intent.id) : null;
+      if (current) await abandonUndispatchedPlan(current);
+      if (fallbackReason) return advanceWorkflowFallbackOnEligibleFailure(intent, fallbackReason, message);
       await setIntentState(intent.id, status, {
         blockReason: knownRisk ? code : undefined,
         error: message,
       });
       await stopWorkflowFallback(intent.id, code);
-    }
+      return null;
+    });
+    await recordFallbackAdvanceNotification(intent, fallback);
     await riskEvent({
       severity: knownRisk ? 'warning' : 'critical',
       code,
@@ -1230,77 +1406,30 @@ export class TradingEngine {
     this.logger(`[TRADING] intent=${intent.id} ${status}: ${code}`);
   }
 
-  private async ensureExitProtection(
-    adapter: TradingExchangeAdapter,
-    account: TradingAccount,
-    intent: TradingIntent,
-    plan: TradingPlan,
-  ): Promise<boolean> {
-    const stop = plan.orders.find(order => order.role === 'stop_loss')!;
-    const [stopState, activeStopState] = await Promise.all([
-      getDatabase().get<{ status: string }>(
-        'SELECT status FROM trading_orders WHERE intent_id = ? AND client_order_id = ?',
-        [intent.id, stop.clientOrderId],
-      ),
-      getDatabase().get<{ status: string }>(
-        `SELECT status FROM trading_orders
-         WHERE intent_id = ? AND role = 'stop_loss' AND status = 'open'
-         ORDER BY created_at DESC LIMIT 1`,
-        [intent.id],
-      ),
-    ]);
-    try {
-      if (!activeStopState && (!stopState || !['created', 'filled'].includes(stopState.status))) {
-        throw new Error(`Protective stop has unsafe local status ${stopState?.status || 'missing'}.`);
-      }
-      const stopResult = !activeStopState && stopState?.status === 'created'
-        ? await submitTrackedOrder({ adapter, account, intent, plan, order: stop })
-        : { status: activeStopState?.status || stopState?.status } as ExchangeOrderResult;
-      if (!['open', 'filled'].includes(stopResult.status)) throw new Error(`Protective stop status is ${stopResult.status}.`);
-      return stopResult.status === 'filled';
-    } catch (error) {
-      await this.emergencyFlatten(adapter, account, intent, plan, error);
-      throw error;
-    }
+  private async isolateUnresolvedDispatch(intent: TradingIntent): Promise<void> {
+    const unresolved = await getDatabase().get(
+      `SELECT 1 FROM trading_orders WHERE intent_id = ? AND status IN ('submitting', 'unknown', 'cancel_pending') LIMIT 1`,
+      [intent.id],
+    );
+    if (!unresolved) return;
+    this.mutations.fenceEntries(intent.accountId);
+    const message = 'Exchange order dispatch is unresolved; new entries require managed-order reconciliation.';
+    await activateAccountKillSwitch(intent.accountId, message);
+    await recordTradingAccountIncident({
+      accountId: intent.accountId, category: 'reconciliation_contract', severity: 'critical', message,
+      details: { intentId: intent.id, code: 'ORDER_OUTCOME_UNRESOLVED' },
+    });
   }
 
-  private async submitExits(
-    adapter: TradingExchangeAdapter,
-    account: TradingAccount,
-    intent: TradingIntent,
-    plan: TradingPlan,
-  ): Promise<void> {
-    if (await this.ensureExitProtection(adapter, account, intent, plan)) return;
-    const [entryState, position] = await Promise.all([
-      getDatabase().get<{ status: string }>(
-        `SELECT status FROM trading_orders WHERE intent_id = ? AND role = 'entry'
-         ORDER BY created_at LIMIT 1`,
-        [intent.id],
-      ),
-      getDatabase().get<{ quantity: string }>(
-        'SELECT quantity FROM trading_positions WHERE intent_id = ?',
-        [intent.id],
-      ),
-    ]);
-    if (!entryState || !['filled', 'cancelled'].includes(entryState.status)) return;
-    if (!position || compareDecimal(position.quantity, '0') <= 0) return;
-    const takeProfits = await adjustedTakeProfits(intent.id, plan, position.quantity);
-    for (const takeProfit of takeProfits) {
-      const state = await getDatabase().get<{ status: string }>(
-        'SELECT status FROM trading_orders WHERE intent_id = ? AND client_order_id = ?',
-        [intent.id, takeProfit.clientOrderId],
-      );
-      if (state?.status !== 'created') continue;
-      const result = await submitTrackedOrder({ adapter, account, intent, plan, order: takeProfit });
-      if (result.status === 'rejected') {
-        await riskEvent({
-          severity: 'warning',
-          code: 'TAKE_PROFIT_REJECTED',
-          accountId: account.id,
-          intentId: intent.id,
-          details: { clientOrderId: takeProfit.clientOrderId, error: result.error },
-        });
-      }
+  private async ensureExitProtection(account: TradingAccount): Promise<boolean> {
+    try {
+      // An acknowledgement is not the final protection decision. The normal lifecycle owns actions and publication.
+      await this.reconcileAccountOwned(account.id, { force: true });
+      return false;
+    } catch (error) {
+      if (error instanceof ReconciliationContinuationRequiredError) return true;
+      // Missing history/health proof is not authorization to flatten or remove a still useful own stop.
+      throw error;
     }
   }
 
@@ -1309,39 +1438,33 @@ export class TradingEngine {
     account: TradingAccount,
     intent: TradingIntent,
     plan: TradingPlan,
-  ): Promise<void> {
-    const desiredQuantities = await desiredTakeProfitQuantities(intent.id, plan);
-    if (!desiredQuantities) return;
+    remote: ExchangeOpenState,
+  ): Promise<boolean> {
+    await recoverPreparedExits(account, intent.id, 'take_profit');
+    const allocation = await loadTakeProfitAllocation(intent.id, plan, remote);
+    if (!allocation) return false;
     const plannedTargets = plan.orders.filter(order => order.role === 'take_profit');
-    if (plannedTargets.length !== desiredQuantities.length) {
-      throw new Error('Take-profit allocation does not match the immutable trade plan.');
-    }
-    const loadRows = () => getDatabase().all<TakeProfitOrderRow[]>(
-      `SELECT client_order_id, status, price, quantity, filled_quantity, request_json
-       FROM trading_orders WHERE intent_id = ? AND role = 'take_profit' ORDER BY created_at`,
-      [intent.id],
-    );
-    const initialRows = await loadRows();
-    const unresolved = initialRows.filter(row => ['submitting', 'unknown', 'cancel_pending'].includes(row.status));
-    if (unresolved.length > 0) {
+    if (allocation.rows.some(row => ['submitting', 'unknown'].includes(row.status))) {
       throw new ReconciliationMismatchError('Take-profit coverage contains an unresolved order outcome.');
     }
-    const invalidActive = initialRows.filter(row =>
-      ['open', 'partially_filled'].includes(row.status) && targetIndexFromOrderRow(row) === null);
-    if (invalidActive.length > 0) {
-      throw new ReconciliationMismatchError('Active take-profit order has no recoverable target index.');
-    }
-
-    const resized: Array<{ targetIndex: number; from: string; to: string }> = [];
+    if (await resumeTakeProfitCancels(adapter, account, intent.id, allocation.rows, remote)) return true;
+    const targets = plannedTargets.map((planned, index) => {
+      const rows = allocation.rows.filter(row => targetIndexFromOrderRow(row) === index + 1);
+      const coverage = targetOrderCoverage(rows, planned.price!);
+      return { planned, rows, coverage, desired: allocation.totals[index]!, remaining: allocation.remaining[index]! };
+    });
     try {
-      for (let index = 0; index < plannedTargets.length; index += 1) {
-        const change = await this.rebalanceTakeProfitTarget({
-          adapter, account, intent, plan, planned: plannedTargets[index]!,
-          targetIndex: index + 1, desiredQuantity: desiredQuantities[index]!, loadRows,
-        });
-        if (change) resized.push(change);
+      const stale = targets.filter(target => !target.coverage.pricesMatch || compareDecimal(target.coverage.covered, target.desired) !== 0)
+        .flatMap(target => target.coverage.active);
+      for (const row of stale) {
+        const result = await cancelTrackedOrder(adapter, account, intent.id, row.client_order_id, remote);
+        if (!['cancelled', 'filled'].includes(result.status)) throw new Error(`Take-profit cancellation status is ${result.status}.`);
       }
+      // No replacement anywhere in this trade before a fresh account read proves post-cancel fills/ownership.
+      if (stale.length > 0) return true;
+      return await this.submitAllocatedTargets(adapter, account, intent, plan, targets);
     } catch (error: any) {
+      if (error instanceof CancelBudgetExhaustedError) throw error;
       await riskEvent({
         severity: 'critical',
         code: 'TAKE_PROFIT_REBALANCE_UNRESOLVED',
@@ -1350,59 +1473,35 @@ export class TradingEngine {
         details: { message: error?.message || String(error) },
       });
       await activateAccountKillSwitch(account.id, `Take-profit rebalance is unresolved for account ${account.id}`);
+      if (error instanceof CancellationEvidenceError) throw error;
       throw new ReconciliationMismatchError(error?.message || 'Take-profit rebalance is unresolved.');
-    }
-    if (resized.length > 0) {
-      await riskEvent({
-        severity: 'info',
-        code: 'TAKE_PROFIT_COVERAGE_RESIZED',
-        accountId: account.id,
-        intentId: intent.id,
-        details: { targets: resized },
-      });
     }
   }
 
-  private async rebalanceTakeProfitTarget(input: {
-    adapter: TradingExchangeAdapter;
-    account: TradingAccount;
-    intent: TradingIntent;
-    plan: TradingPlan;
-    planned: PlannedOrder;
-    targetIndex: number;
-    desiredQuantity: string;
-    loadRows: () => Promise<TakeProfitOrderRow[]>;
-  }): Promise<{ targetIndex: number; from: string; to: string } | null> {
-    const { adapter, account, intent, plan, planned, targetIndex, desiredQuantity, loadRows } = input;
-    let rows = (await loadRows()).filter(row => targetIndexFromOrderRow(row) === targetIndex);
-    const active = rows.filter(row => ['open', 'partially_filled'].includes(row.status));
-    const filled = rows.reduce((total, row) => addDecimal(total, row.filled_quantity), '0');
-    const activeRemaining = active.reduce(
-      (total, row) => addDecimal(total, subtractDecimal(row.quantity, row.filled_quantity)), '0',
-    );
-    const covered = addDecimal(filled, activeRemaining);
-    const priceMatches = active.every(row => row.price !== null && compareDecimal(row.price, planned.price!) === 0);
-    if (compareDecimal(covered, desiredQuantity) === 0 && priceMatches) return null;
-    for (const row of active) {
-      const result = await adapter.cancelOrder(account, row.client_order_id);
-      await storeOrderResult(intent.id, result);
-      if (!['cancelled', 'filled'].includes(result.status)) {
-        throw new Error(`Take-profit cancellation status is ${result.status}.`);
+  private async submitAllocatedTargets(
+    adapter: TradingExchangeAdapter, account: TradingAccount, intent: TradingIntent, plan: TradingPlan,
+    targets: Array<{ planned: PlannedOrder; rows: TakeProfitOrderRow[];
+      coverage: ReturnType<typeof targetOrderCoverage>; desired: string; remaining: string }>,
+  ): Promise<boolean> {
+    const resized: Array<{ targetIndex: number; from: string; to: string }> = [];
+    let changed = false;
+    for (const target of targets) {
+      if (target.coverage.pricesMatch && compareDecimal(target.coverage.covered, target.desired) === 0) continue;
+      const order = await prepareTargetOrder(intent, target.planned, target.remaining, target.rows);
+      if (!order) continue;
+      const result = await submitTrackedOrder({ adapter, account, intent, plan, order });
+      if (!['open', 'partially_filled', 'filled'].includes(result.status)) throw new Error(`Take-profit submission status is ${result.status}.`);
+      changed = true;
+      if (order.clientOrderId !== target.planned.clientOrderId) {
+        resized.push({ targetIndex: target.planned.targetIndex!, from: target.coverage.covered, to: target.desired });
       }
+      if (compareDecimal(result.filledQuantity, '0') > 0) break;
     }
-    rows = (await loadRows()).filter(row => targetIndexFromOrderRow(row) === targetIndex);
-    const filledAfterCancellation = rows.reduce((total, row) => addDecimal(total, row.filled_quantity), '0');
-    const desiredRemaining = compareDecimal(filledAfterCancellation, desiredQuantity) >= 0
-      ? '0'
-      : subtractDecimal(desiredQuantity, filledAfterCancellation);
-    if (compareDecimal(desiredRemaining, '0') > 0) {
-      const replacement = await createReplacementTakeProfit(intent, planned, desiredRemaining);
-      const result = await submitTrackedOrder({ adapter, account, intent, plan, order: replacement });
-      if (!['open', 'filled'].includes(result.status)) {
-        throw new Error(`Replacement take-profit status is ${result.status}.`);
-      }
+    if (resized.length > 0) {
+      await riskEvent({ severity: 'info', code: 'TAKE_PROFIT_COVERAGE_RESIZED', accountId: account.id,
+        intentId: intent.id, details: { targets: resized } });
     }
-    return { targetIndex, from: covered, to: desiredQuantity };
+    return changed;
   }
 
   private async emergencyFlatten(
@@ -1412,53 +1511,32 @@ export class TradingEngine {
     plan: TradingPlan,
     cause: unknown,
   ): Promise<void> {
-    const position = await getDatabase().get<any>('SELECT * FROM trading_positions WHERE intent_id = ?', [intent.id]);
+    this.mutations.fenceEntries(account.id);
+    await activateAccountKillSwitch(account.id, `Emergency exit requested for intent ${intent.id}`);
+    const message = cause instanceof Error ? cause.message : String(cause);
+    if (!await requestEmergencyExit(account.id, intent.id, message)) {
+      throw new ReconciliationMismatchError('Emergency exit has no active recoverable managed position.');
+    }
+    try { await this.drainRequestedEntriesOwned(account.id); } catch { /* Own reduction is independent of incomplete entry drain. */ }
+    const remote = await this.observeSafetyState(account, adapter);
+    await this.assertRemoteAccountIdentity(account, remote);
+    await this.ingestOwnedState(account, remote);
+    const position = remote.positions.find(candidate => candidate.symbol === intent.symbol);
     if (!position || compareDecimal(position.quantity, '0') <= 0) return;
-    await getDatabase().run(
-      `UPDATE trading_positions SET status = 'emergency', updated_at = ? WHERE intent_id = ?`,
-      [Date.now(), intent.id],
-    );
-    const order: PlannedOrder = {
-      clientOrderId: replacementStopId(intent.id, position.quantity, 'flatten'),
-      role: 'flatten',
-      side: intent.side === 'LONG' ? 'sell' : 'buy',
-      orderType: 'market',
-      quantity: position.quantity,
-      price: null,
-      triggerPrice: null,
-      reduceOnly: true,
-      postOnly: false,
-      targetIndex: null,
-    };
-    await getDatabase().run(
-      `INSERT OR IGNORE INTO trading_orders (
-         id, intent_id, account_id, client_order_id, exchange_order_id, role,
-         side, order_type, status, price, trigger_price, quantity, filled_quantity,
-         reduce_only, request_json, response_json, last_error, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, NULL, 'flatten', ?, 'market', 'created', NULL, NULL, ?, '0', 1, ?, NULL, NULL, ?, ?)`,
-      [randomUUID(), intent.id, account.id, order.clientOrderId, order.side, order.quantity, JSON.stringify(order), Date.now(), Date.now()],
-    );
+    await this.submitEmergencyReduction(adapter, account, intent, plan, position.quantity, message);
+  }
+
+  private async submitEmergencyReduction(
+    adapter: TradingExchangeAdapter, account: TradingAccount, intent: TradingIntent, plan: TradingPlan, quantity: string, cause: string,
+  ): Promise<void> {
     try {
-      const existing = await getDatabase().get<{ status: string }>(
-        'SELECT status FROM trading_orders WHERE intent_id = ? AND client_order_id = ?',
-        [intent.id, order.clientOrderId],
-      );
-      if (existing?.status === 'filled') {
-        await activateAccountKillSwitch(account.id, `Emergency flatten for intent ${intent.id} awaits exchange reconciliation`);
-        return;
-      }
-      if (existing && ['submitting', 'unknown', 'cancel_pending', 'open', 'partially_filled'].includes(existing.status)) {
-        throw new ReconciliationMismatchError(`Emergency flatten status is ${existing.status}; exchange reconciliation is required.`);
-      }
+      const order = await prepareEmergencyReduction(account, intent, quantity);
       const result = await submitTrackedOrder({ adapter, account, intent, plan, order });
       if (result.status !== 'filled') throw new Error(`Emergency flatten status is ${result.status}.`);
       await activateAccountKillSwitch(account.id, `Emergency flatten for intent ${intent.id} awaits exchange reconciliation`);
-      let causeMessage = 'Unknown failure';
-      if (cause instanceof Error) causeMessage = cause.message;
-      else if (typeof cause === 'string') causeMessage = cause;
       await riskEvent({
         severity: 'critical', code: 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION', accountId: account.id, intentId: intent.id,
-        details: { cause: causeMessage },
+        details: { cause, clientOrderId: order.clientOrderId },
       });
     } catch (flattenError: any) {
       await activateAccountKillSwitch(account.id, `Emergency flatten unresolved for intent ${intent.id}`);
@@ -1470,7 +1548,11 @@ export class TradingEngine {
     }
   }
 
-  async reconcileAccount(accountId: string, options?: ReconciliationOptions): Promise<void> {
+  async reconcileAccount(accountId: string, options?: ReconciliationOptions): Promise<ReconciledAccountEvidence | undefined> {
+    return this.mutations.run(accountId, () => this.reconcileAccountOwned(accountId, options), options?.mutation);
+  }
+
+  private async reconcileAccountOwned(accountId: string, options?: ReconciliationOptions, entryDrainAttempted = false): Promise<ReconciledAccountEvidence | undefined> {
     const force = options?.force !== false;
     const now = Date.now();
     if (await this.skipPeriodicReconciliation(accountId, force, now)) return;
@@ -1480,21 +1562,108 @@ export class TradingEngine {
     const runId = randomUUID();
     const startedAt = Date.now();
     try {
-      const remote = await adapter.openState(account) as RemoteStateWithIdentity;
-      await this.assertRemoteAccountIdentity(account, remote);
-      await this.applyRemoteState(account, adapter, remote);
-      await this.recordReconciliationSuccess(accountId, runId, startedAt, remote);
-      await resolveTradingAccountIncidents(accountId, [
-        'reconciliation_transient', 'reconciliation_contract', 'remote_identity', 'unmanaged_remote',
-      ]);
+      const runtime = await getTradingRuntimeState();
+      if (runtime.killSwitchActive || account.killSwitchActive) await requestEntryDrain(accountId, 'Active kill switch');
+      // A pending cancellation must not skip fresh fills or protection of already-owned exposure.
+      if (!entryDrainAttempted) {
+        try { await this.drainRequestedEntriesOwned(accountId); } catch { /* Persistent obligation is checked after reconciliation. */ }
+      }
+      const remote = await this.acquireAndReconcile(account, adapter);
+      await this.refreshAccountRiskAfterProtection(account, adapter, remote);
+      if (await pendingEntryDrainCount(accountId) > 0) {
+        throw new ReconciliationMismatchError('Entry drain remains unresolved; fresh order evidence and bounded retry are required.');
+      }
+      if (await getDatabase().get(
+        "SELECT id FROM trading_positions WHERE account_id = ? AND emergency_requested_at IS NOT NULL AND status <> 'closed' LIMIT 1", [accountId])) {
+        throw new ReconciliationMismatchError('Persistent emergency exit is not yet proved closed.');
+      }
+      const accountVersion = await this.recordReconciliationSuccess(account, runId, startedAt, remote);
+      return { account, accountVersion, remote };
     } catch (error) {
       await this.recordReconciliationFailure(accountId, runId, startedAt, error);
       throw error;
     }
   }
 
+  private async acquireAndReconcile(account: TradingAccount, adapter: TradingExchangeAdapter): Promise<RemoteStateWithIdentity> {
+    for (let pass = 0; pass < 3; pass += 1) {
+      const remote = await this.observeSafetyState(account, adapter);
+      try {
+        await this.assertRemoteAccountIdentity(account, remote);
+        if (!await this.applyRemoteState(account, adapter, remote)) return remote;
+      } catch (error) {
+        if (remote.acquisition?.recoverySchedule) {
+          await failScheduledRecovery(account, remote.acquisition.recoverySchedule.attemptId, 'read_failed');
+        }
+        throw error;
+      }
+    }
+    throw new ReconciliationContinuationRequiredError();
+  }
+
+  private async refreshAccountRiskAfterProtection(account: TradingAccount, adapter: TradingExchangeAdapter, remote: ExchangeOpenState): Promise<void> {
+    try {
+      const exceeded = await refreshReconciledRisk({ account, remote, epoch: this.mutations.entryEpoch(account.id),
+        readBalance: () => adapter.accountSnapshot(account), budgetForIntent: async (id, equity) => {
+          const intent = await getTradingIntent(id);
+          if (!intent) throw new Error('Risk intent source is missing.');
+          return resolveDailyLossLimit((await executionPathConfiguration(intent)).strategy.safety, equity);
+        } });
+      if (exceeded) {
+        await requestEntryDrain(account.id, 'Current proved daily risk exceeds configured budget.');
+        // The next regular lifecycle pass shares the original five-attempt budget; never start a second cancel series here.
+      }
+    } catch (error) {
+      // Accounting must never turn successful protection into an unavailable stop/exit path.
+      this.logger(`[TRADING] account=${account.id} risk evidence unresolved: ${String(error)}`);
+    }
+  }
+
+  private async observeSafetyState(account: TradingAccount, adapter: TradingExchangeAdapter): Promise<RemoteStateWithIdentity> {
+    const version = await getDatabase().get<{ state_version: number }>('SELECT state_version FROM trading_accounts WHERE id = ?', [account.id]);
+    // Invalidate the prior receipt before awaiting transport, including a timeout with no new response.
+    const observation = this.protectionObserver.begin(account.id, version?.state_version ?? -1);
+    const remote = await adapter.openState(account) as RemoteStateWithIdentity;
+    this.safetyObservations.set(remote, observation);
+    return remote;
+  }
+
+  private async collectLifecycleProof(
+    account: TradingAccount, remote: ExchangeOpenState, purpose: SafetyPurpose, intentId?: string, accountVersion?: number,
+  ): Promise<TradingSafetyProof> {
+    const observation = this.safetyObservations.get(remote);
+    if (!observation || observation.accountId !== account.id) throw new ReconciliationMismatchError('Lifecycle safety requires a newly acquired account observation.');
+    const current = await getTradingAccount(account.id);
+    if (!current) throw new ReconciliationMismatchError('Lifecycle safety account no longer exists.');
+    const evidence = await collectAccountSafetyEvidence({ current, epoch: observation.epoch, requestedAt: observation.requestedAt,
+      runtimeCurrent: this.mutations.entryEpoch(account.id) === observation.epoch,
+      reconciled: { account, remote, accountVersion: accountVersion ?? observation.accountVersion } });
+    const proof = evaluateTradingSafety(evidence, purpose, intentId);
+    assertTradingSafety(proof);
+    return proof;
+  }
+
+  private async assertLifecycleCommitCurrent(proof: TradingSafetyProof): Promise<void> {
+    const current = await getDatabase().get<{ state_version: number }>(
+      'SELECT state_version FROM trading_accounts WHERE id = ?', [proof.binding.accountId]);
+    if (current?.state_version !== proof.binding.accountVersion) {
+      throw new ReconciliationMismatchError('ACCOUNT_STATE_CHANGED: lifecycle decision changed before commit.');
+    }
+    const now = Date.now();
+    if (proof.acquisitionStartedAt === null || proof.acquisitionCompletedAt === null || proof.acquisitionCompletedAt > now
+      || now - proof.acquisitionStartedAt > 30_000 || proof.evaluatedAt > now) {
+      throw new ReconciliationMismatchError('ACQUISITION_NOT_FRESH: lifecycle evidence expired before commit.');
+    }
+    if (this.mutations.entryEpoch(proof.binding.accountId) !== proof.binding.runtimeEpoch) throw new EntryAdmissionRevokedError();
+  }
+
   private async skipPeriodicReconciliation(accountId: string, force: boolean, now: number): Promise<boolean> {
     if (force) return false;
+    const account = await getTradingAccount(accountId);
+    if (account && usesScheduledFxRecovery(account) && await scheduledRecoveryDue(account, now)) {
+      this.lastPeriodicReconciliationAt.set(accountId, now);
+      return false;
+    }
     const inMemory = this.lastPeriodicReconciliationAt.get(accountId) || 0;
     if (now - inMemory < MIN_PERIODIC_RECONCILIATION_MS) return true;
     this.lastPeriodicReconciliationAt.set(accountId, now);
@@ -1514,6 +1683,7 @@ export class TradingEngine {
     startedAt: number,
     error: unknown,
   ): Promise<void> {
+    this.protectionObserver.invalidate(accountId);
     const category = reconciliationIncidentCategory(error);
     const message = reconciliationErrorMessage(error);
     await recordTradingAccountIncident({
@@ -1526,8 +1696,10 @@ export class TradingEngine {
     if (category !== 'reconciliation_transient') await this.activateReconciliationProtection(accountId, message);
     await getDatabase().run(
       `INSERT INTO trading_reconciliation_runs (
-         id, account_id, status, last_error, started_at, completed_at
-       ) VALUES (?, ?, ?, ?, ?, ?)`,
+         id, account_id, status, last_error, started_at, completed_at, local_snapshot_json
+       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET status = excluded.status, last_error = excluded.last_error,
+         completed_at = excluded.completed_at, local_snapshot_json = excluded.local_snapshot_json`,
       [
         runId,
         accountId,
@@ -1535,6 +1707,7 @@ export class TradingEngine {
         message,
         startedAt,
         Date.now(),
+        error instanceof ProtectionProofRejectedError ? JSON.stringify(error.receipt) : null,
       ],
     );
     const account = await getTradingAccount(accountId);
@@ -1618,12 +1791,44 @@ export class TradingEngine {
   }
 
   private async recordReconciliationSuccess(
-    accountId: string,
+    account: TradingAccount,
     runId: string,
     startedAt: number,
     remote: RemoteStateWithIdentity,
+  ): Promise<number> {
+    const accountId = account.id;
+    const observation = this.safetyObservations.get(remote);
+    if (!observation) throw new ReconciliationMismatchError('Protection publication requires its original observation.');
+    const publication = await transaction(async () => {
+      const receipt = await collectProtectionReceipt({ account, remote, accountVersion: observation.accountVersion }, observation);
+      const before = await protectionAccountSource(accountId);
+      if (before.version !== observation.accountVersion) throw new ReconciliationMismatchError('ACCOUNT_STATE_CHANGED');
+      await resolveTradingAccountIncidents(accountId, [
+        'reconciliation_transient', 'reconciliation_contract', 'remote_identity', 'unmanaged_remote',
+      ]);
+      await updateTradingAccountConfiguration(accountId, { lastReconciledAt: Date.now() });
+      const after = await protectionAccountSource(accountId);
+      if (after.version !== before.version + 1 || after.digest !== before.digest) {
+        throw new ReconciliationMismatchError('ACCOUNT_STATE_CHANGED: unexpected reconciliation metadata delta.');
+      }
+      receipt.commit = { accountVersion: after.version, at: Date.now() };
+      const localSnapshot = JSON.stringify(receipt);
+      await this.storeReconciliationSuccess(accountId, runId, startedAt, remote, localSnapshot);
+      if (receipt.sourceDigest !== await protectionSourceDigest(accountId)) throw new ReconciliationMismatchError('PROTECTION_SOURCE_CHANGED');
+      if ((await protectionAccountSource(accountId)).version !== after.version) throw new ReconciliationMismatchError('ACCOUNT_STATE_CHANGED');
+      assertProtectionObservationFresh(observation);
+      return { accountVersion: after.version, localSnapshot };
+    });
+    this.protectionObserver.publish(observation, publication.localSnapshot);
+    return publication.accountVersion;
+  }
+
+  private async storeReconciliationSuccess(
+    accountId: string, runId: string, startedAt: number, remote: RemoteStateWithIdentity, localSnapshot: string,
   ): Promise<void> {
-    const snapshot = compactRemoteSnapshot(remote);
+    const account = await getTradingAccount(accountId);
+    if (!account) throw new Error('Reconciliation account disappeared before snapshot.');
+    const snapshot = compactRemoteSnapshot(account, remote);
     const previous = await getDatabase().get<{ id: string; remote_snapshot_json: string | null }>(
       `SELECT id, remote_snapshot_json FROM trading_reconciliation_runs
        WHERE account_id = ? AND status = 'succeeded'
@@ -1633,9 +1838,9 @@ export class TradingEngine {
     let coalesce = false;
     if (previous?.remote_snapshot_json) {
       try {
-        const before = JSON.parse(previous.remote_snapshot_json) as { stateDigest?: unknown; accountFingerprint?: unknown };
+        const before = JSON.parse(previous.remote_snapshot_json) as { version?: unknown; stateDigest?: unknown; accountFingerprint?: unknown };
         const after = JSON.parse(snapshot) as { stateDigest: string; accountFingerprint: string | null };
-        coalesce = before.stateDigest === after.stateDigest
+        coalesce = before.version === 3 && before.stateDigest === after.stateDigest
           && before.accountFingerprint === after.accountFingerprint;
       } catch {
         coalesce = false;
@@ -1643,20 +1848,19 @@ export class TradingEngine {
     }
     if (coalesce && previous) {
       await getDatabase().run(
-        `UPDATE trading_reconciliation_runs SET started_at = ?, completed_at = ?, remote_snapshot_json = ?
+        `UPDATE trading_reconciliation_runs SET started_at = ?, completed_at = ?, remote_snapshot_json = ?, local_snapshot_json = ?
          WHERE id = ?`,
-        [startedAt, Date.now(), snapshot, previous.id],
+        [startedAt, Date.now(), snapshot, localSnapshot, previous.id],
       );
     } else {
       await getDatabase().run(
         `INSERT INTO trading_reconciliation_runs (
-           id, account_id, status, remote_snapshot_json, started_at, completed_at
-         ) VALUES (?, ?, 'succeeded', ?, ?, ?)`,
-        [runId, accountId, snapshot, startedAt, Date.now()],
+           id, account_id, status, remote_snapshot_json, started_at, completed_at, local_snapshot_json
+         ) VALUES (?, ?, 'succeeded', ?, ?, ?, ?)`,
+        [runId, accountId, snapshot, startedAt, Date.now(), localSnapshot],
       );
     }
     await this.pruneReconciliationRuns(accountId);
-    await updateTradingAccountConfiguration(accountId, { lastReconciledAt: Date.now() });
   }
 
   private async pruneReconciliationRuns(accountId: string): Promise<void> {
@@ -1674,68 +1878,96 @@ export class TradingEngine {
     account: TradingAccount,
     adapter: TradingExchangeAdapter,
     remote: ExchangeOpenState,
-  ): Promise<void> {
-    await this.detectUnmanagedExposure(account, remote);
-    const unresolvedFills = remote.fills.filter(fill => !fill.clientOrderId);
-    if (unresolvedFills.length > 0) {
-      await recordTradingAccountIncident({
-        accountId: account.id,
-        category: 'unresolved_fill',
-        severity: 'warning',
-        message: 'Exchange snapshot contains fills that cannot be mapped to a managed order.',
-        details: {
-          fillIds: unresolvedFills.slice(0, 25).map(fill => fill.exchangeFillId),
-          exchangeOrderIds: unresolvedFills.slice(0, 25).map(fill => fill.exchangeOrderId),
-          total: unresolvedFills.length,
-        },
-      });
-    } else {
-      await resolveTradingAccountIncidents(account.id, ['unresolved_fill']);
+  ): Promise<boolean> {
+    const localPositions = await this.ingestOwnedState(account, remote, true);
+    let cleanupChanged = false;
+    let cancelBudgetExhausted = false;
+    for (const local of localPositions) {
+      try {
+        const position = remote.positions.find(candidate => candidate.symbol === local.symbol);
+        if (position) cleanupChanged = await this.reconcileOpenRemotePosition(account, adapter, remote, local, position) || cleanupChanged;
+        else cleanupChanged = await this.reconcileMissingRemotePosition(account, adapter, remote, local) || cleanupChanged;
+      } catch (error) {
+        if (!(error instanceof CancelBudgetExhaustedError)) throw error;
+        cancelBudgetExhausted = true;
+      }
     }
+    // Exhausted cancellation work cannot skip independent protection of another owned position.
+    if (cancelBudgetExhausted) throw new ReconciliationContinuationRequiredError();
+    if (cleanupChanged) return true;
+    if (await unresolvedEvidenceCount(account.id) > 0) {
+      throw new ReconciliationMismatchError('Account has unresolved remote execution evidence; ownership and closure remain unproved.', 'unresolved_fill');
+    }
+    if (await unresolvedOperationCount(account.id) > 0) {
+      throw new ReconciliationMismatchError('Exchange operation outcome remains unresolved; exact order evidence is required.');
+    }
+    return false;
+  }
+
+  private async ingestOwnedState(account: TradingAccount, remote: ExchangeOpenState, protectKnownPositions = false): Promise<any[]> {
+    const localOrders = await getDatabase().all<LocalCorrelationOrder[]>(
+      `SELECT orders.*, intent.symbol FROM trading_orders AS orders
+       JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id WHERE orders.account_id = ?`, [account.id]);
+    remote.orders = correlateRemoteOrders(localOrders, remote.orders);
+    remote.fills = correlateRemoteFills(localOrders, remote.fills);
     await this.persistRemoteExecutions(account, remote);
+    await resolveObservedOperations(account, remote.orders);
+    await resolveActiveCancelAttempts(account, remote);
+    await this.detectUnmanagedExposure(account, remote);
+    await observeAccountBaseline(account, remote);
+    const unresolved = await unresolvedEvidenceCount(account.id);
+    if (unresolved > 0 && !protectKnownPositions) {
+      throw new ReconciliationMismatchError('Account has unresolved remote execution evidence; ownership and closure remain unproved.', 'unresolved_fill');
+    }
+    if (unresolved === 0) await resolveTradingAccountIncidents(account.id, ['unresolved_fill']);
     const localPositions = await getDatabase().all<any[]>(
       `SELECT position.*, intent.plan_json FROM trading_positions AS position
        JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
        WHERE position.account_id = ? AND position.status IN ('opening', 'open', 'closing', 'emergency')`,
       [account.id],
     );
-    for (const local of localPositions) {
-      const position = remote.positions.find(candidate => candidate.symbol === local.symbol);
-      if (position) await this.reconcileOpenRemotePosition(account, adapter, remote, local, position);
-      else await this.reconcileMissingRemotePosition(account, remote, local);
-    }
+    // Verify all owned quantities before changing any position or protection.
+    // A same-symbol/same-side remote balance can include a manual trade.
+    await assertAccountOwnership(localPositions, remote.positions);
+    return localPositions;
   }
 
   private async persistRemoteExecutions(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
+    let incompleteManagedExecution = false;
+    for (const event of remote.unresolvedEvents || []) await recordRemoteEvidence(account, event);
     for (const order of remote.orders) {
-      if (!order.clientOrderId) continue;
-      await getDatabase().run(
-        `UPDATE trading_orders SET exchange_order_id = ?, status = ?, filled_quantity = ?,
-           response_json = ?, updated_at = ? WHERE account_id = ? AND client_order_id = ?`,
-        [order.exchangeOrderId, order.status, order.filledQuantity, JSON.stringify(order.raw), remote.observedAt, account.id, order.clientOrderId],
+      const local = await getDatabase().get<{ intent_id: string }>(
+        'SELECT intent_id FROM trading_orders WHERE account_id = ? AND client_order_id = ?',
+        [account.id, order.clientOrderId],
       );
+      if (!local) {
+        // A terminal history row is still economic evidence. Advancing the history cursor
+        // must not discard it merely because ownership/baseline classification is pending.
+        await recordRemoteEvidence(account, {
+          kind: 'order', source: 'fetchOrders', reason: 'unmanaged_order', providerId: order.exchangeOrderId,
+          providerSymbol: order.providerSymbol ?? order.symbol, evidence: economicEvidence(order),
+        });
+        continue;
+      }
+      if (!order.clientOrderId) throw new Error('Managed order correlation omitted its local identity.');
+      await persistTradingRemoteOrder(local.intent_id, order.clientOrderId, order, remote.observedAt);
+      incompleteManagedExecution ||= order.filledQuantity === null;
     }
     for (const fill of remote.fills) {
-      await this.persistRemoteFill(account, fill);
+      await this.persistRemoteFill(account, fill, remote.acquisition);
+    }
+    await projectAccountFillAccounting(account.id);
+    await resolveManagedHistoricalEvidence(account.id);
+    if (remote.acquisition) await recordAcquisitionEvidence(account, remote.acquisition);
+    if (remote.acquisition?.accountLogs) await projectAccountLogMoney(account);
+    if (incompleteManagedExecution) {
+      throw new ReconciliationMismatchError('Managed remote orders omit cumulative execution; protection and closure cannot be proved.');
     }
   }
 
-  private async persistRemoteFill(account: TradingAccount, fill: ExchangeOpenState['fills'][number]): Promise<void> {
-    if (!fill.clientOrderId) return;
-    const localOrder = await getDatabase().get<any>(
-      `SELECT id, intent_id, role, status FROM trading_orders
-       WHERE account_id = ? AND client_order_id = ?`,
-      [account.id, fill.clientOrderId],
-    );
-    if (!localOrder) return;
-    const inserted = await getDatabase().run(
-      `INSERT OR IGNORE INTO trading_fills (
-         id, order_id, account_id, exchange_fill_id, price, quantity,
-         fee, fee_asset, filled_at, raw_json
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [randomUUID(), localOrder.id, account.id, fill.exchangeFillId, fill.price, fill.quantity, fill.fee, fill.feeAsset, fill.filledAt, JSON.stringify(fill.raw)],
-    );
-    if (Number(inserted.changes || 0) !== 1) return;
+  private async persistRemoteFill(account: TradingAccount, fill: ExchangeOpenState['fills'][number], read?: ExchangeOpenState['acquisition']): Promise<void> {
+    const { order: localOrder, inserted, fillId } = await persistCorrelatedFill(account, fill, read);
+    if (!localOrder || !inserted) return;
     const intent = await getTradingIntent(localOrder.intent_id);
     if (!intent) return;
     const notificationType = localOrder.role === 'entry'
@@ -1747,7 +1979,7 @@ export class TradingEngine {
           : null;
     if (notificationType) {
       await recordTradingNotificationBestEffort({
-        dedupeKey: `fill:${account.id}:${fill.exchangeFillId}`,
+        dedupeKey: `fill:${account.id}:${fillId}`,
         eventType: notificationType,
         intentId: intent.id,
         channelId: intent.channelId,
@@ -1791,12 +2023,24 @@ export class TradingEngine {
 
   private async reconcileMissingRemotePosition(
     account: TradingAccount,
+    adapter: TradingExchangeAdapter,
     remote: ExchangeOpenState,
     local: any,
-  ): Promise<void> {
-    if (compareDecimal(local.quantity, '0') > 0) {
+  ): Promise<boolean> {
+    const proof = await loadTradeLifecycle(local.intent_id, local.side);
+    if (!proof.flat) throw new ReconciliationMismatchError('Missing remote position does not prove a zero owned quantity.');
+    if (!proof.entriesTerminal) {
+      if (compareDecimal(proof.ownership.entryQuantity, '0') > 0) {
+        await requestEntryDrain(account.id, 'Exit filled while entry can still fill', local.intent_id);
+        throw new ReconciliationMismatchError('Entry remains active after exit fills; closure is blocked until entry drain is proved.');
+      }
+      return false;
+    }
+    if (!proof.ordersTerminal) return this.cleanupExitSiblings(account, adapter, local.intent_id, proof, remote);
+    if (!proof.operationsResolved) throw new ReconciliationMismatchError('Unresolved exchange operation prevents terminal closure.');
+    if (compareDecimal(proof.ownership.entryQuantity, '0') > 0) {
       await this.closeRemotelyAbsentPosition(account, remote, local);
-      return;
+      return false;
     }
     const entry = await getDatabase().get<{ status: string }>(
       `SELECT status FROM trading_orders
@@ -1804,12 +2048,42 @@ export class TradingEngine {
       [local.intent_id],
     );
     if (entry && ['cancelled', 'rejected'].includes(entry.status)) {
-      await getDatabase().run(
-        `UPDATE trading_positions SET status = 'closed', closed_at = ?, updated_at = ? WHERE id = ?`,
-        [remote.observedAt, remote.observedAt, local.id],
-      );
-      await setIntentState(local.intent_id, 'failed', { error: `Entry order ${entry.status} before opening a position.` });
+      await transaction(async () => {
+        const safety = await this.collectLifecycleProof(account, remote, 'tradeClosed', local.intent_id);
+        await getDatabase().run(
+          `UPDATE trading_positions SET status = 'closed', quantity = '0', closed_at = ?, updated_at = ? WHERE id = ?`,
+          [remote.observedAt, remote.observedAt, local.id]);
+        const intent = await getTradingIntent(local.intent_id);
+        if (intent && !['completed', 'blocked', 'failed'].includes(intent.status)) {
+          await setIntentState(local.intent_id, 'failed', { error: `Entry order ${entry.status} before opening a position.` });
+        }
+        await riskEvent({ severity: 'info', code: 'TRADE_CLOSURE_PROVED', accountId: account.id,
+          intentId: local.intent_id, details: { proof: safety, entryStatus: entry.status } });
+        await this.assertLifecycleCommitCurrent(safety);
+      });
     }
+    return false;
+  }
+
+  private async cleanupExitSiblings(
+    account: TradingAccount, adapter: TradingExchangeAdapter, intentId: string, proof: Awaited<ReturnType<typeof loadTradeLifecycle>>,
+    remote: ExchangeOpenState,
+  ): Promise<boolean> {
+    const siblings = proof.orders.filter(order => order.role !== 'entry' && !['filled', 'cancelled', 'rejected'].includes(order.status));
+    let changed = false;
+    for (const order of siblings) {
+      const permit = claimCancelAttempt(account.id, order.client_order_id);
+      if (order.status === 'created' && await retireUndispatchedExit(intentId, order.client_order_id)) { changed = true; continue; }
+      if (!['open', 'partially_filled', 'cancel_pending'].includes(order.status) || !order.exchange_order_id || !order.provider_symbol) {
+        throw new ReconciliationMismatchError('Exit sibling outcome remains unresolved; no terminal closure is permitted.');
+      }
+      const result = await cancelTrackedOrder(adapter, account, intentId, order.client_order_id, remote, permit);
+      if (!['filled', 'cancelled', 'rejected'].includes(result.status)) {
+        throw new ReconciliationMismatchError('Exit sibling cancellation remains unresolved; no terminal closure is permitted.');
+      }
+      changed = true;
+    }
+    return changed;
   }
 
   private async closeRemotelyAbsentPosition(
@@ -1817,7 +2091,8 @@ export class TradingEngine {
     remote: ExchangeOpenState,
     local: any,
   ): Promise<void> {
-    if (!await hasTerminalClosureProof(local.intent_id)) {
+    const proof = await loadTradeLifecycle(local.intent_id, local.side);
+    if (!proof.flat || !proof.ordersTerminal || !proof.operationsResolved) {
       await riskEvent({
         severity: 'critical', code: 'REMOTE_POSITION_ABSENCE_UNCONFIRMED',
         accountId: account.id, intentId: local.intent_id,
@@ -1828,13 +2103,25 @@ export class TradingEngine {
         `Remote position ${local.symbol} is absent without terminal fill proof.`,
       );
     }
-    const realizedPnl = await calculateIntentPnl(local.intent_id, local.side, local.average_entry_price);
-    await getDatabase().run(
-      `UPDATE trading_positions SET status = 'closed', quantity = '0', realized_pnl = ?,
-         closed_at = ?, updated_at = ? WHERE id = ?`,
-      [realizedPnl, remote.observedAt, remote.observedAt, local.id],
-    );
-    await setIntentState(local.intent_id, 'completed');
+    const entryAverage = await provedEntryAverage(local.intent_id);
+    await projectAccountFillAccounting(account.id);
+    const accounting = await getDatabase().get<{ reporting_currency: string | null; status: string }>(
+      'SELECT reporting_currency, status FROM trading_accounting_projections WHERE intent_id = ?', [local.intent_id]);
+    const money = await intentMoneyTotals(local.intent_id);
+    const moneyReady = accounting?.status === 'complete' && money.value !== null && money.currency === accounting.reporting_currency;
+    const realizedPnl = moneyReady ? money.amount : null;
+    await transaction(async () => {
+      const safety = await this.collectLifecycleProof(account, remote, 'tradeClosed', local.intent_id);
+      await getDatabase().run(
+        `UPDATE trading_positions SET status = 'closed', quantity = '0', realized_pnl = COALESCE(?, realized_pnl), average_entry_price = ?,
+           closed_at = ?, updated_at = ? WHERE id = ?`,
+        [realizedPnl, entryAverage, remote.observedAt, remote.observedAt, local.id]);
+      const intent = await getTradingIntent(local.intent_id);
+      if (intent && !['completed', 'blocked', 'failed'].includes(intent.status)) await setIntentState(local.intent_id, 'completed');
+      await riskEvent({ severity: 'info', code: 'TRADE_CLOSURE_PROVED', accountId: account.id,
+        intentId: local.intent_id, details: { proof: safety } });
+      await this.assertLifecycleCommitCurrent(safety);
+    });
     const intent = await getTradingIntent(local.intent_id);
     if (intent) {
       await recordTradingExecutionEvent({
@@ -1845,7 +2132,8 @@ export class TradingEngine {
         accountId: intent.accountId,
         exchange: intent.exchange,
         mode: intent.mode,
-        details: { symbol: intent.symbol, realizedPnl },
+        details: { symbol: intent.symbol, realizedPnl, realizedPnlValue: moneyReady ? money.value : null,
+          reportingCurrency: accounting?.reporting_currency ?? null, accountingStatus: moneyReady ? 'complete' : 'unresolved' },
       });
     }
   }
@@ -1871,15 +2159,20 @@ export class TradingEngine {
     remote: ExchangeOpenState,
     local: any,
     position: ExchangeOpenState['positions'][number],
-  ): Promise<void> {
+  ): Promise<boolean> {
     await getDatabase().run(
-      `UPDATE trading_positions SET status = 'open', quantity = ?, average_entry_price = ?,
+      `UPDATE trading_positions SET status = CASE WHEN emergency_requested_at IS NOT NULL THEN 'emergency' ELSE 'open' END,
+         quantity = ?, average_entry_price = ?,
          opened_at = COALESCE(opened_at, ?), updated_at = ? WHERE id = ?`,
       [position.quantity, position.averageEntryPrice, remote.observedAt, remote.observedAt, local.id],
     );
     const recoverableIntent = await getTradingIntent(local.intent_id);
     if (!recoverableIntent || !local.plan_json) throw new Error('Remote position has no recoverable trade plan.');
     const recoverablePlan = JSON.parse(local.plan_json) as TradingPlan;
+    if (typeof local.emergency_requested_at === 'number') {
+      await this.submitEmergencyReduction(adapter, account, recoverableIntent, recoverablePlan, position.quantity, local.emergency_reason || 'Persistent emergency exit');
+      return true;
+    }
     try {
       await assertTerminalEntrySlippage(
         recoverableIntent, recoverablePlan, position.averageEntryPrice, position.quantity,
@@ -1888,9 +2181,10 @@ export class TradingEngine {
       await this.emergencyFlatten(adapter, account, recoverableIntent, recoverablePlan, error);
       throw error;
     }
-    await this.ensureProtectiveStop(account, adapter, local, position.quantity, remote);
-    await this.submitExits(adapter, account, recoverableIntent, recoverablePlan);
-    await this.ensureTakeProfitCoverage(adapter, account, recoverableIntent, recoverablePlan);
+    if (await this.ensureProtectiveStop(account, adapter, local, position.quantity, remote)) return true;
+    if (await this.ensureTakeProfitCoverage(adapter, account, recoverableIntent, recoverablePlan, remote)) return true;
+    if (['submitting', 'unknown'].includes(recoverableIntent.status)) await setIntentState(recoverableIntent.id, 'monitoring');
+    return false;
   }
 
   private async detectUnmanagedExposure(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
@@ -1933,20 +2227,26 @@ export class TradingEngine {
     local: any,
     quantity: string,
     remote: ExchangeOpenState,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const intent = await getTradingIntent(local.intent_id);
     if (!intent || !local.plan_json) throw new Error('Open position has no recoverable intent and plan.');
     const plan = JSON.parse(local.plan_json) as TradingPlan;
+    await recoverPreparedExits(account, intent.id, 'stop_loss');
     const strategy = await getTradingStrategyVersion(intent.strategyVersionId);
     if (!strategy) throw new Error('Open position strategy version is missing.');
-    const intentOrders = await getDatabase().all<Array<{ client_order_id: string }>>(
-      'SELECT client_order_id FROM trading_orders WHERE intent_id = ?', [intent.id],
-    );
-    const intentOrderIds = new Set(intentOrders.map(order => order.client_order_id));
-    const filledTargets = await completedTakeProfitTargets(intent.id, plan);
-    const activeStops = matchingActiveStops(remote, intentOrderIds, local.symbol);
-    const activeStop = safestActiveStop(activeStops, local.side);
-    const protectiveQuantity = await requiredProtectiveQuantity(intent.id, plan, quantity);
+    const intentOrders = await loadProtectionOrders(account.id, intent.id);
+    const intentOrderIds = new Set(intentOrders.map(order => order.clientOrderId!));
+    if (intentOrders.some(order => order.role === 'stop_loss' && order.status === 'filled')) {
+      await requestEntryDrain(account.id, 'Filled protective stop cannot protect future entry fills.', intent.id);
+    }
+    const filledTargets = await completedTakeProfitTargets(intent, plan, remote);
+    const activeStops = matchingActiveStops(remote, intentOrderIds, local);
+    const cancellingStops = await pendingCancelOrderIds(account.id, intent.id);
+    const durableStops = activeStops.filter(stop => !cancellingStops.has(stop.clientOrderId!));
+    const activeStop = safestActiveStop(durableStops, local.side);
+    const protectiveQuantity = requiredStopQuantity(quantity, intentOrders.filter(order => order.role === 'entry'));
+    const currentTrigger = activeStop?.triggerPrice && stopImproves(local.side, activeStop.triggerPrice, local.stop_price)
+      ? activeStop.triggerPrice : local.stop_price;
     const decision = await desiredProtectiveStop({
       adapter,
       account,
@@ -1955,9 +2255,10 @@ export class TradingEngine {
       plan,
       strategy,
       filledTargets,
-      currentTrigger: activeStop?.triggerPrice || null,
+      currentTrigger,
     });
-    const exactStop = activeStops.find(stop => stop.quantity === protectiveQuantity && stop.triggerPrice === decision.trigger);
+    const exactStop = durableStops.find(stop => compareDecimal(subtractDecimal(stop.quantity, stop.filledQuantity!), protectiveQuantity) === 0
+      && compareDecimal(stop.triggerPrice!, decision.trigger) === 0);
     const protectedStop = await this.activateProtectiveStop({
       adapter,
       account,
@@ -1972,6 +2273,13 @@ export class TradingEngine {
       'UPDATE trading_positions SET stop_price = ?, updated_at = ? WHERE intent_id = ?',
       [decision.trigger, remote.observedAt, intent.id],
     );
+    // An executing replacement requires fresh ownership before any further lifecycle action.
+    if (replacementStopExecuted(exactStop, protectedStop)) {
+      if (protectedStop.status === 'filled') {
+        await requestEntryDrain(account.id, 'Replacement stop consumed; drain outstanding entry.', intent.id);
+      }
+      return true;
+    }
     if (activeStop?.triggerPrice && activeStop.triggerPrice !== decision.trigger) {
       await riskEvent({
         severity: 'info',
@@ -2005,7 +2313,9 @@ export class TradingEngine {
         },
       });
     }
-    await this.cancelStaleProtectiveStops(account, adapter, intent, activeStops, protectedStop);
+    // An acknowledgement is not independent replacement evidence. Re-read before touching siblings or TPs.
+    if (!exactStop) return true;
+    return this.cancelStaleProtectiveStops(account, adapter, intent, activeStops, protectedStop, remote);
   }
 
   private async activateProtectiveStop(input: {
@@ -2023,7 +2333,10 @@ export class TradingEngine {
     try {
       const replacement = await createReplacementStop(intent, plan, quantity, trigger);
       const result = await submitTrackedOrder({ adapter, account, intent, plan, order: replacement });
-      if (result.status !== 'open') throw new Error(`Replacement stop status is ${result.status}.`);
+      if (!['open', 'partially_filled', 'filled'].includes(result.status)) throw new Error(`Replacement stop status is ${result.status}.`);
+      if (result.status === 'filled' && compareDecimal(result.filledQuantity, quantity) !== 0) {
+        throw new Error('Replacement stop full-fill status lacks complete executed quantity.');
+      }
       return { ...replacement, ...result, symbol } as ActiveStop;
     } catch (error) {
       await this.emergencyFlatten(adapter, account, intent, plan, error);
@@ -2037,16 +2350,19 @@ export class TradingEngine {
     intent: TradingIntent,
     activeStops: ActiveStop[],
     protectedStop: ActiveStop,
-  ): Promise<void> {
+    remote: ExchangeOpenState,
+  ): Promise<boolean> {
+    let cancelledAny = false;
     for (const stale of activeStops) {
       if (stale.clientOrderId === protectedStop.clientOrderId) continue;
       try {
-        const cancelled = await adapter.cancelOrder(account, stale.clientOrderId);
-        await storeOrderResult(intent.id, cancelled);
+        const cancelled = await cancelTrackedOrder(adapter, account, intent.id, stale.clientOrderId, remote);
         if (!['cancelled', 'filled'].includes(cancelled.status)) {
           throw new Error(`Stale protective stop cancellation status is ${cancelled.status}.`);
         }
+        cancelledAny = true;
       } catch (error: any) {
+        if (error instanceof CancelBudgetExhaustedError) throw error;
         await riskEvent({
           severity: 'critical',
           code: 'STOP_REPLACEMENT_CANCEL_UNRESOLVED',
@@ -2059,9 +2375,11 @@ export class TradingEngine {
           },
         });
         await activateAccountKillSwitch(account.id, `Protective stop cancellation is unresolved for account ${account.id}`);
+        if (error instanceof CancellationEvidenceError) throw error;
         throw new ReconciliationMismatchError('Replacement stop is active but the stale stop outcome is unresolved.');
       }
     }
+    return cancelledAny;
   }
 }
 
@@ -2072,27 +2390,61 @@ async function submitTrackedProtectedEntry(input: {
   plan: TradingPlan;
   entry: PlannedOrder;
   stop: PlannedOrder;
+  beforeDispatch: () => Promise<void>;
+  beforeSend: (witness: TradingDispatchWitness) => Promise<void>;
+  commitDispatch: () => void;
 }): Promise<{ entry: ExchangeOrderResult; protectiveStop: ExchangeOrderResult }> {
   if (!input.adapter.submitProtectedEntry) {
     throw new Error(`Exchange adapter ${input.account.exchange} lacks atomic protected-entry support.`);
   }
-  await markOrderSubmitting(input.intent.id, input.stop.clientOrderId);
-  await markOrderSubmitting(input.intent.id, input.entry.clientOrderId);
+  let dispatched = false;
   try {
-    const results = await input.adapter.submitProtectedEntry(
-      input.account,
-      requestFromOrder(input.account, input.plan, input.entry),
+    const { entry: entryRequest, protectiveStop: stopRequest } = await prepareProtectedOrderIdentityRequests(
+      input.account, input.intent.id, requestFromOrder(input.account, input.plan, input.entry),
       requestFromOrder(input.account, input.plan, input.stop),
     );
-    await withDatabaseTransaction(async () => {
-      await storeOrderResult(input.intent.id, results.protectiveStop);
-      await storeOrderResult(input.intent.id, results.entry);
+    const originalBoundary = JSON.stringify(input.plan.entryPriceBoundary ?? null);
+    const originalTierDecision = JSON.stringify(input.plan.leverageTierDecision);
+    assertEntryPriceBoundary(input.plan, entryRequest);
+    return await runJournaledExchangeWrite({
+      account: input.account, intentId: input.intent.id, kind: 'protected_entry',
+      beforeSend: input.beforeSend,
+      clientOrderIds: [input.entry.clientOrderId, input.stop.clientOrderId],
+      request: { entry: entryRequest, protectiveStop: stopRequest },
+      beforeDispatch: async () => {
+        await markOrderSubmitting(input.intent.id, input.stop.clientOrderId);
+        await markOrderSubmitting(input.intent.id, input.entry.clientOrderId);
+        await input.beforeDispatch();
+      },
+      guard: () => {
+        input.commitDispatch();
+        if (JSON.stringify(input.plan.entryPriceBoundary ?? null) !== originalBoundary
+          || JSON.stringify(entryRequest.entryPriceBoundary ?? null) !== originalBoundary) {
+          throw new TradingRiskError('ENTRY_PRICE_BOUND_UNPROVEN', 'Original entry price boundary changed before dispatch.');
+        }
+        assertEntryPriceBoundary(input.plan, entryRequest);
+        if (JSON.stringify(input.plan.leverageTierDecision) !== originalTierDecision
+          || JSON.stringify(entryRequest.leverageTierDecision) !== originalTierDecision
+          || entryRequest.quantity !== input.plan.quantity || entryRequest.leverage !== input.plan.leverage) {
+          throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Original tier decision changed before dispatch.');
+        }
+      },
+      send: () => {
+        dispatched = true;
+        return input.adapter.submitProtectedEntry!(input.account, entryRequest, stopRequest);
+      },
+      persist: async results => {
+        await storeOrderResult(input.intent.id, input.stop.clientOrderId, results.protectiveStop);
+        await storeOrderResult(input.intent.id, input.entry.clientOrderId, results.entry);
+        return [results.entry, results.protectiveStop];
+      },
     });
-    return results;
   } catch (error: any) {
-    await getDatabase().run(
+    if (!dispatched && error instanceof OrderIdentityBindingError) throw new TradingRiskError(error.code, error.message);
+    if (dispatched) await getDatabase().run(
       `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
-       WHERE intent_id = ? AND client_order_id IN (?, ?)`,
+       WHERE intent_id = ? AND client_order_id IN (?, ?)
+         AND status IN ('created', 'submitting', 'unknown')`,
       [
         error?.message || 'Protected entry outcome is unknown.',
         Date.now(),
@@ -2101,6 +2453,20 @@ async function submitTrackedProtectedEntry(input: {
         input.stop.clientOrderId,
       ],
     );
+    if (dispatched && error instanceof TradingUnresolvedOrderError) {
+      await withDatabaseTransaction(async () => {
+        for (const evidence of error.confirmedOrders) {
+          if (![input.entry.clientOrderId, input.stop.clientOrderId].includes(evidence.clientOrderId)) {
+            throw new Error('Unresolved order evidence does not belong to this protected dispatch.');
+          }
+          await storeOrderResult(input.intent.id, evidence.clientOrderId, evidence);
+        }
+      });
+    }
+    if (!dispatched) {
+      const current = await getTradingIntent(input.intent.id);
+      if (current) await abandonUndispatchedPlan(current);
+    }
     throw error;
   }
 }

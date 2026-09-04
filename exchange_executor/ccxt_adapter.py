@@ -1,19 +1,41 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import time
-from decimal import Decimal
-from typing import Any, Awaitable
+from dataclasses import asdict
+from decimal import Decimal, getcontext, localcontext
+from typing import Any, Awaitable, Callable
 
-from ccxt.base.errors import BadRequest, InvalidOrder, OrderNotFound
+from ccxt.base.errors import OrderNotFound
 
-from ccxt_client import CcxtClientRegistry, AccountClients, decimal_text
+from ccxt_client import CcxtClientRegistry, AccountClients, credential_generation, decimal_text
 from ccxt_profiles import ExchangeProfile, profile_for
-from common import ExchangeContractError, RequestDeadline, SymbolUnavailableError, decimal_string, external_account_id
+from common import (
+    ExchangeContractError, RequestDeadline, SymbolUnavailableError, UnresolvedOrderOutcome,
+    decimal_string, external_account_id,
+)
+from order_identity import cancel_target, correlate_batch, order_identifier, write_order_identity
+from provider_order_identity import batch_tag_params, observed_parent_fields
+from fill_identity import native_fill_identity
+from fill_quantity_provenance import observe_fill_quantity
+from order_evidence import merge_ccxt_order, normalized_status as _status
+from remote_evidence import normalize_trades
+from history_reader import RecoveryReadBudget, lookup_order_evidence, now_ms, recover_order_evidence, recovery_request, source_evidence
+from history_pagination import history_request, read_history_pages
+from history_coverage import fresh_fill_source
+from current_state import read_current_state
+from accounting_evidence import funding_total, reporting_balance
+from account_log_scheduler import account_log_request, read_account_logs, read_account_mode, target_budget, propagate_cooldown
+from recovery_schedule import recovery_schedule_request, assert_schedule_binding, read_scheduled_recovery
+from execution_constraints import assert_entry_constraints, profile_hash, read_account_mode_observation, read_entry_constraints
+from entry_price_constraints import apply_entry_boundary, assert_final_entry_spec, needs_entry_boundary, EntryPriceConstraintError
+from leverage_tier_evidence import assert_tier_entry, read_tier_evidence
+from leverage_tiers import TierEvidenceError
+from entry_deadline import EntryDeadline, assert_entry_deadline, entry_deadline_scope
 from symbol_resolver import SymbolResolutionError, requested_base, resolve_symbol
 
 INVALID_CONTRACT_SIZE = "CCXT market has an invalid contract size."
-EMERGENCY_CLEANUP_SLIPPAGE = "0.01"
 
 
 def _canonical_symbol(market: dict[str, Any]) -> str:
@@ -94,17 +116,6 @@ def _clients_profile(clients: AccountClients) -> ExchangeProfile:
     return profile
 
 
-def _status(value: Any) -> str:
-    return {
-        "open": "open",
-        "closed": "filled",
-        "canceled": "cancelled",
-        "cancelled": "cancelled",
-        "expired": "cancelled",
-        "rejected": "rejected",
-    }.get(str(value or "").lower(), "unknown")
-
-
 def _client_order_id(order: dict[str, Any], fallback: str = "") -> str:
     value = order.get("clientOrderId") or order.get("client_order_id") or fallback
     return str(value or "")
@@ -145,12 +156,13 @@ def _ledger_funding_amount(item: dict[str, Any]) -> Decimal | None:
 
 
 def _order_result(order: dict[str, Any], fallback_client_id: str = "") -> dict[str, Any]:
-    client_order_id = _client_order_id(order, fallback_client_id)
-    exchange_order_id = str(order.get("id") or client_order_id)
-    if not client_order_id or not exchange_order_id:
-        raise ExchangeContractError("CCXT order result omitted its identifiers.")
+    client_order_id, exchange_order_id = write_order_identity(order, fallback_client_id)
     status = _status(order.get("status"))
-    filled = Decimal(str(order.get("filled") or 0))
+    if order.get("filled") is None:
+        raise ExchangeContractError("CCXT order result omitted its cumulative filled quantity.")
+    filled = Decimal(decimal_text(order["filled"]))
+    if filled < 0:
+        raise ExchangeContractError("CCXT order result has a negative filled quantity.")
     if status == "open" and filled > 0:
         status = "partially_filled"
     return {
@@ -160,7 +172,8 @@ def _order_result(order: dict[str, Any], fallback_client_id: str = "") -> dict[s
         "filledQuantity": decimal_text(filled),
         "averagePrice": decimal_text(order.get("average"), "0") if order.get("average") is not None else None,
         "error": None if status != "rejected" else "Exchange rejected the order.",
-        "raw": order,
+        "raw": order.get("_identityOriginal", order),
+        **({"identityEvidence": order["identityEvidence"]} if "identityEvidence" in order else {}),
     }
 
 
@@ -173,21 +186,24 @@ def _remote_order_result(order: dict[str, Any]) -> dict[str, Any]:
     correlation against locally persisted orders.
     """
     client_order_id = _client_order_id(order) or None
-    exchange_order_id = str(order.get("id") or "")
+    exchange_order_id = order_identifier(order.get("id"), "exchange")
     if not exchange_order_id:
         raise ExchangeContractError("CCXT remote order omitted its exchange identifier.")
     status = _status(order.get("status"))
-    filled = Decimal(str(order.get("filled") or 0))
-    if status == "open" and filled > 0:
+    filled = None if order.get("filled") is None else Decimal(decimal_text(order["filled"]))
+    if filled is not None and filled < 0:
+        raise ExchangeContractError("CCXT remote order has a negative cumulative fill quantity.")
+    if status == "open" and filled is not None and filled > 0:
         status = "partially_filled"
     return {
         "clientOrderId": client_order_id,
         "exchangeOrderId": exchange_order_id,
         "status": status,
-        "filledQuantity": decimal_text(filled),
+        "filledQuantity": None if filled is None else decimal_text(filled),
         "averagePrice": decimal_text(order.get("average"), "0") if order.get("average") is not None else None,
         "error": None if status != "rejected" else "Exchange rejected the order.",
-        "raw": order,
+        "raw": order.get("_identityOriginal", order),
+        **({"identityEvidence": order["identityEvidence"]} if "identityEvidence" in order else {}),
     }
 
 
@@ -199,34 +215,59 @@ def _market_order_result(
     result = _order_result(order, fallback_client_id)
     contract_size = _contract_size(market)
     result["filledQuantity"] = decimal_text(Decimal(result["filledQuantity"]) * contract_size)
+    if market.get("symbol"):
+        if order.get("symbol") is not None and order["symbol"] != market["symbol"]:
+            raise ExchangeContractError("CCXT order result does not match the requested provider symbol.")
+        result["providerSymbol"] = market["symbol"]
     return result
 
 
-def _normalized_open_order(rest: Any, order: dict[str, Any]) -> dict[str, Any]:
+def _normalized_open_order(rest: Any, order: dict[str, Any], exchange: str = "") -> dict[str, Any]:
     market = rest.market(order["symbol"])
     contract_size = _contract_size(market)
     amount = Decimal(str(order.get("amount") or 0)) * contract_size
     trigger_price = _trigger_price(order)
     reduce_only = _reduce_only(order)
     result = _remote_order_result(order)
-    result["filledQuantity"] = decimal_text(
-        Decimal(result["filledQuantity"]) * contract_size
-    )
+    provider_time = order.get("lastUpdateTimestamp")
+    if provider_time is not None and (type(provider_time) is not int or not 0 <= provider_time <= now_ms() + 60_000):
+        raise ExchangeContractError("Remote order has an invalid provider event timestamp.")
+    if result["filledQuantity"] is not None:
+        result["filledQuantity"] = decimal_text(Decimal(result["filledQuantity"]) * contract_size)
     return {
         **result,
         "symbol": _canonical_symbol(market),
+        "providerSymbol": order["symbol"],
+        "providerTimestamp": provider_time,
         "role": "stop_loss" if reduce_only and trigger_price is not None else "entry",
         "side": str(order.get("side") or "").lower(),
         "quantity": decimal_text(amount),
         "price": decimal_text(order.get("price"), "0") if order.get("price") is not None else None,
         "triggerPrice": decimal_text(trigger_price, "0") if trigger_price is not None else None,
         "reduceOnly": reduce_only,
+        **observed_parent_fields(order, market, exchange),
     }
 
 
+def _position_contracts(position: dict[str, Any]) -> Decimal:
+    value = position.get("contracts")
+    if value is None or value == "" or isinstance(value, bool):
+        raise ExchangeContractError("CCXT position omitted its executed quantity.")
+    return Decimal(decimal_string(decimal_text(value), "position.contracts"))
+
+
+def _linear_accounting_metadata(market: dict[str, Any]) -> dict[str, Any] | None:
+    if market.get("linear") is not True or not isinstance(market.get("settle"), str) or not market["settle"]:
+        return None
+    if not isinstance(market.get("symbol"), str) or not market["symbol"]:
+        return None
+    return {"version": 1, "source": "ccxt-market-v1", "providerSymbol": market["symbol"],
+            "settlementAsset": market["settle"], "linear": True, "quantityUnit": "base"}
+
+
 def _normalized_position(rest: Any, position: dict[str, Any]) -> dict[str, Any] | None:
-    contracts = Decimal(str(position.get("contracts") or 0))
-    if contracts <= 0:
+    contracts = _position_contracts(position)
+    if contracts == 0:
         return None
     market = rest.market(position["symbol"])
     side = str(position.get("side") or "").lower()
@@ -234,40 +275,61 @@ def _normalized_position(rest: Any, position: dict[str, Any]) -> dict[str, Any] 
         raise ExchangeContractError("CCXT position omitted its side.")
     return {
         "symbol": _canonical_symbol(market),
+        "providerSymbol": order_identifier(position["symbol"], "position provider symbol"),
         "side": side.upper(),
         "quantity": decimal_text(contracts * _contract_size(market)),
         "averageEntryPrice": decimal_text(position.get("entryPrice")),
-        "unrealizedPnl": decimal_text(position.get("unrealizedPnl")),
+        "unrealizedPnl": decimal_text(position["unrealizedPnl"]) if position.get("unrealizedPnl") is not None else None,
+        "markPrice": decimal_string(decimal_text(position["markPrice"]), "position mark price", positive=True)
+        if position.get("markPrice") is not None else None,
+        "accounting": _linear_accounting_metadata(market),
     }
 
 
 def _normalized_fill(
-    rest: Any, order_by_id: dict[str, dict[str, Any]], trade: dict[str, Any],
-) -> dict[str, Any] | None:
-    exchange_order_id = str(trade.get("order") or "")
-    order = order_by_id.get(exchange_order_id)
-    if not exchange_order_id and order and order.get("id") is not None:
-        exchange_order_id = str(order["id"])
-    if not exchange_order_id:
-        return None
+    rest: Any, order_by_id: dict[tuple[str, str], dict[str, Any]], trade: dict[str, Any],
+    exchange: str = "",
+) -> dict[str, Any]:
+    if trade.get("historyMissingFee") is True:
+        raise ExchangeContractError("Historical execution omitted its actual fee evidence.")
+    if exchange == "krakenfutures" and (trade.get("info") or {}).get("identitySource") != "kraken_history_execution_v3":
+        raise ExchangeContractError("Recent Kraken fill identity is not a documented execution UID alias.")
+    exchange_order_id = order_identifier(trade.get("order"), 'fill order')
+    exchange_fill_id = order_identifier(trade.get("id"), 'fill')
+    filled_at = trade.get("timestamp")
+    if not isinstance(filled_at, int) or isinstance(filled_at, bool) or filled_at < 0:
+        raise ExchangeContractError('Fill omitted its provider timestamp.')
+    order = order_by_id.get((str(trade.get("symbol") or ""), exchange_order_id))
     client_id = _client_order_id(order or {}) or None
     fee = trade.get("fee") if isinstance(trade.get("fee"), dict) else {}
+    if fee.get("cost") is None:
+        raise ExchangeContractError("Execution omitted its actual fee evidence.")
     market = rest.market(trade["symbol"])
-    base_quantity = Decimal(str(trade.get("amount") or 0)) * _contract_size(market)
+    input_quantity = Decimal(decimal_string(decimal_text(trade.get("amount")), 'fill amount', positive=True))
+    contract_size = _contract_size(market)
+    base_quantity = input_quantity * contract_size
+    identity = native_fill_identity(exchange, market, trade)
+    quantity_normalization = observe_fill_quantity(market, trade, identity, input_quantity, contract_size, base_quantity,
+        decimal_precision=getcontext().prec, decimal_rounding=getcontext().rounding, normalized_at=now_ms())
     return {
-        "exchangeFillId": str(trade.get("id") or f"{trade.get('order')}:{trade.get('timestamp')}:{trade.get('amount')}"),
+        "exchangeFillId": exchange_fill_id,
         "clientOrderId": client_id,
         "exchangeOrderId": exchange_order_id,
-        "price": decimal_text(trade.get("price")),
+        "symbol": _canonical_symbol(market),
+        "providerSymbol": market.get("symbol") or trade["symbol"],
+        "price": decimal_string(decimal_text(trade.get("price")), 'fill price', positive=True),
         "quantity": decimal_text(base_quantity),
         "fee": decimal_text(fee.get("cost")),
         "feeAsset": fee.get("currency"),
-        "filledAt": int(trade.get("timestamp") or time.time() * 1_000),
+        "accounting": _linear_accounting_metadata(market),
+        "filledAt": filled_at,
         "raw": trade,
+        **({"identity": identity} if identity else {}),
+        **({"quantityNormalization": quantity_normalization} if quantity_normalization else {}),
     }
 
 
-def _base_order_spec(rest: Any, request: dict[str, Any], symbol: str, amount: str) -> dict[str, Any]:
+def _base_order_spec(rest: Any, request: dict[str, Any], symbol: str, amount: str, exchange: str = "") -> dict[str, Any]:
     side = request.get("side")
     if side not in {"buy", "sell"}:
         raise ExchangeContractError("Order side is invalid.")
@@ -277,6 +339,7 @@ def _base_order_spec(rest: Any, request: dict[str, Any], symbol: str, amount: st
     params: dict[str, Any] = {
         "clientOrderId": str(request.get("clientOrderId") or ""),
         "reduceOnly": request.get("reduceOnly") is True,
+        **batch_tag_params(request, exchange),
     }
     if not params["clientOrderId"]:
         raise ExchangeContractError("clientOrderId is required.")
@@ -296,18 +359,9 @@ def _base_order_spec(rest: Any, request: dict[str, Any], symbol: str, amount: st
 
 def _protected_order_results(
     orders: list[dict[str, Any]], market: dict[str, Any], specs: tuple[dict[str, Any], dict[str, Any]],
+    exchange: str = "",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    mapped = [
-        _market_order_result(orders[index], market, spec["params"]["clientOrderId"])
-        if index < len(orders) else {
-            "clientOrderId": spec["params"]["clientOrderId"],
-            "exchangeOrderId": spec["params"]["clientOrderId"],
-            "status": "unknown", "filledQuantity": "0", "averagePrice": None,
-            "error": "CCXT batch response omitted this order.", "raw": None,
-        }
-        for index, spec in enumerate(specs)
-    ]
-    return mapped[0], mapped[1]
+    return correlate_batch(orders, specs, lambda order, client_id: _market_order_result(order, market, client_id), exchange)
 
 
 async def _within(deadline: RequestDeadline, operation: Awaitable[Any]) -> Any:
@@ -318,6 +372,7 @@ async def _within(deadline: RequestDeadline, operation: Awaitable[Any]) -> Any:
 class CcxtAdapter:
     def __init__(self, registry: CcxtClientRegistry) -> None:
         self.registry = registry
+        self._history_locks: dict[tuple[str, str], asyncio.Lock] = {}
 
     async def _clients(self, account: dict[str, str], deadline: RequestDeadline) -> AccountClients:
         return await _within(deadline, self.registry.account(account))
@@ -343,13 +398,18 @@ class CcxtAdapter:
     async def verify(self, account: dict[str, str], deadline: RequestDeadline) -> dict[str, Any]:
         clients = await self._clients(account, deadline)
         balance = await _within(deadline, clients.rest.fetch_balance())
-        equity, _available = self._balance_values(clients, balance)
+        reporting = reporting_balance(account['exchange'], balance)
+        equity = reporting['equity']
         identity = external_account_id(account["exchange"], account["mode"], clients.account_identity)
+        mode_observation = await read_account_mode_observation(clients, deadline)
         return {
-            "verified": True,
+            "verified": mode_observation["verified"],
+            "reason": mode_observation["reason"],
+            "entryAllowed": False,
             "equity": equity,
             "externalAccountId": identity,
             "accountFingerprint": identity,
+            "credentialGeneration": credential_generation(clients),
             "capabilities": {
                 "integration": "ccxt",
                 "ccxtPro": True,
@@ -359,11 +419,34 @@ class CcxtAdapter:
                 "privatePositionStream": True,
                 "builderFeeEnabled": _clients_profile(clients).builder_fee_enabled,
                 "accountIdentityBinding": _clients_profile(clients).identity_strategy,
-                "reportingCurrency": _clients_profile(clients).settlement_preference[0],
+                "reportingCurrency": reporting['reportingCurrency'],
+                "settlementAssets": reporting['settlementAssets'],
+                "reportingSource": reporting['source'],
                 "profileVersion": _clients_profile(clients).profile_version,
                 "protectedEntryStrategy": _clients_profile(clients).protected_entry_strategy,
+                "executionModeObservation": mode_observation,
+                "executionCapabilities": asdict(_clients_profile(clients).execution_capabilities),
+                "executionProfileHash": profile_hash(_clients_profile(clients)),
             },
         }
+
+    async def entry_constraints(self, account: dict[str, str], symbol: str, deadline: RequestDeadline) -> dict[str, Any]:
+        clients = await self._clients(account, deadline)
+        self.registry.assert_binding(account, clients)
+        market = self._market(clients, symbol)
+        result = await read_entry_constraints(clients, market, deadline)
+        self.registry.assert_binding(account, clients)
+        return result
+
+    async def _entry_mode_fence(
+        self, clients: AccountClients, market: dict[str, Any], deadline: RequestDeadline, leverage: int | None = None,
+    ) -> dict[str, Any]:
+        evidence = await read_entry_constraints(clients, market, deadline)
+        self.registry.assert_binding(clients.account, clients)
+        assert_entry_constraints(clients, market, evidence)
+        if leverage is not None and evidence['leverageSemantics'] == 'configured' and evidence['leverage'] != leverage:
+            raise ExchangeContractError('Entry leverage readback does not match the execution plan.')
+        return evidence
 
     @staticmethod
     def _balance_values(clients: AccountClients, balance: dict[str, Any]) -> tuple[str, str]:
@@ -375,74 +458,59 @@ class CcxtAdapter:
                 return decimal_text(total[currency]), decimal_text(free.get(currency, total[currency]))
         raise ExchangeContractError("CCXT balance contains no certified settlement currency.")
 
-    async def _funding_today(self, clients: AccountClients, deadline: RequestDeadline) -> str:
-        since = int(time.time() // 86_400 * 86_400 * 1_000)
-        values: list[dict[str, Any]] = []
-        normalized_history = False
-        try:
-            if clients.rest.has.get("fetchFundingHistory") is True:
-                values = await _within(deadline, clients.rest.fetch_funding_history(None, since, 500))
-                normalized_history = True
-            elif clients.rest.has.get("fetchLedger") is True:
-                values = await _within(deadline, clients.rest.fetch_ledger(None, since, 500))
-        except (BadRequest, InvalidOrder):
-            return "0"
-        total = Decimal("0")
-        for item in values:
-            amount = Decimal(str(item["amount"])) if normalized_history and item.get("amount") is not None else _ledger_funding_amount(item)
-            if amount is not None:
-                total += amount
-        return decimal_text(total)
-
     async def account_snapshot(self, account: dict[str, str], deadline: RequestDeadline) -> dict[str, Any]:
         clients = await self._clients(account, deadline)
-        balance, positions = await _within(deadline, asyncio.gather(
+        self.registry.assert_binding(account, clients)
+        balance, _positions = await _within(deadline, asyncio.gather(
             clients.rest.fetch_balance(), clients.rest.fetch_positions(),
         ))
-        equity, available = self._balance_values(clients, balance)
-        unrealized = Decimal("0")
-        margin = Decimal("0")
-        for position in positions:
-            unrealized += Decimal(str(position.get("unrealizedPnl") or 0))
-            margin_value = position.get("initialMargin")
-            if margin_value is None:
-                margin_value = position.get("collateral")
-            margin += Decimal(str(margin_value or 0))
-        funding = await self._funding_today(clients, deadline)
+        reporting = reporting_balance(account['exchange'], balance)
+        equity, available = reporting['equity'], reporting['availableBalance']
+        # Funding is now produced by the shared durable /open-state history
+        # pipeline, never another five-call pool started by a balance read.
+        until = now_ms()
+        funding = {'status': 'incomplete', 'since': until // 86_400_000 * 86_400_000, 'until': until,
+                   'cursor': None, 'source': 'durable-account-log', 'reason': 'persisted_observation_required',
+                   'nextReadAt': 0, 'events': []}
+        self.registry.assert_binding(account, clients)
         return {
             "equity": equity,
             "availableBalance": available,
-            "unrealizedPnl": decimal_text(unrealized),
-            "marginUsed": decimal_text(margin),
-            "fundingPnlToday": funding,
+            "unrealizedPnl": reporting['unrealizedPnl'],
+            "marginUsed": reporting['marginUsed'],
+            "fundingPnlToday": funding_total(funding, reporting['reportingCurrency']),
+            "accounting": {
+                "accountFingerprint": external_account_id(account['exchange'], account['mode'], clients.account_identity),
+                "reportingCurrency": reporting['reportingCurrency'], "settlementAssets": reporting['settlementAssets'],
+                "source": reporting['source'], "observedAt": now_ms(), "funding": funding,
+                "unrealizedPnlSemantics": reporting['unrealizedPnlSemantics'],
+            },
         }
-
-    async def _maximum_leverage(self, clients: AccountClients, market: dict[str, Any], deadline: RequestDeadline) -> int:
-        value = (market.get("limits") or {}).get("leverage", {}).get("max")
-        if value is None and clients.rest.has.get("fetchMarketLeverageTiers"):
-            try:
-                tiers = await _within(deadline, clients.rest.fetch_market_leverage_tiers(market["symbol"]))
-                if tiers:
-                    value = tiers[0].get("maxLeverage")
-            except (BadRequest, InvalidOrder):
-                value = None
-        if value is None:
-            raise ExchangeContractError("CCXT market omits a certified maximum leverage.")
-        return max(1, min(50, int(Decimal(str(value)))))
 
     async def market_snapshot(self, account: dict[str, str], symbol: str, deadline: RequestDeadline) -> dict[str, Any]:
         clients = await self._clients(account, deadline)
         market = self._market(clients, symbol)
-        ticker = await _within(deadline, clients.rest.fetch_ticker(market["symbol"]))
+        self.registry.assert_binding(account, clients)
+        tiers = await read_tier_evidence(clients, market, deadline)
         constraints = _market_constraints(market)
         return {
             "symbol": _canonical_symbol(market),
             "providerSymbol": market["symbol"],
-            "markPrice": decimal_text(_market_mark_price(ticker)),
+            "markPrice": tiers['markPrice'],
+            "accounting": _linear_accounting_metadata(market),
             **constraints,
-            "maxLeverage": await self._maximum_leverage(clients, market, deadline),
-            "observedAt": int(time.time() * 1_000),
+            "maxLeverage": tiers['tiers'][0]['maxLeverage'],
+            "observedAt": tiers['observedAt'],
+            "leverageTiers": tiers,
         }
+
+    async def _entry_tier_fence(self, clients, market, request, spec, deadline):
+        if not isinstance(request.get('leverageTierDecision'), dict):
+            raise TierEvidenceError('Original leverage tier decision is missing.')
+        evidence = await read_tier_evidence(clients, market, deadline)
+        self.registry.assert_binding(clients.account, clients)
+        assert_tier_entry(clients, market, request, spec, evidence)
+        return evidence
 
     async def _order_spec(
         self,
@@ -450,15 +518,23 @@ class CcxtAdapter:
         request: dict[str, Any],
         deadline: RequestDeadline,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
+        assert_entry_deadline(request)
         market = self._market(clients, str(request.get("symbol") or ""))
         symbol = market["symbol"]
         quantity = decimal_string(request.get("quantity"), "quantity", positive=True)
         contract_size = _contract_size(market)
-        contracts = Decimal(quantity) / contract_size
+        with localcontext() as context:
+            context.prec = 180
+            contracts = Decimal(quantity) / contract_size
         amount = clients.rest.amount_to_precision(symbol, decimal_text(contracts))
         if Decimal(str(amount)) <= 0:
             raise ExchangeContractError("Order quantity is below the market contract precision.")
-        spec = _base_order_spec(clients.rest, request, symbol, amount)
+        spec = _base_order_spec(clients.rest, request, symbol, amount, clients.account["exchange"])
+        if needs_entry_boundary(request):
+            if clients.rest.has.get('createOrders') is not True:
+                raise EntryPriceConstraintError('Provider SDK lacks the required bounded-entry batch capability.')
+            apply_entry_boundary(_clients_profile(clients), request, spec,
+                                 _precision_step(market.get('precision', {}).get('price'), 'price tick'))
         if _clients_profile(clients).market_order_strategy == "reference_slippage" and spec["type"] == "market":
             slippage_percent = decimal_string(
                 request.get("maxSlippagePercent"), "maxSlippagePercent", positive=True,
@@ -471,10 +547,24 @@ class CcxtAdapter:
             spec["price"] = clients.rest.price_to_precision(symbol, reference)
         leverage = request.get("leverage")
         if not spec["params"]["reduceOnly"]:
-            maximum = await self._maximum_leverage(clients, market, deadline)
             if not isinstance(leverage, int) or isinstance(leverage, bool) or leverage < 1:
                 raise ExchangeContractError("Order leverage is invalid.")
-            await _within(deadline, clients.rest.set_leverage(min(leverage, maximum), symbol))
+            mode = await self._entry_mode_fence(clients, market, deadline)
+            assert_entry_deadline(request)
+            tiers = await self._entry_tier_fence(clients, market, request, spec, deadline)
+            assert_entry_deadline(request)
+            self.registry.assert_binding(clients.account, clients)
+            assert_entry_constraints(clients, market, mode)
+            assert_tier_entry(clients, market, request, spec, tiers)
+            # Kraken's maxLeverage setter switches to isolated. Cross uses effective leverage from collateral/size.
+            if clients.account["exchange"] != "krakenfutures" and mode["leverage"] != leverage:
+                if clients.account["exchange"] == "hyperliquid":
+                    await _within(deadline, clients.rest.set_leverage(leverage, symbol, {"marginMode": "cross"}))
+                else:
+                    await _within(deadline, clients.rest.set_leverage(leverage, symbol))
+                assert_entry_deadline(request)
+            if clients.account["exchange"] == "bybit":
+                spec["params"]["positionIdx"] = 0
         return spec, market
 
     async def _market_order_reference(
@@ -509,18 +599,33 @@ class CcxtAdapter:
         raise ExchangeContractError("CCXT ticker omitted a usable market-order reference price.")
 
     async def submit_order(self, account: dict[str, str], request: dict[str, Any], deadline: RequestDeadline) -> dict[str, Any]:
-        clients = await self._clients(account, deadline)
-        spec, market = await self._order_spec(clients, request, deadline)
-        order = await _within(deadline, clients.rest.create_order(**spec))
-        return _market_order_result(order, market, spec["params"]["clientOrderId"])
+        fence, frozen = EntryDeadline(request), copy.deepcopy(request)
+        deadline = fence.bound_budget(deadline)
+        async with self.registry.mutation(account, deadline) as clients:
+            with entry_deadline_scope(fence):
+                return await self._submit_order_owned(clients, account, frozen, deadline)
 
-    async def _cancel_if_open(self, clients: AccountClients, result: dict[str, Any], symbol: str, deadline: RequestDeadline) -> None:
-        if result["status"] not in {"open", "partially_filled", "unknown"}:
-            return
+    async def _submit_order_owned(
+        self, clients: AccountClients, account: dict[str, str], request: dict[str, Any], deadline: RequestDeadline,
+    ) -> dict[str, Any]:
+        if needs_entry_boundary(request):
+            raise EntryPriceConstraintError('Bounded entry requires its protected batch; standalone submission is forbidden.')
+        spec, market = await self._order_spec(clients, request, deadline)
+        if not spec["params"]["reduceOnly"]:
+            mode = await self._entry_mode_fence(clients, market, deadline, request['leverage'])
+            assert_entry_deadline(request)
+            await self._entry_tier_fence(clients, market, request, spec, deadline)
+            assert_entry_constraints(clients, market, mode)
+        self.registry.assert_binding(account, clients)
+        assert_entry_deadline(request)
+        order = await _within(deadline, clients.rest.create_order(**spec))
         try:
-            await _within(deadline, clients.rest.cancel_order(result["exchangeOrderId"], symbol))
-        except OrderNotFound:
-            return
+            return _market_order_result(order, market, spec["params"]["clientOrderId"])
+        except ExchangeContractError as error:
+            raise UnresolvedOrderOutcome(
+                "Order acknowledgement is unresolved; REST reconciliation is required.",
+                [], [spec["params"]["clientOrderId"]],
+            ) from error
 
     @staticmethod
     def _validate_protected_entry(entry: dict[str, Any], stop: dict[str, Any]) -> None:
@@ -546,39 +651,17 @@ class CcxtAdapter:
         deadline: RequestDeadline,
     ) -> None:
         positions = await _within(deadline, clients.rest.fetch_positions([market["symbol"]]))
-        if any(Decimal(str(position.get("contracts") or 0)) != 0 for position in positions):
+        if not isinstance(positions, list):
+            raise ExchangeContractError("Position preflight returned an invalid collection.")
+        if any(_position_contracts(position) != 0 for position in positions):
             raise ExchangeContractError(
                 "Protected entry is blocked because the exchange already reports exposure for this account and symbol."
             )
-
-    async def _flatten_new_symbol_exposure(
-        self,
-        clients: AccountClients,
-        market: dict[str, Any],
-        deadline: RequestDeadline,
-    ) -> None:
-        # submit_protected_entry proves the symbol has no exposure immediately
-        # before submission. Consequently every position observed here belongs
-        # to the ambiguous batch and can be reduced without touching a prior
-        # managed or manual position.
-        positions = await _within(deadline, clients.rest.fetch_positions([market["symbol"]]))
-        for position in positions:
-            contracts = Decimal(str(position.get("contracts") or 0))
-            if contracts == 0:
-                continue
-            position_side = str(position.get("side")).lower()
-            if position_side not in {"long", "short"}:
-                raise ExchangeContractError("CCXT position omitted its side during emergency cleanup.")
-            side = "sell" if position_side == "long" else "buy"
-            amount = clients.rest.amount_to_precision(market["symbol"], abs(contracts))
-            reference = None
-            params: dict[str, Any] = {"reduceOnly": True}
-            if _clients_profile(clients).market_order_strategy == "reference_slippage":
-                reference = await self._market_order_reference(clients, market, side, deadline)
-                params["slippage"] = EMERGENCY_CLEANUP_SLIPPAGE
-            await _within(deadline, clients.rest.create_order(
-                market["symbol"], "market", side, amount, reference, params,
-            ))
+        orders = await _within(deadline, clients.rest.fetch_open_orders(market["symbol"]))
+        if not isinstance(orders, list) or orders:
+            raise ExchangeContractError(
+                "Protected entry is blocked because active exchange orders at this symbol are not proved absent."
+            )
 
     async def _create_protected_orders(
         self,
@@ -586,27 +669,33 @@ class CcxtAdapter:
         market: dict[str, Any],
         specs: tuple[dict[str, Any], dict[str, Any]],
         deadline: RequestDeadline,
+        leverage: int,
+        entry: dict[str, Any],
     ) -> list[dict[str, Any]]:
+        mode = await self._entry_mode_fence(clients, market, deadline, leverage)
+        assert_entry_deadline(entry)
+        await self._entry_tier_fence(clients, market, entry, specs[0], deadline)
+        assert_entry_constraints(clients, market, mode)
+        self.registry.assert_binding(clients.account, clients)
+        if needs_entry_boundary(entry):
+            assert_final_entry_spec(_clients_profile(clients), entry, specs[0],
+                                    _precision_step(market.get('precision', {}).get('price'), 'price tick'))
+        assert_entry_deadline(entry)
         try:
             orders = await _within(deadline, clients.rest.create_orders(list(specs)))
         except Exception as error:
-            try:
-                cleanup_deadline = RequestDeadline(int(time.time() * 1_000) + 10_000)
-                recent = await self._all_recent_orders(clients, cleanup_deadline)
-                for spec in specs:
-                    client_id = spec["params"]["clientOrderId"]
-                    match = next((item for item in recent if _client_order_id(item) == client_id), None)
-                    if match is not None:
-                        result = _order_result(match, client_id)
-                        await self._cancel_if_open(clients, result, market["symbol"], cleanup_deadline)
-                await self._flatten_new_symbol_exposure(clients, market, cleanup_deadline)
-            except Exception:
-                pass
-            raise ExchangeContractError(
-                "Protected-entry batch outcome is unknown; emergency cleanup was attempted and REST reconciliation is required."
+            # A zero-position preflight is not an ownership proof: another
+            # client can trade during this await. Recovery belongs to the
+            # managed-order ledger, never to a symbol-wide blind flatten.
+            raise UnresolvedOrderOutcome(
+                "Protected-entry batch outcome is unknown; REST reconciliation is required.",
+                [], [spec["params"]["clientOrderId"] for spec in specs],
             ) from error
         if not isinstance(orders, list):
-            raise ExchangeContractError("CCXT createOrders returned an invalid response.")
+            raise UnresolvedOrderOutcome(
+                "CCXT createOrders returned an invalid response; REST reconciliation is required.",
+                [], [spec["params"]["clientOrderId"] for spec in specs],
+            )
         return orders
 
     async def _resolve_protected_results(
@@ -615,20 +704,19 @@ class CcxtAdapter:
         market: dict[str, Any],
         entry_result: dict[str, Any],
         stop_result: dict[str, Any],
+        bounded_ioc: bool = False,
     ) -> dict[str, Any]:
         accepted = {"open", "partially_filled", "filled"}
+        if bounded_ioc and entry_result['status'] == 'cancelled' and stop_result['status'] in accepted:
+            return {"entry": entry_result, "protectiveStop": stop_result}
         if entry_result["status"] in accepted and stop_result["status"] in accepted:
             return {"entry": entry_result, "protectiveStop": stop_result}
-        cleanup_deadline = RequestDeadline(int(time.time() * 1_000) + 10_000)
-        await asyncio.gather(
-            self._cancel_if_open(clients, entry_result, market["symbol"], cleanup_deadline),
-            self._cancel_if_open(clients, stop_result, market["symbol"], cleanup_deadline),
-            return_exceptions=True,
-        )
-        await self._flatten_new_symbol_exposure(clients, market, cleanup_deadline)
         if entry_result["status"] == "rejected" and stop_result["status"] == "rejected":
             return {"entry": entry_result, "protectiveStop": stop_result}
-        raise ExchangeContractError("Protected-entry batch was incomplete; exposure was emergency-flattened.")
+        raise UnresolvedOrderOutcome(
+            "Protected-entry batch was incomplete; managed REST recovery is required.",
+            [entry_result, stop_result], [],
+        )
 
     async def submit_protected_entry(
         self,
@@ -638,7 +726,15 @@ class CcxtAdapter:
         deadline: RequestDeadline,
     ) -> dict[str, Any]:
         self._validate_protected_entry(entry, stop)
-        clients = await self._clients(account, deadline)
+        fence, frozen_entry, frozen_stop = EntryDeadline(entry), copy.deepcopy(entry), copy.deepcopy(stop)
+        deadline = fence.bound_budget(deadline)
+        async with self.registry.mutation(account, deadline) as clients:
+            with entry_deadline_scope(fence):
+                return await self._submit_protected_owned(clients, frozen_entry, frozen_stop, deadline)
+
+    async def _submit_protected_owned(
+        self, clients: AccountClients, entry: dict[str, Any], stop: dict[str, Any], deadline: RequestDeadline,
+    ) -> dict[str, Any]:
         market = self._market(clients, str(entry.get("symbol") or ""))
         await self._assert_symbol_has_no_position(clients, market, deadline)
         entry_spec, market = await self._order_spec(clients, entry, deadline)
@@ -646,27 +742,40 @@ class CcxtAdapter:
         if stop_market["symbol"] != market["symbol"]:
             raise ExchangeContractError("Entry and protective stop must use the same market.")
         specs = (entry_spec, stop_spec)
-        orders = await self._create_protected_orders(clients, market, specs, deadline)
-        entry_result, stop_result = _protected_order_results(orders, market, specs)
-        return await self._resolve_protected_results(clients, market, entry_result, stop_result)
+        orders = await self._create_protected_orders(clients, market, specs, deadline, entry['leverage'], entry)
+        entry_result, stop_result = _protected_order_results(orders, market, specs, clients.account["exchange"])
+        return await self._resolve_protected_results(clients, market, entry_result, stop_result, needs_entry_boundary(entry))
 
-    async def _all_recent_orders(self, clients: AccountClients, deadline: RequestDeadline) -> list[dict[str, Any]]:
-        since = int(time.time() * 1_000) - 30 * 86_400 * 1_000
-        operations: list[Awaitable[Any]] = [clients.rest.fetch_open_orders(None, None, 500)]
-        if clients.rest.has.get("fetchOrders") is True:
-            operations.append(clients.rest.fetch_orders(None, since, 500))
+    async def _recent_historical_orders(self, clients: AccountClients, deadline: RequestDeadline) -> list[dict[str, Any]]:
+        exchange = clients.account["exchange"]
+        now = now_ms()
+        since = now - 30 * 86_400_000
+        # Historical observations supplement, but never certify, the separate current-state collection.
+        operations: list[Callable[[], Awaitable[Any]]] = []
+        if exchange == "bybit" and callable(getattr(clients.rest, "fetch_canceled_and_closed_orders", None)):
+            operations.append(lambda: clients.rest.fetch_canceled_and_closed_orders(None, now - 7 * 86_400_000, 50, {"until": now}))
+        elif exchange == "hyperliquid" and clients.rest.has.get("fetchOrders") is True:
+            operations.append(lambda: clients.rest.fetch_orders(None, None, None))
         else:
+            # Kraken's fetchOrders is an exact-ID status endpoint, not a history listing.
             if clients.rest.has.get("fetchClosedOrders"):
-                operations.append(clients.rest.fetch_closed_orders(None, since, 500))
+                operations.append(lambda: clients.rest.fetch_closed_orders(None, since, 500))
             if clients.rest.has.get("fetchCanceledOrders"):
-                operations.append(clients.rest.fetch_canceled_orders(None, since, 500))
-        pages = await _within(deadline, asyncio.gather(*operations))
-        by_id: dict[str, dict[str, Any]] = {}
+                operations.append(lambda: clients.rest.fetch_canceled_orders(None, since, 500))
+        pages = []
+        for operation in operations:
+            pages.append(await _within(deadline, operation()))
+        return self._merge_order_pages(pages)
+
+    @staticmethod
+    def _merge_order_pages(pages: list[list[dict[str, Any]]]) -> list[dict[str, Any]]:
+        by_id: dict[tuple[str, str], dict[str, Any]] = {}
         for page in pages:
-            for order in page or []:
-                key = str(order.get("id") or _client_order_id(order))
-                if key:
-                    by_id[key] = order
+            if not isinstance(page, list):
+                raise ExchangeContractError("Order history omitted its collection.")
+            for order in page:
+                key = (order_identifier(order.get("symbol"), "provider symbol"), order_identifier(order.get("id"), "exchange"))
+                by_id[key] = merge_ccxt_order(by_id[key], order) if key in by_id else order
         return list(by_id.values())
 
     async def cancel_order(
@@ -675,17 +784,44 @@ class CcxtAdapter:
         client_order_id: str,
         symbol: str,
         deadline: RequestDeadline,
+        exchange_order_id: str | None = None,
+        provider_symbol: str | None = None,
     ) -> dict[str, Any]:
-        clients = await self._clients(account, deadline)
+        async with self.registry.mutation(account, deadline) as clients:
+            return await self._cancel_order_owned(clients, client_order_id, symbol, deadline, exchange_order_id, provider_symbol)
+
+    async def _cancel_order_owned(
+        self, clients: AccountClients, client_order_id: str, symbol: str, deadline: RequestDeadline,
+        exchange_order_id: str | None, provider_symbol: str | None,
+    ) -> dict[str, Any]:
         market = self._market(clients, symbol)
-        orders = await self._all_recent_orders(clients, deadline)
-        match = next((order for order in orders if _client_order_id(order) == client_order_id), None)
-        if match is None:
-            raise ExchangeContractError("CCXT could not prove the order cancellation outcome.")
+        if provider_symbol is not None and provider_symbol != market["symbol"]:
+            raise ExchangeContractError("Cancellation provider symbol conflicts with the local order binding.")
+        reference = {"clientOrderId": client_order_id, "exchangeOrderId": exchange_order_id,
+                     "providerSymbol": market["symbol"], "symbol": symbol, "role": "entry"}
+        try:
+            orders = await lookup_order_evidence(clients.rest, clients.account["exchange"], reference,
+                                                 market["symbol"], RecoveryReadBudget(deadline))
+        except NotImplementedError as error:
+            raise UnresolvedOrderOutcome("No verified cancellation lookup for this order identity.", [], [client_order_id]) from error
+        match = cancel_target(orders, market["symbol"], client_order_id, exchange_order_id)
         if _status(match.get("status")) not in {"open", "partially_filled", "unknown"}:
             return _market_order_result(match, market, client_order_id)
-        cancelled = await _within(deadline, clients.rest.cancel_order(str(match["id"]), market["symbol"]))
-        return _market_order_result(cancelled, market, client_order_id)
+        self.registry.assert_binding(clients.account, clients)
+        try:
+            cancelled = await _within(deadline, clients.rest.cancel_order(match["id"], market["symbol"]))
+            if not isinstance(cancelled, dict) or cancelled.get("id") != match["id"]:
+                raise ExchangeContractError("Cancel acknowledgement omitted or changed its exchange identifier.")
+            if cancelled.get("symbol") not in (None, market["symbol"]):
+                raise ExchangeContractError("Cancel acknowledgement changed its provider symbol.")
+            result = cancel_target([{**cancelled, "symbol": market["symbol"]}], market["symbol"], client_order_id, match["id"])
+            return _market_order_result(result, market, client_order_id)
+        except (ExchangeContractError, OrderNotFound) as error:
+            # Unknown cumulative fill quantity or OrderNotFound is not a zero
+            # fill cancellation. Do not retry the write or claim completion.
+            raise UnresolvedOrderOutcome(
+                "Order cancellation is unresolved; authoritative REST evidence is required.", [], [client_order_id],
+            ) from error
 
     async def _recent_trades(
         self,
@@ -696,41 +832,132 @@ class CcxtAdapter:
         deadline: RequestDeadline,
     ) -> list[dict[str, Any]]:
         if not _clients_profile(clients).my_trades_requires_symbol:
-            return await _within(deadline, clients.rest.fetch_my_trades(None, since, 1_000))
+            return await _within(deadline, clients.rest.fetch_my_trades(None, since, 100 if account["exchange"] == "bybit" else None))
         if not provider_symbols:
             return []
-        pages = await _within(deadline, asyncio.gather(*[
-            clients.rest.fetch_my_trades(symbol, since, 1_000) for symbol in provider_symbols
-        ]))
-        return [trade for page in pages for trade in (page or [])]
+        pages = []
+        for symbol in provider_symbols:
+            pages.append(await _within(deadline, clients.rest.fetch_my_trades(symbol, since, None)))
+        if any(not isinstance(page, list) for page in pages):
+            raise ExchangeContractError("Fill history omitted its collection.")
+        return [trade for page in pages for trade in page]
 
-    async def open_state(self, account: dict[str, str], deadline: RequestDeadline) -> dict[str, Any]:
+    def _recovery_symbol(self, clients: AccountClients, reference: dict[str, Any]) -> str:
+        market = clients.rest.market(reference["providerSymbol"]) if reference["providerSymbol"] else self._market(clients, reference["symbol"])
+        if _canonical_symbol(market) != reference["symbol"]:
+            raise ExchangeContractError("Recovery symbol contradicts its local order namespace.")
+        return market["symbol"]
+
+    def _assert_scheduled_binding(self, account, clients, query):
+        self.registry.assert_binding(account, clients)
+        assert_schedule_binding(query['recoverySchedule'], account, clients)
+
+    async def open_state(self, account: dict[str, str], deadline: RequestDeadline, recovery: Any = None) -> dict[str, Any]:
+        started = now_ms()
+        query = recovery_request(recovery)
+        query["history"] = history_request(recovery.get("history", [])) if isinstance(recovery, dict) else []
+        query['accountLogs'] = account_log_request(recovery, account['exchange'])
+        query['readAccountMode'] = recovery.get('readAccountMode', False) if isinstance(recovery, dict) else False
+        if type(query['readAccountMode']) is not bool:
+            raise ExchangeContractError('Invalid account-mode read request.')
+        query.update(recovery_schedule_request(recovery, query, account))
         clients = await self._clients(account, deadline)
-        since = int(time.time() * 1_000) - 30 * 86_400 * 1_000
-        orders, positions = await _within(deadline, asyncio.gather(
-            self._all_recent_orders(clients, deadline),
-            clients.rest.fetch_positions(),
-        ))
+        if query['accountLogs'] is not None or query['readAccountMode'] or query.get('recoverySchedule'):
+            self.registry.assert_binding(account, clients)
+            binding = (external_account_id(account['exchange'], account['mode'], clients.account_identity), credential_generation(clients))
+            if query['accountLogs'] is not None and (query['accountLogs']['accountFingerprint'], query['accountLogs']['credentialGeneration']) != binding:
+                raise ExchangeContractError('Account-log request does not match authenticated credentials.')
+        assert_schedule_binding(query.get('recoverySchedule'), account, clients)
+        lock = self._history_locks.setdefault((account["exchange"], account["mode"]), asyncio.Lock())
+        await asyncio.wait_for(lock.acquire(), timeout=deadline.sdk_timeout_seconds())
+        try:
+            return await self._read_open_state(account, clients, deadline, query, started)
+        finally:
+            lock.release()
+
+    async def _read_open_state(self, account: dict[str, str], clients: AccountClients, deadline: RequestDeadline,
+                               query: dict[str, Any], started: int) -> dict[str, Any]:
+        assert_schedule_binding(query.get('recoverySchedule'), account, clients)
+        since = max(query["since"], now_ms() - 7 * 86_400_000) if account["exchange"] == "bybit" else query["since"]
+        orders, positions, sources = await read_current_state(clients.rest, account["exchange"], deadline)
+        orders = self._merge_order_pages([orders, await self._recent_historical_orders(clients, deadline)])
         provider_symbols = sorted({
             str(item.get("symbol")) for item in [*orders, *positions]
             if isinstance(item.get("symbol"), str) and item.get("symbol")
         })
+        # Local unresolved obligations contribute symbols even when REST lists are empty.
+        for reference in query["orders"]:
+            try:
+                provider_symbols.append(self._recovery_symbol(clients, reference))
+            except (KeyError, SymbolUnavailableError):
+                pass  # The lookup is explicitly unsupported; never evidence of absence.
+        provider_symbols = sorted(set(provider_symbols))
+        trades_start = now_ms()
         trades = await self._recent_trades(account, clients, provider_symbols, since, deadline)
-        order_by_id = {str(order.get("id")): order for order in orders if order.get("id") is not None}
-        normalized_orders = [_normalized_open_order(clients.rest, order) for order in orders]
+        sources.append(source_evidence("fills", trades_start, "unknown", "history_pagination_not_proven", since))
+        recovery_start = now_ms()
+        resume_at = max((row["nextReadAt"] for row in query["history"] if row["reason"] == "history_transient"), default=0)
+        if (query.get('accountLogs') or {}).get('reason') == 'transient':
+            resume_at = max(resume_at, query['accountLogs']['nextReadAt'])
+        budget = RecoveryReadBudget(deadline, resume_at=resume_at)
+        if query.get('recoverySchedule'):
+            scheduled = await read_scheduled_recovery(clients.rest, account['mode'], query, orders,
+                lambda reference: self._recovery_symbol(clients, reference), budget, clients.account_identity,
+                lambda: self._assert_scheduled_binding(account, clients, query))
+            recovered, checked, extras = scheduled['orders'], scheduled['checked'], scheduled['extras']
+            historical_orders, historical_fills, progress = [], scheduled['fills'], scheduled['history']
+            history_events = scheduled['events']
+            targeted_completed = now_ms()
+        else:
+            recovered, checked = await recover_order_evidence(
+                clients.rest, account["exchange"], query["orders"], orders,
+                lambda reference: self._recovery_symbol(clients, reference), target_budget(query, budget),
+            )
+            targeted_calls = budget.calls
+            identity = external_account_id(account['exchange'], account['mode'], clients.account_identity)
+            extras = {}
+            generation = credential_generation(clients) if query.get('readAccountMode') else ''
+            mode = await read_account_mode(clients.rest, account['exchange'], query, budget, (identity, generation))
+            if mode is not None:
+                extras.update(accountMode=mode, targetedCalls=targeted_calls)
+            logs = await read_account_logs(clients.rest, account['exchange'], query, budget, clients.account_identity)
+            if logs is not None:
+                extras.update(accountLogs=logs, targetedCalls=targeted_calls)
+            targeted_completed = now_ms()
+            history_events: list[dict[str, Any]] = []
+            historical_orders, historical_fills, progress = await read_history_pages(clients.rest, account["exchange"], query["history"], budget, history_events)
+            propagate_cooldown(logs, budget)
+        orders = self._merge_order_pages([orders, recovered])
+        sources.append({**source_evidence("targeted_orders", recovery_start,
+                       "complete" if all(row["status"] == "observed" for row in checked) else "partial", "positive_evidence_only"),
+                        'completedAt': targeted_completed})
+        if query.get('accountLogs') is not None or query.get('readAccountMode') or query.get('recoverySchedule'):
+            self.registry.assert_binding(account, clients)
+        assert_schedule_binding(query.get('recoverySchedule'), account, clients)
+        orders = self._merge_order_pages([orders, historical_orders])
+        trades.extend(historical_fills)
+        for source in sources:
+            if source["source"] == "fills":
+                source["completedAt"] = now_ms()
+                source.update(fresh_fill_source(source, progress, account['exchange'], query['since'], started))
+        order_by_id = {(str(order.get("symbol")), str(order.get("id"))): order for order in orders if order.get("id") is not None}
+        normalized_orders = [_normalized_open_order(clients.rest, order, account["exchange"]) for order in orders]
         normalized_positions = [
             normalized for position in positions
             if (normalized := _normalized_position(clients.rest, position)) is not None
         ]
-        normalized_fills = [
-            normalized for trade in trades
-            if (normalized := _normalized_fill(clients.rest, order_by_id, trade)) is not None
-        ]
+        normalized_fills, unresolved_events = normalize_trades(
+            trades, lambda trade: _normalized_fill(clients.rest, order_by_id, trade, account["exchange"]),
+        )
+        unresolved_events.extend(history_events)
         identity = external_account_id(account["exchange"], account["mode"], clients.account_identity)
         return {
             "orders": normalized_orders,
             "positions": normalized_positions,
             "fills": normalized_fills,
+            "unresolvedEvents": unresolved_events,
             "observedAt": int(time.time() * 1_000),
             "accountFingerprint": identity,
+            "acquisition": {"version": 1, "startedAt": started, "completedAt": now_ms(), "sources": sources, **extras,
+                            "checkedOrders": checked, "history": progress},
         }

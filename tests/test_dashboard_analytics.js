@@ -6,11 +6,24 @@ import path from 'node:path';
 import { closeDb, getDatabase, getSignalDashboardAnalytics, initDb } from '../src/db.js';
 import { getTradingAnalytics, listTradingAccounts, listTradingStrategies } from '../src/trading_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
+import { insertAccountedFill } from './fixtures/accounted_trades.js';
+import { valueMoneyEvent } from '../src/trading_money_ledger.js';
+import { moneyValueFromDecimal } from '../src/trading_money_value.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'dashboard-analytics-'));
 const now = 2_000_000_000_000;
 const recent = now - 60 * 60 * 1_000;
 const old = now - 40 * 24 * 60 * 60 * 1_000;
+
+function exactWindowFields(net, price, fees, tradeCount) {
+  const value = (amount, terms) => ({ ...moneyValueFromDecimal(amount), terms });
+  const total = value(net, 3 * tradeCount);
+  return { realizedPnlValue: total, closedRealizedPnl: net, closedRealizedPnlValue: total,
+    closedReportingCurrency: 'USDT', closedAccountingStatus: 'complete', uncertainOutcomeCount: 0,
+    grossProfitValue: value('25', 3), grossLossValue: value(tradeCount === 1 ? '0' : '10', tradeCount === 1 ? 0 : 3),
+    pricePnlValue: value(price, tradeCount), signedFeesValue: value(fees, 2 * tradeCount), fundingValue: value('0', 0),
+    valuedSubtotalByCurrency: { USDT: net }, valuedSubtotalValuesByCurrency: { USDT: total } };
+}
 
 try {
   await initDb(path.join(directory, 'forwarder.db'));
@@ -46,19 +59,11 @@ try {
        ) VALUES (?, ?, ?, '-1001', ?, ?, 'paper', 'paper', 'BTCUSDT', 'LONG', 'completed', '{}', ?, ?)`,
       [`intent-${suffix}`, signalId, signalId, strategy.id, account.id, createdAt, createdAt],
     );
-    await database.run(
-      `INSERT INTO trading_orders (
-         id, intent_id, account_id, client_order_id, role, side, order_type, status,
-         price, quantity, filled_quantity, reduce_only, request_json, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, 'entry', 'buy', 'limit', 'filled', ?, ?, ?, 0, '{}', ?, ?)`,
-      [`order-${suffix}`, `intent-${suffix}`, account.id, `client-${suffix}`, suffix === 'recent' ? '100' : '50', suffix === 'recent' ? '2' : '1', suffix === 'recent' ? '2' : '1', createdAt, createdAt],
-    );
-    await database.run(
-      `INSERT INTO trading_fills (
-         id, order_id, account_id, exchange_fill_id, price, quantity, fee, fee_asset, filled_at, raw_json
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, 'USDC', ?, '{}')`,
-      [`fill-${suffix}`, `order-${suffix}`, account.id, `exchange-fill-${suffix}`, suffix === 'recent' ? '100' : '50', suffix === 'recent' ? '2' : '1', suffix === 'recent' ? '1' : '0.5', createdAt],
-    );
+    await insertAccountedFill({ intentId: `intent-${suffix}`, accountId: account.id, id: suffix,
+      price: suffix === 'recent' ? '100' : '50', quantity: suffix === 'recent' ? '2' : '1',
+      fee: suffix === 'recent' ? '1' : '0.5', feeAsset: 'USDC', filledAt: createdAt - 1 });
+    await insertAccountedFill({ intentId: `intent-${suffix}`, accountId: account.id, id: `exit-${suffix}`, role: 'flatten',
+      price: suffix === 'recent' ? '113.01' : '40.51', quantity: suffix === 'recent' ? '2' : '1', feeAsset: 'USDC', filledAt: createdAt });
     await database.run(
       `INSERT INTO trading_positions (
          id, intent_id, account_id, strategy_version_id, channel_id, symbol, side,
@@ -83,16 +88,26 @@ try {
   });
   await assert.rejects(getSignalDashboardAnalytics(0), /timestamp is invalid/);
 
+  assert.equal((await getTradingAnalytics(now)).accounts.find(value => value.accountId === account.id).windows.all.realizedPnl, null,
+    'Neither old position totals nor stablecoin parity may replace a missing fee valuation.');
+  for (const event of await database.all("SELECT id, occurred_at FROM trading_money_events WHERE kind = 'fee' AND amount <> '0'")) {
+    await valueMoneyEvent({ eventId: event.id, route: 'paper:event-time-rate:v1', baseAsset: 'USDC', quoteAsset: 'USDT',
+      rate: '1.02', observedAt: event.occurred_at, evidenceId: `fixture-rate-${event.id}` });
+  }
   const trading = await getTradingAnalytics(now);
   const metrics = trading.accounts.find(value => value.accountId === account.id)?.windows;
   assert.deepEqual(metrics?.['24h'], {
+    ...exactWindowFields('25', '26.02', '-1.02', 1),
     realizedPnl: '25', grossProfit: '25', grossLoss: '0', closedTrades: 1,
-    wins: 1, losses: 0, breakeven: 0, fills: 1, volume: '200', fees: { USDC: '1' },
+    reportingCurrency: 'USDT', accountingStatus: 'complete', pricePnl: '26.02', signedFees: '-1.02', funding: '0',
+    wins: 1, losses: 0, breakeven: 0, fills: 2, volume: '426.02', volumeByAsset: { USDT: '426.02' }, fees: { USDC: '1' },
     intents: 1, completedIntents: 1, rejectedIntents: 0, riskEvents: 1, criticalRiskEvents: 1,
   });
   assert.deepEqual(metrics?.all, {
+    ...exactWindowFields('15', '16.53', '-1.53', 2),
     realizedPnl: '15', grossProfit: '25', grossLoss: '10', closedTrades: 2,
-    wins: 1, losses: 1, breakeven: 0, fills: 2, volume: '250', fees: { USDC: '1.5' },
+    reportingCurrency: 'USDT', accountingStatus: 'complete', pricePnl: '16.53', signedFees: '-1.53', funding: '0',
+    wins: 1, losses: 1, breakeven: 0, fills: 4, volume: '516.53', volumeByAsset: { USDT: '516.53' }, fees: { USDC: '1.5' },
     intents: 2, completedIntents: 2, rejectedIntents: 0, riskEvents: 2, criticalRiskEvents: 1,
   });
   await assert.rejects(getTradingAnalytics(Number.NaN), /timestamp is invalid/);

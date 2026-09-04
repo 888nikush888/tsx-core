@@ -59,9 +59,11 @@ import {
 import { validateSignalContractDefinition } from './signal_contract.js';
 import { assertSignalGrounded, validateSignalXml } from './signal_schema.js';
 import {
+  createMaintenanceWorkTracker,
   databaseFileIdentity,
   mcpMaintenanceActive,
   operationalDatabasePath,
+  readMcpMaintenanceRequest,
 } from './mcp_maintenance.js';
 
 const MAXIMUM_TOOL_RESULT_BYTES = 512 * 1024;
@@ -114,6 +116,8 @@ let maintenanceCheckBusy = false;
 let runtimeModeTimer: NodeJS.Timeout | null = null;
 let runtimeModeCheckBusy = false;
 let currentRuntimeMode: McpRuntimeMode = 'disabled';
+const databaseWork = createMaintenanceWorkTracker();
+let shutdownPromise: Promise<void> | null = null;
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -248,7 +252,7 @@ function registerTool(
   config: any,
   handler: ToolHandler,
 ): void {
-  server.registerTool(name, config, async (input: any, extra: any) => {
+  server.registerTool(name, config, (input: any, extra: any) => databaseWork.run(async () => {
     const startedAt = Date.now();
     const sessionId = typeof extra?.sessionId === 'string' ? extra.sessionId : undefined;
     try {
@@ -291,7 +295,7 @@ function registerTool(
       }).catch(() => undefined);
       return toolError(error);
     }
-  });
+  }).catch(error => toolError(error)));
 }
 
 function enqueueControl(
@@ -921,25 +925,43 @@ async function synchronizeRuntimeMode(): Promise<McpRuntimeMode> {
   return state.mode;
 }
 
-async function shutdown(): Promise<void> {
-  if (shuttingDown) return;
+function shutdown(deadlineAt = Date.now() + 30000): Promise<void> {
+  if (shutdownPromise) return shutdownPromise;
+  shutdownPromise = boundedShutdown(deadlineAt);
+  return shutdownPromise;
+}
+
+async function boundedShutdown(deadlineAt: number): Promise<void> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    await Promise.race([drainAndClose(deadlineAt), new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('MCP shutdown deadline expired; no handle-close acknowledgement.')), Math.max(1, deadlineAt - Date.now()));
+    })]);
+  } finally { if (timer) clearTimeout(timer); }
+}
+
+async function drainAndClose(deadlineAt: number): Promise<void> {
   shuttingDown = true;
   if (maintenanceTimer) clearInterval(maintenanceTimer);
   maintenanceTimer = null;
   if (runtimeModeTimer) clearInterval(runtimeModeTimer);
   runtimeModeTimer = null;
-  for (const [sessionId, runtime] of sessions) {
-    if (runtime.notificationTimer) clearInterval(runtime.notificationTimer);
-    await runtime.transport.close().catch(() => undefined);
-    await disconnectMcpSession(sessionId, runtime.agentId).catch(() => undefined);
-  }
-  sessions.clear();
-  await new Promise<void>(resolve => {
+  for (const runtime of sessions.values()) if (runtime.notificationTimer) clearInterval(runtime.notificationTimer);
+  const drained = databaseWork.stopAndDrain(deadlineAt);
+  const httpClosed = new Promise<void>(resolve => {
     if (!httpServer) return resolve();
     httpServer.close(() => resolve());
     httpServer.closeAllConnections();
   });
-  await closeDb().catch(() => undefined);
+  await Promise.all([drained, httpClosed]);
+  const closing = [...sessions.entries()];
+  sessions.clear(); // Transport callbacks cannot start a second untracked disconnect.
+  for (const [sessionId, runtime] of closing) {
+    await runtime.transport.close().catch(() => undefined);
+    await disconnectMcpSession(sessionId, runtime.agentId).catch(() => undefined);
+  }
+  // db.ts writes a nonce/generation acknowledgement only after native close succeeds.
+  await closeDb();
 }
 
 async function initializeOperationalDatabase(databasePath: string): Promise<string> {
@@ -969,13 +991,15 @@ function configureHttpSecurity(app: any, origins: Set<string>): void {
 function configureHealthCheck(app: any): void {
   app.get('/healthz', async (_req: any, res: any) => {
     try {
-      await getDatabase().get('SELECT 1');
-      const mode = await synchronizeRuntimeMode();
-      res.status(200).json({
-        status: 'ok',
-        mode,
-        acceptingConnections: mode === 'active',
-        activeSessions: sessions.size,
+      await databaseWork.run(async () => {
+        await getDatabase().get('SELECT 1');
+        const mode = await synchronizeRuntimeMode();
+        res.status(200).json({
+          status: 'ok',
+          mode,
+          acceptingConnections: mode === 'active',
+          activeSessions: sessions.size,
+        });
       });
     } catch {
       res.status(503).json({ status: 'unhealthy', mode: currentRuntimeMode });
@@ -1034,14 +1058,14 @@ async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res:
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (sessionId: string) => {
-      sessionRegistration = connectMcpSession({
+      sessionRegistration = databaseWork.run(() => connectMcpSession({
         id: sessionId,
         agentId: agent.id,
         clientName: clientInfo.name,
         clientVersion: clientInfo.version,
-      }).then(session => {
+      })).then(session => {
         runtime.session = session;
-        runtime.notificationTimer = setInterval(() => void pumpNotifications(runtime), 1_000);
+        runtime.notificationTimer = setInterval(() => void databaseWork.run(() => pumpNotifications(runtime)).catch(() => undefined), 1_000);
         runtime.notificationTimer.unref();
         return session;
       });
@@ -1053,7 +1077,7 @@ async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res:
   runtime.server = server;
   transport.onclose = () => {
     const sessionId = transport.sessionId;
-    if (sessionId) void closeSession(sessionId);
+    if (sessionId && !shuttingDown) void databaseWork.run(() => closeSession(sessionId)).catch(() => undefined);
   };
   await server.connect(transport);
   await transport.handleRequest(req, res, req.body);
@@ -1094,10 +1118,10 @@ async function handleMcpRequest(req: any, res: any): Promise<void> {
 
 function configureMcpRoute(app: any): void {
   app.all('/mcp', (req: any, res: any) => {
-    void handleMcpRequest(req, res).catch(error => {
+    void databaseWork.run(() => handleMcpRequest(req, res)).catch(error => {
       console.error(`[ERROR] MCP request failed: ${errorMessage(error)}`);
       if (!res.headersSent) {
-        res.status(500).json({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal server error.' }, id: null });
+        res.status(shuttingDown ? 503 : 500).json({ jsonrpc: '2.0', error: { code: -32603, message: shuttingDown ? 'MCP maintenance is draining.' : 'Internal server error.' }, id: null });
       } else {
         res.end();
       }
@@ -1110,13 +1134,14 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity: 
     if (maintenanceCheckBusy || shuttingDown) return;
     maintenanceCheckBusy = true;
     void Promise.all([
-      mcpMaintenanceActive(databasePath),
+      readMcpMaintenanceRequest(databasePath),
       databaseFileIdentity(databasePath),
     ]).then(async ([maintenance, identity]) => {
       if (!maintenance && identity === initialDatabaseIdentity) return;
       console.error('[CRITICAL] MCP service is closing for TSX Core database maintenance or replacement.');
-      // A database replacement is a fail-stop boundary. Waiting for a broken
-      // transport here could keep the old database handle alive indefinitely.
+      await shutdown(maintenance?.deadlineAt ?? Date.now() + 30000);
+      // Successful close is acknowledged by the DB lifecycle hook. If it fails,
+      // only actual process death (not this log or a timer) can prove quiescence.
       process.exit(1);
     }).catch(async () => {
       console.error('[CRITICAL] MCP service lost the operational database path and is closing.');
@@ -1133,7 +1158,7 @@ function startRuntimeModeMonitor(): void {
   runtimeModeTimer = setInterval(() => {
     if (runtimeModeCheckBusy || shuttingDown) return;
     runtimeModeCheckBusy = true;
-    void synchronizeRuntimeMode().catch(error => {
+    void databaseWork.run(() => synchronizeRuntimeMode()).catch(error => {
       console.error(`[WARN] MCP runtime mode check failed: ${errorMessage(error)}`);
     }).finally(() => {
       runtimeModeCheckBusy = false;
@@ -1161,8 +1186,15 @@ async function main(): Promise<void> {
   startRuntimeModeMonitor();
 }
 
-process.on('SIGINT', () => void shutdown().finally(() => process.exit(0)));
-process.on('SIGTERM', () => void shutdown().finally(() => process.exit(0)));
+function shutdownFromSignal(): void {
+  void shutdown().then(() => process.exit(0), error => {
+    console.error(`[CRITICAL] MCP handle closure failed: ${errorMessage(error)}`);
+    process.exit(1);
+  });
+}
+
+process.on('SIGINT', shutdownFromSignal);
+process.on('SIGTERM', shutdownFromSignal);
 
 await main().catch(async error => {
   console.error(`[FATAL] MCP server startup failed: ${errorMessage(error)}`);

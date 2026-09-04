@@ -640,9 +640,9 @@ export function buildOperationsCockpit(
       healthy: !systemStatus?.error,
     },
     {
-      label: "Letzte Sicherung",
-      value: systemStatus?.operations?.backup?.lastSuccessAt
-        ? new Date(systemStatus.operations.backup.lastSuccessAt).toLocaleString("de-DE")
+      label: "Letzte Backup-Integritätsprüfung",
+      value: systemStatus?.operations?.backup?.integrityVerified?.verifiedAt
+        ? new Date(systemStatus.operations.backup.integrityVerified.verifiedAt).toLocaleString("de-DE")
         : "Status in Backups",
       healthy: systemStatus?.operations?.backup?.healthy === true,
     },

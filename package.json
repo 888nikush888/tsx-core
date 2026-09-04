@@ -1,6 +1,6 @@
 {
   "name": "tsx-core",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "TSX Core secure Telegram signal automation and trading control plane",
   "type": "module",
   "packageManager": "npm@10.9.2",

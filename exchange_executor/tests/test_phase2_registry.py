@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import ccxt.async_support as installed_ccxt
 
@@ -14,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from ccxt_registry import CcxtExchangeRegistry
+from ccxt_certification import CertificationResult
 from credentials import CredentialError, CredentialStore, _credential_text_is_valid
 from server import Application
 from symbol_resolver import SymbolResolutionError, resolve_symbol
@@ -141,8 +143,11 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
             set(installed_ccxt.exchanges),
         )
 
-    def test_static_discovery_has_no_network_and_certifies_only_evidence_backed_profiles(self) -> None:
-        catalog = self.registry().catalog()
+    def test_static_discovery_has_no_network_and_quarantines_unreviewed_legacy_profiles(self) -> None:
+        # The scenario is explicitly unreviewed, independent of future genuine
+        # approval pins in the checkout or finished container.
+        with patch('ccxt_certification.APPROVED_IMPLEMENTATION_RECEIPTS', {}):
+            catalog = self.registry().catalog()
         entries = {entry["id"]: entry for entry in catalog["exchanges"]}
         self.assertNotIn("paper", entries)
         self.assertEqual(catalog["implementation"], {
@@ -153,7 +158,9 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
         })
         self.assertEqual(StaticExchange.network_calls, 0)
         for exchange in ("hyperliquid", "bybit", "krakenfutures"):
-            self.assertEqual(entries[exchange]["status"], "certified")
+            self.assertEqual(entries[exchange]["status"], "quarantined")
+            self.assertEqual(entries[exchange]["modes"], [])
+            self.assertIn('review', entries[exchange]['reason'].lower())
             self.assertEqual(entries[exchange]["provider"], "ccxt")
             self.assertTrue(entries[exchange]["restAvailable"])
             self.assertTrue(entries[exchange]["proAvailable"])
@@ -167,6 +174,16 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(entries["restonly"]["status"], "ineligible")
         self.assertEqual(entries["unsupported"]["status"], "ineligible")
         self.assertNotEqual(entries["okx"]["status"], "certified")
+
+    def test_registry_obeys_independent_validator_result_not_public_probe_flags(self):
+        # This isolates catalog projection, not receipt review or provider acceptance.
+        # The real receipt/tree/pin path is exercised in test_certification_evidence.
+        with patch('ccxt_registry.certification_result', return_value=CertificationResult(True, None)):
+            entries = {entry['id']: entry for entry in self.registry().catalog()['exchanges']}
+        self.assertEqual(entries['bybit']['status'], 'certified')
+        self.assertEqual(entries['bybit']['modes'], ['testnet', 'live'])
+        self.assertEqual(entries['okx']['status'], 'discovered')
+        self.assertEqual(StaticExchange.network_calls, 0)
 
     def test_profile_missing_from_installed_ccxt_is_reported_as_deprecated(self) -> None:
         rest, pro = fake_modules()
@@ -221,19 +238,28 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
 
 
 class SymbolResolverTests(unittest.TestCase):
+    @staticmethod
+    def market(identifier, **changes):
+        row = {"id": identifier, "symbol": "BTC/USDT:USDT", "base": "BTC", "quote": "USDT", "settle": "USDT",
+               "type": "swap", "contract": True, "spot": False, "swap": True, "future": False, "option": False,
+               "linear": True, "inverse": False, "active": True, "expiry": None, "contractSize": 1}
+        row.update(changes)
+        return row
+
     def test_resolver_filters_to_active_linear_swaps_and_uses_profile_settlement_order(self) -> None:
         markets = {
-            "spot": {"symbol": "BTC/USDT", "base": "BTC", "quote": "USDT", "contract": False, "swap": False, "linear": False, "active": True},
-            "inverse": {"symbol": "BTC/USD:BTC", "base": "BTC", "quote": "USD", "settle": "BTC", "contract": True, "swap": True, "linear": False, "active": True},
-            "usdc": {"symbol": "BTC/USDC:USDC", "base": "BTC", "quote": "USDC", "settle": "USDC", "contract": True, "swap": True, "linear": True, "active": True},
-            "usdt": {"symbol": "BTC/USDT:USDT", "base": "BTC", "quote": "USDT", "settle": "USDT", "contract": True, "swap": True, "linear": True, "active": True},
+            "spot": self.market("spot", type="spot", symbol="BTC/USDT", contract=False, spot=True, swap=False,
+                                linear=None, inverse=None, settle=None, contractSize=None),
+            "inverse": self.market("inverse", symbol="BTC/USD:BTC", quote="USD", settle="BTC", linear=False, inverse=True),
+            "usdc": self.market("usdc", symbol="BTC/USDC:USDC", quote="USDC", settle="USDC"),
+            "usdt": self.market("usdt"),
         }
         self.assertEqual(resolve_symbol(markets, "BTCUSDT", ("USDC", "USDT", "USD"))["symbol"], "BTC/USDC:USDC")
 
     def test_resolver_fails_closed_on_ambiguity(self) -> None:
         markets = {
-            "a": {"symbol": "BTC/USDT:A", "base": "BTC", "quote": "USDT", "settle": "USDT", "contract": True, "swap": True, "linear": True, "active": True},
-            "b": {"symbol": "BTC/USDT:B", "base": "BTC", "quote": "USDT", "settle": "USDT", "contract": True, "swap": True, "linear": True, "active": True},
+            "a": self.market("a"),
+            "b": self.market("b"),
         }
         with self.assertRaisesRegex(SymbolResolutionError, "SYMBOL_AMBIGUOUS"):
             resolve_symbol(markets, "BTCUSDT", ("USDT", "USDC", "USD"))

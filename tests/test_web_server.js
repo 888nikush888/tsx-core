@@ -579,7 +579,7 @@ async function testSetupBundleApi(baseUrl, controls, appState) {
   assert.match(response.headers.get('content-disposition') || '', /tsx-core-setup-/);
   const bundle = await response.json();
   assert.equal(bundle.schemaVersion, 3);
-  assert.equal(bundle.applicationVersion, '3.2.0');
+  assert.equal(bundle.applicationVersion, '3.3.0');
   assert.equal(bundle.mode, 'replace');
   assert.match(bundle.checksum, /^[a-f0-9]{64}$/);
   assert.doesNotMatch(JSON.stringify(bundle), /must-never-be-returned|must-also-be-redacted/);
@@ -1185,7 +1185,7 @@ async function testOperationsControl(baseUrl, controls) {
   response = await fetch(`${baseUrl}/api/backups`, { headers: headers(VIEWER_TOKEN) });
   assert.deepEqual((await response.json()).backups, ['backup-2026-test']);
   response = await fetch(`${baseUrl}/api/backups/verify?name=backup-2026-test`, { headers: headers(VIEWER_TOKEN) });
-  assert.strictEqual((await response.json()).manifest.schemaVersion, 1);
+  assert.ok((await response.json()).evidence.integrityVerified.verifiedAt);
   response = await fetch(`${baseUrl}/api/backups/recover-offsite`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'recover-offsite-backup' }),
@@ -1291,7 +1291,43 @@ async function testUnavailableControlContracts(baseUrl, appState) {
   }
 }
 
+function fixtureBackupProof() {
+  const now = Date.now();
+  const proof = { verifiedAt: now, artifactCreatedAt: new Date(now).toISOString(), artifactSha256: 'a'.repeat(64) };
+  return { healthy: true, lastSuccessAt: now, integrityVerified: proof, configurationCoherent: proof,
+    restoreEligibility: { status: 'eligible', scope: 'artifact-local-integrated-restore', checkedAt: now,
+      artifactSha256: proof.artifactSha256, reasons: [] } };
+}
+
+async function testBackupProofDestructiveGate(baseUrl, appState) {
+  const provider = appState.getOperationsStatus;
+  const stopped = appState.controls.stopCalls;
+  const resets = appState.controls.factoryResetCalls;
+  try {
+    for (const mutate of [
+      proof => { proof.restoreEligibility.status = 'blocked'; },
+      proof => { proof.restoreEligibility.status = 'unknown'; },
+      proof => { proof.configurationCoherent = null; },
+      proof => { proof.restoreEligibility.artifactSha256 = 'b'.repeat(64); },
+      proof => { proof.restoreEligibility.checkedAt = Date.now() - 31 * 60_000; },
+    ]) {
+      const proof = fixtureBackupProof();
+      mutate(proof);
+      appState.getOperationsStatus = () => ({ backup: proof });
+      for (const [endpoint, confirmation] of [['factory-reset', 'FACTORY RESET'], ['clear-database', 'DATENBANK LEEREN']]) {
+        const response = await fetch(`${baseUrl}/api/${endpoint}`, { method: 'POST',
+          headers: mutationHeaders({ 'Content-Type': 'application/json', 'X-Destructive-Confirmation': endpoint }),
+          body: JSON.stringify({ confirmation }) });
+        assert.equal(response.status, 409, 'Integrity alone must not authorize destructive work when the actual restore is blocked, unknown, incoherent or stale.');
+      }
+    }
+    assert.equal(appState.controls.stopCalls, stopped);
+    assert.equal(appState.controls.factoryResetCalls, resets);
+  } finally { appState.getOperationsStatus = provider; }
+}
+
 async function testBrowserAndDestructiveContracts(baseUrl, appState) {
+  await testBackupProofDestructiveGate(baseUrl, appState);
   let response = await fetch(`${baseUrl}/api/status`, { headers: headers(ADMIN_TOKEN, { Origin: 'https://attacker.example' }) });
   assert.strictEqual(response.status, 403, 'Untrusted browser origins must be rejected');
   response = await fetch(`${baseUrl}/api/status`, {
@@ -1401,14 +1437,14 @@ async function createAppState(testDir, controls) {
       replayRemote: async () => { controls.auditReplayCalls += 1; return controls.auditEvents.length; }
     },
     secretStore: new ManagedSecretStore(path.join(testDir, 'secrets')),
-    getOperationsStatus: () => ({ backup: { healthy: true, lastSuccessAt: Date.now() }, audit: { healthy: true } }),
+    getOperationsStatus: () => ({ backup: fixtureBackupProof(), audit: { healthy: true } }),
     runBackupNow: async () => {
       controls.backupCalls += 1;
       if (controls.backupBarrier) await controls.backupBarrier;
       return path.join(testDir, 'backups', 'backup-test');
     },
     listBackups: async () => ['backup-2026-test'],
-    verifyBackup: async () => ({ schemaVersion: 1 }),
+    verifyBackup: async () => fixtureBackupProof(),
     recoverOffsiteBackup: async () => {
       controls.offsiteRecoveryCalls += 1;
       return 'backup-2026-recovered';

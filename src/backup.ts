@@ -5,6 +5,7 @@ import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import {
   backupDatabase,
+  getDatabase,
   DATABASE_FEATURE_SET,
   expectedDatabaseMigrations,
   LATEST_SCHEMA_VERSION,
@@ -12,13 +13,32 @@ import {
   type DatabaseMigrationDescriptor,
 } from './db.js';
 import { configurationPathFromEnvironment } from './config.js';
-import { validateRuntimeSettings } from './runtime_settings.js';
+import { signalTemplatesDirectoryFromEnvironment } from './configuration_paths.js';
+import { managedRuntimeSettingsPathFromEnvironment, validateRuntimeSettings } from './runtime_settings.js';
+import {
+  backupConfigurationDigest,
+  withPinnedConfigurationGeneration,
+  validateConfigurationGenerationEvidence,
+  type ConfigurationGenerationEvidence,
+  type ConfigurationSources,
+  type PinnedConfigurationGeneration,
+} from './backup_generation.js';
 import { constantTimeStringEqual } from './secure_compare.js';
+import { assertMcpMaintenanceLease, type McpMaintenanceLease } from './mcp_maintenance.js';
+import {
+  assessRestoreEligibility, boundedBackupManifestBytes, requireRestoreEligibility, validateBackupCreationEvidence,
+  type BackupCreationEvidence, type BackupVerificationEvidence, type RestoreEligibility,
+  type BackupProof, type BackupOffsiteProof, type BackupRestoreDrillProof,
+} from './backup_evidence.js';
+import { runIsolatedBackupRestoreDrill } from './backup_restore_drill.js';
 
 interface BackupReplicator {
   replicate(artifactPath: string): Promise<{
     objectName: string;
     verifiedAt: number;
+    artifactSha256: string;
+    artifactCreatedAt: string;
+    sha256: string;
   }>;
 }
 
@@ -29,8 +49,6 @@ const RUNTIME_SETTINGS_FILE = 'runtime-settings.json';
 const TEMPLATES_DIRECTORY = 'templates';
 const CORE_BACKUP_FILES = [DATABASE_FILE, CONFIG_FILE] as const;
 const MAX_BACKUP_STATE_FILES = 256;
-const MAX_BACKUP_STATE_FILE_BYTES = 5 * 1024 * 1024;
-const MAX_BACKUP_STATE_BYTES = 20 * 1024 * 1024;
 const BACKUP_APPLICATION_ID = 'tsx-core';
 const SUPPORTED_BACKUP_APPLICATION_IDS = new Set<string>([
   BACKUP_APPLICATION_ID,
@@ -59,10 +77,17 @@ interface BackupFileMetadata {
   size: number;
 }
 
+/** v2 omits the duplicate file map; its digest binds manifest.files minus the DB. */
+interface CompactConfigurationEvidence extends Omit<ConfigurationGenerationEvidence, 'version' | 'files'> {
+  version: 2;
+}
+
 export interface BackupManifest {
   version: 2;
   createdAt: string;
   files: Record<string, BackupFileMetadata>;
+  configuration?: ConfigurationGenerationEvidence | CompactConfigurationEvidence;
+  evidence?: BackupCreationEvidence;
   compatibility: {
     application: {
       id: typeof BACKUP_APPLICATION_ID;
@@ -83,27 +108,23 @@ export interface BackupManifest {
 }
 
 export interface BackupStatus {
+  /** Compatibility alias: local snapshot integrity time, not restore eligibility or a drill. */
   lastSuccessAt: number | null;
   lastArtifact: string | null;
   lastError: string | null;
   running: boolean;
   lastOffsiteSuccessAt: number | null;
   lastOffsiteObject: string | null;
+  integrityVerified: BackupProof | null;
+  configurationCoherent: BackupProof | null;
+  offsiteVerified: BackupOffsiteProof | null;
+  restoreEligibility: (RestoreEligibility & { artifactSha256: string }) | null;
+  lastRestoreEligible: BackupProof | null;
+  restoreDrill: BackupRestoreDrillProof | null;
 }
 
 function normalizedConfigKey(key: string): string {
   return key.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-}
-
-function sanitizeConfig(value: any): any {
-  if (Array.isArray(value)) return value.map(sanitizeConfig);
-  if (!value || typeof value !== 'object') return value;
-  const result: Record<string, any> = {};
-  for (const [key, nested] of Object.entries(value)) {
-    if (FORBIDDEN_CONFIG_KEYS.has(normalizedConfigKey(key))) continue;
-    result[key] = sanitizeConfig(nested);
-  }
-  return result;
 }
 
 function containsForbiddenConfigKey(value: any): boolean {
@@ -288,7 +309,7 @@ async function verifyStrategyConfigurationHashes(database: Database): Promise<vo
   }
 }
 
-async function verifySqliteDatabase(databasePath: string): Promise<void> {
+export async function verifySqliteDatabase(databasePath: string): Promise<void> {
   const database = await open({
     filename: path.resolve(databasePath),
     driver: sqlite3.Database,
@@ -305,10 +326,7 @@ async function verifySqliteDatabase(databasePath: string): Promise<void> {
 
 async function readBackupManifest(artifactPath: string): Promise<BackupManifest> {
   const manifestPath = path.join(artifactPath, MANIFEST_FILE);
-  await assertRegularFile(manifestPath, 'Backup manifest');
-  const stats = await fs.lstat(manifestPath);
-  if (stats.size > 64 * 1024) throw new Error('Backup manifest exceeds 64 KiB.');
-  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as BackupManifest;
+  const manifest = JSON.parse((await boundedBackupManifestBytes(manifestPath)).toString('utf8')) as BackupManifest;
   if (manifest.version !== 2 || !manifest.createdAt || !manifest.files || typeof manifest.files !== 'object') {
     throw new Error('Unsupported or malformed backup manifest.');
   }
@@ -316,6 +334,7 @@ async function readBackupManifest(artifactPath: string): Promise<BackupManifest>
     throw new TypeError('Backup manifest has an invalid creation timestamp.');
   }
   assertManifestCompatibility(manifest);
+  if (manifest.evidence) validateBackupCreationEvidence(manifest.evidence);
   return manifest;
 }
 
@@ -334,11 +353,31 @@ async function verifyManifestFile(
     throw new Error(`Backup manifest metadata for '${fileName}' is invalid.`);
   }
   const target = artifactPath(artifactRoot, fileName);
+  await assertArtifactParents(artifactRoot, target);
   await assertRegularFile(target, `Backup file '${fileName}'`);
   const actual = await sha256File(target);
   if (!constantTimeStringEqual(actual.sha256, expected.sha256) || actual.size !== expected.size) {
     throw new Error(`Backup checksum mismatch for '${fileName}'.`);
   }
+}
+
+async function assertArtifactParents(root: string, target: string): Promise<void> {
+  let directory = path.dirname(target);
+  while (directory !== root) {
+    const entry = await fs.lstat(directory);
+    if (!entry.isDirectory() || entry.isSymbolicLink()) throw new Error('Backup file has a non-directory or symbolic-link parent.');
+    directory = path.dirname(directory);
+  }
+}
+
+function verifyConfigurationEvidence(manifest: BackupManifest): void {
+  if (!manifest.configuration) return;
+  const files = Object.fromEntries(Object.entries(manifest.files).filter(([name]) => name !== DATABASE_FILE));
+  const compact = manifest.configuration;
+  if (compact.version === 2) {
+    if (Object.keys(compact).length !== 5) throw new Error('Compact configuration generation evidence is malformed.');
+    validateConfigurationGenerationEvidence({ ...compact, version: 1, files }, files);
+  } else validateConfigurationGenerationEvidence(compact, files);
 }
 
 async function verifyBackupConfig(artifactPath: string): Promise<void> {
@@ -372,9 +411,37 @@ export async function verifyBackupArtifact(artifactPath: string): Promise<Backup
   for (const fileName of fileNames) {
     await verifyManifestFile(resolvedArtifact, manifest, fileName);
   }
+  verifyConfigurationEvidence(manifest);
   await verifyBackupConfig(resolvedArtifact);
   await verifySqliteDatabase(path.join(resolvedArtifact, DATABASE_FILE));
   return manifest;
+}
+
+async function artifactRestoreEligibility(databasePath: string): Promise<RestoreEligibility> {
+  const database = await open({ filename: databasePath, driver: sqlite3.Database, mode: sqlite3.OPEN_READONLY });
+  try { return await assessRestoreEligibility(database); }
+  finally { await database.close(); }
+}
+
+/** Fresh local checks; embedded creation claims never authorize restore or create later receipts. */
+export async function inspectBackupArtifact(artifactPath: string): Promise<BackupVerificationEvidence> {
+  const root = path.resolve(artifactPath);
+  const before = createHash('sha256').update(await boundedBackupManifestBytes(path.join(root, MANIFEST_FILE))).digest('hex');
+  const manifest = await verifyBackupArtifact(root);
+  const eligibility = await artifactRestoreEligibility(path.join(root, DATABASE_FILE));
+  const after = createHash('sha256').update(await boundedBackupManifestBytes(path.join(root, MANIFEST_FILE))).digest('hex');
+  if (before !== after) throw new Error('Backup manifest changed during evidence verification.');
+  const proof = { verifiedAt: Date.now(), artifactSha256: before, artifactCreatedAt: manifest.createdAt };
+  return {
+    artifactSha256: before,
+    artifactCreatedAt: manifest.createdAt,
+    integrityVerified: proof,
+    configurationCoherent: manifest.configuration ? { ...proof } : null,
+    configurationCoherenceReason: manifest.configuration ? null : 'Legacy artifact has no committed configuration generation evidence.',
+    offsiteVerified: null,
+    restoreEligibility: { ...eligibility, artifactSha256: before },
+    restoreDrill: null,
+  };
 }
 
 /** Returns verified, path-safe artifact members for encryption or recovery tooling. */
@@ -383,77 +450,41 @@ export async function listBackupArtifactFiles(artifactPath: string): Promise<str
   return Object.keys(manifest.files).sort((left, right) => left.localeCompare(right));
 }
 
-function recoveryStateSources(): { runtimeSettings: string; templates: string } {
-  const configPath = configurationPathFromEnvironment();
+export function backupConfigurationSources(databasePath: string, env: NodeJS.ProcessEnv = process.env): ConfigurationSources {
+  const configPath = configurationPathFromEnvironment(env);
   return {
-    runtimeSettings: path.resolve(process.env.RUNTIME_SETTINGS_PATH || path.join(path.dirname(configPath), RUNTIME_SETTINGS_FILE)),
-    templates: defaultTemplatesDirectory(configPath)
+    databasePath: path.resolve(databasePath),
+    configurationPath: configPath,
+    runtimeSettingsPath: managedRuntimeSettingsPathFromEnvironment(env),
+    templatesDirectory: signalTemplatesDirectoryFromEnvironment(env),
   };
 }
 
-function defaultTemplatesDirectory(configPath: string): string {
-  if (process.env.TEMPLATES_DIR) return path.resolve(process.env.TEMPLATES_DIR);
-  const configDirectory = path.dirname(path.resolve(configPath));
-  const appDirectory = path.basename(configDirectory) === 'config' ? path.dirname(configDirectory) : configDirectory;
-  return path.join(appDirectory, TEMPLATES_DIRECTORY);
-}
-
-async function copyOptionalRuntimeSettings(source: string, artifactRoot: string, included: string[]): Promise<void> {
-  const exists = await fileExists(source);
-  if (!exists) return;
-  await assertRegularFile(source, 'Runtime settings source');
-  const stats = await fs.stat(source);
-  if (stats.size > MAX_BACKUP_STATE_FILE_BYTES) throw new Error('Runtime settings exceed the backup state file limit.');
-  const content = JSON.parse(await fs.readFile(source, 'utf8'));
-  validateRuntimeSettings(content);
-  await fs.copyFile(source, artifactPath(artifactRoot, RUNTIME_SETTINGS_FILE), fs.constants.COPYFILE_EXCL);
-  await fs.chmod(artifactPath(artifactRoot, RUNTIME_SETTINGS_FILE), 0o600);
-  included.push(RUNTIME_SETTINGS_FILE);
-}
-
-async function copyTemplateFile(
-  sourcePath: string,
-  relativeName: string,
-  artifactRoot: string,
-  included: string[],
-  state: { totalBytes: number },
-): Promise<void> {
-  const destinationName = `${TEMPLATES_DIRECTORY}/${relativeName.replaceAll('\\', '/')}`;
-  if (!isSupportedBackupArtifactFileName(destinationName)) throw new Error(`Template path is unsupported: ${relativeName}`);
-  const stats = await fs.stat(sourcePath);
-  if (stats.size > MAX_BACKUP_STATE_FILE_BYTES) throw new Error(`Template exceeds the backup state file limit: ${relativeName}`);
-  state.totalBytes += stats.size;
-  if (state.totalBytes > MAX_BACKUP_STATE_BYTES) throw new Error('Templates exceed the total backup state size limit.');
-  if (included.length >= MAX_BACKUP_STATE_FILES) throw new Error('Templates exceed the backup state file count limit.');
-  const destination = artifactPath(artifactRoot, destinationName);
-  await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
-  await fs.copyFile(sourcePath, destination, fs.constants.COPYFILE_EXCL);
-  await fs.chmod(destination, 0o600);
-  included.push(destinationName);
-}
-
-async function copyOptionalTemplates(source: string, artifactRoot: string, included: string[]): Promise<void> {
-  const exists = await fileExists(source);
-  if (!exists) return;
-  const root = path.resolve(source);
-  const rootEntry = await fs.lstat(root);
-  if (!rootEntry.isDirectory() || rootEntry.isSymbolicLink()) throw new Error('Templates source must be a real directory, not a symbolic link.');
-  const state = { totalBytes: 0 };
-  const visit = async (directory: string, relative = ''): Promise<void> => {
-    const entries = await fs.readdir(directory, { withFileTypes: true });
-    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
-      const relativeName = relative ? `${relative}/${entry.name}` : entry.name;
-      const sourcePath = path.join(directory, entry.name);
-      if (entry.isSymbolicLink()) throw new Error(`Template source contains a symbolic link: ${relativeName}`);
-      if (entry.isDirectory()) {
-        await visit(sourcePath, relativeName);
-        continue;
-      }
-      if (!entry.isFile()) throw new Error(`Template source contains a non-regular file: ${relativeName}`);
-      await copyTemplateFile(sourcePath, relativeName, artifactRoot, included, state);
+async function snapshotPinnedDatabase(destination: string, config: unknown): Promise<PinnedConfigurationGeneration> {
+  const databases = await getDatabase().all<Array<{ name: string; file: string }>>('PRAGMA database_list');
+  const source = databases.find(database => database.name === 'main')?.file;
+  if (!source || !path.isAbsolute(source)) throw new Error('Backup requires a proven operational database file.');
+  return withPinnedConfigurationGeneration(configurationPathFromEnvironment(), source, async generation => {
+    const pinnedConfig = JSON.parse(generation.files.get(CONFIG_FILE)!.toString('utf8'));
+    if (backupConfigurationDigest(pinnedConfig) !== backupConfigurationDigest(config || {})) {
+      throw new Error('Backup configuration provider does not match the committed generation.');
     }
-  };
-  await visit(root);
+    const runtime = generation.files.get(RUNTIME_SETTINGS_FILE);
+    if (runtime) validateRuntimeSettings(JSON.parse(runtime.toString('utf8')));
+    await backupDatabase(destination);
+    return generation;
+  });
+}
+
+async function installPinnedConfiguration(artifactRoot: string, generation: PinnedConfigurationGeneration): Promise<string[]> {
+  const included: string[] = [];
+  for (const [name, content] of generation.files) {
+    const destination = artifactPath(artifactRoot, name);
+    await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
+    await fs.writeFile(destination, content, { flag: 'wx', mode: 0o600 });
+    if (name !== CONFIG_FILE) included.push(name);
+  }
+  return included;
 }
 
 export async function createBackupArtifact(
@@ -472,15 +503,9 @@ export async function createBackupArtifact(
   await fs.mkdir(temporaryPath, { mode: 0o700 });
   try {
     const databasePath = path.join(temporaryPath, DATABASE_FILE);
-    const configPath = path.join(temporaryPath, CONFIG_FILE);
-    await backupDatabase(databasePath);
+    const generation = await snapshotPinnedDatabase(databasePath, config);
     await fs.chmod(databasePath, 0o600);
-    const safeConfig = sanitizeConfig(config || {});
-    await fs.writeFile(configPath, JSON.stringify(safeConfig, null, 2), { encoding: 'utf8', mode: 0o600, flag: 'wx' });
-    const includedState: string[] = [];
-    const stateSources = recoveryStateSources();
-    await copyOptionalRuntimeSettings(stateSources.runtimeSettings, temporaryPath, includedState);
-    await copyOptionalTemplates(stateSources.templates, temporaryPath, includedState);
+    const includedState = await installPinnedConfiguration(temporaryPath, generation);
     const files: Record<string, BackupFileMetadata> = {};
     for (const fileName of [...CORE_BACKUP_FILES, ...includedState]) {
       files[fileName] = await sha256File(artifactPath(temporaryPath, fileName));
@@ -489,6 +514,8 @@ export async function createBackupArtifact(
       version: 2,
       createdAt: new Date(now).toISOString(),
       files,
+      configuration: { version: 2, generation: generation.evidence.generation, commitId: generation.evidence.commitId,
+        committedAt: generation.evidence.committedAt, digest: generation.evidence.digest },
       compatibility: expectedCompatibility(),
       recovery: {
         schemaVersion: 1,
@@ -498,7 +525,15 @@ export async function createBackupArtifact(
         excludedState: ['managed-secrets', 'tdlib-session-data', 'tdlib-session-files']
       }
     };
-    await fs.writeFile(path.join(temporaryPath, MANIFEST_FILE), JSON.stringify(manifest, null, 2), {
+    await verifyBackupConfig(temporaryPath);
+    await verifySqliteDatabase(databasePath);
+    verifyConfigurationEvidence(manifest);
+    const verifiedAt = Date.now();
+    manifest.evidence = { version: 1, integrityVerified: { verifiedAt }, configurationCoherent: { verifiedAt },
+      restoreEligibility: await artifactRestoreEligibility(databasePath), offsiteVerified: null, restoreDrill: null };
+    const serializedManifest = JSON.stringify(manifest, null, 2);
+    if (Buffer.byteLength(serializedManifest) > 64 * 1024) throw new Error('Backup manifest exceeds 64 KiB.');
+    await fs.writeFile(path.join(temporaryPath, MANIFEST_FILE), serializedManifest, {
       encoding: 'utf8', mode: 0o600, flag: 'wx'
     });
     await verifyBackupArtifact(temporaryPath);
@@ -542,6 +577,7 @@ interface RestorePlan {
   restoreId: string;
   runtimeSettings: RestoreFilePlan | null;
   templates: RestoreDirectoryPlan | null;
+  files: Record<string, BackupFileMetadata>;
 }
 
 interface RestoreFilePlan {
@@ -561,8 +597,8 @@ interface RestoreDirectoryPlan {
 export interface BackupRestoreOptions {
   runtimeSettingsPath?: string;
   templatesDirectory?: string;
-  /** Only the currently running, exclusively locked control plane may bypass its own process marker. */
-  allowCurrentProcessLock?: boolean;
+  /** Genuine scoped capability after every registered native DB handle has closed. */
+  maintenanceLease?: McpMaintenanceLease;
 }
 
 interface RestoreProgress {
@@ -573,14 +609,18 @@ interface RestoreProgress {
   installedTemplates: boolean;
 }
 
-async function assertRestoreInactive(stateDirectory: string, allowCurrentProcessLock = false): Promise<void> {
-  for (const lockName of ['.process_active', '.routing_active']) {
-    if (lockName === '.process_active' && allowCurrentProcessLock) continue;
-    if (await fileExists(path.join(path.resolve(stateDirectory), lockName))) {
-      throw new Error(
-        `Restore refused while '${lockName}' exists. Stop the process and reconcile active work first.`
-      );
-    }
+async function assertRestoreInactive(targetDatabasePath: string, stateDirectory: string, lease?: McpMaintenanceLease): Promise<void> {
+  await assertMcpMaintenanceLease(lease, targetDatabasePath);
+  const state = await fs.realpath(path.resolve(stateDirectory));
+  if (state !== await fs.realpath(path.dirname(path.resolve(targetDatabasePath)))) {
+    throw new Error('Restore state directory differs from its maintenance database scope.');
+  }
+  const routingActive = await fs.lstat(path.join(state, '.routing_active')).then(() => true).catch((error: any) => {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  });
+  if (routingActive) {
+    throw new Error("Restore refused while '.routing_active' exists. Stop routing and reconcile active work first.");
   }
 }
 
@@ -596,7 +636,7 @@ async function createRestorePlan(
   const targetConfig = path.resolve(targetConfigPath);
   const restoreId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
   const runtimeTarget = path.resolve(options.runtimeSettingsPath || process.env.RUNTIME_SETTINGS_PATH || path.join(path.dirname(targetConfig), RUNTIME_SETTINGS_FILE));
-  const templatesTarget = path.resolve(options.templatesDirectory || defaultTemplatesDirectory(targetConfig));
+  const templatesTarget = path.resolve(options.templatesDirectory || signalTemplatesDirectoryFromEnvironment());
   if ([targetDb, targetConfig].includes(runtimeTarget) || [targetDb, targetConfig].includes(templatesTarget)) {
     throw new Error('Recovery state targets must not overlap database or configuration targets.');
   }
@@ -604,6 +644,7 @@ async function createRestorePlan(
   const hasTemplates = Object.keys(manifest.files).some(fileName => fileName.startsWith(`${TEMPLATES_DIRECTORY}/`));
   return {
     artifact,
+    files: manifest.files,
     targetDb,
     targetConfig,
     restoreId,
@@ -635,22 +676,12 @@ async function createRestorePlan(
 async function stageRestore(plan: RestorePlan): Promise<void> {
   await fs.copyFile(path.join(plan.artifact, DATABASE_FILE), plan.dbTemp, fs.constants.COPYFILE_EXCL);
   await fs.copyFile(path.join(plan.artifact, CONFIG_FILE), plan.configTemp, fs.constants.COPYFILE_EXCL);
+  await verifyStagedMember(plan.dbTemp, plan.files[DATABASE_FILE]);
+  await verifyStagedMember(plan.configTemp, plan.files[CONFIG_FILE]);
   await verifySqliteDatabase(plan.dbTemp);
   const stagedDatabase = await open({ filename: plan.dbTemp, driver: sqlite3.Database });
   try {
-    const unresolved = await stagedDatabase.get<{ positions: number; orders: number }>(
-      `SELECT
-         (SELECT COUNT(*) FROM trading_positions
-          WHERE status IN ('opening', 'open', 'closing', 'emergency') AND quantity <> '0') AS positions,
-         (SELECT COUNT(*) FROM trading_orders
-          WHERE status IN ('submitting', 'open', 'partially_filled', 'cancel_pending', 'unknown')) AS orders`
-    );
-    if (Number(unresolved?.positions || 0) > 0 || Number(unresolved?.orders || 0) > 0) {
-      throw new Error(
-        `Restore refused because the backup captures unresolved trading exposure `
-        + `(positions=${Number(unresolved?.positions || 0)}, orders=${Number(unresolved?.orders || 0)}).`
-      );
-    }
+    requireRestoreEligibility(await assessRestoreEligibility(stagedDatabase));
     const runtimeUpdate = await stagedDatabase.run(
       `UPDATE trading_runtime_state
        SET execution_enabled = 0,
@@ -672,12 +703,31 @@ async function stageRestore(plan: RestorePlan): Promise<void> {
   if (plan.runtimeSettings) {
     await fs.mkdir(path.dirname(plan.runtimeSettings.target), { recursive: true, mode: 0o700 });
     await fs.copyFile(plan.runtimeSettings.source, plan.runtimeSettings.temporary, fs.constants.COPYFILE_EXCL);
+    await verifyStagedMember(plan.runtimeSettings.temporary, plan.files[RUNTIME_SETTINGS_FILE]);
     const settings = JSON.parse(await fs.readFile(plan.runtimeSettings.temporary, 'utf8'));
     validateRuntimeSettings(settings);
   }
   if (plan.templates) {
     await fs.mkdir(path.dirname(plan.templates.target), { recursive: true, mode: 0o700 });
-    await fs.cp(plan.templates.source, plan.templates.temporary, { recursive: true, force: false, errorOnExist: true, dereference: false });
+    await stageTemplates(plan);
+  }
+}
+
+async function verifyStagedMember(destination: string, expected: BackupFileMetadata): Promise<void> {
+  const actual = await sha256File(destination);
+  if (actual.sha256 !== expected.sha256 || actual.size !== expected.size) throw new Error('Staged restore member no longer matches the verified artifact.');
+}
+
+async function stageTemplates(plan: RestorePlan): Promise<void> {
+  await fs.mkdir(plan.templates!.temporary, { mode: 0o700 });
+  for (const [member, expected] of Object.entries(plan.files)) {
+    if (!member.startsWith(`${TEMPLATES_DIRECTORY}/`)) continue;
+    const source = artifactPath(plan.artifact, member);
+    await assertArtifactParents(plan.artifact, source);
+    const destination = path.join(plan.templates!.temporary, member.slice(TEMPLATES_DIRECTORY.length + 1));
+    await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
+    await fs.copyFile(source, destination, fs.constants.COPYFILE_EXCL);
+    await verifyStagedMember(destination, expected);
   }
 }
 
@@ -768,6 +818,8 @@ async function restorePreservedFiles(plan: RestorePlan, progress: RestoreProgres
 
 async function removeRestoreTemporaryFiles(plan: RestorePlan): Promise<void> {
   await fs.rm(plan.dbTemp, { force: true });
+  await fs.rm(`${plan.dbTemp}-wal`, { force: true });
+  await fs.rm(`${plan.dbTemp}-shm`, { force: true });
   await fs.rm(plan.configTemp, { force: true });
   if (plan.runtimeSettings) await fs.rm(plan.runtimeSettings.temporary, { force: true });
   if (plan.templates) await fs.rm(plan.templates.temporary, { recursive: true, force: true });
@@ -786,7 +838,7 @@ export async function restoreBackupArtifact(
   stateDirectory = path.dirname(path.resolve(targetDatabasePath)),
   options: BackupRestoreOptions = {}
 ): Promise<{ previousDatabase: string | null; previousConfig: string | null; previousRuntimeSettings: string | null; previousTemplates: string | null }> {
-  await assertRestoreInactive(stateDirectory, options.allowCurrentProcessLock === true);
+  await assertRestoreInactive(targetDatabasePath, stateDirectory, options.maintenanceLease);
   const artifact = path.resolve(artifactPath);
   const manifest = await verifyBackupArtifact(artifact);
   const plan = await createRestorePlan(artifact, targetDatabasePath, targetConfigPath, manifest, options);
@@ -795,8 +847,11 @@ export async function restoreBackupArtifact(
   const progress = newRestoreProgress();
   try {
     await stageRestore(plan);
+    // Staging can be slow: revalidate live ownership, deadline and every close proof before the first rename.
+    await assertRestoreInactive(targetDatabasePath, stateDirectory, options.maintenanceLease);
     await preserveCurrentFiles(plan, progress);
     await installRestore(plan, progress);
+    await removeRestoreTemporaryFiles(plan);
     return restoreResult(plan);
   } catch (error) {
     await rollbackRestore(plan, progress);
@@ -813,7 +868,13 @@ export class BackupScheduler {
     lastError: null,
     running: false,
     lastOffsiteSuccessAt: null,
-    lastOffsiteObject: null
+    lastOffsiteObject: null,
+    integrityVerified: null,
+    configurationCoherent: null,
+    offsiteVerified: null,
+    restoreEligibility: null,
+    lastRestoreEligible: null,
+    restoreDrill: null,
   };
 
   constructor(
@@ -826,7 +887,7 @@ export class BackupScheduler {
     private readonly offsiteRequired = false
   ) {
     if (!Number.isSafeInteger(intervalMs) || intervalMs < 60_000 || intervalMs > 15 * 60_000) {
-      throw new Error('Backup interval must be between 1 and 15 minutes to preserve the RPO.');
+      throw new Error('Backup interval must be between 1 and 15 minutes for the local snapshot target.');
     }
     if (!Number.isSafeInteger(retainCount) || retainCount < 1 || retainCount > 10_000) {
       throw new Error('Backup retention count must be between 1 and 10000.');
@@ -850,7 +911,7 @@ export class BackupScheduler {
   }
 
   public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean } {
-    const status = { ...this.status };
+    const status = structuredClone(this.status);
     const offsiteHealthy = !this.replicator && !this.offsiteRequired
       ? true
       : !!status.lastOffsiteSuccessAt && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
@@ -862,22 +923,48 @@ export class BackupScheduler {
     };
   }
 
+  /** Never called automatically by scheduling, integrity verification or replication. */
+  public async runRestoreDrill(artifactPath = this.status.lastArtifact): Promise<BackupRestoreDrillProof> {
+    if (!artifactPath) throw new Error('No backup artifact is available for an explicit restore drill.');
+    const proof = await runIsolatedBackupRestoreDrill(artifactPath);
+    this.status.restoreDrill = proof;
+    return structuredClone(proof);
+  }
+
+  private recordLocalEvidence(artifact: string, evidence: BackupVerificationEvidence): void {
+    this.status = { ...this.status,
+      lastSuccessAt: evidence.integrityVerified.verifiedAt, lastArtifact: artifact, lastError: null,
+      integrityVerified: evidence.integrityVerified,
+      configurationCoherent: evidence.configurationCoherent ?? this.status.configurationCoherent,
+      restoreEligibility: evidence.restoreEligibility,
+      lastRestoreEligible: evidence.restoreEligibility.status === 'eligible'
+        ? { verifiedAt: evidence.restoreEligibility.checkedAt, artifactSha256: evidence.artifactSha256, artifactCreatedAt: evidence.artifactCreatedAt } : this.status.lastRestoreEligible,
+    };
+  }
+
+  private recordOffsiteEvidence(replication: Awaited<ReturnType<BackupReplicator['replicate']>>, localSha256: string): void {
+    if (replication.artifactSha256 !== localSha256 || replication.artifactCreatedAt !== this.status.integrityVerified?.artifactCreatedAt
+      || !/^[a-f0-9]{64}$/.test(replication.sha256)
+      || !Number.isSafeInteger(replication.verifiedAt) || replication.verifiedAt <= 0 || replication.verifiedAt > Date.now()) {
+      throw new Error('Off-site receipt does not bind the verified local backup artifact.');
+    }
+    this.status = { ...this.status, lastOffsiteSuccessAt: replication.verifiedAt, lastOffsiteObject: replication.objectName,
+      offsiteVerified: { verifiedAt: replication.verifiedAt, artifactSha256: replication.artifactSha256,
+        artifactCreatedAt: replication.artifactCreatedAt, objectName: replication.objectName, encryptedObjectSha256: replication.sha256 } };
+  }
+
   public runNow(): Promise<string> {
     if (this.activeRun !== null) return Promise.reject(new Error('A backup is already running.'));
     this.status.running = true;
     const operation = (async () => {
       try {
         const artifact = await createBackupArtifact(this.backupDirectory, this.configProvider());
+        const local = await inspectBackupArtifact(artifact);
+        this.recordLocalEvidence(artifact, local);
         const replication = this.replicator ? await this.replicator.replicate(artifact) : null;
+        if (replication) this.recordOffsiteEvidence(replication, local.artifactSha256);
         await pruneBackupArtifacts(this.backupDirectory, this.retainCount);
-        this.status = {
-          lastSuccessAt: Date.now(),
-          lastArtifact: artifact,
-          lastError: null,
-          running: false,
-          lastOffsiteSuccessAt: replication?.verifiedAt ?? this.status.lastOffsiteSuccessAt,
-          lastOffsiteObject: replication?.objectName ?? this.status.lastOffsiteObject
-        };
+        this.status = { ...this.status, lastError: null, running: false };
         this.logger(`[INFO] Verified backup created: ${artifact}`);
         if (replication) this.logger(`[INFO] Encrypted off-site backup verified: ${replication.objectName}`);
         return artifact;

@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { completeLegacyIngressFixture } from './fixtures/legacy_ingress_schema.js';
 import {
   closeDb,
   expectedDatabaseMigrations,
@@ -28,6 +29,14 @@ try {
       CREATE TABLE schema_migrations (
         version INTEGER PRIMARY KEY, name TEXT NOT NULL, checksum TEXT NOT NULL, applied_at INTEGER NOT NULL
       );
+      -- The v22 fixture must also contain the tables touched by subsequent
+      -- identity migrations; a missing trading table is real database damage.
+      CREATE TABLE trading_accounts (id TEXT PRIMARY KEY, exchange TEXT NOT NULL);
+      CREATE TABLE trading_trade_intents (id TEXT PRIMARY KEY, status TEXT NOT NULL);
+      CREATE TABLE trading_orders (
+        id TEXT PRIMARY KEY, account_id TEXT NOT NULL, exchange_order_id TEXT, response_json TEXT, role TEXT NOT NULL DEFAULT 'entry'
+      );
+      CREATE TABLE trading_positions (id TEXT PRIMARY KEY, account_id TEXT, status TEXT, updated_at INTEGER);
       CREATE TABLE trading_signal_contract_versions (
         id TEXT PRIMARY KEY,
         definition_json TEXT NOT NULL,
@@ -56,6 +65,7 @@ try {
       ) VALUES (?, ?, '', 'standard', ?, ?, 1, 1, 1)`,
       'legacy-schema', 'Legacy schema', 'legacy:v1', 'legacy-template',
     );
+    await completeLegacyIngressFixture(fixture);
     for (const migration of expectedDatabaseMigrations().slice(0, 22)) {
       await fixture.run(
         'INSERT INTO schema_migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, 1)',

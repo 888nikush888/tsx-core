@@ -17,6 +17,8 @@ import {
 } from './mcp_repository.js';
 import type { TradingWebControl } from './trading_web_control.js';
 import type { LogContext } from './logger.js';
+import { StartupAuthority } from './startup_authority.js';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 const ACTION_PERMISSIONS: Record<McpControlAction, McpPermission> = {
   'contracts.create': 'contracts.write',
@@ -61,12 +63,14 @@ function payloadObject(request: McpControlRequest): Record<string, any> {
 export class McpControlBridge {
   private abortController: AbortController | null = null;
   private worker: Promise<void> | null = null;
+  private recovered = false;
 
   constructor(
     private readonly control: TradingWebControl,
     private readonly auditTrail: Pick<EnterpriseAuditTrail, 'record'>,
     private readonly log: (message: string, fields?: LogContext) => void,
     private readonly pollIntervalMs = 200,
+    private readonly startup = new StartupAuthority(),
   ) {
     if (!Number.isSafeInteger(pollIntervalMs) || pollIntervalMs < 50 || pollIntervalMs > 5_000) {
       throw new Error('MCP bridge poll interval must be between 50 and 5000 ms.');
@@ -75,10 +79,7 @@ export class McpControlBridge {
 
   async start(): Promise<void> {
     if (this.worker !== null) return;
-    const recovered = await recoverInterruptedMcpControlRequests();
-    if (recovered > 0) this.log(`[WARN] ${recovered} interrupted MCP control request(s) marked failed.`);
-    const recoveredProposals = await recoverInterruptedMcpProposals();
-    if (recoveredProposals > 0) this.log(`[WARN] ${recoveredProposals} interrupted MCP proposal(s) marked failed.`);
+    this.recovered = false;
     this.abortController = new AbortController();
     this.worker = this.run(this.abortController.signal);
     this.log('[INFO] MCP control bridge started.');
@@ -95,7 +96,9 @@ export class McpControlBridge {
     while (!signal.aborted) {
       let delayMs = this.pollIntervalMs;
       try {
-        if ((await getMcpRuntimeState()).mode === 'active') {
+        if (this.startup.canMutate() && (await getMcpRuntimeState()).mode === 'active' && this.startup.canMutate()) {
+          await this.recoverReadyWork();
+          if (!this.startup.canMutate()) continue;
           const request = await claimNextMcpControlRequest();
           if (request) {
             await this.execute(request);
@@ -114,14 +117,21 @@ export class McpControlBridge {
           event: 'mcp_control_bridge_error',
         });
       }
-      await new Promise<void>(resolve => {
-        const timeout = setTimeout(resolve, delayMs);
-        signal.addEventListener('abort', () => {
-          clearTimeout(timeout);
-          resolve();
-        }, { once: true });
+      await sleep(delayMs, undefined, { signal }).catch(error => {
+        if (!signal.aborted) throw error;
       });
     }
+  }
+
+  private async recoverReadyWork(): Promise<void> {
+    if (this.recovered) return;
+    this.startup.assertReady();
+    const recovered = await recoverInterruptedMcpControlRequests();
+    if (recovered > 0) this.log(`[WARN] ${recovered} interrupted MCP control request(s) marked failed.`);
+    this.startup.assertReady();
+    const proposals = await recoverInterruptedMcpProposals();
+    if (proposals > 0) this.log(`[WARN] ${proposals} interrupted MCP proposal(s) marked failed.`);
+    this.recovered = true;
   }
 
   private async executeProposal(proposal: McpAgentProposal): Promise<void> {
@@ -129,6 +139,7 @@ export class McpControlBridge {
     const auditAction = `mcp.proposal.${proposal.action}`;
     const actorId = `mcp:${proposal.agentId}`;
     try {
+      this.startup.assertReady();
       await assertMcpRuntimeActive();
       const agent = (await listMcpAgents()).find(candidate => candidate.id === proposal.agentId);
       const permission = proposalPermission(proposal.action);
@@ -146,6 +157,7 @@ export class McpControlBridge {
         target: { action: proposal.action, payload: proposal.payload, decidedBy: proposal.decidedBy },
       });
       await assertMcpRuntimeActive();
+      this.startup.assertReady();
       const result = await this.executeAuthorizedProposal(proposal);
       await this.auditTrail.record({
         phase: 'completed',
@@ -220,7 +232,10 @@ export class McpControlBridge {
         { ...payload, confirmation: 'ACTIVATE WORKFLOW IMPACT' },
         `mcp:${proposal.agentId}`,
       ),
-      'trading.release_kill_switch': () => this.control.setRuntime({ action: 'kill-switch', active: false }),
+      // This path executes an operator-approved proposal, not an unapproved agent request.
+      'trading.release_kill_switch': () => this.control.setRuntime({
+        action: 'kill-switch', active: false, confirmation: 'RELEASE GLOBAL KILL SWITCH',
+      }),
     };
     return handlers[proposal.action]();
   }
@@ -230,6 +245,7 @@ export class McpControlBridge {
     const auditAction = `mcp.${request.action}`;
     const actorId = `mcp:${request.agentId}`;
     try {
+      this.startup.assertReady();
       await assertMcpRuntimeActive();
       const agent = (await listMcpAgents()).find(candidate => candidate.id === request.agentId);
       const requiredPermission = ACTION_PERMISSIONS[request.action];
@@ -247,6 +263,7 @@ export class McpControlBridge {
         target: { action: request.action, payload: request.payload },
       });
       await assertMcpRuntimeActive();
+      this.startup.assertReady();
       const result = await this.executeAuthorized(request);
       await this.auditTrail.record({
         phase: 'completed',

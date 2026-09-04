@@ -4,6 +4,8 @@ TypeScript-Control-Plane für Telegram-Signal-Automatisierung und Multi-Exchange
 
 **Dokumentation:** [Production Guide](docs/PRODUCTION_GUIDE.md) · [Trading Guide](docs/TRADING_GUIDE.md) · [MCP Guide](docs/MCP_GUIDE.md) · [Architecture](docs/ARCHITECTURE.md) · [Quality Gates](docs/QUALITY_OS.md) · [Operations Runbook](docs/runbooks/operations.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
+Implementierungsprüfung, echte Providerabnahme und Releasefreigabe sind getrennte Nachweise. Lokale Fake-Tests oder die statische Exchange-Allowlist sind keine Testnet-/Livefreigabe. Der aktuelle Offline-Prüfrahmen, seine noch fehlende echte Provider-Ausführung und die Pflichtbelege stehen in [Provider- und Releaseabnahme](docs/testing/exchange-acceptance.md).
+
 ## Struktur
 
 ```
@@ -126,18 +128,22 @@ Bei `SIGTERM`, `SIGINT`, Dashboard-Stopp oder interaktivem Neustart wird die Que
 
 Nach drei unerwarteten Abbrüchen innerhalb von fünf Minuten legt der Dienst `session_data/.crash_blocked` an und startet das Routing auch außerhalb des Zeitfensters nicht automatisch. Vor einer Freigabe müssen Operatoren die Ursache aus den Logs und Outbox-Zuständen klären und erst danach `.crash_blocked` sowie gegebenenfalls `.routing_active` entfernen. Das Löschen dieser Dateien ohne Ursachenklärung ist kein zulässiger Recovery-Schritt.
 
-### Backup und Restore (RPO 15 Minuten / RTO 60 Minuten)
+### Backupnachweise und Restore (lokales Snapshotziel 15 Minuten)
 
-Beim Prozessstart und danach spätestens alle 15 Minuten erstellt der Dienst unter `BACKUP_DIR` ein atomar veröffentlichtes Backup-Artefakt. Es enthält einen konsistenten SQLite-Online-Backup-Snapshot, die nicht geheime Konfiguration und ein SHA-256-/Größenmanifest. Jedes Artefakt wird vor Veröffentlichung mit Checksummen, `PRAGMA integrity_check`, Pflicht-Tabellen und Secret-Feld-Prüfung verifiziert; ein fehlgeschlagenes Backup setzt Readiness und `tg_forwarder_backup_healthy` auf Fehler. Standardmäßig werden 672 Artefakte (sieben Tage bei 15 Minuten) aufbewahrt.
+Beim Prozessstart und im konfigurierten Intervall von höchstens 15 Minuten plant der Dienst unter `BACKUP_DIR` ein atomar veröffentlichtes Artefakt: SQLite-Online-Snapshot plus gepinnte gemeinsame Generation der nicht geheimen Konfiguration, Runtime-Einstellungen und Templates. Checksummen, `PRAGMA integrity_check`, Pflicht-Tabellen und Secret-Ausschluss werden vor Veröffentlichung geprüft; Fehler setzen Readiness und `tg_forwarder_backup_healthy` auf Fehler. Standardmäßig werden 672 Artefakte aufbewahrt. Das Intervall ist ein Snapshotziel, keine garantierte RPO für wiederherstellbaren Tradingzustand; die Health-Toleranz beträgt zwei Intervalle, Ziel-RTO 60 Minuten bleibt operativ zu messen.
+
+CLI und Status unterscheiden `integrityVerified`, `configurationCoherent`, `offsiteVerified`, `restoreEligibility` (`eligible`/`blocked`/`unknown` mit Gründen, Scope ausschließlich `artifact-local-integrated-restore`) und den tatsächlich durchgeführten `restoreDrill` mit Datum/Artefakt-SHA. Jede Kategorie hat ihre eigene letzte Nachweiszeit. Offsite-Erfolg ist kein Probelauf; ein intaktes Backup mit offenen/verbliebenen Tradingverpflichtungen ist nicht restore-eligible. Sind nur ältere Snapshots eligible/verfügbar, besteht keine belegte 15-Minuten-Recovery für Trading. Einzelheiten und Grenzen: [ADR 0004](docs/adr/0004-verified-backup-recovery.md).
 
 Im Web unter **System & Backup → Enterprise Operations** können Operatoren Backups sofort erzeugen, vorhandene Artefakte auswählen, vollständig verifizieren und nach Eingabe von `RESTORE` wiederherstellen. Der Dienst stoppt dabei Routing und Scheduler, schließt SQLite, bewahrt den ersetzten DB-/Config-Stand als Rollback auf und startet den Container kontrolliert neu. Die folgenden Befehle bleiben nur als Break-glass-Alternative erhalten.
 
 Manuelle Prüfung und Wiederherstellung im Docker-Betrieb (`<artifact-name>` durch den Verzeichnisnamen im Backup-Volume ersetzen):
 
 ```bash
-docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js create /app/backups
+# Online: „Backup jetzt“ im Dashboard. CLI-create benötigt exklusiven Prozessbesitz.
 docker compose exec -T forwarder /nodejs/bin/node -e "const fs=require('fs');const names=fs.readdirSync('/app/backups').filter(name=>name.startsWith('backup-')).sort();console.log(names.at(-1)||'no backup found')"
 docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js verify /app/backups/<artifact-name>
+# Expliziter isolierter Probelauf in eigenem temporären Verzeichnis; keine Trading-Runtime:
+docker compose exec -T forwarder /nodejs/bin/node dist/backup_cli.js drill /app/backups/<artifact-name>
 
 # Dienst vollständig stoppen und failed/unknown Zustellungen dokumentieren.
 docker compose down
@@ -151,7 +157,7 @@ Restore verweigert die Ausführung, solange `.process_active` oder `.routing_act
 
 Die Backup-Artefakte enthalten Nachrichten-, Signal- und damit potenziell personenbezogene Daten. Im Enterprise-Modus ist Off-host-Replikation deshalb zwingend. Das Web-Feld `backupOffsiteUrlTemplate` bezeichnet einen HTTPS-Objektendpunkt, der authentifizierte `PUT`- und `GET`-Anfragen auf demselben, durch `{artifact}` parametrisierten Pfad unterstützt; Bearer-Token und 32-Byte-AES-Schlüssel werden unter **System & Backup → Enterprise-Secrets** write-only gespeichert.
 
-Jedes lokale Artefakt wird vor dem Upload geprüft, als begrenztes internes Archiv mit AES-256-GCM verschlüsselt und hochgeladen. Anschließend lädt der Dienst exakt dieses Objekt wieder herunter, vergleicht SHA-256 und Länge, authentifiziert und entschlüsselt es und führt erneut SQLite-Integritäts-, Tabellen-, Manifest- und Secret-Prüfungen aus. Erst dann gilt das Backup als erfolgreich und Readiness bleibt grün. Der Verschlüsselungsschlüssel muss getrennt vom Backup-Store aufbewahrt werden; ein lokales Verzeichnis oder ein nicht zurücklesbarer Upload erfüllt Disaster Recovery nicht.
+Jedes lokale Artefakt wird vor dem Upload geprüft, als begrenztes internes Archiv mit AES-256-GCM verschlüsselt und hochgeladen. Anschließend lädt der Dienst exakt dieses Objekt wieder herunter, vergleicht SHA-256 und Länge, authentifiziert und entschlüsselt es und führt erneut SQLite-Integritäts-, Tabellen-, Manifest- und Secret-Prüfungen aus. Erst dann entsteht ein eigener Offsite-Nachweis, gebunden an den Manifest-SHA der zurückgelesenen Kopie; lokale Integritätsnachweise und deren Zeit bleiben davon unabhängig. Dies erzeugt keinen Restore-Drill und belegt keine heutige Börsenflatheit. Der Verschlüsselungsschlüssel muss getrennt vom Backup-Store aufbewahrt werden; lokale Artefakte oder ein nicht zurücklesbarer Upload erfüllen Disaster Recovery nicht.
 
 Nach Verlust des lokalen Backup-Volumes wird der im Backup-/Audit-Status vermerkte `.tgfb`-Objektname unter **System & Backup → Enterprise Operations → Off-site-Backup abrufen** eingegeben. Die Control Plane lädt, entschlüsselt und verifiziert das Objekt und stellt es erst danach in der lokalen Restore-Auswahl bereit. Der AES-Schlüssel ist nach der ersten Speicherung absichtlich unveränderlich; eine Rotation ohne Keyring würde ältere Generationen zerstören.
 
@@ -185,6 +191,10 @@ Da die vollständige Quellnachricht an OpenRouter übertragen wird, muss der Ope
 `xmlParsing.aiLimits` begrenzt Eingabelänge, Ausgabetokens, sichtbare Primär-/Fallback-Versuche, Request-Timeout, Backoff sowie Requests und reservierte Tokens pro UTC-Tag. Die SDK-internen Retries sind deaktiviert. Das Tagesbudget wird vor jedem Provider-Aufruf atomar in SQLite reserviert; ein abgebrochener oder hinsichtlich der Provider-Nutzung unklarer Aufruf wird konservativ mit seiner Reservierung verbucht. Ein Prozessabbruch kann deshalb bis zum nächsten UTC-Tag Kapazität blockieren, gibt aber nie unbewiesen Budget frei.
 
 Zu jedem akzeptierten Signal speichert SQLite Template, Schemaname, SHA-256 des wirksamen Prompts, tatsächliches Modell, Provider-Request-ID, Tokenverbrauch und Parser-Version. Prompts oder vollständige Modell-Denkwege werden nicht geloggt. `OPENROUTER_API_KEY` bleibt ausschließlich in der Prozessumgebung.
+
+Telegram-Eingang, Originalnachricht und Klassifizierungsauftrag werden gemeinsam mit der zu diesem Zeitpunkt aktiven Workflowrevision in einer SQLite-Transaktion gespeichert. Filter, Prompt, Schema, Vertrag, Strategie und Risikoeinstellungen bleiben für diesen Eingang gepinnt; aktuelle Ausführungsfreigaben und Kontosperren gelten trotzdem. Albumteile werden nach Telegram-Nachrichten-ID dedupliziert. Klassifizierungs-Fanout und Albumabschluss erzeugen ihre Folgeaufträge atomar. Altbestand ohne eindeutige Provenienz erhält `needs_review` und wird nicht automatisch nachgehandelt oder weitergeleitet.
+
+Signale sind unter ihrer fachlichen ID unveränderlich; identische Wiederholungen erhalten Originalzeit und Provenienz, widersprüchliche Wiederholungen benötigen Review. Parserattempts werden separat protokolliert. Jeder echte AI-Aufruf erhält eine eigene Reservierungs-ID. Identisches Settlement derselben ID ist wirkungslos; widersprüchliche Abrechnung wird abgewiesen. Eine verlorene Commitantwort wird ohne neuen Provideraufruf unter derselben ID geprüft. Ungeklärte alte Reservierungen bleiben als Auditposition erhalten, belasten aber nicht den neuen UTC-Tag; Retention entfernt sie nicht. Diese Garantien betreffen die lokale Verarbeitung, nicht mathematisches Exactly-once externer Provideraktionen.
 
 Vor einem Modell-, Prompt- oder Template-Release muss mit Staging-Zugang `npm run test:ai-eval` ausgeführt werden. Das Gate vergleicht normale, schemaspezifische und adversariale Fälle aus `tests/fixtures/signal_golden_set.json` mit den freigegebenen Ergebnissen und schlägt bei jeder Abweichung oder unerwarteten Annahme fehl. Der normale Offline-Testlauf ruft keinen externen KI-Provider auf.
 

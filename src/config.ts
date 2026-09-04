@@ -1,6 +1,7 @@
 import fs, { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withManagedConfigurationWrite, withManagedConfigurationWriteSync } from './backup_generation.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export function configurationPathFromEnvironment(env: NodeJS.ProcessEnv = process.env): string {
@@ -553,11 +554,16 @@ export async function readConfig(destination = configPath): Promise<Config> {
  * Writes config asynchronously.
  */
 export async function writeConfig(cfg: Config, destination = configPath): Promise<void> {
+  const content = serializedConfig(cfg);
+  await withManagedConfigurationWrite(destination, destination, content, () => writeConfigFile(content, destination));
+}
+
+async function writeConfigFile(content: string, destination: string): Promise<void> {
   const temporary = temporaryConfigPath(destination);
   let handle: fsPromises.FileHandle | undefined;
   try {
     handle = await fsPromises.open(temporary, 'wx', 0o600);
-    await handle.writeFile(serializedConfig(cfg), 'utf-8');
+    await handle.writeFile(content, 'utf-8');
     await handle.sync();
     await handle.close();
     handle = undefined;
@@ -574,11 +580,16 @@ export async function writeConfig(cfg: Config, destination = configPath): Promis
  * Writes config synchronously.
  */
 export function writeConfigSync(cfg: Config, destination = configPath): void {
+  const content = serializedConfig(cfg);
+  withManagedConfigurationWriteSync(destination, destination, content, () => writeConfigFileSync(content, destination));
+}
+
+function writeConfigFileSync(content: string, destination: string): void {
   const temporary = temporaryConfigPath(destination);
   let descriptor: number | undefined;
   try {
     descriptor = fs.openSync(temporary, 'wx', 0o600);
-    fs.writeFileSync(descriptor, serializedConfig(cfg), 'utf-8');
+    fs.writeFileSync(descriptor, content, 'utf-8');
     fs.fsyncSync(descriptor);
     fs.closeSync(descriptor);
     descriptor = undefined;

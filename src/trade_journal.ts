@@ -1,7 +1,13 @@
 import { createHash } from 'node:crypto';
 import type { Database } from 'sqlite';
-import { getDatabase } from './db.js';
+import { getDatabase, withDatabaseTransaction } from './db.js';
 import { maskPII } from './logger.js';
+import { projectAllFillAccounting } from './trading_fill_accounting.js';
+import { addSignedDecimal, signedDecimal } from './trading_decimal.js';
+import { moneyEventsForIntent } from './trading_money_ledger.js';
+import type { MoneyEvent } from './trading_money_contract.js';
+import { summarizeMoneyRows, type ClosedMoneyRow, type MoneySummary } from './trading_money_reporting.js';
+import { moneyValueFromDecimal, validateMoneyValue } from './trading_money_value.js';
 
 const MAXIMUM_JOURNAL_ROWS = 500;
 const MAXIMUM_TAGS = 20;
@@ -62,6 +68,7 @@ export interface TradeJournalEntry {
   orders: Array<Record<string, unknown>>;
   fills: Array<Record<string, unknown>>;
   fees: Record<string, string>;
+  money: JournalMoneyDetails;
   timeline: Record<string, number>;
   review: {
     notes: string;
@@ -160,37 +167,13 @@ function sourceFingerprint(chatId: unknown): string | null {
 }
 
 function feeTotals(fills: Array<Record<string, unknown>>): Record<string, string> {
-  const totals = new Map<string, bigint>();
-  const scales = new Map<string, number>();
+  const totals: Record<string, string> = {};
   for (const fill of fills) {
-    const asset = typeof fill.feeAsset === 'string' && fill.feeAsset ? fill.feeAsset : 'QUOTE';
-    const raw = typeof fill.fee === 'string' && /^-?\d+(?:\.\d+)?$/.test(fill.fee) ? fill.fee : '0';
-    const negative = raw.startsWith('-');
-    const unsigned = negative ? raw.slice(1) : raw;
-    const [whole, fraction = ''] = unsigned.split('.');
-    const scale = Math.max(scales.get(asset) ?? 0, fraction.length);
-    const existingScale = scales.get(asset) ?? 0;
-    const existing = (totals.get(asset) ?? 0n) * (10n ** BigInt(scale - existingScale));
-    const value = BigInt(`${whole}${fraction.padEnd(scale, '0')}` || '0') * (negative ? -1n : 1n);
-    totals.set(asset, existing + value);
-    scales.set(asset, scale);
+    const asset = typeof fill.feeAsset === 'string' && fill.feeAsset ? fill.feeAsset : 'UNKNOWN';
+    if (typeof fill.fee !== 'string') throw new Error('Journal fill fee is unresolved.');
+    totals[asset] = addSignedDecimal(totals[asset] ?? '0', signedDecimal(fill.fee));
   }
-  return Object.fromEntries([...totals].map(([asset, value]) => {
-    const scale = scales.get(asset) ?? 0;
-    const negative = value < 0n;
-    const digits = (negative ? -value : value).toString().padStart(scale + 1, '0');
-    const formatted = scale === 0
-      ? digits
-      : trimDecimalZeros(`${digits.slice(0, -scale)}.${digits.slice(-scale)}`);
-    return [asset, `${negative ? '-' : ''}${formatted || '0'}`];
-  }));
-}
-
-function trimDecimalZeros(value: string): string {
-  let end = value.length;
-  while (end > 0 && value.codePointAt(end - 1) === 48) end -= 1;
-  if (end > 0 && value.codePointAt(end - 1) === 46) end -= 1;
-  return value.slice(0, end);
+  return totals;
 }
 
 function placeholders(values: string[]): string {
@@ -218,7 +201,62 @@ type JournalRelations = {
   fillsByIntent: Map<string, JournalRow[]>;
   timelineByIntent: Map<string, JournalRow[]>;
   schemaById: Map<string, JournalRow>;
+  moneyByIntent: Map<string, JournalMoneyDetails>;
 };
+
+export interface JournalMoneyDetails extends MoneySummary {
+  pricePnl: MoneySummary;
+  signedFees: MoneySummary;
+  funding: MoneySummary;
+  events: MoneyEvent[];
+}
+
+/** Reads only persisted projection fields; a missing decimal alias is not missing money. */
+export function journalProjectedMoney(row: {
+  realized_pnl: string | null; value_json: string | null;
+  accounting_status: string; reporting_currency: string | null;
+}): MoneySummary {
+  const source: ClosedMoneyRow = { realizedPnl: row.realized_pnl, accountingStatus: row.accounting_status,
+    reportingCurrency: row.reporting_currency };
+  if (row.value_json !== null && row.value_json !== undefined) {
+    try { source.realizedPnlValue = validateMoneyValue(JSON.parse(row.value_json)); }
+    catch { source.realizedPnlValue = null; source.accountingStatus = 'unresolved'; }
+  }
+  return summarizeMoneyRows([source]);
+}
+
+function eventMoneyRow(event: MoneyEvent): ClosedMoneyRow {
+  return { realizedPnl: event.reportingAmount, realizedPnlValue: event.reportingValue,
+    reportingCurrency: event.reportingCurrency, accountingStatus: event.valuationStatus === 'valued' ? 'complete' : 'unresolved' };
+}
+
+function journalComponent(events: MoneyEvent[], projection: MoneySummary): MoneySummary {
+  const rows = events.map(eventMoneyRow);
+  if (projection.accountingStatus !== 'complete') {
+    rows.push({ realizedPnl: null, realizedPnlValue: null, reportingCurrency: null, accountingStatus: 'unresolved' });
+  } else if (rows.length === 0) {
+    // Absence is zero only behind a complete intent accounting projection, never from missing fee evidence.
+    rows.push({ realizedPnl: '0', realizedPnlValue: { ...moneyValueFromDecimal('0'), terms: 0 },
+      reportingCurrency: projection.reportingCurrency, accountingStatus: 'complete' });
+  }
+  return summarizeMoneyRows(rows);
+}
+
+/** Canonical event reader shared by journal and viewer; never joins the legacy valuation table. */
+export async function journalMoneyDetails(intentId: string): Promise<JournalMoneyDetails> {
+  return withDatabaseTransaction(async database => {
+    const row = await database.get(`SELECT projection.realized_pnl, projection.value_json, projection.reporting_currency,
+      CASE WHEN pending.intent_id IS NULL THEN projection.status ELSE 'unresolved' END AS accounting_status
+      FROM trading_accounting_projections projection LEFT JOIN trading_accounting_pending pending ON pending.intent_id = projection.intent_id
+      WHERE projection.intent_id = ?`, [intentId]);
+    const projection = row ? journalProjectedMoney(row) : summarizeMoneyRows([]);
+    const events = await moneyEventsForIntent(intentId);
+    return { ...journalComponent(events, projection),
+      pricePnl: journalComponent(events.filter(event => event.kind === 'realized_price_pnl'), projection),
+      signedFees: journalComponent(events.filter(event => event.kind === 'fee'), projection),
+      funding: journalComponent(events.filter(event => event.kind === 'funding'), projection), events };
+  });
+}
 
 function journalWhere(filters: NormalizedJournalFilters): { where: string; parameters: unknown[] } {
   const conditions: string[] = [];
@@ -258,7 +296,10 @@ async function loadJournalRows(
             position.id AS position_id, position.status AS position_status,
             position.quantity AS position_quantity,
             position.average_entry_price, position.stop_price,
-            position.realized_pnl, position.opened_at, position.closed_at,
+            CASE WHEN accounting_pending.intent_id IS NULL THEN position.ledger_realized_pnl END AS realized_pnl,
+            position.ledger_realized_value_json AS value_json,
+            CASE WHEN accounting_pending.intent_id IS NULL THEN position.accounting_status ELSE 'unresolved' END AS accounting_status,
+            position.reporting_currency, position.opened_at, position.closed_at,
             journal.notes, journal.tags_json, journal.rating,
             journal.reviewed, journal.updated_at AS journal_updated_at
      FROM trading_trade_intents AS intent
@@ -268,6 +309,7 @@ async function loadJournalRows(
      LEFT JOIN incoming_messages AS incoming
        ON incoming.chat_id = signal.chat_id AND incoming.message_id = signal.message_id
      LEFT JOIN trading_positions AS position ON position.intent_id = intent.id
+     LEFT JOIN trading_accounting_pending AS accounting_pending ON accounting_pending.intent_id = intent.id
      LEFT JOIN trading_journal_entries AS journal ON journal.intent_id = intent.id
      ${where}
      ORDER BY intent.created_at DESC, intent.id DESC LIMIT ?`,
@@ -294,6 +336,7 @@ async function loadJournalFills(database: Database, orders: JournalRow[]): Promi
   return database.all<JournalRow[]>(
     `SELECT fill.id, orders.intent_id AS intentId, fill.order_id AS orderId,
             fill.exchange_fill_id AS exchangeFillId, fill.price, fill.quantity,
+            fill.provider_symbol AS providerSymbol, fill.remote_fill_key AS remoteFillKey, fill.identity_status AS identityStatus,
             fill.fee, fill.fee_asset AS feeAsset, fill.filled_at AS filledAt
      FROM trading_fills AS fill
      JOIN trading_orders AS orders ON orders.id = fill.order_id
@@ -341,11 +384,13 @@ async function loadJournalRelations(database: Database, rows: JournalRow[]): Pro
     loadJournalSchemas(database, rows),
   ]);
   const fills = await loadJournalFills(database, orders);
+  const money = await Promise.all(intentIds.map(async id => [id, await journalMoneyDetails(id)] as const));
   return {
     ordersByIntent: groupBy(orders, order => String(order.intentId)),
     fillsByIntent: groupBy(fills, fill => String(fill.intentId)),
     timelineByIntent: groupBy(timelines, event => String(event.intentId)),
     schemaById: new Map(schemas.map(schema => [String(schema.id), schema])),
+    moneyByIntent: new Map(money),
   };
 }
 
@@ -373,7 +418,8 @@ function journalPosition(row: JournalRow): Record<string, unknown> | null {
     quantity: String(row.position_quantity),
     averageEntryPrice: nullableString(row.average_entry_price),
     stopPrice: String(row.stop_price),
-    realizedPnl: String(row.realized_pnl),
+    ...journalProjectedMoney({ realized_pnl: row.realized_pnl, value_json: row.value_json,
+      accounting_status: row.accounting_status, reporting_currency: row.reporting_currency }),
     openedAt: nullableNumber(row.opened_at),
     closedAt: nullableNumber(row.closed_at),
   };
@@ -438,6 +484,7 @@ function mapJournalRow(row: JournalRow, relations: JournalRelations): TradeJourn
     orders: rowOrders,
     fills: rowFills,
     fees: feeTotals(rowFills),
+    money: relations.moneyByIntent.get(intentId)!,
     timeline: journalTimeline(relations.timelineByIntent.get(intentId) || []),
     review: {
       notes: nullableString(row.notes) || '',
@@ -452,11 +499,13 @@ function mapJournalRow(row: JournalRow, relations: JournalRelations): TradeJourn
 export async function listTradeJournal(
   input: TradeJournalFilters = {},
 ): Promise<TradeJournalEntry[]> {
-  const database = getDatabase();
-  const rows = await loadJournalRows(database, normalizedFilters(input));
-  if (rows.length === 0) return [];
-  const relations = await loadJournalRelations(database, rows);
-  return rows.map(row => mapJournalRow(row, relations));
+  await projectAllFillAccounting();
+  return withDatabaseTransaction(async database => {
+    const rows = await loadJournalRows(database, normalizedFilters(input));
+    if (rows.length === 0) return [];
+    const relations = await loadJournalRelations(database, rows);
+    return rows.map(row => mapJournalRow(row, relations));
+  });
 }
 
 export async function updateTradeJournalReview(input: {
@@ -525,7 +574,19 @@ export function tradeJournalCsv(entries: TradeJournalEntry[]): string {
     ['schema_profile', entry => entry.signal.schemaProfileId],
     ['contract_version', entry => entry.signal.contractVersionId],
     ['contract_sha256', entry => entry.signal.contractDefinitionSha256],
-    ['realized_pnl', entry => entry.position?.realizedPnl ?? '0'],
+    ['realized_pnl', entry => entry.money.realizedPnl],
+    ['realized_pnl_value', entry => entry.money.realizedPnlValue],
+    ['reporting_currency', entry => entry.money.reportingCurrency],
+    ['accounting_status', entry => entry.money.accountingStatus],
+    ['valued_subtotals_by_currency', entry => entry.money.valuedSubtotalValuesByCurrency],
+    ['price_pnl_value', entry => entry.money.pricePnl.realizedPnlValue],
+    ['signed_fees_value', entry => entry.money.signedFees.realizedPnlValue],
+    ['signed_fees_currency', entry => entry.money.signedFees.reportingCurrency],
+    ['signed_fees_status', entry => entry.money.signedFees.accountingStatus],
+    ['funding_value', entry => entry.money.funding.realizedPnlValue],
+    ['funding_currency', entry => entry.money.funding.reportingCurrency],
+    ['funding_status', entry => entry.money.funding.accountingStatus],
+    ['money_components', entry => ({ pricePnl: entry.money.pricePnl, signedFees: entry.money.signedFees, funding: entry.money.funding })],
     ['fees', entry => entry.fees],
     ['fills', entry => entry.fills.length],
     ['reviewed', entry => entry.review.reviewed],

@@ -268,7 +268,8 @@ describe("workflow builder history", () => {
     ));
     const deletion = api.apiFetch.mock.calls.find(([url, init]) =>
       url === "/api/workflow/resources" && (init as RequestInit)?.method === "DELETE");
-    expect(JSON.parse(String((deletion?.[1] as RequestInit).body))).toEqual({
+    if (!deletion?.[1]) throw new Error("Expected the confirmed resource deletion request.");
+    expect(JSON.parse(String((deletion[1] as RequestInit).body))).toEqual({
       resourceId: "channel",
       operation: "delete",
     });

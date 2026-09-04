@@ -1,5 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { configurationPathFromEnvironment } from './config.js';
+import { withManagedConfigurationWrite } from './backup_generation.js';
 
 export interface RuntimeSettings {
   enterpriseMode: boolean;
@@ -423,18 +425,24 @@ export class ManagedRuntimeSettingsStore {
   }
 
   private async write(settings: RuntimeSettings): Promise<void> {
+    const content = `${JSON.stringify(settings, null, 2)}\n`;
+    await withManagedConfigurationWrite(configurationPathFromEnvironment(this.env), this.filePath, content,
+      () => this.writeFile(content));
+    this.settings = JSON.parse(content) as RuntimeSettings;
+  }
+
+  private async writeFile(content: string): Promise<void> {
     const destination = path.resolve(this.filePath);
     const temporary = `${destination}.${process.pid}.${Date.now()}.tmp`;
     let handle: fs.FileHandle | undefined;
     try {
       handle = await fs.open(temporary, 'wx', 0o600);
-      await handle.writeFile(`${JSON.stringify(settings, null, 2)}\n`, 'utf8');
+      await handle.writeFile(content, 'utf8');
       await handle.sync();
       await handle.close();
       handle = undefined;
       await fs.rename(temporary, destination);
       await syncDirectory(path.dirname(destination));
-      this.settings = structuredClone(settings);
     } catch (error) {
       await handle?.close().catch(() => undefined);
       await fs.unlink(temporary).catch(() => undefined);
@@ -447,7 +455,11 @@ export function managedRuntimeSettingsFromEnvironment(
   env: NodeJS.ProcessEnv = process.env
 ): ManagedRuntimeSettingsStore {
   return new ManagedRuntimeSettingsStore(
-    env.RUNTIME_SETTINGS_PATH || path.join(process.cwd(), 'config', 'runtime-settings.json'),
+    managedRuntimeSettingsPathFromEnvironment(env),
     env
   );
+}
+
+export function managedRuntimeSettingsPathFromEnvironment(env: NodeJS.ProcessEnv = process.env): string {
+  return path.resolve(env.RUNTIME_SETTINGS_PATH || path.join(process.cwd(), 'config', 'runtime-settings.json'));
 }

@@ -54,12 +54,13 @@ describe("workflow statusbar helpers", () => {
   it("builds operations cockpit", () => {
     const systemStatus: any = {
       state: "ok",
-      operations: { backup: { lastSuccessAt: Date.now(), healthy: true } },
+      operations: { backup: { integrityVerified: { verifiedAt: Date.now() }, healthy: true } },
       mcp: { mode: "active" },
     };
     const items = buildOperationsCockpit(systemStatus, []);
     expect(items[0].healthy).toBe(true);
     expect(items[1].healthy).toBe(true);
+    expect(items[1].label).toBe("Letzte Backup-Integritätsprüfung");
     expect(items[2].healthy).toBe(true);
     expect(items[3].healthy).toBe(true);
   });

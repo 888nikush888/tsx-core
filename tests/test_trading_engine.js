@@ -361,15 +361,25 @@ async function verifyNotificationReplay(paper, account, intent) {
   );
   assert.equal(runsAfterRestart.count, runsBeforeRestart.count, 'Unchanged successful reconciliation state must coalesce instead of appending a full snapshot.');
   const compact = await getDatabase().get(
-    `SELECT remote_snapshot_json FROM trading_reconciliation_runs
+    `SELECT id, remote_snapshot_json FROM trading_reconciliation_runs
      WHERE account_id = ? AND status = 'succeeded' ORDER BY completed_at DESC LIMIT 1`,
     [account.id],
   );
   const compactPayload = JSON.parse(compact.remote_snapshot_json);
-  assert.equal(compactPayload.version, 2);
+  assert.equal(compactPayload.version, 3);
   assert.match(compactPayload.stateDigest, /^[a-f0-9]{64}$/);
   assert.equal('orders' in compactPayload, false, 'Reconciliation evidence must not duplicate the full provider response.');
+  await verifyLegacySnapshotVersion(account, restartedEngine, compact.id, compactPayload);
   return restartedEngine;
+}
+
+async function verifyLegacySnapshotVersion(account, engine, id, payload) {
+  const before = await getDatabase().get('SELECT COUNT(*) AS n FROM trading_reconciliation_runs WHERE account_id=?', [account.id]);
+  await getDatabase().run('UPDATE trading_reconciliation_runs SET remote_snapshot_json=? WHERE id=?', [JSON.stringify({ ...payload, version: 2 }),id]);
+  await engine.reconcileAccount(account.id);
+  assert.equal((await getDatabase().get('SELECT COUNT(*) AS n FROM trading_reconciliation_runs WHERE account_id=?', [account.id])).n, before.n + 1,
+    'A v2 digest cannot coalesce with a namespace-aware v3 digest, even if its hash text happens to match.');
+  assert.equal(JSON.parse((await getDatabase().get('SELECT remote_snapshot_json FROM trading_reconciliation_runs WHERE id=?', [id])).remote_snapshot_json).version, 2);
 }
 
 async function verifyBoundedReconciliationHistory(paper, account, engine) {

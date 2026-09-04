@@ -30,10 +30,10 @@ async function main() {
     [c8, '--config', 'c8.modules.json', 'node', 'tests/run_all.js'],
     {
       cwd: root,
-      env: process.env,
+      env: { ...process.env, TSX_MODULE_COVERAGE_WORKERS: '4' },
       stdio: 'inherit',
       shell: false,
-      timeout: 180_000,
+      timeout: 300_000,
     }
   );
   if (result.error) throw result.error;

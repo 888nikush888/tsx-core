@@ -5,6 +5,8 @@ import path from 'node:path';
 import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
 import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { TradingEngine } from '../src/trading_engine.js';
+import { TradingWebControl } from '../src/trading_web_control.js';
+import { TradingCredentialStore } from '../src/trading_credentials.js';
 import {
   createTradingAccount,
   createTradingStrategyDraft,
@@ -19,7 +21,7 @@ import {
   WORKFLOW_IMPACT_CONFIRMATION,
   applyWorkflowBuilderHistory,
   createWorkflowResourceDraft,
-  createWorkflowTradingIntents,
+  createWorkflowTradingIntents as createPinnedWorkflowTradingIntents,
   getActiveWorkflow,
   getWorkflowBuilderHistoryStatus,
   listWorkflowFallbackRuns,
@@ -32,6 +34,11 @@ import {
 import { getFilteredTradingAnalytics } from '../src/trading_telemetry.js';
 import { listTradingNotificationEvents } from '../src/viewer_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
+
+// New direct test signals bind once to the explicit revision, never inside an intent retry.
+async function createWorkflowTradingIntents(input, now) {
+  return createPinnedWorkflowTradingIntents({ ...input, workflowRevisionId: (await getActiveWorkflow()).id }, now);
+}
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-workflow-fallback-'));
 
@@ -174,24 +181,22 @@ try {
 
   async function seedActivePosition(account, symbol, suffix) {
     const sourceSignalId = `capacity-seed-${suffix}`;
-    const intentId = `capacity-intent-${suffix}`;
-    const now = Date.now();
     await saveSignal(sourceSignalId, '-100-fallback-a', 100 + suffix.length, '<signal/>', '<signal/>');
-    await getDatabase().run(
-      `INSERT INTO trading_trade_intents (
-         id, source_signal_id, root_source_signal_id, channel_id, strategy_version_id, account_id,
-         exchange, mode, symbol, side, status, signal_json, plan_json, created_at, updated_at
-       ) VALUES (?, ?, ?, '-100-fallback-a', ?, ?, 'paper', 'paper', ?, 'LONG', 'monitoring', '{}', NULL, ?, ?)`,
-      [intentId, sourceSignalId, sourceSignalId, strategy.id, account.id, symbol, now, now],
-    );
-    await getDatabase().run(
-      `INSERT INTO trading_positions (
-         id, intent_id, account_id, strategy_version_id, channel_id, symbol, side, status,
-         quantity, average_entry_price, stop_price, realized_pnl, opened_at, closed_at, updated_at
-       ) VALUES (?, ?, ?, ?, '-100-fallback-a', ?, 'LONG', 'open', '1', '1', '0.5', '0', ?, NULL, ?)`,
-      [`capacity-position-${suffix}`, intentId, account.id, strategy.id, symbol, now, now],
-    );
-    return intentId;
+    await paper.setMarket(account.id, {
+      symbol, markPrice: '1', priceTick: '0.001', quantityStep: '0.001',
+      minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
+    });
+    const [intent] = await createWorkflowTradingIntents({
+      sourceSignalId, channelId: '-100-fallback-a', sourceText: `${symbol} LONG`,
+      signal: { schema: 'standard', action: 'LONG', symbol, entry: { type: 'market' },
+        targets: [{ min: '1.1', max: '1.1' }, { min: '1.2', max: '1.2' }], stopLoss: '0.5' },
+    });
+    assert.equal(intent.accountId, account.id);
+    await new TradingEngine([paper]).processIntent(intent.id);
+    const opened = await getTradingIntent(intent.id);
+    assert.equal(opened.status, 'monitoring', JSON.stringify(opened));
+    assert.ok((await paper.openState(account)).positions.some(position => position.symbol === symbol));
+    return intent.id;
   }
 
   await assert.rejects(
@@ -221,9 +226,10 @@ try {
     targets: [{ min: '110', max: '110' }, { min: '120', max: '120' }], stopLoss: '90',
   };
   await saveSignal('fallback-success', '-100-fallback-a', 1, '<signal/>', '<signal/>');
+  const fallbackOrigin = Date.now() - DEFAULT_STRATEGY_CONFIGURATION.safety.entryOrderTtlSeconds * 1_000 * 0.9;
   const initial = await createWorkflowTradingIntents({
     sourceSignalId: 'fallback-success', channelId: '-100-fallback-a', sourceText: 'BTCUSDT LONG', signal,
-  });
+  }, fallbackOrigin);
   assert.equal(initial.length, 1, 'Only the primary account may receive an intent before market resolution.');
   assert.equal(initial[0].accountId, primaryAccount.id);
   assert.deepEqual(
@@ -255,10 +261,15 @@ try {
     'SELECT COUNT(*) AS count FROM trading_orders WHERE account_id = ?', [primaryAccount.id],
   )).count), 0);
 
+  // A legacy promoted intent could have a newer timestamp; the pinned run still proves the earlier origin.
+  await getDatabase().run('UPDATE trading_trade_intents SET created_at = ? WHERE id = ?', [Date.now(), promoted.id]);
   await engine.processIntent(promoted.id);
   const selected = await getTradingIntent(promoted.id);
   assert.ok(selected.plan, 'The supported fallback account must receive the trading plan.');
-  assert.equal(selected.plan.notional, '2500', 'Sizing must use the selected fallback account equity.');
+  assert.equal(selected.plan.entryExpiresAt, fallbackOrigin + DEFAULT_STRATEGY_CONFIGURATION.safety.entryOrderTtlSeconds * 1_000,
+    'A fallback promoted after 90 percent of its TTL must retain only the original remaining lifetime.');
+  assert.equal(selected.plan.leverageTierDecision.maximumNotional, '2500', 'Margin budget must use the selected fallback account equity.');
+  assert.equal(selected.plan.notional, '2487.5', 'Quantity reserves the real IOC cap cost and rounds down without increasing margin.');
   assert.deepEqual(
     await getDatabase().all(
       'SELECT account_id AS accountId FROM workflow_adaptive_risk_state ORDER BY account_id',
@@ -670,6 +681,9 @@ try {
   await new TradingEngine([dailyLossAdapter]).processIntent(dailyLossPrimary.id);
   assert.equal((await getTradingIntent(dailyLossPrimary.id)).blockReason, 'MAX_DAILY_LOSS');
 
+  const originalSeedPlan = (await getDatabase().get(
+    'SELECT plan_json FROM trading_trade_intents WHERE id = ?', [capacitySeedIntentId],
+  )).plan_json;
   await getDatabase().run(
     "UPDATE trading_trade_intents SET plan_json = 'not-json' WHERE id = ?",
     [capacitySeedIntentId],
@@ -683,11 +697,19 @@ try {
     },
   });
   await new TradingEngine([capacityAdapter]).processIntent(dailyRiskPrimary.id);
-  assert.equal((await getTradingIntent(dailyRiskPrimary.id)).blockReason, 'MAX_DAILY_RISK');
+  assert.equal((await getTradingIntent(dailyRiskPrimary.id)).blockReason, 'ENTRY_SAFETY_UNPROVEN',
+    'A corrupted existing plan fails the account safety proof before risk sizing and must not trigger fallback.');
+  assert.equal(Number((await getDatabase().get(
+    `SELECT COUNT(*) AS count FROM trading_fallback_candidates AS candidate
+     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
+     WHERE run.source_signal_id = 'fallback-daily-risk' AND candidate.rank > 0 AND candidate.intent_id IS NOT NULL`,
+  )).count), 0);
   await getDatabase().run(
-    'UPDATE trading_trade_intents SET plan_json = NULL WHERE id = ?',
-    [capacitySeedIntentId],
+    'UPDATE trading_trade_intents SET plan_json = ? WHERE id = ?',
+    [originalSeedPlan, capacitySeedIntentId],
   );
+  const releaseControl = new TradingWebControl(new TradingCredentialStore(directory), paper, [], engine);
+  await releaseControl.releaseAccountKillSwitch({ id: primaryAccount.id, confirmation: 'RELEASE ACCOUNT KILL SWITCH' });
 
   await seedActivePosition(primaryAccount, 'DOTUSDT', 'owned');
   await paper.setMarket(fallbackAccount.id, {
@@ -723,6 +745,30 @@ try {
     && event.details.toAccountId === fallbackAccount.id));
   assert.ok(fallbackEvents.some(event => event.intentId === ownedPrimary.id
     && event.details.reason === 'SYMBOL_ALREADY_OWNED'));
+
+  // The genuinely protected capacity positions remain open; later admission must prove them too.
+  // TTL is independent of the unresolved-dispatch account incident tested next.
+  await saveSignal('fallback-expired', '-100-fallback-a', 4, '<signal/>', '<signal/>');
+  const expiredOrigin = Date.now() - (DEFAULT_STRATEGY_CONFIGURATION.safety.entryOrderTtlSeconds + 1) * 1_000;
+  const [expiredPrimary] = await createWorkflowTradingIntents({
+    sourceSignalId: 'fallback-expired', channelId: '-100-fallback-a',
+    sourceText: 'XRPUSDT LONG', signal: { ...signal, symbol: 'XRPUSDT' },
+  }, expiredOrigin);
+  await engine.processIntent(expiredPrimary.id);
+  assert.equal((await getTradingIntent(expiredPrimary.id)).blockReason, 'ENTRY_INTENT_EXPIRED');
+  const expiredRun = await getDatabase().get(
+    `SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?`,
+    ['fallback-expired'],
+  );
+  assert.deepEqual(
+    { status: expiredRun.status, stopReason: expiredRun.stopReason },
+    { status: 'stopped', stopReason: 'ENTRY_INTENT_EXPIRED' },
+  );
+  assert.equal(Number((await getDatabase().get(
+    `SELECT COUNT(*) AS count FROM trading_fallback_candidates
+     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL`,
+    [expiredRun.id],
+  )).count), 0, 'The original entry TTL must never reset for fallback accounts.');
 
   await saveSignal('fallback-submit-stop', '-100-fallback-a', 5, '<signal/>', '<signal/>');
   await paper.setMarket(primaryAccount.id, {
@@ -766,28 +812,6 @@ try {
      WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL`,
     [submitRun.id],
   )).count), 0);
-
-  await saveSignal('fallback-expired', '-100-fallback-a', 4, '<signal/>', '<signal/>');
-  const expiredOrigin = Date.now() - (DEFAULT_STRATEGY_CONFIGURATION.safety.entryOrderTtlSeconds + 1) * 1_000;
-  const [expiredPrimary] = await createWorkflowTradingIntents({
-    sourceSignalId: 'fallback-expired', channelId: '-100-fallback-a',
-    sourceText: 'XRPUSDT LONG', signal: { ...signal, symbol: 'XRPUSDT' },
-  }, expiredOrigin);
-  await engine.processIntent(expiredPrimary.id);
-  assert.equal((await getTradingIntent(expiredPrimary.id)).blockReason, 'ENTRY_INTENT_EXPIRED');
-  const expiredRun = await getDatabase().get(
-    `SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?`,
-    ['fallback-expired'],
-  );
-  assert.deepEqual(
-    { status: expiredRun.status, stopReason: expiredRun.stopReason },
-    { status: 'stopped', stopReason: 'ENTRY_INTENT_EXPIRED' },
-  );
-  assert.equal(Number((await getDatabase().get(
-    `SELECT COUNT(*) AS count FROM trading_fallback_candidates
-     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL`,
-    [expiredRun.id],
-  )).count), 0, 'The original entry TTL must never reset for fallback accounts.');
 
   const pairOnlyGraph = structuredClone(graph);
   pairOnlyGraph.edges.find(edge => edge.id === 'account-a-account-b-fallback').fallbackOn = pairOnlyFallbackPolicy;

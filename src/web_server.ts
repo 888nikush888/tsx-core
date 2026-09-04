@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
+import { hasCurrentRestorableBackup } from './backup_evidence.js';
 import { writeConfigSync } from './config.js';
 import { addLog, getLogEntries } from './logger.js';
 import {
@@ -139,6 +140,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 interface WebServerState {
+  startupAuthority?: Pick<import('./startup_authority.js').StartupAuthority, 'canMutate' | 'snapshot'>;
   config: any;
   state: any;
   getQueueState: () => {
@@ -299,6 +301,8 @@ async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): P
     }
     chunks.push(buffer);
   }
+  const activeContext = requestContexts.get(req);
+  if (activeContext) assertStartupMutationAllowed(activeContext, req.method || 'GET');
   if (chunks.length === 0) return {};
   try {
     const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
@@ -594,6 +598,7 @@ async function statusHandler({ res, appState }: RequestContext): Promise<void> {
   const xmlConfig = appState.config.xmlParsing ?? {};
   const apiKey = process.env.OPENROUTER_API_KEY;
   sendJson(res, 200, {
+    startup: appState.startupAuthority?.snapshot(),
     isRunning: appState.state.isRunning,
     connectionState: firstConfigured(appState.state.connectionState, 'disconnected'),
     totalForwardedCount: appState.state.totalForwardedCount ?? 0,
@@ -1157,9 +1162,8 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
 function requireCurrentVerifiedBackup(context: RequestContext): void {
   const operations = context.appState.getOperationsStatus?.() as any;
   const backup = operations?.backup;
-  const lastSuccessAt = Number(backup?.lastSuccessAt);
-  if (backup?.healthy !== true || !Number.isSafeInteger(lastSuccessAt) || Date.now() - lastSuccessAt > 30 * 60_000) {
-    throw new HttpError(409, 'A verified backup no older than 30 minutes is required for this destructive action.');
+  if (!hasCurrentRestorableBackup(backup)) {
+    throw new HttpError(409, 'A healthy, integrity-verified, configuration-coherent and artifact-local restore-eligible backup with matching SHA proofs no older than 30 minutes is required for this destructive action.');
   }
 }
 
@@ -1349,8 +1353,8 @@ async function verifyBackupHandler(context: RequestContext): Promise<void> {
   }
   try {
     const name = backupArtifactName(context.parsedUrl.searchParams.get('name'));
-    const manifest = await context.appState.verifyBackup(name);
-    sendJson(context.res, 200, { success: true, name, manifest });
+    const evidence = await context.appState.verifyBackup(name);
+    sendJson(context.res, 200, { success: true, name, evidence });
   } catch (error) {
     sendError(context, error);
   }
@@ -2504,6 +2508,8 @@ async function invokeApiHandler(
     await handler(context);
     return;
   }
+  try { assertStartupMutationAllowed(context, method); }
+  catch (error) { sendError(context, error); return; }
   if (mutationInProgress) {
     sendJson(context.res, 409, {
       error: 'Another control-plane mutation is already in progress.',
@@ -2517,6 +2523,21 @@ async function invokeApiHandler(
   } finally {
     mutationInProgress = false;
   }
+}
+
+function assertStartupMutationAllowed(context: RequestContext, method: string): void {
+  const authority = context.appState.startupAuthority;
+  if (method === 'GET' || !authority || authority.canMutate()) return;
+  const route = `${method} ${context.parsedUrl.pathname}`;
+  // Explicit repairs do not authorize trading, workflow changes, resets or imports.
+  if (route === 'POST /api/restart') return;
+  if (context.appState.recovery?.active && new Set([
+    'POST /api/config', 'POST /api/secrets', 'POST /api/runtime-settings',
+  ]).has(route)) return;
+  const status = authority.snapshot();
+  throw new HttpError(503, `Startup authorization is ${status.phase}; control-plane changes are blocked: ${
+    status.reason || status.mutationHolds.join(', ') || status.pendingGates.join(', ')
+  }.`);
 }
 
 async function handleAuthenticatedApiRequest(

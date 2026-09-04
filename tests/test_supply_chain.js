@@ -24,6 +24,8 @@ const rootManifest = JSON.parse(await readFile(path.join(root, 'package.json'), 
 const ccxtClient = await readFile(path.join(root, 'exchange_executor', 'ccxt_client.py'), 'utf8');
 const ccxtProfiles = await readFile(path.join(root, 'exchange_executor', 'ccxt_profiles.py'), 'utf8');
 const ccxtRegistry = await readFile(path.join(root, 'exchange_executor', 'ccxt_registry.py'), 'utf8');
+const ccxtCertification = await readFile(path.join(root, 'exchange_executor', 'ccxt_certification.py'), 'utf8');
+const ccxtCertificationEvidence = await readFile(path.join(root, 'exchange_executor', 'ccxt_certification_evidence.py'), 'utf8');
 const ccxtAdapter = await readFile(path.join(root, 'exchange_executor', 'ccxt_adapter.py'), 'utf8');
 const streamHub = await readFile(path.join(root, 'exchange_executor', 'stream_hub.py'), 'utf8');
 const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf8');
@@ -172,35 +174,79 @@ assert.match(ccxtClient, /CERTIFIED_EXCHANGES = set\(PROFILES\)/);
 assert.match(ccxtProfiles, /"builderFee": False, "approvedBuilderFee": False/);
 assert.match(ccxtRegistry, /certification_result\(/);
 assert.match(ccxtRegistry, /package_version\("ccxt"\)/);
+assert.match(ccxtCertification, /APPROVED_IMPLEMENTATION_RECEIPTS\.get\(/);
+assert.match(ccxtCertification, /read_receipt\(/);
+assert.match(ccxtCertification, /validate_receipt\(/);
+assert.doesNotMatch(ccxtCertification, /tests\.get\(flag\)|REQUIRED_TEST_FLAGS/,
+  'Legacy seven-boolean files are retained records, never implementation approval.');
+assert.match(ccxtCertificationEvidence, /executorTreeHash.*python_tree_hash\(executor_root\)/);
+assert.match(ccxtCertificationEvidence, /sdkTreeHash.*python_tree_hash\(sdk_root, sdk=True\)/);
+const containerJob = workflow.slice(workflow.indexOf('\n  container:'));
+assert.match(containerJob, /\n {4}needs: verify\n/,
+  'Image builds must depend on the full root verification job for this checkout.');
+assert.match(containerJob, /fetch-depth: 0/,
+  'Implementation provenance requires the reviewed origin commit, not a shallow HEAD-only clone.');
+const implementationStep = containerJob.indexOf('- name: Verify independently reviewed exchange implementation');
+const executorBuildStep = containerJob.indexOf('- name: Build official exchange executor');
+assert.ok(implementationStep >= 0 && executorBuildStep > implementationStep,
+  'The real root-byte gate must run before the executor is packaged.');
+const implementationBlock = containerJob.slice(implementationStep, containerJob.indexOf('\n      - name:', implementationStep + 1));
+assert.match(implementationBlock, /node scripts\/verify_exchange_implementation\.js --python "\$pythonLocation\/bin\/python3\.12"/);
+assert.doesNotMatch(implementationBlock, /continue-on-error|\|\|\s*true|--exchange|--approved/,
+  'The packaging gate cannot skip profiles, inject approvals, or disregard a NO-GO.');
+const runtimeGateCommand = containerJob.split('\n').find(line => line.includes('/app/verify_implementation_runtime.py'));
+assert.equal(runtimeGateCommand?.trim(),
+  'docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -E -B /app/verify_implementation_runtime.py',
+  'The final baked image must verify every real implementation receipt offline without mounts, env approvals, or user overrides.');
+const runtimeGatePosition = containerJob.indexOf(runtimeGateCommand);
+const executorUserCheck = containerJob.indexOf('test "$(docker image inspect tsx-core-exchange-executor:');
+assert.equal(containerJob.slice(executorUserCheck, containerJob.indexOf('\n', executorUserCheck)).trim(),
+  'test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format \'{{.Config.User}}\')" = 65532:65532',
+  'The baked receipt gate must retain the explicit UID/GID 65532 image identity check.');
+assert.ok(executorUserCheck > executorBuildStep && runtimeGatePosition > executorUserCheck,
+  'The installed-byte receipt gate must use the already verified non-root image user.');
+assert.ok(runtimeGatePosition < containerJob.indexOf('- name: Preserve the scanned release candidate'),
+  'No release candidate may be preserved before the actual baked implementation receipts pass.');
+const runtimeVerificationBlock = containerJob.slice(containerJob.lastIndexOf('- name:', runtimeGatePosition),
+  containerJob.indexOf('\n      - name:', runtimeGatePosition));
+assert.doesNotMatch(runtimeVerificationBlock, /continue-on-error|\|\|\s*true|\n\s+if:/,
+  'The runtime receipt gate is mandatory and must propagate NO-GO.');
 assert.match(
   workflow,
-  /-v "\$PWD\/exchange_executor\/tests:\/app\/tests:ro"[\s\S]*?-m unittest discover -s \/app\/tests -v/,
-  'Container verification must mount executor tests below /app so their repository-relative certification fixtures remain valid.',
+  /-e PYTHONPATH=\/app:\/[\s\S]*?-v "\$PWD\/exchange_executor\/tests:\/exchange_executor\/tests:ro"[\s\S]*?-m unittest discover -s \/exchange_executor\/tests -v/,
+  'Container verification must expose the original repository-relative test package without replacing baked /app sources.',
 );
-assert.doesNotMatch(
-  workflow,
-  /exchange_executor\/tests:\/tests:ro[\s\S]*?-m unittest discover -s \/tests/,
-  'Mounting executor tests at /tests breaks their repository-relative certification evidence lookup.',
-);
+const executorSuiteCommand = workflow.split('\n').find(line => line.includes('-m unittest discover -s /exchange_executor/tests -v'));
+for (const mount of [
+  '-v "$PWD/exchange_executor/tools:/app/tools:ro"',
+  '-v "$PWD/plans:/plans:ro"',
+  '-v "$PWD/tests:/tests:ro"',
+  '-v "$PWD/docs/testing/ccxt-expansion-matrix.json:/docs/testing/ccxt-expansion-matrix.json:ro"',
+]) {
+  assert.ok(executorSuiteCommand.includes(mount),
+    `The complete baked-executor suite needs its original read-only support input: ${mount}`);
+}
+assert.doesNotMatch(executorSuiteCommand, /-v "\$PWD(?:\/exchange_executor)?:\/app(?::|")/,
+  'Test support inputs must not replace the actual baked executor sources or receipts.');
 for (const exchange of ['hyperliquid', 'bybit', 'krakenfutures']) {
   const evidence = JSON.parse(await readFile(
     path.join(root, 'exchange_executor', 'certifications', `${exchange}.json`),
     'utf8',
   ));
   assert.equal(evidence.exchange, exchange);
-  assert.equal(evidence.status, 'certified');
   assert.equal(evidence.ccxtVersion, pinnedCcxtVersion);
-  assert.equal(evidence.profileVersion, 1);
-  assert.deepEqual(Object.keys(evidence.tests).sort(), [
-    'accountIdentity',
-    'cancel',
-    'credentialRotation',
-    'marketNormalization',
-    'protectedEntry',
-    'reconciliation',
-    'stream',
-  ]);
-  assert.ok(Object.values(evidence.tests).every((passed) => passed === true));
+  assert.ok(Number.isSafeInteger(evidence.profileVersion) && evidence.profileVersion > 0);
+  if (evidence.schemaVersion === 2) {
+    assert.equal(evidence.kind, 'reviewed_implementation_receipt');
+    assert.equal(evidence.providerAcceptanceVerified, false);
+    assert.match(evidence.executorTreeHash, /^[a-f0-9]{64}$/);
+    assert.match(evidence.sdkTreeHash, /^[a-f0-9]{64}$/);
+  } else {
+    // Historical shape is permitted on disk, but runtime approval is tested
+    // separately against the fixed review pin and the actual source trees.
+    assert.equal(evidence.schemaVersion, undefined);
+    assert.equal(evidence.implementationVerified, undefined);
+  }
 }
 assert.match(ccxtAdapter, /clients\.rest\.create_orders/);
 assert.match(ccxtAdapter, /clients\.rest\.fetch_positions/);

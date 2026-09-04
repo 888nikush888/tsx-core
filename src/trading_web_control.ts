@@ -1,4 +1,4 @@
-import { getDatabase } from './db.js';
+import { getDatabase, withDatabaseTransaction } from './db.js';
 import { CcxtExchangeAdapter } from './ccxt_exchange.js';
 import {
   ExchangeCatalogClient,
@@ -8,6 +8,10 @@ import {
 import { PaperExchangeAdapter } from './paper_exchange.js';
 import type { TradingCredentialStore, TradingCredentials } from './trading_credentials.js';
 import { TradingEngine } from './trading_engine.js';
+import type { TradingMutationContext } from './trading_mutation_coordinator.js';
+import { assertTradingSafety, evaluateTradingSafety, type TradingSafetyProof } from './trading_safety_proof.js';
+import { collectAccountReleaseEvidence } from './trading_safety_repository.js';
+import { GLOBAL_KILL_RELEASE_CONFIRMATION, releaseGlobalTradingKillSwitch } from './trading_runtime_release.js';
 import {
   acknowledgeTradingRiskEvent,
   archiveSignalContractVersion,
@@ -61,7 +65,7 @@ import {
 } from './trading_telemetry.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
 import { listExchangeStreamStates } from './exchange_stream_repository.js';
-import { listTradingAccountIncidents, resolveTradingAccountIncidents } from './trading_incidents.js';
+import { listTradingAccountIncidents } from './trading_incidents.js';
 import {
   archiveWorkflowResource,
   createWorkflowResourceDraft,
@@ -86,6 +90,7 @@ type VerifiableAdapter = TradingExchangeAdapter & {
     verified: boolean;
     equity: string;
     externalAccountId: string;
+    credentialGeneration: string;
     capabilities?: Record<string, unknown>;
   }>;
 };
@@ -117,6 +122,13 @@ function externalAccountIdentity(value: unknown): string {
   return value;
 }
 
+function verifiedCredentialGeneration(value: unknown): string {
+  if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) {
+    throw new Error('Exchange verification did not return a credential generation.');
+  }
+  return value;
+}
+
 export interface TradingWebSnapshot {
   overview: Awaited<ReturnType<typeof getTradingOverview>>;
   analytics: Awaited<ReturnType<typeof getTradingAnalytics>>;
@@ -138,7 +150,7 @@ export interface TradingWebSnapshot {
   exchangeStreams: Awaited<ReturnType<typeof listExchangeStreamStates>>;
   accountIncidents: Awaited<ReturnType<typeof listTradingAccountIncidents>>;
   fallbackRuns: Awaited<ReturnType<typeof listWorkflowFallbackRuns>>;
-  confirmations: { live: string; emergencyFlatten: string };
+  confirmations: { live: string; emergencyFlatten: string; globalKillSwitch: string };
 }
 
 export interface TradingPortfolioAccountSnapshot {
@@ -261,7 +273,7 @@ export class TradingWebControl {
       exchangeStreams,
       accountIncidents,
       fallbackRuns,
-      confirmations: { live: LIVE_CONFIRMATION, emergencyFlatten: FLATTEN_CONFIRMATION },
+      confirmations: { live: LIVE_CONFIRMATION, emergencyFlatten: FLATTEN_CONFIRMATION, globalKillSwitch: GLOBAL_KILL_RELEASE_CONFIRMATION },
     };
   }
 
@@ -486,6 +498,12 @@ export class TradingWebControl {
   }
 
   async replaceAccountCredentials(payload: any): Promise<TradingAccount> {
+    const accountId = identifier(payload.id, 'Account identifier', 64);
+    this.engine.mutations.fenceEntries();
+    return this.engine.mutations.run(accountId, context => this.replaceAccountCredentialsOwned(payload, context));
+  }
+
+  private async replaceAccountCredentialsOwned(payload: any, context: TradingMutationContext): Promise<TradingAccount> {
     let account = await this.requiredAccount(payload.id);
     if (account.exchange === 'paper') throw new Error('Paper accounts do not have exchange credentials.');
     const catalogEntry = await this.certifiedCatalogEntry(account.exchange, account.mode);
@@ -502,14 +520,8 @@ export class TradingWebControl {
       killSwitchReason: `Credential rotation requested for account ${account.id}`,
     });
     await updateTradingAccountState(account.id, { status: 'unverified', enabled: false });
-    await this.engine.cancelOpenEntries(account.id);
-    await this.engine.reconcileAccount(account.id);
-    const oldState = await adapter.openState(account);
-    if (oldState.orders.length > 0 || oldState.positions.length > 0) {
-      throw new Error('Credentials cannot be replaced while the exchange account has open orders or positions.');
-    }
 
-    // Bind legacy rows to the old credentials before evaluating a candidate.
+    // Bind legacy rows before any cancel as well as before evaluating a candidate.
     const oldVerification = await adapter.verifyAccount(account);
     if (!oldVerification.verified) throw new Error('Exchange rejected existing account verification.');
     const boundIdentity = externalAccountIdentity(oldVerification.externalAccountId);
@@ -518,11 +530,19 @@ export class TradingWebControl {
     }
     account = await updateTradingAccountState(account.id, {
       externalAccountId: boundIdentity,
+      credentialGeneration: verifiedCredentialGeneration(oldVerification.credentialGeneration),
       status: 'unverified',
       enabled: false,
       error: null,
       verifiedAt: Date.now(),
     });
+    await this.engine.cancelOpenEntries(account.id, context);
+    await this.engine.reconcileAccount(account.id, { mutation: context });
+    const oldState = await adapter.openState(account);
+    const activeOrders = oldState.orders.filter(order => !['filled', 'cancelled', 'rejected'].includes(order.status));
+    if (activeOrders.length > 0 || oldState.positions.length > 0) {
+      throw new Error('Credentials cannot be replaced while the exchange account has open orders or positions.');
+    }
 
     const candidateId = await this.credentials.stageCandidate(
       this.credentialsFromPayload(catalogEntry, payload.credentials),
@@ -535,9 +555,11 @@ export class TradingWebControl {
       if (candidateIdentity !== boundIdentity) {
         throw new Error('Candidate credentials belong to a different external exchange account.');
       }
+      const candidateGeneration = verifiedCredentialGeneration(result.credentialGeneration);
       await this.credentials.promoteCandidate(candidateId, account.id);
       return updateTradingAccountState(account.id, {
         externalAccountId: boundIdentity,
+        credentialGeneration: candidateGeneration,
         status: 'ready',
         enabled: false,
         error: null,
@@ -556,7 +578,12 @@ export class TradingWebControl {
     }
   }
 
-  async verifyAccount(id: unknown, enableOnSuccess = false): Promise<TradingAccount> {
+  async verifyAccount(id: unknown, enableOnSuccess = false, context?: TradingMutationContext): Promise<TradingAccount> {
+    const accountId = identifier(id, 'Account identifier', 64);
+    return this.engine.mutations.run(accountId, () => this.verifyAccountOwned(accountId, enableOnSuccess), context);
+  }
+
+  private async verifyAccountOwned(id: string, enableOnSuccess: boolean): Promise<TradingAccount> {
     const account = await this.requiredAccount(id);
     if (account.exchange === 'paper') {
       return updateTradingAccountState(account.id, { status: 'ready', enabled: true, verifiedAt: Date.now() });
@@ -572,6 +599,7 @@ export class TradingWebControl {
       }
       const verified = await updateTradingAccountState(account.id, {
         externalAccountId,
+        credentialGeneration: verifiedCredentialGeneration(result.credentialGeneration),
         status: 'ready',
         enabled: enableOnSuccess || account.enabled,
         error: null,
@@ -590,13 +618,20 @@ export class TradingWebControl {
   }
 
   async setAccountEnabled(id: unknown, enabledValue: unknown): Promise<TradingAccount> {
+    const accountId = identifier(id, 'Account identifier', 64);
+    const enabled = boolean(enabledValue, 'Account enabled state');
+    if (!enabled) this.engine.mutations.fenceEntries(accountId);
+    return this.engine.mutations.run(accountId, context => this.setAccountEnabledOwned(accountId, enabled, context));
+  }
+
+  private async setAccountEnabledOwned(id: string, enabledValue: boolean, context: TradingMutationContext): Promise<TradingAccount> {
     const account = await this.requiredAccount(id);
     const enabled = boolean(enabledValue, 'Account enabled state');
-    if (enabled && account.status === 'disabled') return this.verifyAccount(account.id, true);
+    if (enabled && account.status === 'disabled') return this.verifyAccount(account.id, true, context);
     if (enabled && account.status !== 'ready') throw new Error('Only a successfully verified account can be enabled.');
     if (!enabled) {
-      await this.engine.cancelOpenEntries(account.id);
-      await this.engine.reconcileAccount(account.id);
+      await this.engine.cancelOpenEntries(account.id, context);
+      await this.engine.reconcileAccount(account.id, { mutation: context });
       const managed = await getDatabase().get<{ count: number }>(
         `SELECT COUNT(*) AS count FROM trading_positions
          WHERE account_id = ? AND status IN ('opening', 'open', 'closing', 'emergency')`,
@@ -616,11 +651,20 @@ export class TradingWebControl {
 
   async configureAccount(payload: any): Promise<TradingAccount> {
     const accountId = identifier(payload.id, 'Account identifier', 64);
+    const release = payload.killSwitchActive === true ? this.engine.mutations.holdEntries(accountId) : undefined;
+    try {
+      return await this.engine.mutations.run(accountId, context => this.configureAccountOwned(payload, accountId, context));
+    } finally {
+      release?.();
+    }
+  }
+
+  private async configureAccountOwned(payload: any, accountId: string, context: TradingMutationContext): Promise<TradingAccount> {
     const current = await this.requiredAccount(accountId);
     if (current.killSwitchActive && payload.killSwitchActive === false) {
       throw new Error('Account kill switches require the protected kill-switch release confirmation operation.');
     }
-    return updateTradingAccountConfiguration(
+    const updated = await updateTradingAccountConfiguration(
       accountId,
       {
         maxConcurrentPositions: payload.maxConcurrentPositions,
@@ -628,13 +672,23 @@ export class TradingWebControl {
         killSwitchReason: payload.killSwitchReason,
       },
     );
+    if (payload.killSwitchActive === true) await this.engine.cancelOpenEntries(accountId, context);
+    return updated;
   }
 
   async releaseAccountKillSwitch(payload: any): Promise<{
     account: TradingAccount;
     reconciliations: number;
+    proof: TradingSafetyProof;
   }> {
     const accountId = identifier(payload.id, 'Account identifier', 64);
+    const epoch = this.engine.mutations.entryEpoch(accountId);
+    return this.engine.mutations.run(accountId, context => this.releaseAccountKillSwitchOwned(payload, accountId, context, epoch));
+  }
+
+  private async releaseAccountKillSwitchOwned(payload: any, accountId: string, context: TradingMutationContext, epoch: string): Promise<{
+    account: TradingAccount; reconciliations: number; proof: TradingSafetyProof;
+  }> {
     const confirmation = identifier(payload.confirmation, 'Account kill-switch release confirmation', 64);
     if (confirmation !== 'RELEASE ACCOUNT KILL SWITCH') {
       throw new Error('Explicit account kill-switch release confirmation required.');
@@ -644,19 +698,38 @@ export class TradingWebControl {
     if (!current.enabled || current.status !== 'ready') {
       throw new Error('Account must be enabled and verified before its kill switch can be released.');
     }
-    await this.engine.reconcileAccount(accountId, { force: true });
-    await this.engine.reconcileAccount(accountId, { force: true });
-    const account = await updateTradingAccountConfiguration(accountId, {
-      killSwitchActive: false,
-      killSwitchReason: null,
+    const requestedAt = Date.now();
+    await this.engine.reconcileAccount(accountId, { force: true, mutation: context });
+    const balanceStartedAt = Date.now();
+    const balance = await this.requiredAdapter(current.exchange).accountSnapshot(current);
+    const balanceCompletedAt = Date.now();
+    const reconciled = await this.engine.reconcileAccount(accountId, { force: true, mutation: context });
+    if (!reconciled) throw new Error('Forced reconciliation did not return safety evidence.');
+    return withDatabaseTransaction(async () => {
+      this.engine.mutations.assertEpoch(context, epoch);
+      const evidence = await collectAccountReleaseEvidence({ current: await this.requiredAccount(accountId), reconciled,
+        verificationAccount: current, epoch, requestedAt, balance, balanceStartedAt, balanceCompletedAt });
+      const proof = evaluateTradingSafety(evidence, 'accountRelease');
+      assertTradingSafety(proof);
+      // The proof and write share the transaction. An operator fence still wins at the final boundary.
+      this.engine.mutations.assertEpoch(context, epoch);
+      const account = await updateTradingAccountConfiguration(accountId, { killSwitchActive: false, killSwitchReason: null });
+      const finalEvidence = await collectAccountReleaseEvidence({ current: account,
+        reconciled: { ...reconciled, accountVersion: reconciled.accountVersion + 1 },
+        verificationAccount: current, epoch, requestedAt, balance, balanceStartedAt, balanceCompletedAt });
+      assertTradingSafety(evaluateTradingSafety(finalEvidence, 'accountRelease'));
+      this.engine.mutations.assertEpoch(context, epoch);
+      return { account, reconciliations: 2, proof };
     });
-    await resolveTradingAccountIncidents(accountId, [
-      'reconciliation_transient', 'reconciliation_contract', 'remote_identity', 'unmanaged_remote',
-    ]);
-    return { account, reconciliations: 2 };
   }
 
   async removeAccount(id: unknown): Promise<void> {
+    const accountId = identifier(id, 'Account identifier', 64);
+    this.engine.mutations.fenceEntries(accountId);
+    return this.engine.mutations.run(accountId, () => this.removeAccountOwned(accountId));
+  }
+
+  private async removeAccountOwned(id: string): Promise<void> {
     const account = await this.requiredAccount(id);
     const remote = await this.requiredAdapter(account.exchange).openState(account);
     this.assertNoRemoteExposure(remote);
@@ -679,15 +752,28 @@ export class TradingWebControl {
 
   async setRuntime(payload: any) {
     const action = identifier(payload.action, 'Runtime action', 40);
-    if (action === 'execution') return this.setExecutionRuntime(payload);
-    if (action === 'live') return this.setLiveRuntime(payload);
-    if (action === 'kill-switch') return this.setKillSwitchRuntime(payload);
-    throw new Error('Unsupported trading runtime action.');
+    if (!['execution', 'live', 'kill-switch'].includes(action)) throw new Error('Unsupported trading runtime action.');
+    const lowering = action === 'kill-switch'
+      ? boolean(payload.active, 'Kill switch state')
+      : !boolean(payload.enabled, 'Runtime enabled state');
+    const release = lowering ? this.engine.mutations.holdEntries() : undefined;
+    const epoch = this.engine.mutations.entryEpoch('@runtime');
+    try {
+      return await this.engine.mutations.run('@runtime', async context => {
+        const assertAuthority = () => this.engine.mutations.assertEpoch(context, epoch);
+        if (action === 'execution') return this.setExecutionRuntime(payload, assertAuthority);
+        if (action === 'live') return this.setLiveRuntime(payload, assertAuthority);
+        return this.setKillSwitchRuntime(payload, assertAuthority);
+      });
+    } finally {
+      release?.();
+    }
   }
 
-  private async setExecutionRuntime(payload: any) {
+  private async setExecutionRuntime(payload: any, assertAuthority: () => void) {
     const enabled = boolean(payload.enabled, 'Execution enabled state');
     if (!enabled) {
+      this.engine.mutations.fenceEntries();
       this.entryRuntime?.disableEntries();
       return updateTradingRuntimeState({ executionEnabled: false });
     }
@@ -696,6 +782,7 @@ export class TradingWebControl {
     if (overview.enabledRouteCount < 1) throw new Error('Execution requires at least one enabled channel route.');
     const runtime = this.requiredEntryRuntime();
     await this.reconcileEnabledAccounts();
+    assertAuthority();
     const state = await updateTradingRuntimeState({ executionEnabled: true });
     try {
       await runtime.enableEntries();
@@ -707,29 +794,42 @@ export class TradingWebControl {
     }
   }
 
-  private async setLiveRuntime(payload: any) {
+  private async setLiveRuntime(payload: any, assertAuthority: () => void) {
     const enabled = boolean(payload.enabled, 'Live trading enabled state');
+    if (!enabled) this.engine.mutations.fenceEntries();
     if (enabled) {
       if (payload.confirmation !== LIVE_CONFIRMATION) throw new Error(`Live trading requires the exact confirmation '${LIVE_CONFIRMATION}'.`);
       const live = (await listTradingAccounts()).filter(account => account.mode === 'live' && account.enabled && account.status === 'ready');
       if (live.length < 1) throw new Error('Live trading requires at least one enabled, verified live account.');
       for (const account of live) await this.engine.reconcileAccount(account.id);
+      assertAuthority();
     }
     return updateTradingRuntimeState({ liveTradingEnabled: enabled });
   }
 
-  private async setKillSwitchRuntime(payload: any) {
+  private async setKillSwitchRuntime(payload: any, assertAuthority: () => void) {
     const active = boolean(payload.active, 'Kill switch state');
     if (active) {
       const reason = identifier(payload.reason, 'Kill switch reason', 300);
+      this.engine.mutations.fenceEntries();
       this.entryRuntime?.disableEntries();
-      return updateTradingRuntimeState({ executionEnabled: false, killSwitchActive: true, killSwitchReason: reason });
+      const state = await updateTradingRuntimeState({ executionEnabled: false, killSwitchActive: true, killSwitchReason: reason });
+      await this.engine.cancelOpenEntries();
+      return state;
     }
-    await this.reconcileEnabledAccounts();
-    return updateTradingRuntimeState({ killSwitchActive: false, killSwitchReason: null });
+    if (payload.confirmation !== GLOBAL_KILL_RELEASE_CONFIRMATION) {
+      throw new Error(`Global kill-switch release requires the exact confirmation '${GLOBAL_KILL_RELEASE_CONFIRMATION}'.`);
+    }
+    return releaseGlobalTradingKillSwitch({ engine: this.engine, assertAuthority,
+      accountSnapshot: account => this.requiredAdapter(account.exchange).accountSnapshot(account) });
   }
 
   async configurePaper(payload: any): Promise<void> {
+    const accountId = identifier(payload.accountId, 'Account identifier', 64);
+    return this.engine.mutations.run(accountId, () => this.configurePaperOwned(payload));
+  }
+
+  private async configurePaperOwned(payload: any): Promise<void> {
     const account = await this.requiredAccount(payload.accountId);
     if (account.exchange !== 'paper') throw new Error('Paper configuration requires a paper account.');
     if (payload.equity !== undefined) await this.paper.setBalance(account.id, payload.equity, payload.availableBalance ?? payload.equity);
@@ -752,11 +852,11 @@ export class TradingWebControl {
     if (payload.confirmation !== FLATTEN_CONFIRMATION) {
       throw new Error(`Emergency flatten requires the exact confirmation '${FLATTEN_CONFIRMATION}'.`);
     }
+    this.engine.mutations.fenceEntries();
     this.entryRuntime?.disableEntries();
     await updateTradingRuntimeState({ executionEnabled: false, killSwitchActive: true, killSwitchReason: 'Operator emergency flatten' });
     const accountId = payload.accountId ? identifier(payload.accountId, 'Account identifier', 64) : undefined;
-    if (accountId) await this.engine.reconcileAccount(accountId);
-    else await this.reconcileEnabledAccounts();
+    // Persist the emergency request before reconciliation; an unresolved cancel must not discard it.
     return this.engine.emergencyFlattenManaged(accountId);
   }
 

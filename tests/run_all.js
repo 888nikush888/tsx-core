@@ -1,6 +1,7 @@
-import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertTestRegistry } from '../scripts/test_registry.js';
+import { moduleCoverageConcurrency, runTestFile, runTestSchedule } from '../scripts/test_scheduler.js';
 
 const testsDirectory = path.dirname(fileURLToPath(import.meta.url));
 const testEnvironment = {
@@ -8,6 +9,105 @@ const testEnvironment = {
   CONFIG_PATH: path.resolve(testsDirectory, '..', 'config.json.example'),
 };
 const allTests = [
+  'test_exchange_implementation_bridge.js',
+  'test_exchange_profile_parity.js',
+  'test_mutation_shards.js',
+  'test_trading_rational.js',
+  'test_trading_money_value.js',
+  'test_trading_money_risk.js',
+  'test_trading_fx_contract.js',
+  'test_trading_recovery_schedule_contract.js',
+  'test_trading_recovery_schedule_transport.js',
+  'test_trading_fx_repository.js',
+  'test_trading_fx_valuation.js',
+  'test_trading_fx_fill_accounting.js',
+  'test_trading_fx_risk_admission.js',
+  'test_trading_fx_risk_reservations.js',
+  'test_trading_fx_channel_risk.js',
+  'test_trading_fx_sizing.js',
+  'test_trading_fx_sizing_python.js',
+  'test_trading_fx_sizing_admission.js',
+  'test_trading_fx_engine.js',
+  'test_trading_fx_funding.js',
+  'test_trading_fx_automatic_valuation.js',
+  'test_trading_fx_money_reporting.js',
+  'test_trading_fx_analytics.js',
+  'test_trading_fx_journal_viewer.js',
+  'test_trading_fx_migration.js',
+  'test_trading_fx_money_migration.js',
+  'test_trading_adaptive_money_migration.js',
+  'test_trading_recovery_schedule.js',
+  'test_trading_recovery_schedule_commit.js',
+  'test_trading_recovery_schedule_migration.js',
+  'test_trading_state_transitions.js',
+  'test_trading_mutation_coordinator.js',
+  'test_trading_control_races.js',
+  'test_exchange_contract_validation.js',
+  'test_fill_quantity_contract.js',
+  'test_fill_quantity_persistence.js',
+  'test_fill_quantity_migration.js',
+  'test_fill_quantity_python_roundtrip.js',
+  'test_exchange_order_correlation.js',
+  'test_trading_order_repository.js',
+  'test_trading_order_identity_requests.js',
+  'test_trading_order_identity_bindings.js',
+  'test_exchange_fill_identity.js',
+  'test_trading_fill_identity.js',
+  'test_trading_fill_identity_migration.js',
+  'test_trading_fill_identity_backfill.js',
+  'test_trading_order_migration.js',
+  'test_trading_evidence_repository.js',
+  'test_trading_ownership.js',
+  'test_trading_account_baseline.js',
+  'test_trading_recovery.js',
+  'test_trading_prepared_exit_recovery.js',
+  'test_trading_recovery_worker.js',
+  'test_trading_pending_fairness.js',
+  'test_trading_preparation_recovery.js',
+  'test_trading_protected_entry_crash.js',
+  'test_trading_dispatch_fence.js',
+  'test_trading_risk_reservations.js',
+  'test_trading_risk_repository.js',
+  'test_trading_risk_engine.js',
+  'test_paper_accounting.js',
+  'test_trading_history.js',
+  'test_exchange_history_coverage.js',
+  'test_hyperliquid_retention.js',
+  'test_trading_entry_commitment.js',
+  'test_trading_cancel_budget.js',
+  'test_trading_cancel_evidence.js',
+  'test_trading_exit_cancel_recovery.js',
+  'test_trading_exit_cancel_engine.js',
+  'test_trading_entry_expiry.js',
+  'test_entry_deadline_transport.js',
+  'test_trading_execution_constraints.js',
+  'test_trading_execution_mode_fence.js',
+  'test_trading_entry_price.js',
+  'test_trading_entry_price_engine.js',
+  'test_trading_leverage_tiers.js',
+  'test_trading_tier_fence.js',
+  'test_paper_bounded_ioc.js',
+  'test_trading_emergency.js',
+  'test_paper_partial_fills.js',
+  'test_trading_protection.js',
+  'test_trading_protection_receipt.js',
+  'test_trading_take_profit.js',
+  'test_trading_safety_proof.js',
+  'test_trading_lifecycle_safety.js',
+  'test_trading_global_release.js',
+  'test_trading_account_retirement.js',
+  'test_trading_entry_safety.js',
+  'test_trading_account_mode.js',
+  'test_trading_uta_baseline.js',
+  'test_trading_account_scope.js',
+  'test_trading_account_log.js',
+  'test_trading_account_log_audit.js',
+  'test_trading_funding_observation.js',
+  'test_trading_funding_risk.js',
+  'test_trading_kraken_cashlegs.js',
+  'test_trading_kraken_cashleg_failures.js',
+  'test_trading_kraken_cashleg_replay.js',
+  'test_trading_kraken_cashleg_migration.js',
   'test_modules.js',
   'test_logger_file.js',
   'test_queue.js',
@@ -18,19 +118,35 @@ const allTests = [
   'test_secret_store.js',
   'test_factory_reset_paths.js',
   'test_mcp_maintenance.js',
+  'test_database_maintenance.js',
   'test_runtime_settings.js',
   'test_telegram_login.js',
   'test_tdlib_retry.js',
   'test_dupe_blocker.js',
   'test_outbox.js',
+  'test_ingress_atomicity.js',
+  'test_ingress_workflow_pinning.js',
+  'test_ingress_migration.js',
+  'test_signal_idempotence.js',
+  'test_ai_usage_reservations.js',
   'test_process_lock.js',
+  'test_startup_authority.js',
+  'test_startup_web.js',
+  'test_startup_trading.js',
   'test_migration_cli.js',
+  'test_migration_recovery.js',
   'test_delivery_tracker.js',
   'test_crash_guard.js',
   'test_clock_guard.js',
   'test_backup.js',
+  'test_backup_evidence.js',
+  'test_backup_proofs.js',
+  'test_backup_generation.js',
+  'test_backup_generation_crash.js',
+  'test_backup_generation_ownership.js',
   'test_backup_replication.js',
   'test_retention.js',
+  'test_retention_accounting.js',
   'test_metrics.js',
   'test_dashboard_analytics.js',
   'test_slo_tracker.js',
@@ -47,6 +163,11 @@ const allTests = [
   'test_signal_contract_validation.js',
   'test_signal_schema_migration.js',
   'test_trading_core.js',
+  'test_trading_money_ledger.js',
+  'test_trading_fill_accounting.js',
+  'test_trading_money_migration.js',
+  'test_trading_accounting_gate.js',
+  'test_trading_fee_rebate.js',
   'test_workflow_builder.js',
   'test_workflow_history.js',
   'test_workflow_history_barriers.js',
@@ -56,6 +177,7 @@ const allTests = [
   'test_telegram_viewer_core.js',
   'test_telegram_viewer_api.js',
   'test_telegram_viewer_service.js',
+  'test_viewer_database_scope.js',
   'test_telegram_viewer_runtime.js',
   'test_telegram_viewer_deployment.js',
   'test_setup_bundle.js',
@@ -71,7 +193,11 @@ const allTests = [
   'test_mcp_server.js',
   'test_supply_chain.js',
   'test_repository_governance.js',
+  'test_test_registry.js',
+  'test_test_scheduler.js',
   'test_sonarcloud_export.js',
+  'test_sonar_evidence.js',
+  'test_exchange_acceptance.js',
   'test_coverage_perfektion.js',
   'test_architecture.js',
   'test_risk_acceptances.js',
@@ -83,31 +209,26 @@ const allTests = [
   'test_module_coverage.js',
 ];
 
-const requestedTests = process.argv.slice(2);
-const selectedTests = requestedTests.length > 0 ? requestedTests : allTests;
-for (const test of selectedTests) {
-  if (!allTests.includes(test)) {
-    console.error(`Unknown test file: ${test}`);
-    process.exit(2);
-  }
-  const result = spawnSync(process.execPath, ['--import', 'tsx', path.join(testsDirectory, test)], {
-    cwd: path.join(testsDirectory, '..'),
-    env: testEnvironment,
-    stdio: 'inherit',
-    shell: false,
-    timeout: 120_000,
-    windowsHide: true,
-  });
-  if (result.error) {
-    console.error(`Failed to run ${test}: ${result.error.message}`);
-    process.exit(1);
-  }
-  if (result.status !== 0) {
-    console.error(
-      `${test} failed with ${result.signal ? `signal ${result.signal}` : `exit code ${result.status}`}.`
-    );
-    process.exit(result.status || 1);
+export async function runRegisteredTests(requestedTests, {
+  registeredTests = allTests, testsDirectory: directory = testsDirectory, environment = testEnvironment,
+  runTest = test => runTestFile(test, { testsDirectory: directory, environment, error }),
+  log = console.log, error = console.error,
+} = {}) {
+  try {
+    if (requestedTests.length === 0) assertTestRegistry(directory, registeredTests);
+    const selectedTests = requestedTests.length > 0 ? requestedTests : registeredTests;
+    const unknown = selectedTests.find(test => !registeredTests.includes(test));
+    if (unknown) { error(`Unknown test file: ${unknown}`); return 2; }
+    const concurrency = moduleCoverageConcurrency(requestedTests, environment);
+    const status = await runTestSchedule(selectedTests, { concurrency, runTest, error });
+    if (status === 0) log(`ALL ${selectedTests.length} TEST FILES PASSED!`);
+    return status;
+  } catch (failure) {
+    error(failure.message);
+    return 1;
   }
 }
 
-console.log(`ALL ${selectedTests.length} TEST FILES PASSED!`);
+if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
+  process.exitCode = await runRegisteredTests(process.argv.slice(2));
+}

@@ -45,7 +45,7 @@ function memoryBudget(allow = true) {
     state,
     async reserve(...args) {
       state.reserves.push(args);
-      return allow;
+      return allow ? { id: `attempt-${state.reserves.length}`, usageDay: args[0], allowance: args[1], status: 'reserved' } : false;
     },
     async commit(...args) {
       state.commits.push(args);

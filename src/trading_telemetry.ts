@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { getDatabase } from './db.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
+import { projectAllFillAccounting } from './trading_fill_accounting.js';
+import { closedMoneyStatistics, moneyPerformanceRows, summarizeMoneyRows, type ClosedMoneyRow, type ClosedMoneyStatistics } from './trading_money_reporting.js';
+import { moneyValueFromRational, validateMoneyValue, type MoneyValue } from './trading_money_value.js';
+import { compareRational, divideRational, multiplyRational } from './trading_rational.js';
 import type { TradingAccountSnapshot, TradingEquityPoint } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
 import { recordExecutionNotificationBestEffort } from './trading_notifications.js';
@@ -393,13 +397,8 @@ function finite(value: unknown): number {
 
 type PerformanceAggregate = {
   id: string;
-  trades: number;
-  wins: number;
-  losses: number;
-  breakeven: number;
-  pnl: number;
-  grossWin: number;
-  grossLoss: number;
+  closedRows: ClosedMoneyRow[];
+  moneyRows: ClosedMoneyRow[];
   intents: number;
   completed: number;
   rejected: number;
@@ -410,13 +409,8 @@ type PerformanceAggregate = {
 function emptyAggregate(id: string): PerformanceAggregate {
   return {
     id,
-    trades: 0,
-    wins: 0,
-    losses: 0,
-    breakeven: 0,
-    pnl: 0,
-    grossWin: 0,
-    grossLoss: 0,
+    closedRows: [],
+    moneyRows: [],
     intents: 0,
     completed: 0,
     rejected: 0,
@@ -449,21 +443,26 @@ function exchangeAggregate(
   return aggregate(map, `${dimensionValue(name)}/${dimensionValue(mode)}`);
 }
 
-function aggregatePositions(rows: any[], channels: Map<string, PerformanceAggregate>): void {
+/** Both analytics endpoints read the same additive persisted projection contract. */
+export function analyticsPositionMoneyRow(row: any): any {
+  if (row.realizedPnlValueJson === null || row.realizedPnlValueJson === undefined) return row;
+  try { return { ...row, realizedPnlValue: validateMoneyValue(JSON.parse(row.realizedPnlValueJson)) }; }
+  catch { return { ...row, realizedPnlValue: null, accountingStatus: 'unresolved' }; }
+}
+
+function aggregatePositions(rows: any[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
   for (const row of rows) {
-    const value = finite(row.realizedPnl);
-    const target = channelAggregate(channels, row.channelId);
-    target.trades += 1;
-    target.pnl += value;
-    if (value > 0) {
-      target.wins += 1;
-      target.grossWin += value;
-    } else if (value < 0) {
-      target.losses += 1;
-      target.grossLoss += Math.abs(value);
-    } else {
-      target.breakeven += 1;
-    }
+    const valued = analyticsPositionMoneyRow(row);
+    channelAggregate(channels, row.channelId).closedRows.push(valued);
+    exchangeAggregate(exchanges, row.exchange, row.mode).closedRows.push(valued);
+  }
+}
+
+function aggregateMoney(rows: any[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
+  for (const row of rows) {
+    const targets = [exchangeAggregate(exchanges, row.exchange, row.mode)];
+    if (row.channelId !== null) targets.push(channelAggregate(channels, row.channelId));
+    for (const target of targets) target.moneyRows.push(row);
   }
 }
 
@@ -518,18 +517,35 @@ function aggregateFills(
   }
 }
 
+function payoffPresentation(closed: ClosedMoneyStatistics) {
+  const unavailable = (precision: string) => ({ payoffRatio: null, payoffRatioValue: null,
+    payoffRatioExact: null, payoffRatioPrecision: precision });
+  if (closed.accountingStatus !== 'complete' || !closed.wins || !closed.losses) return unavailable('unavailable');
+  if (closed.uncertainOutcomeCount || !closed.grossProfitValue?.exact || !closed.grossLossValue?.exact) return unavailable('uncertain');
+  try {
+    const quotient = multiplyRational(divideRational(closed.grossProfitValue.exact, closed.grossLossValue.exact),
+      { numerator: String(closed.losses), denominator: String(closed.wins) });
+    const payoffRatioValue = moneyValueFromRational(quotient);
+    // Compatibility number is display-only; exact source and alias remain separate.
+    const display = Number(quotient.numerator) / Number(quotient.denominator);
+    return { payoffRatio: Number.isFinite(display) ? display : null, payoffRatioValue,
+      payoffRatioExact: payoffRatioValue.decimal, payoffRatioPrecision: 'display_approximation' };
+  } catch { return unavailable('not_representable'); } // Ratio limits never invalidate the original complete monetary sums.
+}
+
 function presentedAggregate(value: PerformanceAggregate): Record<string, unknown> {
+  const summary = summarizeMoneyRows(value.moneyRows), closed = closedMoneyStatistics(value.closedRows);
+  const completeOutcomes = closed.accountingStatus === 'complete' && closed.uncertainOutcomeCount === 0;
   return {
     id: value.id,
-    closedTrades: value.trades,
-    wins: value.wins,
-    losses: value.losses,
-    breakeven: value.breakeven,
-    winRatePercent: value.wins + value.losses > 0 ? value.wins / (value.wins + value.losses) * 100 : null,
-    payoffRatio: value.wins > 0 && value.losses > 0
-      ? (value.grossWin / value.wins) / (value.grossLoss / value.losses)
-      : null,
-    realizedPnl: value.pnl,
+    closedTrades: closed.closedTrades, wins: closed.wins, losses: closed.losses, breakeven: closed.breakeven,
+    uncertainOutcomeCount: closed.uncertainOutcomeCount, closedAccountingStatus: closed.accountingStatus,
+    closedRealizedPnl: closed.realizedPnl, closedRealizedPnlValue: closed.realizedPnlValue, closedReportingCurrency: closed.reportingCurrency,
+    grossProfit: closed.grossProfit, grossLoss: closed.grossLoss, grossProfitValue: closed.grossProfitValue, grossLossValue: closed.grossLossValue,
+    winRatePercent: completeOutcomes && closed.wins + closed.losses > 0 ? closed.wins / (closed.wins + closed.losses) * 100 : null,
+    ...payoffPresentation(closed),
+    ...summary,
+    pnlRankingStatus: summary.realizedPnlValue?.exact ? 'exact' : summary.realizedPnlValue ? 'uncertain' : 'unavailable',
     intents: value.intents,
     completedIntents: value.completed,
     rejectedIntents: value.rejected,
@@ -537,6 +553,16 @@ function presentedAggregate(value: PerformanceAggregate): Record<string, unknown
       ? value.slippageWeighted / value.slippageWeight
       : null,
   };
+}
+
+/** Currency groups are never ranked against each other; bounded values have no claimed exact rank. */
+function compareAnalyticsPnl(left: Record<string, unknown>, right: Record<string, unknown>): number {
+  const currency = dimensionValue(left.reportingCurrency).localeCompare(dimensionValue(right.reportingCurrency));
+  if (currency) return currency;
+  const a = left.realizedPnlValue as MoneyValue | null, b = right.realizedPnlValue as MoneyValue | null;
+  if (a?.exact && b?.exact) return -compareRational(a.exact, b.exact) || dimensionValue(left.id).localeCompare(dimensionValue(right.id));
+  if (Boolean(a?.exact) !== Boolean(b?.exact)) return a?.exact ? -1 : 1;
+  return dimensionValue(left.id).localeCompare(dimensionValue(right.id));
 }
 
 function equityPerformance(points: TradingEquityPoint[]): Array<Record<string, unknown>> {
@@ -564,10 +590,14 @@ async function performanceRows(since: number): Promise<[any[], any[], any[], Tra
     getDatabase().all<any[]>(
       `SELECT position.channel_id AS channelId, position.account_id AS accountId,
               account.exchange, account.mode, intent.status AS intentStatus,
-              position.realized_pnl AS realizedPnl, position.closed_at AS closedAt
+              position.ledger_realized_pnl AS realizedPnl, position.reporting_currency AS reportingCurrency,
+              position.ledger_realized_value_json AS realizedPnlValueJson,
+              CASE WHEN pending.intent_id IS NOT NULL THEN 'unresolved' ELSE position.accounting_status END AS accountingStatus,
+              position.closed_at AS closedAt
        FROM trading_positions AS position
        JOIN trading_accounts AS account ON account.id = position.account_id
        JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
+       LEFT JOIN trading_accounting_pending pending ON pending.intent_id = position.intent_id
        WHERE position.status = 'closed' AND position.closed_at >= ?
        ORDER BY position.closed_at`,
       [since],
@@ -617,6 +647,7 @@ export async function getFilteredTradingAnalytics(filters: TradingAnalyticsFilte
   filters: TradingAnalyticsFilters;
   performance: {
     generatedAt: number;
+    total: ReturnType<typeof summarizeMoneyRows>;
     channels: Array<Record<string, unknown>>;
     exchanges: Array<Record<string, unknown>>;
     equity: Array<Record<string, unknown>>;
@@ -624,13 +655,16 @@ export async function getFilteredTradingAnalytics(filters: TradingAnalyticsFilte
   execution: Awaited<ReturnType<typeof filteredExecutionAnalytics>>;
   fallback: Awaited<ReturnType<typeof filteredFallbackAnalytics>>;
 }> {
+  await projectAllFillAccounting();
   const [rawPositions, rawIntents, rawFills, equityPoints] = await performanceRows(filters.since);
+  const money = (await moneyPerformanceRows(filters.since, filters.until + 1)).filter(row => analyticsRowMatches(row, filters));
   const positions = rawPositions.filter(row => analyticsRowMatches(row, filters));
   const intents = rawIntents.filter(row => analyticsRowMatches(row, filters));
   const fills = rawFills.filter(row => analyticsRowMatches(row, filters));
   const channels = new Map<string, PerformanceAggregate>();
   const exchanges = new Map<string, PerformanceAggregate>();
-  aggregatePositions(positions, channels);
+  aggregatePositions(positions, channels, exchanges);
+  aggregateMoney(money, channels, exchanges);
   aggregateIntents(intents, channels, exchanges);
   aggregateFills(fills, channels, exchanges);
   const selectedAccounts = new Set(
@@ -652,9 +686,10 @@ export async function getFilteredTradingAnalytics(filters: TradingAnalyticsFilte
     filters,
     performance: {
       generatedAt,
+      total: summarizeMoneyRows(money),
       channels: [...channels.values()]
         .map(presentedAggregate)
-        .sort((left, right) => finite(right.realizedPnl) - finite(left.realizedPnl)),
+        .sort(compareAnalyticsPnl),
       exchanges: [...exchanges.values()]
         .map(presentedAggregate)
         .sort((left, right) => dimensionValue(left.id).localeCompare(dimensionValue(right.id))),

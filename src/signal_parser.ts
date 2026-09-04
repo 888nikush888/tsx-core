@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
+import { signalTemplatesDirectoryFromEnvironment } from './configuration_paths.js';
 import { fileURLToPath } from 'node:url';
 import { OpenAI } from 'openai';
 import { closeDb, commitAiUsage, initDb, reserveAiUsage, type SignalProvenance } from './db.js';
+import { settleAiUsage, type AiUsageReservation } from './ai_usage_reservations.js';
 import { assertSignalGrounded, SignalValidationError, validateSignalXml } from './signal_schema.js';
 import type { ExecutableSignalSchemaSelection, ValidatedSignal } from './signal_schema.js';
 
@@ -58,8 +60,8 @@ export const DEFAULT_AI_LIMITS: AiLimits = {
 };
 
 export interface AiBudget {
-  reserve(usageDay: string, tokenAllowance: number, dailyRequestLimit: number, dailyTokenLimit: number): Promise<boolean>;
-  commit(usageDay: string, tokenAllowance: number, actualTokens: number): Promise<void>;
+  reserve(usageDay: string, tokenAllowance: number, dailyRequestLimit: number, dailyTokenLimit: number): Promise<AiUsageReservation | false>;
+  commit(reservationId: string, tokenAllowance: number, actualTokens: number | null): Promise<void>;
 }
 
 interface CompletionResult {
@@ -302,8 +304,10 @@ function usageTokens(response: CompletionResult, fallback: number): { prompt: nu
   const total = Number(response.usage?.total_tokens);
   const safePrompt = Number.isSafeInteger(prompt) && prompt >= 0 ? prompt : 0;
   const safeCompletion = Number.isSafeInteger(completion) && completion >= 0 ? completion : 0;
-  const safeTotal = Number.isSafeInteger(total) && total >= 0 ? total : safePrompt + safeCompletion;
-  return { prompt: safePrompt, completion: safeCompletion, total: safeTotal > 0 ? safeTotal : fallback };
+  const hasTotal = Number.isSafeInteger(total) && total >= 0;
+  const hasParts = Number.isSafeInteger(prompt) && prompt >= 0 && Number.isSafeInteger(completion) && completion >= 0;
+  const safeTotal = hasParts ? safePrompt + safeCompletion : fallback;
+  return { prompt: safePrompt, completion: safeCompletion, total: hasTotal ? total : safeTotal };
 }
 
 function utcUsageDay(): string {
@@ -312,10 +316,7 @@ function utcUsageDay(): string {
 
 export async function loadSignalPromptTemplate(templateName?: string): Promise<{ promptTemplate: string; templateName: string }> {
   const normalized = (templateName || 'default').trim();
-  const templatesDir = path.resolve(
-    process.env.TEMPLATES_DIR?.trim()
-      || path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates')
-  );
+  const templatesDir = signalTemplatesDirectoryFromEnvironment();
   if (!normalized || normalized.toLowerCase() === 'default') {
     const defaultPath = path.join(templatesDir, 'default.txt');
     try {
@@ -480,23 +481,24 @@ async function runProviderAttempt(context: AttemptContext, model: string): Promi
     context.limits.dailyTokenLimit
   );
   if (!reserved) throw new AiBudgetExceededError();
-  let committed = false;
+  let response: CompletionResult;
   try {
-    const response = await context.requestCompletion(completionRequest(context, model), {
+    response = await context.requestCompletion(completionRequest(context, model), {
       signal: context.signal,
       timeout: context.limits.requestTimeoutMs,
       maxRetries: 0,
     });
-    const usage = usageTokens(response, context.tokenAllowance);
-    committed = true;
-    await context.budget.commit(usageDay, context.tokenAllowance, usage.total);
-    return validatedCompletion(context, response, model, usage);
   } catch (error) {
-    if (!committed) {
-      await context.budget.commit(usageDay, context.tokenAllowance, context.tokenAllowance);
-    }
+    await settleAiUsage(context.budget, reserved.id, context.tokenAllowance, null);
     throw error;
   }
+  const usage = usageTokens(response, context.tokenAllowance);
+  const hasUsage = Number.isSafeInteger(response.usage?.total_tokens)
+    || (Number.isSafeInteger(response.usage?.prompt_tokens) && Number.isSafeInteger(response.usage?.completion_tokens));
+  await settleAiUsage(context.budget, reserved.id, context.tokenAllowance, hasUsage ? usage.total : null);
+  const parsed = validatedCompletion(context, response, model, usage);
+  parsed.provenance.attemptId = reserved.id;
+  return parsed;
 }
 
 function hasAnotherAttempt(

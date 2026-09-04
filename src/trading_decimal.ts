@@ -116,6 +116,51 @@ export function signedDecimal(value: string): string {
   return negative && normalized !== '0' ? `-${normalized}` : normalized;
 }
 
+export function negateSignedDecimal(value: string): string {
+  const normalized = signedDecimal(value);
+  if (normalized === '0') return '0';
+  return normalized.startsWith('-') ? normalized.slice(1) : `-${normalized}`;
+}
+
+export function subtractSignedDecimal(left: string, right: string): string {
+  return addSignedDecimal(left, negateSignedDecimal(right));
+}
+
+export function multiplySignedDecimal(left: string, right: string): string {
+  const a = signedDecimal(left);
+  const b = signedDecimal(right);
+  const magnitude = multiplyDecimal(a.startsWith('-') ? a.slice(1) : a, b.startsWith('-') ? b.slice(1) : b);
+  return a.startsWith('-') !== b.startsWith('-') ? negateSignedDecimal(magnitude) : magnitude;
+}
+
+/** Monetary valuations may not silently round an unknown cost down, even below one quantum. */
+export function multiplyExactSignedDecimal(left: string, right: string): string {
+  const a = signedDecimal(left);
+  const b = signedDecimal(right);
+  const parsedA = parse(a.startsWith('-') ? a.slice(1) : a);
+  const parsedB = parse(b.startsWith('-') ? b.slice(1) : b);
+  let coefficient = parsedA.coefficient * parsedB.coefficient;
+  let scale = parsedA.scale + parsedB.scale;
+  while (scale > 0 && coefficient % 10n === 0n) {
+    coefficient /= 10n;
+    scale -= 1;
+  }
+  if (scale > 18) throw new Error('Exact monetary valuation exceeds supported decimal precision.');
+  const magnitude = decimal(format(coefficient, scale));
+  return a.startsWith('-') !== b.startsWith('-') ? negateSignedDecimal(magnitude) : magnitude;
+}
+
+/** Exact proportional cost allocation; an unrepresentable ratio needs an explicit rounding contract. */
+export function allocateDecimalExact(value: string, numerator: string, denominator: string): string {
+  const amount = parse(decimal(value));
+  const share = parse(decimal(numerator));
+  const total = parse(decimal(denominator, { positive: true }));
+  const top = amount.coefficient * share.coefficient * powerOfTen(total.scale) * powerOfTen(18);
+  const bottom = total.coefficient * powerOfTen(amount.scale + share.scale);
+  if (top % bottom !== 0n) throw new Error('Exact cost allocation exceeds supported decimal precision.');
+  return decimal(format(top / bottom, 18));
+}
+
 export function addSignedDecimal(left: string, right: string): string {
   const a = signedDecimal(left);
   const b = signedDecimal(right);

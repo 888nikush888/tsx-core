@@ -26,10 +26,29 @@ export class TelegramViewerStateRepository {
   constructor(private readonly databasePath: string) {}
 
   async initialize(): Promise<void> {
+    if (this.database) throw new Error('Telegram viewer state repository is already initialized.');
     const destination = path.resolve(this.databasePath);
     await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
     this.database = await open({ filename: destination, driver: sqlite3.Database });
-    await this.database.exec(`
+    try {
+      // This is a separate delivery database, never another operational DB participant.
+      // Check before WAL pragmas or schema writes, including hard links and custom paths.
+      const tables = await this.database.all<Array<{ name: string }>>(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+      );
+      const permitted = new Set(['viewer_metadata', 'viewer_deliveries', 'viewer_last_test']);
+      if (tables.some(table => !permitted.has(table.name))) {
+        throw new Error('Telegram viewer state database contains unrelated tables; refusing the operational or another application database.');
+      }
+      await this.initializeSchema();
+    } catch (error) {
+      await this.close();
+      throw error;
+    }
+  }
+
+  private async initializeSchema(): Promise<void> {
+    await this.db().exec(`
       PRAGMA journal_mode = WAL;
       PRAGMA foreign_keys = ON;
       PRAGMA busy_timeout = 5000;
@@ -67,7 +86,7 @@ export class TelegramViewerStateRepository {
     `);
     const now = Date.now();
     for (const [key, value] of Object.entries(METADATA_DEFAULTS)) {
-      await this.database.run(
+      await this.db().run(
         'INSERT OR IGNORE INTO viewer_metadata (key, value, updated_at) VALUES (?, ?, ?)',
         [key, value, now],
       );

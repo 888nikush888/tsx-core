@@ -525,7 +525,7 @@ async function workflowRevisionFromRow(row: any): Promise<WorkflowRevision> {
   };
 }
 
-async function getWorkflowRevisionById(id: string): Promise<WorkflowRevision | null> {
+export async function getWorkflowRevisionById(id: string): Promise<WorkflowRevision | null> {
   const row = await getDatabase().get<any>('SELECT * FROM workflow_revisions WHERE id = ?', [id]);
   return row ? workflowRevisionFromRow(row) : null;
 }
@@ -1858,8 +1858,11 @@ export async function getWorkflowSignalPlans(input: {
   channelId: string;
   text: string;
   contentType: string;
+  workflowRevisionId?: string | null;
 }): Promise<WorkflowSignalPlan[]> {
-  const workflow = await getActiveWorkflow();
+  const workflow = input.workflowRevisionId === undefined ? await getActiveWorkflow()
+    : input.workflowRevisionId ? await getWorkflowRevisionById(input.workflowRevisionId) : null;
+  if (input.workflowRevisionId && !workflow) throw new Error('Pinned workflow revision is missing; review required.');
   if (!workflow) return [];
   const groups = new Map<string, WorkflowSignalPlan>();
   for (const path of workflow.compiled.paths) {
@@ -1894,7 +1897,22 @@ type WorkflowIntentInput = {
   signal: ExecutableSignal;
   executionPathIds?: string[];
   contentType?: string;
+  workflowRevisionId: string;
+  receivedAt?: number;
 };
+
+/** Business settings stay pinned; permission to execute is always checked against the current graph. */
+export async function isWorkflowExecutionAuthorized(executionPathId: string): Promise<boolean> {
+  const original = await getDatabase().get<any>('SELECT * FROM workflow_execution_paths WHERE id = ?', [executionPathId]);
+  if (!original || !original.enabled) return false;
+  const active = await getActiveWorkflow();
+  if (!active) return false;
+  const originalNodes = parseJson<string[]>(original.node_ids_json, 'workflow path nodes');
+  return active.compiled.paths.some(candidate => candidate.enabled
+    && candidate.channelId === original.channel_id && candidate.accountId === original.account_id
+    && candidate.nodeIds.length === originalNodes.length
+    && candidate.nodeIds.every((id, index) => id === originalNodes[index]));
+}
 
 function workflowIntentBlockReason(path: WorkflowExecutionPath, account: any, runtime: any): string | null {
   if (!path.enabled || !account || account.status !== 'ready' || Number(account.enabled) !== 1) return 'ACCOUNT_NOT_READY';
@@ -1922,7 +1940,8 @@ async function processWorkflowIntentPath(input: {
   );
   if (existing) return { intent: intentFromRow(existing) };
   const account = await getDatabase().get<any>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
-  const blockReason = workflowIntentBlockReason(path, account, runtime);
+  const blockReason = await isWorkflowExecutionAuthorized(path.id)
+    ? workflowIntentBlockReason(path, account, runtime) : 'WORKFLOW_EXECUTION_REVOKED';
   const status = blockReason ? 'blocked' : 'pending';
   const id = randomUUID();
   await getDatabase().run(
@@ -1933,7 +1952,7 @@ async function processWorkflowIntentPath(input: {
      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?)`,
     [id, request.sourceSignalId, request.sourceSignalId, runId, workflow.id, path.id,
       request.channelId, path.strategyVersionId, path.accountId, account.exchange, account.mode,
-      request.signal.symbol, request.signal.action, status, normalizedJson(request.signal), blockReason, now, now],
+      request.signal.symbol, request.signal.action, status, normalizedJson(request.signal), blockReason, request.receivedAt ?? now, now],
   );
   const intent = intentFromRow(await getDatabase().get('SELECT * FROM trading_trade_intents WHERE id = ?', [id]));
   return { intent, branch: { pathId: path.id, intentId: id, status, blockReason } };
@@ -1962,7 +1981,7 @@ async function persistFallbackRouteGroup(input: {
        id, source_signal_id, workflow_revision_id, signal_run_id, route_group_key, channel_id,
        status, current_rank, selected_intent_id, stop_reason, created_at, updated_at, completed_at
      ) VALUES (?, ?, ?, ?, ?, ?, 'probing', 0, NULL, NULL, ?, ?, NULL)`,
-    [candidateRunId, request.sourceSignalId, workflow.id, runId, group.key, request.channelId, now, now],
+    [candidateRunId, request.sourceSignalId, workflow.id, runId, group.key, request.channelId, request.receivedAt ?? now, now],
   );
   const fallbackRun = await getDatabase().get<{ id: string; status: string }>(
     `SELECT id, status FROM trading_fallback_runs
@@ -2070,13 +2089,14 @@ async function persistWorkflowTradingIntents(
        id, source_signal_id, workflow_revision_id, channel_id, status, input_sha256,
        result_json, error, created_at, completed_at
      ) VALUES (?, ?, ?, ?, 'running', ?, NULL, NULL, ?, NULL)`,
-    [candidateRunId, request.sourceSignalId, workflow.id, request.channelId, sha256(request.sourceText), now],
+    [candidateRunId, request.sourceSignalId, workflow.id, request.channelId, sha256(request.sourceText), request.receivedAt ?? now],
   );
-  const run = await getDatabase().get<{ id: string }>(
-    'SELECT id FROM workflow_signal_runs WHERE source_signal_id = ? AND workflow_revision_id = ?',
+  const run = await getDatabase().get<{ id: string; created_at: number }>(
+    'SELECT id, created_at FROM workflow_signal_runs WHERE source_signal_id = ? AND workflow_revision_id = ?',
     [request.sourceSignalId, workflow.id],
   );
   const runId = run!.id;
+  request = { ...request, receivedAt: Number(run!.created_at) };
   const results: TradingIntent[] = [];
   const branches: Array<Record<string, unknown>> = [];
   const runtime = await getDatabase().get<any>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
@@ -2112,8 +2132,9 @@ async function persistWorkflowTradingIntents(
 }
 
 export async function createWorkflowTradingIntents(input: WorkflowIntentInput, now = Date.now()): Promise<TradingIntent[]> {
-  const workflow = await getActiveWorkflow();
-  if (!workflow) return [];
+  if (!input.workflowRevisionId) throw new Error('Pinned workflow revision is required; review required.');
+  const workflow = await getWorkflowRevisionById(input.workflowRevisionId);
+  if (!workflow) throw new Error('Pinned workflow revision is missing; review required.');
   const requestedPaths = input.executionPathIds ? new Set(input.executionPathIds) : null;
   const channelPaths = workflow.compiled.paths.filter(path => path.channelId === input.channelId);
   const selectedPaths = channelPaths.filter(path => !requestedPaths || requestedPaths.has(path.id));
@@ -2240,7 +2261,8 @@ async function insertPromotedFallbackIntent(
   const runtime = await getDatabase().get<any>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
   const path = pathFromRow(next);
   const account = await getDatabase().get<any>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
-  const blockReason = workflowIntentBlockReason(path, account, runtime);
+  const blockReason = await isWorkflowExecutionAuthorized(path.id)
+    ? workflowIntentBlockReason(path, account, runtime) : 'WORKFLOW_EXECUTION_REVOKED';
   const status = blockReason ? 'blocked' : 'pending';
   const id = randomUUID();
   await getDatabase().run(

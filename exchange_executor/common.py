@@ -8,10 +8,39 @@ from typing import Any
 
 
 EXCHANGE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+DECIMAL_PATTERN = re.compile(r"(?:0|[1-9][0-9]{0,35})(?:\.[0-9]{1,18})?")
+SIGNED_DECIMAL_PATTERN = re.compile(r"-?(?:0|[1-9][0-9]{0,35})(?:\.[0-9]{1,18})?")
 
 
 class ExchangeContractError(ValueError):
     pass
+
+
+class IncompleteCurrentStateError(Exception):
+    code = "CURRENT_STATE_INCOMPLETE"
+    http_status = 503
+    side_effects = False
+
+    def __init__(self, source: str, reason: str) -> None:
+        super().__init__(f"Current account snapshot is incomplete: {source}/{reason}.")
+        self.details = {"source": source, "reason": reason}
+
+
+class UnresolvedOrderOutcome(ExchangeContractError):
+    """A dispatched write is not proof of success or of absence of exposure."""
+
+    code = "ORDER_OUTCOME_UNRESOLVED"
+    http_status = 409
+    side_effects = True
+
+    def __init__(
+        self, message: str, confirmed_orders: list[dict[str, Any]], unresolved_client_ids: list[str],
+    ) -> None:
+        super().__init__(message)
+        self.details = {
+            "confirmedOrders": confirmed_orders,
+            "unresolvedClientOrderIds": unresolved_client_ids,
+        }
 
 
 class SymbolUnavailableError(ExchangeContractError):
@@ -78,7 +107,7 @@ def decimal_string(value: Any, label: str, *, positive: bool = False) -> str:
     if not isinstance(value, (str, int)) or isinstance(value, bool):
         raise ExchangeContractError(f"{label} must be a plain decimal string.")
     text = str(value)
-    if "e" in text.lower() or text.startswith("+"):
+    if DECIMAL_PATTERN.fullmatch(text) is None:
         raise ExchangeContractError(f"{label} must be a plain decimal string.")
     try:
         number = Decimal(text)
@@ -101,7 +130,7 @@ def signed_decimal_string(value: Any, label: str) -> str:
     if not isinstance(value, (str, int)) or isinstance(value, bool):
         raise ExchangeContractError(f"{label} must be a plain decimal string.")
     text = str(value)
-    if "e" in text.lower() or text.startswith("+"):
+    if SIGNED_DECIMAL_PATTERN.fullmatch(text) is None:
         raise ExchangeContractError(f"{label} must be a plain decimal string.")
     try:
         number = Decimal(text)
@@ -128,7 +157,15 @@ def account_request(payload: dict[str, Any]) -> dict[str, str]:
         or mode not in {"testnet", "live"}
     ):
         raise ExchangeContractError("Invalid account contract.")
-    return {"id": account_id, "exchange": exchange, "mode": mode}
+    result = {"id": account_id, "exchange": exchange, "mode": mode}
+    for name in ("expectedAccountFingerprint", "credentialGeneration"):
+        if name not in account:
+            continue
+        value = account[name]
+        if not isinstance(value, str) or re.fullmatch(r"[a-f0-9]{64}", value) is None:
+            raise ExchangeContractError(f"{name} must be a verified binding.")
+        result[name] = value
+    return result
 
 
 def response_list(response: Any, label: str) -> list[dict[str, Any]]:

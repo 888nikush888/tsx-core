@@ -102,7 +102,10 @@ try {
 
   let journal = await listTradeJournal({ symbol: 'BTCUSDT' });
   assert.equal(journal.length, 1);
-  assert.equal(journal[0].position.realizedPnl, '125.50');
+  assert.equal(journal[0].position.realizedPnl, null, 'A legacy position total without complete owned fill provenance is not ledger PnL.');
+  assert.equal(journal[0].position.accountingStatus, 'unresolved');
+  assert.equal((await getDatabase().get("SELECT realized_pnl FROM trading_positions WHERE id = 'journal-position'")).realized_pnl, '125.50',
+    'The legacy amount remains available for manual review; migration must not delete or overwrite unproven evidence.');
   assert.equal(journal[0].fees.USDT, '1');
   assert.equal(journal[0].signal.schemaProfileId, 'standard');
   assert.equal(journal[0].signal.contractVersionId, 'standard:v1');

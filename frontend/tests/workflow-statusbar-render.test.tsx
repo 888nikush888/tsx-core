@@ -12,7 +12,7 @@ const baseTrading: any = {
 const baseSystem: any = {
   connectionState: "connected",
   state: "ok",
-  operations: { backup: { lastSuccessAt: Date.now(), healthy: true } },
+  operations: { backup: { integrityVerified: { verifiedAt: Date.now() }, healthy: true } },
   mcp: { mode: "active" },
 };
 

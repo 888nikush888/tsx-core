@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
+import { withProcessLockOwner, type ProcessLock } from './process_lock.js';
 
 interface CrashCounter {
   count: number;
@@ -12,9 +13,6 @@ interface CrashGuardPaths {
   counterFile: string;
   blockFile: string;
 }
-
-const LOCK_RETRY_MS = 10;
-const LOCK_TIMEOUT_MS = 1_000;
 
 export class CrashLoopBlockedError extends Error {
   constructor(public readonly count: number, public readonly blockFile: string) {
@@ -44,7 +42,7 @@ function validateCrashGuardOptions(now: number, maximumCrashes: number, windowMs
 
 async function pathExists(filePath: string): Promise<boolean> {
   try {
-    await fs.stat(filePath);
+    await fs.lstat(filePath);
     return true;
   } catch (error: any) {
     if (error.code === 'ENOENT') return false;
@@ -54,6 +52,7 @@ async function pathExists(filePath: string): Promise<boolean> {
 
 async function readCounter(filePath: string, label: string): Promise<CrashCounter | null> {
   try {
+    await assertRegularFile(filePath);
     return validCounter(JSON.parse(await fs.readFile(filePath, 'utf8')));
   } catch (error: any) {
     if (error.code === 'ENOENT') return null;
@@ -61,32 +60,23 @@ async function readCounter(filePath: string, label: string): Promise<CrashCounte
   }
 }
 
+async function assertRegularFile(filePath: string): Promise<void> {
+  const metadata = await fs.lstat(filePath);
+  if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error(`Crash-guard path '${filePath}' is not a regular, non-symlink file.`);
+}
+
 async function writeCrashBlock(blockFile: string, counter: CrashCounter): Promise<void> {
   await fs.writeFile(blockFile, JSON.stringify(counter), { encoding: 'utf8', flag: 'wx' });
 }
 
 async function writeCounter(counterFile: string, counter: CrashCounter): Promise<void> {
+  if (await pathExists(counterFile)) await assertRegularFile(counterFile);
   const temporaryFile = `${counterFile}.${process.pid}.${randomUUID()}.tmp`;
   await fs.writeFile(temporaryFile, JSON.stringify(counter), { encoding: 'utf8', flag: 'wx' });
   try {
     await fs.rename(temporaryFile, counterFile);
   } finally {
     await fs.rm(temporaryFile, { force: true });
-  }
-}
-
-async function acquireCrashGuardLock(lockFile: string): Promise<Awaited<ReturnType<typeof fs.open>>> {
-  const deadline = Date.now() + LOCK_TIMEOUT_MS;
-  while (true) {
-    try {
-      return await fs.open(lockFile, 'wx');
-    } catch (error: any) {
-      if (error.code !== 'EEXIST') throw error;
-      if (Date.now() >= deadline) {
-        throw new Error(`Crash-guard lock '${lockFile}' is still held; startup is blocked to protect state integrity.`, { cause: error });
-      }
-      await new Promise(resolve => setTimeout(resolve, LOCK_RETRY_MS));
-    }
   }
 }
 
@@ -101,6 +91,7 @@ async function checkCrashLoopState(
     throw new CrashLoopBlockedError(Math.max(block.count, maximumCrashes), paths.blockFile);
   }
   const routingWasActive = await pathExists(paths.activeFile);
+  if (routingWasActive) await assertRegularFile(paths.activeFile);
   if (!routingWasActive) {
     const reset = { count: 0, lastCrash: 0 };
     await writeCounter(paths.counterFile, reset);
@@ -122,23 +113,18 @@ async function checkCrashLoopState(
 
 export async function checkCrashLoopFiles(
   stateDirectory: string,
+  owner: ProcessLock,
   now = Date.now(),
   maximumCrashes = 3,
   windowMs = 5 * 60_000
 ): Promise<CrashCounter> {
   validateCrashGuardOptions(now, maximumCrashes, windowMs);
-  await fs.mkdir(stateDirectory, { recursive: true });
-  const paths = {
-    activeFile: path.join(stateDirectory, '.routing_active'),
-    counterFile: path.join(stateDirectory, '.crash_counter'),
-    blockFile: path.join(stateDirectory, '.crash_blocked')
-  };
-  const lockFile = path.join(stateDirectory, '.crash_guard.lock');
-  const lock = await acquireCrashGuardLock(lockFile);
-  try {
-    return await checkCrashLoopState(paths, now, maximumCrashes, windowMs);
-  } finally {
-    await lock.close();
-    await fs.rm(lockFile, { force: true });
-  }
+  return withProcessLockOwner(owner, stateDirectory, async directory => {
+    const legacyLock = path.join(directory, '.crash_guard.lock');
+    if (await pathExists(legacyLock)) {
+      throw new Error(`Legacy crash-guard lock '${legacyLock}' requires explicit offline version-transition review; startup is blocked to protect state integrity. The lock, crash counter and crash block were not removed.`);
+    }
+    return checkCrashLoopState({ activeFile: path.join(directory, '.routing_active'),
+      counterFile: path.join(directory, '.crash_counter'), blockFile: path.join(directory, '.crash_blocked') }, now, maximumCrashes, windowMs);
+  });
 }

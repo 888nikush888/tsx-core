@@ -13,10 +13,14 @@ import {
   mergeConfigDefaults
 } from './config.js';
 import { loadEnv } from './env.js';
-import { getMessageTextAndType, shouldForward } from './filters.js';
+import { getMessageTextAndType } from './filters.js';
+import {
+  acceptIncomingMessage, processIncomingWork, flushIncomingAlbums, enqueueWorkflowOutputs, nonSecretConfigSnapshot,
+  pinnedWorkflowParserSelection, persistedParsedSignal,
+} from './incoming_work_repository.js';
 import { ConcurrencyQueue } from './queue.js';
 import { DurableOutboxScheduler } from './outbox_scheduler.js';
-import { acquireProcessLock, type ProcessLock } from './process_lock.js';
+import { acquireProcessLock, assertProcessLockOwner, type ProcessLock } from './process_lock.js';
 import { isDuplicateSignal, normalizeSignalXml } from './dupe_blocker.js';
 import {
   acknowledgeOutboxTask,
@@ -28,6 +32,7 @@ import {
   failOutboxTask,
   getMediaGroupBuffers,
   getAiUsage,
+  getDatabase,
   getDatabaseStorageStats,
   getLastForwardedAt,
   getOldestPendingOutboxAgeSeconds,
@@ -40,11 +45,10 @@ import {
   listPendingOutboxTasksForScheduling,
   markOutboxSending,
   recoverInterruptedOutboxTasks,
-  removeMediaGroupBuffer,
   requeueOutboxTask,
-  saveIncomingMessage,
   saveMediaGroupBuffer,
   saveSignal,
+  withDatabaseTransaction,
   updateIncomingMessageStatus
 } from './db.js';
 import type { OutboxTask, SignalProvenance } from './db.js';
@@ -55,7 +59,9 @@ import type { ExecutableSignalSchemaSelection } from './signal_schema.js';
 import { MetricsTracker } from './metrics_tracker.js';
 import { TelegramDeliveryTracker } from './delivery_tracker.js';
 import { checkCrashLoopFiles } from './crash_guard.js';
-import { BackupScheduler, restoreBackupArtifact, verifyBackupArtifact } from './backup.js';
+import { StartupAuthority, runStartupGate, waitForStartupListener } from './startup_authority.js';
+import { BackupScheduler, backupConfigurationSources, inspectBackupArtifact, restoreBackupArtifact, verifyBackupArtifact } from './backup.js';
+import { backupConfigurationDigest, initializeConfigurationGeneration, reenrollConfigurationGeneration, retireConfigurationGeneration } from './backup_generation.js';
 import { offsiteBackupFromEnvironment, type BackupReplicator } from './backup_replication.js';
 import { OperationalDataRetention, retentionPolicyFromEnvironment } from './retention.js';
 import { invokeWithFloodWaitRetry } from './tdlib_retry.js';
@@ -84,12 +90,9 @@ import {
 import { requireTrustedServiceUrl } from './telegram_viewer/internal_transport.js';
 import {
   createTradingIntent,
-  getSignalContractVersion,
-  getTradingSignalSchemaForTemplate,
   getTradingOperationalSnapshot,
   getTradingRuntimeState,
   listTradingAccounts,
-  listTradingSignalSchemas,
 } from './trading_repository.js';
 import {
   createWorkflowTradingIntents,
@@ -112,7 +115,7 @@ import { recordTradingExecutionEvent } from './trading_telemetry.js';
 import { McpControlBridge } from './mcp_control_bridge.js';
 import {
   beginMcpSharedMaintenance,
-  clearMcpMaintenanceMarker,
+  mcpMaintenanceActive,
   operationalDatabasePath,
 } from './mcp_maintenance.js';
 
@@ -144,10 +147,14 @@ process.on('unhandledRejection', (reason: any) => {
 const DEFAULT_PARSER_TIMEOUT_MS = 60000;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SESSION_DIRECTORY = path.resolve(__dirname, '../session_data');
+const ROUTING_ACTIVE_MARKER = path.join(SESSION_DIRECTORY, '.routing_active');
+const startupAuthority = new StartupAuthority();
 
 async function checkCrashLoop() {
   try {
-    await checkCrashLoopFiles(path.join(__dirname, '../session_data'));
+    if (!processLock) throw new Error('Crash check requires an acquired process owner.');
+    await checkCrashLoopFiles(SESSION_DIRECTORY, processLock);
   } catch (err) {
     console.error(`[FATAL] Crash-Loop-Schutz blockiert den Start: ${err.message}`);
     throw err;
@@ -167,6 +174,8 @@ const LEGACY_MEDIA_BUFFER_FILE = './session_data/media_group_buffer.json';
 interface OutboxExecutionContext {
   signal: AbortSignal;
   markSending: () => Promise<void>;
+  taskId: string;
+  config: any;
 }
 
 let deliveryTracker: TelegramDeliveryTracker | null = null;
@@ -190,13 +199,7 @@ function applyQueueSettings(config: any) {
 }
 
 function configSnapshot(config: any): any {
-  const forbidden = new Set([
-    'apiHash', 'openRouterApiKey', 'OPENROUTER_API_KEY', 'TELEGRAM_API_HASH',
-    'DASHBOARD_ADMIN_TOKEN', 'DASHBOARD_VIEWER_TOKEN', 'BACKUP_OFFSITE_TOKEN',
-    'BACKUP_ENCRYPTION_KEY', 'ALERT_RELAY_TOKEN', 'ALERT_WEBHOOK_TOKEN',
-    'PROMETHEUS_TOKEN', 'AUDIT_WEBHOOK_TOKEN'
-  ]);
-  return JSON.parse(JSON.stringify(config, (key, value) => forbidden.has(key) ? undefined : value));
+  return nonSecretConfigSnapshot(config);
 }
 
 async function migrateLegacyPersistedTasks(config: any): Promise<void> {
@@ -213,7 +216,8 @@ async function migrateLegacyPersistedTasks(config: any): Promise<void> {
         messageIds: task.messageIds,
         mediaGroupId: task.mediaGroupId,
         addedAt: Number(task.addedAt) || Date.now(),
-        config: configSnapshot(config)
+        config: configSnapshot(config),
+        needsReview: true
       });
     }
     await fsPromises.unlink(LEGACY_PERSIST_FILE);
@@ -225,30 +229,19 @@ async function migrateLegacyPersistedTasks(config: any): Promise<void> {
 }
 
 async function executePersistedOutboxTask(task: OutboxTask, config: any, context: OutboxExecutionContext): Promise<any> {
+  if (!config.durableIngress) throw new Error('Legacy outbox has no proven immutable ingress; review required.');
   if (task.type === 'single') {
-    const message = await invokeWithRetry(client, {
-      _: 'getMessage',
-      chat_id: Number(task.chatId),
-      message_id: Number(task.messageId)
-    }, context.signal);
+    const work = await getDatabase().get<any>('SELECT message_json FROM incoming_work WHERE id = ?', [task.ingressWorkId]);
+    const message = work?.message_json ? JSON.parse(work.message_json) : null;
     if (!message || Number(message.id) !== Number(task.messageId)) {
       throw new Error(`Could not reload source message ${task.chatId}/${task.messageId}.`);
     }
+    if (config.durableIngress.deliveryMode === 'telegram_xml') return sendXmlMessage(config.durableIngress.parsedXml, context);
+    if (config.durableIngress.deliveryMode === 'telegram_original') return forwardRawMessage(message, config, context);
     return forwardSingleMessage(message, config, context);
   }
 
-  const messages = [];
-  for (const messageId of task.messageIds || []) {
-    const message = await invokeWithRetry(client, {
-      _: 'getMessage',
-      chat_id: Number(task.chatId),
-      message_id: Number(messageId)
-    }, context.signal);
-    if (!message || Number(message.id) !== Number(messageId)) {
-      throw new Error(`Could not reload album message ${task.chatId}/${messageId}.`);
-    }
-    messages.push(message);
-  }
+  const messages = config.durableIngress.albumMessages || [];
   if (messages.length !== task.messageIds?.length) {
     throw new Error(`Album ${task.mediaGroupId} could not be reconstructed completely.`);
   }
@@ -267,6 +260,8 @@ async function executeScheduledOutboxTask(
     let deliveryAttempted = false;
     const context: OutboxExecutionContext = {
       signal,
+      taskId: task.id,
+      config: effectiveConfig,
       markSending: async () => {
         await markOutboxSending(task.id);
         if (!deliveryAttempted) {
@@ -315,9 +310,30 @@ async function executeScheduledOutboxTask(
 }
 
 let activeOutboxConfig: any = null;
+let ingressWakeup: ReturnType<typeof setTimeout> | null = null;
+
+async function scheduleRemainingIngress(): Promise<void> {
+  if (ingressWakeup) return;
+  const remaining = await getDatabase().get<any>(
+    `SELECT (SELECT COUNT(*) FROM incoming_work WHERE status = 'pending')
+       + (SELECT COUNT(*) FROM incoming_album_groups WHERE status = 'waiting') AS count`
+  );
+  if (!remaining.count) return;
+  ingressWakeup = setTimeout(() => {
+    ingressWakeup = null;
+    outboxScheduler.requestPump();
+  }, 850);
+  ingressWakeup.unref();
+}
+
 const outboxScheduler = new DurableOutboxScheduler({
   queue: forwardQueue,
-  listPending: (excludedTaskIds, limit) => listPendingOutboxTasksForScheduling(excludedTaskIds, limit),
+  listPending: async (excludedTaskIds, limit) => {
+    await processIncomingWork(limit);
+    await flushIncomingAlbums();
+    await scheduleRemainingIngress();
+    return listPendingOutboxTasksForScheduling(excludedTaskIds, limit);
+  },
   execute: (taskId, signal) => executeScheduledOutboxTask(taskId, activeOutboxConfig, signal),
   logError: message => addLog(`[ERROR] ${message}`),
   batchSize: 100
@@ -331,24 +347,14 @@ function scheduleOutboxTask(taskId: string, fallbackConfig: any): void {
 }
 
 async function enqueueTask(taskData: any, config: any): Promise<void> {
-  const inserted = await enqueueOutboxTask({ ...taskData, config: configSnapshot(config) });
-  if (inserted) {
+  const inserted = await enqueueOutboxTask({ ...taskData, config: configSnapshot(config), needsReview: !config.durableIngress });
+  if (inserted && config.durableIngress) {
     deliverySlo.recordAccepted();
     scheduleOutboxTask(taskData.id, config);
   }
-  else addLog(`[INFO] Duplicate outbox task ${taskData.id} ignored.`);
+  else addLog(`[INFO] Outbox task ${taskData.id} retained without scheduling (duplicate or legacy review).`);
 }
 
-async function enqueueSingleMessage(message, config) {
-  const task = {
-    id: `single_${message.chat_id}_${message.id}`,
-    type: 'single',
-    chatId: String(message.chat_id),
-    messageId: message.id,
-    addedAt: Date.now()
-  };
-  await enqueueTask(task, config);
-}
 
 async function enqueueMediaGroup(gId, config, g) {
   const task = {
@@ -370,9 +376,9 @@ async function resumePersistedTasks(config: any): Promise<void> {
 
   activeOutboxConfig = config;
   const outboxCounts = await getOutboxStatusCounts();
-  const unresolvedCount = outboxCounts.failed + outboxCounts.unknown;
+  const unresolvedCount = outboxCounts.failed + outboxCounts.unknown + outboxCounts.needs_review;
   if (unresolvedCount > 0) {
-    addLog(`[ERROR] ${unresolvedCount} failed/unknown outbox task(s) retained for operator recovery.`);
+    addLog(`[ERROR] ${unresolvedCount} failed/unknown/needs_review outbox task(s) retained for operator recovery.`);
   }
   if (outboxCounts.pending > 0) addLog(`[INFO] Resuming ${outboxCounts.pending} durable outbox task(s) through a bounded scheduler.`);
   await outboxScheduler.resume();
@@ -385,8 +391,6 @@ async function retryPersistedTask(taskId: string, config: any): Promise<boolean>
   return true;
 }
 
-const mediaGroupBuffer = new Map();
-const ALBUM_DELAY_MS = 800;
 let client = null, targetChatId = null;
 let routingStopRequested = false;
 let metricsTracker: MetricsTracker | null = null;
@@ -400,6 +404,7 @@ let activeMaintenanceOperation: string | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
 let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
 let processLock: ProcessLock | null = null;
+let routingMarkerOwned = false;
 const state = {
   isRunning: false,
   connectionState: 'disconnected',
@@ -442,6 +447,10 @@ function backupMetricSnapshot(): Pick<OperationalMetrics,
   | 'backupOffsiteHealthy'
   | 'backupOffsiteRequired'
   | 'backupOffsiteLastSuccessAt'
+  | 'backupConfigurationCoherentAt'
+  | 'backupRestoreEligibleAt'
+  | 'backupRestoreEligibilityCheckedAt'
+  | 'backupRestoreDrillAt'
 > {
   const backup = backupScheduler?.getStatus();
   if (!backup) return {
@@ -449,14 +458,22 @@ function backupMetricSnapshot(): Pick<OperationalMetrics,
     backupLastSuccessAt: null,
     backupOffsiteHealthy: false,
     backupOffsiteRequired: false,
-    backupOffsiteLastSuccessAt: null
+    backupOffsiteLastSuccessAt: null,
+    backupConfigurationCoherentAt: null,
+    backupRestoreEligibleAt: null,
+    backupRestoreEligibilityCheckedAt: null,
+    backupRestoreDrillAt: null,
   };
   return {
     backupHealthy: backup.healthy,
     backupLastSuccessAt: backup.lastSuccessAt,
     backupOffsiteHealthy: backup.offsiteHealthy,
     backupOffsiteRequired: backup.offsiteRequired,
-    backupOffsiteLastSuccessAt: backup.lastOffsiteSuccessAt
+    backupOffsiteLastSuccessAt: backup.lastOffsiteSuccessAt,
+    backupConfigurationCoherentAt: backup.configurationCoherent?.verifiedAt ?? null,
+    backupRestoreEligibleAt: backup.lastRestoreEligible?.verifiedAt ?? null,
+    backupRestoreEligibilityCheckedAt: backup.restoreEligibility?.checkedAt ?? null,
+    backupRestoreDrillAt: backup.restoreDrill?.performedAt ?? null,
   };
 }
 
@@ -510,7 +527,7 @@ async function collectOperationalMetrics(
   const databaseHealthy = await isDatabaseHealthy();
   const diskAvailableBytes = await availableDiskBytes(databasePath);
   const diskCapacityHealthy = diskAvailableBytes >= minimumFreeBytes;
-  const emptyOutbox = { pending: 0, preparing: 0, sending: 0, completed: 0, failed: 0, unknown: 0 };
+  const emptyOutbox = { pending: 0, preparing: 0, sending: 0, completed: 0, failed: 0, unknown: 0, needs_review: 0 };
   const trading = databaseHealthy ? await getTradingOperationalSnapshot() : {
     executionEnabled: false,
     liveTradingEnabled: false,
@@ -714,7 +731,7 @@ async function tryManualCopyFallback(message, context: OutboxExecutionContext) {
     addLog(`[Forward Fallback] Kanal geschützt. Versuche Text manuell zu kopieren und zu senden...`);
     if (context.signal.aborted) throw new Error('Task aborted before manual-copy fallback.');
     const response = await invokeWithRetry(client, {
-      _: 'sendMessage', chat_id: targetChatId,
+      _: 'sendMessage', chat_id: pinnedTargetChatId(context),
       input_message_content: {
         _: 'inputMessageText',
         text: formattedText,
@@ -735,7 +752,7 @@ async function forwardRawMessage(message, config, context: OutboxExecutionContex
   await context.markSending();
   try {
     const response = await invokeWithRetry(client, {
-      _: 'forwardMessages', chat_id: targetChatId, from_chat_id: message.chat_id, message_ids: [message.id],
+      _: 'forwardMessages', chat_id: pinnedTargetChatId(context), from_chat_id: message.chat_id, message_ids: [message.id],
       options: { _: 'sendMessageOptions' }, as_album: false,
       send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
     }, context.signal);
@@ -806,13 +823,11 @@ async function parseWorkflowPlan(
   xmlParsing: any,
   context: OutboxExecutionContext,
   sourceId: string,
-  schemas: any[],
 ) {
-  const configuredSchema = schemas.find(schema => schema.id === plan.schemaId);
-  const contractVersion = await getSignalContractVersion(plan.contractVersionId);
-  if (!configuredSchema || !configuredSchema.enabled || contractVersion?.status !== 'published') {
-    throw new Error(`Workflow parser plan ${plan.key.slice(0, 12)} references a stale schema or contract.`);
-  }
+  const pinned = context.config.durableIngress;
+  const schemaSelection = pinnedWorkflowParserSelection(context.config, plan);
+  const existing = await persistedParsedSignal(`signal_${message.chat_id}_${message.id}_${plan.key}`, plan.templateName, schemaSelection, plan.workflowRevisionId);
+  if (existing) return existing;
   addLog(`[XML-Parser] Analysiere Paket ${message.id} über Workflow-Pfadgruppe ${plan.key.slice(0, 12)}...`);
   const parsedSignal = await parseSignalNative(
     text,
@@ -824,14 +839,8 @@ async function parseWorkflowPlan(
     },
     context.signal,
     xmlParsing.aiLimits,
-    {
-      id: configuredSchema.id,
-      parserSchema: configuredSchema.parserSchema,
-      schemaDefinition: configuredSchema.definition,
-      contractVersionId: contractVersion.id,
-      contractDefinition: contractVersion.definition,
-    },
-    plan.prompt,
+    schemaSelection,
+    plan.prompt || pinned.prompts[plan.templateName],
   );
   await recordTradingExecutionEvent({
     eventType: 'signal_validated',
@@ -847,22 +856,6 @@ async function parseWorkflowPlan(
   return parsedSignal;
 }
 
-async function finishWorkflowOutput(
-  message: any,
-  context: OutboxExecutionContext,
-  sourceId: string,
-  outputModes: Set<string>,
-  firstXml: string | null,
-): Promise<{ handled: boolean; result?: any; workflowOriginal?: boolean }> {
-  if (outputModes.has('telegram_xml') && firstXml) {
-    const result = await sendXmlMessage(firstXml, context);
-    await updateIncomingMessageStatus(sourceId, message.id, 'processed');
-    return { handled: true, result };
-  }
-  if (outputModes.has('telegram_original')) return { handled: false, workflowOriginal: true };
-  await updateIncomingMessageStatus(sourceId, message.id, 'processed');
-  return { handled: true, result: { mode: 'local-workflow-signal' } };
-}
 
 async function processWorkflowSignal(
   message: any,
@@ -873,47 +866,52 @@ async function processWorkflowSignal(
   signalReceivedAt: number,
 ) {
   const sourceId = String(message.chat_id);
-  const plans = await getWorkflowSignalPlans({ channelId: sourceId, text, contentType });
+  const pinned = context.config.durableIngress;
+  const plans = (await getWorkflowSignalPlans({ channelId: sourceId, text, contentType, workflowRevisionId: pinned.workflowRevisionId }))
+    .filter(plan => plan.key === pinned.planKey);
   if (plans.length === 0) {
     addLog(`[WORKFLOW] Paket ${message.id} hat keinen aktiven, filterkonformen Ausführungspfad.`);
     await updateIncomingMessageStatus(sourceId, message.id, 'filtered');
     return { handled: true, result: { mode: 'workflow-filtered' } };
   }
-  const schemas = await listTradingSignalSchemas();
   let firstXml: string | null = null;
   let createdIntents = 0;
   const outputModes = new Set<string>();
   for (const plan of plans) {
     plan.outputModes.forEach(mode => outputModes.add(mode));
-    const parsedSignal = await parseWorkflowPlan(plan, message, text, xmlParsing, context, sourceId, schemas);
+    const parsedSignal = await parseWorkflowPlan(plan, message, text, xmlParsing, context, sourceId);
     firstXml ||= parsedSignal.xml;
-    const signalId = await checkDuplicateAndSave(
+    const intents = await withDatabaseTransaction(async () => {
+      const signalId = await checkDuplicateAndSave(
       message,
       parsedSignal.xml,
       xmlParsing,
       plan.dedupe,
-      parsedSignal.provenance,
+      { ...parsedSignal.provenance, workflowRevisionId: plan.workflowRevisionId },
       `signal_${message.chat_id}_${message.id}_${plan.key}`,
       plan.key,
     );
-    if (!signalId) continue;
-    if (!parsedSignal.signal.execution) {
-      addLog(`[TRADING] Workflow-Pfadgruppe ${plan.key.slice(0, 12)} lieferte kein ausführbares Signal.`);
-      continue;
-    }
-    const intents = await createWorkflowTradingIntents({
+    if (!signalId) return [];
+    const created = parsedSignal.signal.execution ? await createWorkflowTradingIntents({
       sourceSignalId: signalId,
       channelId: sourceId,
       sourceText: text,
       contentType,
       signal: parsedSignal.signal.execution,
       executionPathIds: plan.executionPathIds,
+      workflowRevisionId: plan.workflowRevisionId,
+      receivedAt: signalReceivedAt,
+    }) : [];
+    await enqueueWorkflowOutputs(context.taskId, message, context.config, parsedSignal.xml, new Set(plan.outputModes));
+    return created;
     });
     createdIntents += intents.length;
     await recordCreatedIntents(intents, sourceId, signalReceivedAt);
   }
   addLog(`[WORKFLOW] Paket ${message.id} erzeugte ${createdIntents} kontospezifische Trade-Intent(s).`);
-  return finishWorkflowOutput(message, context, sourceId, outputModes, firstXml);
+  await updateIncomingMessageStatus(sourceId, message.id, 'processed');
+  outboxScheduler.requestPump();
+  return { handled: true, result: { mode: 'local-workflow-signal', createdIntents, outputModes: [...outputModes], hasXml: Boolean(firstXml) } };
 }
 
 async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {
@@ -921,7 +919,7 @@ async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {
   if (context.signal.aborted) throw new Error('Task aborted before XML send.');
   await context.markSending();
   const response = await invokeWithRetry(client, {
-    _: 'sendMessage', chat_id: targetChatId,
+    _: 'sendMessage', chat_id: pinnedTargetChatId(context),
     input_message_content: { _: 'inputMessageText', text: { _: 'formattedText', text: xmlString } }
   }, context.signal);
   const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
@@ -948,7 +946,9 @@ async function parseLegacyXmlSignal(
   context: OutboxExecutionContext,
 ) {
   const templateName = (xmlParsing.sourceTemplates || {})[sourceId];
-  const configuredSchema = await getTradingSignalSchemaForTemplate(templateName);
+  const configuredSchema = context.config.durableIngress.legacySchema;
+  const existing = await persistedParsedSignal(`signal_${message.chat_id}_${message.id}`, templateName, parserSchemaOverride(configuredSchema), null);
+  if (existing) return existing;
   const parsedSignal = await parseSignalNative(
     text,
     xmlParsing.timeout || DEFAULT_PARSER_TIMEOUT_MS,
@@ -957,6 +957,7 @@ async function parseLegacyXmlSignal(
     context.signal,
     xmlParsing.aiLimits,
     parserSchemaOverride(configuredSchema),
+    context.config.durableIngress.legacyPrompt,
   );
   await recordTradingExecutionEvent({
     eventType: 'signal_validated',
@@ -975,15 +976,27 @@ async function createLegacyIntentForSignal(
   signalId: string,
   sourceId: string,
   signalReceivedAt: number,
+  context: OutboxExecutionContext,
 ): Promise<void> {
   if (!parsedSignal.signal.execution) {
     addLog(`[TRADING] channel=${sourceId} schema=${parsedSignal.signal.schema} is not executable; no trade intent created.`);
     return;
   }
-  const intent = await createTradingIntent({
-    sourceSignalId: signalId,
-    channelId: sourceId,
-    signal: parsedSignal.signal.execution,
+  const pinned = context.config.durableIngress.legacyRoute;
+  if (!pinned?.enabled) return;
+  const intent = await withDatabaseTransaction(async database => {
+    const existing = await database.get<any>('SELECT id FROM trading_trade_intents WHERE source_signal_id = ?', [signalId]);
+    if (existing) return null;
+    const current = await database.get<any>('SELECT * FROM trading_routes WHERE channel_id = ?', [sourceId]);
+    if (!current?.enabled || current.account_id !== pinned.account_id || current.strategy_version_id !== pinned.strategy_version_id) {
+      throw new Error('Pinned legacy route is no longer authorized; review required.');
+    }
+    const created = await createTradingIntent({ sourceSignalId: signalId, channelId: sourceId, signal: parsedSignal.signal.execution });
+    if (created) {
+      await database.run('UPDATE trading_trade_intents SET created_at = ? WHERE id = ?', [signalReceivedAt, created.id]);
+      created.createdAt = signalReceivedAt;
+    }
+    return created;
   });
   await recordCreatedIntents(intent ? [intent] : [], sourceId, signalReceivedAt);
 }
@@ -1013,14 +1026,14 @@ async function processXmlSignal(message, text, contentType, xmlParsing, dupeBloc
   const forwardXml = shouldForwardToTelegram && xmlParsing.forwardXmlToTarget;
   try {
     const sourceId = String(message.chat_id);
-    const signalReceivedAt = Date.now();
+    const signalReceivedAt = context.config.durableIngress.receivedAt;
     await recordTradingExecutionEvent({
       eventType: 'signal_received',
       occurredAt: signalReceivedAt,
       channelId: sourceId,
       details: { telegramMessageId: String(message.id) },
     });
-    if (await getActiveWorkflow()) {
+    if (context.config.durableIngress.workflowRevisionId) {
       return processWorkflowSignal(
         message,
         text,
@@ -1041,7 +1054,7 @@ async function processXmlSignal(message, text, contentType, xmlParsing, dupeBloc
       parsedSignal.provenance
     );
     if (!signalId) return { handled: true, result: { mode: 'duplicate-blocked' } };
-    await createLegacyIntentForSignal(parsedSignal, signalId, sourceId, signalReceivedAt);
+    await createLegacyIntentForSignal(parsedSignal, signalId, sourceId, signalReceivedAt, context);
     return finishLegacySignalOutput({ message, parsedXml: parsedSignal.xml, forwardXml, shouldForwardToTelegram, context });
   } catch (error: any) {
     addLog(`[XML-Parser ERROR] Paket ${message.id}: ${error.message}`);
@@ -1054,15 +1067,15 @@ async function processXmlSignal(message, text, contentType, xmlParsing, dupeBloc
 async function forwardSingleMessage(message, config, context: OutboxExecutionContext) {
   if (context.signal.aborted) throw new Error('Task aborted');
   const { text, type } = getMessageTextAndType(message);
-  const shouldForwardToTelegram = config.forwardOptions?.forwardToTarget ?? true;
+  const shouldForwardToTelegram = telegramForwardingEnabled(config);
 
   const xmlParsing = config.xmlParsing || {};
   const dupeBlocker = config.dupeBlocker || {};
-  const activeWorkflow = await getActiveWorkflow();
+  const activeWorkflow = config.durableIngress.workflowRevisionId;
 
   let xmlResult = { handled: false } as { handled: boolean; result?: any; workflowOriginal?: boolean };
   if ((activeWorkflow || xmlParsing.enabled) && text?.trim()) {
-    if (xmlParsing.externalDataPolicyAccepted !== true) {
+    if (!externalParsingAuthorized()) {
       throw new Error('AI parsing is blocked until the external data-processing policy is explicitly accepted in the Web UI.');
     }
     xmlResult = await processXmlSignal(message, text, type, xmlParsing, dupeBlocker, shouldForwardToTelegram, context);
@@ -1073,6 +1086,20 @@ async function forwardSingleMessage(message, config, context: OutboxExecutionCon
     return forwardRawMessage(message, config, context);
   }
   throw new Error(`Message ${message.id} produced no configured side effect.`);
+}
+
+function telegramForwardingEnabled(config: any): boolean {
+  return config.forwardOptions?.forwardToTarget ?? true;
+}
+
+function externalParsingAuthorized(): boolean {
+  return activeOutboxConfig?.xmlParsing?.externalDataPolicyAccepted === true;
+}
+
+function pinnedTargetChatId(context: OutboxExecutionContext): number {
+  const target = Number(context.config.durableIngress.targetChatId);
+  if (!Number.isSafeInteger(target) || target === 0) throw new Error('Pinned Telegram destination is missing; review required.');
+  return target;
 }
 
 async function migrateLegacyMediaGroupBuffer(): Promise<void> {
@@ -1101,33 +1128,12 @@ async function loadAndResumeMediaGroupBuffer(config) {
   const data = await getMediaGroupBuffers();
   const groupIds = Object.keys(data);
   if (groupIds.length === 0) return;
-  addLog(`[INFO] Recovering ${groupIds.length} incomplete album(s) from SQLite.`);
+  addLog(`[WARN] ${groupIds.length} legacy album(s) retained for explicit review; automatic historical forwarding is blocked.`);
   for (const groupId of groupIds) {
     await enqueueMediaGroup(groupId, config, data[groupId]);
-    await removeMediaGroupBuffer(groupId);
   }
 }
 
-async function handleMediaGroupMessage(message, config) {
-  const gId = message.media_group_id;
-  if (!mediaGroupBuffer.has(gId)) mediaGroupBuffer.set(gId, { messages: [], fromChatId: message.chat_id, timer: null });
-  const g = mediaGroupBuffer.get(gId);
-  if (g.timer) clearTimeout(g.timer);
-  g.messages.push(message);
-  await saveMediaGroupBuffer(String(gId), String(g.fromChatId), g.messages);
-
-  g.timer = setTimeout(() => {
-    void (async () => {
-      mediaGroupBuffer.delete(gId);
-      try {
-        await enqueueMediaGroup(gId, config, g);
-        await removeMediaGroupBuffer(String(gId));
-      } catch (err: any) {
-        addLog(`[ERROR] Album buffer promotion failed for ${gId}: ${err.message}`);
-      }
-    })();
-  }, ALBUM_DELAY_MS);
-}
 
 
 // Gruppen-Objekt wird jetzt direkt als Parameter übergeben statt aus der Map gelesen
@@ -1140,7 +1146,7 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
   try {
     await context.markSending();
     const response = await invokeWithRetry(client, {
-      _: 'forwardMessages', chat_id: targetChatId, from_chat_id: g.fromChatId, message_ids: ids,
+      _: 'forwardMessages', chat_id: pinnedTargetChatId(context), from_chat_id: g.fromChatId, message_ids: ids,
       options: { _: 'sendMessageOptions' }, as_album: true,
       send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
     }, context.signal);
@@ -1161,30 +1167,6 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
   }
 }
 
-async function messagePassesRoutingFilters(
-  message: any,
-  config: any,
-  activeWorkflow: any,
-  chatId: string,
-  text: string,
-  contentType: string,
-): Promise<boolean> {
-  if (!activeWorkflow) return shouldForward(message, config.filters, addLog, chatId, config);
-  const workflowPlans = await getWorkflowSignalPlans({ channelId: chatId, text, contentType });
-  return workflowPlans.length > 0;
-}
-
-async function routeAcceptedMessage(message: any, config: any, activeWorkflow: any): Promise<void> {
-  if (!message.media_group_id || message.media_group_id === '0' || activeWorkflow) {
-    await enqueueSingleMessage(message, config);
-    return;
-  }
-  if (config.forwardOptions?.forwardToTarget ?? true) {
-    await handleMediaGroupMessage(message, config);
-    return;
-  }
-  addLog(`[INFO] Album-Paketgruppe ${message.media_group_id} übersprungen (Weiterleitung deaktiviert).`);
-}
 
 async function routeIncomingMessage(message: any, config: any): Promise<void> {
   if (message.is_outgoing) return;
@@ -1192,22 +1174,10 @@ async function routeIncomingMessage(message: any, config: any): Promise<void> {
   const activeWorkflow = await getActiveWorkflow();
   const workflowSource = activeWorkflow ? activeWorkflow.compiled.paths.some(path => path.channelId === chatId) : false;
   if (!state.resolvedSourceChatIds.has(chatId) && !workflowSource) return;
-  const { text, type } = getMessageTextAndType(message);
-  const sender = config.sourceAliases?.[chatId] || chatId;
-  const inserted = await saveIncomingMessage(chatId, message.id, sender, text || '', type, 'received');
-  if (!inserted) {
-    addLog(`[INFO] Duplicate incoming message ${chatId}/${message.id} ignored.`);
-    return;
-  }
-  addLog(`[INFO] Neues Datenpaket ${message.id} an Quell-Knoten ${chatId} abgefangen.`);
-  if (!await messagePassesRoutingFilters(message, config, activeWorkflow, chatId, text || '', type)) {
-    await updateIncomingMessageStatus(chatId, message.id, 'filtered');
-    return;
-  }
-  // A workflow-qualified caption must traverse the same parser/filter path as
-  // an ordinary message. The legacy album forwarder is intentionally not
-  // allowed to bypass the graph's output node.
-  await routeAcceptedMessage(message, config, activeWorkflow);
+  const work = await acceptIncomingMessage(message, { ...config, resolvedTargetChatId: targetChatId });
+  addLog(`[INFO] Eingang ${chatId}/${message.id} dauerhaft aufgenommen: ${work.id} (${work.status}).`);
+  activeOutboxConfig = config;
+  outboxScheduler.requestPump();
 }
 
 async function handleUpdate(update: any, config: any): Promise<void> {
@@ -1246,7 +1216,7 @@ async function stopForwarding() {
     throw new Error('Forward queue did not drain; restart the process before routing again.');
   }
   try {
-    await fsPromises.unlink('./session_data/.routing_active');
+    await removeOwnedRoutingMarker();
   } catch (error: any) {
     if (error.code !== 'ENOENT') throw error;
   }
@@ -1299,11 +1269,23 @@ function attachTelegramUpdateHandler(config: any): void {
 
 async function writeRoutingActiveMarker(): Promise<void> {
   try {
-    await fsPromises.mkdir('./session_data', { recursive: true });
-    await fsPromises.writeFile('./session_data/.routing_active', 'active', 'utf-8');
+    if (!processLock) throw new Error('Routing requires process ownership.');
+    await assertProcessLockOwner(processLock, SESSION_DIRECTORY);
+    await fsPromises.writeFile(ROUTING_ACTIVE_MARKER, 'active', { encoding: 'utf-8', mode: 0o600 });
+    routingMarkerOwned = true;
   } catch (error: any) {
     addLog(`[WARN] Konnte Lockfile nicht erstellen: ${error.message}`);
+    throw error;
   }
+}
+
+async function removeOwnedRoutingMarker(): Promise<void> {
+  if (!routingMarkerOwned) return;
+  if (!processLock) throw new Error('Routing marker removal requires process ownership.');
+  await assertProcessLockOwner(processLock, SESSION_DIRECTORY);
+  try { await fsPromises.unlink(ROUTING_ACTIVE_MARKER); }
+  catch (error: any) { if (error.code !== 'ENOENT') throw error; }
+  routingMarkerOwned = false;
 }
 
 async function connectAndActivateRouting(
@@ -1315,7 +1297,7 @@ async function connectAndActivateRouting(
   requiresTelegramTarget = true,
 ): Promise<void> {
   state.connectionState = 'connecting';
-  client = tdl.createClient({ apiId, apiHash, databaseDirectory: './session_data', filesDirectory: './session_files' });
+  client = tdl.createClient({ apiId, apiHash, databaseDirectory: SESSION_DIRECTORY, filesDirectory: './session_files' });
   client.on('error', err => {
     state.connectionState = 'error';
     addLog(`[TDLib Fehler] ${err.message || err}`);
@@ -1348,6 +1330,8 @@ async function connectAndActivateRouting(
   forwardQueue.resume();
   await resumePersistedTasks(config);
   await loadAndResumeMediaGroupBuffer(config);
+  if (startupAuthority.snapshot().phase !== 'blocked') startupAuthority.completeGate('routing');
+  await enableConfiguredEntries();
 }
 
 async function cleanupFailedRoutingStart(reason: string): Promise<boolean> {
@@ -1369,7 +1353,7 @@ async function cleanupFailedRoutingStart(reason: string): Promise<boolean> {
   }
   if (drained) {
     try {
-      await fsPromises.unlink('./session_data/.routing_active');
+      await removeOwnedRoutingMarker();
     } catch (error: any) {
       if (error.code !== 'ENOENT') addLog(`[WARN] Routing lock cleanup failed after startup error: ${error.message}`);
     }
@@ -1443,11 +1427,14 @@ function beginApplicationMaintenance(operation: string): () => void {
     throw new Error(`Maintenance operation '${activeMaintenanceOperation}' is already active.`);
   }
   activeMaintenanceOperation = operation;
+  const releaseAuthority = startupAuthority.holdMutations(operation);
+  tradingRuntime?.disableEntries();
   let released = false;
   return () => {
     if (released) return;
     released = true;
     activeMaintenanceOperation = null;
+    releaseAuthority();
   };
 }
 
@@ -1511,14 +1498,6 @@ async function closeDatabaseAfterDrain(drained: boolean): Promise<boolean> {
   }
 }
 
-async function removeOperationalLock(lockPath: string, label: string): Promise<void> {
-  try {
-    await fsPromises.unlink(lockPath);
-  } catch (error: any) {
-    if (error.code !== 'ENOENT') console.warn(`[WARN] ${label} konnte nicht entfernt werden: ${error.message}`);
-  }
-}
-
 async function releaseProcessLock(label: string): Promise<void> {
   if (!processLock) return;
   try {
@@ -1530,6 +1509,8 @@ async function releaseProcessLock(label: string): Promise<void> {
 }
 
 async function performShutdown(exitCode: number): Promise<void> {
+  startupAuthority.block('Process shutdown is in progress.');
+  tradingRuntime?.disableEntries();
   addLog("[INFO] System-Shutdown eingeleitet...");
   routingStopRequested = true;
   telegramLogin.cancel();
@@ -1546,7 +1527,7 @@ async function performShutdown(exitCode: number): Promise<void> {
   await stopRuntimeServices();
   const databaseClosed = await closeDatabaseAfterDrain(drained);
   await auditTrail?.flush();
-  if (drained) await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
+  if (drained) await removeOwnedRoutingMarker();
   if (databaseClosed) await releaseProcessLock('Prozess-Lock');
   process.exitCode = exitCode;
 }
@@ -1575,20 +1556,35 @@ function loadRuntimeConfiguration(): RuntimeConfiguration {
   }
 }
 
+async function initializeRuntimeOwnership(): Promise<string> {
+  const databasePath = operationalDatabasePath();
+  processLockPath = path.join(path.dirname(databasePath), '.process_active');
+  processLock = await acquireProcessLock(processLockPath);
+  await runStartupGate(startupAuthority, 'crash', checkCrashLoop);
+  if (await mcpMaintenanceActive(databasePath)) {
+    startupAuthority.block('An existing shared maintenance request requires verified recovery.');
+    throw new Error('Shared database maintenance is active; startup preserves its marker and does not open SQLite.');
+  }
+  return databasePath;
+}
+
+function requiredProcessOwner(): ProcessLock {
+  if (!processLock) throw new Error('This operation requires the process ownership capability.');
+  return processLock;
+}
+
 async function initializeCoreRuntime(
   tradingCredentials: TradingCredentialStore,
   clockGuard: ClockGuard,
   runtimeConfig: any,
+  databasePath: string,
 ) {
   initializeDeliveryTracker();
-  const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
-  processLockPath = path.join(path.dirname(databasePath), '.process_active');
-  processLock = await acquireProcessLock(processLockPath);
   await initFileLogger();
   auditTrail = auditTrailFromEnvironment();
   await auditTrail.initialize();
   await auditTrail.record({ phase: 'startup', action: 'service.startup', actorRole: 'system', actorId: 'forwarder' });
-  await initDb();
+  await runStartupGate(startupAuthority, 'database', () => initDb(databasePath));
   try {
     const migration = await migrateLegacyTradingRoutesToWorkflow(runtimeConfig);
     if (migration.migrated) {
@@ -1605,22 +1601,24 @@ async function initializeCoreRuntime(
     2_000,
     addLog,
     clockGuard,
+    startupAuthority,
   );
   tradingWebControl.attachEntryRuntime(tradingRuntime);
-  mcpControlBridge = new McpControlBridge(tradingWebControl, auditTrail, addLog);
+  mcpControlBridge = new McpControlBridge(tradingWebControl, auditTrail, addLog, 200, startupAuthority);
   await mcpControlBridge.start();
-  await clearMcpMaintenanceMarker(databasePath);
   // Existing exposure is reconciled immediately, but pending entries remain
   // latched off until crash, retention, dashboard, monitoring and backup gates
   // have all completed below.
-  await tradingRuntime.startProtectionOnly();
+  await runStartupGate(startupAuthority, 'protection_scan', async () => {
+    await tradingRuntime!.startProtectionOnly();
+    if (!tradingRuntime!.isProtectionScanComplete()) throw new Error('Initial account protection scan did not complete.');
+  });
   state.totalForwardedCount = await getTotalForwardedCount();
   state.lastSuccessfulForwardAt = await getLastForwardedAt();
-  await checkCrashLoop();
 
   const retentionPolicy = retentionPolicyFromEnvironment();
   retentionScheduler = new OperationalDataRetention(retentionPolicy, addLog);
-  await retentionScheduler.start();
+  await runStartupGate(startupAuthority, 'retention', () => retentionScheduler!.start());
   return { databasePath, retentionPolicy };
 }
 
@@ -1639,7 +1637,8 @@ async function composeTradingControl(
     [paperAdapter, ...ccxtAdapters],
     addLog,
     clockGuard,
-    { isolateUnavailableMarketFailures: process.env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES === 'true' },
+    { isolateUnavailableMarketFailures: process.env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES === 'true',
+      entryAuthority: () => startupAuthority.canEnter() },
   );
   tradingWebControl = new TradingWebControl(
     tradingCredentials,
@@ -1679,7 +1678,7 @@ async function startMonitoringRuntime(
   minimumFreeBytes: number,
   clockGuard: ClockGuard,
 ): Promise<void> {
-  startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
+  const listener = startMetricsServer(Number(process.env.METRICS_PORT || 9100), {
     totalForwardedCountCallback: () => state.totalForwardedCount,
     getQueueStateCallback: () => ({
       running: forwardQueue.running,
@@ -1694,6 +1693,7 @@ async function startMonitoringRuntime(
   });
 
   try {
+    await waitForStartupListener(listener);
     metricsTracker = new MetricsTracker({
       totalForwardedCountCallback: () => state.totalForwardedCount,
       getQueueStateCallback: () => ({
@@ -1771,8 +1771,12 @@ async function performCompleteFactoryReset(
   metricsTracker = null;
   deliveryTracker?.close('Factory reset.');
   deliveryTracker = null;
-  const sharedMcpMaintenance = await beginMcpSharedMaintenance('factory reset', operationalDatabasePath());
+  const sharedMcpMaintenance = await beginMcpSharedMaintenance('factory reset', operationalDatabasePath(), requiredProcessOwner());
   await closeDb();
+  await sharedMcpMaintenance.waitForQuiescence();
+  await sharedMcpMaintenance.assertQuiescent();
+  const retiredGeneration = await retireConfigurationGeneration(configPath, operationalDatabasePath(), requiredProcessOwner(), sharedMcpMaintenance);
+  await registerRetiredGenerationResetTarget(targets, retiredGeneration, applicationBoundary);
   await tradingCredentials.clear();
   await resetTelegramViewerState(telegramViewerSettings, telegramViewerSecrets);
   await secretStore.clear();
@@ -1781,7 +1785,7 @@ async function performCompleteFactoryReset(
   const maintenanceMarker = path.resolve(sharedMcpMaintenance.markerPath);
   for (const [target, boundary] of targets) {
     const preserve = path.dirname(maintenanceMarker) === path.resolve(target)
-      ? [path.basename(maintenanceMarker)]
+      ? [...sharedMcpMaintenance.protectedEntries]
       : [];
     await clearFactoryResetTarget(target, boundary, preserve);
   }
@@ -1789,6 +1793,8 @@ async function performCompleteFactoryReset(
 
   const candidateConfig = structuredClone(DEFAULT_CONFIG);
   writeConfigSync(candidateConfig);
+  await initializeConfigurationGeneration(backupConfigurationSources(operationalDatabasePath()), requiredProcessOwner());
+  await sharedMcpMaintenance.release();
   for (const key of Object.keys(runtime.config)) delete runtime.config[key];
   Object.assign(runtime.config, candidateConfig);
   state.isRunning = false;
@@ -1798,6 +1804,11 @@ async function performCompleteFactoryReset(
   state.processedSinceRestart = 0;
   state.resolvedSourceChatIds.clear();
   clearLogHistory();
+}
+
+async function registerRetiredGenerationResetTarget(targets: Map<string, FactoryResetBoundary>, retired: string | null,
+  boundary: FactoryResetBoundary): Promise<void> {
+  if (retired) targets.set(await assertFactoryResetTarget(retired, boundary), boundary);
 }
 
 function backupDirectoryPath(): string {
@@ -1827,8 +1838,9 @@ async function recoverNamedOffsiteBackup(objectName: string): Promise<string> {
 }
 
 async function restoreNamedBackup(artifactName: string) {
-  const releaseApplicationMaintenance = beginApplicationMaintenance('backup-restore');
   const artifact = resolvedBackupArtifact(artifactName);
+  if (!processLock) throw new Error('Backup restore requires the process ownership capability.');
+  const releaseApplicationMaintenance = beginApplicationMaintenance('backup-restore');
   const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
   const previousTradingRuntime = tradingRuntime;
   const previousMcpControlBridge = mcpControlBridge;
@@ -1855,23 +1867,31 @@ async function restoreNamedBackup(artifactName: string) {
     await stopSchedulerForMaintenance(previousBackupScheduler, 'Backup scheduler');
     retentionStopped = previousRetentionScheduler !== null;
     await stopSchedulerForMaintenance(previousRetentionScheduler, 'Data retention scheduler');
-    sharedMcpMaintenance = await beginMcpSharedMaintenance('verified backup restore', databasePath);
+    sharedMcpMaintenance = await beginMcpSharedMaintenance('verified backup restore', databasePath, processLock);
     databaseMaintenance = await beginDatabaseMaintenance('verified backup restore');
     closeAttempted = true;
     await closeDb();
-    await removeOperationalLock('./session_data/.routing_active', 'Routing-Lock');
+    await removeOwnedRoutingMarker();
+    await sharedMcpMaintenance.waitForQuiescence();
+    await sharedMcpMaintenance.assertQuiescent();
     const result = await restoreBackupArtifact(
       artifact,
       databasePath,
       configurationPathFromEnvironment(),
       path.dirname(databasePath),
-      { allowCurrentProcessLock: true }
+      { maintenanceLease: sharedMcpMaintenance }
     );
+    // Physical replacement has succeeded. A later metadata failure must never restart old services.
+    restored = true;
     tradingRuntime = null;
     mcpControlBridge = null;
     backupScheduler = null;
     retentionScheduler = null;
-    restored = true;
+    await sharedMcpMaintenance.release();
+    sharedMcpMaintenance = await beginMcpSharedMaintenance('restored configuration generation', databasePath, processLock);
+    await sharedMcpMaintenance.waitForQuiescence();
+    await reenrollConfigurationGeneration(backupConfigurationSources(databasePath), processLock, sharedMcpMaintenance);
+    await sharedMcpMaintenance.release();
     return result;
   } finally {
     if (!restored) {
@@ -1882,13 +1902,16 @@ async function restoreNamedBackup(artifactName: string) {
         });
       }
       databaseMaintenance?.release();
-      releaseApplicationMaintenance();
       await Promise.all([
         restartSchedulerAfterFailedMaintenance(retentionStopped, previousRetentionScheduler),
         restartSchedulerAfterFailedMaintenance(backupStopped, previousBackupScheduler),
         restartSchedulerAfterFailedMaintenance(tradingStopped, previousTradingRuntime),
         restartSchedulerAfterFailedMaintenance(mcpBridgeStopped, previousMcpControlBridge),
       ]);
+      if (tradingStopped && previousTradingRuntime && !previousTradingRuntime.isProtectionScanComplete()) {
+        startupAuthority.block('Protection scan did not complete after failed maintenance.');
+        addLog('[CRITICAL] Maintenance recovery did not complete the protection scan; restart required.');
+      } else releaseApplicationMaintenance();
     }
   }
 }
@@ -1921,17 +1944,17 @@ function dashboardRecoveryState(
   };
 }
 
-function startDashboardRuntime(
+async function startDashboardRuntime(
   runtime: RuntimeConfiguration,
   secretStore: ManagedSecretStore,
   runtimeSettings: ManagedRuntimeSettingsStore,
   tradingCredentials: TradingCredentialStore,
   telegramViewerSettings?: ManagedTelegramViewerSettingsStore,
   telegramViewerSecrets?: TelegramViewerSecretStore,
-): void {
+): Promise<void> {
   const webPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 8080;
   const recovery = dashboardRecoveryState(runtime, runtimeSettings, secretStore);
-  startWebServer(webPort, {
+  const listener = startWebServer(webPort, {
       config: runtime.config,
       state,
       startForwarding: async (cfg) => {
@@ -1976,6 +1999,8 @@ function startDashboardRuntime(
         : undefined,
       tradingControl: tradingWebControl ?? undefined,
       getOperationsStatus: () => ({
+        startup: startupAuthority.snapshot(),
+        protectionScanComplete: tradingRuntime?.isProtectionScanComplete() ?? false,
         backup: backupScheduler?.getStatus() ?? null,
         retention: retentionScheduler?.getStatus() ?? null,
         audit: auditTrail?.snapshot() ?? null,
@@ -1985,26 +2010,29 @@ function startDashboardRuntime(
         return backupScheduler.runNow();
       },
       listBackups: listAvailableBackups,
-      verifyBackup: (artifactName) => verifyBackupArtifact(resolvedBackupArtifact(artifactName)),
+      verifyBackup: (artifactName) => inspectBackupArtifact(resolvedBackupArtifact(artifactName)),
       recoverOffsiteBackup: recoverNamedOffsiteBackup,
       restoreBackup: restoreNamedBackup,
       performFactoryReset: async () => {
-        await performCompleteFactoryReset(
-          runtime,
-          secretStore,
-          runtimeSettings,
-          tradingCredentials,
-          telegramViewerSettings,
-          telegramViewerSecrets,
-        );
+        beginApplicationMaintenance('factory-reset');
+        try {
+          await performCompleteFactoryReset(
+            runtime, secretStore, runtimeSettings, tradingCredentials, telegramViewerSettings, telegramViewerSecrets,
+          );
+        } catch (error) {
+          startupAuthority.block('Factory reset did not complete; state must be reviewed before restart.');
+          throw error;
+        }
       },
       recovery,
+      startupAuthority,
       requestRestart: () => {
         setTimeout(() => {
           void shutdown(0).finally(() => process.exit(process.exitCode || 0));
         }, 150).unref();
       }
   });
+  await waitForStartupListener(listener);
 }
 
 async function getTelegramViewerServiceStatus(secrets: TelegramViewerSecretStore): Promise<Record<string, unknown>> {
@@ -2041,8 +2069,36 @@ async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<boolean
   }
 }
 
+async function enableConfiguredEntries(): Promise<void> {
+  const tradingState = await getTradingRuntimeState();
+  if (!startupAuthority.canEnter() || !tradingState.executionEnabled || tradingState.killSwitchActive) return;
+  try {
+    await tradingRuntime?.enableEntries();
+    addLog('[TRADING] Entry processing enabled after all startup gates passed.');
+  } catch (error: any) {
+    addLog(`[CRITICAL] Trading entry latch remains disabled: ${error.message}`);
+  }
+}
+
+async function startInfrastructureGates(runtime: RuntimeConfiguration, databasePath: string,
+  minimumFreeBytes: number, clockGuard: ClockGuard): Promise<void> {
+  try {
+    await runStartupGate(startupAuthority, 'monitoring', () => startMonitoringRuntime(databasePath, minimumFreeBytes, clockGuard));
+  } catch (error: any) {
+    addLog(`[CRITICAL] Monitoring runtime failed to initialize; trading entries remain disabled: ${error.message}`);
+  }
+  try {
+    await runStartupGate(startupAuthority, 'backup', () => startBackupRuntime(runtime));
+  } catch (error: any) {
+    addLog(`[CRITICAL] Backup runtime failed to initialize; trading entries remain disabled: ${error.message}`);
+  }
+  if (startupAuthority.snapshot().phase !== 'blocked') startupAuthority.release();
+}
+
 async function run() {
+  startupAuthority.beginRecovery();
   loadEnv();
+  const databasePath = await initializeRuntimeOwnership();
   const runtimeSettings = managedRuntimeSettingsFromEnvironment();
   await runtimeSettings.initialize({ recoverInvalidFile: true });
   runtimeSettings.applyToEnvironment();
@@ -2064,49 +2120,40 @@ async function run() {
     addLog(`[ERROR] Telegram viewer control could not initialize; core routing and trading remain unaffected: ${error.message}`);
   }
   const runtime = loadRuntimeConfiguration();
-  if (runtimeSettings.recoveryStatus().active || secretStore.recoveryStatus().length > 0 || runtime.configurationRecoveryReason) {
-    state.connectionState = 'recovery-required';
-    addLog('[CRITICAL] Managed settings or secrets are invalid. Routing and background operations remain disabled until repaired in the dashboard and restarted.');
+  if (!runtime.configurationRecoveryReason && !runtimeSettings.recoveryStatus().active) {
     try {
-      await initDb();
-      await composeTradingControl(tradingCredentials, clockGuard);
+      const diskConfig = JSON.parse(await fsPromises.readFile(configurationPathFromEnvironment(), 'utf8'));
+      if (backupConfigurationDigest(diskConfig) !== backupConfigurationDigest(runtime.config)) writeConfigSync(runtime.config);
+      await initializeConfigurationGeneration(backupConfigurationSources(databasePath), requiredProcessOwner());
+    } catch (error: any) {
+      runtime.configurationRecoveryReason = `Configuration generation requires recovery: ${error.message}`;
+    }
+  }
+  if (runtimeSettings.recoveryStatus().active || secretStore.recoveryStatus().length > 0 || runtime.configurationRecoveryReason) {
+    startupAuthority.failGate('configuration', 'Managed settings or secrets require repair and restart.');
+    state.connectionState = 'recovery-required';
+    addLog('[CRITICAL] Managed settings or secrets are invalid. Routing and new entries remain disabled until repaired and restarted; existing exposure is reconciled where credentials are usable.');
+    try {
+      await initDb(databasePath);
+      const engine = await composeTradingControl(tradingCredentials, clockGuard);
+      tradingRuntime = new TradingRuntime(engine, 2_000, addLog, clockGuard, startupAuthority);
+      tradingWebControl?.attachEntryRuntime(tradingRuntime);
+      await tradingRuntime.startProtectionOnly();
     } catch (error: any) {
       addLog(`[CRITICAL] Trading safety state could not be loaded in recovery mode; factory reset remains blocked until database recovery: ${error.message}`);
     }
-    startDashboardRuntime(
+    await startDashboardRuntime(
       runtime, secretStore, runtimeSettings, tradingCredentials, telegramViewerSettings, telegramViewerSecrets,
     );
     return;
   }
-  const { databasePath, retentionPolicy } = await initializeCoreRuntime(tradingCredentials, clockGuard, runtime.config);
-  startDashboardRuntime(
+  startupAuthority.completeGate('configuration');
+  const { retentionPolicy } = await initializeCoreRuntime(tradingCredentials, clockGuard, runtime.config, databasePath);
+  await runStartupGate(startupAuthority, 'dashboard', () => startDashboardRuntime(
     runtime, secretStore, runtimeSettings, tradingCredentials, telegramViewerSettings, telegramViewerSecrets,
-  );
-  let operationalGatesHealthy = true;
-  try {
-    await startMonitoringRuntime(databasePath, retentionPolicy.minFreeBytes, clockGuard);
-  } catch (error: any) {
-    operationalGatesHealthy = false;
-    addLog(`[CRITICAL] Monitoring runtime failed to initialize; trading entries remain disabled: ${error.message}`);
-  }
-  try {
-    await startBackupRuntime(runtime);
-  } catch (error: any) {
-    operationalGatesHealthy = false;
-    addLog(`[CRITICAL] Backup runtime failed to initialize; trading entries remain disabled: ${error.message}`);
-  }
-  const routingHealthy = await runConfiguredMode(runtime);
-  const tradingState = await getTradingRuntimeState();
-  if (operationalGatesHealthy && routingHealthy && tradingState.executionEnabled && !tradingState.killSwitchActive) {
-    try {
-      await tradingRuntime?.enableEntries();
-      addLog('[TRADING] Entry processing enabled after all startup gates passed.');
-    } catch (error: any) {
-      addLog(`[CRITICAL] Trading entry latch remains disabled: ${error.message}`);
-    }
-  } else if (tradingState.executionEnabled) {
-    addLog('[CRITICAL] Persisted trading execution was enabled, but one or more startup gates failed; entry processing remains disabled.');
-  }
+  ));
+  await startInfrastructureGates(runtime, databasePath, retentionPolicy.minFreeBytes, clockGuard);
+  await runConfiguredMode(runtime);
 }
 try {
   await run();

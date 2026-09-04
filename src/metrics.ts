@@ -18,6 +18,10 @@ export interface OperationalMetrics {
   backupOffsiteHealthy: boolean;
   backupOffsiteRequired: boolean;
   backupOffsiteLastSuccessAt: number | null;
+  backupConfigurationCoherentAt?: number | null;
+  backupRestoreEligibleAt?: number | null;
+  backupRestoreEligibilityCheckedAt?: number | null;
+  backupRestoreDrillAt?: number | null;
   retentionHealthy: boolean;
   retentionLastSuccessAt: number | null;
   retentionDeletedTotal: number;
@@ -148,11 +152,15 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
       `tg_forwarder_connection_state{state="${current}"} ${current === connectionState ? 1 : 0}`
     ),
     ...metric('tg_forwarder_last_confirmed_delivery_timestamp_seconds', 'Unix time of the last confirmed delivery', 'gauge', timestampSeconds(operational.lastForwardedAt)),
-    ...metric('tg_forwarder_backup_healthy', 'Whether the latest scheduled backup succeeded within the RPO window', 'gauge', asFlag(operational.backupHealthy)),
-    ...metric('tg_forwarder_backup_last_success_timestamp_seconds', 'Unix time of the last verified backup', 'gauge', timestampSeconds(operational.backupLastSuccessAt)),
-    ...metric('tg_forwarder_backup_offsite_healthy', 'Whether encrypted off-site replication was downloaded and restore-verified', 'gauge', asFlag(operational.backupOffsiteHealthy)),
+    ...metric('tg_forwarder_backup_healthy', 'Whether local snapshot verification and required replication are current; not a restore-eligibility or drill guarantee', 'gauge', asFlag(operational.backupHealthy)),
+    ...metric('tg_forwarder_backup_last_success_timestamp_seconds', 'Unix time of the last local artifact integrity verification', 'gauge', timestampSeconds(operational.backupLastSuccessAt)),
+    ...metric('tg_forwarder_backup_offsite_healthy', 'Whether encrypted off-site replication was downloaded, decrypted and integrity-verified', 'gauge', asFlag(operational.backupOffsiteHealthy)),
     ...metric('tg_forwarder_backup_offsite_required', 'Whether off-site replication is a readiness requirement', 'gauge', asFlag(operational.backupOffsiteRequired)),
-    ...metric('tg_forwarder_backup_offsite_last_success_timestamp_seconds', 'Unix time of the last restore-verified off-site backup', 'gauge', timestampSeconds(operational.backupOffsiteLastSuccessAt)),
+    ...metric('tg_forwarder_backup_offsite_last_success_timestamp_seconds', 'Unix time of the last downloaded and integrity-verified off-site artifact', 'gauge', timestampSeconds(operational.backupOffsiteLastSuccessAt)),
+    ...metric('tg_forwarder_backup_configuration_coherent_timestamp_seconds', 'Unix time of the last verified shared configuration generation', 'gauge', timestampSeconds(operational.backupConfigurationCoherentAt)),
+    ...metric('tg_forwarder_backup_restore_eligible_timestamp_seconds', 'Unix time of the last artifact-local eligible proof; not current exchange flatness', 'gauge', timestampSeconds(operational.backupRestoreEligibleAt)),
+    ...metric('tg_forwarder_backup_restore_eligibility_checked_timestamp_seconds', 'Unix time of the latest artifact-local eligibility check, including blocked or unknown', 'gauge', timestampSeconds(operational.backupRestoreEligibilityCheckedAt)),
+    ...metric('tg_forwarder_backup_restore_drill_timestamp_seconds', 'Unix time of the last actually completed isolated restore drill', 'gauge', timestampSeconds(operational.backupRestoreDrillAt)),
     ...metric('tg_forwarder_retention_healthy', 'Whether operational data retention is current and has no backlog', 'gauge', asFlag(operational.retentionHealthy)),
     ...metric('tg_forwarder_retention_last_success_timestamp_seconds', 'Unix time of the last successful retention run', 'gauge', timestampSeconds(operational.retentionLastSuccessAt)),
     ...metric('tg_forwarder_retention_deleted_rows_total', 'Operational rows deleted by retention since process start', 'counter', operational.retentionDeletedTotal),
@@ -176,7 +184,7 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
     ...metric('tg_forwarder_trading_open_positions', 'Managed non-zero positions', 'gauge', operational.tradingOpenPositions),
     ...metric('tg_forwarder_trading_pending_intents', 'Trading intents requiring processing or monitoring', 'gauge', operational.tradingPendingIntents),
     ...metric('tg_forwarder_trading_unknown_orders', 'Orders with an unknown exchange outcome', 'gauge', operational.tradingUnknownOrders),
-    ...metric('tg_forwarder_trading_unprotected_positions', 'Managed non-zero positions without a confirmed open protective stop', 'gauge', operational.tradingUnprotectedPositions),
+    ...metric('tg_forwarder_trading_unprotected_positions', 'Managed exposure or entry commitments without a current authoritative protection proof', 'gauge', operational.tradingUnprotectedPositions),
     ...metric('tg_forwarder_trading_unacknowledged_critical_risk_events', 'Unacknowledged critical trading risk events', 'gauge', operational.tradingUnacknowledgedCriticalRiskEvents),
     ...metric('tg_forwarder_trading_intents_total', 'Persisted trading intents', 'counter', operational.tradingIntentCount),
     ...metric('tg_forwarder_trading_fills_total', 'Persisted exchange fills', 'counter', operational.tradingFillCount),

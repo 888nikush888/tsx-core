@@ -1,15 +1,32 @@
 {
+  "schemaVersion": 2,
+  "kind": "reviewed_implementation_receipt",
   "exchange": "hyperliquid",
-  "status": "certified",
   "ccxtVersion": "4.5.75",
   "profileVersion": 1,
-  "tests": {
-    "protectedEntry": true,
-    "cancel": true,
-    "reconciliation": true,
-    "stream": true,
-    "credentialRotation": true,
-    "accountIdentity": true,
-    "marketNormalization": true
-  }
+  "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7",
+  "sourceRevision": "f8089277d0667dd45bcf070037800d423fd89254",
+  "sourceTreeHash": "67cac86b0e507a8237a8905fa1663dc40055880f7c66cb4f8c6228333bbf90c6",
+  "parityEvidenceHash": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e",
+  "executionReportHash": "58c0884c53409a44b3246b73af20230601a01b42804236509d752477a19dae3f",
+  "nodeSourcesHash": "974e1be6c75b52f09b3271e30e62dd7e54d34d307e513caa18e97bd1052f4555",
+  "testSourcesHash": "7034a44a273d35d1e2261827987aa162a13eea318efd225ea4ef62548bf75c8d",
+  "fixturesHash": "1d87728b0e8ab0f41aa2dc8368e954547e75266cbf25ebcbc2cc93d20a06c55d",
+  "executorTreeHash": "b84e68fbcb3c649fda2ae644b1fb52cb52fcb988328760e7979ef12a8c7532bb",
+  "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+  "reviewedAt": "2026-09-04T17:16:26Z",
+  "scope": {
+    "product": "linear_perpetual",
+    "positionMode": "oneway",
+    "marginMode": "cross",
+    "settlementAssets": [
+      "USDC"
+    ],
+    "modes": [
+      "testnet",
+      "live"
+    ],
+    "contractSizeRule": "positive_native_base_multiplier"
+  },
+  "providerAcceptanceVerified": false
 }

@@ -1,4 +1,7 @@
 import { createHash } from 'node:crypto';
+import { solveTierQuantity, tierDecision } from './trading_leverage_tiers.js';
+import { fxNotionalBudget, fxSizedQuantity, fxSizingContext } from './trading_fx_sizing.js';
+import type { StoredFxConversion } from './trading_fx_repository.js';
 import {
   addDecimal,
   compareDecimal,
@@ -18,6 +21,7 @@ import type {
   TradingAccountSnapshot,
   TradingMarketSnapshot,
   TradingPlan,
+  TradingEntryPriceBoundary,
 } from './trading_types.js';
 
 export class TradingRiskError extends Error {
@@ -25,6 +29,98 @@ export class TradingRiskError extends Error {
     super(message);
     this.name = 'TradingRiskError';
   }
+}
+
+function priceQuantum(value: string): bigint {
+  const [whole, fraction = ''] = decimal(value, { positive: true }).split('.');
+  return BigInt(whole + fraction.padEnd(18, '0'));
+}
+
+function formatPriceQuantum(value: bigint): string {
+  const digits = value.toString().padStart(19, '0');
+  return decimal(`${digits.slice(0, -18)}.${digits.slice(-18)}`, { positive: true });
+}
+
+/** Exact rational arithmetic: do not truncate a SHORT floor before rounding it to the tick. */
+export function createEntryPriceBoundary(input: {
+  side: 'LONG' | 'SHORT'; referencePrice: string; priceTick: string; maxSlippagePercent: string;
+}): TradingEntryPriceBoundary {
+  const referencePrice = decimal(input.referencePrice, { positive: true });
+  const priceTick = decimal(input.priceTick, { positive: true });
+  const maxSlippagePercent = decimal(input.maxSlippagePercent, { positive: true, max: '5' });
+  if (!['LONG', 'SHORT'].includes(input.side)) throw new TradingRiskError('ENTRY_PRICE_BOUND_UNPROVEN', 'Entry boundary side is invalid.');
+  const hundred = 100n * 10n ** 18n;
+  const factor = input.side === 'LONG' ? hundred + priceQuantum(maxSlippagePercent) : hundred - priceQuantum(maxSlippagePercent);
+  const numerator = priceQuantum(referencePrice) * factor;
+  const denominator = hundred * priceQuantum(priceTick);
+  const ticks = input.side === 'LONG' ? numerator / denominator : (numerator + denominator - 1n) / denominator;
+  return { version: 1, referencePrice, maxSlippagePercent, priceTick, limitPrice: formatPriceQuantum(ticks * priceQuantum(priceTick)) };
+}
+
+function assertBoundaryContract(boundary: TradingEntryPriceBoundary, side: TradingPlan['side'], slippage: string): void {
+  const expected = createEntryPriceBoundary({ ...boundary, side, maxSlippagePercent: slippage });
+  for (const key of Object.keys(expected) as Array<keyof TradingEntryPriceBoundary>) {
+    if (boundary[key] !== expected[key]) throw new TradingRiskError('ENTRY_PRICE_BOUND_UNPROVEN', 'Original entry price boundary is invalid or changed.');
+  }
+}
+
+export function assertEntryPriceBoundary(plan: Pick<TradingPlan, 'side' | 'maxSlippagePercent' | 'entryPriceBoundary'>, entry: PlannedOrder): void {
+  const boundary = plan.entryPriceBoundary;
+  if (!boundary) {
+    if (entry.orderType === 'market' || entry.timeInForce !== undefined) {
+      throw new TradingRiskError('ENTRY_PRICE_BOUND_UNPROVEN', 'Market-based entry requires its original price boundary.');
+    }
+    return;
+  }
+  assertBoundaryContract(boundary, plan.side, plan.maxSlippagePercent);
+  if (entry.role !== 'entry' || entry.reduceOnly || entry.orderType !== 'limit' || entry.timeInForce !== 'IOC'
+    || entry.postOnly || entry.price !== boundary.limitPrice || entry.side !== (plan.side === 'LONG' ? 'buy' : 'sell')) {
+    throw new TradingRiskError('ENTRY_PRICE_BOUND_UNPROVEN', 'Entry must retain its original price-limited IOC contract.');
+  }
+}
+
+function planPriceBoundary(input: {
+  signal: ExecutableSignal; strategy: StrategyConfiguration; market: TradingMarketSnapshot;
+  entryPriceBoundary?: TradingEntryPriceBoundary | null;
+}): TradingEntryPriceBoundary | undefined {
+  const isMarket = input.signal.entry.type === 'market' || input.strategy.entry.orderType === 'market';
+  if (!isMarket) {
+    if (input.entryPriceBoundary) throw new TradingRiskError('ENTRY_PRICE_BOUND_UNPROVEN', 'Ordinary signal limits must not become market IOC entries.');
+    return undefined;
+  }
+  const boundary = input.entryPriceBoundary ?? createEntryPriceBoundary({ side: input.signal.action,
+    referencePrice: input.market.markPrice, priceTick: input.market.priceTick, maxSlippagePercent: input.strategy.safety.maxSlippagePercent });
+  assertBoundaryContract(boundary, input.signal.action, input.strategy.safety.maxSlippagePercent);
+  if (boundary.priceTick !== decimal(input.market.priceTick)) throw new TradingRiskError('ENTRY_PRICE_BOUND_UNPROVEN', 'Market tick changed since original entry planning.');
+  return boundary;
+}
+
+export function resolveEntryExpiresAt(originAt: number, ttlSeconds: number, earlierDeadline?: number | null): number {
+  const deadline = originAt + ttlSeconds * 1_000;
+  if (!Number.isSafeInteger(originAt) || originAt <= 0 || !Number.isSafeInteger(ttlSeconds)
+    || ttlSeconds < 10 || ttlSeconds > 86_400 || !Number.isSafeInteger(deadline)) {
+    throw new TradingRiskError('ENTRY_DEADLINE_UNPROVEN', 'Original entry origin or deadline cannot be proven.');
+  }
+  if (earlierDeadline === undefined || earlierDeadline === null) return deadline;
+  if (!Number.isSafeInteger(earlierDeadline) || earlierDeadline <= 0) {
+    throw new TradingRiskError('ENTRY_DEADLINE_UNPROVEN', 'Persisted entry deadline is invalid.');
+  }
+  return Math.min(deadline, earlierDeadline);
+}
+
+export function assertEntryNotExpired(deadline: number | null | undefined, now = Date.now()): void {
+  if (!Number.isSafeInteger(deadline) || Number(deadline) <= 0 || !Number.isSafeInteger(now)) {
+    throw new TradingRiskError('ENTRY_DEADLINE_UNPROVEN', 'Absolute entry deadline cannot be proven.');
+  }
+  if (now >= Number(deadline)) throw new TradingRiskError('ENTRY_INTENT_EXPIRED', 'Original entry deadline has expired.');
+}
+
+function planEntryTiming(input: {
+  now?: number; entryOriginAt?: number; entryExpiresAt?: number | null; strategy: StrategyConfiguration;
+}): Pick<TradingPlan, 'createdAt' | 'entryExpiresAt'> {
+  const createdAt = input.now ?? Date.now();
+  const originAt = input.entryOriginAt ?? createdAt;
+  return { createdAt, entryExpiresAt: resolveEntryExpiresAt(originAt, input.strategy.safety.entryOrderTtlSeconds, input.entryExpiresAt) };
 }
 
 function clientOrderId(intentId: string, role: PlannedOrder['role'], index = 0): string {
@@ -103,7 +199,7 @@ export function resolveLeverageDecision(
     ?? strategy.sizing.maxLeverage;
   const strategyMaximum = strategy.sizing.maxLeverage;
   const marketMaximum = market.maxLeverage;
-  const effective = Math.min(requested, strategyMaximum, marketMaximum);
+  const effective = Math.min(requested, strategyMaximum, marketMaximum, 50);
   const strategyCaps = requested > strategyMaximum && strategyMaximum === effective;
   const marketCaps = requested > marketMaximum && marketMaximum === effective;
   const cappedBy = strategyCaps && marketCaps
@@ -294,6 +390,7 @@ function plannedOrders(input: {
   stop: string;
   quantity: string;
   targetAllocations: string[];
+  entryPriceBoundary?: TradingEntryPriceBoundary;
 }): PlannedOrder[] {
   const openingSide = input.signal.action === 'LONG' ? 'buy' : 'sell';
   const closingSide = openingSide === 'buy' ? 'sell' : 'buy';
@@ -307,9 +404,10 @@ function plannedOrders(input: {
     clientOrderId: clientOrderId(input.intentId, 'entry'),
     role: 'entry',
     side: openingSide,
-    orderType: entryType,
+    orderType: input.entryPriceBoundary ? 'limit' : entryType,
+    ...(input.entryPriceBoundary ? { timeInForce: 'IOC' as const } : {}),
     quantity: input.quantity,
-    price: entryType === 'limit' ? input.entry : null,
+    price: input.entryPriceBoundary?.limitPrice ?? (entryType === 'limit' ? input.entry : null),
     triggerPrice: null,
     reduceOnly: false,
     postOnly: entryType === 'limit' && input.strategy.entry.postOnly,
@@ -344,74 +442,97 @@ function plannedOrders(input: {
   return [entry, stop, ...takeProfits];
 }
 
-export function createTradingPlan(input: {
+interface TradingPlanInput {
   intentId: string;
   signal: ExecutableSignal;
   strategy: StrategyConfiguration;
   account: TradingAccountSnapshot;
   market: TradingMarketSnapshot;
+  fxConversion?: StoredFxConversion;
   effectiveRiskPercent?: string;
+  entryOriginAt?: number;
+  entryExpiresAt?: number | null;
+  entryPriceBoundary?: TradingEntryPriceBoundary | null;
   now?: number;
-}): TradingPlan {
-  assertStrategyAllows(input.signal, input.strategy);
-  const targetAllocations = resolveTargetAllocations(input.strategy, input.signal.targets.length);
-  const price = quantizedEntryPrice(input.signal, input.strategy, input.market);
-  const stop = quantizedStopPrice(input.signal, input.market);
-  const distance = riskDistance({ ...input.signal, stopLoss: stop }, price);
+}
+
+function configuredPlanRisk(input: TradingPlanInput): string {
   const adaptiveCeiling = input.strategy.sizing.maxAdaptiveRiskPercent
     ?? input.strategy.sizing.riskPerTradePercent;
   const selectedRisk = input.effectiveRiskPercent
     ? minDecimal(decimal(input.effectiveRiskPercent, { positive: true, max: '10' }), adaptiveCeiling)
     : input.strategy.sizing.riskPerTradePercent;
   const sizingMode = input.strategy.sizing.positionSizingMode ?? 'risk_percent';
-  const configuredRisk = sizingMode === 'risk_percent' && input.signal.suggestedRiskPercent
+  return sizingMode === 'risk_percent' && input.signal.suggestedRiskPercent
     ? minDecimal(selectedRisk, input.signal.suggestedRiskPercent)
     : selectedRisk;
+}
+
+function quantityForPlan(input: TradingPlanInput, entry: string, riskPercent: string, distance: string, leverage: number): string {
+  if (input.fxConversion) return fxSizedQuantity({ ...input, entry, percent: riskPercent, distance, leverage });
+  const common = { account: input.account, market: input.market, entry,
+    maxNotional: input.strategy.sizing.maxPositionNotional, leverage };
+  if (input.strategy.sizing.positionSizingMode === 'equity_percent_notional') {
+    return equityPercentPositionQuantity({ ...common, positionPercent: riskPercent });
+  }
+  if (input.strategy.sizing.positionSizingMode === 'equity_percent_margin') {
+    return equityPercentMarginQuantity({ ...common, capitalPercent: riskPercent });
+  }
+  return positionQuantity({ ...common, riskAmount: divideDecimal(multiplyDecimal(input.account.equity, riskPercent), '100'), riskDistance: distance });
+}
+
+function originalNotionalBudget(input: TradingPlanInput, capital: string, leverage: number): string {
+  const mode = input.strategy.sizing.positionSizingMode;
+  const sized = mode === 'equity_percent_margin' ? multiplyDecimal(capital, String(leverage))
+    : mode === 'equity_percent_notional' ? capital : input.strategy.sizing.maxPositionNotional;
+  return minDecimal(input.strategy.sizing.maxPositionNotional, multiplyDecimal(input.account.availableBalance, String(leverage)), sized);
+}
+
+function solvePlanSizing(input: TradingPlanInput, price: string, distance: string, limitPrice: string) {
+  const fxSizing = fxSizingContext(input);
+  const configuredRisk = configuredPlanRisk(input);
   const leverageDecision = resolveLeverageDecision(input.signal, input.strategy, input.market);
-  const leverage = leverageDecision.effective;
   const configuredRiskAmount = divideDecimal(multiplyDecimal(input.account.equity, configuredRisk), '100');
-  const quantity = sizingMode === 'equity_percent_notional'
-    ? equityPercentPositionQuantity({
-      account: input.account,
-      market: input.market,
-      entry: price,
-      positionPercent: configuredRisk,
-      maxNotional: input.strategy.sizing.maxPositionNotional,
-      leverage,
-    })
-    : sizingMode === 'equity_percent_margin'
-      ? equityPercentMarginQuantity({
-        account: input.account,
-        market: input.market,
-        entry: price,
-        capitalPercent: configuredRisk,
-        maxNotional: input.strategy.sizing.maxPositionNotional,
-        leverage,
-      })
-    : positionQuantity({
-      account: input.account,
-      market: input.market,
-      entry: price,
-      riskAmount: configuredRiskAmount,
-      riskDistance: distance,
-      maxNotional: input.strategy.sizing.maxPositionNotional,
-      leverage,
-    });
-  const notional = multiplyDecimal(quantity, price);
+  const sizingPrice = input.market.leverageTiers
+    ? (compareDecimal(input.market.markPrice, limitPrice) > 0 ? input.market.markPrice : limitPrice) : price;
+  const quantityAtLeverage = (leverage: number) => quantityForPlan(input, sizingPrice, configuredRisk, distance, leverage);
+  const solved = input.market.leverageTiers
+    ? solveTierQuantity(input.market.leverageTiers, leverageDecision.effective, quantityAtLeverage)
+    : { leverage: leverageDecision.effective, quantity: quantityAtLeverage(leverageDecision.effective), tierIndex: 0 };
+  const { leverage, quantity } = solved;
+  const maximumNotional = fxSizing ? fxNotionalBudget({ ...input, entry: sizingPrice, percent: configuredRisk, distance, leverage })
+    : originalNotionalBudget(input, configuredRiskAmount, leverage);
+  if (leverage < leverageDecision.effective) leverageDecision.cappedBy = 'market';
+  leverageDecision.effective = leverage;
+  const sizingMode = input.strategy.sizing.positionSizingMode;
   const riskAmount = sizingMode === 'equity_percent_notional' || sizingMode === 'equity_percent_margin'
     ? multiplyDecimal(quantity, distance)
     : configuredRiskAmount;
+  return { quantity, leverage, leverageDecision, riskAmount,
+    ...(fxSizing ? { fxSizing } : {}),
+    ...(input.market.leverageTiers ? { leverageTierDecision: tierDecision(input.market.leverageTiers, solved, maximumNotional) } : {}) };
+}
+
+export function createTradingPlan(input: TradingPlanInput): TradingPlan {
+  assertStrategyAllows(input.signal, input.strategy);
+  const targetAllocations = resolveTargetAllocations(input.strategy, input.signal.targets.length);
+  const entryPriceBoundary = planPriceBoundary(input);
+  const pricingMarket = entryPriceBoundary ? { ...input.market, markPrice: entryPriceBoundary.referencePrice } : input.market;
+  const price = quantizedEntryPrice(input.signal, input.strategy, pricingMarket);
+  const stop = quantizedStopPrice(input.signal, input.market);
+  const limitPrice = entryPriceBoundary?.limitPrice ?? price;
+  const distance = riskDistance({ ...input.signal, stopLoss: stop }, limitPrice);
+  const sizing = solvePlanSizing(input, price, distance, limitPrice);
+  const { quantity } = sizing;
   return {
     version: 1,
     symbol: input.signal.symbol,
     side: input.signal.action,
     entryPrice: price,
+    ...(entryPriceBoundary ? { entryPriceBoundary } : {}),
     stopPrice: stop,
-    quantity,
-    notional,
-    riskAmount,
-    leverage,
-    leverageDecision,
+    ...sizing,
+    notional: multiplyDecimal(quantity, price),
     entryTimeoutSeconds: input.strategy.entry.timeoutSeconds,
     entryOrderTtlSeconds: input.strategy.safety.entryOrderTtlSeconds,
     maxSlippagePercent: input.strategy.safety.maxSlippagePercent,
@@ -419,7 +540,7 @@ export function createTradingPlan(input: {
     targetAllocationMode: input.strategy.exits.targetAllocationMode ?? 'manual',
     targetAllocationsPercent: targetAllocations,
     stopLossMode: input.strategy.exits.stopLossMode ?? 'configured',
-    orders: plannedOrders({ ...input, entry: price, stop, quantity, targetAllocations }),
-    createdAt: input.now ?? Date.now(),
+    orders: plannedOrders({ ...input, entry: price, stop, quantity, targetAllocations, entryPriceBoundary }),
+    ...planEntryTiming(input),
   };
 }

@@ -165,7 +165,9 @@ function bodyFor(url: string) {
   if (url === "/api/runtime-settings") return { settings: { dashboardAuthMode: "tailscale", dashboardLocalTrust: false, dashboardAllowedOrigin: "https://tsx.test", tailscaleServeTrustedProxy: true, tailscaleAdminUsers: "admin@example.com", tailscaleViewerUsers: "", enterpriseMode: false, auditRemoteRequired: false, backupOffsiteRequired: false, workerCount: 2 } }
   if (url === "/api/secrets") return { secrets: { telegramApiHash: { configured: true }, openRouterApiKey: { configured: true }, auditWebhookToken: { configured: false } } }
   if (url === "/api/recovery") return { active: false, issues: [] }
-  if (url === "/api/operations") return { operations: { audit: { healthy: true }, backup: { healthy: true, lastSuccessAt: now }, mcp: { healthy: true } } }
+  if (url === "/api/operations") return { operations: { audit: { healthy: true }, backup: { healthy: true,
+    integrityVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, configurationCoherent: { verifiedAt: now, artifactSha256: "a".repeat(64) },
+    offsiteVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, restoreEligibility: { status: "eligible", checkedAt: now }, restoreDrill: null }, mcp: { healthy: true } } }
   return { success: true, result: {}, artifact: "backup-v3.1.0", token: "one-time-token" }
 }
 
@@ -181,10 +183,10 @@ const headings: Record<OperationTab, string> = {
   system: "Telegram-Routing",
 }
 
-function workspace(tab: OperationTab) {
+function workspace(tab: OperationTab, snapshot = trading) {
   return render(
     <OperationsWorkspace
-      trading={trading}
+      trading={snapshot}
       catalog={catalog}
       systemStatus={{ connectionState: "connected", isRunning: true, resolvedSources: ["VIP"], queue: { running: 1, queued: 0 }, telegramLogin: { state: "idle" } }}
       onRefresh={vi.fn(async () => undefined)}
@@ -205,6 +207,29 @@ describe("operations workspace", () => {
 
   afterEach(() => cleanup())
 
+  it("shows rational journal money as a valued result with an exact accessible proof", async () => {
+    const value = { lower: "-9.975062344139650873", upper: "-9.975062344139650872", exact: { numerator: "-4000", denominator: "401" },
+      decimal: null, precision: "exact_rational", terms: 1 }
+    api.apiFetch.mockImplementation((url: string) => {
+      const body = structuredClone(bodyFor(url)) as any
+      if (url.startsWith("/api/trading/journal?")) {
+        body.entries[0].money = { realizedPnl: null, realizedPnlValue: value, reportingCurrency: "USD", accountingStatus: "complete" }
+        body.entries[0].position.realizedPnl = null
+      }
+      return json(body)
+    })
+    workspace("journal")
+    expect(await screen.findByTitle("Exakt: -4000/401 USD")).toHaveTextContent("≈ −9,975062 USD")
+    expect(screen.queryByText("offen")).not.toBeInTheDocument()
+  })
+
+  it("does not substitute unrealized PnL for an unresolved realized dashboard amount", async () => {
+    const next = structuredClone(trading)
+    next.activity.positions[0] = { ...next.activity.positions[0], realizedPnl: null, accountingStatus: "unresolved" }
+    workspace("overview", next)
+    expect(await screen.findByTitle("Fehlende oder widersprüchliche Geldbelege; kein Nullbetrag.")).toHaveTextContent("Bewertung ungeklärt")
+  })
+
   it.each(Object.entries(headings) as Array<[OperationTab, string]>) (
     "renders the data-rich %s workspace",
     async (tab, heading) => {
@@ -216,7 +241,7 @@ describe("operations workspace", () => {
         await screen.findByText(/Paar · Voll/)
         await screen.findByText(/MAX_CONCURRENT_POSITIONS/)
       }
-      if (tab === "journal") await screen.findByText(/PnL\s+4\.99/)
+      if (tab === "journal") expect(await screen.findByTitle("Exakt: 4.99")).toHaveTextContent("4,99")
       if (tab === "analytics") await screen.findByText("75,0 %")
       if (tab === "analytics") {
         await screen.findByText("Fallback-Auswahl je Börsenkonto")
@@ -257,6 +282,25 @@ describe("operations workspace", () => {
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
       "/api/telegram-viewer/test", expect.objectContaining({ method: "POST" }),
     ))
+  })
+
+  it("requires exact confirmation before requesting the global safety proof", async () => {
+    const snapshot = structuredClone(trading)
+    snapshot.overview.runtime.killSwitchActive = true
+    workspace("overview", snapshot)
+    fireEvent.click(screen.getByRole("button", { name: "Sperre prüfen & lösen" }))
+    await screen.findByRole("heading", { name: "Globale Sperre lösen" })
+    const buttons = screen.getAllByRole("button", { name: "Sperre prüfen & lösen" })
+    const confirmation = buttons.find(button => button.hasAttribute("disabled"))!
+    expect(confirmation).toBeDisabled()
+    fireEvent.change(screen.getByLabelText(/Zur Bestätigung exakt „RELEASE GLOBAL KILL SWITCH“/), {
+      target: { value: "RELEASE GLOBAL KILL SWITCH" },
+    })
+    expect(confirmation).toBeEnabled()
+    fireEvent.click(confirmation)
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith("/api/trading/runtime", expect.objectContaining({
+      method: "POST", body: JSON.stringify({ action: "kill-switch", active: false, confirmation: "RELEASE GLOBAL KILL SWITCH" }),
+    })))
   })
 
   it("exercises safe account editing and account kill-switch release", async () => {
@@ -322,7 +366,7 @@ describe("operations workspace", () => {
 
   it("applies journal filters and acknowledges a risk event", async () => {
     workspace("journal")
-    await screen.findByText(/PnL\s+4\.99/)
+    expect(await screen.findByTitle("Exakt: 4.99")).toHaveTextContent("4,99")
     fireEvent.change(screen.getByPlaceholderText("BTCUSDT"), { target: { value: "eth/usdt" } })
     fireEvent.change(screen.getAllByRole("combobox")[1], { target: { value: "paper-1" } })
     fireEvent.click(screen.getByRole("button", { name: "Quittieren" }))
@@ -387,6 +431,9 @@ describe("operations workspace", () => {
     window.open = openMock as any
     workspace("system")
     const diagButton = await screen.findByRole("button", { name: "Diagnosestatus öffnen" })
+    expect(screen.getByText("Letzte Integritätsprüfung")).toBeInTheDocument()
+    expect(screen.getByText("Offsite zurückgelesen und geprüft")).toBeInTheDocument()
+    expect(screen.getByText("Letzter tatsächlich durchgeführter Probelauf").parentElement).toHaveTextContent("–")
     fireEvent.click(diagButton)
     expect(openMock).toHaveBeenCalledWith("/api/status", "_blank", "noopener,noreferrer")
     fireEvent.click(screen.getByRole("button", { name: "Audit erneut übertragen" }))
@@ -425,6 +472,20 @@ describe("operations workspace", () => {
     expect(screen.getByText("ccxt")).toBeInTheDocument();
     expect(screen.getByText("ccxt-pro")).toBeInTheDocument();
     expect(screen.getByText("rest")).toBeInTheDocument();
-    expect(await screen.findByText("nicht aktuell – Aktion gesperrt")).toBeInTheDocument();
+    expect(await screen.findByText("nicht aktuell oder nicht wiederherstellbar – Aktion gesperrt")).toBeInTheDocument();
+  })
+
+  it("does not turn integrity/offsite health into restore eligibility", async () => {
+    api.apiFetch.mockImplementation((url: string) => {
+      if (url === "/api/operations") return json({ operations: { backup: { healthy: true,
+        integrityVerified: { verifiedAt: Date.now() }, offsiteVerified: { verifiedAt: Date.now() },
+        restoreEligibility: { status: "blocked", checkedAt: Date.now() }, restoreDrill: null } } });
+      return json(bodyFor(url));
+    });
+    workspace("system");
+    const input = await screen.findByPlaceholderText("DATENBANK LEEREN oder FACTORY RESET");
+    fireEvent.change(input, { target: { value: "FACTORY RESET" } });
+    expect(screen.getByRole("button", { name: "Factory Reset" })).toBeDisabled();
+    expect(screen.getByText("Letzter tatsächlich durchgeführter Probelauf").parentElement).toHaveTextContent("–");
   })
 })

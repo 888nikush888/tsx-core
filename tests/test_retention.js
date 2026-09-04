@@ -143,7 +143,7 @@ async function seedTradingRetentionRows(database, strategyId) {
        exchange_order_id, account_id, client_order_id, symbol, role, side, order_type, status,
        quantity, filled_quantity, reduce_only, leverage, created_at, updated_at
     ) VALUES ('paper-old', 'paper-default', 'paper-client-old', 'BTCUSDT', 'entry', 'buy', 'limit',
-               'filled', '1', '1', 0, 1, ?, ?)`, [OLD, OLD]
+               'cancelled', '1', '0', 0, 1, ?, ?)`, [OLD, OLD]
   );
   await seedFallbackRetentionRows(database, strategyId);
 }

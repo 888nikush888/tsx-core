@@ -12,7 +12,7 @@ import {
   archiveWorkflowResource,
   archiveWorkflowResourceFamily,
   createWorkflowResourceDraft,
-  createWorkflowTradingIntents,
+  createWorkflowTradingIntents as createPinnedWorkflowTradingIntents,
   deleteWorkflowResourceFamily,
   deleteWorkflowResourceDraft,
   getActiveWorkflow,
@@ -25,6 +25,11 @@ import {
   updateWorkflowResourceDraft,
 } from '../src/workflow_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
+
+// These direct-call fixtures pin at creation; production pins when Telegram ingress is committed.
+async function createWorkflowTradingIntents(input, now) {
+  return createPinnedWorkflowTradingIntents({ ...input, workflowRevisionId: (await getActiveWorkflow()).id }, now);
+}
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-workflow-'));
 try {

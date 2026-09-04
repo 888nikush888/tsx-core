@@ -4,19 +4,30 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-09-04
+
 ### Added
 
 - Exklusive, kanalbezogene Börsenkonto-Fallback-Ketten im visuellen Builder. Kontobausteine können in einer festen Reihenfolge verbunden werden; TSX Core erzeugt erst dann den nächsten Intent, wenn der CCXT-Executor für das aktuelle Konto das normalisierte Futures-Paar eindeutig als nicht verfügbar bestätigt.
 - Persistente Fallback-Läufe mit Kandidatenrang, ausgewähltem Konto, Erschöpfungs-/Stoppgrund sowie Anzeige in Dashboard, Analytics, Workflow-Snapshot und MCP.
+- Dauerhafte, crash-sichere Evidenz für Order-, Fill-, Mengen-, Konto-, Historien-, Funding- und FX-Zuordnung mit expliziten Recovery-Zeitplänen und unveränderlichen Handelsplan-Identitäten.
+- Vollständiges, offline reproduzierbares CCXT-Kandidateninventar mit 103 REST-Börsen, fest gebundenen Nachweisen und einer unabhängig gepinnten Hyperliquid-Implementierungsquittung.
+- Provider-Acceptance-Harness mit journalisiertem Testfortschritt, Crash-Wiederaufnahme und streng getrennter lokaler Implementierungs- und realer Anbieterfreigabe.
 
 ### Changed
 
 - Workflow-Graph und portable Setup-Bundles verwenden Schema v2 mit typisierten `flow`- und `account_fallback`-Kanten; bestehende Schema-v1-Workflows bleiben lesbar und werden beim Bearbeiten sicher hochgestuft.
+- Alle monetären Risikowerte, Gebühren, Funding-Buchungen und Analysen verwenden belegte USD-/USDT-/USDC-Werte. Stablecoins werden nie pauschal gleichgesetzt; fremde Gebührenwährungen benötigen einen höchstens zehn Sekunden alten, zeitlich kohärenten Umrechnungskurs.
+- Kontomodus, Entry-TTL, Leverage-Tiers, Schutzorders, Teilfüllungen, Cancels, Retention und Wiederanlauf werden über eine gemeinsame fail-closed Zustands- und Evidenzgrenze koordiniert.
+- Testinventar, Modul-Coverage, Mutation-Shards, Sonar-Evidenz und Containerprüfung wurden auf den erweiterten TypeScript-/Python-Umfang angehoben.
 
 ### Security
 
 - Nur eine identitätsgebundene, nebenwirkungsfreie `SYMBOL_UNAVAILABLE`-Antwort des Read-only-Market-Snapshot-Endpunkts darf eine Fallback-Stufe aktivieren. Konto-/Executorfehler, 502/503/Timeouts, Risiko- und Vertragsgates sowie unklare Submit-Ergebnisse stoppen die Kette fail-closed; die ursprüngliche Entry-TTL wird nie zurückgesetzt.
 - Das Exchange-Executor-Image pinnt `libcrypto3` und `libssl3` auf 3.5.8-r0 und schließt damit `CVE-2026-14456`; der Supply-Chain-Test erzwingt diese Mindestversion.
+- Hyperliquid-Masterkeys werden vor jeder Client-Erzeugung kryptografisch an die konfigurierte Wallet-Adresse gebunden. Fremde, ungültige und Null-Schlüssel werden ohne Secret-Leak abgewiesen; Agent-Wallets bleiben bis zu einem frisch belegten Grant gesperrt.
+- Fehlende FX-Evidenz sperrt ausschließlich neue Entries; Schutz, Cancel und Wiederherstellung bestehender Positionen bleiben aktiv. Bybit und Kraken Futures bleiben bis zur vollständigen unabhängigen Provider-Prüfung quarantänisiert.
+- Startup, Backup, Migration, Wartung, Restore und MCP verwenden gemeinsame Besitz-, Quiesce- und Beweisgrenzen, damit kein konkurrierender Prozess Datenbanken oder Handelszustand unbemerkt ersetzt.
 
 ## [3.2.0] - 2026-08-26
 

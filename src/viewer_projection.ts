@@ -1,4 +1,8 @@
 import { getDatabase } from './db.js';
+import { projectAllFillAccounting } from './trading_fill_accounting.js';
+import { moneyPerformanceRows, summarizeMoneyRows, type MoneySummary } from './trading_money_reporting.js';
+import { journalMoneyDetails, journalProjectedMoney } from './trade_journal.js';
+import { moneyValueFromDecimal, negateMoneyValue } from './trading_money_value.js';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -152,7 +156,7 @@ function positionFromRow(row: any): Record<string, unknown> {
     accountName: String(row.account_name), exchange: String(row.exchange), mode: String(row.mode),
     channelId: String(row.channel_id), symbol: String(row.symbol), side: String(row.side), status: String(row.status),
     quantity: String(row.quantity), averageEntryPrice: row.average_entry_price === null ? null : String(row.average_entry_price),
-    stopPrice: String(row.stop_price), realizedPnl: String(row.realized_pnl),
+    stopPrice: String(row.stop_price), ...journalProjectedMoney(row),
     openedAt: row.opened_at === null ? null : Number(row.opened_at),
     closedAt: row.closed_at === null ? null : Number(row.closed_at), updatedAt: Number(row.updated_at),
     leverage: leveragePresentation(row.plan_json),
@@ -163,12 +167,17 @@ const POSITION_SELECT = `
   SELECT position.id, position.intent_id, position.account_id, account.name AS account_name,
          account.exchange, account.mode, position.channel_id, position.symbol, position.side,
          position.status, position.quantity, position.average_entry_price, position.stop_price,
-         position.realized_pnl, position.opened_at, position.closed_at, position.updated_at, intent.plan_json
+         CASE WHEN accounting_pending.intent_id IS NULL THEN position.ledger_realized_pnl END AS realized_pnl,
+         position.ledger_realized_value_json AS value_json,
+         CASE WHEN accounting_pending.intent_id IS NULL THEN position.accounting_status ELSE 'unresolved' END AS accounting_status,
+         position.reporting_currency, position.opened_at, position.closed_at, position.updated_at, intent.plan_json
   FROM trading_positions AS position
   JOIN trading_accounts AS account ON account.id = position.account_id
-  JOIN trading_trade_intents AS intent ON intent.id = position.intent_id`;
+  JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
+  LEFT JOIN trading_accounting_pending accounting_pending ON accounting_pending.intent_id = position.intent_id`;
 
 export async function viewerPositions(input: { id?: unknown; limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
+  await projectAllFillAccounting();
   const id = optionalIdentifier(input.id);
   if (id) {
     const rows = await getDatabase().all<any[]>(`${POSITION_SELECT} WHERE position.id = ? LIMIT 1`, [id]);
@@ -215,15 +224,19 @@ export async function viewerOrders(input: { id?: unknown; limit?: unknown; offse
   return { orders: page.rows.map(orderFromRow), pagination: page.pagination };
 }
 
-function tradeFromRow(row: any): Record<string, unknown> {
+async function tradeFromRow(row: any): Promise<Record<string, unknown>> {
+  const { events: _events, ...money } = await journalMoneyDetails(String(row.id));
+  const feeValue = money.signedFees.realizedPnlValue ? negateMoneyValue(money.signedFees.realizedPnlValue) : null;
   return {
     id: String(row.id), channelId: String(row.channel_id), accountId: String(row.account_id),
     accountName: String(row.account_name), exchange: String(row.exchange), mode: String(row.mode),
     symbol: String(row.symbol), side: String(row.side), status: String(row.status),
     blockReason: row.block_reason === null ? null : String(row.block_reason),
     lastError: row.last_error === null ? null : String(row.last_error),
-    realizedPnl: row.realized_pnl === null ? null : String(row.realized_pnl),
-    fee: row.fee === null ? '0' : String(row.fee), createdAt: Number(row.created_at), updatedAt: Number(row.updated_at),
+    ...money,
+    fee: feeValue?.decimal ?? null, feeValue,
+    feeCurrency: money.signedFees.reportingCurrency, feeStatus: money.signedFees.accountingStatus,
+    createdAt: Number(row.created_at), updatedAt: Number(row.updated_at),
     leverage: leveragePresentation(row.plan_json),
   };
 }
@@ -231,25 +244,23 @@ function tradeFromRow(row: any): Record<string, unknown> {
 const TRADE_SELECT = `
   SELECT intent.id, intent.channel_id, intent.account_id, account.name AS account_name, intent.exchange,
          intent.mode, intent.symbol, intent.side, intent.status, intent.block_reason, intent.last_error,
-         intent.plan_json, intent.created_at, intent.updated_at, position.realized_pnl,
-         (SELECT COALESCE(SUM(CAST(fill.fee AS REAL)), 0) FROM trading_fills AS fill
-          JOIN trading_orders AS fee_order ON fee_order.id = fill.order_id WHERE fee_order.intent_id = intent.id) AS fee
+         intent.plan_json, intent.created_at, intent.updated_at
   FROM trading_trade_intents AS intent
-  JOIN trading_accounts AS account ON account.id = intent.account_id
-  LEFT JOIN trading_positions AS position ON position.intent_id = intent.id`;
+  JOIN trading_accounts AS account ON account.id = intent.account_id`;
 
 export async function viewerTrades(input: { id?: unknown; limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
+  await projectAllFillAccounting();
   const id = optionalIdentifier(input.id);
   if (id) {
     const rows = await getDatabase().all<any[]>(`${TRADE_SELECT} WHERE intent.id = ? LIMIT 1`, [id]);
-    return { trade: rows[0] ? tradeFromRow(rows[0]) : null };
+    return { trade: rows[0] ? await tradeFromRow(rows[0]) : null };
   }
   const limit = boundedLimit(input.limit);
   const offset = boundedOffset(input.offset);
   const page = paginated(await getDatabase().all<any[]>(
     `${TRADE_SELECT} ORDER BY intent.updated_at DESC, intent.id LIMIT ? OFFSET ?`, [limit + 1, offset],
   ), limit, offset);
-  return { trades: page.rows.map(tradeFromRow), pagination: page.pagination };
+  return { trades: await Promise.all(page.rows.map(tradeFromRow)), pagination: page.pagination };
 }
 
 export async function viewerSystem(): Promise<Record<string, unknown>> {
@@ -284,10 +295,26 @@ export async function viewerSummary(): Promise<Record<string, unknown>> {
   };
 }
 
+function performanceComponent(events: any[], kind: string, total: MoneySummary): MoneySummary {
+  const rows = events.filter(event => event.kind === kind);
+  if (rows.length === 0 && total.accountingStatus === 'complete') {
+    return summarizeMoneyRows([{ realizedPnl: '0', realizedPnlValue: { ...moneyValueFromDecimal('0'), terms: 0 },
+      reportingCurrency: total.reportingCurrency, accountingStatus: 'complete' }]);
+  }
+  return summarizeMoneyRows(rows);
+}
+
+function performanceMoney(events: any[]) {
+  const total = summarizeMoneyRows(events);
+  return { ...total, pricePnl: performanceComponent(events, 'realized_price_pnl', total),
+    signedFees: performanceComponent(events, 'fee', total), funding: performanceComponent(events, 'funding', total) };
+}
+
 export async function viewerPerformance(input: { days?: unknown } = {}): Promise<Record<string, unknown>> {
   const days = Number(input.days ?? 30);
   if (!Number.isSafeInteger(days) || days < 1 || days > 3650) throw new Error('Viewer performance period is invalid.');
   const since = Date.now() - days * 86_400_000;
+  const money = await moneyPerformanceRows(since, Date.now() + 1);
   const [equity, trades] = await Promise.all([
     getDatabase().all<any[]>(
       `SELECT account_id, equity, available_balance, unrealized_pnl, margin_used, observed_at
@@ -295,22 +322,30 @@ export async function viewerPerformance(input: { days?: unknown } = {}): Promise
     ),
     getDatabase().all<any[]>(
       `SELECT intent.channel_id, intent.account_id, intent.exchange, intent.mode,
-              COUNT(*) AS trades, COALESCE(SUM(CAST(position.realized_pnl AS REAL)), 0) AS realized_pnl
+              COUNT(*) AS trades
        FROM trading_trade_intents AS intent LEFT JOIN trading_positions AS position ON position.intent_id = intent.id
        WHERE intent.updated_at >= ? AND intent.status = 'completed'
        GROUP BY intent.channel_id, intent.account_id, intent.exchange, intent.mode ORDER BY trades DESC LIMIT 100`, [since],
     ),
   ]);
+  const groups = new Map<string, any>();
+  const key = (row: any) => JSON.stringify([row.channelId, row.accountId, row.exchange, row.mode]);
+  for (const row of trades) {
+    const group = { channelId: row.channel_id, accountId: row.account_id, exchange: row.exchange, mode: row.mode, trades: Number(row.trades), money: [] };
+    groups.set(key(group), group);
+  }
+  for (const row of money) {
+    const group = groups.get(key(row)) ?? { channelId: row.channelId, accountId: row.accountId, exchange: row.exchange, mode: row.mode, trades: 0, money: [] };
+    group.money.push(row);
+    groups.set(key(row), group);
+  }
   return {
     generatedAt: Date.now(), days,
     equity: equity.map(row => ({
       accountId: String(row.account_id), equity: String(row.equity), availableBalance: String(row.available_balance),
       unrealizedPnl: String(row.unrealized_pnl), marginUsed: String(row.margin_used), observedAt: Number(row.observed_at),
     })),
-    groups: trades.map(row => ({
-      channelId: String(row.channel_id), accountId: String(row.account_id), exchange: String(row.exchange),
-      mode: String(row.mode), trades: Number(row.trades), realizedPnl: String(row.realized_pnl),
-    })),
+    groups: [...groups.values()].slice(0, 100).map(({ money: events, ...group }) => ({ ...group, ...performanceMoney(events) })),
   };
 }
 

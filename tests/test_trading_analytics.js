@@ -8,6 +8,8 @@ import {
   listTradingStrategies,
 } from '../src/trading_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
+import { insertAccountedFill } from './fixtures/accounted_trades.js';
+import { addSignedDecimal } from '../src/trading_decimal.js';
 import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import {
   getChannelPerformanceAnalytics,
@@ -58,20 +60,12 @@ async function insertIntentFixture({
       [`position-${id}`, id, accountId, strategyVersionId, channelId, realizedPnl, closedAt - 1_000, closedAt, closedAt],
     );
   }
-  if (fillPrice === undefined) return;
-  await getDatabase().run(
-    `INSERT INTO trading_orders (
-       id, intent_id, account_id, client_order_id, role, side, order_type, status,
-       price, quantity, filled_quantity, reduce_only, request_json, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, 'entry', 'buy', 'limit', 'filled', ?, '1', '1', 0, '{}', ?, ?)`,
-    [`order-${id}`, id, accountId, `client-${id}`, plannedPrice ?? null, closedAt - 500, closedAt],
-  );
-  await getDatabase().run(
-    `INSERT INTO trading_fills (
-       id, order_id, account_id, exchange_fill_id, price, quantity, fee, filled_at, raw_json
-     ) VALUES (?, ?, ?, ?, ?, '1', '0.1', ?, '{}')`,
-    [`fill-${id}`, `order-${id}`, accountId, `exchange-fill-${id}`, fillPrice, closedAt],
-  );
+  if (fillPrice === undefined && realizedPnl === undefined) return;
+  const entryPrice = fillPrice ?? '1000';
+  await insertAccountedFill({ intentId: id, accountId, id, price: entryPrice, fee: '0.1',
+    plannedPrice: plannedPrice ?? null, filledAt: closedAt - 500 });
+  if (realizedPnl !== undefined) await insertAccountedFill({ intentId: id, accountId, id: `exit-${id}`, role: 'flatten',
+    price: addSignedDecimal(addSignedDecimal(entryPrice, realizedPnl), '0.1'), filledAt: closedAt });
 }
 
 function policyInput(channelId, overrides = {}) {
@@ -189,7 +183,7 @@ try {
   const performance = await getChannelPerformanceAnalytics(closedAt - 120_000);
   const profitChannel = performance.channels.find(channel => channel.id === 'profit-channel');
   assert.equal(profitChannel.closedTrades, 3);
-  assert.equal(profitChannel.realizedPnl, 80);
+  assert.equal(profitChannel.realizedPnl, '80');
   assert.ok(Number(profitChannel.averageEntrySlippageBps) > 0);
   assert.equal(performance.exchanges[0].id, 'paper/paper');
   assert.ok(performance.equity.some(point => Number(point.drawdownPercent) === 10));
