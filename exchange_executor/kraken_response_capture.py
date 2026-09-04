@@ -9,7 +9,6 @@ import asyncio
 import hmac
 import json
 import re
-import secrets
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
@@ -30,7 +29,6 @@ HISTORY_ROOTS = frozenset({
 })
 _INVALID_UNICODE = re.compile('[\ud800-\udfff\ufffd]')
 _CONTROL = re.compile('[\x00-\x1f\x7f]')
-_CLIENT_BINDING_KEY = secrets.token_bytes(32)
 
 
 def _error(reason: str) -> ExchangeContractError:
@@ -38,7 +36,7 @@ def _error(reason: str) -> ExchangeContractError:
     return ExchangeContractError(f'Kraken response capture is unproved: {reason}.')
 
 
-def _client_binding(rest: Any) -> tuple[str, str]:
+def _client_binding(rest: Any) -> tuple[str, tuple[str, str]]:
     if getattr(rest, 'id', None) != 'krakenfutures':
         raise _error('client')
     urls = getattr(rest, 'urls', None)
@@ -49,8 +47,7 @@ def _client_binding(rest: Any) -> tuple[str, str]:
     values = (getattr(rest, 'apiKey', None), getattr(rest, 'secret', None))
     if any(not isinstance(value, str) or not value for value in values):
         raise _error('credentials')
-    digest = hmac.digest(_CLIENT_BINDING_KEY, json.dumps(values, ensure_ascii=True).encode(), 'sha256').hex()
-    return root, digest
+    return root, values
 
 
 def _request_params(params: Any) -> dict[str, Any]:
@@ -72,7 +69,7 @@ class _Capture:
     client: Any
     task: Any
     root: str
-    credential_hash: str
+    credentials: tuple[str, str] = field(repr=False)
     query: dict[str, str]
     active: bool = True
     sent: bool = False
@@ -87,7 +84,10 @@ class _Capture:
     def assert_owner(self, rest: Any) -> None:
         if not self.active or self.failed or rest is not self.client or asyncio.current_task() is not self.task:
             self.fail('request ownership')
-        if _client_binding(rest) != (self.root, self.credential_hash):
+        root, credentials = _client_binding(rest)
+        if (root != self.root
+                or not hmac.compare_digest(credentials[0], self.credentials[0])
+                or not hmac.compare_digest(credentials[1], self.credentials[1])):
             self.fail('changed client binding')
 
     def assert_request(self, url: Any, method: Any, headers: Any, body: Any) -> None:
@@ -220,8 +220,8 @@ async def read_exact_kraken_account_log(rest: Any, params: dict[str, Any]) -> di
     if _CURRENT.get() is not None:
         raise _error('nested capture')
     request = _request_params(params)
-    root, fingerprint = _client_binding(rest)
-    scope = _Capture(rest, asyncio.current_task(), root, fingerprint,
+    root, credentials = _client_binding(rest)
+    scope = _Capture(rest, asyncio.current_task(), root, credentials,
                      {key: str(value) for key, value in request.items() if key != 'version'})
     token = _CURRENT.set(scope)
     try:
