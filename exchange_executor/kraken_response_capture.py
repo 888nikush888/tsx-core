@@ -6,9 +6,10 @@ uses no shared last-response slot and does not certify wallet/reporting scope.
 from __future__ import annotations
 
 import asyncio
-import hashlib
+import hmac
 import json
 import re
+import secrets
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
@@ -29,6 +30,7 @@ HISTORY_ROOTS = frozenset({
 })
 _INVALID_UNICODE = re.compile('[\ud800-\udfff\ufffd]')
 _CONTROL = re.compile('[\x00-\x1f\x7f]')
+_CLIENT_BINDING_KEY = secrets.token_bytes(32)
 
 
 def _error(reason: str) -> ExchangeContractError:
@@ -47,7 +49,7 @@ def _client_binding(rest: Any) -> tuple[str, str]:
     values = (getattr(rest, 'apiKey', None), getattr(rest, 'secret', None))
     if any(not isinstance(value, str) or not value for value in values):
         raise _error('credentials')
-    digest = hashlib.sha256(json.dumps(values, ensure_ascii=True).encode()).hexdigest()
+    digest = hmac.digest(_CLIENT_BINDING_KEY, json.dumps(values, ensure_ascii=True).encode(), 'sha256').hex()
     return root, digest
 
 
