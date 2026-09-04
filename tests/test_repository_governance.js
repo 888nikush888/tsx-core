@@ -284,7 +284,7 @@ for (const sourcePath of resolvedSources) {
   }
 }
 assert.match(editorConfig, /^charset = utf-8$/m);
-assert.match(gitAttributes, /^\* text=auto$/m);
+assert.match(gitAttributes, /^\* text=auto eol=lf$/m);
 for (const removedPath of [
   '.github/workflows/pr_risk.yml',
   '.github/workflows/release.yml',

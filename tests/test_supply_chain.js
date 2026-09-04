@@ -32,12 +32,18 @@ const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf
 const strykerConfig = await readFile(path.join(root, 'stryker.config.mjs'), 'utf8');
 const mutationRunner = await readFile(path.join(root, 'scripts', 'run_mutation_shards.js'), 'utf8');
 const gitleaksConfig = await readFile(path.join(root, '.gitleaks.toml'), 'utf8');
+const gitAttributes = await readFile(path.join(root, '.gitattributes'), 'utf8');
 
 const allWorkflows = `${workflow}\n${stagingWorkflow}\n${syntheticWorkflow}\n${productionEvidenceWorkflow}`;
 const actionReferences = [...allWorkflows.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+).*$/gm)].map(
   (match) => match[1]
 );
 assert.ok(actionReferences.length > 0, 'quality workflow must use pinned actions');
+assert.match(
+  gitAttributes,
+  /^\* text=auto eol=lf$/m,
+  'reviewed source bytes must be canonical across Windows and Linux checkouts'
+);
 assert.match(gitleaksConfig, /useDefault = true/);
 assert.match(gitleaksConfig, /targetRules = \["generic-api-key"\]/);
 assert.match(gitleaksConfig, /condition = "AND"/);

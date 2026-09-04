@@ -36,7 +36,7 @@ export const BUILD_INPUT_POLICY = Object.freeze({
     'frontend/src', 'frontend/public', 'frontend/tests', 'frontend/e2e', '.github', 'config', 'security', 'monitoring', 'docs']),
   requiredFiles: Object.freeze(['package.json', 'package-lock.json', 'tsconfig.json', 'eslint.config.js',
     'stryker.config.mjs', 'c8.critical.json', 'c8.modules.json', 'coverage-baseline.json', 'quality-baseline.json',
-    'ruff.toml', 'sonar-project.properties', '.npmrc', '.nvmrc', '.python-version', '.dockerignore',
+    'ruff.toml', 'sonar-project.properties', '.gitattributes', '.npmrc', '.nvmrc', '.python-version', '.dockerignore',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.monitoring.yml', '.github/workflows/quality.yml',
     'frontend/package.json', 'frontend/package-lock.json', 'frontend/tsconfig.json', 'frontend/playwright.config.ts',
     'frontend/vite.config.ts', 'exchange_executor/requirements.lock', 'exchange_executor/requirements-dev.lock',
@@ -126,7 +126,8 @@ function selectedFlatFile(relative) {
   if (relative === authorityFile) return false;
   const name = path.posix.basename(relative);
   return /\.(?:[cm]?js|tsx?|json(?:\.example)?|ya?ml|toml|lock|in|properties|html|py)$/.test(name)
-    || /^Dockerfile(?:\.|$)/.test(name) || /^\.(?:dockerignore|npmrc|nvmrc|python-version|gitleaks\.toml|env\.example)$/.test(name);
+    || /^Dockerfile(?:\.|$)/.test(name)
+    || /^\.(?:dockerignore|gitattributes|npmrc|nvmrc|python-version|gitleaks\.toml|env\.example)$/.test(name);
 }
 
 function discoverFiles(root) {
