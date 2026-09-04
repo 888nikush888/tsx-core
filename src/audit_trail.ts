@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
 import { mkdir, lstat, open, rm, type FileHandle } from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
+import { finished } from 'node:stream/promises';
 import { enterpriseMode } from './runtime_profile.js';
 
 export type AuditPhase = 'startup' | 'authorized' | 'completed';
@@ -122,10 +122,12 @@ async function* verifiedRecordsFromFile(filePath: string): AsyncGenerator<AuditR
     throw error;
   });
   if (!handle) return;
+  let input: ReturnType<FileHandle['createReadStream']> | null = null;
+  let lines: ReturnType<typeof createInterface> | null = null;
   try {
     await verifiedRegularFileStats(filePath, handle);
-    const input = createReadStream(filePath, { fd: handle.fd, autoClose: false, encoding: 'utf8' });
-    const lines = createInterface({ input, crlfDelay: Infinity });
+    input = handle.createReadStream({ autoClose: true, encoding: 'utf8' });
+    lines = createInterface({ input, crlfDelay: Infinity });
     let previousHash = ZERO_HASH;
     let sequence = 0;
     for await (const line of lines) {
@@ -136,7 +138,13 @@ async function* verifiedRecordsFromFile(filePath: string): AsyncGenerator<AuditR
       yield record;
     }
   } finally {
-    await handle.close();
+    lines?.close();
+    if (input) {
+      if (!input.destroyed) input.destroy();
+      await finished(input, { cleanup: true }).catch(() => undefined);
+    } else {
+      await handle.close();
+    }
   }
 }
 

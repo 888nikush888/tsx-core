@@ -61,8 +61,10 @@ try {
   assert.equal(resetRecords[0].previousHash, '0'.repeat(64));
 
   await writeFile(filePath, `${JSON.stringify({ ...records[0], event: { ...records[0].event, path: '/tampered' } })}\n`, 'utf8');
-  const tampered = new EnterpriseAuditTrail({ filePath, remoteRequired: false });
-  await assert.rejects(tampered.initialize(), /Audit chain verification failed/);
+  for (let attempt = 0; attempt < 25; attempt += 1) {
+    const tampered = new EnterpriseAuditTrail({ filePath, remoteRequired: false });
+    await assert.rejects(tampered.initialize(), /Audit chain verification failed/);
+  }
 
   const auditTarget = path.join(testDirectory, 'audit-target.jsonl');
   const auditLink = path.join(testDirectory, 'audit-link.jsonl');
