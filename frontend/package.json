@@ -9,6 +9,7 @@
   },
   "overrides": {
     "browserslist": "4.28.8",
+    "qs": "6.16.0",
     "undici": "7.29.0"
   },
   "scripts": {
