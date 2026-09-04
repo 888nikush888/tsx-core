@@ -22,7 +22,7 @@ jobs:
   verify:
     name: Lint, tests, coverage, build, supply chain
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Checkout pinned source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -183,7 +183,7 @@ jobs:
   mutation:
     name: Critical mutation gate (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

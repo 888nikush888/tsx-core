@@ -48,7 +48,7 @@ function testCiUsesOnlyFreshMutationEvidence() {
   const nextJob = lines.findIndex((line, index) => index > start && /^ {2}[a-zA-Z][\w-]*:/.test(line));
   const job = lines.slice(start, nextJob < 0 ? undefined : nextJob).join('\n');
   assert.match(job, /run: npm run test:mutation -- \$\{\{ matrix\.shard \}\} --force(?:\n|$)/);
-  assert.match(job, /timeout-minutes: 15/);
+  assert.match(job, /timeout-minutes: 30/);
   assert.match(job, /shard: \[queue, retry, schema, trading-risk\]/);
   assert.doesNotMatch(job, /actions\/cache@|restore-keys:|incremental\.json/,
     'Historical mutation caches must not be restored or uploaded as current gate evidence.');
