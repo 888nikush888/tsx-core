@@ -337,11 +337,15 @@ jobs:
           python-version: '3.12'
       - name: Install locked executor dependencies for the root gate
         run: python -m pip install --require-hashes -r exchange_executor/requirements.lock
+      - name: Create an ordinary-file verifier runtime
+        run: |
+          python -m venv --copies --system-site-packages "$RUNNER_TEMP/tsx-verifier"
+          test "$(stat -c %h "$RUNNER_TEMP/tsx-verifier/bin/python3.12")" = 1
       - name: Verify independently reviewed exchange implementation
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p reports
-          node scripts/verify_exchange_implementation.js --python "$pythonLocation/bin/python3.12" > reports/exchange-implementation.json
+          node scripts/verify_exchange_implementation.js --python "$RUNNER_TEMP/tsx-verifier/bin/python3.12" > reports/exchange-implementation.json
       - name: Configure pinned Buildx builder
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
         with:

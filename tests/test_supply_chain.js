@@ -190,8 +190,11 @@ const implementationStep = containerJob.indexOf('- name: Verify independently re
 const executorBuildStep = containerJob.indexOf('- name: Build official exchange executor');
 assert.ok(implementationStep >= 0 && executorBuildStep > implementationStep,
   'The real root-byte gate must run before the executor is packaged.');
+assert.match(containerJob, /python -m venv --copies --system-site-packages "\$RUNNER_TEMP\/tsx-verifier"/);
+assert.match(containerJob, /test "\$\(stat -c %h "\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12"\)" = 1/,
+  'The strict verifier must receive an ordinary, single-link interpreter instead of a shared toolcache binary.');
 const implementationBlock = containerJob.slice(implementationStep, containerJob.indexOf('\n      - name:', implementationStep + 1));
-assert.match(implementationBlock, /node scripts\/verify_exchange_implementation\.js --python "\$pythonLocation\/bin\/python3\.12"/);
+assert.match(implementationBlock, /node scripts\/verify_exchange_implementation\.js --python "\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12"/);
 assert.doesNotMatch(implementationBlock, /continue-on-error|\|\|\s*true|--exchange|--approved/,
   'The packaging gate cannot skip profiles, inject approvals, or disregard a NO-GO.');
 const runtimeGateCommand = containerJob.split('\n').find(line => line.includes('/app/verify_implementation_runtime.py'));
