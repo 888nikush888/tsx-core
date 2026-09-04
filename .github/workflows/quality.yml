@@ -335,42 +335,48 @@ jobs:
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
         with:
           python-version: '3.12'
+      - name: Create an unlinked verifier source checkout
+        run: |
+          git clone --no-local --no-hardlinks "$GITHUB_WORKSPACE" "$RUNNER_TEMP/tsx-reviewed-source"
+          git -C "$RUNNER_TEMP/tsx-reviewed-source" checkout --detach "$GITHUB_SHA"
+          test "$(git -C "$RUNNER_TEMP/tsx-reviewed-source" rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(find "$RUNNER_TEMP/tsx-reviewed-source" -path "$RUNNER_TEMP/tsx-reviewed-source/.git" -prune -o -type f -links +1 -print -quit)"
       - name: Create an isolated hash-locked verifier runtime
         run: |
           python -m venv --copies "$RUNNER_TEMP/tsx-verifier"
           test "$(stat -c %h "$RUNNER_TEMP/tsx-verifier/bin/python3.12")" = 1
-          "$RUNNER_TEMP/tsx-verifier/bin/python3.12" -m pip install --disable-pip-version-check --no-cache-dir --require-hashes -r exchange_executor/requirements.lock
+          "$RUNNER_TEMP/tsx-verifier/bin/python3.12" -m pip install --disable-pip-version-check --no-cache-dir --require-hashes -r "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/requirements.lock"
       - name: Verify independently reviewed exchange implementation
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           mkdir -p reports
-          node scripts/verify_exchange_implementation.js --python "$RUNNER_TEMP/tsx-verifier/bin/python3.12" > reports/exchange-implementation.json
+          node "$RUNNER_TEMP/tsx-reviewed-source/scripts/verify_exchange_implementation.js" --python "$RUNNER_TEMP/tsx-verifier/bin/python3.12" > reports/exchange-implementation.json
       - name: Configure pinned Buildx builder
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
         with:
           version: v0.36.1
           driver-opts: image=moby/buildkit:v0.32.2@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8
       - name: Build immutable candidate
-        run: docker build --tag tsx-core:${{ github.sha }} .
+        run: docker build --tag tsx-core:${{ github.sha }} "$RUNNER_TEMP/tsx-reviewed-source"
       - name: Build official exchange executor
-        run: docker build --tag tsx-core-exchange-executor:${{ github.sha }} exchange_executor
+        run: docker build --tag tsx-core-exchange-executor:${{ github.sha }} "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor"
       - name: Build hardened Prometheus
-        run: docker buildx build --provenance=false --platform linux/amd64 --load --file monitoring/prometheus.Dockerfile --tag tsx-core-prometheus:${{ github.sha }} .
+        run: docker buildx build --provenance=false --platform linux/amd64 --load --file "$RUNNER_TEMP/tsx-reviewed-source/monitoring/prometheus.Dockerfile" --tag tsx-core-prometheus:${{ github.sha }} "$RUNNER_TEMP/tsx-reviewed-source"
       - name: Build hardened Alertmanager for both release platforms
         run: |
-          docker buildx build --provenance=false --platform linux/amd64 --load --metadata-file alertmanager-amd64-build.json --file monitoring/alertmanager.Dockerfile --tag tsx-core-alertmanager:${{ github.sha }}-amd64 .
-          docker buildx build --provenance=false --platform linux/arm64 --load --metadata-file alertmanager-arm64-build.json --file monitoring/alertmanager.Dockerfile --tag tsx-core-alertmanager:${{ github.sha }}-arm64 .
+          docker buildx build --provenance=false --platform linux/amd64 --load --metadata-file alertmanager-amd64-build.json --file "$RUNNER_TEMP/tsx-reviewed-source/monitoring/alertmanager.Dockerfile" --tag tsx-core-alertmanager:${{ github.sha }}-amd64 "$RUNNER_TEMP/tsx-reviewed-source"
+          docker buildx build --provenance=false --platform linux/arm64 --load --metadata-file alertmanager-arm64-build.json --file "$RUNNER_TEMP/tsx-reviewed-source/monitoring/alertmanager.Dockerfile" --tag tsx-core-alertmanager:${{ github.sha }}-arm64 "$RUNNER_TEMP/tsx-reviewed-source"
       - name: Rebuild Alertmanager without cache and require the same digest
         run: |
-          docker buildx build --no-cache --provenance=false --platform linux/amd64 --load --metadata-file alertmanager-amd64-rebuild.json --file monitoring/alertmanager.Dockerfile --tag tsx-core-alertmanager:${{ github.sha }}-repro .
+          docker buildx build --no-cache --provenance=false --platform linux/amd64 --load --metadata-file alertmanager-amd64-rebuild.json --file "$RUNNER_TEMP/tsx-reviewed-source/monitoring/alertmanager.Dockerfile" --tag tsx-core-alertmanager:${{ github.sha }}-repro "$RUNNER_TEMP/tsx-reviewed-source"
           test "$(jq -er '."containerimage.digest"' alertmanager-amd64-build.json)" = "$(jq -er '."containerimage.digest"' alertmanager-amd64-rebuild.json)"
           docker image rm tsx-core-alertmanager:${{ github.sha }}-repro
       - name: Prove Alertmanager source and binary reachability for both platforms
         run: |
-          docker buildx build --provenance=false --platform linux/amd64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file monitoring/alertmanager.Dockerfile .
-          docker buildx build --provenance=false --platform linux/arm64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file monitoring/alertmanager.Dockerfile .
+          docker buildx build --provenance=false --platform linux/amd64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file "$RUNNER_TEMP/tsx-reviewed-source/monitoring/alertmanager.Dockerfile" "$RUNNER_TEMP/tsx-reviewed-source"
+          docker buildx build --provenance=false --platform linux/arm64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file "$RUNNER_TEMP/tsx-reviewed-source/monitoring/alertmanager.Dockerfile" "$RUNNER_TEMP/tsx-reviewed-source"
       - name: Prove Prometheus source and binary reachability
-        run: docker buildx build --provenance=false --platform linux/amd64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file monitoring/prometheus.Dockerfile .
+        run: docker buildx build --provenance=false --platform linux/amd64 --target security-audit --build-arg VULN_DB_EPOCH=${{ github.run_id }}-${{ github.run_attempt }} --file "$RUNNER_TEMP/tsx-reviewed-source/monitoring/prometheus.Dockerfile" "$RUNNER_TEMP/tsx-reviewed-source"
       - name: Verify runtime native modules and non-root user
         run: |
           test "$(docker image inspect tsx-core:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
@@ -378,7 +384,7 @@ jobs:
           test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
           docker run --rm --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -c "from importlib.metadata import version; import ccxt.async_support, ccxt.pro; assert version('ccxt') == '4.5.75'"
           docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -E -B /app/verify_implementation_runtime.py
-          docker run --rm -e PYTHONPATH=/app:/ -v "$PWD/exchange_executor/tests:/exchange_executor/tests:ro" -v "$PWD/exchange_executor/tools:/app/tools:ro" -v "$PWD/plans:/plans:ro" -v "$PWD/tests:/tests:ro" -v "$PWD/docs/testing/ccxt-expansion-matrix.json:/docs/testing/ccxt-expansion-matrix.json:ro" --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -m unittest discover -s /exchange_executor/tests -v
+          docker run --rm -e PYTHONPATH=/app:/ -v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/tests:/exchange_executor/tests:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/tools:/app/tools:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/plans:/plans:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/tests:/tests:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/docs/testing/ccxt-expansion-matrix.json:/docs/testing/ccxt-expansion-matrix.json:ro" --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -m unittest discover -s /exchange_executor/tests -v
           test "$(docker image inspect tsx-core-prometheus:${{ github.sha }} --format '{{.Architecture}}/{{.Config.User}}')" = amd64/65534:65534
           docker run --rm --entrypoint /usr/bin/prometheus tsx-core-prometheus:${{ github.sha }} --version
           docker run --rm --entrypoint /usr/bin/promtool tsx-core-prometheus:${{ github.sha }} --version

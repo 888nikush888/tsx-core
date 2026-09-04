@@ -193,12 +193,26 @@ assert.ok(implementationStep >= 0 && executorBuildStep > implementationStep,
 assert.match(containerJob, /python -m venv --copies "\$RUNNER_TEMP\/tsx-verifier"/);
 assert.match(containerJob, /test "\$\(stat -c %h "\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12"\)" = 1/,
   'The strict verifier must receive an ordinary, single-link interpreter instead of a shared toolcache binary.');
-assert.match(containerJob, /"\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12" -m pip install --disable-pip-version-check --no-cache-dir --require-hashes -r exchange_executor\/requirements\.lock/,
+assert.match(containerJob, /"\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12" -m pip install --disable-pip-version-check --no-cache-dir --require-hashes -r "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor\/requirements\.lock"/,
   'The verifier SDK must be installed from the hash lock inside the isolated runtime.');
+assert.doesNotMatch(containerJob, /-r exchange_executor\/requirements\.lock/,
+  'The strict verifier must not install from the original runner checkout.');
 assert.doesNotMatch(containerJob, /--system-site-packages/,
   'The strict verifier must not inherit packages or aliased source paths from the shared toolcache runtime.');
+assert.match(containerJob, /git clone --no-local --no-hardlinks "\$GITHUB_WORKSPACE" "\$RUNNER_TEMP\/tsx-reviewed-source"/);
+assert.match(containerJob, /git -C "\$RUNNER_TEMP\/tsx-reviewed-source" checkout --detach "\$GITHUB_SHA"/);
+assert.match(containerJob, /find "\$RUNNER_TEMP\/tsx-reviewed-source" .* -type f -links \+1 -print -quit/,
+  'The strict verifier source checkout must contain no externally linked ordinary files.');
 const implementationBlock = containerJob.slice(implementationStep, containerJob.indexOf('\n      - name:', implementationStep + 1));
-assert.match(implementationBlock, /node scripts\/verify_exchange_implementation\.js --python "\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12"/);
+assert.match(implementationBlock, /node "\$RUNNER_TEMP\/tsx-reviewed-source\/scripts\/verify_exchange_implementation\.js" --python "\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12"/);
+assert.match(containerJob, /docker build --tag tsx-core:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source"/);
+assert.match(containerJob, /docker build --tag tsx-core-exchange-executor:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor"/);
+assert.match(containerJob, /--file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/prometheus\.Dockerfile"/);
+assert.match(containerJob, /--file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile"/);
+assert.doesNotMatch(containerJob, /(?:docker build|docker buildx build)[^\n]*(?:\s\.\s*$|\sexchange_executor\s*$)/m,
+  'Every packaged image must use the exact independently verified source checkout as its build context.');
+assert.doesNotMatch(containerJob, /-v "\$PWD\//,
+  'Executor evidence tests must mount only the exact independently verified source checkout.');
 assert.doesNotMatch(implementationBlock, /continue-on-error|\|\|\s*true|--exchange|--approved/,
   'The packaging gate cannot skip profiles, inject approvals, or disregard a NO-GO.');
 const runtimeGateCommand = containerJob.split('\n').find(line => line.includes('/app/verify_implementation_runtime.py'));
@@ -220,20 +234,20 @@ assert.doesNotMatch(runtimeVerificationBlock, /continue-on-error|\|\|\s*true|\n\
   'The runtime receipt gate is mandatory and must propagate NO-GO.');
 assert.match(
   workflow,
-  /-e PYTHONPATH=\/app:\/[\s\S]*?-v "\$PWD\/exchange_executor\/tests:\/exchange_executor\/tests:ro"[\s\S]*?-m unittest discover -s \/exchange_executor\/tests -v/,
-  'Container verification must expose the original repository-relative test package without replacing baked /app sources.',
+  /-e PYTHONPATH=\/app:\/[\s\S]*?-v "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor\/tests:\/exchange_executor\/tests:ro"[\s\S]*?-m unittest discover -s \/exchange_executor\/tests -v/,
+  'Container verification must expose the reviewed test package without replacing baked /app sources.',
 );
 const executorSuiteCommand = workflow.split('\n').find(line => line.includes('-m unittest discover -s /exchange_executor/tests -v'));
 for (const mount of [
-  '-v "$PWD/exchange_executor/tools:/app/tools:ro"',
-  '-v "$PWD/plans:/plans:ro"',
-  '-v "$PWD/tests:/tests:ro"',
-  '-v "$PWD/docs/testing/ccxt-expansion-matrix.json:/docs/testing/ccxt-expansion-matrix.json:ro"',
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/tools:/app/tools:ro"',
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/plans:/plans:ro"',
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/tests:/tests:ro"',
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/docs/testing/ccxt-expansion-matrix.json:/docs/testing/ccxt-expansion-matrix.json:ro"',
 ]) {
   assert.ok(executorSuiteCommand.includes(mount),
-    `The complete baked-executor suite needs its original read-only support input: ${mount}`);
+    `The complete baked-executor suite needs its reviewed read-only support input: ${mount}`);
 }
-assert.doesNotMatch(executorSuiteCommand, /-v "\$PWD(?:\/exchange_executor)?:\/app(?::|")/,
+assert.doesNotMatch(executorSuiteCommand, /-v "\$RUNNER_TEMP\/tsx-reviewed-source(?:\/exchange_executor)?:\/app(?::|")/,
   'Test support inputs must not replace the actual baked executor sources or receipts.');
 for (const exchange of ['hyperliquid', 'bybit', 'krakenfutures']) {
   const evidence = JSON.parse(await readFile(
@@ -298,8 +312,8 @@ assert.equal((alertmanagerDockerfile.match(/govulncheck -mode=binary -scan=symbo
 assert.match(alertmanagerDockerfile, /^USER 65534:65534$/m);
 assert.doesNotMatch(alertmanagerDockerfile, /^(?:COPY|ADD)\s+(?:--[^\s]+\s+)*\.\/?\s/m, 'Alertmanager build must not copy the workspace root.');
 assert.match(monitoringCompose, /alertmanager:[\s\S]*?image:\s*\$\{ALERTMANAGER_IMAGE:-tsx-core-alertmanager:0\.33\.1-hardened\}[\s\S]*?dockerfile:\s*monitoring\/alertmanager\.Dockerfile/);
-assert.match(workflow, /docker buildx build --provenance=false --platform linux\/amd64 --load --metadata-file alertmanager-amd64-build\.json --file monitoring\/alertmanager\.Dockerfile --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-amd64 \./);
-assert.match(workflow, /docker buildx build --provenance=false --platform linux\/arm64 --load --metadata-file alertmanager-arm64-build\.json --file monitoring\/alertmanager\.Dockerfile --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-arm64 \./);
+assert.match(workflow, /docker buildx build --provenance=false --platform linux\/amd64 --load --metadata-file alertmanager-amd64-build\.json --file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile" --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-amd64 "\$RUNNER_TEMP\/tsx-reviewed-source"/);
+assert.match(workflow, /docker buildx build --provenance=false --platform linux\/arm64 --load --metadata-file alertmanager-arm64-build\.json --file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile" --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-arm64 "\$RUNNER_TEMP\/tsx-reviewed-source"/);
 assert.equal((allWorkflows.match(/docker\/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c/g) ?? []).length, 1);
 assert.equal((allWorkflows.match(/^\s*version:\s*v0\.36\.1\s*$/gm) ?? []).length, 1);
 assert.equal((allWorkflows.match(/image=moby\/buildkit:v0\.32\.2@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8/g) ?? []).length, 1);
