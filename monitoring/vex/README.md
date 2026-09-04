@@ -9,8 +9,9 @@ The official Prometheus v3.13.2 binary was built with Go 1.26.5. The pinned
 web UI with Go 1.26.6. The checked-in `prometheus.go.mod` and
 `prometheus.go.sum` locks retain the upstream source while lifting
 `golang.org/x/crypto` to v0.55.0 (and the minimum-version-selected companion
-`golang.org/x/*` modules) to remediate CVE-2026-56854. The build verifies that
-exact security floor before compilation. The static non-root runtime,
+`golang.org/x/*` modules) to remediate CVE-2026-56854, and
+`google.golang.org/grpc` to v1.83.1 to remediate CVE-2026-84304. The build
+verifies those exact security floors before compilation. The static non-root runtime,
 reproducible metadata, SBOM, Trivy gate and `govulncheck` source/binary
 reachability checks apply without suppression.
 
@@ -19,7 +20,7 @@ The official Alertmanager v0.33.1 binaries contain vulnerable Go modules.
 `amtool` from verified commit `2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5`.
 The source archive and official prebuilt web UI are checksum verified, the Go
 1.26.6 builder and static non-root Distroless runtime are digest pinned, and the
-build requires `golang.org/x/text` v0.41.0, `google.golang.org/grpc` v1.82.1,
+build requires `golang.org/x/text` v0.41.0, `google.golang.org/grpc` v1.83.1,
 `golang.org/x/mod` v0.40.0, `golang.org/x/crypto` v0.55.0,
 `github.com/klauspost/compress` v1.18.7 and
 OpenTelemetry v1.44.0. Reproducible LDFlags, `SOURCE_DATE_EPOCH` and normalized

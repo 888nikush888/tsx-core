@@ -36,6 +36,7 @@ RUN test "$(go env GOVERSION)" = "go1.26.6" \
     && install -m 0444 /tmp/prometheus-lock/prometheus.go.sum /src/go.sum \
     && test "$(cat VERSION)" = "3.13.2" \
     && test "$(go list -m -f '{{.Version}}' golang.org/x/crypto)" = "v0.55.0" \
+    && test "$(go list -m -f '{{.Version}}' google.golang.org/grpc)" = "v1.83.1" \
     && test -f web/ui/static/mantine-ui/index.html \
     && rm /tmp/prometheus.tar.gz /tmp/prometheus-web-ui.tar.gz \
     && go mod download \

@@ -94,6 +94,9 @@ assert.doesNotMatch(prometheusDockerfile, /\bgo (?:get|install)\b/);
 assert.match(prometheusModuleLock, /golang\.org\/x\/crypto v0\.55\.0/);
 assert.match(prometheusSumLock, /golang\.org\/x\/crypto v0\.55\.0 h1:/);
 assert.match(prometheusDockerfile, /test "\$\(go list -m -f '\{\{\.Version\}\}' golang\.org\/x\/crypto\)" = "v0\.55\.0"/);
+assert.match(prometheusModuleLock, /google\.golang\.org\/grpc v1\.83\.1/);
+assert.match(prometheusSumLock, /google\.golang\.org\/grpc v1\.83\.1 h1:/);
+assert.match(prometheusDockerfile, /test "\$\(go list -m -f '\{\{\.Version\}\}' google\.golang\.org\/grpc\)" = "v1\.83\.1"/);
 assert.match(prometheusDockerfile, /COPY --chmod=0444 monitoring\/govulncheck\/go\.mod monitoring\/govulncheck\/go\.sum/);
 assert.doesNotMatch(prometheusDockerfile, /\bgo install\b/);
 assert.match(prometheusDockerfile, /^FROM builder AS security-audit$/m);
@@ -109,7 +112,7 @@ assert.match(alertmanagerDockerfile, /ADD --checksum=sha256:1f63344e196e47ba7bfe
 for (const dependency of [
   'golang.org/x/text v0.41.0',
   'golang.org/x/mod v0.40.0',
-  'google.golang.org/grpc v1.82.1',
+  'google.golang.org/grpc v1.83.1',
   'golang.org/x/crypto v0.55.0',
   'github.com/klauspost/compress v1.18.7',
   'go.opentelemetry.io/otel v1.44.0',

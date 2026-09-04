@@ -42,7 +42,7 @@ RUN go mod download \
     && go mod verify \
     && test "$(go list -m -f '{{.Version}}' golang.org/x/text)" = "v0.41.0" \
     && test "$(go list -m -f '{{.Version}}' golang.org/x/mod)" = "v0.40.0" \
-    && test "$(go list -m -f '{{.Version}}' google.golang.org/grpc)" = "v1.82.1" \
+    && test "$(go list -m -f '{{.Version}}' google.golang.org/grpc)" = "v1.83.1" \
     && test "$(go list -m -f '{{.Version}}' golang.org/x/crypto)" = "v0.55.0" \
     && test "$(go list -m -f '{{.Version}}' github.com/klauspost/compress)" = "v1.18.7" \
     && test "$(go list -m -f '{{.Version}}' go.opentelemetry.io/otel)" = "v1.44.0" \
