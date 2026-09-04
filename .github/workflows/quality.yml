@@ -335,12 +335,11 @@ jobs:
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
         with:
           python-version: '3.12'
-      - name: Install locked executor dependencies for the root gate
-        run: python -m pip install --require-hashes -r exchange_executor/requirements.lock
-      - name: Create an ordinary-file verifier runtime
+      - name: Create an isolated hash-locked verifier runtime
         run: |
-          python -m venv --copies --system-site-packages "$RUNNER_TEMP/tsx-verifier"
+          python -m venv --copies "$RUNNER_TEMP/tsx-verifier"
           test "$(stat -c %h "$RUNNER_TEMP/tsx-verifier/bin/python3.12")" = 1
+          "$RUNNER_TEMP/tsx-verifier/bin/python3.12" -m pip install --disable-pip-version-check --no-cache-dir --require-hashes -r exchange_executor/requirements.lock
       - name: Verify independently reviewed exchange implementation
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"

@@ -190,9 +190,13 @@ const implementationStep = containerJob.indexOf('- name: Verify independently re
 const executorBuildStep = containerJob.indexOf('- name: Build official exchange executor');
 assert.ok(implementationStep >= 0 && executorBuildStep > implementationStep,
   'The real root-byte gate must run before the executor is packaged.');
-assert.match(containerJob, /python -m venv --copies --system-site-packages "\$RUNNER_TEMP\/tsx-verifier"/);
+assert.match(containerJob, /python -m venv --copies "\$RUNNER_TEMP\/tsx-verifier"/);
 assert.match(containerJob, /test "\$\(stat -c %h "\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12"\)" = 1/,
   'The strict verifier must receive an ordinary, single-link interpreter instead of a shared toolcache binary.');
+assert.match(containerJob, /"\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12" -m pip install --disable-pip-version-check --no-cache-dir --require-hashes -r exchange_executor\/requirements\.lock/,
+  'The verifier SDK must be installed from the hash lock inside the isolated runtime.');
+assert.doesNotMatch(containerJob, /--system-site-packages/,
+  'The strict verifier must not inherit packages or aliased source paths from the shared toolcache runtime.');
 const implementationBlock = containerJob.slice(implementationStep, containerJob.indexOf('\n      - name:', implementationStep + 1));
 assert.match(implementationBlock, /node scripts\/verify_exchange_implementation\.js --python "\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12"/);
 assert.doesNotMatch(implementationBlock, /continue-on-error|\|\|\s*true|--exchange|--approved/,
