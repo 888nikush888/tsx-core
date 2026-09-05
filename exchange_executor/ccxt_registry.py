@@ -94,9 +94,7 @@ class CcxtExchangeRegistry:
         profile = profile_for(exchange)
         required = _required_credentials(rest)
         rest_flags = capability_flags(rest, REST_CAPABILITIES)
-        pro_flags = capability_flags(pro, PRO_CAPABILITIES) if pro is not None else {
-            name: False for name in PRO_CAPABILITIES
-        }
+        pro_flags = capability_flags(pro, PRO_CAPABILITIES) if pro is not None else dict.fromkeys(PRO_CAPABILITIES, False)
         status, reason = self._initial_status(exchange, profile, required, rest_flags, pro_flags)
         return {
             "id": exchange,

@@ -12,6 +12,7 @@ from order_evidence import merge_ccxt_order
 MAX_CURRENT_CALLS = 64
 MAX_CURRENT_ROWS = 100_000
 KRAKEN_CURRENT_SCOPE = "futures:all"
+HYPERLIQUID_ACCOUNT_LABEL = "Hyperliquid account"
 
 
 def _rows(value: Any, label: str, limit: int = MAX_CURRENT_ROWS) -> list[dict[str, Any]]:
@@ -165,7 +166,7 @@ async def _kraken(rest: Any, read: CurrentRead) -> None:
     for source, method, collection in (("positions", rest.privateGetOpenpositions, "openPositions"),
                                        ("orders", rest.privateGetOpenorders, "openOrders")):
         read.begin(source, [KRAKEN_CURRENT_SCOPE])
-        response = await read.call(source, KRAKEN_CURRENT_SCOPE, lambda: method({}))
+        response = await read.call(source, KRAKEN_CURRENT_SCOPE, lambda method=method: method({}))
         if not isinstance(response, dict) or response.get("result") != "success":
             raise ExchangeContractError("Invalid Kraken current-state envelope.")
         if not isinstance(response.get("serverTime"), str) or rest.parse8601(response["serverTime"]) is None:
@@ -192,11 +193,11 @@ def _dex_names(response: Any) -> list[str]:
 
 def _hyperliquid_rows(response: Any, source: str) -> list[dict[str, Any]]:
     if source == "orders":
-        return _rows(response, "Hyperliquid account")
+        return _rows(response, HYPERLIQUID_ACCOUNT_LABEL)
     if not isinstance(response, dict):
         raise ExchangeContractError("Hyperliquid current-state omitted its position envelope.")
     _provider_time(response.get("time"), source)
-    return _rows(response.get("assetPositions"), "Hyperliquid account")
+    return _rows(response.get("assetPositions"), HYPERLIQUID_ACCOUNT_LABEL)
 
 
 def _hyperliquid_row(rest: Any, source: str, raw: dict[str, Any], dex: str) -> dict[str, Any]:
@@ -220,7 +221,7 @@ async def _hyperliquid_scope(rest: Any, read: CurrentRead, source: str, user: st
 async def _hyperliquid(rest: Any, read: CurrentRead) -> None:
     names = _dex_names(await read.budget.call(lambda: rest.publicPostInfo({"type": "perpDexs"})))
     user, _ = rest.handle_public_address("fetchOpenOrders", {})
-    _token(user, "Hyperliquid account")
+    _token(user, HYPERLIQUID_ACCOUNT_LABEL)
     for source in ("positions", "orders"):
         read.begin(source, [f"perp:{name}" for name in names])
         for dex in names:

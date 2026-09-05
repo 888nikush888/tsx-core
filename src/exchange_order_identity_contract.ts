@@ -31,7 +31,10 @@ export function validateOrderIdentityEvidence(result: Record<string, any>): Exch
     fields = [...base, 'user', 'providerMarketId', 'startedAt', 'completedAt'];
     validateCloid(proof, info, raw);
   } else throw new Error('Unsupported native order identity evidence.');
-  if (!isDeepStrictEqual(Object.keys(proof).sort(codeUnitOrder), fields.sort(codeUnitOrder))) {
+  const actualFields = Object.keys(proof);
+  actualFields.sort(codeUnitOrder);
+  fields.sort(codeUnitOrder);
+  if (!isDeepStrictEqual(actualFields, fields)) {
     throw new Error('Unexpected order identity evidence fields.');
   }
   return proof as ExchangeOrderIdentityEvidence;

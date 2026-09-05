@@ -72,7 +72,7 @@ def _validate_retention_anchor(probe: dict[str, Any]) -> None:
             raise ExchangeContractError('Invalid Hyperliquid initial retention phase.')
         return
     anchor = probe['anchor']
-    if anchor is None or not 1 <= probe['count'] < RETENTION or not anchor['time'] <= probe['cursor']:
+    if anchor is None or not 1 <= probe['count'] < RETENTION or anchor['time'] > probe['cursor']:
         raise ExchangeContractError('Invalid Hyperliquid counted retention anchor.')
 
 

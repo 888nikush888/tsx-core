@@ -17,11 +17,16 @@ interface OriginalOperation {
 }
 
 function reject(detail: string): never { throw new OrderIdentityBindingError(detail); }
-function codePointOrder(left: unknown, right: unknown): number {
-  const leftText = String(left), rightText = String(right);
-  if (leftText < rightText) return -1;
-  if (leftText > rightText) return 1;
+function codePointOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
   return 0;
+}
+function storedClientOrderId(value: unknown): string {
+  if (typeof value !== 'string' || !value || value.length > 256 || /[\x00-\x20]/.test(value)) {
+    reject('Original journal contains an invalid client identifier.');
+  }
+  return value;
 }
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) reject('Original request object is missing.');
@@ -63,7 +68,7 @@ function originalRequests(row: OriginalOperation, account: OrderIdentityAccount,
   const expected = JSON.parse(row.expected_orders_json);
   const ids = [requested.entry.clientOrderId, requested.protectiveStop.clientOrderId].sort(codePointOrder);
   if (!Array.isArray(expected)
-    || !isDeepStrictEqual(expected.map(item => object(item).client_order_id).sort(codePointOrder), ids)) {
+    || !isDeepStrictEqual(expected.map(item => storedClientOrderId(object(item).client_order_id)).sort(codePointOrder), ids)) {
     reject('Original journal does not bind the expected two legs.');
   }
   if (Boolean(entry.providerBatchTag) !== Boolean(protectiveStop.providerBatchTag)) reject('Only one original leg has a batch tag.');
