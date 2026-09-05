@@ -50,16 +50,14 @@ def cancel_target(
     return {**match, "clientOrderId": client_id}
 
 
-def correlate_batch(
-    orders: list[dict[str, Any]], specs: tuple[dict[str, Any], dict[str, Any]],
-    normalize: Callable[[dict[str, Any], str], dict[str, Any]],
-    exchange: str = "",
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    expected = [order_identifier(spec["params"].get("clientOrderId"), "client") for spec in specs]
-    if len(set(expected)) != 2:
-        raise ExchangeContractError("Protected order requests require distinct client identifiers.")
-    objects = [candidate for order in orders if isinstance(order, dict)
-               if (candidate := _batch_candidate(order, specs, exchange)) is not None]
+def _batch_objects(orders: list[dict[str, Any]], specs: tuple[dict[str, Any], dict[str, Any]],
+                   exchange: str) -> list[dict[str, Any]]:
+    return [candidate for order in orders if isinstance(order, dict)
+            if (candidate := _batch_candidate(order, specs, exchange)) is not None]
+
+
+def _confirmed_batch(objects: list[dict[str, Any]], expected: list[str],
+                     normalize: Callable[[dict[str, Any], str], dict[str, Any]]) -> dict[str, dict[str, Any]]:
     clients = Counter(str(order.get("clientOrderId") or order.get("client_order_id") or "") for order in objects)
     remotes = Counter(str(order.get("id") or "") for order in objects)
     confirmed: dict[str, dict[str, Any]] = {}
@@ -74,6 +72,18 @@ def correlate_batch(
         except ExchangeContractError:
             # Keep independent proven legs, but do not fabricate the other leg.
             continue
+    return confirmed
+
+
+def correlate_batch(
+    orders: list[dict[str, Any]], specs: tuple[dict[str, Any], dict[str, Any]],
+    normalize: Callable[[dict[str, Any], str], dict[str, Any]],
+    exchange: str = "",
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    expected = [order_identifier(spec["params"].get("clientOrderId"), "client") for spec in specs]
+    if len(set(expected)) != 2:
+        raise ExchangeContractError("Protected order requests require distinct client identifiers.")
+    confirmed = _confirmed_batch(_batch_objects(orders, specs, exchange), expected, normalize)
     unresolved = [client_id for client_id in expected if client_id not in confirmed]
     if unresolved or len(orders) != 2:
         raise UnresolvedOrderOutcome(

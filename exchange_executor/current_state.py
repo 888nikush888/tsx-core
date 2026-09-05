@@ -11,6 +11,7 @@ from order_evidence import merge_ccxt_order
 
 MAX_CURRENT_CALLS = 64
 MAX_CURRENT_ROWS = 100_000
+KRAKEN_CURRENT_SCOPE = "futures:all"
 
 
 def _rows(value: Any, label: str, limit: int = MAX_CURRENT_ROWS) -> list[dict[str, Any]]:
@@ -163,8 +164,8 @@ async def _bybit(rest: Any, read: CurrentRead) -> None:
 async def _kraken(rest: Any, read: CurrentRead) -> None:
     for source, method, collection in (("positions", rest.privateGetOpenpositions, "openPositions"),
                                        ("orders", rest.privateGetOpenorders, "openOrders")):
-        read.begin(source, ["futures:all"])
-        response = await read.call(source, "futures:all", lambda: method({}))
+        read.begin(source, [KRAKEN_CURRENT_SCOPE])
+        response = await read.call(source, KRAKEN_CURRENT_SCOPE, lambda: method({}))
         if not isinstance(response, dict) or response.get("result") != "success":
             raise ExchangeContractError("Invalid Kraken current-state envelope.")
         if not isinstance(response.get("serverTime"), str) or rest.parse8601(response["serverTime"]) is None:
@@ -173,7 +174,7 @@ async def _kraken(rest: Any, read: CurrentRead) -> None:
         parser = rest.parse_position if source == "positions" else rest.parse_order
         for raw in _rows(response.get(collection), "Kraken account"):
             read.add(source, parser(raw))
-        read.complete(source, "futures:all")
+        read.complete(source, KRAKEN_CURRENT_SCOPE)
 
 
 def _dex_names(response: Any) -> list[str]:
@@ -189,6 +190,33 @@ def _dex_names(response: Any) -> list[str]:
     return names
 
 
+def _hyperliquid_rows(response: Any, source: str) -> list[dict[str, Any]]:
+    if source == "orders":
+        return _rows(response, "Hyperliquid account")
+    if not isinstance(response, dict):
+        raise ExchangeContractError("Hyperliquid current-state omitted its position envelope.")
+    _provider_time(response.get("time"), source)
+    return _rows(response.get("assetPositions"), "Hyperliquid account")
+
+
+def _hyperliquid_row(rest: Any, source: str, raw: dict[str, Any], dex: str) -> dict[str, Any]:
+    detail = raw.get("position") if source == "positions" else raw
+    coin = _token(detail.get("coin") if isinstance(detail, dict) else None, "Hyperliquid coin")
+    if (coin.split(":", 1)[0] if ":" in coin else "") != dex:
+        raise ExchangeContractError("Hyperliquid current coin conflicts with its requested DEX scope.")
+    return rest.parse_position(raw) if source == "positions" else rest.parse_order({**raw, "ccxtStatus": "open"})
+
+
+async def _hyperliquid_scope(rest: Any, read: CurrentRead, source: str, user: str, dex: str) -> None:
+    scope = f"perp:{dex}"
+    request_type = "clearinghouseState" if source == "positions" else "frontendOpenOrders"
+    params = {"type": request_type, "user": user, "dex": dex}
+    response = await read.call(source, scope, lambda: rest.publicPostInfo(dict(params)))
+    for raw in _hyperliquid_rows(response, source):
+        read.add(source, _hyperliquid_row(rest, source, raw, dex))
+    read.complete(source, scope)
+
+
 async def _hyperliquid(rest: Any, read: CurrentRead) -> None:
     names = _dex_names(await read.budget.call(lambda: rest.publicPostInfo({"type": "perpDexs"})))
     user, _ = rest.handle_public_address("fetchOpenOrders", {})
@@ -196,22 +224,7 @@ async def _hyperliquid(rest: Any, read: CurrentRead) -> None:
     for source in ("positions", "orders"):
         read.begin(source, [f"perp:{name}" for name in names])
         for dex in names:
-            scope = f"perp:{dex}"
-            params = {"type": "clearinghouseState" if source == "positions" else "frontendOpenOrders", "user": user, "dex": dex}
-            response = await read.call(source, scope, lambda: rest.publicPostInfo(dict(params)))
-            if source == "positions" and not isinstance(response, dict):
-                raise ExchangeContractError("Hyperliquid current-state omitted its position envelope.")
-            if source == "positions":
-                _provider_time(response.get("time"), source)
-            raw_rows = response.get("assetPositions") if source == "positions" else response
-            for raw in _rows(raw_rows, "Hyperliquid account"):
-                detail = raw.get("position") if source == "positions" else raw
-                coin = _token(detail.get("coin") if isinstance(detail, dict) else None, "Hyperliquid coin")
-                if (coin.split(":", 1)[0] if ":" in coin else "") != dex:
-                    raise ExchangeContractError("Hyperliquid current coin conflicts with its requested DEX scope.")
-                row = rest.parse_position(raw) if source == "positions" else rest.parse_order({**raw, "ccxtStatus": "open"})
-                read.add(source, row)
-            read.complete(source, scope)
+            await _hyperliquid_scope(rest, read, source, user, dex)
 
 
 async def read_current_state(rest: Any, exchange: str, deadline: RequestDeadline, *, maximum_calls: int = MAX_CURRENT_CALLS):

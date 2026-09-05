@@ -9,6 +9,12 @@ export type { MoneyEvent, MoneyEventInput, ReportingCurrencyBinding } from './tr
 import { KrakenCashlegError } from './trading_kraken_cashleg_contract.js';
 import { readKrakenCashlegProof, persistKrakenCashlegProof, type KrakenCashlegRequest } from './trading_kraken_cashleg_repository.js';
 
+function codeUnitOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 export interface EventTimeValuation {
   eventId: string;
   route: string;
@@ -46,7 +52,7 @@ async function assertAccountBinding(accountId: string, fingerprint: string, prof
 }
 
 function cleanBinding(value: ReportingCurrencyBinding): ReportingCurrencyBinding {
-  const settlementAssets = [...new Set(value.settlementAssets.map(asset))].sort();
+  const settlementAssets = [...new Set(value.settlementAssets.map(asset))].sort(codeUnitOrder);
   const providerUsdReport = value.profile === 'bybit' && value.reportingCurrency === 'USD' && value.source === 'bybit-wallet-balance-v1';
   if (!settlementAssets.includes(value.reportingCurrency) && !providerUsdReport) throw new Error('Reporting currency must be evidenced by account settlement metadata.');
   return { accountId: identifier(value.accountId), accountFingerprint: identifier(value.accountFingerprint), profile: identifier(value.profile),
@@ -250,7 +256,8 @@ export function sumMoneyEventValues(events: MoneyEvent[]): MoneyValue {
 
 /** Sole live native-asset supplement: all amounts/units come from immutable originals, never the caller. */
 export async function valueKrakenCashlegFee(request: KrakenCashlegRequest): Promise<MoneyEvent> {
-  if (Object.keys(request).sort().join(',') !== 'cashOccurrence,eventId,positionOccurrence') throw new Error('Invalid native cashleg request.');
+  if (Object.keys(request).sort(codeUnitOrder).join(',')
+    !== 'cashOccurrence,eventId,positionOccurrence') throw new Error('Invalid native cashleg request.');
   const outcome = await withDatabaseTransaction(async () => {
     const event = await getMoneyEvent(identifier(request.eventId));
     if (!event) throw new KrakenCashlegError('missing_original_fee');

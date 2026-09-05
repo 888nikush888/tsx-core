@@ -94,17 +94,16 @@ class Application:
         deadline.ensure()
         return await self.streams.poll(account, cursor, symbols)
 
-    async def handle(self, path: str, payload: dict[str, Any]) -> Any:
-        if path == "/v1/exchange-catalog":
-            return self.exchange_catalog.catalog()
-        if path == "/v1/exchange-probe":
-            return await self.exchange_catalog.probe(required_string(payload, "exchange"))
+    @staticmethod
+    def _validate_entry_deadline(path: str, payload: dict[str, Any]) -> None:
         if path in {'/v1/submit-order', '/v1/submit-protected-entry'}:
             entry = payload.get('entry' if path == '/v1/submit-protected-entry' else 'request')
             if isinstance(entry, dict):
                 EntryDeadline(entry)
-        deadline = RequestDeadline.from_payload(payload)
-        account = account_request(payload)
+
+    async def _handle_account(
+        self, path: str, payload: dict[str, Any], account: dict[str, str], deadline: RequestDeadline,
+    ) -> Any:
         if path == "/v1/verify-account":
             return await self.adapter.verify(account, deadline)
         if path == "/v1/entry-constraints":
@@ -131,6 +130,16 @@ class Application:
         if path == "/v1/stream-events":
             return await self._stream_events(account, payload, deadline)
         raise ExchangeContractError("Unknown executor endpoint.")
+
+    async def handle(self, path: str, payload: dict[str, Any]) -> Any:
+        if path == "/v1/exchange-catalog":
+            return self.exchange_catalog.catalog()
+        if path == "/v1/exchange-probe":
+            return await self.exchange_catalog.probe(required_string(payload, "exchange"))
+        self._validate_entry_deadline(path, payload)
+        deadline = RequestDeadline.from_payload(payload)
+        account = account_request(payload)
+        return await self._handle_account(path, payload, account, deadline)
 
     async def close(self) -> None:
         await self.streams.close()

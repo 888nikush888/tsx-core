@@ -6,9 +6,15 @@ export interface RationalDecimalBounds { lower: string; upper: string; exact: bo
 const INTEGER = /^(?:0|-?[1-9]\d{0,255})$/;
 const POSITIVE_INTEGER = /^[1-9]\d{0,255}$/;
 
+function codeUnitOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 function integers(value: ExactRational): [bigint, bigint] {
   if (!value || typeof value !== 'object' || Array.isArray(value)
-    || Object.keys(value).sort().join(',') !== 'denominator,numerator'
+    || Object.keys(value).sort(codeUnitOrder).join(',') !== 'denominator,numerator'
     || typeof value.numerator !== 'string' || !INTEGER.test(value.numerator)
     || typeof value.denominator !== 'string' || !POSITIVE_INTEGER.test(value.denominator)) {
     throw new Error('Invalid bounded rational value.');

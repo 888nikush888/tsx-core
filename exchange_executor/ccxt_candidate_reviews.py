@@ -16,7 +16,7 @@ from ccxt_certification import CertificationResult, certification_result
 from ccxt_certification_evidence import file_bytes
 from ccxt_profiles import PROFILES
 
-APPROVED_INVENTORY_HASH = "1cfe505c9e5b989769d24e74e4ff59d097571f6cf880b2a0a185918870e81315"
+APPROVED_INVENTORY_HASH = "70f5b99cea313b55727c9d47993a8a2757a9db487da0aa5df3bdb01f26364e0c"
 APPROVED_ASSESSMENTS_HASH = "eea8582102dfd7c4c0f2adb02e9cbe102b3c2bd984911e1dd097660107fd5163"
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
@@ -59,6 +59,15 @@ def trusted_completion_verifier(
     verdict_type: Callable[[str, str, bool, bool], Any],
 ) -> Callable[[dict[str, Any], dict[str, Any]], Any]:
     """Bind the whole decision set before returning the per-row capability."""
+    approved = _approved_assessments(document)
+
+    def verify(assessment: dict[str, Any], context: dict[str, Any]) -> Any:
+        return _verified_candidate_verdict(assessment, context, approved, verdict_type)
+
+    return verify
+
+
+def _approved_assessments(document: dict[str, Any]) -> dict[str, bytes]:
     if document.get("inventoryHash") != APPROVED_INVENTORY_HASH:
         raise CandidateReviewError("Candidate inventory has no fixed review commitment.")
     assessments = document.get("assessments")
@@ -72,29 +81,34 @@ def trusted_completion_verifier(
         for reference in assessment.get("evidence", []):
             _evidence_bytes(reference)
         approved[identifier] = _canonical(assessment)
+    return approved
 
-    def verify(assessment: dict[str, Any], context: dict[str, Any]) -> Any:
-        identifier = assessment.get("id")
-        if (
-            context.get("inventoryHash") != APPROVED_INVENTORY_HASH
-            or identifier not in approved
-            or _canonical(assessment) != approved[identifier]
-            or context.get("exchange", {}).get("id") != identifier
-        ):
-            raise CandidateReviewError("Candidate verdict is not bound to the approved row.")
-        decision = assessment.get("decision")
-        if decision == "not_easy":
-            return verdict_type(APPROVED_INVENTORY_HASH, identifier, True, False)
-        if decision != "existing" or identifier not in PROFILES:
-            raise CandidateReviewError("Candidate decision is not locally completable.")
-        result = certification_result(
-            Path(__file__).resolve().parent / "certifications",
-            identifier,
-            "4.5.75",
-            PROFILES[identifier],
-        )
-        if not isinstance(result, CertificationResult) or result.valid is not True or result.reason is not None:
-            raise CandidateReviewError("Existing profile implementation review is incomplete.")
-        return verdict_type(APPROVED_INVENTORY_HASH, identifier, True, True)
 
-    return verify
+def _verified_candidate_verdict(
+    assessment: dict[str, Any],
+    context: dict[str, Any],
+    approved: dict[str, bytes],
+    verdict_type: Callable[[str, str, bool, bool], Any],
+) -> Any:
+    identifier = assessment.get("id")
+    if (
+        context.get("inventoryHash") != APPROVED_INVENTORY_HASH
+        or identifier not in approved
+        or _canonical(assessment) != approved[identifier]
+        or context.get("exchange", {}).get("id") != identifier
+    ):
+        raise CandidateReviewError("Candidate verdict is not bound to the approved row.")
+    decision = assessment.get("decision")
+    if decision == "not_easy":
+        return verdict_type(APPROVED_INVENTORY_HASH, identifier, True, False)
+    if decision != "existing" or identifier not in PROFILES:
+        raise CandidateReviewError("Candidate decision is not locally completable.")
+    result = certification_result(
+        Path(__file__).resolve().parent / "certifications",
+        identifier,
+        "4.5.75",
+        PROFILES[identifier],
+    )
+    if not isinstance(result, CertificationResult) or result.valid is not True or result.reason is not None:
+        raise CandidateReviewError("Existing profile implementation review is incomplete.")
+    return verdict_type(APPROVED_INVENTORY_HASH, identifier, True, True)

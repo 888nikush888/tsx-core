@@ -139,6 +139,36 @@ async def lookup_order_evidence(rest: Any, exchange: str, reference: dict[str, A
     return rows
 
 
+def _listed_order_is_observed(order: dict[str, Any], reference: dict[str, Any], symbol: str) -> bool:
+    return (matching_reference(order, reference, symbol)
+            and order.get("status") not in (None, "unknown") and order.get("filled") is not None)
+
+
+async def _recover_reference(
+    rest: Any, exchange: str, reference: dict[str, Any], listed: list[dict[str, Any]],
+    resolve_symbol: Callable[[dict[str, Any]], str], budget: RecoveryReadBudget,
+    recovered: list[dict[str, Any]],
+) -> str:
+    try:
+        symbol = resolve_symbol(reference)
+        observed = [_listed_order_is_observed(row, reference, symbol) for row in listed]
+        if any(observed):
+            return "observed"
+        rows = await lookup_order_evidence(rest, exchange, reference, symbol, budget)
+        recovered.extend(rows)
+        return "observed" if rows else "not_found"
+    except OrderNotFound:
+        return "not_found"
+    except (NotImplementedError, KeyError):
+        return "unsupported"
+    except RecoveryBudgetExhausted:
+        return "budget_exhausted"
+    except (NetworkError, RateLimitExceeded, TimeoutError) as error:
+        # Respect provider cooldown: do not issue more historical lookups this request.
+        budget.suspend(rest, error)
+        return "transient"
+
+
 async def recover_order_evidence(
     rest: Any, exchange: str, references: list[dict[str, Any]], listed: list[dict[str, Any]],
     resolve_symbol: Callable[[dict[str, Any]], str], budget: RecoveryReadBudget,
@@ -146,27 +176,7 @@ async def recover_order_evidence(
     recovered: list[dict[str, Any]] = []
     checked: list[dict[str, str]] = []
     for reference in references:
-        status = "unsupported"
-        try:
-            symbol = resolve_symbol(reference)
-            matches = [row for row in listed if matching_reference(row, reference, symbol)
-                       and row.get("status") not in (None, "unknown") and row.get("filled") is not None]
-            if matches:
-                status = "observed"
-            else:
-                rows = await lookup_order_evidence(rest, exchange, reference, symbol, budget)
-                recovered.extend(rows)
-                status = "observed" if rows else "not_found"
-        except OrderNotFound:
-            status = "not_found"
-        except (NotImplementedError, KeyError):
-            status = "unsupported"
-        except RecoveryBudgetExhausted:
-            status = "budget_exhausted"
-        except (NetworkError, RateLimitExceeded, TimeoutError) as error:
-            status = "transient"
-            # Respect provider cooldown: do not issue more historical lookups this request.
-            budget.suspend(rest, error)
+        status = await _recover_reference(rest, exchange, reference, listed, resolve_symbol, budget, recovered)
         checked.append({"clientOrderId": reference["clientOrderId"], "status": status})
     return recovered, checked
 

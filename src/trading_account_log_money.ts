@@ -98,17 +98,19 @@ async function postFunding(account: TradingAccount, stored: StoredAccountLogRece
   }
 }
 
+async function projectAccountLogReceipt(account: TradingAccount, stored: StoredAccountLogReceipt): Promise<void> {
+  const reasons = new Set<string>();
+  if (stored.receipt.accountFingerprint !== account.externalAccountId) reasons.add('account_binding_changed');
+  else for (const row of stored.receipt.records) {
+    try { await projectRecord(account, stored, row); }
+    catch (error) { reasons.add(error instanceof Error ? error.message.slice(0, 120) : 'unresolved_monetary_event'); }
+  }
+  await setAccountLogConsumerResult(stored.id, 'money', reasons.size ? 'unresolved' : 'complete',
+    { version: 1, reasons: [...reasons].slice(0, 100) });
+}
+
 /** Each event transaction preserves conflicts even when a later row is unresolved. */
 export async function projectAccountLogMoney(account: TradingAccount): Promise<void> {
   const receipts = await pendingAccountLogReceipts(account.id, 'money');
-  for (const stored of receipts) {
-    const reasons = new Set<string>();
-    if (stored.receipt.accountFingerprint !== account.externalAccountId) reasons.add('account_binding_changed');
-    else for (const row of stored.receipt.records) {
-      try { await projectRecord(account, stored, row); }
-      catch (error) { reasons.add(error instanceof Error ? error.message.slice(0, 120) : 'unresolved_monetary_event'); }
-    }
-    await setAccountLogConsumerResult(stored.id, 'money', reasons.size ? 'unresolved' : 'complete',
-      { version: 1, reasons: [...reasons].slice(0, 100) });
-  }
+  for (const stored of receipts) await projectAccountLogReceipt(account, stored);
 }

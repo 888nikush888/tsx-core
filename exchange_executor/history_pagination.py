@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass, field
 from typing import Any
 
 from ccxt.base.errors import NetworkError, RateLimitExceeded
@@ -21,10 +22,19 @@ def checkpoint(value: Any) -> dict[str, Any]:
         raise ExchangeContractError("Invalid history checkpoint source.")
     result = {"source": value["source"], "providerSymbol": _token(value.get("providerSymbol"), 256),
               "cursor": _token(value.get("cursor"), 4096)}
-    for field in ("revision", "baselineSince", "windowSince", "nextReadAt"):
-        result[field] = _integer(value.get(field))
-    for field in ("windowUntil", "scannedThrough"):
-        result[field] = None if value.get(field) is None else _integer(value[field])
+    _checkpoint_window(value, result)
+    _checkpoint_metadata(value, result)
+    _checkpoint_proofs(value, result)
+    if len(json.dumps(result, ensure_ascii=True).encode()) >= 8192:
+        raise ExchangeContractError('Oversized history checkpoint.')
+    return result
+
+
+def _checkpoint_window(value: dict[str, Any], result: dict[str, Any]) -> None:
+    for name in ("revision", "baselineSince", "windowSince", "nextReadAt"):
+        result[name] = _integer(value.get(name))
+    for name in ("windowUntil", "scannedThrough"):
+        result[name] = None if value.get(name) is None else _integer(value[name])
     if result["windowSince"] < result["baselineSince"] or result["windowSince"] > now_ms():
         raise ExchangeContractError("Invalid history checkpoint window.")
     if result["windowUntil"] is not None and not result["windowSince"] <= result["windowUntil"] <= now_ms():
@@ -33,6 +43,9 @@ def checkpoint(value: Any) -> dict[str, Any]:
         raise ExchangeContractError("Invalid history traversal watermark.")
     if result["cursor"] and result["windowUntil"] is None:
         raise ExchangeContractError("History cursor must retain its original query window.")
+
+
+def _checkpoint_metadata(value: dict[str, Any], result: dict[str, Any]) -> None:
     result["completeness"] = value.get("completeness")
     if result["completeness"] not in {"partial", "unknown", "complete"}:
         raise ExchangeContractError("Invalid history completeness.")
@@ -42,13 +55,13 @@ def checkpoint(value: Any) -> dict[str, Any]:
     result["reason"] = reason
     if "providerAccountUid" in value:
         result["providerAccountUid"] = _token(value["providerAccountUid"], 256)
+
+
+def _checkpoint_proofs(value: dict[str, Any], result: dict[str, Any]) -> None:
     result["coverage"] = validate_coverage(value.get("coverage"), result["baselineSince"], result["scannedThrough"])
     if result['source'] != 'fills' and result['coverage'] is not None:
         raise ExchangeContractError('Fill coverage cannot certify order history.')
     result['retention'] = validate_retention(value.get('retention'), result)
-    if len(json.dumps(result, ensure_ascii=True).encode()) >= 8192:
-        raise ExchangeContractError('Oversized history checkpoint.')
-    return result
 
 
 def _integer(value: Any) -> int:
@@ -92,10 +105,7 @@ def _end_window(state: dict[str, Any], completeness: str, reason: str | None) ->
             "completeness": completeness, "reason": reason}
 
 
-async def _bybit_page(rest: Any, state: dict[str, Any], budget: RecoveryReadBudget) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    state = _window(state, 7 * DAY)
-    if state["windowUntil"] - state["windowSince"] > 7 * DAY:
-        raise ExchangeContractError("Bybit history window exceeds seven days.")
+def _bybit_request(rest: Any, state: dict[str, Any]) -> tuple[bool, dict[str, Any], dict[str, Any] | None, Any]:
     fills = state["source"] == "fills"
     params = {"category": "linear", "startTime": state["windowSince"], "endTime": state["windowUntil"], "limit": 100 if fills else 50}
     market = rest.market(state["providerSymbol"]) if state["providerSymbol"] else None
@@ -108,17 +118,22 @@ async def _bybit_page(rest: Any, state: dict[str, Any], budget: RecoveryReadBudg
     method = getattr(rest, "privateGetV5ExecutionList" if fills else "privateGetV5OrderHistory", None)
     if not callable(method):
         raise NotImplementedError("No verified CCXT history envelope method.")
-    response = await budget.call(lambda: method(params))
-    rows, cursor = _bybit_envelope(response, params["limit"])
-    if cursor is not None and cursor == state["cursor"]:
-        raise ExchangeContractError("Bybit returned a non-advancing history cursor.")
+    return fills, params, market, method
+
+
+def _parse_bybit_page(rest: Any, state: dict[str, Any], fills: bool, market: dict[str, Any] | None,
+                      rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     # Parse individually: CCXT's collection helpers may slice/filter and lose evidence.
     parser = rest.parse_trade if fills else rest.parse_order
     parsed = [parser(row, _bybit_market(rest, row, market)) for row in rows]
-    if fills and any(type(row.get('timestamp')) is not int or not state['windowSince'] <= row['timestamp'] <= state['windowUntil'] for row in parsed):
+    if fills and any(type(row.get('timestamp')) is not int
+                     or not state['windowSince'] <= row['timestamp'] <= state['windowUntil'] for row in parsed):
         raise ExchangeContractError('Bybit execution falls outside the requested time window.')
-    if cursor:
-        return parsed, {**state, "cursor": cursor, "completeness": "partial", "reason": "history_pending", "nextReadAt": 0}
+    return parsed
+
+
+async def _finish_bybit_page(rest: Any, state: dict[str, Any], fills: bool,
+                             budget: RecoveryReadBudget) -> dict[str, Any]:
     # Terminal unfilled orders have shorter retention than fills, even in a fully traversed window.
     if fills and state['windowSince'] >= now_ms() - 730 * DAY:
         await _bybit_other_execution_scopes(rest, state, budget)
@@ -126,7 +141,22 @@ async def _bybit_page(rest: Any, state: dict[str, Any], budget: RecoveryReadBudg
     # Bybit option history silently defaults to baseCoin=BTC. These negative probes
     # detect some foreign activity, but cannot prove all historical option bases.
     reason = 'option_history_scope_unproved' if fills and covered_window(state) else 'provider_retention_limit'
-    return parsed, _end_window(state, 'unknown', reason)
+    return _end_window(state, 'unknown', reason)
+
+
+async def _bybit_page(rest: Any, state: dict[str, Any], budget: RecoveryReadBudget) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    state = _window(state, 7 * DAY)
+    if state["windowUntil"] - state["windowSince"] > 7 * DAY:
+        raise ExchangeContractError("Bybit history window exceeds seven days.")
+    fills, params, market, method = _bybit_request(rest, state)
+    response = await budget.call(lambda: method(params))
+    rows, cursor = _bybit_envelope(response, params["limit"])
+    if cursor is not None and cursor == state["cursor"]:
+        raise ExchangeContractError("Bybit returned a non-advancing history cursor.")
+    parsed = _parse_bybit_page(rest, state, fills, market, rows)
+    if cursor:
+        return parsed, {**state, "cursor": cursor, "completeness": "partial", "reason": "history_pending", "nextReadAt": 0}
+    return parsed, await _finish_bybit_page(rest, state, fills, budget)
 
 
 def _bybit_market(rest: Any, row: dict[str, Any], market: dict[str, Any] | None) -> dict[str, Any]:
@@ -159,36 +189,52 @@ async def _bybit_other_execution_scopes(rest: Any, state: dict[str, Any], budget
             raise ExchangeContractError(f'Unmanaged Bybit {category} executions require explicit account review.')
 
 
+def _hyperliquid_start(state: dict[str, Any]) -> int:
+    if state["cursor"] is not None and not state["cursor"].isdecimal():
+        raise ExchangeContractError("Invalid Hyperliquid history time cursor.")
+    start = int(state["cursor"]) if state["cursor"] else state["windowSince"]
+    if not state["windowSince"] <= start <= state["windowUntil"]:
+        raise ExchangeContractError("Invalid Hyperliquid history time cursor.")
+    return start
+
+
+async def _resume_hyperliquid_retention(rest: Any, user: str, state: dict[str, Any],
+                                        budget: RecoveryReadBudget) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    next_state, outcome = await retention_step(rest, user, state, budget)
+    if outcome == 'covered':
+        next_state = cover_window(next_state, 'hyperliquid')
+    if outcome is not None:
+        complete = outcome == 'covered' and covered_window(next_state)
+        reason = None if complete else 'provider_retention_limit'
+        next_state = _end_window(next_state, 'complete' if complete else 'unknown', reason)
+    return [], next_state
+
+
+async def _hyperliquid_fills(rest: Any, user: str, state: dict[str, Any], start: int,
+                             budget: RecoveryReadBudget) -> tuple[list[dict[str, Any]], list[int]]:
+    # Keep the raw envelope: fetch_my_trades turns some invalid responses into an empty list.
+    response = await budget.call(lambda: rest.publicPostInfo({"type": "userFillsByTime", "user": user,
+        "startTime": start, "endTime": state["windowUntil"], "aggregateByTime": False}))
+    if not isinstance(response, list) or len(response) > 2000 or any(not isinstance(row, dict) for row in response):
+        raise ExchangeContractError("Invalid Hyperliquid history page.")
+    times = [_integer(row.get("time")) for row in response]
+    if any(time < start or time > state["windowUntil"] for time in times):
+        raise ExchangeContractError("Hyperliquid history returned events outside its requested window.")
+    return [rest.parse_trade(row) for row in response], times
+
+
 async def _hyperliquid_page(rest: Any, state: dict[str, Any], budget: RecoveryReadBudget) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if state["source"] != "fills" or state["providerSymbol"] is not None:
         raise NotImplementedError("Hyperliquid historical orders have no verified continuation API.")
     if not all(callable(getattr(rest, name, None)) for name in ("handle_public_address", "publicPostInfo", "parse_trade")):
         raise NotImplementedError("No verified Hyperliquid raw history adapter.")
     state = _window(state, 7 * DAY)
-    if state["cursor"] is not None and not state["cursor"].isdecimal():
-        raise ExchangeContractError("Invalid Hyperliquid history time cursor.")
-    start = int(state["cursor"]) if state["cursor"] else state["windowSince"]
-    if not state["windowSince"] <= start <= state["windowUntil"]:
-        raise ExchangeContractError("Invalid Hyperliquid history time cursor.")
-    # Keep the raw envelope: fetch_my_trades turns some invalid responses into an empty list.
+    start = _hyperliquid_start(state)
     user, _ = rest.handle_public_address("fetchMyTrades", {})
     if state.get('retention') and state['retention']['phase'] != 'proved':
-        next_state, outcome = await retention_step(rest, user, state, budget)
-        if outcome == 'covered':
-            next_state = cover_window(next_state, 'hyperliquid')
-        if outcome is not None:
-            complete = outcome == 'covered' and covered_window(next_state)
-            next_state = _end_window(next_state, 'complete' if complete else 'unknown', None if complete else 'provider_retention_limit')
-        return [], next_state
-    response = await budget.call(lambda: rest.publicPostInfo({"type": "userFillsByTime", "user": user,
-        "startTime": start, "endTime": state["windowUntil"], "aggregateByTime": False}))
+        return await _resume_hyperliquid_retention(rest, user, state, budget)
+    rows, times = await _hyperliquid_fills(rest, user, state, start, budget)
     state = {**state, 'retention': None}
-    if not isinstance(response, list) or len(response) > 2000 or any(not isinstance(row, dict) for row in response):
-        raise ExchangeContractError("Invalid Hyperliquid history page.")
-    times = [_integer(row.get("time")) for row in response]
-    if any(time < start or time > state["windowUntil"] for time in times):
-        raise ExchangeContractError("Hyperliquid history returned events outside its requested window.")
-    rows = [rest.parse_trade(row) for row in response]
     if times:
         continuation = _hyperliquid_continuation(state, start, times)
         if continuation['windowUntil'] is not None:
@@ -210,55 +256,85 @@ def _hyperliquid_continuation(state: dict[str, Any], start: int, times: list[int
     return _end_window(state, "unknown", "provider_retention_limit")
 
 
+@dataclass
+class _HistoryTraversal:
+    rest: Any
+    exchange: str
+    budget: RecoveryReadBudget
+    unresolved_events: list[dict[str, Any]] | None
+    provider_uid: str | None
+    read_started: int
+    orders: list[dict[str, Any]] = field(default_factory=list)
+    fills: list[dict[str, Any]] = field(default_factory=list)
+    pending: list[dict[str, Any]] = field(default_factory=list)
+
+
+def _accept_history_page(read: _HistoryTraversal, state: dict[str, Any], update: dict[str, Any],
+                         rows: list[dict[str, Any]], next_state: dict[str, Any],
+                         events: list[dict[str, Any]]) -> bool:
+    observed_uid = next_state.get("providerAccountUid")
+    if read.provider_uid and observed_uid and read.provider_uid != observed_uid:
+        raise ExchangeContractError("History sources disagree about the provider account identity.")
+    read.provider_uid = read.provider_uid or observed_uid
+    if events and read.unresolved_events is None:
+        raise ExchangeContractError("Historical order events require a durable evidence consumer.")
+    if read.unresolved_events is not None:
+        read.unresolved_events.extend(events)
+    (read.fills if state["source"] == "fills" else read.orders).extend(rows)
+    update.update(checkpoint=next_state)
+    return (read.budget.remaining > 0 and next_state["nextReadAt"] <= now_ms()
+            and (next_state['scannedThrough'] or 0) < read.read_started)
+
+
+def _defer_history_reads(pending: list[dict[str, Any]], resume: int) -> None:
+    for deferred in pending:
+        deferred["checkpoint"] = {**deferred["checkpoint"], "nextReadAt": resume}
+
+
+async def _read_history_update(read: _HistoryTraversal, update: dict[str, Any]) -> bool:
+    state = update["checkpoint"]
+    if state["nextReadAt"] > now_ms():
+        return False
+    calls_before = read.budget.calls
+    try:
+        rows, next_state, events = await _page(read.rest, read.exchange, state, read.budget)
+        return _accept_history_page(read, state, update, rows, next_state, events)
+    except RecoveryBudgetExhausted:
+        reason = "history_transient" if read.budget.resume_at > now_ms() else "history_budget_exhausted"
+        update["checkpoint"] = {**state, "reason": reason, "completeness": "partial",
+                                "nextReadAt": max(state["nextReadAt"], read.budget.resume_at)}
+    except NotImplementedError:
+        update["checkpoint"] = {**state, "reason": "history_profile_unsupported", "completeness": "unknown",
+                                "nextReadAt": now_ms() + 300_000}
+    except (NetworkError, RateLimitExceeded, TimeoutError) as error:
+        read.budget.suspend(read.rest, error)
+        resume = read.budget.resume_at
+        update["checkpoint"] = {**state, "reason": "history_transient", "completeness": "partial",
+                                "nextReadAt": resume}
+        _defer_history_reads(read.pending, resume)
+    finally:
+        update['pages'] += read.budget.calls - calls_before
+    return False
+
+
 async def read_history_pages(rest: Any, exchange: str, states: list[dict[str, Any]], budget: RecoveryReadBudget,
                              unresolved_events: list[dict[str, Any]] | None = None,
                              ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    orders: list[dict[str, Any]] = []
-    fills: list[dict[str, Any]] = []
     updates = []
     provider_uid = next((state["providerAccountUid"] for state in states if state.get("providerAccountUid")), None)
-    read_started = now_ms()
+    read = _HistoryTraversal(rest, exchange, budget, unresolved_events, provider_uid, now_ms())
     # One page per stream per pass avoids starving fills behind a large orders history.
-    pending = [{"baseRevision": state["revision"], "checkpoint": dict(state), "pages": 0} for state in states]
-    while pending:
-        update = pending.pop(0)
-        state = update["checkpoint"]
-        if state["nextReadAt"] > now_ms():
+    read.pending = [{"baseRevision": state["revision"], "checkpoint": dict(state), "pages": 0} for state in states]
+    while read.pending:
+        update = read.pending.pop(0)
+        requeue = await _read_history_update(read, update)
+        if requeue:
+            read.pending.append(update)
+        else:
             updates.append(update)
-            continue
-        calls_before = budget.calls
-        try:
-            rows, next_state, events = await _page(rest, exchange, state, budget)
-            observed_uid = next_state.get("providerAccountUid")
-            if provider_uid and observed_uid and provider_uid != observed_uid:
-                raise ExchangeContractError("History sources disagree about the provider account identity.")
-            provider_uid = provider_uid or observed_uid
-            if events and unresolved_events is None:
-                raise ExchangeContractError("Historical order events require a durable evidence consumer.")
-            if unresolved_events is not None:
-                unresolved_events.extend(events)
-            (fills if state["source"] == "fills" else orders).extend(rows)
-            update.update(checkpoint=next_state)
-            if budget.remaining > 0 and next_state["nextReadAt"] <= now_ms() and (next_state['scannedThrough'] or 0) < read_started:
-                pending.append(update)
-                continue
-        except RecoveryBudgetExhausted:
-            update["checkpoint"] = {**state, "reason": "history_transient" if budget.resume_at > now_ms() else "history_budget_exhausted",
-                                    "completeness": "partial", "nextReadAt": max(state["nextReadAt"], budget.resume_at)}
-        except NotImplementedError:
-            update["checkpoint"] = {**state, "reason": "history_profile_unsupported", "completeness": "unknown", "nextReadAt": now_ms() + 300_000}
-        except (NetworkError, RateLimitExceeded, TimeoutError) as error:
-            budget.suspend(rest, error)
-            resume = budget.resume_at
-            update["checkpoint"] = {**state, "reason": "history_transient", "completeness": "partial", "nextReadAt": resume}
-            for deferred in pending:
-                deferred["checkpoint"] = {**deferred["checkpoint"], "nextReadAt": resume}
-        finally:
-            update['pages'] += budget.calls - calls_before
-        updates.append(update)
     for update in updates:
         update["checkpoint"]["revision"] = update["baseRevision"] + 1
-    return orders, fills, updates
+    return read.orders, read.fills, updates
 
 
 async def _page(rest: Any, exchange: str, state: dict[str, Any], budget: RecoveryReadBudget

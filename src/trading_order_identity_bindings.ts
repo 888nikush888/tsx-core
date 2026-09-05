@@ -17,6 +17,11 @@ interface Original { id: string; request_hash: string; request_json: string; exp
 interface Binding { remote_order_key: string; profile: string; account_fingerprint: string; credential_generation: string;
   operation_id: string; request_hash: string; evidence_hash: string; evidence_json: string }
 const hash = (value: string): string => createHash('sha256').update(value).digest('hex');
+function codePointOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
 const fail = (detail: string): never => { throw new Error(`ORDER_IDENTITY_UNPROVEN: ${detail}`); };
 
 function assertProvider(account: AccountIdentity, proof: ExchangeOrderIdentityEvidence): void {
@@ -42,9 +47,10 @@ function assertOriginalLeg(original: Original, local: Local, proof: ExchangeOrde
     || !isDeepStrictEqual(leg.providerBatchTag, { version: 1, tag: proof.tag }))) fail('Tag was not in the actual dispatched request.');
 }
 function assertExpectedLegs(original: Original, intentId: string, legs: Array<Record<string, any>>): void {
-  const expected = JSON.parse(original.expected_orders_json), ids = legs.map(leg => leg.clientOrderId).sort();
+  const expected = JSON.parse(original.expected_orders_json);
+  const ids = legs.map(leg => leg.clientOrderId).sort(codePointOrder);
   if (!Array.isArray(expected) || expected.length !== ids.length || new Set(ids).size !== ids.length
-    || !isDeepStrictEqual(expected.map(row => row.client_order_id).sort(), ids)) fail('Original expected leg set changed.');
+    || !isDeepStrictEqual(expected.map(row => row.client_order_id).sort(codePointOrder), ids)) fail('Original expected leg set changed.');
   if (!Number.isSafeInteger(original.generation) || original.generation < 1
     || original.logical_key !== hash(JSON.stringify([original.kind, intentId, ids]))) fail('Original journal generation or logical key changed.');
 }

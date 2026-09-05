@@ -16,6 +16,42 @@ const risk = await import('../src/trading_risk_repository.js');
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-risk-proof-'));
 const filename = path.join(directory, 'test.db');
 const market = { version: 1, source: 'paper-contract-v1', providerSymbol: 'BTCUSDT', settlementAsset: 'USDT', linear: true, quantityUnit: 'base' };
+async function laterBudgetFailureKeepsBreach(account, remote, strategy, readBalance) {
+  const intentId = 'risk-owned-z', now = Date.now();
+  await saveSignal(intentId, '-risk', 3, '<signal/>', '<signal/>');
+  await getDatabase().run(`INSERT INTO trading_trade_intents (id, source_signal_id, root_source_signal_id, channel_id,
+    strategy_version_id, account_id, exchange, mode, symbol, side, status, signal_json, created_at, updated_at)
+    VALUES (?, ?, ?, '-risk', ?, ?, 'paper', 'paper', 'ETHUSDT', 'LONG', 'monitoring', '{}', ?, ?)`,
+  [intentId, intentId, intentId, strategy.id, account.id, now, now]);
+  await insertAccountedFill({ intentId, id: 'risk-entry-z', price: '100', quantity: '1', filledAt: now, symbol: 'ETHUSDT' });
+  await getDatabase().run(`INSERT INTO trading_positions (id, intent_id, account_id, strategy_version_id, channel_id, symbol, side,
+    status, quantity, average_entry_price, stop_price, opened_at, updated_at)
+    VALUES ('risk-position-z', ?, ?, ?, '-risk', 'ETHUSDT', 'LONG', 'open', '1', '100', '90', ?, ?)`,
+  [intentId, account.id, strategy.id, now, now]);
+  await getDatabase().run(`INSERT INTO trading_orders (id, intent_id, account_id, client_order_id, exchange_order_id, provider_symbol,
+    role, side, order_type, status, trigger_price, quantity, filled_quantity, reduce_only, request_json, created_at, updated_at)
+    VALUES ('risk-stop-z', ?, ?, 'risk-stop-client-z', 'risk-stop-remote-z', 'ETHUSDT', 'stop_loss', 'sell', 'stop_market',
+    'open', '90', '1', '0', 1, '{}', ?, ?)`, [intentId, account.id, now, now]);
+  remote.positions.push({ ...remote.positions[0], symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', quantity: '1',
+    accounting: { ...remote.positions[0].accounting, providerSymbol: 'ETHUSDT' } });
+  remote.orders.push({ ...remote.orders[0], symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', clientOrderId: 'risk-stop-client-z',
+    exchangeOrderId: 'risk-stop-remote-z', quantity: '1' });
+  await risk.observeRiskReservations(account, remote, '0:0');
+  let budgets = 0;
+  const exceeded = await refreshReconciledRisk({ account, remote, epoch: '0:0', readBalance,
+    budgetForIntent: async () => {
+      budgets += 1;
+      if (budgets === 1) return '19';
+      throw new Error('later budget lookup failed');
+    } });
+  assert.equal(exceeded, true, 'A later unresolved budget cannot erase an earlier proved daily-risk breach.');
+  assert.equal(budgets, 2);
+  assert.match((await getDatabase().get('SELECT balance_reason FROM trading_risk_current')).balance_reason, /later budget lookup failed/);
+  remote.positions.pop(); remote.orders.pop();
+  await getDatabase().run("UPDATE trading_positions SET status = 'closed' WHERE intent_id = ?", [intentId]);
+  await getDatabase().run("UPDATE trading_orders SET status = 'cancelled' WHERE intent_id = ? AND role = 'stop_loss'", [intentId]);
+  await risk.observeRiskReservations(account, remote, '0:0');
+}
 async function balanceAndAdmission(account, remote, strategy) {
   const paper = new PaperExchangeAdapter();
   let reads = 0;
@@ -23,6 +59,7 @@ async function balanceAndAdmission(account, remote, strategy) {
   assert.equal(await refreshReconciledRisk({ account, remote, epoch: '0:0', readBalance, budgetForIntent: async () => '19' }), true);
   assert.equal(reads, 1, 'Exactly one account read per completed risk refresh.');
   assert.equal((await getDatabase().get('SELECT balance_reason FROM trading_risk_current')).balance_reason, 'MAX_DAILY_RISK');
+  await laterBudgetFailureKeepsBreach(account, remote, strategy, readBalance);
   await refreshReconciledRisk({ account, remote, epoch: '0:0', readBalance: async () => { throw new Error('account read failed'); }, budgetForIntent: async () => '19' });
   const failed = await getDatabase().get('SELECT balance_json, balance_reason FROM trading_risk_current');
   assert.equal(failed.balance_json, null); assert.match(failed.balance_reason, /failed/);

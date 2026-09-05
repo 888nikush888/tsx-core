@@ -8,9 +8,14 @@ function object(value: unknown): Record<string, any> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return invalid();
   return value as Record<string, any>;
 }
+function codeUnitOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
 function shape(value: unknown, keys: string): Record<string, any> {
   const row = object(value);
-  if (!isDeepStrictEqual(Object.keys(row).sort(), keys.split(' ').sort())) invalid();
+  if (!isDeepStrictEqual(Object.keys(row).sort(codeUnitOrder), keys.split(' ').sort(codeUnitOrder))) invalid();
   return row;
 }
 function token(value: unknown): asserts value is string {

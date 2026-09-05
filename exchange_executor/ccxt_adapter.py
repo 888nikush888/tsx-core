@@ -519,6 +519,14 @@ class CcxtAdapter:
         deadline: RequestDeadline,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         assert_entry_deadline(request)
+        market, spec = self._base_order_request(clients, request)
+        await self._apply_market_slippage(clients, request, spec, deadline)
+        await self._fence_order_entry(clients, market, request, spec, deadline)
+        return spec, market
+
+    def _base_order_request(
+        self, clients: AccountClients, request: dict[str, Any],
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         market = self._market(clients, str(request.get("symbol") or ""))
         symbol = market["symbol"]
         quantity = decimal_string(request.get("quantity"), "quantity", positive=True)
@@ -535,6 +543,13 @@ class CcxtAdapter:
                 raise EntryPriceConstraintError('Provider SDK lacks the required bounded-entry batch capability.')
             apply_entry_boundary(_clients_profile(clients), request, spec,
                                  _precision_step(market.get('precision', {}).get('price'), 'price tick'))
+        return market, spec
+
+    async def _apply_market_slippage(
+        self, clients: AccountClients, request: dict[str, Any],
+        spec: dict[str, Any], deadline: RequestDeadline,
+    ) -> None:
+        symbol = spec["symbol"]
         if _clients_profile(clients).market_order_strategy == "reference_slippage" and spec["type"] == "market":
             slippage_percent = decimal_string(
                 request.get("maxSlippagePercent"), "maxSlippagePercent", positive=True,
@@ -543,40 +558,54 @@ class CcxtAdapter:
             if request.get("orderType") == "stop_market":
                 reference = decimal_string(request.get("triggerPrice"), "triggerPrice", positive=True)
             else:
-                reference = await self._market_order_reference(clients, market, request.get("side"), deadline)
+                reference = await self._market_order_reference(clients, symbol, request.get("side"), deadline)
             spec["price"] = clients.rest.price_to_precision(symbol, reference)
+
+    async def _fence_order_entry(
+        self, clients: AccountClients, market: dict[str, Any], request: dict[str, Any],
+        spec: dict[str, Any], deadline: RequestDeadline,
+    ) -> None:
         leverage = request.get("leverage")
-        if not spec["params"]["reduceOnly"]:
-            if not isinstance(leverage, int) or isinstance(leverage, bool) or leverage < 1:
-                raise ExchangeContractError("Order leverage is invalid.")
-            mode = await self._entry_mode_fence(clients, market, deadline)
-            assert_entry_deadline(request)
-            tiers = await self._entry_tier_fence(clients, market, request, spec, deadline)
-            assert_entry_deadline(request)
-            self.registry.assert_binding(clients.account, clients)
-            assert_entry_constraints(clients, market, mode)
-            assert_tier_entry(clients, market, request, spec, tiers)
-            # Kraken's maxLeverage setter switches to isolated. Cross uses effective leverage from collateral/size.
-            if clients.account["exchange"] != "krakenfutures" and mode["leverage"] != leverage:
-                if clients.account["exchange"] == "hyperliquid":
-                    await _within(deadline, clients.rest.set_leverage(leverage, symbol, {"marginMode": "cross"}))
-                else:
-                    await _within(deadline, clients.rest.set_leverage(leverage, symbol))
-                assert_entry_deadline(request)
-            if clients.account["exchange"] == "bybit":
-                spec["params"]["positionIdx"] = 0
-        return spec, market
+        if spec["params"]["reduceOnly"]:
+            return
+        if not isinstance(leverage, int) or isinstance(leverage, bool) or leverage < 1:
+            raise ExchangeContractError("Order leverage is invalid.")
+        mode = await self._entry_mode_fence(clients, market, deadline)
+        assert_entry_deadline(request)
+        tiers = await self._entry_tier_fence(clients, market, request, spec, deadline)
+        assert_entry_deadline(request)
+        self.registry.assert_binding(clients.account, clients)
+        assert_entry_constraints(clients, market, mode)
+        assert_tier_entry(clients, market, request, spec, tiers)
+        await self._apply_entry_leverage(clients, spec["symbol"], request, mode, deadline)
+        if clients.account["exchange"] == "bybit":
+            spec["params"]["positionIdx"] = 0
+
+    @staticmethod
+    async def _apply_entry_leverage(
+        clients: AccountClients, symbol: str, request: dict[str, Any],
+        mode: dict[str, Any], deadline: RequestDeadline,
+    ) -> None:
+        leverage = request["leverage"]
+        # Kraken's maxLeverage setter switches to isolated. Cross uses effective leverage from collateral/size.
+        if clients.account["exchange"] == "krakenfutures" or mode["leverage"] == leverage:
+            return
+        if clients.account["exchange"] == "hyperliquid":
+            await _within(deadline, clients.rest.set_leverage(leverage, symbol, {"marginMode": "cross"}))
+        else:
+            await _within(deadline, clients.rest.set_leverage(leverage, symbol))
+        assert_entry_deadline(request)
 
     async def _market_order_reference(
         self,
         clients: AccountClients,
-        market: dict[str, Any],
+        symbol: str,
         side: Any,
         deadline: RequestDeadline,
     ) -> str:
         if side not in {"buy", "sell"}:
             raise ExchangeContractError("Order side is invalid.")
-        ticker = await _within(deadline, clients.rest.fetch_ticker(market["symbol"]))
+        ticker = await _within(deadline, clients.rest.fetch_ticker(symbol))
         info = ticker.get("info") if isinstance(ticker.get("info"), dict) else {}
         directional = ticker.get("ask") if side == "buy" else ticker.get("bid")
         candidates = (
@@ -595,7 +624,7 @@ class CcxtAdapter:
                     continue
             except ExchangeContractError:
                 continue
-            return clients.rest.price_to_precision(market["symbol"], normalized)
+            return clients.rest.price_to_precision(symbol, normalized)
         raise ExchangeContractError("CCXT ticker omitted a usable market-order reference price.")
 
     async def submit_order(self, account: dict[str, str], request: dict[str, Any], deadline: RequestDeadline) -> dict[str, Any]:
@@ -881,25 +910,52 @@ class CcxtAdapter:
         since = max(query["since"], now_ms() - 7 * 86_400_000) if account["exchange"] == "bybit" else query["since"]
         orders, positions, sources = await read_current_state(clients.rest, account["exchange"], deadline)
         orders = self._merge_order_pages([orders, await self._recent_historical_orders(clients, deadline)])
+        provider_symbols = self._recovery_symbols(clients, orders, positions, query["orders"])
+        trades_start = now_ms()
+        trades = await self._recent_trades(account, clients, provider_symbols, since, deadline)
+        sources.append(source_evidence("fills", trades_start, "unknown", "history_pagination_not_proven", since))
+        recovery_start = now_ms()
+        budget = self._recovery_read_budget(query, deadline)
+        recovery = await self._recover_open_state(account, clients, query, orders, budget)
+        recovered, checked = recovery['orders'], recovery['checked']
+        historical_orders, historical_fills = recovery['historicalOrders'], recovery['historicalFills']
+        progress, history_events = recovery['history'], recovery['events']
+        extras, targeted_completed = recovery['extras'], recovery['completedAt']
+        orders = self._merge_order_pages([orders, recovered])
+        sources.append({**source_evidence("targeted_orders", recovery_start,
+                       "complete" if all(row["status"] == "observed" for row in checked) else "partial", "positive_evidence_only"),
+                        'completedAt': targeted_completed})
+        if query.get('accountLogs') is not None or query.get('readAccountMode') or query.get('recoverySchedule'):
+            self.registry.assert_binding(account, clients)
+        assert_schedule_binding(query.get('recoverySchedule'), account, clients)
+        orders = self._merge_order_pages([orders, historical_orders])
+        trades.extend(historical_fills)
+        self._finalize_fill_sources(sources, progress, account, query, started)
+        state = {'orders': orders, 'positions': positions, 'trades': trades, 'historyEvents': history_events,
+                 'started': started, 'sources': sources, 'extras': extras, 'checked': checked, 'progress': progress}
+        return self._open_state_result(account, clients, state)
+
+    def _recovery_symbols(self, clients, orders, positions, references):
         provider_symbols = sorted({
             str(item.get("symbol")) for item in [*orders, *positions]
             if isinstance(item.get("symbol"), str) and item.get("symbol")
         })
         # Local unresolved obligations contribute symbols even when REST lists are empty.
-        for reference in query["orders"]:
+        for reference in references:
             try:
                 provider_symbols.append(self._recovery_symbol(clients, reference))
             except (KeyError, SymbolUnavailableError):
                 pass  # The lookup is explicitly unsupported; never evidence of absence.
-        provider_symbols = sorted(set(provider_symbols))
-        trades_start = now_ms()
-        trades = await self._recent_trades(account, clients, provider_symbols, since, deadline)
-        sources.append(source_evidence("fills", trades_start, "unknown", "history_pagination_not_proven", since))
-        recovery_start = now_ms()
+        return sorted(set(provider_symbols))
+
+    @staticmethod
+    def _recovery_read_budget(query, deadline):
         resume_at = max((row["nextReadAt"] for row in query["history"] if row["reason"] == "history_transient"), default=0)
         if (query.get('accountLogs') or {}).get('reason') == 'transient':
             resume_at = max(resume_at, query['accountLogs']['nextReadAt'])
-        budget = RecoveryReadBudget(deadline, resume_at=resume_at)
+        return RecoveryReadBudget(deadline, resume_at=resume_at)
+
+    async def _recover_open_state(self, account, clients, query, orders, budget):
         if query.get('recoverySchedule'):
             scheduled = await read_scheduled_recovery(clients.rest, account['mode'], query, orders,
                 lambda reference: self._recovery_symbol(clients, reference), budget, clients.account_identity,
@@ -927,19 +983,20 @@ class CcxtAdapter:
             history_events: list[dict[str, Any]] = []
             historical_orders, historical_fills, progress = await read_history_pages(clients.rest, account["exchange"], query["history"], budget, history_events)
             propagate_cooldown(logs, budget)
-        orders = self._merge_order_pages([orders, recovered])
-        sources.append({**source_evidence("targeted_orders", recovery_start,
-                       "complete" if all(row["status"] == "observed" for row in checked) else "partial", "positive_evidence_only"),
-                        'completedAt': targeted_completed})
-        if query.get('accountLogs') is not None or query.get('readAccountMode') or query.get('recoverySchedule'):
-            self.registry.assert_binding(account, clients)
-        assert_schedule_binding(query.get('recoverySchedule'), account, clients)
-        orders = self._merge_order_pages([orders, historical_orders])
-        trades.extend(historical_fills)
+        return {'orders': recovered, 'checked': checked, 'extras': extras,
+                'historicalOrders': historical_orders, 'historicalFills': historical_fills,
+                'history': progress, 'events': history_events, 'completedAt': targeted_completed}
+
+    @staticmethod
+    def _finalize_fill_sources(sources, progress, account, query, started):
         for source in sources:
             if source["source"] == "fills":
                 source["completedAt"] = now_ms()
                 source.update(fresh_fill_source(source, progress, account['exchange'], query['since'], started))
+
+    @staticmethod
+    def _open_state_result(account, clients, state):
+        orders, positions, trades = state['orders'], state['positions'], state['trades']
         order_by_id = {(str(order.get("symbol")), str(order.get("id"))): order for order in orders if order.get("id") is not None}
         normalized_orders = [_normalized_open_order(clients.rest, order, account["exchange"]) for order in orders]
         normalized_positions = [
@@ -949,7 +1006,7 @@ class CcxtAdapter:
         normalized_fills, unresolved_events = normalize_trades(
             trades, lambda trade: _normalized_fill(clients.rest, order_by_id, trade, account["exchange"]),
         )
-        unresolved_events.extend(history_events)
+        unresolved_events.extend(state['historyEvents'])
         identity = external_account_id(account["exchange"], account["mode"], clients.account_identity)
         return {
             "orders": normalized_orders,
@@ -958,6 +1015,7 @@ class CcxtAdapter:
             "unresolvedEvents": unresolved_events,
             "observedAt": int(time.time() * 1_000),
             "accountFingerprint": identity,
-            "acquisition": {"version": 1, "startedAt": started, "completedAt": now_ms(), "sources": sources, **extras,
-                            "checkedOrders": checked, "history": progress},
+            "acquisition": {"version": 1, "startedAt": state['started'], "completedAt": now_ms(),
+                            "sources": state['sources'], **state['extras'],
+                            "checkedOrders": state['checked'], "history": state['progress']},
         }

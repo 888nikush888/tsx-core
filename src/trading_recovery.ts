@@ -11,6 +11,12 @@ import type { ExchangeOrderResult, ExchangeOrderSnapshot, ExchangeRecoveryQuery,
 export type TradingOperationKind = 'submit' | 'protected_entry' | 'cancel';
 export type TradingOperationPhase = 'prepared' | 'dispatching' | 'acknowledged' | 'unresolved' | 'resolved' | 'abandoned';
 
+function codePointOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 interface OperationOrder { client_order_id: string; exchange_order_id: string | null; provider_symbol: string | null; status: string }
 interface TradingOperation {
   id: string; phase: TradingOperationPhase; request_hash: string; state_version: number;
@@ -73,7 +79,7 @@ export async function exchangeRecoveryQuery(account: TradingAccount): Promise<Ex
 }
 
 async function expectedOrders(input: TradingOperationInput): Promise<OperationOrder[]> {
-  const ids = [...new Set(input.clientOrderIds)].sort();
+  const ids = [...new Set(input.clientOrderIds)].sort(codePointOrder);
   if (ids.length !== input.clientOrderIds.length || ids.length < 1 || ids.length > 2) throw new Error('Invalid operation order identities.');
   const rows = await getDatabase().all<OperationOrder[]>(
     `SELECT client_order_id, exchange_order_id, provider_symbol, status FROM trading_orders

@@ -81,53 +81,60 @@ class CcxtExchangeRegistry:
             pro_class = getattr(self.pro_module, exchange, None) if exchange in pro_ids else None
             if rest_class is None:
                 continue
-            rest = rest_class({"enableRateLimit": True})
-            pro = pro_class({"enableRateLimit": True}) if pro_class is not None else None
-            profile = profile_for(exchange)
-            required = _required_credentials(rest)
-            rest_flags = capability_flags(rest, REST_CAPABILITIES)
-            pro_flags = capability_flags(pro, PRO_CAPABILITIES) if pro is not None else {name: False for name in PRO_CAPABILITIES}
-            capabilities = {**rest_flags, **pro_flags}
-            status, reason = self._initial_status(exchange, profile, required, rest_flags, pro_flags)
-            result[exchange] = {
-                "id": exchange,
-                "name": str(getattr(rest, "name", None) or exchange),
-                "status": status,
-                "reason": reason,
-                "provider": "ccxt",
-                "restAvailable": True,
-                "proAvailable": pro is not None,
-                "requiredCredentials": required,
-                "ccxt": {"rest": True, "pro": pro is not None},
-                "markets": {"linearSwap": None},
-                "credentialFields": _credential_fields(required, profile),
-                "modes": list(profile.modes) if profile and status == "certified" else [],
-                "capabilities": capabilities,
-                "profile": self._public_profile(profile),
-            }
+            result[exchange] = self._installed_descriptor(exchange, rest_class, pro_class)
         for exchange, profile in sorted(PROFILES.items()):
             if exchange in result:
                 continue
-            result[exchange] = {
-                "id": exchange,
-                "name": exchange,
-                "status": "deprecated",
-                "reason": "The certified exchange profile is absent from the installed CCXT version.",
-                "provider": "ccxt",
-                "restAvailable": False,
-                "proAvailable": False,
-                "requiredCredentials": [],
-                "ccxt": {"rest": False, "pro": False},
-                "markets": {"linearSwap": None},
-                "credentialFields": _credential_fields([], profile),
-                "modes": [],
-                "capabilities": {
-                    **{name: False for name in REST_CAPABILITIES},
-                    **{name: False for name in PRO_CAPABILITIES},
-                },
-                "profile": self._public_profile(profile),
-            }
+            result[exchange] = self._deprecated_descriptor(exchange, profile)
         return result
+
+    def _installed_descriptor(self, exchange: str, rest_class: Any, pro_class: Any) -> dict[str, Any]:
+        rest = rest_class({"enableRateLimit": True})
+        pro = pro_class({"enableRateLimit": True}) if pro_class is not None else None
+        profile = profile_for(exchange)
+        required = _required_credentials(rest)
+        rest_flags = capability_flags(rest, REST_CAPABILITIES)
+        pro_flags = capability_flags(pro, PRO_CAPABILITIES) if pro is not None else {
+            name: False for name in PRO_CAPABILITIES
+        }
+        status, reason = self._initial_status(exchange, profile, required, rest_flags, pro_flags)
+        return {
+            "id": exchange,
+            "name": str(getattr(rest, "name", None) or exchange),
+            "status": status,
+            "reason": reason,
+            "provider": "ccxt",
+            "restAvailable": True,
+            "proAvailable": pro is not None,
+            "requiredCredentials": required,
+            "ccxt": {"rest": True, "pro": pro is not None},
+            "markets": {"linearSwap": None},
+            "credentialFields": _credential_fields(required, profile),
+            "modes": list(profile.modes) if profile and status == "certified" else [],
+            "capabilities": {**rest_flags, **pro_flags},
+            "profile": self._public_profile(profile),
+        }
+
+    def _deprecated_descriptor(self, exchange: str, profile: ExchangeProfile) -> dict[str, Any]:
+        return {
+            "id": exchange,
+            "name": exchange,
+            "status": "deprecated",
+            "reason": "The certified exchange profile is absent from the installed CCXT version.",
+            "provider": "ccxt",
+            "restAvailable": False,
+            "proAvailable": False,
+            "requiredCredentials": [],
+            "ccxt": {"rest": False, "pro": False},
+            "markets": {"linearSwap": None},
+            "credentialFields": _credential_fields([], profile),
+            "modes": [],
+            "capabilities": {
+                **{name: False for name in REST_CAPABILITIES},
+                **{name: False for name in PRO_CAPABILITIES},
+            },
+            "profile": self._public_profile(profile),
+        }
 
     def _initial_status(
         self,

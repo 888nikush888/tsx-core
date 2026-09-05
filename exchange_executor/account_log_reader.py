@@ -27,25 +27,41 @@ def validate_log_checkpoint(value: Any, exchange: str) -> dict[str, Any]:
     namespace, filter_hash = source_spec(exchange)
     if value['namespace'] != namespace or value['filterHash'] != filter_hash:
         raise ExchangeContractError('Account-log source/filter changed.')
-    for field in ('revision', 'requiredSince', 'windowSince', 'nextReadAt', 'lastServedAt'):
-        _integer(value[field])
-    for field in ('windowUntil', 'scannedThrough'):
-        if value[field] is not None:
-            _integer(value[field])
-    for field in ('accountFingerprint', 'credentialGeneration'):
-        token = value[field]
-        if not isinstance(token, str) or len(token) != 64 or any(char not in '0123456789abcdef' for char in token):
-            raise ExchangeContractError('Account-log binding is unverified.')
-    for field in ('cursor', 'providerAccountUid', 'reason'):
-        _token(value[field])
+    _validate_checkpoint_timestamps(value)
+    _validate_checkpoint_bindings(value)
+    _validate_checkpoint_tokens(value)
     _window(value)
-    if 'audit' in value:
-        _audit(value['audit'], value['requiredSince'])
+    _validate_checkpoint_audit(value)
     if (value['scannedThrough'] or 0) > now_ms():
         raise ExchangeContractError('Account-log observation is in the future.')
     if len(json.dumps(value).encode()) >= 8192:
         raise ExchangeContractError('Account-log checkpoint exceeds its storage budget.')
     return dict(value)
+
+
+def _validate_checkpoint_timestamps(value: dict[str, Any]) -> None:
+    for field in ('revision', 'requiredSince', 'windowSince', 'nextReadAt', 'lastServedAt'):
+        _integer(value[field])
+    for field in ('windowUntil', 'scannedThrough'):
+        if value[field] is not None:
+            _integer(value[field])
+
+
+def _validate_checkpoint_bindings(value: dict[str, Any]) -> None:
+    for field in ('accountFingerprint', 'credentialGeneration'):
+        token = value[field]
+        if not isinstance(token, str) or len(token) != 64 or any(char not in '0123456789abcdef' for char in token):
+            raise ExchangeContractError('Account-log binding is unverified.')
+
+
+def _validate_checkpoint_tokens(value: dict[str, Any]) -> None:
+    for field in ('cursor', 'providerAccountUid', 'reason'):
+        _token(value[field])
+
+
+def _validate_checkpoint_audit(value: dict[str, Any]) -> None:
+    if 'audit' in value:
+        _audit(value['audit'], value['requiredSince'])
 
 
 def _integer(value):

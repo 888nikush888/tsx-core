@@ -11,6 +11,11 @@ export interface OriginalPlanOperation {
   request_json: string; request_hash: string; expected_orders_json: string;
 }
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
+function codePointOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
 
 function originalEntryComparison(original: { entry?: object } | null, request: ReturnType<typeof requestFromOrder>) {
   const expected = { ...request };
@@ -26,7 +31,7 @@ async function operationMatchesPlan(operation: OriginalPlanOperation, account: O
   if (!entry || !stop || operation.kind !== 'protected_entry' || operation.account_id !== account.id
     || operation.account_fingerprint !== account.externalAccountId || operation.credential_generation !== account.credentialGeneration
     || operation.generation !== 1 || hash(operation.request_json) !== operation.request_hash) return false;
-  const ids = [entry.clientOrderId, stop.clientOrderId].sort();
+  const ids = [entry.clientOrderId, stop.clientOrderId].sort(codePointOrder);
   if (operation.logical_key !== hash(JSON.stringify(['protected_entry', intentId, ids]))) return false;
   const expected = JSON.parse(operation.expected_orders_json);
   const original = JSON.parse(operation.request_json);
@@ -34,7 +39,7 @@ async function operationMatchesPlan(operation: OriginalPlanOperation, account: O
   const requests = await prepareProtectedOrderIdentityRequests(account, intentId,
     entryRequest, requestFromOrder(account, plan, stop));
   return Array.isArray(expected) && expected.length === 2
-    && isDeepStrictEqual(expected.map(row => row.client_order_id).sort(), ids)
+    && isDeepStrictEqual(expected.map(row => row.client_order_id).sort(codePointOrder), ids)
     && expected.every(row => row.exchange_order_id === null && row.provider_symbol === null && row.status === 'created')
     && isDeepStrictEqual(original, requests);
 }

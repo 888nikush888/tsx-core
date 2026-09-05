@@ -3,6 +3,11 @@ import type { ExchangeFill, ExchangeFillIdentity, TradingAccount } from './tradi
 
 const PROFILES = { bybit_execution_v1: ['linear', 'inverse', 'spot', 'option'], hyperliquid_user_fill_v1: ['perpetual'],
   kraken_history_execution_v3: ['futures'], paper_fill_v1: ['paper'] };
+function codeUnitOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
 function object(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
 }
@@ -13,7 +18,8 @@ function identifier(value: unknown): asserts value is string {
 }
 export function validateFillIdentity(value: unknown): ExchangeFillIdentity {
   const row = object(value);
-  if (!isDeepStrictEqual(Object.keys(row).sort(), ['marketNamespace', 'profile', 'providerFillId', 'providerMarketId', 'providerSymbol', 'scopeTimestamp', 'version'])
+  if (!isDeepStrictEqual(Object.keys(row).sort(codeUnitOrder),
+    ['marketNamespace', 'profile', 'providerFillId', 'providerMarketId', 'providerSymbol', 'scopeTimestamp', 'version'])
     || row.version !== 1 || !Object.hasOwn(PROFILES, row.profile)
     || !PROFILES[row.profile as keyof typeof PROFILES].includes(row.marketNamespace)) throw new Error('Invalid fill identity profile.');
   for (const key of ['providerMarketId', 'providerSymbol', 'providerFillId']) identifier(row[key]);

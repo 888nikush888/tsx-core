@@ -15,13 +15,7 @@ function decimalUnits(value: string): bigint {
   const units = BigInt(integer + fraction.padEnd(18, "0"));
   return value.startsWith("-") ? -units : units;
 }
-function displayValue(value: unknown): DisplayMoneyValue | null {
-  if (!value || typeof value !== "object") return null;
-  const row = value as DisplayMoneyValue;
-  if (!decimalText(row.lower) || !decimalText(row.upper) || !Number.isSafeInteger(row.terms) || row.terms < 0) return null;
-  const lower = decimalUnits(row.lower), upper = decimalUnits(row.upper);
-  if (lower > upper) return null;
-  if (row.precision === "bounded") return row.exact === null && row.decimal === null ? row : null;
+function exactDisplayValue(row: DisplayMoneyValue, lower: bigint, upper: bigint): DisplayMoneyValue | null {
   if (!row.exact || typeof row.exact.numerator !== "string" || typeof row.exact.denominator !== "string"
     || !/^-?(?:0|[1-9][0-9]{0,255})$/.test(row.exact.numerator)
     || !/^[1-9][0-9]{0,255}$/.test(row.exact.denominator)) return null;
@@ -32,6 +26,15 @@ function displayValue(value: unknown): DisplayMoneyValue | null {
     return lower === units && upper === units && numerator === units * denominator ? row : null;
   }
   return row.precision === "exact_rational" && row.decimal === null ? row : null;
+}
+function displayValue(value: unknown): DisplayMoneyValue | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as DisplayMoneyValue;
+  if (!decimalText(row.lower) || !decimalText(row.upper) || !Number.isSafeInteger(row.terms) || row.terms < 0) return null;
+  const lower = decimalUnits(row.lower), upper = decimalUnits(row.upper);
+  if (lower > upper) return null;
+  if (row.precision === "bounded") return row.exact === null && row.decimal === null ? row : null;
+  return exactDisplayValue(row, lower, upper);
 }
 const locale = (value: string) => value.replace(".", ",");
 function unit(currency: unknown): string {

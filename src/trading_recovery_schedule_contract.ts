@@ -40,6 +40,12 @@ const FAILURES = ['budget_exhausted', 'transient', 'unsupported', 'invalid_evide
 const LEGS = ['bybit:btc-usd-index:v1', 'bybit:btc-usdt-index:v1', 'bybit:usdc-usd-index:v1'];
 const BINDING_KEYS = 'accountId accountFingerprint credentialGeneration mode executionProfileHash';
 
+function codeUnitOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 function invalid(): never { throw new Error('RECOVERY_SCHEDULE_INVALID'); }
 function object(value: unknown, keys?: string): Record<string, any> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) invalid();
@@ -47,7 +53,7 @@ function object(value: unknown, keys?: string): Record<string, any> {
   if (prototype !== Object.prototype && prototype !== null) invalid();
   const own = Reflect.ownKeys(value), descriptors = Object.getOwnPropertyDescriptors(value);
   if (own.some(key => typeof key !== 'string' || !descriptors[key].enumerable || !('value' in descriptors[key]))) invalid();
-  if (keys && own.map(String).sort().join(' ') !== keys.split(' ').sort().join(' ')) invalid();
+  if (keys && own.map(String).sort(codeUnitOrder).join(' ') !== keys.split(' ').sort(codeUnitOrder).join(' ')) invalid();
   return value as Record<string, any>;
 }
 function integer(value: unknown, maximum = Number.MAX_SAFE_INTEGER): number {
@@ -257,22 +263,27 @@ function sourceReason(reasons: unknown[]): string | null {
   const normalized = reasons.map(reason => typeof reason === 'string' && Object.hasOwn(aliases, reason) ? aliases[reason] : reason);
   return ['transient', 'invalid_evidence', 'unsupported', 'budget_exhausted'].find(reason => normalized.includes(reason)) ?? null;
 }
+function responseLane(progress: Record<string, any>, value: unknown,
+  grant: RecoveryScheduleRequest['grants'][number], proof: LaneEvidence, read: ReadWindow): number {
+  const lane = object(value, 'lane calls reason'), calls = integer(lane.calls, grant.maxCalls);
+  if (lane.lane !== grant.lane || calls !== proof.calls) invalid();
+  const reason = sourceReason(proof.reasons);
+  if (grant.maxCalls === 0) {
+    if (lane.reason !== grant.deferredReason) invalid();
+  } else if (lane.reason === 'cooldown') {
+    if (calls !== 0 || progress.cooldownUntil <= read.startedAt || reason === 'transient') invalid();
+  } else if (lane.reason !== reason) invalid();
+  if (progress.cooldownUntil < proof.cooldown) invalid();
+  return calls;
+}
 function responseLanes(row: Record<string, any>, request: RecoveryScheduleRequest,
   evidence: Record<RecoveryLane, LaneEvidence>, read: ReadWindow): void {
   const rows = array(row.lanes, 5);
   if (rows.length !== request.grants.length) invalid();
   let total = 0;
   for (let index = 0; index < rows.length; index++) {
-    const lane = object(rows[index], 'lane calls reason'), grant = request.grants[index], proof = evidence[grant.lane];
-    const calls = integer(lane.calls, grant.maxCalls);
-    if (lane.lane !== grant.lane || calls !== proof.calls) invalid();
-    const reason = sourceReason(proof.reasons);
-    if (grant.maxCalls === 0) { if (lane.reason !== grant.deferredReason) invalid(); }
-    else if (lane.reason === 'cooldown') {
-      if (calls !== 0 || row.cooldownUntil <= read.startedAt || reason === 'transient') invalid();
-    } else if (lane.reason !== reason) invalid();
-    if (row.cooldownUntil < proof.cooldown) invalid();
-    total += calls;
+    const grant = request.grants[index];
+    total += responseLane(row, rows[index], grant, evidence[grant.lane], read);
   }
   if (total !== row.calls || total > 5) invalid();
 }

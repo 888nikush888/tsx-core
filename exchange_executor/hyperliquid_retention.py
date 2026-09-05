@@ -65,23 +65,39 @@ def _validate_window(probe: dict[str, Any], state: dict[str, Any]) -> None:
         raise ExchangeContractError('Hyperliquid retention changed its original window.')
 
 
-def _validate_phase(probe: dict[str, Any]) -> None:
-    phase, fixed, anchor = probe['phase'], probe['fixedUntil'], probe['anchor']
-    if phase == 'witness':
-        if anchor is not None or fixed is not None or probe['count'] != 0 or probe['cursor'] != 0:
+def _validate_retention_anchor(probe: dict[str, Any]) -> None:
+    if probe['phase'] == 'witness':
+        if (probe['anchor'] is not None or probe['fixedUntil'] is not None
+                or probe['count'] != 0 or probe['cursor'] != 0):
             raise ExchangeContractError('Invalid Hyperliquid initial retention phase.')
-    elif anchor is None or not 1 <= probe['count'] < RETENTION or not anchor['time'] <= probe['cursor']:
+        return
+    anchor = probe['anchor']
+    if anchor is None or not 1 <= probe['count'] < RETENTION or not anchor['time'] <= probe['cursor']:
         raise ExchangeContractError('Invalid Hyperliquid counted retention anchor.')
+
+
+def _validate_retention_horizon(probe: dict[str, Any]) -> None:
+    phase, fixed = probe['phase'], probe['fixedUntil']
     if phase == 'horizon' and fixed is not None:
         raise ExchangeContractError('Hyperliquid horizon was fixed before reading its source.')
     if phase in {'scan', 'verify', 'proved'}:
         if fixed is None or not probe['startedAt'] <= fixed <= now_ms() + 60_000 or probe['cursor'] > fixed + 1:
             raise ExchangeContractError('Invalid Hyperliquid fixed retention horizon.')
+
+
+def _validate_retention_time(probe: dict[str, Any]) -> None:
+    phase = probe['phase']
     if phase == 'proved':
         if probe['validatedAt'] is None or not probe['startedAt'] <= probe['validatedAt'] <= now_ms() + 60_000:
             raise ExchangeContractError('Invalid Hyperliquid retention validation time.')
     elif probe['validatedAt'] is not None:
         raise ExchangeContractError('Unverified Hyperliquid retention has a validation time.')
+
+
+def _validate_phase(probe: dict[str, Any]) -> None:
+    _validate_retention_anchor(probe)
+    _validate_retention_horizon(probe)
+    _validate_retention_time(probe)
 
 
 def begin_retention(state: dict[str, Any]) -> dict[str, Any]:
@@ -126,37 +142,55 @@ def _discard(state: dict[str, Any], reason: str) -> tuple[dict[str, Any], str | 
     return {**state, 'retention': None, 'completeness': 'unknown', 'reason': reason, 'nextReadAt': now_ms() + 60_000}, None
 
 
-async def retention_step(rest: Any, user: str, state: dict[str, Any], budget: RecoveryReadBudget) -> tuple[dict[str, Any], str | None]:
-    """Exactly one HTTP request per step, so every successful phase is resumable."""
-    probe = state['retention']
+def _retention_params(user: str, probe: dict[str, Any]) -> dict[str, Any]:
     params = {'type': 'userFillsByTime', 'user': user, 'startTime': 0, 'aggregateByTime': False}
     if probe['phase'] == 'horizon':
-        params = {'type': 'userFills', 'user': user, 'aggregateByTime': False}
+        return {'type': 'userFills', 'user': user, 'aggregateByTime': False}
     elif probe['phase'] == 'scan':
         params.update(startTime=probe['cursor'], endTime=probe['fixedUntil'])
-    rows, times = _rows(await budget.call(lambda: rest.publicPostInfo(params)))
-    if probe['phase'] == 'witness':
-        if not times or min(times) < state['windowSince']:
-            return {**state, 'retention': None}, 'covered'
-        anchor = _identity(rows[times.index(min(times))])
-        if len(times) == LIMIT and min(times) == max(times):
-            return _discard(state, 'timestamp_page_saturated')
-        return _pending(state, {**probe, 'phase': 'horizon', 'count': len(rows), 'cursor': max(times), 'anchor': anchor})
-    if probe['phase'] == 'horizon':
-        # The latest-fill endpoint supplies only an upper time bound, never a count proof.
-        if not times or max(times) < probe['cursor']:
-            return _discard(state, 'retention_anchor_changed')
-        return _pending(state, {**probe, 'phase': 'scan', 'fixedUntil': max(now_ms(), max(times))})
-    if probe['phase'] == 'scan':
-        return _scan(state, probe, times)
-    if probe['phase'] != 'verify':
-        raise ExchangeContractError('A retained proof cannot be reused as a fresh provider read.')
+    return params
+
+
+def _witness_step(state: dict[str, Any], probe: dict[str, Any], rows: list[dict[str, Any]],
+                  times: list[int]) -> tuple[dict[str, Any], str | None]:
+    if not times or min(times) < state['windowSince']:
+        return {**state, 'retention': None}, 'covered'
+    anchor = _identity(rows[times.index(min(times))])
+    if len(times) == LIMIT and min(times) == max(times):
+        return _discard(state, 'timestamp_page_saturated')
+    return _pending(state, {**probe, 'phase': 'horizon', 'count': len(rows), 'cursor': max(times), 'anchor': anchor})
+
+
+def _horizon_step(state: dict[str, Any], probe: dict[str, Any], times: list[int]) -> tuple[dict[str, Any], str | None]:
+    # The latest-fill endpoint supplies only an upper time bound, never a count proof.
+    if not times or max(times) < probe['cursor']:
+        return _discard(state, 'retention_anchor_changed')
+    return _pending(state, {**probe, 'phase': 'scan', 'fixedUntil': max(now_ms(), max(times))})
+
+
+def _verify_step(state: dict[str, Any], probe: dict[str, Any], rows: list[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:
     matching = [row for row in rows if (row.get('coin'), str(row.get('tid')), row.get('time'))
                 == (probe['anchor']['coin'], probe['anchor']['tid'], probe['anchor']['time'])]
     if len(matching) != 1 or _identity(matching[0]) != probe['anchor']:
         return _discard(state, 'retention_anchor_changed')
     return {**state, 'retention': {**probe, 'phase': 'proved', 'validatedAt': now_ms()},
             'windowUntil': min(probe['originalUntil'], probe['fixedUntil'])}, 'covered'
+
+
+async def retention_step(rest: Any, user: str, state: dict[str, Any], budget: RecoveryReadBudget) -> tuple[dict[str, Any], str | None]:
+    """Exactly one HTTP request per step, so every successful phase is resumable."""
+    probe = state['retention']
+    params = _retention_params(user, probe)
+    rows, times = _rows(await budget.call(lambda: rest.publicPostInfo(params)))
+    if probe['phase'] == 'witness':
+        return _witness_step(state, probe, rows, times)
+    if probe['phase'] == 'horizon':
+        return _horizon_step(state, probe, times)
+    if probe['phase'] == 'scan':
+        return _scan(state, probe, times)
+    if probe['phase'] != 'verify':
+        raise ExchangeContractError('A retained proof cannot be reused as a fresh provider read.')
+    return _verify_step(state, probe, rows)
 
 
 def _scan(state: dict[str, Any], probe: dict[str, Any], times: list[int]) -> tuple[dict[str, Any], str | None]:

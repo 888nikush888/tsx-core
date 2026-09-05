@@ -11,7 +11,12 @@ export interface FxLegReceipt extends FxContext {
   providerQuoteAt: null; providerResponseAt: number; timeBasis: 'provider_snapshot_observation';
   startedAt: number; completedAt: number; envelope: Record<string, unknown>; envelopeHash: string; receiptHash: string;
 }
-const SHAPE = 'version provider mode origin endpoint source legId routeId ccxtVersion profileVersion profileHash category symbol field value providerQuoteAt providerResponseAt timeBasis startedAt completedAt envelope envelopeHash receiptHash'.split(' ').sort().join(',');
+function codeUnitOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+const SHAPE = 'version provider mode origin endpoint source legId routeId ccxtVersion profileVersion profileHash category symbol field value providerQuoteAt providerResponseAt timeBasis startedAt completedAt envelope envelopeHash receiptHash'.split(' ').sort(codeUnitOrder).join(',');
 const DEFINITIONS = {
   'bybit:btc-usd-index:v1': ['bybit:usdt-usd-index-ratio:v1', 'inverse', 'BTCUSD', 'indexPrice'],
   'bybit:btc-usdt-index:v1': ['bybit:usdt-usd-index-ratio:v1', 'linear', 'BTCUSDT', 'indexPrice'],
@@ -97,7 +102,7 @@ function validateEnvelope(row: Record<string, any>): void {
 }
 export function validateFxLegReceipt(value: unknown, context: FxContext): FxLegReceipt {
   const row = object(value);
-  if (Object.keys(row).sort().join(',') !== SHAPE) invalidFx();
+  if (Object.keys(row).sort(codeUnitOrder).join(',') !== SHAPE) invalidFx();
   validateProfile(row, context);
   validateLeg(row);
   validateTimes(row);

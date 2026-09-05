@@ -36,26 +36,31 @@ def _records(rows: Any, exchange: str, maximum: int) -> list[dict[str, str | Non
 
 
 def _record(row: dict[str, Any], exchange: str) -> dict[str, str | None]:
-    if exchange == 'hyperliquid':
-        delta = row.get('delta')
-        if not isinstance(delta, dict):
-            return {'hash': str(row.get('hash', '')), 'type': 'invalid_delta'}
-        row = {**delta, 'hash': row.get('hash'), 'time': row.get('time')}
+    if exchange == 'hyperliquid' and not isinstance(row.get('delta'), dict):
+        return {'hash': str(row.get('hash', '')), 'type': 'invalid_delta'}
+    row = _economic_row(row, exchange)
     result = {}
     for field in FIELDS[exchange].split():
-        if field not in row:
-            continue
-        value = row[field]
-        if value is None:
-            result[field] = None
-        elif isinstance(value, (str, int, Decimal)) and not isinstance(value, bool):
-            text = format(value, 'f') if isinstance(value, Decimal) else str(value)
-            if len(text) > 256 or any(ord(character) < 32 for character in text):
-                raise ExchangeContractError('Account log economic field is oversized or contains control characters.')
-            result[field] = text
-        else:
-            raise ExchangeContractError('Account log money must retain exact original decimals.')
+        if field in row:
+            result[field] = _economic_text(row[field])
     return result
+
+
+def _economic_row(row: dict[str, Any], exchange: str) -> dict[str, Any]:
+    if exchange == 'hyperliquid':
+        return {**row['delta'], 'hash': row.get('hash'), 'time': row.get('time')}
+    return row
+
+
+def _economic_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, (str, int, Decimal)) or isinstance(value, bool):
+        raise ExchangeContractError('Account log money must retain exact original decimals.')
+    text = format(value, 'f') if isinstance(value, Decimal) else str(value)
+    if len(text) > 256 or any(ord(character) < 32 for character in text):
+        raise ExchangeContractError('Account log economic field is oversized or contains control characters.')
+    return text
 
 
 def _object(value: Any) -> dict[str, Any]:

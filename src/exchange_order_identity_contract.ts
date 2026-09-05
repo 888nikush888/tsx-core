@@ -10,6 +10,11 @@ function id(value: unknown): asserts value is string {
     throw new Error('Invalid order identity evidence identifier.');
   }
 }
+function codeUnitOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
 export function validateOrderIdentityEvidence(result: Record<string, any>): ExchangeOrderIdentityEvidence | undefined {
   if (result.identityEvidence === undefined) return undefined;
   const proof = object(result.identityEvidence);
@@ -26,7 +31,9 @@ export function validateOrderIdentityEvidence(result: Record<string, any>): Exch
     fields = [...base, 'user', 'providerMarketId', 'startedAt', 'completedAt'];
     validateCloid(proof, info, raw);
   } else throw new Error('Unsupported native order identity evidence.');
-  if (!isDeepStrictEqual(Object.keys(proof).sort(), fields.sort())) throw new Error('Unexpected order identity evidence fields.');
+  if (!isDeepStrictEqual(Object.keys(proof).sort(codeUnitOrder), fields.sort(codeUnitOrder))) {
+    throw new Error('Unexpected order identity evidence fields.');
+  }
   return proof as ExchangeOrderIdentityEvidence;
 }
 function assertScope(proof: Record<string, any>, result: Record<string, any>): void {

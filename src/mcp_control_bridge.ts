@@ -96,22 +96,9 @@ export class McpControlBridge {
     while (!signal.aborted) {
       let delayMs = this.pollIntervalMs;
       try {
-        if (this.startup.canMutate() && (await getMcpRuntimeState()).mode === 'active' && this.startup.canMutate()) {
-          await this.recoverReadyWork();
-          if (!this.startup.canMutate()) continue;
-          const request = await claimNextMcpControlRequest();
-          if (request) {
-            await this.execute(request);
-            continue;
-          }
-          const proposal = await claimNextApprovedMcpProposal();
-          if (proposal) {
-            await this.executeProposal(proposal);
-            continue;
-          }
-        } else {
-          delayMs = 1_000;
-        }
+        const result = await this.pollOnce();
+        if (result === 'handled') continue;
+        if (result === 'inactive') delayMs = 1_000;
       } catch (error) {
         this.log(`[ERROR] MCP control bridge polling failed: ${errorMessage(error)}`, {
           event: 'mcp_control_bridge_error',
@@ -121,6 +108,18 @@ export class McpControlBridge {
         if (!signal.aborted) throw error;
       });
     }
+  }
+
+  private async pollOnce(): Promise<'handled' | 'idle' | 'inactive'> {
+    if (!this.startup.canMutate()) return 'inactive';
+    if ((await getMcpRuntimeState()).mode !== 'active' || !this.startup.canMutate()) return 'inactive';
+    await this.recoverReadyWork();
+    if (!this.startup.canMutate()) return 'handled';
+    const request = await claimNextMcpControlRequest();
+    if (request) { await this.execute(request); return 'handled'; }
+    const proposal = await claimNextApprovedMcpProposal();
+    if (proposal) { await this.executeProposal(proposal); return 'handled'; }
+    return 'idle';
   }
 
   private async recoverReadyWork(): Promise<void> {

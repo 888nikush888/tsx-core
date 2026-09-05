@@ -51,6 +51,12 @@ const MAX_BYTES = 20 * 1024 * 1024;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const UUID = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/;
 
+function codeUnitOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 export function sanitizeBackupConfiguration(value: any): any {
   if (Array.isArray(value)) return value.map(sanitizeBackupConfiguration);
   if (!value || typeof value !== 'object') return value;
@@ -63,7 +69,8 @@ function canonicalJson(value: any): string {
   const ordered = (candidate: any): any => {
     if (Array.isArray(candidate)) return candidate.map(ordered);
     if (!candidate || typeof candidate !== 'object') return candidate;
-    return Object.fromEntries(Object.keys(candidate).sort().map(key => [key, ordered(candidate[key])]));
+    return Object.fromEntries(Object.keys(candidate).sort(codeUnitOrder)
+      .map(key => [key, ordered(candidate[key])]));
   };
   return JSON.stringify(ordered(value));
 }

@@ -20,6 +20,11 @@ const SELECT_FILLS = `SELECT fills.*,orders.client_order_id,orders.exchange_orde
   JOIN trading_trade_intents intent ON intent.id=orders.intent_id`;
 function object(value: unknown): Record<string, any> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {}; }
 function parse(value: string | null): Record<string, any> { return value === null ? {} : object(JSON.parse(value)); }
+function codePointOrder(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
 function snapshot(row: FillRow, identity?: ExchangeFillIdentity): ExchangeFill {
   return { exchangeFillId: row.exchange_fill_id, exchangeOrderId: row.exchange_order_id!, clientOrderId: row.client_order_id,
     symbol: row.symbol, providerSymbol: row.order_provider_symbol ?? undefined, price: row.price, quantity: row.quantity,
@@ -71,8 +76,9 @@ function operationProves(operation: OriginalOperation, row: FillRow, direct: boo
   const legs = operation.kind === 'protected_entry' ? [request.entry, request.protectiveStop] : [request];
   const expected = JSON.parse(operation.expected_orders_json);
   if (!Array.isArray(expected) || expected.length !== legs.length || legs.filter(leg => legMatches(leg, row)).length !== 1) return false;
-  const ids = legs.map(leg => leg.clientOrderId).sort();
-  if (new Set(ids).size !== ids.length || !isDeepStrictEqual(expected.map(item => item.client_order_id).sort(), ids)
+  const ids = legs.map(leg => leg.clientOrderId).sort(codePointOrder);
+  if (new Set(ids).size !== ids.length
+    || !isDeepStrictEqual(expected.map(item => item.client_order_id).sort(codePointOrder), ids)
     || operation.logical_key !== digest(JSON.stringify([operation.kind, row.intent_id, ids]))) return false;
   return originalAcknowledgement(operation.evidence_json, row, direct);
 }

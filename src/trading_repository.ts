@@ -1096,8 +1096,8 @@ export async function listTradingActivity(limit = 200): Promise<{
     orders: orders.map(row => ({ ...row, reduceOnly: boolean(row.reduceOnly) })),
     fills,
     positions: positions.map(row => {
-      const { realizedPnlValueJson: ignored, ...position } = analyticsPositionMoneyRow(row);
-      void ignored;
+      const position = analyticsPositionMoneyRow(row);
+      delete position.realizedPnlValueJson;
       return position;
     }),
     riskEvents: riskEvents.map(row => ({
