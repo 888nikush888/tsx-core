@@ -29,6 +29,7 @@ import {
 import {
   adaptiveStopLossDecision,
   adaptiveTargetAllocations,
+  breakEvenStopPrice,
   resolveDailyLossLimit,
   resolveLeverageDecision,
   allocateTargetQuantities,
@@ -522,6 +523,11 @@ function testAdaptivePlanContracts() {
   assert.deepEqual(adaptiveStopLossDecision(adaptivePlan, 1), {
     trigger: '60500', reason: 'break_even_after_target', referenceTargetIndex: null,
   });
+  assert.deepEqual(adaptiveStopLossDecision(adaptivePlan, 1, '60500.04'), {
+    trigger: '60500.04', reason: 'break_even_after_target', referenceTargetIndex: null,
+  }, 'Adaptive break-even must accept the confirmed fill-ledger average instead of forcing the plan price.');
+  assert.equal(breakEvenStopPrice('LONG', '60500.04', '0.1'), '60500.1');
+  assert.equal(breakEvenStopPrice('SHORT', '60499.96', '0.1'), '60499.9');
   assert.equal(adaptiveStopLossDecision(adaptivePlan, 2).trigger, '60500');
   assert.deepEqual(adaptiveStopLossDecision(adaptivePlan, 3), {
     trigger: '62000', reason: 'target_ladder_after_target', referenceTargetIndex: 1,
@@ -551,6 +557,7 @@ function testAdaptivePlanContracts() {
     },
   });
   assert.deepEqual(adaptiveShortPlan.targetAllocationsPercent, ['50', '25', '12.5', '12.5']);
+  assert.equal(adaptiveStopLossDecision(adaptiveShortPlan, 1, '60499.96').trigger, '60499.96');
   assert.equal(adaptiveStopLossDecision(adaptiveShortPlan, 3).trigger, '59000');
 }
 

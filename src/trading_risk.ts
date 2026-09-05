@@ -351,7 +351,21 @@ export interface AdaptiveStopLossDecision {
   referenceTargetIndex: number | null;
 }
 
-export function adaptiveStopLossDecision(plan: TradingPlan, filledTargets: number): AdaptiveStopLossDecision {
+export function breakEvenStopPrice(
+  side: TradingPlan['side'],
+  averageEntryPrice: string,
+  priceTick: string,
+): string {
+  return side === 'LONG'
+    ? quantizeDecimalUp(averageEntryPrice, priceTick)
+    : quantizeDecimalDown(averageEntryPrice, priceTick);
+}
+
+export function adaptiveStopLossDecision(
+  plan: TradingPlan,
+  filledTargets: number,
+  breakEvenPrice = plan.entryPrice,
+): AdaptiveStopLossDecision {
   const takeProfits = plan.orders
     .filter(order => order.role === 'take_profit')
     .sort((left, right) => Number(left.targetIndex) - Number(right.targetIndex));
@@ -367,7 +381,7 @@ export function adaptiveStopLossDecision(plan: TradingPlan, filledTargets: numbe
   const referenceTargetIndex = managedTargetCount - 2;
   if (referenceTargetIndex <= 0) {
     return {
-      trigger: plan.entryPrice,
+      trigger: breakEvenPrice,
       reason: finalTargetComplete ? 'final_target_complete' : 'break_even_after_target',
       referenceTargetIndex: null,
     };

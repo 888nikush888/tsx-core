@@ -25,6 +25,7 @@ export interface DashboardAuthenticator {
   isConfigured(): boolean;
   authenticate(authorization: AuthorizationHeader, headers?: RequestHeaders): Promise<AuthenticatedActor | null>;
   issueLocalAdminSession?(): { token: string; expiresInSeconds: number };
+  revokeLocalAdminSessions?(): void;
 }
 
 export interface OidcDashboardOptions {
@@ -62,13 +63,27 @@ function tokenActorId(token: string): string {
 
 export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
   readonly mode = 'token' as const;
-  private readonly localAdminSessions = new Map<string, number>();
+  private readonly localAdminSessions = new Map<string, { expiresAt: number; adminTokenDigest: string }>();
+
+  revokeLocalAdminSessions(): void {
+    this.localAdminSessions.clear();
+  }
+
+  private localSessionsEnabled(): boolean {
+    return process.env.DASHBOARD_LOCAL_TRUST?.trim().toLowerCase() === 'true'
+      && process.env.ENTERPRISE_MODE?.trim().toLowerCase() !== 'true';
+  }
 
   issueLocalAdminSession(): { token: string; expiresInSeconds: number } {
+    const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
+    if (!adminToken || !this.localSessionsEnabled()) {
+      this.revokeLocalAdminSessions();
+      throw new Error('Local administrator sessions are disabled or no administrator token is configured.');
+    }
     const expiresInSeconds = 12 * 60 * 60;
     const now = Date.now();
-    for (const [digest, expiresAt] of this.localAdminSessions) {
-      if (expiresAt <= now) this.localAdminSessions.delete(digest);
+    for (const [digest, session] of this.localAdminSessions) {
+      if (session.expiresAt <= now) this.localAdminSessions.delete(digest);
     }
     while (this.localAdminSessions.size >= 64) {
       const oldest = this.localAdminSessions.keys().next().value;
@@ -76,7 +91,10 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
       this.localAdminSessions.delete(oldest);
     }
     const token = `tsx_local_${randomBytes(32).toString('base64url')}`;
-    this.localAdminSessions.set(createHash('sha256').update(token).digest('hex'), now + expiresInSeconds * 1_000);
+    this.localAdminSessions.set(createHash('sha256').update(token).digest('hex'), {
+      expiresAt: now + expiresInSeconds * 1_000,
+      adminTokenDigest: createHash('sha256').update(adminToken).digest('hex'),
+    });
     return { token, expiresInSeconds };
   }
 
@@ -95,11 +113,13 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
     const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
     if (viewerToken && safeTokenEquals(token, viewerToken)) return { role: 'viewer', id };
     const localSessionDigest = createHash('sha256').update(token).digest('hex');
-    const localSessionExpiresAt = this.localAdminSessions.get(localSessionDigest);
-    if (localSessionExpiresAt && localSessionExpiresAt > Date.now()) {
+    const localSession = this.localAdminSessions.get(localSessionDigest);
+    const currentAdminDigest = adminToken && createHash('sha256').update(adminToken).digest('hex');
+    if (localSession && this.localSessionsEnabled() && currentAdminDigest === localSession.adminTokenDigest
+      && localSession.expiresAt > Date.now()) {
       return { role: 'admin', id: `local-session:${localSessionDigest.slice(0, 16)}` };
     }
-    if (localSessionExpiresAt) this.localAdminSessions.delete(localSessionDigest);
+    if (localSession) this.revokeLocalAdminSessions();
     return null;
   }
 }

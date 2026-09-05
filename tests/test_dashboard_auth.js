@@ -14,6 +14,7 @@ const savedEnvironment = { ...process.env };
 try {
   process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;
   process.env.DASHBOARD_VIEWER_TOKEN = VIEWER_TOKEN;
+  process.env.DASHBOARD_LOCAL_TRUST = 'true';
   const tokenAuthenticator = new EnvironmentTokenAuthenticator();
   assert.equal(tokenAuthenticator.isConfigured(), true);
   assert.deepEqual((await tokenAuthenticator.authenticate(`Bearer ${ADMIN_TOKEN}`))?.role, 'admin');
@@ -25,6 +26,15 @@ try {
   const localActor = await tokenAuthenticator.authenticate(`Bearer ${localSession.token}`);
   assert.equal(localActor?.role, 'admin');
   assert.match(localActor?.id || '', /^local-session:[a-f0-9]{16}$/);
+  process.env.DASHBOARD_ADMIN_TOKEN = 'rotated-admin-token-0123456789abcdef0123456789';
+  assert.equal(await tokenAuthenticator.authenticate(`Bearer ${localSession.token}`), null,
+    'Rotating the durable administrator token must immediately revoke local sessions.');
+  process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;
+  const disabledSession = tokenAuthenticator.issueLocalAdminSession();
+  process.env.DASHBOARD_LOCAL_TRUST = 'false';
+  assert.equal(await tokenAuthenticator.authenticate(`Bearer ${disabledSession.token}`), null,
+    'Disabling local trust must immediately revoke local sessions.');
+  process.env.DASHBOARD_LOCAL_TRUST = 'true';
 
   const originalNow = Date.now;
   let currentTime = 1_000_000;

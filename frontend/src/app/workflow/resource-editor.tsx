@@ -815,7 +815,7 @@ function StrategyForm({
           </Field>
           <Field
             label="Break-even nach Target"
-            hint="Leer lässt diese Regel aus."
+            hint="Verwendet den tatsächlichen volumengewichteten Fill-Einstieg (ohne Gebühren). Leer lässt diese Regel aus."
           >
             <input
               type="number"

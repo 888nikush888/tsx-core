@@ -25,6 +25,7 @@ type AuthState =
 interface AccessInspection {
   state: AuthState;
   recoveryToken?: string;
+  bootstrapProofRequired?: boolean;
   error?: string;
 }
 
@@ -33,6 +34,7 @@ interface BootstrapInspection {
   available?: boolean;
   localSessionAvailable?: boolean;
   recoveryBootstrap?: boolean;
+  bootstrapProofRequired?: boolean;
 }
 
 async function createLocalSession(): Promise<AccessInspection | null> {
@@ -75,15 +77,16 @@ async function inspectConfiguredAccess(
 async function inspectFirstAccess(
   bootstrap: BootstrapInspection,
 ): Promise<AccessInspection> {
-  if (bootstrap.localSessionAvailable || bootstrap.recoveryBootstrap) {
+  if ((bootstrap.localSessionAvailable || bootstrap.recoveryBootstrap) && !bootstrap.bootstrapProofRequired) {
     const localSession = await createLocalSession();
     if (localSession) return localSession;
   }
   return {
     state: bootstrap.available ? "bootstrap" : "locked",
+    bootstrapProofRequired: bootstrap.bootstrapProofRequired,
     error: bootstrap.available
       ? ""
-      : "Managed secret storage is unavailable on the server.",
+      : "First-run setup requires managed secret storage and either direct local access or a configured one-time bootstrap proof.",
   };
 }
 
@@ -106,6 +109,8 @@ export function DashboardAuthGate({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [recoveryToken, setRecoveryToken] = useState("");
+  const [bootstrapProofRequired, setBootstrapProofRequired] = useState(false);
+  const [bootstrapProof, setBootstrapProof] = useState("");
 
   const brand = <Logo variant="full" size={46} className="mb-3" />;
 
@@ -113,6 +118,7 @@ export function DashboardAuthGate({
     try {
       const inspection = await inspectDashboardAccess();
       setRecoveryToken(inspection.recoveryToken || "");
+      setBootstrapProofRequired(inspection.bootstrapProofRequired === true);
       setError(inspection.error || "");
       setState(inspection.state);
     } catch (authError) {
@@ -162,12 +168,17 @@ export function DashboardAuthGate({
     setSubmitting(true);
     setError("");
     try {
-      const response = await apiFetch("/api/bootstrap", { method: "POST" });
+      const response = await apiFetch("/api/bootstrap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bootstrapProof }),
+      });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || typeof payload.token !== "string") {
         throw new Error(payload.error || "Dashboard setup failed.");
       }
       setDashboardToken(payload.token);
+      setBootstrapProof("");
       setRecoveryToken(payload.token);
       setState("recovery");
     } catch (bootstrapError) {
@@ -207,6 +218,23 @@ export function DashboardAuthGate({
             <p className="text-sm text-muted-foreground">
               No Telegram or AI credentials are needed before this step.
             </p>
+            {bootstrapProofRequired && (
+              <div className="space-y-2">
+                <Label htmlFor="bootstrap-proof">One-time bootstrap proof</Label>
+                <Input
+                  id="bootstrap-proof"
+                  type="password"
+                  autoComplete="off"
+                  minLength={32}
+                  required
+                  value={bootstrapProof}
+                  onChange={(event) => setBootstrapProof(event.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the proof you supplied when starting the container.
+                </p>
+              </div>
+            )}
             {error && (
               <p role="alert" className="text-sm text-destructive">
                 {error}
@@ -214,7 +242,7 @@ export function DashboardAuthGate({
             )}
             <Button
               className="w-full"
-              disabled={submitting}
+              disabled={submitting || (bootstrapProofRequired && bootstrapProof.trim().length < 32)}
               onClick={bootstrapDashboard}
             >
               {submitting ? "Securing dashboard…" : "Create secure dashboard"}

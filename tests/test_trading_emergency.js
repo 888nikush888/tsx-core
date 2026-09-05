@@ -10,6 +10,7 @@ import { createTradingIntent, getTradingIntent, listTradingStrategies, setTradin
 import { validateSignalXml } from '../src/signal_schema.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { emergencyFixture } from './fixtures/trading_emergency_fixture.js';
+import { CancelBudgetExhaustedError } from '../src/trading_cancel_budget.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-emergency-'));
 const databasePath = path.join(directory, 'test.db');
@@ -89,6 +90,96 @@ async function proveGlobalEmergencyIndependence() {
   assert.equal((await getDatabase().get('SELECT status FROM trading_positions WHERE id = ?', [unsafe.id])).status, 'emergency');
   await closeDb();
 }
+
+async function proveUnrelatedExposureDoesNotBlockReduction() {
+  await initDb(path.join(directory, 'unrelated-exposure.db'));
+  await seedTradingFixtures();
+  for (const exposure of ['order', 'position']) {
+    const fixture = await emergencyFixture(`unrelated-${exposure}`, { partial: false, localQuantity: '1' });
+    if (exposure === 'order') fixture.state.foreignOrders.push({
+      clientOrderId: 'manual-eth-order', exchangeOrderId: 'manual-eth-remote', providerSymbol: 'ETHUSDT', symbol: 'ETHUSDT',
+      role: 'entry', side: 'buy', status: 'open', reduceOnly: false, quantity: '2', filledQuantity: '0',
+      averagePrice: null, price: '2000', triggerPrice: null, error: null, raw: {},
+    });
+    else fixture.state.foreignPositions.push({
+      symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', side: 'LONG', quantity: '2', averageEntryPrice: '2000', unrealizedPnl: '0',
+    });
+    await assert.rejects(new TradingEngine([fixture.adapter]).emergencyFlattenManaged(fixture.id), /pending|unresolved/i,
+      'The remaining foreign exposure must still prevent a clean account-wide completion result.');
+    assert.deepEqual(fixture.state.flattenCalls.map(order => order.quantity), ['1'],
+      `A foreign ETH ${exposure} must not prevent the proved owned BTC reduction.`);
+    assert.equal((await getDatabase().get('SELECT status FROM trading_positions WHERE id = ?', [fixture.id])).status, 'emergency',
+      'Account-wide closure proof remains pending while foreign exposure exists.');
+  }
+
+  const mixed = await emergencyFixture('same-symbol-order', { partial: false, localQuantity: '1' });
+  mixed.state.foreignOrders.push({
+    clientOrderId: 'manual-btc-order', exchangeOrderId: 'manual-btc-remote', providerSymbol: 'BTCUSDT', symbol: 'BTCUSDT',
+    role: 'entry', side: 'buy', status: 'open', reduceOnly: false, quantity: '1', filledQuantity: '0',
+    averagePrice: null, price: '99', triggerPrice: null, error: null, raw: {},
+  });
+  await assert.rejects(new TradingEngine([mixed.adapter]).emergencyFlattenManaged(mixed.id), /pending|unresolved/i);
+  assert.equal(mixed.state.flattenCalls.length, 0, 'Unmanaged activity on the same symbol must keep automatic reduction blocked.');
+}
+
+async function provePositionFailureIsolation() {
+  const account = { id: 'position-isolation', exchange: 'paper' };
+  const adapter = { exchange: 'paper' };
+  const positions = ['BTCUSDT', 'ETHUSDT'].map((symbol, index) => ({
+    id: `position-${index}`, intent_id: `intent-${index}`, symbol, side: 'LONG',
+  }));
+  const remote = { positions: positions.map(position => ({
+    symbol: position.symbol, side: 'LONG', quantity: '1', averageEntryPrice: '100',
+  })) };
+
+  for (const failingIndex of [0, 1]) {
+    const engine = new TradingEngine([adapter]);
+    const calls = [];
+    engine.ingestOwnedState = async () => ({ localPositions: positions, unrelatedUnmanagedExposure: false });
+    engine.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+      calls.push(local.intent_id);
+      if (local.intent_id === positions[failingIndex].intent_id) throw new Error(`position ${failingIndex} failed`);
+      return false;
+    };
+    await assert.rejects(engine.applyRemoteState(account, adapter, remote), error =>
+      error.name === 'PositionReconciliationAggregateError' && error.errors.length === 1);
+    assert.deepEqual(calls, positions.map(position => position.intent_id),
+      'A positions-local error must not make protection depend on database order.');
+  }
+
+  const multiple = new TradingEngine([adapter]);
+  const multipleCalls = [];
+  multiple.ingestOwnedState = async () => ({ localPositions: positions, unrelatedUnmanagedExposure: false });
+  multiple.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+    multipleCalls.push(local.intent_id);
+    throw new Error(`failed ${local.intent_id}`);
+  };
+  await assert.rejects(multiple.applyRemoteState(account, adapter, remote), error => error.errors?.length === 2);
+  assert.equal(multipleCalls.length, 2, 'All independent positions must be attempted before aggregated failure reporting.');
+
+  const budget = new TradingEngine([adapter]);
+  const budgetCalls = [];
+  budget.ingestOwnedState = async () => ({ localPositions: positions, unrelatedUnmanagedExposure: false });
+  budget.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+    budgetCalls.push(local.intent_id);
+    if (local.intent_id === positions[0].intent_id) throw new CancelBudgetExhaustedError();
+    return false;
+  };
+  await assert.rejects(budget.applyRemoteState(account, adapter, remote), /bounded pass budget/i);
+  assert.equal(budgetCalls.length, 2, 'An exhausted cancel budget must retain its existing cross-position continuation behavior.');
+
+  const global = new TradingEngine([adapter]);
+  const globalCalls = [];
+  global.ingestOwnedState = async () => ({ localPositions: positions, unrelatedUnmanagedExposure: false });
+  global.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+    globalCalls.push(local.intent_id);
+    const error = new Error('database integrity failure');
+    error.code = 'SQLITE_CORRUPT';
+    throw error;
+  };
+  await assert.rejects(global.applyRemoteState(account, adapter, remote), /database integrity failure/);
+  assert.deepEqual(globalCalls, [positions[0].intent_id], 'Account-wide database failures must still stop immediately.');
+}
 try {
   await initDb(databasePath);
   await seedTradingFixtures();
@@ -149,6 +240,8 @@ try {
   await proveHardCrashRecovery('before');
   await proveHardCrashRecovery('after');
   await proveGlobalEmergencyIndependence();
+  await proveUnrelatedExposureDoesNotBlockReduction();
+  await provePositionFailureIsolation();
   console.log('Durable emergency drain, late fills, lost acknowledgements, restart and cross-profile ownership tests passed.');
 } finally {
   await closeDb();

@@ -70,7 +70,8 @@ Eine Strategieversion enthält:
 - erlaubte Schema-IDs, Symbole und Seiten;
 - Entry-Typ, Range-Auswahl, Post-only und Entry-Timeout;
 - Default-Sizing für Legacy-Pfade;
-- TP-Verteilung, Break-even/Trailing beziehungsweise adaptive Targets;
+- TP-Verteilung, Break-even/Trailing beziehungsweise adaptive Targets; Break-even basiert auf dem bestätigten
+  volumengewichteten Fill-Einstieg des Restbestands (ohne Gebühren) und wird richtungssicher auf den Price-Tick gerundet;
 - tägliches Verlustlimit, Slippage, Entry-TTL und Protective-Stop-Pflicht.
 
 Die Definition kann als deklaratives JSON im Dialog bearbeitet werden. Speichern erzeugt eine neue veröffentlichte Version. `maxConcurrentPositions` gehört seit Schema v3 nicht mehr zur Strategie.

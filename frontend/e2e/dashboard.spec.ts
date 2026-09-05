@@ -47,10 +47,12 @@ async function mockDashboardApi(
         required: firstRun,
         available: true,
         localSessionAvailable: !firstRun,
+        bootstrapProofRequired: firstRun,
       });
       return;
     }
     if (url.pathname === "/api/bootstrap") {
+      if (firstRun) expect(request.postDataJSON()).toEqual({ bootstrapProof: "b".repeat(64) });
       await json(
         route,
         { token: TOKEN, recoveryLocation: "secrets/dashboard_admin_token" },
@@ -556,6 +558,7 @@ test("first local startup visibly generates and displays the administrator recov
   await expect(
     page.getByRole("heading", { name: "Secure your dashboard" }),
   ).toBeVisible();
+  await page.getByLabel("One-time bootstrap proof").fill("b".repeat(64));
   await page.getByRole("button", { name: "Create secure dashboard" }).click();
   await expect(
     page.getByRole("heading", { name: "Save your recovery token" }),

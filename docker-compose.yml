@@ -11,10 +11,13 @@ services:
     stop_grace_period: 8m
     environment:
       WEB_HOST: "0.0.0.0"
-      # The published port is host-loopback-only. Local trust permits only the
-      # one-time initial/recovery bootstrap; existing tokens are never disclosed.
+      # Browser headers never establish identity. Direct loopback is trusted; Docker
+      # first-run traffic instead requires the explicit one-time proof below.
       DASHBOARD_LOCAL_TRUST: "true"
-      # Break-glass recovery uses the same host-loopback-only trust boundary.
+      # Set this to a fresh random value before the first Compose bootstrap. The
+      # UI consumes it once; it is not an administrator session or reusable login.
+      DASHBOARD_BOOTSTRAP_PROOF: "${DASHBOARD_BOOTSTRAP_PROOF:-}"
+      # Break-glass recovery requires direct loopback or a freshly supplied proof.
       DASHBOARD_RECOVERY_LOCAL_TRUST: "true"
       METRICS_HOST: "0.0.0.0"
       PORT: "8080"

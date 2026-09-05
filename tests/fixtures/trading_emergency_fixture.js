@@ -31,7 +31,7 @@ export async function emergencyFixture(id, { partial = true, exchange = 'paper',
     `INSERT INTO trading_positions (id, intent_id, account_id, strategy_version_id, channel_id, symbol, side, status,
      quantity, average_entry_price, stop_price, updated_at)
      VALUES (?, ?, ?, ?, '-emergency', 'BTCUSDT', 'LONG', 'open', ?, '100', '90', 1)`, [id, id, id, strategy.id, localQuantity]);
-  const state = { exchange, providerSymbol, entries: '1', foreign: '0', orders: new Map(), fills: [], flattenCalls: [], cancelCalls: [],
+  const state = { exchange, providerSymbol, entries: '1', foreign: '0', orders: new Map(), foreignOrders: [], foreignPositions: [], fills: [], flattenCalls: [], cancelCalls: [],
     cancelEntry: false, hideFlattens: false, loseNextFlattenAck: false };
   for (const order of [entry, stop]) {
     const isEntry = order.role === 'entry';
@@ -67,9 +67,15 @@ export async function emergencyFixture(id, { partial = true, exchange = 'paper',
       const quantity = addDecimal(state.owned(), state.foreign);
       const checkpoints = exchange === 'hyperliquid' || exchange === 'krakenfutures'
         ? await historyCheckpoints(await getTradingAccount(id), fixtureSince) : [];
-      const snapshot = completeSafetyState({ orders: [...state.orders.values()].filter(order => !state.hideFlattens || order.role !== 'flatten').map(order => ({ ...order })),
+      const snapshot = completeSafetyState({ orders: [
+        ...[...state.orders.values()].filter(order => !state.hideFlattens || order.role !== 'flatten').map(order => ({ ...order })),
+        ...state.foreignOrders.map(order => ({ ...order })),
+      ],
         fills: state.fills.filter(row => !state.hideFlattens || row.clientOrderId === entry.clientOrderId).map(row => ({ ...row })),
-        positions: compareDecimal(quantity, '0') > 0 ? [{ symbol: 'BTCUSDT', providerSymbol, side: 'LONG', quantity, averageEntryPrice: '100', unrealizedPnl: '0' }] : [],
+        positions: [
+          ...(compareDecimal(quantity, '0') > 0 ? [{ symbol: 'BTCUSDT', providerSymbol, side: 'LONG', quantity, averageEntryPrice: '100', unrealizedPnl: '0' }] : []),
+          ...state.foreignPositions.map(position => ({ ...position })),
+        ],
         accountFingerprint: fingerprint });
       if (exchange === 'hyperliquid' || exchange === 'krakenfutures') {
         const through = snapshot.acquisition.completedAt;

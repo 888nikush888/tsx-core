@@ -2,7 +2,7 @@ import http from 'node:http';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { hasCurrentRestorableBackup } from './backup_evidence.js';
 import { writeConfigSync } from './config.js';
@@ -199,6 +199,7 @@ interface RequestContext {
   requestId: string;
   parsedUrl: URL;
   appState: WebServerState;
+  authenticator: DashboardAuthenticator;
   actor?: AuthenticatedActor;
   mutationAudit?: MutationAuditContext;
 }
@@ -272,6 +273,28 @@ function isLoopbackBrowserOrigin(origin: string): boolean {
   }
 }
 
+function isDirectLoopbackRequest(req: http.IncomingMessage): boolean {
+  const remoteAddress = req.socket.remoteAddress?.toLowerCase();
+  const loopback = remoteAddress === '127.0.0.1' || remoteAddress === '::1'
+    || remoteAddress?.startsWith('::ffff:127.') === true;
+  const proxyHeaders = ['forwarded', 'x-forwarded-for', 'x-real-ip', 'x-client-ip'];
+  return loopback && proxyHeaders.every(header => req.headers[header] === undefined);
+}
+
+function configuredBootstrapProof(): string | null {
+  const proof = process.env.DASHBOARD_BOOTSTRAP_PROOF?.trim() || '';
+  if (proof.length < 32 || proof.length > 1024 || /^(?:replace_|change-?me|example|placeholder)/i.test(proof)) return null;
+  return proof;
+}
+
+function validBootstrapProof(candidate: unknown): boolean {
+  const expected = configuredBootstrapProof();
+  if (!expected || typeof candidate !== 'string' || candidate.length > 1024) return false;
+  const candidateDigest = createHash('sha256').update(candidate).digest();
+  const expectedDigest = createHash('sha256').update(expected).digest();
+  return timingSafeEqual(candidateDigest, expectedDigest);
+}
+
 function setSecurityHeaders(res: http.ServerResponse, origin?: string): void {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -327,7 +350,7 @@ function publicConfig(config: any): any {
   );
 }
 
-const AUDIT_SECRET_KEY = /(secret|token|password|private.?key|api.?key|api.?hash|authorization|credential)/i;
+const AUDIT_SECRET_KEY = /(secret|token|password|private.?key|api.?key|api.?hash|authorization|credential|bootstrap.?proof)/i;
 
 function safeAuditValue(value: unknown, depth = 0): unknown {
   if (value === null || typeof value === 'boolean') return value;
@@ -1210,6 +1233,7 @@ async function accessTokenHandler(context: RequestContext): Promise<void> {
       throw new HttpError(400, 'Access-token role must be admin or viewer.');
     }
     const token = await context.appState.secretStore.rotateDashboardToken(payload.role);
+    if (payload.role === 'admin') context.authenticator.revokeLocalAdminSessions?.();
     addLog(`[SECURITY] request_id=${context.requestId} Dashboard ${payload.role} token rotated.`);
     sendJson(context.res, 201, {
       token,
@@ -1302,6 +1326,9 @@ async function postRuntimeSettingsHandler(context: RequestContext): Promise<void
       }
     }
     const settings = await context.appState.runtimeSettings.set(payload);
+    if (!settings.dashboardLocalTrust || settings.enterpriseMode || settings.dashboardAuthMode !== 'token') {
+      context.authenticator.revokeLocalAdminSessions?.();
+    }
     addLog(`[SECURITY] request_id=${context.requestId} Managed runtime settings updated; restart required.`);
     sendJson(context.res, 200, { success: true, settings, restartRequired: true, requestId: context.requestId });
   } catch (error) {
@@ -2245,15 +2272,17 @@ function bootstrapStatusHandler(
   authenticator: DashboardAuthenticator
 ): void {
   const required = authenticator.mode === 'token' && !authenticator.isConfigured();
-  const localSessionAvailable = authenticator.mode === 'token'
-    && authenticator.isConfigured()
-    && Boolean(context.appState.secretStore)
-    && (localDashboardStartupEnabled() || isRecoveryLocalSessionBootstrap(context));
+  const directLoopback = isDirectLoopbackRequest(context.req);
+  // This public status must never invite an anonymous client to call the
+  // authenticated local-session endpoint as an automatic login mechanism.
+  const localSessionAvailable = false;
   sendJson(context.res, 200, {
     mode: authenticator.mode,
     required,
-    available: required && Boolean(context.appState.secretStore),
+    available: required && Boolean(context.appState.secretStore)
+      && (directLoopback || configuredBootstrapProof() !== null),
     localSessionAvailable,
+    ...(required && !directLoopback ? { bootstrapProofRequired: true } : {}),
     ...(required && context.appState.recovery?.allowLoopbackLocalSession === true
       ? { recoveryBootstrap: true }
       : {}),
@@ -2274,13 +2303,25 @@ async function bootstrapHandler(
     if (!context.appState.secretStore) {
       throw new HttpError(503, 'Managed secret storage is unavailable.');
     }
+    if (!isDirectLoopbackRequest(context.req)) {
+      const payload = await readJsonBody(context.req, 4 * 1024);
+      if (!validBootstrapProof(payload.bootstrapProof)) {
+        throw new HttpError(403, 'Dashboard bootstrap requires the one-time container bootstrap proof.');
+      }
+    }
     const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
     if (!origin || !isAllowedOrigin(origin)) {
       throw new HttpError(403, 'Dashboard bootstrap requires an allowed browser origin.');
     }
-    const actor: AuthenticatedActor = { role: 'admin', id: 'bootstrap:local-browser' };
-    if (!(await authorizeMutationAudit(context, actor, 'POST', '/api/bootstrap'))) return;
+    const actor: AuthenticatedActor = { role: 'admin', id: 'bootstrap:proved-operator' };
+    if (context.appState.recovery?.active && context.appState.recovery.allowLoopbackLocalSession) {
+      addLog(`[CRITICAL] request_id=${context.requestId} Recovery-mode proved bootstrap initialized without an audit trail.`, {
+        request_id: context.requestId,
+        event: 'recovery_proved_bootstrap',
+      });
+    } else if (!(await authorizeMutationAudit(context, actor, 'POST', '/api/bootstrap'))) return;
     const token = await context.appState.secretStore.createDashboardAdminToken();
+    delete process.env.DASHBOARD_BOOTSTRAP_PROOF;
     addLog(`[SECURITY] request_id=${context.requestId} Dashboard administrator token bootstrapped.`);
     sendJson(context.res, 201, {
       token,
@@ -2309,6 +2350,9 @@ function requireLocalSessionSecretStore(
   }
   const secretStore = context.appState.secretStore;
   if (!secretStore) throw new HttpError(503, 'Managed secret storage is unavailable.');
+  if (!isDirectLoopbackRequest(context.req)) {
+    throw new HttpError(403, 'Integrated local startup requires a direct loopback connection without a proxy.');
+  }
   const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
   if (!origin || !isLoopbackBrowserOrigin(origin) || context.req.headers['x-requested-with'] !== 'forwarder-dashboard') {
     throw new HttpError(403, 'Integrated local startup requires the trusted dashboard origin.');
@@ -2345,6 +2389,10 @@ async function localSessionHandler(
     const secretStore = requireLocalSessionSecretStore(context, authenticator);
     const tokenWasConfigured = authenticator.isConfigured();
     if (tokenWasConfigured) {
+      const actor = await authenticator.authenticate(context.req.headers.authorization, context.req.headers);
+      if (!actor || actor.role !== 'admin' || !actor.id.startsWith('token:')) {
+        throw new HttpError(401, 'A durable administrator bearer is required to create a local session.');
+      }
       if (!authenticator.issueLocalAdminSession) {
         throw new HttpError(409, 'Integrated local sessions are unavailable for this authentication mode.');
       }
@@ -2663,7 +2711,7 @@ async function handleRequest(
   const url = parsedUrl.pathname;
   const method = req.method || 'GET';
   const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
-  const context: RequestContext = { req, res, requestId, parsedUrl, appState };
+  const context: RequestContext = { req, res, requestId, parsedUrl, appState, authenticator };
   requestContexts.set(req, context);
   setSecurityHeaders(res, origin);
   if (!isAllowedOrigin(origin)) {

@@ -21,6 +21,7 @@ import {
 } from './trading_decimal.js';
 import {
   adaptiveStopLossDecision,
+  breakEvenStopPrice,
   assertEntryNotExpired,
   assertEntryPriceBoundary,
   createTradingPlan,
@@ -179,6 +180,38 @@ class ReconciliationContinuationRequiredError extends Error {
     super('Exit synchronization requires another fresh reconciliation; the bounded pass budget is exhausted.');
     this.name = 'ReconciliationContinuationRequiredError';
   }
+}
+
+interface PositionReconciliationFailure {
+  positionId: string;
+  intentId: string;
+  symbol: string;
+  error: unknown;
+}
+
+class PositionReconciliationAggregateError extends ReconciliationMismatchError {
+  readonly errors: unknown[];
+  readonly proof: unknown;
+
+  constructor(readonly failures: PositionReconciliationFailure[]) {
+    super(`Position reconciliation failed for ${failures.map(failure =>
+      `${failure.symbol}/${failure.intentId}: ${reconciliationErrorMessage(failure.error)}`).join('; ')}`);
+    this.name = 'PositionReconciliationAggregateError';
+    this.errors = failures.map(failure => failure.error);
+    this.proof = failures.length === 1 && typeof failures[0]?.error === 'object' && failures[0].error !== null
+      && 'proof' in failures[0].error ? (failures[0].error as { proof: unknown }).proof : undefined;
+  }
+}
+
+function isAccountWidePositionFailure(error: unknown): boolean {
+  if (error instanceof ReconciliationContinuationRequiredError || error instanceof EntryAdmissionRevokedError
+    || error instanceof TypeError || error instanceof RangeError || error instanceof SyntaxError) return true;
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code ?? '') : '';
+  if (code.startsWith('SQLITE_')) return true;
+  if (!(error instanceof ReconciliationMismatchError)) return false;
+  if (['remote_identity', 'unmanaged_remote', 'unresolved_fill'].includes(error.incidentCategory)) return true;
+  return /^(?:ACCOUNT_STATE_CHANGED|ACQUISITION_NOT_FRESH|PROTECTION_SOURCE_CHANGED)|lifecycle safety account/i.test(error.message);
 }
 
 function transientReconciliationFailure(error: unknown): boolean {
@@ -689,10 +722,11 @@ function configuredStopDecision(
   plan: TradingPlan,
   strategy: NonNullable<Awaited<ReturnType<typeof getTradingStrategyVersion>>>,
   filledTargets: number,
+  breakEvenPrice: string,
 ): ProtectiveStopDecision {
   const breakEvenAt = strategy.configuration.exits.moveStopToBreakEvenAfterTarget;
   return breakEvenAt !== null && filledTargets >= breakEvenAt
-    ? { trigger: plan.entryPrice, reason: 'configured_break_even', referenceTargetIndex: null }
+    ? { trigger: breakEvenPrice, reason: 'configured_break_even', referenceTargetIndex: null }
     : { trigger: plan.stopPrice, reason: 'initial', referenceTargetIndex: null };
 }
 
@@ -704,6 +738,7 @@ async function desiredProtectiveStop(input: {
   plan: TradingPlan;
   strategy: NonNullable<Awaited<ReturnType<typeof getTradingStrategyVersion>>>;
   filledTargets: number;
+  entryAveragePrice: string;
   currentTrigger: string | null;
 }): Promise<ProtectiveStopDecision> {
   const stopLossMode = input.plan.stopLossMode
@@ -713,15 +748,23 @@ async function desiredProtectiveStop(input: {
     throw new TradingRiskError('INVALID_STOP_LOSS_MODE', 'Unsupported stop-loss management mode.');
   }
   let decision: ProtectiveStopDecision = stopLossMode === 'adaptive_targets'
-    ? adaptiveStopLossDecision(input.plan, input.filledTargets)
-    : configuredStopDecision(input.plan, input.strategy, input.filledTargets);
+    ? adaptiveStopLossDecision(input.plan, input.filledTargets, input.entryAveragePrice)
+    : configuredStopDecision(input.plan, input.strategy, input.filledTargets, input.entryAveragePrice);
+  let market: TradingMarketSnapshot | undefined;
+  const decisionUsesBreakEven = ['break_even_after_target', 'configured_break_even'].includes(decision.reason)
+    || (decision.reason === 'final_target_complete'
+      && compareDecimal(decision.trigger, input.entryAveragePrice) === 0);
+  if (decisionUsesBreakEven) {
+    market = await input.adapter.marketSnapshot(input.account, input.symbol);
+    decision = { ...decision, trigger: breakEvenStopPrice(input.side, input.entryAveragePrice, market.priceTick) };
+  }
   if (input.currentTrigger && stopImproves(input.side, input.currentTrigger, decision.trigger)) {
     decision = { trigger: input.currentTrigger, reason: 'existing_safer', referenceTargetIndex: null };
   }
   if (stopLossMode === 'adaptive_targets') return decision;
   const trailingPercent = input.strategy.configuration.exits.trailingStopPercent;
   if (trailingPercent === null) return decision;
-  const market = await input.adapter.marketSnapshot(input.account, input.symbol);
+  market ??= await input.adapter.marketSnapshot(input.account, input.symbol);
   const distance = divideDecimal(multiplyDecimal(market.markPrice, trailingPercent), '100');
   const candidate = quantizeDecimalDown(
     input.side === 'LONG'
@@ -1520,7 +1563,7 @@ export class TradingEngine {
     try { await this.drainRequestedEntriesOwned(account.id); } catch { /* Own reduction is independent of incomplete entry drain. */ }
     const remote = await this.observeSafetyState(account, adapter);
     await this.assertRemoteAccountIdentity(account, remote);
-    await this.ingestOwnedState(account, remote);
+    await this.ingestOwnedState(account, remote, { protectKnownPositions: true, riskReductionIntentId: intent.id });
     const position = remote.positions.find(candidate => candidate.symbol === intent.symbol);
     if (!position || compareDecimal(position.quantity, '0') <= 0) return;
     await this.submitEmergencyReduction(adapter, account, intent, plan, position.quantity, message);
@@ -1879,22 +1922,36 @@ export class TradingEngine {
     adapter: TradingExchangeAdapter,
     remote: ExchangeOpenState,
   ): Promise<boolean> {
-    const localPositions = await this.ingestOwnedState(account, remote, true);
+    const { localPositions, unrelatedUnmanagedExposure } = await this.ingestOwnedState(account, remote, {
+      protectKnownPositions: true,
+      allowIndependentRiskReduction: true,
+    });
     let cleanupChanged = false;
     let cancelBudgetExhausted = false;
+    const positionFailures: PositionReconciliationFailure[] = [];
     for (const local of localPositions) {
       try {
         const position = remote.positions.find(candidate => candidate.symbol === local.symbol);
         if (position) cleanupChanged = await this.reconcileOpenRemotePosition(account, adapter, remote, local, position) || cleanupChanged;
         else cleanupChanged = await this.reconcileMissingRemotePosition(account, adapter, remote, local) || cleanupChanged;
       } catch (error) {
-        if (!(error instanceof CancelBudgetExhaustedError)) throw error;
-        cancelBudgetExhausted = true;
+        if (error instanceof CancelBudgetExhaustedError) cancelBudgetExhausted = true;
+        else if (isAccountWidePositionFailure(error)) throw error;
+        else positionFailures.push({
+          positionId: String(local.id), intentId: String(local.intent_id), symbol: String(local.symbol), error,
+        });
       }
     }
     // Exhausted cancellation work cannot skip independent protection of another owned position.
     if (cancelBudgetExhausted) throw new ReconciliationContinuationRequiredError();
     if (cleanupChanged) return true;
+    if (positionFailures.length > 0) throw new PositionReconciliationAggregateError(positionFailures);
+    if (unrelatedUnmanagedExposure) {
+      throw new ReconciliationMismatchError(
+        'Unmanaged remote order or position remains after independent managed risk-reduction work.',
+        'unmanaged_remote',
+      );
+    }
     if (await unresolvedEvidenceCount(account.id) > 0) {
       throw new ReconciliationMismatchError('Account has unresolved remote execution evidence; ownership and closure remain unproved.', 'unresolved_fill');
     }
@@ -1904,7 +1961,15 @@ export class TradingEngine {
     return false;
   }
 
-  private async ingestOwnedState(account: TradingAccount, remote: ExchangeOpenState, protectKnownPositions = false): Promise<any[]> {
+  private async ingestOwnedState(
+    account: TradingAccount,
+    remote: ExchangeOpenState,
+    options: {
+      protectKnownPositions?: boolean;
+      allowIndependentRiskReduction?: boolean;
+      riskReductionIntentId?: string;
+    } = {},
+  ): Promise<{ localPositions: any[]; unrelatedUnmanagedExposure: boolean }> {
     const localOrders = await getDatabase().all<LocalCorrelationOrder[]>(
       `SELECT orders.*, intent.symbol FROM trading_orders AS orders
        JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id WHERE orders.account_id = ?`, [account.id]);
@@ -1913,23 +1978,32 @@ export class TradingEngine {
     await this.persistRemoteExecutions(account, remote);
     await resolveObservedOperations(account, remote.orders);
     await resolveActiveCancelAttempts(account, remote);
-    await this.detectUnmanagedExposure(account, remote);
+    const allLocalPositions = await getDatabase().all<any[]>(
+      `SELECT position.*, intent.plan_json FROM trading_positions AS position
+       JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
+       WHERE position.account_id = ? AND position.status IN ('opening', 'open', 'closing', 'emergency')
+       ORDER BY position.intent_id`,
+      [account.id],
+    );
+    const localPositions = options.riskReductionIntentId
+      ? allLocalPositions.filter(position => position.intent_id === options.riskReductionIntentId)
+      : allLocalPositions;
+    const riskReductionSymbols = options.allowIndependentRiskReduction || options.riskReductionIntentId
+      ? new Set(localPositions.map(position => String(position.symbol)))
+      : undefined;
+    const unrelatedUnmanagedExposure = await this.detectUnmanagedExposure(
+      account, remote, allLocalPositions, riskReductionSymbols,
+    );
     await observeAccountBaseline(account, remote);
     const unresolved = await unresolvedEvidenceCount(account.id);
-    if (unresolved > 0 && !protectKnownPositions) {
+    if (unresolved > 0 && !options.protectKnownPositions) {
       throw new ReconciliationMismatchError('Account has unresolved remote execution evidence; ownership and closure remain unproved.', 'unresolved_fill');
     }
     if (unresolved === 0) await resolveTradingAccountIncidents(account.id, ['unresolved_fill']);
-    const localPositions = await getDatabase().all<any[]>(
-      `SELECT position.*, intent.plan_json FROM trading_positions AS position
-       JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
-       WHERE position.account_id = ? AND position.status IN ('opening', 'open', 'closing', 'emergency')`,
-      [account.id],
-    );
     // Verify all owned quantities before changing any position or protection.
     // A same-symbol/same-side remote balance can include a manual trade.
     await assertAccountOwnership(localPositions, remote.positions);
-    return localPositions;
+    return { localPositions, unrelatedUnmanagedExposure };
   }
 
   private async persistRemoteExecutions(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
@@ -2187,25 +2261,23 @@ export class TradingEngine {
     return false;
   }
 
-  private async detectUnmanagedExposure(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
-    const [localOrders, localPositions] = await Promise.all([
-      getDatabase().all<Array<{ client_order_id: string }>>(
-        'SELECT client_order_id FROM trading_orders WHERE account_id = ?',
-        [account.id],
-      ),
-      getDatabase().all<Array<{ symbol: string; side: string }>>(
-        `SELECT symbol, side FROM trading_positions
-         WHERE account_id = ? AND status IN ('opening', 'open', 'closing', 'emergency')`,
-        [account.id],
-      ),
-    ]);
+  private async detectUnmanagedExposure(
+    account: TradingAccount,
+    remote: ExchangeOpenState,
+    localPositions: Array<{ symbol: string; side: string }>,
+    riskReductionSymbols?: Set<string>,
+  ): Promise<boolean> {
+    const localOrders = await getDatabase().all<Array<{ client_order_id: string }>>(
+      'SELECT client_order_id FROM trading_orders WHERE account_id = ?',
+      [account.id],
+    );
     const orderIds = new Set(localOrders.map(order => order.client_order_id));
     const externalOrders = remote.orders.filter(order =>
       !['filled', 'cancelled', 'rejected'].includes(order.status) && !orderIds.has(order.clientOrderId));
     const unknownOrders = remote.orders.filter(order => order.status === 'unknown');
     const externalPositions = remote.positions.filter(position =>
       !localPositions.some(local => local.symbol === position.symbol && local.side === position.side));
-    if (externalOrders.length === 0 && externalPositions.length === 0 && unknownOrders.length === 0) return;
+    if (externalOrders.length === 0 && externalPositions.length === 0 && unknownOrders.length === 0) return false;
     const details = {
       externalOrderIds: externalOrders.map(order => order.clientOrderId || `exchange:${order.exchangeOrderId}`),
       externalPositions: externalPositions.map(position => ({ symbol: position.symbol, side: position.side })),
@@ -2218,7 +2290,13 @@ export class TradingEngine {
       details,
     });
     await activateAccountKillSwitch(account.id, `Unmanaged remote exposure detected for account ${account.id}`);
-    throw new ReconciliationMismatchError('Unmanaged remote order or position detected.', 'unmanaged_remote');
+    const conflictsWithReduction = !riskReductionSymbols
+      || externalPositions.some(position => riskReductionSymbols.has(position.symbol))
+      || [...externalOrders, ...unknownOrders].some(order => !order.symbol || riskReductionSymbols.has(order.symbol));
+    if (conflictsWithReduction) {
+      throw new ReconciliationMismatchError('Unmanaged remote order or position detected.', 'unmanaged_remote');
+    }
+    return true;
   }
 
   private async ensureProtectiveStop(
@@ -2240,6 +2318,7 @@ export class TradingEngine {
       await requestEntryDrain(account.id, 'Filled protective stop cannot protect future entry fills.', intent.id);
     }
     const filledTargets = await completedTakeProfitTargets(intent, plan, remote);
+    const entryAveragePrice = filledTargets > 0 ? await provedEntryAverage(intent.id) : plan.entryPrice;
     const activeStops = matchingActiveStops(remote, intentOrderIds, local);
     const cancellingStops = await pendingCancelOrderIds(account.id, intent.id);
     const durableStops = activeStops.filter(stop => !cancellingStops.has(stop.clientOrderId!));
@@ -2255,6 +2334,7 @@ export class TradingEngine {
       plan,
       strategy,
       filledTargets,
+      entryAveragePrice,
       currentTrigger,
     });
     const exactStop = durableStops.find(stop => compareDecimal(subtractDecimal(stop.quantity, stop.filledQuantity!), protectiveQuantity) === 0

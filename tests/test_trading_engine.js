@@ -176,15 +176,15 @@ async function assertAdaptiveStopManagement({ paper, account, intent, engine }) 
   await engine.reconcileAccount(account.id);
   let remote = await paper.openState(account);
   assert.equal(remote.positions[0].quantity, '0.008');
-  assert.equal(remote.orders.find(order => order.role === 'stop_loss' && order.status === 'open').triggerPrice, '60500');
+  assert.equal(remote.orders.find(order => order.role === 'stop_loss' && order.status === 'open').triggerPrice, '60500.1');
   let localPosition = await getDatabase().get('SELECT stop_price FROM trading_positions WHERE intent_id = ?', [intent.id]);
-  assert.equal(localPosition.stop_price, '60500', 'The web-visible position stop must reflect the active replacement stop.');
+  assert.equal(localPosition.stop_price, '60500.1', 'Break-even must use the actual fill-ledger average and safe tick rounding.');
 
   await setPaperMark(paper, account.id, '63000');
   await engine.reconcileAccount(account.id);
   remote = await paper.openState(account);
   assert.equal(remote.positions[0].quantity, '0.004');
-  assert.equal(remote.orders.find(order => order.role === 'stop_loss' && order.status === 'open').triggerPrice, '60500');
+  assert.equal(remote.orders.find(order => order.role === 'stop_loss' && order.status === 'open').triggerPrice, '60500.1');
 
   await setPaperMark(paper, account.id, '64000');
   await engine.reconcileAccount(account.id);
@@ -201,11 +201,11 @@ async function assertAdaptiveStopManagement({ paper, account, intent, engine }) 
   );
   assert.equal(moves.length, 2, 'Only actual stop-price changes should be logged.');
   assert.deepEqual(JSON.parse(moves[0].details_json), {
-    fromTrigger: '59000', toTrigger: '60500', filledTargets: 1,
+    fromTrigger: '59000', toTrigger: '60500.1', filledTargets: 1,
     reason: 'break_even_after_target', referenceTargetIndex: null,
   });
   assert.deepEqual(JSON.parse(moves[1].details_json), {
-    fromTrigger: '60500', toTrigger: '62000', filledTargets: 3,
+    fromTrigger: '60500.1', toTrigger: '62000', filledTargets: 3,
     reason: 'target_ladder_after_target', referenceTargetIndex: 1,
   });
 
@@ -235,6 +235,14 @@ async function assertAdaptiveStopManagement({ paper, account, intent, engine }) 
 async function testAdaptiveTargetAndStopManagement(databasePath) {
   const context = await setupAdaptiveTargetTest(databasePath);
   await assertAdaptiveTakeProfitRepair(context);
+  const entryOrder = await getDatabase().get(
+    "SELECT id, exchange_order_id FROM trading_orders WHERE intent_id = ? AND role = 'entry'",
+    [context.intent.id],
+  );
+  await getDatabase().run("UPDATE trading_fills SET price = '60500.04' WHERE order_id = ?", [entryOrder.id]);
+  await getDatabase().run("UPDATE trading_paper_fills SET price = '60500.04' WHERE exchange_order_id = ?", [entryOrder.exchange_order_id]);
+  await getDatabase().run("UPDATE trading_paper_orders SET average_price = '60500.04' WHERE exchange_order_id = ?", [entryOrder.exchange_order_id]);
+  await getDatabase().run("UPDATE trading_paper_positions SET average_entry_price = '60500.04' WHERE account_id = ? AND symbol = 'BTCUSDT'", [context.account.id]);
   await assertAdaptiveStopManagement(context);
 }
 

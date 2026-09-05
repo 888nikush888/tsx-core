@@ -43,7 +43,7 @@ async function testAuthenticationAndReads(baseUrl) {
     mode: 'token',
     required: false,
     available: false,
-    localSessionAvailable: true,
+    localSessionAvailable: false,
   });
   response = await fetch(`${baseUrl}/api/local-session`, {
     method: 'POST', headers: { 'X-Requested-With': 'forwarder-dashboard' }
@@ -53,11 +53,35 @@ async function testAuthenticationAndReads(baseUrl) {
     method: 'POST',
     headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
   });
+  assert.strictEqual(response.status, 401, 'Spoofable browser headers must never mint an administrator session.');
+  response = await fetch(`${baseUrl}/api/local-session`, {
+    method: 'POST',
+    headers: {
+      Origin: baseUrl,
+      Authorization: `Bearer ${ADMIN_TOKEN}`,
+      'X-Requested-With': 'forwarder-dashboard',
+      'X-Forwarded-For': '127.0.0.1',
+    }
+  });
+  assert.strictEqual(response.status, 403, 'A proxy must never upgrade a remote request to local administrator trust.');
+  response = await fetch(`${baseUrl}/api/local-session`, {
+    method: 'POST',
+    headers: { Origin: baseUrl, Authorization: `Bearer ${ADMIN_TOKEN}`, 'X-Requested-With': 'forwarder-dashboard' }
+  });
   assert.strictEqual(response.status, 201, 'Trusted loopback startup must issue a short-lived local session');
   const localSession = await response.json();
   assert.match(localSession.token, /^tsx_local_[A-Za-z0-9_-]{40,}$/);
   assert.strictEqual(localSession.generatedAdminToken, false);
   assert.notStrictEqual(localSession.token, ADMIN_TOKEN, 'Local startup must not disclose the durable administrator token');
+  response = await fetch(`${baseUrl}/api/local-session`, {
+    method: 'POST',
+    headers: {
+      Origin: baseUrl,
+      Authorization: `Bearer ${localSession.token}`,
+      'X-Requested-With': 'forwarder-dashboard',
+    },
+  });
+  assert.strictEqual(response.status, 401, 'A local session must not mint another administrator session.');
   response = await fetch(`${baseUrl}/api/status`, { headers: headers(localSession.token) });
   assert.strictEqual(response.status, 200, 'The ephemeral local session must authenticate immediately');
   const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;
@@ -65,7 +89,7 @@ async function testAuthenticationAndReads(baseUrl) {
     process.env.DASHBOARD_ALLOWED_ORIGIN = 'https://dashboard.example.test';
     response = await fetch(`${baseUrl}/api/local-session`, {
       method: 'POST',
-      headers: { Origin: 'https://dashboard.example.test', 'X-Requested-With': 'forwarder-dashboard' }
+      headers: { Origin: 'https://dashboard.example.test', Authorization: `Bearer ${ADMIN_TOKEN}`, 'X-Requested-With': 'forwarder-dashboard' }
     });
     assert.strictEqual(response.status, 403, 'Local-session startup must never extend to a configured remote dashboard origin');
   } finally {
@@ -1528,7 +1552,7 @@ async function testLocalStartupFirstRun(testDir, appState) {
     assert.strictEqual(authenticated.status, 200, 'The displayed first-run token must authenticate immediately');
     response = await fetch(`${baseUrl}/api/local-session`, {
       method: 'POST',
-      headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
+      headers: { Origin: baseUrl, Authorization: `Bearer ${localStartup.token}`, 'X-Requested-With': 'forwarder-dashboard' }
     });
     const session = await response.json();
     assert.strictEqual(response.status, 201, 'Local convenience sessions may start only after visible bootstrap');
@@ -1664,12 +1688,86 @@ async function testRecoveryLocalStartup(testDir, appState) {
   }
 }
 
+async function testNonLoopbackCannotSpoofLocalTrust(testDir, appState) {
+  const address = Object.values(os.networkInterfaces()).flat().find(candidate =>
+    candidate && candidate.family === 'IPv4' && !candidate.internal);
+  assert.ok(address, 'The HTTP trust-boundary regression requires a non-loopback interface.');
+  process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;
+  process.env.DASHBOARD_VIEWER_TOKEN = VIEWER_TOKEN;
+  process.env.DASHBOARD_LOCAL_TRUST = 'true';
+  const remoteServer = startWebServer(0, appState, '0.0.0.0');
+  try {
+    await once(remoteServer, 'listening');
+    const bound = remoteServer.address();
+    assert.ok(bound && typeof bound === 'object');
+    const remoteBase = `http://${address.address}:${bound.port}`;
+    const status = await fetch(`${remoteBase}/api/bootstrap/status`);
+    assert.equal((await status.json()).localSessionAvailable, false);
+    const response = await fetch(`${remoteBase}/api/local-session`, {
+      method: 'POST',
+      headers: {
+        Origin: `http://127.0.0.1:${bound.port}`,
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
+        'X-Requested-With': 'forwarder-dashboard',
+      },
+    });
+    assert.equal(response.status, 403, 'A non-loopback peer with forged loopback headers must not receive an admin session.');
+  } finally {
+    await stopWebServer();
+  }
+
+  delete process.env.DASHBOARD_ADMIN_TOKEN;
+  delete process.env.DASHBOARD_VIEWER_TOKEN;
+  const bootstrapProof = 'container-proof-0123456789abcdef0123456789abcdef';
+  process.env.DASHBOARD_BOOTSTRAP_PROOF = bootstrapProof;
+  const secretStore = new ManagedSecretStore(path.join(testDir, 'container-bootstrap-secrets'));
+  await secretStore.initialize();
+  const bootstrapServer = startWebServer(0, { ...appState, secretStore }, '0.0.0.0');
+  try {
+    await once(bootstrapServer, 'listening');
+    const bound = bootstrapServer.address();
+    assert.ok(bound && typeof bound === 'object');
+    const remoteBase = `http://${address.address}:${bound.port}`;
+    const origin = `http://127.0.0.1:${bound.port}`;
+    const status = await fetch(`${remoteBase}/api/bootstrap/status`);
+    assert.deepEqual(await status.json(), {
+      mode: 'token', required: true, available: true, localSessionAvailable: false, bootstrapProofRequired: true,
+    });
+    let response = await fetch(`${remoteBase}/api/bootstrap`, {
+      method: 'POST',
+      headers: { Origin: origin, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' },
+      body: JSON.stringify({ bootstrapProof: 'forged-container-proof-0123456789abcdef' }),
+    });
+    assert.equal(response.status, 403, 'A viewer-network caller without the one-time proof must not seize first-run administration.');
+    response = await fetch(`${remoteBase}/api/bootstrap`, {
+      method: 'POST',
+      headers: { Origin: origin, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' },
+      body: JSON.stringify({ bootstrapProof }),
+    });
+    assert.equal(response.status, 201, 'The explicit one-time proof must preserve first-run setup through Docker port forwarding.');
+    assert.match((await response.json()).token, /^[a-f0-9]{64}$/);
+    const bootstrapAudit = appState.controls.auditEvents.findLast(event => event.path === '/api/bootstrap');
+    assert.ok(bootstrapAudit, 'The proved bootstrap must retain a non-secret audit event.');
+    assert.equal(JSON.stringify(bootstrapAudit).includes(bootstrapProof), false, 'Audit evidence must never retain the bootstrap proof.');
+    assert.equal(process.env.DASHBOARD_BOOTSTRAP_PROOF, undefined, 'The process must consume the bootstrap proof immediately.');
+    response = await fetch(`${remoteBase}/api/bootstrap`, {
+      method: 'POST',
+      headers: { Origin: origin, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' },
+      body: JSON.stringify({ bootstrapProof }),
+    });
+    assert.equal(response.status, 409, 'A consumed bootstrap proof must not be reusable as an administrator upgrade.');
+  } finally {
+    await stopWebServer();
+  }
+}
+
 async function runTests() {
   const previousAdminToken = process.env.DASHBOARD_ADMIN_TOKEN;
   const previousViewerToken = process.env.DASHBOARD_VIEWER_TOKEN;
   const previousWebHost = process.env.WEB_HOST;
   const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
   const previousLocalTrust = process.env.DASHBOARD_LOCAL_TRUST;
+  const previousBootstrapProof = process.env.DASHBOARD_BOOTSTRAP_PROOF;
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-web-test-'));
   const staticDirectory = path.resolve('frontend/dist/.directory-response-test');
   const staticAsset = path.resolve('frontend/dist/assets/.static-response-test.js');
@@ -1735,6 +1833,7 @@ async function runTests() {
     await testAccessTokenManagement(baseUrl);
 
     await stopWebServer();
+    await testNonLoopbackCannotSpoofLocalTrust(testDir, appState);
     await testRecoveryLocalStartup(testDir, appState);
     stopped = true;
     console.log('ALL WEB CONTROL SECURITY TESTS PASSED!');
@@ -1754,6 +1853,8 @@ async function runTests() {
     else process.env.DASHBOARD_AUTH_MODE = previousAuthMode;
     if (previousLocalTrust === undefined) delete process.env.DASHBOARD_LOCAL_TRUST;
     else process.env.DASHBOARD_LOCAL_TRUST = previousLocalTrust;
+    if (previousBootstrapProof === undefined) delete process.env.DASHBOARD_BOOTSTRAP_PROOF;
+    else process.env.DASHBOARD_BOOTSTRAP_PROOF = previousBootstrapProof;
   }
 }
 
