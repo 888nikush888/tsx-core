@@ -16,7 +16,9 @@ interface FxQuantityInput extends FxSizingInput {
 }
 const positive = (value: string) => rationalFromDecimal(decimal(value, { positive: true }));
 const nonnegative = (value: string) => rationalFromDecimal(decimal(value));
-const minimum = (...values: ExactRational[]) => values.reduce((left, right) => compareRational(left, right) <= 0 ? left : right);
+const minimum = (first: ExactRational, ...values: ExactRational[]) => values.reduce(
+  (left, right) => compareRational(left, right) <= 0 ? left : right, first,
+);
 
 function assertSizingRecipe(fx: StoredFxConversion | undefined, reporting: string, settlement: string): asserts fx is StoredFxConversion {
   if (![reporting, settlement].every(asset => ['USD', 'USDT', 'USDC'].includes(asset))) invalidFx('SIZING_ASSET_UNSUPPORTED');

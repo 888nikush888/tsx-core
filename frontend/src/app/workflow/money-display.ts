@@ -46,7 +46,10 @@ function approximation(value: DisplayMoneyValue): string {
   const units = magnitude * 1_000_000n / denominator;
   if (units === 0n && numerator !== 0n) return `${numerator < 0n ? "negativ" : "positiv"} (< 0,000001)`;
   const digits = units.toString().padStart(7, "0");
-  const text = `${digits.slice(0, -6)},${digits.slice(-6)}`.replace(/0+$/, "").replace(/,$/, "");
+  const whole = digits.slice(0, -6);
+  let fraction = digits.slice(-6);
+  while (fraction.endsWith("0")) fraction = fraction.slice(0, -1);
+  const text = fraction ? `${whole},${fraction}` : whole;
   return `≈ ${numerator < 0n ? "−" : ""}${text}`;
 }
 export function moneyDisplay(input: DisplayMoney): { label: string; detail: string; uncertain: boolean } {

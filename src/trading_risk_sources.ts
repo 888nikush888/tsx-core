@@ -73,7 +73,10 @@ function currentStop(source: RiskIntentSource, remote: ExchangeOpenState, accoun
       quantity, minimumTrigger: minimum }).protected) stopPrices.push(current.triggerPrice!);
   }
   if (!stopPrices.length) throw new Error('Risk stop coverage is unproven.');
-  return stopPrices.reduce((best, price) => (compareDecimal(price, best) > 0) === (source.side === 'LONG') ? price : best);
+  return stopPrices.slice(1).reduce(
+    (best, price) => (compareDecimal(price, best) > 0) === (source.side === 'LONG') ? price : best,
+    stopPrices[0],
+  );
 }
 
 function marketMetadata(source: RiskIntentSource, account: TradingAccount, remote: ExchangeOpenState): ExchangeFillAccounting | null {

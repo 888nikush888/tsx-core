@@ -926,7 +926,7 @@ async function synchronizeRuntimeMode(): Promise<McpRuntimeMode> {
 }
 
 function shutdown(deadlineAt = Date.now() + 30000): Promise<void> {
-  if (shutdownPromise) return shutdownPromise;
+  if (shutdownPromise !== null) return shutdownPromise;
   shutdownPromise = boundedShutdown(deadlineAt);
   return shutdownPromise;
 }
