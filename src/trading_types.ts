@@ -242,6 +242,9 @@ export interface ChannelRiskEvaluation {
 }
 
 export interface TradingEquityPoint {
+  reportingCurrency: string | null;
+  accountingSource: string | null;
+  mode: TradingAccountMode | null;
   accountId: string;
   equity: string;
   availableBalance: string;
@@ -343,6 +346,7 @@ export type WorkflowResourceKind =
   | 'output';
 
 export interface WorkflowResourceVersion {
+  editRevision?: number;
   id: string;
   resourceId: string;
   version: number;

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { paperConfigurationRevision } from './ui_paper_configuration.js';
 import { getDatabase, isForeignKeyConstraint, withDatabaseTransaction } from './db.js';
 import { constantTimeStringEqual } from './secure_compare.js';
 import { signalContractDefinitionSha256, validateSignalContractDefinition } from './signal_contract.js';
@@ -296,12 +297,17 @@ export async function updateSignalContractDraft(input: {
   name: unknown;
   description?: unknown;
   definition: unknown;
+  baseDefinitionSha256?: string;
 }, now = Date.now()): Promise<SignalContractVersion> {
   const contractId = signalSchemaIdentifier(input.contractId, 'Signal contract identifier');
   const versionId = contractVersionIdentifier(input.versionId);
   const metadata = contractMetadata(input);
   const definition = validateSignalContractDefinition(input.definition);
   return transaction(async () => {
+    if (input.baseDefinitionSha256 !== undefined) {
+      const current = await getDatabase().get('SELECT definition_sha256 FROM trading_signal_contract_versions WHERE id = ? AND contract_id = ?', [versionId, contractId]);
+      if (!current || current.definition_sha256 !== input.baseDefinitionSha256) throw new Error('CONTRACT_DRAFT_CONFLICT: Definition changed. Compare before saving.');
+    }
     const result = await getDatabase().run(
       `UPDATE trading_signal_contract_versions
        SET definition_json = ?, definition_sha256 = ?
@@ -443,6 +449,15 @@ export async function listTradingSignalSchemas(): Promise<TradingSignalSchema[]>
      ORDER BY schema.enabled DESC, schema.name, schema.id`,
   );
   return rows.map(signalSchemaFromRow);
+}
+
+export async function getTradingSignalSchemaById(id: string): Promise<TradingSignalSchema | null> {
+  const row = await getDatabase().get(
+    `SELECT schema.*, version.definition_json AS contract_definition_json, version.definition_sha256 AS contract_definition_sha256
+     FROM trading_signal_schemas AS schema LEFT JOIN trading_signal_contract_versions AS version ON version.id = schema.contract_version_id
+     WHERE schema.id = ?`, [signalSchemaIdentifier(id)],
+  );
+  return row ? signalSchemaFromRow(row) : null;
 }
 
 export async function getTradingSignalSchemaForTemplate(templateName?: string): Promise<TradingSignalSchema | null> {
@@ -771,6 +786,7 @@ async function updateTradingAccountStateOwned(id: string, state: TradingAccountS
 }
 
 type TradingAccountConfigurationUpdate = {
+  baseUpdatedAt?: unknown;
   maxConcurrentPositions?: unknown;
   killSwitchActive?: unknown;
   killSwitchReason?: unknown;
@@ -827,11 +843,12 @@ async function updateTradingAccountConfigurationOwned(
 ): Promise<TradingAccount> {
   const current = await getTradingAccount(id);
   if (!current) throw new Error('Trading account does not exist.');
+  if (input.baseUpdatedAt !== undefined && (!Number.isSafeInteger(input.baseUpdatedAt) || input.baseUpdatedAt !== current.updatedAt)) throw new Error('Trading account configuration changed. Compare the current account before applying the draft.');
   const maxConcurrentPositions = accountPositionLimit(input.maxConcurrentPositions, current.maxConcurrentPositions);
   const killSwitch = accountKillSwitch(input, current);
   const capabilitiesJson = accountCapabilitiesJson(input.capabilities, current);
   const lastReconciledAt = accountReconciledAt(input.lastReconciledAt, current);
-  const updatedAt = Date.now();
+  const updatedAt = Math.max(Date.now(), current.updatedAt + 1);
   const update = await getDatabase().run(
     `UPDATE trading_accounts SET max_concurrent_positions = ?, kill_switch_active = ?,
        kill_switch_reason = ?, capabilities_json = ?, last_reconciled_at = ?, updated_at = ?
@@ -1106,8 +1123,8 @@ export async function listTradingActivity(limit = 200): Promise<{
       detailsJson: undefined,
     })),
     reconciliations,
-    paperAccounts,
-    paperMarkets,
+    paperAccounts: paperAccounts.map(row => ({ ...row, revision: paperConfigurationRevision('balance', row), reportingCurrency: 'USDT', source: 'paper-contract-v1' })),
+    paperMarkets: paperMarkets.map(row => ({ ...row, revision: paperConfigurationRevision('market', row) })),
   };
 }
 

@@ -2299,6 +2299,11 @@ export class TradingEngine {
     return true;
   }
 
+  private protectiveReferenceTrigger(activeStop: ActiveStop | undefined, local: { side: 'LONG' | 'SHORT'; stop_price: string }): string {
+    return activeStop?.triggerPrice && stopImproves(local.side, activeStop.triggerPrice, local.stop_price)
+      ? activeStop.triggerPrice : local.stop_price;
+  }
+
   private async ensureProtectiveStop(
     account: TradingAccount,
     adapter: TradingExchangeAdapter,
@@ -2324,8 +2329,7 @@ export class TradingEngine {
     const durableStops = activeStops.filter(stop => !cancellingStops.has(stop.clientOrderId!));
     const activeStop = safestActiveStop(durableStops, local.side);
     const protectiveQuantity = requiredStopQuantity(quantity, intentOrders.filter(order => order.role === 'entry'));
-    const currentTrigger = activeStop?.triggerPrice && stopImproves(local.side, activeStop.triggerPrice, local.stop_price)
-      ? activeStop.triggerPrice : local.stop_price;
+    const currentTrigger = this.protectiveReferenceTrigger(activeStop, local);
     const decision = await desiredProtectiveStop({
       adapter,
       account,

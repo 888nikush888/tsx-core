@@ -53,6 +53,10 @@ assert.match(gitleaksConfig, /description = "Reviewed fake dynamic exchange cred
 assert.match(gitleaksConfig, /\^tests\/test_dynamic_exchange_registry\\\.js\$/);
 assert.match(gitleaksConfig, /gateio-key-\[0-9\]\{3\}/);
 assert.match(gitleaksConfig, /gateio-secret-\[0-9\]\{3\}/);
+const scannerVersion = workflow.match(/^\s*GITLEAKS_VERSION:\s*'(\d+)\.(\d+)\.(\d+)'\s*$/m);
+assert.ok(scannerVersion, 'the secret scanner runtime must be pinned independently of the action');
+assert.ok(Number(scannerVersion[1]) > 8 || (Number(scannerVersion[1]) === 8 && Number(scannerVersion[2]) >= 25),
+  'the scanner must support the scoped global allowlists in .gitleaks.toml');
 const approvedActionReferences = new Set([
   'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9',
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
@@ -160,6 +164,7 @@ assert.match(
 );
 assert.match(executorDockerfile, /"libcrypto3=3\.5\.8-r0"/);
 assert.match(executorDockerfile, /"libssl3=3\.5\.8-r0"/);
+assert.match(executorDockerfile, /"libuuid=2\.41\.6-r1"/, 'executor libuuid must include the reviewed util-linux security fixes');
 assert.match(executorDockerfile, /apk add --no-cache "sqlite-libs=3\.53\.4-r0"/);
 assert.match(executorDockerfile, /^USER 65532:65532$/m);
 assert.match(executorDockerfile, /pip install --require-hashes/);

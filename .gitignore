@@ -19,6 +19,8 @@ tmp/
 session_data/
 session_files/
 signals/
+!frontend/src/features/signals/
+!frontend/src/features/signals/**
 logs/
 backups/
 secrets/
@@ -31,3 +33,4 @@ __pycache__/
 
 .projectatlas/
 opencode.json
+.ui-operations/

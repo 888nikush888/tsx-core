@@ -9,6 +9,12 @@ const testEnvironment = {
   CONFIG_PATH: path.resolve(testsDirectory, '..', 'config.json.example'),
 };
 const allTests = [
+  'test_ui_register.js',
+  'test_ui_adaptive_risk.js',
+  'test_ui_next_reads.js',
+  'test_ui_operation_store.js',
+  'test_ui_operator_commands.js',
+  'test_ui_change_reviews.js',
   'test_exchange_implementation_bridge.js',
   'test_exchange_profile_parity.js',
   'test_mutation_shards.js',

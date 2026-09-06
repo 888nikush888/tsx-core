@@ -6,6 +6,21 @@ import { completeSafetyState } from './safety_acquisition.js';
 import { historyCheckpoints } from '../../src/trading_history_repository.js';
 import { nativeFillFixture } from './native_fill_identity.js';
 
+function emergencySubmitter(state, providerSymbol, fill) {
+  return async (_account, request) => {
+    if (request.role !== 'flatten' || !request.reduceOnly || request.side !== 'sell') throw new Error('Emergency must only reduce owned exposure.');
+    if (compareDecimal(request.quantity, state.owned()) > 0) throw new Error('Emergency attempted to reduce more than owned.');
+    if (state.orders.has(request.clientOrderId)) throw new Error('Duplicate economic submission.');
+    state.flattenCalls.push({ ...request });
+    const order = { ...request, exchangeOrderId: `remote-${request.clientOrderId}`, providerSymbol, symbol: 'BTCUSDT',
+      status: 'filled', filledQuantity: request.quantity, averagePrice: '100', error: null, raw: {} };
+    state.orders.set(request.clientOrderId, order);
+    state.fills.push(fill(order, request.quantity));
+    if (state.loseNextFlattenAck) { state.loseNextFlattenAck = false; throw new Error('Connection lost after flatten acceptance.'); }
+    return { ...order };
+  };
+}
+
 export async function emergencyFixture(id, { partial = true, exchange = 'paper', localQuantity = '0' } = {}) {
   const fixtureSince = Date.now() - 1_000;
   const [strategy] = await listTradingStrategies();
@@ -94,18 +109,7 @@ export async function emergencyFixture(id, { partial = true, exchange = 'paper',
       if (order.role !== 'entry' || state.cancelEntry) order.status = 'cancelled';
       return { ...order };
     },
-    submitOrder: async (_account, request) => {
-      if (request.role !== 'flatten' || !request.reduceOnly || request.side !== 'sell') throw new Error('Emergency must only reduce owned exposure.');
-      if (compareDecimal(request.quantity, state.owned()) > 0) throw new Error('Emergency attempted to reduce more than owned.');
-      if (state.orders.has(request.clientOrderId)) throw new Error('Duplicate economic submission.');
-      state.flattenCalls.push({ ...request });
-      const order = { ...request, exchangeOrderId: `remote-${request.clientOrderId}`, providerSymbol, symbol: 'BTCUSDT',
-        status: 'filled', filledQuantity: request.quantity, averagePrice: '100', error: null, raw: {} };
-      state.orders.set(request.clientOrderId, order);
-      state.fills.push(fill(order, request.quantity));
-      if (state.loseNextFlattenAck) { state.loseNextFlattenAck = false; throw new Error('Connection lost after flatten acceptance.'); }
-      return { ...order };
-    },
+    submitOrder: emergencySubmitter(state, providerSymbol, fill),
   };
   return { id, account: await getTradingAccount(id), state, adapter };
 }

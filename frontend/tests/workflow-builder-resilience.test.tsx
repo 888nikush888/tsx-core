@@ -1,3 +1,4 @@
+import { NavigationProvider } from '@/lib/navigation';
 import "@testing-library/jest-dom/vitest";
 import {
   act,
@@ -78,7 +79,7 @@ describe("workflow builder resilience", () => {
         headers: { "Content-Type": "application/json" },
       }),
     );
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await waitFor(() =>
       expect(
         screen.getByRole("main", { name: "TSX Core Workflow Builder" }),
@@ -147,7 +148,7 @@ describe("workflow builder resilience", () => {
       });
     });
 
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilderWorkspace();
     await waitFor(() => expect(flow.props).not.toBeNull());
     const nodes = flow.props?.nodes as Array<Record<string, unknown>>;
@@ -212,7 +213,7 @@ describe("workflow builder resilience", () => {
       });
     });
 
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilderWorkspace();
     await waitFor(() => expect(flow.props).not.toBeNull());
     expect(
@@ -300,7 +301,7 @@ describe("workflow builder resilience", () => {
       },
     );
 
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilderWorkspace();
     await waitFor(() => expect(flow.props).not.toBeNull());
     if (!flow.props) throw new Error("React Flow props were not captured.");
@@ -436,7 +437,7 @@ describe("workflow builder resilience", () => {
       },
     );
 
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilderWorkspace();
     await waitFor(() => expect(flow.props).not.toBeNull());
     if (!flow.props) throw new Error("React Flow props were not captured.");

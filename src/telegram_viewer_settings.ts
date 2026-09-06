@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import type { TelegramViewerSettings } from './viewer_types.js';
+import { configurationRevision } from './ui_configuration.js';
 
 const TOP_LEVEL_KEYS = new Set([
   'enabled', 'allowedUserIds', 'timezone', 'locale', 'eventPollingIntervalMs', 'notifications', 'display',
@@ -153,6 +154,7 @@ async function syncDirectory(directory: string): Promise<void> {
 export class ManagedTelegramViewerSettingsStore {
   private settings = structuredClone(DEFAULT_TELEGRAM_VIEWER_SETTINGS);
   private recoveryReason: string | null = null;
+  private updates: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly filePath: string) {}
 
@@ -184,11 +186,16 @@ export class ManagedTelegramViewerSettingsStore {
     return { active: this.recoveryReason !== null, reason: this.recoveryReason };
   }
 
-  async set(input: unknown): Promise<TelegramViewerSettings> {
-    const settings = validateTelegramViewerSettings(input);
-    await this.write(settings);
-    this.recoveryReason = null;
-    return this.snapshot();
+  async set(input: unknown, baseRevision?: string): Promise<TelegramViewerSettings> {
+    const pending = this.updates.then(async () => {
+      if (baseRevision !== undefined && baseRevision !== configurationRevision(this.settings)) throw new Error('Telegram viewer settings changed. Compare the current server version before saving.');
+      const settings = validateTelegramViewerSettings(input);
+      await this.write(settings);
+      this.recoveryReason = null;
+      return this.snapshot();
+    });
+    this.updates = pending.catch(() => undefined);
+    return pending;
   }
 
   async reset(): Promise<void> {
@@ -225,4 +232,3 @@ export function telegramViewerSettingsFromEnvironment(
     env.TELEGRAM_VIEWER_SETTINGS_PATH || path.join(process.cwd(), 'config', 'telegram-viewer-settings.json'),
   );
 }
-

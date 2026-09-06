@@ -263,10 +263,34 @@ try {
   assert.deepEqual(initial.fallbackRuns, []);
   assert.equal('credentialRef' in initial.accounts[0], false, 'Credential references must not reach the browser.');
   assert.equal(initial.confirmations.live, 'ENABLE LIVE TRADING');
+  const accountReadCalls = hyperliquid.snapshotCalls + bybit.snapshotCalls;
+  const pagingDatabase = getDatabase();
+  for (let index = 0; index < 33; index += 1) {
+    await pagingDatabase.run(`INSERT INTO trading_accounts
+      (id, name, exchange, mode, status, created_at, updated_at, capabilities_json)
+      VALUES (?, ?, 'paper', 'paper', 'disabled', 1000, 1000, ?)`,
+    [`ui-page-${index}`, `Paged ${index}`, JSON.stringify({ privateProviderPayload: 'x'.repeat(50000) })]);
+  }
+  const firstAccountPage = await control.accountPage(new URLSearchParams());
+  assert.equal(firstAccountPage.accounts.length, 30);
+  assert.equal(firstAccountPage.page.hasMore, true);
+  const nextAccountPage = await control.accountPage(new URLSearchParams({ cursor: firstAccountPage.page.nextCursor }));
+  assert.equal(nextAccountPage.accounts.length, 4);
+  assert.equal(nextAccountPage.page.hasMore, false);
+  assert.equal(new Set([...firstAccountPage.accounts, ...nextAccountPage.accounts].map(account => account.id)).size, 34);
+  assert.equal(JSON.stringify(firstAccountPage).includes('privateProviderPayload'), false);
+  assert.equal(firstAccountPage.accounts.some(account => 'externalAccountId' in account || 'credentialRef' in account), false);
+  assert.deepEqual((await control.accountPage(new URLSearchParams({ accountId: 'ui-page-0' }))).accounts.map(account => account.id), ['ui-page-0']);
+  await assert.rejects(() => control.accountPage(new URLSearchParams({ accountId: 'ui-page-0', cursor: firstAccountPage.page.nextCursor })), /cursor/);
+  const compactOverview = await control.operatorOverview();
+  assert.equal(compactOverview.overview.accountCount, 34);
+  assert.deepEqual(Object.keys(compactOverview).sort(), ['observedAt', 'overview']);
+  assert.equal(hyperliquid.snapshotCalls + bybit.snapshotCalls, accountReadCalls, 'Operator metadata reads must not call providers.');
+  await pagingDatabase.run("DELETE FROM trading_accounts WHERE id LIKE 'ui-page-%'");
   const initialPortfolio = await control.portfolioSnapshot(true);
   assert.equal(initialPortfolio.cached, false);
   assert.deepEqual(initialPortfolio.accounts.map(account => account.exchange), ['paper']);
-  assert.equal(initialPortfolio.accounts[0].reportingCurrency, 'QUOTE');
+  assert.equal(initialPortfolio.accounts[0].reportingCurrency, 'USDT');
   assert.equal(initialPortfolio.accounts[0].equity, '10000');
   assert.equal((await control.portfolioSnapshot()).cached, true);
   assert.throws(() => control.createStrategy({
@@ -463,6 +487,17 @@ try {
     market: { symbol: 'ETH', markPrice: '3000', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20 },
   });
   assert.equal((await control.snapshot()).activity.paperMarkets[0].markPrice, '60000');
+  const paperBefore = (await control.snapshot()).activity;
+  const btcBefore = paperBefore.paperMarkets.find(item => item.symbol === 'BTC');
+  const balanceBefore = paperBefore.paperAccounts.find(item => item.accountId === paperAccount.id);
+  const paperResult = await control.configurePaper({ accountId: paperAccount.id, baseMarketRevision: btcBefore.revision, market: { ...btcBefore, markPrice: '60001.12345678' } });
+  assert.equal(paperResult.market.markPrice, '60001.12345678'); assert.notEqual(paperResult.market.revision, btcBefore.revision);
+  assert.equal(paperResult.simulated, true); assert.equal(paperResult.balance.reportingCurrency, 'USDT');
+  await assert.rejects(control.configurePaper({ accountId: paperAccount.id, baseMarketRevision: btcBefore.revision, market: { ...btcBefore, markPrice: '5' } }), /PAPER_CONFIGURATION_CONFLICT/);
+  await assert.rejects(control.configurePaper({ accountId: paperAccount.id, baseBalanceRevision: balanceBefore.revision, equity: '999', availableBalance: '999', market: { ...btcBefore, markPrice: '-1' } }), /decimal/i);
+  const paperAfter = (await control.snapshot()).activity;
+  assert.equal(paperAfter.paperAccounts.find(item => item.accountId === paperAccount.id).equity, balanceBefore.equity, 'A failing market update must roll back a combined balance change.');
+  assert.equal(paperAfter.paperMarkets.find(item => item.symbol === 'BTC').markPrice, '60001.12345678');
   await control.setRuntime({ action: 'execution', enabled: true });
   assert.equal((await control.snapshot()).overview.runtime.executionEnabled, true);
   assert.equal(entryRuntime.enabled, true, 'A successful dashboard enable must open the in-memory entry latch.');
@@ -481,7 +516,10 @@ try {
     unrealizedPnl: liveSnapshot.unrealizedPnl,
     marginUsed: liveSnapshot.marginUsed,
     error: liveSnapshot.error,
-  }, { reportingCurrency: 'USD', equity: '1000', availableBalance: '900', unrealizedPnl: '25', marginUsed: '100', error: null });
+  }, { reportingCurrency: null, equity: '1000', availableBalance: '900', unrealizedPnl: '25', marginUsed: '100', error: null });
+  assert.equal(liveSnapshot.accountingSource, null, 'Verification metadata must not invent the currency of a later observation.');
+  const paperPortfolio = livePortfolio.accounts.find(account => account.accountId === paperAccount.id);
+  assert.equal(paperPortfolio.reportingCurrency, 'USDT'); assert.equal(paperPortfolio.accountingSource, 'paper-contract-v1');
   const callsAfterLiveRefresh = bybit.snapshotCalls;
   assert.equal((await control.portfolioSnapshot()).cached, true);
   assert.equal(bybit.snapshotCalls, callsAfterLiveRefresh, 'Cached dashboard refresh must not call the exchange again.');

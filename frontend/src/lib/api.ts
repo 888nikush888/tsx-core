@@ -27,7 +27,8 @@ export async function apiFetch(
   }
 
   const response = await fetch(input, { ...init, headers });
-  if (response.status === 401) {
+  // An old in-flight read must not invalidate a newly rotated credential.
+  if (response.status === 401 && token === getDashboardToken()) {
     window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT));
   }
   return response;
@@ -37,10 +38,34 @@ export async function jsonRequest(url: string, init?: RequestInit) {
   const response = await apiFetch(url, init);
   const payload = await response.json().catch(() => ({}));
   if (!response.ok)
-    throw new Error(
-      payload.error || `Anfrage fehlgeschlagen (${response.status}).`,
-    );
+    throw new ApiError(response.status, payload.error || `Anfrage fehlgeschlagen (${response.status}).`, payload.requestId);
   return payload;
+}
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly requestId?: string;
+  constructor(status: number, message: string, requestId?: string) {
+    super(message);
+    this.status = status;
+    this.requestId = requestId;
+  }
+}
+
+/** A confirmed write remains successful when the following observation fails. Never retries writes. */
+export async function mutateAndObserve<T>(
+  operation: () => Promise<T>,
+  accepted: (result: T) => void,
+  observe: () => Promise<unknown>,
+): Promise<{ result: T; refreshError: string | null }> {
+  const result = await operation();
+  accepted(result);
+  try {
+    await observe();
+    return { result, refreshError: null };
+  } catch (error) {
+    return { result, refreshError: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 export function onDashboardAuthRequired(listener: () => void): () => void {

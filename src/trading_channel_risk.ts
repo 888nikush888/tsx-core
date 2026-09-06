@@ -77,7 +77,7 @@ function validateTiers(value: unknown): ChannelRiskTier[] {
   return tiers;
 }
 
-function policyFromRow(row: any): ChannelRiskPolicy {
+export function policyFromRow(row: any): ChannelRiskPolicy {
   const tiers = validateTiers(JSON.parse(row.tiers_json));
   const currentTier = integer(Number(row.current_tier), 'Stored current risk tier', 0, tiers.length - 1);
   const lockedTier = row.locked_tier === null
@@ -104,7 +104,7 @@ function policyFromRow(row: any): ChannelRiskPolicy {
   };
 }
 
-function evaluationFromRow(row: any): ChannelRiskEvaluation {
+export function evaluationFromRow(row: any): ChannelRiskEvaluation {
   return {
     id: String(row.id),
     channelId: String(row.channel_id),
@@ -608,7 +608,7 @@ type WorkflowAdaptiveRiskConfiguration = {
   manuallyBlocked: boolean;
 };
 
-function workflowPolicyHash(configuration: WorkflowAdaptiveRiskConfiguration): string {
+export function workflowPolicyHash(configuration: WorkflowAdaptiveRiskConfiguration): string {
   return createHash('sha256').update(JSON.stringify(configuration)).digest('hex');
 }
 
@@ -863,7 +863,7 @@ interface WorkflowRiskEvaluationAnalytics {
   recommendedTier: number; appliedTier: number; action: string; reason: string; createdAt: number;
 }
 
-function workflowRiskStateAnalytics(row: any): WorkflowRiskStateAnalytics {
+export function workflowRiskStateAnalytics(row: any): WorkflowRiskStateAnalytics {
   return {
     stateKey: String(row.state_key), channelId: String(row.channel_id), accountId: String(row.account_id),
     resourceId: String(row.resource_id), resourceName: String(row.resource_name), currentTier: Number(row.current_tier),
@@ -873,7 +873,7 @@ function workflowRiskStateAnalytics(row: any): WorkflowRiskStateAnalytics {
   };
 }
 
-function workflowRiskEvaluationAnalytics(row: any): WorkflowRiskEvaluationAnalytics {
+export function workflowRiskEvaluationAnalytics(row: any): WorkflowRiskEvaluationAnalytics {
   return {
     id: String(row.id), stateKey: String(row.state_key), channelId: String(row.channel_id),
     accountId: String(row.account_id), resourceId: String(row.resource_id), resourceName: String(row.resource_name),

@@ -1,14 +1,19 @@
+import { AccountPositionLimit } from '@/features/accounts/account-position-limit';
 import {
   Children,
   isValidElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
 } from "react";
 import { AlertTriangle, Archive, Check, Plus, Trash2 } from "lucide-react";
 import { jsonRequest } from "@/lib/api";
+import { useOperatorReadOnly } from '@/shared/api/operator-session';
+import { useDirtyGuard } from '@/shared/forms/use-dirty-guard';
+import { useConfirmationDialog } from '@/components/confirmation-dialog';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +40,7 @@ import {
 } from "./types";
 
 type ResourceEditorProps = Readonly<{
+  draftOnly?: boolean;
   open: boolean;
   kind: WorkflowKind;
   resource: WorkflowResource | null;
@@ -45,11 +51,12 @@ type ResourceEditorProps = Readonly<{
     name: string;
     description: string;
     configuration: Record<string, unknown>;
+    baseEditRevision?: number;
   }) => Promise<boolean>;
   onDeleteNode?: () => Promise<void>;
   onArchiveResource?: () => Promise<void>;
   onDeleteResource?: () => Promise<void>;
-  onConfigureAccount?: (accountId: string, maximum: number) => Promise<void>;
+  onConfigureAccount?: (accountId: string, maximum: number, baseUpdatedAt?: number) => Promise<any>;
 }>;
 
 export type BuilderParserSource = Readonly<{
@@ -185,7 +192,7 @@ async function publishStrategyDraft(
   configuration: Record<string, unknown>,
   trading: TradingSnapshot | null,
   strategyDraft: StrategyConfiguration,
-  metadata: { name: string; description: string },
+  metadata: { name: string; description: string; deferPublication?: boolean; accepted?: (step: string) => void },
 ): Promise<void> {
   const selected = trading?.strategies.find(
     (item) => item.id === configuration.strategyVersionId,
@@ -214,12 +221,15 @@ async function publishStrategyDraft(
       configuration: publishConfiguration,
     }),
   });
+  metadata.accepted?.(`Strategieentwurf ${draft.result.id} gespeichert`);
+  if (metadata.deferPublication) { configuration.strategyVersionId = draft.result.id; return; }
   const published = await jsonRequest("/api/trading/strategies/publish", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: draft.result.id }),
   });
   configuration.strategyVersionId = published.result.id;
+  metadata.accepted?.(`Strategie ${published.result.id} publiziert`);
 }
 
 async function publishContractDraft(
@@ -227,7 +237,7 @@ async function publishContractDraft(
   trading: TradingSnapshot | null,
   contractDraft: SignalContractDefinition,
   contractId: string,
-  metadata: { name: string; description: string },
+  metadata: { name: string; description: string; deferPublication?: boolean; accepted?: (step: string) => void; baseDefinitionSha256?: string },
 ): Promise<void> {
   const parent = trading?.signalContracts.find((contract) =>
     contract.versions.some(
@@ -237,6 +247,12 @@ async function publishContractDraft(
   const source = parent?.versions.find(
     (version) => version.id === configuration.contractVersionId,
   );
+  if (metadata.deferPublication && source?.status === 'draft') {
+    if (!metadata.baseDefinitionSha256) throw new Error('Der Versionsbeleg des Vertragsentwurfs fehlt. Neu laden und vergleichen.');
+    await jsonRequest('/api/trading/signal-contracts/update', { method: 'POST', body: JSON.stringify({ contractId: parent!.id, versionId: source.id,
+      name: metadata.name, description: metadata.description, definition: contractDraft, baseDefinitionSha256: metadata.baseDefinitionSha256 }) });
+    configuration.contractVersionId = source.id; metadata.accepted?.(`Vertragsdefinition ${source.id} gespeichert`); return;
+  }
   if (!parent || !source) {
     const normalizedId = contractId.trim();
     if (!normalizedId) throw new Error("Die Vertrags-ID darf nicht leer sein.");
@@ -253,6 +269,8 @@ async function publishContractDraft(
     const versionId = created.result?.versions?.[0]?.id;
     if (!versionId)
       throw new Error("Der neue Signal-Vertrag enthält keine Entwurfsversion.");
+    metadata.accepted?.(`Vertragsentwurf ${versionId} gespeichert`);
+    if (metadata.deferPublication) { configuration.contractVersionId = versionId; return; }
     const published = await jsonRequest(
       "/api/trading/signal-contracts/publish",
       {
@@ -262,6 +280,7 @@ async function publishContractDraft(
       },
     );
     configuration.contractVersionId = published.result.id;
+    metadata.accepted?.(`Vertrag ${published.result.id} publiziert`);
     return;
   }
   const draft = await jsonRequest("/api/trading/signal-contracts/versions", {
@@ -269,6 +288,7 @@ async function publishContractDraft(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ contractId: parent.id, sourceVersionId: source.id }),
   });
+  metadata.accepted?.(`Vertragsentwurf ${draft.result.id} angelegt`);
   await jsonRequest("/api/trading/signal-contracts/update", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -280,17 +300,21 @@ async function publishContractDraft(
       definition: contractDraft,
     }),
   });
+  metadata.accepted?.(`Vertragsdefinition ${draft.result.id} gespeichert`);
+  if (metadata.deferPublication) { configuration.contractVersionId = draft.result.id; return; }
   const published = await jsonRequest("/api/trading/signal-contracts/publish", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ versionId: draft.result.id }),
   });
   configuration.contractVersionId = published.result.id;
+  metadata.accepted?.(`Vertrag ${published.result.id} publiziert`);
 }
 
 async function createSchemaDraft(
   configuration: Record<string, unknown>,
   schemaDraft: SignalSchemaDraft,
+  accepted?: (step: string) => void,
 ): Promise<void> {
   const id = textValue(schemaDraft.id).trim();
   if (!id || id === schemaDraft.originalId) {
@@ -311,6 +335,7 @@ async function createSchemaDraft(
     }),
   });
   configuration.schemaId = created.result.id;
+  accepted?.(`Schemaprofil ${created.result.id} gespeichert`);
 }
 
 type TradingSignalSchema = TradingSnapshot["signalSchemas"][number];
@@ -364,6 +389,9 @@ function uniqueSchemaCopyId(
 }
 
 type ConfigurationDrafts = Readonly<{
+  baseDefinitionSha256?: string;
+  draftOnly?: boolean;
+  accepted?: (step: string) => void;
   kind: WorkflowKind;
   configuration: Record<string, unknown>;
   templateContent: string;
@@ -390,7 +418,7 @@ async function applyStrategyChanges(
     configuration,
     drafts.trading,
     drafts.strategyDraft,
-    { name: drafts.resourceName, description: drafts.resourceDescription },
+    { name: drafts.resourceName, description: drafts.resourceDescription, deferPublication: drafts.draftOnly, accepted: drafts.accepted },
   );
 }
 
@@ -406,7 +434,7 @@ async function applyContractChanges(
     drafts.trading,
     drafts.contractDraft,
     drafts.contractId,
-    { name: drafts.resourceName, description: drafts.resourceDescription },
+    { name: drafts.resourceName, description: drafts.resourceDescription, deferPublication: drafts.draftOnly, accepted: drafts.accepted, baseDefinitionSha256: drafts.baseDefinitionSha256 },
   );
 }
 
@@ -442,7 +470,7 @@ async function prepareConfiguration(
   if (drafts.kind === "schema" && drafts.schemaTouched) {
     if (!drafts.schemaDraft)
       throw new Error("Das zu kopierende Signal-Schema ist nicht verfügbar.");
-    await createSchemaDraft(configuration, drafts.schemaDraft);
+    await createSchemaDraft(configuration, drafts.schemaDraft, drafts.accepted);
   }
   return configuration;
 }
@@ -1472,6 +1500,7 @@ function SignalSchemaResourceFields({
 }
 
 export function ResourceEditor({
+  draftOnly = false,
   open,
   kind,
   resource,
@@ -1484,6 +1513,12 @@ export function ResourceEditor({
   onDeleteResource,
   onConfigureAccount,
 }: ResourceEditorProps) {
+  const readOnly = useOperatorReadOnly();
+  const initialized = useRef<string | null>(null);
+  const initialRevision = useRef<number | undefined>(undefined);
+  const [touched, setTouched] = useState(false);
+  const { confirm, confirmationDialog } = useConfirmationDialog();
+  useDirtyGuard(draftOnly && open && touched);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [configuration, setConfiguration] = useState<Record<string, unknown>>(
@@ -1491,6 +1526,8 @@ export function ResourceEditor({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [confirmedSteps, setConfirmedSteps] = useState<string[]>([]);
+  const [partialFailure, setPartialFailure] = useState(false);
   const [templateContent, setTemplateContent] = useState("");
   const [strategyDraft, setStrategyDraft] =
     useState<StrategyConfiguration | null>(null);
@@ -1499,13 +1536,18 @@ export function ResourceEditor({
     useState<SignalContractDefinition | null>(null);
   const [contractTouched, setContractTouched] = useState(false);
   const [contractId, setContractId] = useState("new-contract");
+  const baseDefinitionSha256 = useRef<string | undefined>(undefined);
   const [schemaDraft, setSchemaDraft] = useState<SignalSchemaDraft | null>(null);
   const [archiveConfirmation, setArchiveConfirmation] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState(false);
   const meta = KIND_META[kind];
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) { initialized.current = null; setTouched(false); return; }
+    const identity = `${kind}:${resource?.id ?? 'new'}`;
+    if (initialized.current === identity) return;
+    initialized.current = identity; initialRevision.current = resource?.editRevision; setTouched(false);
+    setConfirmedSteps([]); setPartialFailure(false);
     setName(resource?.name || `Neuer Baustein · ${meta.short}`);
     setDescription(resource?.description || "");
     setConfiguration(
@@ -1534,6 +1576,7 @@ export function ResourceEditor({
       const selected = parent?.versions.find(
         (item) => item.id === nextConfiguration.contractVersionId,
       );
+      baseDefinitionSha256.current = selected?.definitionSha256;
       setContractDraft(
         selected
           ? structuredClone(selected.definition)
@@ -1573,20 +1616,29 @@ export function ResourceEditor({
     [configuration.accountId, trading],
   );
   const [accountLimit, setAccountLimit] = useState(20);
-  useEffect(
-    () => setAccountLimit(selectedAccount?.maxConcurrentPositions ?? 20),
-    [selectedAccount],
-  );
+  const [accountLimitFor, setAccountLimitFor] = useState<string | undefined>();
+  useEffect(() => {
+    // Refreshes of the same account must preserve a limit the operator is editing.
+    if (accountLimitFor === selectedAccount?.id) return;
+    setAccountLimitFor(selectedAccount?.id);
+    setAccountLimit(selectedAccount?.maxConcurrentPositions ?? 20);
+  }, [accountLimitFor, selectedAccount]);
 
   if (!open) return null;
+  const closeEditor = async () => { if (!draftOnly || !touched || await confirm({ title: 'Ressourcenänderungen verwerfen?', description: 'Ungespeicherte Eingaben gehen verloren. Bereits bestätigte Teilvorgänge bleiben gespeichert.', confirmLabel: 'Eingaben verwerfen', destructive: true })) onClose(); };
   const set = (key: string, value: unknown) =>
     setConfiguration((previous) => ({ ...previous, [key]: value }));
 
   const submit = async () => {
+    if (readOnly || partialFailure) return;
     setSaving(true);
     setError("");
+    const acceptedSteps: string[] = [];
     try {
       const nextConfiguration = await prepareConfiguration({
+        baseDefinitionSha256: baseDefinitionSha256.current,
+        draftOnly,
+        accepted: step => { acceptedSteps.push(step); setConfirmedSteps(previous => [...previous, step]); },
         kind,
         configuration,
         templateContent,
@@ -1601,25 +1653,29 @@ export function ResourceEditor({
         resourceName: name,
         resourceDescription: description,
       });
+      setConfiguration(nextConfiguration); setStrategyTouched(false); setContractTouched(false);
+      setSchemaDraft(previous => previous ? { ...previous, copying: false } : previous);
       const activated = await onSave({
         name,
         description,
         configuration: nextConfiguration,
+        baseEditRevision: initialRevision.current,
       });
       if (!activated) return;
-      if (kind === "account" && selectedAccount && onConfigureAccount) {
+      if (!draftOnly && kind === "account" && selectedAccount && onConfigureAccount) {
         await onConfigureAccount(selectedAccount.id, accountLimit);
       }
       onClose();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
+      if (acceptedSteps.length) setPartialFailure(true);
     } finally {
       setSaving(false);
     }
   };
 
   const archiveResource = async () => {
-    if (!onArchiveResource) return;
+    if (!onArchiveResource || readOnly) return;
     setSaving(true);
     setError("");
     try {
@@ -1634,7 +1690,7 @@ export function ResourceEditor({
   };
 
   const deleteResource = async () => {
-    if (!onDeleteResource) return;
+    if (!onDeleteResource || readOnly) return;
     setSaving(true);
     setError("");
     try {
@@ -1667,10 +1723,10 @@ export function ResourceEditor({
   };
 
   return (
-    <Dialog
+    <><Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose();
+        if (!nextOpen) closeEditor();
       }}
     >
       <DialogContent
@@ -1685,11 +1741,12 @@ export function ResourceEditor({
             {resource ? "Baustein bearbeiten" : "Baustein erstellen"}
           </DialogTitle>
           <DialogDescription>
-            Änderungen werden als unveränderliche Version gespeichert und
-            anschließend atomar aktiviert.
+            {draftOnly ? 'Speichert bearbeitbare Ressourcen- und Modelldrafts. Publikation und Aktivierung erfolgen ausdrücklich in getrennten Schritten.' : 'Änderungen werden als unveränderliche Version gespeichert und anschließend atomar aktiviert.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="builder-modal-content">
+        <fieldset disabled={readOnly} className="builder-modal-content" onChangeCapture={() => setTouched(true)}>
+          {readOnly && <p>Viewer: Ressourcen sind schreibgeschützt.</p>}
+          {confirmedSteps.length > 0 && <section aria-label="Bestätigte Teilschritte"><p>Bereits bestätigt:</p><ul>{confirmedSteps.map((step, index) => <li key={index}>{step}</li>)}</ul>{partialFailure && <p>Ein Folgeschritt ist fehlgeschlagen. Die aufgeführten Objekte bleiben gespeichert. Dialog schließen und vorhandene Entwürfe prüfen, bevor eine weitere Änderung begonnen wird.</p>}</section>}
           {error && (
             <Alert variant="destructive">
               <AlertTriangle />
@@ -2054,16 +2111,23 @@ export function ResourceEditor({
                     }
                   />
                 </Field>
-                <Field label="Startstufe (0-basiert)">
+                <Field label="Startstufe (1 bis N)">
                   <input
                     type="number"
-                    min={0}
-                    max={19}
-                    value={numberValue(configuration.startingTier, 0)}
+                    min={1}
+                    max={Array.isArray(configuration.tiers) ? configuration.tiers.length : 1}
+                    value={numberValue(configuration.startingTier, 0) + 1}
                     onChange={(event) =>
-                      set("startingTier", Number(event.target.value))
+                      set("startingTier", Number(event.target.value) - 1)
                     }
                   />
+                </Field>
+                <Field label="Stufe festhalten" hint="Gilt pro Kanal, Konto und Policy nach Publikation und Aktivierung. Bestehende Handelspläne bleiben unverändert.">
+                  <select value={configuration.lockedTier == null ? "auto" : String(configuration.lockedTier)}
+                    onChange={(event) => set("lockedTier", event.target.value === "auto" ? null : Number(event.target.value))}>
+                    <option value="auto">Automatische Stufenauswahl zulassen</option>
+                    {(Array.isArray(configuration.tiers) ? configuration.tiers : []).map((tier: any, index: number) => <option key={index} value={String(index)}>Stufe {index + 1} · {tier.riskPercent}%</option>)}
+                  </select>
                 </Field>
                 <Field label="Lookback in Wochen">
                   <input
@@ -2153,7 +2217,7 @@ export function ResourceEditor({
                   ))}
                 </select>
               </Field>
-              <Field
+              {!draftOnly && <Field
                 label="Maximale gleichzeitige Positionen"
                 hint="Diese Grenze gilt für das gesamte konkrete Börsenkonto – über alle Strategien hinweg."
               >
@@ -2166,7 +2230,8 @@ export function ResourceEditor({
                     setAccountLimit(Number(event.target.value))
                   }
                 />
-              </Field>
+              </Field>}
+              {draftOnly && selectedAccount && onConfigureAccount && <AccountPositionLimit account={selectedAccount} disabled={saving || readOnly} onSave={(maximum, baseUpdatedAt) => onConfigureAccount(selectedAccount.id, maximum, baseUpdatedAt)} />}
               {selectedAccount && (
                 <div
                   className={`account-inline-status ${selectedAccount.killSwitchActive ? "danger" : ""}`}
@@ -2259,13 +2324,13 @@ export function ResourceEditor({
               </AlertDescription>
             </Alert>
           )}
-        </div>
+        </fieldset>
         <DialogFooter className="builder-modal-footer">
           {onDeleteNode && (
             <Button
               type="button"
               variant="outline"
-              disabled={saving}
+              disabled={saving || readOnly}
               onClick={onDeleteNode}
             >
               <Archive data-icon="inline-start" /> Nur vom Canvas lösen
@@ -2275,7 +2340,7 @@ export function ResourceEditor({
             <Button
               type="button"
               variant="outline"
-              disabled={saving}
+              disabled={saving || readOnly}
               onClick={() => setArchiveConfirmation(true)}
             >
               <Archive data-icon="inline-start" /> Dauerhaft archivieren
@@ -2285,25 +2350,25 @@ export function ResourceEditor({
             <Button
               type="button"
               variant="destructive"
-              disabled={saving}
+              disabled={saving || readOnly}
               onClick={() => setDeleteConfirmation(true)}
             >
               <Trash2 data-icon="inline-start" /> Endgültig löschen
             </Button>
           )}
           <span />
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={closeEditor}>
             Abbrechen
           </Button>
           <Button
             type="button"
-            disabled={saving || !name.trim()}
+            disabled={readOnly || saving || partialFailure || !name.trim()}
             onClick={submit}
           >
-            {saving ? "Aktiviere…" : "Version speichern & aktivieren"}
+            {saving ? 'Speichere…' : draftOnly ? 'Ressourcen- und Graphentwurf speichern' : "Version speichern & aktivieren"}
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+    </Dialog>{confirmationDialog}</>
   );
 }

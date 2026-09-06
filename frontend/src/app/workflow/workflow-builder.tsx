@@ -7,6 +7,9 @@ import {
   type CSSProperties,
   type RefObject,
 } from "react";
+import { useDirtyGuard } from '@/shared/forms/use-dirty-guard';
+import { useOperatorReadOnly } from '@/shared/api/operator-session';
+import { GraphTable } from '@/features/workflows/graph-table';
 import {
   Background,
   BackgroundVariant,
@@ -45,7 +48,7 @@ import {
   Undo2,
   X,
 } from "lucide-react";
-import { jsonRequest } from "@/lib/api";
+import { jsonRequest, mutateAndObserve } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -1210,7 +1213,15 @@ function workflowRenderMode(
   return loading ? "loading" : activeWorkspace;
 }
 
-export function WorkflowBuilder() {
+export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {}) {
+  const readOnly = useOperatorReadOnly();
+  const [draftMeta, setDraftMeta] = useState<any>(null);
+  const draftMetaRef = useRef<any>(null);
+  const graphInitialized = useRef(false);
+  const [draftUnsaved, setDraftUnsaved] = useState(false);
+  useDirtyGuard(draftUnsaved);
+  const [tableView, setTableView] = useState(false);
+  const [serverDraftPreview, setServerDraftPreview] = useState<any>(null);
   const [snapshot, setSnapshot] = useState<WorkflowSnapshot>({
     workflow: null,
     resources: [],
@@ -1227,7 +1238,7 @@ export function WorkflowBuilder() {
   const [notice, setNotice] = useState<BuilderNoticeValue | null>(null);
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const [activeWorkspace, setActiveWorkspace] =
-    useState<WorkflowWorkspace>("dashboard");
+    useState<WorkflowWorkspace>(embedded ? "builder" : "dashboard");
   const [editorNodeId, setEditorNodeId] = useState<string | null>(null);
   const [newKind, setNewKind] = useState<WorkflowKind | null>(null);
   const [kindPickerOpen, setKindPickerOpen] = useState(false);
@@ -1339,13 +1350,14 @@ export function WorkflowBuilder() {
     const historyRequest = jsonRequest("/api/workflow/history")
       .then(builderHistoryStatus)
       .catch(() => EMPTY_BUILDER_HISTORY);
-    const [workflowPayload, tradingPayload, statusPayload, catalogPayload, historyPayload] =
+    const [workflowPayload, tradingPayload, statusPayload, catalogPayload, historyPayload, draftPayload] =
       await Promise.all([
         jsonRequest("/api/workflow"),
-        jsonRequest("/api/trading"),
-        jsonRequest("/api/status"),
-        jsonRequest("/api/exchanges/catalog"),
+        jsonRequest("/api/trading").catch(() => null),
+        embedded ? Promise.resolve(null) : jsonRequest("/api/status").catch(() => null),
+        jsonRequest("/api/exchanges/catalog").catch(() => null),
         historyRequest,
+        embedded ? jsonRequest('/api/workflow/drafts?id=operator') : Promise.resolve(null),
       ]);
     const nextSnapshot = workflowSnapshot(workflowPayload);
     setSnapshot(nextSnapshot);
@@ -1355,10 +1367,15 @@ export function WorkflowBuilder() {
     );
     setCatalog(exchangeCatalog(catalogPayload));
     setHistory(historyPayload);
-    setGraph(normalizeWorkflowGrid(nextSnapshot.workflow?.graph || EMPTY_GRAPH));
+    if (!graphInitialized.current || !embedded) {
+      const draft = draftPayload?.draft ?? { id: 'operator', version: null, baseRevisionId: nextSnapshot.workflow?.id ?? null };
+      draftMetaRef.current = draft; setDraftMeta(draft);
+      setGraph(normalizeWorkflowGrid(draft.graph ?? nextSnapshot.workflow?.graph ?? EMPTY_GRAPH));
+      graphInitialized.current = true;
+    }
     setLastUpdated(Date.now());
     setLoading(false);
-  }, []);
+  }, [embedded]);
 
   const refreshOperationalState = useCallback(async () => {
     if (operationalRefreshRef.current) {
@@ -1477,15 +1494,31 @@ export function WorkflowBuilder() {
   );
 
   const activateGraph = useCallback(
-    async (candidate: WorkflowGraph, successMessage: string) => {
+    async (candidate: WorkflowGraph, successMessage: string, activate = false) => {
+      if (readOnly) { setNotice({ tone: 'warning', text: 'Viewer: Workflowänderungen sind gesperrt.' }); return false; }
       setSaving(true);
       setNotice(null);
       try {
+        if (embedded && !activate) {
+          setGraph(candidate); setDraftUnsaved(true);
+          const meta = draftMetaRef.current;
+          if (!meta) throw new Error('Graphentwurf konnte nicht geladen werden. Keine Speicherung möglich.');
+          const saved = await jsonRequest('/api/workflow/drafts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: 'operator', baseVersion: meta.version, baseRevisionId: meta.baseRevisionId, graph: candidate }) });
+          draftMetaRef.current = saved.draft; setDraftMeta(saved.draft); setDraftUnsaved(false);
+          setNotice({ tone: 'ok', text: `${successMessage} · Graphentwurf ${saved.draft.version} gespeichert. Die aktive Revision wurde nicht geändert.` });
+          return true;
+        }
+        if (embedded) {
+          const latest = await jsonRequest('/api/workflow/drafts?id=operator');
+          if (latest.draft?.version !== draftMetaRef.current?.version || latest.draft?.expired || draftUnsaved) throw new Error('Graphentwurf geändert, abgelaufen oder ungespeichert. Vor Aktivierung vergleichen und speichern.');
+        }
+        const baseRevisionId = embedded ? draftMetaRef.current?.baseRevisionId ?? null : snapshot.workflow?.id ?? null;
         const impactPayload = await jsonRequest("/api/workflow/impact", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            baseRevisionId: snapshot.workflow?.id ?? null,
+            baseRevisionId,
             graph: candidate,
           }),
         });
@@ -1507,10 +1540,11 @@ export function WorkflowBuilder() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            baseRevisionId: snapshot.workflow?.id ?? null,
+            baseRevisionId,
             graph: candidate,
             confirmation,
             historyLabel: successMessage,
+            ...(embedded ? { draft: { id: 'operator', version: draftMetaRef.current?.version } } : {}),
           }),
         });
         setSnapshot((previous) => ({
@@ -1519,6 +1553,10 @@ export function WorkflowBuilder() {
         }));
         setGraph(structuredClone(payload.workflow.graph));
         setHistory(builderHistoryStatus(payload.history));
+        if (embedded) {
+          const next = payload.draft ?? { ...draftMetaRef.current, baseRevisionId: payload.workflow.id };
+          draftMetaRef.current = next; setDraftMeta(next);
+        }
         setNotice({
           tone: impact.destructive ? "warning" : "ok",
           text: `${successMessage} · Revision ${payload.workflow.revision} ist aktiv.`,
@@ -1530,22 +1568,24 @@ export function WorkflowBuilder() {
           tone: "error",
           text:
             message === "WORKFLOW_REVISION_CONFLICT"
-              ? "Der Workflow wurde parallel geändert. Der aktuelle Stand wird neu geladen."
+              ? embedded ? 'Der aktive Workflow wurde parallel geändert. Dein Entwurf bleibt erhalten; Serverstand vergleichen.' : "Der Workflow wurde parallel geändert. Der aktuelle Stand wird neu geladen."
               : message,
         });
-        if (message.includes("WORKFLOW_REVISION_CONFLICT")) await load();
+        if (message.includes("WORKFLOW_REVISION_CONFLICT") && !embedded) await load();
         return false;
       } finally {
         setSaving(false);
       }
     },
-    [confirm, load, snapshot.workflow?.id],
+    [confirm, load, snapshot.workflow?.id, embedded, readOnly, draftUnsaved],
   );
 
   const navigateHistory = useCallback(
     async (direction: "undo" | "redo") => {
       const plan = historyNavigationPlan(direction, history);
-      if (saving || !plan.allowed) return;
+      if (saving || readOnly || !plan.allowed) return;
+      if (embedded && JSON.stringify(graph) !== JSON.stringify(snapshot.workflow?.graph ?? EMPTY_GRAPH)
+        && !await confirm({ title: 'Angezeigten Entwurf vor History-Wechsel verwerfen?', description: 'Die aktive Graphrevision wird wiederhergestellt. Der derzeit angezeigte Entwurf wird ersetzt; sein zuletzt gespeicherter Stand bleibt bis zu einer ausdrücklichen Entwurfsspeicherung erhalten.', confirmLabel: 'History-Wechsel durchführen' })) return;
       setSaving(true);
       setNotice(null);
       try {
@@ -1578,6 +1618,10 @@ export function WorkflowBuilder() {
         }, nextGraph, nextWorkflow.compiled.paths);
         setSnapshot((previous) => ({ ...previous, workflow: nextWorkflow }));
         setGraph(nextGraph);
+        if (embedded) {
+          const next = { ...draftMetaRef.current, baseRevisionId: nextWorkflow.id };
+          draftMetaRef.current = next; setDraftMeta(next); setDraftUnsaved(true);
+        }
         setHistory(builderHistoryStatus(payload.history));
         setSelectedEdgeId(nextSelections.selectedEdgeId);
         setEditorNodeId(nextSelections.editorNodeId);
@@ -1590,7 +1634,7 @@ export function WorkflowBuilder() {
         }
         setNotice({
           tone: "ok",
-          text: historyNavigationNotice(plan.label, direction, nextWorkflow.revision),
+          text: historyNavigationNotice(plan.label, direction, nextWorkflow.revision) + (embedded ? ' Angezeigten Graph bei Bedarf ausdrücklich als neuen Entwurfsstand speichern.' : ''),
         });
       } catch (error) {
         const failure = historyNavigationError(error);
@@ -1614,6 +1658,10 @@ export function WorkflowBuilder() {
       selectedEdgeId,
       selectedPathId,
       snapshot.workflow?.id,
+      snapshot.workflow?.graph,
+      graph,
+      embedded,
+      readOnly,
     ],
   );
 
@@ -2139,20 +2187,26 @@ export function WorkflowBuilder() {
     name: string;
     description: string;
     configuration: Record<string, unknown>;
+    baseEditRevision?: number;
   }) => {
+    if (readOnly) return false;
     const base = selectedResource;
-    const draftPayload = await jsonRequest("/api/workflow/resources", {
+    const editingDraft = embedded && base?.status === 'draft';
+    const draftPayload = await jsonRequest(editingDraft ? '/api/workflow/resources/update' : "/api/workflow/resources", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...(base ? { resourceId: base.resourceId } : {}),
+        ...(editingDraft ? { id: base.id, baseEditRevision: value.baseEditRevision } : {}),
         kind: editorKind,
         name: value.name,
         description: value.description,
         configuration: value.configuration,
       }),
     });
-    const publishPayload = await jsonRequest(
+    setSnapshot(previous => ({ ...previous, resources: [...previous.resources.filter(item => item.id !== draftPayload.resource.id), draftPayload.resource] }));
+    setNotice({ tone: 'ok', text: `Ressourcenentwurf ${draftPayload.resource.name} · Version ${draftPayload.resource.version} gespeichert.` });
+    const publishPayload = embedded ? draftPayload : await jsonRequest(
       "/api/workflow/resources/publish",
       {
         method: "POST",
@@ -2186,18 +2240,37 @@ export function WorkflowBuilder() {
       base ? `${value.name} aktualisiert` : `${value.name} hinzugefügt`,
     );
     if (activated) {
-      const tradingPayload = await jsonRequest("/api/trading");
-      setTrading(tradingSnapshot(tradingPayload));
       setSnapshot((previous) => ({
         ...previous,
-        resources: [...previous.resources, resource],
+        resources: [...previous.resources.filter(item => item.id !== resource.id), resource],
       }));
       if (addedNode) {
         setSearch("");
         revealNode(addedNode);
       }
-    } else await load();
+      try { setTrading(tradingSnapshot(await jsonRequest('/api/trading'))); }
+      catch (error) { setNotice({ tone: 'warning', text: `Ressource gespeichert; Trading-Nachladen fehlgeschlagen: ${String(error)}` }); }
+    } else setNotice({ tone: 'warning', text: `Ressource ${resource.id} gespeichert, Graphänderung nicht bestätigt. Der Entwurf bleibt in der Bibliothek erhalten.` });
     return activated;
+  };
+
+  const publishGraphResources = async () => {
+    if (readOnly) return;
+    const referenced = new Set(graph.nodes.map(node => node.resourceVersionId));
+    const drafts = snapshot.resources.filter(resource => referenced.has(resource.id) && resource.status === 'draft');
+    if (!drafts.length) return;
+    setSaving(true); const published: string[] = [];
+    try {
+      const previews = await Promise.all(drafts.map(resource => jsonRequest(`/api/workflow/objects?kind=resources&id=${encodeURIComponent(resource.id)}`)));
+      if (!await confirm({ title: 'Ressourcenversionen publizieren', description: `${drafts.map(item => `${item.name} v${item.version}`).join(', ')} werden unveränderliche Versionen. Referenzierte Modelldrafts werden mitpubliziert: ${previews.map(item => item.publication?.dependency?.id).filter(Boolean).join(', ') || 'keine'}. Inhalte sind über Bibliothek → Version → Referenziertes Modell prüfbar. Die aktive Graphrevision ändert sich erst durch eine separate Aktivierung.`, confirmLabel: 'Versionen publizieren' })) return;
+      for (const [index, resource] of drafts.entries()) {
+        const payload = await jsonRequest('/api/workflow/resources/publish', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'publish-workflow-dependencies' }, body: JSON.stringify({ id: resource.id, baseEditRevision: resource.editRevision, publishDependencies: true, publicationHash: previews[index].publication?.publicationHash }) });
+        published.push(resource.id);
+        setSnapshot(previous => ({ ...previous, resources: previous.resources.map(item => item.id === resource.id ? payload.resource : item) }));
+        setNotice({ tone: 'ok', text: `${published.length} von ${drafts.length} Versionen publiziert. Graph noch nicht aktiviert.` });
+      }
+    } catch (error) { setNotice({ tone: 'warning', text: `${published.length} Versionen bestätigt publiziert: ${published.join(', ')}. Nächster Schritt fehlgeschlagen: ${String(error)}. Keine automatische Wiederholung.` }); }
+    finally { setSaving(false); }
   };
 
   const addExistingResource = async (resource: WorkflowResource) => {
@@ -2356,14 +2429,17 @@ export function WorkflowBuilder() {
     if (activated) setEditorNodeId(null);
   };
 
-  const configureAccount = async (accountId: string, maximum: number) => {
-    await jsonRequest("/api/trading/accounts/configuration", {
+  const configureAccount = async (accountId: string, maximum: number, baseUpdatedAt?: number) => {
+    if (readOnly) throw new Error('Administratorrechte erforderlich.');
+    const { result, refreshError } = await mutateAndObserve(() => jsonRequest("/api/trading/accounts/configuration", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: accountId, maxConcurrentPositions: maximum }),
+      body: JSON.stringify({ id: accountId, maxConcurrentPositions: maximum, baseUpdatedAt }),
+    }), () => setNotice({ tone: 'ok', text: 'Konto-Limit bestätigt; wirkt sofort auf alle Pfade.' }), async () => {
+      const refreshed = await jsonRequest('/api/trading'); setTrading(tradingSnapshot(refreshed));
     });
-    const refreshed = await jsonRequest("/api/trading");
-    setTrading(tradingSnapshot(refreshed));
+    if (refreshError) setNotice({ tone: 'warning', text: `Konto-Limit bestätigt; Nachladen fehlgeschlagen: ${refreshError}` });
+    return result;
   };
 
   const runSimulation = async () => {
@@ -2449,11 +2525,28 @@ export function WorkflowBuilder() {
   }
   return (
     <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
-      <WorkflowTopbar />
-      <WorkflowNavigation
+      {!embedded && <WorkflowTopbar />}
+      {!embedded && <WorkflowNavigation
         activeWorkspace={activeWorkspace}
         onChange={setActiveWorkspace}
-      />
+      />}
+      {embedded && <section className="operations-card"><h1>Workflows · Entwurf und Aktivierung</h1>
+        <p>Aktiv: Revision {snapshot.workflow?.revision ?? 'keine'} · Graphentwurf {draftMeta?.version ?? 'noch nicht gespeichert'} · Basis {draftMeta?.baseRevisionId ?? 'keine'} · {draftUnsaved ? 'ungespeicherte Änderungen' : 'keine unbestätigte Graphänderung'}.</p>
+        <p>Graphänderungen werden als Entwurf gespeichert. Ressourcenpublikation und Aktivierung sind separate Schritte. History betrifft ausschließlich Graphrevisionen, keine ausgeführten Trades.</p>
+        {readOnly && <p>Viewer: Workflows sind schreibgeschützt.</p>}
+        <div className="flex flex-wrap gap-3"><button className="secondary-button" onClick={() => setTableView(!tableView)}>{tableView ? 'Canvas anzeigen' : 'Tabellenansicht anzeigen'}</button>
+          <button className="secondary-button" disabled={saving || readOnly || !draftMeta} onClick={() => void activateGraph(graph, 'Graph')}>Graphentwurf speichern</button>
+          <button className="secondary-button" disabled={saving || readOnly} onClick={() => void publishGraphResources()}>Referenzierte Entwurfsversionen publizieren</button>
+          <button className="primary-button" disabled={saving || readOnly || draftUnsaved || !draftMeta?.version} onClick={() => void activateGraph(graph, 'Graph aktiviert', true)}>Gespeicherten Graph aktivieren</button>
+          <button className="secondary-button" disabled={saving} onClick={() => void (async () => {
+            try { const [draft, active] = await Promise.all([jsonRequest('/api/workflow/drafts?id=operator'), jsonRequest('/api/workflow')]); setServerDraftPreview({ draft: draft.draft, workflow: active.workflow }); }
+            catch (error) { setNotice({ tone: 'error', text: `Vergleich nicht verfügbar: ${String(error)}` }); }
+          })()}>Serverstand vergleichen</button></div>
+        {serverDraftPreview && <div><p>Serverentwurf {serverDraftPreview.draft?.version ?? 'keiner'} · Basis {serverDraftPreview.draft?.baseRevisionId ?? 'keine'} · aktive Revision {serverDraftPreview.workflow?.id ?? 'keine'}. {serverDraftPreview.draft?.expired && 'Der Entwurf ist abgelaufen und muss bewusst neu gespeichert werden.'}</p>
+          <details><summary>Gespeicherten Graph mit eigenem Entwurf vergleichen</summary><p>Eigener Entwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(graph, null, 2)}</pre><p>Serverentwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(serverDraftPreview.draft?.graph ?? serverDraftPreview.workflow?.graph ?? EMPTY_GRAPH, null, 2)}</pre></details>
+          <button className="secondary-button" onClick={() => { const meta = serverDraftPreview.draft ?? { id: 'operator', version: null, baseRevisionId: serverDraftPreview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setGraph(meta.graph ?? serverDraftPreview.workflow?.graph ?? EMPTY_GRAPH); setDraftUnsaved(false); setServerDraftPreview(null); }}>Serverentwurf übernehmen · eigene Änderungen verwerfen</button>
+          <button className="secondary-button" disabled={readOnly} onClick={() => { const meta = { ...(serverDraftPreview.draft ?? { id: 'operator', version: null }), baseRevisionId: serverDraftPreview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setDraftUnsaved(true); setServerDraftPreview(null); }}>Verglichen · eigenen Graph auf neue Basis anwenden</button></div>}
+      </section>}
       {activeWorkspace === "builder" ? (
         <WorkflowStatusbar
           snapshot={snapshot}
@@ -2495,7 +2588,10 @@ export function WorkflowBuilder() {
             saving={saving}
             onConsolidate={() => void consolidateDuplicates()}
           />
-          <div ref={canvasRef} id="workflow-canvas" className="workflow-canvas">
+          {embedded && tableView && <GraphTable graph={graph} resources={snapshot.resources} readOnly={readOnly || saving}
+            edit={setEditorNodeId} remove={edgeId => void removeEdge(edgeId)}
+            connect={(source, target) => void activateGraph({ ...graph, edges: [...graph.edges, { id: newId('edge'), source, target }] }, 'Verbindung')} />}
+          <div ref={canvasRef} id="workflow-canvas" className="workflow-canvas" style={embedded && tableView ? { display: 'none' } : undefined}>
         <ReactFlow
           nodes={displayNodes}
           edges={displayEdges}
@@ -2783,6 +2879,7 @@ export function WorkflowBuilder() {
           setNewKind(null);
         }}
         onSave={saveResource}
+        draftOnly={embedded}
         onDeleteNode={selectedNode ? deleteNode : undefined}
         onArchiveResource={
           selectedResource

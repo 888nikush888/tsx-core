@@ -162,9 +162,10 @@ body,
 #root {
   width: 100%;
   min-width: 0;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
 }
+html { height: 100%; }
+body, #root { height: auto; overflow: visible; }
 button,
 input,
 textarea,
@@ -561,6 +562,10 @@ button:disabled {
   border: 1px solid var(--builder-border);
   border-radius: var(--radius-md);
   background: var(--card);
+}
+@media (max-width: 640px) {
+  /* The overview map otherwise covers actionable nodes on narrow screens. */
+  .workflow-canvas .react-flow__minimap { display: none; }
 }
 .workflow-canvas .react-flow__edge-path {
   stroke: color-mix(in oklch, var(--foreground) 42%, transparent);
@@ -967,10 +972,10 @@ button:disabled {
   align-items: center;
   gap: 2px;
   padding: 2px;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(2px);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--card);
@@ -979,13 +984,6 @@ button:disabled {
     opacity 0.15s,
     transform 0.15s,
     visibility 0.15s;
-}
-.workflow-node:hover .workflow-node-order-controls,
-.workflow-node:focus-within .workflow-node-order-controls {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0);
 }
 .workflow-node-order-controls [data-slot="button"] svg {
   width: 13px;

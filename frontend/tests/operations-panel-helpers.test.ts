@@ -9,9 +9,9 @@ import {
 describe("buildEquityChartGroups", () => {
   it("never joins account balances that use different reporting currencies", () => {
     const points = [
-      { accountId: "hyper", observedAt: 1000, equity: "1153.24" },
-      { accountId: "paper", observedAt: 1001, equity: "10000" },
-      { accountId: "hyper", observedAt: 2000, equity: "1160.00" },
+      { accountId: "hyper", observedAt: 1000, equity: "1153.24", reportingCurrency: "USDC", accountingSource: "original", mode: "testnet" },
+      { accountId: "paper", observedAt: 1001, equity: "10000", reportingCurrency: "USDT", accountingSource: "paper-contract-v1", mode: "paper" },
+      { accountId: "hyper", observedAt: 2000, equity: "1160.00", reportingCurrency: "USDC", accountingSource: "original", mode: "testnet" },
     ];
     const accounts = [
       { id: "hyper", name: "Hyper Test", exchange: "hyperliquid", mode: "testnet", capabilities: { reportingCurrency: "USDC" } },
@@ -20,19 +20,25 @@ describe("buildEquityChartGroups", () => {
 
     expect(buildEquityChartGroups(points, accounts)).toEqual([
       {
-        currency: "QUOTE",
-        series: [{ accountId: "paper", dataKey: "account_0", name: "Paper" }],
-        points: [{ observedAt: 1001, account_0: 10000 }],
-      },
-      {
-        currency: "USDC",
+        currency: "USDC (testnet)",
         series: [{ accountId: "hyper", dataKey: "account_0", name: "Hyper Test" }],
         points: [
-          { observedAt: 1000, account_0: 1153.24 },
-          { observedAt: 2000, account_0: 1160 },
+          { observedAt: 1000, account_0: 1153.24, account_0Exact: "1153.24" },
+          { observedAt: 2000, account_0: 1160, account_0Exact: "1160.00" },
         ],
       },
+      {
+        currency: "USDT (paper)",
+        series: [{ accountId: "paper", dataKey: "account_0", name: "Paper" }],
+        points: [{ observedAt: 1001, account_0: 10000, account_0Exact: "10000" }],
+      },
     ]);
+  });
+  it("keeps original currencies and modes separate and retains exact tooltip amounts", () => {
+    const known = { accountId: "account", observedAt: 1, equity: "0.000000000000000000123456789", reportingCurrency: "USD", accountingSource: "original", mode: "live" };
+    const groups = buildEquityChartGroups([known, { ...known, mode: "testnet" }, { ...known, reportingCurrency: null }, { ...known, equity: null }, { ...known, accountingSource: null }], [{ id: "account", capabilities: { reportingCurrency: "USDT" } }]);
+    expect(groups.map(group => group.currency)).toEqual(["USD (live)", "USD (testnet)"]);
+    expect(groups[0].points[0].account_0Exact).toBe(known.equity);
   });
 });
 
@@ -64,13 +70,13 @@ describe("buildJournalQueryString", () => {
   const empty = { from: "", to: "", channelId: "", accountId: "", symbol: "", status: "" };
 
   it("returns limit only for empty filters", () => {
-    expect(buildJournalQueryString(empty)).toBe("limit=500");
+    expect(buildJournalQueryString(empty)).toBe("limit=50");
   });
 
   it("adds from and to as timestamps", () => {
     const qs = buildJournalQueryString({ ...empty, from: "2026-01-02", to: "2026-01-03" });
     const params = new URLSearchParams(qs);
-    expect(params.get("limit")).toBe("500");
+    expect(params.get("limit")).toBe("50");
     expect(params.get("from")).toBe(String(new Date("2026-01-02T00:00:00").getTime()));
     expect(params.get("to")).toBe(String(new Date("2026-01-03T23:59:59.999").getTime()));
   });

@@ -199,6 +199,21 @@ describe('workflow resource contracts', () => {
     expect(screen.queryByLabelText(/Strategiedefinition/)).not.toBeInTheDocument()
   })
 
+  it('keeps a model as a draft and reuses its confirmed result after resource saving fails', async () => {
+    api.apiFetch.mockImplementation((url: string) => url === '/api/trading/strategies' ? response({ result: { id: 'strategy-draft-v2' } }, 201) : response({}))
+    const onSave = vi.fn().mockResolvedValue(false)
+    render(<ResourceEditor draftOnly open kind="strategy" resource={workflowResource('strategy', { strategyVersionId: 'strategy-v1' })} trading={trading as any} onClose={() => {}} onSave={onSave} />)
+    fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '7' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ressourcen- und Graphentwurf speichern' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('region', { name: 'Bestätigte Teilschritte' })).toHaveTextContent('strategy-draft-v2')
+    fireEvent.click(screen.getByRole('button', { name: 'Ressourcen- und Graphentwurf speichern' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2))
+    expect(api.apiFetch.mock.calls.filter(([url]) => url === '/api/trading/strategies')).toHaveLength(1)
+    expect(api.apiFetch.mock.calls.some(([url]) => String(url).includes('/publish'))).toBe(false)
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ configuration: { strategyVersionId: 'strategy-draft-v2' } }))
+  })
+
   it('blocks invalid default leverage in both sizing editors before save', async () => {
     const sizingSave = editor('sizing')
     fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '20' } })

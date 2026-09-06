@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { hasCurrentRestorableBackup } from './backup_evidence.js';
-import { writeConfigSync } from './config.js';
+import { validateConfig, writeConfigSync } from './config.js';
+import { configurationRevision, mergeConfiguration } from './ui_configuration.js';
 import { addLog, getLogEntries } from './logger.js';
 import {
   getIncomingMessages,
@@ -15,6 +16,7 @@ import {
   deleteIncomingMessage,
   deleteProcessedSignal,
   SignalReferencedError,
+  withDatabaseTransaction,
 } from './db.js';
 import type { EnterpriseAuditTrail } from './audit_trail.js';
 import {
@@ -39,6 +41,7 @@ import {
 } from './mcp_repository.js';
 import {
   listTradeJournal,
+  listTradeJournalPage,
   tradeJournalCsv,
   updateTradeJournalReview,
   type TradeJournalFilters,
@@ -75,6 +78,31 @@ import {
 import type { ManagedTelegramViewerSettingsStore } from './telegram_viewer_settings.js';
 import type { TelegramViewerSecretStore } from './telegram_viewer_secrets.js';
 import { constantTimeStringEqual } from './secure_compare.js';
+import { uiIngressDetail, uiSignalPage, type UiSignalList } from './ui_signal_reads.js';
+import { uiSignalOriginal } from './ui_signal_original.js';
+import { uiDeployment } from './ui_deployment.js';
+import { uiAttention } from './ui_attention.js';
+import { uiMcpSnapshot } from './ui_mcp_reads.js';
+import { uiCockpit } from './ui_cockpit.js';
+import { uiAccountDetail, uiTradingPage, uiTradeSafety, type UiTradingList } from './ui_trading_reads.js';
+import { uiTradeRelationPage, uiJournalDetail, uiJournalSummary, type UiTradeRelation } from './ui_trade_relations.js';
+import { deleteUiWorkflowDraft, getUiWorkflowDraft, saveUiWorkflowDraft, activateUiWorkflowDraft } from './ui_workflow_drafts.js';
+import { type UiOperationStore, UI_PROCESS_INSTANCE_ID } from './ui_operation_store.js';
+import { prepareUiParserTest, runUiParserTest, uiParserMetadata } from './ui_parser_lab.js';
+import { uiMcpProposalReview, approveReviewedMcpProposal } from './ui_mcp_review.js';
+import { redactReview, reviewHash } from './ui_change_review.js';
+import { setupReviewContent, setupContentReview, uiSetupCurrentState } from './ui_setup_review.js';
+import { uiReviewTree } from './ui_review_tree.js';
+import { uiWorkflowPage, uiWorkflowDetail, type UiWorkflowList } from './ui_workflow_reads.js';
+import { uiModelPage, uiModelDetail, mutateUiModel } from './ui_workflow_models.js';
+import { uiAccountEvidence, uiAccountReservations, uiAccountHistory } from './ui_account_evidence.js';
+import { uiAdaptiveRisk, copyLegacyRiskPolicy } from './ui_adaptive_risk.js';
+import { uiIngressRelations, type UiIngressRelation } from './ui_ingress_relations.js';
+import { publishUiResourceWithDependency } from './ui_resource_publication.js';
+import { uiSearch } from './ui_search.js';
+import { uiCapabilities } from './ui_capabilities.js';
+import { uiParameters } from './ui_parameter_catalog.js';
+import { JOURNAL_INTENT_STATUSES } from './ui_contracts.js';
 import {
   createTelegramViewerTestEvent,
   listTelegramViewerTestEvents,
@@ -100,6 +128,7 @@ interface SetupBundlePreview {
   actorId: string;
   bundle: PortableSetupBundle;
   bundleHash: string;
+  baseHash: string;
   expiresAt: number;
   automaticAccountMappings: Record<string, string>;
 }
@@ -175,11 +204,13 @@ interface WebServerState {
   runBackupNow?: () => Promise<string>;
   listBackups?: () => Promise<string[]>;
   verifyBackup?: (artifactName: string) => Promise<unknown>;
+  runBackupDrill?: (artifactName: string) => Promise<unknown>;
+  uiOperations?: UiOperationStore;
   recoverOffsiteBackup?: (objectName: string) => Promise<string>;
   restoreBackup?: (artifactName: string) => Promise<{ previousDatabase: string | null; previousConfig: string | null }>;
   performFactoryReset?: () => Promise<void>;
   requestRestart?: () => void;
-  runtimeSettings?: Pick<ManagedRuntimeSettingsStore, 'snapshot' | 'set' | 'recoveryStatus'>;
+  runtimeSettings?: Pick<ManagedRuntimeSettingsStore, 'snapshot' | 'set' | 'recoveryStatus'> & Partial<Pick<ManagedRuntimeSettingsStore, 'describe'>>;
   telegramViewerSettings?: Pick<ManagedTelegramViewerSettingsStore, 'snapshot' | 'set' | 'recoveryStatus'>;
   telegramViewerSecrets?: Pick<TelegramViewerSecretStore,
     'status' | 'readBotToken' | 'setBotToken' | 'deleteBotToken' | 'serviceToken' | 'rotateServiceToken'
@@ -215,6 +246,9 @@ type ApiHandler = (context: RequestContext) => Promise<void> | void;
 
 let server: http.Server | null = null;
 let mutationInProgress = false;
+const serverInstanceId = UI_PROCESS_INSTANCE_ID;
+const serverVersion = fsPromises.readFile(new URL('../package.json', import.meta.url), 'utf8')
+  .then(content => String(JSON.parse(content).version)).catch(() => 'unknown');
 const requestContexts = new WeakMap<http.IncomingMessage, RequestContext>();
 
 class HttpError extends Error {
@@ -350,7 +384,7 @@ function publicConfig(config: any): any {
   );
 }
 
-const AUDIT_SECRET_KEY = /(secret|token|password|private.?key|api.?key|api.?hash|authorization|credential|bootstrap.?proof)/i;
+const AUDIT_SECRET_KEY = /(secret|token|password|private.?key|api.?key|api.?hash|authorization|credential|bootstrap.?proof|sourceText)/i;
 
 function safeAuditValue(value: unknown, depth = 0): unknown {
   if (value === null || typeof value === 'boolean') return value;
@@ -713,6 +747,7 @@ function logsHandler(context: RequestContext): void {
       logs: page.entries.map(entry => entry.line),
       nextCursor: page.nextCursor,
       dropped: page.dropped,
+      serverInstanceId,
     });
   } catch (error) {
     sendError(context, error instanceof Error ? new HttpError(400, error.message) : error);
@@ -761,6 +796,39 @@ async function incomingMessagesHandler(context: RequestContext): Promise<void> {
   }
 }
 
+function signalPageHandler(kind: UiSignalList): ApiHandler {
+  return async context => {
+    try { sendJson(context.res, 200, await uiSignalPage(kind, context.parsedUrl.searchParams)); }
+    catch (error) { sendError(context, new HttpError(400, errorMessage(error))); }
+  };
+}
+
+async function ingressDetailHandler(context: RequestContext): Promise<void> {
+  try {
+    const detail = await uiIngressDetail(context.parsedUrl.searchParams.get('id') || '');
+    if (!detail) throw new HttpError(404, 'Incoming work not found.');
+    sendJson(context.res, 200, detail);
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
+async function signalOriginalHandler(context: RequestContext): Promise<void> {
+  try {
+    const original = await uiSignalOriginal(context.parsedUrl.searchParams);
+    if (!original) throw new HttpError(404, 'Stored original not found.');
+    sendJson(context.res, 200, original);
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
+async function uiDeploymentHandler(context: RequestContext): Promise<void> {
+  try { sendJson(context.res, 200, await uiDeployment({ address: context.req.socket.localAddress, port: context.req.socket.localPort })); }
+  catch (error) { sendError(context, error); }
+}
+
+async function uiAttentionHandler(context: RequestContext): Promise<void> {
+  try { sendJson(context.res, 200, await uiAttention(context.parsedUrl.searchParams)); }
+  catch (error) { sendError(context, new HttpError(400, errorMessage(error))); }
+}
+
 async function processedSignalsHandler(context: RequestContext): Promise<void> {
   try {
     sendJson(context.res, 200, { signals: await getProcessedSignals(100) });
@@ -786,7 +854,7 @@ async function outboxHandler(context: RequestContext): Promise<void> {
     });
     return;
   }
-  const allowed = new Set(['pending', 'preparing', 'sending', 'completed', 'failed', 'unknown']);
+  const allowed = new Set(['pending', 'preparing', 'sending', 'completed', 'failed', 'unknown', 'needs_review']);
   const statuses = (context.parsedUrl.searchParams.get('status') || '')
     .split(',')
     .map((value) => value.trim())
@@ -971,13 +1039,12 @@ async function postTelegramLoginHandler(context: RequestContext): Promise<void> 
 }
 
 function getConfigHandler({ res, appState }: RequestContext): void {
-  sendJson(res, 200, publicConfig(appState.config));
+  const configuration = publicConfig(appState.config);
+  sendJson(res, 200, { ...configuration, configRevision: configurationRevision(configuration) });
 }
 
 function applyConfiguration(context: RequestContext, update: any, logMessage: string): void {
-  const candidateConfig = structuredClone(context.appState.config);
-  Object.assign(candidateConfig, update);
-  delete candidateConfig.apiHash;
+  const candidateConfig = validateConfig(mergeConfiguration(context.appState.config, update));
   (context.appState.persistConfig ?? writeConfigSync)(candidateConfig);
   Object.assign(context.appState.config, candidateConfig);
   context.appState.reloadConfig();
@@ -994,10 +1061,17 @@ async function postConfigHandler(context: RequestContext): Promise<void> {
     if (containsSecretConfig(newConfig)) {
       throw new HttpError(400, 'Secrets must be submitted through the dedicated managed-secret endpoint.');
     }
+    const expected = context.req.headers['if-match'];
+    if (expected !== undefined && expected !== configurationRevision(publicConfig(context.appState.config))) {
+      throw new HttpError(409, 'Configuration changed. Reload and compare before saving.');
+    }
+    delete newConfig.configRevision;
     applyConfiguration(context, newConfig, 'Dashboard configuration updated.');
     sendJson(context.res, 200, {
       success: true,
       message: 'Configuration saved successfully.',
+      configuration: publicConfig(context.appState.config),
+      configRevision: configurationRevision(publicConfig(context.appState.config)),
       queue: context.appState.getQueueState(),
       requestId: context.requestId,
     });
@@ -1055,21 +1129,27 @@ async function exportSetupBundleHandler(context: RequestContext): Promise<void> 
 async function previewSetupBundleHandler(context: RequestContext): Promise<void> {
   try {
     pruneSetupBundlePreviews();
+    if (setupBundlePreviews.size >= 20) throw new HttpError(409, 'Setup preview capacity reached. Apply an existing preview or wait until it expires.');
     const payload = await readJsonBody(context.req, 4 * 1024 * 1024);
     const bundle = validatePortableSetupBundle(payload?.bundle ?? payload);
     const mappings = await suggestPortableAccountMappings(bundle);
     const active = await getActiveWorkflow();
     const key = randomUUID();
     const expiresAt = Date.now() + SETUP_PREVIEW_TTL_MS;
+    const current = await withDatabaseTransaction(() => uiSetupCurrentState(publicConfig(context.appState.config)));
+    const baseHash = reviewHash(current);
     setupBundlePreviews.set(key, {
       actorId: context.actor!.id,
       bundle,
       bundleHash: bundle.checksum,
+      baseHash,
       expiresAt,
       automaticAccountMappings: mappings.automatic,
     });
     sendJson(context.res, 200, {
       previewKey: key,
+      baseHash,
+      contentReview: setupContentReview(current, bundle),
       bundleHash: bundle.checksum,
       expiresAt,
       mode: 'replace',
@@ -1113,6 +1193,22 @@ function consumeSetupBundlePreview(payload: any, actorId: string): SetupBundlePr
   return preview;
 }
 
+async function setupReviewTreeHandler(context: RequestContext): Promise<void> {
+  if (context.actor?.role !== 'admin') { sendError(context, new HttpError(403, 'Administrator role required.')); return; }
+  try {
+    const query = context.parsedUrl.searchParams; const key = query.get('key') || '';
+    const preview = setupBundlePreviews.get(key);
+    if (!preview || preview.expiresAt <= Date.now()) throw new HttpError(409, 'Setup preview is missing or expired.');
+    if (preview.actorId !== context.actor.id) throw new HttpError(403, 'Setup preview belongs to another authenticated user.');
+    const current = await withDatabaseTransaction(() => uiSetupCurrentState(publicConfig(context.appState.config)));
+    if (reviewHash(current) !== preview.baseHash) throw new HttpError(409, 'SETUP_PREVIEW_CONFLICT: Reviewed source changed. Create a new preview.');
+    const side = query.get('side') || 'before';
+    const values: Record<string, unknown> = { before: current.content, after: setupReviewContent(preview.bundle), library: current.library };
+    if (!Object.hasOwn(values, side)) throw new HttpError(400, 'Invalid review side.');
+    sendJson(context.res, 200, uiReviewTree(values[side], query, { key, side, baseHash: preview.baseHash, bundleHash: preview.bundleHash }));
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
 function setupBundleAccountMappings(payload: any, preview: SetupBundlePreview): Record<string, string> {
   if (!payload.accountMappings || typeof payload.accountMappings !== 'object' || Array.isArray(payload.accountMappings)) {
     throw new HttpError(400, 'Account mappings must be an object.');
@@ -1147,6 +1243,12 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
     const payload = await readJsonBody(context.req, 256 * 1024);
     const preview = consumeSetupBundlePreview(payload, context.actor!.id);
     const accountMappings = setupBundleAccountMappings(payload, preview);
+    const assertPreviewCurrent = async () => {
+      if (reviewHash(await uiSetupCurrentState(publicConfig(context.appState.config))) !== preview.baseHash) {
+        throw new HttpError(409, 'SETUP_PREVIEW_CONFLICT: Current configuration, library, account state or workflow changed. Create a new preview.');
+      }
+    };
+    await withDatabaseTransaction(assertPreviewCurrent);
     if (!context.appState.runBackupNow) throw new HttpError(503, 'A verified backup is required before setup replacement.');
     const backupArtifact = await context.appState.runBackupNow();
     previousConfig = structuredClone(context.appState.config);
@@ -1156,6 +1258,7 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
       bundle: preview.bundle,
       accountMappings,
       actorId: context.actor!.id,
+      beforeImport: assertPreviewCurrent,
       beforeCommit: () => {
         (context.appState.persistConfig ?? writeConfigSync)(replacementConfig as any);
         configPersisted = true;
@@ -1273,6 +1376,15 @@ async function runBackupHandler(context: RequestContext): Promise<void> {
     return;
   }
   try {
+    const jobId = context.req.headers['x-operator-job-id'];
+    if (typeof jobId === 'string') {
+      const store = context.appState.uiOperations;
+      if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
+      const accepted = await store.accept({ id: jobId, kind: 'backup-create', actorId: context.actor!.id, scope: { database: 'current', configuration: 'current' }, request: { action: 'backup-create' } });
+      sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
+      if (accepted.created) void store.run(jobId, async () => ({ artifactName: path.basename(await context.appState.runBackupNow!()) })).catch(error => addLog(`[ERROR] Backup job persistence failed: ${errorMessage(error)}`));
+      return;
+    }
     const artifact = await context.appState.runBackupNow();
     sendJson(context.res, 201, { success: true, artifact: path.basename(artifact), requestId: context.requestId });
   } catch (error) {
@@ -1299,14 +1411,26 @@ function runtimeSettingsHandler({ res, appState }: RequestContext): void {
     sendJson(res, 503, { error: 'Managed runtime settings are unavailable.' });
     return;
   }
-  sendJson(res, 200, { settings: appState.runtimeSettings.snapshot() });
+  sendJson(res, 200, { settings: appState.runtimeSettings.snapshot(), ...appState.runtimeSettings.describe?.() });
 }
 
-function recoveryStatusHandler({ res, appState }: RequestContext): void {
+function availableRecoveryRepairs(appState: WebServerState, actor: RequestContext['actor']): string[] {
+  if (actor?.role !== 'admin') return [];
+  return ['config', ...(appState.secretStore ? ['secrets'] : []),
+    ...(appState.runtimeSettings && appState.secretStore ? ['runtime-settings'] : []), ...(appState.requestRestart ? ['restart'] : [])];
+}
+async function recoveryStatusHandler({ res, appState, actor }: RequestContext): Promise<void> {
   sendJson(res, 200, {
+    contractVersion: 1,
+    backendVersion: await serverVersion,
+    observedAt: Date.now(),
+    serverInstanceId,
+    session: { role: actor?.role, actorId: actor?.id, provider: actor?.identity?.provider ?? 'bearer' },
     active: appState.recovery?.active === true,
     issues: appState.recovery?.issues ?? [],
     restartRequired: appState.recovery?.active === true,
+    startup: appState.startupAuthority?.snapshot() ?? null,
+    availableRepairs: availableRecoveryRepairs(appState, actor),
   });
 }
 
@@ -1325,14 +1449,15 @@ async function postRuntimeSettingsHandler(context: RequestContext): Promise<void
         throw new HttpError(409, `Enterprise mode requires configured managed secrets: ${missing.join(', ')}.`);
       }
     }
-    const settings = await context.appState.runtimeSettings.set(payload);
+    const expected = context.req.headers['if-match'];
+    const settings = await context.appState.runtimeSettings.set(payload, typeof expected === 'string' ? expected : undefined);
     if (!settings.dashboardLocalTrust || settings.enterpriseMode || settings.dashboardAuthMode !== 'token') {
       context.authenticator.revokeLocalAdminSessions?.();
     }
     addLog(`[SECURITY] request_id=${context.requestId} Managed runtime settings updated; restart required.`);
-    sendJson(context.res, 200, { success: true, settings, restartRequired: true, requestId: context.requestId });
+    sendJson(context.res, 200, { success: true, settings, ...context.appState.runtimeSettings.describe?.(), restartRequired: true, requestId: context.requestId });
   } catch (error) {
-    sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
+    sendError(context, error instanceof HttpError ? error : new HttpError(errorMessage(error).includes('Runtime settings changed') ? 409 : 400, errorMessage(error)));
   }
 }
 
@@ -1342,9 +1467,24 @@ async function restartHandler(context: RequestContext): Promise<void> {
     sendJson(context.res, 503, { error: 'Service restart is unavailable.', requestId: context.requestId });
     return;
   }
-  if (context.appState.state.isRunning) await context.appState.stopForwarding();
-  context.res.once('finish', () => context.appState.requestRestart?.());
-  sendJson(context.res, 202, { success: true, message: 'Container restart scheduled.', requestId: context.requestId });
+  const store = context.appState.uiOperations;
+  const jobId = context.req.headers['x-operator-job-id'];
+  let tracked = false;
+  try {
+    if (jobId !== undefined && (!store || typeof jobId !== 'string')) throw new HttpError(503, 'Durable operator jobs are unavailable.');
+    if (store && typeof jobId === 'string') {
+      const accepted = await store.accept({ id: jobId, kind: 'restart', actorId: context.actor!.id, scope: { service: 'TSX Core' }, request: { action: 'restart' } });
+      if (!accepted.created) { sendJson(context.res, 202, { success: true, job: accepted.job, serverInstanceId }); return; }
+      tracked = true;
+    }
+    if (context.appState.state.isRunning) await context.appState.stopForwarding();
+    const job = tracked ? await store!.update(jobId as string, { state: 'awaiting-restart', stage: 'Routing stopped; restart scheduled. Awaiting a new process instance.', result: { serverInstanceId } }) : null;
+    context.res.once('finish', () => context.appState.requestRestart?.());
+    sendJson(context.res, 202, { success: true, state: 'accepted', job, serverInstanceId, message: 'Container restart scheduled.', requestId: context.requestId });
+  } catch (error) {
+    if (tracked) await store!.update(jobId as string, { state: 'failed', stage: 'Restart not scheduled; inspect current routing state.', error: errorMessage(error) });
+    sendError(context, new HttpError(409, errorMessage(error)));
+  }
 }
 
 function backupArtifactName(value: unknown): string {
@@ -1396,6 +1536,14 @@ async function recoverOffsiteBackupHandler(context: RequestContext): Promise<voi
   try {
     const payload = await readJsonBody(context.req, 4 * 1024);
     const objectName = offsiteBackupObjectName(payload.objectName);
+    if (payload.jobId !== undefined) {
+      const store = context.appState.uiOperations;
+      if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
+      const accepted = await store.accept({ id: payload.jobId, kind: 'backup-recover', actorId: context.actor!.id, scope: { objectName }, request: { objectName } });
+      sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
+      if (accepted.created) void store.run(accepted.job.id, async () => ({ artifactName: await context.appState.recoverOffsiteBackup!(objectName) })).catch(error => addLog(`[ERROR] Offsite recovery job persistence failed: ${errorMessage(error)}`));
+      return;
+    }
     const artifactName = await context.appState.recoverOffsiteBackup(objectName);
     sendJson(context.res, 201, { success: true, objectName, artifactName, requestId: context.requestId });
   } catch (error) {
@@ -1409,19 +1557,32 @@ async function restoreBackupHandler(context: RequestContext): Promise<void> {
     sendJson(context.res, 503, { error: 'Backup restore is unavailable.', requestId: context.requestId });
     return;
   }
+  let jobId: string | null = null;
+  const store = context.appState.uiOperations;
   try {
     const payload = await readJsonBody(context.req, 4 * 1024);
     const name = backupArtifactName(payload.name);
+    if (payload.jobId !== undefined && !store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
+    if (store && payload.jobId !== undefined) {
+      const accepted = await store.accept({ id: payload.jobId, kind: 'backup-restore', actorId: context.actor!.id, scope: { artifactName: name }, request: { name } });
+      if (!accepted.created) { sendJson(context.res, 202, { job: accepted.job, serverInstanceId }); return; }
+      jobId = accepted.job.id;
+      await store.update(jobId, { state: 'running', stage: 'Existing maintenance, ownership and restore safety gates are being checked.' });
+    }
     const restored = await context.appState.restoreBackup(name);
+    const job = jobId ? await store!.update(jobId, { state: 'awaiting-restart', stage: 'Restore confirmed; waiting for restart. Trading remains subject to fresh safety gates.', result: { artifactName: name, rollbackPreserved: Boolean(restored.previousDatabase || restored.previousConfig) } }) : null;
     context.res.once('finish', () => context.appState.requestRestart?.());
     sendJson(context.res, 200, {
       success: true,
       name,
       rollbackPreserved: Boolean(restored.previousDatabase || restored.previousConfig),
       restartScheduled: true,
+      job,
+      serverInstanceId,
       requestId: context.requestId,
     });
   } catch (error) {
+    if (jobId) await store!.update(jobId, { state: 'failed', stage: 'Restore did not reach a confirmed restart. Review possible partial maintenance effects before any further command.', error: errorMessage(error) });
     sendError(context, new HttpError(409, errorMessage(error)));
   }
 }
@@ -1467,6 +1628,16 @@ function requireTradingControl(context: RequestContext): TradingWebControl {
 
 async function tradingSnapshotHandler(context: RequestContext): Promise<void> {
   try {
+    if (context.parsedUrl.searchParams.get('view') === 'cockpit') { sendJson(context.res, 200, await uiCockpit()); return; }
+    if (context.parsedUrl.searchParams.get('view') === 'overview') {
+      sendJson(context.res, 200, await requireTradingControl(context).operatorOverview()); return;
+    }
+    if (context.parsedUrl.searchParams.get('view') === 'accounts') {
+      const control = requireTradingControl(context);
+      try { sendJson(context.res, 200, await control.accountPage(context.parsedUrl.searchParams)); }
+      catch (error) { throw new HttpError(400, errorMessage(error)); }
+      return;
+    }
     const snapshot = await requireTradingControl(context).snapshot();
     const configuredChannels = Array.isArray(context.appState.config?.sourceChannels)
       ? context.appState.config.sourceChannels.map((channel: any) => ({
@@ -1518,6 +1689,8 @@ async function tradingAnalyticsHandler(context: RequestContext): Promise<void> {
     if (modes.some(value => !['paper', 'testnet', 'live'].includes(value))) {
       throw new HttpError(400, 'Trading analytics mode filter is invalid.');
     }
+    const statuses = analyticsQueryValues(context, 'status');
+    if (statuses.some(status => !(JOURNAL_INTENT_STATUSES as readonly string[]).includes(status))) throw new HttpError(400, 'Trading analytics requires an intent status.');
     sendJson(context.res, 200, await getFilteredTradingAnalytics({
       since,
       until,
@@ -1525,7 +1698,7 @@ async function tradingAnalyticsHandler(context: RequestContext): Promise<void> {
       accountIds: analyticsQueryValues(context, 'accountId'),
       exchanges,
       modes,
-      statuses: analyticsQueryValues(context, 'status'),
+      statuses,
     }));
   } catch (error) {
     sendError(context, error);
@@ -1650,6 +1823,39 @@ async function workflowSnapshotHandler(context: RequestContext): Promise<void> {
   }
 }
 
+async function uiWorkflowObjectsHandler(context: RequestContext): Promise<void> {
+  try {
+    const query = context.parsedUrl.searchParams; const kind = query.get('kind') as UiWorkflowList;
+    if (!['resources', 'paths', 'revisions'].includes(kind)) throw new HttpError(400, 'Invalid workflow object kind.');
+    const result = query.has('id') ? await uiWorkflowDetail(kind, query.get('id')!) : await uiWorkflowPage(kind, query);
+    if (!result) throw new HttpError(404, 'Workflow object not found.');
+    sendJson(context.res, 200, result);
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
+async function uiWorkflowModelsHandler(context: RequestContext): Promise<void> {
+  try {
+    if (context.req.method === 'GET') {
+      const query = context.parsedUrl.searchParams;
+      const result = query.has('id') ? await uiModelDetail(query.get('kind'), query.get('id')) : await uiModelPage(query.get('kind'), query);
+      if (!result) throw new HttpError(404, 'Workflow model not found.');
+      sendJson(context.res, 200, result);
+    } else {
+      if (!requireConfirmation(context, 'mutate-workflow-model', 'Explicit reviewed model action required.')) return;
+      sendJson(context.res, 200, await mutateUiModel(await readJsonBody(context.req, 4096)));
+    }
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(context.req.method === 'GET' ? 400 : 409, errorMessage(error))); }
+}
+
+async function uiSearchHandler(context: RequestContext): Promise<void> {
+  try {
+    const encoded = context.req.headers['x-ui-search'];
+    if (typeof encoded !== 'string' || encoded.length > 800) throw new HttpError(400, 'Bounded search header required.');
+    const query = context.parsedUrl.searchParams;
+    sendJson(context.res, 200, await uiSearch(decodeURIComponent(encoded), query.get('kind') || 'all', query.get('cursor')));
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
 async function workflowHistoryStatusHandler(context: RequestContext): Promise<void> {
   if (context.actor?.role !== 'admin') {
     sendJson(context.res, 403, { error: 'Administrator role required.', requestId: context.requestId });
@@ -1665,15 +1871,18 @@ async function workflowHistoryStatusHandler(context: RequestContext): Promise<vo
 async function saveWorkflowHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req, 2 * 1024 * 1024);
-    const workflow = await saveWorkflowRevision({
+    const input: Parameters<typeof saveWorkflowRevision>[0] = {
       baseRevisionId: payload.baseRevisionId ?? null,
       graph: payload.graph,
       actorId: context.actor?.id || 'dashboard:admin',
       confirmation: payload.confirmation ?? null,
       history: { mode: 'record', label: payload.historyLabel },
+    };
+    const result = await withDatabaseTransaction(async () => {
+      const activation = payload.draft ? await activateUiWorkflowDraft(input, payload.draft) : { workflow: await saveWorkflowRevision(input) };
+      return { ...activation, history: await getWorkflowBuilderHistoryStatus() };
     });
-    const history = await getWorkflowBuilderHistoryStatus();
-    sendJson(context.res, 201, { success: true, workflow, history, requestId: context.requestId });
+    sendJson(context.res, 201, { success: true, ...result, requestId: context.requestId });
   } catch (error) {
     sendError(context, new HttpError(409, errorMessage(error)));
   }
@@ -1811,9 +2020,15 @@ async function updateWorkflowResourceHandler(context: RequestContext): Promise<v
 async function publishWorkflowResourceHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req, 8 * 1024);
+    if (payload.publishDependencies === true) {
+      if (!requireConfirmation(context, 'publish-workflow-dependencies', 'Explicit publication of resource and referenced model required.')) return;
+      const result = await publishUiResourceWithDependency(payload.id, payload.baseEditRevision, payload.publicationHash);
+      sendJson(context.res, 200, { success: true, ...result, requestId: context.requestId });
+      return;
+    }
     sendJson(context.res, 200, {
       success: true,
-      resource: await publishWorkflowResource(payload.id),
+      resource: await publishWorkflowResource(payload.id, Date.now(), payload.baseEditRevision),
       requestId: context.requestId,
     });
   } catch (error) {
@@ -1899,8 +2114,9 @@ function journalFilters(context: RequestContext): TradeJournalFilters {
 
 async function tradingJournalHandler(context: RequestContext): Promise<void> {
   try {
+    const page = await listTradeJournalPage(journalFilters(context), context.parsedUrl.searchParams.get('cursor'));
     sendJson(context.res, 200, {
-      entries: await listTradeJournal(journalFilters(context)),
+      ...page, entries: context.parsedUrl.searchParams.get('view') === 'summary' ? page.entries.map(uiJournalSummary) : page.entries,
       redacted: true,
     });
   } catch (error) {
@@ -1910,7 +2126,10 @@ async function tradingJournalHandler(context: RequestContext): Promise<void> {
 
 async function tradingJournalExportHandler(context: RequestContext): Promise<void> {
   try {
-    const entries = await listTradeJournal(journalFilters(context));
+    const page = await listTradeJournalPage(journalFilters(context), context.parsedUrl.searchParams.get('cursor'));
+    const entries = page.entries;
+    context.res.setHeader('X-Export-Scope', 'page');
+    context.res.setHeader('X-Export-Count', String(entries.length));
     const date = new Date().toISOString().slice(0, 10);
     const format = context.parsedUrl.searchParams.get('format') || 'json';
     if (format === 'csv') {
@@ -1922,7 +2141,7 @@ async function tradingJournalExportHandler(context: RequestContext): Promise<voi
       context.res,
       'application/json',
       `tsx-core-trade-journal-${date}.json`,
-      JSON.stringify({ exportedAt: Date.now(), redacted: true, entries }, null, 2),
+      JSON.stringify({ exportedAt: Date.now(), redacted: true, scope: 'page', ...page }, null, 2),
     );
   } catch (error) {
     sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
@@ -1930,7 +2149,133 @@ async function tradingJournalExportHandler(context: RequestContext): Promise<voi
 }
 
 const updateTradingJournalHandler = (context: RequestContext) =>
-  tradingMutation(context, (_control, payload) => updateTradeJournalReview(payload));
+  tradingMutation(context, async (_control, payload) => uiJournalDetail(await updateTradeJournalReview(payload)));
+
+async function tradingIntentDetailHandler(context: RequestContext): Promise<void> {
+  try {
+    const id = context.parsedUrl.searchParams.get('id');
+    if (!id || id.length > 64 || /[\r\n\0]/.test(id)) throw new HttpError(400, 'Valid intent ID required.');
+    const [entry] = await listTradeJournal({ intentId: id, limit: 1 });
+    if (!entry) throw new HttpError(404, 'Trade intent not found.');
+    sendJson(context.res, 200, { contractVersion: 1, observedAt: Date.now(), redacted: true, entry: uiJournalDetail(entry), safety: await uiTradeSafety(id, entry.accountId) });
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
+async function uiTradeRelationsHandler(context: RequestContext): Promise<void> {
+  try {
+    const query = context.parsedUrl.searchParams;
+    const result = await uiTradeRelationPage(query.get('intentId') ?? '', query.get('kind') as UiTradeRelation, query);
+    if (!result) throw new HttpError(404, 'Trade intent not found.');
+    sendJson(context.res, 200, result);
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
+async function uiTradingListHandler(context: RequestContext): Promise<void> {
+  try { sendJson(context.res, 200, await uiTradingPage(context.parsedUrl.searchParams.get('kind') as UiTradingList, context.parsedUrl.searchParams)); }
+  catch (error) { sendError(context, new HttpError(400, errorMessage(error))); }
+}
+
+async function uiAccountDetailHandler(context: RequestContext): Promise<void> {
+  try {
+    const result = await uiAccountDetail(context.parsedUrl.searchParams.get('id') ?? '');
+    if (!result) throw new HttpError(404, 'Account not found.');
+    sendJson(context.res, 200, result);
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
+async function uiAccountEvidenceHandler(context: RequestContext): Promise<void> {
+  try {
+    const query = context.parsedUrl.searchParams; const id = query.get('accountId') ?? ''; const kind = query.get('kind') || 'overview';
+    if (!['overview', 'reservations', 'history'].includes(kind)) throw new HttpError(400, 'Invalid account evidence kind.');
+    const result = kind === 'reservations' ? await uiAccountReservations(id, query) : kind === 'history' ? await uiAccountHistory(id, query) : await uiAccountEvidence(id);
+    if (!result) throw new HttpError(404, 'Account or requested observation not found.');
+    sendJson(context.res, 200, result);
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
+async function uiAdaptiveRiskHandler(context: RequestContext): Promise<void> {
+  try {
+    if (context.req.method === 'POST') {
+      if (!requireConfirmation(context, 'copy-legacy-risk-policy', 'Explicit reviewed Legacy policy copy required.')) return;
+      sendJson(context.res, 200, await copyLegacyRiskPolicy(await readJsonBody(context.req, 4096)));
+    } else {
+      const result = await uiAdaptiveRisk(context.parsedUrl.searchParams);
+      if (!result) throw new HttpError(404, 'Adaptive evidence not found.');
+      sendJson(context.res, 200, result);
+    }
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(context.req.method === 'GET' ? 400 : 409, errorMessage(error))); }
+}
+
+async function uiIngressRelationsHandler(context: RequestContext): Promise<void> {
+  try {
+    const query = context.parsedUrl.searchParams;
+    const result = await uiIngressRelations(query.get('id') ?? '', query.get('kind') as UiIngressRelation, query);
+    if (!result) throw new HttpError(404, 'Ingress work not found.');
+    sendJson(context.res, 200, result);
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
+async function uiWorkflowDraftHandler(context: RequestContext): Promise<void> {
+  try {
+    if (context.req.method === 'GET') {
+      sendJson(context.res, 200, { contractVersion: 1, draft: await getUiWorkflowDraft(context.parsedUrl.searchParams.get('id') ?? 'operator') });
+    } else {
+      const payload = await readJsonBody(context.req, 1_048_576);
+      if (context.req.method === 'DELETE') {
+        if (!requireConfirmation(context, 'delete-workflow-draft', 'Explicit graph draft deletion confirmation required.')) return;
+        sendJson(context.res, 200, { result: await deleteUiWorkflowDraft(payload.id, payload.baseVersion) });
+      } else sendJson(context.res, 200, { draft: await saveUiWorkflowDraft(payload, context.actor!.id) });
+    }
+  } catch (error) { sendError(context, new HttpError(409, errorMessage(error))); }
+}
+
+async function uiJobsHandler(context: RequestContext): Promise<void> {
+  try {
+    const store = context.appState.uiOperations;
+    if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
+    const id = context.parsedUrl.searchParams.get('id');
+    if (id) {
+      const job = await store.get(id);
+      if (!job) throw new HttpError(404, 'Operator job not found. An unobserved transport result is not a completion receipt.');
+      sendJson(context.res, 200, { job, observedAt: Date.now() });
+    } else sendJson(context.res, 200, await store.page(context.parsedUrl.searchParams));
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
+}
+
+async function uiParserLabHandler(context: RequestContext): Promise<void> {
+  try {
+    if (context.req.method === 'GET') {
+      sendJson(context.res, 200, await uiParserMetadata(context.appState.config, context.appState.getQueueState())); return;
+    }
+    const payload = await readJsonBody(context.req, 450_000);
+    const prepared = await prepareUiParserTest(context.appState.config, payload);
+    if (context.parsedUrl.pathname.endsWith('/preview')) { sendJson(context.res, 200, prepared.preview); return; }
+    if (!requireConfirmation(context, 'run-parser-test', 'Explicit external AI parser test confirmation required.')) return;
+    if (payload.externalDataConsent !== true || !prepared.preview.externalDataPolicyAccepted) throw new HttpError(412, 'Global external data policy and explicit test consent are required.');
+    if (!prepared.preview.providerConfigured) throw new HttpError(503, 'AI provider credential is not configured.');
+    if (payload.previewHash !== prepared.preview.previewHash || !Number.isSafeInteger(payload.previewObservedAt)
+      || payload.previewObservedAt > Date.now() || Date.now() - payload.previewObservedAt > 300_000) throw new HttpError(409, 'Parser preview is stale or does not match this source and configuration. Preview again.');
+    const store = context.appState.uiOperations;
+    if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
+    const accepted = await store.accept({ id: payload.jobId, kind: 'parser-test', actorId: context.actor!.id,
+      scope: { pathId: prepared.preview.pathId, sourceSha256: prepared.preview.sourceSha256, sourceChars: prepared.preview.sourceChars, previewHash: prepared.preview.previewHash }, request: { previewHash: payload.previewHash } });
+    sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
+    if (accepted.created) void store.run(accepted.job.id, () => runUiParserTest(prepared)).catch(() => addLog('[ERROR] Parser test result could not be persisted. Inspect the job; do not repeat automatically.'));
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
+}
+
+async function uiBackupDrillHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(context, 'run-backup-drill', 'Explicit isolated restore drill confirmation required.')) return;
+  try {
+    const store = context.appState.uiOperations;
+    if (!store || !context.appState.runBackupDrill) throw new HttpError(503, 'Isolated restore drills are unavailable.');
+    const payload = await readJsonBody(context.req, 4096);
+    const name = backupArtifactName(payload.name);
+    const accepted = await store.accept({ id: payload.jobId, kind: 'backup-drill', actorId: context.actor!.id, scope: { artifactName: name }, request: { name } });
+    sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
+    if (accepted.created) void store.run(accepted.job.id, () => context.appState.runBackupDrill!(name)).catch(error => addLog(`[ERROR] Operator drill result persistence failed: ${errorMessage(error)}`));
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
+}
 
 async function mcpSnapshotHandler(context: RequestContext): Promise<void> {
   if (context.actor?.role !== 'admin') {
@@ -1939,12 +2284,23 @@ async function mcpSnapshotHandler(context: RequestContext): Promise<void> {
   }
   try {
     sendJson(context.res, 200, {
-      ...await mcpDashboardSnapshot(),
+      ...redactReview(context.parsedUrl.searchParams.get('view') === 'operator' ? await uiMcpSnapshot(context.parsedUrl.searchParams) : await mcpDashboardSnapshot()),
       endpoint: configuredMcpEndpoint(),
     });
   } catch (error) {
-    sendError(context, error);
+    sendError(context, context.parsedUrl.searchParams.get('view') === 'operator' ? new HttpError(400, errorMessage(error)) : error);
   }
+}
+
+async function mcpProposalDetailHandler(context: RequestContext): Promise<void> {
+  if (context.actor?.role !== 'admin') { sendError(context, new HttpError(403, 'Administrator role required.')); return; }
+  try {
+    const id = new URL(context.req.url!, 'http://localhost').searchParams.get('id');
+    if (!id || !/^[a-zA-Z0-9_-]{1,64}$/.test(id)) throw new HttpError(400, 'Invalid proposal identifier.');
+    const review = await uiMcpProposalReview(id);
+    if (!review) throw new HttpError(404, 'Proposal not found.');
+    sendJson(context.res, 200, review);
+  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
 }
 
 async function updateMcpRuntimeHandler(context: RequestContext): Promise<void> {
@@ -2046,7 +2402,9 @@ async function approveMcpProposalHandler(context: RequestContext): Promise<void>
     const payload = await readJsonBody(context.req, 8 * 1024);
     sendJson(context.res, 200, {
       success: true,
-      proposal: await approveMcpProposal(payload.id, context.actor?.id || 'dashboard:admin'),
+      proposal: redactReview(payload.reviewHash === undefined
+        ? await approveMcpProposal(payload.id, context.actor?.id || 'dashboard:admin')
+        : await approveReviewedMcpProposal(payload.id, context.actor?.id || 'dashboard:admin', payload.reviewHash)),
       requestId: context.requestId,
     });
   } catch (error) {
@@ -2094,6 +2452,7 @@ async function telegramViewerStatusHandler(context: RequestContext): Promise<voi
     }
     sendJson(context.res, 200, {
       settings: settings.snapshot(),
+      settingsRevision: configurationRevision(settings.snapshot()),
       settingsRecovery: settings.recoveryStatus(),
       secrets: secrets.status(),
       service,
@@ -2107,9 +2466,11 @@ async function telegramViewerStatusHandler(context: RequestContext): Promise<voi
 async function updateTelegramViewerSettingsHandler(context: RequestContext): Promise<void> {
   try {
     const { settings } = requireTelegramViewerControl(context);
-    sendJson(context.res, 200, { settings: await settings.set(await readJsonBody(context.req, 64 * 1024)) });
+    const expected = context.req.headers['if-match'];
+    const result = await settings.set(await readJsonBody(context.req, 64 * 1024), typeof expected === 'string' ? expected : undefined);
+    sendJson(context.res, 200, { settings: result, settingsRevision: configurationRevision(result) });
   } catch (error) {
-    sendError(context, new HttpError(error instanceof HttpError ? error.statusCode : 400, errorMessage(error)));
+    sendError(context, new HttpError(error instanceof HttpError ? error.statusCode : errorMessage(error).includes('settings changed') ? 409 : 400, errorMessage(error)));
   }
 }
 
@@ -2158,13 +2519,41 @@ async function createTelegramViewerTestHandler(context: RequestContext): Promise
   }
 }
 
+function uiCapabilitiesHandler(context: RequestContext): void {
+  try {
+    const authority = context.appState.startupAuthority;
+    const startup = authority?.snapshot();
+    sendJson(context.res, 200, uiCapabilities(context.parsedUrl.searchParams, {
+      role: context.actor?.role ?? 'viewer', recovery: context.appState.recovery?.active === true,
+      canMutate: authority ? authority.canMutate() : true, mutationInProgress,
+      startupPhase: startup?.phase ?? null, startupReason: startup?.reason ?? null,
+    }));
+  } catch (error) { sendError(context, new HttpError(400, errorMessage(error))); }
+}
+function uiParametersHandler(context: RequestContext): void {
+  try { sendJson(context.res, 200, uiParameters(context.parsedUrl.searchParams)); }
+  catch (error) { sendError(context, new HttpError(400, errorMessage(error))); }
+}
 const API_ROUTES = new Map<string, ApiHandler>([
+  ['GET /api/ui/capabilities', uiCapabilitiesHandler],
+  ['GET /api/ui/parameters', uiParametersHandler],
+  ['GET /api/ui/search', uiSearchHandler],
   ['GET /api/status', statusHandler],
   ['GET /api/access', accessStatusHandler],
   ['GET /api/logs', logsHandler],
   ['GET /api/metrics-history', metricsHistoryHandler],
   ['GET /api/incoming-messages', incomingMessagesHandler],
   ['GET /api/processed-signals', processedSignalsHandler],
+  ['GET /api/signals/ingress', signalPageHandler('ingress')],
+  ['GET /api/signals/processed', signalPageHandler('processed')],
+  ['GET /api/signals/messages', signalPageHandler('messages')],
+  ['GET /api/signals/original', signalOriginalHandler],
+  ['GET /api/ui/deployment', uiDeploymentHandler],
+  ['GET /api/ui/attention', uiAttentionHandler],
+  ['GET /api/setup-bundle/review', setupReviewTreeHandler],
+  ['GET /api/signals/ingress/detail', ingressDetailHandler],
+  ['GET /api/signals/ingress/relations', uiIngressRelationsHandler],
+  ['GET /api/outbox/page', signalPageHandler('outbox')],
   ['GET /api/dashboard-analytics', dashboardAnalyticsHandler],
   ['GET /api/outbox', outboxHandler],
   ['POST /api/outbox/retry', retryOutboxHandler],
@@ -2203,6 +2592,21 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['GET /api/trading/portfolio', tradingPortfolioHandler],
   ['GET /api/trading/analytics', tradingAnalyticsHandler],
   ['GET /api/trading/journal', tradingJournalHandler],
+  ['GET /api/trading/intents/detail', tradingIntentDetailHandler],
+  ['GET /api/trading/intents/relations', uiTradeRelationsHandler],
+  ['GET /api/trading/objects', uiTradingListHandler],
+  ['GET /api/trading/accounts/detail', uiAccountDetailHandler],
+  ['GET /api/trading/accounts/evidence', uiAccountEvidenceHandler],
+  ['GET /api/trading/risk/adaptive', uiAdaptiveRiskHandler],
+  ['POST /api/trading/risk/adaptive/copy-legacy', uiAdaptiveRiskHandler],
+  ['GET /api/workflow/drafts', uiWorkflowDraftHandler],
+  ['GET /api/operations/jobs', uiJobsHandler],
+  ['POST /api/operations/backup-drill', uiBackupDrillHandler],
+  ['GET /api/workflow/parser-test', uiParserLabHandler],
+  ['POST /api/workflow/parser-test/preview', uiParserLabHandler],
+  ['POST /api/workflow/parser-test', uiParserLabHandler],
+  ['POST /api/workflow/drafts', uiWorkflowDraftHandler],
+  ['DELETE /api/workflow/drafts', uiWorkflowDraftHandler],
   ['GET /api/trading/journal/export', tradingJournalExportHandler],
   ['POST /api/trading/journal', updateTradingJournalHandler],
   ['POST /api/trading/strategies', createTradingStrategyHandler],
@@ -2240,6 +2644,9 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/trading/emergency-flatten', emergencyFlattenHandler],
   ['POST /api/trading/risk/acknowledge', acknowledgeTradingRiskHandler],
   ['GET /api/workflow', workflowSnapshotHandler],
+  ['GET /api/workflow/objects', uiWorkflowObjectsHandler],
+  ['GET /api/workflow/models', uiWorkflowModelsHandler],
+  ['POST /api/workflow/models', uiWorkflowModelsHandler],
   ['GET /api/workflow/history', workflowHistoryStatusHandler],
   ['POST /api/workflow/mutate', saveWorkflowHandler],
   ['POST /api/workflow/impact', previewWorkflowImpactHandler],
@@ -2252,6 +2659,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/workflow/resources/publish', publishWorkflowResourceHandler],
   ['DELETE /api/workflow/resources', deleteWorkflowResourceHandler],
   ['GET /api/mcp', mcpSnapshotHandler],
+  ['GET /api/mcp/proposals/detail', mcpProposalDetailHandler],
   ['POST /api/mcp/runtime', updateMcpRuntimeHandler],
   ['POST /api/mcp/agents', createMcpAgentHandler],
   ['POST /api/mcp/agents/update', updateMcpAgentHandler],
@@ -2446,7 +2854,7 @@ function handleOptions(res: http.ServerResponse): void {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Authorization, Content-Type, X-Requested-With, X-Destructive-Confirmation'
+    'Authorization, Content-Type, X-Requested-With, X-Destructive-Confirmation, X-UI-Search, If-Match, X-Operator-Job-ID'
   );
   res.writeHead(204);
   res.end();

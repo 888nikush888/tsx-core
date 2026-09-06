@@ -31,7 +31,7 @@ describe("dashboard authentication gate", () => {
           localSessionAvailable: false,
         }), { status: 200, headers: { "Content-Type": "application/json" } })
       }
-      if (path === "/api/status") {
+      if (path === "/api/recovery") {
         return new Response(JSON.stringify({ status: "ok" }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -44,6 +44,6 @@ describe("dashboard authentication gate", () => {
 
     await waitFor(() => expect(screen.getByText("Authenticated dashboard")).toBeInTheDocument())
     expect(screen.queryByLabelText("Bearer token")).not.toBeInTheDocument()
-    expect(api.apiFetch).toHaveBeenCalledWith("/api/status")
+    expect(api.apiFetch).toHaveBeenCalledWith("/api/recovery")
   })
 })

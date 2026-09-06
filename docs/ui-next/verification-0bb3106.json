@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 1,
+  "kind": "observed_ui_next_container_execution",
+  "sourceRevision": "0bb3106a71bc3f0594c27e5fc37e6cc6bde43d66",
+  "recordedAt": "2026-09-06T18:36:22.430Z",
+  "workflow": {
+    "id": 34050067800,
+    "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-09-06T17:54:56Z",
+    "updatedAt": "2026-09-06T18:33:43Z",
+    "jobs": [
+      {
+        "databaseId": 101531957259,
+        "name": "Secret history scan",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957259"
+      },
+      {
+        "databaseId": 101531957333,
+        "name": "Critical mutation gate (queue)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957333"
+      },
+      {
+        "databaseId": 101531957338,
+        "name": "Lint, tests, coverage, build, supply chain",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957338"
+      },
+      {
+        "databaseId": 101531957340,
+        "name": "Browser and accessibility gate (firefox)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957340"
+      },
+      {
+        "databaseId": 101531957368,
+        "name": "Critical mutation gate (trading-risk)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957368"
+      },
+      {
+        "databaseId": 101531957396,
+        "name": "Browser and accessibility gate (mobile-chromium)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957396"
+      },
+      {
+        "databaseId": 101531957404,
+        "name": "Browser and accessibility gate (chromium)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957404"
+      },
+      {
+        "databaseId": 101531957414,
+        "name": "CodeQL SAST",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957414"
+      },
+      {
+        "databaseId": 101531957416,
+        "name": "Browser and accessibility gate (webkit)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957416"
+      },
+      {
+        "databaseId": 101531957417,
+        "name": "Critical mutation gate (retry)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957417"
+      },
+      {
+        "databaseId": 101531957439,
+        "name": "Critical mutation gate (schema)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957439"
+      },
+      {
+        "databaseId": 101531957772,
+        "name": "Dependency review",
+        "status": "completed",
+        "conclusion": "skipped",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101531957772"
+      },
+      {
+        "databaseId": 101535359054,
+        "name": "Container build, SBOM, vulnerability scan",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101535359054"
+      },
+      {
+        "databaseId": 101535359805,
+        "name": "SonarQube Cloud quality gate",
+        "status": "completed",
+        "conclusion": "skipped",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34050067800/job/101535359805"
+      }
+    ]
+  },
+  "containerSteps": [
+    {
+      "name": "Set up job",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "conclusion": "success"
+    },
+    {
+      "name": "Configure pinned Node for implementation verification",
+      "conclusion": "success"
+    },
+    {
+      "name": "Configure pinned Python for implementation verification",
+      "conclusion": "success"
+    },
+    {
+      "name": "Create an unlinked verifier source checkout",
+      "conclusion": "success"
+    },
+    {
+      "name": "Create an isolated hash-locked verifier runtime",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify independently reviewed exchange implementation",
+      "conclusion": "success"
+    },
+    {
+      "name": "Configure pinned Buildx builder",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build immutable candidate",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build official exchange executor",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build hardened Prometheus",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build hardened Alertmanager for both release platforms",
+      "conclusion": "success"
+    },
+    {
+      "name": "Rebuild Alertmanager without cache and require the same digest",
+      "conclusion": "success"
+    },
+    {
+      "name": "Prove Alertmanager source and binary reachability for both platforms",
+      "conclusion": "success"
+    },
+    {
+      "name": "Prove Prometheus source and binary reachability",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify runtime native modules and non-root user",
+      "conclusion": "success"
+    },
+    {
+      "name": "Generate container SBOM",
+      "conclusion": "success"
+    },
+    {
+      "name": "Block high and critical container vulnerabilities",
+      "conclusion": "success"
+    },
+    {
+      "name": "Generate exchange executor SBOM",
+      "conclusion": "success"
+    },
+    {
+      "name": "Block exchange executor high and critical vulnerabilities",
+      "conclusion": "failure"
+    },
+    {
+      "name": "Generate Prometheus SBOM",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Block Prometheus high and critical vulnerabilities",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Generate Alertmanager amd64 SBOM",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Block Alertmanager amd64 high and critical vulnerabilities",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Generate Alertmanager arm64 SBOM",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Block Alertmanager arm64 high and critical vulnerabilities",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Preserve the scanned release candidate",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Upload release candidate",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Upload container evidence",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Block exchange executor high and critical vulnerabilities",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Generate exchange executor SBOM",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Block high and critical container vulnerabilities",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Generate container SBOM",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Configure pinned Buildx builder",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Configure pinned Python for implementation verification",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Post Configure pinned Node for implementation verification",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "conclusion": "success"
+    }
+  ],
+  "executorScan": {
+    "sarifSha256": "e8fd29746b1bf0b08eb1893067c305fe276397c998b656619cab1290bc3f18df",
+    "findings": [
+      {
+        "id": "CVE-2026-53612",
+        "message": "Package: libuuid\nInstalled Version: 2.41.4-r0\nVulnerability CVE-2026-53612\nSeverity: HIGH\nFixed Version: 2.41.6-r0\nLink: [CVE-2026-53612](https://avd.aquasec.com/nvd/cve-2026-53612)"
+      },
+      {
+        "id": "CVE-2026-53613",
+        "message": "Package: libuuid\nInstalled Version: 2.41.4-r0\nVulnerability CVE-2026-53613\nSeverity: HIGH\nFixed Version: 2.41.6-r0\nLink: [CVE-2026-53613](https://avd.aquasec.com/nvd/cve-2026-53613)"
+      },
+      {
+        "id": "CVE-2026-53614",
+        "message": "Package: libuuid\nInstalled Version: 2.41.4-r0\nVulnerability CVE-2026-53614\nSeverity: HIGH\nFixed Version: 2.41.6-r0\nLink: [CVE-2026-53614](https://avd.aquasec.com/nvd/cve-2026-53614)"
+      },
+      {
+        "id": "CVE-2026-76642",
+        "message": "Package: libuuid\nInstalled Version: 2.41.4-r0\nVulnerability CVE-2026-76642\nSeverity: HIGH\nFixed Version: 2.41.6-r0\nLink: [CVE-2026-76642](https://avd.aquasec.com/nvd/cve-2026-76642)"
+      },
+      {
+        "id": "CVE-2026-78408",
+        "message": "Package: libuuid\nInstalled Version: 2.41.4-r0\nVulnerability CVE-2026-78408\nSeverity: HIGH\nFixed Version: 2.41.6-r1\nLink: [CVE-2026-78408](https://avd.aquasec.com/nvd/cve-2026-78408)"
+      },
+      {
+        "id": "CVE-2026-78410",
+        "message": "Package: libuuid\nInstalled Version: 2.41.4-r0\nVulnerability CVE-2026-78410\nSeverity: HIGH\nFixed Version: 2.41.6-r0\nLink: [CVE-2026-78410](https://avd.aquasec.com/nvd/cve-2026-78410)"
+      }
+    ]
+  },
+  "remediation": {
+    "package": "libuuid",
+    "previousVersion": "2.41.4-r0",
+    "fixedVersion": "2.41.6-r1",
+    "source": "https://pkgs.alpinelinux.org/package/v3.23/main/x86_64/libuuid",
+    "newRevisionVerification": "required"
+  },
+  "providerAcceptanceVerified": false
+}

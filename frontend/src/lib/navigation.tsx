@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useConfirmationDialog } from '@/components/confirmation-dialog';
 
 interface NavigationLocation {
   pathname: string;
@@ -70,17 +71,33 @@ export function NavigationProvider({
   const [location, setLocation] = React.useState(() =>
     logicalLocation(normalizedBasename),
   );
+  const { confirm, confirmationDialog } = useConfirmationDialog();
+  const leaving = React.useRef(false);
+  const leave = React.useCallback((commit: () => void) => {
+    if (leaving.current) return;
+    if (window.dispatchEvent(new Event('tsx:navigation-check', { cancelable: true }))) { commit(); return; }
+    leaving.current = true;
+    void confirm({ title: 'Ungespeicherte Änderungen verwerfen?', description: 'Die Ansicht enthält ungespeicherte Eingaben. Gespeicherte Teilvorgänge bleiben erhalten; ungespeicherte Änderungen gehen beim Verlassen verloren.',
+      confirmLabel: 'Verwerfen und verlassen', cancelLabel: 'Weiter bearbeiten', destructive: true }).then(accepted => {
+      leaving.current = false; if (accepted) commit();
+    });
+  }, [confirm]);
 
   React.useEffect(() => {
-    const updateLocation = () =>
-      setLocation(logicalLocation(normalizedBasename));
+    const updateLocation = () => {
+      const next = logicalLocation(normalizedBasename);
+      if (window.dispatchEvent(new Event('tsx:navigation-check', { cancelable: true }))) { setLocation(next); return; }
+      window.history.pushState({}, '', browserUrl(location, normalizedBasename));
+      leave(() => { window.history.replaceState({}, '', browserUrl(next, normalizedBasename)); setLocation(next); });
+    };
     window.addEventListener("popstate", updateLocation);
     return () => window.removeEventListener("popstate", updateLocation);
-  }, [normalizedBasename]);
+  }, [normalizedBasename, location, leave]);
 
   const navigate = React.useCallback(
     (to: string, options: NavigateOptions = {}) => {
       const nextLocation = splitTarget(to);
+      leave(() => {
       const method = options.replace ? "replaceState" : "pushState";
       window.history[method](
         {},
@@ -88,8 +105,9 @@ export function NavigationProvider({
         browserUrl(nextLocation, normalizedBasename),
       );
       setLocation(nextLocation);
+      });
     },
-    [normalizedBasename],
+    [normalizedBasename, leave],
   );
 
   const value = React.useMemo(
@@ -100,6 +118,7 @@ export function NavigationProvider({
   return (
     <NavigationContext.Provider value={value}>
       {children}
+      {confirmationDialog}
     </NavigationContext.Provider>
   );
 }

@@ -1,5 +1,17 @@
 // Fixture-only rewind: new exact evidence or absent legacy aliases cannot be represented in v45.
 // Check before any DDL, rather than discard evidence or invent a zero/rounded legacy amount.
+// Refuse to erase operator drafts or source-bound equity observations when rewinding fixtures.
+const dropUiSchema = `SELECT json(CASE WHEN EXISTS(SELECT 1 FROM workflow_graph_drafts)
+  OR EXISTS(SELECT 1 FROM workflow_resource_versions WHERE edit_revision <> 0)
+  OR EXISTS(SELECT 1 FROM trading_equity_snapshots WHERE reporting_currency IS NOT NULL OR accounting_source IS NOT NULL OR account_mode IS NOT NULL)
+  THEN 'UI fixture rewind would lose operator/equity evidence' ELSE 'null' END);
+ALTER TABLE trading_equity_snapshots DROP COLUMN account_mode;
+ALTER TABLE trading_equity_snapshots DROP COLUMN accounting_source;
+ALTER TABLE trading_equity_snapshots DROP COLUMN reporting_currency;
+DELETE FROM schema_migrations WHERE version=48;
+DROP TABLE workflow_graph_drafts;
+ALTER TABLE workflow_resource_versions DROP COLUMN edit_revision;
+DELETE FROM schema_migrations WHERE version=47;`;
 export const dropAdaptiveMoneySchema = `SELECT json(CASE WHEN EXISTS(
   SELECT 1 FROM trading_channel_risk_evaluations WHERE realized_pnl IS NULL OR return_percent IS NULL
     OR realized_pnl_value_json IS NOT NULL OR return_percent_value_json IS NOT NULL OR reporting_currency IS NOT NULL
@@ -9,6 +21,7 @@ export const dropAdaptiveMoneySchema = `SELECT json(CASE WHEN EXISTS(
     OR realized_pnl_value_json IS NOT NULL OR return_percent_value_json IS NOT NULL OR reporting_currency IS NOT NULL
     OR source_hash IS NOT NULL OR source_json IS NOT NULL OR invalidated_at IS NOT NULL OR invalidation_reason IS NOT NULL
 ) THEN 'M46 fixture rewind would lose adaptive monetary evidence' ELSE 'null' END);
+${dropUiSchema}
 SAVEPOINT adaptive_money_fixture_rewind;
 CREATE TABLE trading_channel_risk_evaluations_v45 (
   id TEXT PRIMARY KEY, channel_id TEXT NOT NULL, policy_version INTEGER NOT NULL,

@@ -8,6 +8,7 @@ import {
   assertMcpRuntimeActive,
   getMcpRuntimeState,
   listMcpAgents,
+  preflightMcpAction,
   recoverInterruptedMcpProposals,
   recoverInterruptedMcpControlRequests,
   type McpAgentProposal,
@@ -157,6 +158,8 @@ export class McpControlBridge {
       });
       await assertMcpRuntimeActive();
       this.startup.assertReady();
+      const preflight = await preflightMcpAction(proposal.action, proposal.payload);
+      if (!preflight.allowed) throw new Error(`MCP execution preflight blocked: ${preflight.blockers.join(' ')}`);
       const result = await this.executeAuthorizedProposal(proposal);
       await this.auditTrail.record({
         phase: 'completed',

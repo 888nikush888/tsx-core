@@ -186,6 +186,14 @@ async function verifyDashboardViewerControl(baseUrl, serviceToken, settings, sec
   });
   assert.strictEqual(response.status, 200);
   assert.strictEqual(settings.snapshot().enabled, true);
+  const changed = await response.json();
+  assert.notEqual(changed.settingsRevision, dashboard.settingsRevision);
+  response = await fetch(`${baseUrl}/api/telegram-viewer/settings`, {
+    method: 'POST', headers: { ...mutationHeaders(), 'If-Match': dashboard.settingsRevision },
+    body: JSON.stringify({ ...settings.snapshot(), timezone: 'Europe/Berlin' }),
+  });
+  assert.strictEqual(response.status, 409, 'A stale viewer form must not overwrite a concurrent setting.');
+  assert.notStrictEqual(settings.snapshot().timezone, 'Europe/Berlin');
   response = await fetch(`${baseUrl}/api/telegram-viewer/token`, {
     method: 'POST', headers: mutationHeaders(), body: JSON.stringify({ token: '987654321:abcdefghijklmnopqrstuvwxyzABCDE' }),
   });

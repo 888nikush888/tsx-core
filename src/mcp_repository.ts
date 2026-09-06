@@ -538,16 +538,21 @@ export async function updateMcpAgent(input: {
   permissions: unknown;
   eventSubscriptions?: unknown;
   enabled: unknown;
+  baseUpdatedAt?: unknown;
 }): Promise<McpAgent> {
   const id = identifier(input.id, 'MCP agent identifier', 64);
   const name = identifier(input.name, 'MCP agent name', 80);
   const grantedPermissions = permissions(input.permissions);
   const eventSubscriptions = subscriptions(input.eventSubscriptions ?? []);
   if (typeof input.enabled !== 'boolean') throw new Error('MCP agent enabled state must be boolean.');
+  if (input.baseUpdatedAt !== undefined && !Number.isSafeInteger(input.baseUpdatedAt)) {
+    throw new Error('MCP base revision must be an integer.');
+  }
   const now = Date.now();
   const result = await getDatabase().run(
     `UPDATE mcp_agents SET name = ?, permissions_json = ?, event_subscriptions_json = ?,
-       enabled = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`,
+       enabled = ?, updated_at = MAX(updated_at + 1, ?) WHERE id = ? AND deleted_at IS NULL
+       AND (? IS NULL OR updated_at = ?)`,
     [
       name,
       json(grantedPermissions, 'MCP permissions'),
@@ -555,9 +560,11 @@ export async function updateMcpAgent(input: {
       input.enabled ? 1 : 0,
       now,
       id,
+      input.baseUpdatedAt ?? null,
+      input.baseUpdatedAt ?? null,
     ],
   );
-  if (Number(result.changes || 0) !== 1) throw new Error('MCP agent does not exist.');
+  if (Number(result.changes || 0) !== 1) throw new Error('MCP agent does not exist or changed. Reload and compare before saving.');
   if (!input.enabled) {
     await getDatabase().run(
       `UPDATE mcp_agent_sessions SET disconnected_at = COALESCE(disconnected_at, ?)
