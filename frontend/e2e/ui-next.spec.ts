@@ -426,7 +426,7 @@ test('global search keeps its text outside URLs and lets a viewer open the origi
   await page.getByRole('button', { name: 'Global suchen' }).click(); await expect(page.getByRole('dialog').getByLabel('Suchbegriff')).toHaveValue('');
 });
 type Reply = { status?: number; body: unknown };
-async function api(page: Page, override?: (url: URL, method: string, body: any) => Reply | undefined) {
+async function api(page: Page, override?: (url: URL, method: string, body: any) => Reply | undefined | Promise<Reply | undefined>) {
   const requests: Array<{ path: string; query: string; method: string; body: any; authorization?: string }> = [];
   await page.addInitScript((token) => sessionStorage.setItem('forwarder-dashboard-token', token), TOKEN);
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
@@ -435,7 +435,7 @@ async function api(page: Page, override?: (url: URL, method: string, body: any) 
     const method = request.method();
     const body = request.postData() ? JSON.parse(request.postData()!) : null;
     requests.push({ path: url.pathname, query: url.search, method, body, authorization: request.headers().authorization });
-    const custom = override?.(url, method, body);
+    const custom = await override?.(url, method, body);
     const common: Record<string, unknown> = {
       '/api/bootstrap/status': { required: false, localSessionAvailable: false },
       '/api/recovery': { active: false, backendVersion: '3.3.0', serverInstanceId: 'instance-1', observedAt: Date.now(), session: { role: 'admin', actorId: 'test:admin' }, availableRepairs: ['config', 'runtime-settings', 'secrets', 'restart'] },
@@ -529,6 +529,38 @@ test('viewer can read an exact trade but cannot submit its review', async ({ pag
   await expect(page.getByLabel('Notizen')).toBeDisabled();
   expect(requests.some((request) => request.method !== 'GET')).toBe(false);
 });
+
+for (const status of [403, 412]) {
+  test(`delayed ${status} review rejection preserves the draft and session without a repeated write`, async ({ page }) => {
+    let releaseReply!: () => void;
+    const pendingReply = new Promise<void>(resolve => { releaseReply = resolve; });
+    let detailReads = 0;
+    const rejection = status === 403 ? 'Review permission was revoked.' : 'Review precondition is no longer satisfied.';
+    const requests = await api(page, async (url, method) => {
+      if (url.pathname === '/api/trading/intents/detail') { detailReads += 1; return { body: { entry, observedAt: Date.now() } }; }
+      if (url.pathname === '/api/trading/journal' && method === 'POST') {
+        await pendingReply;
+        return { status, body: { error: rejection } };
+      }
+    });
+    await page.goto('/trading/trades/intent-1');
+    const notes = page.getByLabel('Notizen'); const save = page.getByRole('button', { name: 'Review speichern', exact: true });
+    await notes.fill('Retained review draft'); await save.click();
+    await expect(save).toBeDisabled(); await expect(notes).toBeDisabled();
+    expect(requests.filter(request => request.method === 'POST')).toHaveLength(1);
+    releaseReply();
+    await expect(page.getByRole('alert').filter({ hasText: rejection })).toBeVisible();
+    await expect(save).toBeEnabled(); await expect(notes).toHaveValue('Retained review draft');
+    const readsAfterRejection = detailReads;
+    await expect.poll(() => detailReads, { timeout: 10000 }).toBeGreaterThan(readsAfterRejection);
+    await expect(notes).toHaveValue('Retained review draft');
+    await expect(page.getByRole('heading', { name: 'Dashboard authentication' })).toHaveCount(0);
+    await expect(page.getByRole('status').filter({ hasText: 'Review gespeichert' })).toHaveCount(0);
+    expect(await page.evaluate(() => sessionStorage.getItem('forwarder-dashboard-token'))).toBe(TOKEN);
+    expect(requests.filter(request => request.method === 'POST')).toHaveLength(1);
+    expect(requests.filter(request => request.path === '/api/trading/intents/detail').at(-1)?.authorization).toBe(`Bearer ${TOKEN}`);
+  });
+}
 
 test('graph drafts survive reload and activate only through the explicit activation step', async ({ page }) => {
   const graph = { schemaVersion: 3, nodes: [], edges: [] };
