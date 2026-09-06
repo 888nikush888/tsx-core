@@ -164,6 +164,7 @@ assert.match(
 );
 assert.match(executorDockerfile, /"libcrypto3=3\.5\.8-r0"/);
 assert.match(executorDockerfile, /"libssl3=3\.5\.8-r0"/);
+assert.match(executorDockerfile, /"libuuid=2\.41\.6-r1"/, 'executor libuuid must include the reviewed util-linux security fixes');
 assert.match(executorDockerfile, /apk add --no-cache "sqlite-libs=3\.53\.4-r0"/);
 assert.match(executorDockerfile, /^USER 65532:65532$/m);
 assert.match(executorDockerfile, /pip install --require-hashes/);
