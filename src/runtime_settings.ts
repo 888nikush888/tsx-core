@@ -2,6 +2,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { configurationPathFromEnvironment } from './config.js';
 import { withManagedConfigurationWrite } from './backup_generation.js';
+import { configurationRevision } from './ui_configuration.js';
+import { RUNTIME_INTEGER_RANGES, runtimeFieldGroup, runtimeFieldUnit } from './ui_runtime_contract.js';
 
 export interface RuntimeSettings {
   enterpriseMode: boolean;
@@ -110,6 +112,8 @@ const BOOLEAN_SETTING_NAMES = [
 type RuntimeSettingsRecord = Record<string, unknown>;
 
 function integer(value: unknown, name: string, minimum: number, maximum: number): number {
+  const range = RUNTIME_INTEGER_RANGES[name as keyof typeof RUNTIME_INTEGER_RANGES];
+  if (range) [minimum, maximum] = range;
   if (!Number.isSafeInteger(value) || Number(value) < minimum || Number(value) > maximum) {
     throw new Error(`${name} must be an integer between ${minimum} and ${maximum}.`);
   }
@@ -370,6 +374,8 @@ async function syncDirectory(directory: string): Promise<void> {
 export class ManagedRuntimeSettingsStore {
   private settings = structuredClone(DEFAULT_RUNTIME_SETTINGS);
   private recoveryReason: string | null = null;
+  private active: RuntimeSettings | null = null;
+  private updates: Promise<unknown> = Promise.resolve();
 
   constructor(
     private readonly filePath: string,
@@ -404,11 +410,37 @@ export class ManagedRuntimeSettingsStore {
     return { active: this.recoveryReason !== null, reason: this.recoveryReason };
   }
 
-  async set(input: unknown): Promise<RuntimeSettings> {
-    const candidate = validateRuntimeSettings(input);
-    await this.write(candidate);
-    this.recoveryReason = null;
-    return this.snapshot();
+  async set(input: unknown, baseRevision?: string): Promise<RuntimeSettings> {
+    const pending = this.updates.then(async () => {
+      if (baseRevision !== undefined && baseRevision !== configurationRevision(this.settings)) {
+        throw new Error('Runtime settings changed. Reload and compare before saving.');
+      }
+      const candidate = validateRuntimeSettings(input && typeof input === 'object' && !Array.isArray(input) ? { ...this.settings, ...input } : input);
+      await this.write(candidate);
+      this.recoveryReason = null;
+      return this.snapshot();
+    });
+    this.updates = pending.catch(() => undefined);
+    return pending;
+  }
+
+  describe() {
+    return {
+      revision: configurationRevision(this.settings), active: structuredClone(this.active),
+      source: this.recoveryReason ? 'safe-recovery-defaults' : 'managed-runtime-store',
+      precedence: 'Managed settings replace mapped environment values when applied at startup.',
+      parameters: Object.entries(DEFAULT_RUNTIME_SETTINGS).map(([key, defaultValue]) => ({
+        path: key, group: runtimeFieldGroup(key), type: typeof defaultValue, unit: runtimeFieldUnit(key), default: defaultValue,
+        range: RUNTIME_INTEGER_RANGES[key as keyof typeof RUNTIME_INTEGER_RANGES] ?? null,
+        values: key === 'dashboardAuthMode' ? ['token', 'oidc', 'tailscale'] : null,
+        maxLength: /tailscale(Admin|Viewer)Users/.test(key) ? 4096 : /oidc(AdminRole|ViewerRole|Audience|RoleClaim)/.test(key) ? 256 : 2048,
+        nullable: false, emptyMeaning: typeof defaultValue === 'string' ? 'Clears optional values; required profile values are validated together.' : null,
+        secret: false, editable: true, source: this.recoveryReason ? 'safe-recovery-defaults' : 'managed-runtime-store', environmentName: ENVIRONMENT_MAPPING[key as keyof RuntimeSettings],
+        effect: 'Stored now; mapped values applied at startup. Access session revocation may take effect immediately.',
+        requiresRestart: true,
+      })),
+      restartRequired: this.active === null || configurationRevision(this.active) !== configurationRevision(this.settings),
+    };
   }
 
   async reset(): Promise<void> {
@@ -422,6 +454,7 @@ export class ManagedRuntimeSettingsStore {
       if (value === '') delete this.env[environmentName];
       else this.env[environmentName] = String(value);
     }
+    this.active = this.snapshot();
   }
 
   private async write(settings: RuntimeSettings): Promise<void> {

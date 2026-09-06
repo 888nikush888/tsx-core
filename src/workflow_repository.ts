@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import { decimal } from './trading_decimal.js';
+import { WORKFLOW_RESOURCE_KINDS } from './ui_contracts.js';
 import { parseRegex, safeRegexTest } from './filters.js';
 import { loadSignalPromptTemplate } from './signal_parser.js';
 import { composeSignalSchemaContract } from './signal_contract.js';
@@ -30,10 +31,7 @@ import {
   isWorkflowFallbackReason,
 } from './workflow_fallback_policy.js';
 
-const RESOURCE_KINDS = new Set<WorkflowResourceKind>([
-  'channel', 'content_filter', 'keyword_filter', 'regex', 'parser', 'schema',
-  'contract', 'dedupe', 'strategy', 'sizing', 'adaptive_risk', 'account', 'output',
-]);
+const RESOURCE_KINDS = new Set<WorkflowResourceKind>(WORKFLOW_RESOURCE_KINDS);
 
 const STAGE: Record<WorkflowResourceKind, number> = {
   channel: 0,
@@ -398,7 +396,7 @@ function resourceFromRow(row: any): WorkflowResourceVersion {
   const configuration = parseJson<Record<string, unknown>>(row.configuration_json, 'workflow resource configuration');
   if (sha256(configuration) !== row.configuration_sha256) throw new Error(`Workflow resource ${row.id} failed its integrity check.`);
   return {
-    id: String(row.id), resourceId: String(row.resource_id), version: Number(row.version), kind: row.kind,
+    id: String(row.id), resourceId: String(row.resource_id), version: Number(row.version), kind: row.kind, editRevision: Number(row.edit_revision),
     name: String(row.name), description: String(row.description || ''), status: row.status,
     configuration, configurationSha256: String(row.configuration_sha256), createdAt: Number(row.created_at),
     publishedAt: row.published_at === null ? null : Number(row.published_at),
@@ -537,6 +535,11 @@ export async function listWorkflowResources(kind?: WorkflowResourceKind): Promis
   return rows.map(resourceFromRow);
 }
 
+export async function getWorkflowResourceById(id: string): Promise<WorkflowResourceVersion | null> {
+  const row = await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
+  return row ? resourceFromRow(row) : null;
+}
+
 export async function createWorkflowResourceDraft(input: {
   resourceId?: string;
   kind: WorkflowResourceKind;
@@ -569,6 +572,7 @@ export async function updateWorkflowResourceDraft(id: string, input: {
   name: string;
   description?: string;
   configuration: unknown;
+  baseEditRevision?: number;
 }): Promise<WorkflowResourceVersion> {
   const existingRow = await getDatabase().get<any>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
   if (!existingRow || existingRow.status !== 'draft') throw new Error('Only a workflow resource draft can be edited.');
@@ -576,22 +580,26 @@ export async function updateWorkflowResourceDraft(id: string, input: {
   const description = String(input.description ?? '').trim();
   if (description.length > 500) throw new Error('Workflow resource description must not exceed 500 characters.');
   const configuration = validateResourceConfiguration(existingRow.kind, input.configuration);
-  await getDatabase().run(
-    `UPDATE workflow_resource_versions SET name = ?, description = ?, configuration_json = ?, configuration_sha256 = ?
-     WHERE id = ? AND status = 'draft'`,
-    [name, description, normalizedJson(configuration), sha256(configuration), id],
+  if (input.baseEditRevision !== undefined && (!Number.isSafeInteger(input.baseEditRevision) || input.baseEditRevision < 0)) throw new Error('Invalid resource edit revision.');
+  const changed = await getDatabase().run(
+    `UPDATE workflow_resource_versions SET name = ?, description = ?, configuration_json = ?, configuration_sha256 = ?, edit_revision = edit_revision + 1
+     WHERE id = ? AND status = 'draft' AND (? IS NULL OR edit_revision = ?)`,
+    [name, description, normalizedJson(configuration), sha256(configuration), id, input.baseEditRevision ?? null, input.baseEditRevision ?? null],
   );
+  if (changed.changes !== 1) throw new Error('Resource draft changed or was published. Reload and compare before saving.');
   return resourceFromRow(await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]));
 }
 
-export async function publishWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
+export async function publishWorkflowResource(id: string, now = Date.now(), baseEditRevision?: number): Promise<WorkflowResourceVersion> {
   const existing = await getDatabase().get<any>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
   if (!existing || existing.status !== 'draft') throw new Error('Only a workflow resource draft can be published.');
   validateResourceConfiguration(existing.kind, parseJson(existing.configuration_json, 'workflow resource configuration'));
-  await getDatabase().run(
-    `UPDATE workflow_resource_versions SET status = 'published', published_at = ? WHERE id = ? AND status = 'draft'`,
-    [now, id],
+  if (baseEditRevision !== undefined && (!Number.isSafeInteger(baseEditRevision) || baseEditRevision < 0)) throw new Error('Invalid resource edit revision.');
+  const changed = await getDatabase().run(
+    `UPDATE workflow_resource_versions SET status = 'published', published_at = ? WHERE id = ? AND status = 'draft' AND (? IS NULL OR edit_revision = ?)`,
+    [now, id, baseEditRevision ?? null, baseEditRevision ?? null],
   );
+  if (changed.changes !== 1) throw new Error('Resource draft changed. Reload and compare before publication.');
   return resourceFromRow(await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]));
 }
 
@@ -783,7 +791,7 @@ function normalizeWorkflowEdge(input: {
   };
 }
 
-function validateGraph(input: unknown): WorkflowGraph {
+export function validateGraph(input: unknown): WorkflowGraph {
   const value = object(input, 'Workflow graph');
   if (![1, 2, 3].includes(value.schemaVersion) || !Array.isArray(value.nodes) || !Array.isArray(value.edges)) {
     throw new Error('Workflow graph contract is invalid.');
@@ -1573,7 +1581,7 @@ function selectLegacySchema(schemas: any[], templateName: string, strategy: Stra
     ?? null;
 }
 
-function legacyAdaptiveRiskDefinition(alias: string, policy: any): LegacyResourceDefinition[] {
+export function legacyAdaptiveRiskDefinition(alias: string, policy: any): LegacyResourceDefinition[] {
   if (!policy) return [];
   return [{
     kind: 'adaptive_risk',

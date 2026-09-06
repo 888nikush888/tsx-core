@@ -6,6 +6,8 @@ import {
   type ExchangeCatalogEntry,
 } from './exchange_catalog.js';
 import { PaperExchangeAdapter } from './paper_exchange.js';
+import { assertPaperConfigurationRevision, readPaperConfiguration } from './ui_paper_configuration.js';
+import { uiTradingPage } from './ui_trading_reads.js';
 import type { TradingCredentialStore, TradingCredentials } from './trading_credentials.js';
 import { TradingEngine } from './trading_engine.js';
 import type { TradingMutationContext } from './trading_mutation_coordinator.js';
@@ -160,7 +162,8 @@ export interface TradingPortfolioAccountSnapshot {
   mode: TradingAccountMode;
   enabled: boolean;
   status: string;
-  reportingCurrency: string;
+  reportingCurrency: string | null;
+  accountingSource: string | null;
   equity: string | null;
   availableBalance: string | null;
   unrealizedPnl: string | null;
@@ -173,12 +176,6 @@ export interface TradingPortfolioSnapshot {
   accounts: TradingPortfolioAccountSnapshot[];
   observedAt: number;
   cached: boolean;
-}
-
-function reportingCurrency(account: TradingAccount): string {
-  if (account.exchange === 'paper') return 'QUOTE';
-  const value = account.capabilities?.reportingCurrency;
-  return typeof value === 'string' && /^[A-Z0-9]{2,12}$/.test(value) ? value : 'QUOTE';
 }
 
 type CatalogAccess = Pick<ExchangeCatalogClient, 'browserCatalog' | 'probe'>;
@@ -277,6 +274,24 @@ export class TradingWebControl {
     };
   }
 
+  async accountPage(query: URLSearchParams) {
+    const selection = new URLSearchParams(query); selection.set('activeOnly', 'true'); selection.set('limit', '30');
+    const page = await uiTradingPage('accounts', selection);
+    const accounts = await Promise.all(page.entries.map(async row => {
+      const account = await getTradingAccount(row.id); if (!account) return null;
+      const { credentialRef: _credential, externalAccountId: _identity, capabilities: _capabilities, ...visible } = account;
+      return { ...visible, credentials: account.exchange === 'paper' ? { configured: true, exchange: null, updatedAt: account.createdAt } : await this.credentials.status(account.id) };
+    }));
+    const incidentsQuery = new URLSearchParams({ status: 'open', limit: '30' });
+    if (query.get('accountId')) incidentsQuery.set('accountId', query.get('accountId')!);
+    const incidents = await uiTradingPage('incidents', incidentsQuery);
+    return { contractVersion: 1, accounts: accounts.filter(account => account !== null), accountIncidents: incidents.entries.map(row => ({ ...row, message: row.reason, occurrenceCount: row.occurrences })),
+      page: { observedAt: page.observedAt, hasMore: page.hasMore, nextCursor: page.nextCursor }, incidentsHaveMore: incidents.hasMore,
+      interpretation: 'Kontoseite mit maximal 30 Konten und 30 offenen Vorfällen. Aktuelle Zustände je Seite; keine Portfolio-/Providerabfrage und keine Modell-/Tradehistorie.' };
+  }
+
+  async operatorOverview() { return { overview: await getTradingOverview(), observedAt: Date.now() }; }
+
   async portfolioSnapshot(forceRefresh = false): Promise<TradingPortfolioSnapshot> {
     const now = Date.now();
     if (!forceRefresh && this.portfolioCache && this.portfolioCache.expiresAt > now) {
@@ -304,7 +319,8 @@ export class TradingWebControl {
         mode: account.mode,
         enabled: account.enabled,
         status: account.status,
-        reportingCurrency: reportingCurrency(account),
+        reportingCurrency: null,
+        accountingSource: null,
       };
       if (!['ready', 'disabled'].includes(account.status)) {
         return { ...base, equity: null, availableBalance: null, unrealizedPnl: null, marginUsed: null, observedAt: null, error: 'Account is not verified.' };
@@ -315,10 +331,12 @@ export class TradingWebControl {
         await recordTradingEquitySnapshot(account.id, snapshot, snapshotObservedAt);
         return {
           ...base,
+          reportingCurrency: snapshot.accounting?.reportingCurrency ?? null,
+          accountingSource: snapshot.accounting?.source ?? null,
           equity: decimal(snapshot.equity, { positive: true }),
           availableBalance: decimal(snapshot.availableBalance),
-          unrealizedPnl: snapshot.unrealizedPnl ? signedDecimal(snapshot.unrealizedPnl) : '0',
-          marginUsed: snapshot.marginUsed ? decimal(snapshot.marginUsed) : '0',
+          unrealizedPnl: snapshot.unrealizedPnl == null ? null : signedDecimal(snapshot.unrealizedPnl),
+          marginUsed: snapshot.marginUsed == null ? null : decimal(snapshot.marginUsed),
           observedAt: snapshotObservedAt,
           error: null,
         };
@@ -415,6 +433,7 @@ export class TradingWebControl {
       name: payload.name,
       description: payload.description,
       definition: payload.definition,
+      baseDefinitionSha256: payload.baseDefinitionSha256,
     });
   }
 
@@ -668,6 +687,7 @@ export class TradingWebControl {
       accountId,
       {
         maxConcurrentPositions: payload.maxConcurrentPositions,
+        baseUpdatedAt: payload.baseUpdatedAt,
         killSwitchActive: payload.killSwitchActive,
         killSwitchReason: payload.killSwitchReason,
       },
@@ -824,19 +844,25 @@ export class TradingWebControl {
       accountSnapshot: account => this.requiredAdapter(account.exchange).accountSnapshot(account) });
   }
 
-  async configurePaper(payload: any): Promise<void> {
+  async configurePaper(payload: any) {
     const accountId = identifier(payload.accountId, 'Account identifier', 64);
     return this.engine.mutations.run(accountId, () => this.configurePaperOwned(payload));
   }
 
-  private async configurePaperOwned(payload: any): Promise<void> {
+  private async configurePaperOwned(payload: any) {
     const account = await this.requiredAccount(payload.accountId);
-    if (account.exchange !== 'paper') throw new Error('Paper configuration requires a paper account.');
-    if (payload.equity !== undefined) await this.paper.setBalance(account.id, payload.equity, payload.availableBalance ?? payload.equity);
-    if (payload.market) {
-      const market = payload.market as Omit<TradingMarketSnapshot, 'observedAt'>;
-      await this.paper.setMarket(account.id, market);
-    }
+    if (account.exchange !== 'paper' || account.mode !== 'paper') throw new Error('Paper configuration requires a paper account.');
+    const result = await withDatabaseTransaction(async () => {
+      await assertPaperConfigurationRevision(account.id, payload);
+      if (payload.equity !== undefined) await this.paper.setBalance(account.id, payload.equity, payload.availableBalance ?? payload.equity);
+      if (payload.market) {
+        const market = payload.market as Omit<TradingMarketSnapshot, 'observedAt'>;
+        await this.paper.setMarket(account.id, market);
+      }
+      return readPaperConfiguration(account.id, payload.market?.symbol);
+    });
+    this.portfolioCache = null;
+    return { ...result, simulated: true, accountId: account.id, observedAt: Date.now() };
   }
 
   async reconcile(id?: unknown): Promise<void> {

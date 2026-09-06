@@ -4,7 +4,8 @@ import { decimal, signedDecimal } from './trading_decimal.js';
 import { projectAllFillAccounting } from './trading_fill_accounting.js';
 import { closedMoneyStatistics, moneyPerformanceRows, summarizeMoneyRows, type ClosedMoneyRow, type ClosedMoneyStatistics } from './trading_money_reporting.js';
 import { moneyValueFromRational, validateMoneyValue, type MoneyValue } from './trading_money_value.js';
-import { compareRational, divideRational, multiplyRational } from './trading_rational.js';
+import { addRational, compareRational, divideRational, multiplyRational, rationalFromDecimal } from './trading_rational.js';
+import { JOURNAL_INTENT_STATUSES } from './ui_contracts.js';
 import type { TradingAccountSnapshot, TradingEquityPoint } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
 import { recordExecutionNotificationBestEffort } from './trading_notifications.js';
@@ -41,16 +42,20 @@ export async function recordTradingEquitySnapshot(
   const id = identifier(accountId, 'Trading account identifier', 64)!;
   if (!Number.isSafeInteger(observedAt) || observedAt <= 0) throw new Error('Equity observation timestamp is invalid.');
   const bucketMinute = Math.floor(observedAt / 60_000);
+  const accountMode = (await getDatabase().get('SELECT mode FROM trading_accounts WHERE id = ?', [id]))?.mode ?? null;
   await getDatabase().run(
     `INSERT INTO trading_equity_snapshots (
-       id, account_id, equity, available_balance, unrealized_pnl, margin_used, observed_at, bucket_minute
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       id, account_id, equity, available_balance, unrealized_pnl, margin_used, observed_at, bucket_minute, reporting_currency, accounting_source, account_mode
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(account_id, bucket_minute) DO UPDATE SET
        equity = excluded.equity,
        available_balance = excluded.available_balance,
        unrealized_pnl = excluded.unrealized_pnl,
        margin_used = excluded.margin_used,
-       observed_at = excluded.observed_at`,
+       observed_at = excluded.observed_at,
+       reporting_currency = excluded.reporting_currency,
+       accounting_source = excluded.accounting_source,
+       account_mode = excluded.account_mode`,
     [
       randomUUID(),
       id,
@@ -60,6 +65,9 @@ export async function recordTradingEquitySnapshot(
       decimal(snapshot.marginUsed),
       observedAt,
       bucketMinute,
+      snapshot.accounting?.reportingCurrency ?? null,
+      snapshot.accounting?.source ?? null,
+      accountMode,
     ],
   );
 }
@@ -80,7 +88,8 @@ export async function listTradingEquityPoints(
   parameters.push(limit);
   const rows = await getDatabase().all<any[]>(
     `SELECT account_id AS accountId, equity, available_balance AS availableBalance,
-            unrealized_pnl AS unrealizedPnl, margin_used AS marginUsed, observed_at AS observedAt
+            unrealized_pnl AS unrealizedPnl, margin_used AS marginUsed, observed_at AS observedAt,
+            reporting_currency AS reportingCurrency, accounting_source AS accountingSource, account_mode AS mode
      FROM trading_equity_snapshots
      WHERE observed_at >= ?${accountFilter}
      ORDER BY observed_at LIMIT ?`,
@@ -93,6 +102,9 @@ export async function listTradingEquityPoints(
     unrealizedPnl: signedDecimal(String(row.unrealizedPnl)),
     marginUsed: decimal(String(row.marginUsed)),
     observedAt: Number(row.observedAt),
+    reportingCurrency: row.reportingCurrency,
+    accountingSource: row.accountingSource,
+    mode: row.mode,
   }));
 }
 
@@ -297,21 +309,39 @@ async function filteredExecutionAnalytics(filters: TradingAnalyticsFilters): Pro
     signalToFirstFill: { count: number; p50: number | null; p95: number | null; p99: number | null };
   };
   recent: Array<Record<string, unknown>>;
+  coverage: { complete: boolean; maximumEvents: number };
 }> {
+  const selection = executionFilterSql(filters);
   const rows = (await getDatabase().all<ExecutionEventRow[]>(
-    `SELECT intent_id AS intentId, channel_id AS channelId, account_id AS accountId,
-            exchange, mode, event_type AS eventType, occurred_at AS occurredAt, details_json AS detailsJson
-     FROM trading_execution_events WHERE occurred_at >= ? AND occurred_at <= ?
-     ORDER BY occurred_at DESC LIMIT 20000`,
-    [filters.since, filters.until],
-  )).filter(row => analyticsRowMatches(row, filters));
-  const timeline = eventTimeline(rows);
+    `SELECT event.intent_id AS intentId, COALESCE(event.channel_id,intent.channel_id) AS channelId,
+            COALESCE(event.account_id,intent.account_id) AS accountId, COALESCE(event.exchange,intent.exchange) AS exchange,
+            COALESCE(event.mode,intent.mode) AS mode, event.event_type AS eventType, event.occurred_at AS occurredAt, event.details_json AS detailsJson
+     FROM trading_execution_events AS event LEFT JOIN trading_trade_intents AS intent ON intent.id=event.intent_id
+     WHERE event.occurred_at >= ? AND event.occurred_at <= ? ${selection.sql}
+     ORDER BY event.occurred_at DESC,event.id DESC LIMIT 20001`,
+    [filters.since, filters.until, ...selection.values],
+  ));
+  const sample = rows.slice(0, 20000); const timeline = eventTimeline(sample);
   return {
     generatedAt: Date.now(),
     funnel: timeline.funnel,
     latencyMs: executionLatencies(timeline.byIntent),
-    recent: rows.slice(0, 200).map(recentExecutionEvent),
+    recent: sample.slice(0, 200).map(recentExecutionEvent),
+    coverage: { complete: rows.length <= 20000, maximumEvents: 20000 },
   };
+}
+
+function executionFilterSql(filters: TradingAnalyticsFilters) {
+  const dimensions: Array<[string[], string]> = [
+    [filters.channelIds, 'COALESCE(event.channel_id,intent.channel_id)'], [filters.accountIds, 'COALESCE(event.account_id,intent.account_id)'],
+    [filters.exchanges, 'COALESCE(event.exchange,intent.exchange)'], [filters.modes, 'COALESCE(event.mode,intent.mode)'], [filters.statuses, 'intent.status'],
+  ];
+  const values: string[] = []; const clauses: string[] = [];
+  for (const [allowed, column] of dimensions) {
+    if (!allowed.length) continue;
+    clauses.push(`${column} IN (${allowed.map(() => '?').join(',')})`); values.push(...allowed);
+  }
+  return { sql: clauses.length ? ' AND ' + clauses.join(' AND ') : '', values };
 }
 
 async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Promise<{
@@ -566,22 +596,16 @@ function compareAnalyticsPnl(left: Record<string, unknown>, right: Record<string
 }
 
 function equityPerformance(points: TradingEquityPoint[]): Array<Record<string, unknown>> {
-  const byAccount = new Map<string, TradingEquityPoint[]>();
-  for (const point of points) {
-    byAccount.set(point.accountId, [...(byAccount.get(point.accountId) ?? []), point]);
-  }
-  return [...byAccount.entries()].flatMap(([accountId, accountPoints]) => {
-    let peak = 0;
-    return accountPoints.map(point => {
-      const value = finite(point.equity);
-      peak = Math.max(peak, value);
-      return {
-        accountId,
-        observedAt: point.observedAt,
-        equity: value,
-        drawdownPercent: peak > 0 ? (peak - value) / peak * 100 : 0,
-      };
-    });
+  const peaks = new Map<string, ReturnType<typeof rationalFromDecimal>>();
+  return points.map(point => {
+    if (!point.reportingCurrency || !point.mode || !point.accountingSource) return { ...point, drawdownPercent: null, drawdownBasis: 'Original currency, source or account mode unavailable.' };
+    const key = JSON.stringify([point.accountId, point.reportingCurrency, point.mode]); const value = rationalFromDecimal(point.equity);
+    const previous = peaks.get(key); const peak = previous && compareRational(previous, value) >= 0 ? previous : value;
+    peaks.set(key, peak);
+    const loss = addRational(peak, multiplyRational(value, rationalFromDecimal('-1')));
+    const percent = moneyValueFromRational(multiplyRational(divideRational(loss, peak), rationalFromDecimal('100')));
+    return { ...point, drawdownPercent: Number(percent.decimal ?? percent.lower),
+      drawdownPercentValue: percent, drawdownBasis: 'Observed peak within this selection, separated by original currency and account mode.' };
   });
 }
 
@@ -655,6 +679,7 @@ export async function getFilteredTradingAnalytics(filters: TradingAnalyticsFilte
   execution: Awaited<ReturnType<typeof filteredExecutionAnalytics>>;
   fallback: Awaited<ReturnType<typeof filteredFallbackAnalytics>>;
 }> {
+  if (filters.statuses.some(status => !(JOURNAL_INTENT_STATUSES as readonly string[]).includes(status))) throw new Error('Unsupported analytics intent status.');
   await projectAllFillAccounting();
   const [rawPositions, rawIntents, rawFills, equityPoints] = await performanceRows(filters.since);
   const money = (await moneyPerformanceRows(filters.since, filters.until + 1)).filter(row => analyticsRowMatches(row, filters));

@@ -87,6 +87,10 @@ try {
     enabled: true,
   });
   assert.deepEqual(updatedDefaultAgent.eventSubscriptions, []);
+  const revisedAgent = await updateMcpAgent({ ...updatedDefaultAgent, name: 'CAS update', baseUpdatedAt: updatedDefaultAgent.updatedAt });
+  assert.ok(revisedAgent.updatedAt > updatedDefaultAgent.updatedAt, 'Every edit must advance its revision, even within the same millisecond.');
+  await assert.rejects(updateMcpAgent({ ...updatedDefaultAgent, name: 'Stale browser', baseUpdatedAt: updatedDefaultAgent.updatedAt }), /changed/);
+  assert.equal((await listMcpAgents()).find(agent => agent.id === revisedAgent.id).name, 'CAS update');
 
   const session = await connectMcpSession({
     id: 'mcp-session-test',

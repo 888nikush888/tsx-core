@@ -2,6 +2,7 @@ import * as tdl from 'tdl';
 import { getTdjson } from 'prebuilt-tdlib';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
+import { UiOperationStore } from './ui_operation_store.js';
 import { fileURLToPath } from 'node:url';
 import {
   canonicalizeResolvedSources,
@@ -1955,6 +1956,7 @@ async function startDashboardRuntime(
   const webPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 8080;
   const recovery = dashboardRecoveryState(runtime, runtimeSettings, secretStore);
   const listener = startWebServer(webPort, {
+      uiOperations: new UiOperationStore(path.join(path.dirname(configurationPathFromEnvironment()), '.ui-operations')),
       config: runtime.config,
       state,
       startForwarding: async (cfg) => {
@@ -2011,6 +2013,10 @@ async function startDashboardRuntime(
       },
       listBackups: listAvailableBackups,
       verifyBackup: (artifactName) => inspectBackupArtifact(resolvedBackupArtifact(artifactName)),
+      runBackupDrill: async (artifactName) => {
+        if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
+        return backupScheduler.runRestoreDrill(resolvedBackupArtifact(artifactName));
+      },
       recoverOffsiteBackup: recoverNamedOffsiteBackup,
       restoreBackup: restoreNamedBackup,
       performFactoryReset: async () => {

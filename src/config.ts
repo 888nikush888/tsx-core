@@ -2,6 +2,7 @@ import fs, { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { withManagedConfigurationWrite, withManagedConfigurationWriteSync } from './backup_generation.js';
+import { AI_LIMIT_RANGES } from './ui_contracts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export function configurationPathFromEnvironment(env: NodeJS.ProcessEnv = process.env): string {
@@ -319,17 +320,6 @@ function normalizeSourceTemplates(xmlParsing: Record<string, any>): void {
     }
   }
 }
-
-const AI_LIMIT_RANGES: Record<keyof Config['xmlParsing']['aiLimits'], [number, number]> = {
-  maxInputChars: [100, 100_000],
-  maxOutputTokens: [128, 8_192],
-  primaryAttempts: [1, 3],
-  fallbackAttempts: [0, 2],
-  dailyRequestLimit: [1, 10_000],
-  dailyTokenLimit: [1_000, 100_000_000],
-  requestTimeoutMs: [1_000, 300_000],
-  backoffMs: [0, 10_000],
-};
 
 function normalizeAiLimits(xmlParsing: Record<string, any>): void {
   if (!isRecord(xmlParsing.aiLimits)) {

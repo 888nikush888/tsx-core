@@ -8,6 +8,7 @@ import { authenticateMcpToken, createMcpProposal } from '../src/mcp_repository.j
 import { startWebServer, stopWebServer } from '../src/web_server.js';
 import { ManagedSecretStore } from '../src/secret_store.js';
 import { ManagedRuntimeSettingsStore } from '../src/runtime_settings.js';
+import { DEFAULT_CONFIG } from '../src/config.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
 const VIEWER_TOKEN = 'viewer-token-0123456789abcdef0123456789abcdef';
@@ -118,6 +119,46 @@ async function testAuthenticationAndReads(baseUrl) {
   assert.strictEqual(response.status, 404, 'Global prompt-template management must no longer be exposed.');
 }
 
+async function testAdaptiveRiskContracts(baseUrl) {
+  let response = await fetch(`${baseUrl}/api/trading/risk/adaptive?kind=states`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));
+  response = await fetch(`${baseUrl}/api/trading/risk/adaptive?kind=constructor`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);
+  response = await fetch(`${baseUrl}/api/trading/risk/adaptive?kind=sources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);
+  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: headers(VIEWER_TOKEN), body: '{}' }); assert.equal(response.status, 403);
+  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders(), body: '{}' }); assert.equal(response.status, 412);
+  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }), body: JSON.stringify({ channelId: 'missing', copyHash: 'stale' }) }); assert.equal(response.status, 409);
+}
+
+async function testUiRegisterHttpContracts(baseUrl) {
+  const deploymentResponse = await fetch(`${baseUrl}/api/ui/deployment`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(deploymentResponse.status, 200);
+  const deployment = await deploymentResponse.json();
+  assert.equal(deployment.listener.port, Number(new URL(baseUrl).port));
+  assert.equal(deployment.process.nodeVersion, process.version); assert.equal(deployment.readOnly, true);
+  assert.deepEqual(deployment.declarations.map(entry => entry.name), ['HOST_WEB_PORT', 'HOST_METRICS_PORT', 'HOST_MCP_PORT', 'FORWARDER_MEMORY_LIMIT', 'FORWARDER_CPU_LIMIT', 'MCP_MEMORY_LIMIT', 'MCP_CPU_LIMIT']);
+  for (const route of ['/api/signals/messages', '/api/ui/deployment', '/api/ui/attention', '/api/trading/objects?kind=risk-events', '/api/signals/original?id=absent']) {
+    assert.equal((await fetch(`${baseUrl}${route}`)).status, 401);
+    assert.equal((await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) })).status, route.includes('/original') ? 404 : 200);
+  }
+  assert.equal((await fetch(`${baseUrl}/api/signals/original?id=1&kind=messages&field=invalid`, { headers: headers(VIEWER_TOKEN) })).status, 400);
+  let response = await fetch(`${baseUrl}/api/ui/capabilities`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200);
+  const catalog = await response.json();
+  assert.ok(catalog.total >= 133 && catalog.entries.length <= 50 && catalog.hasMore);
+  assert.ok(catalog.entries.find(entry => entry.route === 'POST /api/control').currentBlockers.some(value => value.includes('Administrator')));
+  response = await fetch(`${baseUrl}/api/ui/parameters?prefix=resource.adaptive_risk`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).entries.find(entry => entry.path.endsWith('.lockedTier')).nullable, true);
+  response = await fetch(`${baseUrl}/api/ui/parameters?limit=10000`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 400);
+  response = await fetch(`${baseUrl}/api/ui/capabilities`);
+  assert.equal(response.status, 401);
+  response = await fetch(`${baseUrl}/api/signals/ingress/relations?id=missing&kind=members`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 404);
+  response = await fetch(`${baseUrl}/api/signals/ingress/relations?id=missing&kind=constructor`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 400);
+}
+
 async function testOperatorReadContracts(baseUrl, appState) {
   let response = await fetch(`${baseUrl}/api/access`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
@@ -171,6 +212,26 @@ async function testOperatorReadContracts(baseUrl, appState) {
   }
 }
 
+async function testConfigurationNormalization(baseUrl, appState) {
+  const previous = { config: appState.config, persist: appState.persistConfig, apply: appState.applyRuntimeConfig };
+  let persisted; let applied;
+  appState.config = structuredClone(DEFAULT_CONFIG);
+  appState.config.sourceFilters = { '-1001': { regexPatterns: ['original'] }, '-1002': { regexPatterns: ['untouched'] } };
+  appState.persistConfig = value => { persisted = structuredClone(value); };
+  appState.applyRuntimeConfig = value => { applied = structuredClone(value); };
+  try {
+    const before = await (await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) })).json();
+    const response = await fetch(`${baseUrl}/api/config`, { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'If-Match': before.configRevision }), body: JSON.stringify({ xmlParsing: { enabled: true, aiLimits: { requestTimeoutMs: 250000 } }, forwardOptions: { queueTimeoutSeconds: 1 }, sourceFilters: { '-1001': null } }) });
+    assert.equal(response.status, 200); const result = await response.json();
+    assert.equal(result.configuration.forwardOptions.queueTimeoutSeconds, 255);
+    assert.equal(persisted.forwardOptions.queueTimeoutSeconds, 255); assert.equal(applied.forwardOptions.queueTimeoutSeconds, 255);
+    assert.equal(result.configuration.sourceFilters['-1001'], undefined); assert.deepEqual(result.configuration.sourceFilters['-1002'], { regexPatterns: ['untouched'] });
+    assert.equal((await (await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) })).json()).configRevision, result.configRevision, 'Read, persistence and queue must share the normalized revision.');
+    const stale = await fetch(`${baseUrl}/api/config`, { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'If-Match': before.configRevision }), body: JSON.stringify({ targetChannel: '@stale_target' }) });
+    assert.equal(stale.status, 409); assert.equal(applied.targetChannel, '');
+  } finally { appState.config = previous.config; appState.persistConfig = previous.persist; appState.applyRuntimeConfig = previous.apply; }
+}
+
 async function testTradingAnalyticsApi(baseUrl) {
   let response = await fetch(`${baseUrl}/api/trading/analytics`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200, 'Trading analytics must support the documented default range.');
@@ -189,7 +250,7 @@ async function testTradingAnalyticsApi(baseUrl) {
     accountId: 'account-1, account-2',
     exchange: 'paper,paper',
     mode: 'paper',
-    status: 'filled, blocked,filled',
+    status: 'completed, blocked,completed',
   });
   response = await fetch(`${baseUrl}/api/trading/analytics?${query}`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
@@ -201,7 +262,7 @@ async function testTradingAnalyticsApi(baseUrl) {
     accountIds: ['account-1', 'account-2'],
     exchanges: ['paper'],
     modes: ['paper'],
-    statuses: ['filled', 'blocked'],
+    statuses: ['completed', 'blocked'],
   });
   response = await fetch(`${baseUrl}/api/trading/analytics?exchange=binance`, {
     headers: headers(VIEWER_TOKEN),
@@ -210,6 +271,7 @@ async function testTradingAnalyticsApi(baseUrl) {
   assert.deepStrictEqual((await response.json()).filters.exchanges, ['binance']);
 
   const invalidQueries = [
+    'status=open', 'status=filled',
     'since=not-a-number',
     'since=-1',
     'since=2&until=1',
@@ -280,6 +342,27 @@ async function testWorkflowResourceApi(baseUrl) {
   assert.strictEqual(response.status, 201);
   const draft = (await response.json()).resource;
   assert.strictEqual(draft.status, 'draft');
+  response = await fetch(`${baseUrl}/api/ui/search?kind=resources`, { headers: headers(VIEWER_TOKEN, { 'X-UI-Search': encodeURIComponent('Draft channel') }) });
+  assert.equal(response.status, 200); assert.equal((await response.json()).groups[0].entries[0].id, draft.id);
+  response = await fetch(`${baseUrl}/api/ui/search?kind=resources`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);
+  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=${encodeURIComponent(draft.id)}`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200); const resourceDetail = await response.json();
+  assert.equal(resourceDetail.resource.configuration.channelId, '-100-test'); assert.match(resourceDetail.publication.publicationHash, /^[a-f0-9]{64}$/);
+  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&resourceId=${encodeURIComponent(draft.resourceId)}&limit=1`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200); assert.equal((await response.json()).entries[0].id, draft.id);
+  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);
+  response = await fetch(`${baseUrl}/api/workflow/models?kind=schema`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));
+  response = await fetch(`${baseUrl}/api/workflow/models?kind=strategy&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);
+  response = await fetch(`${baseUrl}/api/workflow/models?kind=constructor`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);
+  response = await fetch(`${baseUrl}/api/workflow/models`, { method: 'POST', headers: headers(VIEWER_TOKEN), body: '{}' }); assert.equal(response.status, 403);
+  response = await fetch(`${baseUrl}/api/workflow/models`, { method: 'POST', headers: mutationHeaders(), body: '{}' }); assert.equal(response.status, 412);
+  await testAdaptiveRiskContracts(baseUrl);
+  await testUiRegisterHttpContracts(baseUrl);
+  response = await fetch(`${baseUrl}/api/workflow/resources/publish`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ id: draft.id, publishDependencies: true, publicationHash: resourceDetail.publication.publicationHash, baseEditRevision: 0 }),
+  });
+  assert.equal(response.status, 412, 'Compound resource/model publication needs explicit scope confirmation.');
 
   response = await fetch(`${baseUrl}/api/workflow/resources/update`, {
     method: 'POST',
@@ -597,6 +680,16 @@ async function testWorkflowControlPlane(baseUrl, appState) {
   await testWorkflowRevisionApi(baseUrl, appState.controls);
 }
 
+async function testSetupReviewPage(baseUrl, preview) {
+  const reviewUrl = `${baseUrl}/api/setup-bundle/review?key=${preview.previewKey}`;
+  assert.equal((await fetch(reviewUrl, { headers: headers(VIEWER_TOKEN) })).status, 403);
+  assert.equal((await fetch(reviewUrl)).status, 401);
+  const reviewPage = await fetch(reviewUrl, { headers: headers(ADMIN_TOKEN) }); assert.equal(reviewPage.status, 200);
+  assert.ok((await reviewPage.json()).entries.some(entry => entry.key === 'workflow' && entry.expandable));
+  assert.equal((await fetch(`${reviewUrl}&side=invalid`, { headers: headers(ADMIN_TOKEN) })).status, 400);
+  assert.equal((await fetch(`${baseUrl}/api/setup-bundle/review?key=missing`, { headers: headers(ADMIN_TOKEN) })).status, 409);
+}
+
 async function testSetupBundleApi(baseUrl, controls, appState) {
   let response = await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200, 'Authenticated viewers may export the redacted portable setup.');
@@ -627,6 +720,11 @@ async function testSetupBundleApi(baseUrl, controls, appState) {
   assert.match(preview.previewKey, /^[a-f0-9-]{36}$/);
   assert.equal(preview.bundleHash, bundle.checksum);
   assert.equal(preview.confirmation, 'REPLACE EXISTING SETUP');
+  assert.ok(preview.contentReview.before.workflow);
+  assert.deepEqual(preview.contentReview.after.workflow, bundle.workflow);
+  assert.ok(preview.contentReview.existingLibrary.resources);
+  assert.match(preview.baseHash, /^[a-f0-9]{64}$/);
+  await testSetupReviewPage(baseUrl, preview);
 
   response = await fetch(`${baseUrl}/api/setup-bundle/apply`, {
     method: 'POST',
@@ -652,6 +750,19 @@ async function testSetupBundleApi(baseUrl, controls, appState) {
 
   response = await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) });
   const rollbackBundle = await response.json();
+  response = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ bundle: rollbackBundle }),
+  });
+  const stalePreview = await response.json();
+  const beforeConflict = structuredClone(appState.config); const backupCount = controls.backupCalls;
+  appState.config.targetChannel = 'concurrent-setup-change';
+  response = await fetch(`${baseUrl}/api/setup-bundle/apply`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ previewKey: stalePreview.previewKey, confirmation: stalePreview.confirmation, accountMappings: {} }),
+  });
+  assert.equal(response.status, 409); assert.match((await response.json()).error, /SETUP_PREVIEW_CONFLICT/);
+  assert.equal(controls.backupCalls, backupCount, 'A stale preview is blocked before backup or replacement.');
+  Object.assign(appState.config, beforeConflict);
   response = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
@@ -842,6 +953,10 @@ async function activateMcpRuntime(baseUrl) {
   response = await fetch(`${baseUrl}/api/mcp`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual(response.status, 200);
   assert.strictEqual((await response.json()).runtime.mode, 'disabled', 'MCP must ship disabled by default');
+  assert.equal((await fetch(`${baseUrl}/api/mcp?view=operator`, { headers: headers(VIEWER_TOKEN) })).status, 403);
+  const operatorPage = await fetch(`${baseUrl}/api/mcp?view=operator`, { headers: headers(ADMIN_TOKEN) });
+  assert.equal(operatorPage.status, 200); assert.ok((await operatorPage.json()).pages.agents);
+  assert.equal((await fetch(`${baseUrl}/api/mcp?view=operator&agentsCursor=invalid`, { headers: headers(ADMIN_TOKEN) })).status, 400);
 
   response = await fetch(`${baseUrl}/api/mcp/runtime`, {
     method: 'POST',
@@ -1012,6 +1127,17 @@ async function testMcpProposalAdministration(baseUrl, agentId) {
     action: 'risk.update',
     payload: { channelId: '-web-approved' },
   });
+  let detailResponse = await fetch(`${baseUrl}/api/mcp/proposals/detail?id=${approvedProposal.id}`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(detailResponse.status, 403);
+  detailResponse = await fetch(`${baseUrl}/api/mcp/proposals/detail?id=${approvedProposal.id}`, { headers: headers(ADMIN_TOKEN) });
+  assert.equal(detailResponse.status, 200);
+  const review = await detailResponse.json();
+  assert.equal(review.proposal.payload.channelId, '-web-approved'); assert.match(review.reviewHash, /^[a-f0-9]{64}$/);
+  detailResponse = await fetch(`${baseUrl}/api/mcp/proposals/approve`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'approve-mcp-proposal' }),
+    body: JSON.stringify({ id: approvedProposal.id, reviewHash: 'stale-hash' }),
+  });
+  assert.equal(detailResponse.status, 409); assert.match((await detailResponse.json()).error, /MCP_REVIEW_CONFLICT/);
   let response = await fetch(`${baseUrl}/api/mcp/proposals/approve`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
@@ -1044,6 +1170,12 @@ async function testMcpProposalAdministration(baseUrl, agentId) {
 }
 
 async function testTradeJournalApi(baseUrl) {
+  for (const kind of ['orders', 'fills', 'money', 'events']) {
+    const missing = await fetch(`${baseUrl}/api/trading/intents/relations?intentId=missing&kind=${kind}`, { headers: headers(VIEWER_TOKEN) });
+    assert.equal(missing.status, 404, 'Viewer relation reads must be authorized and distinguish missing original trades.');
+  }
+  const invalidRelation = await fetch(`${baseUrl}/api/trading/intents/relations?intentId=missing&kind=constructor`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(invalidRelation.status, 400);
   let response = await fetch(`${baseUrl}/api/trading/journal`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
   assert.deepStrictEqual((await response.json()).entries, []);
@@ -1359,6 +1491,8 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   });
   assert.strictEqual(response.status, 204, 'Loopback CORS preflight must be accepted');
   assert.strictEqual(response.headers.get('access-control-allow-origin'), baseUrl);
+  assert.ok(response.headers.get('access-control-allow-headers').includes('If-Match'));
+  assert.ok(response.headers.get('access-control-allow-headers').includes('X-Operator-Job-ID'));
   response = await fetch(`${baseUrl}/api/clear-database`, { method: 'POST', headers: mutationHeaders() });
   assert.strictEqual(response.status, 412, 'Destructive operation must require action-specific confirmation');
   appState.state.isRunning = true;
@@ -1595,6 +1729,12 @@ async function testRecoveryMode(baseUrl, appState, controls) {
   const recovery = await response.json();
   assert.strictEqual(recovery.active, true);
   assert.strictEqual(recovery.restartRequired, true);
+  assert.strictEqual(recovery.session.role, 'admin');
+  assert.match(recovery.serverInstanceId, /^[a-f0-9-]{36}$/);
+  assert.ok(recovery.availableRepairs.includes('config'));
+  const viewerRecovery = await fetch(`${baseUrl}/api/recovery`, { headers: headers(VIEWER_TOKEN) });
+  assert.strictEqual(viewerRecovery.status, 200);
+  assert.deepEqual((await viewerRecovery.json()).availableRepairs, [], 'Viewer repair actions must remain unavailable.');
   response = await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual(response.status, 200, 'Recovery mode must expose a safe configuration baseline for repair.');
   response = await fetch(`${baseUrl}/api/config`, {
@@ -1809,6 +1949,8 @@ async function runTests() {
 
     await testBootstrap(baseUrl);
     await testAuthenticationAndReads(baseUrl);
+    delete appState.config.nested; // Deliberately malformed secret-redaction fixture is not a valid editable configuration.
+    await testConfigurationNormalization(baseUrl, appState);
     await testOperatorReadContracts(baseUrl, appState);
     await testTradingAnalyticsApi(baseUrl);
     await testWorkflowControlPlane(baseUrl, appState);

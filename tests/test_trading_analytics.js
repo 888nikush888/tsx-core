@@ -14,6 +14,7 @@ import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
 import {
   getChannelPerformanceAnalytics,
   getTradingExecutionAnalytics,
+  getFilteredTradingAnalytics,
   listTradingEquityPoints,
   recordTradingEquitySnapshot,
   recordTradingExecutionEvent,
@@ -66,6 +67,25 @@ async function insertIntentFixture({
     plannedPrice: plannedPrice ?? null, filledAt: closedAt - 500 });
   if (realizedPnl !== undefined) await insertAccountedFill({ intentId: id, accountId, id: `exit-${id}`, role: 'flatten',
     price: addSignedDecimal(addSignedDecimal(entryPrice, realizedPnl), '0.1'), filledAt: closedAt });
+}
+
+async function testExecutionSelection(closedAt) {
+  const filters = { since: closedAt - 120000, until: closedAt + 60000, channelIds: ['profit-channel'], accountIds: [], exchanges: [], modes: [], statuses: ['completed'] };
+  const selected = await getFilteredTradingAnalytics(filters);
+  assert.equal(selected.execution.funnel.intent_created, 1);
+  assert.equal(selected.execution.funnel.submit_started, 1, 'Missing event scope is joined to the original intent without replacing present event scope.');
+  assert.equal(selected.execution.latencyMs.signalToSubmit.p50, 1500);
+  await getDatabase().run(`WITH RECURSIVE numbers(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM numbers WHERE n<20001)
+    INSERT INTO trading_execution_events(id,channel_id,event_type,occurred_at,details_json)
+    SELECT 'ui-budget-' || n,'other-channel','signal_received',?,'{}' FROM numbers`, [closedAt + 1000]);
+  const bounded = await getFilteredTradingAnalytics(filters);
+  assert.equal(bounded.execution.funnel.intent_created, 1, 'Filters apply before the observation limit; unrelated recent events cannot hide selected originals.');
+  assert.equal(bounded.execution.coverage.complete, true);
+  const broad = await getFilteredTradingAnalytics({ ...filters, channelIds: [], statuses: [] });
+  assert.equal(broad.execution.coverage.complete, false, 'A bounded sample is never labelled a complete funnel.');
+  assert.equal(broad.execution.recent.length, 200);
+  await assert.rejects(getFilteredTradingAnalytics({ ...filters, statuses: ['open'] }), /intent status/);
+  await getDatabase().run("DELETE FROM trading_execution_events WHERE channel_id='other-channel' AND id LIKE 'ui-budget-%'");
 }
 
 function policyInput(channelId, overrides = {}) {
@@ -158,6 +178,7 @@ try {
   }, closedAt - 60_000);
   await recordTradingEquitySnapshot(account.id, {
     equity: '9000', availableBalance: '8500', unrealizedPnl: '-500', marginUsed: '500',
+    accounting: { reportingCurrency: 'USDT', source: 'original-paper-observation' },
   }, closedAt + 60_000);
   await recordTradingExecutionEvent({
     eventType: 'intent_created',
@@ -186,8 +207,19 @@ try {
   assert.equal(profitChannel.realizedPnl, '80');
   assert.ok(Number(profitChannel.averageEntrySlippageBps) > 0);
   assert.equal(performance.exchanges[0].id, 'paper/paper');
-  assert.ok(performance.equity.some(point => Number(point.drawdownPercent) === 10));
+  assert.equal(performance.equity[0].drawdownPercent, null, 'Unknown original currency cannot establish a comparable peak.');
+  assert.equal(performance.equity[1].drawdownPercent, 0, 'First original USDT observation establishes its own peak.');
+  assert.equal(performance.equity[1].equity, '9000', 'Analytics transport retains the original decimal text.');
+  assert.equal(performance.equity[1].reportingCurrency, 'USDT');
+  assert.equal(performance.equity[1].accountingSource, 'original-paper-observation');
+  await testExecutionSelection(closedAt);
   assert.equal((await listTradingEquityPoints(account.id, closedAt - 120_000, 10)).length, 2);
+  const equityOriginals = await listTradingEquityPoints(account.id, closedAt - 120_000, 10);
+  assert.equal(equityOriginals[0].reportingCurrency, null, 'Unknown historical observation currency is never inferred from a current account.');
+  assert.equal(equityOriginals[1].reportingCurrency, 'USDT'); assert.equal(equityOriginals[1].accountingSource, 'original-paper-observation');
+  assert.equal(equityOriginals[1].mode, 'paper');
+  await getDatabase().run('UPDATE trading_accounts SET capabilities_json = ? WHERE id = ?', [JSON.stringify({ reportingCurrency: 'USD' }), account.id]);
+  assert.deepEqual(await listTradingEquityPoints(account.id, closedAt - 120_000, 10), equityOriginals, 'Current metadata cannot reprice or relabel stored observations.');
   await assert.rejects(listTradingEquityPoints(undefined, -1), /history start is invalid/);
   await assert.rejects(listTradingEquityPoints(undefined, 0, 0), /history limit is invalid/);
   await assert.rejects(recordTradingEquitySnapshot(account.id, {

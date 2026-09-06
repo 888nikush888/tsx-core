@@ -42,6 +42,7 @@ async function completeLegacyAdaptiveFixture(database) {
 /** Completes reduced v18-v24 fixtures with omitted real earlier schemas. */
 export async function completeLegacyIngressFixture(database) {
   await completeLegacyAdaptiveFixture(database);
+  await completeLegacyUiSources(database);
   await database.exec(`
     CREATE TABLE IF NOT EXISTS signals (
       id TEXT PRIMARY KEY, chat_id TEXT, message_id INTEGER, xml_content TEXT, normalized_content TEXT,
@@ -86,4 +87,24 @@ export async function completeLegacyIngressFixture(database) {
       if (!present.has(column)) await database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
     }
   }
+}
+
+// M47/M48 extend these pre-existing tables; reduced historical fixtures must include them.
+async function completeLegacyUiSources(database) {
+  await database.exec(`
+    CREATE TABLE IF NOT EXISTS trading_equity_snapshots (
+      id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES trading_accounts(id) ON DELETE RESTRICT,
+      equity TEXT NOT NULL, available_balance TEXT NOT NULL, unrealized_pnl TEXT NOT NULL, margin_used TEXT NOT NULL,
+      observed_at INTEGER NOT NULL, bucket_minute INTEGER NOT NULL, UNIQUE(account_id, bucket_minute)
+    );
+    CREATE TABLE IF NOT EXISTS workflow_resource_versions (
+      id TEXT PRIMARY KEY, resource_id TEXT NOT NULL, version INTEGER NOT NULL CHECK(version > 0),
+      kind TEXT NOT NULL CHECK(kind IN ('channel','content_filter','keyword_filter','regex','parser','schema','contract','dedupe','strategy','sizing','adaptive_risk','account','output')),
+      name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80), description TEXT NOT NULL DEFAULT '' CHECK(length(description) <= 500),
+      status TEXT NOT NULL CHECK(status IN ('draft','published','archived')), configuration_json TEXT NOT NULL,
+      configuration_sha256 TEXT NOT NULL CHECK(length(configuration_sha256) = 64), created_at INTEGER NOT NULL,
+      published_at INTEGER, archived_at INTEGER, UNIQUE(resource_id, version)
+    );
+    CREATE INDEX IF NOT EXISTS idx_workflow_resource_versions ON workflow_resource_versions(kind, resource_id, version DESC);
+  `);
 }

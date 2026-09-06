@@ -363,6 +363,7 @@ export const DATABASE_FEATURE_SET = [
   'account-protection-incidents',
   'dynamic-ccxt-exchange-registry',
   'server-persistent-workflow-builder-history',
+  'operator-workflow-graph-drafts',
   'telegram-viewer-notification-delivery'
 ] as const;
 
@@ -442,6 +443,7 @@ export const REQUIRED_DATABASE_TABLES = [
   'trading_exchange_stream_state',
   'trading_journal_entries',
   'workflow_resource_versions',
+  'workflow_graph_drafts',
   'workflow_revisions',
   'workflow_active_revision',
   'workflow_builder_history',
@@ -518,6 +520,7 @@ const MIGRATION_COLUMN_DEFINITIONS = new Set([
   "TEXT NOT NULL DEFAULT 'unresolved'",
   "TEXT NOT NULL DEFAULT '[]'",
   'INTEGER NOT NULL DEFAULT 0',
+  'INTEGER NOT NULL DEFAULT 0 CHECK(edit_revision >= 0)',
 ]);
 
 function quotedMigrationIdentifier(value: string, label: string): string {
@@ -2712,6 +2715,29 @@ const migrations: SchemaMigration[] = [
     DROP TABLE workflow_adaptive_risk_evaluations;
     ALTER TABLE workflow_adaptive_risk_evaluations_v46 RENAME TO workflow_adaptive_risk_evaluations;
     CREATE INDEX idx_workflow_adaptive_risk_evaluations ON workflow_adaptive_risk_evaluations(state_key, week_ended_at DESC);`
+  },
+  {
+    version: 47,
+    name: 'operator_workflow_drafts_and_resource_edit_versions',
+    columns: [{ table: 'workflow_resource_versions', name: 'edit_revision', sqlDefinition: 'INTEGER NOT NULL DEFAULT 0 CHECK(edit_revision >= 0)' }],
+    sql: `CREATE TABLE workflow_graph_drafts (
+      id TEXT PRIMARY KEY CHECK(length(id) BETWEEN 1 AND 64),
+      version INTEGER NOT NULL CHECK(version > 0),
+      base_revision_id TEXT REFERENCES workflow_revisions(id) ON DELETE RESTRICT,
+      graph_json TEXT NOT NULL CHECK(json_valid(graph_json) AND length(CAST(graph_json AS BLOB)) <= 1048576),
+      created_by TEXT NOT NULL, updated_by TEXT NOT NULL,
+      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+    );`
+  },
+  {
+    version: 48,
+    name: 'equity_observation_currency_and_source',
+    columns: [
+      { table: 'trading_equity_snapshots', name: 'reporting_currency', sqlDefinition: 'TEXT' },
+      { table: 'trading_equity_snapshots', name: 'accounting_source', sqlDefinition: 'TEXT' },
+      { table: 'trading_equity_snapshots', name: 'account_mode', sqlDefinition: 'TEXT' },
+    ],
+    sql: '',
   }
 ];
 

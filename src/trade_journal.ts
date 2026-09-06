@@ -8,6 +8,8 @@ import { moneyEventsForIntent } from './trading_money_ledger.js';
 import type { MoneyEvent } from './trading_money_contract.js';
 import { summarizeMoneyRows, type ClosedMoneyRow, type MoneySummary } from './trading_money_reporting.js';
 import { moneyValueFromDecimal, validateMoneyValue } from './trading_money_value.js';
+import { JOURNAL_INTENT_STATUSES } from './ui_contracts.js';
+import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
 
 const MAXIMUM_JOURNAL_ROWS = 500;
 const MAXIMUM_TAGS = 20;
@@ -27,6 +29,9 @@ export interface TradeJournalFilters {
 
 export interface TradeJournalEntry {
   intentId: string;
+  workflowRevisionId: string | null;
+  executionPathId: string | null;
+  signalRunId: string | null;
   createdAt: number;
   updatedAt: number;
   channelId: string;
@@ -93,7 +98,7 @@ function optionalTimestamp(value: unknown, label: string): number | undefined {
   return parsed;
 }
 
-type NormalizedJournalFilters = Required<Pick<TradeJournalFilters, 'limit'>> & TradeJournalFilters;
+type NormalizedJournalFilters = Required<Pick<TradeJournalFilters, 'limit'>> & TradeJournalFilters & { before?: { createdAt: number; id: string } };
 
 function timestampRange(input: TradeJournalFilters): { from?: number; to?: number } {
   const from = optionalTimestamp(input.from, 'Journal start timestamp');
@@ -123,8 +128,7 @@ function journalSymbol(value: unknown): string | undefined {
 function journalStatus(value: unknown): string | undefined {
   if (typeof value !== 'string' || !value.trim()) return undefined;
   const status = value.trim();
-  const allowed = ['pending', 'planned', 'submitting', 'monitoring', 'completed', 'blocked', 'failed', 'unknown'];
-  if (!allowed.includes(status)) throw new Error('Journal status is invalid.');
+  if (!(JOURNAL_INTENT_STATUSES as readonly string[]).includes(status)) throw new Error('Journal status is invalid.');
   return status;
 }
 
@@ -273,6 +277,10 @@ function journalWhere(filters: NormalizedJournalFilters): { where: string; param
   if (filters.status) add('intent.status = ?', filters.status);
   if (filters.reviewed !== undefined) add('COALESCE(journal.reviewed, 0) = ?', filters.reviewed ? 1 : 0);
   if (filters.intentId) add('intent.id = ?', boundedIdentifier(filters.intentId, 'Trade intent identifier', 64));
+  if (filters.before) {
+    conditions.push('(intent.created_at < ? OR (intent.created_at = ? AND intent.id < ?))');
+    parameters.push(filters.before.createdAt, filters.before.createdAt, filters.before.id);
+  }
   return {
     where: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '',
     parameters,
@@ -292,6 +300,7 @@ async function loadJournalRows(
             signal.chat_id, signal.message_id, signal.template_name,
             signal.schema_name, signal.prompt_sha256, signal.model,
             signal.provider_request_id, signal.parser_version,
+            original_contract.id AS original_contract_version_id, original_contract.definition_sha256 AS original_contract_hash,
             incoming.text AS source_text,
             position.id AS position_id, position.status AS position_status,
             position.quantity AS position_quantity,
@@ -306,6 +315,11 @@ async function loadJournalRows(
      JOIN trading_accounts AS account ON account.id = intent.account_id
      JOIN trading_strategy_versions AS strategy ON strategy.id = intent.strategy_version_id
      JOIN signals AS signal ON signal.id = intent.source_signal_id
+     LEFT JOIN workflow_execution_paths AS original_path ON original_path.id = intent.execution_path_id
+       AND original_path.workflow_revision_id = intent.workflow_revision_id
+     LEFT JOIN trading_signal_contract_versions AS original_contract ON original_contract.id =
+       CASE WHEN json_valid(original_path.effective_configuration_json)
+         THEN json_extract(original_path.effective_configuration_json, '$.resources.contract.contractVersionId') END
      LEFT JOIN incoming_messages AS incoming
        ON incoming.chat_id = signal.chat_id AND incoming.message_id = signal.message_id
      LEFT JOIN trading_positions AS position ON position.intent_id = intent.id
@@ -430,8 +444,8 @@ function journalSignal(row: JournalRow, schema: JournalRow | undefined, executab
     id: String(row.source_signal_id),
     schemaProfileId: executableSchemaId(row.signal_json),
     schemaProfileName: nullableString(schema?.name),
-    contractVersionId: nullableString(schema?.contractVersionId),
-    contractDefinitionSha256: nullableString(schema?.definitionSha256),
+    contractVersionId: nullableString(row.original_contract_version_id),
+    contractDefinitionSha256: nullableString(row.original_contract_hash),
     templateName: nullableString(row.template_name),
     parserSchema: nullableString(row.schema_name),
     parserVersion: nullableString(row.parser_version),
@@ -459,6 +473,9 @@ function mapJournalRow(row: JournalRow, relations: JournalRelations): TradeJourn
   const schema = schemaId ? relations.schemaById.get(schemaId) : undefined;
   return {
     intentId,
+    workflowRevisionId: nullableString(row.workflow_revision_id),
+    executionPathId: nullableString(row.execution_path_id),
+    signalRunId: nullableString(row.signal_run_id),
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at),
     channelId: String(row.channel_id),
@@ -508,13 +525,15 @@ export async function listTradeJournal(
   });
 }
 
-export async function updateTradeJournalReview(input: {
+type JournalReviewInput = {
   intentId: unknown;
   notes?: unknown;
   tags?: unknown;
   rating?: unknown;
   reviewed?: unknown;
-}): Promise<TradeJournalEntry> {
+  baseReviewUpdatedAt?: unknown;
+};
+function normalizeJournalReview(input: JournalReviewInput) {
   const intentId = boundedIdentifier(input.intentId, 'Trade intent identifier', 64);
   const notes = typeof input.notes === 'string' ? input.notes.trim() : '';
   if (notes.length > 10_000) throw new Error('Journal notes must not exceed 10000 characters.');
@@ -529,10 +548,18 @@ export async function updateTradeJournalReview(input: {
     throw new Error('Journal rating must be between 1 and 5.');
   }
   if (typeof input.reviewed !== 'boolean') throw new Error('Journal reviewed state must be boolean.');
+  return { intentId, notes, normalizedTags, rating };
+}
+export async function updateTradeJournalReview(input: JournalReviewInput): Promise<TradeJournalEntry> {
+  const { intentId, notes, normalizedTags, rating } = normalizeJournalReview(input);
   const existing = await getDatabase().get('SELECT id FROM trading_trade_intents WHERE id = ?', [intentId]);
   if (!existing) throw new Error('Trade intent does not exist.');
-  const now = Date.now();
-  await getDatabase().run(
+  if (input.baseReviewUpdatedAt !== undefined && input.baseReviewUpdatedAt !== null && !Number.isSafeInteger(input.baseReviewUpdatedAt)) throw new Error('Invalid review revision.');
+  await withDatabaseTransaction(async database => {
+    const previous = await database.get('SELECT updated_at FROM trading_journal_entries WHERE intent_id = ?', [intentId]);
+    if (Object.hasOwn(input, 'baseReviewUpdatedAt') && (previous?.updated_at ?? null) !== input.baseReviewUpdatedAt) throw new Error('Review changed. Reload and compare before saving.');
+    const now = Math.max(Date.now(), (previous?.updated_at ?? 0) + 1);
+    await database.run(
     `INSERT INTO trading_journal_entries (
        intent_id, notes, tags_json, rating, reviewed, created_at, updated_at
      ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -544,9 +571,34 @@ export async function updateTradeJournalReview(input: {
        updated_at = excluded.updated_at`,
     [intentId, notes, JSON.stringify(normalizedTags), rating, input.reviewed ? 1 : 0, now, now],
   );
+  });
   const [selected] = await listTradeJournal({ intentId, limit: 1 });
   if (!selected) throw new Error('Updated journal entry could not be read.');
   return selected;
+}
+
+export async function listTradeJournalPage(input: TradeJournalFilters = {}, cursor?: unknown) {
+  const filters = normalizedFilters(input);
+  const fingerprint = filterFingerprint(filters);
+  const previous = decodeUiCursor(cursor, fingerprint);
+  const observedAt = previous?.observedAt ?? Date.now();
+  await projectAllFillAccounting();
+  return withDatabaseTransaction(async database => {
+    const rows = await loadJournalRows(database, {
+      ...filters, to: Math.min(filters.to ?? observedAt, observedAt), limit: filters.limit + 1,
+      ...(previous ? { before: { createdAt: previous.createdAt, id: previous.id } } : {}),
+    });
+    const hasMore = rows.length > filters.limit;
+    const pageRows = rows.slice(0, filters.limit);
+    const relations = pageRows.length ? await loadJournalRelations(database, pageRows) : null;
+    const last = pageRows.at(-1);
+    return {
+      contractVersion: 1, entries: relations ? pageRows.map(row => mapJournalRow(row, relations)) : [],
+      hasMore, observedAt, pageSize: filters.limit,
+      snapshotContext: 'Creation cutoff and stable createdAt/id ordering; status, review and accounting reflect each page observation.',
+      nextCursor: hasMore && last ? encodeUiCursor({ version: 1, filter: fingerprint, observedAt, createdAt: Number(last.created_at), id: String(last.id) }) : null,
+    };
+  });
 }
 
 function safeSpreadsheetCell(value: unknown): string {

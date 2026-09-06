@@ -29,6 +29,17 @@ try {
   const reloaded = new ManagedRuntimeSettingsStore(filePath, {});
   await reloaded.initialize();
   assert.equal(reloaded.snapshot().backupIntervalMs, 60_000);
+  const before = store.describe();
+  assert.equal(before.active.shutdownGraceMs, DEFAULT_RUNTIME_SETTINGS.shutdownGraceMs);
+  assert.equal(before.restartRequired, true);
+  assert.equal(before.parameters.length, 35);
+  const concurrent = await Promise.allSettled([
+    store.set({ shutdownGraceMs: 50_000 }, before.revision),
+    store.set({ shutdownGraceMs: 60_000 }, before.revision),
+  ]);
+  assert.equal(concurrent.filter(result => result.status === 'fulfilled').length, 1);
+  assert.equal(store.snapshot().backupIntervalMs, 60_000, 'Partial runtime updates retain untouched settings.');
+  assert.equal(store.describe().active.shutdownGraceMs, DEFAULT_RUNTIME_SETTINGS.shutdownGraceMs, 'Saving does not pretend to apply startup settings.');
 
   assert.throws(
     () => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, enterpriseMode: true }),

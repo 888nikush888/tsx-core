@@ -707,11 +707,13 @@ export async function applyPortableSetupBundle(input: {
   bundle: PortableSetupBundle;
   accountMappings: Record<string, string>;
   actorId: string;
+  beforeImport?: () => void | Promise<void>;
   beforeCommit?: () => void | Promise<void>;
 }): Promise<{ workflowRevisionId: string; importedResources: number }> {
   const bundle = validatePortableSetupBundle(input.bundle);
   await validateLocalAccountMappings(bundle, input.accountMappings);
   return withDatabaseTransaction(async () => {
+    await input.beforeImport?.();
     const contracts = await importContracts(bundle);
     const { schemas, templates } = await importSchemas(bundle, contracts);
     const strategies = await importStrategies(bundle, schemas);

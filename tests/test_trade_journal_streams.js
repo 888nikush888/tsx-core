@@ -108,7 +108,7 @@ try {
     'The legacy amount remains available for manual review; migration must not delete or overwrite unproven evidence.');
   assert.equal(journal[0].fees.USDT, '1');
   assert.equal(journal[0].signal.schemaProfileId, 'standard');
-  assert.equal(journal[0].signal.contractVersionId, 'standard:v1');
+  assert.equal(journal[0].signal.contractVersionId, null, 'Legacy intent without a pinned path must not claim the current schema contract as its original');
   assert.doesNotMatch(journal[0].signal.sourceExcerpt, /170 1234567|0x111111/);
   assert.match(journal[0].signal.sourceExcerpt, /MASKED_PHONE|MASKED_EVM_ADDR/);
   assert.equal((await listTradeJournal({ reviewed: false })).length, 1);
