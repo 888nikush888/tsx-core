@@ -18,10 +18,37 @@ import { recordMoneyEvent } from '../src/trading_money_ledger.js';
 import { uiAccountEvidence, uiAccountReservations, uiAccountHistory } from '../src/ui_account_evidence.js';
 import { moneyValueFromDecimal } from '../src/trading_money_value.js';
 import { TRADING_ORDER_STATUSES } from '../src/ui_contracts.js';
+import { TradingOwnershipError } from '../src/trading_ownership.js';
 import { getUiWorkflowDraft, saveUiWorkflowDraft, deleteUiWorkflowDraft } from '../src/ui_workflow_drafts.js';
 import { createWorkflowResourceDraft, updateWorkflowResourceDraft, publishWorkflowResource, getActiveWorkflow } from '../src/workflow_repository.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-ui-next-'));
+async function testOwnershipFailureBoundary(database, intentId) {
+  await database.run(`INSERT INTO trading_positions(id,intent_id,account_id,strategy_version_id,channel_id,symbol,side,status,quantity,stop_price,updated_at)
+    SELECT 'ownership-ui',id,account_id,strategy_version_id,channel_id,symbol,'LONG','open','0.105','59000',1000 FROM trading_trade_intents WHERE id = ?`, [intentId]);
+  const originalAll = database.all;
+  try {
+    assert.deepEqual((await uiTradeSafety(intentId, 'paper-default')).ownership,
+      { entryQuantity: '0.105', exitQuantity: '0', netQuantity: '0.105' });
+    const failures = [new Error('PRIVATE_DATABASE_PATH and internal stack'),
+      ...['ORDER_SEMANTICS', 'UNMAPPED_FILL', 'ORDER_OVERFILLED', 'CUMULATIVE_EXECUTION_MISMATCH', 'EXITS_EXCEED_ENTRIES', 'constructor', 'PRIVATE_UNKNOWN_CODE']
+        .map(code => new TradingOwnershipError(code, 'PRIVATE_DATABASE_PATH and internal stack'))];
+    for (const failure of failures) {
+      database.all = async function (sql, ...args) {
+        if (sql.startsWith('SELECT id, role, side, reduce_only')) throw failure;
+        return originalAll.call(this, sql, ...args);
+      };
+      const safety = await uiTradeSafety(intentId, 'paper-default');
+      assert.equal(safety.ownership, null);
+      assert.equal(typeof safety.ownershipReason, 'string');
+      assert.doesNotMatch(JSON.stringify(safety), /PRIVATE_|internal stack|TradingOwnershipError/);
+      assert.match(safety.ownershipReason, /Original|original/);
+    }
+  } finally {
+    database.all = originalAll;
+    await database.run("DELETE FROM trading_positions WHERE id = 'ownership-ui'");
+  }
+}
 async function testIngressRelations(database) {
   const now = Date.now() - 1000; const workIds = ['work-1'];
   for (let index = 0; index < 105; index++) {
@@ -213,6 +240,7 @@ try {
   const fullJournal = (await listTradeJournalPage({ intentId })).entries[0];
   assert.equal(uiJournalDetail(fullJournal).relationCounts.orders, 105); assert.deepEqual(uiJournalDetail(fullJournal).orders, []);
   assert.equal(uiJournalSummary(fullJournal).plan, undefined); assert.equal(uiJournalSummary(fullJournal).review.notes, undefined);
+  await testOwnershipFailureBoundary(database, intentId);
 
   const now = Date.now();
   await database.run(`INSERT INTO incoming_work (id, chat_id, message_id, status, reason, created_at, updated_at) VALUES ('work-1', 'ui-test', 1, 'needs_review', 'unproved', ?, ?)`, [now, now]);

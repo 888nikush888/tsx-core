@@ -53,6 +53,10 @@ assert.match(gitleaksConfig, /description = "Reviewed fake dynamic exchange cred
 assert.match(gitleaksConfig, /\^tests\/test_dynamic_exchange_registry\\\.js\$/);
 assert.match(gitleaksConfig, /gateio-key-\[0-9\]\{3\}/);
 assert.match(gitleaksConfig, /gateio-secret-\[0-9\]\{3\}/);
+const scannerVersion = workflow.match(/^\s*GITLEAKS_VERSION:\s*'(\d+)\.(\d+)\.(\d+)'\s*$/m);
+assert.ok(scannerVersion, 'the secret scanner runtime must be pinned independently of the action');
+assert.ok(Number(scannerVersion[1]) > 8 || (Number(scannerVersion[1]) === 8 && Number(scannerVersion[2]) >= 25),
+  'the scanner must support the scoped global allowlists in .gitleaks.toml');
 const approvedActionReferences = new Set([
   'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9',
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',

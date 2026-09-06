@@ -3,7 +3,7 @@ import { getDatabase } from './db.js';
 import { maskPII } from './logger.js';
 import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
 import { readProtectionProjection } from './trading_protection_projection.js';
-import { loadOwnershipProof } from './trading_ownership.js';
+import { loadOwnershipProof, TradingOwnershipError } from './trading_ownership.js';
 import { TRADING_ACCOUNT_STATUSES, TRADING_ORDER_STATUSES } from './ui_contracts.js';
 
 const LISTS = {
@@ -81,6 +81,18 @@ function redactedProof(projection: Awaited<ReturnType<typeof readProtectionProje
   return { ...projection, proof: proof ? { ...proof, binding: { ...proof.binding, accountFingerprint: proof.binding.accountFingerprint ? '[redacted]' : null } } : null };
 }
 
+function publicOwnershipFailure(error: unknown): string {
+  const reasons: Record<string, string> = {
+    ORDER_SEMANTICS: 'Original order direction or reduce-only evidence is inconsistent.',
+    UNMAPPED_FILL: 'An original fill has no managed order.',
+    ORDER_OVERFILLED: 'Original fills exceed the order quantity.',
+    CUMULATIVE_EXECUTION_MISMATCH: 'Original fills and cumulative execution disagree.',
+    EXITS_EXCEED_ENTRIES: 'Original exits exceed original entries.',
+  };
+  return error instanceof TradingOwnershipError && Object.hasOwn(reasons, error.code)
+    ? reasons[error.code] : 'Ownership proof is unavailable. Inspect the original orders and fills, then retry.';
+}
+
 export async function uiTradeSafety(intentId: string, accountId: string) {
   const [projections, position, operations] = await Promise.all([
     readProtectionProjection({ accountId, intentId }),
@@ -91,7 +103,7 @@ export async function uiTradeSafety(intentId: string, accountId: string) {
   const hasEntry = await getDatabase().get("SELECT id FROM trading_orders WHERE intent_id = ? AND role = 'entry' LIMIT 1", [intentId]);
   if (position && hasEntry) {
     try { ownership = await loadOwnershipProof(intentId, position.side); }
-    catch (error) { ownershipReason = maskPII(String(error)).slice(0, 2000); }
+    catch (error) { ownershipReason = publicOwnershipFailure(error); }
   } else ownershipReason = 'No position with original entry evidence.';
   return { observedAt: Date.now(), source: 'Current protection projection and original fill ledger',
     protection: projections[0] ? redactedProof(projections[0]) : null, ownership, ownershipReason, position, operations };
