@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { useDirtyGuard } from './use-dirty-guard';
 
 export function useVersionedDraft<T>(identity: string, server: T | null, revision: number | string | null, empty: T) {
@@ -7,7 +7,8 @@ export function useVersionedDraft<T>(identity: string, server: T | null, revisio
   const dirty = JSON.stringify(draft) !== JSON.stringify(base.value);
   useDirtyGuard(dirty);
   const conflict = Boolean(identity) && base.identity === identity && base.revision !== revision;
-  useEffect(() => {
+  // Seed a newly loaded object before its editable controls are painted.
+  useLayoutEffect(() => {
     if (identity === base.identity || (identity && !server)) return;
     const value = server ?? empty;
     setBase({ identity, value, revision });
