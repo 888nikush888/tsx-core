@@ -25,6 +25,7 @@ async function mockDashboardApi(
   const undo: HistoryEntry[] = [];
   const redo: HistoryEntry[] = [];
   let pendingResource: Record<string, any> | null = null;
+  let graphDraft: any = null;
   const historyStatus = () => ({
     limit: 5,
     undoCount: undo.length,
@@ -39,7 +40,7 @@ async function mockDashboardApi(
     stack.push(entry);
     if (stack.length > 5) stack.shift();
   };
-  await page.route("**/api/**", async (route) => {
+  await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     if (url.pathname === "/api/bootstrap/status") {
@@ -97,6 +98,18 @@ async function mockDashboardApi(
         mcp: { mode: "inactive", updatedAt: Date.now(), updatedBy: "system" },
       });
       return;
+    }
+    if (url.pathname === "/api/workflow/drafts") {
+      if (request.method() === "POST") {
+        const body = request.postDataJSON();
+        if (body.baseVersion !== (graphDraft?.version ?? null)) { await json(route, { error: 'VERSION_CONFLICT' }, 409); return; }
+        graphDraft = { ...body, version: (graphDraft?.version ?? 0) + 1, updatedAt: Date.now(), expired: false };
+      }
+      await json(route, { draft: graphDraft }); return;
+    }
+    if (url.pathname === "/api/workflow/objects") {
+      const resource = workflowResources.find(item => item.id === url.searchParams.get('id')) ?? pendingResource;
+      await json(route, { resource, publication: { publicationHash: 'browser-publication-hash', dependency: null } }); return;
     }
     if (url.pathname === "/api/workflow/history") {
       await json(route, historyStatus());
@@ -171,7 +184,8 @@ async function mockDashboardApi(
         graph: body.graph,
         compiled: previous?.compiled || { paths: [], warnings: [] },
       };
-      await json(route, { workflow: currentWorkflow, history: historyStatus() });
+      graphDraft = { ...graphDraft, baseRevisionId: currentWorkflow.id };
+      await json(route, { workflow: currentWorkflow, history: historyStatus(), draft: graphDraft });
       return;
     }
     if (url.pathname === "/api/workflow/resources" && request.method() === "POST") {
@@ -192,6 +206,7 @@ async function mockDashboardApi(
         createdAt: Date.now(),
         publishedAt: null,
       };
+      workflowResources.push(pendingResource);
       await json(route, { resource: pendingResource }, 201);
       return;
     }
@@ -201,7 +216,8 @@ async function mockDashboardApi(
         return;
       }
       pendingResource = { ...pendingResource, status: "published", publishedAt: Date.now() };
-      workflowResources.push(pendingResource);
+      const index = workflowResources.findIndex(item => item.id === pendingResource!.id);
+      workflowResources[index] = pendingResource;
       await json(route, { resource: pendingResource });
       pendingResource = null;
       return;
@@ -306,7 +322,7 @@ async function mockDashboardApi(
       return;
     }
     if (url.pathname === "/api/recovery") {
-      await json(route, { active: false });
+      await json(route, { active: false, serverInstanceId: "browser-instance", session: { role: "admin", actorId: "browser-admin" } });
       return;
     }
     if (url.pathname === "/api/metrics-history") {
@@ -318,235 +334,52 @@ async function mockDashboardApi(
 }
 
 async function openBuilderWorkspace(page: Page) {
-  await page.getByRole("tab", { name: "Builder" }).click();
+  await page.getByRole("navigation", { name: "Hauptbereiche" }).getByRole("link", { name: "Workflows", exact: true }).click();
   await expect(page.locator(".workflow-canvas")).toBeVisible();
+  await page.locator(".workflow-canvas").scrollIntoViewIfNeeded();
 }
 
-test("local startup unlocks the responsive workflow builder without a bearer prompt or WCAG A/AA violations", async ({
-  page,
-}) => {
-  await mockDashboardApi(page);
-  await page.goto("/");
-
-  await expect(
-    page.getByRole("main", { name: "TSX Core Workflow Builder" }),
-  ).toBeVisible();
-  await expect(page.getByLabel("Bearer token")).toHaveCount(0);
-  await expect(
-    page.getByRole("navigation", { name: "Hauptbereiche" }),
-  ).toBeVisible();
-  expect(
-    await page
-      .getByRole("navigation", { name: "Hauptbereiche" })
-      .getByRole("tab")
-      .allTextContents(),
-  ).toEqual(["Dashboard", "Builder", "Analytics", "Betrieb"]);
-  await expect(page.getByRole("tab", { name: "Dashboard" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  const expectShellAlignment = async () => {
-    const selectors = [
-      ".workflow-topbar .workflow-brand",
-      ".workflow-navigation-list [role='tab']",
-      ".workflow-statusbar > div:first-of-type",
-      ".operations-content > .operations-stack",
-    ];
-    const leftEdges = await Promise.all(selectors.map(async (selector) =>
-      Math.round((await page.locator(selector).first().boundingBox())?.x ?? -1000),
-    ));
-    expect(Math.max(...leftEdges) - Math.min(...leftEdges)).toBeLessThanOrEqual(1);
-  };
-  await expectShellAlignment();
-  await page.getByRole("tab", { name: "Analytics" }).click();
-  await expect(page.getByRole("region", { name: "Analytics" })).toBeVisible();
-  await expectShellAlignment();
-  await page.getByRole("tab", { name: "Betrieb" }).click();
-  await expect(page.getByRole("region", { name: "Betrieb" })).toBeVisible();
-  await expectShellAlignment();
-  expect(
-    await page.locator(".workflow-statusbar").evaluate((statusbar) => {
-      if (window.innerWidth <= 720) {
-        return (
-          statusbar.scrollWidth >= statusbar.clientWidth &&
-          [...statusbar.children]
-            .filter((child): child is HTMLElement => child instanceof HTMLElement)
-            .every(
-              (child) =>
-                child.offsetLeft + child.offsetWidth <= statusbar.scrollWidth + 1,
-            )
-        );
-      }
-      const tools = statusbar.querySelector<HTMLElement>(
-        ".workflow-status-tools",
-      );
-      if (!tools) return false;
-      const toolsLeft = tools.getBoundingClientRect().left;
-      const statusFits = [...statusbar.children]
-        .filter(
-          (child): child is HTMLElement =>
-            child instanceof HTMLElement &&
-            !child.classList.contains("workflow-status-tools") &&
-            !child.classList.contains("workflow-status-skip") &&
-            getComputedStyle(child).display !== "none",
-        )
-        .every(
-          (metric) =>
-            metric.getBoundingClientRect().right <= toolsLeft + 1 &&
-            metric.scrollWidth <= metric.clientWidth + 1,
-        );
-      const toolsBox = tools.getBoundingClientRect();
-      const toolsFit = [...tools.children]
-        .filter(
-          (child): child is HTMLElement =>
-            child instanceof HTMLElement &&
-            getComputedStyle(child).display !== "none",
-        )
-        .every((child) => {
-          const box = child.getBoundingClientRect();
-          return box.left >= toolsBox.left - 1 && box.right <= toolsBox.right + 1;
-        });
-      return statusFits && toolsFit;
-    }),
-  ).toBe(true);
+test("local startup opens seven operator areas and the builder retains light/dark accessibility", async ({ page }) => {
+  await mockDashboardApi(page); await page.goto("/");
+  await expect(page).toHaveURL(/cockpit$/); await expect(page.getByLabel("Bearer token")).toHaveCount(0);
+  const navigation = page.getByRole("navigation", { name: "Hauptbereiche" });
+  await expect(navigation.getByRole("link")).toHaveCount(7);
+  expect(await navigation.getByRole("link").allTextContents()).toEqual(["Cockpit", "Trading", "Workflows", "Signale & Versand", "Risiko & Analyse", "Integrationen", "Betrieb & Sicherheit"]);
+  await expect(navigation.getByRole("link", { name: "Cockpit", exact: true })).toHaveAttribute("aria-current", "page");
   await openBuilderWorkspace(page);
+  await expect(page.getByRole("main", { name: "TSX Core Workflow Builder" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Baustein$/ })).toBeVisible();
-  await expect(page.locator("html")).toHaveClass(/dark/);
-  const overflowingElements = await page
-    .locator("body *")
-    .evaluateAll((elements) => {
-      const viewportWidth = document.documentElement.clientWidth;
-      if (document.documentElement.scrollWidth <= viewportWidth) return [];
-      return elements
-        .filter(
-          (element) =>
-            element.getBoundingClientRect().right > viewportWidth + 1,
-        )
-        .slice(0, 10)
-        .map((element) => ({
-          tag: element.tagName.toLowerCase(),
-          className: element.getAttribute("class"),
-          text: element.textContent?.trim().slice(0, 80),
-          right: Math.round(element.getBoundingClientRect().right),
-          viewportWidth,
-        }));
-    });
-  expect(overflowingElements).toEqual([]);
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    .analyze();
-  expect(results.violations).toEqual([]);
-
-  await page
-    .getByRole("button", { name: "Hellen Modus aktivieren" })
-    .click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  for (const mode of ["Hellen Modus aktivieren", "Dunklen Modus aktivieren"]) {
+    await page.mouse.move(1, 1);
+    await page.evaluate(async () => { await Promise.all(document.getAnimations().filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => undefined))); });
+    expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()).violations).toEqual([]);
+    await page.getByRole("banner").getByRole("button", { name: mode }).click();
+  }
+  await page.screenshot({ path: 'frontend/test-results/ui-next-builder.png', fullPage: true });
+  await page.getByRole("banner").getByRole("button", { name: "Hellen Modus aktivieren" }).click(); await page.reload();
   await expect(page.locator("html")).toHaveClass(/light/);
-  await page.waitForTimeout(250);
-  expect(
-    (
-      await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-        .analyze()
-    ).violations,
-  ).toEqual([]);
-  await page.reload();
-  await expect(page.locator("html")).toHaveClass(/light/);
-  await expect(
-    page.getByRole("button", { name: "Dunklen Modus aktivieren" }),
-  ).toBeVisible();
 });
 
-test("mobile navigation, touch targets and operational typography remain polished without horizontal hunting", async ({
-  page,
-}) => {
+test("mobile operator navigation and account actions remain readable and fit the screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await mockDashboardApi(page, false, [], null, [{
-    id: "paper-mobile",
-    name: "Paper Mobil",
-    exchange: "paper",
-    mode: "paper",
-    status: "ready",
-    enabled: true,
-    maxConcurrentPositions: 8,
-    killSwitchActive: false,
-    killSwitchReason: null,
-    lastReconciledAt: Date.now(),
-    lastError: null,
-  }]);
+  await mockDashboardApi(page, false, [], null, [{ id: "paper-mobile", name: "Paper Mobil", exchange: "paper", mode: "paper", status: "ready", enabled: true, maxConcurrentPositions: 8, killSwitchActive: false, lastReconciledAt: Date.now(), lastError: null }]);
   await page.goto("/");
-
   const mainNavigation = page.getByRole("navigation", { name: "Hauptbereiche" });
-  const mainTabs = mainNavigation.getByRole("tab");
-  await expect(mainTabs).toHaveCount(4);
-  expect(
-    await mainNavigation.evaluate((navigation) => {
-      const bounds = navigation.getBoundingClientRect();
-      return navigation.scrollWidth <= navigation.clientWidth + 1
-        && [...navigation.querySelectorAll<HTMLElement>("[role='tab']")].every((tab) => {
-          const tabBounds = tab.getBoundingClientRect();
-          return tabBounds.left >= bounds.left - 1 && tabBounds.right <= bounds.right + 1;
-        });
-    }),
-  ).toBe(true);
-
-  const topControls = page.locator(".workflow-topbar button, .workflow-status-tools button");
-  expect(
-    await topControls.evaluateAll((controls) => controls
-      .map((control) => {
-        const bounds = control.getBoundingClientRect();
-        return {
-          label: control.getAttribute("aria-label") ?? control.textContent?.trim() ?? "button",
-          width: bounds.width,
-          height: bounds.height,
-        };
-      })
-      .filter(({ width, height }) => width < 40 || height < 40)),
-  ).toEqual([]);
-
-  await page.getByRole("tab", { name: "Betrieb" }).click();
-  const operations = page.getByRole("region", { name: "Betrieb" });
-  const operationsTabs = operations.getByRole("tablist", { name: "Betriebsbereiche" });
-  expect(
-    await operationsTabs.evaluate((tablist) => {
-      const bounds = tablist.getBoundingClientRect();
-      return tablist.scrollWidth <= tablist.clientWidth + 1
-        && [...tablist.querySelectorAll<HTMLElement>("[role='tab']")].every((tab) => {
-          const tabBounds = tab.getBoundingClientRect();
-          return tabBounds.left >= bounds.left - 1
-            && tabBounds.right <= bounds.right + 1
-            && tab.scrollWidth <= tab.clientWidth + 1;
-        });
-    }),
-  ).toBe(true);
-
-  const mobileLeftEdges = await Promise.all([
-    ".workflow-topbar .workflow-brand",
-    ".workflow-navigation-list [role='tab']",
-    ".workflow-statusbar > div:first-of-type",
-    ".operations-content > .operations-stack",
-  ].map(async (selector) => Math.round((await page.locator(selector).first().boundingBox())?.x ?? -1000)));
-  expect(Math.max(...mobileLeftEdges) - Math.min(...mobileLeftEdges)).toBeLessThanOrEqual(1);
-
-  expect(
-    await operations.locator(".operations-card").first().evaluate((card) =>
-      Number.parseFloat(getComputedStyle(card).borderTopLeftRadius)),
-  ).toBe(0);
-  expect(
-    await operations.locator(".operations-section-heading h3").first().evaluate((heading) =>
-      Number.parseFloat(getComputedStyle(heading).fontSize)),
-  ).toBeGreaterThanOrEqual(14);
-  expect(
-    await operations.locator(".operations-section-heading p").first().evaluate((paragraph) =>
-      Number.parseFloat(getComputedStyle(paragraph).fontSize)),
-  ).toBeGreaterThanOrEqual(12);
-  const accountActions = operations.locator(".account-actions button");
-  expect(await accountActions.count()).toBeGreaterThan(0);
-  expect(
-    await accountActions.evaluateAll((buttons) => buttons.every((button) => {
-      const bounds = button.getBoundingClientRect();
-      return bounds.height >= 40 && Number.parseFloat(getComputedStyle(button).fontSize) >= 11;
-    })),
-  ).toBe(true);
+  await expect(mainNavigation.getByRole("link")).toHaveCount(7);
+  expect(await mainNavigation.evaluate(navigation => {
+    const outer = navigation.getBoundingClientRect();
+    return navigation.scrollWidth <= navigation.clientWidth + 1 && [...navigation.querySelectorAll("a")].every(link => {
+      const bounds = link.getBoundingClientRect(); return bounds.height >= 40 && bounds.left >= outer.left - 1 && bounds.right <= outer.right + 1;
+    });
+  })).toBe(true);
+  await mainNavigation.getByRole("link", { name: "Trading", exact: true }).click();
+  const operations = page.getByRole("region", { name: "Trading" });
+  await expect(operations.getByText("Paper Mobil", { exact: true })).toBeVisible();
+  const accountActions = operations.locator(".account-actions button"); expect(await accountActions.count()).toBeGreaterThan(0);
+  expect(await accountActions.evaluateAll(buttons => buttons.every(button => button.getBoundingClientRect().height >= 40 && Number.parseFloat(getComputedStyle(button).fontSize) >= 11))).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: 'frontend/test-results/ui-next-accounts-mobile.png', fullPage: true });
 });
 
 test("first local startup visibly generates and displays the administrator recovery token", async ({
@@ -721,7 +554,7 @@ test("workflow nodes and connections render when resize callbacks are unavailabl
   await page.goto("/");
   await openBuilderWorkspace(page);
 
-  await expect(page.locator(".workflow-brand").getByRole("img", { name: "TSX Core" })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("img", { name: "TSX Core" })).toBeVisible();
   await expect(page.locator(".workflow-node")).toHaveCount(2);
   await expect(page.locator(".workflow-node").first()).toBeVisible();
   await expect(page.locator(".workflow-node").last()).toBeVisible();
@@ -829,7 +662,7 @@ test("shared processing and account branches are explicit in the route matrix an
     name: "Kanal B nach oben verschieben",
   });
   await expect(moveSecondChannelUp).toBeVisible();
-  await moveSecondChannelUp.click({ force: true });
+  await moveSecondChannelUp.click();
   await expect
     .poll(async () =>
       ((await secondChannel.boundingBox())?.y || 0) <
@@ -987,9 +820,10 @@ test("ordered account fallback is one exclusive route with a dedicated arrow and
   await page.getByRole("button", { name: "Fallback übernehmen" }).click();
   await expect(page.locator(".workflow-fallback-edge-label")).toHaveText("Paar");
   await page.getByRole("dialog").getByRole("button", { name: "Dialog schließen" }).click();
-  await page.getByRole("button", { name: /„Fallback-Regel aktualisiert“ rückgängig machen/ }).click();
+  await page.getByRole("button", { name: "Gespeicherten Graph aktivieren" }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ rückgängig machen/ }).click();
   await expect(page.locator(".workflow-fallback-edge-label")).toHaveText("Paar · Voll · Belegt");
-  await page.getByRole("button", { name: /„Fallback-Regel aktualisiert“ wiederholen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ wiederholen/ }).click();
   await expect(page.locator(".workflow-fallback-edge-label")).toHaveText("Paar");
 });
 
@@ -1197,16 +1031,18 @@ test("connections can be created from a clear block action and deleted from the 
     .getByRole("button", { name: /Connection target/ })
     .click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
-  await expect(page.locator(".builder-notice")).toContainText("Revision 2 ist aktiv");
+  await expect(page.locator(".builder-notice")).toContainText("Graphentwurf 1 gespeichert");
   const connectionDialog = page.getByRole("dialog", {
     name: "Connection source → Connection target",
   });
   await expect(connectionDialog).toBeVisible();
   await connectionDialog.getByRole("button", { name: "Dialog schließen" }).click();
-  await page.getByRole("button", { name: /„Verbindung aktiviert“ rückgängig machen/ }).click();
+  await page.getByRole("button", { name: "Gespeicherten Graph aktivieren" }).click();
+  await expect(page.locator(".builder-notice")).toContainText("Revision 2 ist aktiv");
+  await page.getByRole("button", { name: /„Graph aktiviert“ rückgängig machen/ }).click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(0);
   await expect(page.locator(".builder-notice")).toContainText("Revision 3 aktiviert");
-  await page.getByRole("button", { name: /„Verbindung aktiviert“ wiederholen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ wiederholen/ }).click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
   await expect(page.locator(".builder-notice")).toContainText("Revision 4 aktiviert");
   await page.locator(".react-flow__edge").dispatchEvent("click");
@@ -1263,13 +1099,17 @@ test("sizing resource history restores exact default leverage versions", async (
   await sizingNode.dispatchEvent("click");
   const editor = page.getByRole("dialog", { name: "Baustein bearbeiten" });
   await editor.getByLabel("Standard-Hebel").fill("7");
-  await editor.getByRole("button", { name: "Version speichern & aktivieren" }).click();
+  await editor.getByRole("button", { name: "Ressourcen- und Graphentwurf speichern" }).click();
   await expect(sizingNode).toContainText("Hebel 7×/50×");
+  await expect(page.locator(".builder-notice")).toContainText("Graphentwurf 1 gespeichert");
+  await page.getByRole("button", { name: "Referenzierte Entwurfsversionen publizieren" }).click();
+  await page.getByRole("button", { name: "Versionen publizieren", exact: true }).click();
+  await page.getByRole("button", { name: "Gespeicherten Graph aktivieren" }).click();
   await expect(page.locator(".builder-notice")).toContainText("Revision 2 ist aktiv");
-  await page.getByRole("button", { name: /„Sizing aktualisiert“ rückgängig machen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ rückgängig machen/ }).click();
   await expect(sizingNode).toContainText("Hebel 3×/50×");
   await expect(page.locator(".builder-notice")).toContainText("Revision 3 aktiviert");
-  await page.getByRole("button", { name: /„Sizing aktualisiert“ wiederholen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ wiederholen/ }).click();
   await expect(sizingNode).toContainText("Hebel 7×/50×");
   await expect(page.locator(".builder-notice")).toContainText("Revision 4 aktiviert");
 });
@@ -1341,9 +1181,9 @@ test("builder dialogs expose names, trap keyboard focus and close without access
   await expect(simulation).toBeHidden();
   await expect(simulationButton).toBeFocused();
 
-  const operationsButton = page.getByRole("tab", { name: "Betrieb" });
+  const operationsButton = page.getByRole("link", { name: "Trading", exact: true });
   await operationsButton.click();
-  const operations = page.getByRole("region", { name: "Betrieb" });
+  const operations = page.getByRole("region", { name: "Trading" });
   await expect(operations).toBeVisible();
   await expect(operations.getByRole("heading", { name: "Zertifiziert" })).toBeVisible();
   await expect(operations.getByText("Bybit")).toBeVisible();
@@ -1351,37 +1191,29 @@ test("builder dialogs expose names, trap keyboard focus and close without access
   await expect(operations.getByText("Binance")).toBeVisible();
   await operations.getByRole("button", { name: "Öffentlich testen" }).first().click();
   await expect(operations.getByText(/Kompatibilitätstest abgeschlossen/)).toBeVisible();
-  await operations.getByRole("button", { name: "Konto" }).click();
+  await operations.getByRole("button", { name: "Konto", exact: true }).click();
   await operations.getByLabel("Name").fill("Ungespeicherter Entwurf");
   await operations.getByRole("button", { name: "Abbrechen" }).click();
-  await operations.getByRole("button", { name: "Konto" }).click();
+  await operations.getByRole("button", { name: "Konto", exact: true }).click();
   await expect(operations.getByLabel("Name")).toHaveValue("");
   await operations.getByRole("button", { name: "Abbrechen" }).click();
   expect(
     (
       await new AxeBuilder({ page })
-        .include(".operations-workspace")
+        .include('[aria-label="Trading"]')
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze()
     ).violations,
   ).toEqual([]);
-  await page.getByRole("tab", { name: "Builder" }).click();
+  await page.getByRole("link", { name: "Workflows", exact: true }).click();
   await expect(operations).toBeHidden();
 });
 
-test("reduced motion disables navigation transitions and keyboard navigation remains usable", async ({
-  page,
-}) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await mockDashboardApi(page);
-  await page.goto("/");
-
-  const dashboardTab = page.getByRole("tab", { name: "Dashboard" });
-  await dashboardTab.focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: "Builder" })).toBeFocused();
-  const underlineTransition = await page
-    .getByRole("tab", { name: "Builder" })
-    .evaluate((element) => getComputedStyle(element, "::after").transitionDuration);
-  expect(underlineTransition).toBe("0s");
+test("reduced motion and keyboard navigation remain usable across operator areas", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" }); await mockDashboardApi(page); await page.goto("/");
+  const navigation = page.getByRole("navigation", { name: "Hauptbereiche" });
+  await navigation.getByRole("link", { name: "Cockpit", exact: true }).focus(); await page.keyboard.press("Tab");
+  await expect(navigation.getByRole("link", { name: "Trading", exact: true })).toBeFocused(); await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/trading\/accounts$/);
+  expect(await navigation.getByRole("link", { name: "Workflows", exact: true }).evaluate(element => getComputedStyle(element).transitionDuration)).toBe("0s");
 });

@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readFileSync, realpathSync } from 'node:fs'
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url))
 
@@ -20,7 +21,9 @@ function frontendChunkName(moduleId: string): string | undefined {
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: { __UI_VERSION__: JSON.stringify(JSON.parse(readFileSync(path.join(projectRoot, 'package.json'), 'utf8')).version) },
   plugins: [react()],
+  server: { fs: { allow: [projectRoot, realpathSync(path.join(projectRoot, 'node_modules'))] } },
   resolve: {
     alias: {
       '@': path.resolve(projectRoot, './src'),

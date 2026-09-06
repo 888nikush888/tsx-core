@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render as baseRender, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const api = vi.hoisted(() => {
@@ -13,7 +13,7 @@ const api = vi.hoisted(() => {
   return { apiFetch, jsonRequest, clearDashboardToken: vi.fn(), setDashboardToken: vi.fn() }
 })
 
-vi.mock("@/lib/api", () => api)
+vi.mock("@/lib/api", async (importOriginal) => ({ ...await importOriginal<typeof import("@/lib/api")>(), ...api }))
 vi.mock("recharts", () => {
   const Container = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>
   const Leaf = () => null
@@ -34,6 +34,8 @@ vi.mock("recharts", () => {
 
 import { OperationsWorkspace, type OperationTab } from "@/app/workflow/operations-panel"
 
+import { NavigationProvider } from "@/lib/navigation"
+const render = (element: React.ReactNode) => baseRender(<NavigationProvider>{element}</NavigationProvider>)
 const now = Date.now()
 
 const catalog = {
@@ -136,7 +138,7 @@ function bodyFor(url: string) {
   if (url.startsWith("/api/trading/analytics?")) return analytics
   if (url.startsWith("/api/logs?")) return { entries: [{ cursor: 1, line: "[INFO] executor ready" }, { cursor: 2, line: "[WARN] test warning" }], nextCursor: 2 }
   if (url === "/api/backups") return { backups: ["backup-v3.1.0"] }
-  if (url === "/api/mcp") return {
+  if (url === "/api/mcp" || url.startsWith('/api/mcp?')) return {
     runtime: { mode: "standby" }, endpoint: "/mcp", permissions: ["trading.read", "trading.write"], eventTypes: ["signal_received", "position_closed"],
     agents: [{ id: "agent-1", name: "Auditor", tokenPrefix: "tsx", permissions: ["trading.read"], eventSubscriptions: ["signal_received"], enabled: true }],
     proposals: [{ id: "proposal-1", status: "pending", action: "trade.preview", agentName: "Auditor", expiresAt: now + 10_000, preflight: { allowed: true, blockers: [] } }],
@@ -355,6 +357,8 @@ describe("operations workspace", () => {
     fireEvent.click(screen.getByLabelText("Regex"))
     fireEvent.change(screen.getByPlaceholderText("Logs filtern"), { target: { value: "[" } })
     expect(screen.getByText("Keine passenden Log-Einträge.")).toBeInTheDocument()
+    await screen.findByText(/Regex-Suche ist im Browser nicht verfügbar/)
+    fireEvent.click(screen.getByLabelText("Regex"))
     fireEvent.change(screen.getByPlaceholderText("Logs filtern"), { target: { value: "WARN" } })
     fireEvent.click(screen.getByRole("button", { name: "Sichtbare kopieren" }))
     await screen.findByText(/Sichtbare Treffer kopiert/)
@@ -368,7 +372,7 @@ describe("operations workspace", () => {
     workspace("journal")
     expect(await screen.findByTitle("Exakt: 4.99")).toHaveTextContent("4,99")
     fireEvent.change(screen.getByPlaceholderText("BTCUSDT"), { target: { value: "eth/usdt" } })
-    fireEvent.change(screen.getAllByRole("combobox")[1], { target: { value: "paper-1" } })
+    fireEvent.change(screen.getByLabelText("Konto"), { target: { value: "paper-1" } })
     fireEvent.click(screen.getByRole("button", { name: "Quittieren" }))
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith("/api/trading/risk/acknowledge", expect.objectContaining({ method: "POST" })))
   })
@@ -385,7 +389,7 @@ describe("operations workspace", () => {
   it("loads an existing MCP agent into the editor and persists its policy", async () => {
     workspace("mcp")
     fireEvent.click(await screen.findByRole("button", { name: /Auditor/ }))
-    expect(screen.getByRole("heading", { name: "Agent bearbeiten" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Agent bearbeiten" })).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText("trading.write"))
     fireEvent.click(screen.getByLabelText("position_closed"))
     fireEvent.click(screen.getByRole("button", { name: "Speichern" }))
@@ -435,7 +439,8 @@ describe("operations workspace", () => {
     expect(screen.getByText("Offsite zurückgelesen und geprüft")).toBeInTheDocument()
     expect(screen.getByText("Letzter tatsächlich durchgeführter Probelauf").parentElement).toHaveTextContent("–")
     fireEvent.click(diagButton)
-    expect(openMock).toHaveBeenCalledWith("/api/status", "_blank", "noopener,noreferrer")
+    await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith('/api/status'))
+    expect(openMock).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Audit erneut übertragen" }))
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith("/api/operations/audit-replay", expect.objectContaining({ method: "POST" })))
     const input = screen.getByPlaceholderText("DATENBANK LEEREN oder FACTORY RESET")

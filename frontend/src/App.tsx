@@ -5,6 +5,7 @@ import { initGTM } from "@/utils/analytics";
 import { DashboardAuthGate } from "@/components/dashboard-auth-gate";
 import { NavigationProvider } from "@/lib/navigation";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { IssuedCredentialNotice } from "@/shared/components/issued-credential";
 
 // Get basename from environment (for deployment) or use empty string for development
 const basename = import.meta.env.VITE_BASENAME || "";
@@ -19,6 +20,7 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <TooltipProvider>
         <NavigationProvider basename={basename}>
+          <IssuedCredentialNotice />
           <DashboardAuthGate>
             <AppRouter />
           </DashboardAuthGate>

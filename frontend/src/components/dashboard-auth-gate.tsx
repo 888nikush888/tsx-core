@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,17 @@ import {
 } from "@/lib/api";
 
 type AuthState =
-  "checking" | "bootstrap" | "recovery" | "locked" | "authenticated";
+  "checking" | "bootstrap" | "recovery" | "repair" | "locked" | "authenticated";
+
+const RecoveryPage = lazy(() => import("@/features/operations/recovery-page").then((module) => ({ default: module.RecoveryPage })));
+
+async function inspectSession(): Promise<AccessInspection | null> {
+  const response = await apiFetch("/api/recovery");
+  if (response.status === 401 || response.status === 403) return null;
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Verbindung zur Zugriffsprüfung gestört. Token bleibt erhalten.");
+  return { state: payload.active === true ? "repair" : "authenticated" };
+}
 
 interface AccessInspection {
   state: AuthState;
@@ -50,19 +60,19 @@ async function createLocalSession(): Promise<AccessInspection | null> {
   if (payload.generatedAdminToken === true) {
     return { state: "recovery", recoveryToken: payload.token };
   }
-  return { state: "authenticated" };
+  return inspectSession();
 }
 
 async function inspectConfiguredAccess(
   bootstrap: BootstrapInspection,
 ): Promise<AccessInspection> {
   if (getDashboardToken()) {
-    const response = await apiFetch("/api/status");
-    if (response.ok) return { state: "authenticated" };
+    const session = await inspectSession();
+    if (session) return session;
     clearDashboardToken();
   }
-  const proxyIdentityResponse = await apiFetch("/api/status");
-  if (proxyIdentityResponse.ok) return { state: "authenticated" };
+  const proxySession = await inspectSession();
+  if (proxySession) return proxySession;
   if (bootstrap.localSessionAvailable) {
     const localSession = await createLocalSession();
     if (localSession) return localSession;
@@ -122,7 +132,6 @@ export function DashboardAuthGate({
       setError(inspection.error || "");
       setState(inspection.state);
     } catch (authError) {
-      clearDashboardToken();
       setError(
         authError instanceof Error
           ? authError.message
@@ -146,14 +155,11 @@ export function DashboardAuthGate({
     setError("");
     setDashboardToken(token);
     try {
-      const response = await apiFetch("/api/status");
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok)
-        throw new Error(payload.error || "Authentication failed.");
+      const session = await inspectSession();
+      if (!session) { clearDashboardToken(); throw new Error("Authentication failed."); }
       setToken("");
-      setState("authenticated");
+      setState(session.state);
     } catch (authError) {
-      clearDashboardToken();
       setError(
         authError instanceof Error
           ? authError.message
@@ -285,7 +291,7 @@ export function DashboardAuthGate({
               <Button
                 onClick={() => {
                   setRecoveryToken("");
-                  setState("authenticated");
+                  void validateStoredToken();
                 }}
               >
                 I saved it — continue
@@ -345,5 +351,6 @@ export function DashboardAuthGate({
     );
   }
 
+  if (state === "repair") return <Suspense fallback={<p>Recovery wird geladen …</p>}><RecoveryPage /></Suspense>;
   return children;
 }

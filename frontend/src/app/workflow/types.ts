@@ -1,22 +1,10 @@
-export const WORKFLOW_KINDS = [
-  "channel",
-  "content_filter",
-  "keyword_filter",
-  "regex",
-  "parser",
-  "schema",
-  "contract",
-  "dedupe",
-  "strategy",
-  "sizing",
-  "adaptive_risk",
-  "account",
-  "output",
-] as const;
+import { WORKFLOW_RESOURCE_KINDS } from '../../../../src/ui_contracts';
+export const WORKFLOW_KINDS = WORKFLOW_RESOURCE_KINDS;
 
 export type WorkflowKind = (typeof WORKFLOW_KINDS)[number];
 
 export type WorkflowResource = {
+  editRevision?: number;
   id: string;
   resourceId: string;
   version: number;
@@ -213,6 +201,7 @@ export type SignalContractDefinition = {
 };
 
 export type TradingAccount = {
+  updatedAt?: number;
   id: string;
   name: string;
   exchange: string;
@@ -275,6 +264,7 @@ export type TradingSnapshot = {
       version: number;
       status: string;
       definition: SignalContractDefinition;
+      definitionSha256?: string;
     }>;
   }>;
   intents: Array<Record<string, unknown>>;
@@ -303,6 +293,8 @@ export type TradingSnapshot = {
   };
   equityHistory: Array<Record<string, any>>;
   exchangeStreams: Array<Record<string, unknown>>;
+  interpretation?: string;
+  coverage?: Record<string, boolean>;
   accountIncidents: Array<{
     id: string;
     accountId: string;

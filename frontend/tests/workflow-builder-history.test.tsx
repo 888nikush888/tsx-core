@@ -1,3 +1,4 @@
+import { NavigationProvider } from '@/lib/navigation';
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -240,7 +241,7 @@ describe("workflow builder history", () => {
 
   it("loads history independently and keeps the builder usable when only history fails", async () => {
     installApi({ historyFails: true });
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     expect(screen.queryByRole("button", { name: /rückgängig/ })).not.toBeInTheDocument();
     await openBuilder();
     expect(screen.getByRole("button", { name: "Nichts rückgängig zu machen – 0 von 5" })).toBeDisabled();
@@ -250,7 +251,7 @@ describe("workflow builder history", () => {
 
   it("permanently deletes an unused resource family only after explicit UI confirmation", async () => {
     installApi();
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     fireEvent.click(screen.getByRole("button", { name: /Baustein$/ }));
     fireEvent.click(screen.getByRole("button", { name: /Telegram-Kanal/ }));
@@ -278,7 +279,7 @@ describe("workflow builder history", () => {
 
   it("refreshes the trading snapshot after a resource version is saved and activated", async () => {
     installApi();
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     if (!flow.props) throw new Error("React Flow props unavailable.");
     const channel = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
@@ -295,7 +296,7 @@ describe("workflow builder history", () => {
 
   it("shows bounded counts, labels and executes undo without accepting a target revision", async () => {
     installApi();
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     const undo = screen.getByRole("button", { name: "„Verbindung entfernt“ rückgängig machen – 1 von 5" });
     const redo = screen.getByRole("button", { name: "„Baustein verschoben“ wiederholen – 1 von 5" });
@@ -313,7 +314,7 @@ describe("workflow builder history", () => {
 
   it("supports redo shortcuts but preserves native undo in editors and dialogs", async () => {
     installApi();
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     api.apiFetch.mockClear();
     const search = screen.getByLabelText("Bausteine durchsuchen");
@@ -350,7 +351,7 @@ describe("workflow builder history", () => {
     ["Cmd+Z", { metaKey: true }],
   ])("maps %s to undo", async (_label, modifier) => {
     installApi();
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     fireEvent.keyDown(window, { key: "z", ...modifier });
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith(
@@ -374,7 +375,7 @@ describe("workflow builder history", () => {
       }
       return response({ request: init });
     });
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     fireEvent.click(screen.getByRole("button", { name: /rückgängig/ }));
     await waitFor(() => {
@@ -389,7 +390,7 @@ describe("workflow builder history", () => {
 
   it("cleans stale selections after history navigation and reloads workflow plus history on conflict", async () => {
     const workflowLoads = installApi();
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     if (!flow.props) throw new Error("React Flow props unavailable.");
     const source = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
@@ -402,7 +403,7 @@ describe("workflow builder history", () => {
     vi.clearAllMocks();
     flow.props = null;
     const conflictingWorkflowLoads = installApi({ applyConflict: true });
-    render(<WorkflowBuilder />);
+    render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     fireEvent.keyDown(window, { key: "z", ctrlKey: true });
     await waitFor(() => expect(conflictingWorkflowLoads()).toBeGreaterThan(1));
