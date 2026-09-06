@@ -1,0 +1,673 @@
+{
+  "schemaVersion": 1,
+  "kind": "observed_ui_next_gate_execution",
+  "recordedAt": "2026-09-06T17:51:44.929Z",
+  "sourceRevision": "5a5227b915b8054a20b35c1870f0fec558c20f13",
+  "reviewedSourceCommitments": {
+    "sourceTreeHash": "7aa47815c70f9918ad93d8220f4f386b8255123a57a8a7d93ec0df918b485d34",
+    "nodeSourcesHash": "e1920053b7f959c973697516b7b73ae0fd4e8872a375956b063deea4e5aa769b",
+    "testSourcesHash": "fbbf3e2d3fa31fadf6461d75558145cfd2d3bfa13e43b2cf5ed44fc69b49e845",
+    "fixturesHash": "1be9a41c48a3d58763edfdcef508d07fb5074b34d96633d4d9645192fa156831",
+    "totalBytes": 10414034
+  },
+  "workflow": {
+    "conclusion": "failure",
+    "createdAt": "2026-09-06T03:05:21Z",
+    "databaseId": 34008111606,
+    "event": "workflow_dispatch",
+    "headSha": "5a5227b915b8054a20b35c1870f0fec558c20f13",
+    "jobs": [
+      {
+        "databaseId": 101418935950,
+        "name": "Secret history scan",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418935950",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:24Z",
+        "completedAt": "2026-09-06T03:05:36Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936034,
+        "name": "Browser and accessibility gate (chromium)",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936034",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:24Z",
+        "completedAt": "2026-09-06T03:07:36Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install the pinned browser runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run real-browser and WCAG A/AA checks",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload browser failure evidence",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936050,
+        "name": "Browser and accessibility gate (mobile-chromium)",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936050",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:24Z",
+        "completedAt": "2026-09-06T03:07:42Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install the pinned browser runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run real-browser and WCAG A/AA checks",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload browser failure evidence",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936070,
+        "name": "Lint, tests, coverage, build, supply chain",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936070",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:24Z",
+        "completedAt": "2026-09-06T03:29:23Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Checkout pinned source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Configure pinned Node major",
+            "conclusion": "success"
+          },
+          {
+            "name": "Configure pinned Python",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install locked dependencies",
+            "conclusion": "success"
+          },
+          {
+            "name": "Dependency vulnerability gates",
+            "conclusion": "success"
+          },
+          {
+            "name": "License policy gate",
+            "conclusion": "success"
+          },
+          {
+            "name": "Static and type gates",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test and per-file coverage gate",
+            "conclusion": "success"
+          },
+          {
+            "name": "Duplicate ratio gate",
+            "conclusion": "success"
+          },
+          {
+            "name": "Reproducible build",
+            "conclusion": "success"
+          },
+          {
+            "name": "Generate CycloneDX SBOMs",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload verification evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936080,
+        "name": "Critical mutation gate (trading-risk)",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936080",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:24Z",
+        "completedAt": "2026-09-06T03:13:09Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm run test:mutation -- trading-risk --force",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload mutation evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936083,
+        "name": "Browser and accessibility gate (webkit)",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936083",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:25Z",
+        "completedAt": "2026-09-06T03:10:14Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install the pinned browser runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run real-browser and WCAG A/AA checks",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload browser failure evidence",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936085,
+        "name": "Browser and accessibility gate (firefox)",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936085",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:25Z",
+        "completedAt": "2026-09-06T03:07:43Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install the pinned browser runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run real-browser and WCAG A/AA checks",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload browser failure evidence",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936099,
+        "name": "Critical mutation gate (queue)",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936099",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:24Z",
+        "completedAt": "2026-09-06T03:14:00Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm run test:mutation -- queue --force",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload mutation evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936104,
+        "name": "CodeQL SAST",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936104",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:25Z",
+        "completedAt": "2026-09-06T03:09:20Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3",
+            "conclusion": "success"
+          },
+          {
+            "name": "Analyze without the unavailable private-repository upload",
+            "conclusion": "success"
+          },
+          {
+            "name": "Block every CodeQL finding",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload CodeQL evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936110,
+        "name": "Critical mutation gate (schema)",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936110",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:25Z",
+        "completedAt": "2026-09-06T03:25:04Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm run test:mutation -- schema --force",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload mutation evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936145,
+        "name": "Critical mutation gate (retry)",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936145",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T03:05:24Z",
+        "completedAt": "2026-09-06T03:08:38Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm run test:mutation -- retry --force",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload mutation evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101418936439,
+        "name": "Dependency review",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101418936439",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-09-06T03:05:23Z",
+        "completedAt": "2026-09-06T03:05:22Z",
+        "steps": []
+      },
+      {
+        "databaseId": 101421677768,
+        "name": "Container build, SBOM, vulnerability scan",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101421677768",
+        "status": "completed",
+        "conclusion": "failure",
+        "startedAt": "2026-09-06T03:29:37Z",
+        "completedAt": "2026-09-06T03:30:07Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "conclusion": "success"
+          },
+          {
+            "name": "Configure pinned Node for implementation verification",
+            "conclusion": "success"
+          },
+          {
+            "name": "Configure pinned Python for implementation verification",
+            "conclusion": "success"
+          },
+          {
+            "name": "Create an unlinked verifier source checkout",
+            "conclusion": "success"
+          },
+          {
+            "name": "Create an isolated hash-locked verifier runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify independently reviewed exchange implementation",
+            "conclusion": "failure"
+          },
+          {
+            "name": "Configure pinned Buildx builder",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Build immutable candidate",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Build official exchange executor",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Build hardened Prometheus",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Build hardened Alertmanager for both release platforms",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Rebuild Alertmanager without cache and require the same digest",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Prove Alertmanager source and binary reachability for both platforms",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Prove Prometheus source and binary reachability",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Verify runtime native modules and non-root user",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Generate container SBOM",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Block high and critical container vulnerabilities",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Generate exchange executor SBOM",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Block exchange executor high and critical vulnerabilities",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Generate Prometheus SBOM",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Block Prometheus high and critical vulnerabilities",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Generate Alertmanager amd64 SBOM",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Block Alertmanager amd64 high and critical vulnerabilities",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Generate Alertmanager arm64 SBOM",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Block Alertmanager arm64 high and critical vulnerabilities",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Preserve the scanned release candidate",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Upload release candidate",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Upload container evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "databaseId": 101421678208,
+        "name": "SonarQube Cloud quality gate",
+        "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606/job/101421678208",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-09-06T03:29:24Z",
+        "completedAt": "2026-09-06T03:29:23Z",
+        "steps": []
+      }
+    ],
+    "status": "completed",
+    "updatedAt": "2026-09-06T03:30:08Z",
+    "url": "https://github.com/888nikush888/tsx-core/actions/runs/34008111606"
+  },
+  "observed": {
+    "backendTestFilesPerRun": 204,
+    "backendFullRuns": 2,
+    "pythonTests": 533,
+    "browserCases": 192,
+    "verifyLogSha256": "d04461332a6710a962c4df716fae4e4b7537ee356bc578f28b841e4acc75e94b",
+    "browserLogs": [
+      {
+        "jobId": 101418936034,
+        "passed": 48,
+        "logSha256": "971e9517a64b13f8abf79ec97621100fc15b9c69bf4e1a52d22ec947e42b1c53"
+      },
+      {
+        "jobId": 101418936050,
+        "passed": 48,
+        "logSha256": "5f63611a21df9d28a15da04744579d560d6812b947c9e92f71cb594d6f6da7d9"
+      },
+      {
+        "jobId": 101418936083,
+        "passed": 48,
+        "logSha256": "b5d6c256ad8e8bc68cf3620bfbfb8922d862d4243a5a37208a8bbda16455b1d2"
+      },
+      {
+        "jobId": 101418936085,
+        "passed": 48,
+        "logSha256": "1d2bc2386da679577530c4a6015fdf9db825ccbfee51041ddaed683ed162b00a"
+      }
+    ]
+  },
+  "limits": {
+    "workflowPassed": false,
+    "containerBuildPassed": false,
+    "providerAcceptanceVerified": false,
+    "externalReviewClaimed": false
+  },
+  "note": "Observed GitHub gate results for the user-approved UI Next source. The sole failed job stopped at the unchanged implementation receipt before container build. Renewing the receipt requires a new exact-revision run for container verification."
+}

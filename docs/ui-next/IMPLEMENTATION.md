@@ -14,7 +14,7 @@ The companion matrices were not attached. The current [register](REGISTER.md) re
 | P2 | Original trade, money/FX, risk and provider evidence; durable jobs; reviewed MCP/setup changes; graph drafts; parser lab; restore drill; effective parameters | Implemented; local contract and browser acceptance passed |
 | Register | Source-bound route inventory and parameter metadata, drift tests, roles and justified boundaries | Contract checks passed |
 | GitHub | Published branch `codex/ui-next` and [PR #27](https://github.com/888nikush888/tsx-core/pull/27) | Revision-specific CI evidence and outcomes are linked from the PR |
-| Release | Independent root-build receipt still binds the previously reviewed source | Container build blocked until independent review renews the changed source commitments |
+| Release | Owner approved the reviewed UI Next source on 2026-09-06; [approval and evidence](RELEASE-APPROVAL.md) document the receipt renewal | Exact-revision root, runtime and container checks remain mandatory; current outcomes are linked from the PR |
 
 P3 is expressly optional in the specification: arbitrary manual single-trade orders/stop changes, advanced Paper fault injection and an independent offline host maintenance service are outside Core parity. No UI button claims these commands. This implementation neither deploys the application nor changes production trading permissions.
 
