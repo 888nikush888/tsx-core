@@ -339,7 +339,7 @@ async function openBuilderWorkspace(page: Page) {
   await page.locator(".workflow-canvas").scrollIntoViewIfNeeded();
 }
 
-test("local startup opens seven operator areas and the builder retains light/dark accessibility", async ({ page }) => {
+test("local startup opens seven operator areas and the builder retains light/dark accessibility", async ({ page }, testInfo) => {
   await mockDashboardApi(page); await page.goto("/");
   await expect(page).toHaveURL(/cockpit$/); await expect(page.getByLabel("Bearer token")).toHaveCount(0);
   const navigation = page.getByRole("navigation", { name: "Hauptbereiche" });
@@ -356,12 +356,12 @@ test("local startup opens seven operator areas and the builder retains light/dar
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()).violations).toEqual([]);
     await page.getByRole("banner").getByRole("button", { name: mode }).click();
   }
-  await page.screenshot({ path: 'frontend/test-results/ui-next-builder.png', fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('ui-next-builder.png'), fullPage: true });
   await page.getByRole("banner").getByRole("button", { name: "Hellen Modus aktivieren" }).click(); await page.reload();
   await expect(page.locator("html")).toHaveClass(/light/);
 });
 
-test("mobile operator navigation and account actions remain readable and fit the screen", async ({ page }) => {
+test("mobile operator navigation and account actions remain readable and fit the screen", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockDashboardApi(page, false, [], null, [{ id: "paper-mobile", name: "Paper Mobil", exchange: "paper", mode: "paper", status: "ready", enabled: true, maxConcurrentPositions: 8, killSwitchActive: false, lastReconciledAt: Date.now(), lastError: null }]);
   await page.goto("/");
@@ -379,7 +379,7 @@ test("mobile operator navigation and account actions remain readable and fit the
   const accountActions = operations.locator(".account-actions button"); expect(await accountActions.count()).toBeGreaterThan(0);
   expect(await accountActions.evaluateAll(buttons => buttons.every(button => button.getBoundingClientRect().height >= 40 && Number.parseFloat(getComputedStyle(button).fontSize) >= 11))).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-  await page.screenshot({ path: 'frontend/test-results/ui-next-accounts-mobile.png', fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('ui-next-accounts-mobile.png'), fullPage: true });
 });
 
 test("first local startup visibly generates and displays the administrator recovery token", async ({
