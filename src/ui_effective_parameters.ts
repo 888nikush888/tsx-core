@@ -10,11 +10,11 @@ function at(value: unknown, path: string): unknown {
   return path.split('.').reduce<any>((item, key) => item != null && typeof item === 'object' ? item[key] : undefined, value);
 }
 function unit(path: string): string | null {
-  if (/Percent$/.test(path)) return '%';
-  if (/Leverage$/.test(path)) return '×';
-  if (/Seconds$/.test(path)) return 's';
-  if (/maxPositionNotional$/.test(path)) return 'Quote-Währung des Markts; Auflösung im Tradeplan';
-  if (/maxDailyLoss$/.test(path)) return 'abhängig von safety.maxDailyLossMode';
+  if (path.endsWith('Percent')) return '%';
+  if (path.endsWith('Leverage')) return '×';
+  if (path.endsWith('Seconds')) return 's';
+  if (path.endsWith('maxPositionNotional')) return 'Quote-Währung des Markts; Auflösung im Tradeplan';
+  if (path.endsWith('maxDailyLoss')) return 'abhängig von safety.maxDailyLossMode';
   return null;
 }
 function parameterOrigin(field: string, normalizedSizing: any, sizing: WorkflowResourceVersion | null, strategy: TradingStrategyVersion | null) {

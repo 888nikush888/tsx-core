@@ -306,7 +306,7 @@ export async function updateSignalContractDraft(input: {
   return transaction(async () => {
     if (input.baseDefinitionSha256 !== undefined) {
       const current = await getDatabase().get('SELECT definition_sha256 FROM trading_signal_contract_versions WHERE id = ? AND contract_id = ?', [versionId, contractId]);
-      if (!current || current.definition_sha256 !== input.baseDefinitionSha256) throw new Error('CONTRACT_DRAFT_CONFLICT: Definition changed. Compare before saving.');
+      if (current?.definition_sha256 !== input.baseDefinitionSha256) throw new Error('CONTRACT_DRAFT_CONFLICT: Definition changed. Compare before saving.');
     }
     const result = await getDatabase().run(
       `UPDATE trading_signal_contract_versions
@@ -808,22 +808,24 @@ function accountKillSwitch(
 ): { active: boolean; reason: string | null } {
   const active = input.killSwitchActive === undefined ? current.killSwitchActive : input.killSwitchActive;
   if (typeof active !== 'boolean') throw new Error('Account kill-switch state must be boolean.');
-  const reason = input.killSwitchReason === undefined
-    ? (active ? current.killSwitchReason : null)
-    : (typeof input.killSwitchReason === 'string' ? input.killSwitchReason.trim() || null : null);
+  let reason: string | null;
+  if (input.killSwitchReason === undefined) reason = active ? current.killSwitchReason : null;
+  else reason = typeof input.killSwitchReason === 'string' ? input.killSwitchReason.trim() || null : null;
   if (active && !reason) throw new Error('Account kill-switch activation requires a reason.');
   return { active, reason };
 }
 
 function accountCapabilitiesJson(value: Record<string, unknown> | null | undefined, current: TradingAccount): string | null {
-  const capabilities = value === undefined ? current.capabilities : value;
+  if (value === null) return null;
+  const capabilities = value ?? current.capabilities;
   const serialized = capabilities === null ? null : JSON.stringify(capabilities);
   if (serialized && serialized.length > 100_000) throw new Error('Account capabilities payload is too large.');
   return serialized;
 }
 
 function accountReconciledAt(value: number | null | undefined, current: TradingAccount): number | null {
-  const timestamp = value === undefined ? current.lastReconciledAt : value;
+  if (value === null) return null;
+  const timestamp = value ?? current.lastReconciledAt;
   if (timestamp !== null && (!Number.isSafeInteger(timestamp) || timestamp < 0)) {
     throw new Error('Account reconciliation timestamp is invalid.');
   }
@@ -1307,11 +1309,9 @@ async function signalSchemaInput(input: {
   const { name, description, templateName } = signalSchemaText(input);
   const requestedParserSchema = requestedParserContract(input.parserSchema);
   if (typeof input.enabled !== 'boolean') throw new Error('Signal schema enabled state must be boolean.');
-  const contractVersionId = input.contractVersionId
-    ? contractVersionIdentifier(input.contractVersionId)
-    : input.definition === undefined && requestedParserSchema
-      ? `${requestedParserSchema}:v1`
-      : null;
+  let contractVersionId = null;
+  if (input.contractVersionId) contractVersionId = contractVersionIdentifier(input.contractVersionId);
+  else if (input.definition === undefined && requestedParserSchema) contractVersionId = `${requestedParserSchema}:v1`;
   const version = contractVersionId
     ? await publishedContractVersion(contractVersionId)
     : null;

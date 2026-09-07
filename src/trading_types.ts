@@ -1,7 +1,7 @@
-export type TradingExchange = string;
+export type TradingExchange = ReturnType<typeof tradingExchangeId>;
 export const TRADING_EXCHANGE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
-export function tradingExchangeId(value: unknown): TradingExchange {
+export function tradingExchangeId(value: unknown) {
   if (typeof value !== 'string' || !TRADING_EXCHANGE_ID_PATTERN.test(value)) {
     throw new Error('Trading exchange identifier is invalid.');
   }

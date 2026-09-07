@@ -789,7 +789,7 @@ async function evaluateWorkflowRiskState(input: {
     current_tier: appliedTier,
     blocked: blocked ? 1 : 0,
     block_reason: blocked ? suggested.reason : null,
-    warning: suggested.uncertain ? `${request.configuration.mode === 'shadow' ? 'Shadow only: ' : ''}${suggested.reason}` : undefined,
+    warning: suggested.uncertain ? channelRiskWarning(request.configuration.mode, suggested.reason) : undefined,
   };
 }
 
@@ -920,4 +920,9 @@ export async function getWorkflowAdaptiveRiskAnalytics(limit = 200): Promise<{
     states: stateRows.map(workflowRiskStateAnalytics),
     evaluations: evaluationRows.map(workflowRiskEvaluationAnalytics),
   };
+}
+
+function channelRiskWarning(mode: string, reason: string): string {
+  const prefix = mode === 'shadow' ? 'Shadow only: ' : '';
+  return `${prefix}${reason}`;
 }

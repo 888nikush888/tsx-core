@@ -37,7 +37,7 @@ const COMMAND_RESOURCES: Record<string, string> = {
 
 export class TelegramViewerService {
   private settings: TelegramViewerSettings | null = null;
-  private initializedAt = Date.now();
+  private readonly initializedAt = Date.now();
   private lastPollAt: number | null = null;
   private lastError: string | null = null;
   private lastTest: Record<string, unknown> | null = null;
@@ -122,7 +122,9 @@ export class TelegramViewerService {
     if (!this.settings?.enabled) return;
     const offset = await this.dependencies.state.telegramOffset();
     const updates = await this.dependencies.bot.getUpdates(offset);
-    for (const update of updates.sort((left, right) => Number(left.update_id) - Number(right.update_id))) {
+    const orderedUpdates = [...updates];
+    orderedUpdates.sort((left, right) => Number(left.update_id) - Number(right.update_id));
+    for (const update of orderedUpdates) {
       try {
         if (update.message) await this.processMessage(update.message);
         else if (update.callback_query) await this.processCallback(update.callback_query);

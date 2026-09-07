@@ -6,7 +6,7 @@ function object(value: unknown): Record<string, any> {
   return value as Record<string, any>;
 }
 function id(value: unknown): asserts value is string {
-  if (typeof value !== 'string' || !value || value.trim() !== value || value.length > 256 || /[\x00-\x1f]/.test(value)) {
+  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.length > 256 || /[\x00-\x1f]/.test(value)) {
     throw new Error('Invalid order identity evidence identifier.');
   }
 }

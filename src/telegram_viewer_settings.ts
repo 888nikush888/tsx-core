@@ -1,3 +1,4 @@
+import { isStringMember } from './contract_values.js';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
@@ -87,7 +88,7 @@ function validLocale(value: unknown): string {
 function validAllowedUsers(value: unknown): string[] {
   if (!Array.isArray(value) || value.length > 100) throw new Error('Telegram viewer allowed user IDs are invalid.');
   const users = value.map(user => {
-    if (typeof user !== 'string' || !/^[1-9][0-9]{0,19}$/.test(user)) {
+    if (typeof user !== 'string' || !/^[1-9]\d{0,19}$/.test(user)) {
       throw new Error('Telegram viewer allowed user ID must be a numeric Telegram user ID.');
     }
     return user;
@@ -108,10 +109,10 @@ function validatedNotifications(value: unknown): TelegramViewerSettings['notific
 function validatedDisplay(value: unknown): TelegramViewerSettings['display'] {
   const source = record(value, 'Telegram viewer display settings');
   exactKeys(source, DISPLAY_KEYS, 'Telegram viewer display settings');
-  if (!['compact', 'normal', 'detailed'].includes(String(source.detailLevel))) {
+  if (!isStringMember(source.detailLevel, ['compact', 'normal', 'detailed'])) {
     throw new Error('Telegram viewer detail level is invalid.');
   }
-  if (!['absolute', 'absolute_and_percent'].includes(String(source.pnlMode))) {
+  if (!isStringMember(source.pnlMode, ['absolute', 'absolute_and_percent'])) {
     throw new Error('Telegram viewer PnL mode is invalid.');
   }
   if (source.timeFormat !== '24h') throw new Error('Telegram viewer time format must be 24h.');

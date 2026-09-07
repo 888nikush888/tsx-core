@@ -86,7 +86,8 @@ function digest(value: string): string { return createHash('sha256').update(valu
 function originalAcknowledgement(payload: string | null, row: FillRow, direct: boolean): boolean {
   if (payload === null) return direct;
   const envelope = JSON.parse(payload);
-  const ack = Array.isArray(envelope) ? envelope : envelope?.source === 'authoritative_order_snapshot' ? envelope.orders : null;
+  let ack = envelope;
+  if (!Array.isArray(envelope)) ack = envelope?.source === 'authoritative_order_snapshot' ? envelope.orders : null;
   if (!Array.isArray(ack)) return false;
   const matches = ack.filter(item => item.clientOrderId === row.client_order_id);
   return matches.length === 1 && ackMatches(matches[0], row);
@@ -127,7 +128,7 @@ async function legacyProof(account: TradingAccount, row: FillRow): Promise<Retur
 export async function bindLegacyFillIdentity(account: TradingAccount, fillId: string): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     const row = await getDatabase().get<FillRow>(`${SELECT_FILLS} WHERE fills.id=? AND fills.account_id=?`, [fillId, account.id]);
-    if (!row || row.identity_status !== 'legacy_unresolved' || row.remote_fill_key !== null) return false;
+    if (row?.identity_status !== 'legacy_unresolved' || row.remote_fill_key !== null) return false;
     let proof: ReturnType<typeof provenFillIdentity>;
     try { proof = await legacyProof(account, row); } catch { return false; }
     if (!proof) return false;
@@ -160,7 +161,7 @@ export async function backfillAccountFillIdentities(account: TradingAccount): Pr
     let rows = await nextBackfillRows(account.id, cursors.get(account.id));
     if (!rows.length && cursors.has(account.id)) rows = await nextBackfillRows(account.id, undefined);
     for (const row of rows) await bindLegacyFillIdentity(account, row.id);
-    if (rows.length === BACKFILL_ATTEMPTS) cursors.set(account.id, rows[rows.length - 1]!);
+    if (rows.length === BACKFILL_ATTEMPTS) cursors.set(account.id, rows.at(-1)!);
     else cursors.delete(account.id);
   });
 }

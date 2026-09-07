@@ -35,9 +35,9 @@ type LaneEvidence = { calls: number; reasons: unknown[]; cooldown: number };
 const PROFILE = 'bybit-usd-fx-recovery-v1';
 const CAPS: Record<RecoveryLane, number[]> = { targeted: [0, 2], mode: [0, 2], logs: [0, 1], history: [0, 4], fx: [0, 1, 2, 3] };
 const PHASE_LANES: RecoveryLane[][] = [['fx', 'targeted'], ['history', 'logs'], ['fx', 'targeted'], ['mode', 'logs', 'targeted']];
-const DEFERRED = ['phase_deferred', 'not_due', 'not_needed', 'cooldown'];
-const FAILURES = ['budget_exhausted', 'transient', 'unsupported', 'invalid_evidence'];
-const LEGS = ['bybit:btc-usd-index:v1', 'bybit:btc-usdt-index:v1', 'bybit:usdc-usd-index:v1'];
+const DEFERRED = new Set(['phase_deferred', 'not_due', 'not_needed', 'cooldown']);
+const FAILURES = new Set(['budget_exhausted', 'transient', 'unsupported', 'invalid_evidence']);
+const LEGS = new Set(['bybit:btc-usd-index:v1', 'bybit:btc-usdt-index:v1', 'bybit:usdc-usd-index:v1']);
 const BINDING_KEYS = 'accountId accountFingerprint credentialGeneration mode executionProfileHash';
 
 function codeUnitOrder(left: string, right: string): number {
@@ -67,7 +67,7 @@ function array(value: unknown, maximum: number): any[] {
 }
 function binding(value: unknown, expected: RecoveryScheduleBinding): void {
   const row = object(value, BINDING_KEYS), context = object(expected, BINDING_KEYS);
-  if (typeof row.accountId !== 'string' || [...row.accountId].length > 256 || !row.accountId
+  if (typeof row.accountId !== 'string' || [...row.accountId].length > 256 || row.accountId.length === 0
     || row.accountId.trim() !== row.accountId || /[\x00-\x1f\x7f-\x9f\uD800-\uDFFF]/u.test(row.accountId)) invalid();
   for (const field of ['accountFingerprint', 'credentialGeneration', 'executionProfileHash']) {
     if (typeof row[field] !== 'string' || !/^[a-f0-9]{64}$/.test(row[field])) invalid();
@@ -89,7 +89,7 @@ function grants(value: unknown, phase: number): RecoveryScheduleRequest['grants'
     if (typeof row.lane !== 'string' || !Object.hasOwn(CAPS, row.lane) || seen.has(row.lane)) invalid();
     const lane = row.lane as RecoveryLane, calls = integer(row.maxCalls, 5);
     if (!CAPS[lane].includes(calls) || (calls > 0 && !PHASE_LANES[phase].includes(lane))) invalid();
-    if (calls > 0 ? row.deferredReason !== null : !DEFERRED.includes(row.deferredReason)) invalid();
+    if (calls > 0 ? row.deferredReason !== null : !DEFERRED.has(row.deferredReason)) invalid();
     seen.add(lane); total += calls;
   }
   if (total > 5) invalid();
@@ -103,7 +103,7 @@ export function validateRecoveryScheduleRequest(value: unknown, expected: Recove
 function fxRequest(value: unknown, maximum: number): FxEvidenceRequest {
   const row = object(value, 'version legIds'), legs = array(row.legIds, 3);
   if (row.version !== 1 || legs.length !== maximum || legs.length === 0 || new Set(legs).size !== legs.length
-    || legs.some(leg => !LEGS.includes(leg))) invalid();
+    || legs.some(leg => !LEGS.has(leg))) invalid();
   return structuredClone(row) as FxEvidenceRequest;
 }
 function laneGrant(request: RecoveryScheduleRequest, lane: RecoveryLane): number {
@@ -189,7 +189,7 @@ function checkpointBinding(previous: Record<string, any>, next: Record<string, a
   if (!historical && (next.accountFingerprint !== expected.accountFingerprint || next.credentialGeneration !== expected.credentialGeneration)) invalid();
 }
 function skippedLogEvidence(progress: Record<string, any>, previous: Record<string, any>): LaneEvidence {
-  if (!FAILURES.includes(progress.readSkipped) || progress.calls !== 0 || array(progress.receipts, 0).length !== 0
+  if (!FAILURES.has(progress.readSkipped) || progress.calls !== 0 || array(progress.receipts, 0).length !== 0
     || progress.baseRevision !== previous.revision || !isDeepStrictEqual(progress.checkpoint, previous)) invalid();
   return { calls: 0, reasons: [progress.readSkipped], cooldown: 0 };
 }
@@ -218,7 +218,7 @@ function progressShape(value: unknown): Record<string, any> {
     if (typeof lane.lane !== 'string' || !Object.hasOwn(CAPS, lane.lane) || seen.has(lane.lane)) invalid();
     const name = lane.lane as RecoveryLane, calls = integer(lane.calls, Math.max(...CAPS[name]));
     if (![null, ...DEFERRED, ...FAILURES].includes(lane.reason)
-      || (calls > 0 && (DEFERRED.includes(lane.reason) || !PHASE_LANES[row.phase].includes(name)))) invalid();
+      || (calls > 0 && (DEFERRED.has(lane.reason) || !PHASE_LANES[row.phase].includes(name)))) invalid();
     seen.add(name); total += calls;
   }
   if (lanes.length !== 5 || total !== row.calls || total > 5) invalid();
@@ -260,8 +260,8 @@ function acquisitionEvidence(recovery: RecoveryScheduleInputs, acquisition: Reco
 function sourceReason(reasons: unknown[]): string | null {
   const aliases: Record<string, string> = { history_transient: 'transient', source_unsupported: 'unsupported',
     history_profile_unsupported: 'unsupported', invalid_source_evidence: 'invalid_evidence', history_budget_exhausted: 'budget_exhausted' };
-  const normalized = reasons.map(reason => typeof reason === 'string' && Object.hasOwn(aliases, reason) ? aliases[reason] : reason);
-  return ['transient', 'invalid_evidence', 'unsupported', 'budget_exhausted'].find(reason => normalized.includes(reason)) ?? null;
+  const normalized = new Set(reasons.map(reason => typeof reason === 'string' && Object.hasOwn(aliases, reason) ? aliases[reason] : reason));
+  return ['transient', 'invalid_evidence', 'unsupported', 'budget_exhausted'].find(reason => normalized.has(reason)) ?? null;
 }
 function responseLane(progress: Record<string, any>, value: unknown,
   grant: RecoveryScheduleRequest['grants'][number], proof: LaneEvidence, read: ReadWindow): number {

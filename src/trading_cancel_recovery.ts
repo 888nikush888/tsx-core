@@ -120,8 +120,9 @@ export async function cancelRetryObservation(
 /** Target-only persisted evidence is usable only for reducing an entry commitment, never stop removal or release. */
 function entryTargetObservation(evidence: StillActiveEvidence | null): ExchangeOpenState | undefined {
   if (!evidence) return undefined;
-  return Object.assign({ orders: [evidence.target], positions: [], fills: [], acquisition: evidence.acquisition, observedAt: evidence.observedAt },
-    { accountFingerprint: evidence.accountFingerprint });
+  const observation = { orders: [evidence.target], positions: [], fills: [], acquisition: evidence.acquisition, observedAt: evidence.observedAt,
+    accountFingerprint: evidence.accountFingerprint };
+  return observation;
 }
 
 export async function cancelRetryAuthorized(accountId: string, clientOrderId: string): Promise<boolean> {

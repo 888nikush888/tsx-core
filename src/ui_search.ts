@@ -13,8 +13,8 @@ const SOURCES = {
   incidents: { table: 'trading_account_incidents', clock: 'first_seen_at', fields: 'id, account_id AS accountId, category, severity, status', search: ['id', 'account_id', 'category'] },
 } as const;
 const SETTING_TARGETS = [
-  ...Object.keys(DEFAULT_RUNTIME_SETTINGS).map(key => ({ id: `runtime.${key}`, title: key, url: `/operations/settings?setting=${encodeURIComponent(`runtime.${key}`)}` })),
-  ...Object.entries(AI_LIMIT_LABELS).map(([key, [label]]) => ({ id: `ai.${key}`, title: `${label} · ${key}`, url: `/operations/settings?setting=${encodeURIComponent(`ai.${key}`)}` })),
+  ...Object.keys(DEFAULT_RUNTIME_SETTINGS).map(key => settingTarget(`runtime.${key}`, key)),
+  ...Object.entries(AI_LIMIT_LABELS).map(([key, [label]]) => settingTarget(`ai.${key}`, `${label} · ${key}`)),
   ...WORKFLOW_RESOURCE_KINDS.map(kind => ({ id: `workflow.${kind}`, title: `Workflow-Baustein ${kind}`, url: `/workflows/resources?resourceKind=${kind}` })),
 ];
 
@@ -41,7 +41,8 @@ export async function uiSearch(text: string, kind = 'all', cursorValue: string |
   if (typeof text !== 'string' || text.trim().length < 2 || text.length > 80 || /[\r\n\0]/.test(text)) throw new Error('Search needs 2 to 80 characters.');
   if (kind !== 'all' && kind !== 'settings' && !Object.hasOwn(SOURCES, kind)) throw new Error('Unsupported search category.');
   if (cursorValue && kind === 'all') throw new Error('Pagination requires one search category.');
-  const query = text.trim(); const match = `%${query.replace(/[\\%_]/g, value => `\\${value}`)}%`;
+  const query = text.trim(); const escaped = query.replace(/[\\%_]/g, value => `\\${value}`);
+  const match = `%${escaped}%`;
   const kinds = kind === 'all' ? [...Object.keys(SOURCES), 'settings'] : [kind];
   const groups = await Promise.all(kinds.map(async current => {
     const filter = filterFingerprint({ query, kind: current }); const cursor = decodeUiCursor(cursorValue, filter); const observedAt = cursor?.observedAt ?? Date.now();
@@ -50,7 +51,8 @@ export async function uiSearch(text: string, kind = 'all', cursorValue: string |
       return { kind: current, observedAt, entries: rows.slice(0, 20), hasMore: rows.length > 20, nextCursor: rows.length > 20 ? encodeUiCursor({ version: 1, filter, observedAt, createdAt: 0, id: rows[19].id }) : null };
     }
     const definition = SOURCES[current as keyof typeof SOURCES]; const values: unknown[] = [observedAt, ...definition.search.map(() => match)];
-    const where = [`${definition.clock} <= ?`, `(${definition.search.map(column => `${column} LIKE ? ESCAPE '\\'`).join(' OR ')})`];
+    const searchConditions = definition.search.map(column => String.raw`${column} LIKE ? ESCAPE '\'`).join(' OR ');
+    const where = [`${definition.clock} <= ?`, `(${searchConditions})`];
     if (cursor) { where.push(`(${definition.clock} < ? OR (${definition.clock} = ? AND id < ?))`); values.push(cursor.createdAt, cursor.createdAt, cursor.id); }
     const rows = await getDatabase().all(`SELECT ${definition.fields}, ${definition.clock} AS createdAt FROM ${definition.table} WHERE ${where.join(' AND ')} ORDER BY ${definition.clock} DESC, id DESC LIMIT 21`, values);
     const entries = rows.slice(0, 20).map(row => {
@@ -63,4 +65,8 @@ export async function uiSearch(text: string, kind = 'all', cursorValue: string |
       nextCursor: rows.length > 20 ? encodeUiCursor({ version: 1, filter, observedAt, createdAt: last.createdAt, id: last.id }) : null };
   }));
   return { contractVersion: 1, groups, scope: 'Metadata and identifiers only. No signal bodies, credentials, provider payloads or trade commands.' };
+}
+
+function settingTarget(id: string, title: string) {
+  return { id, title, url: `/operations/settings?setting=${encodeURIComponent(id)}` };
 }

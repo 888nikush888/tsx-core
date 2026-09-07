@@ -42,9 +42,10 @@ async function exemptionEvidence(intentId: string, plan: TradingPlan | null, ope
   const orders = await getDatabase().all('SELECT * FROM trading_orders WHERE intent_id = ? ORDER BY id', [intentId]);
   const positions = await getDatabase().all('SELECT * FROM trading_positions WHERE intent_id = ? ORDER BY id', [intentId]);
   const intent = await getTradingIntent(intentId);
+  const unwitnessedBasis = plan ? 'local_prepared' : 'empty_pending';
   return { intentId, planHash: plan ? hash(JSON.stringify(plan)) : null, operationId: operations[0]?.id ?? null,
     generation: operations[0]?.generation ?? null, requestHash: operations[0]?.request_hash ?? null,
-    noSendBasis: witness ? 'current_dispatch_fence' : plan ? 'local_prepared' : 'empty_pending',
+    noSendBasis: witness ? 'current_dispatch_fence' : unwitnessedBasis,
     noSendEvidenceHash: hash(JSON.stringify({ intent, orders, positions, operations, fills: [] })) };
 }
 
@@ -52,7 +53,7 @@ async function exemptionEvidence(intentId: string, plan: TradingPlan | null, ope
 export async function assertCandidateNeverSent(account: TradingAccount, intentId: string, plan: TradingPlan | null, witness?: TradingDispatchWitness): Promise<CandidateExemption> {
   if (witness && !currentDispatchIdentity(witness)) reject();
   const intent = await getTradingIntent(intentId);
-  if (!intent || intent.accountId !== account.id || intent.exchange !== account.exchange || intent.mode !== account.mode
+  if (intent?.accountId !== account.id || intent.exchange !== account.exchange || intent.mode !== account.mode
     || !isDeepStrictEqual(intent.plan, plan)) reject();
   if (!plan) {
     if (intent.status !== 'pending' || witness || !await hasNoCandidateState(intentId)) reject();

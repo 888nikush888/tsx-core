@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import {
   moneyValueFromDecimal, moneyValueFromRational, addMoneyValues,
-  negateMoneyValue, validateMoneyValue,
+  negateMoneyValue, validateMoneyValue, MoneyRationalValidationError,
 } from '../src/trading_money_value.ts';
 import { addRational, rationalFromDecimal } from '../src/trading_rational.ts';
+import { TradingEngine } from '../src/trading_engine.js';
 
 const quantum = '0.000000000000000001';
 const fraction = (numerator, denominator) => ({ numerator, denominator });
@@ -223,6 +224,27 @@ function testDecimalAndTermOverflowNeverDowngrade() {
   assert.deepEqual(moneyValueFromRational(rationalFromDecimal(maximum)), largest);
 }
 
+async function testMalformedMoneyKeepsPositionFailureScope() {
+  const engine = new TradingEngine([]);
+  const locals = [{ id: 'position-a', intent_id: 'intent-a', symbol: 'A' }, { id: 'position-b', intent_id: 'intent-b', symbol: 'B' }];
+  engine.ingestOwnedState = async () => ({ localPositions: locals, unrelatedUnmanagedExposure: false });
+  const visited = [];
+  engine.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+    visited.push(local.id);
+    if (local.id === 'position-a') moneyValueFromRational({ numerator: 1, denominator: '2' });
+    return false;
+  };
+  await assert.rejects(engine.applyRemoteState({ id: 'account' }, {}, { positions: [{ symbol: 'A' }, { symbol: 'B' }] }), error => {
+    assert.equal(error.name, 'PositionReconciliationAggregateError');
+    assert.equal(error.errors.length, 1);
+    assert.ok(error.errors[0] instanceof MoneyRationalValidationError);
+    assert.ok(!(error.errors[0] instanceof TypeError), 'Malformed evidence must not acquire the account-wide programmer-error classification.');
+    assert.equal(error.errors[0].message, 'Invalid money rational components.');
+    return true;
+  });
+  assert.deepEqual(visited, ['position-a', 'position-b'], 'A malformed monetary record must not skip independent position protection.');
+}
+await testMalformedMoneyKeepsPositionFailureScope();
 testDecimalAndRationalEvents();
 testTinyRebatesAndExactCancellation();
 testProvenRationalLimitFallsBackOutwards();

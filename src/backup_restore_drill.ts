@@ -52,7 +52,10 @@ async function runWorker(artifact: string, root: string, nonce: string, expected
     child.once('close', code => {
       clearTimeout(timer);
       if (failure) { reject(failure); return; }
-      if (code !== 0) { reject(new Error(`Isolated restore drill failed: ${diagnostic.trim() || `exit ${code}`}`)); return; }
+      if (code !== 0) {
+        const reason = diagnostic.trim() || `exit ${code}`;
+        reject(new Error(`Isolated restore drill failed: ${reason}`)); return;
+      }
       try { resolve(JSON.parse(output)); } catch (error) { reject(new Error('Restore drill did not return a valid receipt.', { cause: error })); }
     });
   });

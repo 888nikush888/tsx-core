@@ -95,10 +95,10 @@ function window(since: number, until: number): void {
 }
 function record(value: unknown, namespace: string): AccountLogRecord {
   const row = object(value);
-  const allowed = ACCOUNT_LOG_FIELDS[namespace]!.split(' ');
+  const allowed = new Set(ACCOUNT_LOG_FIELDS[namespace]!.split(' '));
   const result: AccountLogRecord = {};
   for (const [field, item] of Object.entries(row)) {
-    if (!allowed.includes(field)) throw new Error('Unallowlisted account-log economic field.');
+    if (!allowed.has(field)) throw new Error('Unallowlisted account-log economic field.');
     if (item !== null && (typeof item !== 'string' || item.length > 256 || /[\x00-\x1f]/.test(item))) throw new Error('Invalid account-log economics.');
     result[field] = item as string | null;
   }
@@ -165,7 +165,8 @@ function assertSharedBudget(result: Record<string, any>, targetedCalls: number, 
 }
 export function assertAccountLogResponse(request: AccountLogCheckpoint | undefined, progress: AccountLogProgress | undefined): void {
   if (request === undefined && progress === undefined) return;
-  if (!request || !progress || request.revision !== progress.baseRevision
+  if (!request || !progress) throw new Error('Account-log response does not match the requested source revision.');
+  if (request.revision !== progress.baseRevision
     || request.namespace !== progress.checkpoint.namespace || request.filterHash !== progress.checkpoint.filterHash
     || request.accountFingerprint !== progress.checkpoint.accountFingerprint
     || request.credentialGeneration !== progress.checkpoint.credentialGeneration) throw new Error('Account-log response does not match the requested source revision.');

@@ -1,3 +1,4 @@
+import { isStringMember } from './contract_values.js';
 import type { ExchangeHistoryCheckpoint, ExchangeHistoryProgress, ExchangeHistoryRetention } from './trading_types.js';
 import { assertCoverageContinuation, validateHistoryCoverage } from './exchange_history_coverage.js';
 
@@ -19,7 +20,7 @@ function token(value: unknown, maximum: number): string | null {
 
 export function validateHistoryCheckpoint(value: unknown): ExchangeHistoryCheckpoint {
   const row = object(value);
-  if (!['orders', 'fills'].includes(String(row.source)) || !['unknown', 'partial', 'complete'].includes(String(row.completeness))) {
+  if (!isStringMember(row.source, ['orders', 'fills']) || !isStringMember(row.completeness, ['unknown', 'partial', 'complete'])) {
     throw new Error('Invalid history checkpoint scope or completeness.');
   }
   const result = {
@@ -44,7 +45,7 @@ function validateRetention(value: unknown, state: ExchangeHistoryCheckpoint): Ex
   if (value === null) return null;
   const row = object(value);
   if (Object.keys(row).length !== RETENTION_FIELDS.length || RETENTION_FIELDS.some(field => !(field in row))
-    || row.version !== 1 || !RETENTION_PHASES.includes(String(row.phase)) || state.source !== 'fills' || state.providerSymbol !== null) {
+    || row.version !== 1 || !isStringMember(row.phase, RETENTION_PHASES) || state.source !== 'fills' || state.providerSymbol !== null) {
     throw new Error('Invalid Hyperliquid retention checkpoint.');
   }
   const result: ExchangeHistoryRetention = { version: 1, phase: row.phase as ExchangeHistoryRetention['phase'],
@@ -159,7 +160,7 @@ function assertBoundRetentionContinuation(old: ExchangeHistoryRetention, next: E
 }
 
 export function assertHistoryResponse(request: ExchangeHistoryCheckpoint[], progress: ExchangeHistoryProgress[] | undefined): void {
-  if (!progress || progress.length !== request.length) throw new Error('Exchange omitted requested history progress.');
+  if (progress?.length !== request.length) throw new Error('Exchange omitted requested history progress.');
   const requested = new Map(request.map(row => [historyScope(row), row]));
   for (const row of progress) {
     const previous = requested.get(historyScope(row.checkpoint));

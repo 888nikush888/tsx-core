@@ -1,3 +1,4 @@
+import { isStringMember } from './contract_values.js';
 import type { ExchangeAcquisitionEvidence, ExchangeHistoryCheckpoint, ExchangeHistoryCoverage, ExchangeHistoryProgress } from './trading_types.js';
 
 const PROFILES: Readonly<Record<string, string>> = {
@@ -8,21 +9,25 @@ export function validateHistoryCoverage(value: unknown, state: ExchangeHistoryCh
   if (value === null) return null;
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid historical coverage object.');
   const row = value as Record<string, unknown>;
-  if (row.version !== 1 || !Object.values(PROFILES).includes(String(row.profile)) || state.source !== 'fills'
+  if (row.version !== 1 || !isStringMember(row.profile, Object.values(PROFILES)) || state.source !== 'fills'
     || !Number.isSafeInteger(row.since) || !Number.isSafeInteger(row.through) || row.since !== state.baselineSince
     || state.scannedThrough === null || Number(row.through) < Number(row.since) || Number(row.through) > state.scannedThrough) {
     throw new Error('Invalid historical coverage interval or profile.');
   }
-  return { version: 1, profile: String(row.profile), since: Number(row.since), through: Number(row.through) };
+  return { version: 1, profile: row.profile, since: Number(row.since), through: Number(row.through) };
 }
 
 export function assertCoverageContinuation(previous: ExchangeHistoryCheckpoint, update: ExchangeHistoryProgress): void {
   const old = previous.coverage;
   const next = update.checkpoint.coverage;
-  if (old && (!next || next.profile !== old.profile || next.since !== old.since || next.through < old.through)) {
+  if (old && !next) throw new Error('Historical coverage cannot disappear, change profile or regress.');
+  if (old && (next.profile !== old.profile || next.since !== old.since || next.through < old.through)) {
     throw new Error('Historical coverage cannot disappear, change profile or regress.');
   }
-  if (!next || (old && next.through === old.through)) return;
+  if (!next) return;
+  if (old) {
+    if (next.through === old.through) return;
+  }
   assertRetentionCoverageBound(update.checkpoint);
   if (update.pages === 0 || previous.windowSince > (old?.through ?? previous.baselineSince)
     || next.through > previous.windowSince + update.pages * 7 * 86_400_000) {
@@ -42,7 +47,8 @@ function assertRetentionCoverageBound(state: ExchangeHistoryCheckpoint): void {
 function checkpointProofReason(exchange: string, checkpoint: ExchangeHistoryCheckpoint): string | null {
   if (exchange === 'krakenfutures' && !checkpoint.providerAccountUid) return 'FILL_PROVIDER_IDENTITY_UNPROVED';
   const coverage = checkpoint.coverage;
-  if (!coverage || coverage.profile !== PROFILES[exchange] || checkpoint.completeness !== 'complete' || checkpoint.cursor !== null) return 'FILL_COVERAGE_UNPROVED';
+  if (!coverage) return 'FILL_COVERAGE_UNPROVED';
+  if (coverage.profile !== PROFILES[exchange] || checkpoint.completeness !== 'complete' || checkpoint.cursor !== null) return 'FILL_COVERAGE_UNPROVED';
   if (checkpoint.retention && (exchange !== 'hyperliquid' || checkpoint.retention.phase !== 'proved')) return 'FILL_COVERAGE_UNPROVED';
   return null;
 }

@@ -6,7 +6,8 @@ import type { TradingAccount } from './trading_types.js';
 async function assertBinding(account: TradingAccount, checkpoint: Pick<AccountLogCheckpoint, 'accountFingerprint' | 'credentialGeneration'>): Promise<void> {
   const current = await getDatabase().get<{ external_account_id: string; credential_generation: string }>(
     'SELECT external_account_id, credential_generation FROM trading_accounts WHERE id = ?', [account.id]);
-  if (!current || checkpoint.accountFingerprint !== current.external_account_id || checkpoint.credentialGeneration !== current.credential_generation
+  if (!current) throw new Error('Account-log identity/credential binding changed.');
+  if (checkpoint.accountFingerprint !== current.external_account_id || checkpoint.credentialGeneration !== current.credential_generation
     || checkpoint.accountFingerprint !== account.externalAccountId || checkpoint.credentialGeneration !== account.credentialGeneration) {
     throw new Error('Account-log identity/credential binding changed.');
   }
@@ -81,8 +82,11 @@ function assertUnchanged(previous: AccountLogCheckpoint, next: AccountLogCheckpo
 }
 function assertForwardContinuation(previous: AccountLogCheckpoint, next: AccountLogCheckpoint, receipt: AccountLogPageReceipt): void {
   const day = 86400000;
-  const since = receipt.exhausted ? Math.max(previous.requiredSince,
-    receipt.until >= receipt.completedAt - 1000 ? Math.floor(receipt.until / day) * day - day : receipt.until - 1000) : receipt.since;
+  let since = receipt.since;
+  if (receipt.exhausted) {
+    const continuation = receipt.until >= receipt.completedAt - 1000 ? Math.floor(receipt.until / day) * day - day : receipt.until - 1000;
+    since = Math.max(previous.requiredSince, continuation);
+  }
   const through = receipt.exhausted ? Math.max(previous.scannedThrough ?? 0, receipt.until) : previous.scannedThrough;
   if (next.windowSince !== since || next.windowUntil !== (receipt.exhausted ? null : receipt.until)
     || next.cursor !== receipt.nextCursor || next.scannedThrough !== through) throw new Error('Account-log traversal advanced without its durable page/EOF.');
@@ -91,7 +95,8 @@ function assertForwardContinuation(previous: AccountLogCheckpoint, next: Account
 function assertAuditContinuation(previous: AccountLogCheckpoint, next: AccountLogCheckpoint, receipt: AccountLogPageReceipt): void {
   const today = Math.floor(receipt.completedAt / 86400000) * 86400000;
   if (previous.revision % 2 !== 1 || previous.requiredSince >= today || (previous.scannedThrough ?? 0) < today) throw new Error('Historical audit was not eligible.');
-  const since = receipt.exhausted ? (receipt.until >= today ? previous.requiredSince : Math.max(previous.requiredSince, receipt.until - 1000)) : receipt.since;
+  let since = receipt.since;
+  if (receipt.exhausted) since = receipt.until >= today ? previous.requiredSince : Math.max(previous.requiredSince, receipt.until - 1000);
   const expected = { windowSince: since, windowUntil: receipt.exhausted ? null : receipt.until,
     cursor: receipt.nextCursor, completedAt: receipt.exhausted ? receipt.completedAt : previous.audit?.completedAt ?? 0 };
   if (JSON.stringify(next.audit) !== JSON.stringify(expected)) throw new Error('Historical audit lost its durable page/EOF.');

@@ -12,7 +12,8 @@ interface PreservedDatabaseSet {
 export interface MigrationRestoreOptions { maintenanceLease?: McpMaintenanceLease }
 
 async function pathExists(file: string): Promise<boolean> {
-  try { await fs.lstat(file); return true; } catch (error: any) { if (error?.code === 'ENOENT') return false; throw error; }
+  try { await fs.lstat(file); return true; } catch (error: any) { if (error?.code === 'ENOENT') return false;
+    throw error; }
 }
 
 async function assertMigrationFence(target: string, stateDirectory: string, lease?: McpMaintenanceLease): Promise<void> {

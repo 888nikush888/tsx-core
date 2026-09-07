@@ -32,7 +32,8 @@ async function accountForOriginal(row: OriginalEvent): Promise<FxAccount> {
   const current = await getDatabase().get<{ exchange: FxAccount['exchange']; mode: FxAccount['mode'];
     external_account_id: string; credential_generation: string; capabilities_json: string }>(
     'SELECT exchange,mode,external_account_id,credential_generation,capabilities_json FROM trading_accounts WHERE id=?', [row.account_id]);
-  if (!current || current.external_account_id !== row.account_fingerprint) return invalidFx('ACCOUNT_BINDING_CHANGED');
+  if (!current) return invalidFx('ACCOUNT_BINDING_CHANGED');
+  if (current.external_account_id !== row.account_fingerprint) return invalidFx('ACCOUNT_BINDING_CHANGED');
   return { id: row.account_id, exchange: current.exchange, mode: current.mode, externalAccountId: current.external_account_id,
     credentialGeneration: current.credential_generation, capabilities: JSON.parse(current.capabilities_json) };
 }

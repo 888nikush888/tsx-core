@@ -1,3 +1,4 @@
+import { unknownErrorMessage } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
@@ -21,7 +22,7 @@ const terminal = (state: UiJobState) => ['succeeded', 'failed', 'unknown'].inclu
 /** Separate from the trading DB: a restore cannot roll back its own progress record. */
 export class UiOperationStore {
   private readonly root: string;
-  private records = new Map<string, UiJob>();
+  private readonly records = new Map<string, UiJob>();
   private initialized: Promise<void> | null = null;
   private writes: Promise<unknown> = Promise.resolve();
   constructor(directory: string, private readonly instanceId = UI_PROCESS_INSTANCE_ID) { this.root = path.resolve(directory); }
@@ -89,7 +90,7 @@ export class UiOperationStore {
     } finally { await handle?.close(); await fs.unlink(temporary).catch(() => undefined); }
   }
   async get(id: string): Promise<UiJob | null> { this.filename(id); await this.ready(); return structuredClone(this.records.get(id) ?? null); }
-  async list(): Promise<UiJob[]> { await this.ready(); return [...this.records.values()].sort((a, b) => b.acceptedAt - a.acceptedAt || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)).map(record => structuredClone(record)); }
+  async list(): Promise<UiJob[]> { await this.ready(); return [...this.records.values()].sort((a, b) => b.acceptedAt - a.acceptedAt || compareJobIdsDescending(a.id, b.id)).map(record => structuredClone(record)); }
 
   async page(params: URLSearchParams) {
     const state = params.get('state') || ''; const kind = params.get('kind') || '';
@@ -143,7 +144,7 @@ export class UiOperationStore {
       const result = await operation();
       await this.update(id, { state: restart ? 'awaiting-restart' : 'succeeded', stage: restart ? 'Command confirmed; waiting for a new process instance.' : 'Command completed with the recorded result.', result });
     } catch (error) {
-      await this.update(id, { state: 'failed', stage: 'Command did not complete successfully. Confirmed partial effects must be reviewed.', error: maskPII(error instanceof Error ? error.message : String(error)).slice(0, 2000) });
+      await this.update(id, { state: 'failed', stage: 'Command did not complete successfully. Confirmed partial effects must be reviewed.', error: maskPII(unknownErrorMessage(error)).slice(0, 2000) });
     }
   }
 
@@ -179,10 +180,15 @@ export class UiOperationStore {
   private async recordUnsuccessfulCommand(id: string, error: unknown): Promise<void> {
     try {
       await this.update(id, { state: 'failed', stage: 'Command did not return a confirmed result. Inspect partial effects; no automatic replay.',
-        error: maskPII(error instanceof Error ? error.message : String(error)).slice(0, 2000) });
+        error: maskPII(unknownErrorMessage(error)).slice(0, 2000) });
     } catch {
       const existing = this.records.get(id)!;
       this.records.set(id, { ...existing, state: 'unknown', stage: 'Command and failure receipt are uncertain; no automatic replay.', updatedAt: Date.now() });
     }
   }
+}
+
+function compareJobIdsDescending(left: string, right: string): number {
+  if (left < right) return 1;
+  return left > right ? -1 : 0;
 }

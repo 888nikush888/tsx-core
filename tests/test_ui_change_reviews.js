@@ -18,7 +18,7 @@ import { uiResourcePublication, publishUiResourceWithDependency } from '../src/u
 import { uiSearch } from '../src/ui_search.js';
 import { uiEffectiveParameters } from '../src/ui_effective_parameters.js';
 import { uiModelPage, uiModelDetail, mutateUiModel } from '../src/ui_workflow_models.js';
-import { createTradingStrategyDraft, listTradingStrategies, getTradingStrategyVersion, createSignalContractDraftVersion, listSignalContracts, updateSignalContractDraft } from '../src/trading_repository.js';
+import { createTradingStrategyDraft, listTradingStrategies, getTradingStrategyVersion, createSignalContractDraftVersion, listSignalContracts, updateSignalContractDraft, updateTradingAccountConfiguration } from '../src/trading_repository.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-ui-review-'));
 function testCanonicalReviewOrder() {
@@ -31,6 +31,25 @@ function testCanonicalReviewOrder() {
   assert.equal(reviewHash(Object.fromEntries(Object.entries(value).reverse())), expected);
   assert.notEqual(reviewHash({ ...value, a: [{ z: 0, A: false }, null] }), expected);
 }
+function testReviewCredentialRedaction() {
+  for (const userinfo of ['user:pass', 'u:p:a', ':u:p', 'u:p:', ':::']) {
+    assert.equal(redactReview(`HTTPS://${userinfo}@example.invalid/x`, 0, false), 'HTTPS://[redigiert]@example.invalid/x');
+  }
+  for (const userinfo of ['user', ':pass', 'user:', '::']) {
+    const source = `https://${userinfo}@example.invalid/x`;
+    assert.equal(redactReview(source, 0, false), source);
+  }
+  for (const suffix of ['@example.invalid', '']) {
+    const source = 'https://' + ':'.repeat(100000) + suffix;
+    const expected = suffix ? 'https://[redigiert]@example.invalid' : source;
+    assert.equal(redactReview(source, 0, false), expected);
+  }
+  const protectedFields = ['password', 'api_key', 'rawResponse', 'sourceText', 'token', 'serviceToken', 'tokenSha256'];
+  const original = Object.fromEntries(protectedFields.map(key => [key, 'PRIVATE_TEST_VALUE']));
+  assert.deepEqual(redactReview({ ...original, zero: 0, empty: '', flag: false, absent: null }, 0, false),
+    { ...Object.fromEntries(protectedFields.map(key => [key, '[redigiert]'])), zero: 0, empty: '', flag: false, absent: null });
+}
+testReviewCredentialRedaction();
 function testBoundedReviewTree() {
   const root = { library: Array.from({ length: 35 }, (_, index) => ({ id: `original-${index}`, value: false, tier: null, amount: '0.000000000000001' })), text: '🎯'.repeat(10001), password: 'PRIVATE_REVIEW_VALUE' };
   const query = new URLSearchParams({ path: '["library"]' }); const first = uiReviewTree(root, query, 'review-1');
@@ -78,6 +97,13 @@ try {
   testCanonicalReviewOrder();
   testBoundedReviewTree();
   await initDb(path.join(directory, 'fixture.db')); await seedTradingFixtures();
+  const configuredAccount = await updateTradingAccountConfiguration('paper-default', { capabilities: { supportsZero: 0, enabled: false }, lastReconciledAt: 0 });
+  const preservedAccount = await updateTradingAccountConfiguration('paper-default', {});
+  assert.deepEqual(preservedAccount.capabilities, configuredAccount.capabilities, 'Omission must preserve the original capability evidence.');
+  assert.equal(preservedAccount.lastReconciledAt, 0, 'Zero is an explicit timestamp, not a missing value.');
+  const clearedAccount = await updateTradingAccountConfiguration('paper-default', { capabilities: null, lastReconciledAt: null });
+  assert.equal(clearedAccount.capabilities, null, 'Explicit null must clear capability evidence.');
+  assert.equal(clearedAccount.lastReconciledAt, null, 'Explicit null must clear reconciliation evidence.');
   await setMcpRuntimeMode('active', 'test:setup');
   const { agent } = await createMcpAgent({ name: 'Review agent', permissions: ['workflow.read', 'workflow.write'] });
   const resource = await createWorkflowResourceDraft({ kind: 'channel', name: 'Initial', configuration: { channelId: 'review-channel' } });

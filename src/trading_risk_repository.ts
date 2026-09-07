@@ -79,7 +79,8 @@ export async function existingRiskCommitment(account: TradingAccount, excludedIn
       expiresAt: now + RISK_EVIDENCE_TTL_MS, utcDay, observationId: null };
     const row = await db.get<StoredRiskObservation>(`SELECT observation.* FROM trading_risk_observations observation
       JOIN trading_risk_current current ON current.observation_id = observation.id WHERE current.account_id = ?`, [account.id]);
-    if (!row || row.account_fingerprint !== riskFingerprint(account) || row.credential_generation !== account.credentialGeneration
+    if (!row) unresolved('missing observation or changed identity/epoch.');
+    if (row.account_fingerprint !== riskFingerprint(account) || row.credential_generation !== account.credentialGeneration
       || row.entry_epoch !== epoch) unresolved('missing observation or changed identity/epoch.');
     const timing = { observedAt: row.observed_at, expiresAt: row.expires_at, utcDay: row.utc_day };
     try { assertRiskFresh(timing, now); } catch { unresolved('stale market/protection observation.'); }
@@ -87,7 +88,7 @@ export async function existingRiskCommitment(account: TradingAccount, excludedIn
     if (currency !== evidence.reportingCurrency) unresolved('reporting currency changed.');
     const reservations = source.map(current => {
       const reservation = evidence.reservations.find(candidate => candidate.intentId === current.id);
-      if (!reservation || reservation.sourceHash !== riskHash(current)) unresolved('order/fill/stop sources changed since observation.');
+      if (reservation?.sourceHash !== riskHash(current)) unresolved('order/fill/stop sources changed since observation.');
       if (reservation.amounts.status !== 'complete' || !reservation.amounts.additionalRiskValue) unresolved(reservation.amounts.reason ?? 'unproved reserve.');
       return reservation;
     });

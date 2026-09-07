@@ -8,7 +8,7 @@ import type { ExchangeAcquisitionEvidence, ExchangeFill, TradingAccount } from '
 async function assertBinding(account: TradingAccount): Promise<void> {
   const current = await getDatabase().get<{ exchange: string; mode: string; external_account_id: string; credential_generation: string }>(
     'SELECT exchange,mode,external_account_id,credential_generation FROM trading_accounts WHERE id=?', [account.id]);
-  if (!current || current.exchange !== 'krakenfutures' || current.exchange !== account.exchange || current.mode !== account.mode
+  if (current?.exchange !== 'krakenfutures' || current.exchange !== account.exchange || current.mode !== account.mode
     || current.external_account_id !== account.externalAccountId || current.credential_generation !== account.credentialGeneration
     || !/^[a-f0-9]{64}$/.test(current.external_account_id) || !/^[a-f0-9]{64}$/.test(current.credential_generation)) {
     throw new Error('FILL_QUANTITY_ACCOUNT_BINDING_CHANGED');
@@ -30,7 +30,8 @@ export async function captureFillQuantityEvidence(account: TradingAccount, fill:
   const proof = provenFillIdentity(account, fill);
   const stored = await getDatabase().get<{ account_fingerprint: string; remote_fill_key: string; raw_json: string; identity_status: string; quantity: string }>(
     'SELECT account_fingerprint,remote_fill_key,raw_json,identity_status,quantity FROM trading_fills WHERE account_id=? AND id=?', [account.id, fillId]);
-  if (!proof || !stored || stored.account_fingerprint !== account.externalAccountId || stored.remote_fill_key !== proof.key
+  if (!proof || !stored) throw new Error('FILL_QUANTITY_ORIGINAL_BINDING_MISMATCH');
+  if (stored.account_fingerprint !== account.externalAccountId || stored.remote_fill_key !== proof.key
     || stored.identity_status !== 'proven' || compareDecimal(stored.quantity, fill.quantity) !== 0) throw new Error('FILL_QUANTITY_ORIGINAL_BINDING_MISMATCH');
   const originalHash = fillQuantityDigest('kraken-normalization-original-v1', JSON.parse(stored.raw_json));
   if (normalization.originalExecutionHash !== originalHash) throw new Error('FILL_QUANTITY_ORIGINAL_HASH_MISMATCH');

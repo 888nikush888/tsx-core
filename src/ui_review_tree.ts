@@ -14,8 +14,12 @@ function reviewNode(root: unknown, path: unknown): { node: any; path: string[] }
 function nodeEntry(key: string, value: any, path: string[]) {
   if (protectedKey(key)) return { key, type: 'redacted', value: '[redigiert]', expandable: false };
   const container = value !== null && typeof value === 'object'; const text = typeof value === 'string';
-  return { key, type: value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value,
-    value: container ? null : text ? redactReview(value.slice(0, 1000)) : value,
+  const scalarType = Array.isArray(value) ? 'array' : typeof value;
+  let displayValue = value;
+  if (container) displayValue = null;
+  else if (text) displayValue = redactReview(value.slice(0, 1000));
+  return { key, type: value === null ? 'null' : scalarType,
+    value: displayValue,
     childCount: container ? Object.keys(value).length : null, expandable: container || (text && value.length > 1000), path: [...path, key] };
 }
 function textSection(node: string, offset: number) {

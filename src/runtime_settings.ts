@@ -433,7 +433,7 @@ export class ManagedRuntimeSettingsStore {
         path: key, group: runtimeFieldGroup(key), type: typeof defaultValue, unit: runtimeFieldUnit(key), default: defaultValue,
         range: RUNTIME_INTEGER_RANGES[key as keyof typeof RUNTIME_INTEGER_RANGES] ?? null,
         values: key === 'dashboardAuthMode' ? ['token', 'oidc', 'tailscale'] : null,
-        maxLength: /tailscale(Admin|Viewer)Users/.test(key) ? 4096 : /oidc(AdminRole|ViewerRole|Audience|RoleClaim)/.test(key) ? 256 : 2048,
+        maxLength: runtimeFieldMaxLength(key),
         nullable: false, emptyMeaning: typeof defaultValue === 'string' ? 'Clears optional values; required profile values are validated together.' : null,
         secret: false, editable: true, source: this.recoveryReason ? 'safe-recovery-defaults' : 'managed-runtime-store', environmentName: ENVIRONMENT_MAPPING[key as keyof RuntimeSettings],
         effect: 'Stored now; mapped values applied at startup. Access session revocation may take effect immediately.',
@@ -495,4 +495,9 @@ export function managedRuntimeSettingsFromEnvironment(
 
 export function managedRuntimeSettingsPathFromEnvironment(env: NodeJS.ProcessEnv = process.env): string {
   return path.resolve(env.RUNTIME_SETTINGS_PATH || path.join(process.cwd(), 'config', 'runtime-settings.json'));
+}
+
+function runtimeFieldMaxLength(key: string): number {
+  if (/tailscale(Admin|Viewer)Users/.test(key)) return 4096;
+  return /oidc(AdminRole|ViewerRole|Audience|RoleClaim)/.test(key) ? 256 : 2048;
 }

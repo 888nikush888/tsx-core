@@ -9,7 +9,7 @@ import { projectKrakenCashleg } from './trading_kraken_cashlegs.js';
 
 interface FundingEvent { id: string; timestamp: number; amount: string; asset: string | null; source: string }
 function text(value: string | null | undefined): string {
-  if (!value || value.trim() !== value) throw new Error('missing_monetary_identity');
+  if (!value?.trim() || value.trim() !== value) throw new Error('missing_monetary_identity');
   return value;
 }
 function stamp(value: string | null | undefined): number {
@@ -82,8 +82,10 @@ async function projectRecord(account: TradingAccount, stored: StoredAccountLogRe
     return;
   }
   if (account.exchange === 'krakenfutures' && row.asset === row.contract) throw new Error('position_leg_requires_cash_correlation');
-  const event = account.exchange === 'bybit' ? bybitFunding(row)
-    : account.exchange === 'hyperliquid' ? hyperliquidFunding(row) : krakenFunding(row);
+  let event;
+  if (account.exchange === 'bybit') event = bybitFunding(row);
+  else if (account.exchange === 'hyperliquid') event = hyperliquidFunding(row);
+  else event = krakenFunding(row);
   await postFunding(account, stored, event);
   if (account.exchange === 'bybit') await validateOtherBybitMoney(account, row);
   if (account.exchange === 'krakenfutures') validateOtherKrakenMoney(row);

@@ -41,7 +41,8 @@ export function createProtectionObserver(currentEpoch: (accountId: string) => st
 
 export function assertProtectionObservationCurrent(token: ProtectionObservation): void {
   const live = observations().get(token.accountId);
-  if (!live || live.token.observationId !== token.observationId || live.token.producerId !== token.producerId) {
+  if (!live) throw new Error('PROTECTION_OBSERVATION_CHANGED');
+  if (live.token.observationId !== token.observationId || live.token.producerId !== token.producerId) {
     throw new Error('PROTECTION_OBSERVATION_CHANGED');
   }
   if (live.epoch() !== token.epoch) throw new EntryAdmissionRevokedError();
@@ -49,7 +50,8 @@ export function assertProtectionObservationCurrent(token: ProtectionObservation)
 
 export function protectionObservationCurrent(token: ProtectionObservation, receipt?: string): boolean {
   const live = observations().get(token.accountId);
-  return live !== undefined && live.token.producerId === token.producerId
+  if (live === undefined) return false;
+  return live.token.producerId === token.producerId
     && live.token.observationId === token.observationId && live.epoch() === token.epoch
     && (receipt === undefined || live.receiptHash === protectionReceiptHash(receipt));
 }

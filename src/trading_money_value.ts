@@ -18,6 +18,11 @@ const RATIONAL_KEYS = ['numerator', 'denominator'];
 const DECIMAL_SCALE = 18;
 const RATIONAL_DIGITS = 256;
 
+/** Invalid monetary evidence remains a domain failure; TypeError would stop independent position recovery. */
+export class MoneyRationalValidationError extends Error {
+  constructor() { super('Invalid money rational components.'); }
+}
+
 function dataRecord(value: unknown, keys: string[]): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid money value structure.');
   const prototype = Object.getPrototypeOf(value);
@@ -41,7 +46,7 @@ function canonicalDecimal(value: unknown): string {
 function exactFraction(value: unknown, requireCanonical: boolean): ExactRational {
   const source = dataRecord(value, RATIONAL_KEYS);
   if (typeof source.numerator !== 'string' || typeof source.denominator !== 'string') {
-    throw new Error('Invalid money rational components.');
+    throw new MoneyRationalValidationError();
   }
   const normalized = rational({ numerator: source.numerator, denominator: source.denominator });
   if (requireCanonical && (normalized.numerator !== source.numerator || normalized.denominator !== source.denominator)) {

@@ -26,7 +26,7 @@ function identity(row: Record<string, unknown>): void {
     if (typeof row[key] !== 'string' || !/^[a-f0-9]{64}$/.test(row[key])) throw new Error('Invalid account-mode binding/hash.');
   }
   for (const key of ['providerAccountUid', 'parentAccountUid']) {
-    if (typeof row[key] !== 'string' || !/^(0|[1-9][0-9]{0,31})$/.test(row[key])) throw new Error('Invalid authenticated account UID.');
+    if (typeof row[key] !== 'string' || !/^(0|[1-9]\d{0,31})$/.test(row[key])) throw new Error('Invalid authenticated account UID.');
   }
   if (row.providerAccountUid === '0' || row.parentAccountUid === row.providerAccountUid
     || typeof row.isMaster !== 'boolean' || row.isMaster !== (row.parentAccountUid === '0')) throw new Error('Account UID role mismatch.');

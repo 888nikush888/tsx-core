@@ -10,7 +10,7 @@ type Interval = { startedAt: number; completedAt: number };
 async function assertBinding(account: TradingAccount, mode: BybitAccountModeObservation): Promise<void> {
   const current = await getDatabase().get<{ external_account_id: string; credential_generation: string }>(
     'SELECT external_account_id, credential_generation FROM trading_accounts WHERE id=?', [account.id]);
-  if (account.exchange !== 'bybit' || !current || current.external_account_id !== mode.accountFingerprint
+  if (account.exchange !== 'bybit' || current?.external_account_id !== mode.accountFingerprint
     || current.credential_generation !== mode.credentialGeneration || account.externalAccountId !== mode.accountFingerprint
     || account.credentialGeneration !== mode.credentialGeneration) throw new Error('Account-mode binding changed.');
 }

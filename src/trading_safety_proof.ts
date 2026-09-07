@@ -100,8 +100,9 @@ function commitmentReasons(orders: SafetyOrder[], operations: SafetyOperation[],
   const reasons: SafetyReason[] = [];
   for (const order of orders) {
     const uncertain = operations.some(operation => operation.intentId === order.intentId && operation.hasEntry && pending(operation));
-    const code = order.role === 'entry' ? entryCommitmentReason(order.status, uncertain)
-      : allExits && !terminal(order.status) ? 'EXIT_SIBLING_NOT_TERMINAL' : null;
+    let code;
+    if (order.role === 'entry') code = entryCommitmentReason(order.status, uncertain);
+    else code = allExits && !terminal(order.status) ? 'EXIT_SIBLING_NOT_TERMINAL' : null;
     if (code) reasons.push({ code, intentId: order.intentId, orderId: order.clientOrderId ?? undefined });
   }
   return reasons;

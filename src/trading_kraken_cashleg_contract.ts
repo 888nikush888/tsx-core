@@ -19,7 +19,7 @@ export class KrakenCashlegError extends Error {
   constructor(message: string, public readonly conflict = false) { super(`kraken_cashleg:${message}`); }
 }
 export function cashlegText(value: string | null | undefined): string {
-  if (!value || value.trim() !== value || value.length > 256) throw new KrakenCashlegError('missing_original_identity');
+  if (!value?.trim() || value.trim() !== value || value.length > 256) throw new KrakenCashlegError('missing_original_identity');
   return value;
 }
 export function cashlegAsset(value: string | null | undefined): string {

@@ -1,3 +1,4 @@
+import { isStringMember } from './contract_values.js';
 import { randomUUID } from 'node:crypto';
 import { getDatabase } from './db.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
@@ -286,7 +287,7 @@ function analyticsTimestampMatches(timestamp: number, filters: TradingAnalyticsF
 
 function analyticsDimensionMatches(allowed: string[], value: unknown): boolean {
   if (allowed.length === 0) return true;
-  return allowed.includes(String(value));
+  return isStringMember(value, allowed);
 }
 
 function analyticsRowMatches(row: any, filters: TradingAnalyticsFilters): boolean {
@@ -575,7 +576,7 @@ function presentedAggregate(value: PerformanceAggregate): Record<string, unknown
     winRatePercent: completeOutcomes && closed.wins + closed.losses > 0 ? closed.wins / (closed.wins + closed.losses) * 100 : null,
     ...payoffPresentation(closed),
     ...summary,
-    pnlRankingStatus: summary.realizedPnlValue?.exact ? 'exact' : summary.realizedPnlValue ? 'uncertain' : 'unavailable',
+    pnlRankingStatus: pnlRankingStatus(summary.realizedPnlValue),
     intents: value.intents,
     completedIntents: value.completed,
     rejectedIntents: value.rejected,
@@ -723,4 +724,9 @@ export async function getFilteredTradingAnalytics(filters: TradingAnalyticsFilte
     execution,
     fallback,
   };
+}
+
+function pnlRankingStatus(value: { exact: unknown } | null | undefined): 'exact' | 'uncertain' | 'unavailable' {
+  if (value?.exact) return 'exact';
+  return value ? 'uncertain' : 'unavailable';
 }

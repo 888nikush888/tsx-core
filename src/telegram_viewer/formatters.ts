@@ -2,7 +2,10 @@ import type { TelegramViewerSettings, TradingNotificationEvent } from '../viewer
 import { moneyValueFromDecimal, validateMoneyValue, type MoneyValue } from '../trading_money_value.js';
 
 const TELEGRAM_MESSAGE_LIMIT = 4096;
-const CALLBACK_PATTERN = /^(menu:(summary|accounts|positions|orders|trades|performance|risk|system|events|refresh|help)|page:(accounts|positions|orders|trades|risk|incidents|events):[0-9]{1,4})$/;
+const CALLBACK_PATTERNS = [
+  /^menu:(summary|accounts|positions|orders|trades|performance|risk|system|events|refresh|help)$/,
+  /^page:(accounts|positions|orders|trades|risk|incidents|events):\d{1,4}$/,
+];
 
 function clipped(value: string): string {
   if (value.length <= TELEGRAM_MESSAGE_LIMIT) return value;
@@ -15,8 +18,8 @@ function clipped(value: string): string {
 function safeDetails(details: Record<string, unknown>): string[] {
   const hasMoney = 'realizedPnl' in details || 'realizedPnlValue' in details;
   return Object.entries(details)
-    .filter(([key, value]) => !(hasMoney && ['realizedPnl', 'reportingCurrency', 'accountingStatus'].includes(key))
-      && ['string', 'number', 'boolean'].includes(typeof value))
+    .filter((entry): entry is [string, string | number | boolean] => !(hasMoney && ['realizedPnl', 'reportingCurrency', 'accountingStatus'].includes(entry[0]))
+      && scalarText(entry[1]) !== null)
     .slice(0, 12)
     .map(([key, value]) => `${key}: ${String(value).slice(0, 500)}`);
 }
@@ -29,7 +32,12 @@ function values(payload: Record<string, any>, key: string): any[] {
 }
 
 function line(parts: unknown[]): string {
-  return parts.filter(value => value !== null && value !== undefined && value !== '').join(' · ');
+  return parts.map(scalarText).filter(value => value !== null && value !== '').join(' · ');
+}
+
+function scalarText(value: unknown): string | null {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return null;
 }
 
 function currencyUnit(value: unknown): string | null {
@@ -50,7 +58,8 @@ function moneyText(summary: Record<string, any>): string | null {
       if (typeof summary.realizedPnl !== 'string') return null;
       const value = moneyValueFromDecimal(summary.realizedPnl);
       const suffix = summary.accountingStatus === 'complete' && currency ? ' (vollständig; exakt)' : '';
-      return `${value.decimal}${currency ? ` ${currency}` : ' (Währung ungeklärt)'}${suffix}`;
+      const currencyLabel = currency ? ` ${currency}` : ' (Währung ungeklärt)';
+      return `${value.decimal}${currencyLabel}${suffix}`;
     }
     if (!currency || summary.realizedPnlValue === null || summary.accountingStatus !== 'complete') return null;
     const value = validateMoneyValue(summary.realizedPnlValue);
@@ -88,8 +97,9 @@ function listMessage(title: string, items: string[]): string {
 }
 
 function optionalLeverageLine(label: string, value: unknown): string | null {
-  if (value === null || value === undefined || value === '') return null;
-  return `${label}: ${value}`;
+  const text = scalarText(value);
+  if (text === null || text === '') return null;
+  return `${label}: ${text}`;
 }
 
 function leverageLines(value: unknown): string[] {
@@ -121,8 +131,7 @@ export function formatSummary(payload: Record<string, any>): string {
 export function formatAccounts(payload: Record<string, any>): string {
   return listMessage('Accounts', values(payload, 'accounts').map(item => line([
     item.name || item.id || 'Konto', item.exchange, item.mode, item.status,
-    item.equity !== null && item.equity !== undefined
-      ? `Equity ${item.equity}${item.reportingCurrency ? ` ${item.reportingCurrency}` : ''}` : null,
+    accountEquityLine(item),
   ])));
 }
 
@@ -199,7 +208,7 @@ export function formatTelegramViewerEvent(
   const lines = [
     `TSX Core · ${title}`,
     `Zeit: ${occurredAt}`,
-    event.exchange ? `Börse: ${event.exchange}${event.mode ? ` (${event.mode})` : ''}` : null,
+    exchangeLine(event),
     event.accountId ? `Konto: ${event.accountId}` : null,
     event.channelId ? `Kanal: ${event.channelId}` : null,
     event.intentId ? `Intent: ${event.intentId}` : null,
@@ -230,7 +239,7 @@ export function formatTelegramViewerProjection(resource: string, payload: Record
 }
 
 export function validTelegramViewerCallback(value: unknown): value is string {
-  return typeof value === 'string' && CALLBACK_PATTERN.test(value);
+  return typeof value === 'string' && CALLBACK_PATTERNS.some(pattern => pattern.test(value));
 }
 
 export function telegramViewerMenu(
@@ -265,3 +274,14 @@ export const TELEGRAM_VIEWER_UNKNOWN_COMMAND = [
   'TSX Core Telegram Viewer',
   'Dieser Befehl ist nicht verfügbar. Der Viewer bietet ausschließlich lesenden Zugriff.',
 ].join('\n');
+
+function accountEquityLine(item: Record<string, any>): string | null {
+  if (item.equity === null || item.equity === undefined) return null;
+  const currency = item.reportingCurrency ? ` ${item.reportingCurrency}` : '';
+  return `Equity ${item.equity}${currency}`;
+}
+function exchangeLine(event: TradingNotificationEvent): string | null {
+  if (!event.exchange) return null;
+  const mode = event.mode ? ` (${event.mode})` : '';
+  return `Börse: ${event.exchange}${mode}`;
+}
