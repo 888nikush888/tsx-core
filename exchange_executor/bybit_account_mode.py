@@ -13,13 +13,13 @@ from history_reader import RecoveryReadBudget, now_ms
 def _uid(value: Any) -> str:
     if type(value) is int:
         value = str(value)
-    if not isinstance(value, str) or not re.fullmatch(r'0|[1-9][0-9]{0,31}', value):
+    if not isinstance(value, str) or not re.fullmatch(r'(?a)0|[1-9]\d{0,31}', value):
         raise ExchangeContractError('Invalid authenticated Bybit account identity.')
     return value
 
 
 def _time(value: Any) -> int:
-    if isinstance(value, str) and re.fullmatch(r'[0-9]{1,16}', value):
+    if isinstance(value, str) and re.fullmatch(r'(?a)\d{1,16}', value):
         value = int(value)
     if type(value) is not int or not 0 <= value <= 9_007_199_254_740_991:
         raise ExchangeContractError('Invalid Bybit account observation time.')

@@ -8,8 +8,8 @@ from typing import Any
 
 
 EXCHANGE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
-DECIMAL_PATTERN = re.compile(r"(?:0|[1-9][0-9]{0,35})(?:\.[0-9]{1,18})?")
-SIGNED_DECIMAL_PATTERN = re.compile(r"-?(?:0|[1-9][0-9]{0,35})(?:\.[0-9]{1,18})?")
+DECIMAL_PATTERN = re.compile(r"(?a)(?:0|[1-9]\d{0,35})(?:\.\d{1,18})?")
+SIGNED_DECIMAL_PATTERN = re.compile(r"(?a)-?(?:0|[1-9]\d{0,35})(?:\.\d{1,18})?")
 
 
 class ExchangeContractError(ValueError):

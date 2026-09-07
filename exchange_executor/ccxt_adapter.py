@@ -727,10 +727,8 @@ class CcxtAdapter:
             )
         return orders
 
-    async def _resolve_protected_results(
-        self,
-        clients: AccountClients,
-        market: dict[str, Any],
+    @staticmethod
+    def _resolve_protected_results(
         entry_result: dict[str, Any],
         stop_result: dict[str, Any],
         bounded_ioc: bool = False,
@@ -773,7 +771,7 @@ class CcxtAdapter:
         specs = (entry_spec, stop_spec)
         orders = await self._create_protected_orders(clients, market, specs, deadline, entry['leverage'], entry)
         entry_result, stop_result = _protected_order_results(orders, market, specs, clients.account["exchange"])
-        return await self._resolve_protected_results(clients, market, entry_result, stop_result, needs_entry_boundary(entry))
+        return self._resolve_protected_results(entry_result, stop_result, needs_entry_boundary(entry))
 
     async def _recent_historical_orders(self, clients: AccountClients, deadline: RequestDeadline) -> list[dict[str, Any]]:
         exchange = clients.account["exchange"]

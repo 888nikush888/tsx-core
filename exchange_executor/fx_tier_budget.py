@@ -20,7 +20,7 @@ def _shape(value, fields):
 
 
 def _positive_integer(value):
-    require_tier(type(value) is str and re.fullmatch(r'[1-9][0-9]{0,255}', value) is not None,
+    require_tier(type(value) is str and re.fullmatch(r'(?a)[1-9]\d{0,255}', value) is not None,
                  'Invalid positive bounded notional coefficient.')
     return int(value)
 

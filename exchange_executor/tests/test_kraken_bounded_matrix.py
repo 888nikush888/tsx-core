@@ -176,9 +176,8 @@ class KrakenBoundedMatrix(unittest.IsolatedAsyncioTestCase):
         entry, stop = _protected_order_results(parsed, rest.market(SYMBOL), specs, EXCHANGE)
         self.assertEqual(stop['status'], 'rejected')
         adapter = CcxtAdapter(FakeRegistry(rest, EXCHANGE))
-        prepared_market = rest.market(SYMBOL)
         with self.assertRaises(UnresolvedOrderOutcome) as failure:
-            await adapter._resolve_protected_results(adapter.registry.clients, prepared_market, entry, stop, True)
+            adapter._resolve_protected_results(entry, stop, True)
         self.assertEqual(failure.exception.details['confirmedOrders'], [entry, stop])
 
     async def test_empty_ioc_rejection_without_real_identity_is_not_absence(self):
@@ -196,7 +195,7 @@ class KrakenBoundedMatrix(unittest.IsolatedAsyncioTestCase):
             rest, specs, parsed, _ = await self.submit_specimen(response, side)
             entry, stop = _protected_order_results(parsed, rest.market(SYMBOL), specs, EXCHANGE)
             adapter = CcxtAdapter(FakeRegistry(rest, EXCHANGE))
-            result = await adapter._resolve_protected_results(adapter.registry.clients, rest.market(SYMBOL), entry, stop, True)
+            result = adapter._resolve_protected_results(entry, stop, True)
             self.assertEqual((result['entry']['status'], result['entry']['filledQuantity']), ('cancelled', '0'))
             self.assertEqual(result['protectiveStop']['status'], 'open')
             self.assertEqual(set(result), {'entry', 'protectiveStop'}, 'Adapter result is not account cleanup/closure evidence.')

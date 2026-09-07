@@ -137,7 +137,7 @@ async def read_account_log_page(rest, exchange, checkpoint, budget, user=None):
         return None, {**state, 'reason': 'transient', 'nextReadAt': budget.resume_at, 'lastServedAt': started}
     except (NotSupported, NotImplementedError, AttributeError):
         return None, {**state, 'reason': 'source_unsupported', 'nextReadAt': started + 300000, 'lastServedAt': started}
-    except (BadRequest, InvalidOrder, ExchangeContractError, ValueError, KeyError, TypeError):
+    except (BadRequest, InvalidOrder, ValueError, KeyError, TypeError):
         return None, {**state, 'reason': 'invalid_source_evidence', 'nextReadAt': started + 60000, 'lastServedAt': started}
 
 

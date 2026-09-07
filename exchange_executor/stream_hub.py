@@ -203,7 +203,10 @@ class AccountStream:
         first = self._events[0]["cursor"] if self._events else self._cursor + 1
         gap = cursor > self._cursor or (cursor + 1 < first)
         events = [] if gap else [event for event in self._events if event["cursor"] > cursor][:MAX_EVENTS_PER_POLL]
-        next_cursor = self._cursor if gap else (events[-1]["cursor"] if events else cursor)
+        if gap:
+            next_cursor = self._cursor
+        else:
+            next_cursor = events[-1]["cursor"] if events else cursor
         return {
             "events": events,
             "nextCursor": next_cursor,

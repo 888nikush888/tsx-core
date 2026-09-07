@@ -25,7 +25,7 @@ from common import DECIMAL_PATTERN, ExchangeContractError
 
 
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
-_ORIGINAL_NUMBER = re.compile(r'(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?')
+_ORIGINAL_NUMBER = re.compile(r'(?a)(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?')
 
 
 class KucoinContractError(ExchangeContractError):

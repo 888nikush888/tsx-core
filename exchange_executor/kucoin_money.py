@@ -35,7 +35,7 @@ def _window(state: Any, *, maximum_width: int) -> tuple[int, int, str | None]:
     require(since <= until and until - since <= maximum_width,
             "KuCoin money window is invalid or too wide.")
     cursor = state.get("cursor")
-    require(cursor is None or (type(cursor) is str and re.fullmatch(r"[0-9]{1,16}", cursor)),
+    require(cursor is None or (type(cursor) is str and re.fullmatch(r"(?a)\d{1,16}", cursor)),
             "KuCoin money cursor is invalid.")
     return since, until, cursor
 
@@ -51,7 +51,7 @@ def _offset(value: Any, label: str) -> str:
         require(0 <= value <= 99_999_999_999_999_999_999,
                 f"KuCoin {label} must be an exact offset.")
         value = str(value)
-    require(type(value) is str and re.fullmatch(r"(?:0|[1-9][0-9]{0,20})", value) is not None,
+    require(type(value) is str and re.fullmatch(r"(?a)(?:0|[1-9]\d{0,20})", value) is not None,
             f"KuCoin {label} must be an exact offset.")
     return value
 

@@ -44,14 +44,14 @@ def _state(value: Any, expected_uid: str) -> dict[str, Any]:
             "KuCoin history window is invalid or exceeds seven days.")
     cursor = result.get("cursor")
     require(cursor is None or (type(cursor) is str
-            and re.fullmatch(r"[1-9][0-9]{0,8}(?::[0-9]{1,9})?", cursor)),
+            and re.fullmatch(r"(?a)[1-9]\d{0,8}(?::\d{1,9})?", cursor)),
             "KuCoin history cursor is invalid.")
     return result
 
 
 def _large_integer(value: Any, label: str) -> int:
     if type(value) is str:
-        require(re.fullmatch(r"(?:0|[1-9][0-9]{0,20})", value) is not None,
+        require(re.fullmatch(r"(?a)(?:0|[1-9]\d{0,20})", value) is not None,
                 f"KuCoin {label} must be an exact provider integer.")
         value = int(value)
     require(type(value) is int and 0 <= value <= 99_999_999_999_999_999_999,

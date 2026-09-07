@@ -66,7 +66,7 @@ def cloid_lookup_identity(rest: Any, order: dict[str, Any], client_id: str, symb
     market = rest.market(symbol)
     oid = native.get("oid")
     if (type(oid) not in (str, int) or str(oid) != order.get("id")
-            or not re.fullmatch(r"[0-9]{1,256}", str(oid))):
+            or not re.fullmatch(r"(?a)\d{1,256}", str(oid))):
         raise ExchangeContractError("Cloid lookup returned a conflicting native order identity.")
     coin = hyperliquid_market_coin(market)
     if order.get("symbol") != symbol or coin is None or native.get("coin") != coin:
