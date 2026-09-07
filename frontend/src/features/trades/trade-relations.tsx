@@ -15,6 +15,8 @@ const COLUMNS: Record<Kind, Array<[string, string]>> = {
   money: [['id', 'Ereignis-ID'], ['kind', 'Art'], ['amount', 'Originalbetrag'], ['asset', 'Originalwährung'], ['valuationStatus', 'Bewertung'], ['reporting', 'Reportingwert'], ['occurredAt', 'Ereigniszeit'], ['valuationEvidenceId', 'Bewertungsbeleg']],
   events: [['id', 'Ereignis-ID'], ['eventType', 'Ereignis'], ['occurredAt', 'Zeitpunkt'], ['correlationId', 'Korrelation'], ['detailsOmitted', 'Technische Details überschreiten Anzeigegrenze']],
 };
+const PAGE_LABELS = { orders: ['Orderseite', 'Orders'], fills: ['Fillseite', 'Fills'], money: ['Geldseite', 'Geldbelege'], events: ['Ereignisseite', 'Ereignisse'] };
+
 export function TradeRelations({ intentId, kind }: { intentId: string; kind: Kind }) {
   const [params, setParams] = useSearchParams(); const cursorKey = `${kind}Cursor`; const cursor = params.get(cursorKey) ?? '';
   const query = new URLSearchParams({ intentId, kind, limit: '40', ...(cursor ? { cursor } : {}) }).toString();
@@ -31,7 +33,7 @@ export function TradeRelations({ intentId, kind }: { intentId: string; kind: Kin
       <EvidenceTable caption={LABELS[kind]} rows={rows} columns={COLUMNS[kind]} />
       {kind === 'money' && page.entries.map((row: any) => <details key={row.id}><summary>Geldherkunft und Bewertung · {row.id}</summary><p>{row.explanation}</p>{row.originalUnverified && <p role="alert">Originalintegrität ungeklärt. Die gespeicherten Skalare sind kein bestätigtes Rechnungsergebnis.</p>}{row.valuationReason && <p>{row.valuationReason}</p>}<ChangeReview after={{ source: row.source, basis: row.basis, fillId: row.fillId, providerEventId: row.providerEventId, amount: row.amount, asset: row.asset, reportingValue: row.reportingValue, conversion: row.conversion }} showAll label={`Bewertungsquelle ${row.id}`} /></details>)}
       {kind === 'events' && page.entries.filter((row: any) => row.details).map((row: any) => <details key={row.id}><summary>Ereignisbeleg · {row.eventType} · {row.id}</summary><ChangeReview after={row.details} showAll label={`Ereignisdetails ${row.id}`} /></details>)}
-      <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => changePage(null)}>Erste {kind === 'orders' ? 'Orderseite' : kind === 'fills' ? 'Fillseite' : kind === 'money' ? 'Geldseite' : 'Ereignisseite'}</button><button className="secondary-button" disabled={!page.hasMore} onClick={() => changePage(page.nextCursor)}>Weitere {kind === 'orders' ? 'Orders' : kind === 'fills' ? 'Fills' : kind === 'money' ? 'Geldbelege' : 'Ereignisse'}</button></div>
+      <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => changePage(null)}>Erste {PAGE_LABELS[kind][0]}</button><button className="secondary-button" disabled={!page.hasMore} onClick={() => changePage(page.nextCursor)}>Weitere {PAGE_LABELS[kind][1]}</button></div>
     </> : !error && <p role="status">Belege werden geladen …</p>}
   </section>;
 }

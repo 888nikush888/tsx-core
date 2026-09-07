@@ -38,6 +38,14 @@ export function WorkflowLibrary({ kind, resourceId }: { kind: Kind; resourceId?:
   </section>;
 }
 
+function workflowObjectTitle(kind: Kind, resource: WorkflowResource | undefined, data: any) {
+  if (resource) return `${resource.name} · Version ${resource.version}`;
+  return kind === 'paths' ? 'Originaler Ausführungspfad' : `Workflowrevision ${data.revision.revision}`;
+}
+function resourceArchiveLabel(resource: WorkflowResource) {
+  return resource.status === 'draft' ? 'Entwurf löschen' : 'Version archivieren';
+}
+
 export function WorkflowObject({ kind, id, resourceId }: { kind: Kind; id: string; resourceId?: string }) {
   const readOnly = useOperatorReadOnly(); const [data, setData] = useState<any>(null); const [error, setError] = useState(''); const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false); const [editing, setEditing] = useState(false); const [trading, setTrading] = useState<TradingSnapshot | null>(null);
@@ -83,7 +91,7 @@ export function WorkflowObject({ kind, id, resourceId }: { kind: Kind; id: strin
   };
   if (!data) return <section><h1>Workflowobjekt</h1><p role={error ? 'alert' : 'status'}>{error || 'Objekt wird geladen …'}</p></section>;
   if (resourceId && resource?.resourceId !== resourceId) return <p role="alert">Diese Version gehört nicht zur angefragten Ressourcenfamilie.</p>;
-  return <section className="space-y-5">{confirmationDialog}<Link to={`/workflows/${kind}`}>{TITLES[kind]}</Link><h1>{resource ? `${resource.name} · Version ${resource.version}` : kind === 'paths' ? 'Originaler Ausführungspfad' : `Workflowrevision ${data.revision.revision}`}</h1>
+  return <section className="space-y-5">{confirmationDialog}<Link to={`/workflows/${kind}`}>{TITLES[kind]}</Link><h1>{workflowObjectTitle(kind, resource, data)}</h1>
     {error && <p role="alert">{error}</p>}{message && <p role="status">{message}</p>}{savedResource && <p><Link to={resourceUrl(savedResource)}>Gespeicherten Entwurf {savedResource.id} öffnen</Link></p>}
     <p>{data.effect}</p><p>Beobachtet {time(data.observedAt)}</p>
     {resource ? <><EvidenceFields fields={[["Ressource", resource.resourceId], ["Version-ID", resource.id], ["Zustand", resource.status], ["Entwurfsrevision", resource.editRevision], ["Konfigurationshash", resource.configurationSha256], ["Publiziert", time(resource.publishedAt)]]} />
@@ -97,7 +105,7 @@ export function WorkflowObject({ kind, id, resourceId }: { kind: Kind; id: strin
       {data.editingBlockedByRedaction && <p>Diese Quelle enthält redigierte Zugangsdaten. Bearbeiten/Kopieren ist gesperrt, damit Platzhalter keine gespeicherten Werte überschreiben. Zugangsdaten gehören in die separate Secretverwaltung.</p>}
       {WORKFLOW_KINDS.includes(resource.kind) ? <div className="flex flex-wrap gap-3"><button className="secondary-button" disabled={readOnly || busy || data.editingBlockedByRedaction} onClick={() => setEditing(true)}>{resource.status === 'draft' ? 'Entwurf bearbeiten' : 'Neue Version als Entwurf'}</button>
         {resource.status === 'draft' && <button className="primary-button" disabled={readOnly || busy} onClick={() => void lifecycle('publish')}>Version publizieren</button>}
-        {resource.status !== 'archived' && <button className="secondary-button" disabled={readOnly || busy} onClick={() => void lifecycle('archive')}>{resource.status === 'draft' ? 'Entwurf löschen' : 'Version archivieren'}</button>}
+        {resource.status !== 'archived' && <button className="secondary-button" disabled={readOnly || busy} onClick={() => void lifecycle('archive')}>{resourceArchiveLabel(resource)}</button>}
         <button className="secondary-button" disabled={readOnly || busy} onClick={() => void lifecycle('archive', true)}>Familie archivieren</button><button className="danger-button" disabled={readOnly || busy} onClick={() => void lifecycle('delete', true)}>Familie dauerhaft löschen</button></div> : <p>Unbekannte Bausteinart: Diese UI-Version bietet ausschließlich Lesezugriff.</p>}
       {editing && !trading && ['strategy', 'contract', 'schema', 'account'].includes(resource.kind) && <p role="status">Modell- und Kontokontext für den Editor wird geladen …</p>}
       {editing && (trading || !['strategy', 'contract', 'schema', 'account'].includes(resource.kind)) && WORKFLOW_KINDS.includes(resource.kind) && <ResourceEditor draftOnly open kind={resource.kind} resource={resource} trading={trading} onSave={save} onClose={() => setEditing(false)} />}

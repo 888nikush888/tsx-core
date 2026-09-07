@@ -16,6 +16,41 @@ import { resolveDisplayedLeverage } from '@/features/trades/plan-display';
 import { EquityChart } from '@/features/risk-analytics/equity-chart';
 import { OperatorAttention } from './attention';
 
+function overviewGates(runtime: TradingSnapshot['overview']['runtime'] | undefined, systemStatus: Record<string, any> | null) {
+  return [
+    [
+      "Telegram",
+      systemStatus?.connectionState === "connected",
+      systemStatus?.connectionState || "unbekannt",
+    ],
+    [
+      "Execution",
+      runtime?.executionEnabled === true,
+      !runtime ? 'unbekannt' : runtime.executionEnabled ? "Einträge aktiv" : "Einträge pausiert",
+    ],
+    [
+      "Globaler Kill-Switch",
+      runtime?.killSwitchActive === false,
+      !runtime ? 'unbekannt' : runtime.killSwitchActive ? runtime.killSwitchReason || "aktiv" : "frei",
+    ],
+    [
+      "Live-Handel",
+      runtime?.liveTradingEnabled === true,
+      !runtime ? 'unbekannt' : runtime.liveTradingEnabled ? "freigegeben" : "gesperrt",
+    ],
+  ] as const;
+}
+
+function ServiceEvidence({ operations, observations, portfolio, systemStatus }: {
+  operations: any; observations: Record<string, number>; portfolio: any; systemStatus: Record<string, any> | null;
+}) {
+  return <section className="operations-card"><h2>Dienst, Schutz und Nachweisalter</h2><EvidenceFields fields={[
+        ['Startup', operations?.startup?.phase], ['Initialer Schutzscan abgeschlossen', operations?.protectionScanComplete], ['Audit', operations?.audit?.healthy === true ? 'belegt' : operations?.audit?.healthy === false ? 'gestört' : null],
+        ['Backup', operations?.backup?.healthy === true ? 'Scheduler meldet gesund; Artefakt separat prüfen' : operations?.backup?.healthy === false ? 'gestört' : null], ['Betriebsquelle abgerufen', observations['/api/operations'] ? time(observations['/api/operations']) : null],
+        ['Portfolio beobachtet', portfolio?.observedAt ? time(portfolio.observedAt) : null], ['Portfolio aus Servercache', portfolio?.cached], ['Queue läuft / wartet', systemStatus?.queue ? `${systemStatus.queue.running ?? 'unbekannt'} / ${systemStatus.queue.queued ?? 'unbekannt'}` : null],
+      ]} /><p>Initialer Schutzscan und Dienstgesundheit ersetzen keinen aktuellen kontobezogenen Stop- und REST-Nachweis.</p><Link to="/trading/accounts">Konten & Schutz prüfen</Link> · <Link to="/trading/incidents">Blocker & Incidents</Link> · <Link to="/trading/operations">Ungeklärte Börsenoperationen</Link> · <Link to="/operations/backups">Backup-Nachweise</Link></section>;
+}
+
 export function Overview({
   trading,
   systemStatus,
@@ -54,28 +89,7 @@ export function Overview({
   } }, reason => setMessage(reason.message));
   const overview = trading?.overview;
   const runtime = overview?.runtime;
-  const gates = [
-    [
-      "Telegram",
-      systemStatus?.connectionState === "connected",
-      systemStatus?.connectionState || "unbekannt",
-    ],
-    [
-      "Execution",
-      runtime?.executionEnabled === true,
-      !runtime ? 'unbekannt' : runtime.executionEnabled ? "Einträge aktiv" : "Einträge pausiert",
-    ],
-    [
-      "Globaler Kill-Switch",
-      runtime?.killSwitchActive === false,
-      !runtime ? 'unbekannt' : runtime.killSwitchActive ? runtime.killSwitchReason || "aktiv" : "frei",
-    ],
-    [
-      "Live-Handel",
-      runtime?.liveTradingEnabled === true,
-      !runtime ? 'unbekannt' : runtime.liveTradingEnabled ? "freigegeben" : "gesperrt",
-    ],
-  ] as const;
+  const gates = overviewGates(runtime, systemStatus);
   const portfolioTotal = (key: string) => portfolioSnapshotTotal(portfolio?.accounts, key);
   const openPositions = (trading?.activity.positions || []).filter((position: any) => ["opening", "open", "closing", "emergency"].includes(position.status));
   const intentById = new Map((trading?.intents || []).map((intent: any) => [intent.id, intent]));
@@ -163,11 +177,7 @@ export function Overview({
       {message && <div role="status" className="builder-info">{message}</div>}
       <OperatorAttention />
       {Object.entries(sourceErrors).filter(([, error]) => error).map(([source, error]) => <p key={source} role="alert">{source}: {error} · Quelle möglicherweise veraltet; andere Nachweise bleiben separat verfügbar.</p>)}
-      <section className="operations-card"><h2>Dienst, Schutz und Nachweisalter</h2><EvidenceFields fields={[
-        ['Startup', operations?.startup?.phase], ['Initialer Schutzscan abgeschlossen', operations?.protectionScanComplete], ['Audit', operations?.audit?.healthy === true ? 'belegt' : operations?.audit?.healthy === false ? 'gestört' : null],
-        ['Backup', operations?.backup?.healthy === true ? 'Scheduler meldet gesund; Artefakt separat prüfen' : operations?.backup?.healthy === false ? 'gestört' : null], ['Betriebsquelle abgerufen', observations['/api/operations'] ? time(observations['/api/operations']) : null],
-        ['Portfolio beobachtet', portfolio?.observedAt ? time(portfolio.observedAt) : null], ['Portfolio aus Servercache', portfolio?.cached], ['Queue läuft / wartet', systemStatus?.queue ? `${systemStatus.queue.running ?? 'unbekannt'} / ${systemStatus.queue.queued ?? 'unbekannt'}` : null],
-      ]} /><p>Initialer Schutzscan und Dienstgesundheit ersetzen keinen aktuellen kontobezogenen Stop- und REST-Nachweis.</p><Link to="/trading/accounts">Konten & Schutz prüfen</Link> · <Link to="/trading/incidents">Blocker & Incidents</Link> · <Link to="/trading/operations">Ungeklärte Börsenoperationen</Link> · <Link to="/operations/backups">Backup-Nachweise</Link></section>
+      <ServiceEvidence operations={operations} observations={observations} portfolio={portfolio} systemStatus={systemStatus} />
       {openIncidents.length > 0 && (
         <section className="operations-card critical-dashboard-alert" aria-live="assertive">
           <AlertTriangle />

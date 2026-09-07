@@ -1499,6 +1499,15 @@ function SignalSchemaResourceFields({
   );
 }
 
+function resourceSaveLabel(saving: boolean, draftOnly: boolean) {
+  if (saving) return 'Speichere…';
+  return draftOnly ? 'Ressourcen- und Graphentwurf speichern' : 'Version speichern & aktivieren';
+}
+
+function parserPrompt(kind: WorkflowKind, configuration: Record<string, unknown>) {
+  return kind === 'parser' && typeof configuration.prompt === 'string' ? configuration.prompt : '';
+}
+
 export function ResourceEditor({
   draftOnly = false,
   open,
@@ -1599,9 +1608,7 @@ export function ResourceEditor({
       setSchemaDraft(signalSchemaDraft(selected));
     } else setSchemaDraft(null);
     setTemplateContent(
-      kind === "parser" && typeof nextConfiguration.prompt === "string"
-        ? nextConfiguration.prompt
-        : "",
+      parserPrompt(kind, nextConfiguration),
     );
     setArchiveConfirmation(false);
     setDeleteConfirmation(false);
@@ -2365,7 +2372,7 @@ export function ResourceEditor({
             disabled={readOnly || saving || partialFailure || !name.trim()}
             onClick={submit}
           >
-            {saving ? 'Speichere…' : draftOnly ? 'Ressourcen- und Graphentwurf speichern' : "Version speichern & aktivieren"}
+            {resourceSaveLabel(saving, draftOnly)}
           </Button>
         </DialogFooter>
       </DialogContent>

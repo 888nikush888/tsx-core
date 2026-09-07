@@ -3,9 +3,41 @@ import { Link } from '@/lib/navigation';
 import { jsonRequest } from '@/lib/api';
 import { usePoll } from '@/shared/api/use-poll';
 import { useOperatorReadOnly } from '@/shared/api/operator-session';
-import { useConfirmationDialog } from '@/components/confirmation-dialog';
+import { useConfirmationDialog, type ConfirmationDialogOptions } from '@/components/confirmation-dialog';
 import { EvidenceFields, EvidenceTable } from '@/shared/components/evidence';
 import { JobLink } from './jobs-page';
+
+type BackupCommand = 'create' | 'drill' | 'restore' | 'recover';
+const BACKUP_COMMANDS = {
+  create: { endpoint: '/api/operations/backup', confirmation: null },
+  drill: { endpoint: '/api/operations/backup-drill', confirmation: 'run-backup-drill' },
+  restore: { endpoint: '/api/backups/restore', confirmation: 'restore-backup' },
+  recover: { endpoint: '/api/backups/recover-offsite', confirmation: 'recover-offsite-backup' },
+};
+function backupConfirmation(kind: Exclude<BackupCommand, 'create'>, name: string | undefined, objectName: string): ConfirmationDialogOptions {
+  if (kind === 'drill') return {
+    title: 'Isolierter Restore-Probelauf',
+    description: `${name}: Prüft das Artefakt in einem isolierten Prozess ohne Handels- oder Telegram-Verbindung. Der laufende Core wird nicht ersetzt.`,
+    confirmLabel: 'Probelauf starten', destructive: false,
+  };
+  if (kind === 'restore') return {
+    title: 'Backup wiederherstellen',
+    description: `${name}: Stoppt Routing und Trading, prüft Wartung, Besitz und Wiederherstellbarkeit, ersetzt die gesicherten Daten und fordert einen Neustart an. Konten und Entry-Freigaben müssen danach erneut geprüft werden. Ein Fehler kann den Dienst im Wartungszustand belassen.`,
+    confirmationText: 'RESTORE', confirmLabel: 'Wiederherstellen', destructive: true,
+  };
+  return {
+    title: 'Offsite-Backup zurückholen',
+    description: `${objectName}: Lädt das benannte Backup herunter, entschlüsselt und prüft es. Dies stellt die laufende Installation noch nicht wieder her.`,
+    confirmationText: 'RECOVER', confirmLabel: 'Zurückholen', destructive: false,
+  };
+}
+function backupRequest(kind: BackupCommand, id: string, name: string | undefined, objectName: string) {
+  const { endpoint, confirmation } = BACKUP_COMMANDS[kind];
+  const scope = kind === 'recover' ? { objectName: objectName.trim() } : name ? { name } : {};
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Operator-Job-ID': id };
+  if (confirmation) headers['X-Destructive-Confirmation'] = confirmation;
+  return { endpoint, init: { method: 'POST', headers, body: JSON.stringify({ jobId: id, ...scope }) } };
+}
 
 export function BackupsPage({ name }: { name?: string }) {
   const readOnly = useOperatorReadOnly();
@@ -15,22 +47,13 @@ export function BackupsPage({ name }: { name?: string }) {
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const read = useCallback((signal: AbortSignal) => jsonRequest(name ? `/api/backups/verify?name=${encodeURIComponent(name)}` : '/api/backups', { signal }), [name]);
   usePoll(read, payload => { setValue(payload); setError(''); }, reason => setError(reason.message), name ? 30_000 : 10_000);
-  const command = async (kind: 'create' | 'drill' | 'restore' | 'recover') => {
+  const command = async (kind: BackupCommand) => {
     if (readOnly || busy) return;
-    if (kind !== 'create' && !await confirm({ title: kind === 'drill' ? 'Isolierter Restore-Probelauf' : kind === 'restore' ? 'Backup wiederherstellen' : 'Offsite-Backup zurückholen',
-      description: kind === 'drill' ? `${name}: Prüft das Artefakt in einem isolierten Prozess ohne Handels- oder Telegram-Verbindung. Der laufende Core wird nicht ersetzt.`
-        : kind === 'restore' ? `${name}: Stoppt Routing und Trading, prüft Wartung, Besitz und Wiederherstellbarkeit, ersetzt die gesicherten Daten und fordert einen Neustart an. Konten und Entry-Freigaben müssen danach erneut geprüft werden. Ein Fehler kann den Dienst im Wartungszustand belassen.`
-          : `${objectName}: Lädt das benannte Backup herunter, entschlüsselt und prüft es. Dies stellt die laufende Installation noch nicht wieder her.`,
-      confirmationText: kind === 'restore' ? 'RESTORE' : kind === 'recover' ? 'RECOVER' : undefined,
-      confirmLabel: kind === 'drill' ? 'Probelauf starten' : kind === 'restore' ? 'Wiederherstellen' : 'Zurückholen', destructive: kind === 'restore',
-    })) return;
+    if (kind !== 'create' && !await confirm(backupConfirmation(kind, name, objectName))) return;
     const id = crypto.randomUUID(); setJobId(id); setBusy(true); setError(''); setMessage('Auftrag wird gesendet. Bei Verbindungsabbruch ausschließlich den Auftragsstatus prüfen.');
-    const endpoint = kind === 'create' ? '/api/operations/backup' : kind === 'drill' ? '/api/operations/backup-drill' : kind === 'restore' ? '/api/backups/restore' : '/api/backups/recover-offsite';
+    const request = backupRequest(kind, id, name, objectName);
     try {
-      const response = await jsonRequest(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Operator-Job-ID': id,
-        ...(kind === 'create' ? {} : { 'X-Destructive-Confirmation': kind === 'drill' ? 'run-backup-drill' : kind === 'restore' ? 'restore-backup' : 'recover-offsite-backup' }) },
-        body: JSON.stringify({ jobId: id, ...(kind === 'recover' ? { objectName: objectName.trim() } : name ? { name } : {}) }),
-      });
+      const response = await jsonRequest(request.endpoint, request.init);
       setMessage(response.job ? 'Auftrag dauerhaft angenommen. Den Abschluss und bestätigte Teilwirkungen im Auftragsverlauf prüfen.' : 'Antwort empfangen; dieser Server liefert keinen dauerhaften Auftragsbeleg. Ergebnis und Dienstzustand separat prüfen.');
     } catch (reason) { setError(`Aktion nicht bestätigt: ${reason instanceof Error ? reason.message : String(reason)}. Nicht automatisch wiederholen; zuerst Auftrag und Betriebszustand prüfen.`); }
     finally { setBusy(false); }

@@ -19,6 +19,12 @@ const columns: Record<string, Array<[string, string]>> = {
   intents: [['id', 'Trade öffnen'], ['accountId', 'Konto'], ['symbol', 'Symbol'], ['side', 'Seite'], ['status', 'Intentstatus'], ['executionPathId', 'Originalpfad']],
   tasks: [['id', 'Outbox öffnen'], ['status', 'Versandstatus'], ['targetChatId', 'Gepinntes Ziel'], ['attempts', 'Versuche'], ['deliveryMode', 'Abschlussart'], ['acknowledged', 'Operatorquittierung'], ['reason', 'Grund']],
 };
+const OBJECT_ROUTES: Record<string, string> = { members: '/signals/messages/', intents: '/trading/trades/', signals: '/signals/processed/', tasks: '/signals/outbox?objectId=' };
+function ingressObjectLink(kind: string, id: string) {
+  const route = OBJECT_ROUTES[kind];
+  return route ? <Link to={`${route}${encodeURIComponent(id)}`}>{id}</Link> : id;
+}
+
 export function IngressRelations({ id }: { id: string }) {
   const [params, setParams] = useSearchParams(); const kind = params.get('relation') || 'signals';
   const query = new URLSearchParams({ id, kind }); if (params.has('relationCursor')) query.set('cursor', params.get('relationCursor')!);
@@ -27,7 +33,7 @@ export function IngressRelations({ id }: { id: string }) {
   usePoll(read, value => { setState({ key, value }); setError(''); }, failure => setError(failure.message)); const data = state?.key === key ? state.value : null;
   const go = (relation: string, cursor?: string) => { const next = new URLSearchParams(params); next.set('relation', relation); if (cursor) next.set('relationCursor', cursor); else next.delete('relationCursor'); setParams(next); };
   const rows = data?.entries.map((row: any) => ({ ...row,
-    id: ['members', 'intents', 'tasks', 'signals'].includes(kind) ? <Link to={kind === 'members' ? `/signals/messages/${encodeURIComponent(row.id)}` : kind === 'intents' ? `/trading/trades/${encodeURIComponent(row.id)}` : kind === 'signals' ? `/signals/processed/${encodeURIComponent(row.id)}` : `/signals/outbox?objectId=${encodeURIComponent(row.id)}`}>{row.id}</Link> : row.id,
+    id: ingressObjectLink(kind, row.id),
     workflowRevisionId: row.workflowRevisionId ? <Link to={`/workflows/revisions/${encodeURIComponent(row.workflowRevisionId)}`}>{row.workflowRevisionId}</Link> : null,
     executionPathId: row.executionPathId ? <Link to={`/workflows/paths/${encodeURIComponent(row.executionPathId)}`}>{row.executionPathId}</Link> : null,
     intentId: row.intentId ? <Link to={`/trading/trades/${encodeURIComponent(row.intentId)}`}>{row.intentId}</Link> : null,

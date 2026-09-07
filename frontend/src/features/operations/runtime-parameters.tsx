@@ -15,6 +15,15 @@ export function runtimeInputError(value: Record<string, any>, parameters: Parame
   return null;
 }
 
+function runtimeFieldValue(field: Parameter, value: any) {
+  if (field.secret || !['string', 'number', 'boolean'].includes(field.type)) return 'Unbekannter Feldtyp / schreibgeschützt';
+  return Number.isNaN(value) ? '' : value ?? '';
+}
+function parseRuntimeField(field: Parameter, value: string) {
+  if (field.type !== 'number') return value;
+  return value === '' ? NaN : Number(value);
+}
+
 export function RuntimeParameters({ value, onChange, payload, readOnly = false }: { value: Record<string, any>; onChange: (value: Record<string, any>) => void; payload: any; readOnly?: boolean }) {
   const parameters = (payload?.parameters ?? []) as Parameter[];
   useSettingFocus(parameters.map(field => `runtime.${field.path}`));
@@ -29,7 +38,7 @@ export function RuntimeParameters({ value, onChange, payload, readOnly = false }
         {field.type === 'boolean' ? <input type="checkbox" disabled={disabled} checked={value[field.path] === true} onChange={event => onChange({ ...value, [field.path]: event.target.checked })} />
           : field.values ? <select disabled={disabled} value={value[field.path] ?? ''} onChange={event => onChange({ ...value, [field.path]: event.target.value })}>{field.values.map(item => <option key={item}>{item}</option>)}</select>
             : <input disabled={disabled} type={field.type === 'number' ? 'number' : 'text'} step={field.type === 'number' ? 1 : undefined} min={field.range?.[0]} max={field.range?.[1]} maxLength={field.maxLength}
-              value={known && !field.secret ? Number.isNaN(value[field.path]) ? '' : value[field.path] ?? '' : 'Unbekannter Feldtyp / schreibgeschützt'} onChange={event => onChange({ ...value, [field.path]: field.type === 'number' ? event.target.value === '' ? NaN : Number(event.target.value) : event.target.value })} />}
+              value={runtimeFieldValue(field, value[field.path])} onChange={event => onChange({ ...value, [field.path]: parseRuntimeField(field, event.target.value) })} />}
         <small>{field.path} · {field.environmentName}<br />Gespeichert: {display(payload?.settings?.[field.path])} · aktiv beim Start: {display(payload?.active?.[field.path])}<br />Default: {display(field.default)}{field.range ? ` · Grenze ${field.range.join('–')}` : ''}<br />{field.type === 'string' ? 'Leer löscht optionale Werte; erforderliche Profilfelder werden gemeinsam geprüft. ' : '0 und false bleiben ausdrückliche Werte. '}{field.requiresRestart ? 'Aktivierung nach Neustart.' : 'Sofort wirksam.'}</small>
       </label>;
     })}</div></fieldset>)}

@@ -17,6 +17,10 @@ import { useDirtyGuard } from "@/shared/forms/use-dirty-guard";
 import { usePoll } from "@/shared/api/use-poll";
 import { showIssuedCredential } from "@/shared/components/issued-credential";
 
+function RuntimeEvidence({ payload }: { payload: any }) {
+  return <details><summary>Gespeicherte und aktive Werte · Quelle und Wirkung</summary><p>{payload.precedence ?? 'Quellenvertrag nicht verfügbar.'}</p><p>Quelle: {payload.source ?? 'unbekannt'} · Neustart erforderlich: {payload.restartRequired === true ? 'ja' : payload.restartRequired === false ? 'nein' : 'unbekannt'}</p><div className="overflow-x-auto"><table><thead><tr><th>Parameter</th><th>Gespeichert</th><th>Beim Start angewendet</th></tr></thead><tbody>{Object.entries(payload.settings ?? {}).map(([key, value]) => <tr key={key}><th>{key}</th><td>{JSON.stringify(value)}</td><td>{payload.active ? JSON.stringify(payload.active[key]) : 'nicht beobachtet'}</td></tr>)}</tbody></table></div></details>;
+}
+
 export function System({
   catalog,
   onRefresh,
@@ -259,6 +263,8 @@ export function System({
   const dangerAction = async (kind: "clear" | "factory") => {
     const expected = kind === "clear" ? "DATENBANK LEEREN" : "FACTORY RESET";
     if (dangerConfirmation !== expected) return;
+    const jobId = kind === 'factory' ? crypto.randomUUID() : undefined;
+    if (jobId) setRestartJobId(jobId);
     const result = await execute(
       `danger-${kind}`,
       () => jsonRequest(kind === "clear" ? "/api/clear-database" : "/api/factory-reset", {
@@ -267,7 +273,7 @@ export function System({
           "Content-Type": "application/json",
           "X-Destructive-Confirmation": kind === "clear" ? "clear-database" : "factory-reset",
         },
-        body: JSON.stringify({ confirmation: expected }),
+        body: JSON.stringify({ confirmation: expected, ...(jobId ? { jobId } : {}) }),
       }),
       kind === "clear" ? "Betriebsdatenbank wurde geleert." : "Factory Reset wurde gestartet.",
     );
@@ -275,6 +281,7 @@ export function System({
       setRestartInstance(recovery?.serverInstanceId ?? 'unknown');
       setMessage('Factory Reset bestätigt. Wiederanlauf wird beobachtet; nach Widerruf der bisherigen Anmeldung ist die Ersteinrichtung erneut erforderlich.');
     }
+    if (!result && kind === 'factory') setMessage('Factory Reset nicht bestätigt. Zuerst Auftrag und Recovery prüfen; keine automatische Wiederholung.');
     if (result) setDangerConfirmation("");
   };
   return (
@@ -311,7 +318,7 @@ export function System({
         >
           Kontrolliert neu starten
         </button>
-        <details><summary>Gespeicherte und aktive Werte · Quelle und Wirkung</summary><p>{runtimePayload.precedence ?? 'Quellenvertrag nicht verfügbar.'}</p><p>Quelle: {runtimePayload.source ?? 'unbekannt'} · Neustart erforderlich: {runtimePayload.restartRequired === true ? 'ja' : runtimePayload.restartRequired === false ? 'nein' : 'unbekannt'}</p><div className="overflow-x-auto"><table><thead><tr><th>Parameter</th><th>Gespeichert</th><th>Beim Start angewendet</th></tr></thead><tbody>{Object.entries(runtimePayload.settings ?? {}).map(([key, value]) => <tr key={key}><th>{key}</th><td>{JSON.stringify(value)}</td><td>{runtimePayload.active ? JSON.stringify(runtimePayload.active[key]) : 'nicht beobachtet'}</td></tr>)}</tbody></table></div></details>
+        <RuntimeEvidence payload={runtimePayload} />
       </section> : <p>Runtime-Einstellungen nicht verfügbar.</p>}
       <section className="operations-card system-form">
         <h3>Write-only Enterprise-Secrets</h3>

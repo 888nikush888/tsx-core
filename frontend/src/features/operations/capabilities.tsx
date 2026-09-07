@@ -5,6 +5,16 @@ import { usePoll } from '@/shared/api/use-poll';
 import { EvidenceFields } from '@/shared/components/evidence';
 
 const show = (value: unknown) => value === null ? 'null' : value === '' ? 'leer' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+function ParameterEvidence({ entry }: { entry: any }) {
+  return <EvidenceFields fields={[
+          ['Typ und Einheit', entry.type + (entry.unit ? ' · ' + entry.unit : '')], ['Grenzen', entry.constraints],
+          ['Vorlage / Default', entry.defaultPresent ? show(entry.default) : 'Kein Wert vorgegeben; Pflichtfeld oder bedingter Validatorstandard.'],
+          ['Leer / null / 0', entry.emptyMeaning], ['Quelle', entry.source], ['Scope', entry.scope], ['Wirkung', entry.effect],
+          ['Bearbeitung', entry.secret ? 'Separater Secretcommand; gespeicherter Inhalt bleibt verborgen' : entry.editable ? 'Im verlinkten Formular' : 'Original, Deployment oder feste Sicherheitsgrenze'],
+          ['Neustart', entry.requiresRestart],
+        ]} />;
+}
+
 export function CapabilitiesPage() {
   const [query, setQuery] = useSearchParams(); const parameters = query.get('view') === 'parameters';
   const [response, setData] = useState<any>(null); const [error, setError] = useState('');
@@ -32,13 +42,7 @@ export function CapabilitiesPage() {
     {data && <><p>Vertrag {data.contractVersion} · {data.total} passende Einträge · {data.entries.length} auf dieser Seite</p>
       {data.entries.map((entry: any) => <article className="operations-card" key={parameters ? entry.path : entry.route}>
         <h2>{parameters ? entry.path : entry.label}</h2>
-        {parameters ? <EvidenceFields fields={[
-          ['Typ und Einheit', entry.type + (entry.unit ? ' · ' + entry.unit : '')], ['Grenzen', entry.constraints],
-          ['Vorlage / Default', entry.defaultPresent ? show(entry.default) : 'Kein Wert vorgegeben; Pflichtfeld oder bedingter Validatorstandard.'],
-          ['Leer / null / 0', entry.emptyMeaning], ['Quelle', entry.source], ['Scope', entry.scope], ['Wirkung', entry.effect],
-          ['Bearbeitung', entry.secret ? 'Separater Secretcommand; gespeicherter Inhalt bleibt verborgen' : entry.editable ? 'Im verlinkten Formular' : 'Original, Deployment oder feste Sicherheitsgrenze'],
-          ['Neustart', entry.requiresRestart],
-        ]} /> : <><p>{entry.route}</p><EvidenceFields fields={[['Rolle', entry.role], ['Scope', entry.scope], ['Wirkung', entry.effect],
+        {parameters ? <ParameterEvidence entry={entry} /> : <><p>{entry.route}</p><EvidenceFields fields={[['Rolle', entry.role], ['Scope', entry.scope], ['Wirkung', entry.effect],
           ['Einordnung', entry.boundary ?? 'Bedienbare Operatorfähigkeit'], ['Varianten', entry.inputVariants]]} />
           {entry.currentBlockers?.length ? <p role="status">{entry.currentBlockers.join(' ')}</p> : <p>Keine allgemeine Sperre beobachtet. Objektbezogene Prüfungen und Audit erfolgen erst am Befehl.</p>}
         </>}

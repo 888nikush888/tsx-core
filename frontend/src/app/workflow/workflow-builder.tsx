@@ -1213,6 +1213,58 @@ function workflowRenderMode(
   return loading ? "loading" : activeWorkspace;
 }
 
+function AnalyticsStatusbar({ lastUpdated, refreshing, onFilters, onRefresh }: {
+  lastUpdated: number | null; refreshing: boolean; onFilters: () => void; onRefresh: () => Promise<void>;
+}) {
+  return <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
+    <div className="workflow-status-tools">
+      <span className="workspace-last-updated">
+        {lastUpdated ? `zuletzt aktualisiert ${new Date(lastUpdated).toLocaleTimeString("de-DE")}` : "noch nicht aktualisiert"}
+      </span>
+      <Button type="button" variant="outline" size="sm" onClick={onFilters}>
+        <Filter size={14} data-icon="inline-start" /> Filter
+      </Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => void onRefresh()}>
+        <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
+      </Button>
+    </div>
+  </section>;
+}
+
+function graphRevisionError(message: string, embedded: boolean) {
+  if (message !== 'WORKFLOW_REVISION_CONFLICT') return message;
+  return embedded ? 'Der aktive Workflow wurde parallel geändert. Dein Entwurf bleibt erhalten; Serverstand vergleichen.' : 'Der Workflow wurde parallel geändert. Der aktuelle Stand wird neu geladen.';
+}
+
+async function confirmGraphImpact(impact: any, confirm: ReturnType<typeof useConfirmationDialog>['confirm']) {
+  if (!impact.destructive) return { accepted: true, confirmation: null };
+  const required = typeof impact.confirmation === 'string' ? impact.confirmation : undefined;
+  const accepted = await confirm({
+    title: 'Workflow-Änderung bestätigen', description: workflowImpactDescription(impact),
+    confirmationText: required, confirmLabel: 'Aktive Revision ändern', destructive: true,
+  });
+  return { accepted: Boolean(accepted), confirmation: required || null };
+}
+
+async function requireCurrentGraphDraft(version: unknown, unsaved: boolean) {
+  const latest = await jsonRequest('/api/workflow/drafts?id=operator');
+  if (latest.draft?.version !== version || latest.draft?.expired || unsaved) {
+    throw new Error('Graphentwurf geändert, abgelaufen oder ungespeichert. Vor Aktivierung vergleichen und speichern.');
+  }
+}
+
+function resourceAction(resource: WorkflowResource | null, action: (resource: WorkflowResource) => Promise<void>) {
+  return resource ? () => action(resource) : undefined;
+}
+
+async function persistGraphDraft(graph: WorkflowGraph, meta: any) {
+  if (!meta) throw new Error('Graphentwurf konnte nicht geladen werden. Keine Speicherung möglich.');
+  return jsonRequest('/api/workflow/drafts', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: 'operator', baseVersion: meta.version, baseRevisionId: meta.baseRevisionId, graph }),
+  });
+}
+
 export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {}) {
   const readOnly = useOperatorReadOnly();
   const [draftMeta, setDraftMeta] = useState<any>(null);
@@ -1501,18 +1553,12 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       try {
         if (embedded && !activate) {
           setGraph(candidate); setDraftUnsaved(true);
-          const meta = draftMetaRef.current;
-          if (!meta) throw new Error('Graphentwurf konnte nicht geladen werden. Keine Speicherung möglich.');
-          const saved = await jsonRequest('/api/workflow/drafts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: 'operator', baseVersion: meta.version, baseRevisionId: meta.baseRevisionId, graph: candidate }) });
+          const saved = await persistGraphDraft(candidate, draftMetaRef.current);
           draftMetaRef.current = saved.draft; setDraftMeta(saved.draft); setDraftUnsaved(false);
           setNotice({ tone: 'ok', text: `${successMessage} · Graphentwurf ${saved.draft.version} gespeichert. Die aktive Revision wurde nicht geändert.` });
           return true;
         }
-        if (embedded) {
-          const latest = await jsonRequest('/api/workflow/drafts?id=operator');
-          if (latest.draft?.version !== draftMetaRef.current?.version || latest.draft?.expired || draftUnsaved) throw new Error('Graphentwurf geändert, abgelaufen oder ungespeichert. Vor Aktivierung vergleichen und speichern.');
-        }
+        if (embedded) await requireCurrentGraphDraft(draftMetaRef.current?.version, draftUnsaved);
         const baseRevisionId = embedded ? draftMetaRef.current?.baseRevisionId ?? null : snapshot.workflow?.id ?? null;
         const impactPayload = await jsonRequest("/api/workflow/impact", {
           method: "POST",
@@ -1523,19 +1569,8 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           }),
         });
         const impact = impactPayload.impact;
-        let confirmation: string | null = null;
-        if (impact.destructive) {
-          const required = typeof impact.confirmation === "string" ? impact.confirmation : undefined;
-          const accepted = await confirm({
-            title: "Workflow-Änderung bestätigen",
-            description: workflowImpactDescription(impact),
-            confirmationText: required,
-            confirmLabel: "Aktive Revision ändern",
-            destructive: true,
-          });
-          if (!accepted) return false;
-          confirmation = required || null;
-        }
+        const { accepted, confirmation } = await confirmGraphImpact(impact, confirm);
+        if (!accepted) return false;
         const payload = await jsonRequest("/api/workflow/mutate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1566,10 +1601,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         const message = error instanceof Error ? error.message : String(error);
         setNotice({
           tone: "error",
-          text:
-            message === "WORKFLOW_REVISION_CONFLICT"
-              ? embedded ? 'Der aktive Workflow wurde parallel geändert. Dein Entwurf bleibt erhalten; Serverstand vergleichen.' : "Der Workflow wurde parallel geändert. Der aktuelle Stand wird neu geladen."
-              : message,
+          text: graphRevisionError(message, embedded),
         });
         if (message.includes("WORKFLOW_REVISION_CONFLICT") && !embedded) await load();
         return false;
@@ -2470,19 +2502,8 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
           <WorkflowTopbar />
           <WorkflowNavigation activeWorkspace={activeWorkspace} onChange={setActiveWorkspace} />
-          <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
-            <div className="workflow-status-tools">
-              <span className="workspace-last-updated">
-                {lastUpdated ? `zuletzt aktualisiert ${new Date(lastUpdated).toLocaleTimeString("de-DE")}` : "noch nicht aktualisiert"}
-              </span>
-              <Button type="button" variant="outline" size="sm" onClick={() => setAnalyticsFiltersOpen((value) => !value)}>
-                <Filter size={14} data-icon="inline-start" /> Filter
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => void refreshOperationalState()}>
-                <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
-              </Button>
-            </div>
-          </section>
+          <AnalyticsStatusbar lastUpdated={lastUpdated} refreshing={refreshing}
+            onFilters={() => setAnalyticsFiltersOpen(value => !value)} onRefresh={refreshOperationalState} />
           <OperationsWorkspace
             trading={trading}
             catalog={catalog}
@@ -2881,16 +2902,8 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         onSave={saveResource}
         draftOnly={embedded}
         onDeleteNode={selectedNode ? deleteNode : undefined}
-        onArchiveResource={
-          selectedResource
-            ? () => archiveResourceFamily(selectedResource)
-            : undefined
-        }
-        onDeleteResource={
-          selectedResource
-            ? () => deleteResourceFamily(selectedResource)
-            : undefined
-        }
+        onArchiveResource={resourceAction(selectedResource, archiveResourceFamily)}
+        onDeleteResource={resourceAction(selectedResource, deleteResourceFamily)}
         onConfigureAccount={configureAccount}
       />
       <ResourceLibraryDialog

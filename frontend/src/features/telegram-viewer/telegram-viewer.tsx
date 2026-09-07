@@ -37,6 +37,13 @@ const TELEGRAM_NOTIFICATION_LABELS: Array<[string, string]> = [
   ["exchangeAcknowledged", "Börse bestätigt"],
 ];
 
+function viewerServiceHealth(service: { reachable?: boolean; healthy?: boolean }) {
+  if (service.reachable === false) return 'nicht erreichbar';
+  if (service.reachable !== true) return 'unbekannt';
+  if (service.healthy === true) return 'gesund';
+  return service.healthy === false ? 'gestört' : 'unbekannt';
+}
+
 export function TelegramViewer() {
   const [payload, setPayload] = useState<any>(null);
   const readOnly = useOperatorReadOnly();
@@ -135,7 +142,7 @@ export function TelegramViewer() {
       <section className="operations-card system-form">
         <h3>Status</h3>
         <div className="operations-metrics">
-          <Metric label="Dienst" value={service.reachable === true ? service.healthy === true ? 'gesund' : service.healthy === false ? 'gestört' : 'unbekannt' : service.reachable === false ? 'nicht erreichbar' : 'unbekannt'} />
+          <Metric label="Dienst" value={viewerServiceHealth(service)} />
           <Metric label="Bereitschaft" value={service.ready === true ? "bereit" : service.ready === false ? "wartet" : 'unbekannt'} />
           <Metric label="Bot-Token" value={botConfigured ? "konfiguriert" : "fehlt"} />
           <Metric label="Letzte Abfrage" value={time(service.lastPollAt)} />
