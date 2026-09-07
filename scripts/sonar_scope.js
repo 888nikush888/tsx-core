@@ -8,6 +8,12 @@ export function sonarScope(environment) {
   if (!/^[1-9]\d*$/u.test(key) || !branch || !base || environment.SONAR_BRANCH?.trim()) {
     throw new Error('SonarCloud pull request scope requires a numeric key, source and target; it cannot also select a branch.');
   }
+  // The scanner recursively expands ${...}, including inside environment values.
+  // Such refs cannot be represented literally without changing their identity.
+  if ([environment.SONAR_PULL_REQUEST_BRANCH, environment.SONAR_PULL_REQUEST_BASE]
+    .some(ref => /[\x00-\x20\x7f]|\$\{/u.test(ref))) {
+    throw new Error('SonarCloud pull request refs contain whitespace, control characters or scanner property expressions.');
+  }
   return { branch: null, pullRequest: { key, branch, base } };
 }
 
@@ -32,9 +38,19 @@ export function scannerIdentity(context) {
 export function validatePullRequestTask(task, configuration) {
   const scope = configuration.pullRequest;
   const identity = task?.scannerIdentity;
-  if (!task?.analysisId || identity?.revision !== configuration.expectedRevision
-    || identity?.pullRequest !== scope.key || identity?.branch !== scope.branch || identity?.base !== scope.base) {
-    throw new Error('SonarCloud compute task does not prove the expected pull request revision and scope.');
+  const checks = [
+    ['analysisId', task?.analysisId, Boolean(task?.analysisId)],
+    ['revision', identity?.revision, identity?.revision === configuration.expectedRevision],
+    ['pullRequest', identity?.pullRequest, identity?.pullRequest === scope.key],
+    ['branch', identity?.branch, identity?.branch === scope.branch],
+    ['base', identity?.base, identity?.base === scope.base]
+  ];
+  if (task?.pullRequest !== undefined) checks.push(['task.pullRequest', task.pullRequest, task.pullRequest === scope.key]);
+  const failures = checks.filter(([, , matches]) => !matches);
+  if (failures.length) {
+    // Report only allowlisted field names and presence, never context or values.
+    const detail = failures.map(([name, value]) => `${name} ${value ? 'differs' : 'missing'}`).join(', ');
+    throw new Error(`SonarCloud compute task does not prove the expected pull request revision and scope: ${detail}.`);
   }
 }
 
@@ -52,9 +68,19 @@ export async function readPullRequestAnalysis(configuration, computeTask, option
 }
 
 function metricValue(measures, metric) {
-  const entries = measures.filter(measure => measure.metric === metric);
+  const entries = measures.filter(measure => measure?.metric === metric);
   if (entries.length !== 1) return null;
-  const raw = entries[0].value ?? entries[0].period?.value;
+  const entry = entries[0];
+  const shapes = ['value', 'period', 'periods'].filter(key => Object.hasOwn(entry, key));
+  if (shapes.length !== 1) return null;
+  let raw;
+  if (shapes[0] === 'periods') {
+    if (!Array.isArray(entry.periods) || entry.periods.length !== 1 || entry.periods[0]?.index !== 1) return null;
+    raw = entry.periods[0].value;
+  } else if (shapes[0] === 'period') {
+    if (!entry.period || Array.isArray(entry.period) || (entry.period.index !== undefined && entry.period.index !== 1)) return null;
+    raw = entry.period.value;
+  } else raw = entry.value;
   if (typeof raw !== 'string' || !/^\d+(?:\.\d+)?$/u.test(raw)) return null;
   return Number(raw);
 }
@@ -65,12 +91,15 @@ export async function readPullRequestHotspotReview(configuration, options) {
     metricKeys: 'new_security_hotspots,new_security_hotspots_reviewed'
   }, options);
   const measures = response.component?.measures;
-  if (response.component?.key !== configuration.projectKey || !Array.isArray(measures)) {
+  if (response.component?.key !== configuration.projectKey || response.component?.pullRequest !== configuration.pullRequest.key
+    || !Array.isArray(measures)) {
     throw new Error('SonarCloud pull request hotspot review evidence is unavailable.');
   }
   const count = metricValue(measures, 'new_security_hotspots');
   const reviewedPercent = metricValue(measures, 'new_security_hotspots_reviewed');
-  if (!Number.isSafeInteger(count) || count < 0 || (count > 0 && reviewedPercent !== 100)) {
+  const hasReviewMeasure = measures.some(measure => measure?.metric === 'new_security_hotspots_reviewed');
+  if (!Number.isSafeInteger(count) || count < 0 || (count > 0 && reviewedPercent !== 100)
+    || (hasReviewMeasure && (reviewedPercent === null || !Number.isFinite(reviewedPercent) || reviewedPercent > 100))) {
     throw new Error('SonarCloud pull request hotspots are unreviewed or their review status is unproven.');
   }
   return { pullRequest: configuration.pullRequest.key, count, reviewedPercent, source: 'api/measures/component' };

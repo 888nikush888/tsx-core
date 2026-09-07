@@ -13,8 +13,13 @@ superseded runs; separate PRs retain separate groups.
 ## Sonar evidence before and after merge
 
 The Sonar job checks out the PR head commit and proves that exact SHA before
-analysis. Sonar's supported GitHub Actions detection supplies the PR key, source
-branch and target branch. Normal test/build jobs retain GitHub's merge-candidate
+analysis. Explicit scanner parameters supply the PR key, source branch and target
+branch: automatic GitHub detection does not persist those properties in the
+compute task's scanner context. The action receives only fixed arguments using
+SonarScanner's environment-property substitution; ref names never pass through
+shell or argument parsing. Refs containing scanner `${...}` expressions are
+rejected because the scanner would recursively expand them instead of preserving
+their literal identity. Normal test/build jobs retain GitHub's merge-candidate
 checkout. Neither a skipped PR Sonar scan nor an unavailable token is a passing
 analysis: fork PRs fail the Sonar job with an explicit availability message, and
 must be moved into a trusted same-repository candidate for protected merging.
@@ -25,7 +30,8 @@ PR evidence is separate from main evidence:
 - The scanner compute task must have the expected task/project identity and a
   successful analysis ID. Only revision, PR key, source and target are extracted
   from its scanner context; the full context, which can contain secrets, is
-  neither logged nor persisted.
+  neither logged nor persisted. A reported task PR key must also match. Failure
+  messages identify missing or mismatching allowlisted fields without values.
 - `project_pull_requests/list` must identify exactly the expected PR, branch,
   base and `commit.sha`, with an analysis date. The snapshot is checked again
   after capture; a changed revision/date fails the export.
@@ -41,6 +47,9 @@ PR evidence is separate from main evidence:
   checked against the summary; PR hotspot counts are in this aggregate evidence,
   while legacy individual hotspot artifacts remain empty for PRs. No main
   hotspot data is substituted and no absent metric is interpreted as zero.
+  The returned component must name the expected project and PR. The API's plural
+  `periods` response requires exactly one period with index 1; duplicate metrics,
+  conflicting value formats and malformed review percentages are rejected.
 - Artifact hashes, byte lengths, finding partitions and counts remain required.
 
 After merge, the full main analysis still requires its exact revision and
@@ -82,6 +91,8 @@ source exclusions or scanner-warning suppression.
 - [PR analysis scope and checkout prerequisites](https://docs.sonarsource.com/sonarqube-cloud/improving/pull-request-analysis)
 - [Live SonarCloud API schema](https://sonarcloud.io/api/webservices/list)
 - [PR list response example including commit SHA](https://sonarcloud.io/api/webservices/response_example?controller=api%2Fproject_pull_requests&action=list)
+- [Measures response example including periods](https://sonarcloud.io/api/webservices/response_example?controller=api%2Fmeasures&action=component)
+- [Pinned scanner environment-property resolver](https://github.com/SonarSource/sonar-scanner-cli/blob/8.1.0.6389/src/main/java/org/sonarsource/scanner/cli/PropertyResolver.java)
 - [SonarCloud metric definitions](https://sonarcloud.io/api/metrics/search?ps=500)
 
 The supported PR evidence APIs and metrics must remain available to the analysis
