@@ -204,6 +204,43 @@ async function boundedOriginalHistory() {
   assert.equal(shadow.blocked, false); assert.equal(shadow.riskPercent, strategy.sizing.riskPerTradePercent);
   assert.match(shadow.reason, /RISK_PRECISION_UNCERTAIN/);
   assert.match((await resolve(channel, account)).reason, /RISK_PRECISION_UNCERTAIN/, 'Cached shadow evaluations keep their uncertainty visible.');
+  await boundedWorkflowHistory(channel, account);
+}
+
+async function boundedWorkflowHistory(channel, account) {
+  const ordersBefore = await getDatabase().all('SELECT * FROM trading_orders ORDER BY id');
+  for (const mode of ['automatic', 'shadow']) {
+    const input = await workflowInput(channel, account, { mode,
+      lossThresholdPercent: policy(channel).lossThresholdPercent,
+      profitThresholdPercent: policy(channel).profitThresholdPercent });
+    const result = await resolveWorkflowAdaptiveRisk(input);
+    assert.equal(result.blocked, mode === 'automatic');
+    assert.equal(result.riskPercent, strategy.sizing.riskPerTradePercent,
+      'Uncertain history cannot increase risk, and shadow evaluation retains the strategy baseline.');
+    assert.match(result.reason, /RISK_PRECISION_UNCERTAIN/);
+    assert.equal(result.reason.startsWith('Shadow only: '), mode === 'shadow');
+    const before = await getDatabase().all('SELECT * FROM workflow_adaptive_risk_evaluations ORDER BY id');
+    const evaluation = before.find(row => row.reason === result.reason);
+    assert.ok(evaluation, 'The uncertainty explanation is stored with its evidence.');
+    assert.equal(JSON.parse(evaluation.realized_pnl_value_json).precision, 'bounded');
+    assert.equal(evaluation.realized_pnl, null);
+    assert.equal(evaluation.return_percent, null);
+    assert.equal(evaluation.previous_tier, 1);
+    assert.equal(evaluation.recommended_tier, 1);
+    assert.equal(evaluation.applied_tier, 1);
+    assert.equal(evaluation.action, 'hold');
+    assert.ok(evaluation.source_hash);
+    const state = (await getWorkflowAdaptiveRiskAnalytics()).states.find(row => row.stateKey === evaluation.state_key);
+    assert.equal(state.currentTier, 1);
+    assert.equal(state.blocked, mode === 'automatic');
+    await closeDb(); await initDb(filename);
+    assert.deepEqual(await resolveWorkflowAdaptiveRisk(input), result,
+      'A reopened database preserves the exact risk decision and uncertainty warning.');
+    assert.deepEqual(await getDatabase().all('SELECT * FROM workflow_adaptive_risk_evaluations ORDER BY id'), before,
+      'Cached risk reads do not recompute or duplicate the evidence.');
+  }
+  assert.deepEqual(await getDatabase().all('SELECT * FROM trading_orders ORDER BY id'), ordersBefore,
+    'Evaluating precision uncertainty never mutates existing orders.');
 }
 
 async function mixedAndManualModes() {
