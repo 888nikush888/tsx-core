@@ -1,0 +1,12 @@
+[run]
+branch = True
+source = exchange_executor
+# Tests still execute through unittest discovery; only deployed/tooling source
+# contributes to the coverage denominator and the Sonar Python XML report.
+omit =
+    */tests/*
+    */test_*.py
+
+[report]
+fail_under = 60
+show_missing = True

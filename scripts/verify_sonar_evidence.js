@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { isBlockingIssue } from './export_sonarcloud_findings.js';
+import { sonarScope, validatePullRequestTask } from './sonar_scope.js';
 
 const ARTIFACTS = ['issues.json', 'hotspots.json', 'issues.tsv', 'hotspots.tsv', 'open-issues.tsv', 'to-review-hotspots.tsv'];
 
@@ -15,12 +16,31 @@ function validateComputeTask(summary, projectKey) {
     && summary.computeTask?.analysisId === summary.analysis?.key, 'compute task is missing or differs');
 }
 
-function validateSummary(summary, expectedRevision, projectKey) {
+function validatePullRequestHotspots(review, pullRequest) {
+  requireEvidence(review?.source === 'api/measures/component' && review?.pullRequest === pullRequest.key
+    && Number.isSafeInteger(review?.count) && review.count >= 0 && (review.count === 0 || review.reviewedPercent === 100),
+  'pull request hotspot review is unproven');
+}
+
+function validateScope(summary, { expectedRevision, projectKey, pullRequest }) {
+  requireEvidence(summary.projectKey === projectKey, 'project differs');
+  if (!pullRequest) {
+    requireEvidence(summary.branch === 'main' && !summary.pullRequest, 'project or branch differs');
+    return;
+  }
+  requireEvidence(summary.branch === null && summary.pullRequest?.key === pullRequest.key
+    && summary.pullRequest?.branch === pullRequest.branch && summary.pullRequest?.base === pullRequest.base, 'pull request scope differs');
+  validatePullRequestTask(summary.computeTask, { expectedRevision, pullRequest });
+  validatePullRequestHotspots(summary.hotspotReview, pullRequest);
+}
+
+function validateSummary(summary, options) {
+  const { expectedRevision, projectKey } = options;
   requireEvidence(/^[a-f0-9]{40}$/u.test(expectedRevision ?? ''), 'expected revision must be an exact SHA');
   requireEvidence(typeof projectKey === 'string' && projectKey.length > 0, 'expected project is required');
   requireEvidence(summary.schemaVersion === 1 && summary.complete === true, 'incomplete export');
   requireEvidence(summary.analysisStableDuringCapture === true, 'analysis stability is unproven');
-  requireEvidence(summary.branch === 'main' && summary.projectKey === projectKey, 'project or branch differs');
+  validateScope(summary, options);
   requireEvidence(summary.analysis?.revision === expectedRevision && summary.expectedRevision === expectedRevision
     && summary.revisionMatchesExpectation === true, 'revision differs');
   validateComputeTask(summary, projectKey);
@@ -31,7 +51,8 @@ function validateSummary(summary, expectedRevision, projectKey) {
 
 async function verifiedArtifacts(directory, summary) {
   const contents = {};
-  for (const name of ARTIFACTS) {
+  const names = summary.pullRequest ? [...ARTIFACTS, 'hotspot-review.json'] : ARTIFACTS;
+  for (const name of names) {
     let bytes;
     try {
       bytes = await readFile(path.join(directory, name));
@@ -66,11 +87,16 @@ function validateCounts(summary, contents) {
   requireEvidence(openIssues.filter(isBlockingIssue).length === summary.blockerOrCriticalIssueCount
     && toReview.length === summary.toReviewHotspotCount, 'gate counts differ');
   requireEvidence(hotspots.every(item => item.status === 'REVIEWED'), 'unreviewed or unknown hotspot status');
+  if (summary.pullRequest) {
+    requireEvidence(JSON.stringify(JSON.parse(contents['hotspot-review.json'])) === JSON.stringify(summary.hotspotReview),
+      'pull request hotspot review artifact differs');
+  }
 }
 
-export async function verifySonarEvidence(directory, { expectedRevision, projectKey } = {}) {
+export async function verifySonarEvidence(directory, options = {}) {
+  const { expectedRevision } = options;
   const summary = JSON.parse(await readFile(path.join(directory, 'summary.json'), 'utf8'));
-  validateSummary(summary, expectedRevision, projectKey);
+  validateSummary(summary, options);
   const contents = await verifiedArtifacts(directory, summary);
   validateCounts(summary, contents);
   return { passed: true, revision: expectedRevision, issueCount: summary.issueCount, hotspotCount: summary.hotspotCount };
@@ -79,9 +105,10 @@ export async function verifySonarEvidence(directory, { expectedRevision, project
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   try {
     await verifySonarEvidence(path.resolve(process.env.SONAR_EXPORT_DIR || 'reports/sonarcloud'), {
-      expectedRevision: process.env.SONAR_EXPECTED_REVISION, projectKey: process.env.SONAR_PROJECT_KEY
+      expectedRevision: process.env.SONAR_EXPECTED_REVISION, projectKey: process.env.SONAR_PROJECT_KEY,
+      pullRequest: sonarScope(process.env).pullRequest
     });
-    console.log('SonarCloud evidence gate passed for the expected main revision.');
+    console.log('SonarCloud evidence gate passed for the expected revision and analysis scope.');
   } catch {
     console.error('SonarCloud evidence gate failed: missing, inconsistent or blocking evidence.');
     process.exitCode = 1;

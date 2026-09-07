@@ -3,6 +3,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readOptions, sonarGet } from './sonar_read.js';
+import { readPullRequestAnalysis, readPullRequestHotspotReview, scannerIdentity, sonarScope } from './sonar_scope.js';
 
 const DEFAULT_SONAR_HOST_URL = 'https://sonarcloud.io';
 const PAGE_SIZE = 500;
@@ -70,7 +71,7 @@ function exporterConfiguration(environment) {
     token: requiredEnvironment('SONAR_TOKEN', environment),
     projectKey: requiredEnvironment('SONAR_PROJECT_KEY', environment),
     hostUrl: hostUrl.origin,
-    branch: environment.SONAR_BRANCH?.trim() || 'main',
+    ...sonarScope(environment),
     expectedRevision,
     outputDirectory: path.resolve(environment.SONAR_EXPORT_DIR?.trim() || 'reports/sonarcloud'),
     reportTaskFile: path.resolve(environment.SONAR_REPORT_TASK_FILE?.trim() || '.scannerwork/report-task.txt')
@@ -107,6 +108,7 @@ function computeTaskEvidence(task, token) {
     executedAt: task.executedAt,
     executionTimeMs: task.executionTimeMs,
     warningCount: task.warningCount,
+    scannerIdentity: scannerIdentity(task.scannerContext),
     errorMessage: task.errorMessage ? safeDiagnosticMessage(task.errorMessage, token) : null,
     hasErrorStacktrace: Boolean(task.errorStacktrace)
   };
@@ -118,6 +120,10 @@ function validatedComputeTaskUrl(properties, configuration) {
   const allowedOrigin = new URL(configuration.hostUrl).origin;
   if (taskUrl.origin !== allowedOrigin || taskUrl.pathname !== '/api/ce/task' || taskUrl.username || taskUrl.password) {
     throw new Error('SonarCloud report-task.txt contains an untrusted ceTaskUrl.');
+  }
+  if (!taskUrl.searchParams.get('id') || (properties.ceTaskId && properties.ceTaskId !== taskUrl.searchParams.get('id'))
+    || (properties.projectKey && properties.projectKey !== configuration.projectKey)) {
+    throw new Error('SonarCloud report-task.txt contains inconsistent task identity.');
   }
   return taskUrl;
 }
@@ -134,10 +140,10 @@ async function readComputeTask(configuration, options) {
   const properties = parseReportTask(reportTask);
   const taskUrl = validatedComputeTaskUrl(properties, configuration);
 
-  const response = await sonarGet(taskUrl.toString(), {}, options);
+  const response = await sonarGet(taskUrl.toString(), configuration.pullRequest ? { additionalFields: 'scannerContext' } : {}, options);
   if (!response.task?.id || !response.task.status) throw new Error('SonarCloud returned an invalid compute task.');
-  if (response.task.componentKey && response.task.componentKey !== configuration.projectKey) {
-    throw new Error('SonarCloud compute task belongs to a different project.');
+  if (response.task.id !== taskUrl.searchParams.get('id') || response.task.componentKey !== configuration.projectKey) {
+    throw new Error('SonarCloud compute task belongs to a different project or task.');
   }
 
   const evidence = computeTaskEvidence(response.task, configuration.token);
@@ -170,6 +176,7 @@ function exportSummary(configuration, analysis, findings, qualityGate, computeTa
     host: configuration.hostUrl,
     projectKey: configuration.projectKey,
     branch: configuration.branch,
+    pullRequest: configuration.pullRequest,
     analysis: {
       key: analysis.key,
       date: analysis.date,
@@ -181,6 +188,7 @@ function exportSummary(configuration, analysis, findings, qualityGate, computeTa
     computeTask,
     issueCount: findings.issues.length,
     hotspotCount: findings.hotspots.length,
+    hotspotReview: findings.hotspotReview,
     openIssueCount: findings.openIssues.length,
     blockerOrCriticalIssueCount: findings.openIssues.filter(isBlockingIssue).length,
     toReviewHotspotCount: findings.toReviewHotspots.length,
@@ -216,12 +224,18 @@ function validateFindings(issues, hotspots) {
 }
 
 async function collectFindings(configuration, options) {
-  const issueParameters = { componentKeys: configuration.projectKey, branch: configuration.branch };
+  const scope = configuration.pullRequest ? { pullRequest: configuration.pullRequest.key } : { branch: configuration.branch };
+  const issueParameters = { componentKeys: configuration.projectKey, ...scope };
   const hotspotParameters = { projectKey: configuration.projectKey, branch: configuration.branch };
   const openIssues = await fetchPages('/api/issues/search', { ...issueParameters, resolved: false }, 'issues', options);
   const resolvedIssues = await fetchPages('/api/issues/search', { ...issueParameters, resolved: true }, 'issues', options);
-  const toReviewHotspots = await fetchPages('/api/hotspots/search', { ...hotspotParameters, status: 'TO_REVIEW' }, 'hotspots', options);
-  const reviewedHotspots = await fetchPages('/api/hotspots/search', { ...hotspotParameters, status: 'REVIEWED' }, 'hotspots', options);
+  const hotspotReview = configuration.pullRequest ? await readPullRequestHotspotReview(configuration, options) : null;
+  // The legacy hotspot search has no supported PR scope. PRs require explicit
+  // scoped review measures; missing measures fail instead of importing main data.
+  const toReviewHotspots = configuration.pullRequest ? []
+    : await fetchPages('/api/hotspots/search', { ...hotspotParameters, status: 'TO_REVIEW' }, 'hotspots', options);
+  const reviewedHotspots = configuration.pullRequest ? []
+    : await fetchPages('/api/hotspots/search', { ...hotspotParameters, status: 'REVIEWED' }, 'hotspots', options);
   const issues = [...openIssues, ...resolvedIssues];
   const hotspots = [...toReviewHotspots, ...reviewedHotspots];
   validateFindings(issues, hotspots);
@@ -229,7 +243,7 @@ async function collectFindings(configuration, options) {
     throw new Error('SonarCloud hotspot status does not match its requested partition.');
   }
   return {
-    issues, hotspots, openIssues, toReviewHotspots,
+    issues, hotspots, openIssues, toReviewHotspots, hotspotReview,
     partitions: {
       openIssueKeys: openIssues.map(item => item.key), resolvedIssueKeys: resolvedIssues.map(item => item.key),
       toReviewHotspotKeys: toReviewHotspots.map(item => item.key), reviewedHotspotKeys: reviewedHotspots.map(item => item.key)
@@ -248,6 +262,7 @@ async function writeArtifacts(configuration, findings, summary) {
     'open-issues.tsv': toTsv(findings.openIssues, issueColumns),
     'to-review-hotspots.tsv': toTsv(findings.toReviewHotspots, hotspotColumns)
   };
+  if (configuration.pullRequest) artifacts['hotspot-review.json'] = `${JSON.stringify(findings.hotspotReview, null, 2)}\n`;
   summary.artifacts = {};
   for (const [name, content] of Object.entries(artifacts)) {
     await writeFile(path.join(configuration.outputDirectory, name), content, 'utf8');
@@ -260,21 +275,23 @@ async function writeArtifacts(configuration, findings, summary) {
 export async function exportFindings({ environment = process.env, fetchImpl = fetch, now = () => new Date(), ...dependencies } = {}) {
   const configuration = exporterConfiguration(environment);
   const options = readOptions(configuration, {
-    ...dependencies, fetchImpl, now, requireComputeTask: environment.SONAR_REQUIRE_COMPUTE_TASK === 'true'
+    ...dependencies, fetchImpl, now, requireComputeTask: Boolean(configuration.pullRequest) || environment.SONAR_REQUIRE_COMPUTE_TASK === 'true'
   });
   await mkdir(configuration.outputDirectory, { recursive: true });
   await rm(path.join(configuration.outputDirectory, 'summary.json'), { force: true });
   const computeTask = await readComputeTask(configuration, options);
   const analysisParameters = { project: configuration.projectKey, branch: configuration.branch, ps: 1 };
-  const analysisResponse = await sonarGet('/api/project_analyses/search', analysisParameters, options);
-  const analysis = validatedAnalysis(analysisResponse, configuration);
+  const readAnalysis = async () => configuration.pullRequest
+    ? readPullRequestAnalysis(configuration, computeTask, options)
+    : validatedAnalysis(await sonarGet('/api/project_analyses/search', analysisParameters, options), configuration);
+  const analysis = await readAnalysis();
   if (computeTask && computeTask.analysisId !== analysis.key) throw new Error('SonarCloud compute task analysis does not match the latest revision.');
   const findings = await collectFindings(configuration, options);
   const qualityGate = await sonarGet('/api/qualitygates/project_status', { analysisId: analysis.key }, options);
   if (!['OK', 'WARN', 'ERROR', 'NONE'].includes(qualityGate.projectStatus?.status)
     || !Array.isArray(qualityGate.projectStatus.conditions)) throw new Error('SonarCloud returned an invalid quality gate schema.');
-  const finalAnalysis = validatedAnalysis(await sonarGet('/api/project_analyses/search', analysisParameters, options), configuration);
-  if (analysis.key !== finalAnalysis.key) throw new Error('SonarCloud analysis changed during export.');
+  const finalAnalysis = await readAnalysis();
+  if (analysis.key !== finalAnalysis.key || analysis.date !== finalAnalysis.date) throw new Error('SonarCloud analysis changed during export.');
   const summary = exportSummary(configuration, analysis, findings, qualityGate, computeTask, now().toISOString());
   await writeArtifacts(configuration, findings, summary);
   return summary;

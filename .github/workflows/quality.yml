@@ -1,6 +1,9 @@
 name: Quality OS
 
 on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
     tags: ['v*']
@@ -99,19 +102,32 @@ jobs:
 
   sonarcloud:
     name: SonarQube Cloud quality gate
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
+    env:
+      SONAR_EXPECTED_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      SONAR_PULL_REQUEST: ${{ github.event.pull_request.number || '' }}
+      SONAR_PULL_REQUEST_BRANCH: ${{ github.head_ref }}
+      SONAR_PULL_REQUEST_BASE: ${{ github.base_ref }}
     steps:
-      - name: Checkout exact main revision
+      - name: Require a trusted pull request with analysis credentials
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          TRUSTED_SOURCE: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          test "$TRUSTED_SOURCE" = "true" || { echo 'Sonar analysis is unavailable for fork pull requests. A trusted same-repository candidate is required.'; exit 1; }
+          test -n "$SONAR_TOKEN" || { echo 'Required Sonar analysis credentials are unavailable.'; exit 1; }
+      - name: Checkout exact analyzed revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Prove scanner input revision
-        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+        run: test "$(git rev-parse HEAD)" = "$SONAR_EXPECTED_REVISION"
       - name: Configure pinned Node major
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -139,9 +155,11 @@ jobs:
         run: |
           ./node_modules/.bin/c8 --all --include="src/**/*.ts" --include="scripts/**/*.js" --exclude="src/*_cli.ts" --reporter=lcov --reports-dir=coverage node tests/run_all.js
           npm run test:coverage --prefix frontend
+          node scripts/normalize_lcov_paths.js
       - name: Produce Python coverage
         run: |
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
+          python -m coverage report --fail-under=60
           python -m coverage xml -o exchange_executor/coverage.xml
       - name: Analyze exact revision and wait for Quality Gate
         id: sonar_scan
@@ -151,13 +169,11 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.scm.revision=${{ github.sha }}
+            -Dsonar.scm.revision=${{ env.SONAR_EXPECTED_REVISION }}
       - name: Export issues and Security Hotspots for this revision
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_PROJECT_KEY: 888nikush888_telegram-tdlib-forwarder-private
-          SONAR_BRANCH: main
-          SONAR_EXPECTED_REVISION: ${{ github.sha }}
           SONAR_REPORT_TASK_FILE: .scannerwork/report-task.txt
           SONAR_REQUIRE_COMPUTE_TASK: 'true'
         run: |
@@ -170,7 +186,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: sonarcloud-evidence-${{ github.sha }}
+          name: sonarcloud-evidence-${{ env.SONAR_EXPECTED_REVISION }}
           path: |
             reports/sonarcloud/
             coverage/lcov.info
