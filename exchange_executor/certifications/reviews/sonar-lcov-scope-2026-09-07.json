@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "release_audit_sonar_lcov_scope_followup",
+  "reviewedAt": "2026-09-07T08:07:26Z",
+  "sourceRevision": "fe711175814a70e0687b4835ea6eb830fa9de3f6",
+  "sourceTreeHash": "61472f3adcdd90149120d25e9e8618e653f71edd75d78ac15df9f711ab9b4442",
+  "priorReceiptSha256": "0d555a8b2fc24b56e1987d2350762f46df35b508fcc1674958a2ed51f468b76d",
+  "priorExecutionReportHash": "efc4222d7c3b79f372cc0d98e350825b224fc4974e0b760d0818fa008ce77671",
+  "scope": "Align Sonar-specific LCOV generation with the unchanged application source scope by removing the tooling include. Full test execution, application coverage records, source scope, exclusions and thresholds are unchanged.",
+  "authorization": "User requested audit implementation, GitHub publication, and CI/Sonar verification.",
+  "validation": {
+    "reproducedRunId": 34094791028,
+    "reproducedJobId": 101662329373,
+    "authorAgent": "ci_governance_code",
+    "independentlyReviewedBy": "root",
+    "review": "Reviewed the complete three-file diff and independently reran LCOV/workflow and repository governance regressions plus targeted ESLint. Actual CI artifacts contain exactly 31 tooling records outside Sonar scope. The author regenerated reports from identical V8 data and verified all 197 retained source records and counters are identical.",
+    "regression": "passed",
+    "targetedLint": "passed",
+    "logDigest": {
+      "sha256": "6484bf6d81184170089ffb84294698d798d0b43965a3a348996891816b579033",
+      "bytes": 81
+    },
+    "fullValidationScope": "The existing full validation remains attributed to its recorded base revision through the prior review reports. This reporting-only follow-up has targeted regression and report-equivalence evidence; final-head CI and Sonar still must run."
+  },
+  "executorAndSdkSourceChanged": false,
+  "providerParityEvidence": {
+    "preservedHash": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e"
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false,
+  "productionDeploymentPerformed": false,
+  "quarantinePreserved": [
+    "bybit",
+    "krakenfutures"
+  ]
+}

@@ -58,6 +58,13 @@ combined line/branch threshold is unchanged and also checked in the Sonar job.
 The XML report consequently contains source coverage without executed test-code
 inflation. Critical/module JavaScript thresholds are unchanged.
 
+The Sonar-specific backend LCOV report measures `src/**/*.ts`, retaining the
+existing CLI coverage filter. It no longer requests `scripts/**/*.js`:
+those tooling files are outside `sonar.sources` and caused unresolved LCOV
+warnings despite existing on disk. All tests in `tests/run_all.js` still execute,
+including tooling tests; their other CI checks and coverage gates are unchanged.
+The frontend report, licensed Sonar source scope and exclusions are unchanged.
+
 `normalize_lcov_paths.js` resolves backend paths from the repository root and
 frontend paths from the frontend root, then writes repository-relative `SF:`
 paths. It preserves every LCOV record and counter; missing paths, directories,
