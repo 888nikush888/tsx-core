@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "release_audit_sonar_test_environment_followup",
+  "reviewedAt": "2026-09-07T08:00:46Z",
+  "sourceRevision": "94dab1446ace3bf842c5f8c168f478889ad8d5eb",
+  "sourceTreeHash": "9e765be647817bebcd1153baa9a44dff5b0d1416a39aab8ae79ef6a862233c38",
+  "priorReceiptSha256": "d4f8e9ca8d82f4471cb836c998f1557f04ac9bc3a93e3ab8231cedc37b952c82",
+  "priorExecutionReportHash": "d80af40f821ca83b71551b28d2f3859e534a32a017fe6806af080f10ba6f407e",
+  "scope": "Isolate two Sonar CLI test subprocess environments from the parent PR job; test code and one test fixture only. Production Sonar scope validation is unchanged.",
+  "authorization": "User requested audit implementation, GitHub publication, and CI/Sonar verification.",
+  "validation": {
+    "reproducedRunId": 34095172910,
+    "reproducedJobId": 101663264081,
+    "authorAgent": "ci_governance_code",
+    "independentlyReviewedBy": "root",
+    "review": "Reviewed the complete three-file diff and independently reran all three Sonar suites under representative PR scope with REQUIRE_COMPUTE_TASK=true. All inherited SONAR_* inputs are removed before explicit fixture settings; permanent parent PR cases cover both subprocesses.",
+    "regression": "passed",
+    "targetedLint": "passed",
+    "logDigest": {
+      "sha256": "eb59a87ad8afbbf2141d9711f8ce1b1ca1dffc483277c74d36fdd805ded84af3",
+      "bytes": 131
+    },
+    "fullValidationScope": "The existing full validation remains attributed to its recorded base revision through the prior review reports. This test-only follow-up has targeted regression evidence; final-head CI and Sonar still must run."
+  },
+  "executorAndSdkSourceChanged": false,
+  "providerParityEvidence": {
+    "preservedHash": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e"
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false,
+  "productionDeploymentPerformed": false,
+  "quarantinePreserved": [
+    "bybit",
+    "krakenfutures"
+  ]
+}
