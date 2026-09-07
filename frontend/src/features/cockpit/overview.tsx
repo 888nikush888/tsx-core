@@ -17,6 +17,33 @@ import { EquityChart } from '@/features/risk-analytics/equity-chart';
 import { OperatorAttention } from './attention';
 
 function overviewGates(runtime: TradingSnapshot['overview']['runtime'] | undefined, systemStatus: Record<string, any> | null) {
+  const liveStatus = () => {
+    if (!runtime) {
+      return 'unbekannt';
+    }
+    if (runtime.liveTradingEnabled) {
+      return "freigegeben";
+    }
+    return "gesperrt";
+  };
+  const killSwitchStatus = () => {
+    if (!runtime) {
+      return 'unbekannt';
+    }
+    if (runtime.killSwitchActive) {
+      return runtime.killSwitchReason || "aktiv";
+    }
+    return "frei";
+  };
+  const entryStatus = () => {
+    if (!runtime) {
+      return 'unbekannt';
+    }
+    if (runtime.executionEnabled) {
+      return "Einträge aktiv";
+    }
+    return "Einträge pausiert";
+  };
   return [
     [
       "Telegram",
@@ -26,27 +53,45 @@ function overviewGates(runtime: TradingSnapshot['overview']['runtime'] | undefin
     [
       "Execution",
       runtime?.executionEnabled === true,
-      !runtime ? 'unbekannt' : runtime.executionEnabled ? "Einträge aktiv" : "Einträge pausiert",
+      entryStatus(),
     ],
     [
       "Globaler Kill-Switch",
       runtime?.killSwitchActive === false,
-      !runtime ? 'unbekannt' : runtime.killSwitchActive ? runtime.killSwitchReason || "aktiv" : "frei",
+      killSwitchStatus(),
     ],
     [
       "Live-Handel",
       runtime?.liveTradingEnabled === true,
-      !runtime ? 'unbekannt' : runtime.liveTradingEnabled ? "freigegeben" : "gesperrt",
+      liveStatus(),
     ],
   ] as const;
 }
 
-function ServiceEvidence({ operations, observations, portfolio, systemStatus }: {
+function ServiceEvidence({ operations, observations, portfolio, systemStatus }: Readonly<{
   operations: any; observations: Record<string, number>; portfolio: any; systemStatus: Record<string, any> | null;
-}) {
+}>) {
+  const backupEvidence = () => {
+    if (operations?.backup?.healthy === true) {
+      return 'Scheduler meldet gesund; Artefakt separat prüfen';
+    }
+    if (operations?.backup?.healthy === false) {
+      return 'gestört';
+    }
+    return null;
+  };
+  const auditEvidence = () => {
+    if (operations?.audit?.healthy === true) {
+      return 'belegt';
+    }
+    if (operations?.audit?.healthy === false) {
+      return 'gestört';
+    }
+    return null;
+  };
   return <section className="operations-card"><h2>Dienst, Schutz und Nachweisalter</h2><EvidenceFields fields={[
-        ['Startup', operations?.startup?.phase], ['Initialer Schutzscan abgeschlossen', operations?.protectionScanComplete], ['Audit', operations?.audit?.healthy === true ? 'belegt' : operations?.audit?.healthy === false ? 'gestört' : null],
-        ['Backup', operations?.backup?.healthy === true ? 'Scheduler meldet gesund; Artefakt separat prüfen' : operations?.backup?.healthy === false ? 'gestört' : null], ['Betriebsquelle abgerufen', observations['/api/operations'] ? time(observations['/api/operations']) : null],
+    ['Startup', operations?.startup?.phase], ['Initialer Schutzscan abgeschlossen', operations?.protectionScanComplete], ['Audit', auditEvidence()],
+    ['Backup', backupEvidence()], ['Betriebsquelle abgerufen', observations['/api/operations'] ? time(observations['/api/operations']) : null],
         ['Portfolio beobachtet', portfolio?.observedAt ? time(portfolio.observedAt) : null], ['Portfolio aus Servercache', portfolio?.cached], ['Queue läuft / wartet', systemStatus?.queue ? `${systemStatus.queue.running ?? 'unbekannt'} / ${systemStatus.queue.queued ?? 'unbekannt'}` : null],
       ]} /><p>Initialer Schutzscan und Dienstgesundheit ersetzen keinen aktuellen kontobezogenen Stop- und REST-Nachweis.</p><Link to="/trading/accounts">Konten & Schutz prüfen</Link> · <Link to="/trading/incidents">Blocker & Incidents</Link> · <Link to="/trading/operations">Ungeklärte Börsenoperationen</Link> · <Link to="/operations/backups">Backup-Nachweise</Link></section>;
 }
@@ -56,12 +101,12 @@ export function Overview({
   systemStatus,
   onRefresh,
   onOpenIncidents,
-}: {
+}: Readonly<{
   trading: TradingSnapshot | null;
   systemStatus: Record<string, any> | null;
   onRefresh: () => Promise<void>;
   onOpenIncidents?: () => void;
-}) {
+}>) {
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const { confirm, confirmationDialog } = useConfirmationDialog();
@@ -171,10 +216,19 @@ export function Overview({
       confirmation: "FLATTEN MANAGED POSITIONS",
     });
   };
+  const remoteAccessStatus = () => {
+    if (access?.remoteAccess?.connected === true) {
+      return `${access.remoteAccess.provider} verbunden`;
+    }
+    if (access?.remoteAccess?.connected === false) {
+      return "nicht verbunden";
+    }
+    return "unbekannt";
+  };
    return (
     <div className="operations-stack">
       {confirmationDialog}
-      {message && <div role="status" className="builder-info">{message}</div>}
+      {message && <output className="builder-info">{message}</output>}
       <OperatorAttention />
       {Object.entries(sourceErrors).filter(([, error]) => error).map(([source, error]) => <p key={source} role="alert">{source}: {error} · Quelle möglicherweise veraltet; andere Nachweise bleiben separat verfügbar.</p>)}
       <ServiceEvidence operations={operations} observations={observations} portfolio={portfolio} systemStatus={systemStatus} />
@@ -247,7 +301,7 @@ export function Overview({
           <h3>Remote-Zugriff und Betrieb</h3>
           <div className="system-line"><span>Identität</span><strong>{access?.identity?.name || access?.identity?.login || access?.actorId || "unbekannt"}</strong></div>
           <div className="system-line"><span>Rolle</span><strong>{access?.role || "–"}</strong></div>
-          <div className="system-line"><span>Remote-Zugriff</span><strong>{access?.remoteAccess?.connected === true ? `${access.remoteAccess.provider} verbunden` : access?.remoteAccess?.connected === false ? "nicht verbunden" : "unbekannt"}</strong></div>
+          <div className="system-line"><span>Remote-Zugriff</span><strong>{remoteAccessStatus()}</strong></div>
           <div className="system-line"><span>Letzter Abgleich</span><strong>{time(overview?.latestReconciliationAt)}</strong></div>
           {(portfolio?.accounts || []).map((account: any) => <div className="system-line" key={account.accountId}><span>{account.name} · {account.exchange}/{account.mode}</span><strong>{account.error || `${account.equity ?? "unbekannt"} ${account.reportingCurrency ?? ""} · ${time(account.observedAt)}`}</strong></div>)}
         </section>
@@ -291,25 +345,48 @@ export function Overview({
       </div>
       <section className="operations-card">
         <h3>Letzte Börsen-Fallbacks</h3>
-        {(trading?.fallbackRuns || []).slice(0, 8).map((run) => (
-          <div className="adaptive-row" key={run.id}>
-            <div>
-              <strong>{run.channelName || run.channelId}</strong><Link to={`/signals/processed/${encodeURIComponent(run.sourceSignalId)}`}>Ursprüngliches Signal und Eingangsspur</Link>
-              <small>
-                {run.candidates.map((candidate) => {
-                  const policy = candidate.fallbackOn.length
-                    ? fallbackPolicyShortLabel(candidate.fallbackOn)
-                    : "Ende der Kette";
-                  const reason = candidate.errorCode ? ` · ${candidate.errorCode}` : "";
-                  return `${candidate.rank + 1}. ${candidate.accountName} (${candidate.status}${reason}) · ${policy}`;
-                }).join(" → ")}
-              </small>
+        {(trading?.fallbackRuns || []).slice(0, 8).map((run) => {
+          const fallbackStatus = () => {
+            if (run.status === "probing") {
+              return "wird geprüft";
+            }
+            if (run.status === "selected") {
+              return "Konto gewählt";
+            }
+            if (run.status === "exhausted") {
+              return `Kette ausgeschöpft: ${run.stopReason || "kein Kandidat"}`;
+            }
+            return `gestoppt: ${run.stopReason || "Schutzregel"}`;
+          };
+          const fallbackBadge = () => {
+            if (run.status === "exhausted" || run.status === "stopped") {
+              return "danger";
+            }
+            if (run.status === "selected") {
+              return "healthy";
+            }
+            return "";
+          };
+          return ((
+            <div className="adaptive-row" key={run.id}>
+              <div>
+                <strong>{run.channelName || run.channelId}</strong><Link to={`/signals/processed/${encodeURIComponent(run.sourceSignalId)}`}>Ursprüngliches Signal und Eingangsspur</Link>
+                <small>
+                  {run.candidates.map((candidate) => {
+                    const policy = candidate.fallbackOn.length
+                      ? fallbackPolicyShortLabel(candidate.fallbackOn)
+                      : "Ende der Kette";
+                    const reason = candidate.errorCode ? ` · ${candidate.errorCode}` : "";
+                    return `${candidate.rank + 1}. ${candidate.accountName} (${candidate.status}${reason}) · ${policy}`;
+                  }).join(" → ")}
+                </small>
+              </div>
+              <span className={`state-badge ${fallbackBadge()}`}>
+                {fallbackStatus()}
+              </span>
             </div>
-            <span className={`state-badge ${run.status === "exhausted" || run.status === "stopped" ? "danger" : run.status === "selected" ? "healthy" : ""}`}>
-              {run.status === "probing" ? "wird geprüft" : run.status === "selected" ? "Konto gewählt" : run.status === "exhausted" ? `Kette ausgeschöpft: ${run.stopReason || "kein Kandidat"}` : `gestoppt: ${run.stopReason || "Schutzregel"}`}
-            </span>
-          </div>
-        ))}
+          ));
+        })}
         {trading && !(trading?.fallbackRuns || []).length && (
           <Empty text="Im aktuellen Ausschnitt sind keine Börsen-Fallbacks enthalten." />
         )}

@@ -137,7 +137,7 @@ describe('operator maintenance safety', () => {
       return read(url, init);
     });
     const refresh = vi.fn(async () => undefined);
-    mount(<System catalog={null} systemStatus={null} onRefresh={refresh} />);
+    mount(<System catalog={null} onRefresh={refresh} />);
     await screen.findByText(/lokal wiederherstellbar/);
     fireEvent.change(screen.getByPlaceholderText('DATENBANK LEEREN oder FACTORY RESET'), { target: { value: 'FACTORY RESET' } });
     fireEvent.click(screen.getByRole('button', { name: 'Factory Reset' }));

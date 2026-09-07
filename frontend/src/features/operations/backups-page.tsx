@@ -33,13 +33,22 @@ function backupConfirmation(kind: Exclude<BackupCommand, 'create'>, name: string
 }
 function backupRequest(kind: BackupCommand, id: string, name: string | undefined, objectName: string) {
   const { endpoint, confirmation } = BACKUP_COMMANDS[kind];
-  const scope = kind === 'recover' ? { objectName: objectName.trim() } : name ? { name } : {};
+  const backupScope = () => {
+    if (kind === 'recover') {
+      return { objectName: objectName.trim() };
+    }
+    if (name) {
+      return { name };
+    }
+    return {};
+  };
+  const scope = backupScope();
   const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Operator-Job-ID': id };
   if (confirmation) headers['X-Destructive-Confirmation'] = confirmation;
   return { endpoint, init: { method: 'POST', headers, body: JSON.stringify({ jobId: id, ...scope }) } };
 }
 
-export function BackupsPage({ name }: { name?: string }) {
+export function BackupsPage({ name }: Readonly<{ name?: string }>) {
   const readOnly = useOperatorReadOnly();
   const [value, setValue] = useState<any>(null); const [error, setError] = useState('');
   const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);
@@ -62,7 +71,7 @@ export function BackupsPage({ name }: { name?: string }) {
   return <div className="operations-stack">{confirmationDialog}<h1>{name ? 'Backup-Artefakt' : 'Verifizierte Backups'}</h1>
     <p>Integrität, gemeinsame Konfiguration, Wiederherstellbarkeit, Offsite-Beleg und Probelauf sind getrennte Nachweise. Ein bestandener Probelauf ist keine Handelsfreigabe.</p>
     {name ? <Link to="/operations/backups">Alle Backups</Link> : <button className="primary-button" disabled={readOnly || busy} onClick={() => void command('create')}>Jetzt sichern</button>}
-    {error && <p role="alert">{error}</p>}{message && <p role="status">{message}</p>}{jobId && <JobLink id={jobId} />}
+    {error && <p role="alert">{error}</p>}{message && <p><output>{message}</output></p>}{jobId && <JobLink id={jobId} />}
     {readOnly && <p>Viewer: Prüfbelege können gelesen werden. Änderungen erfordern Administratorrechte.</p>}
     {name && evidence && <section className="operations-card"><h2>{name}</h2><EvidenceFields fields={[
       ['Artefakthash', evidence.artifactSha256], ['Erstellt', evidence.artifactCreatedAt == null ? null : new Date(evidence.artifactCreatedAt).toLocaleString('de-DE')],
@@ -71,7 +80,7 @@ export function BackupsPage({ name }: { name?: string }) {
       ['Blocker', evidence.restoreEligibility?.reasons?.join('; ')], ['Offsite-Prüfung', evidence.offsiteVerified ? 'belegt (siehe Artefaktbeleg)' : null], ['Restore-Probelauf', evidence.restoreDrill ? 'belegt (siehe Artefaktbeleg)' : null],
     ]} /><div className="system-actions"><button disabled={busy || readOnly} onClick={() => void command('drill')}>Isolierten Probelauf starten</button><button className="danger-button" disabled={busy || readOnly || evidence.restoreEligibility?.status !== 'eligible'} onClick={() => void command('restore')}>Wiederherstellen</button></div><details><summary>Vollständige Prüfbelege</summary><pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(evidence, null, 2)}</pre></details></section>}
     {!name && value && <EvidenceTable caption="Lokaler Artefaktbestand" rows={(value.backups ?? []).map((artifact: string) => ({ id: artifact, artifact: <Link className="underline" to={`/operations/backups/${encodeURIComponent(artifact)}`}>{artifact}</Link> }))} columns={[["artifact", "Artefakt öffnen & prüfen"]]} />}
-    {!value && <p role="status">Backup-Nachweise werden geladen …</p>}
+    {!value && <p><output>Backup-Nachweise werden geladen …</output></p>}
     {!name && <section className="operations-card system-form"><h2>Offsite-Backup zurückholen</h2><label>Objektname<input value={objectName} onChange={event => setObjectName(event.target.value)} placeholder="backup-….tgfb" maxLength={180} /></label><button disabled={busy || readOnly || !objectName.trim()} onClick={() => void command('recover')}>Herunterladen & prüfen</button></section>}
     <Link to="/operations/jobs">Dauerhafte Wartungsaufträge</Link>
     <aside className="operations-card"><h2>Wartung bei gestopptem Core</h2><p>Imagewechsel und Offline-Rollback benötigen den dokumentierten Deployment-Weg mit geprüften Images und Backups. Ein vollständig gestoppter Core kann diese Oberfläche nicht bereitstellen. Ein unabhängiger Host-Wartungsdienst gehört zur optionalen Erweiterung.</p></aside>

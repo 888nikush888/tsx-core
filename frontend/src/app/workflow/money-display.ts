@@ -8,7 +8,7 @@ export interface DisplayMoney {
   value?: unknown; amount?: unknown; currency?: unknown; status?: unknown;
 }
 const decimalText = (value: unknown): value is string => typeof value === "string"
-  && /^-?(?:0|[1-9][0-9]{0,35})(?:\.[0-9]{1,18})?$/.test(value);
+  && /^-?(?:0|[1-9]\d{0,35})(?:\.\d{1,18})?$/.test(value);
 const DECIMAL_SCALE = 10n ** 18n;
 function decimalUnits(value: string): bigint {
   const [integer, fraction = ""] = value.replace(/^-/, "").split(".");
@@ -17,8 +17,8 @@ function decimalUnits(value: string): bigint {
 }
 function exactDisplayValue(row: DisplayMoneyValue, lower: bigint, upper: bigint): DisplayMoneyValue | null {
   if (!row.exact || typeof row.exact.numerator !== "string" || typeof row.exact.denominator !== "string"
-    || !/^-?(?:0|[1-9][0-9]{0,255})$/.test(row.exact.numerator)
-    || !/^[1-9][0-9]{0,255}$/.test(row.exact.denominator)) return null;
+    || !/^-?(?:0|[1-9]\d{0,255})$/.test(row.exact.numerator)
+    || !/^[1-9]\d{0,255}$/.test(row.exact.denominator)) return null;
   const numerator = BigInt(row.exact.numerator) * DECIMAL_SCALE, denominator = BigInt(row.exact.denominator);
   if (numerator < lower * denominator || numerator > upper * denominator) return null;
   if (row.precision === "exact_decimal" && decimalText(row.decimal)) {

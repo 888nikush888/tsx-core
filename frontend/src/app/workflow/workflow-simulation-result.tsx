@@ -20,13 +20,13 @@ function routeGroups(paths: SimulationPath[]): SimulationPath[][] {
     group.push(path);
     groups.set(key, group);
   }
-  return [...groups.values()].map((group) => group.sort(
+  return [...groups.values()].map((group) => group.toSorted(
     (left, right) => (left.fallbackRank ?? 0) - (right.fallbackRank ?? 0),
   ));
 }
 
 function routeLetter(index: number): string {
-  return String.fromCharCode(65 + Math.min(index, 25));
+  return String.fromCodePoint(65 + Math.min(index, 25));
 }
 
 export function WorkflowSimulationResult({ result }: Readonly<{ result: any }>) {

@@ -103,7 +103,7 @@ export function EquityChart({
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="observedAt" tickFormatter={(value) => new Date(value).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} minTickGap={28} />
               <YAxis width={64} domain={["auto", "auto"]} />
-              <Tooltip labelFormatter={(value) => time(value)} formatter={(_value, _name, item) => `${item.payload?.[`${item.dataKey}Exact`] ?? "unbekannt"} ${metric === 'drawdown' ? '% (näherungsweise)' : group.currency}`} />
+              <Tooltip labelFormatter={(value) => time(value)} formatter={(_value, _name, item) => { const exactKey = `${item.dataKey}Exact`; return `${item.payload?.[exactKey] ?? "unbekannt"} ${metric === 'drawdown' ? '% (näherungsweise)' : group.currency}`; }} />
               {group.series.map((series, index) => (
                 <Line
                   key={series.accountId}

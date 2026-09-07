@@ -1,3 +1,4 @@
+import { listEntries } from "@/shared/list-entries";
 import { useCallback, useState } from "react";
 import { jsonRequest, mutateAndObserve } from "@/lib/api";
 import { useConfirmationDialog } from "@/components/confirmation-dialog";
@@ -44,7 +45,16 @@ export function RecoveryPage() {
     if (name === 'runtime-settings') { const error = runtimeInputError(runtime, runtimePayload?.parameters); if (error) { setMessage(error); return; } }
     setBusy(name); setMessage("");
     try {
-      const revision = name === 'config' ? configForm.baseRevision : name === 'runtime-settings' ? runtimeForm.baseRevision : null;
+      const repairRevision = () => {
+        if (name === 'config') {
+          return configForm.baseRevision;
+        }
+        if (name === 'runtime-settings') {
+          return runtimeForm.baseRevision;
+        }
+        return null;
+      };
+      const revision = repairRevision();
       const { refreshError } = await mutateAndObserve(() => jsonRequest(`/api/${name}`, {
         method: "POST", headers: { "Content-Type": "application/json", ...(revision ? { 'If-Match': String(revision) } : {}) }, body: JSON.stringify(body),
       }), (result) => {
@@ -67,17 +77,26 @@ export function RecoveryPage() {
     finally { setBusy(""); }
   };
   const restarted = restartFrom && status?.serverInstanceId && restartFrom !== status.serverInstanceId;
+  const recoveryStatus = () => {
+    if (status) {
+      if (status.active) {
+        return "Reparatur erforderlich";
+      }
+      return "Recovery beendet; Betriebsfreigaben separat prüfen";
+    }
+    return "wird geprüft";
+  };
   return <main className="operations-stack p-6 mx-auto max-w-5xl">
     {confirmationDialog}
     <h1>TSX Core · Recovery</h1>
-    <p>Authentifizierung: {status?.session?.role ?? "unbekannt"} · Betriebsbereitschaft: {status ? status.active ? "Reparatur erforderlich" : "Recovery beendet; Betriebsfreigaben separat prüfen" : "wird geprüft"}</p>
+    <p>Authentifizierung: {status?.session?.role ?? "unbekannt"} · Betriebsbereitschaft: {recoveryStatus()}</p>
     <p>Dieser Einstieg benötigt nur Recovery, Konfiguration, Runtime-Einstellungen und Secretstatus. Alle Reparaturen durchlaufen die bestehenden Serverprüfungen.</p>
     {Object.entries(errors).filter(([, error]) => error).map(([name, error]) => <p role="alert" key={name}>{name}: {error}</p>)}
-    {status?.issues?.map((issue: any, index: number) => <p role="alert" key={index}>{issue.component} {issue.name}: {issue.reason}</p>)}
-    {message && <p role="status">{message}</p>}
+    {listEntries<any>(status?.issues ?? [], issue => JSON.stringify([issue.component, issue.name, issue.reason])).map(({ item: issue, key }) => <p role="alert" key={key}>{issue.component} {issue.name}: {issue.reason}</p>)}
+    {message && <p><output>{message}</output></p>}
     <DraftState label="Recovery-Konfiguration" form={configForm} server={serverConfig} />
     <DraftState label="Recovery-Runtime" form={runtimeForm} server={runtimePayload?.settings} />
-    {restarted && <p role="status">Neuer Prozess bestätigt · {status.active ? "Recovery bleibt aktiv; Reparatur prüfen." : "Recovery beendet. Öffne das Cockpit und prüfe die Betriebsfreigaben."}</p>}
+    {restarted && <p><output>Neuer Prozess bestätigt · {status.active ? "Recovery bleibt aktiv; Reparatur prüfen." : "Recovery beendet. Öffne das Cockpit und prüfe die Betriebsfreigaben."}</output></p>}
     {status && !status.active && <a className="secondary-button" href={`${import.meta.env.VITE_BASENAME || ""}/cockpit`}>Cockpit öffnen</a>}
     {serverConfig && <section className="operations-card system-form"><h2>Grundkonfiguration reparieren</h2><fieldset disabled={!can('config')}>
       <label>Telegram API-ID<input type="number" value={config.apiId ?? 0} onChange={(event) => setConfig({ ...config, apiId: Number(event.target.value) })} /></label>

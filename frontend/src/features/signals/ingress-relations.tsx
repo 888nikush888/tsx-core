@@ -25,13 +25,13 @@ function ingressObjectLink(kind: string, id: string) {
   return route ? <Link to={`${route}${encodeURIComponent(id)}`}>{id}</Link> : id;
 }
 
-export function IngressRelations({ id }: { id: string }) {
+export function IngressRelations({ id }: Readonly<{ id: string }>) {
   const [params, setParams] = useSearchParams(); const kind = params.get('relation') || 'signals';
   const query = new URLSearchParams({ id, kind }); if (params.has('relationCursor')) query.set('cursor', params.get('relationCursor')!);
   const key = query.toString(); const [state, setState] = useState<any>(null); const [error, setError] = useState('');
   const read = useCallback((signal: AbortSignal) => jsonRequest(`/api/signals/ingress/relations?${key}`, { signal }), [key]);
   usePoll(read, value => { setState({ key, value }); setError(''); }, failure => setError(failure.message)); const data = state?.key === key ? state.value : null;
-  const go = (relation: string, cursor?: string) => { const next = new URLSearchParams(params); next.set('relation', relation); if (cursor) next.set('relationCursor', cursor); else next.delete('relationCursor'); setParams(next); };
+  const go = (relation: string, cursor?: string) => { const next = new URLSearchParams(params); next.set('relation', relation); if (cursor) { next.set('relationCursor', cursor); } else { next.delete('relationCursor'); } setParams(next); };
   const rows = data?.entries.map((row: any) => ({ ...row,
     id: ingressObjectLink(kind, row.id),
     workflowRevisionId: row.workflowRevisionId ? <Link to={`/workflows/revisions/${encodeURIComponent(row.workflowRevisionId)}`}>{row.workflowRevisionId}</Link> : null,
@@ -46,6 +46,6 @@ export function IngressRelations({ id }: { id: string }) {
     {data && <><p>{data.interpretation}</p><p>Albummitglieder bilden einen gemeinsamen Eingang. Ein ACK, eine Operatorquittierung oder ein erschöpfter Cursor beweist keinen Fill und keine Zustellung. Fehlende Dedupe-/Groundingentscheidungen sind unbekannt.</p>
       <EvidenceTable caption={titles[kind as keyof typeof titles] || kind} columns={columns[kind] || [['id', 'ID']]} rows={rows} />
       <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('relationCursor')} onClick={() => go(kind)}>Erste Beziehungsseite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => go(kind, data.nextCursor)}>Weitere Beziehungen</button></div></>}
-    {!data && !error && <p role="status">Beziehungen werden geladen …</p>}
+    {!data && !error && <p><output>Beziehungen werden geladen …</output></p>}
   </section>;
 }

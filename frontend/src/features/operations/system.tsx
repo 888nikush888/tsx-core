@@ -17,18 +17,26 @@ import { useDirtyGuard } from "@/shared/forms/use-dirty-guard";
 import { usePoll } from "@/shared/api/use-poll";
 import { showIssuedCredential } from "@/shared/components/issued-credential";
 
-function RuntimeEvidence({ payload }: { payload: any }) {
-  return <details><summary>Gespeicherte und aktive Werte · Quelle und Wirkung</summary><p>{payload.precedence ?? 'Quellenvertrag nicht verfügbar.'}</p><p>Quelle: {payload.source ?? 'unbekannt'} · Neustart erforderlich: {payload.restartRequired === true ? 'ja' : payload.restartRequired === false ? 'nein' : 'unbekannt'}</p><div className="overflow-x-auto"><table><thead><tr><th>Parameter</th><th>Gespeichert</th><th>Beim Start angewendet</th></tr></thead><tbody>{Object.entries(payload.settings ?? {}).map(([key, value]) => <tr key={key}><th>{key}</th><td>{JSON.stringify(value)}</td><td>{payload.active ? JSON.stringify(payload.active[key]) : 'nicht beobachtet'}</td></tr>)}</tbody></table></div></details>;
+function RuntimeEvidence({ payload }: Readonly<{ payload: any }>) {
+  const restartRequirement = () => {
+    if (payload.restartRequired === true) {
+      return 'ja';
+    }
+    if (payload.restartRequired === false) {
+      return 'nein';
+    }
+    return 'unbekannt';
+  };
+  return <details><summary>Gespeicherte und aktive Werte · Quelle und Wirkung</summary><p>{payload.precedence ?? 'Quellenvertrag nicht verfügbar.'}</p><p>Quelle: {payload.source ?? 'unbekannt'} · Neustart erforderlich: {restartRequirement()}</p><div className="overflow-x-auto"><table><thead><tr><th>Parameter</th><th>Gespeichert</th><th>Beim Start angewendet</th></tr></thead><tbody>{Object.entries(payload.settings ?? {}).map(([key, value]) => <tr key={key}><th>{key}</th><td>{JSON.stringify(value)}</td><td>{payload.active ? JSON.stringify(payload.active[key]) : 'nicht beobachtet'}</td></tr>)}</tbody></table></div></details>;
 }
 
 export function System({
   catalog,
   onRefresh,
-}: {
+}: Readonly<{
   catalog: ExchangeCatalog | null;
-  systemStatus: Record<string, any> | null;
   onRefresh: () => Promise<void>;
-}) {
+}>) {
   const [runtimePayload, setRuntimePayload] = useState<any>(null);
   const runtimeForm = useVersionedDraft<any>('runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
   const { draft: runtime, setDraft: setRuntime } = runtimeForm;
@@ -284,6 +292,15 @@ export function System({
     if (!result && kind === 'factory') setMessage('Factory Reset nicht bestätigt. Zuerst Auftrag und Recovery prüfen; keine automatische Wiederholung.');
     if (result) setDangerConfirmation("");
   };
+  const auditStatus = () => {
+    if (operations?.audit?.healthy === false) {
+      return "gestört";
+    }
+    if (operations?.audit?.healthy === true) {
+      return "bereit";
+    }
+    return "unbekannt";
+  };
   return (
     <div className="operations-stack">
       {confirmationDialog}
@@ -434,7 +451,7 @@ export function System({
       </section>
       <section className="operations-card">
         <h3>Audit und Diagnose</h3>
-        <div className="system-line"><span>Audit-Zustand</span><strong>{operations?.audit?.healthy === false ? "gestört" : operations?.audit?.healthy === true ? "bereit" : "unbekannt"}</strong></div>
+        <div className="system-line"><span>Audit-Zustand</span><strong>{auditStatus()}</strong></div>
         <div className="system-line"><span>Letzte Integritätsprüfung</span><strong>{time(operations?.backup?.integrityVerified?.verifiedAt)}</strong></div>
         <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt))}</strong></div>
         <div className="system-line"><span>Gemeinsame Konfiguration geprüft</span><strong>{time(operations?.backup?.configurationCoherent?.verifiedAt)}</strong></div>

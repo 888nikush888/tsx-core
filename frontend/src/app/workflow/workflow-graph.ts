@@ -1,3 +1,4 @@
+import { valueText } from "@/shared/value-text";
 import {
   COLUMN_GAP,
   KIND_META,
@@ -254,7 +255,7 @@ export function parserSourcesForSchema(
         nodeId: node.id,
         resourceVersionId: node.resourceVersionId,
         name: resource?.name || "Fehlender Parser-Baustein",
-        templateName: String(resource?.configuration.templateName || "inline"),
+        templateName: valueText(resource?.configuration.templateName || "inline"),
         connected: connectedParserIds.has(node.id),
       };
     })

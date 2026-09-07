@@ -104,7 +104,7 @@ function integrationRoute({ pathname }: PageProps) {
 
 // Each resolver only selects elements; polling and mutations remain in the mounted page.
 const areaPages = { trading: tradingRoute, workflows: workflowRoute, signals: signalsRoute, operations: operationsRoute, risk: riskRoute, integrations: integrationRoute };
-export function OperatorPage(props: PageProps) {
+export function OperatorPage(props: Readonly<PageProps>) {
   const area = props.pathname.split('/')[1] as keyof typeof areaPages;
   const resolve = Object.hasOwn(areaPages, area) ? areaPages[area] : undefined;
   const page = resolve?.(props);

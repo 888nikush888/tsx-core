@@ -3,7 +3,7 @@ import type { TradingAccount } from '@/app/workflow/types';
 import { useVersionedDraft } from '@/shared/forms/use-versioned-draft';
 import { DraftState } from '@/shared/forms/draft-state';
 
-export function AccountPositionLimit({ account, disabled, onSave }: { account: TradingAccount; disabled: boolean; onSave: (maximum: number, baseUpdatedAt?: number) => Promise<any> }) {
+export function AccountPositionLimit({ account, disabled, onSave }: Readonly<{ account: TradingAccount; disabled: boolean; onSave: (maximum: number, baseUpdatedAt?: number) => Promise<any> }>) {
   const form = useVersionedDraft(account.id, { maximum: account.maxConcurrentPositions }, account.updatedAt ?? account.maxConcurrentPositions, { maximum: account.maxConcurrentPositions });
   const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);
   const maximum = form.draft.maximum;
@@ -20,10 +20,10 @@ export function AccountPositionLimit({ account, disabled, onSave }: { account: T
     } catch (reason) { setMessage(`Limit nicht bestätigt; keine automatische Wiederholung: ${reason instanceof Error ? reason.message : String(reason)}`); }
     finally { setBusy(false); }
   };
-  return <div className="account-limit-editor system-form"><label>Positionslimit<input type="number" min={1} max={20} step={1} value={Number.isNaN(maximum) ? '' : maximum} disabled={disabled || busy} onChange={event => form.setDraft({ maximum: event.target.value === '' ? NaN : Number(event.target.value) })} /></label>
+  return <div className="account-limit-editor system-form"><label>Positionslimit<input type="number" min={1} max={20} step={1} value={Number.isNaN(maximum) ? '' : maximum} disabled={disabled || busy} onChange={event => form.setDraft({ maximum: event.target.value === '' ? Number.NaN : Number(event.target.value) })} /></label>
     <p>1–20 Positionen / Reservierungen · gemeinsames Kontolimit über alle Strategien und Pfade. Wirkt unabhängig von Ressourcenpublikation und Graphaktivierung.</p>
     <DraftState label={`Positionslimit ${account.name}`} form={form} server={{ maximum: account.maxConcurrentPositions }} />
     <button type="button" className="secondary-button" disabled={disabled || busy || !valid || !form.dirty || form.conflict} onClick={() => void save()}>Limit speichern</button>
-    {message && <p role="status">{message}</p>}
+    {message && <p><output>{message}</output></p>}
   </div>;
 }

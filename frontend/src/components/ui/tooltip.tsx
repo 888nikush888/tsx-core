@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 function TooltipProvider({
   delay = 0,
   ...props
-}: TooltipPrimitive.Provider.Props) {
+}: Readonly<TooltipPrimitive.Provider.Props>) {
   return (
     <TooltipPrimitive.Provider
       data-slot="tooltip-provider"
@@ -15,11 +15,11 @@ function TooltipProvider({
   );
 }
 
-function Tooltip({ ...props }: TooltipPrimitive.Root.Props) {
+function Tooltip({ ...props }: Readonly<TooltipPrimitive.Root.Props>) {
   return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
 }
 
-function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
+function TooltipTrigger({ ...props }: Readonly<TooltipPrimitive.Trigger.Props>) {
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
 }
 

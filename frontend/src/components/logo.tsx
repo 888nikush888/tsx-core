@@ -36,7 +36,7 @@ export function Logo({
   className,
   style,
   ...props
-}: LogoProps) {
+}: Readonly<LogoProps>) {
   const crop = variant === "full" ? FULL_CROP : MARK_CROP;
   const imageWidth = size * crop.aspectRatio;
 

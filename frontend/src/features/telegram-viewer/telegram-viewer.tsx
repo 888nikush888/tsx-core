@@ -119,6 +119,15 @@ export function TelegramViewer() {
   if (!settings || !payload) return <Empty text={loadError || message || "Telegram Viewer wird geladen …"} />;
   const service = payload.service || {};
   const botConfigured = payload.secrets?.botToken?.configured === true;
+  const serviceReadiness = () => {
+    if (service.ready === true) {
+      return "bereit";
+    }
+    if (service.ready === false) {
+      return "wartet";
+    }
+    return 'unbekannt';
+  };
   return (
     <div className="operations-stack">
       {confirmationDialog}
@@ -143,7 +152,7 @@ export function TelegramViewer() {
         <h3>Status</h3>
         <div className="operations-metrics">
           <Metric label="Dienst" value={viewerServiceHealth(service)} />
-          <Metric label="Bereitschaft" value={service.ready === true ? "bereit" : service.ready === false ? "wartet" : 'unbekannt'} />
+          <Metric label="Bereitschaft" value={serviceReadiness()} />
           <Metric label="Bot-Token" value={botConfigured ? "konfiguriert" : "fehlt"} />
           <Metric label="Letzte Abfrage" value={time(service.lastPollAt)} />
         </div>
@@ -166,7 +175,7 @@ export function TelegramViewer() {
 
       <section className="operations-card system-form">
         <h3>Zugriff</h3>
-        <label>Erlaubte Telegram User IDs
+        <label>Erlaubte Telegram User IDs{" "}
           <textarea aria-label="Erlaubte Telegram User IDs" rows={5} value={allowedUsers}
             onChange={(event) => setAllowedUsers(event.target.value)} placeholder="Eine numerische User ID pro Zeile" />
         </label>

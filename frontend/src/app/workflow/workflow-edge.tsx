@@ -22,7 +22,8 @@ export function isAlignedWorkflowEdge(sourceY: number, targetY: number) {
 }
 
 function stableCurveOffset(id: string): number {
-  const hash = [...id].reduce((value, character) => ((value * 31) + character.charCodeAt(0)) >>> 0, 0);
+  // Keep the existing UTF-16 first-unit hash, including supplementary characters.
+  const hash = [...id].reduce((value, character) => ((value * 31) + character[0].codePointAt(0)!) >>> 0, 0);
   return 24 + (hash % 4) * 8;
 }
 

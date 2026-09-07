@@ -79,7 +79,7 @@ export function WorkflowConnectionDialog({
               onChange={() => setMode("all")}
             />
             <span>
-              <strong>Alle Kanäle weiterleiten</strong>
+              <strong>Alle Kanäle weiterleiten</strong>{" "}
               <small>
                 Gilt automatisch auch für später hinzugefügte Kanäle, die diesen
                 Baustein erreichen.
@@ -94,7 +94,7 @@ export function WorkflowConnectionDialog({
               onChange={() => setMode("selected")}
             />
             <span>
-              <strong>Nur ausgewählte Kanäle</strong>
+              <strong>Nur ausgewählte Kanäle</strong>{" "}
               <small>Die Verbindung wird auf feste Ursprungskanäle begrenzt.</small>
             </span>
           </label>

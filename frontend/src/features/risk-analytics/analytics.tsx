@@ -39,11 +39,11 @@ export function Analytics({
   trading,
   catalog,
   filtersOpen,
-}: {
+}: Readonly<{
   trading: TradingSnapshot | null;
   catalog: ExchangeCatalog | null;
   filtersOpen?: boolean;
-}) {
+}>) {
   const [query, setQuery] = useSearchParams();
   const selectedRange = query.get('range') ?? '30d';
   const range: AnalyticsRange = ['24h', '7d', '30d', '90d', 'all', 'custom'].includes(selectedRange) ? selectedRange as AnalyticsRange : '30d';
@@ -66,7 +66,7 @@ export function Analytics({
   const setExchange = (value: string) => updateFilter('exchange', value);
   const setMode = (value: string) => updateFilter('mode', value);
   const setStatus = (value: string) => updateFilter('status', value);
-  const [analyticsResponse, setAnalytics] = useState<any>(null);
+  const [analyticsResponse, setAnalyticsResponse] = useState<any>(null);
   const analyticsContext = JSON.stringify([range, customFrom, customUntil, channelId, accountId, exchange, mode, status]);
   const analytics = analyticsResponse?.context === analyticsContext ? analyticsResponse.value : null;
   const [error, setError] = useState("");
@@ -79,7 +79,7 @@ export function Analytics({
     const query = analyticsQuery({ range, customFrom, customUntil, channelId, accountId, exchange, mode, status }, Date.now());
     return { context: analyticsContext, value: await jsonRequest(`/api/trading/analytics?${query}`, { signal }) };
   }, [range, customFrom, customUntil, channelId, accountId, exchange, mode, status, analyticsContext]);
-  usePoll(readAnalytics, (value) => { setAnalytics(value); setError(""); }, (reason) => setError(reason.message));
+  usePoll(readAnalytics, (value) => { setAnalyticsResponse(value); setError(""); }, (reason) => setError(reason.message));
   const channels = analytics?.performance?.channels || [];
   const exchanges = analytics?.performance?.exchanges || [];
   const equity = analytics?.performance?.equity || [];
@@ -153,7 +153,7 @@ export function Analytics({
       </section>
       )}
       {error && <div role="alert" className="builder-error">{error}</div>}
-      {!analytics && <p role="status">Für diese Filter ist noch kein Analyseergebnis bestätigt.</p>}
+      {!analytics && <p><output>Für diese Filter ist noch kein Analyseergebnis bestätigt.</output></p>}
       {status && <p>Der Statusfilter bezieht sich auf Intents. Ereignisse und Fallbackkandidaten ohne zugeordneten Intentstatus sind dabei ausgeschlossen.</p>}
       {executionIncomplete && <p role="alert">Mehr als 20.000 passende Ausführungsereignisse. Funnel und Latenz bleiben ohne vollständigen Nachweis ausgeblendet; Zeitraum oder Dimensionen weiter eingrenzen.</p>}
       <div className="operations-metrics">

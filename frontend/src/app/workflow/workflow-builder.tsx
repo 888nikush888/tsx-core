@@ -194,8 +194,7 @@ function workflowHandles(kind: WorkflowKind): NonNullable<Node["handles"]> {
       y: -edgeOffset,
       width: WORKFLOW_HANDLE_SIZE,
       height: WORKFLOW_HANDLE_SIZE,
-    });
-    handles.push({
+    }, {
       id: "fallback-source",
       type: "source",
       position: Position.Bottom,
@@ -388,9 +387,13 @@ function connectionScopeDescription(selectedConnection: {
   channelNames?: string[];
   kind?: "flow" | "account_fallback";
 } | null): string {
-  return selectedConnection?.channelNames?.length
-    ? `${selectedConnection.kind === "account_fallback" ? "Nächstes Fallback" : "Nur"} für ${selectedConnection.channelNames.join(", ")}`
-    : "Für alle Ursprungskanäle dieses Pfads.";
+  const connectionScope = () => {
+    if (selectedConnection?.channelNames?.length) {
+      return `${selectedConnection.kind === "account_fallback" ? "Nächstes Fallback" : "Nur"} für ${selectedConnection.channelNames.join(", ")}`;
+    }
+    return "Für alle Ursprungskanäle dieses Pfads.";
+  };
+  return connectionScope();
 }
 
 const WORKSPACES: Array<{
@@ -609,6 +612,15 @@ export function buildDashboardCockpit(
   systemStatus: Record<string, any> | null,
   openIncidents: TradingSnapshot["accountIncidents"],
 ): CockpitItem[] {
+  const runtimeBlocker = () => {
+    if (runtime?.killSwitchActive) {
+      return runtime.killSwitchReason || "global gesperrt";
+    }
+    if (openIncidents.length) {
+      return `${openIncidents.length} Incident(s)`;
+    }
+    return "bereit";
+  };
   return [
     {
       label: "Telegram",
@@ -622,11 +634,7 @@ export function buildDashboardCockpit(
     },
     {
       label: "Schutz",
-      value: runtime?.killSwitchActive
-        ? runtime.killSwitchReason || "global gesperrt"
-        : openIncidents.length
-          ? `${openIncidents.length} Incident(s)`
-          : "bereit",
+      value: runtimeBlocker(),
       healthy: runtime?.killSwitchActive !== true && openIncidents.length === 0,
     },
   ];
@@ -1213,9 +1221,9 @@ function workflowRenderMode(
   return loading ? "loading" : activeWorkspace;
 }
 
-function AnalyticsStatusbar({ lastUpdated, refreshing, onFilters, onRefresh }: {
+function AnalyticsStatusbar({ lastUpdated, refreshing, onFilters, onRefresh }: Readonly<{
   lastUpdated: number | null; refreshing: boolean; onFilters: () => void; onRefresh: () => Promise<void>;
-}) {
+}>) {
   return <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
     <div className="workflow-status-tools">
       <span className="workspace-last-updated">
@@ -1707,11 +1715,16 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       const modifier = event.ctrlKey || event.metaKey;
       if (!modifier || event.altKey) return;
       const key = event.key.toLocaleLowerCase("en-US");
-      const direction = key === "y" || (key === "z" && event.shiftKey)
-        ? "redo"
-        : key === "z" && !event.shiftKey
-          ? "undo"
-          : null;
+      const historyDirection = () => {
+        if (key === "y" || (key === "z" && event.shiftKey)) {
+          return "redo";
+        }
+        if (key === "z" && !event.shiftKey) {
+          return "undo";
+        }
+        return null;
+      };
+      const direction = historyDirection();
       if (!direction) return;
       event.preventDefault();
       void navigateHistory(direction);
@@ -1795,7 +1808,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     fallbackOn: WorkflowFallbackReason[],
     applyToChain: boolean,
   ) => {
-    if (!connectionDraft || connectionDraft.kind !== "account_fallback") return;
+    if (connectionDraft?.kind !== "account_fallback") return;
     let candidate = upgradeWorkflowGraphForFallbackPolicy(graphRef.current);
     let edgeId = connectionDraft.edgeId;
     if (edgeId) {
@@ -1816,11 +1829,18 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       });
     }
     candidate = applyWorkflowFallbackPolicy(candidate, edgeId, fallbackOn, applyToChain);
+    const fallbackUpdateNotice = () => {
+      if (applyToChain) {
+        return "Fallback-Regel der Kontokette aktualisiert";
+      }
+      if (connectionDraft.edgeId) {
+        return "Fallback-Regel aktualisiert";
+      }
+      return "Fallback-Verbindung aktiviert";
+    };
     const activated = await activateGraph(
       candidate,
-      applyToChain ? "Fallback-Regel der Kontokette aktualisiert" : connectionDraft.edgeId
-        ? "Fallback-Regel aktualisiert"
-        : "Fallback-Verbindung aktiviert",
+      fallbackUpdateNotice(),
     );
     if (activated) {
       setSelectedEdgeId(edgeId);
@@ -2038,6 +2058,15 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           resourceInstanceCount: 1,
           routeIds: [],
         };
+        const routeSelectionState = () => {
+          if (!selectedPathId) {
+            return "idle";
+          }
+          if (routeUsage.routeIds.includes(selectedPathId)) {
+            return "active";
+          }
+          return "dimmed";
+        };
         return {
           ...edge,
           type: "workflow",
@@ -2055,14 +2084,10 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
               );
               return channelNode
                 ? resourceById.get(channelNode.resourceVersionId)?.name ||
-                    channelNodeId
+                channelNodeId
                 : channelNodeId;
             }),
-            pathFocusState: !selectedPathId
-              ? "idle"
-              : routeUsage.routeIds.includes(selectedPathId)
-                ? "active"
-                : "dimmed",
+            pathFocusState: routeSelectionState(),
           } satisfies WorkflowEdgeData,
         };
       }),
@@ -2294,7 +2319,8 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     setSaving(true); const published: string[] = [];
     try {
       const previews = await Promise.all(drafts.map(resource => jsonRequest(`/api/workflow/objects?kind=resources&id=${encodeURIComponent(resource.id)}`)));
-      if (!await confirm({ title: 'Ressourcenversionen publizieren', description: `${drafts.map(item => `${item.name} v${item.version}`).join(', ')} werden unveränderliche Versionen. Referenzierte Modelldrafts werden mitpubliziert: ${previews.map(item => item.publication?.dependency?.id).filter(Boolean).join(', ') || 'keine'}. Inhalte sind über Bibliothek → Version → Referenziertes Modell prüfbar. Die aktive Graphrevision ändert sich erst durch eine separate Aktivierung.`, confirmLabel: 'Versionen publizieren' })) return;
+      const draftLabels = drafts.map(item => `${item.name} v${item.version}`).join(', ');
+      if (!await confirm({ title: 'Ressourcenversionen publizieren', description: `${draftLabels} werden unveränderliche Versionen. Referenzierte Modelldrafts werden mitpubliziert: ${previews.map(item => item.publication?.dependency?.id).filter(Boolean).join(', ') || 'keine'}. Inhalte sind über Bibliothek → Version → Referenziertes Modell prüfbar. Die aktive Graphrevision ändert sich erst durch eine separate Aktivierung.`, confirmLabel: 'Versionen publizieren' })) return;
       for (const [index, resource] of drafts.entries()) {
         const payload = await jsonRequest('/api/workflow/resources/publish', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Destructive-Confirmation': 'publish-workflow-dependencies' }, body: JSON.stringify({ id: resource.id, baseEditRevision: resource.editRevision, publishDependencies: true, publicationHash: previews[index].publication?.publicationHash }) });
         published.push(resource.id);

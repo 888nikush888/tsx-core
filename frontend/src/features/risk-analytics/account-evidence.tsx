@@ -20,10 +20,10 @@ export function RiskAccounts() {
   const { data, error } = useEvidence(`/api/trading/objects?${query}`);
   return <section className="space-y-4"><h1>Risiko- und Historienbelege je Konto</h1><p>Kontomodell und Währung bleiben getrennt. Ein lesbarer oder frischer Beleg ist keine neue Entry-Freigabe.</p>
     {error && <p role="alert">{error}</p>}{data ? <><EvidenceTable caption="Konten" columns={[["name", "Kontobelege öffnen"], ["exchange", "Börse"], ["mode", "Modus"], ["status", "Status"], ["retiredAt", "Entfernt"]]} rows={data.entries.map((row: any) => ({ ...row, name: <Link to={`/risk/accounts/${encodeURIComponent(row.id)}`}>{row.name}</Link>, retiredAt: time(row.retiredAt) }))} />
-      <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('cursor')} onClick={() => setParams(new URLSearchParams())}>Erste Seite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setParams(new URLSearchParams({ cursor: data.nextCursor }))}>Nächste Seite</button></div></> : !error && <p role="status">Konten werden geladen …</p>}</section>;
+      <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('cursor')} onClick={() => setParams(new URLSearchParams())}>Erste Seite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setParams(new URLSearchParams({ cursor: data.nextCursor }))}>Nächste Seite</button></div></> : !error && <p><output>Konten werden geladen …</output></p>}</section>;
 }
 
-function AccountEvidenceRows({ accountId, kind, observationId }: { accountId: string; kind: 'reservations' | 'history'; observationId?: string }) {
+function AccountEvidenceRows({ accountId, kind, observationId }: Readonly<{ accountId: string; kind: 'reservations' | 'history'; observationId?: string }>) {
   const [params, setParams] = useSearchParams(); const cursorKey = `${kind}Cursor`;
   const query = new URLSearchParams({ accountId, kind }); if (params.has(cursorKey)) query.set('cursor', params.get(cursorKey)!);
   if (kind === 'reservations' && observationId) query.set('observationId', params.get('observationId') || observationId);
@@ -44,13 +44,13 @@ function AccountEvidenceRows({ accountId, kind, observationId }: { accountId: st
   const columns: Array<[string, string]> = kind === 'history' ? [['source', 'Quelle / Scope'], ['completeness', 'Vollständigkeit'], ['scannedThrough', 'Durchsucht bis'], ['updatedAt', 'Aktualisiert'], ['reason', 'Grund']] : [['intentId', 'Trade'], ['status', 'Bewertung'], ['additional', 'Zusätzlich reserviertes Risiko']];
   return <section className="operations-card space-y-3"><h2>{title}</h2>{error && <p role="alert">{error} Angezeigte Werte können veraltet sein.</p>}
     {data ? <><p>{data.interpretation}</p>{data.observation && <p>Beobachtung {data.observation.id} · {time(data.observation.observedAt)} · {data.observation.timestampFresh ? 'Zeitgrenze noch gültig' : 'Zeitgrenze abgelaufen oder ungültig'} · {data.observation.isCurrentObservation ? 'aktuelle gespeicherte Projektion' : 'historische Projektion'}.</p>}
-      <EvidenceTable caption={title} rows={rows} columns={columns} /><div className="space-y-4">{rows.map((row: any, index: number) => <div key={row.id ?? index} className="border-t pt-3"><p>{kind === "history" ? row.source : row.intentId}</p>{row.details}</div>)}</div><div className="flex gap-3"><button className="secondary-button" disabled={!params.has(cursorKey) && !(kind === 'reservations' && params.has('observationId'))} onClick={() => go(false)}>Aktuelle erste Seite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => go(true)}>Weitere {kind === 'history' ? 'Historienbelege' : 'Reservierungen'}</button></div></> : !error && <p role="status">Belege werden geladen …</p>}
+      <EvidenceTable caption={title} rows={rows} columns={columns} /><div className="space-y-4">{rows.map((row: any, index: number) => <div key={row.id ?? index} className="border-t pt-3"><p>{kind === "history" ? row.source : row.intentId}</p>{row.details}</div>)}</div><div className="flex gap-3"><button className="secondary-button" disabled={!params.has(cursorKey) && !(kind === 'reservations' && params.has('observationId'))} onClick={() => go(false)}>Aktuelle erste Seite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => go(true)}>Weitere {kind === 'history' ? 'Historienbelege' : 'Reservierungen'}</button></div></> : !error && <p><output>Belege werden geladen …</output></p>}
   </section>;
 }
 
-export function RiskAccountEvidence({ accountId }: { accountId: string }) {
+export function RiskAccountEvidence({ accountId }: Readonly<{ accountId: string }>) {
   const { data, error } = useEvidence(`/api/trading/accounts/evidence?accountId=${encodeURIComponent(accountId)}`);
-  if (!data) return <section><h1>Kontorisiko</h1><p role={error ? 'alert' : 'status'}>{error || 'Kontobelege werden geladen …'}</p></section>;
+  if (!data) return <section><h1>Kontorisiko</h1><p>{error ? <span role="alert">{error}</span> : <output>Kontobelege werden geladen …</output>}</p></section>;
   const { account, daily, risk } = data;
   const money = (value: any, amount: string | null) => <MoneyAmount value={value} amount={amount} currency={daily.reportingCurrency} status={daily.valuationStatus === 'valued' ? 'complete' : 'unresolved'} />;
   return <section className="space-y-5"><h1>{account.name} · Risiko & Historie</h1><p>{account.exchange}/{account.mode} · gelesen {time(data.observedAt)}.</p>

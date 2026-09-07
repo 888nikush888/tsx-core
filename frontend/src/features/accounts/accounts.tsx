@@ -18,11 +18,11 @@ export function Accounts({
   trading,
   catalog,
   onRefresh,
-}: {
+}: Readonly<{
   trading: TradingSnapshot | null;
   catalog: ExchangeCatalog | null;
   onRefresh: () => Promise<void>;
-}) {
+}>) {
   const readOnly = useOperatorReadOnly();
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({
@@ -138,30 +138,36 @@ export function Accounts({
     setBusy(account.id);
     setMessage("");
     try {
+      const accountActionRequest = () => {
+        if (action === "verify") {
+          return [
+            "/api/trading/accounts/verify",
+            { id: account.id },
+            "POST",
+          ] as const;
+        }
+        if (action === "reconcile") {
+          return [
+            "/api/trading/reconcile",
+            { accountId: account.id },
+            "POST",
+          ] as const;
+        }
+        if (action === "toggle") {
+          return [
+            "/api/trading/accounts/state",
+            { id: account.id, enabled: !account.enabled },
+            "POST",
+          ] as const;
+        }
+        return [
+          "/api/trading/accounts",
+          { id: account.id },
+          "DELETE",
+        ] as const;
+      };
       const request =
-        action === "verify"
-          ? ([
-              "/api/trading/accounts/verify",
-              { id: account.id },
-              "POST",
-            ] as const)
-          : action === "reconcile"
-            ? ([
-                "/api/trading/reconcile",
-                { accountId: account.id },
-                "POST",
-              ] as const)
-            : action === "toggle"
-              ? ([
-                  "/api/trading/accounts/state",
-                  { id: account.id, enabled: !account.enabled },
-                  "POST",
-                ] as const)
-              : ([
-                  "/api/trading/accounts",
-                  { id: account.id },
-                  "DELETE",
-                ] as const);
+        accountActionRequest();
       await jsonRequest(request[0], {
         method: request[2],
         headers: { "Content-Type": "application/json" },
@@ -340,7 +346,7 @@ export function Accounts({
       {creating && (
         <section className="operations-card account-create">
           <label>
-            Name
+              Name{" "}
             <input
               value={form.name}
               onChange={(event) =>
@@ -349,7 +355,7 @@ export function Accounts({
             />
           </label>
           <label>
-            Börse
+              Börse{" "}
             <select
               value={form.exchange}
               onChange={(event) => {
@@ -370,7 +376,7 @@ export function Accounts({
             </select>
           </label>
           <label>
-            Modus
+              Modus{" "}
             <select
               value={form.mode}
               onChange={(event) =>
@@ -385,7 +391,7 @@ export function Accounts({
             </select>
           </label>
           <label>
-            Max. Positionen
+              Max. Positionen{" "}
             <input
               type="number"
               min={1}
@@ -401,7 +407,7 @@ export function Accounts({
           </label>
           {form.exchange === "paper" && (
             <label>
-              Startkapital
+                Startkapital{" "}
               <input
                 value={form.initialBalance}
                 onChange={(event) =>
@@ -460,170 +466,181 @@ export function Accounts({
           </div>
         </section>
       )}
-      {trading?.accounts.map((account) => (
-        <section className="operations-card account-card" key={account.id}>
-          <div className="account-card-title">
-            <div>
-              <strong><Link to={`/trading/accounts/${encodeURIComponent(account.id)}`}>{account.name}</Link></strong>
-              <span>
-                {account.exchange} · {account.mode}
-              </span>
-            </div>
-            <span
-              className={`state-badge ${account.killSwitchActive ? "danger" : account.status === "ready" ? "healthy" : ""}`}
-            >
-              {account.killSwitchActive ? "gesperrt" : account.status}
-            </span>
-          </div>
-          <div className="account-grid">
-            <AccountPositionLimit
-              account={account}
-              disabled={busy === account.id}
-              onSave={(maximum, baseUpdatedAt) =>
-                updateAccount(account, { maxConcurrentPositions: maximum, baseUpdatedAt })
-              }
-            />
-            <div>
-              <span>Letzter Abgleich</span>
-              <strong>{time(account.lastReconciledAt)}</strong>
-            </div>
-          </div>
-          {account.killSwitchActive && (
-            <div className="account-warning">
-              <AlertTriangle size={15} />
-              <span>{account.killSwitchReason || "Kontosperre aktiv"}</span>
-              <button
-                type="button"
-                onClick={() => void releaseKillSwitch(account)}
-              >
-                Prüfen & freigeben
-              </button>
-            </div>
-          )}
-          {account.lastError && (
-            <small className="error-text">{account.lastError}</small>
-          )}
-          {(trading?.accountIncidents || [])
-            .filter((incident) => incident.accountId === account.id)
-            .map((incident) => (
-              <div className="account-incident" key={incident.id}>
+        {trading?.accounts.map((account) => {
+          const accountBadge = () => {
+            if (account.killSwitchActive) {
+              return "danger";
+            }
+            if (account.status === "ready") {
+              return "healthy";
+            }
+            return "";
+          };
+          return ((
+            <section className="operations-card account-card" key={account.id}>
+              <div className="account-card-title">
                 <div>
-                  <strong>{incident.message}</strong>
-                  <small>
-                    {incident.category} · {incident.occurrenceCount} Beobachtungen · zuletzt {time(incident.lastSeenAt)}
-                  </small>
+                  <strong><Link to={`/trading/accounts/${encodeURIComponent(account.id)}`}>{account.name}</Link></strong>
+                  <span>
+                    {account.exchange} · {account.mode}
+                  </span>
                 </div>
-                <Badge
-                  variant={incident.severity === "critical" ? "destructive" : "outline"}
+                <span
+                  className={`state-badge ${accountBadge()}`}
                 >
-                  {incident.severity === "critical" ? "kritisch" : "Warnung"}
-                </Badge>
+                  {account.killSwitchActive ? "gesperrt" : account.status}
+                </span>
               </div>
-            ))}
-          <div className="account-actions">
-            <button
-              type="button"
-              disabled={busy === account.id}
-              onClick={() => void accountAction(account, "reconcile")}
-            >
-              Abgleichen
-            </button>
-            {account.exchange !== "paper" && (
-              <button
-                type="button"
-                disabled={busy === account.id}
-                onClick={() => void accountAction(account, "verify")}
-              >
-                Verifizieren
-              </button>
-            )}
-            <button
-              type="button"
-              disabled={busy === account.id}
-              onClick={() => void accountAction(account, "toggle")}
-            >
-              {account.enabled ? "Deaktivieren" : "Aktivieren"}
-            </button>
-            {!account.killSwitchActive && (
-              <button
-                type="button"
-                disabled={busy === account.id}
-                onClick={() =>
-                  void updateAccount(account, {
-                    killSwitchActive: true,
-                    killSwitchReason: "Manuell im Builder gesperrt",
-                  })
-                }
-              >
-                Sperren
-              </button>
-            )}
-            {account.exchange !== "paper" && (
-              <button
-                type="button"
-                disabled={busy === account.id}
-                onClick={() => {
-                  setCredentialFor(account.id);
-                  setReplacement({});
-                }}
-              >
-                Keys ersetzen
-              </button>
-            )}
-            <button
-              type="button"
-              className="danger-text"
-              disabled={busy === account.id}
-              onClick={() => void accountAction(account, "delete")}
-            >
-              Löschen
-            </button>
-          </div>
-          {credentialFor === account.id && (
-            <div className="credential-replace">
-              <p>
-                Neue Keys werden write-only gespeichert und vor der Übernahme
-                gegen dasselbe externe Konto geprüft.
-              </p>
-              {catalog?.exchanges
-                .find((item) => item.id === account.exchange)
-                ?.credentialFields.map((field) => (
-                  <label key={field.id}>
-                    {field.label}
-                    <input
-                      type={field.secret ? "password" : "text"}
-                      autoComplete="off"
-                      value={replacement[field.id] || ""}
-                      onChange={(event) =>
-                        setReplacement({
-                          ...replacement,
-                          [field.id]: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                ))}
-              <div>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setCredentialFor("")}
-                >
-                  Abbrechen
-                </button>
-                <button
-                  type="button"
-                  className="primary-button"
+              <div className="account-grid">
+                <AccountPositionLimit
+                  account={account}
                   disabled={busy === account.id}
-                  onClick={() => void replaceCredentials(account)}
+                  onSave={(maximum, baseUpdatedAt) =>
+                    updateAccount(account, { maxConcurrentPositions: maximum, baseUpdatedAt })
+                  }
+                />
+                <div>
+                  <span>Letzter Abgleich</span>
+                  <strong>{time(account.lastReconciledAt)}</strong>
+                </div>
+              </div>
+              {account.killSwitchActive && (
+                <div className="account-warning">
+                  <AlertTriangle size={15} />
+                  <span>{account.killSwitchReason || "Kontosperre aktiv"}</span>
+                  <button
+                    type="button"
+                    onClick={() => void releaseKillSwitch(account)}
+                  >
+                    Prüfen & freigeben
+                  </button>
+                </div>
+              )}
+              {account.lastError && (
+                <small className="error-text">{account.lastError}</small>
+              )}
+              {(trading?.accountIncidents || [])
+                .filter((incident) => incident.accountId === account.id)
+                .map((incident) => (
+                  <div className="account-incident" key={incident.id}>
+                    <div>
+                      <strong>{incident.message}</strong>
+                      <small>
+                        {incident.category} · {incident.occurrenceCount} Beobachtungen · zuletzt {time(incident.lastSeenAt)}
+                      </small>
+                    </div>
+                    <Badge
+                      variant={incident.severity === "critical" ? "destructive" : "outline"}
+                    >
+                      {incident.severity === "critical" ? "kritisch" : "Warnung"}
+                    </Badge>
+                  </div>
+                ))}
+              <div className="account-actions">
+                <button
+                  type="button"
+                  disabled={busy === account.id}
+                  onClick={() => void accountAction(account, "reconcile")}
                 >
-                  Prüfen & ersetzen
+                  Abgleichen
+                </button>
+                {account.exchange !== "paper" && (
+                  <button
+                    type="button"
+                    disabled={busy === account.id}
+                    onClick={() => void accountAction(account, "verify")}
+                  >
+                    Verifizieren
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={busy === account.id}
+                  onClick={() => void accountAction(account, "toggle")}
+                >
+                  {account.enabled ? "Deaktivieren" : "Aktivieren"}
+                </button>
+                {!account.killSwitchActive && (
+                  <button
+                    type="button"
+                    disabled={busy === account.id}
+                    onClick={() =>
+                      void updateAccount(account, {
+                        killSwitchActive: true,
+                        killSwitchReason: "Manuell im Builder gesperrt",
+                      })
+                    }
+                  >
+                    Sperren
+                  </button>
+                )}
+                {account.exchange !== "paper" && (
+                  <button
+                    type="button"
+                    disabled={busy === account.id}
+                    onClick={() => {
+                      setCredentialFor(account.id);
+                      setReplacement({});
+                    }}
+                  >
+                    Keys ersetzen
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="danger-text"
+                  disabled={busy === account.id}
+                  onClick={() => void accountAction(account, "delete")}
+                >
+                  Löschen
                 </button>
               </div>
-            </div>
-          )}
-        </section>
-      ))}
+              {credentialFor === account.id && (
+                <div className="credential-replace">
+                  <p>
+                    Neue Keys werden write-only gespeichert und vor der Übernahme
+                    gegen dasselbe externe Konto geprüft.
+                  </p>
+                  {catalog?.exchanges
+                    .find((item) => item.id === account.exchange)
+                    ?.credentialFields.map((field) => (
+                      <label key={field.id}>
+                        {field.label}
+                        <input
+                          type={field.secret ? "password" : "text"}
+                          autoComplete="off"
+                          value={replacement[field.id] || ""}
+                          onChange={(event) =>
+                            setReplacement({
+                              ...replacement,
+                              [field.id]: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    ))}
+                  <div>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => setCredentialFor("")}
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={busy === account.id}
+                      onClick={() => void replaceCredentials(account)}
+                    >
+                      Prüfen & ersetzen
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          ));
+        })}
       </div>
       <Dialog
         open={Boolean(releaseTarget)}

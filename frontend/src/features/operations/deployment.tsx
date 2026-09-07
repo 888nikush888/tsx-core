@@ -16,6 +16,6 @@ export function DeploymentEvidence() {
       <p>{data.listener.interpretation}</p><p>{data.process.interpretation}</p><p>{data.limits.interpretation}</p>
       <EvidenceTable caption="Im Prozess vorhandene Deploymentdeklarationen" rows={data.declarations} columns={[["name", "Wertname"], ["value", "Deklarierter Wert"], ["source", "Tatsächliche Quelle"]]} />
       <p>Fehlende Deklarationen bedeuten unbekannt. Der Core liest keine Compose-Datei und bestätigt damit weder Hostports noch Ressourcenlimits.</p><p>{data.boundary}</p>
-    </> : <p role="status">Serverquellen werden gelesen …</p>}
+    </> : <p><output>Serverquellen werden gelesen …</output></p>}
   </section>;
 }
