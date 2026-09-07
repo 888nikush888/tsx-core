@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "release_audit_sonar_pr_api_followup",
+  "reviewedAt": "2026-09-07T09:11:41Z",
+  "sourceRevision": "2cf3e6551be85f9afaa76380d926201463e842f9",
+  "sourceTreeHash": "4398a0a4fa40ea86bbe5987a3adf449579e3ecf40b532f81ec2f1da708ca449f",
+  "priorReceiptSha256": "44e3f641f1357872ed0a53255ef2665dde74bece968c19e0123cbc586041dfa9",
+  "priorExecutionReportHash": "92712b70268b0c0902a4c8537f8722e96959710ac526d10ffdcf17d15255918f",
+  "scope": "Bind PR key, source branch, base branch and revision explicitly to the scanner task through fixed environment-property arguments. Validate returned PR identity and actual Sonar plural-period hotspot measures. Missing, mismatched, duplicated or ambiguous evidence remains rejected. Main and PR source scope, release requirements and thresholds are unchanged.",
+  "authorization": "User requested audit implementation, GitHub publication, and CI/Sonar verification.",
+  "validation": {
+    "observedPullRequestRunId": 34098938485,
+    "observedSonarJobId": 101675714915,
+    "observedApiBehavior": "The successful PR scan auto-detected PR metadata but scannerContext recorded only the explicitly supplied revision. The public PR measures API returned component.pullRequest and measures with periods:[{index:1,value:...}].",
+    "authorAgent": "ci_governance_code",
+    "independentlyReviewedBy": "root",
+    "review": "Reviewed the complete six-file diff and independently reran all five Sonar export, evidence, PR scope, LCOV and repository-governance regression suites plus targeted ESLint. The PR regression includes explicit immutable argument templates, inherited CI environment, safe ref handling, required task identity and actual API period/PR response shapes with fail-closed malformed and mismatched cases.",
+    "authorIntegrationValidation": "The author separately exercised the pinned action string-argv 0.3.2 parser and original SonarScanner 8.1.0.6389 Java PropertyResolver with normal and adversarial valid ref names, and the production hotspot reader against the live public PR 28 API. These author checks are distinct from the independently rerun root regressions.",
+    "regression": "passed",
+    "targetedLint": "passed",
+    "logDigest": {
+      "sha256": "af74b484085cf76a6eda98f10e40ca75de04d6409b9e09d55b6553ef804344c8",
+      "bytes": 212
+    },
+    "fullValidationScope": "The existing full validation remains attributed to its recorded base revision through the prior review reports. Main run 34100614390 on e056a2d completed successfully. This subsequent PR API follow-up has targeted regression evidence; final-head main CI and PR Sonar still must run."
+  },
+  "executorAndSdkSourceChanged": false,
+  "providerParityEvidence": {
+    "preservedHash": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e"
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false,
+  "productionDeploymentPerformed": false,
+  "quarantinePreserved": [
+    "bybit",
+    "krakenfutures"
+  ]
+}
