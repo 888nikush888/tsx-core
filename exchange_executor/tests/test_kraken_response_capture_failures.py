@@ -45,8 +45,11 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 rest.fetch = AsyncMock(return_value=json.loads(log_body()))
             else:
                 rest.on_rest_response = lambda _code, _reason, _url, _method, _rh, body, _qh, _qb: body
-            with self.subTest(bypass=bypass), self.assertRaisesRegex(ExchangeContractError, 'missing exact response capture'):
-                await kraken_page(rest, checkpoint(), read_budget())
+            with self.subTest(bypass=bypass):
+                prepared_checkpoint = checkpoint()
+                prepared_read_budget = read_budget()
+                with self.assertRaisesRegex(ExchangeContractError, 'missing exact response capture'):
+                    await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
             self.assertEqual(len(session.calls), 0 if bypass == 'fetch' else 1)
 
     async def test_duplicate_response_hook_is_not_another_valid_original(self):
@@ -56,8 +59,10 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
             original(*args)
             return original(*args)
         rest.on_rest_response = twice
+        prepared_checkpoint = checkpoint()
+        prepared_read_budget = read_budget()
         with self.assertRaisesRegex(ExchangeContractError, 'repeated response hook'):
-            await kraken_page(rest, checkpoint(), read_budget())
+            await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
         self.assertEqual(len(session.calls), 1)
 
     async def test_wrong_signed_transport_scope_is_rejected_before_http(self):
@@ -87,8 +92,11 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
                     result['headers']['APIKey'] = 'another-fixture-key'
                 return result
             rest.sign = changed
-            with self.subTest(case=case), self.assertRaises(ExchangeContractError):
-                await kraken_page(rest, checkpoint(), read_budget())
+            with self.subTest(case=case):
+                prepared_checkpoint = checkpoint()
+                prepared_read_budget = read_budget()
+                with self.assertRaises(ExchangeContractError):
+                    await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
             self.assertEqual(session.calls, [])
 
     async def test_response_url_cannot_depart_from_the_sent_endpoint(self):
@@ -97,8 +105,10 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
         def wrong_response(code, reason, url, *args):
             return original(code, reason, url.replace('account-log', 'orders'), *args)
         rest.on_rest_response = wrong_response
+        prepared_checkpoint = checkpoint()
+        prepared_read_budget = read_budget()
         with self.assertRaisesRegex(ExchangeContractError, 'endpoint scope'):
-            await kraken_page(rest, checkpoint(), read_budget())
+            await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
         self.assertEqual(len(session.calls), 1)
 
     async def test_client_identity_and_origin_changes_in_flight_are_rejected(self):
@@ -110,8 +120,11 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 else:
                     setattr(rest, changed, 'changed-fixture-value')
             session.responses[0].before_text = mutate
-            with self.subTest(changed=changed), self.assertRaisesRegex(ExchangeContractError, 'changed client binding'):
-                await kraken_page(rest, checkpoint(), read_budget())
+            with self.subTest(changed=changed):
+                prepared_checkpoint = checkpoint()
+                prepared_read_budget = read_budget()
+                with self.assertRaisesRegex(ExchangeContractError, 'changed client binding'):
+                    await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
             self.assertEqual(len(session.calls), 1)
 
     async def test_different_client_hook_cannot_populate_the_owner_capture(self):
@@ -121,20 +134,25 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
             url, request = session.calls[0]
             other.on_rest_response(200, 'OK', url, 'GET', {}, log_body(), request['headers'], None)
         session.responses[0].before_text = foreign_response
+        prepared_checkpoint = checkpoint()
+        prepared_read_budget = read_budget()
         with self.assertRaisesRegex(ExchangeContractError, 'request ownership'):
-            await kraken_page(rest, checkpoint(), read_budget())
+            await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
         self.assertEqual(other_session.calls, [])
 
     async def test_inherited_child_task_cannot_send_under_the_parent_capture(self):
         rest, session = self.client()
         async def child_attempt():
+            prepared_params = params()
             with self.assertRaisesRegex(ExchangeContractError, 'request ownership'):
-                await rest.historyGetAccountLog(params())
+                await rest.historyGetAccountLog(prepared_params)
         async def spawn_child():
             await asyncio.create_task(child_attempt())
         session.responses[0].before_text = spawn_child
+        prepared_checkpoint = checkpoint()
+        prepared_read_budget = read_budget()
         with self.assertRaisesRegex(ExchangeContractError, 'request ownership'):
-            await kraken_page(rest, checkpoint(), read_budget())
+            await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
         self.assertEqual(len(session.calls), 1)
 
     async def test_cancelled_owner_cannot_be_reused_by_inherited_late_task(self):
@@ -144,8 +162,9 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
         async def late_child():
             late_ready.set()
             await release.wait()
+            prepared_params = params()
             with self.assertRaisesRegex(ExchangeContractError, 'request ownership'):
-                await rest.historyGetAccountLog(params())
+                await rest.historyGetAccountLog(prepared_params)
         async def pause():
             children.append(asyncio.create_task(late_child()))
             ready.set()
@@ -178,23 +197,29 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
                     await rest.historyGetAccountLog(params())
             session.responses[0].after_response = repeated
             expected = 'nested capture' if nested else 'repeated transport'
-            with self.subTest(nested=nested), self.assertRaisesRegex(ExchangeContractError, expected):
-                await kraken_page(rest, checkpoint(), read_budget())
+            with self.subTest(nested=nested):
+                prepared_checkpoint = checkpoint()
+                prepared_read_budget = read_budget()
+                with self.assertRaisesRegex(ExchangeContractError, expected):
+                    await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
             self.assertEqual(len(session.calls), 1)
 
     async def test_missing_hook_even_on_unwrapped_real_sdk_is_not_a_fallback(self):
         rest, session = self.client()
         rest.fetch = ccxt_async.krakenfutures.fetch.__get__(rest, type(rest))
         rest.on_rest_response = ccxt_async.krakenfutures.on_rest_response.__get__(rest, type(rest))
+        prepared_checkpoint = checkpoint()
+        prepared_read_budget = read_budget()
         with self.assertRaisesRegex(ExchangeContractError, 'missing exact response capture'):
-            await kraken_page(rest, checkpoint(), read_budget())
+            await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
         self.assertEqual(len(session.calls), 1)
 
     async def test_budget_exhaustion_creates_no_capture_or_request(self):
         rest, session = self.client()
         budget = read_budget(0)
+        prepared_checkpoint = checkpoint()
         with self.assertRaises(RecoveryBudgetExhausted):
-            await kraken_page(rest, checkpoint(), budget)
+            await kraken_page(rest, prepared_checkpoint, budget)
         self.assertEqual((budget.calls, len(session.calls)), (0, 0))
         await kraken_page(rest, checkpoint(), read_budget())
         self.assertEqual(len(session.calls), 1)
@@ -207,8 +232,10 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 budget.deadline = RequestDeadline(0)
             else:
                 budget.resume_at = budget.deadline.deadline_at_ms
-            with self.subTest(kind=kind), self.assertRaises(RecoveryBudgetExhausted):
-                await kraken_page(rest, checkpoint(), budget)
+            with self.subTest(kind=kind):
+                prepared_checkpoint = checkpoint()
+                with self.assertRaises(RecoveryBudgetExhausted):
+                    await kraken_page(rest, prepared_checkpoint, budget)
             self.assertEqual((budget.calls, len(session.calls)), (0, 0))
 
     async def test_capture_failure_or_changed_uid_never_advances_original_checkpoint(self):
@@ -252,8 +279,10 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
         rest, session = self.client(LocalResponse('{"result":"error","error":"apiLimitExceeded"}', status=429))
         rest.options['maxRetriesOnFailure'] = 7
         from ccxt.base.errors import DDoSProtection
+        prepared_checkpoint = checkpoint()
+        prepared_read_budget = read_budget()
         with self.assertRaises(DDoSProtection):
-            await kraken_page(rest, checkpoint(), read_budget())
+            await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
         self.assertEqual(rest.options['maxRetriesOnFailure'], 7)
         self.assertEqual(len(session.calls), 1)
         self.assertNotIn('maxRetries', session.calls[0][0])
@@ -263,8 +292,11 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
         for urls in invalid:
             rest, session = self.client()
             rest.urls = urls
-            with self.subTest(urls=urls), self.assertRaises(ExchangeContractError):
-                await kraken_page(rest, checkpoint(), read_budget())
+            with self.subTest(urls=urls):
+                prepared_checkpoint = checkpoint()
+                prepared_read_budget = read_budget()
+                with self.assertRaises(ExchangeContractError):
+                    await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
             self.assertEqual(session.calls, [])
 
     async def test_malformed_signed_url_or_headers_are_sanitized(self):
@@ -277,8 +309,11 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
             rest, session = self.client()
             sign = rest.sign
             rest.sign = lambda *args, **kwargs: {**sign(*args, **kwargs), **changed}
-            with self.subTest(changed=changed), self.assertRaises(ExchangeContractError):
-                await kraken_page(rest, checkpoint(), read_budget())
+            with self.subTest(changed=changed):
+                prepared_checkpoint = checkpoint()
+                prepared_read_budget = read_budget()
+                with self.assertRaises(ExchangeContractError):
+                    await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
             self.assertEqual(session.calls, [])
 
     async def test_invalid_request_scope_never_reaches_transport(self):
@@ -286,8 +321,10 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
                {'from': 0}, {'from': '9007199254740993'}, {'since': -1}, {'currency': 'USD'})
         for changed in bad:
             rest, session = self.client()
-            with self.subTest(changed=changed), self.assertRaises(ExchangeContractError):
-                await read_exact_kraken_account_log(rest, {**params(), **changed})
+            with self.subTest(changed=changed):
+                prepared_payload = {**params(), **changed}
+                with self.assertRaises(ExchangeContractError):
+                    await read_exact_kraken_account_log(rest, prepared_payload)
             self.assertEqual(session.calls, [])
 
     async def test_exact_json_rejects_ambiguous_nonfinite_or_unbounded_originals(self):
@@ -301,8 +338,11 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
                    '{"padding":"' + 'x' * MAX_RESPONSE_BYTES + '"}']
         for index, body in enumerate(invalid):
             rest, session = self.client(LocalResponse(body))
-            with self.subTest(index=index), self.assertRaises(ExchangeContractError):
-                await kraken_page(rest, checkpoint(), read_budget())
+            with self.subTest(index=index):
+                prepared_checkpoint = checkpoint()
+                prepared_read_budget = read_budget()
+                with self.assertRaises(ExchangeContractError):
+                    await kraken_page(rest, prepared_checkpoint, prepared_read_budget)
             self.assertEqual(len(session.calls), 1)
 
     async def test_null_original_is_preserved_as_unknown_not_zero(self):

@@ -72,8 +72,9 @@ class ExactFxTierTests(unittest.IsolatedAsyncioTestCase):
         tiny = '0.000000000000000001'
         evidence = {**self.evidence, 'markPrice': tiny}
         self.check(money_value(1, 10 ** 36), quantity=tiny, amount='0.000000000000001', price=tiny, evidence=evidence)
+        prepared_money_value = money_value(1, 10 ** 36 + 1)
         with self.assertRaisesRegex(TierEvidenceError, 'budget'):
-            self.check(money_value(1, 10 ** 36 + 1), quantity=tiny, amount='0.000000000000001', price=tiny, evidence=evidence)
+            self.check(prepared_money_value, quantity=tiny, amount='0.000000000000001', price=tiny, evidence=evidence)
 
     async def test_256_digit_difference_survives_small_or_default_decimal_contexts(self):
         below = money_value(500 * 10 ** 252 - 1, 10 ** 252)
@@ -179,8 +180,10 @@ class ExactFxTierTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_actual_sdk_rounding_blocks_before_any_setter_or_batch(self):
         real, fake, registry, request = await self.sdk_fixture('5.0005', 1)
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(TierEvidenceError, 'rounding'):
-            await CcxtAdapter(registry)._order_spec(registry.clients, request, deadline())
+            await prepared_adapter._order_spec(registry.clients, request, prepared_deadline)
         real.fetch.assert_not_awaited()
         self.assertEqual(fake.leverage, [])
 
@@ -190,8 +193,10 @@ class ExactFxTierTests(unittest.IsolatedAsyncioTestCase):
         entry, stop = bounded_orders(exchange='krakenfutures')
         entry['leverageTierDecision'].update(version=2, maximumNotional='1000000', maximumNotionalCurrency='USD',
                                             maximumNotionalValue=money_value(1000000))
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(EntryPriceConstraintError, 'batch support is not proven'):
-            await CcxtAdapter(registry).submit_protected_entry(registry.clients.account, entry, stop, deadline())
+            await prepared_adapter.submit_protected_entry(registry.clients.account, entry, stop, prepared_deadline)
         self.assertEqual((fake.created_batches, fake.leverage), ([], []))
 
 

@@ -115,8 +115,9 @@ class CurrentProfileTests(unittest.IsolatedAsyncioTestCase):
                 rest.privateGetOpenorders = orders
                 rest.privateGetOpenpositions = positions
                 try:
+                    prepared_deadline = deadline()
                     with self.assertRaises(ExchangeContractError):
-                        await read_current_state(rest, "krakenfutures", deadline())
+                        await read_current_state(rest, "krakenfutures", prepared_deadline)
                 finally:
                     await rest.close()
 

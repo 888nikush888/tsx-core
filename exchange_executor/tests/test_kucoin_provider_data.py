@@ -108,8 +108,9 @@ class KucoinDataTests(unittest.IsolatedAsyncioTestCase):
                     rest.futuresPrivateGetPositions.return_value["data"][0]["settleCurrency"] = "BTC"
                 else:
                     rest.futuresPrivateGetPositions.return_value["data"][0]["markPrice"] = 101.0
+                prepared_current_read = CurrentRead(budget())
                 with self.assertRaises(ExchangeContractError):
-                    await read_kucoin_current_state(rest, CurrentRead(budget()), provider_account_uid=UID)
+                    await read_kucoin_current_state(rest, prepared_current_read, provider_account_uid=UID)
 
     async def test_current_state_page_two_is_consumed_once_and_completes(self):
         rest = CurrentRest()
@@ -175,10 +176,14 @@ class KucoinDataTests(unittest.IsolatedAsyncioTestCase):
         raw = order(status="done")
         raw["price"] = 100.0
         rest.futuresPrivateGetOrders.return_value = page([raw])
+        prepared_history_state = history_state("orders")
+        prepared_budget = budget()
         with self.assertRaises(ExchangeContractError):
-            await read_kucoin_history_page(rest, history_state("orders"), budget(), UID)
+            await read_kucoin_history_page(rest, prepared_history_state, prepared_budget, UID)
+        prepared_history_state = history_state("orders")
+        prepared_budget = budget()
         with self.assertRaises(ExchangeContractError):
-            await read_kucoin_history_page(rest, history_state("orders"), budget(), "changed-uid")
+            await read_kucoin_history_page(rest, prepared_history_state, prepared_budget, "changed-uid")
 
     async def test_usdt_balance_preserves_all_reporting_decimals(self):
         rest = AsyncMock()
@@ -247,23 +252,26 @@ class KucoinDataTests(unittest.IsolatedAsyncioTestCase):
             "positionMargin": "0", "orderMargin": "0", "frozenFunds": "0", "availableBalance": "1000",
         }}
         rest.futuresPrivateGetAccountOverview.return_value = balance
+        prepared_budget = budget()
         with self.assertRaises(ExchangeContractError):
-            await read_kucoin_balance(rest, budget(), provider_account_uid=UID)
+            await read_kucoin_balance(rest, prepared_budget, provider_account_uid=UID)
         funding = {"code": "200000", "data": {"dataList": [{
             "id": "1", "symbol": SYMBOL, "timePoint": NOW, "fundingRate": "0", "markPrice": "100",
             "positionQty": "1", "positionCost": "100", "funding": "0", "settleCurrency": "BTC",
             "marginMode": "CROSS",
         }], "hasMore": False}}
         rest.futuresPrivateGetFundingHistory.return_value = funding
+        prepared_budget = budget()
         with self.assertRaises(ExchangeContractError):
             await read_kucoin_funding_page(rest, {"windowSince": NOW - 1, "windowUntil": NOW, "cursor": None},
-                                           budget(), provider_account_uid=UID, provider_symbol=SYMBOL)
+                                           prepared_budget, provider_account_uid=UID, provider_symbol=SYMBOL)
         rest.futuresPrivateGetTransactionHistory.return_value = {
             "code": "200000", "data": {"dataList": [], "hasMore": True},
         }
+        prepared_budget = budget()
         with self.assertRaises(ExchangeContractError):
             await read_kucoin_ledger_page(rest, {"windowSince": NOW - 1, "windowUntil": NOW, "cursor": "1"},
-                                          budget(), UID)
+                                          prepared_budget, UID)
 
     async def test_callers_original_state_and_rows_are_never_mutated(self):
         rest = CurrentRest()

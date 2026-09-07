@@ -31,12 +31,16 @@ class MutationIdentityTests(unittest.IsolatedAsyncioTestCase):
                         registry = FakeRegistry(rest, exchange)
                         account = {**bound_test_account(exchange), field: value}
                         entry, stop = protected_requests()
+                        prepared_adapter = CcxtAdapter(registry)
+                        prepared_deadline = deadline()
                         with self.assertRaises(ExchangeContractError):
-                            await CcxtAdapter(registry).submit_protected_entry(account, entry, stop, deadline())
+                            await prepared_adapter.submit_protected_entry(account, entry, stop, prepared_deadline)
                         self.assertEqual(rest.leverage, [])
                         self.assertEqual(rest.created_batches, [])
+                        prepared_adapter = CcxtAdapter(registry)
+                        prepared_deadline = deadline()
                         with self.assertRaises(ExchangeContractError):
-                            await CcxtAdapter(registry).cancel_order(account, "entry-client", "BTCUSDT", deadline())
+                            await prepared_adapter.cancel_order(account, "entry-client", "BTCUSDT", prepared_deadline)
 
     async def test_rotation_during_prepare_prevents_set_leverage_and_create(self):
         rest = FakeProtectedRest([[]])
@@ -48,8 +52,11 @@ class MutationIdentityTests(unittest.IsolatedAsyncioTestCase):
             return None
 
         adapter._entry_tier_fence = changed_generation
+        prepared_bound_test_account = bound_test_account()
+        prepared_protected_requests = protected_requests()
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(ExchangeContractError, "Credentials changed"):
-            await adapter.submit_protected_entry(bound_test_account(), *protected_requests(), deadline())
+            await adapter.submit_protected_entry(prepared_bound_test_account, *prepared_protected_requests, prepared_deadline)
         self.assertEqual(rest.leverage, [])
         self.assertEqual(rest.created_batches, [])
 
@@ -63,16 +70,24 @@ class MutationIdentityTests(unittest.IsolatedAsyncioTestCase):
             registry.credentials.account = lambda *_args: {"credentials": {**test_secret(), "secret": "rotated-secret"}}
 
         rest.set_leverage = set_then_rotate
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_bound_test_account = bound_test_account()
+        prepared_protected_requests = protected_requests()
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(ExchangeContractError, "Credentials changed"):
-            await CcxtAdapter(registry).submit_protected_entry(bound_test_account(), *protected_requests(), deadline())
+            await prepared_adapter.submit_protected_entry(prepared_bound_test_account, *prepared_protected_requests, prepared_deadline)
         self.assertEqual(len(rest.leverage), 1)
         self.assertEqual(rest.created_batches, [])
 
     async def test_incomplete_batch_preserves_known_leg_without_cleanup_or_retry(self):
         entry = {"id": "entry-remote", "clientOrderId": "entry-client", "status": "open", "filled": "0"}
         rest = FakeProtectedRest([[], [{"contracts": "99", "side": "long"}]], orders=[entry])
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
+        prepared_protected_requests = protected_requests()
+        prepared_deadline = deadline()
         with self.assertRaises(UnresolvedOrderOutcome) as raised:
-            await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(bound_test_account(), *protected_requests(), deadline())
+            await prepared_adapter.submit_protected_entry(prepared_bound_test_account, *prepared_protected_requests, prepared_deadline)
         self.assertEqual(raised.exception.details["confirmedOrders"][0]["exchangeOrderId"], "entry-remote")
         self.assertEqual(len(rest.created_batches), 1)
         self.assertEqual(rest.cleanup_orders, [])

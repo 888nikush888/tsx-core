@@ -63,17 +63,24 @@ class CancelRecoveryTests(unittest.IsolatedAsyncioTestCase):
                     rest = CancelRest(exchange)
                     rest.override = changed
                     registry = FakeRegistry(rest, exchange)
+                    prepared_adapter = CcxtAdapter(registry)
+                    prepared_bound_test_account = bound_test_account(exchange)
+                    prepared_deadline = deadline()
+                    prepared_symbol = next(iter(rest.markets.values()))['symbol']
                     with self.assertRaises(ExchangeContractError):
-                        await CcxtAdapter(registry).cancel_order(
-                            bound_test_account(exchange), "local-owned", "BTCUSDT", deadline(), "remote-owned", next(iter(rest.markets.values()))['symbol'])
+                        await prepared_adapter.cancel_order(
+                            prepared_bound_test_account, "local-owned", "BTCUSDT", prepared_deadline, "remote-owned", prepared_symbol)
                     self.assertEqual(rest.cancels, [])
 
     async def test_incomplete_cancel_acknowledgement_is_unresolved_without_write_retry(self):
         rest = CancelRest("hyperliquid")
         rest.acknowledged_quantity = None
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest, "hyperliquid"))
+        prepared_bound_test_account = bound_test_account("hyperliquid")
+        prepared_deadline = deadline()
         with self.assertRaises(UnresolvedOrderOutcome):
-            await CcxtAdapter(FakeRegistry(rest, "hyperliquid")).cancel_order(
-                bound_test_account("hyperliquid"), "local-owned", "BTCUSDT", deadline(), "remote-owned", "BTC/USDC:USDC")
+            await prepared_adapter.cancel_order(
+                prepared_bound_test_account, "local-owned", "BTCUSDT", prepared_deadline, "remote-owned", "BTC/USDC:USDC")
         self.assertEqual(len(rest.cancels), 1)
 
 

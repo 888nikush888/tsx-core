@@ -160,8 +160,9 @@ class PaginationTests(unittest.IsolatedAsyncioTestCase):
             rest.privateGetV5ExecutionList = page
             original = state()
             original.update(cursor="same", windowUntil=int(time.time() * 1000))
+            prepared_budget = budget()
             with self.assertRaises(ExchangeContractError):
-                await read_history_pages(rest, "bybit", [original], budget())
+                await read_history_pages(rest, "bybit", [original], prepared_budget)
 
     async def test_unverified_provider_never_claims_empty_history(self):
         rest = PagedBybit()

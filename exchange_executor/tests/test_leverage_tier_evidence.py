@@ -87,8 +87,12 @@ class TierEvidenceTests(unittest.IsolatedAsyncioTestCase):
                 return result
             rest.privateGetV5OrderRealtime = order_read
             registry = FakeRegistry(rest)
-            with self.subTest(blocked_read=blocked_read), self.assertRaisesRegex(TierEvidenceError, 'scale-in'):
-                await CcxtAdapter(registry).submit_protected_entry(registry.clients.account, *protected_requests(), deadline())
+            with self.subTest(blocked_read=blocked_read):
+                prepared_adapter = CcxtAdapter(registry)
+                prepared_protected_requests = protected_requests()
+                prepared_deadline = deadline()
+                with self.assertRaisesRegex(TierEvidenceError, 'scale-in'):
+                    await prepared_adapter.submit_protected_entry(registry.clients.account, *prepared_protected_requests, prepared_deadline)
             self.assertEqual(len(rest.leverage), blocked_read - 1)
             self.assertEqual(rest.created_batches, [])
 
@@ -115,8 +119,9 @@ class TierEvidenceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(evidence['currency'], 'USDC')
         self.assertEqual(evidence['tiers'][0]['maxLeverage'], 50)
         rest.handle_public_address = lambda *_args: ('0x' + '3' * 40, {})
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(TierEvidenceError, 'address'):
-            await read_tier_evidence(clients, market, deadline())
+            await read_tier_evidence(clients, market, prepared_deadline)
 
     async def test_kraken_real_sdk_signs_only_reviewed_read_route(self):
         rest = ccxt_async.krakenfutures({'apiKey': 'public-fixture-key', 'secret': 'cHVibGljLWZpeHR1cmUtc2VjcmV0'})  # gitleaks:allow
@@ -146,8 +151,10 @@ class TierEvidenceTests(unittest.IsolatedAsyncioTestCase):
         registry = FakeRegistry(rest)
         entry, _stop = protected_requests()
         entry.pop('leverageTierDecision')
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_deadline = deadline()
         with self.assertRaises(TierEvidenceError):
-            await CcxtAdapter(registry)._order_spec(registry.clients, entry, deadline())
+            await prepared_adapter._order_spec(registry.clients, entry, prepared_deadline)
         self.assertEqual(rest.leverage, [])
 
     async def test_bound_actual_complete_scope_and_contract_conversion(self):
@@ -178,16 +185,19 @@ class TierEvidenceTests(unittest.IsolatedAsyncioTestCase):
         clients = FakeRegistry(rest).clients
         async def incomplete(*_args):
             return [], [], [{'source': key, 'completeness': 'unknown'} for key in ('orders', 'positions')]
-        with patch('leverage_tier_evidence.read_current_state', incomplete), self.assertRaisesRegex(TierEvidenceError, 'scope'):
-            await read_tier_evidence(clients, rest.markets['BTC/USDT:USDT'], deadline())
+        with patch('leverage_tier_evidence.read_current_state', incomplete):
+            prepared_deadline = deadline()
+            with self.assertRaisesRegex(TierEvidenceError, 'scope'):
+                await read_tier_evidence(clients, rest.markets['BTC/USDT:USDT'], prepared_deadline)
 
     async def test_repeated_cursor_and_existing_position_block(self):
         rest = TierRest()
         clients = FakeRegistry(rest).clients
         market = rest.markets['BTC/USDT:USDT']
         rest.cursor = 'again'
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(TierEvidenceError, 'repeated'):
-            await read_tier_evidence(clients, market, deadline())
+            await read_tier_evidence(clients, market, prepared_deadline)
         rest.cursor = ''
         rest.positions = [{'symbol': 'BTCUSDT', 'positionIdx': 0, 'contracts': '2', 'side': 'long', 'size': '2'}]
         value = await read_tier_evidence(clients, market, deadline())

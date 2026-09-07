@@ -63,17 +63,26 @@ class EntryPriceContractTests(unittest.IsolatedAsyncioTestCase):
                  {'entryPriceBoundary': None}, {'entryPriceBoundary': {**original['entryPriceBoundary'], 'limitPrice': '100.6'}}]
         for edit in edits:
             rest = rest_fixture()
-            with self.subTest(edit=edit), self.assertRaises(ExchangeContractError):
-                await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(
-                    bound_test_account(), {**copy.deepcopy(original), **edit}, stop, deadline())
+            with self.subTest(edit=edit):
+                prepared_adapter = CcxtAdapter(FakeRegistry(rest))
+                prepared_bound_test_account = bound_test_account()
+                prepared_payload = {**copy.deepcopy(original), **edit}
+                prepared_deadline = deadline()
+                with self.assertRaises(ExchangeContractError):
+                    await prepared_adapter.submit_protected_entry(
+                        prepared_bound_test_account, prepared_payload, stop, prepared_deadline)
             self.assertEqual(rest.created_batches, [])
             self.assertEqual(rest.leverage, [])
 
     async def test_provider_precision_cannot_widen_original_cap(self):
         rest = rest_fixture()
         rest.price_to_precision = lambda _symbol, _price: '100.6'
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
+        prepared_bounded_orders = bounded_orders()
+        prepared_deadline = deadline()
         with self.assertRaises(ExchangeContractError):
-            await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(bound_test_account(), *bounded_orders(), deadline())
+            await prepared_adapter.submit_protected_entry(prepared_bound_test_account, *prepared_bounded_orders, prepared_deadline)
         self.assertEqual(rest.created_batches, [])
 
     async def test_missing_bounded_batch_capability_is_not_a_single_entry_fallback(self):
@@ -82,24 +91,36 @@ class EntryPriceContractTests(unittest.IsolatedAsyncioTestCase):
         profile = profile_for('bybit')
         registry.clients.profile = replace(profile, execution_capabilities=replace(
             profile.execution_capabilities, protected_bounded_entry='not_proven'))
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_bound_test_account = bound_test_account()
+        prepared_bounded_orders = bounded_orders()
+        prepared_deadline = deadline()
         with self.assertRaises(ExchangeContractError):
-            await CcxtAdapter(registry).submit_protected_entry(bound_test_account(), *bounded_orders(), deadline())
+            await prepared_adapter.submit_protected_entry(prepared_bound_test_account, *prepared_bounded_orders, prepared_deadline)
         self.assertEqual(rest.created_batches, [])
         self.assertEqual(rest.cleanup_orders, [])
 
     async def test_kraken_batch_stop_market_documentation_conflict_blocks_bounded_entry(self):
         rest = rest_fixture()
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest, 'krakenfutures'))
+        prepared_bound_test_account = bound_test_account('krakenfutures')
+        prepared_bounded_orders = bounded_orders()
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(ExchangeContractError, 'batch support is not proven'):
-            await CcxtAdapter(FakeRegistry(rest, 'krakenfutures')).submit_protected_entry(
-                bound_test_account('krakenfutures'), *bounded_orders(), deadline())
+            await prepared_adapter.submit_protected_entry(
+                prepared_bound_test_account, *prepared_bounded_orders, prepared_deadline)
         self.assertEqual(rest.created_batches, [])
         self.assertEqual(rest.leverage, [])
 
     async def test_sdk_missing_batch_capability_fails_before_any_write(self):
         rest = rest_fixture()
         rest.has['createOrders'] = False
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
+        prepared_bounded_orders = bounded_orders()
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(ExchangeContractError, 'batch'):
-            await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(bound_test_account(), *bounded_orders(), deadline())
+            await prepared_adapter.submit_protected_entry(prepared_bound_test_account, *prepared_bounded_orders, prepared_deadline)
         self.assertEqual(rest.created_batches, [])
         self.assertEqual(rest.leverage, [])
 
@@ -119,8 +140,11 @@ class EntryPriceContractTests(unittest.IsolatedAsyncioTestCase):
                 captured[0]['price'] = '101'
             return await read(params)
         rest.privateGetV5PositionList = AsyncMock(side_effect=final_read)
+        prepared_bound_test_account = bound_test_account()
+        prepared_bounded_orders = bounded_orders()
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(ExchangeContractError, 'Final provider dispatch'):
-            await adapter.submit_protected_entry(bound_test_account(), *bounded_orders(), deadline())
+            await adapter.submit_protected_entry(prepared_bound_test_account, *prepared_bounded_orders, prepared_deadline)
         self.assertEqual(rest.created_batches, [])
 
     async def test_sub_attounit_intermediate_rounding_never_widens_short_floor(self):
@@ -136,14 +160,22 @@ class EntryPriceContractTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_ioc_cannot_use_unprotected_submit_order(self):
         rest = rest_fixture()
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
+        prepared_bounded_orders = bounded_orders()[0]
+        prepared_deadline = deadline()
         with self.assertRaises(ExchangeContractError):
-            await CcxtAdapter(FakeRegistry(rest)).submit_order(bound_test_account(), bounded_orders()[0], deadline())
+            await prepared_adapter.submit_order(prepared_bound_test_account, prepared_bounded_orders, prepared_deadline)
         self.assertEqual(rest.cleanup_orders, [])
 
     async def test_provider_rejection_does_not_retry_or_flatten_unknown_exposure(self):
         rest = rest_fixture(failure=RuntimeError('provider rejected'))
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
+        prepared_bounded_orders = bounded_orders()
+        prepared_deadline = deadline()
         with self.assertRaises(UnresolvedOrderOutcome):
-            await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(bound_test_account(), *bounded_orders(), deadline())
+            await prepared_adapter.submit_protected_entry(prepared_bound_test_account, *prepared_bounded_orders, prepared_deadline)
         self.assertEqual(len(rest.created_batches), 1)
         self.assertEqual(rest.cleanup_orders, [])
 

@@ -143,8 +143,13 @@ class KrakenBoundedMatrix(unittest.IsolatedAsyncioTestCase):
         for side in ('buy', 'sell'):
             rest = rest_fixture()
             registry = FakeRegistry(rest, EXCHANGE)
-            with self.subTest(side=side), self.assertRaisesRegex(EntryPriceConstraintError, 'not proven'):
-                await CcxtAdapter(registry).submit_protected_entry(bound_test_account(EXCHANGE), *original_requests(side), deadline())
+            with self.subTest(side=side):
+                prepared_adapter = CcxtAdapter(registry)
+                prepared_bound_test_account = bound_test_account(EXCHANGE)
+                prepared_original_requests = original_requests(side)
+                prepared_deadline = deadline()
+                with self.assertRaisesRegex(EntryPriceConstraintError, 'not proven'):
+                    await prepared_adapter.submit_protected_entry(prepared_bound_test_account, *prepared_original_requests, prepared_deadline)
             self.assertEqual((rest.created_batches, rest.cleanup_orders, rest.leverage), ([], [], []))
 
     async def test_mixed_missing_or_foreign_stop_ack_keeps_only_actual_executed_entry(self):
@@ -157,8 +162,9 @@ class KrakenBoundedMatrix(unittest.IsolatedAsyncioTestCase):
         for stop_rows in failures:
             with self.subTest(stop_rows=stop_rows):
                 rest, specs, parsed, _ = await self.submit_specimen([executed_entry(), *stop_rows])
+                prepared_market = rest.market(SYMBOL)
                 with self.assertRaises(UnresolvedOrderOutcome) as failure:
-                    _protected_order_results(parsed, rest.market(SYMBOL), specs, EXCHANGE)
+                    _protected_order_results(parsed, prepared_market, specs, EXCHANGE)
                 self.assertTrue(failure.exception.side_effects)
                 confirmed = failure.exception.details['confirmedOrders']
                 self.assertEqual([(row['clientOrderId'], row['status'], row['filledQuantity']) for row in confirmed], [(ENTRY, 'filled', '2')])
@@ -170,15 +176,17 @@ class KrakenBoundedMatrix(unittest.IsolatedAsyncioTestCase):
         entry, stop = _protected_order_results(parsed, rest.market(SYMBOL), specs, EXCHANGE)
         self.assertEqual(stop['status'], 'rejected')
         adapter = CcxtAdapter(FakeRegistry(rest, EXCHANGE))
+        prepared_market = rest.market(SYMBOL)
         with self.assertRaises(UnresolvedOrderOutcome) as failure:
-            await adapter._resolve_protected_results(adapter.registry.clients, rest.market(SYMBOL), entry, stop, True)
+            await adapter._resolve_protected_results(adapter.registry.clients, prepared_market, entry, stop, True)
         self.assertEqual(failure.exception.details['confirmedOrders'], [entry, stop])
 
     async def test_empty_ioc_rejection_without_real_identity_is_not_absence(self):
         response = [{'status': 'iocWouldNotExecute', 'orderEvents': []}, native_ack(STOP)]
         rest, specs, parsed, _ = await self.submit_specimen(response)
+        prepared_market = rest.market(SYMBOL)
         with self.assertRaises(UnresolvedOrderOutcome) as failure:
-            _protected_order_results(parsed, rest.market(SYMBOL), specs, EXCHANGE)
+            _protected_order_results(parsed, prepared_market, specs, EXCHANGE)
         self.assertEqual([row['clientOrderId'] for row in failure.exception.details['confirmedOrders']], [STOP])
         self.assertEqual(failure.exception.details['unresolvedClientOrderIds'], [ENTRY])
 
