@@ -179,6 +179,25 @@ try {
   const contractsPage = await uiModelPage('contract', new URLSearchParams()); assert.ok(contractsPage.entries.every(item => typeof item.name === 'string'));
   const schemasPage = await uiModelPage('schema', new URLSearchParams()); assert.ok(schemasPage.entries.length > 0);
   const schemaDetail = await uiModelDetail('schema', schemasPage.entries[0].id); assert.ok(schemaDetail.model.definition);
+  const disabledSchema = await mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'disable', reviewHash: schemaDetail.reviewHash });
+  assert.equal(disabledSchema.model.enabled, false);
+  await assert.rejects(mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'enable', reviewHash: schemaDetail.reviewHash }), /MODEL_REVIEW_CONFLICT/);
+  const disabledReview = await uiModelDetail('schema', schemaDetail.model.id);
+  const enabledSchema = await mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'enable', reviewHash: disabledReview.reviewHash });
+  assert.equal(enabledSchema.model.enabled, true);
+  const enabledReview = await uiModelDetail('schema', schemaDetail.model.id);
+  await assert.rejects(mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'publish', reviewHash: enabledReview.reviewHash }), /Unsupported model action/);
+  for (const [action, status] of [['publish', 'published'], ['archive', 'archived']]) {
+    const review = await uiModelDetail('contract', contractDraft.id);
+    const changed = await mutateUiModel({ kind: 'contract', id: contractDraft.id, action, reviewHash: review.reviewHash });
+    assert.equal(changed.model.status, status);
+    assert.equal((await getActiveWorkflow()).id, activated.workflow.id, 'A model lifecycle change never activates another workflow.');
+  }
+  const archivedReview = await uiModelDetail('contract', contractDraft.id);
+  assert.equal((await mutateUiModel({ kind: 'contract', id: contractDraft.id, action: 'delete', reviewHash: archivedReview.reviewHash })).deleted, true);
+  const unusedDraft = await createSignalContractDraftVersion(parent.id, source.id);
+  const unusedReview = await uiModelDetail('contract', unusedDraft.id);
+  assert.equal((await mutateUiModel({ kind: 'contract', id: unusedDraft.id, action: 'delete', reviewHash: unusedReview.reviewHash })).deleted, true);
   assert.equal(await uiModelDetail('strategy', 'missing'), null); await assert.rejects(uiModelPage('constructor', new URLSearchParams()), /Unsupported/);
   console.log('MCP/setup review, graph/model atomicity, standalone model recovery and bounded libraries passed.');
 } finally {
