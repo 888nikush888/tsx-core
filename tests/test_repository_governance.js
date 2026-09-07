@@ -255,6 +255,26 @@ const [workflow, codeowners, sonarCloud, editorConfig, gitAttributes, nodeVersio
   readFile('.python-version', 'utf8'),
   readFile('.npmrc', 'utf8'),
 ]);
+const concurrencyBlock = workflow.match(/^concurrency:\r?\n((?:[ \t]+[^\r\n]*\r?\n)+)/m)?.[1] ?? '';
+const concurrencyTemplate = concurrencyBlock.match(/group:\s+([^\r\n]+)/u)?.[1] ?? '';
+assert.match(concurrencyBlock, /cancel-in-progress: true/u);
+function qualityConcurrency(context) {
+  return concurrencyTemplate.replace(/\$\{\{\s*github\.([a-z_]+)\s*\}\}/gu, (_expression, key) => {
+    assert.equal(typeof context[key], 'string', `Unrecognized concurrency input: ${key}`);
+    return context[key];
+  });
+}
+const pushedMain = { workflow: 'Quality OS', ref: 'refs/heads/main', event_name: 'push', sha: 'a'.repeat(40) };
+for (const event_name of ['schedule', 'workflow_dispatch']) {
+  assert.notEqual(qualityConcurrency(pushedMain), qualityConcurrency({ ...pushedMain, event_name }),
+    'A scheduled or manual run must not cancel the exact-revision main push release check.');
+}
+assert.equal(qualityConcurrency(pushedMain), qualityConcurrency({ ...pushedMain, sha: 'b'.repeat(40) }),
+  'A newer push must still supersede its previous push check.');
+const pullRequest = { ...pushedMain, event_name: 'pull_request', ref: 'refs/pull/28/merge' };
+assert.equal(qualityConcurrency(pullRequest), qualityConcurrency({ ...pullRequest, sha: 'c'.repeat(40) }));
+assert.notEqual(qualityConcurrency(pullRequest), qualityConcurrency({ ...pullRequest, ref: 'refs/pull/29/merge' }),
+  'Different pull requests must retain independent checks.');
 assert.equal(nodeVersion.trim(), '22', 'Local Node version managers must select the supported major.');
 assert.equal(pythonVersion.trim(), '3.12', 'Local Python version managers must select the CI runtime.');
 assert.match(npmConfig, /^engine-strict=true$/m, 'npm installs must reject unsupported runtimes.');

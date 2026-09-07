@@ -101,6 +101,7 @@ function computeTaskEvidence(task, token) {
     id: task.id,
     type: task.type,
     componentKey: task.componentKey,
+    pullRequest: task.pullRequest,
     analysisId: task.analysisId,
     status: task.status,
     submittedAt: task.submittedAt,
