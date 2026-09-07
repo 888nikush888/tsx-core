@@ -3,6 +3,7 @@ import { getTdjson } from 'prebuilt-tdlib';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import { UiOperationStore } from './ui_operation_store.js';
+import { assertRestartReceiptsPreserved, createProcessRestartRequest } from './ui_restart_coordinator.js';
 import { fileURLToPath } from 'node:url';
 import {
   canonicalizeResolvedSources,
@@ -1757,6 +1758,7 @@ async function performCompleteFactoryReset(
     const resolved = await assertFactoryResetTarget(target.directory, target.boundary);
     targets.set(resolved, target.boundary);
   }
+  assertRestartReceiptsPreserved(path.join(path.dirname(configPath), '.ui-operations'), targets.keys());
 
   await stopScheduler(mcpControlBridge, 'MCP control bridge');
   mcpControlBridge = null;
@@ -1955,8 +1957,11 @@ async function startDashboardRuntime(
 ): Promise<void> {
   const webPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 8080;
   const recovery = dashboardRecoveryState(runtime, runtimeSettings, secretStore);
+  const uiOperations = new UiOperationStore(path.join(path.dirname(configurationPathFromEnvironment()), '.ui-operations'));
+  // Observe the new process generation before the listener can acknowledge jobs.
+  await uiOperations.list();
   const listener = startWebServer(webPort, {
-      uiOperations: new UiOperationStore(path.join(path.dirname(configurationPathFromEnvironment()), '.ui-operations')),
+      uiOperations,
       config: runtime.config,
       state,
       startForwarding: async (cfg) => {
@@ -2032,11 +2037,7 @@ async function startDashboardRuntime(
       },
       recovery,
       startupAuthority,
-      requestRestart: () => {
-        setTimeout(() => {
-          void shutdown(0).finally(() => process.exit(process.exitCode || 0));
-        }, 150).unref();
-      }
+      requestRestart: createProcessRestartRequest(() => shutdown(0)),
   });
   await waitForStartupListener(listener);
 }

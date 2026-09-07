@@ -5,12 +5,13 @@ import { maskPII } from './logger.js';
 import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
 
 export const UI_PROCESS_INSTANCE_ID = randomUUID();
-export type UiJobKind = 'backup-drill' | 'parser-test' | 'backup-create' | 'backup-restore' | 'backup-recover' | 'restart';
+export type UiJobKind = 'backup-drill' | 'parser-test' | 'backup-create' | 'backup-restore' | 'backup-recover' | 'restart' | 'factory-reset';
 export type UiJobState = 'accepted' | 'running' | 'awaiting-restart' | 'succeeded' | 'failed' | 'unknown';
 export interface UiJob {
   version: 1; id: string; kind: UiJobKind; actorId: string; scope: Record<string, unknown>; requestHash: string;
   state: UiJobState; stage: string; acceptedAt: number; updatedAt: number; instanceId: string;
   result: unknown; error: string | null;
+  restart?: { sourceInstanceId: string; confirmedAt: number; receipt: 'durable' | 'uncertain'; observedInstanceId?: string };
 }
 const ID = /^[a-zA-Z0-9_-]{16,64}$/;
 const MAX_RECORD_BYTES = 65_536;
@@ -24,6 +25,7 @@ export class UiOperationStore {
   private initialized: Promise<void> | null = null;
   private writes: Promise<unknown> = Promise.resolve();
   constructor(directory: string, private readonly instanceId = UI_PROCESS_INSTANCE_ID) { this.root = path.resolve(directory); }
+  get processInstanceId(): string { return this.instanceId; }
 
   private ready(): Promise<void> {
     this.initialized ??= this.initialize();
@@ -38,7 +40,7 @@ export class UiOperationStore {
     for (const name of names) {
       const id = name.slice(0, -5); const record = await this.readRecord(id);
       this.records.set(id, record);
-      if (record.instanceId !== this.instanceId && !terminal(record.state)) await this.observeInterruptedRecord(record);
+      if (record.instanceId !== this.instanceId && (!terminal(record.state) || record.restart?.receipt === 'uncertain')) await this.observeInterruptedRecord(record);
     }
   }
   private async readRecord(id: string): Promise<UiJob> {
@@ -51,10 +53,11 @@ export class UiOperationStore {
       return record;
   }
   private async observeInterruptedRecord(record: UiJob): Promise<void> {
-        const restarted = record.state === 'awaiting-restart';
+        const restarted = record.state === 'awaiting-restart' && record.restart?.receipt !== 'uncertain';
         const next: UiJob = { ...record, state: restarted ? 'succeeded' : 'unknown', updatedAt: Date.now(),
           stage: restarted ? 'New process instance observed; readiness and trading gates remain separate.' : 'Process ended before a conclusive result; no automatic replay.',
-          result: restarted ? { previous: record.result, observedInstanceId: this.instanceId } : record.result };
+          result: restarted ? { previous: record.result, observedInstanceId: this.instanceId } : record.result,
+          ...(record.restart ? { restart: { ...record.restart, observedInstanceId: this.instanceId } } : {}) };
         await this.persist(next);
   }
   private filename(id: string): string {
@@ -91,7 +94,7 @@ export class UiOperationStore {
   async page(params: URLSearchParams) {
     const state = params.get('state') || ''; const kind = params.get('kind') || '';
     if (state && !['accepted', 'running', 'awaiting-restart', 'succeeded', 'failed', 'unknown'].includes(state)) throw new Error('Invalid job state.');
-    if (kind && !['backup-drill', 'parser-test', 'backup-create', 'backup-restore', 'backup-recover', 'restart'].includes(kind)) throw new Error('Invalid job kind.');
+    if (kind && !['backup-drill', 'parser-test', 'backup-create', 'backup-restore', 'backup-recover', 'restart', 'factory-reset'].includes(kind)) throw new Error('Invalid job kind.');
     const limit = Number(params.get('limit') || 50);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error('Job page limit must be 1–100.');
     const filter = filterFingerprint({ kind, state }); const cursor = decodeUiCursor(params.get('cursor'), filter);
@@ -141,6 +144,45 @@ export class UiOperationStore {
       await this.update(id, { state: restart ? 'awaiting-restart' : 'succeeded', stage: restart ? 'Command confirmed; waiting for a new process instance.' : 'Command completed with the recorded result.', result });
     } catch (error) {
       await this.update(id, { state: 'failed', stage: 'Command did not complete successfully. Confirmed partial effects must be reviewed.', error: maskPII(error instanceof Error ? error.message : String(error)).slice(0, 2000) });
+    }
+  }
+
+  /** Only a successfully returned command authorizes its restart; receipt I/O is a separate outcome. */
+  async runRestart(id: string, operation: () => Promise<unknown>): Promise<UiJob> {
+    await this.update(id, { state: 'running', stage: 'Checking maintenance and safety gates; command is running.' });
+    let result: unknown;
+    try { result = await operation(); }
+    catch (error) {
+      await this.recordUnsuccessfulCommand(id, error);
+      throw error;
+    }
+    return this.serial(async () => {
+      const existing = this.records.get(id)!;
+      const next: UiJob = { ...existing, state: 'awaiting-restart', updatedAt: Date.now(), result, error: null,
+        stage: 'Command confirmed; restart requested for this process generation. Readiness and trading gates remain separate.',
+        restart: { sourceInstanceId: this.instanceId, confirmedAt: Date.now(), receipt: 'durable' } };
+      try { await this.persist(next); }
+      catch {
+        next.state = 'unknown';
+        next.stage = 'Command returned successfully; its durable completion receipt is uncertain. Restart remains required; do not repeat the command.';
+        next.error = 'Completion receipt could not be durably confirmed.';
+        next.restart!.receipt = 'uncertain';
+        // A second write may recover a transient fault. Even if it fails, retain the honest
+        // in-process outcome and restart intent; the previous running record prevents replay after a crash.
+        await this.persist(next).catch(() => undefined);
+        this.records.set(id, structuredClone(next));
+      }
+      return structuredClone(next);
+    });
+  }
+
+  private async recordUnsuccessfulCommand(id: string, error: unknown): Promise<void> {
+    try {
+      await this.update(id, { state: 'failed', stage: 'Command did not return a confirmed result. Inspect partial effects; no automatic replay.',
+        error: maskPII(error instanceof Error ? error.message : String(error)).slice(0, 2000) });
+    } catch {
+      const existing = this.records.get(id)!;
+      this.records.set(id, { ...existing, state: 'unknown', stage: 'Command and failure receipt are uncertain; no automatic replay.', updatedAt: Date.now() });
     }
   }
 }

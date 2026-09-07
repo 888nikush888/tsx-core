@@ -9,6 +9,7 @@ import { startWebServer, stopWebServer } from '../src/web_server.js';
 import { ManagedSecretStore } from '../src/secret_store.js';
 import { ManagedRuntimeSettingsStore } from '../src/runtime_settings.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
+import { UiOperationStore } from '../src/ui_operation_store.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
 const VIEWER_TOKEN = 'viewer-token-0123456789abcdef0123456789abcdef';
@@ -1519,7 +1520,12 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
     body: JSON.stringify({ confirmation: 'FACTORY RESET' })
   });
   assert.strictEqual(response.status, 200, 'Factory reset must stop active routing and execute the complete reset service');
-  assert.strictEqual((await response.json()).restartScheduled, true);
+  const resetResult = await response.json();
+  assert.strictEqual(resetResult.restartScheduled, true);
+  assert.strictEqual(resetResult.job.kind, 'factory-reset', 'Legacy callers also receive a durable operation identity.');
+  // This broad fixture deliberately keeps its fake restarted server alive for later
+  // unrelated handlers. Real generation transitions are exercised by test_ui_restart_process.
+  await appState.uiOperations.update(resetResult.job.id, { state: 'succeeded', stage: 'Isolated fixture acknowledged its fake restart.' });
   assert.strictEqual(appState.controls.factoryResetCalls, 1);
   assert.strictEqual(appState.controls.restartCalls, 2);
   response = await fetch(`${baseUrl}/api/does-not-exist`, { headers: headers(ADMIN_TOKEN) });
@@ -1544,6 +1550,7 @@ async function createAppState(testDir, controls) {
   const runtimeSettings = new ManagedRuntimeSettingsStore(path.join(testDir, 'runtime-settings.json'), process.env);
   await runtimeSettings.initialize();
   const appState = {
+    uiOperations: new UiOperationStore(path.join(testDir, 'operator-jobs')),
     controls,
     config: {
       apiId: 123,

@@ -13,6 +13,8 @@ const allTests = [
   'test_ui_adaptive_risk.js',
   'test_ui_next_reads.js',
   'test_ui_operation_store.js',
+  'test_ui_restart_recovery.js',
+  'test_ui_restart_process.js',
   'test_ui_operator_commands.js',
   'test_ui_change_reviews.js',
   'test_exchange_implementation_bridge.js',

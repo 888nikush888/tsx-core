@@ -87,7 +87,8 @@ import { uiCockpit } from './ui_cockpit.js';
 import { uiAccountDetail, uiTradingPage, uiTradeSafety, type UiTradingList } from './ui_trading_reads.js';
 import { uiTradeRelationPage, uiJournalDetail, uiJournalSummary, type UiTradeRelation } from './ui_trade_relations.js';
 import { deleteUiWorkflowDraft, getUiWorkflowDraft, saveUiWorkflowDraft, activateUiWorkflowDraft } from './ui_workflow_drafts.js';
-import { type UiOperationStore, UI_PROCESS_INSTANCE_ID } from './ui_operation_store.js';
+import { type UiOperationStore, type UiJobKind, UI_PROCESS_INSTANCE_ID } from './ui_operation_store.js';
+import { UiRestartCoordinator } from './ui_restart_coordinator.js';
 import { prepareUiParserTest, runUiParserTest, uiParserMetadata } from './ui_parser_lab.js';
 import { uiMcpProposalReview, approveReviewedMcpProposal } from './ui_mcp_review.js';
 import { redactReview, reviewHash } from './ui_change_review.js';
@@ -359,7 +360,7 @@ async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): P
     chunks.push(buffer);
   }
   const activeContext = requestContexts.get(req);
-  if (activeContext) assertStartupMutationAllowed(activeContext, req.method || 'GET');
+  if (activeContext && !restartReceiptLookup(activeContext)) assertStartupMutationAllowed(activeContext, req.method || 'GET');
   if (chunks.length === 0) return {};
   try {
     const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
@@ -1307,21 +1308,20 @@ async function factoryResetHandler(context: RequestContext): Promise<void> {
     if (payload.confirmation !== 'FACTORY RESET') {
       throw new HttpError(412, "Factory reset requires the exact written confirmation 'FACTORY RESET'.");
     }
-    requireCurrentVerifiedBackup(context);
-    if (!context.appState.performFactoryReset) {
+    if (!context.appState.performFactoryReset || !context.appState.requestRestart) {
       throw new HttpError(503, 'Complete factory reset is unavailable in this runtime.');
     }
-    await context.appState.performFactoryReset();
-    addLog('[SECURITY] Complete factory reset executed through the web dashboard.');
-    context.res.once('finish', () => context.appState.requestRestart?.());
-    sendJson(context.res, 200, {
-      success: true,
-      message: 'Factory reset completed. The container is restarting into first-run setup.',
-      restartScheduled: Boolean(context.appState.requestRestart),
-      requestId: context.requestId,
+    await runRestartCommand(context, {
+      id: payload.jobId, kind: 'factory-reset', scope: { service: 'TSX Core' }, request: { confirmation: 'FACTORY RESET' }, status: 200,
+      operation: async () => {
+        requireCurrentVerifiedBackup(context);
+        await context.appState.performFactoryReset!();
+        addLog('[SECURITY] Complete factory reset executed through the web dashboard.');
+        return { message: 'Factory reset completed. Restart into first-run setup requested.' };
+      },
     });
   } catch (error) {
-    sendError(context, error);
+    sendRestartCommandError(context, error);
   }
 }
 
@@ -1467,24 +1467,56 @@ async function restartHandler(context: RequestContext): Promise<void> {
     sendJson(context.res, 503, { error: 'Service restart is unavailable.', requestId: context.requestId });
     return;
   }
-  const store = context.appState.uiOperations;
-  const jobId = context.req.headers['x-operator-job-id'];
-  let tracked = false;
   try {
-    if (jobId !== undefined && (!store || typeof jobId !== 'string')) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-    if (store && typeof jobId === 'string') {
-      const accepted = await store.accept({ id: jobId, kind: 'restart', actorId: context.actor!.id, scope: { service: 'TSX Core' }, request: { action: 'restart' } });
-      if (!accepted.created) { sendJson(context.res, 202, { success: true, job: accepted.job, serverInstanceId }); return; }
-      tracked = true;
-    }
-    if (context.appState.state.isRunning) await context.appState.stopForwarding();
-    const job = tracked ? await store!.update(jobId as string, { state: 'awaiting-restart', stage: 'Routing stopped; restart scheduled. Awaiting a new process instance.', result: { serverInstanceId } }) : null;
-    context.res.once('finish', () => context.appState.requestRestart?.());
-    sendJson(context.res, 202, { success: true, state: 'accepted', job, serverInstanceId, message: 'Container restart scheduled.', requestId: context.requestId });
+    await runRestartCommand(context, {
+      id: context.req.headers['x-operator-job-id'], kind: 'restart', scope: { service: 'TSX Core' }, request: { action: 'restart' }, status: 202,
+      operation: async () => {
+        if (context.appState.state.isRunning) await context.appState.stopForwarding();
+        return { message: 'Container restart requested.' };
+      },
+    });
   } catch (error) {
-    if (tracked) await store!.update(jobId as string, { state: 'failed', stage: 'Restart not scheduled; inspect current routing state.', error: errorMessage(error) });
-    sendError(context, new HttpError(409, errorMessage(error)));
+    sendRestartCommandError(context, error);
   }
+}
+
+const restartCoordinators = new WeakMap<WebServerState, UiRestartCoordinator>();
+
+function restartCoordinator(app: WebServerState): UiRestartCoordinator {
+  if (!app.uiOperations || !app.requestRestart) throw new HttpError(503, 'Durable restart coordination is unavailable.');
+  let coordinator = restartCoordinators.get(app);
+  if (!coordinator) {
+    coordinator = new UiRestartCoordinator(app.uiOperations, app.requestRestart);
+    restartCoordinators.set(app, coordinator);
+  }
+  return coordinator;
+}
+
+async function runRestartCommand(context: RequestContext, command: {
+  id: unknown; kind: UiJobKind; scope: Record<string, unknown>; request: unknown; status: number;
+  operation: () => Promise<Record<string, unknown>>;
+}): Promise<void> {
+  const coordinator = restartCoordinator(context.appState);
+  const store = context.appState.uiOperations!;
+  const id = command.id ?? randomUUID();
+  if (typeof id !== 'string') throw new HttpError(400, 'Invalid operator job ID.');
+  // Lookup may cross a maintenance hold, but creating/executing a new destructive
+  // command still requires the original startup gate. accept verifies the actor and payload.
+  if (!(await store.get(id))) assertStartupMutationAllowed(context, 'POST');
+  const accepted = await store.accept({ id, kind: command.kind, actorId: context.actor!.id, scope: command.scope, request: command.request });
+  const job = accepted.created ? await store.runRestart(id, command.operation) : accepted.job;
+  coordinator.schedule(job, context.res);
+  const restartScheduled = job.restart?.sourceInstanceId === store.processInstanceId;
+  if (!accepted.created) {
+    sendJson(context.res, 202, { job, replayed: true, restartScheduled, serverInstanceId, requestId: context.requestId });
+    return;
+  }
+  sendJson(context.res, command.status, { ...(job.result as Record<string, unknown>), success: true, job, restartScheduled,
+    receiptUncertain: job.restart?.receipt === 'uncertain', serverInstanceId, requestId: context.requestId });
+}
+
+function sendRestartCommandError(context: RequestContext, error: unknown): void {
+  sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
 }
 
 function backupArtifactName(value: unknown): string {
@@ -1557,33 +1589,18 @@ async function restoreBackupHandler(context: RequestContext): Promise<void> {
     sendJson(context.res, 503, { error: 'Backup restore is unavailable.', requestId: context.requestId });
     return;
   }
-  let jobId: string | null = null;
-  const store = context.appState.uiOperations;
   try {
     const payload = await readJsonBody(context.req, 4 * 1024);
     const name = backupArtifactName(payload.name);
-    if (payload.jobId !== undefined && !store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-    if (store && payload.jobId !== undefined) {
-      const accepted = await store.accept({ id: payload.jobId, kind: 'backup-restore', actorId: context.actor!.id, scope: { artifactName: name }, request: { name } });
-      if (!accepted.created) { sendJson(context.res, 202, { job: accepted.job, serverInstanceId }); return; }
-      jobId = accepted.job.id;
-      await store.update(jobId, { state: 'running', stage: 'Existing maintenance, ownership and restore safety gates are being checked.' });
-    }
-    const restored = await context.appState.restoreBackup(name);
-    const job = jobId ? await store!.update(jobId, { state: 'awaiting-restart', stage: 'Restore confirmed; waiting for restart. Trading remains subject to fresh safety gates.', result: { artifactName: name, rollbackPreserved: Boolean(restored.previousDatabase || restored.previousConfig) } }) : null;
-    context.res.once('finish', () => context.appState.requestRestart?.());
-    sendJson(context.res, 200, {
-      success: true,
-      name,
-      rollbackPreserved: Boolean(restored.previousDatabase || restored.previousConfig),
-      restartScheduled: true,
-      job,
-      serverInstanceId,
-      requestId: context.requestId,
+    await runRestartCommand(context, {
+      id: payload.jobId, kind: 'backup-restore', scope: { artifactName: name }, request: { name }, status: 200,
+      operation: async () => {
+        const restored = await context.appState.restoreBackup!(name);
+        return { name, artifactName: name, rollbackPreserved: Boolean(restored.previousDatabase || restored.previousConfig) };
+      },
     });
   } catch (error) {
-    if (jobId) await store!.update(jobId, { state: 'failed', stage: 'Restore did not reach a confirmed restart. Review possible partial maintenance effects before any further command.', error: errorMessage(error) });
-    sendError(context, new HttpError(409, errorMessage(error)));
+    sendRestartCommandError(context, error);
   }
 }
 
@@ -2964,7 +2981,9 @@ async function invokeApiHandler(
     await handler(context);
     return;
   }
-  try { assertStartupMutationAllowed(context, method); }
+  // These two handlers check the startup gate after their bound receipt lookup,
+  // allowing completion-only replays while their own maintenance hold remains active.
+  try { if (!restartReceiptLookup(context)) assertStartupMutationAllowed(context, method); }
   catch (error) { sendError(context, error); return; }
   if (mutationInProgress) {
     sendJson(context.res, 409, {
@@ -2979,6 +2998,10 @@ async function invokeApiHandler(
   } finally {
     mutationInProgress = false;
   }
+}
+
+function restartReceiptLookup(context: RequestContext): boolean {
+  return context.req.method === 'POST' && ['/api/backups/restore', '/api/factory-reset'].includes(context.parsedUrl.pathname);
 }
 
 function assertStartupMutationAllowed(context: RequestContext, method: string): void {
@@ -3161,6 +3184,11 @@ export function startWebServer(
     const address = server?.address();
     const listeningPort = typeof address === 'object' && address ? address.port : port;
     console.log(`[INFO] Web Control Dashboard listening on http://${host}:${listeningPort}`);
+    if (appState.uiOperations && appState.requestRestart) {
+      void restartCoordinator(appState).reconcile().catch(error => {
+        addLog(`[CRITICAL] Durable restart reconciliation failed: ${errorMessage(error)}`);
+      });
+    }
   });
   return server;
 }
