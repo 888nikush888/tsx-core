@@ -641,7 +641,7 @@ test("shared processing and account branches are explicit in the route matrix an
   await page
     .getByRole("button", { name: "Hellen Modus aktivieren" })
     .click();
-  await page.waitForTimeout(250);
+  await expect(page.locator("html")).not.toHaveClass(/(?:^|\s)dark(?:\s|$)/);
   expect(
     (
       await new AxeBuilder({ page })
@@ -1216,4 +1216,40 @@ test("reduced motion and keyboard navigation remain usable across operator areas
   await expect(navigation.getByRole("link", { name: "Trading", exact: true })).toBeFocused(); await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/trading\/accounts$/);
   expect(await navigation.getByRole("link", { name: "Workflows", exact: true }).evaluate(element => getComputedStyle(element).transitionDuration)).toBe("0s");
+});
+
+
+test("evidence and change-review tables retain keyboard scrolling", async ({ page }) => {
+  await mockDashboardApi(page);
+  await page.route("**/api/workflow/objects?**", async route => {
+    const id = new URL(route.request().url()).searchParams.get("id");
+    if (id) {
+      await json(route, {
+        resource: { id, resourceId: "keyboard-resource", name: "Keyboard evidence", kind: "parser", version: 1, status: "published", configuration: { limit: 0, enabled: false } },
+        activePaths: [], observedAt: Date.now(), effect: "Read-only keyboard evidence fixture",
+      });
+      return;
+    }
+    await json(route, {
+      entries: [{ id: "keyboard-version", resourceId: "keyboard-resource", name: "Keyboard evidence", kind: "parser", version: 1, status: "published", createdAt: Date.now() }],
+      hasMore: false, observedAt: Date.now(),
+    });
+  });
+  for (const [path, label] of [
+    ["/workflows/resources", "Tabellenbereich: Ressourcenbibliothek"],
+    ["/workflows/resources/keyboard-resource/versions/keyboard-version", "Gespeicherte Parameter dieser Quelle: Tabelleninhalt"],
+  ]) {
+    await page.goto(path);
+    const region = page.getByRole("region", { name: label });
+    await expect(region).toBeVisible();
+    // Force a wide table in this fixture to exercise overflow even on desktop viewports.
+    await region.locator("table").evaluate(table => { table.style.minWidth = "2400px"; });
+    expect(await region.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+    await region.focus();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
+    await expect(region).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(() => region.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+  }
 });
