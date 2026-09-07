@@ -27,6 +27,10 @@ try {
   const workflow = await readFile('.github/workflows/quality.yml', 'utf8');
   assert.equal(workflow.match(/unittest discover -s exchange_executor\/tests -v/gu).length, 2);
   assert.match(workflow, /node scripts\/normalize_lcov_paths\.js/u);
+  const sonarCoverageCommand = workflow.split(/\r?\n/u).find(line => line.includes('./node_modules/.bin/c8 --all'));
+  assert.match(sonarCoverageCommand, /--include="src\/\*\*\/\*\.ts"/u);
+  assert.doesNotMatch(sonarCoverageCommand, /scripts\/\*\*\/\*\.js/u, 'Sonar LCOV must not add tooling outside the existing product source scope.');
+  assert.match(sonarCoverageCommand, /node tests\/run_all\.js$/u, 'Coverage scope must not change complete test execution.');
   assert.match(workflow, /pull_request:\s+branches: \[main\]/u);
   assert.doesNotMatch(workflow, /pull_request_target/u);
   assert.match(workflow, /TRUSTED_SOURCE:/u);
