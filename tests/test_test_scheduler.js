@@ -398,7 +398,7 @@ try {
   }
   const moduleSource = await readFile(path.join(repository, 'scripts/check_module_coverage.js'), 'utf8');
   assert.match(moduleSource, /env: \{ \.\.\.process\.env, TSX_MODULE_COVERAGE_WORKERS: '4' \}/);
-  assert.match(moduleSource, /timeout: 300_000/);
+  assert.match(moduleSource, /timeout: 600_000/);
   assert.match(moduleSource, /'--config', 'c8\.modules\.json'/);
   await testTwoSlotsWithQueuedWork();
   await testEveryExclusiveBarrier();
