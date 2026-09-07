@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateDeploymentImages } from '../scripts/verify_deployment_images.js';
@@ -53,6 +56,110 @@ assert.match(gitleaksConfig, /description = "Reviewed fake dynamic exchange cred
 assert.match(gitleaksConfig, /\^tests\/test_dynamic_exchange_registry\\\.js\$/);
 assert.match(gitleaksConfig, /gateio-key-\[0-9\]\{3\}/);
 assert.match(gitleaksConfig, /gateio-secret-\[0-9\]\{3\}/);
+
+function reviewedSonarAllowlist(description, field, filename, count, expectedIdSetHash) {
+  const block = gitleaksConfig.split('[[allowlists]]').find(value => value.includes(`description = "${description}"`));
+  assert.ok(block, 'The reviewed public-ID allowance must exist.');
+  assert.deepEqual([...block.matchAll(/^(\w+) =/gm)].map(match => match[1]),
+    ['description', 'targetRules', 'condition', 'regexTarget', 'regexes', 'paths']);
+  assert.match(block, /^targetRules = \["generic-api-key"\]$/m);
+  assert.match(block, /^condition = "AND"$/m);
+  assert.match(block, /^regexTarget = "line"$/m);
+  const linePattern = block.match(/^regexes = \['''([^\n]+)'''\]$/m)?.[1];
+  const pathPattern = block.match(/^paths = \['''([^\n]+)'''\]$/m)?.[1];
+  assert.ok(linePattern && pathPattern);
+  const ids = linePattern.match(/\(\?:([A-Za-z0-9_|-]+)\)/u)?.[1].split('|');
+  assert.equal(ids?.length, count);
+  assert.equal(new Set(ids).size, count);
+  assert.ok(ids.every(id => /^[A-Za-z0-9_-]{20}$/u.test(id)));
+  assert.deepEqual(ids, [...ids].sort());
+  assert.equal(createHash('sha256').update(ids.join('\n')).digest('hex'), expectedIdSetHash,
+    'Only the independently reviewed literal ID set may be excepted.');
+  // Gitleaks 8.30.1 includes the preceding LF in finding.Line; allow that single delimiter, never another JSON field.
+  assert.equal(linePattern, `^\\n?[ \\t]*"${field}"[ \\t]*:[ \\t]*"(?:${ids.join('|')})"[ \\t]*,?[ \\t]*\\r?$`);
+  assert.equal(pathPattern, `^docs/testing/${filename.replaceAll('.', '\\.')}$`);
+  const line = new RegExp(linePattern, 'u');
+  const file = new RegExp(pathPattern, 'u');
+  return { ids, field, filename: `docs/testing/${filename}`,
+    allows: (name, text, rule = 'generic-api-key') => rule === 'generic-api-key' && file.test(name) && line.test(text) };
+}
+
+const publicSonarAllowlists = [
+  reviewedSonarAllowlist('Reviewed public Sonar baseline issue IDs', 'key', 'sonar-remediation-2026-09-07.json', 672,
+    'fb1f608fe0a985294b668bc4d06fbd3d794ce0ec9199824ee855bd264108dbd8'),
+  reviewedSonarAllowlist('Reviewed public Sonar decision issue IDs', 'issueKey', 'sonar-reviewed-decisions.json', 13,
+    '6d528132bbddbac361798d0e86d2107e056781996520ed963126a89234132c11'),
+];
+assert.ok(publicSonarAllowlists[1].ids.every(id => publicSonarAllowlists[0].ids.includes(id)));
+const fixtureCredential = createHash('sha256').update('synthetic scanner regression, never a provider credential').digest('base64url').slice(0, 32);
+const allPublicIds = new Set(publicSonarAllowlists[0].ids);
+for (const allowance of publicSonarAllowlists) {
+  for (const id of allowance.ids) {
+    const jsonLine = `  "${allowance.field}": "${id}",`;
+    assert.equal(allowance.allows(allowance.filename, jsonLine), true);
+    assert.equal(allowance.allows(allowance.filename, `\n${jsonLine}\r`), true);
+    assert.equal(allowance.allows(allowance.filename, jsonLine, 'github-pat'), false);
+    for (const filename of ['docs/testing/other.json', `copy/${allowance.filename}`, `${allowance.filename}.bak`]) {
+      assert.equal(allowance.allows(filename, jsonLine), false);
+    }
+    for (const field of ['secret', 'apiKey', allowance.field === 'key' ? 'issueKey' : 'key']) {
+      assert.equal(allowance.allows(allowance.filename, `  "${field}": "${id}",`), false);
+    }
+    assert.equal(allowance.allows(allowance.filename, `${jsonLine} "secret": "${fixtureCredential}"`), false);
+    const unknown = `Z${id.slice(1)}`;
+    assert.equal(allPublicIds.has(unknown), false);
+    assert.equal(allowance.allows(allowance.filename, `  "${allowance.field}": "${unknown}",`), false);
+  }
+  assert.equal(allowance.allows(allowance.filename, `  "${allowance.field}": "${fixtureCredential}",`), false);
+}
+
+async function nativeSonarAllowanceFixtures(binary) {
+  const version = spawnSync(binary, ['version'], { encoding: 'utf8', windowsHide: true, shell: false });
+  assert.equal(version.status, 0, 'The explicitly selected Gitleaks runtime must execute.');
+  assert.equal(version.stdout.trim(), '8.30.1', 'Native allowance regression uses the same pinned runtime as CI.');
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-public-sonar-gitleaks-'));
+  try {
+    const scanner = async (name, expectedExit) => {
+      const reportPath = path.join(directory, `${name}.json`);
+      const result = spawnSync(binary, ['dir', '.', '--config', path.join(root, '.gitleaks.toml'), '--redact=100',
+        '--no-banner', '--no-color', '--log-level=error', '--report-format=json', '--report-path', reportPath],
+      { cwd: path.join(directory, 'input'), encoding: 'utf8', windowsHide: true, shell: false, timeout: 60_000 });
+      assert.equal(result.status, expectedExit, `Native Gitleaks ${name} returned an unexpected exit code; output remains redacted.`);
+      return JSON.parse(await readFile(reportPath, 'utf8'));
+    };
+    const input = path.join(directory, 'input');
+    await mkdir(path.join(input, 'docs/testing'), { recursive: true });
+    for (const allowance of publicSonarAllowlists) {
+      await writeFile(path.join(input, allowance.filename), JSON.stringify(allowance.ids.map(id => ({ [allowance.field]: id })), null, 2));
+    }
+    assert.deepEqual(await scanner('reviewed-public-ids', 0), []);
+    const expected = [];
+    for (const allowance of publicSonarAllowlists) {
+      const id = allowance.ids[0];
+      const unknown = `Z${id.slice(1)}`;
+      const rows = [{ [allowance.field]: unknown }, { apiKey: fixtureCredential }, { secret: id }, { apiKey: id },
+        { [allowance.field === 'key' ? 'issueKey' : 'key']: id }, { [allowance.field]: fixtureCredential }];
+      await writeFile(path.join(input, allowance.filename), JSON.stringify(rows, null, 2));
+      for (let row = 0; row < rows.length; row += 1) expected.push({ file: allowance.filename, line: 3 + row * 3 });
+    }
+    await writeFile(path.join(input, 'docs/testing/other.json'), JSON.stringify([{ key: publicSonarAllowlists[0].ids[0] }], null, 2));
+    expected.push({ file: 'docs/testing/other.json', line: 3 });
+    const found = await scanner('unknown-ids-and-credentials', 1);
+    for (const location of expected) {
+      assert.ok(found.some(item => item.RuleID === 'generic-api-key' && item.File.replaceAll('\\', '/').endsWith(location.file)
+        && item.StartLine === location.line), 'Every negative fixture must still be detected by the real generic-api-key rule.');
+    }
+    assert.equal(found.length, expected.length);
+    assert.ok(found.every(item => item.Secret === 'REDACTED'));
+    console.log(`Native Gitleaks 8.30.1: 685 exact public IDs allowed; all ${expected.length} credential/unknown-ID fixtures detected.`);
+  } finally {
+    assert.ok(directory.startsWith(path.join(os.tmpdir(), 'tsx-public-sonar-gitleaks-')));
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+if (process.env.TSX_GITLEAKS_BINARY) await nativeSonarAllowanceFixtures(path.resolve(process.env.TSX_GITLEAKS_BINARY));
+
 const scannerVersion = workflow.match(/^\s*GITLEAKS_VERSION:\s*'(\d+)\.(\d+)\.(\d+)'\s*$/m);
 assert.ok(scannerVersion, 'the secret scanner runtime must be pinned independently of the action');
 assert.ok(Number(scannerVersion[1]) > 8 || (Number(scannerVersion[1]) === 8 && Number(scannerVersion[2]) >= 25),
