@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "release_audit_ci_concurrency_followup",
+  "reviewedAt": "2026-09-07T08:26:36Z",
+  "sourceRevision": "289a727a72149e8be879f59e570f2551fbb586d5",
+  "sourceTreeHash": "b466c835099a375fdcb6aab7bc866c46793de1af2b525746496e3e0d9b3506e7",
+  "priorReceiptSha256": "f3fbb74cb653eb869d2fed2d5557e8da17fad85cb4390a65b7d53a33f4b87d6c",
+  "priorExecutionReportHash": "93be5d80c97b88b4231ffe4a7dc9a478444ac62ec904a3ffbe417cebaddcbcc4",
+  "scope": "Separate scheduled, manual, push and PR concurrency groups while preserving cancellation of superseded pushes and same-PR updates. Quality checks, release requirements, source scope and thresholds are unchanged.",
+  "authorization": "User requested audit implementation, GitHub publication, and CI/Sonar verification.",
+  "validation": {
+    "cancelledPushRunId": 34098918875,
+    "conflictingScheduledRunId": 34100167756,
+    "authorAgent": "ci_governance_code",
+    "independentlyReviewedBy": "root",
+    "review": "Reviewed the complete three-file diff and independently reran workflow/governance regressions and targeted ESLint. The regression expands the actual workflow group template and reproduces the old push/schedule collision, then proves push/schedule/manual separation, stable groups for newer pushes and same-PR updates, and isolation between distinct PRs.",
+    "regression": "passed",
+    "targetedLint": "passed",
+    "logDigest": {
+      "sha256": "d0892652caad6dab1625a01a38ed4ce3ad48a19c5b8342b25a660dd68e5b2cb2",
+      "bytes": 81
+    },
+    "fullValidationScope": "The existing full validation remains attributed to its recorded base revision through the prior review reports. This CI scheduling follow-up has targeted regression evidence; final-head CI and Sonar still must run."
+  },
+  "executorAndSdkSourceChanged": false,
+  "providerParityEvidence": {
+    "preservedHash": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e"
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false,
+  "productionDeploymentPerformed": false,
+  "quarantinePreserved": [
+    "bybit",
+    "krakenfutures"
+  ]
+}
