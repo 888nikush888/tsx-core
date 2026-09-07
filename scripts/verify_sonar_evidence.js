@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { isBlockingIssue } from './export_sonarcloud_findings.js';
-import { sonarScope, validatePullRequestTask } from './sonar_scope.js';
+import { sonarScope, validateBranchTask, validatePullRequestTask } from './sonar_scope.js';
 
 const ARTIFACTS = ['issues.json', 'hotspots.json', 'issues.tsv', 'hotspots.tsv', 'open-issues.tsv', 'to-review-hotspots.tsv'];
 
@@ -22,16 +22,25 @@ function validatePullRequestHotspots(review, pullRequest) {
   'pull request hotspot review is unproven');
 }
 
-function validateScope(summary, { expectedRevision, projectKey, pullRequest }) {
+function validateScope(summary, { expectedRevision, projectKey, pullRequest, branch = 'main' }) {
   requireEvidence(summary.projectKey === projectKey, 'project differs');
   if (!pullRequest) {
-    requireEvidence(summary.branch === 'main' && !summary.pullRequest, 'project or branch differs');
+    requireEvidence(summary.branch === branch && !summary.pullRequest, 'project or branch differs');
+    if (branch !== 'main') validateLongBranchScope(summary, expectedRevision, branch);
     return;
   }
   requireEvidence(summary.branch === null && summary.pullRequest?.key === pullRequest.key
     && summary.pullRequest?.branch === pullRequest.branch && summary.pullRequest?.base === pullRequest.base, 'pull request scope differs');
   validatePullRequestTask(summary.computeTask, { expectedRevision, pullRequest });
   validatePullRequestHotspots(summary.hotspotReview, pullRequest);
+}
+
+function validateLongBranchScope(summary, expectedRevision, branch) {
+  validateBranchTask(summary.computeTask, { expectedRevision, branch });
+  const identity = summary.branchAnalysis ?? {};
+  requireEvidence(identity.name === branch && identity.type === 'LONG' && identity.revision === expectedRevision
+    && Number.isFinite(Date.parse(identity.analysisDate)) && Date.parse(identity.analysisDate) === Date.parse(summary.analysis?.date),
+  'full long-lived branch analysis is unproven');
 }
 
 function validateSummary(summary, options) {
@@ -106,7 +115,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   try {
     await verifySonarEvidence(path.resolve(process.env.SONAR_EXPORT_DIR || 'reports/sonarcloud'), {
       expectedRevision: process.env.SONAR_EXPECTED_REVISION, projectKey: process.env.SONAR_PROJECT_KEY,
-      pullRequest: sonarScope(process.env).pullRequest
+      ...sonarScope(process.env)
     });
     console.log('SonarCloud evidence gate passed for the expected revision and analysis scope.');
   } catch {

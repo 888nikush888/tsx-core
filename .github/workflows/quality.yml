@@ -117,7 +117,7 @@ jobs:
 
   sonarcloud:
     name: SonarQube Cloud quality gate
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref_type == 'branch')
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -128,6 +128,7 @@ jobs:
       SONAR_PULL_REQUEST: ${{ github.event.pull_request.number || '' }}
       SONAR_PULL_REQUEST_BRANCH: ${{ github.head_ref }}
       SONAR_PULL_REQUEST_BASE: ${{ github.base_ref }}
+      SONAR_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.ref_type == 'branch' && github.ref_name || '' }}
     steps:
       - name: Require a trusted pull request with analysis credentials
         env:
@@ -176,7 +177,7 @@ jobs:
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
           python -m coverage report --fail-under=60
           python -m coverage xml -o exchange_executor/coverage.xml
-      - name: Prepare explicit Sonar revision and PR scope
+      - name: Prepare explicit Sonar revision and analysis scope
         id: sonar_scope
         run: node scripts/sonar_scan_arguments.js
       - name: Analyze exact revision and wait for Quality Gate

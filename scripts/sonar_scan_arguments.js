@@ -16,6 +16,7 @@ export function sonarScanArguments(environment) {
     '-Dsonar.pullrequest.branch=${env.SONAR_PULL_REQUEST_BRANCH}',
     '-Dsonar.pullrequest.base=${env.SONAR_PULL_REQUEST_BASE}'
   );
+  else if (environment.SONAR_BRANCH) args.push('-Dsonar.branch.name=${env.SONAR_BRANCH}');
   return args.join(' ');
 }
 

@@ -100,7 +100,7 @@ try {
   assert.equal((await verifySonarEvidence(directory, verification)).passed, true);
   await assert.rejects(verifySonarEvidence(directory, { ...verification, pullRequest: undefined }), /branch differs/u);
   await assert.rejects(verifySonarEvidence(directory, { ...verification, pullRequest: { ...pullRequest, key: '29' } }), /scope differs/u);
-  assert.deepEqual(scannerIdentity(scannerContext), { revision, pullRequest: '28', branch: pullRequest.branch, base: 'main' });
+  assert.deepEqual(scannerIdentity(scannerContext), { revision, analysisBranch: undefined, pullRequest: '28', branch: pullRequest.branch, base: 'main' });
   for (const name of ['summary.json', 'ce-task.json']) {
     assert.doesNotMatch(await readFile(path.join(directory, name), 'utf8'), /NEVER-PERSIST|sonar.token|environment.SECRET/u);
   }
@@ -113,7 +113,8 @@ try {
     { id: 'other-task' }, { componentKey: 'other-project' }, { analysisId: null }, { scannerContext: '' }, { pullRequest: '29' },
     { scannerContext: scannerContext.replace(revision, 'a'.repeat(40)) },
     { scannerContext: scannerContext.replace('key=28', 'key=29') },
-    { scannerContext: scannerContext.replace('base=main', 'base=other') }
+    { scannerContext: scannerContext.replace('base=main', 'base=other') },
+    { scannerContext: `${scannerContext}\nsonar.branch.name=main` }
   ]) await rejectResponse('/api/ce/task', { task: { ...task, ...changedTask } }, /task/u);
   await rejectResponse('/api/ce/task', { task: { ...task, scannerContext: `  - sonar.scm.revision=${revision}\n  - sonar.token=NEVER-PERSIST` } },
     /scope: pullRequest missing, branch missing, base missing/u);

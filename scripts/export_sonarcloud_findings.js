@@ -3,7 +3,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readOptions, sonarGet } from './sonar_read.js';
-import { readPullRequestAnalysis, readPullRequestHotspotReview, scannerIdentity, sonarScope } from './sonar_scope.js';
+import { readLongBranchIdentity, readPullRequestAnalysis, readPullRequestHotspotReview, scannerIdentity, sonarScope, validateBranchTask } from './sonar_scope.js';
 
 const DEFAULT_SONAR_HOST_URL = 'https://sonarcloud.io';
 const PAGE_SIZE = 500;
@@ -141,7 +141,8 @@ async function readComputeTask(configuration, options) {
   const properties = parseReportTask(reportTask);
   const taskUrl = validatedComputeTaskUrl(properties, configuration);
 
-  const response = await sonarGet(taskUrl.toString(), configuration.pullRequest ? { additionalFields: 'scannerContext' } : {}, options);
+  const needsIdentity = configuration.pullRequest || configuration.branch !== 'main';
+  const response = await sonarGet(taskUrl.toString(), needsIdentity ? { additionalFields: 'scannerContext' } : {}, options);
   if (!response.task?.id || !response.task.status) throw new Error('SonarCloud returned an invalid compute task.');
   if (response.task.id !== taskUrl.searchParams.get('id') || response.task.componentKey !== configuration.projectKey) {
     throw new Error('SonarCloud compute task belongs to a different project or task.');
@@ -149,11 +150,16 @@ async function readComputeTask(configuration, options) {
 
   const evidence = computeTaskEvidence(response.task, configuration.token);
   await writeFile(path.join(configuration.outputDirectory, 'ce-task.json'), `${JSON.stringify(evidence, null, 2)}\n`, 'utf8');
+  validateComputeTaskResult(evidence, configuration);
+  return evidence;
+}
+
+function validateComputeTaskResult(evidence, configuration) {
   if (evidence.status !== 'SUCCESS') {
     const detail = evidence.errorMessage || `terminal status is '${evidence.status}'`;
     throw new Error(`SonarCloud compute task '${evidence.id}' failed: ${detail}`);
   }
-  return evidence;
+  if (!configuration.pullRequest && configuration.branch !== 'main') validateBranchTask(evidence, configuration);
 }
 
 function validatedAnalysis(analysisResponse, configuration) {
@@ -184,6 +190,7 @@ function exportSummary(configuration, analysis, findings, qualityGate, computeTa
       revision: analysis.revision,
       projectVersion: analysis.projectVersion
     },
+    branchAnalysis: analysis.branchAnalysis,
     expectedRevision: expectedRevision || null,
     revisionMatchesExpectation: expectedRevision ? analysis.revision === expectedRevision : null,
     computeTask,
@@ -276,15 +283,19 @@ async function writeArtifacts(configuration, findings, summary) {
 export async function exportFindings({ environment = process.env, fetchImpl = fetch, now = () => new Date(), ...dependencies } = {}) {
   const configuration = exporterConfiguration(environment);
   const options = readOptions(configuration, {
-    ...dependencies, fetchImpl, now, requireComputeTask: Boolean(configuration.pullRequest) || environment.SONAR_REQUIRE_COMPUTE_TASK === 'true'
+    ...dependencies, fetchImpl, now,
+    requireComputeTask: Boolean(configuration.pullRequest) || configuration.branch !== 'main' || environment.SONAR_REQUIRE_COMPUTE_TASK === 'true'
   });
   await mkdir(configuration.outputDirectory, { recursive: true });
   await rm(path.join(configuration.outputDirectory, 'summary.json'), { force: true });
   const computeTask = await readComputeTask(configuration, options);
   const analysisParameters = { project: configuration.projectKey, branch: configuration.branch, ps: 1 };
-  const readAnalysis = async () => configuration.pullRequest
-    ? readPullRequestAnalysis(configuration, computeTask, options)
-    : validatedAnalysis(await sonarGet('/api/project_analyses/search', analysisParameters, options), configuration);
+  const readAnalysis = async () => {
+    if (configuration.pullRequest) return readPullRequestAnalysis(configuration, computeTask, options);
+    const analysis = validatedAnalysis(await sonarGet('/api/project_analyses/search', analysisParameters, options), configuration);
+    if (configuration.branch !== 'main') analysis.branchAnalysis = await readLongBranchIdentity(configuration, analysis, options);
+    return analysis;
+  };
   const analysis = await readAnalysis();
   if (computeTask && computeTask.analysisId !== analysis.key) throw new Error('SonarCloud compute task analysis does not match the latest revision.');
   const findings = await collectFindings(configuration, options);
