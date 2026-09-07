@@ -16,6 +16,11 @@ on:
         type: boolean
         required: false
         default: false
+      apply_reviewed_pr29_sonar_decision:
+        description: 'On the PR29 source branch only: apply its single pinned keyboard-scroll false positive (repository owner only)'
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
@@ -119,6 +124,40 @@ jobs:
             coverage-modules/
             reports/
           if-no-files-found: error
+          retention-days: 90
+
+  reviewed_pr29_decision:
+    name: Apply the reviewed PR29 Sonar decision
+    if: github.event_name == 'workflow_dispatch' && inputs.apply_reviewed_pr29_sonar_decision && github.actor == github.repository_owner && github.triggering_actor == github.repository_owner
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      SONAR_EXPECTED_REVISION: ${{ github.sha }}
+    steps:
+      - name: Checkout exact reviewed PR29 workflow revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Configure pinned Node major
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Apply only the pinned reviewed PR29 decision
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_APPLY_REVIEWED_PR29_DECISION: 'true'
+        run: node scripts/sonar_review_decisions.js --reviewed-pr29
+      - name: Upload reviewed PR29 decision ledger
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: sonar-reviewed-pr29-decision-${{ github.sha }}
+          path: reports/sonar-reviewed-pr29-decision/
+          if-no-files-found: warn
           retention-days: 90
 
   sonarcloud:

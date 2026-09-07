@@ -7,6 +7,10 @@ import { fileURLToPath } from 'node:url';
 export const SONAR_PROJECT = '888nikush888_telegram-tdlib-forwarder-private';
 export const REVIEW_MANIFEST = 'docs/testing/sonar-reviewed-decisions.json';
 export const REVIEW_LEDGER = 'reports/sonar-reviewed-decisions/ledger.json';
+export const PR_REVIEW_MANIFEST = 'docs/testing/sonar-reviewed-pr29-decision.json';
+export const PR_REVIEW_LEDGER = 'reports/sonar-reviewed-pr29-decision/ledger.json';
+const PR_MANIFEST_SHA256 = 'bc6f0218dba5e8bd379a90ce9e7656d31a6dde68fb46f410a90d2cbf7f0a1869';
+const PR_BRANCH = 'branch-sonar-cleanup-2026-09-07';
 const ORIGIN = 'https://sonarcloud.io';
 const REPOSITORY = '888nikush888/tsx-core';
 const OWNER = '888nikush888';
@@ -18,6 +22,8 @@ const MESSAGES = {
   MANIFEST: 'The reviewed Sonar decision manifest is invalid.',
   SOURCE: 'A reviewed source or regression test does not match its pinned file and SHA256.',
   IDENTITY: 'Sonar did not prove the exact reviewed main issue identity.',
+  PR_IDENTITY: 'Sonar did not prove the exact reviewed PR29 issue identity and location.',
+  PR_SOURCE: 'The analyzed PR29 revision is unavailable, unrelated, or differs from the pinned source and regression tests.',
   CLASSIFICATION: 'The issue classification is unsafe or unsupported for the reviewed disposition.',
   STATE: 'The issue status or prior review comment does not match the reviewed decision.',
   PERMISSION: 'Sonar credentials lack permission for the reviewed decision. Browse and Administer Issues are required.',
@@ -36,6 +42,13 @@ class DecisionError extends Error {
 
 function requireCondition(condition, code) {
   if (!condition) throw new DecisionError(code);
+}
+
+function reviewMode(mode) {
+  requireCondition(mode === 'main' || mode === 'pr29', 'AUTHORIZATION');
+  return mode === 'pr29'
+    ? { input: 'apply_reviewed_pr29_sonar_decision', flag: 'SONAR_APPLY_REVIEWED_PR29_DECISION', manifest: PR_REVIEW_MANIFEST, ledger: PR_REVIEW_LEDGER }
+    : { input: 'apply_reviewed_sonar_decisions', flag: 'SONAR_APPLY_REVIEWED_DECISIONS', manifest: REVIEW_MANIFEST, ledger: REVIEW_LEDGER };
 }
 
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -86,21 +99,40 @@ async function boundFile(root, name) {
   return readFile(resolved);
 }
 
-export async function loadReviewedDecisions(root = ROOT) {
+function validateManifest(manifest, bytes, mode) {
+  const scopeFields = mode === 'pr29' ? ['pullRequest', 'mainDecisionSha256', 'location'] : ['branch'];
+  requireCondition(exactKeys(manifest, ['schemaVersion', 'projectKey', 'decisions', ...scopeFields])
+    && manifest.schemaVersion === 1 && manifest.projectKey === SONAR_PROJECT
+    && (mode === 'pr29' ? digest(bytes) === PR_MANIFEST_SHA256 : manifest.branch === 'main')
+    && Array.isArray(manifest.decisions) && manifest.decisions.length > 0 && manifest.decisions.length <= 100, 'MANIFEST');
+  manifest.decisions.forEach(validateDecision);
+  requireCondition(new Set(manifest.decisions.map(decision => decision.issueKey)).size === manifest.decisions.length, 'MANIFEST');
+}
+
+async function relatedMainDecision(root, manifest) {
+  // The entire reviewed PR manifest is pinned: no additional ID, transition, scope, or source binding can be substituted.
+  requireCondition(manifest.decisions.length === 1 && manifest.decisions[0].disposition === 'falsepositive'
+    && manifest.pullRequest.key === '29' && manifest.pullRequest.branch === PR_BRANCH && manifest.pullRequest.base === 'main', 'MANIFEST');
+  const main = await loadReviewedDecisions(root);
+  const matches = main.manifest.decisions.filter(decision => digest(JSON.stringify(decision)) === manifest.mainDecisionSha256);
+  requireCondition(matches.length === 1, 'MANIFEST');
+  const [mainDecision] = matches;
+  requireCondition(digest(JSON.stringify({ ...manifest.decisions[0], issueKey: mainDecision.issueKey })) === manifest.mainDecisionSha256, 'MANIFEST');
+  return mainDecision;
+}
+
+export async function loadReviewedDecisions(root = ROOT, mode = 'main') {
+  const configuration = reviewMode(mode);
   let bytes;
   let manifest;
   const resolvedRoot = await realpath(root);
   try {
-    bytes = await boundFile(resolvedRoot, REVIEW_MANIFEST);
+    bytes = await boundFile(resolvedRoot, configuration.manifest);
     manifest = JSON.parse(bytes.toString('utf8'));
   } catch {
     throw new DecisionError('MANIFEST');
   }
-  requireCondition(exactKeys(manifest, ['schemaVersion', 'projectKey', 'branch', 'decisions'])
-    && manifest.schemaVersion === 1 && manifest.projectKey === SONAR_PROJECT && manifest.branch === 'main'
-    && Array.isArray(manifest.decisions) && manifest.decisions.length > 0 && manifest.decisions.length <= 100, 'MANIFEST');
-  manifest.decisions.forEach(validateDecision);
-  requireCondition(new Set(manifest.decisions.map(decision => decision.issueKey)).size === manifest.decisions.length, 'MANIFEST');
+  validateManifest(manifest, bytes, mode);
   try {
     for (const decision of manifest.decisions) {
       for (const binding of [decision.source, ...decision.tests]) {
@@ -110,21 +142,25 @@ export async function loadReviewedDecisions(root = ROOT) {
   } catch {
     throw new DecisionError('SOURCE');
   }
-  return { manifest, manifestSha256: digest(bytes) };
+  const mainDecision = mode === 'pr29' ? await relatedMainDecision(root, manifest) : undefined;
+  return { manifest, manifestSha256: digest(bytes), mainDecision };
 }
 
-function authorizeRunner(environment) {
+function authorizeRunner(environment, mode) {
+  const configuration = reviewMode(mode);
   requireCondition(environment.GITHUB_ACTIONS === 'true' && environment.GITHUB_EVENT_NAME === 'workflow_dispatch'
     && environment.GITHUB_REPOSITORY === REPOSITORY && environment.GITHUB_ACTOR === OWNER
-    && environment.GITHUB_TRIGGERING_ACTOR === OWNER && environment.SONAR_APPLY_REVIEWED_DECISIONS === 'true', 'AUTHORIZATION');
+    && environment.GITHUB_TRIGGERING_ACTOR === OWNER && environment[configuration.flag] === 'true', 'AUTHORIZATION');
   requireCondition(environment.GITHUB_REF_TYPE === 'branch' && /^refs\/heads\/[^\s\x00-\x1f\x7f]+$/u.test(environment.GITHUB_REF ?? '')
     && environment.GITHUB_WORKFLOW_REF === `${REPOSITORY}/.github/workflows/quality.yml@${environment.GITHUB_REF}`, 'AUTHORIZATION');
+  if (mode === 'pr29') requireCondition(environment.GITHUB_REF === `refs/heads/${PR_BRANCH}`, 'AUTHORIZATION');
 }
 
-export function authorizeWorkflow(environment, event, revision, clean) {
-  authorizeRunner(environment);
+export function authorizeWorkflow(environment, event, revision, clean, mode = 'main') {
+  authorizeRunner(environment, mode);
+  const configuration = reviewMode(mode);
   requireCondition(event?.repository?.full_name === REPOSITORY && event.repository.owner?.login === OWNER
-    && event.sender?.login === OWNER && [true, 'true'].includes(event.inputs?.apply_reviewed_sonar_decisions), 'AUTHORIZATION');
+    && event.sender?.login === OWNER && [true, 'true'].includes(event.inputs?.[configuration.input]), 'AUTHORIZATION');
   requireCondition(/^[a-f0-9]{40}$/u.test(revision) && revision === environment.GITHUB_SHA
     && revision === environment.SONAR_EXPECTED_REVISION && clean === true, 'CHECKOUT');
   requireCondition(typeof environment.SONAR_TOKEN === 'string' && environment.SONAR_TOKEN.trim().length > 0, 'PERMISSION');
@@ -137,10 +173,7 @@ function reviewComment(decision) {
     + `${decision.acceptanceRationale ? `\nExplicit risk acceptance: ${decision.acceptanceRationale}` : ''}\n${binding}`;
 }
 
-async function requestIssue(decision, { fetchImpl, token }) {
-  const url = new URL('/api/issues/search', ORIGIN);
-  url.search = new URLSearchParams({ issues: decision.issueKey, componentKeys: SONAR_PROJECT, branch: 'main',
-    additionalFields: 'comments,transitions', p: '1', ps: '2' }).toString();
+async function requestJson(url, { fetchImpl, token }) {
   let response;
   let body;
   try {
@@ -152,17 +185,69 @@ async function requestIssue(decision, { fetchImpl, token }) {
   } catch (error) {
     throw error instanceof DecisionError ? error : new DecisionError('READ');
   }
-  return validateIssueIdentity(body, decision);
+  return body;
 }
 
-function validateIssueIdentity(body, decision) {
+async function requestIssue(decision, dependencies, pullRequest) {
+  const url = new URL('/api/issues/search', ORIGIN);
+  const scope = pullRequest ? { pullRequest: '29' } : { branch: 'main' };
+  url.search = new URLSearchParams({ issues: decision.issueKey, componentKeys: SONAR_PROJECT, ...scope,
+    additionalFields: 'comments,transitions', p: '1', ps: '2' }).toString();
+  return validateIssueIdentity(await requestJson(url, dependencies), decision, pullRequest);
+}
+
+function validateIssueIdentity(body, decision, pullRequest) {
+  const errorCode = pullRequest ? 'PR_IDENTITY' : 'IDENTITY';
   requireCondition(body?.paging?.total === 1 && body.paging.pageIndex === 1 && (!Object.hasOwn(body, 'total') || body.total === 1)
-    && Array.isArray(body.issues) && body.issues.length === 1, 'IDENTITY');
+    && Array.isArray(body.issues) && body.issues.length === 1, errorCode);
   const issue = body.issues[0];
   requireCondition(issue?.key === decision.issueKey && issue.rule === decision.rule && issue.component === decision.component
-    && issue.project === SONAR_PROJECT && !Object.hasOwn(issue, 'pullRequest')
-    && (!Object.hasOwn(issue, 'branch') || issue.branch === 'main'), 'IDENTITY');
+    && issue.project === SONAR_PROJECT, errorCode);
+  if (pullRequest) {
+    validatePullRequestLocation(issue, pullRequest.location);
+  } else {
+    validateMainScope(issue);
+  }
   return issue;
+}
+
+function validateMainScope(issue) {
+  requireCondition(!Object.hasOwn(issue, 'pullRequest')
+    && (!Object.hasOwn(issue, 'branch') || issue.branch === 'main'), 'IDENTITY');
+}
+
+function validatePullRequestLocation(issue, location) {
+  requireCondition(issue.pullRequest === '29' && !Object.hasOwn(issue, 'branch')
+    && issue.line === location.line && issue.hash === location.hash
+    && exactKeys(issue.textRange, Object.keys(location.textRange))
+    && Object.entries(location.textRange).every(([key, value]) => issue.textRange[key] === value), 'PR_IDENTITY');
+}
+
+async function requestReviewedIssue(decision, dependencies) {
+  if (dependencies.mode !== 'pr29') return requestIssue(decision, dependencies);
+  const { manifest, mainDecision, root, revision } = dependencies;
+  const url = new URL('/api/project_pull_requests/list', ORIGIN);
+  url.search = new URLSearchParams({ project: SONAR_PROJECT }).toString();
+  const metadata = await requestJson(url, dependencies);
+  requireCondition(Array.isArray(metadata?.pullRequests), 'PR_IDENTITY');
+  const matches = metadata.pullRequests.filter(pr => pr?.key === '29');
+  requireCondition(matches.length === 1 && matches[0].branch === PR_BRANCH && matches[0].base === 'main'
+    && (!Object.hasOwn(matches[0], 'target') || matches[0].target === 'main'), 'PR_IDENTITY');
+  const analysisRevision = matches[0].commit?.sha;
+  requireCondition(typeof analysisRevision === 'string' && /^[a-f0-9]{40}$/u.test(analysisRevision), 'PR_SOURCE');
+  try {
+    const options = { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true };
+    execFileSync('git', ['merge-base', '--is-ancestor', analysisRevision, revision], options);
+    for (const binding of [decision.source, ...decision.tests]) {
+      requireCondition(digest(execFileSync('git', ['show', `${analysisRevision}:${binding.path}`], options)) === binding.sha256, 'PR_SOURCE');
+    }
+  } catch {
+    throw new DecisionError('PR_SOURCE');
+  }
+  requireCondition(decisionState(await requestIssue(mainDecision, dependencies), mainDecision) === 'already-confirmed', 'STATE');
+  // This proves unchanged reviewed files since the observed PR analysis, not an analysis of the current checkout.
+  dependencies.analysisRevision = analysisRevision;
+  return requestIssue(decision, dependencies, manifest);
 }
 
 function validateClassification(issue, decision) {
@@ -219,41 +304,51 @@ async function persistLedger(ledger, writeLedger) {
   }
 }
 
+async function updateEntryState(entry, decision, dependencies) {
+  entry.status = decisionState(await requestReviewedIssue(decision, dependencies), decision);
+  if (dependencies.mode === 'pr29') entry.reviewedAnalysisRevision = dependencies.analysisRevision;
+}
+
+async function applyLiveDecisions(ledger, dependencies, writeLedger) {
+  const { manifest } = dependencies;
+  // Complete every local and live preflight before the first mutation, including authorization for every issue.
+  for (const [index, decision] of manifest.decisions.entries()) {
+    await updateEntryState(ledger.entries[index], decision, dependencies);
+  }
+  ledger.result = 'preflight-passed';
+  await persistLedger(ledger, writeLedger);
+  for (const [index, decision] of manifest.decisions.entries()) {
+    const entry = ledger.entries[index];
+    if (entry.status === 'already-confirmed') continue;
+    // Recheck immediately before each POST as well: do not overwrite another review made during preflight.
+    await updateEntryState(entry, decision, dependencies);
+    if (entry.status === 'already-confirmed') continue;
+    // Persist intent before POST. Cancellation or an unconfirmed readback leaves an explicit ambiguous entry.
+    entry.status = 'attempted-unconfirmed';
+    await persistLedger(ledger, writeLedger);
+    entry.response = await transitionOnce(decision, dependencies);
+    const readback = await requestReviewedIssue(decision, dependencies);
+    requireCondition(decisionState(readback, decision) === 'already-confirmed', 'UNCONFIRMED');
+    entry.status = 'confirmed';
+    await persistLedger(ledger, writeLedger);
+  }
+}
+
 export async function applyReviewedDecisions({ root = ROOT, environment = process.env, event, revision, clean,
-  fetchImpl = fetch, writeLedger, dryRun = false }) {
+  fetchImpl = fetch, writeLedger, dryRun = false, mode = 'main' }) {
+  reviewMode(mode);
   requireCondition(typeof writeLedger === 'function', 'LEDGER');
-  if (!dryRun) authorizeWorkflow(environment, event, revision, clean);
-  const { manifest, manifestSha256 } = await loadReviewedDecisions(root);
-  const ledger = { schemaVersion: 1, projectKey: SONAR_PROJECT, branch: 'main', manifestSha256,
+  if (!dryRun) authorizeWorkflow(environment, event, revision, clean, mode);
+  const { manifest, manifestSha256, mainDecision } = await loadReviewedDecisions(root, mode);
+  const scope = mode === 'pr29' ? { pullRequest: manifest.pullRequest } : { branch: 'main' };
+  const ledger = { schemaVersion: 1, projectKey: SONAR_PROJECT, ...scope, manifestSha256,
     revision: dryRun ? null : revision, dryRun, result: 'preflight', entries: manifest.decisions.map(decision => ({
       issueKey: decision.issueKey, rule: decision.rule, disposition: decision.disposition, status: 'not-submitted'
     })) };
-  const dependencies = { fetchImpl, token: environment.SONAR_TOKEN };
+  const dependencies = { fetchImpl, token: environment.SONAR_TOKEN, mode, manifest, mainDecision, root, revision };
   try {
     await persistLedger(ledger, writeLedger);
-    if (!dryRun) {
-      // Complete every local and live preflight before the first mutation, including authorization for every issue.
-      for (const [index, decision] of manifest.decisions.entries()) {
-        ledger.entries[index].status = decisionState(await requestIssue(decision, dependencies), decision);
-      }
-      ledger.result = 'preflight-passed';
-      await persistLedger(ledger, writeLedger);
-      for (const [index, decision] of manifest.decisions.entries()) {
-        const entry = ledger.entries[index];
-        if (entry.status === 'already-confirmed') continue;
-        // Recheck immediately before each POST as well: do not overwrite another review made during preflight.
-        entry.status = decisionState(await requestIssue(decision, dependencies), decision);
-        if (entry.status === 'already-confirmed') continue;
-        // Persist intent before POST. Cancellation or an unconfirmed readback leaves an explicit ambiguous entry.
-        entry.status = 'attempted-unconfirmed';
-        await persistLedger(ledger, writeLedger);
-        entry.response = await transitionOnce(decision, dependencies);
-        const readback = await requestIssue(decision, dependencies);
-        requireCondition(decisionState(readback, decision) === 'already-confirmed', 'UNCONFIRMED');
-        entry.status = 'confirmed';
-        await persistLedger(ledger, writeLedger);
-      }
-    }
+    if (!dryRun) await applyLiveDecisions(ledger, dependencies, writeLedger);
     ledger.result = dryRun ? 'local-bindings-verified' : 'confirmed';
     await persistLedger(ledger, writeLedger);
     return ledger;
@@ -268,8 +363,11 @@ export async function applyReviewedDecisions({ root = ROOT, environment = proces
 
 async function main() {
   const args = process.argv.slice(2);
-  requireCondition(args.length === 0 || (args.length === 1 && args[0] === '--dry-run'), 'AUTHORIZATION');
-  const dryRun = args[0] === '--dry-run';
+  requireCondition([[], ['--dry-run'], ['--reviewed-pr29'], ['--reviewed-pr29', '--dry-run']]
+    .some(allowed => JSON.stringify(allowed) === JSON.stringify(args)), 'AUTHORIZATION');
+  const mode = args[0] === '--reviewed-pr29' ? 'pr29' : 'main';
+  const configuration = reviewMode(mode);
+  const dryRun = args.includes('--dry-run');
   let event;
   let revision;
   let clean;
@@ -282,13 +380,13 @@ async function main() {
       throw new DecisionError('AUTHORIZATION');
     }
   }
-  const ledger = await applyReviewedDecisions({ event, revision, clean, dryRun, writeLedger: async value => {
-    const filename = path.join(ROOT, REVIEW_LEDGER);
+  const ledger = await applyReviewedDecisions({ event, revision, clean, dryRun, mode, writeLedger: async value => {
+    const filename = path.join(ROOT, configuration.ledger);
     await mkdir(path.dirname(filename), { recursive: true });
     await writeFile(`${filename}.tmp`, `${JSON.stringify(value, null, 2)}\n`);
     await rename(`${filename}.tmp`, filename);
   } });
-  console.log(`Reviewed Sonar decisions: ${ledger.result}; ${ledger.entries.length} entries. Ledger: ${REVIEW_LEDGER}`);
+  console.log(`Reviewed Sonar decisions: ${ledger.result}; ${ledger.entries.length} entries. Ledger: ${configuration.ledger}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

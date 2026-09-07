@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "projectKey": "888nikush888_telegram-tdlib-forwarder-private",
+  "pullRequest": {
+    "key": "29",
+    "branch": "branch-sonar-cleanup-2026-09-07",
+    "base": "main"
+  },
+  "mainDecisionSha256": "38740ec5078be0cb7a5260aefd8b769d3ec3a585734af177cbc4a7c5d03065c9",
+  "location": {
+    "line": 24,
+    "hash": "8607718757b8f6dd4442e1c25125d9f3",
+    "textRange": {
+      "startLine": 24,
+      "endLine": 24,
+      "startOffset": 46,
+      "endOffset": 58
+    }
+  },
+  "decisions": [
+    {
+      "issueKey": "AaB7xfFObUpR4dwLDz4p",
+      "rule": "typescript:S6845",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/shared/components/evidence.tsx",
+      "source": {
+        "path": "frontend/src/shared/components/evidence.tsx",
+        "sha256": "3709a0bc7e0865fef7faa8dcd0ce12f70f9c1728d8c1a8a297303f5909383aa5"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/sonar-ui-semantics.test.tsx",
+          "sha256": "b032c62397c06b0e96d49670f7efd9a0578c329666abb356957f888ce1cca317"
+        },
+        {
+          "path": "frontend/e2e/dashboard.spec.ts",
+          "sha256": "c5c55ae89856755458379da77a278ffab2ea64336e1cbc9fa0c9379a83f92255"
+        }
+      ],
+      "rationale": "This named, horizontally scrollable section intentionally has tabIndex=0 so keyboard users can focus and pan evidence wider than the viewport. Removing the focus target makes the overflow inaccessible in browsers without automatic scroll-container focus. The component test proves the named focus target; the real Playwright test \"evidence and change-review tables retain keyboard scrolling\" tabs into each actual component and verifies ArrowRight changes scrollLeft in Chromium, Firefox, WebKit and mobile Chromium. This is required keyboard behavior, not an unintended interactive role.",
+      "disposition": "falsepositive"
+    }
+  ]
+}

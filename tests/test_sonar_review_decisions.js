@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyReviewedDecisions, authorizeWorkflow, loadReviewedDecisions, REVIEW_MANIFEST, SONAR_PROJECT } from '../scripts/sonar_review_decisions.js';
+import { applyReviewedDecisions, authorizeWorkflow, loadReviewedDecisions, REVIEW_MANIFEST, PR_REVIEW_MANIFEST, SONAR_PROJECT } from '../scripts/sonar_review_decisions.js';
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = await mkdtemp(path.join(os.tmpdir(), 'tsx-sonar-decisions-'));
@@ -22,6 +22,7 @@ const environment = {
 const event = { repository: { full_name: '888nikush888/tsx-core', owner: { login: '888nikush888' } },
   sender: { login: '888nikush888' }, inputs: { apply_reviewed_sonar_decisions: 'true' } };
 const original = JSON.parse(await readFile(path.join(repository, REVIEW_MANIFEST), 'utf8'));
+const prOriginal = JSON.parse(await readFile(path.join(repository, PR_REVIEW_MANIFEST), 'utf8'));
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status });
 
 async function resetManifest(manifest = original) {
@@ -42,6 +43,16 @@ function openIssue(decision) {
     impacts: [{ softwareQuality: 'MAINTAINABILITY', severity: 'LOW' }], comments: [], transitions: ['falsepositive', 'accept'] };
 }
 
+function assertIssueRequestScope(parsed, key, manifest) {
+  if (manifest.pullRequest && key === manifest.decisions[0].issueKey) {
+    assert.equal(parsed.searchParams.get('pullRequest'), '29');
+    assert.equal(parsed.searchParams.has('branch'), false);
+  } else {
+    assert.equal(parsed.searchParams.get('branch'), 'main');
+    assert.equal(parsed.searchParams.has('pullRequest'), false);
+  }
+}
+
 function transport(manifest = original) {
   const issues = new Map(manifest.decisions.map(decision => [decision.issueKey, openIssue(decision)]));
   const calls = [];
@@ -54,13 +65,19 @@ function transport(manifest = original) {
     assert.equal(options.redirect, 'error');
     assert.equal(options.headers.authorization, `Bearer ${secret}`);
     assert.ok(options.signal instanceof AbortSignal);
+    if (parsed.pathname === '/api/project_pull_requests/list') {
+      assert.equal(options.method, 'GET');
+      assert.equal(parsed.searchParams.get('project'), SONAR_PROJECT);
+      assert.deepEqual([...parsed.searchParams.keys()], ['project']);
+      calls.push({ method: 'GET', kind: 'metadata' });
+      return state.metadataOverride?.() ?? json(state.metadata);
+    }
     if (options.method === 'GET') {
       assert.equal(parsed.pathname, '/api/issues/search');
       assert.equal(parsed.searchParams.get('componentKeys'), SONAR_PROJECT);
-      assert.equal(parsed.searchParams.get('branch'), 'main');
       assert.equal(parsed.searchParams.get('additionalFields'), 'comments,transitions');
-      assert.equal(parsed.searchParams.has('pullRequest'), false);
       const key = parsed.searchParams.get('issues');
+      assertIssueRequestScope(parsed, key, manifest);
       calls.push({ method: 'GET', key });
       const payload = { total: 1, paging: { pageIndex: 1, total: 1 }, issues: [issues.get(key)] };
       return state.getOverride?.(payload, key) ?? json(payload);
@@ -304,6 +321,210 @@ async function testWorkflowAndCli() {
   assert.equal(state.calls.length, 0, 'Dry run checks bindings without sending any credentials or HTTP requests.');
 }
 
+async function createPullRequestFixture() {
+  const mainDecision = original.decisions.find(decision => decision.component === prOriginal.decisions[0].component);
+  const confirmed = transport();
+  await run(confirmed);
+  const confirmedMain = structuredClone(confirmed.issues.get(mainDecision.issueKey));
+  const prDecision = prOriginal.decisions[0];
+  const source = path.join(root, prDecision.source.path);
+  const test = path.join(root, prDecision.tests[0].path);
+  const git = args => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }).trim();
+  git(['init', '--quiet']);
+  git(['config', 'core.autocrlf', 'false']);
+  const commit = () => {
+    git(['add', '--', prDecision.source.path, ...prDecision.tests.map(binding => binding.path)]);
+    git(['-c', 'user.name=Regression Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '--quiet', '--allow-empty', '-m', 'Reviewed PR source fixture']);
+    return git(['rev-parse', 'HEAD']);
+  };
+  // Real Git history proves the distinction between the analyzed revision and a later unchanged checkout.
+  await writeFile(source, '// changed source fixture\n');
+  const changedSource = commit();
+  await writeFile(source, await readFile(path.join(repository, prDecision.source.path)));
+  await writeFile(test, '// changed keyboard regression fixture\n');
+  const changedTest = commit();
+  await writeFile(test, await readFile(path.join(repository, prDecision.tests[0].path)));
+  const analyzedRevision = commit();
+  const checkoutRevision = commit();
+  const futureRevision = commit();
+  const prEnvironment = { ...environment, GITHUB_REF: `refs/heads/${prOriginal.pullRequest.branch}`,
+    GITHUB_WORKFLOW_REF: `888nikush888/tsx-core/.github/workflows/quality.yml@refs/heads/${prOriginal.pullRequest.branch}`,
+    GITHUB_SHA: checkoutRevision, SONAR_EXPECTED_REVISION: checkoutRevision, SONAR_APPLY_REVIEWED_PR29_DECISION: 'true' };
+  const prEvent = { ...event, inputs: { apply_reviewed_pr29_sonar_decision: true } };
+  const changes = { mode: 'pr29', environment: prEnvironment, event: prEvent, revision: checkoutRevision };
+  const reset = async (manifest = prOriginal) => writeFile(path.join(root, PR_REVIEW_MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+  const create = () => {
+    const state = transport(prOriginal);
+    state.issues.set(mainDecision.issueKey, structuredClone(confirmedMain));
+    Object.assign(state.issues.get(prDecision.issueKey), { ...prOriginal.location, pullRequest: '29' });
+    state.metadata = { pullRequests: [{ ...prOriginal.pullRequest, target: 'main', commit: { sha: analyzedRevision } }] };
+    return state;
+  };
+  const reject = async (state, expression, overrides = {}) => {
+    await expectFailure(state, expression, { ...changes, ...overrides });
+    assert.equal(state.postCount, 0, 'A PR scope, permission or source-proof failure must precede any POST.');
+  };
+  await reset();
+  return { prDecision, mainDecision, prEnvironment, prEvent, changes, reset, create, reject,
+    analyzedRevision, checkoutRevision, changedSource, changedTest, futureRevision };
+}
+
+async function testPullRequestAuthorization({ prEnvironment, prEvent, changes, create, reject, analyzedRevision }) {
+  for (const changed of [
+    { GITHUB_ACTIONS: 'false' }, { GITHUB_EVENT_NAME: 'push' }, { GITHUB_EVENT_NAME: 'pull_request' },
+    { GITHUB_ACTOR: 'collaborator' }, { GITHUB_TRIGGERING_ACTOR: 'collaborator' }, { GITHUB_REPOSITORY: 'fork/tsx-core' },
+    { GITHUB_REF: 'refs/heads/main' }, { GITHUB_REF: 'refs/heads/another-pr' },
+    { SONAR_APPLY_REVIEWED_PR29_DECISION: 'false' }, { SONAR_APPLY_REVIEWED_PR29_DECISION: undefined },
+    { GITHUB_WORKFLOW_REF: '888nikush888/tsx-core/.github/workflows/other.yml@refs/heads/main' }
+  ]) await reject(create(), /owner-started/u, { environment: { ...prEnvironment, ...changed } });
+  for (const changed of [{ sender: { login: 'collaborator' } }, { inputs: event.inputs },
+    { inputs: { apply_reviewed_pr29_sonar_decision: false } }]) {
+    await reject(create(), /owner-started/u, { event: { ...prEvent, ...changed } });
+  }
+  await reject(create(), /exact workflow revision/u, { clean: false });
+  await reject(create(), /exact workflow revision/u, { revision: analyzedRevision });
+  await reject(create(), /owner-started/u, { mode: 'arbitrary' });
+  const dry = create();
+  assert.equal((await run(dry, { ...changes, dryRun: true, environment: {} })).result, 'local-bindings-verified');
+  assert.equal(dry.calls.length, 0);
+}
+
+async function testPullRequestManifest({ reset, create, reject }) {
+  for (const mutate of [
+    value => { value.decisions[0].issueKey = original.decisions[0].issueKey; },
+    value => { value.decisions.push(value.decisions[0]); }, value => { value.decisions[0].disposition = 'accept'; },
+    value => { value.pullRequest.key = '30'; }, value => { value.pullRequest.branch = 'another'; },
+    value => { value.pullRequest.base = 'develop'; }, value => { value.projectKey = 'other'; },
+    value => { value.branch = 'main'; }, value => { value.url = 'https://attacker.invalid'; },
+    value => { value.location.line = 25; }, value => { value.location.hash = '0'.repeat(32); },
+    value => { value.decisions[0].source.sha256 = 'a'.repeat(64); },
+    value => { value.decisions[0].tests[0].sha256 = 'a'.repeat(64); },
+    value => { value.mainDecisionSha256 = 'a'.repeat(64); }, value => { value.decisions[0].rationale += ' Changed review.'; }
+  ]) {
+    const manifest = structuredClone(prOriginal);
+    mutate(manifest);
+    await reset(manifest);
+    const state = create();
+    await reject(state, /manifest/u);
+    assert.equal(state.calls.length, 0);
+  }
+  await reset();
+}
+
+async function testPullRequestIdentity({ prDecision, create, reject }) {
+  for (const changed of [
+    { key: 'other' }, { rule: 'typescript:S1234' }, { component: 'other' }, { project: 'other' },
+    { pullRequest: undefined }, { pullRequest: '28' }, { pullRequest: 29 }, { branch: 'main' },
+    { line: 25 }, { hash: undefined }, { hash: 'a'.repeat(32) }, { textRange: undefined },
+    { textRange: { ...prOriginal.location.textRange, startOffset: 47 } },
+    { textRange: { ...prOriginal.location.textRange, unexpected: true } }
+  ]) {
+    const state = create();
+    Object.assign(state.issues.get(prDecision.issueKey), changed);
+    await reject(state, /PR29 issue identity/u);
+  }
+  for (const changed of [
+    { type: 'VULNERABILITY' }, { type: 'BUG' }, { type: undefined }, { impacts: [] },
+    { impacts: [{ softwareQuality: 'SECURITY', severity: 'LOW' }] }, { impacts: [{ softwareQuality: 'UNKNOWN', severity: 'LOW' }] }
+  ]) {
+    const state = create();
+    Object.assign(state.issues.get(prDecision.issueKey), changed);
+    await reject(state, /classification/u);
+  }
+  const denied = create();
+  denied.issues.get(prDecision.issueKey).transitions = [];
+  await reject(denied, /Administer Issues/u);
+}
+
+async function testPullRequestSourceAndMainReview({ mainDecision, create, reject, changedSource, changedTest, futureRevision }) {
+  for (const payload of [{}, { pullRequests: [] }, { pullRequests: [null] },
+    { pullRequests: [create().metadata.pullRequests[0], create().metadata.pullRequests[0]] }]) {
+    const state = create();
+    state.metadata = payload;
+    await reject(state, /PR29 issue identity/u);
+  }
+  for (const changed of [{ branch: 'other' }, { base: 'other' }, { target: 'other' }, { key: '28' }]) {
+    const state = create();
+    Object.assign(state.metadata.pullRequests[0], changed);
+    await reject(state, /PR29 issue identity/u);
+  }
+  for (const sha of [undefined, 'not-a-sha', 'a'.repeat(40), changedSource, changedTest, futureRevision]) {
+    const state = create();
+    state.metadata.pullRequests[0].commit = { sha };
+    await reject(state, /analyzed PR29 revision/u);
+  }
+  for (const changed of [{ issueStatus: 'OPEN', status: 'OPEN', resolution: undefined }, { comments: [] },
+    { pullRequest: '29' }, { impacts: [{ softwareQuality: 'SECURITY', severity: 'LOW' }] }]) {
+    const state = create();
+    Object.assign(state.issues.get(mainDecision.issueKey), changed);
+    await reject(state, /prior review comment|main issue identity|classification/u);
+  }
+  const unapprovedMain = create();
+  unapprovedMain.issues.set(mainDecision.issueKey, openIssue(mainDecision));
+  await reject(unapprovedMain, /prior review comment/u);
+}
+
+async function testPullRequestTransactions({ create, changes, checkoutRevision, analyzedRevision, reject, prDecision }) {
+  const state = create();
+  const result = await run(state, changes);
+  assert.equal(state.postCount, 1);
+  assert.deepEqual(result.pullRequest, prOriginal.pullRequest);
+  assert.equal(Object.hasOwn(result, 'branch'), false);
+  assert.equal(result.revision, checkoutRevision);
+  assert.equal(result.entries[0].reviewedAnalysisRevision, analyzedRevision);
+  assert.equal(result.entries[0].status, 'confirmed');
+  const replay = await run(state, changes);
+  assert.equal(state.postCount, 1);
+  assert.equal(replay.entries[0].status, 'already-confirmed');
+  for (const postMode of ['timeout', '500', '400', '403', 'missing-comment']) {
+    const uncertain = create();
+    uncertain.postMode = postMode;
+    await expectFailure(uncertain, /unconfirmed|prior review comment|rejected|Administer Issues/u, changes);
+    assert.equal(uncertain.postCount, 1);
+    assert.equal(uncertain.ledgers.at(-1).entries[0].status, 'attempted-unconfirmed');
+  }
+  const applied = create();
+  applied.postMode = 'timeout-applied';
+  assert.equal((await run(applied, changes)).entries[0].response, 'uncertain');
+  assert.equal(applied.postCount, 1);
+  const race = create();
+  let metadataReads = 0;
+  race.metadataOverride = () => {
+    metadataReads += 1;
+    if (metadataReads > 1) race.metadata.pullRequests[0].base = 'other';
+    return json(race.metadata);
+  };
+  await reject(race, /PR29 issue identity/u);
+  const badReadback = create();
+  badReadback.getOverride = (payload, key) => key === prDecision.issueKey && badReadback.postCount > 0
+    ? json({ ...payload, issues: [{ ...payload.issues[0], pullRequest: '28' }] }) : undefined;
+  await expectFailure(badReadback, /PR29 issue identity/u, changes);
+  assert.equal(badReadback.postCount, 1);
+  const noLedger = create();
+  await reject(noLedger, /ledger could not be persisted/u, { writeLedger: () => { throw new Error(secret); } });
+}
+
+async function testPullRequestWorkflow() {
+  const workflow = await readFile(path.join(repository, '.github/workflows/quality.yml'), 'utf8');
+  assert.match(workflow, /apply_reviewed_pr29_sonar_decision:\s+description:[^\n]+\s+type: boolean\s+required: false\s+default: false/u);
+  const job = workflow.slice(workflow.indexOf('  reviewed_pr29_decision:'), workflow.indexOf('  sonarcloud:'));
+  assert.match(job, /if: github\.event_name == 'workflow_dispatch' && inputs\.apply_reviewed_pr29_sonar_decision && github\.actor == github\.repository_owner && github\.triggering_actor == github\.repository_owner/u);
+  assert.match(job, /needs: verify/u);
+  assert.match(job, /fetch-depth: 0\s+ref: \$\{\{ github\.sha \}\}/u);
+  assert.match(job, /run: node scripts\/sonar_review_decisions\.js --reviewed-pr29/u);
+  assert.match(job, /Upload reviewed PR29 decision ledger\s+if: always\(\)/u);
+  assert.match(job, /path: reports\/sonar-reviewed-pr29-decision\//u);
+  assert.doesNotMatch(job, /sonarqube-scan|sonar_scan_arguments|SONAR_BRANCH/u);
+  assert.match(workflow, /sonarcloud:\s+name: SonarQube Cloud quality gate\s+if: github\.ref == 'refs\/heads\/main' \|\| github\.event_name == 'pull_request'\s+needs: verify/u);
+  for (const args of [['--reviewed-pr29'], ['--reviewed-pr29', '--issue=arbitrary'], ['--reviewed-pr30'], ['--manifest=arbitrary']]) {
+    const cli = spawnSync(process.execPath, ['scripts/sonar_review_decisions.js', ...args],
+      { cwd: repository, encoding: 'utf8', env: { ...process.env, SONAR_TOKEN: secret, GITHUB_ACTIONS: 'false' } });
+    assert.equal(cli.status, 1);
+    assert.match(cli.stderr, /explicitly enabled/u);
+    assert.doesNotMatch(`${cli.stderr}${cli.stdout}`, new RegExp(secret, 'u'));
+  }
+}
+
 try {
   testAuthorization();
   await resetManifest();
@@ -313,6 +534,13 @@ try {
   await testUncertaintyAndReadback();
   await testExplicitAcceptance();
   await testWorkflowAndCli();
+  const pullRequestFixture = await createPullRequestFixture();
+  await testPullRequestAuthorization(pullRequestFixture);
+  await testPullRequestManifest(pullRequestFixture);
+  await testPullRequestIdentity(pullRequestFixture);
+  await testPullRequestSourceAndMainReview(pullRequestFixture);
+  await testPullRequestTransactions(pullRequestFixture);
+  await testPullRequestWorkflow();
 } finally {
   assert.ok(root.startsWith(path.join(os.tmpdir(), 'tsx-sonar-decisions-')));
   await rm(root, { recursive: true, force: true });

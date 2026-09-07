@@ -32,3 +32,11 @@ condition = "AND"
 regexTarget = "line"
 regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AaA4-AX5iNYzrpZFGss2|AaA4-AX5iNYzrpZFGss3|AaB4X__XTr5_pJYwVjzU|AaB4YAA7Tr5_pJYwVjzk|AaB4YAAPTr5_pJYwVjza|AaBWfBeWwMhcxFe161AG|AaBWfBeWwMhcxFe161AH|AaBWfBeWwMhcxFe161AI|AaBWfBeWwMhcxFe161AJ|AaBg00CLmkhvfbyxhJSs|AaBg00GbmkhvfbyxhJSt|AaBvNiazMwQY_bvuMM7P|AaBvNiazMwQY_bvuMM7Q)"[ \t]*,?[ \t]*\r?$''']
 paths = ['''^docs/testing/sonar-reviewed-decisions\.json$''']
+
+[[allowlists]]
+description = "Reviewed public Sonar PR29 issue ID"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AaB7xfFObUpR4dwLDz4p)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^docs/testing/sonar-reviewed-pr29-decision\.json$''']

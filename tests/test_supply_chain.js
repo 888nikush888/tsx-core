@@ -89,6 +89,8 @@ const publicSonarAllowlists = [
     'fb1f608fe0a985294b668bc4d06fbd3d794ce0ec9199824ee855bd264108dbd8'),
   reviewedSonarAllowlist('Reviewed public Sonar decision issue IDs', 'issueKey', 'sonar-reviewed-decisions.json', 13,
     '6d528132bbddbac361798d0e86d2107e056781996520ed963126a89234132c11'),
+  reviewedSonarAllowlist('Reviewed public Sonar PR29 issue ID', 'issueKey', 'sonar-reviewed-pr29-decision.json', 1,
+    'adb877876b555ad8fae05e35d1afdc26b4ba930d0a7bbabcf243d9a55c2b8934'),
 ];
 assert.ok(publicSonarAllowlists[1].ids.every(id => publicSonarAllowlists[0].ids.includes(id)));
 const fixtureCredential = createHash('sha256').update('synthetic scanner regression, never a provider credential').digest('base64url').slice(0, 32);
@@ -151,7 +153,8 @@ async function nativeSonarAllowanceFixtures(binary) {
     }
     assert.equal(found.length, expected.length);
     assert.ok(found.every(item => item.Secret === 'REDACTED'));
-    console.log(`Native Gitleaks 8.30.1: 685 exact public IDs allowed; all ${expected.length} credential/unknown-ID fixtures detected.`);
+    const allowedCount = publicSonarAllowlists.reduce((count, allowance) => count + allowance.ids.length, 0);
+    console.log(`Native Gitleaks 8.30.1: ${allowedCount} exact public IDs allowed; all ${expected.length} credential/unknown-ID fixtures detected.`);
   } finally {
     assert.ok(directory.startsWith(path.join(os.tmpdir(), 'tsx-public-sonar-gitleaks-')));
     await rm(directory, { recursive: true, force: true });
