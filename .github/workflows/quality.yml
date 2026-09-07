@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       apply_reviewed_sonar_decisions:
-        description: 'Apply only the pinned, independently reviewed main Sonar decisions (repository owner only)'
+        description: 'On main only: apply the pinned, independently reviewed Sonar decisions (repository owner only)'
         type: boolean
         required: false
         default: false
@@ -123,7 +123,7 @@ jobs:
 
   sonarcloud:
     name: SonarQube Cloud quality gate
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref_type == 'branch')
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -134,7 +134,6 @@ jobs:
       SONAR_PULL_REQUEST: ${{ github.event.pull_request.number || '' }}
       SONAR_PULL_REQUEST_BRANCH: ${{ github.head_ref }}
       SONAR_PULL_REQUEST_BASE: ${{ github.base_ref }}
-      SONAR_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.ref_type == 'branch' && github.ref_name || '' }}
     steps:
       - name: Require a trusted pull request with analysis credentials
         env:

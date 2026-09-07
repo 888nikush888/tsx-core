@@ -16,4 +16,6 @@ Die Workflows für Staging-, Synthetic- und Produktionsnachweise bleiben bewusst
 
 Die README verweist auf die aktuellen CI- und Sonar-Ergebnisse und beschreibt die vorhandene konfigurierbare Fallback-Policy. Historische Releases behalten ihre ursprünglichen Versionen und Commits.
 
-Für die Sonar-Bestandsbereinigung wird vor dem geschützten Merge eine vollständige Analyse des tatsächlichen Arbeitsbranches verwendet. Sonar muss ihn als `LONG` ausweisen; Commit, Compute Task, Analyse-ID und Branchidentität müssen zusammenpassen. PR- und `SHORT`-Analysen betrachten nur neu eingeführte Meldungen und reichen zur Bestätigung eines abgearbeiteten Altbestands nicht aus. Die abschließende Bestätigung erfordert zusätzlich null offene Meldungen im vollständigen Export.
+Der Versuch einer zusätzlichen vollständigen Arbeitsbranch-Analyse wurde vom aktuellen Sonar-Zugang abgewiesen: Die API meldet HTTP 403 mit `Organization is not allowed to access data from non main branches.` Deshalb bleibt die vorhandene CI-Prüfkette für Pull Requests und `main` maßgeblich. Es wird kein Branch-Quellstand als `main` ausgegeben und kein nicht verfügbarer Bericht als bestanden gewertet.
+
+Die PR-Analyse prüft die neuen Meldungen und die unveränderten Qualitätsgrenzen, einschließlich mindestens 80 Prozent Coverage im geänderten Code. Sie bestätigt keinen vollständig bereinigten Altbestand. Diesen Nachweis muss nach dem geschützten Merge der vollständige `main`-Export erbringen: null offene Meldungen sowie übereinstimmende Quellrevision, Compute Task und Analyse-ID.
