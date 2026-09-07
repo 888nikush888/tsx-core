@@ -19,6 +19,14 @@ response during shutdown. A successful destructive operation must not remain
 indefinitely dependent on that response. Shutdown and new-generation tests are
 isolated from provider and production data, and keep entry authorization off.
 
+Release-tag verification additionally requires a successful Quality OS main-push
+run for the exact tagged commit, including its Sonar gate. An ancestor with a red
+main run cannot become a release candidate just by receiving a tag.
+
+The graph table has dedicated component tests. Its connection command rejects
+self-connections and endpoints removed from the current graph, and checks the
+viewer restriction directly as well as disabling the controls.
+
 The original Telegram `degraded`/`recovered` notifications are historical input,
 not live telemetry. No claim about the currently deployed process or its network
 health follows from publishing these changes. A healthy stream alone still does
