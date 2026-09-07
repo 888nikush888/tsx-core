@@ -120,7 +120,7 @@ export function evaluateGithubGovernance({
   });
   const checks = [
     check('CODEOWNERS exists and contains an owner rule', hasOwnerRule, codeowners ? 'present' : 'missing'),
-    check('CODEOWNERS has no platform parse errors', Array.isArray(codeownerErrors) && codeownerErrors.length === 0, codeownerErrors),
+    check('CODEOWNERS has no platform parse errors', Array.isArray(codeownerErrors?.errors) && codeownerErrors.errors.length === 0, codeownerErrors),
     ...statusCheckResults(protection),
     ...reviewResults(protection),
     ...repositoryResults(repository),

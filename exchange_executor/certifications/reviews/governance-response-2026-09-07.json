@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "release_audit_governance_response_followup",
+  "reviewedAt": "2026-09-07T07:51:15Z",
+  "sourceRevision": "e1268cd668b0abc8150ae7a8176d953f19616bde",
+  "sourceTreeHash": "c1893e202f209cd151614168591add37c414750b633d705e82797cd0e05f59e2",
+  "priorReceiptSha256": "f394bfa83bf4d60dd4162ef35b2475e5d488ee16d8ac6b9188636a274059ec11",
+  "priorExecutionReportHash": "7a67316667c5244c8ce90e01179e260ef4de3a23b2b8198f3a9382805ae5c459",
+  "scope": "Correct the observed GitHub CODEOWNERS REST response shape; source changes limited to the governance evaluator and its regression tests.",
+  "authorization": "User requested audit implementation, GitHub publication, and CI/Sonar verification.",
+  "observedApiResponse": {
+    "endpoint": "GET /repos/888nikush888/tsx-core/codeowners/errors?ref=main",
+    "body": {
+      "errors": []
+    }
+  },
+  "validation": {
+    "authorAgent": "ci_governance_code",
+    "independentlyReviewedBy": "root",
+    "review": "Reviewed the complete two-file diff and independently reran the governance regression and targeted ESLint. Missing, malformed, and nonempty errors responses remain rejected. All review requirements are unchanged.",
+    "reproduction": "The actual REST response shape failed the old evaluator and passed after the correction.",
+    "localRegression": "passed",
+    "targetedLint": "passed",
+    "targetedLogDigest": {
+      "sha256": "c3cbf92b3e22a5bbcb9fab31fd8ccff43a7a4a2815105b12023fda1aa3b54bc7",
+      "bytes": 37
+    },
+    "baseValidation": {
+      "revision": "feb515a3ed6f878152b4cb922100476de5271e33",
+      "runId": 34094791028,
+      "jobId": 101655847626,
+      "job": "Lint, tests, coverage, build, supply chain",
+      "conclusion": "success",
+      "logDigest": {
+        "sha256": "d521ea61d67348f12d51dbf61f1c13f879bdd82d6d2c1e43756e8f51cb532d47",
+        "bytes": 409157
+      },
+      "scope": "Full validation on the parent revision, including two complete 209-file backend runs and 533 Python tests. The follow-up changes were validated by the targeted regression and lint; a fresh final-head CI run is still required."
+    }
+  },
+  "executorAndSdkSourceChanged": false,
+  "providerParityEvidence": {
+    "preservedHash": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e"
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false,
+  "productionDeploymentPerformed": false,
+  "quarantinePreserved": [
+    "bybit",
+    "krakenfutures"
+  ],
+  "finalCiAndSonar": "Pending publication and checks on the final commit; no passing final-head result is asserted here."
+}

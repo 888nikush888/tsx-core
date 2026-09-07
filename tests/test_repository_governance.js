@@ -214,13 +214,19 @@ const validGovernance = {
     branch_policies: [{ name: 'main', type: 'branch' }],
   },
   codeowners: '* @888nikush888\n',
-  codeownerErrors: [],
+  codeownerErrors: { errors: [] },
 };
 
 const governance = evaluateGithubGovernance(validGovernance);
 assert.equal(governance.passed, true);
 assert.equal(governance.checks.filter(item => item.name.startsWith('Required check:')).length, 14);
 assert.equal(governance.checks.filter(item => item.name.startsWith('Required check source:')).length, 14);
+for (const codeownerErrors of [undefined, null, [], {}, { errors: null }, { errors: {} }, { errors: '' },
+  { errors: [{ line: 1, column: 3, kind: 'Invalid owner', message: 'Owner cannot be resolved.', path: '.github/CODEOWNERS' }] }]) {
+  const rejected = evaluateGithubGovernance({ ...validGovernance, codeownerErrors });
+  assert.equal(rejected.passed, false, 'Only an explicit empty errors array in the GitHub REST response proves valid CODEOWNERS.');
+  assert.equal(rejected.checks.find(item => item.name === 'CODEOWNERS has no platform parse errors').passed, false);
+}
 for (const visibility of [undefined, 'private', 'internal']) {
   const changed = { ...validGovernance, repository: { ...validGovernance.repository, visibility } };
   assert.equal(evaluateGithubGovernance(changed).passed, false, 'A visibility change requires an explicit dependency-graph policy review.');

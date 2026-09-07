@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { exportFindings, toTsv } from '../scripts/export_sonarcloud_findings.js';
+import { parentPullRequestEnvironment, sonarCliEnvironment } from './fixtures/sonar_cli_environment.js';
 
 const revision = '0123456789abcdef0123456789abcdef01234567';
 const calls = [];
@@ -192,10 +193,10 @@ async function assertPaginationSafety(environment) {
   }), /invalid issue severity schema/);
 }
 
-function assertErrorRedaction(environment) {
+function assertErrorRedaction(environment, inherited = process.env) {
   const result = spawnSync(process.execPath, [
     '--import', './tests/fixtures/sonar_export_failure.js', 'scripts/export_sonarcloud_findings.js'
-  ], { cwd: path.resolve(import.meta.dirname, '..'), env: { ...process.env, ...environment }, encoding: 'utf8', windowsHide: true });
+  ], { cwd: path.resolve(import.meta.dirname, '..'), env: sonarCliEnvironment(environment, inherited), encoding: 'utf8', windowsHide: true });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /SonarCloud export failed: SonarCloud read failed before a valid response/);
   assert.doesNotMatch(result.stdout + result.stderr, /test-token|authorization|secret=|Bearer/u);
@@ -248,6 +249,7 @@ try {
   await assertHardFailures(environment);
   await assertPaginationSafety(environment);
   assertErrorRedaction(environment);
+  assertErrorRedaction(environment, { ...process.env, ...parentPullRequestEnvironment });
 
   await assert.rejects(
     exportFindings({

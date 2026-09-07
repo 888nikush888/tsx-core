@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { exportFindings } from '../scripts/export_sonarcloud_findings.js';
 import { verifySonarEvidence } from '../scripts/verify_sonar_evidence.js';
+import { parentPullRequestEnvironment, sonarCliEnvironment } from './fixtures/sonar_cli_environment.js';
 
 const revision = 'a'.repeat(40);
 const directory = await mkdtemp(path.join(os.tmpdir(), 'sonar-evidence-'));
@@ -43,10 +44,11 @@ try {
   await exportFindings({ environment, fetchImpl: fakeFetch });
   const verified = await verifySonarEvidence(directory, verification);
   assert.equal(verified.passed, true);
-  const runCli = () => spawnSync(process.execPath, ['scripts/verify_sonar_evidence.js'], {
-    cwd: path.resolve(import.meta.dirname, '..'), env: { ...process.env, ...environment }, encoding: 'utf8', windowsHide: true
+  const runCli = (inherited = process.env) => spawnSync(process.execPath, ['scripts/verify_sonar_evidence.js'], {
+    cwd: path.resolve(import.meta.dirname, '..'), env: sonarCliEnvironment(environment, inherited), encoding: 'utf8', windowsHide: true
   });
   assert.equal(runCli().status, 0);
+  assert.equal(runCli({ ...process.env, ...parentPullRequestEnvironment }).status, 0, 'The CLI must verify its main fixture even inside a PR analysis job.');
   const summaryFile = path.join(directory, 'summary.json');
   const original = JSON.parse(await readFile(summaryFile, 'utf8'));
   for (const changes of [
