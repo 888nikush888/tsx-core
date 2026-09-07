@@ -173,6 +173,8 @@ const REQUIRED_CONTEXTS = [
 ];
 const validGovernance = {
   repository: {
+    private: false,
+    visibility: 'public',
     default_branch: 'main',
     allow_merge_commit: true,
     allow_squash_merge: false,
@@ -213,15 +215,15 @@ const validGovernance = {
   },
   codeowners: '* @888nikush888\n',
   codeownerErrors: [],
-  dependencyGraph: { sbom: { spdxVersion: 'SPDX-2.3', packages: [{ SPDXID: 'SPDXRef-Dependency' }] } },
 };
 
 const governance = evaluateGithubGovernance(validGovernance);
 assert.equal(governance.passed, true);
 assert.equal(governance.checks.filter(item => item.name.startsWith('Required check:')).length, 14);
 assert.equal(governance.checks.filter(item => item.name.startsWith('Required check source:')).length, 14);
-for (const dependencyGraph of [undefined, {}, { sbom: { spdxVersion: 'SPDX-2.3', packages: [] } }]) {
-  assert.equal(evaluateGithubGovernance({ ...validGovernance, dependencyGraph }).passed, false, 'An unavailable or empty dependency graph cannot pass.');
+for (const visibility of [undefined, 'private', 'internal']) {
+  const changed = { ...validGovernance, repository: { ...validGovernance.repository, visibility } };
+  assert.equal(evaluateGithubGovernance(changed).passed, false, 'A visibility change requires an explicit dependency-graph policy review.');
 }
 
 const wrongSource = structuredClone(validGovernance);

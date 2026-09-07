@@ -357,7 +357,7 @@
     {
       "route": "POST /api/factory-reset",
       "handler": "factoryResetHandler",
-      "handlerSha256": "40bf6c597c2a9ac95a75f3ad21622507f5a12efc4939f05e17f6d705f13a4caf",
+      "handlerSha256": "167ff2ffe3a8e451eab5040ea0529e8e90d6e5e72de8760aa6bd947953794184",
       "role": "admin",
       "recoveryAllowed": true,
       "confirmationHeaders": [
@@ -435,7 +435,7 @@
     {
       "route": "POST /api/restart",
       "handler": "restartHandler",
-      "handlerSha256": "060299194e8088f35fa7b5b1d75dced6669730160eda9cd26483243cd6a75d8b",
+      "handlerSha256": "18a5a2b5fbbec830dd715b9ad335242ce250dc3c08173f9c43b8d4e7f8752874",
       "role": "admin",
       "recoveryAllowed": true,
       "confirmationHeaders": [
@@ -475,7 +475,7 @@
     {
       "route": "POST /api/backups/restore",
       "handler": "restoreBackupHandler",
-      "handlerSha256": "bd4a008bd398cbcd454bc8176060c458b044d9ae40b9996078a5bf57e9422811",
+      "handlerSha256": "272f23c0e61b556b3607ba98496ec599dffc50e97b2bd4212a86e9c632b9c2f6",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [

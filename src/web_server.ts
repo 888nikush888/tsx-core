@@ -359,8 +359,7 @@ async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): P
     }
     chunks.push(buffer);
   }
-  const activeContext = requestContexts.get(req);
-  if (activeContext && !restartReceiptLookup(activeContext)) assertStartupMutationAllowed(activeContext, req.method || 'GET');
+  assertBodyMutationAllowed(req);
   if (chunks.length === 0) return {};
   try {
     const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
@@ -2998,6 +2997,11 @@ async function invokeApiHandler(
   } finally {
     mutationInProgress = false;
   }
+}
+
+function assertBodyMutationAllowed(req: http.IncomingMessage): void {
+  const context = requestContexts.get(req);
+  if (context && !restartReceiptLookup(context)) assertStartupMutationAllowed(context, req.method || 'GET');
 }
 
 function restartReceiptLookup(context: RequestContext): boolean {
