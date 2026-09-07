@@ -89,6 +89,22 @@ function testExplicitUnknownFunding() {
     'An explicitly unknown valuation must not fall back to the nominal amount.');
   assert.equal(fundingTotalValue(evidence, 'EUR'), null);
 }
+function testUnresolvedEventContracts() {
+  const event = { kind: 'fill', source: 'fetchMyTrades', reason: 'missing_order_identity', providerId: null, providerSymbol: null,
+    evidence: { quantity: '0.000000000000000001', timestamp: 0, reduceOnly: false, fee: null } };
+  for (const identity of [{}, { kind: 'order', source: 'fetchOrders', providerId: 'order-original', providerSymbol: 'BTC/USDT:USDT' }]) {
+    const original = { ...event, ...identity };
+    assert.deepEqual(validateOpenState({ ...state, unresolvedEvents: [original] }).unresolvedEvents, [original],
+      'Unresolved bounded original economics remain explicit rather than disappearing from the account observation.');
+  }
+  for (const change of [{ kind: ['fill'] }, { source: { toString: () => 'fetchMyTrades' } }, { reason: 'INVALID.reason' },
+    { providerId: '' }, { evidence: { nested: {} } }, { evidence: { invalid: NaN } }, { evidence: { invalid: Infinity } },
+    { evidence: Object.fromEntries(Array.from({ length: 41 }, (_, index) => [`field${index}`, 0])) },
+    { evidence: { oversized: 'x'.repeat(16_385) } }]) {
+    assert.throws(() => validateOpenState({ ...state, unresolvedEvents: [{ ...event, ...change }] }), /unresolved|evidence/i);
+  }
+}
 testRawScalarContracts();
 testExplicitUnknownFunding();
+testUnresolvedEventContracts();
 console.log('Exchange contract validation tests passed.');

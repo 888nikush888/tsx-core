@@ -83,6 +83,26 @@ try {
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS n FROM trading_money_conflicts')).n, 1);
   assert.equal((await getDatabase().all('PRAGMA foreign_key_check')).length, 0);
   assert.notEqual(accountLogDigest(proof), accountLogDigest(late));
+  const moneyBeforeUnmatchedTrades = await getDatabase().all('SELECT * FROM trading_money_events ORDER BY id');
+  checkpoint = await logs.accountLogCheckpoint(account);
+  const unmatchedTrades = [{ id: 'unmatched-trade-fee', type: 'TRADE', transactionTime: String(now - 1), currency: 'USD',
+    fee: '0.1', cashFlow: '0', tradeId: 'ledger-trade-only', orderId: 'foreign-order', orderLinkId: 'foreign-client', side: 'Buy' },
+  { id: 'unmatched-trade-loss', type: 'TRADE', transactionTime: String(now - 1), currency: 'USD',
+    fee: '0', cashFlow: '-2', tradeId: 'ledger-trade-without-order', orderId: null }];
+  await logs.persistAccountLogProgress(account, progress(checkpoint, unmatchedTrades));
+  const unmatchedReceipt = (await logs.pendingAccountLogReceipts(account.id, 'money'))
+    .find(stored => stored.receipt.records.some(record => record.id === 'unmatched-trade-fee'));
+  assert.ok(unmatchedReceipt);
+  for (let replay = 0; replay < 2; replay++) {
+    await projectAccountLogMoney(account);
+    const consumer = await getDatabase().get("SELECT status,result_json FROM trading_account_log_consumers WHERE receipt_id=? AND consumer='money'", [unmatchedReceipt.id]);
+    assert.equal(consumer.status, 'unresolved');
+    assert.deepEqual(JSON.parse(consumer.result_json), { version: 1, reasons: ['unmatched_fee_or_price_pnl'] });
+    assert.deepEqual(await getDatabase().all('SELECT * FROM trading_money_events ORDER BY id'), moneyBeforeUnmatchedTrades,
+      'A ledger trade ID or foreign order cannot manufacture an owned fill, cost, or price PnL on replay.');
+  }
+  const preservedReceipt = (await logs.pendingAccountLogReceipts(account.id, 'money')).find(stored => stored.id === unmatchedReceipt.id);
+  assert.deepEqual(preservedReceipt.receipt.records, unmatchedTrades, 'Unmatched source occurrences remain available for later corroboration.');
   console.log('Durable account-log continuation, independent consumers, observed coverage and legacy-safe funding replay passed.');
 } finally {
   await closeDb();

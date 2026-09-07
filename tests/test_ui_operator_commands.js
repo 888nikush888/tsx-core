@@ -8,12 +8,37 @@ import { startWebServer, stopWebServer } from '../src/web_server.js';
 import { UiOperationStore } from '../src/ui_operation_store.js';
 import { prepareUiParserTest, runUiParserTest } from '../src/ui_parser_lab.js';
 import { DEFAULT_AI_LIMITS, parseSignalToXml } from '../src/signal_parser.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-ui-commands-'));
 if (!path.resolve(directory).startsWith(path.resolve(os.tmpdir()) + path.sep) || !path.basename(directory).startsWith('tsx-ui-commands-')) throw new Error('Unsafe fixture cleanup.');
 const admin = 'ui-command-admin-'.repeat(3); const viewer = 'ui-command-viewer-'.repeat(3);
 const oldEnvironment = { ...process.env };
 let server;
+async function accountEvidenceHttpReads(base) {
+  await seedTradingFixtures();
+  const database = getDatabase(); const now = Date.now(); const id = 'd'.repeat(64);
+  const original = { reservations: [{ intentId: 'original-intent-a', sourceHash: 'source-a' }, { intentId: 'original-intent-b', sourceHash: 'source-b' }] };
+  await database.run(`INSERT INTO trading_risk_observations(id,account_id,account_fingerprint,credential_generation,entry_epoch,observed_at,expires_at,utc_day,evidence_json,recorded_at)
+    VALUES (?,'paper-default','paper:paper-default',NULL,'fixture-epoch',?,?,?,?,?)`,
+  [id, now - 1, now + 60000, new Date(now).setUTCHours(0, 0, 0, 0), JSON.stringify(original), now]);
+  await database.run('INSERT INTO trading_risk_current(account_id,observation_id) VALUES (?,?)', ['paper-default', id]);
+  const getEvidence = (query, token = viewer) => fetch(`${base}/api/trading/accounts/evidence?${query}`, { headers: { Authorization: `Bearer ${token}` } });
+  const overview = await getEvidence('accountId=paper-default&kind=overview');
+  assert.equal(overview.status, 200); assert.equal((await overview.json()).account.id, 'paper-default');
+  const reservations = await getEvidence('accountId=paper-default&kind=reservations&limit=1');
+  assert.equal(reservations.status, 200); const first = await reservations.json();
+  assert.equal(first.entries[0].intentId, 'original-intent-a'); assert.equal(first.hasMore, true);
+  const next = await getEvidence(`accountId=paper-default&kind=reservations&limit=1&cursor=${encodeURIComponent(first.nextCursor)}`);
+  assert.equal(next.status, 200); assert.equal((await next.json()).entries[0].intentId, 'original-intent-b');
+  const history = await getEvidence('accountId=paper-default&kind=history');
+  assert.equal(history.status, 200); assert.deepEqual((await history.json()).entries, []);
+  assert.equal((await getEvidence('accountId=paper-default&kind=unsupported')).status, 400);
+  assert.equal((await getEvidence('accountId=missing-account&kind=overview')).status, 404);
+  assert.equal((await getEvidence('accountId=paper-default&kind=overview', 'invalid-token')).status, 401);
+  assert.deepEqual(JSON.parse((await database.get('SELECT evidence_json FROM trading_risk_observations WHERE id=?', [id])).evidence_json), original,
+    'All viewer evidence variants read the original observation without changing it.');
+}
 try {
   process.env.DASHBOARD_AUTH_MODE = 'token'; process.env.DASHBOARD_ADMIN_TOKEN = admin; process.env.DASHBOARD_VIEWER_TOKEN = viewer;
   process.env.OPENROUTER_API_KEY = 'fixture-key-no-network';
@@ -82,6 +107,7 @@ try {
   assert.ok(!/[\uD800-\uDBFF]$/.test(bounded.xml), 'Truncation preserves Unicode character boundaries.');
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_trade_intents')).count, 0);
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM pending_tasks')).count, 0);
+  await accountEvidenceHttpReads(base);
   console.log('Operator job HTTP roles, deduplication, paging, preview binding and real parser quota path passed with a fixture provider.');
 } finally {
   if (server) await stopWebServer(); await closeDb();
