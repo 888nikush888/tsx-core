@@ -5,6 +5,11 @@ release-tag, scheduled and manual events. All matrix checks keep their existing
 names and thresholds. The dependency review now runs on PRs, including the
 existing private-repository vulnerability/dependency-policy fallback.
 
+Concurrency groups include the event type as well as the workflow and ref.
+Scheduled and manual runs therefore cannot cancel the main push run required as
+release evidence. Newer pushes and updates to the same PR still cancel their
+superseded runs; separate PRs retain separate groups.
+
 ## Sonar evidence before and after merge
 
 The Sonar job checks out the PR head commit and proves that exact SHA before

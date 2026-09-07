@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: quality-${{ github.workflow }}-${{ github.ref }}
+  group: quality-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
