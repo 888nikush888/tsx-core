@@ -10,6 +10,12 @@ on:
   schedule:
     - cron: '17 3 * * 1'
   workflow_dispatch:
+    inputs:
+      apply_reviewed_sonar_decisions:
+        description: 'Apply only the pinned, independently reviewed main Sonar decisions (repository owner only)'
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
@@ -144,6 +150,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Prove scanner input revision
         run: test "$(git rev-parse HEAD)" = "$SONAR_EXPECTED_REVISION"
+      - name: Reject unauthorized reviewed Sonar decisions
+        if: github.event_name == 'workflow_dispatch' && inputs.apply_reviewed_sonar_decisions && (github.actor != github.repository_owner || github.triggering_actor != github.repository_owner)
+        run: |
+          echo 'Only the repository owner may explicitly request or rerun reviewed Sonar decisions.'
+          exit 1
       - name: Configure pinned Node major
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -177,6 +188,12 @@ jobs:
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
           python -m coverage report --fail-under=60
           python -m coverage xml -o exchange_executor/coverage.xml
+      - name: Apply pinned reviewed main Sonar decisions
+        if: github.event_name == 'workflow_dispatch' && inputs.apply_reviewed_sonar_decisions && github.actor == github.repository_owner && github.triggering_actor == github.repository_owner
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_APPLY_REVIEWED_DECISIONS: 'true'
+        run: node scripts/sonar_review_decisions.js
       - name: Prepare explicit Sonar revision and analysis scope
         id: sonar_scope
         run: node scripts/sonar_scan_arguments.js
@@ -207,6 +224,7 @@ jobs:
           name: sonarcloud-evidence-${{ env.SONAR_EXPECTED_REVISION }}
           path: |
             reports/sonarcloud/
+            reports/sonar-reviewed-decisions/
             coverage/lcov.info
             frontend/coverage/lcov.info
             exchange_executor/coverage.xml

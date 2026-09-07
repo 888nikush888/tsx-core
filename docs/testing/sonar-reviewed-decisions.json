@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "projectKey": "888nikush888_telegram-tdlib-forwarder-private",
+  "branch": "main",
+  "decisions": [
+    {
+      "issueKey": "AaBg00GbmkhvfbyxhJSt",
+      "rule": "python:S7504",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:exchange_executor/stream_hub.py",
+      "source": {
+        "path": "exchange_executor/stream_hub.py",
+        "sha256": "2d0f7708d13a0e74aafd98f1be32184c02efd65167ffa0d5b0ef956c94c6d6c0"
+      },
+      "tests": [
+        {
+          "path": "exchange_executor/tests/test_stream_health.py",
+          "sha256": "bfd348cab006ff584ff5c3c8e191ea953adc13aa70ba4849d92711bf29f074d9"
+        }
+      ],
+      "rationale": "The list snapshot in StreamHub._health is necessary: successful recovery calls _record_channel_success, which removes entries from _network_retries during this loop. test_health_recovery_can_remove_multiple_retry_entries_in_one_poll passes with the snapshot; the independently reproduced mutation that iterates the dictionary view directly raises RuntimeError: dictionary changed size during iteration. Removing list() changes required recovery behavior.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBg00CLmkhvfbyxhJSs",
+      "rule": "python:S7504",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:exchange_executor/stream_transport.py",
+      "source": {
+        "path": "exchange_executor/stream_transport.py",
+        "sha256": "e0237df57080adc10f81f04fd4b49682023470c293e22e0e0f5e2510095bd74e"
+      },
+      "tests": [
+        {
+          "path": "exchange_executor/tests/test_stream_health.py",
+          "sha256": "bfd348cab006ff584ff5c3c8e191ea953adc13aa70ba4849d92711bf29f074d9"
+        }
+      ],
+      "rationale": "The list snapshot in StreamTransport._send_history is necessary: restoring obsolete socket send hooks removes entries from _send_hooks while this loop runs. test_closed_socket_hooks_are_all_restored_before_a_new_socket_is_observed passes with the snapshot; the independently reproduced mutation that iterates the dictionary view directly raises RuntimeError: dictionary changed size during iteration. The snapshot preserves restoration of every closed socket.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBvNiazMwQY_bvuMM7P",
+      "rule": "python:S7503",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:exchange_executor/ccxt_sdk_policy.py",
+      "source": {
+        "path": "exchange_executor/ccxt_sdk_policy.py",
+        "sha256": "38e7b16c19f5df240f1696a51c1006cc3f9323e3516a37c05237ca3a8894267d"
+      },
+      "tests": [
+        {
+          "path": "exchange_executor/tests/test_sdk_async_contract.py",
+          "sha256": "1d5273b22a117dab842097fcfdfadbdb1cf35d10378fdbd81dcd1fa513317977"
+        }
+      ],
+      "rationale": "HyperliquidNoAutomaticSetup.handle_builder_fee_approval implements an async CCXT override that deliberately returns False without sending an automatic builder-fee approval. The pinned CCXT 4.5.75 initialize_client passes this result to asyncio.gather, so the coroutine contract is required. test_hyperliquid_setup_refusals_remain_awaitable_for_real_sdk_initialization exercises actual REST and Pro initialization without network I/O. Replacing the override with a synchronous False return produces two reproduced failures; a no-op await would not improve the contract.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBvNiazMwQY_bvuMM7Q",
+      "rule": "python:S7503",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:exchange_executor/ccxt_sdk_policy.py",
+      "source": {
+        "path": "exchange_executor/ccxt_sdk_policy.py",
+        "sha256": "38e7b16c19f5df240f1696a51c1006cc3f9323e3516a37c05237ca3a8894267d"
+      },
+      "tests": [
+        {
+          "path": "exchange_executor/tests/test_sdk_async_contract.py",
+          "sha256": "1d5273b22a117dab842097fcfdfadbdb1cf35d10378fdbd81dcd1fa513317977"
+        }
+      ],
+      "rationale": "HyperliquidNoAutomaticSetup.set_ref implements an async CCXT override that deliberately returns False without sending an automatic referral change. The pinned CCXT 4.5.75 initialize_client passes this result to asyncio.gather, so the coroutine contract is required. test_hyperliquid_setup_refusals_remain_awaitable_for_real_sdk_initialization exercises actual REST and Pro initialization without network I/O. Replacing the override with a synchronous False return produces two reproduced failures; a no-op await would not improve the contract.",
+      "disposition": "falsepositive"
+    }
+  ]
+}
