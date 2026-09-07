@@ -178,7 +178,6 @@ const validGovernance = {
     allow_squash_merge: false,
     allow_rebase_merge: false,
     security_and_analysis: {
-      dependency_graph: { status: 'enabled' },
       secret_scanning: { status: 'enabled' },
       secret_scanning_push_protection: { status: 'enabled' },
     },
@@ -214,12 +213,16 @@ const validGovernance = {
   },
   codeowners: '* @888nikush888\n',
   codeownerErrors: [],
+  dependencyGraph: { sbom: { spdxVersion: 'SPDX-2.3', packages: [{ SPDXID: 'SPDXRef-Dependency' }] } },
 };
 
 const governance = evaluateGithubGovernance(validGovernance);
 assert.equal(governance.passed, true);
 assert.equal(governance.checks.filter(item => item.name.startsWith('Required check:')).length, 14);
 assert.equal(governance.checks.filter(item => item.name.startsWith('Required check source:')).length, 14);
+for (const dependencyGraph of [undefined, {}, { sbom: { spdxVersion: 'SPDX-2.3', packages: [] } }]) {
+  assert.equal(evaluateGithubGovernance({ ...validGovernance, dependencyGraph }).passed, false, 'An unavailable or empty dependency graph cannot pass.');
+}
 
 const wrongSource = structuredClone(validGovernance);
 wrongSource.protection.required_status_checks.checks[0].app_id = 999;

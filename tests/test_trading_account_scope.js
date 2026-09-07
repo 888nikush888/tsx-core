@@ -7,6 +7,7 @@ import { createTradingAccount, listTradingStrategies, updateTradingAccountState 
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { accountLogCheckpoint, persistAccountLogProgress } from '../src/trading_account_log_repository.js';
 import { projectAccountLogScope, accountScopeObservation } from '../src/trading_account_scope.js';
+import { observedOrderExecutions } from '../src/trading_scope_execution.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-log-scope-'));
 const filename = path.join(directory, 'fixture.db');
@@ -37,6 +38,37 @@ async function fill(id, patch = {}) {
   [id, id, now - 100, JSON.stringify(raw), fingerprint, JSON.stringify({ version: 1, source: 'ccxt-market-v1',
     providerSymbol: 'BTC/USDT:USDT', settlementAsset: 'USDT', linear: true, quantityUnit: 'base' })]);
 }
+async function rejectConflictingExecutions(account) {
+  const database = getDatabase();
+  const original = await database.get("SELECT * FROM trading_fills WHERE id='actual-exec'");
+  const order = await database.get("SELECT * FROM trading_orders WHERE id='order'");
+  const raw = JSON.parse(original.raw_json);
+  const malformedRows = [
+    { raw_json: 'null' }, { raw_json: '[]' }, { raw_json: '{' },
+    { raw_json: JSON.stringify({ ...raw, order: 'foreign-order' }) },
+    ...[{ execQty: 1 }, { execQty: '2' }, { execPrice: '101' }, { execFee: '0.2' },
+      { execTime: String(now) }, { execTime: 'not-a-time' }, { feeCurrency: 'USDC' }, { orderLinkId: 'foreign-client' }]
+      .map(patch => ({ raw_json: JSON.stringify({ ...raw, info: { ...raw.info, ...patch } }) })),
+    { account_fingerprint: 'c'.repeat(64) }, { accounting_conflict: 1 }, { accounting_json: '{}' },
+  ];
+  for (const patch of malformedRows) {
+    const row = { ...original, ...patch };
+    await database.run('UPDATE trading_fills SET raw_json=?,account_fingerprint=?,accounting_conflict=?,accounting_json=? WHERE id=?',
+      [row.raw_json, row.account_fingerprint, row.accounting_conflict, row.accounting_json, original.id]);
+    try {
+      const rejected = await observedOrderExecutions(account, order);
+      assert.equal(rejected.proof.status, 'not_proven'); assert.deepEqual(rejected.executions, []);
+    } finally {
+      await database.run('UPDATE trading_fills SET raw_json=?,account_fingerprint=?,accounting_conflict=?,accounting_json=? WHERE id=?',
+        [original.raw_json, original.account_fingerprint, original.accounting_conflict, original.accounting_json, original.id]);
+    }
+  }
+  for (const patch of [{ quantity: '0' }, { quantity: 'invalid' }, { filled_quantity: '0.5' }, { quantity: '2' }, { status: 'open' }]) {
+    const rejected = await observedOrderExecutions(account, { ...order, ...patch });
+    assert.equal(rejected.proof.status, 'not_proven', 'Invalid or incomplete cumulative quantities cannot release account scope.');
+  }
+  assert.equal((await observedOrderExecutions(account, order)).proof.status, 'observed_terminal_execution_set');
+}
 try {
   await initDb(filename); await seedTradingFixtures();
   const created = await createTradingAccount({ name: 'Scope', exchange: 'bybit', mode: 'testnet', credentialRef: 'fixture' });
@@ -65,6 +97,7 @@ try {
   assert.deepEqual(matched.orders[0].executionIds, ['actual-exec']);
   assert.equal(matched.finality, 'not_proven'); assert.equal(matched.finalizedThrough, null);
   assert.equal((await accountScopeObservation(account)).finality, 'not_proven');
+  await rejectConflictingExecutions(account);
 
   for (const [id, patch, reason] of [
     ['no-trade-id', { tradeId: null }, 'trade_identity_unproved'],

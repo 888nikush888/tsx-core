@@ -19,7 +19,7 @@ export function ChangeReview({ before, after, label = 'Inhaltliche Änderungen',
   const [filter, setFilter] = useState(''); const [page, setPage] = useState(0);
   const rows = useMemo(() => {
     const left = before === undefined ? new Map<string, unknown>() : fields(before); const right = fields(after);
-    return [...new Set([...left.keys(), ...right.keys()])].sort().map(path => ({ path, left: display(left.get(path), left.has(path)), right: display(right.get(path), right.has(path)),
+    return [...new Set([...left.keys(), ...right.keys()])].sort((left, right) => left < right ? -1 : Number(left > right)).map(path => ({ path, left: display(left.get(path), left.has(path)), right: display(right.get(path), right.has(path)),
       changed: left.has(path) !== right.has(path) || JSON.stringify(left.get(path)) !== JSON.stringify(right.get(path)) }))
       .filter(row => (showAll || row.changed) && `${row.path} ${row.left} ${row.right}`.toLocaleLowerCase().includes(filter.toLocaleLowerCase()));
   }, [before, after, filter, showAll]);

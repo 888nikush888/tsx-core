@@ -33,6 +33,18 @@ async function moneyEvidence(id: string) {
     : 'Native Bewertung oder kein aktuell prüfbarer FX-Konversionsbeleg. Unbekannte Bewertung ist kein Nullbetrag.' };
 }
 
+async function relationEvidence(kind: UiTradeRelation, row: Record<string, any>): Promise<unknown> {
+  if (kind === 'money') {
+    try { return redactReview(await moneyEvidence(row.id)); }
+    catch (error) { return { ...row, valuationStatus: 'unresolved', valuationReason: String(error).slice(0, 2000), originalUnverified: true }; }
+  }
+  if (kind === 'events') {
+    const { detailsJson, ...event } = row;
+    return redactReview({ ...event, detailsOmitted: Boolean(event.detailsOmitted), details: detailsJson ? JSON.parse(detailsJson) : null });
+  }
+  return redactReview({ ...row, ...(kind === 'orders' ? { reduceOnly: row.reduceOnly === 1 } : {}) });
+}
+
 /** Relations are independently pageable; no raw account fingerprints, provider payloads or floating-point money. */
 export async function uiTradeRelationPage(intentId: string, kind: UiTradeRelation, query: URLSearchParams) {
   uiObjectId(intentId, 64);
@@ -48,13 +60,7 @@ export async function uiTradeRelationPage(intentId: string, kind: UiTradeRelatio
     const rows = await database.all(`SELECT ${definition.fields}, ${definition.clock} AS cursorTime FROM ${definition.table} WHERE ${where.join(' AND ')} ORDER BY ${definition.clock} DESC, id DESC LIMIT ?`, [...parameters, limit + 1]);
     const entries = [];
     for (const { cursorTime: _clock, ...row } of rows.slice(0, limit)) {
-      if (kind === 'money') {
-        try { entries.push(redactReview(await moneyEvidence(row.id))); }
-        catch (error) { entries.push({ ...row, valuationStatus: 'unresolved', valuationReason: String(error).slice(0, 2000), originalUnverified: true }); }
-      } else if (kind === 'events') {
-        const { detailsJson, ...event } = row;
-        entries.push(redactReview({ ...event, detailsOmitted: Boolean(event.detailsOmitted), details: detailsJson ? JSON.parse(detailsJson) : null }));
-      } else entries.push(redactReview({ ...row, ...(kind === 'orders' ? { reduceOnly: row.reduceOnly === 1 } : {}) }));
+      entries.push(await relationEvidence(kind, row));
     }
     const last = rows[Math.min(limit, rows.length) - 1];
     return { contractVersion: 1, intentId, kind, entries, observedAt, hasMore: rows.length > limit,

@@ -3,8 +3,14 @@ import { maskPII } from './logger.js';
 
 export function reviewHash(value: unknown): string {
   const canonical = (item: any): any => Array.isArray(item) ? item.map(canonical)
-    : item && typeof item === 'object' ? Object.fromEntries(Object.keys(item).sort().map(key => [key, canonical(item[key])])) : item;
+    : item && typeof item === 'object' ? Object.fromEntries(Object.keys(item).sort(compareReviewKeys).map(key => [key, canonical(item[key])])) : item;
   return createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
+}
+
+/** Match the original UTF-16 key order exactly; hashes must never depend on host locale. */
+function compareReviewKeys(left: string, right: string): number {
+  if (left < right) return -1;
+  return left > right ? 1 : 0;
 }
 
 const SECRET = /password|passphrase|secret|credential|authorization|cookie|(?:^token$|Token$|tokenSha|tokenPrefix)|api[_-]?key|api[_-]?hash|sourceText|raw(Response|Request|Payload)/i;

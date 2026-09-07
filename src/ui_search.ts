@@ -18,6 +18,25 @@ const SETTING_TARGETS = [
   ...WORKFLOW_RESOURCE_KINDS.map(kind => ({ id: `workflow.${kind}`, title: `Workflow-Baustein ${kind}`, url: `/workflows/resources?resourceKind=${kind}` })),
 ];
 
+function searchUrl(kind: string, row: any): string {
+  const id = encodeURIComponent(row.id);
+  switch (kind) {
+    case 'accounts': return `/trading/accounts/${id}`;
+    case 'ingress': return `/signals/messages/${id}`;
+    case 'signals': return `/signals/processed?objectId=${id}`;
+    case 'intents': return `/trading/trades/${id}`;
+    case 'resources': return `/workflows/resources/${encodeURIComponent(row.resourceId)}/versions/${id}`;
+    default: return `/trading/incidents?objectId=${id}`;
+  }
+}
+
+function searchTitle(kind: string, row: any): string {
+  if (kind === 'accounts' || kind === 'resources') return row.name;
+  if (kind === 'intents') return `${row.symbol} · ${row.side}`;
+  if (kind === 'incidents') return row.category;
+  return `${row.channelId} · Nachricht ${row.messageId}`;
+}
+
 export async function uiSearch(text: string, kind = 'all', cursorValue: string | null = null) {
   if (typeof text !== 'string' || text.trim().length < 2 || text.length > 80 || /[\r\n\0]/.test(text)) throw new Error('Search needs 2 to 80 characters.');
   if (kind !== 'all' && kind !== 'settings' && !Object.hasOwn(SOURCES, kind)) throw new Error('Unsupported search category.');
@@ -35,13 +54,9 @@ export async function uiSearch(text: string, kind = 'all', cursorValue: string |
     if (cursor) { where.push(`(${definition.clock} < ? OR (${definition.clock} = ? AND id < ?))`); values.push(cursor.createdAt, cursor.createdAt, cursor.id); }
     const rows = await getDatabase().all(`SELECT ${definition.fields}, ${definition.clock} AS createdAt FROM ${definition.table} WHERE ${where.join(' AND ')} ORDER BY ${definition.clock} DESC, id DESC LIMIT 21`, values);
     const entries = rows.slice(0, 20).map(row => {
-      const encoded = encodeURIComponent(row.id);
-      const url = current === 'accounts' ? `/trading/accounts/${encoded}` : current === 'ingress' ? `/signals/messages/${encoded}`
-        : current === 'signals' ? `/signals/processed?objectId=${encoded}` : current === 'intents' ? `/trading/trades/${encoded}`
-          : current === 'resources' ? `/workflows/resources/${encodeURIComponent(row.resourceId)}/versions/${encoded}` : `/trading/incidents?objectId=${encoded}`;
-      const title = maskPII(current === 'accounts' || current === 'resources' ? row.name : current === 'intents' ? `${row.symbol} · ${row.side}`
-        : current === 'incidents' ? row.category : `${row.channelId} · Nachricht ${row.messageId}`);
-      return { id: row.id, title, subtitle: [row.status, row.mode, row.kind, row.version ? `v${row.version}` : null].filter(Boolean).join(' · '), url };
+      return { id: row.id, title: maskPII(searchTitle(current, row)),
+        subtitle: [row.status, row.mode, row.kind, row.version ? `v${row.version}` : null].filter(Boolean).join(' · '),
+        url: searchUrl(current, row) };
     });
     const last = rows[19];
     return { kind: current, observedAt, entries, hasMore: rows.length > 20,

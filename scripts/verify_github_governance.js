@@ -56,14 +56,18 @@ function reviewResults(protection) {
   ];
 }
 
-function repositoryResults(repository) {
+function repositoryResults(repository, dependencyGraph) {
   const security = repository.security_and_analysis || {};
   return [
     check('Default branch is main', repository.default_branch === 'main', repository.default_branch),
     check('Merge commits are enabled', repository.allow_merge_commit === true, repository.allow_merge_commit),
     check('Squash merges are disabled', repository.allow_squash_merge === false, repository.allow_squash_merge),
     check('Rebase merges are disabled', repository.allow_rebase_merge === false, repository.allow_rebase_merge),
-    check('Dependency graph is enabled', security.dependency_graph?.status === 'enabled', security.dependency_graph?.status),
+    // The repository endpoint does not expose dependency_graph. A successful,
+    // nonempty SPDX export proves the actual graph is available for this repo.
+    check('Dependency graph is available', typeof dependencyGraph?.sbom?.spdxVersion === 'string'
+      && Array.isArray(dependencyGraph.sbom.packages) && dependencyGraph.sbom.packages.length > 0,
+    { format: dependencyGraph?.sbom?.spdxVersion ?? null, packages: dependencyGraph?.sbom?.packages?.length ?? null }),
     check('Secret scanning is enabled', security.secret_scanning?.status === 'enabled', security.secret_scanning?.status),
     check('Secret push protection is enabled', security.secret_scanning_push_protection?.status === 'enabled', security.secret_scanning_push_protection?.status),
   ];
@@ -108,6 +112,7 @@ export function evaluateGithubGovernance({
   productionEnvironmentPolicies,
   codeowners,
   codeownerErrors,
+  dependencyGraph,
 }) {
   const hasOwnerRule = codeowners.split(/\r?\n/).some(line => {
     const trimmed = line.trim();
@@ -119,7 +124,7 @@ export function evaluateGithubGovernance({
     check('CODEOWNERS has no platform parse errors', Array.isArray(codeownerErrors) && codeownerErrors.length === 0, codeownerErrors),
     ...statusCheckResults(protection),
     ...reviewResults(protection),
-    ...repositoryResults(repository),
+    ...repositoryResults(repository, dependencyGraph),
     ...productionEnvironmentResults(environments, productionEnvironmentPolicies),
   ];
   return { passed: checks.every(item => item.passed), checks };
@@ -152,11 +157,12 @@ async function main() {
   const repositoryPath = ['repos', owner, repositorySlug];
   const repository = await githubJson(repositoryPath, token);
   const branch = repository.default_branch;
-  const [protection, environments, codeownerErrors, productionEnvironmentPolicies] = await Promise.all([
+  const [protection, environments, codeownerErrors, productionEnvironmentPolicies, dependencyGraph] = await Promise.all([
     githubJson([...repositoryPath, 'branches', branch, 'protection'], token),
     githubJson([...repositoryPath, 'environments'], token, { per_page: '100' }),
     githubJson([...repositoryPath, 'codeowners', 'errors'], token, { ref: branch }),
     githubJson([...repositoryPath, 'environments', 'production-observer', 'deployment-branch-policies'], token),
+    githubJson([...repositoryPath, 'dependency-graph', 'sbom'], token),
   ]);
   const codeowners = await readFile(path.resolve('.github', 'CODEOWNERS'), 'utf8').catch(error => {
     if (error.code === 'ENOENT') return '';
@@ -169,6 +175,7 @@ async function main() {
     productionEnvironmentPolicies,
     codeowners,
     codeownerErrors,
+    dependencyGraph,
   });
   const evidence = {
     schemaVersion: 1,

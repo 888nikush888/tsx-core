@@ -211,7 +211,7 @@ function isAccountWidePositionFailure(error: unknown): boolean {
   if (code.startsWith('SQLITE_')) return true;
   if (!(error instanceof ReconciliationMismatchError)) return false;
   if (['remote_identity', 'unmanaged_remote', 'unresolved_fill'].includes(error.incidentCategory)) return true;
-  return /^(?:ACCOUNT_STATE_CHANGED|ACQUISITION_NOT_FRESH|PROTECTION_SOURCE_CHANGED)|lifecycle safety account/i.test(error.message);
+  return /(?:^(?:ACCOUNT_STATE_CHANGED|ACQUISITION_NOT_FRESH|PROTECTION_SOURCE_CHANGED))|(?:lifecycle safety account)/i.test(error.message);
 }
 
 function transientReconciliationFailure(error: unknown): boolean {
@@ -1946,19 +1946,23 @@ export class TradingEngine {
     if (cancelBudgetExhausted) throw new ReconciliationContinuationRequiredError();
     if (cleanupChanged) return true;
     if (positionFailures.length > 0) throw new PositionReconciliationAggregateError(positionFailures);
+    await this.assertReconciledAccountEvidence(account.id, unrelatedUnmanagedExposure);
+    return false;
+  }
+
+  private async assertReconciledAccountEvidence(accountId: string, unrelatedUnmanagedExposure: boolean): Promise<void> {
     if (unrelatedUnmanagedExposure) {
       throw new ReconciliationMismatchError(
         'Unmanaged remote order or position remains after independent managed risk-reduction work.',
         'unmanaged_remote',
       );
     }
-    if (await unresolvedEvidenceCount(account.id) > 0) {
+    if (await unresolvedEvidenceCount(accountId) > 0) {
       throw new ReconciliationMismatchError('Account has unresolved remote execution evidence; ownership and closure remain unproved.', 'unresolved_fill');
     }
-    if (await unresolvedOperationCount(account.id) > 0) {
+    if (await unresolvedOperationCount(accountId) > 0) {
       throw new ReconciliationMismatchError('Exchange operation outcome remains unresolved; exact order evidence is required.');
     }
-    return false;
   }
 
   private async ingestOwnedState(

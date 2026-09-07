@@ -10,9 +10,38 @@ import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { validateSignalXml } from '../src/signal_schema.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { emergencyFixture } from './fixtures/trading_emergency_fixture.js';
+import { retireUndispatchedExit } from '../src/trading_lifecycle.js';
+import { prepareTradingOperation, transitionTradingOperation } from '../src/trading_recovery.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-lifecycle-safety-'));
 let sequence = 0;
+async function undispatchedExitCases() {
+  const database = getDatabase();
+  for (const kind of ['no-operation', 'prepared', 'abandoned', 'dispatching', 'unresolved', 'acknowledged', 'multi-order']) {
+    const fixture = await emergencyFixture(`retire-${kind}`);
+    const clientOrderId = `${fixture.id}-stop`;
+    assert.equal(await retireUndispatchedExit(fixture.id, clientOrderId), false, 'An exchange-known exit must never be locally retired.');
+    await database.run("UPDATE trading_orders SET status='created',exchange_order_id=NULL WHERE client_order_id=?", [clientOrderId]);
+    let operationId;
+    if (kind !== 'no-operation') {
+      operationId = await prepareTradingOperation({ account: fixture.account, intentId: fixture.id,
+        kind: kind === 'multi-order' ? 'protected_entry' : 'submit',
+        clientOrderIds: kind === 'multi-order' ? [`${fixture.id}-entry`, clientOrderId] : [clientOrderId], request: { fixture: kind } });
+      if (kind === 'abandoned') await transitionTradingOperation(operationId, 'prepared', 'abandoned');
+      if (['dispatching', 'unresolved', 'acknowledged'].includes(kind)) {
+        await transitionTradingOperation(operationId, 'prepared', 'dispatching');
+        if (kind !== 'dispatching') await transitionTradingOperation(operationId, 'dispatching', kind);
+      }
+    }
+    const eligible = ['no-operation', 'prepared', 'abandoned'].includes(kind);
+    assert.equal(await retireUndispatchedExit(fixture.id, clientOrderId), eligible, kind);
+    assert.equal((await database.get('SELECT status FROM trading_orders WHERE client_order_id=?', [clientOrderId])).status, eligible ? 'cancelled' : 'created');
+    if (operationId) assert.equal((await database.get('SELECT phase FROM trading_operations WHERE id=?', [operationId])).phase,
+      eligible ? 'abandoned' : kind === 'multi-order' ? 'prepared' : kind);
+    assert.equal(await retireUndispatchedExit(fixture.id, `${fixture.id}-entry`), false, 'An entry cannot be retired by exit cleanup.');
+    assert.equal(fixture.state.cancelCalls.length + fixture.state.flattenCalls.length, 0);
+  }
+}
 async function closingFixture() {
   const fixture = await emergencyFixture(`closure-${++sequence}`, { partial: false, localQuantity: '1' });
   const stop = fixture.state.orders.get(`${fixture.id}-stop`);
@@ -124,6 +153,7 @@ async function drainCases() {
 try {
   await initDb(path.join(directory, 'test.db'));
   await seedTradingFixtures();
+  await undispatchedExitCases();
   const good = await closingFixture();
   await good.engine.reconcileAccount(good.id);
   assert.deepEqual(await getDatabase().get('SELECT status, quantity FROM trading_positions WHERE id = ?', [good.id]),

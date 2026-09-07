@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -20,6 +21,16 @@ import { uiModelPage, uiModelDetail, mutateUiModel } from '../src/ui_workflow_mo
 import { createTradingStrategyDraft, listTradingStrategies, getTradingStrategyVersion, createSignalContractDraftVersion, listSignalContracts, updateSignalContractDraft } from '../src/trading_repository.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-ui-review-'));
+function testCanonicalReviewOrder() {
+  // Fixed expected bytes preserve the pre-audit UTF-16 ordering across locales,
+  // including integer-like keys, non-ASCII keys, nested objects and array order.
+  const canonical = '{"2":"two","10":"ten","Z":null,"a":[{"A":false,"z":0}],"ä":"accent","😀":"emoji"}';
+  const value = { '😀': 'emoji', 'ä': 'accent', a: [{ z: 0, A: false }], Z: null, '10': 'ten', '2': 'two' };
+  const expected = createHash('sha256').update(canonical).digest('hex');
+  assert.equal(reviewHash(value), expected);
+  assert.equal(reviewHash(Object.fromEntries(Object.entries(value).reverse())), expected);
+  assert.notEqual(reviewHash({ ...value, a: [{ z: 0, A: false }, null] }), expected);
+}
 function testBoundedReviewTree() {
   const root = { library: Array.from({ length: 35 }, (_, index) => ({ id: `original-${index}`, value: false, tier: null, amount: '0.000000000000001' })), text: '🎯'.repeat(10001), password: 'PRIVATE_REVIEW_VALUE' };
   const query = new URLSearchParams({ path: '["library"]' }); const first = uiReviewTree(root, query, 'review-1');
@@ -64,6 +75,7 @@ async function testMcpMetadata(agent, resource) {
 }
 if (!path.resolve(directory).startsWith(path.resolve(os.tmpdir()) + path.sep) || !path.basename(directory).startsWith('tsx-ui-review-')) throw new Error('Unsafe fixture cleanup.');
 try {
+  testCanonicalReviewOrder();
   testBoundedReviewTree();
   await initDb(path.join(directory, 'fixture.db')); await seedTradingFixtures();
   await setMcpRuntimeMode('active', 'test:setup');

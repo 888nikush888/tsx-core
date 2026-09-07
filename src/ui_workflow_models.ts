@@ -63,21 +63,31 @@ export async function uiModelDetail(inputKind: unknown, inputId: unknown) {
     effect: 'Gespeichertes Modell. Ressourcenentwurf, Publikation und Graphaktivierung sind getrennte Schritte. Historische Handelspläne bleiben unverändert.' };
 }
 
+async function schemaLifecycle(id: string, action: string) {
+  if (action === 'delete') return { deleted: await deleteTradingSignalSchema(id) };
+  if (action === 'enable' || action === 'disable') return { model: await updateTradingSignalSchema(id, { ...(await getTradingSignalSchemaById(id))!, enabled: action === 'enable' }) };
+  throw new Error('Unsupported model action.');
+}
+
+async function strategyLifecycle(id: string, action: string) {
+  if (action === 'publish') return { model: await publishTradingStrategyVersion(id) };
+  if (action === 'archive') return { model: await archiveTradingStrategyVersion(id) };
+  if (action === 'delete') return { deleted: await deleteTradingStrategyVersion(id) };
+  throw new Error('Unsupported model action.');
+}
+
+async function contractLifecycle(id: string, action: string, status: string) {
+  if (action === 'publish') return { model: await publishSignalContractVersion(id) };
+  if (action === 'archive') return { model: await archiveSignalContractVersion(id) };
+  if (action === 'delete') return { deleted: await (status === 'draft' ? deleteSignalContractDraft(id) : deleteSignalContractVersion(id)) };
+  throw new Error('Unsupported model action.');
+}
+
 async function modelLifecycle(kind: UiModelKind, id: string, action: string, current: any) {
   if (action === 'attach') return { resource: await createWorkflowResourceDraft({ kind, name: current.model.name, description: current.model.description ?? '', configuration: { [MODELS[kind].reference]: id } }) };
-  if (kind === 'schema') {
-    if (action === 'delete') return { deleted: await deleteTradingSignalSchema(id) };
-    if (action === 'enable' || action === 'disable') return { model: await updateTradingSignalSchema(id, { ...(await getTradingSignalSchemaById(id))!, enabled: action === 'enable' }) };
-  } else if (kind === 'strategy') {
-    if (action === 'publish') return { model: await publishTradingStrategyVersion(id) };
-    if (action === 'archive') return { model: await archiveTradingStrategyVersion(id) };
-    if (action === 'delete') return { deleted: await deleteTradingStrategyVersion(id) };
-  } else {
-    if (action === 'publish') return { model: await publishSignalContractVersion(id) };
-    if (action === 'archive') return { model: await archiveSignalContractVersion(id) };
-    if (action === 'delete') return { deleted: await (current.model.status === 'draft' ? deleteSignalContractDraft(id) : deleteSignalContractVersion(id)) };
-  }
-  throw new Error('Unsupported model action.');
+  if (kind === 'schema') return schemaLifecycle(id, action);
+  if (kind === 'strategy') return strategyLifecycle(id, action);
+  return contractLifecycle(id, action, current.model.status);
 }
 
 export async function mutateUiModel(input: { kind: unknown; id: unknown; action: unknown; reviewHash: unknown }) {

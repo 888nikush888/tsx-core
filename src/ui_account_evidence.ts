@@ -24,7 +24,7 @@ async function accountRiskObservation(accountId: string, observationId: string |
 function observationSummary(row: any, account: NonNullable<Awaited<ReturnType<typeof getTradingAccount>>>, now: number) {
   if (!row) return null;
   const { fingerprint, credentialGeneration, ...visible } = row;
-  return { ...visible, identityMatches: fingerprint === riskFingerprint(account), credentialGenerationMatches: credentialGeneration === account.credentialGeneration,
+  return { ...redactReview(visible), identityMatches: fingerprint === riskFingerprint(account), credentialGenerationMatches: credentialGeneration === account.credentialGeneration,
     timestampFresh: row.observedAt <= now && row.expiresAt > now && row.utcDay === new Date(now).setUTCHours(0, 0, 0, 0),
     isCurrentObservation: row.id === row.currentObservationId,
     scope: 'Stored reconciliation projection. Timestamp/identity checks do not validate the current entry epoch, changed orders or FX proofs; not an entry authorization.' };
@@ -38,7 +38,7 @@ export async function uiAccountEvidence(accountId: string) {
   ]);
   const [observation, baseline, requiredSince, daily] = sources.map(source => source.status === 'fulfilled' ? source.value : null);
   return { contractVersion: 1, observedAt: now, account: { id: account.id, name: account.name, exchange: account.exchange, mode: account.mode },
-    risk: redactReview(observationSummary(observation, account, now)), baseline, requiredHistorySince: requiredSince,
+    risk: observationSummary(observation, account, now), baseline, requiredHistorySince: requiredSince,
     daily: daily ? dailyEvidence(daily, day, now + 1) : null,
     errors: sources.map((source, index) => source.status === 'rejected' ? { source: ['risk', 'baseline', 'required-history', 'daily-money'][index], reason: redactReview(String(source.reason)) } : null).filter(Boolean),
     interpretation: 'Abrechnungswerte aus dem bestehenden Geld-Ledger für den UTC-Tag. Keine eigenständige Summierung interner Tabellen, keine neue Handelsfreigabe. Fehlende Historie und ungeklärte Bewertungen bleiben sichtbar.' };
