@@ -2037,7 +2037,9 @@ async function startDashboardRuntime(
       },
       recovery,
       startupAuthority,
-      requestRestart: createProcessRestartRequest(() => shutdown(0)),
+      // Honor the queue's configured drain grace, then allow 30 seconds for the
+      // remaining service/database/audit cleanup before a non-graceful restart.
+      requestRestart: createProcessRestartRequest(() => shutdown(0), getShutdownGraceMs() + 30_000),
   });
   await waitForStartupListener(listener);
 }

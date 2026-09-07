@@ -13,16 +13,29 @@ export function assertRestartReceiptsPreserved(receipts: string, targets: Iterab
   }
 }
 
-/** All confirmed jobs share one shutdown request in a process generation. */
-export function createProcessRestartRequest(shutdown: () => Promise<unknown>): () => void {
+/** Only confirmed operator restarts receive a deadline for the entire graceful shutdown. */
+export function createProcessRestartRequest(shutdown: () => Promise<unknown>, shutdownTimeoutMs = 60_000): () => void {
+  if (!Number.isSafeInteger(shutdownTimeoutMs) || shutdownTimeoutMs < 1_000 || shutdownTimeoutMs > 180_000) {
+    throw new Error('Restart shutdown deadline must be between 1000 and 180000 milliseconds.');
+  }
   let requested = false;
   return () => {
     if (requested) return;
     requested = true;
+    const previousExitCode = process.exitCode;
+    const exit = (fallbackCode: number): never => process.exit(process.exitCode || previousExitCode || fallbackCode);
+    // Response completion and audit flush can both remain pending forever. Keep
+    // the watchdog independent of either promise; do not remove locks or claim
+    // graceful completion when the deadline expires.
+    const watchdog = setTimeout(() => {
+      process.stderr.write('[CRITICAL] Confirmed operator restart exceeded its shutdown deadline; forcing non-graceful exit.\n');
+      exit(1);
+    }, shutdownTimeoutMs);
+    const finish = (fallbackCode: number) => { clearTimeout(watchdog); exit(fallbackCode); };
     setTimeout(() => {
-      void shutdown().then(
-        () => process.exit(process.exitCode || 0),
-        () => process.exit(process.exitCode || 1),
+      void Promise.resolve().then(shutdown).then(
+        () => finish(0),
+        () => finish(1),
       );
     }, 150);
   };

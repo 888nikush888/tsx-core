@@ -41,12 +41,26 @@ if (mode === 'disconnect') {
   void controls.entered.promise.then(() => process.send({ type: 'entered' }));
   process.on('message', message => { if (message.type === 'release') release.resolve(); });
 }
+if (mode === 'stalled-response') {
+  controls.blockAudit = async event => {
+    if (event.phase === 'completed') await new Promise(() => {});
+  };
+}
+if (mode.startsWith('stalled-flush')) {
+  app.auditTrail.flush = async () => {
+    if (mode === 'stalled-flush-existing-error') process.exitCode = 23;
+    await new Promise(() => {});
+  };
+}
 
 app.requestRestart = createProcessRestartRequest(async () => {
   await fs.appendFile(path.join(directory, 'shutdown.log'), store.processInstanceId + '\n');
+  process.send({ type: 'shutdown-started' });
   await stopWebServer();
+  await app.auditTrail.flush?.();
   if (mode === 'shutdown-failure') throw new Error('Isolated shutdown failure.');
-});
+  await fs.writeFile(path.join(directory, 'shutdown-finished'), 'graceful');
+}, mode.startsWith('stalled') ? 1_000 : 60_000);
 const server = startWebServer(0, app);
 server.once('listening', () => process.send({ type: 'ready', port: server.address().port, instanceId: store.processInstanceId,
   startup: authority.snapshot(), canEnter: authority.canEnter(), providerConnections: 0 }));

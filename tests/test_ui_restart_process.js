@@ -116,12 +116,33 @@ async function testShutdownFailure() {
   assert.equal(await readFile(path.join(directory, 'shutdown.log'), 'utf8'), ready.instanceId + '\n');
 }
 
+async function testShutdownDeadline(mode, expectedCode = 1) {
+  const directory = path.join(root, mode); await mkdir(directory);
+  const initial = launch(directory, mode); const ready = await readiness(initial);
+  const command = COMMANDS[1]; const id = `process-${mode}`;
+  const pending = fetch(`http://127.0.0.1:${ready.port}${command.route}`, commandRequest(command, id)).catch(() => null);
+  await initial.wait('shutdown-started');
+  const receipt = JSON.parse(await readFile(path.join(directory, 'jobs', id + '.json'), 'utf8'));
+  assert.equal(receipt.state, 'awaiting-restart', 'Work is durably confirmed before the bounded shutdown starts.');
+  assert.equal((await bounded(initial.exited)).code, expectedCode, initial.output());
+  await pending;
+  assert.match(initial.output(), /forcing non-graceful exit/);
+  await assert.rejects(readFile(path.join(directory, 'shutdown-finished')), { code: 'ENOENT' });
+  assert.equal(await readFile(path.join(directory, 'shutdown.log'), 'utf8'), ready.instanceId + '\n');
+  const effects = await readFile(path.join(directory, 'effects.log'), 'utf8');
+  assert.equal(effects, command.kind + '\n');
+  await verifyReplacement(directory, command, id, ready.instanceId, 'succeeded', effects);
+}
+
 try {
   for (const [index, mode] of ['restart', 'restore', 'reset'].entries()) await testRealRestart(COMMANDS[index], mode, index);
   await testRealRestart(COMMANDS[1], 'disconnect', 3);
   await testCrashBoundary('crash-after-receipt', 'succeeded');
   await testCrashBoundary('crash-before-receipt', 'unknown');
   await testShutdownFailure();
+  await testShutdownDeadline('stalled-response');
+  await testShutdownDeadline('stalled-flush');
+  await testShutdownDeadline('stalled-flush-existing-error', 23);
   console.log('Real isolated child-process restart/restore/reset, disconnected restore, crash boundaries, new-generation HTTP readiness and no implicit trading/replay passed.');
 } finally {
   for (const child of children) child.kill('SIGKILL');
