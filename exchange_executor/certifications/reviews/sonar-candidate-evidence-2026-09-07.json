@@ -1,0 +1,35 @@
+{
+  "reviewedBy": "root",
+  "sourceChanges": [
+    "exchange_executor/ccxt_registry.py"
+  ],
+  "evidenceChanges": [
+    "exchange_executor/tests/test_candidate_group_a_boundaries.py",
+    "exchange_executor/tests/test_history_coverage.py",
+    "exchange_executor/tests/test_kucoin_provider_data.py",
+    "exchange_executor/tests/test_mutation_identity.py"
+  ],
+  "providerDeclarationsUnchanged": true,
+  "decisionsAndReasonsUnchanged": true,
+  "oldInventoryHash": "79689e86723f53f439d540243265c96b1c05f6be5862dd3e89e6de4997fd2cd2",
+  "newInventoryHash": "83b7705b10eb6aded730f0f2b4e62f9c852480b33ffa950d1a3f2a771239160d",
+  "oldAssessmentsHash": "eea8582102dfd7c4c0f2adb02e9cbe102b3c2bd984911e1dd097660107fd5163",
+  "newAssessmentsHash": "6c9f16979ecabc29bdb518e8af758eba20f1efc595e09d9a8472c85aed49cd55",
+  "review": "Reviewed registry dictionary constructor refactor and complete four evidence-file diffs. Independent AST comparison of all 30 changed test files: 499 methods equivalent after inlining fixture preparation, five remaining methods manually reviewed; assertions and dispatch refusal boundaries preserved.",
+  "schemaVersion": 1,
+  "kind": "reviewed_candidate_evidence_refresh",
+  "reviewedAt": "2026-09-07T10:38:02Z",
+  "baseRevision": "e03eacfa3ea482d3be56f731f970b58761dd2510",
+  "implementationCommits": [
+    "fdbedc05755f0df1fce48ba8f82b8c7be97a736d",
+    "64e4787203d20434f56df9eff1218f9a76df5150"
+  ],
+  "pythonValidation": {
+    "tests": 542,
+    "passed": 542,
+    "failed": 0,
+    "logSha256": "59b0ce97d84eafadeeb48f3186e97af3d51d5c4a2b1c0f5eb09597dfa4090c02"
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false
+}
