@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "kind": "release_audit_source_review",
+  "reviewedAt": "2026-09-07T07:16:33Z",
+  "sourceRevision": "a516a216d804c0434903a10a5f1f298e12a281d6",
+  "sourceTreeHash": "c1648358ff973a67e0cb7c55a8fd37cfcf773a568fcb25d143872be4af0c14e8",
+  "priorReceiptSha256": "d0a803ac23fcc7966ebffb7549aff8baef34e2367a81ace280755078365bf0e0",
+  "priorExecutionReportHash": "2d82247bb5d97f0d84364280a63569761e386123d179a3e87f75147117791cb2",
+  "scope": "User-authorized release-audit remediation; local deterministic source/gate review only.",
+  "authorization": "User requested implementation, publication to GitHub, and CI/Sonar verification.",
+  "localValidation": {
+    "node": "v22.23.2",
+    "python": "3.12",
+    "ccxt": "4.5.75",
+    "backendTestFiles": 209,
+    "criticalPerFileCoverage": "passed",
+    "moduleCoverageRatchet": "passed",
+    "frontendTestFiles": 27,
+    "frontendTests": 217,
+    "pythonTests": 533,
+    "build": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "complexity": "0 warnings; cyclomatic maximum 15",
+    "architecture": "200 modules, 0 cycles",
+    "duplicateLinesPercent": 0.65,
+    "pythonCoverageScope": "51 production/tooling modules; zero test modules; existing 60% combined threshold retained",
+    "sourceCommitmentsIncludeCoveragePolicy": true
+  },
+  "independentReviews": [
+    {
+      "scope": "Backend refactors, canonical review hashes, worker scope, account evidence redaction",
+      "result": "No remaining findings after integration fixes",
+      "reviewer": "ui_quality_fix",
+      "reviewedCommit": "1674335",
+      "testsIndependentlyRerun": 4
+    },
+    {
+      "scope": "Durable restart binding, replay, generation and real stalled shutdown reproduction",
+      "result": "P1 shutdown hang found and fixed; independent reproduction exits with nonzero status and preserves receipt",
+      "reviewer": "ci_governance_code",
+      "reviewedCommit": "54aa05b"
+    }
+  ],
+  "logDigests": {
+    "critical": {
+      "sha256": "06f3ec297a6d4ed87027cac2cce189a7e30de2d4577200f7e5bc3a595ac059f8",
+      "bytes": 64024
+    },
+    "modules": {
+      "sha256": "168bced92376e4203682352eb713d833b1a07ee5997a036e73b58f2acfcded50",
+      "bytes": 83592
+    },
+    "frontend": {
+      "sha256": "4bd76ca4d9db79a095f369a9524f90d1f9eca221698c3bf2a173cd7bb0781819",
+      "bytes": 7661
+    },
+    "restartProcesses": {
+      "sha256": "41e097ad08b76b78193ce6c278c5416bc546665b1e310448e7a7520dfa18049f",
+      "bytes": 161
+    },
+    "python": {
+      "sha256": "268aec563f8d47063a19dba10ef43a17d4ede7205eb34b97c35cfe1369cd4c52",
+      "bytes": 106648
+    },
+    "pythonCoverage": {
+      "sha256": "4539523346af2e47816652e2acc6ecc6a9d498ac52d33b63455a9d1e99652191",
+      "bytes": 261753
+    }
+  },
+  "providerParityEvidence": {
+    "preservedHash": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e",
+    "reason": "Executor and installed SDK source unchanged; complete offline Python suite rerun."
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false,
+  "productionDeploymentPerformed": false,
+  "quarantinePreserved": [
+    "bybit",
+    "krakenfutures"
+  ],
+  "ciAndSonar": "Must be checked on the final published commit; local results do not assert remote checks passed."
+}
