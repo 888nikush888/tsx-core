@@ -51,22 +51,30 @@ async function resolveLocal(importer, specifier) {
   ]);
 }
 
+function literalText(node) {
+  return node && ts.isStringLiteralLike(node) ? node.text : undefined;
+}
+
+function urlDependency(node) {
+  if (!ts.isIdentifier(node.expression) || node.expression.text !== 'URL') return undefined;
+  const specifier = literalText(node.arguments?.[0]);
+  // Relative worker/asset URLs participate in the graph; network addresses are not packages.
+  return specifier?.startsWith('.') || specifier?.startsWith('@/') ? specifier : undefined;
+}
+
+function moduleReference(node) {
+  if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return literalText(node.moduleSpecifier);
+  if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) return literalText(node.arguments[0]);
+  if (ts.isNewExpression(node)) return urlDependency(node);
+  return undefined;
+}
+
 export function frontendDependencies(content) {
   const dependencies = [];
   const source = ts.createSourceFile('frontend.tsx', content, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   function visit(node) {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node))
-      && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
-      dependencies.push(node.moduleSpecifier.text);
-    } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword
-      && node.arguments[0] && ts.isStringLiteralLike(node.arguments[0])) {
-      dependencies.push(node.arguments[0].text);
-    } else if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'URL'
-      && node.arguments?.[0] && ts.isStringLiteralLike(node.arguments[0])) {
-      // Relative worker/asset URLs participate in the graph; network addresses are not packages.
-      const specifier = node.arguments[0].text;
-      if (specifier.startsWith('.') || specifier.startsWith('@/')) dependencies.push(specifier);
-    }
+    const specifier = moduleReference(node);
+    if (specifier !== undefined) dependencies.push(specifier);
     ts.forEachChild(node, visit);
   }
   visit(source);
