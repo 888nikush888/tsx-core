@@ -1,19 +1,18 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-09-08T10:06:15.2351082Z",
+  "reviewedAt": "2026-09-08T10:09:43.8754954Z",
   "reviewer": "OpenAI Codex root, independent of initial Codacy triage",
   "repository": "888nikush888/tsx-core",
   "scanRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
-  "reviewedRevision": "a9895dcbed22a0c6c1b463c0644dc80e5f10240d",
-  "scope": "First bounded production review; other Codacy proposals remain unconfirmed",
-  "method": "Read the actual current implementations, callers and protection helpers for each listed issue. Checked local configuration authority, path confinement, readonly object traversal, literal VM source with timeout, numeric exactness and caught async propagation. Source bindings below capture the reviewed files.",
+  "reviewedRevision": "49672b233b9652c035eae0c33f374b8c06c87b69",
+  "scope": "All 76 production/documentation/script proposed false positives; 239 test proposals remain outside this independent review",
+  "method": "Read the actual current implementations, callers and protection helpers for each listed issue. Checked local configuration authority, path confinement, readonly object traversal, literal VM source with timeout, numeric exactness and caught async propagation. Source bindings below capture the reviewed files. Second pass inspected dispatch tables and their kind/permission guards, browser worker ownership and termination, native Request normalization, executor origin allowlist, operator-owned webhook configuration, provider label/cursor/test fixtures, and offline subprocess blocking. No runtime input was identified as arbitrary executable source or an untrusted server network target at these specific sinks.",
   "limitations": [
     "No Codacy platform state was changed. These are reviewed classifications, not code fixes or a fresh scan.",
     "Local operator-controlled configuration is trusted; this review does not claim protection against a compromised process or operating-system account.",
-    "Viewer bot API origin is operator configurable; the runtime trusted-host restriction applies to the Core API only. Neither URL is selected by chat contents.",
-    "The separate frontend API normalization review is still in progress and excluded."
+    "Viewer bot API origin is operator configurable; the runtime trusted-host restriction applies to the Core API only. Neither URL is selected by chat contents."
   ],
-  "reviewedIssueCount": 45,
+  "reviewedIssueCount": 76,
   "sourceBindings": [
     {
       "sha256": "6341c145dff448320dd71a51e2a5f66ce9bcd8f6ce7f11778fdd9a3e5ad7b31a",
@@ -58,6 +57,106 @@
     {
       "sha256": "1bc06ad0c878010ab8597e5b39ec1466dbd2dee4b87e8c09596c362881a21d35",
       "path": "src/telegram_viewer/internal_transport.ts"
+    },
+    {
+      "sha256": "5745e6b120c1553b44829c0cbd5cc9b13e1da1729beb7e429c8888bc419f33e1",
+      "path": ".github/workflows/quality.yml"
+    },
+    {
+      "sha256": "bc265415bc30caf600f99a00f1b9ac70883c44722f0960885b69c4e8df5f939c",
+      "path": "exchange_executor/ccxt_registry.py"
+    },
+    {
+      "sha256": "55ca04912947d1adfd3573df484dae3a961dbcd0383b2683b05aa11fc21faed7",
+      "path": "exchange_executor/kraken_history.py"
+    },
+    {
+      "sha256": "34ee65bf13f4820d831e16f815c97151bec2e8f1b4af0e0f838075322d4e03a1",
+      "path": "exchange_executor/tools/audit_derivatives_candidates.py"
+    },
+    {
+      "sha256": "9033393dbbe8fe9d383cb051667176c8ae86cb681bbbac21909388f3a317fa0b",
+      "path": "frontend/src/app/workflow/workflow-builder.tsx"
+    },
+    {
+      "sha256": "d1afd0f5ee14888dbb3df8c292ab5ead85e556aa2a15423443f211cf3bf31c0d",
+      "path": "frontend/src/features/operations/log-search.worker.ts"
+    },
+    {
+      "sha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+      "path": "frontend/src/lib/api.ts"
+    },
+    {
+      "sha256": "1b0accd1656e25597116e90ae55827f40ed50733a38acb534fe58050da30aa9e",
+      "path": "plans/005-kraken-quantity-probe.py"
+    },
+    {
+      "sha256": "a48f9b21ad0bfc141b5a444c28c65f6a93585b71e1f33cc716f18594c1583109",
+      "path": "scripts/check_release_artifacts.js"
+    },
+    {
+      "sha256": "71aef4f8b6183179c6a71a97b7efc68d6b26bf651defea8701e802849da1f46b",
+      "path": "scripts/check_risk_acceptances.js"
+    },
+    {
+      "sha256": "fa270df6e2c142f5677432d10a0ac4fc0896184b5fbb62125efd8e23b3051ffa",
+      "path": "scripts/verify_github_governance.js"
+    },
+    {
+      "sha256": "f312f3232cd9e3d95609a4e5bdea623403de46eaeed4acabeb72f41bad403cb0",
+      "path": "src/alert_relay.ts"
+    },
+    {
+      "sha256": "ac6fd82fab520185e4b26c3281a3d09c3b3a7bf6b921862b191e1a4ab194a03a",
+      "path": "src/audit_trail.ts"
+    },
+    {
+      "sha256": "85bcfe7f6f22bd9b72fc607b5a2e56f852e077edf230947dcaf7d734a2f5e868",
+      "path": "src/ccxt_exchange.ts"
+    },
+    {
+      "sha256": "2169171d995a81f527b86a1be937cea35cd5055e2bda4beb55d65604f96a40e7",
+      "path": "src/config.ts"
+    },
+    {
+      "sha256": "2e7f5540a7c69f6ce5dfc93c94ec1303fdbdc3f7e2558674b9db567acb1c4878",
+      "path": "src/mcp_control_bridge.ts"
+    },
+    {
+      "sha256": "e2d13de3793e20fbcda1350f1298681f0356c0e32c075e8763ef38d3bb61722e",
+      "path": "src/signal_schema.ts"
+    },
+    {
+      "sha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "path": "src/trading_take_profit.ts"
+    },
+    {
+      "sha256": "87c08973ab66cdc9bc135d9ed0fd6e19f5f1288e5e134a796c894ccaa339c5a3",
+      "path": "src/ui_adaptive_risk.ts"
+    },
+    {
+      "sha256": "8c494fa3580ee3b099292c0dde982db5e0719867c08fc9eacf562a9ec35a1571",
+      "path": "src/ui_parameter_types.ts"
+    },
+    {
+      "sha256": "d4f1652601c61597b7cebc6aafbaba9fb876f69bdacc288494b98ef631730927",
+      "path": "src/ui_parser_lab.ts"
+    },
+    {
+      "sha256": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b",
+      "path": "src/web_server.ts"
+    },
+    {
+      "sha256": "068eaae7ccb43d9b2a69d7e77c3a785c72e986657b4f9efb162735149428748e",
+      "path": "src/workflow_repository.ts"
+    },
+    {
+      "sha256": "5b2738f6e99d067c66f26efab2b7873de8c24a4e1f4a628f76b9e628f5a73ed1",
+      "path": "src/executor_origin.ts"
+    },
+    {
+      "sha256": "a17d631990e2c5ce1c44531f8cf67b51f29e591445dee49761f5f0a7db45500c",
+      "path": "frontend/src/features/operations/use-log-search.ts"
     }
   ],
   "decisions": [
@@ -420,6 +519,254 @@
       "path": "scripts/sonar_review_decisions.js",
       "issueId": "22ed336356baf9d93b7a09483dc780c1",
       "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rationale": "resource.kind selects a local literal summary function table for persisted workflow resources. Backend create validates RESOURCE_KINDS before saving; functions only format display values, no string becomes executable code.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 265,
+      "path": "frontend/src/app/workflow/workflow-builder.tsx",
+      "issueId": "82cd7997f41909f3b1ba2aa4c56acaf",
+      "rule": "Semgrep_javascript.lang.security.audit.unsafe-dynamic-method.unsafe-dynamic-method"
+    },
+    {
+      "rationale": "destination defaults to CONFIG_PATH from the operator environment or module-relative config.json. Public config writes serialize validated Config, retain managed-generation scope, and use same-directory exclusive wx/0600 temporary files, fsync and atomic rename; request configuration payload does not select destination.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 591,
+      "path": "src/config.ts",
+      "issueId": "ba5770b1712472874d2116d3b2f2f72",
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename"
+    },
+    {
+      "rationale": "section is selected only from the literal requiredSections array Risk/Evidence/Compensating controls/Exit criteria. Document content is matched text, not regex source.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 51,
+      "path": "scripts/check_risk_acceptances.js",
+      "issueId": "95262b948f080bb6255002cc25df4826",
+      "rule": "Semgrep_javascript_dos_rule-non-literal-regexp"
+    },
+    {
+      "rationale": "URL is built against literal https://api.github.com/ from individually encodeURIComponent-encoded pathSegments; query uses URLSearchParams. Encoded segments cannot replace the origin; the script is an operator/CI governance reader.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 136,
+      "path": "scripts/verify_github_governance.js",
+      "issueId": "6d0de7a6c1ecc0623e3b08b34ac9f799",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf"
+    },
+    {
+      "rationale": "The flagged API Secret/Password/Token strings are human-readable credential-field LABELS in a metadata dictionary. They are returned as labels, never used as authentication values.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 45,
+      "path": "exchange_executor/ccxt_registry.py",
+      "issueId": "e050a281888adf2f3c2137752b01ff7b",
+      "rule": "Bandit_B105"
+    },
+    {
+      "rationale": "token=None is a pagination cursor sentinel when advancing orders to triggers. It represents absence of a provider continuation token, not a hardcoded password.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 88,
+      "path": "exchange_executor/kraken_history.py",
+      "issueId": "1e134ba84dd82bb3ec0f48a34e67a78d",
+      "rule": "Bandit_B105"
+    },
+    {
+      "rationale": "Collection dispatcher keys begin with / and are fixed routes; the derived relativePath begins with / so inherited prototype names do not match. Detail handler key is restricted by regex /(accounts|positions|orders|trades)/. Both call predeclared internal reader functions.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 3113,
+      "path": "src/web_server.ts",
+      "issueId": "cc53083d22d7583108f9a0628a81e86a",
+      "rule": "Semgrep_javascript.lang.security.audit.unsafe-dynamic-method.unsafe-dynamic-method"
+    },
+    {
+      "rationale": "Audit remoteUrl is operator AUDIT_WEBHOOK_URL validated at construction; audit event content is serialized as body, not URL. POST uses redirect:error and bounded timeout. Intended configurable audit sink, not request-controlled SSRF.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 265,
+      "path": "src/audit_trail.ts",
+      "issueId": "88f25c25b1d9b17cf65640cf1d6cfe",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf"
+    },
+    {
+      "rationale": "destination defaults to CONFIG_PATH from the operator environment or module-relative config.json. Public config writes serialize validated Config, retain managed-generation scope, and use same-directory exclusive wx/0600 temporary files, fsync and atomic rename; request configuration payload does not select destination.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 29,
+      "path": "src/config.ts",
+      "issueId": "166fbf1be26868c39d710f0d9277f291",
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename"
+    },
+    {
+      "rationale": "The reported 40-hex value is the public immutable SonarSource scanner action commit pin. It selects trusted action code, not an API credential; analysis authentication uses the separately stored SONAR_TOKEN secret.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 240,
+      "path": ".github/workflows/quality.yml",
+      "issueId": "f9a93170b34dc08095660fc646bbbe88",
+      "rule": "Semgrep_generic.secrets.security.detected-sonarqube-docs-api-key.detected-sonarqube-docs-api-key"
+    },
+    {
+      "rationale": "Regex source uses version from checked-in package.json under repository-maintainer control. Semantic Version syntax is checked and dots are escaped; no remote input reaches this build-only checker. Invalid source metadata can fail CI and must not be treated as public runtime input.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 14,
+      "path": "scripts/check_release_artifacts.js",
+      "issueId": "27720e1d8383a13d6fa296ce2b8e0a01",
+      "rule": "Semgrep_javascript_dos_rule-non-literal-regexp"
+    },
+    {
+      "rationale": "The flagged API Secret/Password/Token strings are human-readable credential-field LABELS in a metadata dictionary. They are returned as labels, never used as authentication values.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 46,
+      "path": "exchange_executor/ccxt_registry.py",
+      "issueId": "3fc3396f689336c61d5bd2ee5c6a7b42",
+      "rule": "Bandit_B105"
+    },
+    {
+      "rationale": "selection validates query kind with KINDS.includes against six literals before handlers[page.kind] is invoked. Arbitrary/prototype keys are rejected before dispatch.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 125,
+      "path": "src/ui_adaptive_risk.ts",
+      "issueId": "ccab4264e0ab416d0aa1ac4bf7eb29e0",
+      "rule": "Semgrep_javascript.lang.security.audit.unsafe-dynamic-method.unsafe-dynamic-method"
+    },
+    {
+      "rationale": "baseUrl is internalExecutorOrigin(process.env.EXCHANGE_EXECUTOR_URL); endpoints are internal literal /v1 operations selected by adapter methods. External trading payload is cloned into JSON body and cannot choose the executor origin.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 436,
+      "path": "src/ccxt_exchange.ts",
+      "issueId": "246c1bb1198d44e1d5e6552f4ec59d3c",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf"
+    },
+    {
+      "rationale": "subprocess import exists solely so the offline audit blocker can patch subprocess.Popen alongside sockets/HTTP. It prevents process launches during metadata enumeration; no command is executed by this import.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 16,
+      "path": "exchange_executor/tools/audit_derivatives_candidates.py",
+      "issueId": "c7b6ec92b5570e761d8bff0f256fe98b",
+      "rule": "Bandit_B404"
+    },
+    {
+      "rationale": "Webhook is operator ALERT_WEBHOOK_URL validated HTTPS without embedded credentials/fragment (loopback HTTP only explicit test option). Incoming authenticated Alertmanager body is validated JSON and is POST body only; redirect:error prevents target switching.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 119,
+      "path": "src/alert_relay.ts",
+      "issueId": "4bb82fc4572dd45323654d437890dfc1",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf"
+    },
+    {
+      "rationale": "destination defaults to CONFIG_PATH from the operator environment or module-relative config.json. Public config writes serialize validated Config, retain managed-generation scope, and use same-directory exclusive wx/0600 temporary files, fsync and atomic rename; request configuration payload does not select destination.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 581,
+      "path": "src/config.ts",
+      "issueId": "e1750d39633815a6b81a72c7d7d572e0",
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename"
+    },
+    {
+      "rationale": "The flagged API Secret/Password/Token strings are human-readable credential-field LABELS in a metadata dictionary. They are returned as labels, never used as authentication values.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 47,
+      "path": "exchange_executor/ccxt_registry.py",
+      "issueId": "754d329a90ba7272b1977b00988ddfcb",
+      "rule": "Bandit_B105"
+    },
+    {
+      "rationale": "Browser fetch is not a server-side network capability. Current helper now normalizes a native Request before adding credentials, checks the normalized URL against dashboard origin, and sends the same Request with redirects rejected. Mutable URL coercion and shadowed Request.url regressions pass in the integrated 316-test frontend suite. This defense hardening is distinct from classification of the server-side SSRF rule.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 29,
+      "path": "frontend/src/lib/api.ts",
+      "issueId": "4469be6e6910898db9f748e3403361a9",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf"
+    },
+    {
+      "rationale": "parse is an injected function parameter defaulting to imported parseSignalToXml, used for testability. sourceText is the function argument, not eval source; preparation resolves server-owned models/adapters and requires external-data consent/configured provider.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 90,
+      "path": "src/ui_parser_lab.ts",
+      "issueId": "f7348641e39b0b5604602c5da98e20c5",
+      "rule": "Semgrep_rules_lgpl_javascript_eval_rule-eval-nodejs"
+    },
+    {
+      "rationale": "destination defaults to CONFIG_PATH from the operator environment or module-relative config.json. Public config writes serialize validated Config, retain managed-generation scope, and use same-directory exclusive wx/0600 temporary files, fsync and atomic rename; request configuration payload does not select destination.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 582,
+      "path": "src/config.ts",
+      "issueId": "5cf9fc55a70d798b6af7304607f86f03",
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename"
+    },
+    {
+      "rationale": "Collection dispatcher keys begin with / and are fixed routes; the derived relativePath begins with / so inherited prototype names do not match. Detail handler key is restricted by regex /(accounts|positions|orders|trades)/. Both call predeclared internal reader functions.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 3124,
+      "path": "src/web_server.ts",
+      "issueId": "58812ebae672fc409611682791969cfc",
+      "rule": "Semgrep_javascript.lang.security.audit.unsafe-dynamic-method.unsafe-dynamic-method"
+    },
+    {
+      "rationale": "RESOURCE_VALIDATORS is a fixed table. Creating resources rejects kinds outside RESOURCE_KINDS; persisted resource kind is reused on update. The input is configuration data for local validator functions, not dynamically compiled executable code.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 396,
+      "path": "src/workflow_repository.ts",
+      "issueId": "ef97adb8ab0f95227d11fb4105a8c75d",
+      "rule": "Semgrep_javascript.lang.security.audit.unsafe-dynamic-method.unsafe-dynamic-method"
+    },
+    {
+      "rationale": "The reported token === slash branch compares a parsed public trading-pair lexical token against the literal / delimiter. It is not an authentication token or secret comparison.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 998,
+      "path": "src/signal_schema.ts",
+      "issueId": "5ba63e635ba316521ee64c7cffa0cc41",
+      "rule": "Semgrep_rules_lgpl_javascript_crypto_rule-node-timing-attack"
+    },
+    {
+      "rationale": "defaultAt traverses defaults by READ only, requiring Object.hasOwn(current, part) before current=current[part]. There is no assignment into the object or its prototype.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 16,
+      "path": "src/ui_parameter_types.ts",
+      "issueId": "47ffa4487c0e5bec83156dcf60ed612b",
+      "rule": "Semgrep_javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop"
+    },
+    {
+      "rationale": "Pattern is deliberately user-selected regex. Work runs in a dedicated Worker with200-character/5000-entry/1MB limits. Owner use-log-search terminates worker after500ms and on completion/unmount, bounding catastrophic matching outside the UI thread.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 12,
+      "path": "frontend/src/features/operations/log-search.worker.ts",
+      "issueId": "7738d46040bcc1200c7691e0653d0898",
+      "rule": "Semgrep_javascript_dos_rule-non-literal-regexp"
+    },
+    {
+      "rationale": "destination defaults to CONFIG_PATH from the operator environment or module-relative config.json. Public config writes serialize validated Config, retain managed-generation scope, and use same-directory exclusive wx/0600 temporary files, fsync and atomic rename; request configuration payload does not select destination.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 586,
+      "path": "src/config.ts",
+      "issueId": "d61f6f7e8b111cb56231a0b3744fbfae",
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename"
+    },
+    {
+      "rationale": "row.plan_hash is an immutable trade-plan integrity digest, not an authentication secret. Comparing it with the current plan hash rejects incompatible stored allocation evidence; timing reveals no credential.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 104,
+      "path": "src/trading_take_profit.ts",
+      "issueId": "d2d95a9bdf6cf342dca906d4e2bdcba3",
+      "rule": "Semgrep_rules_lgpl_javascript_crypto_rule-node-timing-attack"
+    },
+    {
+      "rationale": "Fixed proposal-action table runs only after proposalPermission, current agent permission checks, maintenance/startup checks and preflightMcpAction. Proposal lifecycle is persisted and operator-approved where required. Payload stays data passed to declared control methods.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 242,
+      "path": "src/mcp_control_bridge.ts",
+      "issueId": "4a40049ab98ee3fbaca59260e0133750",
+      "rule": "Semgrep_javascript.lang.security.audit.unsafe-dynamic-method.unsafe-dynamic-method"
+    },
+    {
+      "rationale": "destination defaults to CONFIG_PATH from the operator environment or module-relative config.json. Public config writes serialize validated Config, retain managed-generation scope, and use same-directory exclusive wx/0600 temporary files, fsync and atomic rename; request configuration payload does not select destination.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 514,
+      "path": "src/config.ts",
+      "issueId": "92fa72e008922a41ce97ae603b3bb85a",
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename"
+    },
+    {
+      "rationale": "factor_token is the decimal text 0.25 used as a numeric fixture replacement marker in a local unittest response. fake_transport asserts a fixed instruments URL and is installed as the fixture transport. It is not an authentication credential.",
+      "disposition": "independently-reviewed-false-positive",
+      "scanLine": 43,
+      "path": "plans/005-kraken-quantity-probe.py",
+      "issueId": "62534cb4c96469b91e89172f7ddd5966",
+      "rule": "Bandit_B105"
     }
   ]
 }
