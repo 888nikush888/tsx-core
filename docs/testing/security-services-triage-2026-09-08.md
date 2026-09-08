@@ -103,3 +103,17 @@ justified a code change.
 | JS-0057 empty arrow (`run_staging_e2e.js:99`) | Intentional | Best-effort close already bounded by `withTimeout(..., 15_000)`; teardown must not fail the run. |
 | JS-W1038 `logCallback` (`filters.ts`) | Stale | Current signature `(msg: string) => void` matches all four call sites. |
 | JS-0004 control chars | Intentional sanitizers | Rejection regexes for control characters in IDs, branch names, rationale text. |
+
+## Remaining production finding classes (explicit close-out)
+
+These classes were counted in the exports but contain no verified runtime
+error on the fix branch. Per scope (real errors only, small batches) they
+are closed here as documentation, not code churn.
+
+| Class | Verdict | Evidence |
+| --- | --- | --- |
+| DeepSource TYP-* / TYPECHECK (41) | Not a CI gate; no change | `.github/workflows/quality.yml` contains no mypy/bandit gate match; Python was verified locally via `ruff` plus `pytest` (550 passed, 994 subtests). Strict-typing notes alone do not prove a runtime fault. |
+| JS-0045 async-return notes | Interface-driven; no change | `tsc --noEmit` is clean and backend suites are green; async shapes are required by repository interfaces. No missing-`await` runtime fault was verified. |
+| JS-0357 used-before-defined | Hoisting-safe; no change | Sampled closures (e.g. `src/ui_restart_coordinator.ts:58`) only run after the later binding is assigned. |
+| Style bulk (JS-0323 `any`, JS-0339 non-null, JS-0116 async-without-await, JS-R1005 complexity) | Explicitly out of scope | Bulk rewrites would risk stability without a verified defect; local gates (`tsc`, `eslint --quiet`, tests) are green. |
+| Trivy Go CVEs on `go 1.26.0` | Stale | Cloud revision predates the fix branch; the branch pins `go 1.26.6` (`monitoring/govulncheck/go.mod`). Closure belongs to a platform rescan after merge. |
