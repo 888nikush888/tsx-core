@@ -12,7 +12,8 @@
     "Ten money-fixture/rejection findings: five targeted Node22 tests, ESLint error checks and diff checks passed.",
     "62 explicit empty-hook return contracts: all 23 scoped Node22 test files passed, including Python FX bridge under exact-lock Python3.12; ESLint error checks and diff checks passed.",
     "18 MCP control stubs now detect unexpected dispatch; targeted Node22 MCP control-plane suite and ESLint/diff checks passed.",
-    "UI register/route generators: both Node22 --check modes verify unchanged artifacts, UI register contract suite and ESLint/diff checks passed."
+    "UI register/route generators: both Node22 --check modes verify unchanged artifacts, UI register contract suite and ESLint/diff checks passed.",
+    "22 individual literal foreign-language interpolation findings: four Node22 regression suites passed; no source change or remote suppression is appropriate."
   ],
   "entries": [
     {
@@ -1734,6 +1735,226 @@
       "originalLine": 46,
       "status": "source_change_pending_rescan",
       "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtubGU=",
+      "rule": "JS-0038",
+      "path": "tests/test_supply_chain.js",
+      "originalLine": 346,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions expression text in checked-in deployment files. Resolving it in JavaScript would invalidate the supply-chain boundary test; the full supply-chain test passed.",
+      "evidenceLineSha256": "19f98823f45400f6cf4f7e0b7a4b9237c052c88a2993d2d36ae3e5fe24540319",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2YWw=",
+      "rule": "JS-0038",
+      "path": "tests/test_supply_chain.js",
+      "originalLine": 341,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions expression text in checked-in deployment files. Resolving it in JavaScript would invalidate the supply-chain boundary test; the full supply-chain test passed.",
+      "evidenceLineSha256": "c0b91ddca1fd904a02b5df189a20ff9b8a59d31968a5a5f335905d6a61f015d4",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294bHA=",
+      "rule": "JS-0038",
+      "path": "tests/test_supply_chain.js",
+      "originalLine": 262,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions expression text in checked-in deployment files. Resolving it in JavaScript would invalidate the supply-chain boundary test; the full supply-chain test passed.",
+      "evidenceLineSha256": "cdc3c98ac28d27a0610bdb41b177b71c2ba66c9c21684cf3a229c7e2367d4353",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJubGw=",
+      "rule": "JS-0038",
+      "path": "tests/test_supply_chain.js",
+      "originalLine": 258,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions expression text in checked-in deployment files. Resolving it in JavaScript would invalidate the supply-chain boundary test; the full supply-chain test passed.",
+      "evidenceLineSha256": "5ebacc36cd67877f41299a0d3264908ca74f8324a4b6a992ac78c7571143e402",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5bGw=",
+      "rule": "JS-0038",
+      "path": "tests/test_supply_chain.js",
+      "originalLine": 253,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions expression text in checked-in deployment files. Resolving it in JavaScript would invalidate the supply-chain boundary test; the full supply-chain test passed.",
+      "evidenceLineSha256": "51c6cfc68fb064f1a38dc2058b235f554ba332d212c504c20a512b8fa0924695",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFhZWc=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "originalLine": 78,
+      "status": "reviewed_expected_behavior",
+      "proof": "Regression assertion requires literal scanner ${env.*} syntax, or deliberately rejects that syntax inside an untrusted ref. These are scanner-language bytes, not a JavaScript expression; the PR test passed.",
+      "evidenceLineSha256": "47e08df5ca0d11c79a1c98e2c4b6bfe32cbb1614a0cf045f8c2cd51393fbe0e1",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1teWc=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "originalLine": 70,
+      "status": "reviewed_expected_behavior",
+      "proof": "Regression assertion requires literal scanner ${env.*} syntax, or deliberately rejects that syntax inside an untrusted ref. These are scanner-language bytes, not a JavaScript expression; the PR test passed.",
+      "evidenceLineSha256": "2ecbf3cadb3439cd8d5259ff29c519eeb3a3d7c5c27df0d8a7d3425da4c0703a",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vdmQ=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "originalLine": 70,
+      "status": "reviewed_expected_behavior",
+      "proof": "Regression assertion requires literal scanner ${env.*} syntax, or deliberately rejects that syntax inside an untrusted ref. These are scanner-language bytes, not a JavaScript expression; the PR test passed.",
+      "evidenceLineSha256": "2ecbf3cadb3439cd8d5259ff29c519eeb3a3d7c5c27df0d8a7d3425da4c0703a",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxsa3I=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "originalLine": 69,
+      "status": "reviewed_expected_behavior",
+      "proof": "Regression assertion requires literal scanner ${env.*} syntax, or deliberately rejects that syntax inside an untrusted ref. These are scanner-language bytes, not a JavaScript expression; the PR test passed.",
+      "evidenceLineSha256": "5cc6bae6ec03979e06d536843fa73faf87c41c9dc413a0a99c8dbf9d1f080214",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5ZHk=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "originalLine": 67,
+      "status": "reviewed_expected_behavior",
+      "proof": "Regression assertion requires literal scanner ${env.*} syntax, or deliberately rejects that syntax inside an untrusted ref. These are scanner-language bytes, not a JavaScript expression; the PR test passed.",
+      "evidenceLineSha256": "b67422cab524e4bf5326f59c8ea3cd672cf08a4096a1bb01214c2583fc09f48a",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtreGU=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_branch.js",
+      "originalLine": 56,
+      "status": "reviewed_expected_behavior",
+      "proof": "Regression assertion requires literal scanner ${env.*} syntax, or deliberately rejects that syntax inside an untrusted ref. These are scanner-language bytes, not a JavaScript expression; the branch test passed.",
+      "evidenceLineSha256": "7430591f7204b35216df5ee84d7c0f4243c61bc8a145d95a0596d9b94d967b59",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5d2w=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_branch.js",
+      "originalLine": 51,
+      "status": "reviewed_expected_behavior",
+      "proof": "Regression assertion requires literal scanner ${env.*} syntax, or deliberately rejects that syntax inside an untrusted ref. These are scanner-language bytes, not a JavaScript expression; the branch test passed.",
+      "evidenceLineSha256": "d45b1330c94d63e960fe108c7393c9478fb68434d433ca0adea958adfaf2db61",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqdmE=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "originalLine": 140,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions image-tag syntax in deployment source. JavaScript interpolation is intentionally absent; monitoring-artifact policy tests passed.",
+      "evidenceLineSha256": "95b5fd16179ee6e078eb9ce95efa2d8ce7fb91aa41e4cf6af42c41619b15f195",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtrYXA=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "originalLine": 105,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions image-tag syntax in deployment source. JavaScript interpolation is intentionally absent; monitoring-artifact policy tests passed.",
+      "evidenceLineSha256": "85126c5e072b65d612e94fd6eeda900bb379f0754222ff1e66283c0c3a8f7680",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5cW0=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "originalLine": 61,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions image-tag syntax in deployment source. JavaScript interpolation is intentionally absent; monitoring-artifact policy tests passed.",
+      "evidenceLineSha256": "d6f8b79453564381ad7fab4254a19f420f4b9247b5b520439b75624c3c35d402",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29vbWc=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "originalLine": 60,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions image-tag syntax in deployment source. JavaScript interpolation is intentionally absent; monitoring-artifact policy tests passed.",
+      "evidenceLineSha256": "39063e8b7ccadfa6dfbd16bc79d004e76ac3fd023a39bfda10d8ffa66c783b2b",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJyd3g=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "originalLine": 53,
+      "status": "reviewed_expected_behavior",
+      "proof": "Assertion inspects literal Docker ARG or GitHub Actions image-tag syntax in deployment source. JavaScript interpolation is intentionally absent; monitoring-artifact policy tests passed.",
+      "evidenceLineSha256": "db5672489057dd9dc0b5037ec4edb86f82dc68c4ecb776590cea7ab37aea8bab",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteW1xZGQ=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "originalLine": 19,
+      "status": "reviewed_expected_behavior",
+      "proof": "Literal ${env.*} belongs to Sonar scanner property expansion after the action parses arguments. JavaScript interpolation would resolve the wrong language and break the no-ref-injection boundary; dedicated branch/PR scanner tests verify the exact returned strings.",
+      "evidenceLineSha256": "eea50c7f7deeb303a0131983a7cf2970bd32f60bb18242a434ea8aaffafb1d12",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnhwa2U=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "originalLine": 17,
+      "status": "reviewed_expected_behavior",
+      "proof": "Literal ${env.*} belongs to Sonar scanner property expansion after the action parses arguments. JavaScript interpolation would resolve the wrong language and break the no-ref-injection boundary; dedicated branch/PR scanner tests verify the exact returned strings.",
+      "evidenceLineSha256": "8405cf23d2e73efd91398b7e3c828144f89de77bc6086affa278b93e4f0601dd",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZGVscGE=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "originalLine": 16,
+      "status": "reviewed_expected_behavior",
+      "proof": "Literal ${env.*} belongs to Sonar scanner property expansion after the action parses arguments. JavaScript interpolation would resolve the wrong language and break the no-ref-injection boundary; dedicated branch/PR scanner tests verify the exact returned strings.",
+      "evidenceLineSha256": "a2d4b7998ed4fd9c2eb3940d6d61d48ebc0a0e4aeb8a3790f8b96426d3d198cc",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dndrcXA=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "originalLine": 15,
+      "status": "reviewed_expected_behavior",
+      "proof": "Literal ${env.*} belongs to Sonar scanner property expansion after the action parses arguments. JavaScript interpolation would resolve the wrong language and break the no-ref-injection boundary; dedicated branch/PR scanner tests verify the exact returned strings.",
+      "evidenceLineSha256": "4452b8cb40a20127a6bb007f1aa0b84d08a8f0979bc04a94feb9f8f801b3674c",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZG5nYWo=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "originalLine": 13,
+      "status": "reviewed_expected_behavior",
+      "proof": "Literal ${env.*} belongs to Sonar scanner property expansion after the action parses arguments. JavaScript interpolation would resolve the wrong language and break the no-ref-injection boundary; dedicated branch/PR scanner tests verify the exact returned strings.",
+      "evidenceLineSha256": "a83e273c9009167ce1417c223a60babd08ce98ba8db9234bf16e1c71fe1fbdca",
+      "remoteSuppressionApplied": false
     }
   ]
 }
