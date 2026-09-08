@@ -203,6 +203,7 @@ const allTests = [
   'test_mcp_control_plane.js',
   'test_mcp_server.js',
   'test_supply_chain.js',
+  'test_license_policy.js',
   'test_repository_governance.js',
   'test_test_registry.js',
   'test_test_scheduler.js',

@@ -25,7 +25,8 @@
     "84 unchanged async fault-injection functions individually read and exact-AST-body matched to baseline; all 36 affected Node22 regression suites passed. No async removal, wrapper or suppression.",
     "15 UI fixture concatenations: four Node22 restart/register/operator suites and ESLint/diff checks passed.",
     "Follow-up on Promise literal stubs: 21 optional undefined arguments omitted from Promise.resolve to avoid introducing JS-W1042; all six affected Node22 suites and ESLint/diff checks passed. Baseline IDs unchanged.",
-    "Final two owned string concatenations and two Unicode flags: rational, full Node22/Python3.12 build bridge, operator and repository-governance tests passed; 11141120 Unicode comparisons and ESLint/diff checks passed."
+    "Final two owned string concatenations and two Unicode flags: rational, full Node22/Python3.12 build bridge, operator and repository-governance tests passed; 11141120 Unicode comparisons and ESLint/diff checks passed.",
+    "License gate: new registered malformed-input and production/build policy regressions pass; original null-match/null-metadata crashes reproduced; 68 valid before/after policy cases unchanged, current 1079-artifact inventory and supply-chain policy pass. Whole changed script/test complexity<=5 and ESLint/diff checks pass."
   ],
   "entries": [
     {
@@ -4327,6 +4328,22 @@
       "originalLine": 361,
       "status": "source_change_pending_rescan",
       "proof": "Synthetic Python fixture sections use a joined string array with the same bytes and order; full Node22/Python3.12 build bridge verifies pins, input drift, filesystem and CLI boundaries."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnlwam4=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_licenses.js",
+      "originalLine": 71,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated package metadata, per-artifact license, direct requirement and lock-entry validation; every function passes complexity<=5. Added fail-closed malformed-map/metadata handling and null-match rejection, preserving all reviewed license policies and artifact inventories."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZHFtZ3A=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_licenses.js",
+      "originalLine": 52,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated package metadata, per-artifact license, direct requirement and lock-entry validation; every function passes complexity<=5. Added fail-closed malformed-map/metadata handling and null-match rejection, preserving all reviewed license policies and artifact inventories."
     }
   ]
 }
