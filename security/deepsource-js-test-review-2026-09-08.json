@@ -19,7 +19,8 @@
     "11 resolver-declaration findings: all ten scoped Node22 suites and ESLint/diff checks passed. Native Promise.withResolvers is available under package Node>=22<23; resolver result shapes and settlement scheduling preserved.",
     "Explicit retry/audit completion and named scheduler options: five Node22 suites including three Sonar export modes passed; ESLint and diff checks passed.",
     "Two placeholder-signature findings: Node22 transport fence and exact-lock Python3.12 19-case signed SDK bridge tests passed; ESLint/diff checks passed.",
-    "Twelve individual control-character regex findings: exact source-predicate review confirms intentional rejection ranges; source is unchanged, no remote suppression applied."
+    "Twelve individual control-character regex findings: exact source-predicate review confirms intentional rejection ranges; source is unchanged, no remote suppression applied.",
+    "Trailing undefined review: Node22 reproduces mandatory expected-argument behavior; each occurrence AST-mapped to its exact assertion or explicit undefined-input regression. No source changes or suppressions."
   ],
   "entries": [
     {
@@ -2475,6 +2476,506 @@
       "status": "reviewed_expected_behavior",
       "proof": "Recursive evidence-key validation intentionally rejects C0/DEL controls before accepting own enumerable data fields. Removing the range would allow hidden/control-character keys into acceptance evidence.",
       "evidenceLineSha256": "66ad961c31cf0e8abc959b1a5095df9612cc9f56b63fb8faf08cdfa1e5702ccf",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpkcXY=",
+      "rule": "JS-W1042",
+      "path": "tests/test_web_server.js",
+      "originalLine": 229,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "a6009ca474490495831ac5c22ee91588e3089fbe87fcd3cc6815a79cc54b4744",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlueGc=",
+      "rule": "JS-W1042",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 242,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "c21f8849d10613622da5fca69985982fae5fc4b3f8af6d9e71e81320a382ec74",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhucGw=",
+      "rule": "JS-W1042",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 242,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "00057acc3ad8a50638ae1cd51774843573427a9e4db66b48b8cb7c23df334004",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpkcng=",
+      "rule": "JS-W1042",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 200,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "c1c7b69ce819206b05293a0421c01faf31c1654a8bb26db0fce023966c1ab358",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlubXE=",
+      "rule": "JS-W1042",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 70,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "6cc8d5cac78767a9e29d0ae9986b602f51ac92b7423fc7cbcf6fe9683dc2204c",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlud2c=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_take_profit.js",
+      "originalLine": 154,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "a06c87cb37c9d8b4667f94f1e8665157e9e7ee7e268982b4cc926ad7302e88bc",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V3eG8=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_recovery_schedule_transport.js",
+      "originalLine": 267,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "b72dbe67368ec286d68c797dd86aa647fd76ccbca3e11c46c64d965ad6f0ee12",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFucmw=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_recovery_schedule_transport.js",
+      "originalLine": 267,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "0643a94abf87ec4e6c5fae8f9454b974d3959befea0d51359e5dfe4b1210e40e",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1uZWQ=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_recovery_schedule_transport.js",
+      "originalLine": 266,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "4d874274729035246560ca2001cc0121faa107bb2304564095e536f3fbf5ac6f",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9kZ2c=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_recovery_schedule_transport.js",
+      "originalLine": 203,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "5558f85d52d2db7ea6a449a06639293f5df8dcf3d9772b714a11411d92b4ac24",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxuamc=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_recovery_schedule_transport.js",
+      "originalLine": 175,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "81c1ce847efa30ef61a012c1a125a698a35465f5bf41169fcc0e1b0128943b9b",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlkamQ=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_recovery_schedule_contract.js",
+      "originalLine": 130,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "83c717c7daf67daf910de31c4c93f470cf6904ece3ecb6b4cbb86897a5a8e0b8",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR2bGc=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_recovery_schedule_contract.js",
+      "originalLine": 129,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "3576451e66e3867fb83ca8b14e18f4e9699e3f56e09721721db2f9e7f9f476d6",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhud2Q=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_protected_entry_crash.js",
+      "originalLine": 97,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "c81b37213594c548310001273837f23cb18fce4c2fb9e82c13e6501f8bc0c3b7",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpweG4=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_kraken_cashleg_migration.js",
+      "originalLine": 93,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "9922484181b6209a9b9dce29b8012284d6e96e3c750211f97c1101897ace59e0",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VueXY=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_fx_sizing.js",
+      "originalLine": 54,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "7afe6c4d846d4caa22646065a5e31b4b04239fc2991234bd4e859918e71a4ee8",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvbWc=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_fx_contract.js",
+      "originalLine": 24,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "b468b00649b700c1c1354a42e77871a1bfc68504dfadd1ce826d9169c4d85c75",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvYWo=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_fx_contract.js",
+      "originalLine": 23,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "d4ebb57306fa1d5137c337f4d2dd796cd63073c0e8cfa0a0bd73cf419ac82cb5",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtuYXE=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_fx_automatic_valuation.js",
+      "originalLine": 68,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "99eed7c61676cab3567cb49a5ba61264aa6e4737229fde00e11908f6b14322e4",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2cW8=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_fx_automatic_valuation.js",
+      "originalLine": 62,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "fa970e3dbdc64a112d71d8e9b73923410b7dbe1ffd86062505ad6b8891af1dca",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllbWQ=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_fill_identity_backfill.js",
+      "originalLine": 80,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "75af47050bdc1be5f55dfefb9a2e80f8e95367630bf0cfe1c8e676750259e7cf",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRncW0=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_entry_price.js",
+      "originalLine": 51,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "1fe8969b48d6104732b520661281b462d627eee9b6d5664ff12a1ba9014a4262",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllYXg=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_entry_price.js",
+      "originalLine": 48,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "14f85bec2bcc9269fa0069ed043738b7034931e7f3d36557414a954a9cd784a6",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VuZGE=",
+      "rule": "JS-W1042",
+      "path": "tests/test_trading_entry_price.js",
+      "originalLine": 42,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "de7b16a13a4f4d30efedb3a2a62362aa86df745491e58e3855bb0463f28b84bf",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvZW0=",
+      "rule": "JS-W1042",
+      "path": "tests/test_supply_chain.js",
+      "originalLine": 390,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "9e0e34cbeff51d8818f4d7dc18fbbcdf1ddb14d0a712414d2b10ca4616dec214",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpwbHI=",
+      "rule": "JS-W1042",
+      "path": "tests/test_supply_chain.js",
+      "originalLine": 389,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "f5546dd2b4f1569f671fa203811f861b697f6e78c45391f77bca847617c3d0ff",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFhZ2c=",
+      "rule": "JS-W1042",
+      "path": "tests/test_setup_bundle.js",
+      "originalLine": 440,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "b5701b6966fb9e3f18355ccef9f274378cbaad136f16247e460f22adcfdbc8f4",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tamc=",
+      "rule": "JS-W1042",
+      "path": "tests/test_secret_store.js",
+      "originalLine": 90,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "a412a8c51145ed319a2d54b49dc572b9bce098d519c667e1ba38cc990b864503",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vamQ=",
+      "rule": "JS-W1042",
+      "path": "tests/test_runtime_settings.js",
+      "originalLine": 23,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "a1b0534d7bd2ac914809e71bce56d9770032ab9413883bed966cb9a53bf11977",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2cnk=",
+      "rule": "JS-W1042",
+      "path": "tests/test_outbox.js",
+      "originalLine": 186,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "6f3823e053bae37e0481d61e0933fee38fada3971d57bab36b7b7ab4a22252da",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFhbmU=",
+      "rule": "JS-W1042",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 262,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "88c2111ab8a42d3676671998c728b3e728aff6481278ee5efc3bb91ea332e203",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tbm8=",
+      "rule": "JS-W1042",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 247,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "85193490f6b17fea2583134b25d46bea6fa720af880cf09154616c62a66683e4",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vZGo=",
+      "rule": "JS-W1042",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 240,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "44b5cb10f44e9428f459af450ed2c51843d39c6c1867d62205f4d902aa036f13",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxsbmU=",
+      "rule": "JS-W1042",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 233,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "e9964572354595d4d4df884c001babd13f8c0e083846d6843186fa1afd0aa624",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5bm4=",
+      "rule": "JS-W1042",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 202,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "3775a08196fc01233dff28a6c5fc51fe8588381212d72374cffaa0ed88c13740",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4bms=",
+      "rule": "JS-W1042",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 197,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "7b391a672b5a2ad822ae671d8bf30b2efaee25e6fc353808aa18b902a8e8210b",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxZHE=",
+      "rule": "JS-W1042",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 186,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "908ac445d59c5f906a01da37b3d96ae7ab0bc0dae572fbe627f7ca5f48a6ca9f",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2bnk=",
+      "rule": "JS-W1042",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 180,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "553182ab5ec3bf9fbca6ba154ccb5dc47295747ceb61a0fae670ca6d0ad8b69f",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vYWo=",
+      "rule": "JS-W1042",
+      "path": "tests/test_env.js",
+      "originalLine": 48,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "61a5dda9f2ecae7f216ccbbdbd01884b3adc380c6090d51608c9cfe90784ab36",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxsdmU=",
+      "rule": "JS-W1042",
+      "path": "tests/test_env.js",
+      "originalLine": 13,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "04d6f644320a41e2d8ec6b4ba48fec676110e681d506593aef1452276caee895",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5b3I=",
+      "rule": "JS-W1042",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 74,
+      "status": "reviewed_expected_behavior",
+      "proof": "The explicit undefined input is the subject of this normalizeSignalXml regression case. Keeping the input visibly distinguishes the undefined boundary from valid string/error inputs; this is intentional test data.",
+      "evidenceCallSha256": "9db8845d56d8ee43a58c4f0c15e821f845021fd71e9b7f7c26627e680e58fd33",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxscHE=",
+      "rule": "JS-W1042",
+      "path": "tests/test_coverage_perfektion.js",
+      "originalLine": 11,
+      "status": "reviewed_expected_behavior",
+      "proof": "The explicit undefined input is the subject of this isForeignKeyConstraint regression case. Keeping the input visibly distinguishes the undefined boundary from valid string/error inputs; this is intentional test data.",
+      "evidenceCallSha256": "5544bb315b795428ad0fe4b990ea3121e5a2374cbb28f4c26703794f35edae92",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4cHY=",
+      "rule": "JS-W1042",
+      "path": "tests/test_config.js",
+      "originalLine": 138,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "11f71d50371f8b8c3c01059d905e874cb6bc91fc8c0c5abb115d29e00b9bff4f",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxbGQ=",
+      "rule": "JS-W1042",
+      "path": "tests/test_config.js",
+      "originalLine": 69,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "13cbfa39ba74bca935f853085ff45b7abdc9c7622bd8bae3906d3a67d504d400",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2a28=",
+      "rule": "JS-W1042",
+      "path": "tests/test_config.js",
+      "originalLine": 36,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "564604a50ff0279cc503566837813cdced6c9e8f087bcf2a27c0d823d911d95e",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2am8=",
+      "rule": "JS-W1042",
+      "path": "tests/test_backup.js",
+      "originalLine": 147,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "5875ad3f87c2a2f5238826d9591f33d71f93495bffb10c3c6e9df34d7cd9cf01",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtrdm0=",
+      "rule": "JS-W1042",
+      "path": "tests/test_backup.js",
+      "originalLine": 104,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "cbbaf2c20893d5f947ef9e1063d0c493c12947123fec17df3e325263b6b15d2d",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5ams=",
+      "rule": "JS-W1042",
+      "path": "tests/test_backup.js",
+      "originalLine": 103,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "c21cc5002f65280936d0442a42b67506a99337a1952e956d91e25c2deca2bc22",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29vcGo=",
+      "rule": "JS-W1042",
+      "path": "tests/test_backup.js",
+      "originalLine": 102,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "70f56d0191ff225ea0f47212438a25959007f757179f7f7f98acbdbfaa782665",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkbHk=",
+      "rule": "JS-W1042",
+      "path": "tests/test_alert_relay.js",
+      "originalLine": 96,
+      "status": "reviewed_expected_behavior",
+      "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
+      "evidenceCallSha256": "1fae1bf3a609a9fbc29ed06179f5f0ea2f15d94f73f4a8754dea2dffb51ea159",
       "remoteSuppressionApplied": false
     }
   ]
