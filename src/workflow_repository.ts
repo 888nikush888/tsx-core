@@ -1,5 +1,5 @@
 import type { AccountRow, StrategyRow, SignalSchemaRow, ContractVersionRow, IntentRow } from './trading_repository_rows.js';
-import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow } from './workflow_repository_rows.js';
+import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow, LegacyWorkflowRouteRow, LegacyRiskPolicyRow } from './workflow_repository_rows.js';
 import { isStringMember, requireString } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
@@ -1562,8 +1562,8 @@ interface LegacyResourceDefinition {
 
 interface LegacySchemaRow { id: string; name: string; template_name: string; contract_version_id: string | null }
 
-async function loadLegacyWorkflowInputs(): Promise<{ routes: any[]; schemas: LegacySchemaRow[]; policies: Map<string, any> }> {
-  const routes = await getDatabase().all<any[]>(
+async function loadLegacyWorkflowInputs(): Promise<{ routes: LegacyWorkflowRouteRow[]; schemas: LegacySchemaRow[]; policies: Map<string, LegacyRiskPolicyRow> }> {
+  const routes = await getDatabase().all<LegacyWorkflowRouteRow[]>(
     `SELECT route.channel_id, route.strategy_version_id, route.account_id,
             strategy.name AS strategy_name, strategy.configuration_json,
             account.name AS account_name
@@ -1577,7 +1577,7 @@ async function loadLegacyWorkflowInputs(): Promise<{ routes: any[]; schemas: Leg
     `SELECT id, name, template_name, contract_version_id
      FROM trading_signal_schemas WHERE enabled = 1 ORDER BY id`,
   );
-  const policies = new Map((await getDatabase().all<any[]>(
+  const policies = new Map((await getDatabase().all<LegacyRiskPolicyRow[]>(
     'SELECT * FROM trading_channel_risk_policies ORDER BY channel_id',
   )).map(row => [String(row.channel_id), row]));
   return { routes, schemas, policies };
@@ -1590,7 +1590,7 @@ function selectLegacySchema(schemas: LegacySchemaRow[], templateName: string, st
     ?? null;
 }
 
-export function legacyAdaptiveRiskDefinition(alias: string, policy: any): LegacyResourceDefinition[] {
+export function legacyAdaptiveRiskDefinition(alias: string, policy: LegacyRiskPolicyRow | null | undefined): LegacyResourceDefinition[] {
   if (!policy) return [];
   return [{
     kind: 'adaptive_risk',
@@ -1619,14 +1619,14 @@ function legacyOutputMode(config: Config): 'telegram_xml' | 'telegram_original' 
 
 function legacyResourceDefinitions(input: {
   config: Config;
-  route: any;
+  route: LegacyWorkflowRouteRow;
   channelId: string;
   alias: string;
   strategy: StrategyConfiguration;
-  schema: any;
+  schema: LegacySchemaRow;
   templateName: string;
   prompt: string;
-  policy: any;
+  policy: LegacyRiskPolicyRow | undefined;
 }): LegacyResourceDefinition[] {
   const { config, route, channelId, alias, strategy, schema, templateName, prompt, policy } = input;
   const sourcePatterns = config.sourceFilters?.[channelId]?.regexPatterns;
@@ -1670,7 +1670,7 @@ function legacyResourceDefinitions(input: {
 
 async function materializeLegacyPath(
   definitions: LegacyResourceDefinition[],
-  route: any,
+  route: LegacyWorkflowRouteRow,
   channelId: string,
   pathIndex: number,
 ): Promise<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] }> {
@@ -1740,7 +1740,7 @@ export async function migrateLegacyTradingRoutesToWorkflow(
 }
 
 export async function getActiveWorkflow(): Promise<WorkflowRevision | null> {
-  const row = await getDatabase().get<any>(
+  const row = await getDatabase().get<WorkflowRevisionRow>(
     `SELECT revision.* FROM workflow_revisions AS revision
      JOIN workflow_active_revision AS active ON active.revision_id = revision.id
      WHERE active.singleton_id = 1`,

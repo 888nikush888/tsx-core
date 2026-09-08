@@ -19,3 +19,15 @@ export interface WorkflowRevisionRow {
   id: string; revision: number; status: WorkflowRevision['status']; graph_json: string; compiled_json: string;
   definition_sha256: string; base_revision_id: string | null; created_by: string; created_at: number; archived_at: number | null;
 }
+
+export interface LegacyWorkflowRouteRow {
+  channel_id: string; strategy_version_id: string; account_id: string;
+  strategy_name: string; configuration_json: string; account_name: string;
+}
+
+export interface LegacyRiskPolicyRow {
+  channel_id: string; mode: 'fixed' | 'shadow' | 'automatic'; tiers_json: string; current_tier: number;
+  locked_tier: number | null; lookback_weeks: number; minimum_closed_trades: number;
+  loss_threshold_percent: string; profit_threshold_percent: string; weak_channel_action: 'none' | 'reduce' | 'block';
+  weak_weeks_before_block: number; manually_blocked: number; blocked: number;
+}
