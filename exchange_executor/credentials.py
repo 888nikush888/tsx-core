@@ -83,6 +83,7 @@ class CredentialStore:
 
     @staticmethod
     def _normalize(value: dict[str, Any], exchange: str) -> dict[str, Any]:
+        credentials: Any
         if value.get("version") == 1:
             credentials = (
                 {"privateKey": value.get("privateKey"), "walletAddress": value.get("walletAddress")}

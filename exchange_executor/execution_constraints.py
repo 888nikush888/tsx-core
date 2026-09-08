@@ -8,7 +8,7 @@ import time
 from dataclasses import asdict
 from decimal import Decimal
 from importlib.metadata import version as package_version
-from typing import Any
+from typing import Any, Awaitable, Callable, cast
 
 from ccxt_client import credential_generation
 from ccxt_profiles import ExchangeProfile, profile_for
@@ -56,7 +56,7 @@ async def _read_value(rest: Any, method: str, params: dict[str, Any], deadline: 
     operation = getattr(rest, method, None)
     _require(callable(operation), "MODE_READBACK_UNSUPPORTED")
     deadline.ensure(250)
-    return await asyncio.wait_for(operation(params), timeout=deadline.sdk_timeout_seconds())
+    return await asyncio.wait_for(cast(Callable[[dict[str, Any]], Awaitable[Any]], operation)(params), timeout=deadline.sdk_timeout_seconds())
 
 
 async def _read(rest: Any, method: str, params: dict[str, Any], deadline: RequestDeadline) -> dict[str, Any]:
@@ -105,7 +105,7 @@ async def _hyperliquid(clients: Any, market: dict[str, Any], deadline: RequestDe
     _require(isinstance(result.get("user"), str) and result["user"].lower() == user and result.get("coin") == coin, "ACTIVE_ASSET_BINDING_MISMATCH")
     leverage = _object(result.get("leverage"))
     _require(leverage.get("type") in ("cross", "isolated"), "MARGIN_MODE_READBACK_MISSING")
-    await _hyperliquid_position_consistency(clients.rest, user, coin, leverage, deadline)
+    await _hyperliquid_position_consistency(clients.rest, user, cast(str, coin), leverage, deadline)
     # The documented first-perp-dex AssetPosition is inherently oneWay; this is not a mutable CCXT flag.
     return {"positionMode": "oneway", "marginMode": leverage["type"], "leverage": _leverage(leverage.get("value")),
             "accountAbstraction": abstraction, "leverageSemantics": "configured",
@@ -127,7 +127,7 @@ async def _hyperliquid_position_consistency(rest: Any, user: str, coin: str, lev
         position = _object(row.get("position"))
         symbol = position.get("coin")
         _require(isinstance(symbol, str) and bool(symbol) and symbol not in seen, "POSITION_MODE_CONTRADICTORY")
-        seen.add(symbol)
+        seen.add(cast(str, symbol))
         if symbol == coin:
             actual = _object(position.get("leverage"))
             _require(actual.get("type") == leverage["type"] and _leverage(actual.get("value")) == _leverage(leverage.get("value")),
@@ -146,7 +146,7 @@ def _unique_symbol_rows(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
     for row in rows:
         symbol = row.get("symbol")
         _require(isinstance(symbol, str) and bool(symbol), "MODE_SYMBOL_MISSING")
-        key = symbol.upper()
+        key = cast(str, symbol).upper()
         _require(key not in result, "POSITION_MODE_CONTRADICTORY")
         result[key] = row
     return result
@@ -175,6 +175,7 @@ def _base_evidence(clients: Any, market: dict[str, Any]) -> dict[str, Any]:
     account = clients.account
     profile = profile_for(account["exchange"])
     _require(profile is not None, "EXECUTION_PROFILE_UNSUPPORTED")
+    profile = cast(ExchangeProfile, profile)
     observed = _now()
     return {"version": 1, "exchange": account["exchange"], "symbol": f'{str(market["base"]).upper()}USDT', "providerSymbol": market["symbol"],
             "accountFingerprint": external_account_id(account["exchange"], account["mode"], clients.account_identity),

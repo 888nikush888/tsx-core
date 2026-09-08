@@ -30,7 +30,7 @@ class HyperliquidNoAutomaticSetup:
 
 def client_class(exchange: str, sdk_class: type[Any]) -> type[Any]:
     # Apply to both REST and Pro before construction/load_markets, not only at submit.
-    bases = (EntryTransportDeadline, HyperliquidNoAutomaticSetup, sdk_class) if exchange == 'hyperliquid' else (EntryTransportDeadline, sdk_class)
+    bases: tuple[type[Any], ...] = (EntryTransportDeadline, HyperliquidNoAutomaticSetup, sdk_class) if exchange == 'hyperliquid' else (EntryTransportDeadline, sdk_class)
     if exchange == 'krakenfutures':
         bases = (EntryTransportDeadline, KrakenResponseCapture, sdk_class)
     return type(f'Tsx{sdk_class.__name__}', bases, {})

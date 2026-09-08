@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from decimal import Decimal, localcontext
-from typing import Any
+from typing import Any, cast
 
 from common import ExchangeContractError, decimal_string
 
@@ -44,7 +44,8 @@ def validate_tiers(tiers: Any) -> None:
 
 def normalize_bybit_tiers(rows: Any, symbol: str) -> list[dict[str, Any]]:
     require_tier(isinstance(rows, list) and 0 < len(rows) <= 500, 'Complete Bybit tiers are missing.')
-    result, previous, identifiers = [], '0', set()
+    result: list[dict[str, Any]] = []
+    previous, identifiers = '0', set()
     for row in rows:
         require_tier(isinstance(row, dict) and row.get('symbol') == symbol, 'Bybit tier symbol mismatch.')
         require_tier(type(row.get('isLowestRisk')) is int and row['isLowestRisk'] == (1 if not result else 0),
@@ -71,6 +72,7 @@ def _lower_bound_tiers(rows: Any, leverage) -> list[dict[str, Any]]:
 def normalize_hyperliquid_tiers(asset: dict[str, Any], tables: Any) -> list[dict[str, Any]]:
     identifier = asset.get('marginTableId')
     require_tier(type(identifier) is int and identifier > 0, 'Hyperliquid margin-table identity is missing.')
+    identifier = cast(int, identifier)
     if identifier < 50:
         require_tier(_maximum(asset.get('maxLeverage')) == identifier, 'Hyperliquid implicit tier conflicts with its market.')
         return [{'lowerBound': '0', 'upperBound': None, 'maxLeverage': identifier}]

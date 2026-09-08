@@ -40,20 +40,28 @@ def _merged_status(current: str, incoming: str, filled: Decimal, quantity: Decim
     return incoming
 
 
+def _filled_decimal(value: Any) -> Decimal | None:
+    return None if value is None else Decimal(decimal_string(value, "filledQuantity"))
+
+
+def _average_price(value: Any) -> str | None:
+    return None if value is None else decimal_string(value, "averagePrice", positive=True)
+
+
 def merge_order_evidence(current: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
     if current.get("status") not in STATUSES or incoming.get("status") not in STATUSES:
         raise ExchangeContractError("Invalid order evidence status.")
     quantity = Decimal(decimal_string(current.get("quantity"), "quantity", positive=True))
     old_filled, new_filled = current.get("filledQuantity"), incoming.get("filledQuantity")
-    previous = None if old_filled is None else Decimal(decimal_string(old_filled, "filledQuantity"))
-    reported = None if new_filled is None else Decimal(decimal_string(new_filled, "filledQuantity"))
+    previous = _filled_decimal(old_filled)
+    reported = _filled_decimal(new_filled)
     known = [value for value in (previous, reported) if value is not None]
     filled = max(known) if known else None
     if filled is not None and filled > quantity:
         raise ExchangeContractError("Executed quantity exceeds order quantity.")
     old_average, new_average = current.get("averagePrice"), incoming.get("averagePrice")
-    old_average = None if old_average is None else decimal_string(old_average, "averagePrice", positive=True)
-    new_average = None if new_average is None else decimal_string(new_average, "averagePrice", positive=True)
+    old_average = _average_price(old_average)
+    new_average = _average_price(new_average)
     use_new = previous is None or (reported is not None and reported >= previous)
     return {
         "status": _merged_status(current["status"], incoming["status"], filled or Decimal(0), quantity),
@@ -65,9 +73,9 @@ def merge_order_evidence(current: dict[str, Any], incoming: dict[str, Any]) -> d
 def merge_ccxt_order(current: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
     for field in ("id", "symbol", "clientOrderId", "side", "reduceOnly", "amount"):
         left, right = current.get(field), incoming.get(field)
-        if left is not None and right is not None and str(left) != str(right):
-            if field != "amount" or Decimal(str(left)) != Decimal(str(right)):
-                raise ExchangeContractError(f"Remote order has conflicting {field} evidence.")
+        if (left is not None and right is not None and str(left) != str(right)
+                and (field != "amount" or Decimal(str(left)) != Decimal(str(right)))):
+            raise ExchangeContractError(f"Remote order has conflicting {field} evidence.")
     quantity = current.get("amount") if current.get("amount") is not None else incoming.get("amount")
 
     def evidence(order):

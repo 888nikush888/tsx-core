@@ -135,8 +135,6 @@ class AccountClients:
             # callers await the same task and never observe a half-initialized
             # CCXT client from the registry cache.
             await asyncio.shield(task)
-        except asyncio.CancelledError:
-            raise
         except Exception:
             async with self.lock:
                 if self.market_load_task is task:
@@ -227,10 +225,6 @@ class CcxtClientRegistry:
         try:
             await clients.load_markets()
             return clients
-        except asyncio.CancelledError:
-            # AccountClients shields the shared bootstrap task. Keeping this
-            # cache entry lets the next bounded request await that same task.
-            raise
         except Exception:
             async with self._lock:
                 if self._clients.get(cache_key) is clients:
