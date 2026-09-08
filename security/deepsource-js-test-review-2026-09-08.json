@@ -30,7 +30,8 @@
     "Three stateless adapter instance methods and one deferred parameter capture individually reviewed against interface and execution order; corresponding full trading-control/scheduler suites passed during the 36-suite rejection review.",
     "Three parameter/literal-only response stubs: full Node22 web-server and dynamic-registry suites plus ESLint/diff checks passed.",
     "19 unchanged async assertion-contract functions individually read and exact-body matched; all 13 corresponding Node22 regression suites passed. No source changes or suppression.",
-    "Dependency gate: registered malformed-metadata/exact-artifact/provenance/hash regression tests, actual gate and supply-chain suite passed. 308 valid/invalid policy results match original ordering; original null-metadata crash reproduced. Whole script/new test complexity<=5 and ESLint/diff checks passed."
+    "Dependency gate: registered malformed-metadata/exact-artifact/provenance/hash regression tests, actual gate and supply-chain suite passed. 308 valid/invalid policy results match original ordering; original null-metadata crash reproduced. Whole script/new test complexity<=5 and ESLint/diff checks passed.",
+    "Sonar local-name and implementation-path Unicode fixes: historical Sonar decision and full implementation bridge suites, ESLint and diff checks passed."
   ],
   "entries": [
     {
@@ -4724,6 +4725,22 @@
       "originalLine": 20,
       "status": "source_change_pending_rescan",
       "proof": "Separated generation provenance, direct pin matching, per-artifact hashes, version matching and registry-origin checks; all functions complexity<=5, 308 before/after policy results unchanged. Null artifact metadata now yields blocking diagnostics rather than dereference failure."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbnFreGs=",
+      "rule": "JS-0123",
+      "path": "scripts/sonar_review_decisions.js",
+      "originalLine": 116,
+      "status": "source_change_pending_rescan",
+      "proof": "Renamed related-main manifest local to mainReview to avoid shadowing the CLI entry point. Historical Sonar review decision regression suite passed; production review pins unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZG5neXc=",
+      "rule": "JS-0117",
+      "path": "scripts/verify_exchange_implementation.js",
+      "originalLine": 67,
+      "status": "source_change_pending_rescan",
+      "proof": "Added Unicode mode to ASCII-only forbidden-path-character predicate. Full implementation bridge tests passed under Node22 and exact-lock Python3.12; control-character rejection remains intact."
     }
   ]
 }
