@@ -1,10 +1,13 @@
-# HTTP findings remain open; preflight disclosure corrected
+# Owner-accepted internal HTTP; preflight disclosure corrected
 
 The independent second review does not accept the four HTTP listeners as false
 positives: the internal transport remains plaintext. Loopback, unpublished
 container ports and the outer TLS proxy reduce exposure but do not encrypt that
-hop. These four findings remain open pending a verified transport change or an
-explicit individual risk decision. The public preflight disclosure is corrected
+hop. On 2026-09-08 the owner explicitly accepted these four residual risks to
+preserve stability. [RA-2026-09-08-internal-http](../risk-acceptances/RA-2026-09-08-internal-http.md)
+records that decision, its exact identities and source-bound controls. It expires
+on 2026-10-08 under the existing 30-day repository policy. These findings are
+accepted risks, not false positives or encrypted transports. The public preflight disclosure is corrected
 and absent from the subsequent 85-finding CI scan. This review does not inspect,
 reconfigure or make claims about a running deployment.
 
@@ -35,8 +38,8 @@ boundary, rather than unchecked network input in these four reported calls.
 HTTP on this internal hop is intentional, but that is not evidence of encryption.
 Moving TLS into each Node listener would require coordinated changes to the proxy,
 monitoring, health probes, service clients, certificate provisioning and renewal.
-Until those changes are verified, neither the absence of an input-flow exploit nor
-the limited network exposure closes these four transport findings.
+Neither the absence of an input-flow exploit nor the limited network exposure
+repairs these four transport findings; the explicit owner acceptance governs them.
 
 Actual listener tests verify default loopback and explicit container-style binds
 for the relay, and default loopback for viewer health. Existing health authentication,
@@ -62,4 +65,5 @@ to all server error responses.
 All four relevant suites, TypeScript typecheck, targeted ESLint and diff checks
 passed under Node 22.23.2. The original 86-finding ledger records the first review;
 its architecture dispositions are superseded by the independent review's open
-status for HTTP. No Snyk platform statuses were changed.
+status for HTTP and the subsequent explicit owner risk acceptance. No Snyk
+platform statuses were changed.

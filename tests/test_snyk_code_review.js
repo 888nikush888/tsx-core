@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { test } from 'node:test';
-import { evaluateSnykCode, evidenceDigest } from '../scripts/check_snyk_code_review.js';
+import { fileURLToPath } from 'node:url';
+import { evaluateSnykCode, evidenceDigest, loadHttpRiskAcceptance } from '../scripts/check_snyk_code_review.js';
 
 const source = 'export const value = "fixture";\n';
 const hash = createHash('sha256').update(source).digest('hex');
@@ -141,5 +145,61 @@ test('review paths and dataflow paths cannot traverse or use encoded aliases', a
     const input = fixture();
     input.review.entries[0].contextPaths.push({ path: file, sha256: hash });
     await assert.rejects(evaluateSnykCode(input));
+  }
+});
+
+function httpFixture() {
+  const input = fixture();
+  const id = 'd75bc03c-19a7-4475-809c-525e9240e836';
+  const result = input.sarif.runs[0].results[0];
+  result.ruleId = 'javascript/HttpToHttps';
+  result.fingerprints = { identity: id, 'snyk/asset/finding/v1': id };
+  result.locations = [physical('src/metrics.ts')];
+  Object.assign(input.review.entries[0], { findingId: id, ruleId: result.ruleId, path: 'src/metrics.ts', disposition: 'open',
+    fingerprints: structuredClone(result.fingerprints), evidenceSha256: evidenceDigest(result) });
+  return input;
+}
+
+test('explicit owner acceptance remains distinct from false positives and cannot waive source drift', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const input = httpFixture();
+  assert.equal((await evaluateSnykCode(input)).remaining, 1);
+  input.acceptance = await loadHttpRiskAcceptance(root, new Date('2026-09-09T00:00:00Z'));
+  const accepted = await evaluateSnykCode(input);
+  assert.equal(accepted.acceptedRisks, 1);
+  assert.equal(accepted.reviewedFalsePositives, 0);
+  assert.equal(accepted.remaining, 0);
+  input.readSource = () => 'changed boundary';
+  const changed = await evaluateSnykCode(input);
+  assert.equal(changed.acceptedRisks, 0);
+  assert.equal(changed.remaining, 1);
+});
+
+test('HTTP acceptance cannot authorize unrelated identities, paths or rules', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const acceptance = await loadHttpRiskAcceptance(root, new Date('2026-09-09T00:00:00Z'));
+  for (const update of [{ findingId: 'other' }, { path: 'src/public_server.ts' }, { ruleId: 'javascript/Other' }]) {
+    const input = httpFixture();
+    input.acceptance = acceptance;
+    Object.assign(input.review.entries[0], update);
+    assert.equal((await evaluateSnykCode(input)).remaining, 1);
+  }
+  await assert.rejects(evaluateSnykCode({ ...httpFixture(), acceptance: {} }), /Unverified risk/u);
+});
+
+test('acceptance cannot be extended, forged, silently omitted or reused after expiration', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  await assert.rejects(loadHttpRiskAcceptance(root, new Date('2026-10-09T00:00:00Z')), /expired/u);
+  const temporary = await mkdtemp(path.join(os.tmpdir(), 'tsx-snyk-acceptance-'));
+  try {
+    assert.equal(await loadHttpRiskAcceptance(temporary), undefined);
+    const relative = 'docs/risk-acceptances/RA-2026-09-08-internal-http.md';
+    await mkdir(path.dirname(path.join(temporary, relative)), { recursive: true });
+    const authorized = await readFile(path.join(root, relative), 'utf8');
+    await writeFile(path.join(temporary, relative), authorized.replace('2026-10-08', '2027-10-08'));
+    await assert.rejects(loadHttpRiskAcceptance(temporary, new Date('2026-09-09T00:00:00Z')), /differs/u);
+  } finally {
+    assert.ok(temporary.startsWith(path.join(os.tmpdir(), 'tsx-snyk-acceptance-')));
+    await rm(temporary, { recursive: true, force: true });
   }
 });

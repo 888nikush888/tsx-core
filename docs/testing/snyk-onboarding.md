@@ -41,12 +41,19 @@ policies and scan coverage still require review during actual onboarding.
 Code results now also pass through `scripts/check_snyk_code_review.js`. Only
 independently confirmed, individual false positives can satisfy that check:
 the complete fingerprints, reported locations/dataflows, primary file hash and
-every reviewed context file must still match. Open findings, accepted risks,
+every reviewed context file must still match. Open findings, unapproved risks,
 new identities, changed source, missing flow bindings and invalid scan evidence
 remain failures. The raw findings are retained; a passing reviewed scan is not
 reported as having zero scanner results. The original SARIF hash and reviewed
 Git revision in the ledger document the review's provenance; the checked source
 and exact per-finding evidence determine its applicability to the current scan.
+
+The owner's explicit acceptance of four internal HTTP findings is separate from
+false-positive review. The checker pins the acceptance document's exact SHA-256,
+four identities/rules/paths and the existing 30-day policy. A verified acceptance
+still requires every source and flow binding to match. It cannot extend to other
+findings, survive altered evidence, or pass after expiry. Artifacts report accepted
+risks separately from false positives and unresolved findings.
 
 Each scan uploads its own SARIF, optional native JSON, and status JSON, including
 the Git revision, scanner version, original exit code, result count and disposition.
