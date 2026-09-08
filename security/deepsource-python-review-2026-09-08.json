@@ -7,16 +7,14 @@
   "total": 241,
   "uniqueIds": 241,
   "statusCounts": {
-    "source_change_pending_rescan": 220,
-    "deployment_review_required": 1,
     "reviewed_expected_behavior": 19,
-    "architectural_review_required": 1
+    "source_change_pending_rescan": 222
   },
   "remoteSuppressionsApplied": false,
   "verification": {
     "ruff": "passed",
     "mypy": "17 targeted source files passed with follow-imports=silent and ignore-missing-imports; dependency stubs not a whole-repository strict typing claim.",
-    "unittest": "Exact hash-locked Python 3.12.14 environment: all 546 tests passed after independent review and narrow renewal of candidate source/test commitments. Evidence: reports/security-services/python-exact-lock-wave4.log and exchange_executor/certifications/reviews/security-candidate-evidence-2026-09-08.json. This does not renew global implementation/release attestations.",
+    "unittest": "Exact hash-locked Python 3.12.14 environment: all 547 tests passed in 107.204 seconds at cf3b8f5. Evidence: reports/security-services/python-exact-lock-wave6.log. Independent listener/journal/runner review and 29 targeted tests: docs/testing/python-listener-contracts-independent-review-2026-09-08.json. Global implementation/release attestations remain to be renewed on the final verified source tree.",
     "complexity": "AST decision-count calculation matched all 10 original reported complexity scores; all 10 changed functions now at most 15. Cloud rescan remains authoritative."
   },
   "entries": [
@@ -169,12 +167,13 @@
       "path": "exchange_executor/server.py",
       "originalLine": 217,
       "originalSourceLine": "    host = os.environ.get(\"EXECUTOR_HOST\", \"0.0.0.0\")",
-      "status": "deployment_review_required",
-      "reason": "Compose explicitly binds the executor inside its container network and exposes 8090 without publishing a host port. The standalone fallback also binds all interfaces; review deployment intent before changing the fallback or accepting this finding.",
+      "status": "source_change_pending_rescan",
+      "reason": "Standalone executor now defaults to 127.0.0.1. Explicit Docker EXECUTOR_HOST=0.0.0.0 remains confined to the existing container network; accepted internal HTTP is unchanged. Listener test verifies unset, IPv4 wildcard and IPv6 loopback configurations without starting a network listener.",
       "evidence": [
-        "docker-compose.yml exchange-executor environment/expose/networks; server.py main."
+        "docs/testing/python-listener-contracts-independent-review-2026-09-08.json",
+        "exchange_executor/tests/test_executor_listener.py"
       ],
-      "currentFileSha256": "b3ea3c096b465ce379aa8bbd8790207a08250e5b787c414836381fd2507c5423"
+      "currentFileSha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7"
     },
     {
       "id": "T2NjdXJyZW5jZTpyZWt2cmdrbHc=",
@@ -2034,9 +2033,14 @@
       "path": "plans/005-kraken-quantity-probe.py",
       "originalLine": 0,
       "originalSourceLine": "",
-      "status": "architectural_review_required",
-      "reason": "Reported at line 0 in the probe, but actual cycle is tests/acceptance_journal.py -> tests/provider_acceptance_runner.py. Journal imports validators lazily inside runtime operations; runner imports journal normally. Existing crash/replay tests prove tested import paths work. Decoupling requires a separate shared-validation module; no blanket ignore applied.",
-      "evidence": [],
+      "status": "source_change_pending_rescan",
+      "reason": "Removed runner/journal import cycle by extracting 19 unchanged shared contract definitions into acceptance_contracts.py. Runner reexports retain object and exception identity. Journal imports validators directly. Independent AST comparison, hard-crash/restart tests and offline CLI execution passed.",
+      "evidence": [
+        "docs/testing/python-listener-contracts-independent-review-2026-09-08.json",
+        "exchange_executor/tests/acceptance_contracts.py",
+        "exchange_executor/tests/acceptance_journal.py",
+        "exchange_executor/tests/provider_acceptance_runner.py"
+      ],
       "currentFileSha256": "1b0accd1656e25597116e90ae55827f40ed50733a38acb534fe58050da30aa9e"
     },
     {
