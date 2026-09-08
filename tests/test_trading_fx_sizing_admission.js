@@ -88,7 +88,7 @@ try {
   let sends = 0, checks = 0;
   await assert.rejects(runJournaledExchangeWrite({ account, intentId, kind: 'protected_entry',
     clientOrderIds: [entry.clientOrderId, stop.clientOrderId], request: { entry: requestFromOrder(account, plan, entry),
-      protectiveStop: requestFromOrder(account, plan, stop) }, beforeDispatch: async () => {},
+      protectiveStop: requestFromOrder(account, plan, stop) }, beforeDispatch: () => Promise.resolve(),
     beforeSend: async () => { await verifyRiskAdmission(proof, plan); checks += 1; Date.now = () => sizingFx.conversion.expiresAt + 1; },
     guard: () => assertRiskAdmissionFresh(proof), send: async () => { sends += 1; return []; }, persist: async rows => rows }),
   error => error.code === 'RISK_EVIDENCE_UNRESOLVED');

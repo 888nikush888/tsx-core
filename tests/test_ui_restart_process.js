@@ -78,7 +78,7 @@ async function testRealRestart(command, mode, index) {
   const options = commandRequest(command, id);
   if (mode === 'disconnect') {
     const client = http.request(`http://127.0.0.1:${ready.port}${command.route}`, options);
-    client.on('error', () => {}); client.end(options.body);
+    client.on('error', () => undefined); client.end(options.body);
     await initial.wait('entered');
     client.destroy();
     initial.child.send({ type: 'release' });

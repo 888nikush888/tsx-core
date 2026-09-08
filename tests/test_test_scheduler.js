@@ -365,7 +365,7 @@ async function testActualPreflightAndExit() {
 
 async function testProcessFailureContracts() {
   const fixture = await createFixture('process-failures');
-  const options = { testsDirectory: fixture.directory, environment: fixture.environment, error: () => {} };
+  const options = { testsDirectory: fixture.directory, environment: fixture.environment, error: () => undefined };
   const terminalCases = [
     { code: 0, signal: 'SIGTERM' }, { code: null, signal: null }, { code: 0, signal: null, killed: true },
     { code: 0, signal: null, failure: new Error('spawn failed') },

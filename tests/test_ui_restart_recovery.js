@@ -39,7 +39,7 @@ async function disconnectedCommand(fixture, command, id) {
   server.once('request', (_request, response) => response.once('close', closed.resolve));
   const options = commandRequest(command, id);
   const client = http.request(fixture.base + command.route, options);
-  client.on('error', () => {});
+  client.on('error', () => undefined);
   client.end(options.body);
   await bounded(fixture.controls.entered.promise);
   client.destroy();

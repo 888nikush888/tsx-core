@@ -50,7 +50,7 @@ await fixture(async ({ databasePath, owner }) => {
   assert.deepEqual(await readMcpMaintenanceRequest(databasePath), lease.request);
   assert.ok(lease.protectedEntries.includes('.mcp-participants'));
   await assert.rejects(lease.assertQuiescent(), /not acknowledged/);
-  await assert.rejects(assertMcpMaintenanceLease({ ...lease, assertQuiescent: async () => {} }, databasePath), /genuine.*lease/i);
+  await assert.rejects(assertMcpMaintenanceLease({ ...lease, assertQuiescent: () => Promise.resolve() }, databasePath), /genuine.*lease/i);
   await assert.rejects(assertMcpMaintenanceLease(lease, `${databasePath}.different`), /database scope/i);
   await assert.rejects(assertMcpMaintenanceLease(lease, databasePath), /not acknowledged/);
   await assert.rejects(clearMcpMaintenanceMarker(databasePath), /owning lease/);

@@ -32,7 +32,7 @@ try {
     const result = { clientOrderId: clientId, exchangeOrderId: `remote-${clientId}`, providerSymbol: 'BTCUSDT', status: 'open',
       filledQuantity: '0', averagePrice: null, error: null, raw: {} };
     return { account, intentId: 'recovery-intent', kind: 'submit', clientOrderIds: [clientId], request: { clientOrderId: clientId },
-      beforeDispatch: async () => {}, guard: () => {}, send: async () => result,
+      beforeDispatch: () => Promise.resolve(), guard: () => undefined, send: async () => result,
       persist: async response => { await persistTradingOrderResult('recovery-intent', clientId, response); return [response]; } };
   };
   const normal = await fixture('normal');

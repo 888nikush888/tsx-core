@@ -14,7 +14,7 @@ await initDb(path.join(directory, 'test.db'));
 const state = {
   config: {}, state: {}, startupAuthority: authority,
   getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 1, paused: true }),
-  startForwarding: async () => {}, stopForwarding: async () => {}, reloadConfig: () => {}, applyRuntimeConfig: () => {},
+  startForwarding: () => Promise.resolve(), stopForwarding: () => Promise.resolve(), reloadConfig: () => undefined, applyRuntimeConfig: () => undefined,
   authenticator: { mode: 'token', isConfigured: () => true,
     authenticate: () => Promise.resolve(({ id: 'local-fake-admin', role: 'admin' })) },
   auditTrail: { record: async event => {

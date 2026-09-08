@@ -9,7 +9,8 @@
     "ESLint error checks and git diff --check passed",
     "Node22: all 19 Promise literal/empty stub modified test files passed; ESLint error checks and git diff --check passed",
     "Five scoped immutability/import/Unicode changes: all five targeted Node22 tests, ESLint error checks and diff checks passed.",
-    "Ten money-fixture/rejection findings: five targeted Node22 tests, ESLint error checks and diff checks passed."
+    "Ten money-fixture/rejection findings: five targeted Node22 tests, ESLint error checks and diff checks passed.",
+    "62 explicit empty-hook return contracts: all 23 scoped Node22 test files passed, including Python FX bridge under exact-lock Python3.12; ESLint error checks and diff checks passed."
   ],
   "entries": [
     {
@@ -963,6 +964,502 @@
       "originalLine": 85,
       "status": "source_change_pending_rescan",
       "proof": "Explicit rejected Promise preserves async failure transport; new assertion confirms the original Error message reaches recordFailure."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d293b28=",
+      "rule": "JS-0057",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1583,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJkcnE=",
+      "rule": "JS-0057",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1582,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlkeXA=",
+      "rule": "JS-0057",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1581,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlkeXY=",
+      "rule": "JS-0057",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1579,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhucmw=",
+      "rule": "JS-0057",
+      "path": "tests/test_ui_restart_recovery.js",
+      "originalLine": 42,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlkcHk=",
+      "rule": "JS-0057",
+      "path": "tests/test_ui_restart_process.js",
+      "originalLine": 81,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnluZXE=",
+      "rule": "JS-0057",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 51,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d293anc=",
+      "rule": "JS-0057",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 51,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJkcG4=",
+      "rule": "JS-0057",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 51,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlkb3k=",
+      "rule": "JS-0057",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 51,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlubWc=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 252,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhub2w=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 252,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxuZ2E=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_recovery.js",
+      "originalLine": 35,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlubGo=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_recovery.js",
+      "originalLine": 35,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJua3c=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_fx_sizing_python.js",
+      "originalLine": 76,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllb3k=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_fx_sizing_admission.js",
+      "originalLine": 91,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294ZW4=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 93,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4YXc=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 80,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12eHY=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 21,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93cm8=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 21,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlrbWE=",
+      "rule": "JS-0057",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 20,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294dm4=",
+      "rule": "JS-0057",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 368,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvdmw=",
+      "rule": "JS-0057",
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalLine": 256,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtudnY=",
+      "rule": "JS-0057",
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalLine": 246,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2amE=",
+      "rule": "JS-0057",
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalLine": 246,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4cWw=",
+      "rule": "JS-0057",
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalLine": 246,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRncm8=",
+      "rule": "JS-0057",
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalLine": 246,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1ta2c=",
+      "rule": "JS-0057",
+      "path": "tests/test_startup_web.js",
+      "originalLine": 17,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vbmQ=",
+      "rule": "JS-0057",
+      "path": "tests/test_startup_web.js",
+      "originalLine": 17,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxsb3I=",
+      "rule": "JS-0057",
+      "path": "tests/test_startup_web.js",
+      "originalLine": 17,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5cXk=",
+      "rule": "JS-0057",
+      "path": "tests/test_startup_web.js",
+      "originalLine": 17,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxbmU=",
+      "rule": "JS-0057",
+      "path": "tests/test_startup_trading.js",
+      "originalLine": 41,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2cG0=",
+      "rule": "JS-0057",
+      "path": "tests/test_startup_trading.js",
+      "originalLine": 35,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqa3I=",
+      "rule": "JS-0057",
+      "path": "tests/test_queue.js",
+      "originalLine": 271,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5ZGc=",
+      "rule": "JS-0057",
+      "path": "tests/test_metrics.js",
+      "originalLine": 194,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tdm8=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_maintenance.js",
+      "originalLine": 53,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2dnk=",
+      "rule": "JS-0057",
+      "path": "tests/test_filters.js",
+      "originalLine": 174,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqamE=",
+      "rule": "JS-0057",
+      "path": "tests/test_filters.js",
+      "originalLine": 173,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtra3A=",
+      "rule": "JS-0057",
+      "path": "tests/test_filters.js",
+      "originalLine": 170,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5eW0=",
+      "rule": "JS-0057",
+      "path": "tests/test_filters.js",
+      "originalLine": 168,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29vb2c=",
+      "rule": "JS-0057",
+      "path": "tests/test_filters.js",
+      "originalLine": 165,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJycng=",
+      "rule": "JS-0057",
+      "path": "tests/test_filters.js",
+      "originalLine": 163,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5cG4=",
+      "rule": "JS-0057",
+      "path": "tests/test_entry_deadline_transport.js",
+      "originalLine": 56,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2eXk=",
+      "rule": "JS-0057",
+      "path": "tests/test_entry_deadline_transport.js",
+      "originalLine": 11,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5dmw=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_replication.js",
+      "originalLine": 106,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFhcWs=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_replication.js",
+      "originalLine": 27,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vcHY=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_proofs.js",
+      "originalLine": 131,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5cmw=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 166,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VlcHE=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 104,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFhcms=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 102,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tZWE=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 100,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vZ3Y=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 94,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxsanE=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 80,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4Z3Y=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 72,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxZ2Q=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 66,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2d28=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 60,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqd2o=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 33,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkeXk=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup.js",
+      "originalLine": 504,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9veHY=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup.js",
+      "originalLine": 488,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4ZHY=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup.js",
+      "originalLine": 448,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqZ2o=",
+      "rule": "JS-0057",
+      "path": "tests/test_backup.js",
+      "originalLine": 120,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty async arrow with simple parameters now explicitly returns a resolved Promise; hook completion and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d3luZXE=",
+      "rule": "JS-0057",
+      "path": "scripts/run_staging_e2e.js",
+      "originalLine": 99,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
     }
   ]
 }

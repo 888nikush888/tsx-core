@@ -117,7 +117,7 @@ async function assertRestoredState(root, artifact, databasePath, configPath, sta
     'A historical boolean bypass cannot authorize replacing an operational database.'
   );
   await assert.rejects(
-    restoreBackupArtifact(artifact, databasePath, configPath, stateDir, { maintenanceLease: { assertQuiescent: async () => {} } }),
+    restoreBackupArtifact(artifact, databasePath, configPath, stateDir, { maintenanceLease: { assertQuiescent: () => Promise.resolve() } }),
     /genuine.*lease/i
   );
   const recoveryRoot = path.join(root, 'recovery-state');
@@ -445,7 +445,7 @@ async function assertBackupScheduler(root, databasePath) {
   assert.throws(() => new BackupScheduler(path.join(root, 'invalid-scheduler'), () => ({}), 59_999), /between 1 and 15 minutes/);
   assert.throws(() => new BackupScheduler(path.join(root, 'invalid-retention'), () => ({}), 60_000, 0), /between 1 and 10000/);
   assert.throws(
-    () => new BackupScheduler(path.join(root, 'required-offsite'), () => ({}), 60_000, 2, () => {}, null, true),
+    () => new BackupScheduler(path.join(root, 'required-offsite'), () => ({}), 60_000, 2, () => undefined, null, true),
     /Required off-site backup replication is not configured/
   );
   await initDb(databasePath);
@@ -485,7 +485,7 @@ async function assertBackupScheduler(root, databasePath) {
     () => ({ apiId: 123 }),
     60_000,
     2,
-    () => {},
+    () => undefined,
     { replicate: async () => { throw new Error('replication unavailable'); }, recover: async () => { throw new Error('not used'); } },
     true
   );
@@ -501,7 +501,7 @@ async function assertBackupScheduler(root, databasePath) {
     () => ({ apiId: 123 }),
     60_000,
     2,
-    () => {},
+    () => undefined,
     {
       replicate: async artifact => {
         markReplicationStarted();

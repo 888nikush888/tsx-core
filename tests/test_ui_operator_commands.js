@@ -48,7 +48,7 @@ try {
     aiLimits: { ...DEFAULT_AI_LIMITS, primaryAttempts: 1, fallbackAttempts: 0, dailyRequestLimit: 1, backoffMs: 0 } } };
   const store = new UiOperationStore(path.join(directory, 'jobs'));
   const app = { config, state: { isRunning: false }, getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 2, paused: false }),
-    startForwarding: async () => {}, stopForwarding: async () => {}, reloadConfig: () => {}, applyRuntimeConfig: () => {},
+    startForwarding: () => Promise.resolve(), stopForwarding: () => Promise.resolve(), reloadConfig: () => undefined, applyRuntimeConfig: () => undefined,
     auditTrail: { record: async event => audits.push(event), snapshot: () => ({ healthy: true }) }, uiOperations: store,
     runBackupNow: async () => { calls.backup++; return 'backup-2026-fixture'; },
     runBackupDrill: async () => { calls.drill++; return { artifactSha256: 'fixture', runtimeDisabled: true, isolation: 'temporary-child-network-apis-disabled' }; },

@@ -249,7 +249,7 @@ try {
   );
   control.attachEntryRuntime(entryRuntime);
   assert.throws(
-    () => control.attachEntryRuntime({ enableEntries: async () => {}, disableEntries: () => {} }),
+    () => control.attachEntryRuntime({ enableEntries: () => Promise.resolve(), disableEntries: () => undefined }),
     /already attached/,
   );
 

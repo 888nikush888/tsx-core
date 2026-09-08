@@ -96,7 +96,7 @@ async function waitForForwardedMessage(client, targetChatId, correlationId, notB
 }
 
 async function closeE2eClient(client) {
-  if (client && !client.isClosed()) await withTimeout(client.close(), 15_000, 'E2E TDLib close').catch(() => {});
+  if (client && !client.isClosed()) await withTimeout(client.close(), 15_000, 'E2E TDLib close').catch(() => undefined);
 }
 
 async function writeEvidence(configuration, sent, received, correlationId, messageText, startedAt) {

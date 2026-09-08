@@ -243,7 +243,7 @@ async function run() {
     const appState = {
       config: { sourceChannels: [] }, state: { isRunning: false, resolvedSourceChatIds: new Set() },
       getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 1, paused: false }),
-      startForwarding: async () => {}, stopForwarding: async () => {}, reloadConfig: () => {}, applyRuntimeConfig: () => {},
+      startForwarding: () => Promise.resolve(), stopForwarding: () => Promise.resolve(), reloadConfig: () => undefined, applyRuntimeConfig: () => undefined,
       authenticator,
       telegramViewerSettings: settings,
       telegramViewerSecrets: secrets,
@@ -253,7 +253,7 @@ async function run() {
       }),
       auditTrail: {
         record: async event => { auditEvents.push(event); },
-        snapshot: () => ({ healthy: true }), replayRemote: () => Promise.resolve(0), flush: async () => {},
+        snapshot: () => ({ healthy: true }), replayRemote: () => Promise.resolve(0), flush: () => Promise.resolve(),
       },
     };
     const server = startWebServer(0, appState);

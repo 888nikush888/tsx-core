@@ -17,8 +17,8 @@ async function fixture(account, id) {
     quantity, filled_quantity, reduce_only, request_json, created_at, updated_at)
     VALUES (?, 'fence-intent', ?, ?, 'entry', 'buy', 'limit', 'created', '1', '0', 0, '{}', 1, 1)`, [id, account.id, id]);
   const result = { clientOrderId: id, exchangeOrderId: `remote-${id}`, status: 'open', filledQuantity: '0', averagePrice: null, error: null, raw: {} };
-  return { account, intentId: 'fence-intent', kind: 'submit', clientOrderIds: [id], request: { id }, beforeDispatch: async () => {},
-    beforeSend: async () => {}, guard: () => {}, send: async () => result, persist: async () => [result] };
+  return { account, intentId: 'fence-intent', kind: 'submit', clientOrderIds: [id], request: { id }, beforeDispatch: () => Promise.resolve(),
+    beforeSend: () => Promise.resolve(), guard: () => undefined, send: async () => result, persist: async () => [result] };
 }
 const phase = async input => (await getDatabase().get('SELECT phase FROM trading_operations WHERE request_json = ?', [JSON.stringify(input.request)])).phase;
 async function failureMatrix(account) {
@@ -77,7 +77,7 @@ async function ownerIsolation() {
   let releaseNetwork;
   const network = new Promise(resolve => { releaseNetwork = resolve; });
   let wrote = false;
-  const { pending } = await withDatabaseDispatchFence(async () => {}, async () => {
+  const { pending } = await withDatabaseDispatchFence(() => Promise.resolve(), async () => {
     await network;
     await getDatabase().run("UPDATE trading_accounts SET updated_at = updated_at WHERE id = 'paper-default'");
     wrote = true;
@@ -90,7 +90,7 @@ async function ownerIsolation() {
   await pending;
   assert.equal(wrote, true);
   let starts = 0;
-  await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(async () => {}, async () => { starts += 1; })), /inherit/);
+  await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(() => Promise.resolve(), async () => { starts += 1; })), /inherit/);
   assert.equal(starts, 0);
 }
 async function commitFailure(account) {

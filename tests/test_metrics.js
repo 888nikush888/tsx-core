@@ -191,7 +191,7 @@ async function runTests() {
 }
 
 await runTests().catch(async error => {
-  await stopMetricsServer().catch(() => {});
+  await stopMetricsServer().catch(() => undefined);
   console.error(error);
   process.exitCode = 1;
 });
