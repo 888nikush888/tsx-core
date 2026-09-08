@@ -80,16 +80,27 @@ interface MoneyChartRow {
   accountingStatus?: unknown;
   realizedPnlValue?: unknown;
 }
+function chartCoordinate(value: DisplayMoneyValue | null): number | null {
+  if (!value?.exact) return null;
+  const coordinate = Number(value.exact.numerator) / Number(value.exact.denominator);
+  if (!Number.isFinite(coordinate)) return null;
+  if (coordinate === 0 && BigInt(value.exact.numerator) !== 0n) return null;
+  return coordinate;
+}
+function moneyChartPoint<Row extends MoneyChartRow>(row: Row): { currency: string; point: Row & { chartPnl: number } } | null {
+  if (typeof row.reportingCurrency !== 'string' || !unit(row.reportingCurrency)) return null;
+  if (row.accountingStatus !== "complete") return null;
+  const chartPnl = chartCoordinate(displayValue(row.realizedPnlValue));
+  if (chartPnl === null) return null; // Never synthesize zero for unproved or bounded points.
+  return { currency: row.reportingCurrency, point: { ...row, chartPnl } };
+}
 export function moneyChartGroups<Row extends MoneyChartRow>(rows: Row[]): Array<{ currency: string; points: Array<Row & { chartPnl: number }> }> {
   const groups = new Map<string, Array<Row & { chartPnl: number }>>();
   for (const row of rows) {
-    if (typeof row.reportingCurrency !== 'string' || !unit(row.reportingCurrency) || row.accountingStatus !== "complete") continue;
-    const value = displayValue(row.realizedPnlValue);
-    if (!value?.exact) continue; // No synthetic zero for unresolved/bounded or old unproved graph points.
-    const chartPnl = Number(value.exact.numerator) / Number(value.exact.denominator);
-    if (!Number.isFinite(chartPnl) || (chartPnl === 0 && BigInt(value.exact.numerator) !== 0n)) continue;
-    const points = groups.get(row.reportingCurrency) ?? [];
-    points.push({ ...row, chartPnl }); groups.set(row.reportingCurrency, points);
+    const chart = moneyChartPoint(row);
+    if (!chart) continue;
+    const points = groups.get(chart.currency) ?? [];
+    points.push(chart.point); groups.set(chart.currency, points);
   }
   return [...groups].sort(([left], [right]) => left.localeCompare(right)).map(([currency, points]) => ({ currency, points }));
 }
