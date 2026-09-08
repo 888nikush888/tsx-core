@@ -152,4 +152,24 @@ describe('operator maintenance safety', () => {
     expect(writes()).toHaveLength(1);
     expect(refresh).not.toHaveBeenCalled();
   });
+  it('reads a job page cursor without issuing a maintenance command', async () => {
+    api.jsonRequest.mockResolvedValue({ jobs: [job], observedAt: now, hasMore: true, nextCursor: 'page-two' });
+    mount(<JobsPage />);
+    expect(await screen.findByRole('link', { name: 'Auftrag job-1 prüfen' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Nächste Seite' }));
+    await waitFor(() => expect(api.jsonRequest).toHaveBeenCalledWith('/api/operations/jobs?cursor=page-two', expect.anything()));
+    expect(writes()).toHaveLength(0);
+  });
+
+  it('shows original restore evidence and the separately observed process after restart', async () => {
+    api.jsonRequest.mockResolvedValue({ job: { ...job, result: {
+      previous: { artifactName: artifact, rollbackPreserved: true }, observedInstanceId: 'new-process-7',
+    } }, observedAt: now });
+    mount(<JobsPage id="job-1" />);
+    expect(await screen.findByText(artifact)).toBeVisible();
+    expect(screen.getByText('new-process-7')).toBeVisible();
+    expect(screen.getByText('Rollback-Dateien bewahrt')).toBeVisible();
+    expect(writes()).toHaveLength(0);
+  });
+
 });
