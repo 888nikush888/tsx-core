@@ -38,7 +38,8 @@
     "Complexity and release policies: 304 original/current differential cases, both extended Node22 regression suites, actual release gate, strict complexity<=5 ESLint and diff checks passed.",
     "Sonar read retry helpers: all five Node22 Sonar suites passed; complete script ESLint complexity<=5 and diff checks passed. No live mutation or production pin change.",
     "Sonar evidence helpers: 361 original/current decision comparisons and all five Node22 Sonar regression suites passed; entire script ESLint complexity<=5 and diff checks passed.",
-    "Mutation runner: 48 exact before/after cases and Node22 regression suite passed; full script complexity<=5 ESLint and diff checks passed."
+    "Mutation runner: 48 exact before/after cases and Node22 regression suite passed; full script complexity<=5 ESLint and diff checks passed.",
+    "Architecture refactor: 576 original/current decisions, extended Node22 suite, actual architecture gate, full changed files complexity<=5 ESLint and diff checks passed."
   ],
   "entries": [
     {
@@ -4884,6 +4885,22 @@
       "originalLine": 7,
       "status": "source_change_pending_rescan",
       "proof": "Separated dependency defaults, shard selection and one-shard execution. Entire file complexity<=5; 48 before/after scenarios have identical spawn arguments, logs, errors and exit statuses. Existing fresh-evidence/force/budget/fail-fast/real CLI regression suite passes. No actual mutation campaigns started."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZG5nbGo=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_architecture.js",
+      "originalLine": 86,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated recursive dependency traversal, per-import layer policy and missing-file handling; whole script complexity<=5. All 512 directed graphs on three nodes and 64 layer edges preserve exact original results. Permanent tests cover shared acyclic dependencies, self/nested cycles, absent graph entries, stacked violations and valid imports. Real repository architecture gate and suite pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d3ZnbGw=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_architecture.js",
+      "originalLine": 40,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated recursive dependency traversal, per-import layer policy and missing-file handling; whole script complexity<=5. All 512 directed graphs on three nodes and 64 layer edges preserve exact original results. Permanent tests cover shared acyclic dependencies, self/nested cycles, absent graph entries, stacked violations and valid imports. Real repository architecture gate and suite pass."
     }
   ]
 }
