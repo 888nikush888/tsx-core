@@ -28,7 +28,8 @@
     "Final two owned string concatenations and two Unicode flags: rational, full Node22/Python3.12 build bridge, operator and repository-governance tests passed; 11141120 Unicode comparisons and ESLint/diff checks passed.",
     "License gate: new registered malformed-input and production/build policy regressions pass; original null-match/null-metadata crashes reproduced; 68 valid before/after policy cases unchanged, current 1079-artifact inventory and supply-chain policy pass. Whole changed script/test complexity<=5 and ESLint/diff checks pass.",
     "Three stateless adapter instance methods and one deferred parameter capture individually reviewed against interface and execution order; corresponding full trading-control/scheduler suites passed during the 36-suite rejection review.",
-    "Three parameter/literal-only response stubs: full Node22 web-server and dynamic-registry suites plus ESLint/diff checks passed."
+    "Three parameter/literal-only response stubs: full Node22 web-server and dynamic-registry suites plus ESLint/diff checks passed.",
+    "19 unchanged async assertion-contract functions individually read and exact-body matched; all 13 corresponding Node22 regression suites passed. No source changes or suppression."
   ],
   "entries": [
     {
@@ -4410,6 +4411,302 @@
       "originalLine": 467,
       "status": "source_change_pending_rescan",
       "proof": "Fresh literal response object contains only already-bound simple parameter values and literals; explicit Promise.resolve preserves fresh Promise/result identity without getters, calls, captured bindings or throwing parameter initializers."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtucXg=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_preparation_recovery.js",
+      "originalLine": 34,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "74bd7580db5cd9c4b34b3542c931fa951d62f12a9fe4779f7dfcbde04c335136",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "afff10d0c762bb17cbd61bff75bea2511081860857286009626ea9bc6ef66b77"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvbHA=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 44,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "fb6e76040559a7d6a855c8c1394e0870a577c4c80b7f578f2c27469dcf68e8a9",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "d94aa9ce6bafec3a0261f2e5a375c15165688b4df133809492f09304f2cb5e95"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12anE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_funding.js",
+      "originalLine": 146,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "af904f40835f52d0f3610b494635f277b9f027c6edd794ca1cc92f3338b4c27e",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "4ab8680adc603eb0f2ad0bec1f88184397207fbe219fa4dd53570ff6d1569bbd"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93d3k=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 673,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "00d3fbaa056ae82faa92918da01930efac671c56f9b8fc9f714d1bb3f7cee5fd",
+      "assertionCount": 2,
+      "evidenceAssertionSha256": [
+        "c8c00209fb545598cd23aed597fd0c209f866b723f1d8a665361faf60183e538",
+        "adc6643430e7b419f38ba3607f956331cac5f16c6a9159c5fe1e044b887630d1"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294am4=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 170,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "a1b49fb3c5dc4b9797ec4e4fd9e1c91af7824506330e82e28691f7b03b439a5c",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "dcab4fadd3f0f5e670e5873e56a9513ede4ac8e25391348953f51933c3d6e146"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJueWE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_cancel_budget.js",
+      "originalLine": 34,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "2e58279bdf49f169ab504f3b7ae371e7bd0ced371ef3dadba18d3ac6903446bd",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "ffaf968ad9c8700998d64c63101beed862cbd3703820486adf8e9d57f07be51d"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllcng=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_cancel_budget.js",
+      "originalLine": 29,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "5733d54b91d80b4e27381f634df15b932fa0a0bcb73b013990d8952d5544d31d",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "5c38c8dd7ed3630f22d7f4f37f45d10dc07605b52c2697da60701e16a1ea2aa2"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VucGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_cancel_budget.js",
+      "originalLine": 24,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "537f58f6ec636068de457eed8d3fcb8db7d63b21752e25738f7b70b77ec876c6",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "d0b79380a03d684ff24b4c734f34e9a97f49c93b88535fef12bffb90877edc97"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtcW4=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_cancel_budget.js",
+      "originalLine": 19,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "5d8ac8ba77c409446c4a66760a60cf6fe776e9d11bc94b8af03bcfadb78d90fd",
+      "assertionCount": 2,
+      "evidenceAssertionSha256": [
+        "93d14444b1e4a0a289ca588dd503a3f334024d607a5b33c9fb84ae9ceb9af459",
+        "57e7b73cc8f65961b89c62717731597f376f76e799d6a213b58757fc85a0c29b"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkb28=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 276,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "05a098e2fc9bfbd07e08564e61960885f9cf2eefb2ca9ebe0920aa4ad2711745",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "545fa5241e83927e594bd5105d91b4c8a4c257b86698e7325988e14c9d755e47"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJyYWw=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 19,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "3722ea9931181fe6b1c3c14f73fad74685413cd30e728f6a849cf97eba00ef8f",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "545fa5241e83927e594bd5105d91b4c8a4c257b86698e7325988e14c9d755e47"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxcXE=",
+      "rule": "JS-0116",
+      "path": "tests/test_ingress_workflow_pinning.js",
+      "originalLine": 43,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "04ae29ba66eb76ae51074bdad5337f0a989fe86e39bdacad534bdd5e02fc0a0d",
+      "assertionCount": 2,
+      "evidenceAssertionSha256": [
+        "571bca4d8afb236443ce06f7d3c380f67b448f37c263129ce93454c6b961dfe3",
+        "19270cfc689bfb1613b8bdd2dd0a494da390d45a741ecbcec17cbffcd01d8e18"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5bW8=",
+      "rule": "JS-0116",
+      "path": "tests/test_coverage_perfektion.js",
+      "originalLine": 6,
+      "status": "reviewed_expected_behavior",
+      "proof": "The runner is consumed through runTests().catch(...); async provides the required Promise and turns assertion failures into the handled rejection channel. Removing it breaks the caller even when every assertion succeeds.",
+      "evidenceFunctionSha256": "d4521321c1d36838e6ca20d6b3f8e214ea912b490c8a857f43c9a9c584518ea5",
+      "assertionCount": 26,
+      "evidenceAssertionSha256": [
+        "06e345b7b8ddf6f5c39c5ceaba34e61107fbdaa203bd67f50bddce6b83f894cd",
+        "fae7c7d9573101364fe12d105f3d4b4558cafc8c7d779ae268634acfafcc9a57",
+        "3417bc3dd7ca0cf0e1049dcfdf8d9d00c7459ed7d419e3d5becd3c7c16d348ce",
+        "aa0e06b087c7c0b01dda4b6a637bb8de461ecaa90b0832686ce542a47fd6c5a9",
+        "b927245542b6f640ed90ef62651600482a9574f4f0ff47d42974641d7d3eb481",
+        "37bc2236b092bfb08583faa73329921ff7e9d528bb07f6c3e202ebebfb8ed255",
+        "b8ee89d7e6b49b9ce61bfdac89315fe360750a29c5d936b8b4c2e9ab94a8e1cd",
+        "487c5e268dfe3f36f0ecb6041101fd584d363659ba0cdeb46216f1d421114724",
+        "c8ab28a920824bcfa7429dbf7bf3818e0333cb702afad8f078730f2c9db77d7d",
+        "f19f81eeb648d2cf91a447e87add462089641e91e95fa3d76bc8e3c6f0e4fc39",
+        "cc0bfde3312e5d23832d10e10745546a66a60820f53e665995628d6478ff9804",
+        "1afd0e397278be2a8d0aac09dcbe33c6ec200347fa835eaabb78942e1f31aca9",
+        "3f0bda53ea9e7961d1bc03a8b668c424acae517311a33e364e2ab4ff40beee28",
+        "77de1398d1c6040f0e6537a85c85a76f3302e2aba50c9d6fe9e2d7bb243e04d0",
+        "61c7dbd54a6d5f4921a098b3c0976635fb95ee93884231ad416b0ca8d74b6075",
+        "9ce27539e414566d742748dc35bd21e4d7ce738bf93cd94d9946c75da8987850",
+        "607e94ca9d2fa3099d24c936eaef5f3466fb6c821f3415c86f5e25eeaa5ec04e",
+        "607e94ca9d2fa3099d24c936eaef5f3466fb6c821f3415c86f5e25eeaa5ec04e",
+        "607e94ca9d2fa3099d24c936eaef5f3466fb6c821f3415c86f5e25eeaa5ec04e",
+        "25c25d3b5cf9fe688238527578af7674ce0bd11842ba900309526df256a8ae9e",
+        "45d2bf8bb0b3248df1a0d5cccdca6828309b9eeeb94757face9730e6070934e0",
+        "5b036e62b37f4c459aec7dfdd6defa8b6f43add08d7da2d60626e6fc105b1a7f",
+        "607e94ca9d2fa3099d24c936eaef5f3466fb6c821f3415c86f5e25eeaa5ec04e",
+        "a1d68664e4a3666147b9bd642ea7a80a04d5a56f623cb1ce0d2598211814a206",
+        "ea42a9fedd350a12ec7fc8398da531c403690a1321423f3d92518233f3c2c4ce",
+        "641ada08f25c42233b76ff0f56e97c47bf71c579331af3081bd36bfb29942b1a"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5d28=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup_generation_ownership.js",
+      "originalLine": 67,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "8abce2607a4b09840803e669bda6c023c66f89803cf902286bf647d265c7b35d",
+      "assertionCount": 2,
+      "evidenceAssertionSha256": [
+        "acf83eee06c9e59249c627c9089b7f4c210294c360951998ad3da45e13ba42c0",
+        "f18444e7231237467358c548846209110b8ab36d1051cec6d8b684b6bf3d55ee"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5ZGs=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup_generation_crash.js",
+      "originalLine": 119,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "8828384e996e7e8d0c3cedc6cce6b0824783457b803f7eba8e5ce4557b7c815a",
+      "assertionCount": 2,
+      "evidenceAssertionSha256": [
+        "a793bb758e6634bc2c7f86952c06278ecc6617b21eae6e5646ba244f129af7f9",
+        "e509f3f1698c6343da7b3c9593758aed1b1a449c6ed06ce148d7aa5efa78caae"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29vZ2o=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup_generation_crash.js",
+      "originalLine": 115,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "fb43e68fdb10046fc1aeedb8f6fe5e91f9f710b12f475a793ae1038bac2c2ec1",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "1f5526aa0c49b974a3dc6a9ff2bc34da502422339442f6750d312b572b8a1ff5"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJyeXY=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup_generation_crash.js",
+      "originalLine": 78,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "c2328552d4a251a2c5b08f48d744017a538329376e977b6fa84676c5910e9ff4",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "5fe23193b3d93e641aa3071f37333998d2a6d423b3ef4aebeacce322bc8ab375"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkcHk=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 182,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "1e7639929428c2d5a5bd82cce70dcc68545a50128d29606f2cc815f4b83067ab",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "8aa80954188c3de3a8ffdc7a33ed8051400b1420a5d88b3cdacc03be0c722b85"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxdmQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup.js",
+      "originalLine": 372,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed callback implements a Promise-valued Coordinator/Generation-Pinning/Provider/Fetch contract. Synchronous assertions must reject that Promise on failure; their side effects, observed ordering and error transport must not be changed by removing async.",
+      "evidenceFunctionSha256": "98df2ad7b11ce459c2b8582d92b1bf276e8692f5f4b902fecc99e85520597d4a",
+      "assertionCount": 1,
+      "evidenceAssertionSha256": [
+        "8e37671890c23bd834901ab9b0dfd82973641520620d8ceef59db733d682e151"
+      ],
+      "remoteSuppressionApplied": false
     }
   ]
 }
