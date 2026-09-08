@@ -64,7 +64,7 @@ function canonicalDirectory(directory) {
 
 function safeRelative(relative) {
   requireBuild(typeof relative === 'string' && relative.length > 0 && relative.length <= 512
-    && !/[\\:\x00-\x1f\x7f]/.test(relative) && !path.posix.isAbsolute(relative)
+    && !/[\\:\x00-\x1f\x7f]/u.test(relative) && !path.posix.isAbsolute(relative)
     && relative.split('/').every(part => part && part !== '.' && part !== '..'), 'invalid source path');
 }
 

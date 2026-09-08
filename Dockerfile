@@ -19,6 +19,7 @@ COPY frontend/package.json frontend/package-lock.json ./frontend/
 RUN npm ci --ignore-scripts --include=optional --no-audit --no-fund \
     && npm ci --prefix frontend --ignore-scripts --include=optional --no-audit --no-fund
 COPY src/ ./src/
+COPY scripts/copy_declarations.js ./scripts/copy_declarations.js
 COPY frontend/ ./frontend/
 RUN npm run build
 

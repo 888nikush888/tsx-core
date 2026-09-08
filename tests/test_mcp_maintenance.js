@@ -50,7 +50,7 @@ await fixture(async ({ databasePath, owner }) => {
   assert.deepEqual(await readMcpMaintenanceRequest(databasePath), lease.request);
   assert.ok(lease.protectedEntries.includes('.mcp-participants'));
   await assert.rejects(lease.assertQuiescent(), /not acknowledged/);
-  await assert.rejects(assertMcpMaintenanceLease({ ...lease, assertQuiescent: async () => {} }, databasePath), /genuine.*lease/i);
+  await assert.rejects(assertMcpMaintenanceLease({ ...lease, assertQuiescent: () => Promise.resolve() }, databasePath), /genuine.*lease/i);
   await assert.rejects(assertMcpMaintenanceLease(lease, `${databasePath}.different`), /database scope/i);
   await assert.rejects(assertMcpMaintenanceLease(lease, databasePath), /not acknowledged/);
   await assert.rejects(clearMcpMaintenanceMarker(databasePath), /owning lease/);
@@ -201,7 +201,7 @@ let finish;
 const pending = tracker.run(() => new Promise(resolve => { finish = resolve; }));
 await delay(0);
 const draining = tracker.stopAndDrain(Date.now() + 1000);
-await assert.rejects(tracker.run(async () => 'new mutation'), /new database work is blocked/);
+await assert.rejects(tracker.run(() => Promise.resolve('new mutation')), /new database work is blocked/);
 finish('old work finished');
 await Promise.all([pending, draining]);
 
@@ -210,7 +210,7 @@ let finishBlocked;
 const blocked = blockedTracker.run(() => new Promise(resolve => { finishBlocked = resolve; }));
 await delay(0);
 await assert.rejects(blockedTracker.stopAndDrain(Date.now() + 30), /did not drain/);
-await assert.rejects(blockedTracker.run(async () => 'late mutation'), /new database work is blocked/);
+await assert.rejects(blockedTracker.run(() => Promise.resolve('late mutation')), /new database work is blocked/);
 finishBlocked();
 await blocked;
 

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useContext } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +9,7 @@ import {
 import { ThemeProviderContext } from "@/contexts/theme-context";
 
 export function ThemeToggle() {
-  const { resolvedTheme, setTheme } = React.useContext(ThemeProviderContext);
+  const { resolvedTheme, setTheme } = useContext(ThemeProviderContext);
   const light = resolvedTheme === "light";
   const label = light ? "Dunklen Modus aktivieren" : "Hellen Modus aktivieren";
 

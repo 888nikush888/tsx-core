@@ -1,3 +1,4 @@
+import { fixtureValue } from "./fixture-value";
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
@@ -39,7 +40,7 @@ describe('runtime field and evidence value contracts', () => {
     fireEvent.change(screen.getByRole('spinbutton', { name: /^count / }), { target: { value: '7' } });
     fireEvent.click(screen.getByRole('checkbox', { name: /^enabled/ }));
     fireEvent.change(screen.getByRole('combobox', { name: /^mode/ }), { target: { value: 'second' } });
-    expect(JSON.parse(screen.getByLabelText('Submitted runtime draft').textContent!)).toEqual({
+    expect(JSON.parse(fixtureValue(screen.getByLabelText('Submitted runtime draft').textContent, 'submitted draft text'))).toEqual({
       text: 'new value', count: 7, enabled: true, mode: 'second', futureField: { preserved: true },
     });
     expect(screen.getByRole('status')).toHaveTextContent('Valid runtime draft');

@@ -17,8 +17,8 @@ async function fixture(account, id) {
     quantity, filled_quantity, reduce_only, request_json, created_at, updated_at)
     VALUES (?, 'fence-intent', ?, ?, 'entry', 'buy', 'limit', 'created', '1', '0', 0, '{}', 1, 1)`, [id, account.id, id]);
   const result = { clientOrderId: id, exchangeOrderId: `remote-${id}`, status: 'open', filledQuantity: '0', averagePrice: null, error: null, raw: {} };
-  return { account, intentId: 'fence-intent', kind: 'submit', clientOrderIds: [id], request: { id }, beforeDispatch: async () => {},
-    beforeSend: async () => {}, guard: () => {}, send: async () => result, persist: async () => [result] };
+  return { account, intentId: 'fence-intent', kind: 'submit', clientOrderIds: [id], request: { id }, beforeDispatch: () => Promise.resolve(),
+    beforeSend: () => Promise.resolve(), guard: () => undefined, send: () => Promise.resolve(result), persist: () => Promise.resolve([result]) };
 }
 const phase = async input => (await getDatabase().get('SELECT phase FROM trading_operations WHERE request_json = ?', [JSON.stringify(input.request)])).phase;
 async function failureMatrix(account) {
@@ -74,10 +74,9 @@ async function rejectedDispatchMutation(account, boundary, name, mutate) {
     assert.equal(JSON.parse(operation.expected_orders_json)[0].client_order_id, JSON.parse(original).id);
 }
 async function ownerIsolation() {
-  let releaseNetwork;
-  const network = new Promise(resolve => { releaseNetwork = resolve; });
+  const { promise: network, resolve: releaseNetwork } = Promise.withResolvers();
   let wrote = false;
-  const { pending } = await withDatabaseDispatchFence(async () => {}, async () => {
+  const { pending } = await withDatabaseDispatchFence(() => Promise.resolve(), async () => {
     await network;
     await getDatabase().run("UPDATE trading_accounts SET updated_at = updated_at WHERE id = 'paper-default'");
     wrote = true;
@@ -90,7 +89,7 @@ async function ownerIsolation() {
   await pending;
   assert.equal(wrote, true);
   let starts = 0;
-  await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(async () => {}, async () => { starts += 1; })), /inherit/);
+  await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(() => Promise.resolve(), () => { starts += 1; return Promise.resolve(); })), /inherit/);
   assert.equal(starts, 0);
 }
 async function commitFailure(account) {

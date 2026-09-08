@@ -35,7 +35,7 @@ class AcceptanceHardCrashTests(unittest.TestCase):
                 self.assertIsNone(process.poll(), "child exited before the durable checkpoint")
                 self.assertLess(time.monotonic(), deadline, "child checkpoint timeout")
                 time.sleep(0.01)
-            second_owner = subprocess.run(arguments(directory, "replay"), capture_output=True, text=True,
+            second_owner = subprocess.run(arguments(directory, "replay"), capture_output=True, text=True, check=False,
                                           timeout=10, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             self.assertNotEqual(second_owner.returncode, 0)
             self.assertIn("journal refused", second_owner.stderr)
@@ -54,7 +54,7 @@ class AcceptanceHardCrashTests(unittest.TestCase):
                 before = rows(directory / "writes.jsonl")
                 self.assertEqual(sum(row["event"] == "attempt" for row in before), attempts)
                 self.assertEqual(sum(row["event"] == "accepted" for row in before), accepted)
-                resumed = subprocess.run(arguments(directory, "replay"), capture_output=True, text=True,
+                resumed = subprocess.run(arguments(directory, "replay"), capture_output=True, text=True, check=False,
                                          timeout=10, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
                 self.assertEqual(resumed.returncode, 0, resumed.stderr)
                 self.assertEqual(json.loads(resumed.stdout)["deadline"], 130)
@@ -71,13 +71,13 @@ class AcceptanceHardCrashTests(unittest.TestCase):
     def test_child_fsync_error_never_sends_or_exposes_its_original_secret_cause(self):
         with tempfile.TemporaryDirectory(prefix="acceptance-fsync-child-") as location:
             directory = Path(location)
-            failed = subprocess.run(arguments(directory, "fsync_error"), capture_output=True, text=True,
+            failed = subprocess.run(arguments(directory, "fsync_error"), capture_output=True, text=True, check=False,
                                     timeout=10, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             self.assertNotEqual(failed.returncode, 0)
             self.assertNotIn("NEVER-PRINT-THIS-SECRET", failed.stdout + failed.stderr)
             self.assertEqual(rows(directory / "writes.jsonl"), [])
             self.assertNotIn(b"NEVER-PRINT-THIS-SECRET", (directory / "run.sqlite").read_bytes())
-            resumed = subprocess.run(arguments(directory, "replay"), capture_output=True, text=True,
+            resumed = subprocess.run(arguments(directory, "replay"), capture_output=True, text=True, check=False,
                                      timeout=10, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             self.assertEqual(resumed.returncode, 0, resumed.stderr)
             self.assertEqual(json.loads(resumed.stdout)["unresolved"], ["own-1"])

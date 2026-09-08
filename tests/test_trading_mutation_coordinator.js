@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import { TradingMutationCoordinator } from '../src/trading_mutation_coordinator.js';
 
 function deferred() {
-  let resolve;
-  const promise = new Promise(done => { resolve = done; });
+  const { promise, resolve } = Promise.withResolvers();
   return { promise, resolve };
 }
 
@@ -12,32 +11,32 @@ const hold = deferred();
 const entered = deferred();
 const order = [];
 let capturedContext;
+const epoch = coordinator.entryEpoch('a');
 const first = coordinator.run('a', async context => {
   capturedContext = context;
   order.push('a1');
   entered.resolve();
   await hold.promise;
-  await coordinator.run('a', async () => { order.push('nested'); }, context);
+  await coordinator.run('a', () => { order.push('nested'); return Promise.resolve(); }, context);
   assert.throws(() => coordinator.assertEntryEpoch(context, epoch), /fence/i);
 });
-const epoch = coordinator.entryEpoch('a');
 await entered.promise;
-const second = coordinator.run('a', async () => { order.push('a2'); });
-await coordinator.run('b', async () => { order.push('b'); });
+const second = coordinator.run('a', () => { order.push('a2'); return Promise.resolve(); });
+await coordinator.run('b', () => { order.push('b'); return Promise.resolve(); });
 coordinator.fenceEntries('a');
 assert.deepEqual(order, ['a1', 'b']);
 hold.resolve();
 await Promise.all([first, second]);
 assert.deepEqual(order, ['a1', 'b', 'nested', 'a2']);
-await assert.rejects(coordinator.run('a', async () => undefined, capturedContext), /context/i);
+await assert.rejects(coordinator.run('a', () => Promise.resolve(), capturedContext), /context/i);
 await coordinator.run('a', async context => {
-  await assert.rejects(coordinator.run('b', async () => undefined, context), /context/i);
+  await assert.rejects(coordinator.run('b', () => Promise.resolve(), context), /context/i);
   const before = coordinator.entryEpoch('a');
   coordinator.fenceEntries();
   assert.throws(() => coordinator.assertEntryEpoch(context, before), /fence/i);
 });
 await assert.rejects(coordinator.run('a', async () => { throw new Error('expected'); }), /expected/);
-await coordinator.run('a', async () => { order.push('after-error'); });
+await coordinator.run('a', () => { order.push('after-error'); return Promise.resolve(); });
 const firstHold = coordinator.holdEntries('a');
 const secondHold = coordinator.holdEntries('a');
 firstHold();

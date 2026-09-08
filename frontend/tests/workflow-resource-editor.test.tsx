@@ -75,7 +75,7 @@ function response(body: unknown, status = 200) {
 
 function editor(
   kind: any,
-  onSave = vi.fn(async () => true),
+  onSave = vi.fn(() => Promise.resolve(true)),
   snapshot: any = trading,
   resource: any = null,
   parserSources: any[] = [{
@@ -338,9 +338,9 @@ describe('workflow resource contracts', () => {
   })
 
   it('separates canvas removal, archival and permanent deletion', async () => {
-    const onDeleteNode = vi.fn(async () => undefined)
-    const onArchiveResource = vi.fn(async () => undefined)
-    const onDeleteResource = vi.fn(async () => undefined)
+    const onDeleteNode = vi.fn(() => Promise.resolve())
+    const onArchiveResource = vi.fn(() => Promise.resolve())
+    const onDeleteResource = vi.fn(() => Promise.resolve())
     render(
       <ResourceEditor
         open
@@ -351,7 +351,7 @@ describe('workflow resource contracts', () => {
         }}
         trading={trading}
         onClose={vi.fn()}
-        onSave={vi.fn(async () => true)}
+        onSave={vi.fn(() => Promise.resolve(true))}
         onDeleteNode={onDeleteNode}
         onArchiveResource={onArchiveResource}
         onDeleteResource={onDeleteResource}

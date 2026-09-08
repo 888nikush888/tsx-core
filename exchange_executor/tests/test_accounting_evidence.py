@@ -17,7 +17,8 @@ from common import RequestDeadline
 
 
 class AccountingEvidenceTests(unittest.IsolatedAsyncioTestCase):
-    def deadline(self):
+    @staticmethod
+    def deadline():
         return RequestDeadline(int(time.time() * 1000) + 30_000)
 
     def test_bybit_reporting_uses_documented_usd_totals_not_first_stablecoin(self):
@@ -59,7 +60,8 @@ class AccountingEvidenceTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ExchangeContractError):
                 read(patch)
 
-    def checkpoint(self, exchange='bybit'):
+    @staticmethod
+    def checkpoint(exchange='bybit'):
         now = int(time.time() * 1000)
         namespace, filter_hash = source_spec(exchange)
         return {'version': 1, 'namespace': namespace, 'filterHash': filter_hash,

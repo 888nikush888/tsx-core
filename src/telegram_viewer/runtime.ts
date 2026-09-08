@@ -66,6 +66,7 @@ export async function runTelegramViewer(): Promise<void> {
   const service = new TelegramViewerService({ core, bot, state });
   await service.refreshSettings();
   startTelegramViewerHealthServer({
+    host: process.env.TELEGRAM_VIEWER_HEALTH_HOST?.trim() || '127.0.0.1',
     port: Number(process.env.TELEGRAM_VIEWER_HEALTH_PORT || 8081),
     serviceToken,
     status: () => service.status(),

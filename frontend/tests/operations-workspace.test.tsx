@@ -1,3 +1,4 @@
+import { fixtureValue } from "./fixture-value";
 import "@testing-library/jest-dom/vitest"
 import { cleanup, fireEvent, render as baseRender, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -191,7 +192,7 @@ function workspace(tab: OperationTab, snapshot = trading) {
       trading={snapshot}
       catalog={catalog}
       systemStatus={{ connectionState: "connected", isRunning: true, resolvedSources: ["VIP"], queue: { running: 1, queued: 0 }, telegramLogin: { state: "idle" } }}
-      onRefresh={vi.fn(async () => undefined)}
+      onRefresh={vi.fn(() => Promise.resolve())}
       initialTab={tab}
       availableTabs={[tab]}
       title="V3.1 Betrieb"
@@ -204,7 +205,7 @@ describe("operations workspace", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     api.apiFetch.mockImplementation((url: string) => json(bodyFor(url)))
-    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn(async () => undefined) } })
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn(() => Promise.resolve()) } })
   })
 
   afterEach(() => cleanup())
@@ -293,9 +294,9 @@ describe("operations workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sperre prüfen & lösen" }))
     await screen.findByRole("heading", { name: "Globale Sperre lösen" })
     const buttons = screen.getAllByRole("button", { name: "Sperre prüfen & lösen" })
-    const confirmation = buttons.find(button => button.hasAttribute("disabled"))!
+    const confirmation = fixtureValue(buttons.find(button => button.hasAttribute("disabled")), 'disabled confirmation button')
     expect(confirmation).toBeDisabled()
-    fireEvent.change(screen.getByLabelText(/Zur Bestätigung exakt „RELEASE GLOBAL KILL SWITCH“/), {
+    fireEvent.change(screen.getByLabelText(/Zur Bestätigung exakt „RELEASE GLOBAL KILL SWITCH“/u), {
       target: { value: "RELEASE GLOBAL KILL SWITCH" },
     })
     expect(confirmation).toBeEnabled()
@@ -339,7 +340,7 @@ describe("operations workspace", () => {
         trading={trading}
         catalog={catalog}
         systemStatus={{ connectionState: "connected" }}
-        onRefresh={vi.fn(async () => undefined)}
+        onRefresh={vi.fn(() => Promise.resolve())}
         initialTab="overview"
         availableTabs={["overview"]}
         onOpenIncidents={onOpenIncidents}
@@ -402,7 +403,7 @@ describe("operations workspace", () => {
         trading={trading}
         catalog={catalog}
         systemStatus={{ connectionState: "connected", isRunning: true, resolvedSources: ["VIP"], queue: { running: 1, queued: 0 }, telegramLogin: { state: "idle" } }}
-        onRefresh={vi.fn(async () => undefined)}
+        onRefresh={vi.fn(() => Promise.resolve())}
         initialTab="overview"
         availableTabs={["overview", "accounts", "journal"]}
         title="Custom Titel"
@@ -423,7 +424,7 @@ describe("operations workspace", () => {
         trading={trading}
         catalog={catalog}
         systemStatus={{ connectionState: "connected", isRunning: true, resolvedSources: ["VIP"], queue: { running: 1, queued: 0 }, telegramLogin: { state: "idle" } }}
-        onRefresh={vi.fn(async () => undefined)}
+        onRefresh={vi.fn(() => Promise.resolve())}
       />,
     )
     expect(screen.getByRole("heading", { name: "Entscheidende Live-Gates" })).toBeInTheDocument()
@@ -468,7 +469,7 @@ describe("operations workspace", () => {
         trading={trading}
         catalog={degradedCatalog}
         systemStatus={{ connectionState: "offline", isRunning: false, resolvedSources: [], queue: { running: 0, queued: 5 }, telegramLogin: { state: "idle" } }}
-        onRefresh={vi.fn(async () => undefined)}
+        onRefresh={vi.fn(() => Promise.resolve())}
         initialTab="system"
         availableTabs={["system"]}
       />,

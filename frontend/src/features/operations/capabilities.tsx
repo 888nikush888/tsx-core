@@ -1,3 +1,4 @@
+import type { UiParameter } from "../../../../src/ui_contracts";
 import { valueText } from "@/shared/value-text";
 import { useCallback, useState } from 'react';
 import { Link, useSearchParams } from '@/lib/navigation';
@@ -17,7 +18,7 @@ const show = (value: unknown) => {
   }
   return valueText(value);
 };
-function ParameterEvidence({ entry }: Readonly<{ entry: any }>) {
+function ParameterEvidence({ entry }: Readonly<{ entry: UiParameter }>) {
   const editingContract = () => {
     if (entry.secret) {
       return 'Separater Secretcommand; gespeicherter Inhalt bleibt verborgen';
@@ -28,7 +29,7 @@ function ParameterEvidence({ entry }: Readonly<{ entry: any }>) {
     return 'Original, Deployment oder feste Sicherheitsgrenze';
   };
   return <EvidenceFields fields={[
-          ['Typ und Einheit', entry.type + (entry.unit ? ' · ' + entry.unit : '')], ['Grenzen', entry.constraints],
+          ['Typ und Einheit', `${entry.type}${entry.unit ? ` · ${entry.unit}` : ''}`], ['Grenzen', entry.constraints],
           ['Vorlage / Default', entry.defaultPresent ? show(entry.default) : 'Kein Wert vorgegeben; Pflichtfeld oder bedingter Validatorstandard.'],
           ['Leer / null / 0', entry.emptyMeaning], ['Quelle', entry.source], ['Scope', entry.scope], ['Wirkung', entry.effect],
     ['Bearbeitung', editingContract()],
@@ -36,16 +37,55 @@ function ParameterEvidence({ entry }: Readonly<{ entry: any }>) {
         ]} />;
 }
 
+interface CapabilityEntry {
+  route: string; label: string; role: string; scope: string; effect: string;
+  href: string; boundary?: string; inputVariants: string;
+  currentBlockers: string[]; handler: string; contractTests: string[];
+}
+interface DirectoryPage<Entry> {
+  contractVersion: number; total: number; entries: Entry[]; hasMore: boolean; nextCursor: string | null;
+}
+type DirectoryObservation =
+  | { address: string; kind: 'parameters'; value: DirectoryPage<UiParameter> }
+  | { address: string; kind: 'capabilities'; value: DirectoryPage<CapabilityEntry> };
+
+function ParameterCard({ entry }: Readonly<{ entry: UiParameter }>) {
+  return <article className="operations-card"><h2>{entry.path}</h2>
+    <ParameterEvidence entry={entry} />
+    <Link className="secondary-button" to={entry.href}>Fachansicht öffnen</Link>
+    <details><summary>Vertragsnachweis</summary><p>{entry.validator}</p><p>{entry.consumer}</p></details>
+  </article>;
+}
+function CapabilityCard({ entry }: Readonly<{ entry: CapabilityEntry }>) {
+  return <article className="operations-card"><h2>{entry.label}</h2><p>{entry.route}</p>
+    <EvidenceFields fields={[["Rolle", entry.role], ["Scope", entry.scope], ["Wirkung", entry.effect],
+      ["Einordnung", entry.boundary ?? 'Bedienbare Operatorfähigkeit'], ["Varianten", entry.inputVariants]]} />
+    {entry.currentBlockers?.length ? <p><output>{entry.currentBlockers.join(' ')}</output></p> : <p>Keine allgemeine Sperre beobachtet. Objektbezogene Prüfungen und Audit erfolgen erst am Befehl.</p>}
+    <Link className="secondary-button" to={entry.href}>Fachansicht öffnen</Link>
+    <details><summary>Vertragsnachweis</summary><p>{entry.handler}</p><p>{entry.contractTests?.join(' · ')}</p></details>
+  </article>;
+}
+function DirectoryEntries({ observation }: Readonly<{ observation: DirectoryObservation }>) {
+  return observation.kind === 'parameters'
+    ? observation.value.entries.map(entry => <ParameterCard key={entry.path} entry={entry} />)
+    : observation.value.entries.map(entry => <CapabilityCard key={entry.route} entry={entry} />);
+}
+
 export function CapabilitiesPage() {
   const [query, setQuery] = useSearchParams(); const parameters = query.get('view') === 'parameters';
-  const [response, setResponse] = useState<any>(null); const [error, setError] = useState('');
+  const [response, setResponse] = useState<DirectoryObservation | null>(null); const [error, setError] = useState('');
   const apiQuery = new URLSearchParams({ limit: '30' });
-  if (query.get('cursor')) apiQuery.set('cursor', query.get('cursor')!);
-  const filter = parameters ? 'prefix' : 'area'; if (query.get(filter)) apiQuery.set(filter, query.get(filter)!);
-  const address = '/api/ui/' + (parameters ? 'parameters' : 'capabilities') + '?' + apiQuery;
-  const data = response?.address === address ? response.value : null;
-  const read = useCallback((signal: AbortSignal) => jsonRequest(address, { signal }), [address]);
-  usePoll(read, value => { setResponse({ address, value }); setError(''); }, reason => setError(reason.message));
+  const cursor = query.get('cursor'); if (cursor) apiQuery.set('cursor', cursor);
+  const filter = parameters ? 'prefix' : 'area'; const filterValue = query.get(filter);
+  if (filterValue) apiQuery.set(filter, filterValue);
+  const address = `/api/ui/${parameters ? 'parameters' : 'capabilities'}?${apiQuery}`;
+  const observation = response?.address === address ? response : null;
+  const data = observation?.value;
+  const read = useCallback(async (signal: AbortSignal): Promise<DirectoryObservation> => {
+    const value = await jsonRequest(address, { signal });
+    return parameters ? { address, kind: 'parameters', value } : { address, kind: 'capabilities', value };
+  }, [address, parameters]);
+  usePoll(read, value => { setResponse(value); setError(''); }, reason => setError(reason.message));
   const update = (key: string, value: string) => { setResponse(null); setQuery(current => {
       current.delete('cursor'); if (value) { current.set(key, value); } else { current.delete(key); } return current;
   }); };
@@ -61,15 +101,7 @@ export function CapabilitiesPage() {
     {error && <p role="alert">Verzeichnis nicht aktuell bestätigt: {error}</p>}
     {!data && !error && <p><output>Verzeichnis wird geladen …</output></p>}
     {data && <><p>Vertrag {data.contractVersion} · {data.total} passende Einträge · {data.entries.length} auf dieser Seite</p>
-      {data.entries.map((entry: any) => <article className="operations-card" key={parameters ? entry.path : entry.route}>
-        <h2>{parameters ? entry.path : entry.label}</h2>
-        {parameters ? <ParameterEvidence entry={entry} /> : <><p>{entry.route}</p><EvidenceFields fields={[['Rolle', entry.role], ['Scope', entry.scope], ['Wirkung', entry.effect],
-          ['Einordnung', entry.boundary ?? 'Bedienbare Operatorfähigkeit'], ['Varianten', entry.inputVariants]]} />
-          {entry.currentBlockers?.length ? <p><output>{entry.currentBlockers.join(' ')}</output></p> : <p>Keine allgemeine Sperre beobachtet. Objektbezogene Prüfungen und Audit erfolgen erst am Befehl.</p>}
-        </>}
-        <Link className="secondary-button" to={entry.href}>Fachansicht öffnen</Link>
-        <details><summary>Vertragsnachweis</summary><p>{parameters ? entry.validator : entry.handler}</p><p>{parameters ? entry.consumer : entry.contractTests?.join(' · ')}</p></details>
-      </article>)}
+      <DirectoryEntries observation={observation} />
       <div className="flex gap-3">{query.has('cursor') && <button className="secondary-button" onClick={() => update('cursor', '')}>Erste Seite</button>}
         {data.hasMore && <button className="primary-button" onClick={() => { setResponse(null); setQuery(current => { current.set('cursor', data.nextCursor); return current; }); }}>Weitere Einträge</button>}</div></>}
   </section>;

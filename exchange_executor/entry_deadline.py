@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any
+from typing import Any, cast
 
 from common import ExchangeContractError, RequestDeadline
 
@@ -38,7 +38,7 @@ class EntryDeadline:
     def bound_budget(self, transport: RequestDeadline) -> RequestDeadline:
         # The executor independently enforces the original horizon even if a caller
         # supplies a later transport deadline. Independent reducing keeps its own budget.
-        return RequestDeadline(min(transport.deadline_at_ms, self.expires_at)) if self.required else transport
+        return RequestDeadline(min(transport.deadline_at_ms, cast(int, self.expires_at))) if self.required else transport
 
 
 _current: ContextVar[EntryDeadline | None] = ContextVar('tsx_entry_deadline', default=None)

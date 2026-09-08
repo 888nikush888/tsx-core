@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { invokeWithFloodWaitRetry } from '../src/tdlib_retry.js';
 
 await assert.rejects(
-  invokeWithFloodWaitRetry({ async invoke() { return true; } }, {}, { maxAttempts: 0 }),
+  invokeWithFloodWaitRetry({ invoke() { return Promise.resolve(true); } }, {}, { maxAttempts: 0 }),
   /maxAttempts must be between 1 and 10/
 );
 await assert.rejects(
-  invokeWithFloodWaitRetry({ async invoke() { return true; } }, {}, { maxFloodWaitSeconds: 3_601 }),
+  invokeWithFloodWaitRetry({ invoke() { return Promise.resolve(true); } }, {}, { maxFloodWaitSeconds: 3_601 }),
   /maxFloodWaitSeconds must be between 0 and 3600/
 );
 

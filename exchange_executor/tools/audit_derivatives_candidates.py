@@ -32,9 +32,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 def _shared_contracts():
-    from ccxt_capabilities import CANDIDATE_PRO_REQUIREMENTS, CANDIDATE_REST_REQUIREMENTS, PRO_CAPABILITIES, REST_CAPABILITIES
-    from ccxt_profiles import PROFILES
-    return CANDIDATE_PRO_REQUIREMENTS, CANDIDATE_REST_REQUIREMENTS, PRO_CAPABILITIES, REST_CAPABILITIES, PROFILES
+    import ccxt_capabilities as capabilities
+    import ccxt_profiles as profiles
+    return (capabilities.CANDIDATE_PRO_REQUIREMENTS, capabilities.CANDIDATE_REST_REQUIREMENTS,
+            capabilities.PRO_CAPABILITIES, capabilities.REST_CAPABILITIES, profiles.PROFILES)
 
 
 CANDIDATE_PRO_REQUIREMENTS, CANDIDATE_REST_REQUIREMENTS, PRO_CAPABILITIES, REST_CAPABILITIES, PROFILES = _shared_contracts()
@@ -229,7 +230,7 @@ def _credential_allowlist(sources: SourceIndex) -> list[str]:
 
 
 def _blockers(rest: dict[str, Any], pro: dict[str, Any]) -> list[dict[str, str]]:
-    result = []
+    result: list[dict[str, str]] = []
     for lane, declarations, requirements in [('rest', rest, CANDIDATE_REST_REQUIREMENTS),
                                             ('pro', pro, CANDIDATE_PRO_REQUIREMENTS)]:
         result.extend({'lane': lane, 'capability': name, 'state': declarations['states'][name]}
@@ -385,6 +386,18 @@ class CompletionVerdict:
     implementation_verified: bool
 
 
+def _validate_completion_verdict(verdict: CompletionVerdict, assessment: dict[str, Any],
+                                 exchange: dict[str, Any], inventory_hash: str) -> None:
+    if not isinstance(verdict, CompletionVerdict):
+        raise InventoryError('Completion verifier returned no trusted typed evidence verdict.')
+    if (verdict.inventory_hash != inventory_hash or verdict.exchange_id != exchange['id']
+            or verdict.decision_verified is not True):
+        raise InventoryError('Completion evidence verdict does not bind this inventory and decision.')
+    if (assessment['decision'] in ('existing', 'eligible')
+            and (exchange['profile'] is None or verdict.implementation_verified is not True)):
+        raise InventoryError('Eligible/existing profile lacks verified implementation evidence.')
+
+
 def validate_complete(document: Any, *, completion_verifier: Callable[..., CompletionVerdict] | None = None) -> None:
     validate_inventory(document)
     pending = [row['id'] for row in document['assessments'] if row['decision'] == 'pending']
@@ -400,14 +413,7 @@ def validate_complete(document: Any, *, completion_verifier: Callable[..., Compl
             raise InventoryError('Completion requires a trusted independent evidence verifier; declarations are insufficient.')
         verdict = completion_verifier(assessment, {'inventoryHash': document['inventoryHash'], 'exchange': exchange,
                                                  'sourceFiles': document['inventory']['sources']})
-        if not isinstance(verdict, CompletionVerdict):
-            raise InventoryError('Completion verifier returned no trusted typed evidence verdict.')
-        if (verdict.inventory_hash != document['inventoryHash'] or verdict.exchange_id != exchange['id']
-                or verdict.decision_verified is not True):
-            raise InventoryError('Completion evidence verdict does not bind this inventory and decision.')
-        if assessment['decision'] in ('existing', 'eligible'):
-            if exchange['profile'] is None or verdict.implementation_verified is not True:
-                raise InventoryError('Eligible/existing profile lacks verified implementation evidence.')
+        _validate_completion_verdict(verdict, assessment, exchange, document['inventoryHash'])
 
 
 def _unique_object(items: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -430,7 +436,7 @@ def load_inventory(path: Path) -> Any:
         raise InventoryError('Inventory exceeds its bounded JSON size.')
     try:
         return json.loads(data.decode('utf-8'), object_pairs_hook=_unique_object, parse_constant=_invalid_constant)
-    except (ValueError, UnicodeDecodeError, RecursionError) as error:
+    except (ValueError, RecursionError) as error:
         raise InventoryError('Invalid strict inventory JSON.') from error
 
 
@@ -454,7 +460,7 @@ def main(arguments: list[str] | None = None) -> int:
                 validate_inventory(document)
             print(f'Offline inventory verified: {len(document["inventory"]["restIds"])} pinned REST IDs; no provider acceptance.')
         return 0
-    except (InventoryError, OSError, TypeError, ValueError) as error:
+    except (OSError, TypeError, ValueError) as error:
         print(f'Inventory verification failed: {error}', file=sys.stderr)
         return 1
 

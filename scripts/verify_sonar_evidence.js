@@ -12,14 +12,27 @@ function requireEvidence(condition, detail) {
 }
 
 function validateComputeTask(summary, projectKey) {
-  requireEvidence(summary.computeTask?.status === 'SUCCESS' && summary.computeTask?.componentKey === projectKey
-    && summary.computeTask?.analysisId === summary.analysis?.key, 'compute task is missing or differs');
+  requireEvidence(summary.computeTask?.status === 'SUCCESS' && summary.computeTask?.componentKey === projectKey,
+    'compute task is missing or differs');
+  requireEvidence(summary.computeTask.analysisId === summary.analysis?.key, 'compute task is missing or differs');
+}
+
+function hotspotReviewComplete(review) {
+  return Number.isSafeInteger(review.count) && review.count >= 0
+    && (review.count === 0 || review.reviewedPercent === 100);
 }
 
 function validatePullRequestHotspots(review, pullRequest) {
-  requireEvidence(review?.source === 'api/measures/component' && review?.pullRequest === pullRequest.key
-    && Number.isSafeInteger(review?.count) && review.count >= 0 && (review.count === 0 || review.reviewedPercent === 100),
-  'pull request hotspot review is unproven');
+  requireEvidence(review?.source === 'api/measures/component' && review?.pullRequest === pullRequest.key,
+    'pull request hotspot review is unproven');
+  requireEvidence(hotspotReviewComplete(review), 'pull request hotspot review is unproven');
+}
+
+function validatePullRequestIdentity(summary, pullRequest) {
+  const identity = summary.pullRequest ?? {};
+  requireEvidence(summary.branch === null && identity.key === pullRequest.key
+    && identity.branch === pullRequest.branch && identity.base === pullRequest.base,
+    'pull request scope differs');
 }
 
 function validateScope(summary, { expectedRevision, projectKey, pullRequest, branch = 'main' }) {
@@ -29,8 +42,7 @@ function validateScope(summary, { expectedRevision, projectKey, pullRequest, bra
     if (branch !== 'main') validateLongBranchScope(summary, expectedRevision, branch);
     return;
   }
-  requireEvidence(summary.branch === null && summary.pullRequest?.key === pullRequest.key
-    && summary.pullRequest?.branch === pullRequest.branch && summary.pullRequest?.base === pullRequest.base, 'pull request scope differs');
+  validatePullRequestIdentity(summary, pullRequest);
   validatePullRequestTask(summary.computeTask, { expectedRevision, pullRequest });
   validatePullRequestHotspots(summary.hotspotReview, pullRequest);
 }
@@ -38,41 +50,59 @@ function validateScope(summary, { expectedRevision, projectKey, pullRequest, bra
 function validateLongBranchScope(summary, expectedRevision, branch) {
   validateBranchTask(summary.computeTask, { expectedRevision, branch });
   const identity = summary.branchAnalysis ?? {};
-  requireEvidence(identity.name === branch && identity.type === 'LONG' && identity.revision === expectedRevision
-    && Number.isFinite(Date.parse(identity.analysisDate)) && Date.parse(identity.analysisDate) === Date.parse(summary.analysis?.date),
-  'full long-lived branch analysis is unproven');
+  requireEvidence(identity.name === branch && identity.type === 'LONG' && identity.revision === expectedRevision,
+    'full long-lived branch analysis is unproven');
+  validateLongBranchDate(identity.analysisDate, summary.analysis?.date);
 }
 
-function validateSummary(summary, options) {
-  const { expectedRevision, projectKey } = options;
+function validateLongBranchDate(branchDate, analysisDate) {
+  requireEvidence(Number.isFinite(Date.parse(branchDate)) && Date.parse(branchDate) === Date.parse(analysisDate),
+    'full long-lived branch analysis is unproven');
+}
+
+function validateSummaryHeader(summary, { expectedRevision, projectKey }) {
   requireEvidence(/^[a-f0-9]{40}$/u.test(expectedRevision ?? ''), 'expected revision must be an exact SHA');
   requireEvidence(typeof projectKey === 'string' && projectKey.length > 0, 'expected project is required');
   requireEvidence(summary.schemaVersion === 1 && summary.complete === true, 'incomplete export');
   requireEvidence(summary.analysisStableDuringCapture === true, 'analysis stability is unproven');
-  validateScope(summary, options);
+}
+
+function validateRevision(summary, expectedRevision) {
   requireEvidence(summary.analysis?.revision === expectedRevision && summary.expectedRevision === expectedRevision
     && summary.revisionMatchesExpectation === true, 'revision differs');
-  validateComputeTask(summary, projectKey);
+}
+
+function validateGate(summary) {
   requireEvidence(summary.qualityGate?.status === 'OK', 'quality gate is not OK');
   requireEvidence(summary.toReviewHotspotCount === 0 && summary.blockerOrCriticalIssueCount === 0,
     'unreviewed hotspots or blocker/critical issues remain');
 }
 
+function validateSummary(summary, options) {
+  validateSummaryHeader(summary, options);
+  validateScope(summary, options);
+  validateRevision(summary, options.expectedRevision);
+  validateComputeTask(summary, options.projectKey);
+  validateGate(summary);
+}
+
+async function verifiedArtifact(directory, summary, name) {
+  let bytes;
+  try {
+    bytes = await readFile(path.join(directory, name));
+  } catch (error) {
+    throw new Error('SonarCloud evidence rejected: artifact is missing or unreadable.', { cause: error });
+  }
+  const manifest = summary.artifacts?.[name];
+  requireEvidence(manifest?.sha256 === createHash('sha256').update(bytes).digest('hex')
+    && manifest.bytes === bytes.byteLength, 'artifact hash or size differs');
+  return bytes.toString('utf8');
+}
+
 async function verifiedArtifacts(directory, summary) {
   const contents = {};
   const names = summary.pullRequest ? [...ARTIFACTS, 'hotspot-review.json'] : ARTIFACTS;
-  for (const name of names) {
-    let bytes;
-    try {
-      bytes = await readFile(path.join(directory, name));
-    } catch (error) {
-      throw new Error('SonarCloud evidence rejected: artifact is missing or unreadable.', { cause: error });
-    }
-    const manifest = summary.artifacts?.[name];
-    requireEvidence(manifest?.sha256 === createHash('sha256').update(bytes).digest('hex')
-      && manifest.bytes === bytes.byteLength, 'artifact hash or size differs');
-    contents[name] = bytes.toString('utf8');
-  }
+  for (const name of names) contents[name] = await verifiedArtifact(directory, summary, name);
   return contents;
 }
 
@@ -80,9 +110,15 @@ function partitionRecords(records, firstKeys, secondKeys) {
   requireEvidence(Array.isArray(records) && Array.isArray(firstKeys) && Array.isArray(secondKeys), 'invalid partitions');
   const keys = [...firstKeys, ...secondKeys];
   const recordKeys = records.map(record => record?.key);
-  requireEvidence(keys.length === records.length && new Set(keys).size === records.length
-    && new Set(recordKeys).size === records.length && recordKeys.every(key => keys.includes(key)), 'partition coverage differs');
+  requireEvidence(keys.length === records.length && new Set(keys).size === records.length, 'partition coverage differs');
+  requireEvidence(new Set(recordKeys).size === records.length && recordKeys.every(key => keys.includes(key)),
+    'partition coverage differs');
   return records.filter(record => firstKeys.includes(record.key));
+}
+
+function validateFindingCounts(summary, issues, hotspots, openIssues) {
+  requireEvidence(summary.issueCount === issues.length && summary.hotspotCount === hotspots.length
+    && summary.openIssueCount === openIssues.length, 'finding counts differ');
 }
 
 function validateCounts(summary, contents) {
@@ -91,8 +127,7 @@ function validateCounts(summary, contents) {
   const partitions = summary.partitions ?? {};
   const openIssues = partitionRecords(issues, partitions.openIssueKeys, partitions.resolvedIssueKeys);
   const toReview = partitionRecords(hotspots, partitions.toReviewHotspotKeys, partitions.reviewedHotspotKeys);
-  requireEvidence(summary.issueCount === issues.length && summary.hotspotCount === hotspots.length
-    && summary.openIssueCount === openIssues.length, 'finding counts differ');
+  validateFindingCounts(summary, issues, hotspots, openIssues);
   requireEvidence(openIssues.filter(isBlockingIssue).length === summary.blockerOrCriticalIssueCount
     && toReview.length === summary.toReviewHotspotCount, 'gate counts differ');
   requireEvidence(hotspots.every(item => item.status === 'REVIEWED'), 'unreviewed or unknown hotspot status');

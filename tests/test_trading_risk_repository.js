@@ -56,11 +56,11 @@ async function balanceAndAdmission(account, remote, strategy) {
   const paper = new PaperExchangeAdapter();
   let reads = 0;
   const readBalance = async () => { reads += 1; return { ...await paper.accountSnapshot(account), unrealizedPnl: '-10' }; };
-  assert.equal(await refreshReconciledRisk({ account, remote, epoch: '0:0', readBalance, budgetForIntent: async () => '19' }), true);
+  assert.equal(await refreshReconciledRisk({ account, remote, epoch: '0:0', readBalance, budgetForIntent: () => Promise.resolve('19') }), true);
   assert.equal(reads, 1, 'Exactly one account read per completed risk refresh.');
   assert.equal((await getDatabase().get('SELECT balance_reason FROM trading_risk_current')).balance_reason, 'MAX_DAILY_RISK');
   await laterBudgetFailureKeepsBreach(account, remote, strategy, readBalance);
-  await refreshReconciledRisk({ account, remote, epoch: '0:0', readBalance: async () => { throw new Error('account read failed'); }, budgetForIntent: async () => '19' });
+  await refreshReconciledRisk({ account, remote, epoch: '0:0', readBalance: async () => { throw new Error('account read failed'); }, budgetForIntent: () => Promise.resolve('19') });
   const failed = await getDatabase().get('SELECT balance_json, balance_reason FROM trading_risk_current');
   assert.equal(failed.balance_json, null); assert.match(failed.balance_reason, /failed/);
   assert.equal((await getDatabase().get("SELECT status FROM trading_orders WHERE id = 'risk-stop'")).status, 'open');

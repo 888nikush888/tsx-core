@@ -29,13 +29,12 @@ const root = await mkdtemp(path.join(os.tmpdir(), 'tsx-test-scheduler-'));
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function deferred() {
-  let resolve, reject;
-  const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
+  const { promise, resolve, reject } = Promise.withResolvers();
   return { promise, resolve, reject };
 }
 
 async function testFourSlotsWithQueuedWork() {
-  assert.equal(await runTestSchedule([], { concurrency: 4, runTest: async () => 0 }), 0);
+  assert.equal(await runTestSchedule([], { concurrency: 4, runTest: () => Promise.resolve(0) }), 0);
   const selected = [names[0], names[1], names[3], 'test_trading_control_races.js',
     'test_trading_order_repository.js', 'test_trading_order_identity_requests.js', names[2], 'test_trading_core.js'];
   const held = new Map(selected.map(name => [name, deferred()]));
@@ -144,7 +143,7 @@ async function testFourWorkerFailureStopsQueuedWork() {
   for (const barrier of MODULE_COVERAGE_SERIAL_BARRIERS) {
     const starts = [];
     assert.equal(await runTestSchedule([...selected.slice(0, 4), barrier, selected[4]], {
-      concurrency: 4, runTest: async name => { starts.push(name); return name === barrier ? 9 : 0; },
+      concurrency: 4, runTest: name => { starts.push(name); return Promise.resolve(name === barrier ? 9 : 0); },
     }), 9);
     assert.deepEqual(starts, [...selected.slice(0, 4), barrier], 'A failed exclusive barrier prevents all successors.');
   }
@@ -213,7 +212,7 @@ async function testDeterministicBarriersAndFailure() {
     concurrency: 1, runTest: async () => { throw new Error('fixture rejection'); }, error: message => errors.push(message),
   }), 1);
   assert.match(errors[0], /fixture rejection/);
-  await assert.rejects(runTestSchedule(names, { concurrency: 3, runTest: async () => 0 }), /concurrency/i);
+  await assert.rejects(runTestSchedule(names, { concurrency: 3, runTest: () => Promise.resolve(0) }), /concurrency/i);
 }
 
 async function createFixture(label, selected = names) {
@@ -296,7 +295,7 @@ function fourWorkerFixtureNames() {
     ...MODULE_COVERAGE_SERIAL_BARRIERS, 'test_trading_core.js'];
 }
 
-async function runActualFixture(label, workers = 1, focused = false, selection) {
+async function runActualFixture(label, { workers = 1, focused = false, selection } = {}) {
   const registeredTests = selection ?? (workers === 4 ? fourWorkerFixtureNames() : names);
   const fixture = await createFixture(label, registeredTests);
   if (workers > 1) fixture.environment.TSX_MODULE_COVERAGE_WORKERS = String(workers);
@@ -337,7 +336,7 @@ async function testActualPreflightAndExit() {
   const fixture = await createFixture('preflight');
   const calls = [], errors = [], logs = [];
   const options = { registeredTests: names, testsDirectory: fixture.directory, environment: fixture.environment,
-    runTest: async name => { calls.push(name); return 0; }, log: value => logs.push(value), error: value => errors.push(value) };
+    runTest: name => { calls.push(name); return Promise.resolve(0); }, log: value => logs.push(value), error: value => errors.push(value) };
   await writeFile(path.join(fixture.directory, 'test_unregistered.js'), '// preflight fixture');
   assert.notEqual(await runRegisteredTests([], options), 0);
   assert.match(errors.pop(), /unregistered/i);
@@ -365,7 +364,7 @@ async function testActualPreflightAndExit() {
 
 async function testProcessFailureContracts() {
   const fixture = await createFixture('process-failures');
-  const options = { testsDirectory: fixture.directory, environment: fixture.environment, error: () => {} };
+  const options = { testsDirectory: fixture.directory, environment: fixture.environment, error: () => undefined };
   const terminalCases = [
     { code: 0, signal: 'SIGTERM' }, { code: null, signal: null }, { code: 0, signal: null, killed: true },
     { code: 0, signal: null, failure: new Error('spawn failed') },
@@ -405,15 +404,15 @@ try {
   await testFourWorkerFailureStopsQueuedWork();
   await testDeterministicBarriersAndFailure();
   await runActualFixture('default');
-  await runActualFixture('parallel-two', 2);
-  await runActualFixture('parallel-four', 4);
-  await runActualFixture('reviewed-fx-four', 4, false, [
+  await runActualFixture('parallel-two', { workers: 2 });
+  await runActualFixture('parallel-four', { workers: 4 });
+  await runActualFixture('reviewed-fx-four', { workers: 4, selection: [
     'test_trading_fx_sizing_python.js', 'test_trading_recovery_schedule_transport.js',
     'test_trading_adaptive_money_migration.js', 'test_trading_money_risk.js',
     ...MODULE_COVERAGE_SERIAL_BARRIERS, 'test_trading_fx_future.js', 'test_trading_fx_repository.js',
-  ]);
-  await runActualFixture('focused-two', 2, true);
-  await runActualFixture('focused-four', 4, true);
+  ] });
+  await runActualFixture('focused-two', { workers: 2, focused: true });
+  await runActualFixture('focused-four', { workers: 4, focused: true });
   await testActualFourWorkerFailure();
   await testActualPreflightAndExit();
   await testProcessFailureContracts();

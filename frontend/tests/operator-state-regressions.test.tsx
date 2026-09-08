@@ -47,7 +47,7 @@ describe('account command intent and status evidence', () => {
     ['Deaktivieren', '/api/trading/accounts/state', { id: account.id, enabled: false }],
     ['Sperren', '/api/trading/accounts/configuration', { id: account.id, killSwitchActive: true, killSwitchReason: 'Manuell im Builder gesperrt' }],
   ])('sends the exact account intent for %s only once', async (label, url, payload) => {
-    const refresh = vi.fn(async () => undefined);
+    const refresh = vi.fn(() => Promise.resolve());
     mount(<Accounts trading={trading()} catalog={catalog} onRefresh={refresh} />);
     fireEvent.click(screen.getByRole('button', { name: String(label), exact: true }));
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
@@ -71,7 +71,7 @@ describe('account command intent and status evidence', () => {
     ], accountIncidents: [
       { id: 'critical', accountId: account.id, severity: 'critical', status: 'resolved', message: 'Critical observation', category: 'protection', occurrenceCount: 1, lastSeenAt: now },
       { id: 'warning', accountId: 'waiting', severity: 'warning', status: 'resolved', message: 'Warning observation', category: 'transport', occurrenceCount: 2, lastSeenAt: now },
-    ] })} catalog={catalog} onRefresh={async () => undefined} />);
+    ] })} catalog={catalog} onRefresh={() => Promise.resolve()} />);
     expect(screen.getByText('gesperrt')).toHaveClass('danger');
     expect(screen.getByText('unverified')).not.toHaveClass('healthy', 'danger');
     expect(screen.getByText('Kontosperre aktiv')).toBeVisible();
@@ -85,7 +85,7 @@ describe('account command intent and status evidence', () => {
   });
 
   it('keeps credential replacement explicit, clears a cancelled editor and sends only replacement fields', async () => {
-    const refresh = vi.fn(async () => undefined);
+    const refresh = vi.fn(() => Promise.resolve());
     mount(<Accounts trading={trading()} catalog={catalog} onRefresh={refresh} />);
     fireEvent.click(screen.getByRole('button', { name: 'Keys ersetzen' }));
     expect(screen.getByLabelText('Replacement secret')).toHaveAttribute('type', 'password');
@@ -106,7 +106,7 @@ describe('account command intent and status evidence', () => {
   });
 
   it('requires typed account deletion confirmation before issuing DELETE', async () => {
-    const refresh = vi.fn(async () => undefined);
+    const refresh = vi.fn(() => Promise.resolve());
     mount(<Accounts trading={trading()} catalog={catalog} onRefresh={refresh} />);
     fireEvent.click(screen.getByRole('button', { name: 'Löschen' }));
     const dialog = await screen.findByRole('dialog');
@@ -124,7 +124,7 @@ describe('account command intent and status evidence', () => {
 
 describe('cockpit evidence state distinctions', () => {
   it('shows unhealthy backup/audit sources separately from enabled execution and live gates', async () => {
-    mount(<Overview trading={trading()} systemStatus={{ connectionState: 'connected' }} onRefresh={async () => undefined} />);
+    mount(<Overview trading={trading()} systemStatus={{ connectionState: 'connected' }} onRefresh={() => Promise.resolve()} />);
     expect(await screen.findByText('nicht verbunden')).toBeVisible();
     expect(screen.getAllByText('gestört')).toHaveLength(2);
     expect(screen.getByText('Einträge aktiv')).toBeVisible();
@@ -145,7 +145,7 @@ describe('cockpit evidence state distinctions', () => {
       id: String(index), channelId: `channel-${index}`, sourceSignalId: `signal/${index}`, status: run.status, stopReason: run.stopReason,
       candidates: [{ rank: 0, accountName: 'Primary', status: 'unavailable', fallbackOn: ['SYMBOL_UNAVAILABLE'], errorCode: 'SYMBOL_UNAVAILABLE' },
         { rank: 1, accountName: 'Backup', status: 'pending', fallbackOn: [], errorCode: null }],
-    })) })} systemStatus={null} onRefresh={async () => undefined} />);
+    })) })} systemStatus={null} onRefresh={() => Promise.resolve()} />);
     await screen.findByText('nicht verbunden');
     for (const run of runs) {
       const badge = screen.getByText(run.expected);

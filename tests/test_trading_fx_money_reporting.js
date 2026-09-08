@@ -4,7 +4,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
-import * as reporting from '../src/trading_money_reporting.js';
+import { channelClosedMoneyPerformance, channelClosedMoneyValuePerformance, closedMoneyStatistics,
+  moneyPerformanceRows, summarizeMoneyRows } from '../src/trading_money_reporting.js';
 import { moneyValueFromRational, negateMoneyValue } from '../src/trading_money_value.js';
 import { bindAccountReportingCurrency, recordMoneyEvent } from '../src/trading_money_ledger.js';
 import { captureFxReceipts } from '../src/trading_fx_repository.js';
@@ -18,38 +19,38 @@ const moneyRow = (value, currency = 'USD', status = 'complete') => ({ realizedPn
   realizedPnlValue: value, reportingCurrency: currency, accountingStatus: status });
 const legacyRow = (amount, currency = 'USD') => ({ realizedPnl: amount, reportingCurrency: currency, accountingStatus: 'complete' });
 function rationalSummaries() {
-  const result = reporting.summarizeMoneyRows([moneyRow(third)]);
+  const result = summarizeMoneyRows([moneyRow(third)]);
   assert.deepEqual(result.realizedPnlValue, third, 'A fully valued rational amount is not unresolved because decimal is null.');
   assert.equal(result.realizedPnl, null); assert.equal(result.accountingStatus, 'complete');
   assert.deepEqual(result.valuedSubtotalValuesByCurrency, { USD: third });
   assert.deepEqual(result.valuedSubtotalByCurrency, { USD: null });
-  const cancellation = reporting.summarizeMoneyRows([moneyRow(third), moneyRow(negateMoneyValue(third))]);
+  const cancellation = summarizeMoneyRows([moneyRow(third), moneyRow(negateMoneyValue(third))]);
   assert.equal(cancellation.realizedPnl, '0'); assert.equal(cancellation.realizedPnlValue.terms, 2);
   assert.deepEqual(cancellation.realizedPnlValue.exact, { numerator: '0', denominator: '1' });
-  const three = reporting.summarizeMoneyRows([moneyRow(third), moneyRow(third), moneyRow(third)]);
+  const three = summarizeMoneyRows([moneyRow(third), moneyRow(third), moneyRow(third)]);
   assert.equal(three.realizedPnl, '1');
-  assert.equal(reporting.summarizeMoneyRows([legacyRow('1.00'), legacyRow('-0.5')]).realizedPnl, '0.5');
+  assert.equal(summarizeMoneyRows([legacyRow('1.00'), legacyRow('-0.5')]).realizedPnl, '0.5');
   for (const patch of [{ realizedPnl: '0' }, { realizedPnlValue: null },
     { realizedPnlValue: { ...third, lower: '0' } }, { accountingStatus: 'unresolved' }, { reportingCurrency: null }]) {
-    const bad = reporting.summarizeMoneyRows([{ ...moneyRow(third), ...patch }]);
+    const bad = summarizeMoneyRows([{ ...moneyRow(third), ...patch }]);
     assert.equal(bad.accountingStatus, 'unresolved'); assert.equal(bad.realizedPnlValue, null);
   }
-  assert.equal(reporting.summarizeMoneyRows([legacyRow(null)]).realizedPnlValue, null);
+  assert.equal(summarizeMoneyRows([legacyRow(null)]).realizedPnlValue, null);
 }
 function separatedCurrencies() {
   const rows = [moneyRow(third), moneyRow(negateMoneyValue(third), 'USDC')];
-  for (const result of [reporting.summarizeMoneyRows(rows), reporting.closedMoneyStatistics(rows)]) {
+  for (const result of [summarizeMoneyRows(rows), closedMoneyStatistics(rows)]) {
     assert.equal(result.realizedPnl, null); assert.equal(result.realizedPnlValue, null);
     assert.equal(result.reportingCurrency, null);
     assert.deepEqual(result.valuedSubtotalValuesByCurrency, { USD: third, USDC: negateMoneyValue(third) });
   }
-  const summary = reporting.summarizeMoneyRows([...rows, { ...legacyRow('2'), accountingStatus: 'unresolved' }]);
+  const summary = summarizeMoneyRows([...rows, { ...legacyRow('2'), accountingStatus: 'unresolved' }]);
   assert.equal(summary.accountingStatus, 'unresolved');
   assert.deepEqual(summary.valuedSubtotalValuesByCurrency.USD, third, 'Known subtotals survive but do not mask unresolved rows.');
 }
 function outcomes() {
   const tiny = moneyValueFromRational({ numerator: '-1', denominator: '9'.repeat(256) });
-  const result = reporting.closedMoneyStatistics([moneyRow(third), moneyRow(negateMoneyValue(third)),
+  const result = closedMoneyStatistics([moneyRow(third), moneyRow(negateMoneyValue(third)),
     moneyRow(tiny), legacyRow('0')]);
   assert.equal(result.wins, 1); assert.equal(result.losses, 2); assert.equal(result.breakeven, 1);
   assert.equal(result.uncertainOutcomeCount, 0);
@@ -57,24 +58,24 @@ function outcomes() {
   assert.equal(result.accountingStatus, 'complete');
   const interval = { lower: '-0.000000000000000001', upper: '0.000000000000000001', exact: null,
     decimal: null, precision: 'bounded', terms: 2 };
-  const uncertain = reporting.closedMoneyStatistics([moneyRow(interval)]);
+  const uncertain = closedMoneyStatistics([moneyRow(interval)]);
   assert.equal(uncertain.uncertainOutcomeCount, 1);
   assert.equal(uncertain.wins + uncertain.losses + uncertain.breakeven, 0);
   assert.equal(uncertain.accountingStatus, 'complete', 'Precision uncertainty is distinct from missing monetary evidence.');
   assert.deepEqual(uncertain.realizedPnlValue, interval);
   assert.equal(uncertain.grossProfitValue, null); assert.equal(uncertain.grossLossValue, null);
   for (const edge of [{ ...interval, lower: '0' }, { ...interval, upper: '0' }]) {
-    assert.equal(reporting.closedMoneyStatistics([moneyRow(edge)]).uncertainOutcomeCount, 1);
+    assert.equal(closedMoneyStatistics([moneyRow(edge)]).uncertainOutcomeCount, 1);
   }
   const positive = { ...interval, lower: '1', upper: '1.000000000000000001' };
   const negative = negateMoneyValue(positive);
-  const decided = reporting.closedMoneyStatistics([moneyRow(positive), moneyRow(negative)]);
+  const decided = closedMoneyStatistics([moneyRow(positive), moneyRow(negative)]);
   assert.equal(decided.uncertainOutcomeCount, 0); assert.equal(decided.wins, 1); assert.equal(decided.losses, 1);
   assert.deepEqual(decided.grossProfitValue, positive); assert.deepEqual(decided.grossLossValue, positive);
   assert.equal(decided.realizedPnl, null, 'Opposite bounded intervals cannot recover already lost exact correlation.');
-  const empty = reporting.closedMoneyStatistics([]);
+  const empty = closedMoneyStatistics([]);
   assert.equal(empty.realizedPnl, '0'); assert.equal(empty.realizedPnlValue.terms, 0);
-  assert.equal(reporting.summarizeMoneyRows([]).realizedPnl, null, 'An empty report has no inferred reporting currency.');
+  assert.equal(summarizeMoneyRows([]).realizedPnl, null, 'An empty report has no inferred reporting currency.');
 }
 
 const at = Date.now() - 1000;
@@ -98,20 +99,20 @@ async function eventRows(filename) {
   await captureFxReceipts(account, receipts, { startedAt: at - 100, completedAt: at + 100 });
   const valuation = await valueFxMoneyEvent(account, event.id);
   assert.equal((await getDatabase().get('SELECT COUNT(*) n FROM trading_money_valuations')).n, 0);
-  const [row] = await reporting.moneyPerformanceRows(at, at + 1);
+  const [row] = await moneyPerformanceRows(at, at + 1);
   assert.equal(row.accountId, account.id); assert.equal(row.channelId, null); assert.equal(row.kind, 'funding');
   assert.equal(row.realizedPnl, null); assert.deepEqual(row.realizedPnlValue, valuation.value);
   assert.equal(row.accountingStatus, 'complete');
-  assert.equal(reporting.summarizeMoneyRows([row]).accountingStatus, 'complete');
-  assert.deepEqual(await reporting.moneyPerformanceRows(at + 1, at + 2), []);
+  assert.equal(summarizeMoneyRows([row]).accountingStatus, 'complete');
+  assert.deepEqual(await moneyPerformanceRows(at + 1, at + 2), []);
   await closeDb(); await initDb(filename);
-  assert.deepEqual(await reporting.moneyPerformanceRows(at, at + 1), [row]);
+  assert.deepEqual(await moneyPerformanceRows(at, at + 1), [row]);
   const conflict = structuredClone(receipts[0]);
   conflict.value = '61000'; conflict.envelope.result.list[0].indexPrice = '61000';
   await captureFxReceipts(account, [sealFxReceipt(conflict)], { startedAt: at - 100, completedAt: at + 100 });
-  const [unresolved] = await reporting.moneyPerformanceRows(at, at + 1);
+  const [unresolved] = await moneyPerformanceRows(at, at + 1);
   assert.equal(unresolved.accountingStatus, 'unresolved'); assert.equal(unresolved.realizedPnlValue, null);
-  assert.equal(reporting.summarizeMoneyRows([unresolved]).realizedPnlValue, null);
+  assert.equal(summarizeMoneyRows([unresolved]).realizedPnlValue, null);
 }
 async function closedPositionReader() {
   await seedTradingFixtures();
@@ -127,13 +128,13 @@ async function closedPositionReader() {
     VALUES ('projection','projection','paper-default','-projection',?,'BTCUSDT','LONG','closed','0','100','90','0',NULL,?,'complete','USD',?,?,?)`,
   [strategy.id, JSON.stringify(third), at - 100, at, at]);
   await getDatabase().run("DELETE FROM trading_accounting_pending WHERE intent_id='projection'");
-  const complete = await reporting.channelClosedMoneyValuePerformance('-projection', 'paper-default', at, at + 1);
+  const complete = await channelClosedMoneyValuePerformance('-projection', 'paper-default', at, at + 1);
   assert.equal(complete.accountingStatus, 'complete'); assert.deepEqual(complete.realizedPnlValue, third);
   assert.equal(complete.wins, 1);
-  await assert.rejects(reporting.channelClosedMoneyPerformance('-projection', 'paper-default', at, at + 1), /unresolved|decimal|scalar/i,
+  await assert.rejects(channelClosedMoneyPerformance('-projection', 'paper-default', at, at + 1), /unresolved|decimal|scalar/i,
     'Do not implicitly migrate the existing adaptive scalar policy boundary.');
   await getDatabase().run("UPDATE trading_positions SET ledger_realized_value_json='{}' WHERE id='projection'");
-  const invalid = await reporting.channelClosedMoneyValuePerformance('-projection', 'paper-default', at, at + 1);
+  const invalid = await channelClosedMoneyValuePerformance('-projection', 'paper-default', at, at + 1);
   assert.equal(invalid.accountingStatus, 'unresolved'); assert.equal(invalid.realizedPnlValue, null);
 }
 

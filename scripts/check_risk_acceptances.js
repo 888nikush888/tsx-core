@@ -7,7 +7,7 @@ const acceptanceDirectory = path.join(root, 'docs', 'risk-acceptances');
 const requiredFields = ['id', 'owner', 'approver', 'created', 'expires', 'scope', 'gate'];
 const requiredSections = ['Risk', 'Evidence', 'Compensating controls', 'Exit criteria'];
 const MINIMUM_REMAINING_VALIDITY_MS = 24 * 60 * 60 * 1000;
-const PLACEHOLDER_SECTION = /^(?:tbd|todo|n\/?a|none|pending|not decided|to be decided|placeholder|[-–—]|\[\s*\])\.?$/i;
+const PLACEHOLDER_SECTION = /^(?:tbd|todo|n\/?a|none|pending|not decided|to be decided|placeholder|[-–—]|\[\s*\])\.?$/iu;
 
 function parseFrontMatter(content) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
@@ -35,16 +35,25 @@ function validateDates(fields, now) {
   if (!createdValid) errors.push('created must be an ISO date');
   if (!expiresValid) errors.push('expires must be an ISO date');
   if (!createdValid || !expiresValid) return errors;
+  return [...validateDateOrder(created, expires, now), ...validateRemainingValidity(expires, now)];
+}
+
+function validateDateOrder(created, expires, now) {
+  const errors = [];
   if (created > now) errors.push('created must not be in the future');
   if (expires <= created) errors.push('expires must be later than created');
   if (expires.getTime() - created.getTime() > 30 * 24 * 60 * 60 * 1000) {
     errors.push('acceptance duration must not exceed 30 days');
   }
-  if (expires <= now) errors.push('risk acceptance is expired');
-  if (expires > now && expires.getTime() - now.getTime() < MINIMUM_REMAINING_VALIDITY_MS) {
-    errors.push('risk acceptance must retain at least 24 hours of validity');
-  }
   return errors;
+}
+
+function validateRemainingValidity(expires, now) {
+  if (expires <= now) return ['risk acceptance is expired'];
+  if (expires.getTime() - now.getTime() < MINIMUM_REMAINING_VALIDITY_MS) {
+    return ['risk acceptance must retain at least 24 hours of validity'];
+  }
+  return [];
 }
 
 function sectionBody(content, section) {
@@ -76,27 +85,31 @@ function hasConcreteSectionContent(body) {
     && !PLACEHOLDER_SECTION.test(normalized);
 }
 
+function validateOwnership(fields) {
+  if (fields.owner?.toLowerCase() === fields.approver?.toLowerCase()) {
+    return ['owner and approver must differ'];
+  }
+  return [];
+}
+
+function validateSection(content, section) {
+  const body = sectionBody(content, section);
+  if (body === null) return [`missing section: ${section}`];
+  if (!hasConcreteSectionContent(body)) {
+    return [`section must contain concrete content: ${section}`];
+  }
+  return [];
+}
+
 export function validateRiskAcceptance(content, now = new Date()) {
   const fields = parseFrontMatter(content);
   if (!fields) return ['missing YAML front matter'];
-  const errors = [];
-  for (const field of requiredFields) {
-    if (!fields[field]) errors.push(`missing field: ${field}`);
-  }
-  if (fields.owner?.toLowerCase() === fields.approver?.toLowerCase()) {
-    errors.push('owner and approver must differ');
-  }
-  errors.push(...validateDates(fields, now));
-
-  for (const section of requiredSections) {
-    const body = sectionBody(content, section);
-    if (body === null) {
-      errors.push(`missing section: ${section}`);
-    } else if (!hasConcreteSectionContent(body)) {
-      errors.push(`section must contain concrete content: ${section}`);
-    }
-  }
-  return errors;
+  return [
+    ...requiredFields.filter(field => !fields[field]).map(field => `missing field: ${field}`),
+    ...validateOwnership(fields),
+    ...validateDates(fields, now),
+    ...requiredSections.flatMap(section => validateSection(content, section)),
+  ];
 }
 
 export async function checkRiskAcceptances(now = new Date()) {

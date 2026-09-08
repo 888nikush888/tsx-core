@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-09-08",
+  "reviewedRevision": "99d0caefb6e6501b5746f41faf3774d9d5d12ef1",
+  "reviewerRole": "implementation author; self-review, explicitly not independent attestation",
+  "productionChangesDuringReview": false,
+  "utf8Audit": {
+    "decoder": "strict UTF-8",
+    "workingTreeChangedTextFiles": 70,
+    "headTrackedTextBlobs": 972,
+    "historicalChangedTextBlobsSinceBaseline": 150,
+    "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+    "invalidFiles": [
+      {
+        "path": "src/telegram_viewer/service.ts",
+        "introducingCommit": "57dfcc94",
+        "gitBlobByteOffset": 8642,
+        "invalidByteHex": "b7",
+        "correctionOwner": "root; correction and delivery-text test pending outside this worktree"
+      }
+    ]
+  },
+  "cancelReview": {
+    "method": "Temporary augmentation of actual exit-cancel recovery integration suite; complete TradingEngine.reconcileAccount invocation with fixture adapter and SQLite state.",
+    "mutations": [
+      "acquisition.completedAt fractional",
+      "source.startedAt fractional within integer outer window",
+      "source.completedAt fractional within integer outer window"
+    ],
+    "outcomes": {
+      "adapterCancellationCalls": 0,
+      "positionClosed": false,
+      "rejection": "Invalid or stale exchange timestamp."
+    },
+    "firstRejectingBoundary": "src/exchange_contract_validation.ts timestamp, invoked for acquisition and source clocks",
+    "conclusion": "The new local cancellation clock checks add defense in depth. An exploitable prior end-to-end cancellation path was not demonstrated; an earlier existing runtime boundary already rejects these malformed timestamps."
+  },
+  "takeProfitReview": {
+    "method": "Temporary augmentation of real TP lifecycle suite; corrupt persisted SQLite allocation JSON, then reconcile twice with a database close/reopen between attempts. Existing healthy protection retained.",
+    "cases": [
+      {
+        "column": "target_totals_json",
+        "value": "[null,\"0\"]",
+        "error": "TypeError: Cannot read properties of null (reading trim)",
+        "interpretation": "Fails closed before mutation, but previousTotals still passes an unchecked parsed element into decimal(); diagnostic contract remains imprecise."
+      },
+      {
+        "column": "observed_fills_json",
+        "value": "[null,\"0\"]",
+        "error": "TP allocation has a missing or invalid target quantity."
+      },
+      {
+        "column": "completed_targets_json",
+        "value": "[false,null]",
+        "error": "Invalid stored TP completion evidence."
+      }
+    ],
+    "outcomesPerCase": {
+      "runs": 2,
+      "adapterSubmitCalls": 0,
+      "adapterCancelCalls": 0,
+      "persistedAllocationRowAndVersionUnchanged": true
+    },
+    "limits": [
+      "Sparse JavaScript arrays cannot be represented literally in persisted JSON; holes serialize as null. New sparse-array tests prove the exported helper boundary, not a separate remote exploit.",
+      "A damaged TP contract must not prevent independently proved stop restoration. No blanket claim that every account-level protection mutation is forbidden is made.",
+      "Temporary test augmentations were executed locally and are not claimed as registered CI tests."
+    ]
+  },
+  "followups": [
+    "Root owns the single service.ts UTF-8 correction and exact rendered delivery text regression.",
+    "After freeze, consider promoting persisted TP JSON and cancellation integration variants into permanent suites.",
+    "After freeze, narrow previousTotals parsed elements explicitly for a precise domain error. No production change made during this review."
+  ],
+  "sourceSha256": {
+    "src/trading_cancel_evidence.ts": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+    "src/trading_take_profit.ts": "ca9e88b127c0cf2c40f07f4474dcb6a8d7847a29dfe36eb9146318c4f6660113",
+    "src/exchange_contract_validation.ts": "937f9bb3f5a790b05880ece13ed5412455c5c0cdc3f4e531b48e571bd0f82fcd"
+  }
+}

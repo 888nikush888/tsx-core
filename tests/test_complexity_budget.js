@@ -46,4 +46,14 @@ assert.deepEqual(structural, {
   maximumNestingDepth: 4,
 });
 
+assert.deepEqual(evaluateComplexityBudget({
+  errors: 1, warnings: 3, rules: { complexity: 2 }, worstCyclomaticComplexity: 19,
+}, baseline), [
+  'ESLint reported 1 error(s)',
+  'warning budget regressed: measured 3, baseline 2; update code or lower the baseline',
+  'complexity budget regressed: measured 2, baseline 1; update code or lower the baseline',
+  'max-depth budget improved: measured 0, baseline 1; update code or lower the baseline',
+  'worst complexity improved: measured 19, baseline 20; update code or lower the baseline',
+]);
+
 console.log('Complexity budget ratchet tests passed.');

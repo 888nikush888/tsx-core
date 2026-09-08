@@ -30,7 +30,12 @@ function testRegexParsing() {
   assert.throws(() => parseRegex("[a-z"), /Invalid regex pattern/);
   assert.throws(
     () => safeRegexTest(new RegExp(nestedPlusFixture), `${'a'.repeat(10_000)}!`, 10),
-    /Regex timeout oder Ausführungsfehler/
+    error => {
+      assert.strictEqual(error.message,
+        'Regex timeout oder Ausführungsfehler bei der Musterprüfung: Script execution timed out after 10ms');
+      assert.strictEqual(error.cause.code, 'ERR_SCRIPT_EXECUTION_TIMEOUT');
+      return true;
+    }
   );
 
   const globalRx = parseRegex("/BUY/g");
@@ -76,6 +81,11 @@ async function runTests() {
   assert.deepStrictEqual(getMessageTextAndType({ content: { _: 'messageSticker' } }), { text: '', type: 'sticker' });
   assert.deepStrictEqual(getMessageTextAndType({ content: { _: 'messageUnknown' } }), { text: '', type: 'messageUnknown' });
   assert.deepStrictEqual(getMessageTextAndType({}), { text: '', type: 'unknown' });
+  for (const type of ['constructor', 'toString', '__proto__']) {
+    const message = { id: 3, content: { _: type } };
+    assert.deepStrictEqual(getMessageTextAndType(message), { text: '', type });
+    assert.strictEqual(shouldForward(message, { allowedTypes: ['text'] }), false);
+  }
   console.log("   -> OK");
 
   // 4. shouldForward
@@ -160,18 +170,18 @@ async function runTests() {
   };
   
   // source_a patterns match signalMsg
-  assert.strictEqual(shouldForward(signalMsg, perSourceConfig.filters, () => {}, 'source_a', perSourceConfig), true);
+  assert.strictEqual(shouldForward(signalMsg, perSourceConfig.filters, () => undefined, 'source_a', perSourceConfig), true);
   // source_a patterns don't match buyMsg (no LONG/SHORT)
-  assert.strictEqual(shouldForward(buyMsg, perSourceConfig.filters, () => {}, 'source_a', perSourceConfig), false);
+  assert.strictEqual(shouldForward(buyMsg, perSourceConfig.filters, () => undefined, 'source_a', perSourceConfig), false);
   
   // source_b patterns match buyMsg
-  assert.strictEqual(shouldForward(buyMsg, perSourceConfig.filters, () => {}, 'source_b', perSourceConfig), true);
+  assert.strictEqual(shouldForward(buyMsg, perSourceConfig.filters, () => undefined, 'source_b', perSourceConfig), true);
   // source_b patterns don't match signalMsg (no BUY/SELL)
-  assert.strictEqual(shouldForward(signalMsg, perSourceConfig.filters, () => {}, 'source_b', perSourceConfig), false);
+  assert.strictEqual(shouldForward(signalMsg, perSourceConfig.filters, () => undefined, 'source_b', perSourceConfig), false);
   
   // Unknown source falls back to global regex (LONG|SHORT)
-  assert.strictEqual(shouldForward(signalMsg, perSourceConfig.filters, () => {}, 'source_c', perSourceConfig), true);
-  assert.strictEqual(shouldForward(buyMsg, perSourceConfig.filters, () => {}, 'source_c', perSourceConfig), false);
+  assert.strictEqual(shouldForward(signalMsg, perSourceConfig.filters, () => undefined, 'source_c', perSourceConfig), true);
+  assert.strictEqual(shouldForward(buyMsg, perSourceConfig.filters, () => undefined, 'source_c', perSourceConfig), false);
   
   // Without sourceChatId/config -> uses filters.regexPatterns directly (backward compat)
   assert.strictEqual(shouldForward(signalMsg, perSourceConfig.filters), true);

@@ -52,9 +52,9 @@ async function wake(runtime) {
 function schedulerEngine(attempt) {
   // Only scheduler tests use these explicit local lifecycle fakes. The first case uses the actual Engine and Paper.
   const engine = new TradingEngine([]);
-  engine.retireUnauthorizedPreparations = async () => 0;
-  engine.reconcileAccount = async () => undefined;
-  engine.cancelExpiredEntries = async () => undefined;
+  engine.retireUnauthorizedPreparations = () => Promise.resolve(0);
+  engine.reconcileAccount = () => Promise.resolve();
+  engine.cancelExpiredEntries = () => Promise.resolve();
   engine.processIntent = attempt;
   return engine;
 }
@@ -94,7 +94,7 @@ async function healthyAccountBeyondLegacyPage() {
 async function stablePagesAndRestart() {
   const context = await fixture(), ids = await legacyRows(context, 205, 'same-time');
   let attempts = [];
-  let runtime = await startRuntime(schedulerEngine(async id => { attempts.push(id); }));
+  let runtime = await startRuntime(schedulerEngine(id => { attempts.push(id); return Promise.resolve(); }));
   try {
     for (const expected of [100, 200, 205, 305]) {
       await wake(runtime);
@@ -104,7 +104,7 @@ async function stablePagesAndRestart() {
     assert.deepEqual(attempts.slice(205), ids.slice(0, 100));
     await runtime.stop(); await closeDb(); await initDb(context.file);
     attempts = [];
-    runtime = await startRuntime(schedulerEngine(async id => { attempts.push(id); }));
+    runtime = await startRuntime(schedulerEngine(id => { attempts.push(id); return Promise.resolve(); }));
     for (let index = 0; index < 3; index += 1) await wake(runtime);
     assert.deepEqual(attempts, ids, 'A new runtime/DB handle safely revisits the durable queue and reaches every page.');
   } finally { await runtime.stop(); await closeDb(); }
@@ -113,7 +113,7 @@ async function stablePagesAndRestart() {
 async function disappearingIdsAndEarlierInsertion() {
   const context = await fixture(), ids = await legacyRows(context, 101, 'cursor');
   const attempts = [];
-  const runtime = await startRuntime(schedulerEngine(async id => { attempts.push(id); }));
+  const runtime = await startRuntime(schedulerEngine(id => { attempts.push(id); return Promise.resolve(); }));
   try {
     await wake(runtime);
     await getDatabase().run('DELETE FROM trading_trade_intents WHERE id=?', [ids[99]]);

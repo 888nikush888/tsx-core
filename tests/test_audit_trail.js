@@ -51,8 +51,9 @@ try {
   const resetPath = path.join(testDirectory, 'reset.jsonl');
   const resetTrail = new EnterpriseAuditTrail({ filePath: resetPath, remoteRequired: false });
   await resetTrail.initialize();
-  void resetTrail.record({ phase: 'authorized', action: 'dashboard.mutation', actorRole: 'admin' });
+  const initialRecord = resetTrail.record({ phase: 'authorized', action: 'dashboard.mutation', actorRole: 'admin' });
   await resetTrail.flush();
+  await initialRecord;
   await resetTrail.resetLocal();
   await resetTrail.record({ phase: 'completed', action: 'dashboard.mutation', actorRole: 'admin', statusCode: 200 });
   const resetRecords = (await readFile(resetPath, 'utf8')).trim().split('\n').map(JSON.parse);

@@ -27,10 +27,12 @@ class RetentionRest:
         self.calls = []
         self.page_limit = 2000
 
-    def handle_public_address(self, *_args):
+    @staticmethod
+    def handle_public_address(*_args):
         return 'offline-wallet', {}
 
-    def parse_trade(self, row):
+    @staticmethod
+    def parse_trade(row):
         return {**row, 'id': str(row['tid']), 'timestamp': row['time']}
 
     async def publicPostInfo(self, params):

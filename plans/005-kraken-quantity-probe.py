@@ -43,6 +43,8 @@ class QuantityOriginalProbe(unittest.IsolatedAsyncioTestCase):
         self.factor_token = "0.25"
 
         async def fake_transport(url, method="GET", headers=None, body=None):
+            self.assertIsInstance(headers, dict)
+            self.assertIsNone(body)
             self.assertEqual(method, "GET")
             self.assertEqual(url, "https://futures.kraken.com/derivatives/api/v3/instruments")
             self.calls.append((method, url))

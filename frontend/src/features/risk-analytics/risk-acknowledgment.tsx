@@ -14,5 +14,5 @@ export function RiskAcknowledgment({ id, acknowledgedAt }: Readonly<{ id: string
     catch (error) { setMessage(`Quittierung nicht bestätigt; keine automatische Wiederholung. ${error instanceof Error ? error.message : String(error)}`); }
     finally { setBusy(false); }
   };
-  return <div>{confirmationDialog}{acknowledgedAt ? <span>Quittiert · {new Date(acknowledgedAt).toLocaleString('de-DE')}</span> : <button className="secondary-button" disabled={readOnly || busy || accepted} onClick={() => void acknowledge()}>Quittierung prüfen</button>}{message && <p><output>{message}</output></p>}</div>;
+  return <div>{confirmationDialog}{acknowledgedAt ? <span>Quittiert · {new Date(acknowledgedAt).toLocaleString('de-DE')}</span> : <button className="secondary-button" disabled={readOnly || busy || accepted} onClick={() => { acknowledge(); }}>Quittierung prüfen</button>}{message && <p><output>{message}</output></p>}</div>;
 }

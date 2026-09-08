@@ -39,7 +39,7 @@ async function disconnectedCommand(fixture, command, id) {
   server.once('request', (_request, response) => response.once('close', closed.resolve));
   const options = commandRequest(command, id);
   const client = http.request(fixture.base + command.route, options);
-  client.on('error', () => {});
+  client.on('error', () => undefined);
   client.end(options.body);
   await bounded(fixture.controls.entered.promise);
   client.destroy();
@@ -50,7 +50,7 @@ async function disconnectedCommand(fixture, command, id) {
 }
 
 async function assertReceipt(fixture, command, id) {
-  const receipt = JSON.parse(await fs.readFile(path.join(fixture.directory, 'jobs', id + '.json'), 'utf8'));
+  const receipt = JSON.parse(await fs.readFile(path.join(fixture.directory, 'jobs', `${id}.json`), 'utf8'));
   assert.equal(receipt.kind, command.kind);
   assert.equal(receipt.state, 'awaiting-restart');
   assert.equal(receipt.restart.sourceInstanceId, 'http-generation');
@@ -98,7 +98,7 @@ async function testBindingAndGates() {
   release();
   assert.equal((await request(current, command, id)).status, 200);
   assert.equal((await request(current, command, id, { body: JSON.stringify({ jobId: id, name: 'backup-2026-different' }) })).status, 409);
-  process.env.DASHBOARD_ADMIN_TOKEN = ADMIN + 'rotated';
+  process.env.DASHBOARD_ADMIN_TOKEN = `${ADMIN}rotated`;
   assert.equal((await request(current, command, id, { headers: { ...valid.headers, Authorization: `Bearer ${ADMIN}rotated` } })).status, 409);
   process.env.DASHBOARD_ADMIN_TOKEN = ADMIN;
   assert.equal((await request(current, COMMANDS[2], id)).status, 409, 'Kind is bound along with actor and request.');
@@ -118,7 +118,7 @@ async function testReceiptFailure() {
     const current = await fixture(); const id = `recovery-receipt-${command.kind}`;
     let failedWrites = 0;
     fs.rename = async (from, to) => {
-      if (to === path.join(current.directory, 'jobs', id + '.json')) {
+      if (to === path.join(current.directory, 'jobs', `${id}.json`)) {
         const pending = JSON.parse(await fs.readFile(from, 'utf8'));
         if (pending.restart) { failedWrites++; throw Object.assign(new Error('fixture disk full'), { code: 'ENOSPC' }); }
       }
@@ -143,7 +143,7 @@ async function testTransientReceiptFailure() {
   const current = await fixture(); const id = 'recovery-transient-receipt';
   let failed = false;
   fs.rename = async (from, to) => {
-    if (!failed && to.endsWith(id + '.json') && JSON.parse(await fs.readFile(from, 'utf8')).restart) {
+    if (!failed && to.endsWith(`${id}.json`) && JSON.parse(await fs.readFile(from, 'utf8')).restart) {
       failed = true; throw new Error('Transient receipt failure.');
     }
     return originalRename(from, to);
@@ -151,7 +151,7 @@ async function testTransientReceiptFailure() {
   const response = await request(current, COMMANDS[2], id);
   fs.rename = originalRename;
   assert.equal(response.body.job.state, 'unknown');
-  const onDisk = JSON.parse(await fs.readFile(path.join(current.directory, 'jobs', id + '.json'), 'utf8'));
+  const onDisk = JSON.parse(await fs.readFile(path.join(current.directory, 'jobs', `${id}.json`), 'utf8'));
   assert.equal(onDisk.restart.receipt, 'uncertain');
   const observed = await new UiOperationStore(path.join(current.directory, 'jobs'), 'new-generation').get(id);
   assert.equal(observed.state, 'unknown', 'A new generation preserves uncertainty even when the fallback receipt was saved.');
@@ -188,7 +188,7 @@ async function testWorkFailureAndFallback() {
 async function testCoordinatorEdges() {
   const current = await fixture(); const id = 'recovery-autonomous-intent';
   await current.store.accept({ id, kind: 'restart', actorId: 'fixture:admin', scope: {}, request: {} });
-  const job = await current.store.runRestart(id, async () => ({}));
+  const job = await current.store.runRestart(id, () => Promise.resolve(({})));
   let restarts = 0;
   const coordinator = new UiRestartCoordinator(current.store, () => { restarts++; });
   const response = new EventEmitter(); response.writableFinished = true;

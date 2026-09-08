@@ -49,12 +49,12 @@ class FakeOfficialAdapter {
       },
     };
   }
-  async accountSnapshot() {
+  accountSnapshot() {
     this.snapshotCalls += 1;
-    return { equity: '1000', availableBalance: '900', unrealizedPnl: '25', marginUsed: '100', fundingPnlToday: '-1' };
+    return Promise.resolve({ equity: '1000', availableBalance: '900', unrealizedPnl: '25', marginUsed: '100', fundingPnlToday: '-1' });
   }
-  async marketSnapshot(_account, symbol) {
-    return { symbol, markPrice: '100', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now() };
+  marketSnapshot(_account, symbol) {
+    return Promise.resolve({ symbol, markPrice: '100', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now() });
   }
   async submitOrder() { throw new Error('Not used by control-plane contract test.'); }
   async cancelOrder() { throw new Error('Not used by control-plane contract test.'); }
@@ -238,18 +238,18 @@ try {
     },
   ];
   const catalog = {
-    browserCatalog: async () => ({
+    browserCatalog: () => Promise.resolve(({
       implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
       exchanges: catalogEntries,
-    }),
-    probe: async exchange => catalogEntries.find(entry => entry.id === exchange),
+    })),
+    probe: exchange => Promise.resolve(catalogEntries.find(entry => entry.id === exchange)),
   };
   const control = new TradingWebControl(
     credentials, paper, [hyperliquid, bybit], engine, entryRuntime, catalog,
   );
   control.attachEntryRuntime(entryRuntime);
   assert.throws(
-    () => control.attachEntryRuntime({ enableEntries: async () => {}, disableEntries: () => {} }),
+    () => control.attachEntryRuntime({ enableEntries: () => Promise.resolve(), disableEntries: () => undefined }),
     /already attached/,
   );
 

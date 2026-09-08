@@ -8,7 +8,7 @@ const realFetch = globalThis.fetch;
 let now = realNow();
 let tokens = 0;
 const sent = [];
-let tokenWait = () => {};
+let tokenWait = () => undefined;
 const account = { id: 'ttl-fake', exchange: 'bybit', mode: 'testnet', externalAccountId: 'a'.repeat(64), credentialGeneration: 'b'.repeat(64) };
 const credentials = { async getOrCreateExecutorToken() { tokens += 1; await tokenWait(); return 'isolated-fake-token'; } };
 const adapter = new CcxtExchangeAdapter('bybit', credentials);
@@ -53,7 +53,7 @@ try {
   await assert.rejects(adapter.submitOrder(account, changed), /ENTRY_DEADLINE_CHANGED/);
   assert.equal(sent.length, 1);
 
-  tokenWait = () => {};
+  tokenWait = () => undefined;
   for (const entryExpiresAt of [undefined, null, true, '123', 1.5, 0, Number.MAX_SAFE_INTEGER + 1]) {
     await assert.rejects(adapter.submitOrder(account, { ...request(), entryExpiresAt }), /ENTRY_DEADLINE_UNPROVEN/);
   }
@@ -62,7 +62,7 @@ try {
   assert.equal(sent.length, 2, 'Independent protection is allowed after the entry deadline.');
 
   now = plan.entryExpiresAt - 100;
-  respond = () => {
+  respond = _requestBody => {
     now += 200;
     return new Response(JSON.stringify({ code: 'ORDER_OUTCOME_UNRESOLVED', sideEffects: true, details: { confirmedOrders: [] } }), { status: 409 });
   };
@@ -71,7 +71,7 @@ try {
   for (const code of ['ENTRY_INTENT_EXPIRED', 'ENTRY_DEADLINE_CHANGED', 'ENTRY_DEADLINE_UNPROVEN']) {
     now = plan.entryExpiresAt - 100;
     const before = sent.length;
-    respond = () => new Response(JSON.stringify({ error: 'Deadline rejected after an executor await.', code }), { status: 422 });
+    respond = _requestBody => new Response(JSON.stringify({ error: 'Deadline rejected after an executor await.', code }), { status: 422 });
     await assert.rejects(adapter.submitProtectedEntry(account, request(), stop), error => {
       assert.equal(error instanceof TradingRiskError, false, 'An HTTP error code alone cannot prove that an operation was never dispatched.');
       assert.notEqual(error.sideEffects, false);

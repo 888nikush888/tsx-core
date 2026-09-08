@@ -24,7 +24,7 @@ const objects = new Map();
 const objectHashes = new Map();
 let tamperDownloads = false;
 let includeRetentionReceipt = true;
-let beforeDownload = async () => {};
+let beforeDownload = () => Promise.resolve();
 const server = http.createServer(async (request, response) => {
   if (request.headers.authorization !== `Bearer ${token}`) {
     response.writeHead(401).end();
@@ -103,7 +103,7 @@ try {
     currentEncryptedSha = changedDuringDownload.sha256;
     assert.equal(changedDuringDownload.artifactSha256, originalArtifactSha, 'Off-site proof comes from the downloaded/decrypted manifest, not the subsequently changed local artifact.');
     assert.notEqual(createHash('sha256').update(await readFile(manifestPath)).digest('hex'), originalArtifactSha);
-  } finally { beforeDownload = async () => {}; await writeFile(manifestPath, originalManifest); }
+  } finally { beforeDownload = () => Promise.resolve(); await writeFile(manifestPath, originalManifest); }
 
   const recovered = await replicator.recover(result.objectName, path.join(root, 'recovered'));
   assert.equal(path.basename(recovered.artifactPath), result.objectName.replace(/\.tgfb$/, ''));

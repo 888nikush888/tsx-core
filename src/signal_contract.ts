@@ -85,6 +85,8 @@ function hasUnsupportedPatternConstruct(pattern: string): boolean {
 }
 
 function safePattern(value: unknown, label: string): string | undefined {
+  // These syntax restrictions are not a proof of bounded backtracking.
+  // Contract matching must also use the execution budget in signal_schema.ts.
   if (value === undefined || value === null || value === '') return undefined;
   const pattern = text(value, label, SAFE_PATTERN_LIMIT);
   if (hasUnsupportedPatternConstruct(pattern)) {

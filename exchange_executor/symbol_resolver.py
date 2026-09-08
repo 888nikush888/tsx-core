@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
 import re
-from typing import Any, Iterable
+from typing import Any, cast, Iterable, TypeGuard
 
 
 _USD_UNITS = frozenset(("USD", "USDT", "USDC"))
@@ -44,7 +44,7 @@ def _require_metadata(condition: bool, field: str) -> None:
         raise SymbolResolutionError("SYMBOL_METADATA_UNPROVEN", f"Market metadata is missing or inconsistent: {field}.")
 
 
-def _token(value: Any) -> bool:
+def _token(value: Any) -> TypeGuard[str]:
     return isinstance(value, str) and 0 < len(value) <= 64 and value.isascii() and value.isalnum()
 
 
@@ -71,7 +71,9 @@ def _positive_multiplier(value: Any) -> bool:
         return False
     if not number.is_finite() or number <= 0:
         return False
-    _sign, digits, exponent = number.as_tuple()
+    _sign, digits, raw_exponent = number.as_tuple()
+    # Finite Decimal tuples always have an integer exponent.
+    exponent = cast(int, raw_exponent)
     # Do not normalize using the ambient Decimal context (it can round).
     length = len(digits)
     while length > 1 and digits[length - 1] == 0:
@@ -92,7 +94,7 @@ def _product_kind(market: dict[str, Any]) -> str:
         _require_metadata(market["expiry"] is None, "perpetual/spot expiry")
     else:
         _require_metadata(type(market["expiry"]) is int and 0 < market["expiry"] <= 9_007_199_254_740_991, "expiry")
-    return kind
+    return cast(str, kind)
 
 
 def _contract_identity(market: dict[str, Any], kind: str) -> None:

@@ -42,7 +42,7 @@ try {
     await database.exec('DELETE FROM trading_positions');
   }
   for (const count of [undefined, null, '0', -1, 0.5, Number.NaN]) {
-    const fake = { get: async () => ({ count }) };
+    const fake = { get: () => Promise.resolve(({ count })) };
     assert.equal((await assessRestoreEligibility(fake)).status, 'unknown');
   }
   const now = Date.now();

@@ -106,7 +106,7 @@ async function runTests() {
   const server = startMetricsServer(0, {
     totalForwardedCountCallback: () => 7,
     getQueueStateCallback: () => ({ running: 1, queued: 2, maxConcurrency: 3 }),
-    getOperationalMetricsCallback: async () => operational
+    getOperationalMetricsCallback: () => Promise.resolve(operational)
   });
   await once(server, 'listening');
   const address = server.address();
@@ -191,7 +191,7 @@ async function runTests() {
 }
 
 await runTests().catch(async error => {
-  await stopMetricsServer().catch(() => {});
+  await stopMetricsServer().catch(() => undefined);
   console.error(error);
   process.exitCode = 1;
 });

@@ -15,7 +15,7 @@ export function IssuedCredentialNotice() {
   return <section aria-label="Einmaliger Zugangsschlüssel" className="border-2 border-primary bg-background p-6 relative z-50">
     <h2>{credential.label} · jetzt sicher speichern</h2><p>Ausstellung bestätigt. Dieser Wert bleibt bis zu deiner Bestätigung sichtbar, auch wenn das Nachladen oder die Anmeldung fehlschlägt.</p>
     <code className="block break-all py-3 select-all">{credential.token}</code><div className="flex flex-wrap gap-3">
-      <button className="secondary-button" onClick={() => void navigator.clipboard.writeText(credential.token)}>Zugangsschlüssel kopieren</button>
+      <button className="secondary-button" onClick={() => { navigator.clipboard.writeText(credential.token); }}>Zugangsschlüssel kopieren</button>
       <button className="primary-button" onClick={() => { pending = pending.slice(1); for (const listener of listeners) listener(); }}>Sicher gespeichert · Anzeige schließen</button>
     </div>
   </section>;

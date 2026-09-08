@@ -54,7 +54,7 @@ async function testReadEvidence(db, resource) {
   await assert.rejects(read({ kind: 'sources', id: 'evaluation-053', limit: '50', cursor: sources.nextCursor }), /match/);
   assert.equal((await read({ kind: 'paths', stateKey: fixture.stateKey })).entries.length, 0);
   assert.equal(await read({ kind: 'sources', id: 'absent' }), null);
-  await assert.rejects(read({ kind: 'constructor' }), /Unsupported/); await assert.rejects(read({ limit: '51' }), /1–50/);
+  await assert.rejects(read({ kind: 'constructor' }), /Unsupported/); await assert.rejects(read({ limit: '51' }), /1–50/u);
   assert.deepEqual(await db.all('SELECT * FROM workflow_adaptive_risk_state'), originalState);
   assert.deepEqual(await db.all('SELECT * FROM workflow_adaptive_risk_evaluations'), originalEvaluations, 'UI reads must never evaluate or invalidate an original observation.');
 }

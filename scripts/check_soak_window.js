@@ -72,14 +72,36 @@ export function evaluateSoakWindow(values, thresholds = THRESHOLDS) {
   return { passed: checks.every(check => check.passed), checks };
 }
 
-function validatePrometheusUrl(value) {
+function validateUrlCredentials(url) {
+  if (url.username || url.password || url.hash) throw new Error('PROMETHEUS_URL must not contain credentials or a fragment.');
+}
+
+export function validatePrometheusUrl(value) {
   const url = new URL(value);
   const loopback = ['127.0.0.1', '::1', 'localhost'].includes(url.hostname);
-  if (url.username || url.password || url.hash) throw new Error('PROMETHEUS_URL must not contain credentials or a fragment.');
+  validateUrlCredentials(url);
   if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) {
     throw new Error('PROMETHEUS_URL must use HTTPS unless it targets loopback.');
   }
   return url;
+}
+
+function singletonSuccess(payload, result) {
+  return payload?.status === 'success' && Array.isArray(result) && result.length === 1;
+}
+
+function sampleValue(sample) {
+  const value = Number(sample?.value?.[1]);
+  if (!Number.isFinite(value)) throw new Error('Prometheus query returned a non-finite value.');
+  return value;
+}
+
+export function prometheusValue(payload) {
+  const result = payload?.data?.result;
+  if (!singletonSuccess(payload, result)) {
+    throw new Error('Prometheus query did not return exactly one result.');
+  }
+  return sampleValue(result[0]);
 }
 
 async function queryPrometheus(baseUrl, query, token) {
@@ -91,21 +113,21 @@ async function queryPrometheus(baseUrl, query, token) {
     signal: AbortSignal.timeout(15_000)
   });
   if (!response.ok) throw new Error(`Prometheus query failed with HTTP ${response.status}.`);
-  const payload = await response.json();
-  const result = payload?.data?.result;
-  if (payload?.status !== 'success' || !Array.isArray(result) || result.length !== 1) {
-    throw new Error('Prometheus query did not return exactly one result.');
-  }
-  const value = Number(result[0]?.value?.[1]);
-  if (!Number.isFinite(value)) throw new Error('Prometheus query returned a non-finite value.');
-  return value;
+  return prometheusValue(await response.json());
 }
 
-async function run() {
-  loadEnv();
+function validateToken(token) {
+  if (token && (token.length < 32 || /[\r\n]/.test(token))) throw new Error('PROMETHEUS_TOKEN must contain at least 32 characters without line breaks.');
+}
+
+function readConfiguration() {
   const baseUrl = validatePrometheusUrl(process.env.PROMETHEUS_URL || 'http://127.0.0.1:9090');
   const token = process.env.PROMETHEUS_TOKEN?.trim() || '';
-  if (token && (token.length < 32 || /[\r\n]/.test(token))) throw new Error('PROMETHEUS_TOKEN must contain at least 32 characters without line breaks.');
+  validateToken(token);
+  return { baseUrl, token };
+}
+
+async function readSoakValues(baseUrl, token) {
   const queries = soakQueries();
   const values = {};
   let queryError = null;
@@ -116,7 +138,10 @@ async function run() {
   } catch (error) {
     queryError = error.message;
   }
-  const evaluation = queryError ? { passed: false, checks: [] } : evaluateSoakWindow(values);
+  return { values, queryError };
+}
+
+async function writeEvidence(evaluation, values, queryError) {
   const evidence = {
     schemaVersion: 1,
     evaluatedAt: new Date().toISOString(),
@@ -130,6 +155,15 @@ async function run() {
   await mkdir(evidenceDirectory, { recursive: true });
   const evidencePath = path.join(evidenceDirectory, `soak-${Date.now()}.json`);
   await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+  return evidencePath;
+}
+
+async function run() {
+  loadEnv();
+  const { baseUrl, token } = readConfiguration();
+  const { values, queryError } = await readSoakValues(baseUrl, token);
+  const evaluation = queryError ? { passed: false, checks: [] } : evaluateSoakWindow(values);
+  const evidencePath = await writeEvidence(evaluation, values, queryError);
   if (!evaluation.passed) {
     const failures = queryError || evaluation.checks.filter(check => !check.passed).map(check => check.name).join(', ');
     throw new Error(`30-day soak gate failed: ${failures}. Evidence: ${evidencePath}`);

@@ -1,3 +1,13 @@
+import { unknownErrorMessage } from './contract_values.js';
+type PaperConfigurationPayload = {
+  accountId?: unknown; equity?: string; availableBalance?: string;
+  market?: Omit<TradingMarketSnapshot, 'observedAt'>; baseMarketRevision?: string | null; baseBalanceRevision?: string | null;
+};
+/** Untrusted runtime fields are narrowed by the existing operation-specific validators. */
+type RuntimeControlPayload = { action?: unknown; active?: unknown; enabled?: unknown; confirmation?: unknown; reason?: unknown };
+type CredentialReplacementPayload = { id?: unknown; credentials?: unknown };
+type AccountConfigurationPayload = Parameters<typeof updateTradingAccountConfiguration>[1] & { id?: unknown };
+type AccountReleasePayload = { id?: unknown; confirmation?: unknown };
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import { CcxtExchangeAdapter } from './ccxt_exchange.js';
 import {
@@ -283,7 +293,8 @@ export class TradingWebControl {
       return { ...visible, credentials: account.exchange === 'paper' ? { configured: true, exchange: null, updatedAt: account.createdAt } : await this.credentials.status(account.id) };
     }));
     const incidentsQuery = new URLSearchParams({ status: 'open', limit: '30' });
-    if (query.get('accountId')) incidentsQuery.set('accountId', query.get('accountId')!);
+    const accountId = query.get('accountId');
+    if (accountId) incidentsQuery.set('accountId', accountId);
     const incidents = await uiTradingPage('incidents', incidentsQuery);
     return { contractVersion: 1, accounts: accounts.filter(account => account !== null), accountIncidents: incidents.entries.map(row => ({ ...row, message: row.reason, occurrenceCount: row.occurrences })),
       page: { observedAt: page.observedAt, hasMore: page.hasMore, nextCursor: page.nextCursor }, incidentsHaveMore: incidents.hasMore,
@@ -340,7 +351,7 @@ export class TradingWebControl {
           observedAt: snapshotObservedAt,
           error: null,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         return {
           ...base,
           equity: null,
@@ -348,14 +359,14 @@ export class TradingWebControl {
           unrealizedPnl: null,
           marginUsed: null,
           observedAt: null,
-          error: error?.message || String(error),
+          error: unknownErrorMessage(error),
         };
       }
     }));
     return { accounts: snapshots, observedAt, cached: false };
   }
 
-  createStrategy(payload: any) {
+  createStrategy(payload: { strategyId?: unknown; name?: unknown; description?: unknown; configuration?: unknown }) {
     return createTradingStrategyDraft({
       strategyId: payload.strategyId ? identifier(payload.strategyId, 'Strategy identifier', 64) : undefined,
       name: identifier(payload.name, 'Strategy name', 80),
@@ -364,7 +375,7 @@ export class TradingWebControl {
     });
   }
 
-  updateStrategy(payload: any) {
+  updateStrategy(payload: { id?: unknown; name?: unknown; description?: unknown; configuration?: unknown }) {
     return updateTradingStrategyDraft(identifier(payload.id, 'Strategy version identifier', 64), {
       name: identifier(payload.name, 'Strategy name', 80),
       description: typeof payload.description === 'string' ? payload.description : '',
@@ -384,7 +395,7 @@ export class TradingWebControl {
     return deleteTradingStrategyVersion(identifier(id, 'Strategy version identifier', 64));
   }
 
-  createSignalSchema(payload: any) {
+  createSignalSchema(payload: Partial<Parameters<typeof createTradingSignalSchema>[0]>) {
     return createTradingSignalSchema({
       id: payload.id,
       name: payload.name,
@@ -397,7 +408,7 @@ export class TradingWebControl {
     });
   }
 
-  updateSignalSchema(payload: any) {
+  updateSignalSchema(payload: Partial<Parameters<typeof updateTradingSignalSchema>[1]> & { id?: unknown }) {
     return updateTradingSignalSchema(identifier(payload.id, 'Signal schema identifier', 40), {
       name: payload.name,
       description: payload.description,
@@ -413,7 +424,7 @@ export class TradingWebControl {
     return deleteTradingSignalSchema(identifier(id, 'Signal schema identifier', 40));
   }
 
-  createSignalContract(payload: any) {
+  createSignalContract(payload: Partial<Parameters<typeof createSignalContract>[0]>) {
     return createSignalContract({
       id: payload.id,
       name: payload.name,
@@ -422,11 +433,11 @@ export class TradingWebControl {
     });
   }
 
-  createSignalContractVersion(payload: any) {
+  createSignalContractVersion(payload: { contractId?: unknown; sourceVersionId?: unknown }) {
     return createSignalContractDraftVersion(payload.contractId, payload.sourceVersionId);
   }
 
-  updateSignalContract(payload: any) {
+  updateSignalContract(payload: Partial<Parameters<typeof updateSignalContractDraft>[0]>) {
     return updateSignalContractDraft({
       contractId: payload.contractId,
       versionId: payload.versionId,
@@ -437,7 +448,7 @@ export class TradingWebControl {
     });
   }
 
-  duplicateSignalContract(payload: any) {
+  duplicateSignalContract(payload: Partial<Parameters<typeof duplicateSignalContract>[0]>) {
     return duplicateSignalContract({
       sourceVersionId: payload.sourceVersionId,
       id: payload.id,
@@ -462,7 +473,7 @@ export class TradingWebControl {
     return deleteSignalContractVersion(versionId);
   }
 
-  validateSignalContract(payload: any) {
+  validateSignalContract(payload: { definition?: unknown; xml?: unknown; sourceText?: unknown }) {
     const definition = validateSignalContractDefinition(payload.definition);
     if (typeof payload.xml !== 'string') throw new Error('Signal XML must be a string.');
     const validated = validateSignalXml(
@@ -476,15 +487,21 @@ export class TradingWebControl {
     return validated;
   }
 
-  setChannelRiskPolicy(payload: any) {
-    return upsertChannelRiskPolicy(payload);
+  setChannelRiskPolicy(payload: Partial<Parameters<typeof upsertChannelRiskPolicy>[0]>) {
+    return upsertChannelRiskPolicy({
+      channelId: payload.channelId, mode: payload.mode, tiers: payload.tiers, currentTier: payload.currentTier,
+      lookbackWeeks: payload.lookbackWeeks, minimumClosedTrades: payload.minimumClosedTrades,
+      lossThresholdPercent: payload.lossThresholdPercent, profitThresholdPercent: payload.profitThresholdPercent,
+      weakChannelAction: payload.weakChannelAction, weakWeeksBeforeBlock: payload.weakWeeksBeforeBlock,
+      manuallyBlocked: payload.manuallyBlocked, lockedTier: payload.lockedTier,
+    });
   }
 
   removeChannelRiskPolicy(channelId: unknown) {
     return deleteChannelRiskPolicy(channelId);
   }
 
-  async createAccount(payload: any): Promise<TradingAccount> {
+  async createAccount(payload: { exchange?: unknown; mode?: unknown; name?: unknown; initialBalance?: unknown; maxConcurrentPositions?: number; credentials?: unknown }): Promise<TradingAccount> {
     const exchange = tradingExchangeId(payload.exchange);
     const mode = payload.mode as TradingAccountMode;
     if (exchange === 'paper') {
@@ -516,13 +533,13 @@ export class TradingWebControl {
     }
   }
 
-  async replaceAccountCredentials(payload: any): Promise<TradingAccount> {
+  async replaceAccountCredentials(payload: CredentialReplacementPayload): Promise<TradingAccount> {
     const accountId = identifier(payload.id, 'Account identifier', 64);
     this.engine.mutations.fenceEntries();
     return this.engine.mutations.run(accountId, context => this.replaceAccountCredentialsOwned(payload, context));
   }
 
-  private async replaceAccountCredentialsOwned(payload: any, context: TradingMutationContext): Promise<TradingAccount> {
+  private async replaceAccountCredentialsOwned(payload: CredentialReplacementPayload, context: TradingMutationContext): Promise<TradingAccount> {
     let account = await this.requiredAccount(payload.id);
     if (account.exchange === 'paper') throw new Error('Paper accounts do not have exchange credentials.');
     const catalogEntry = await this.certifiedCatalogEntry(account.exchange, account.mode);
@@ -628,9 +645,9 @@ export class TradingWebControl {
         return updateTradingAccountConfiguration(verified.id, { capabilities: result.capabilities });
       }
       return verified;
-    } catch (error: any) {
+    } catch (error: unknown) {
       await updateTradingAccountState(account.id, {
-        status: 'error', enabled: false, error: error?.message || String(error), verifiedAt: null,
+        status: 'error', enabled: false, error: unknownErrorMessage(error), verifiedAt: null,
       });
       throw error;
     }
@@ -668,7 +685,7 @@ export class TradingWebControl {
     });
   }
 
-  async configureAccount(payload: any): Promise<TradingAccount> {
+  async configureAccount(payload: AccountConfigurationPayload): Promise<TradingAccount> {
     const accountId = identifier(payload.id, 'Account identifier', 64);
     const release = payload.killSwitchActive === true ? this.engine.mutations.holdEntries(accountId) : undefined;
     try {
@@ -678,7 +695,7 @@ export class TradingWebControl {
     }
   }
 
-  private async configureAccountOwned(payload: any, accountId: string, context: TradingMutationContext): Promise<TradingAccount> {
+  private async configureAccountOwned(payload: AccountConfigurationPayload, accountId: string, context: TradingMutationContext): Promise<TradingAccount> {
     const current = await this.requiredAccount(accountId);
     if (current.killSwitchActive && payload.killSwitchActive === false) {
       throw new Error('Account kill switches require the protected kill-switch release confirmation operation.');
@@ -696,7 +713,7 @@ export class TradingWebControl {
     return updated;
   }
 
-  async releaseAccountKillSwitch(payload: any): Promise<{
+  async releaseAccountKillSwitch(payload: AccountReleasePayload): Promise<{
     account: TradingAccount;
     reconciliations: number;
     proof: TradingSafetyProof;
@@ -706,7 +723,7 @@ export class TradingWebControl {
     return this.engine.mutations.run(accountId, context => this.releaseAccountKillSwitchOwned(payload, accountId, context, epoch));
   }
 
-  private async releaseAccountKillSwitchOwned(payload: any, accountId: string, context: TradingMutationContext, epoch: string): Promise<{
+  private async releaseAccountKillSwitchOwned(payload: AccountReleasePayload, accountId: string, context: TradingMutationContext, epoch: string): Promise<{
     account: TradingAccount; reconciliations: number; proof: TradingSafetyProof;
   }> {
     const confirmation = identifier(payload.confirmation, 'Account kill-switch release confirmation', 64);
@@ -757,7 +774,7 @@ export class TradingWebControl {
     if (account.exchange !== 'paper') await this.credentials.remove(account.id);
   }
 
-  setRoute(payload: any) {
+  setRoute(payload: { channelId?: unknown; strategyVersionId?: unknown; accountId?: unknown; enabled?: unknown }) {
     return setTradingRoute({
       channelId: identifier(payload.channelId, 'Channel identifier'),
       strategyVersionId: identifier(payload.strategyVersionId, 'Strategy version identifier', 64),
@@ -770,7 +787,7 @@ export class TradingWebControl {
     return deleteTradingRoute(identifier(channelId, 'Channel identifier'));
   }
 
-  async setRuntime(payload: any) {
+  async setRuntime(payload: RuntimeControlPayload) {
     const action = identifier(payload.action, 'Runtime action', 40);
     if (!['execution', 'live', 'kill-switch'].includes(action)) throw new Error('Unsupported trading runtime action.');
     const lowering = action === 'kill-switch'
@@ -790,7 +807,7 @@ export class TradingWebControl {
     }
   }
 
-  private async setExecutionRuntime(payload: any, assertAuthority: () => void) {
+  private async setExecutionRuntime(payload: RuntimeControlPayload, assertAuthority: () => void) {
     const enabled = boolean(payload.enabled, 'Execution enabled state');
     if (!enabled) {
       this.engine.mutations.fenceEntries();
@@ -814,7 +831,7 @@ export class TradingWebControl {
     }
   }
 
-  private async setLiveRuntime(payload: any, assertAuthority: () => void) {
+  private async setLiveRuntime(payload: RuntimeControlPayload, assertAuthority: () => void) {
     const enabled = boolean(payload.enabled, 'Live trading enabled state');
     if (!enabled) this.engine.mutations.fenceEntries();
     if (enabled) {
@@ -827,7 +844,7 @@ export class TradingWebControl {
     return updateTradingRuntimeState({ liveTradingEnabled: enabled });
   }
 
-  private async setKillSwitchRuntime(payload: any, assertAuthority: () => void) {
+  private async setKillSwitchRuntime(payload: RuntimeControlPayload, assertAuthority: () => void) {
     const active = boolean(payload.active, 'Kill switch state');
     if (active) {
       const reason = identifier(payload.reason, 'Kill switch reason', 300);
@@ -844,19 +861,19 @@ export class TradingWebControl {
       accountSnapshot: account => this.requiredAdapter(account.exchange).accountSnapshot(account) });
   }
 
-  async configurePaper(payload: any) {
+  async configurePaper(payload: PaperConfigurationPayload) {
     const accountId = identifier(payload.accountId, 'Account identifier', 64);
     return this.engine.mutations.run(accountId, () => this.configurePaperOwned(payload));
   }
 
-  private async configurePaperOwned(payload: any) {
+  private async configurePaperOwned(payload: PaperConfigurationPayload) {
     const account = await this.requiredAccount(payload.accountId);
     if (account.exchange !== 'paper' || account.mode !== 'paper') throw new Error('Paper configuration requires a paper account.');
     const result = await withDatabaseTransaction(async () => {
       await assertPaperConfigurationRevision(account.id, payload);
       if (payload.equity !== undefined) await this.paper.setBalance(account.id, payload.equity, payload.availableBalance ?? payload.equity);
       if (payload.market) {
-        const market = payload.market as Omit<TradingMarketSnapshot, 'observedAt'>;
+        const market = payload.market;
         await this.paper.setMarket(account.id, market);
       }
       return readPaperConfiguration(account.id, payload.market?.symbol);
@@ -874,7 +891,7 @@ export class TradingWebControl {
     return this.engine.cancelOpenEntries(id ? identifier(id, 'Account identifier', 64) : undefined);
   }
 
-  async emergencyFlatten(payload: any): Promise<number> {
+  async emergencyFlatten(payload: { confirmation?: unknown; accountId?: unknown }): Promise<number> {
     if (payload.confirmation !== FLATTEN_CONFIRMATION) {
       throw new Error(`Emergency flatten requires the exact confirmation '${FLATTEN_CONFIRMATION}'.`);
     }
@@ -890,12 +907,14 @@ export class TradingWebControl {
     return acknowledgeTradingRiskEvent(identifier(id, 'Risk event identifier', 64));
   }
 
-  createWorkflowResource(payload: any) {
-    return createWorkflowResourceDraft(payload);
+  createWorkflowResource(payload: Partial<Parameters<typeof createWorkflowResourceDraft>[0]>) {
+    if (payload.kind === undefined) throw new Error('Unsupported workflow resource kind.');
+    return createWorkflowResourceDraft({ ...payload, kind: payload.kind, name: payload.name ?? '', configuration: payload.configuration });
   }
 
-  updateWorkflowResource(payload: any) {
-    return updateWorkflowResourceDraft(identifier(payload.id, 'Workflow resource version identifier', 64), payload);
+  updateWorkflowResource(payload: Partial<Parameters<typeof updateWorkflowResourceDraft>[1]> & { id?: unknown }) {
+    return updateWorkflowResourceDraft(identifier(payload.id, 'Workflow resource version identifier', 64),
+      { ...payload, name: payload.name ?? '', configuration: payload.configuration });
   }
 
   publishWorkflowResource(id: unknown) {
@@ -910,7 +929,7 @@ export class TradingWebControl {
     return deleteWorkflowResourceDraft(identifier(id, 'Workflow resource version identifier', 64));
   }
 
-  activateWorkflow(payload: any, actorId = 'control:workflow') {
+  activateWorkflow(payload: Partial<Omit<Parameters<typeof saveWorkflowRevision>[0], 'actorId'>>, actorId = 'control:workflow') {
     return saveWorkflowRevision({
       baseRevisionId: payload.baseRevisionId ?? null,
       graph: payload.graph,
@@ -977,7 +996,7 @@ export class TradingWebControl {
     return entry;
   }
 
-  private credentialsFromPayload(entry: ExchangeCatalogEntry, input: any): TradingCredentials {
+  private credentialsFromPayload(entry: ExchangeCatalogEntry, input: unknown): TradingCredentials {
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
       throw new Error('Exchange credentials are required.');
     }
@@ -987,7 +1006,7 @@ export class TradingWebControl {
     if (unexpected) throw new Error(`Credential field ${unexpected} is not allowed for ${entry.id}.`);
     const values: Record<string, string> = {};
     for (const field of entry.credentialFields) {
-      const value = input[field.id];
+      const value = (input as Record<string, unknown>)[field.id];
       if (field.required && (typeof value !== 'string' || !value.trim())) {
         throw new Error(`${field.label} is required.`);
       }

@@ -898,7 +898,7 @@ async function testRepositoryValidation(defaults, accounts) {
   delete legacyStoredConfiguration.exits.stopLossMode;
   const legacyHash = strategyConfigurationSha256(legacyStoredConfiguration);
   await getDatabase().run(
-    `UPDATE trading_strategy_versions SET configuration_json = ?, configuration_sha256 = ? WHERE id = ?`,
+    "UPDATE trading_strategy_versions SET configuration_json = ?, configuration_sha256 = ? WHERE id = ?",
     [JSON.stringify(legacyStoredConfiguration), legacyHash, legacyDraft.id],
   );
   const loadedLegacy = await getTradingStrategyVersion(legacyDraft.id);
@@ -1257,7 +1257,7 @@ async function testRepositoryRouting(defaults, accounts) {
     /Only an existing draft/,
   );
   await assert.rejects(
-    getDatabase().run(`UPDATE trading_strategy_versions SET name = 'tampered' WHERE id = ?`, [published.id]),
+    getDatabase().run("UPDATE trading_strategy_versions SET name = 'tampered' WHERE id = ?", [published.id]),
     /immutable/,
   );
 
@@ -1378,6 +1378,60 @@ async function testOperationalDatabaseClearPreservesTrading() {
   )).value, 0);
 }
 
+async function testRepositoryReadbackGuards() {
+  const database = getDatabase();
+  const originalGet = database.get;
+  const originalAll = database.all;
+  const guarded = await createTradingStrategyDraft({ name: 'Readback fixture', configuration: configuration() });
+  try {
+    database.all = function (sql, ...parameters) {
+      if (String(sql) === 'SELECT * FROM trading_signal_contracts ORDER BY archived, name, id') return Promise.resolve([]);
+      return originalAll.call(this, sql, ...parameters);
+    };
+    const standard = (await listSignalContracts()).find(contract => contract.id === 'standard');
+    // Obtain the known fixture definition directly because the collection read
+    // is deliberately unavailable during this test.
+    const stored = await database.get('SELECT definition_json FROM trading_signal_contract_versions WHERE id = ?', ['standard:v1']);
+    assert.equal(standard, undefined);
+    await assert.rejects(createSignalContract({ id: 'readback-contract', name: 'Readback', definition: JSON.parse(stored.definition_json) }), /Created signal contract is missing/);
+    assert.equal(await database.get('SELECT id FROM trading_signal_contracts WHERE id = ?', ['readback-contract']), undefined,
+      'Failed create readback must roll back its transaction.');
+  } finally {
+    database.all = originalAll;
+  }
+  try {
+    database.get = function (sql, ...parameters) {
+      if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?') return Promise.resolve(undefined);
+      return originalGet.call(this, sql, ...parameters);
+    };
+    await assert.rejects(updateTradingStrategyDraft(guarded.id, { name: 'Updated fixture', configuration: configuration() }), /Updated strategy version is missing/);
+  } finally {
+    database.get = originalGet;
+  }
+  let strategyReads = 0;
+  try {
+    database.get = function (sql, ...parameters) {
+      if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?' && ++strategyReads === 2) return Promise.resolve(undefined);
+      return originalGet.call(this, sql, ...parameters);
+    };
+    await assert.rejects(publishTradingStrategyVersion(guarded.id), /Published strategy version is missing/);
+  } finally {
+    database.get = originalGet;
+  }
+  try {
+    database.get = function (sql, ...parameters) {
+      if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?') return Promise.resolve(undefined);
+      return originalGet.call(this, sql, ...parameters);
+    };
+    await assert.rejects(archiveTradingStrategyVersion(guarded.id), /Archived strategy version is missing/);
+  } finally {
+    database.get = originalGet;
+  }
+  assert.equal((await getTradingStrategyVersion(guarded.id)).status, 'published', 'Failed archive readback must roll back its transaction.');
+  await archiveTradingStrategyVersion(guarded.id);
+  await deleteTradingStrategyVersion(guarded.id);
+}
+
 async function runRepositoryTests() {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-core-'));
   try {
@@ -1403,6 +1457,7 @@ async function runRepositoryTests() {
     )).equity, '12500.5');
     assert.equal(await deleteTradingAccount(numericBalanceAccount.id), true);
     await seedTradingFixtures(1_700_000_000_000);
+    await testRepositoryReadbackGuards();
     const defaults = await listTradingStrategies();
     const accounts = await listTradingAccounts();
     assert.equal(defaults.length, 1);

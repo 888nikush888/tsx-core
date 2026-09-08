@@ -1,0 +1,382 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent_python_static_remediation_review",
+  "reviewedAt": "2026-09-08T08:55:50.603679+00:00",
+  "reviewedBy": "baseline_verification (independent from implementation agent)",
+  "baseRevision": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+  "reviewedRevision": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+  "reviewedCommits": [
+    "0ade740",
+    "d1464b0",
+    "ac90c6f"
+  ],
+  "scope": "Complete diff of 28 Python test files and 27 source/tool/probe files, plus 241-occurrence disposition ledger. No other uncommitted or future changes approved.",
+  "conclusion": "No blocking semantic regression found in the reviewed source/test changes. Safe to integrate for final combined verification; not release-ready until source-bound manifests/receipts are independently renewed on the frozen final tree and all gates pass.",
+  "semanticReview": [
+    {
+      "area": "SDK casts, TypeGuards and overloads",
+      "finding": "typing.cast and type annotations do not convert runtime values. Cast sites remain behind explicit isinstance/type/callable/profile guards. KuCoin token runtime implementation is unchanged: nullable None returns None only when allowed; otherwise nonempty bounded token checks apply. Two overload declarations only describe existing return behavior."
+    },
+    {
+      "area": "SDK/static methods and cancellation",
+      "finding": "Converted adapter/test methods did not use self. Instance call argument order remains the same; async methods stay async. asyncio.CancelledError derives from BaseException in pinned Python3.12, so removing catch-and-reraise branches leaves cancellation escaping Exception handlers without clearing shared bootstrap caches or recording stream failures."
+    },
+    {
+      "area": "Loop-bound callbacks",
+      "finding": "Default arguments bind each iteration instance, response mutation and expected scenario while preserving body logic. Mutable clocks/counters remain shared within their original scenario; explicit partial captures the per-category parameter dictionary before a bounded read. No assertion is removed."
+    },
+    {
+      "area": "CurrentRead next()",
+      "finding": "Missing scope now raises IncompleteCurrentStateError(current_scope_unregistered), rather than leaking StopIteration/RuntimeError. Matching-scope page/complete mutation is unchanged. Failure does not mark a scope complete; added negative test verifies this. call still performs the budgeted read before scope lookup as before."
+    },
+    {
+      "area": "Complexity extractions",
+      "finding": "Manually reviewed _fill_timestamp, _rounded_boundary, _original_boundary, _retention_covers, _valid_continuation_token, _history_rows, _validate_request_integers, _assert_transport_text, optional order-value helpers, _remote_client and _validate_completion_verdict. Conditions, bounds, error messages and short-circuit order are preserved. Decimal precision180 remains local to rounding; original floor-buy/ceiling-sell arithmetic is retained."
+    },
+    {
+      "area": "Boolean expressions and exception simplification",
+      "finding": "Chained integer comparison is equivalent; KuCoin reduceOnly is already guarded exact bool before is True. Regex matches converted to explicit booleans retain success/failure behavior. UnicodeDecodeError and InventoryError remain covered by their existing ValueError superclass catches."
+    },
+    {
+      "area": "Test contracts",
+      "finding": "Nested context managers were flattened in the same entry/exit order. Decimal multiplication remains evaluated and context flags checked. Mock NOW patch now restores module state during unittest cleanup. Added probe assertions enforce headers dict/body None. AST inventory found every original assertion unchanged, plus five additional assertions."
+    }
+  ],
+  "validation": {
+    "environment": {
+      "python": "3.12",
+      "path": "tmp/tsx-security-python-env/Scripts/python.exe",
+      "dependencies": "Existing isolated exact-lock environment; not modified by reviewer"
+    },
+    "unittest": {
+      "command": "python -m unittest discover -s exchange_executor/tests -v",
+      "tests": 546,
+      "passed": 543,
+      "errors": 3,
+      "seconds": 104.653,
+      "log": {
+        "sha256": "c4eefc3d5081583a257fb3ea93b549ce45c39a03bbeff2be057d442e97861545",
+        "bytes": 110091
+      },
+      "remainingErrors": [
+        {
+          "test": "test_checked_in_first_manifest_matches_local_pin",
+          "reason": "InventoryError: Inventory differs from installed pinned declarations, IDs, methods, or source hashes."
+        },
+        {
+          "test": "test_evidence_drift_and_invalid_existing_receipt_remain_no_go",
+          "reason": "CandidateReviewError: Candidate evidence changed after review."
+        },
+        {
+          "test": "test_fixed_review_accepts_exact_decisions_only_with_valid_existing_receipt",
+          "reason": "CandidateReviewError: Candidate evidence changed after review."
+        }
+      ],
+      "interpretation": "The three source-bound review checks correctly reject stale commitments after source changes. This run is not reported as fully passing; no business-logic test failed."
+    },
+    "ruff": {
+      "command": "python -m ruff check exchange_executor",
+      "exitCode": 0,
+      "log": {
+        "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0",
+        "bytes": 20
+      }
+    },
+    "assertionInventory": {
+      "method": "Independent AST multiset of Assert nodes and assert* calls before and after complete 55-file diff; supplements manual review, not whole-program equivalence proof",
+      "before": 1193,
+      "after": 1198,
+      "removedOrChanged": 0,
+      "evidence": {
+        "sha256": "c52d825e6a0d90e590e392e0c20d1b3f8639a5f99abe6029bbddd4791f8d0f9b",
+        "bytes": 19385
+      }
+    }
+  },
+  "authorityLimits": {
+    "approvalPinsChanged": false,
+    "manifestsRebound": false,
+    "providerAcceptanceVerified": false,
+    "liveExchangeCallsPerformed": false,
+    "deploymentApproved": false,
+    "finalCombinedTreeVerified": false
+  },
+  "nextStep": "After remaining JS/source changes and a final source freeze, independently renew inventory/review source commitments and implementation receipts with fresh execution evidence. Keep existing profile/provider quarantine scope; no synthetic pass creates live-provider authority.",
+  "fileBindings": [
+    {
+      "path": "exchange_executor/account_log_reader.py",
+      "beforeSha256": "bea4d83dba292f11b947ac583436a1542fccea602e8cdb3c58774db7a1712ce8",
+      "afterSha256": "6d2c86cce0ee528b9ada22b387e2761fd84174ac92ce7770b4b08e1e4ad5b05c"
+    },
+    {
+      "path": "exchange_executor/ccxt_adapter.py",
+      "beforeSha256": "89331f31c3bb41652a0265682153e11130a365f35e314ebb53a629f792663c90",
+      "afterSha256": "397feb3041cebd29aee14ae63dd331f698302c00368e18c826b303660d312653"
+    },
+    {
+      "path": "exchange_executor/ccxt_client.py",
+      "beforeSha256": "23ca9e022acc196121d5ce82ebf30d2ee5b0a0313973196a53a9df5eacd91bc9",
+      "afterSha256": "f9efcddcbc0d3bc5bf0dcd525c5ab3dba9c93f1916b1156889aca73fb0686124"
+    },
+    {
+      "path": "exchange_executor/ccxt_sdk_policy.py",
+      "beforeSha256": "38e7b16c19f5df240f1696a51c1006cc3f9323e3516a37c05237ca3a8894267d",
+      "afterSha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056"
+    },
+    {
+      "path": "exchange_executor/credentials.py",
+      "beforeSha256": "a22a4bfc44bec3b7191c9196f8d1a3e48388d639a8a57fdd1387d4aaa9c89fd8",
+      "afterSha256": "24b261ec4c8bca38d523d01ea78b721013a82558133106ce00e217506bc6f120"
+    },
+    {
+      "path": "exchange_executor/current_state.py",
+      "beforeSha256": "354823bf57d0013d28031a85de4e626f526a03c2b0166ae7c07e6c94679901de",
+      "afterSha256": "82d6fef27aa116eb7c0d929b1d805751e58abad5b5d3a38b0795b3c79f980b6e"
+    },
+    {
+      "path": "exchange_executor/entry_deadline.py",
+      "beforeSha256": "8518af5d1d9da929f0ef269c4456c1cdb2f879dcd2712edbe6bb1c42fdfcca95",
+      "afterSha256": "416b0c608f94a4a5b825db6f282938ebba9a1213d0db7bd3bb3c699186a266c3"
+    },
+    {
+      "path": "exchange_executor/entry_price_constraints.py",
+      "beforeSha256": "8f527c3987b111bf5fb8960849e3294c285cdccb1669c2ad4f93bb842b42b803",
+      "afterSha256": "e916081236f0671675bad0b298d1bdec59f6667236076bd04a1e9652000d5e9d"
+    },
+    {
+      "path": "exchange_executor/execution_constraints.py",
+      "beforeSha256": "92bab87bf581941700e643b03ed89e3e780428192f7d6f8e50002ee26b0d7213",
+      "afterSha256": "2ab81b309e66f41022de1853fe144dbfdea0ec525d8631b394ab57b7c832719e"
+    },
+    {
+      "path": "exchange_executor/fx_evidence.py",
+      "beforeSha256": "cb7b93198bf935dcc923d1fdee2cacebcb5e254e56fa6a521a89c4438f739ad5",
+      "afterSha256": "12cb01cac79cfd0313115f6e91d6772b9ab52a3959178c099eb81f6105e12ae3"
+    },
+    {
+      "path": "exchange_executor/history_coverage.py",
+      "beforeSha256": "449e1b9392b6bb155e31c3669c4ab10cbddf2249f09de2b04a069a87cea4a543",
+      "afterSha256": "8ad501f9157f59a23a9fcd2b1ca9625c59999f90b585ad197a5642e47780a4e7"
+    },
+    {
+      "path": "exchange_executor/history_pagination.py",
+      "beforeSha256": "0a4a1d9b1044b453013a60e6d193440b154f42aaa3bedd955f2f7714715617ff",
+      "afterSha256": "4df767693a2135918a84052295bdec7da08f76756b58063f0d8ec1f1a43c2d7b"
+    },
+    {
+      "path": "exchange_executor/hyperliquid_retention.py",
+      "beforeSha256": "0defde8f535aa590f95ddee27cf855db2d4a249b148f0384a5d3dd09dca722d0",
+      "afterSha256": "6dae125ecebf3976e95302dcc9568e630cbc1c8505bf265ce6766f12ae5ef973"
+    },
+    {
+      "path": "exchange_executor/kraken_history.py",
+      "beforeSha256": "c96d9a8cc00c8a6d6195573e5a15aac56efa72a06e887ffe04a80e93dd55279c",
+      "afterSha256": "55ca04912947d1adfd3573df484dae3a961dbcd0383b2683b05aa11fc21faed7"
+    },
+    {
+      "path": "exchange_executor/kraken_response_capture.py",
+      "beforeSha256": "48da10805f8ad2666c63d476b52f881a50f80eb8f2ad3b04cd29e8ecd8c06952",
+      "afterSha256": "d43793f276de964d80adb0b23d13502331dc7e87420f992cc3db74bab1165188"
+    },
+    {
+      "path": "exchange_executor/kucoin_current_state.py",
+      "beforeSha256": "714e787ce55358809c779345daa2b42a90d0ee95468919f69631c291772440c6",
+      "afterSha256": "34338771f8036fee113de809a1c7939667ada4bbb91e377a670762304e923a51"
+    },
+    {
+      "path": "exchange_executor/kucoin_history.py",
+      "beforeSha256": "ace1628f567ce8109d0472d1750956a7461056dae468f4200e0aee98ceb73467",
+      "afterSha256": "b00553f16876272ae99dacf8f3180b03840e57d84a858d22808f4093bc6346c8"
+    },
+    {
+      "path": "exchange_executor/kucoin_identity.py",
+      "beforeSha256": "38a0d7249bde42b5a3d16a6b63a4359cb30e44743b8c2182a6e4f7d25cc50e46",
+      "afterSha256": "dd841de6a791e07f92a908d4a93dd1e9be67f03acd614df3b2b34be665446d44"
+    },
+    {
+      "path": "exchange_executor/kucoin_money.py",
+      "beforeSha256": "0351a6b312a879474f03bd69d42e2810550423d52dc656041256aad6818dd9ea",
+      "afterSha256": "2c5c2ca0c6ee78bd06e15c85cd9bec9c3b6b30132bdd62037a3571b1a78614e8"
+    },
+    {
+      "path": "exchange_executor/kucoin_provider_common.py",
+      "beforeSha256": "fc60a2a14099e4c54243bd969e7a764eb06844c9ab75a918e7a7d78812d10307",
+      "afterSha256": "124854d1044039e1e970531f036e82ab66209107e88ac0cfb0620afa09269324"
+    },
+    {
+      "path": "exchange_executor/leverage_tiers.py",
+      "beforeSha256": "eec0be1d9eceaffbbf4315a0023840d55b00020429e10bcb487ff10c328fd8b6",
+      "afterSha256": "5c2765390ceb7c2c28f3c743772dc9ea48ac68496f664eb064d40605745ce74f"
+    },
+    {
+      "path": "exchange_executor/order_evidence.py",
+      "beforeSha256": "b900b2493a0ebf5215ef9ac89795dda94cec98cf6f03f03675f4f6a191d10ad3",
+      "afterSha256": "5015cb92fea6c141505b40784e73b62808b8a3c2d664b6116eecbef44f6d03bc"
+    },
+    {
+      "path": "exchange_executor/order_identity.py",
+      "beforeSha256": "e3da1ad9950e57055bb32312064ea22fb863d4fcd3a25abadccd74b12adffc6a",
+      "afterSha256": "3fc75d5d32c0d4ea00e8be6232143a0d94c961c4a2004d66a0dbeb3d850a38d4"
+    },
+    {
+      "path": "exchange_executor/stream_hub.py",
+      "beforeSha256": "2d0f7708d13a0e74aafd98f1be32184c02efd65167ffa0d5b0ef956c94c6d6c0",
+      "afterSha256": "8e5cfdca3f886f786ad80ab9a069c7669610209dc5d7d11667f4046a71c9c14e"
+    },
+    {
+      "path": "exchange_executor/symbol_resolver.py",
+      "beforeSha256": "9bb948618dc194d0045c6a0e1561941f0b6046f5471e8ab87184ecf84dd9cf2b",
+      "afterSha256": "4bfded74fccd159bdff43cd5cccba145fa596cf4b64c2653de0c82d79ebd289f"
+    },
+    {
+      "path": "exchange_executor/tests/test_acceptance_journal.py",
+      "beforeSha256": "8559b29f46f9f4210aa2f60ace654a76ce43855d53e5c78d4230ca200c9ca066",
+      "afterSha256": "d408c9b32ec06bf7e0b76f9015caa053bb0cb5261167ccff8b73e16b98dfe15f"
+    },
+    {
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "beforeSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+      "afterSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd"
+    },
+    {
+      "path": "exchange_executor/tests/test_account_log_reader.py",
+      "beforeSha256": "fac1b8b6319136225a89af0541b63d21b4aa4ca407b4e82429af01022aec28c2",
+      "afterSha256": "2b0040adc852c924f989ff73f7e369ec955696f0b6226c4fa9d515e52343f7e8"
+    },
+    {
+      "path": "exchange_executor/tests/test_accounting_evidence.py",
+      "beforeSha256": "1e1e5d55420caa45b526c4a653d73faa4f3689e77fe441be858e33242f816f5f",
+      "afterSha256": "bffa072fd6c5e0d3056bd8fb908f8346979505752b79ee1db79706c56c932dca"
+    },
+    {
+      "path": "exchange_executor/tests/test_additional_candidate_boundaries.py",
+      "beforeSha256": "5e18172e53ff369fba88fe20c8219ec72ca23971881a071cf056670dd0779cca",
+      "afterSha256": "d9478e7269f1dd1b6d2e3e03abe67cdfb39ed958513b8b2f174ecc49b1e5fb06"
+    },
+    {
+      "path": "exchange_executor/tests/test_bybit_account_mode.py",
+      "beforeSha256": "d971a1aea4ce0fcd413e4dd2cca2bb244ba450e4acd8508511bf74ab2cc4e486",
+      "afterSha256": "3daaf7f43381728a86a20871aebcd0a8fcf969a086b41551dbebd023d7183da0"
+    },
+    {
+      "path": "exchange_executor/tests/test_candidate_review_policy.py",
+      "beforeSha256": "60e37786ddf89d1cc939646908462d4dcc1b2fe33aaff3d959a72705d41062e9",
+      "afterSha256": "2245d3effead7c0f4b4a8f01bc349c04e8cc00cc9200d3f63a758e4d12902353"
+    },
+    {
+      "path": "exchange_executor/tests/test_contracts.py",
+      "beforeSha256": "90a48474c0227cfc92a9b75a9adaed02540954053c3519b5eceb689ef2d2829e",
+      "afterSha256": "120d79c5d928b74596347d25a5c1e88df02c43f45ef627709397811ccab906f4"
+    },
+    {
+      "path": "exchange_executor/tests/test_current_state.py",
+      "beforeSha256": "964a788516ca68801a29751b30789ba55992bea9b2b301eaec9a5ed55218dfa1",
+      "afterSha256": "83f52f95bae1ec276a50dbe1a4bbe136add37a676a882e9bbf848264a646bde9"
+    },
+    {
+      "path": "exchange_executor/tests/test_current_state_profiles.py",
+      "beforeSha256": "2effdba4d3b287116ea116eb8c4eb5bc89a9730a386269270dac97475c5d5995",
+      "afterSha256": "7214c20a41130f7359c68e6cbb800a0264a7b33c659bb69c3ca0b2d8df0e0727"
+    },
+    {
+      "path": "exchange_executor/tests/test_entry_deadline.py",
+      "beforeSha256": "433d9d6fde190172a8f2355e7c599009561f989ffe7eb632762ee57d4a541a0b",
+      "afterSha256": "05913345d6a75c9161421a7904c6d9777dc12545adb68ae15f8f306612132860"
+    },
+    {
+      "path": "exchange_executor/tests/test_entry_deadline_sdk.py",
+      "beforeSha256": "96bf8cb118e7fa7dc3fbde27de3eccd71091ca888606a98276743a126accd5be",
+      "afterSha256": "bf86ebb6988a1bd23fcf0ecc18dd330928e79c155b005149bae00636d4c5e02e"
+    },
+    {
+      "path": "exchange_executor/tests/test_execution_constraints.py",
+      "beforeSha256": "9d9f4685b71c48673825eeea46fd489ce730ecb1b371dd23bb81d78907b4f45e",
+      "afterSha256": "3abaaf1d1516a5d17bf6155002789b6215608b72598247fdc9365699e42b4b4b"
+    },
+    {
+      "path": "exchange_executor/tests/test_fill_quantity_provenance.py",
+      "beforeSha256": "f91bf116dd5e0165f3cb7e121099fe45c8ea581bd773d260c79879d03e7df9d8",
+      "afterSha256": "fcc58f7aaba097dab858761990d81dce9184e1ea6c0acbb6bbb4e79b3b6783d7"
+    },
+    {
+      "path": "exchange_executor/tests/test_fx_evidence.py",
+      "beforeSha256": "9dae15100a11c205d6b216d7a12a4baac84c814a795a9f338ac09ffc19cec970",
+      "afterSha256": "998c2554ee92ee10f445001f078d3d25b250ec0ad39b37152ad487714cfa4ef8"
+    },
+    {
+      "path": "exchange_executor/tests/test_history_coverage.py",
+      "beforeSha256": "cad5b1ac78ea0a06ec8313154dd48caedbc812e80921bb63a63edccec2508c66",
+      "afterSha256": "03f0a27217751ab0f180e2659cedcc04898290788f753c3655581d92d7b98ad8"
+    },
+    {
+      "path": "exchange_executor/tests/test_history_pagination.py",
+      "beforeSha256": "a10447b09eed728892188067c223c06c1ac2dbc2f245f0a6d035efe0f479c0f4",
+      "afterSha256": "b72f3babd5a99303444b0f02194d376c7070fa6bfa94bd28afd418361c59c7ea"
+    },
+    {
+      "path": "exchange_executor/tests/test_history_reader.py",
+      "beforeSha256": "d2603fa1e2d4aec0487795d2d2cc2afcbc4799b77ff0e8e0cb3656c654d814dc",
+      "afterSha256": "7167b31d67fce862e7b712bb66110a827496dc08e7408c1f7ef0d737556f1679"
+    },
+    {
+      "path": "exchange_executor/tests/test_hyperliquid_retention.py",
+      "beforeSha256": "9bfc387b4cfe9ec6ce65869a5684a603ebd08d6dbd8fec37cff2d30329ff9775",
+      "afterSha256": "2c733b41d11af3d73aba439a654caf797cf74dac0aa8d9b4df565d32f8e988bc"
+    },
+    {
+      "path": "exchange_executor/tests/test_kraken_history.py",
+      "beforeSha256": "4766e34f3a3d79facf3172a714191611019ac110d42baac50aaeb6a151291270",
+      "afterSha256": "9c71ac859f50c8fb958a15477edd255065925be540c341c455fd1f3dc1ec725e"
+    },
+    {
+      "path": "exchange_executor/tests/test_kraken_response_capture_failures.py",
+      "beforeSha256": "01e0e80f8a6aad25cd42e81834122a000131250772f0d899a1208a61d4dad06f",
+      "afterSha256": "d96212edfd35072cff0a4dff3ad0f38589646f51a1c871e11d83c8f1d6cf0e67"
+    },
+    {
+      "path": "exchange_executor/tests/test_kucoin_provider_data.py",
+      "beforeSha256": "c2cf1d9573cfbd5e572a7911d5966495a416292bcce050d3c494f99692cd24d3",
+      "afterSha256": "f48ddb0f2e4b4495ca8d1f371eb70de505ad8d5e5fad1571184dafa94d5a1d74"
+    },
+    {
+      "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+      "beforeSha256": "b78e1fe1567c53051764eeb388167eda00ee395e0afadb176a4cbdafd52496cb",
+      "afterSha256": "33968224804afe64ce12f5b1923f24fcbcb5042f01cead52ec9bb25d3e0b6869"
+    },
+    {
+      "path": "exchange_executor/tests/test_leverage_tier_evidence.py",
+      "beforeSha256": "bf9ef697f82ca5c79049e444a9aea1e1caa74f765e92aeacf5d7b3ba319dc8c9",
+      "afterSha256": "feb162ba8b932c32519ceab3c01d5953477dd8f0fe7b6c82895ec0e3a16eb325"
+    },
+    {
+      "path": "exchange_executor/tests/test_mutation_identity.py",
+      "beforeSha256": "1a797ef8bfdfc857696ce8a521ac6a4be143fe6c597e09668f6e4ac65691bc70",
+      "afterSha256": "4603e8f835f705e621b6e71c1cfbc775dfb37be60593010f19d8567fa127adc0"
+    },
+    {
+      "path": "exchange_executor/tests/test_phase2_registry.py",
+      "beforeSha256": "9ba924d0aecb8fb295143a4d469d3495f8d9a66e6a72d1146dc46cd7fd5bcf99",
+      "afterSha256": "51d006e4e25bfab71a3e034de21560f74b485aa1f2dd8e63eaf63c290154e196"
+    },
+    {
+      "path": "exchange_executor/tests/test_recovery_schedule.py",
+      "beforeSha256": "0d1d9400e9b9f4a2634fb4a66eceeafe62452ea35e7bf7476c32a571f1a6412d",
+      "afterSha256": "f9aa10d36cd111e30dcf5cf8b4db15ec02eadf646332e8832a2546e08473b00f"
+    },
+    {
+      "path": "exchange_executor/tests/test_stream_health.py",
+      "beforeSha256": "bfd348cab006ff584ff5c3c8e191ea953adc13aa70ba4849d92711bf29f074d9",
+      "afterSha256": "ff91c0c3b47b5d343962ba2c54e7300856198c83c58bd57a054a613a82adf0e2"
+    },
+    {
+      "path": "exchange_executor/tools/audit_derivatives_candidates.py",
+      "beforeSha256": "686356eef69e9bb428f7b8f48627642652ed405886bfa6e536cfac107bc444cf",
+      "afterSha256": "34ee65bf13f4820d831e16f815c97151bec2e8f1b4af0e0f838075322d4e03a1"
+    },
+    {
+      "path": "plans/005-kraken-quantity-probe.py",
+      "beforeSha256": "c8da3b7e6b170298db53859d6b655308be910fc7b91aa3d94c93c16edd81dda5",
+      "afterSha256": "1b0accd1656e25597116e90ae55827f40ed50733a38acb534fe58050da30aa9e"
+    }
+  ]
+}

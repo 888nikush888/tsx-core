@@ -174,6 +174,12 @@ export function createAlertRelay(options: AlertRelayOptions): http.Server {
   return server;
 }
 
+export function startAlertRelay(options: AlertRelayOptions, port: number, host = '127.0.0.1'): http.Server {
+  const server = createAlertRelay(options);
+  server.listen(port, host, () => console.log(`[INFO] Alert relay listening on port ${port}.`));
+  return server;
+}
+
 export async function applyManagedRuntimeSettings(env: NodeJS.ProcessEnv = process.env): Promise<void> {
   if (env.ALERT_WEBHOOK_URL?.trim()) return;
   const settingsPath = env.RUNTIME_SETTINGS_PATH?.trim();
@@ -188,13 +194,12 @@ async function startFromEnvironment(): Promise<void> {
   await applyManagedRuntimeSettings(process.env);
   const port = Number(process.env.ALERT_RELAY_PORT || 9095);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) throw new Error('ALERT_RELAY_PORT must be between 1 and 65535.');
-  const server = createAlertRelay({
+  startAlertRelay({
     incomingToken: process.env.ALERT_RELAY_TOKEN || '',
     webhookUrl: process.env.ALERT_WEBHOOK_URL || '',
     webhookToken: process.env.ALERT_WEBHOOK_TOKEN || '',
     timeoutMs: Number(process.env.ALERT_WEBHOOK_TIMEOUT_MS || 10_000)
-  });
-  server.listen(port, '0.0.0.0', () => console.log(`[INFO] Alert relay listening on port ${port}.`));
+  }, port, process.env.ALERT_RELAY_HOST?.trim() || '127.0.0.1');
 }
 
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {

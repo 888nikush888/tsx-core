@@ -4,13 +4,22 @@ import { once } from 'node:events';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { applyManagedRuntimeSettings, createAlertRelay } from '../src/alert_relay.js';
+import { applyManagedRuntimeSettings, createAlertRelay, startAlertRelay } from '../src/alert_relay.js';
 import { DEFAULT_RUNTIME_SETTINGS } from '../src/runtime_settings.js';
 
 const incomingToken = 'i'.repeat(64);
 const outgoingToken = 'o'.repeat(64);
 let outgoingStatus = 204;
 let deliveredBody = null;
+for (const host of [undefined, '0.0.0.0']) {
+  const scopedRelay = startAlertRelay({ incomingToken, webhookToken: outgoingToken, webhookUrl: 'https://incident.example/alerts' }, 0, host);
+  try {
+    await once(scopedRelay, 'listening');
+    assert.equal(scopedRelay.address().address, host ?? '127.0.0.1');
+  } finally {
+    await new Promise(resolve => scopedRelay.close(resolve));
+  }
+}
 const receiver = http.createServer(async (request, response) => {
   assert.equal(request.headers.authorization, `Bearer ${outgoingToken}`);
   assert.equal(request.headers['x-alert-source'], 'tsx-core');

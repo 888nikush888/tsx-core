@@ -343,7 +343,8 @@ class DelayedMarketClient:
             "watchMyTrades": True, "watchPositions": True,
         }
 
-    def set_sandbox_mode(self, _enabled) -> None:
+    @staticmethod
+    def set_sandbox_mode(_enabled) -> None:
         return None
 
     async def load_markets(self) -> None:
@@ -432,7 +433,8 @@ class FakeProtectedRest:
         self.leverage.append((leverage, symbol))
         self.configured_leverage = leverage
 
-    async def privateGetV5AccountInfo(self, _params):
+    @staticmethod
+    async def privateGetV5AccountInfo(_params):
         return {"retCode": 0, "result": {"unifiedMarginStatus": 5, "marginMode": "REGULAR_MARGIN"}}
 
     async def privateGetV5PositionList(self, params):
@@ -440,25 +442,31 @@ class FakeProtectedRest:
         return {'retCode': 0, 'time': int(time.time() * 1000), 'result': {
             'category': params['category'], 'nextPageCursor': '', 'list': rows}}
 
-    async def privateGetV5OrderRealtime(self, params):
+    @staticmethod
+    async def privateGetV5OrderRealtime(params):
         return {'retCode': 0, 'time': int(time.time() * 1000), 'result': {
             'category': params['category'], 'nextPageCursor': '', 'list': []}}
 
-    async def publicGetV5MarketRiskLimit(self, params):
+    @staticmethod
+    async def publicGetV5MarketRiskLimit(params):
         return {'retCode': 0, 'time': int(time.time() * 1000), 'result': {'category': 'linear', 'nextPageCursor': '',
             'list': [{'id': 1, 'symbol': params['symbol'], 'riskLimitValue': '100000000', 'maxLeverage': '50', 'isLowestRisk': 1}]}}
 
-    async def publicGetV5MarketTickers(self, params):
+    @staticmethod
+    async def publicGetV5MarketTickers(params):
         return {'retCode': 0, 'time': int(time.time() * 1000), 'result': {'category': 'linear',
             'list': [{'symbol': params['symbol'], 'markPrice': '100'}]}}
 
-    async def privateGetLeveragepreferences(self, _params):
+    @staticmethod
+    async def privateGetLeveragepreferences(_params):
         return {"result": "success", "leveragePreferences": []}
 
-    async def privateGetOpenpositions(self, _params):
+    @staticmethod
+    async def privateGetOpenpositions(_params):
         return {'result': 'success', 'serverTime': str(int(time.time() * 1000)), 'openPositions': []}
 
-    async def privateGetOpenorders(self, _params):
+    @staticmethod
+    async def privateGetOpenorders(_params):
         return {'result': 'success', 'serverTime': str(int(time.time() * 1000)), 'openOrders': []}
 
     @staticmethod
@@ -473,7 +481,8 @@ class FakeProtectedRest:
             'restricted': False, 'postOnly': False, 'isExpired': False, 'contractValueTradePrecision': 3,
             'marginLevels': [{'numNonContractUnits': '0', 'initialMargin': '0.02'}]}]}
 
-    async def fetch_ticker(self, symbol):
+    @staticmethod
+    async def fetch_ticker(symbol):
         return {'symbol': symbol, 'timestamp': int(time.time() * 1000), 'info': {'markPrice': '100'}}
 
     def handle_public_address(self, *_args):
@@ -508,17 +517,20 @@ class FakeProtectedRest:
             raise self._failure
         return self._orders
 
-    async def fetch_open_orders(self, *_args):
+    @staticmethod
+    async def fetch_open_orders(*_args):
         return []
 
     async def create_order(self, *args):
         self.cleanup_orders.append(args)
         return {"id": "cleanup"}
 
-    def amount_to_precision(self, _symbol, amount):
+    @staticmethod
+    def amount_to_precision(_symbol, amount):
         return str(amount)
 
-    def price_to_precision(self, _symbol, price):
+    @staticmethod
+    def price_to_precision(_symbol, price):
         return str(price)
 
 
@@ -618,7 +630,8 @@ class FakeHyperliquidRest(FakeProtectedRest):
 
 
 class HyperliquidOrderTests(unittest.IsolatedAsyncioTestCase):
-    def deadline(self):
+    @staticmethod
+    def deadline():
         return RequestDeadline(int(time.time() * 1_000) + 30_000)
 
     async def test_every_profile_blocks_preflight_with_unknown_quantity_or_external_order(self) -> None:
@@ -734,7 +747,7 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
                 stream = AccountStream(
                     {"id": f"stream-{exchange}", "exchange": exchange, "mode": "testnet"},
                     clients,
-                    monotonic=lambda: now[0],
+                    monotonic=lambda now=now: now[0],
                 )
                 stream._status = "healthy"
                 stream._record_channel_failure("orders", TimeoutError("idle timeout"))
@@ -765,7 +778,8 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
 
 
 class ProtectedEntryTests(unittest.IsolatedAsyncioTestCase):
-    def deadline(self):
+    @staticmethod
+    def deadline():
         return RequestDeadline(int(time.time() * 1_000) + 30_000)
 
     async def test_invalid_protected_pair_is_rejected_before_any_exchange_access(self) -> None:

@@ -253,10 +253,10 @@ const executorCatalogPayload = entry => ({
   exchanges: [entry],
 });
 const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://127.0.0.1:8090') => new ExchangeCatalogClient(
-  { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
+  { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
     baseUrl,
-    fetchImpl: async () => ({ ok: true, status: 200, json: async () => payload, ...response }),
+    fetchImpl: () => Promise.resolve(({ ok: true, status: 200, json: () => Promise.resolve(payload), ...response })),
   },
 );
 
@@ -302,19 +302,19 @@ for (const [payload, pattern] of invalidCatalogFixtures) {
 
 const requests = [];
 const catalogClient = new ExchangeCatalogClient(
-  { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
+  { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
     baseUrl: 'http://127.0.0.1:8090',
     cacheTtlMs: 1_000,
-    fetchImpl: async (url, init) => {
+    fetchImpl: (url, init) => {
       requests.push({ url, init });
-      return {
+      return Promise.resolve({
         ok: true,
         status: 200,
         json: async () => url.endsWith('/v1/exchange-probe')
           ? { ...candidateCatalogEntry, reason: 'Public market probe completed.' }
           : executorCatalogPayload(candidateCatalogEntry),
-      };
+      });
     },
   },
 );
@@ -341,17 +341,16 @@ await assert.rejects(
   /different exchange/i,
 );
 
-let releaseCatalogRequest;
-const catalogRequestReleased = new Promise(resolve => { releaseCatalogRequest = resolve; });
+const { promise: catalogRequestReleased, resolve: releaseCatalogRequest } = Promise.withResolvers();
 let concurrentCatalogRequests = 0;
 const concurrentCatalogClient = new ExchangeCatalogClient(
-  { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
+  { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
     baseUrl: 'http://127.0.0.1:8090',
     fetchImpl: async () => {
       concurrentCatalogRequests += 1;
       await catalogRequestReleased;
-      return { ok: true, status: 200, json: async () => executorCatalogPayload(candidateCatalogEntry) };
+      return { ok: true, status: 200, json: () => Promise.resolve(executorCatalogPayload(candidateCatalogEntry)) };
     },
   },
 );
@@ -364,11 +363,11 @@ assert.deepEqual(await firstCatalogRequest, await sharedCatalogRequest);
 
 const dynamicAdapter = {
   exchange: 'okx',
-  accountSnapshot: async () => ({}),
-  marketSnapshot: async () => ({}),
-  submitOrder: async () => ({}),
-  cancelOrder: async () => ({}),
-  openState: async () => ({}),
+  accountSnapshot: () => Promise.resolve(({})),
+  marketSnapshot: () => Promise.resolve(({})),
+  submitOrder: () => Promise.resolve(({})),
+  cancelOrder: () => Promise.resolve(({})),
+  openState: () => Promise.resolve(({})),
 };
 const engine = new TradingEngine([]);
 engine.registerAdapter(dynamicAdapter);
@@ -431,21 +430,21 @@ try {
   const registered = [];
   const gateioAdapter = {
     exchange: 'gateio',
-    verifyAccount: async () => ({
+    verifyAccount: () => Promise.resolve(({
       verified: true,
       equity: '1000',
       externalAccountId: '9'.repeat(64),
       credentialGeneration: 'c'.repeat(64),
       capabilities: { reportingCurrency: 'USDT' },
-    }),
-    accountSnapshot: async () => ({}),
-    marketSnapshot: async () => ({}),
-    submitOrder: async () => ({}),
-    cancelOrder: async () => ({}),
-    openState: async () => ({ orders: [], positions: [], fills: [], observedAt: Date.now() }),
+    })),
+    accountSnapshot: () => Promise.resolve(({})),
+    marketSnapshot: () => Promise.resolve(({})),
+    submitOrder: () => Promise.resolve(({})),
+    cancelOrder: () => Promise.resolve(({})),
+    openState: () => Promise.resolve(({ orders: [], positions: [], fills: [], observedAt: Date.now() })),
   };
   const controlCatalog = {
-    browserCatalog: async () => ({
+    browserCatalog: () => Promise.resolve(({
       implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
       exchanges: [
         {
@@ -463,8 +462,8 @@ try {
           credentialFields: [], modes: [], capabilities: {},
         },
       ],
-    }),
-    probe: async exchange => ({ id: exchange, status: 'candidate' }),
+    })),
+    probe: exchange => Promise.resolve({ id: exchange, status: 'candidate' }),
   };
   const control = new TradingWebControl(
     credentials,

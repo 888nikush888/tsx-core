@@ -52,7 +52,8 @@ class StaticExchange:
         type(self).network_calls += 1
         raise AssertionError("static discovery must not load markets")
 
-    async def close(self):
+    @staticmethod
+    async def close():
         return None
 
 
@@ -127,7 +128,8 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
         ProbeExchange.order_calls = 0
         ProbeExchange.closed = 0
 
-    def registry(self) -> CcxtExchangeRegistry:
+    @staticmethod
+    def registry() -> CcxtExchangeRegistry:
         rest, pro = fake_modules()
         return CcxtExchangeRegistry(
             rest_module=rest,

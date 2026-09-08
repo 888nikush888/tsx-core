@@ -88,9 +88,9 @@ try {
   let sends = 0, checks = 0;
   await assert.rejects(runJournaledExchangeWrite({ account, intentId, kind: 'protected_entry',
     clientOrderIds: [entry.clientOrderId, stop.clientOrderId], request: { entry: requestFromOrder(account, plan, entry),
-      protectiveStop: requestFromOrder(account, plan, stop) }, beforeDispatch: async () => {},
+      protectiveStop: requestFromOrder(account, plan, stop) }, beforeDispatch: () => Promise.resolve(),
     beforeSend: async () => { await verifyRiskAdmission(proof, plan); checks += 1; Date.now = () => sizingFx.conversion.expiresAt + 1; },
-    guard: () => assertRiskAdmissionFresh(proof), send: async () => { sends += 1; return []; }, persist: async rows => rows }),
+    guard: () => assertRiskAdmissionFresh(proof), send: () => { sends += 1; return Promise.resolve([]); }, persist: rows => Promise.resolve(rows) }),
   error => error.code === 'RISK_EVIDENCE_UNRESOLVED');
   assert.equal(checks, 1); assert.equal(sends, 0, 'Expiry between the DB proof and final synchronous fence prevents the send.');
   assert.equal((await getDatabase().get('SELECT phase FROM trading_operations WHERE intent_id=?', [intentId])).phase, 'abandoned');

@@ -44,9 +44,9 @@ export function ProposalDetail({ id }: Readonly<{ id: string }>) {
     {proposal.result != null && <ChangeReview after={proposal.result} showAll label="Bestätigtes Ausführungsergebnis" />}{proposal.error && <p role="alert">{proposal.error}</p>}
     {readOnly ? <p>Für Vorschlagsentscheidungen ist eine Administratorrolle erforderlich.</p> : pending && <div className="space-y-3">
       <label className="flex gap-2"><input type="checkbox" checked={acceptedHash === review.reviewHash} onChange={event => setAcceptedHash(event.target.checked ? review.reviewHash : '')} />Inhalt, Scope und beantragte Risikoänderungen geprüft</label>
-      <button type="button" className="primary-button" disabled={busy || Boolean(error) || !review.freshPreflight.allowed || acceptedHash !== review.reviewHash} onClick={() => void decide(true)}>Geprüften Vorschlag freigeben</button>
+      <button type="button" className="primary-button" disabled={busy || Boolean(error) || !review.freshPreflight.allowed || acceptedHash !== review.reviewHash} onClick={() => { decide(true); }}>Geprüften Vorschlag freigeben</button>
       <label>Ablehnungsgrund<input className="block border bg-background p-2" maxLength={500} value={reason} onChange={event => setReason(event.target.value)} /></label>
-      <button type="button" className="secondary-button" disabled={busy || !reason.trim()} onClick={() => void decide(false)}>Mit Begründung ablehnen</button>
+      <button type="button" className="secondary-button" disabled={busy || !reason.trim()} onClick={() => { decide(false); }}>Mit Begründung ablehnen</button>
     </div>}
   </section>;
 }

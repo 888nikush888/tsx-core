@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+  "change": "6a23902954dcb0cf55082e10cfb982bc51df7ab9",
+  "reviewer": "independent baseline_verification agent",
+  "files": {
+    "Dockerfile": "8ccada3b0bec90f59a020a8c0566cf2d62df22b43dc3bf8d65da522f6ca22b56",
+    "package.json": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+    "scripts/copy_declarations.js": "9662e8c0207968e476f770caf15352889f3571e353710684df7b6c996a4d9eea",
+    "tests/test_declaration_artifacts.js": "d31697a715dd6c21101a96e91b55ed25122af30be47416d6a109f167eea1bd15",
+    "tests/run_all.js": "792803bbc13e3c466a906a966fa7efcdfadb7b3450f19651e0383972f7bb1730"
+  },
+  "decision": "No blocking finding",
+  "verification": {
+    "freshOutput": "reports/security-services/declaration-independent-1556d2e in integration worktree; directory absence asserted before tsc; no existing output/evidence deleted.",
+    "compile": "tsc --outDir reports/security-services/declaration-independent-1556d2e completed successfully.",
+    "copy": "Called the actual exported copyDeclarations against this fresh output. Four source declarations copied with identical SHA256 bytes.",
+    "resolution": "TypeScript NodeNext resolveModuleName checked every relative import in all 208 emitted/copied declaration files. Before copy five imports unresolved, after copy zero.",
+    "runtime": "All 408 pre-existing JavaScript and source-map output files retained identical SHA256 bytes.",
+    "unit": "test_declaration_artifacts.js passed independently: nested paths, updating declarations and preserving emitted runtime files.",
+    "integration": "npm build copies only after successful tsc, before frontend build. Docker build stage copies the required helper before invoking npm build. No coverage filter or threshold change."
+  },
+  "limits": [
+    "No Docker daemon build executed by this reviewer.",
+    "Check applies to exact current source/declaration inventory; runtime application test coverage is reported separately by integration task."
+  ]
+}

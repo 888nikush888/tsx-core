@@ -7,8 +7,7 @@ import { acquireProcessLock } from '../src/process_lock.js';
 import { initializeConfigurationGeneration, withPinnedConfigurationGeneration } from '../src/backup_generation.js';
 
 function deferred() {
-  let resolve;
-  const promise = new Promise(done => { resolve = done; });
+  const { promise, resolve } = Promise.withResolvers();
   return { promise, resolve };
 }
 

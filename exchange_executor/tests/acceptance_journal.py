@@ -17,6 +17,8 @@ import time
 import uuid
 from pathlib import Path
 
+from acceptance_contracts import validate_journal_binding, validate_journal_event
+
 
 class JournalRefused(ValueError):
     pass
@@ -75,7 +77,6 @@ class AcceptanceJournal:
 
     def __init__(self, path, binding, *, clock=time.time):
         # The runner's closed schema is also enforced for direct storage callers.
-        from provider_acceptance_runner import validate_journal_binding
         validate_journal_binding(binding)
         self._binding = copy.deepcopy(binding)
         self._clock = clock
@@ -151,7 +152,6 @@ class AcceptanceJournal:
             self._connection.execute("SELECT sequence,payload,checksum FROM events ORDER BY sequence"), 1
         ):
             value = json.loads(payload)
-            from provider_acceptance_runner import validate_journal_event
             validate_journal_event(value.get("kind"), value.get("body"))
             check(sequence == index and set(value) == {"version", "sequence", "kind", "at", "body", "previous"}
                   and value["version"] == 1 and value["sequence"] == sequence
@@ -195,7 +195,6 @@ class AcceptanceJournal:
 
     def append(self, kind, body):
         self._usable()
-        from provider_acceptance_runner import validate_journal_event
         body = copy.deepcopy(body)
         validate_journal_event(kind, body)
         value = {"version": 1, "sequence": len(self._records) + 1, "kind": kind,

@@ -28,7 +28,7 @@ function testActualLoadedConfig() {
       assert.equal(config.incremental, !force, '--force must disable historical report reuse in the actual loaded config.');
       assert.deepEqual(config.thresholds, { high: 80, low: 70, break: 70 });
       assert.equal(config.timeoutMS, 10_000);
-      assert.equal(config.concurrency, 1);
+      assert.equal(config.concurrency, shard === 'schema' ? 2 : 1);
       assert.equal(config.coverageAnalysis, 'off');
       assert.equal(config.testRunner, 'command');
       assert.deepEqual(config.reporters, ['clear-text', 'json']);
@@ -39,6 +39,8 @@ function testActualLoadedConfig() {
   }
   assert.equal(loadConfig('trading-risk', true).commandRunner.command,
     'node --import tsx tests/test_trading_core.js && node --import tsx tests/test_trading_leverage_tiers.js');
+  assert.equal(loadConfig('schema', true).commandRunner.command,
+    'node --import tsx tests/test_signal_parser.js && node --import tsx tests/test_signal_contract_validation.js');
 }
 
 function testCiUsesOnlyFreshMutationEvidence() {
@@ -48,7 +50,7 @@ function testCiUsesOnlyFreshMutationEvidence() {
   const nextJob = lines.findIndex((line, index) => index > start && /^ {2}[a-zA-Z][\w-]*:/.test(line));
   const job = lines.slice(start, nextJob < 0 ? undefined : nextJob).join('\n');
   assert.match(job, /run: npm run test:mutation -- \$\{\{ matrix\.shard \}\} --force(?:\n|$)/);
-  assert.match(job, /timeout-minutes: 30/);
+  assert.match(job, /timeout-minutes: \$\{\{ matrix\.shard == 'schema' && 50 \|\| 30 \}\}/u);
   assert.match(job, /shard: \[queue, retry, schema, trading-risk\]/);
   assert.doesNotMatch(job, /actions\/cache@|restore-keys:|incremental\.json/,
     'Historical mutation caches must not be restored or uploaded as current gate evidence.');
@@ -84,6 +86,10 @@ function testRunnerSelectionAndBudgets(runMutationShards) {
   assert.equal(options.env.FIXTURE, 'preserved');
   assert.equal(options.env.PATH, 'fixture-path');
   assert.equal(options.timeout, 20 * 60_000);
+  for (const shard of Object.keys(shardSources)) {
+    const bounded = capturedRun(runMutationShards, [shard]);
+    assert.equal(bounded.calls[0][2].timeout, (shard === 'schema' ? 40 : 20) * 60_000);
+  }
   assert.equal(options.shell, false);
   assert.equal(options.windowsHide, true);
   assert.equal(options.stdio, 'inherit');

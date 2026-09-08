@@ -88,7 +88,7 @@ function testExistingDecimalFixturesRemainEquivalent() {
 }
 
 function testTinyLossAndRebateNeverBecomeFalseZero() {
-  const denominator = '1' + '0'.repeat(36);
+  const denominator = `1${'0'.repeat(36)}`;
   const tinyLoss = ratio('-1', denominator);
   const loss = daily({ budget: '0', ledgerPnl: tinyLoss });
   assert.deepEqual(loss.consumedLoss.exact, { numerator: '1', denominator });
@@ -99,7 +99,7 @@ function testTinyLossAndRebateNeverBecomeFalseZero() {
   assert.equal(compensated.dayPnl.decimal, '0');
   assert.equal(compensated.consumedLoss.decimal, '0');
   assert.equal(compensated.allowed, true);
-  const netLoss = daily({ budget: quantum, ledgerPnl: addMoneyValues(money('-' + quantum), rebate) });
+  const netLoss = daily({ budget: quantum, ledgerPnl: addMoneyValues(money(`-${quantum}`), rebate) });
   assert.equal(netLoss.consumedLoss.decimal, null);
   assert.equal(compareMoneyValue(netLoss.consumedLoss, quantum), -1);
   assert.deepEqual(flags(netLoss), { allowed: true, breached: false, lossLimitReached: false, precisionUncertain: false });
@@ -152,16 +152,16 @@ function testRationalBudgetAndFundingFlows() {
 }
 
 function testAggregationOverflowRetainsUncertainty() {
-  const a = ratio('1', '9'.repeat(200));
-  const b = ratio('1', '1' + '0'.repeat(200));
-  const result = daily({ budget: quantum, existingCommitment: a, candidateCommitment: b });
+  const existing = ratio('1', '9'.repeat(200));
+  const candidate = ratio('1', `1${'0'.repeat(200)}`);
+  const result = daily({ budget: quantum, existingCommitment: existing, candidateCommitment: candidate });
   assert.deepEqual(result.totalCommitment, interval('0', '0.000000000000000002', 4));
   assert.deepEqual(flags(result), { allowed: false, breached: false, lossLimitReached: false, precisionUncertain: true });
   const wide = '9007199254740993';
   const exact = daily({ budget: wide, existingCommitment: money(wide), candidateCommitment: money(quantum) });
   assert.equal(exact.allowed, false);
   assert.equal(exact.breached, true);
-  const maximum = '9'.repeat(36) + '.' + '9'.repeat(18);
+  const maximum = `${'9'.repeat(36)}.${'9'.repeat(18)}`;
   const maximumAllowed = daily({ budget: maximum, existingCommitment: money(maximum) });
   assert.equal(maximumAllowed.totalCommitment.decimal, maximum);
   assert.deepEqual(flags(maximumAllowed), { allowed: true, breached: false, lossLimitReached: false, precisionUncertain: false });

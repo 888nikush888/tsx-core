@@ -5,6 +5,7 @@ import type {
   SignalContractDefinition,
 } from './trading_types.js';
 import { validateSignalContractDefinition, composeSignalSchemaContract } from './signal_contract.js';
+import { safeRegexTest } from './filters.js';
 
 export interface ExecutableSignalSchemaSelection {
   id: string;
@@ -95,7 +96,7 @@ function appendTextToken(token: string, stack: XmlNode[]): void {
 }
 
 function createXmlNode(token: string): XmlNode {
-  const opening = /^<([a-z_]+)(?: id="([1-9]\d*)")?>$/.exec(token);
+  const opening = /^<([a-z_][a-z0-9_]*)(?: id="([1-9]\d*)")?>$/u.exec(token);
   if (!opening) throw new SignalValidationError(`Malformed or disallowed XML tag '${token}'.`);
   const node: XmlNode = {
     name: opening[1]!,
@@ -114,7 +115,7 @@ function assertAllowedIdAttributes(node: XmlNode, targetItemTag: string): void {
 }
 
 function consumeTagToken(token: string, stack: XmlNode[], root: XmlNode | null): XmlNode | null {
-  const closing = /^<\/([a-z_]+)>$/.exec(token);
+  const closing = /^<\/([a-z_][a-z0-9_]*)>$/u.exec(token);
   if (closing) {
     const node = stack.pop();
     if (node?.name !== closing[1]) {
@@ -542,15 +543,23 @@ function contractDecimal(root: XmlNode, path: string, requiredValue: boolean): s
   return node ? decimal(node, path) : undefined;
 }
 
-function validateAdditionalFieldText(field: SignalContractAdditionalField, value: string): void {
+function validateAdditionalFieldText(field: SignalContractAdditionalField, value: string, patternDeadline: number): void {
   if (field.allowedValues.length > 0 && !field.allowedValues.includes(value)) {
     throw new SignalValidationError(`Contract path '${field.path}' contains an unsupported value.`);
   }
   if (field.maximumLength !== undefined && value.length > field.maximumLength) {
     throw new SignalValidationError(`Contract path '${field.path}' exceeds its maximum length.`);
   }
-  if (field.pattern && !new RegExp(field.pattern, 'u').test(value)) {
-    throw new SignalValidationError(`Contract path '${field.path}' does not match its required pattern.`);
+  if (field.pattern) {
+    let matches: boolean;
+    try {
+      const remainingMs = Math.floor(patternDeadline - performance.now());
+      if (remainingMs < 1) throw new Error('Pattern budget exhausted.');
+      matches = safeRegexTest(new RegExp(field.pattern, 'u'), value, remainingMs);
+    } catch {
+      throw new SignalValidationError(`Contract path '${field.path}' pattern evaluation exceeded its execution budget or failed.`);
+    }
+    if (!matches) throw new SignalValidationError(`Contract path '${field.path}' does not match its required pattern.`);
   }
 }
 
@@ -573,10 +582,10 @@ function validateAdditionalDecimal(root: XmlNode, field: SignalContractAdditiona
   }
 }
 
-function validateAdditionalField(root: XmlNode, field: SignalContractAdditionalField): void {
+function validateAdditionalField(root: XmlNode, field: SignalContractAdditionalField, patternDeadline: number): void {
   const value = pathLeaf(root, field.path, field.required);
   if (value === undefined) return;
-  validateAdditionalFieldText(field, value);
+  validateAdditionalFieldText(field, value, patternDeadline);
   validateAdditionalFieldType(field, value);
   if (field.type === 'decimal') validateAdditionalDecimal(root, field);
 }
@@ -762,7 +771,9 @@ function validateDynamicContract(
   const targets = contractTargets(root, definition);
   const stopLoss = contractDecimal(root, definition.stopLossPath, true)!;
   const optional = dynamicOptionalValues(root, definition);
-  for (const field of definition.additionalFields) validateAdditionalField(root, field);
+  // One deadline for all fields prevents multiplying the CPU budget by 30.
+  const patternDeadline = performance.now() + 100;
+  for (const field of definition.additionalFields) validateAdditionalField(root, field, patternDeadline);
   assertContractGeometry(definition, action, entry, stopLoss, targets);
   return {
     action,

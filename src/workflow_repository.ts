@@ -1,3 +1,6 @@
+import type { ChannelRiskMode, WeakChannelAction } from './trading_types.js';
+import type { AccountRow, StrategyRow, SignalSchemaRow, ContractVersionRow, IntentRow, RuntimeRow } from './trading_repository_rows.js';
+import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow, LegacyWorkflowRouteRow, LegacyRiskPolicyRow, FallbackCurrentRow, FallbackNextRow, FallbackRunRow, FallbackCandidateViewRow } from './workflow_repository_rows.js';
 import { isStringMember, requireString } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
@@ -64,18 +67,18 @@ const EMPTY_WORKFLOW_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges
 const DEFAULT_WORKFLOW_HISTORY_LABEL = 'Workflow geändert';
 const WORKFLOW_HISTORY_ENTRY_KEYS = new Set(['revisionId', 'label', 'capturedAt']);
 
-function object(value: unknown, label: string): Record<string, any> {
+function object(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object.`);
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 
 function normalizedJson(value: unknown): string {
-  const visit = (candidate: any): any => {
+  const visit = (candidate: unknown): unknown => {
     if (Array.isArray(candidate)) return candidate.map(visit);
     if (!candidate || typeof candidate !== 'object') return candidate;
     return Object.fromEntries(Object.keys(candidate)
       .sort((left, right) => left.localeCompare(right))
-      .map(key => [key, visit(candidate[key])]));
+      .map(key => [key, visit((candidate as Record<string, unknown>)[key])]));
   };
   return JSON.stringify(visit(value));
 }
@@ -217,7 +220,7 @@ export async function clearWorkflowBuilderHistory(reason: unknown, now = Date.no
   await withDatabaseTransaction(() => writeWorkflowBuilderHistory({ undo: [], redo: [] }, now));
 }
 
-type ResourceConfiguration = Record<string, any>;
+type ResourceConfiguration = Record<string, unknown>;
 type ResourceValidator = (value: ResourceConfiguration) => Record<string, unknown>;
 
 function validateRegexConfiguration(value: ResourceConfiguration): Record<string, unknown> {
@@ -226,7 +229,7 @@ function validateRegexConfiguration(value: ResourceConfiguration): Record<string
     try { parseRegex(pattern); } catch (error) { throw new Error(`Invalid regex pattern: ${pattern}`, { cause: error }); }
   }
   const mode = value.mode ?? 'all';
-  if (!['all', 'any'].includes(mode)) throw new Error('Regex mode must be all or any.');
+  if (!isStringMember(mode, ['all', 'any'])) throw new Error('Regex mode must be all or any.');
   return { ...value, patterns, mode };
 }
 
@@ -245,7 +248,7 @@ function validateParserConfiguration(value: ResourceConfiguration): Record<strin
     templateName: stringValue(value.templateName ?? 'default', 'Parser template name', 128),
     ...(value.primaryModel ? { primaryModel: stringValue(value.primaryModel, 'Primary parser model', 128) } : {}),
     ...(value.fallbackModel ? { fallbackModel: stringValue(value.fallbackModel, 'Fallback parser model', 128) } : {}),
-    ...(value.prompt !== undefined ? { prompt: value.prompt.trim() } : {}),
+    ...(value.prompt !== undefined ? { prompt: requireString(value.prompt, 'Parser prompt').trim() } : {}),
     timeoutMs,
     saveToFile: false,
   };
@@ -253,11 +256,11 @@ function validateParserConfiguration(value: ResourceConfiguration): Record<strin
 
 function validateSizingConfiguration(value: ResourceConfiguration): Record<string, unknown> {
   const positionSizingMode = value.positionSizingMode ?? 'equity_percent_margin';
-  if (!['risk_percent', 'equity_percent_notional', 'equity_percent_margin'].includes(positionSizingMode)) {
+  if (!isStringMember(positionSizingMode, ['risk_percent', 'equity_percent_notional', 'equity_percent_margin'])) {
     throw new Error('Sizing mode is unsupported.');
   }
-  const baseline = decimal(value.riskPerTradePercent, { positive: true, max: '10' });
-  const maximum = decimal(value.maxAdaptiveRiskPercent ?? baseline, { positive: true, max: '10' });
+  const baseline = decimal(requireString(value.riskPerTradePercent, 'Risk per trade'), { positive: true, max: '10' });
+  const maximum = decimal(requireString(value.maxAdaptiveRiskPercent ?? baseline, 'Maximum adaptive risk'), { positive: true, max: '10' });
   if (Number(maximum) < Number(baseline)) {
     throw new Error('Maximum adaptive risk must not be below the baseline sizing percentage.');
   }
@@ -277,7 +280,7 @@ function validateSizingConfiguration(value: ResourceConfiguration): Record<strin
     positionSizingMode,
     riskPerTradePercent: baseline,
     maxAdaptiveRiskPercent: maximum,
-    maxPositionNotional: decimal(value.maxPositionNotional ?? '1000000000', { positive: true }),
+    maxPositionNotional: decimal(requireString(value.maxPositionNotional ?? '1000000000', 'Maximum position notional'), { positive: true }),
     defaultLeverage,
     maxLeverage,
   };
@@ -296,10 +299,11 @@ function adaptiveRiskTiers(value: ResourceConfiguration): Array<{ riskPercent: s
   }
   const tiers = rawTiers.map((tier, index) => {
     const candidate = object(tier, `Adaptive-risk tier ${index + 1}`);
-    return { riskPercent: decimal(candidate.riskPercent, { positive: true, max: '10' }) };
+    return { riskPercent: decimal(requireString(candidate.riskPercent, 'Tier risk'), { positive: true, max: '10' }) };
   });
   tiers.forEach((tier, index) => {
-    if (index > 0 && Number(tier.riskPercent) <= Number(tiers[index - 1]!.riskPercent)) {
+    const previous = tiers[index - 1];
+    if (index > 0 && (!previous || Number(tier.riskPercent) <= Number(previous.riskPercent))) {
       throw new Error('Adaptive-risk tiers must increase strictly.');
     }
   });
@@ -310,10 +314,10 @@ function optionalBoolean(value: unknown, label: string): void {
   if (value !== undefined && typeof value !== 'boolean') throw new Error(`${label} must be boolean.`);
 }
 
-function adaptiveRiskMode(value: unknown = 'automatic'): string {
+function adaptiveRiskMode(value: unknown = 'automatic'): ChannelRiskMode {
   if (value === null) return 'automatic';
   const mode = value;
-  if (!isStringMember(mode, ['fixed', 'shadow', 'automatic'])) throw new Error('Adaptive-risk mode is invalid.');
+  if (mode !== 'fixed' && mode !== 'shadow' && mode !== 'automatic') throw new Error('Adaptive-risk mode is invalid.');
   return mode;
 }
 
@@ -322,14 +326,15 @@ function optionalAdaptiveTier(value: unknown, tierCount: number): number | null 
   return boundedInteger(value, 'Adaptive-risk locked tier', 0, tierCount - 1);
 }
 
-function weakChannelAction(value: unknown = 'reduce'): string {
+function weakChannelAction(value: unknown = 'reduce'): WeakChannelAction {
   if (value === null) return 'reduce';
   const action = value;
-  if (!isStringMember(action, ['none', 'reduce', 'block'])) throw new Error('Adaptive-risk weak-channel action is invalid.');
+  if (action !== 'none' && action !== 'reduce' && action !== 'block') throw new Error('Adaptive-risk weak-channel action is invalid.');
   return action;
 }
 
-function validateAdaptiveRiskConfiguration(value: ResourceConfiguration): Record<string, unknown> {
+export function validateAdaptiveRiskConfiguration(input: unknown) {
+  const value = object(input, 'Adaptive-risk configuration');
   optionalBoolean(value.enabled, 'Adaptive-risk enabled state');
   optionalBoolean(value.manuallyBlocked, 'Adaptive-risk manual block');
   const mode = adaptiveRiskMode(value.mode);
@@ -346,8 +351,8 @@ function validateAdaptiveRiskConfiguration(value: ResourceConfiguration): Record
     lockedTier,
     lookbackWeeks: boundedInteger(value.lookbackWeeks ?? 1, 'Adaptive-risk lookback weeks', 1, 12),
     minimumClosedTrades: boundedInteger(value.minimumClosedTrades ?? 5, 'Adaptive-risk minimum closed trades', 1, 1_000),
-    lossThresholdPercent: decimal(value.lossThresholdPercent ?? '2', { positive: true, max: '100' }),
-    profitThresholdPercent: decimal(value.profitThresholdPercent ?? '2', { positive: true, max: '100' }),
+    lossThresholdPercent: decimal(requireString(value.lossThresholdPercent ?? '2', 'Loss threshold'), { positive: true, max: '100' }),
+    profitThresholdPercent: decimal(requireString(value.profitThresholdPercent ?? '2', 'Profit threshold'), { positive: true, max: '100' }),
     weakChannelAction: action,
     weakWeeksBeforeBlock: boundedInteger(value.weakWeeksBeforeBlock ?? 3, 'Adaptive-risk weak weeks', 1, 52),
     manuallyBlocked: value.manuallyBlocked === true,
@@ -364,7 +369,7 @@ function validateDedupeConfiguration(value: ResourceConfiguration): Record<strin
 
 function validateOutputConfiguration(value: ResourceConfiguration): Record<string, unknown> {
   const mode = value.mode ?? 'audit_only';
-  if (!['audit_only', 'telegram_xml', 'telegram_original', 'none'].includes(mode)) {
+  if (!isStringMember(mode, ['audit_only', 'telegram_xml', 'telegram_original', 'none'])) {
     throw new Error('Workflow output mode is invalid.');
   }
   return { ...value, mode };
@@ -396,7 +401,7 @@ function validateResourceConfiguration(kind: WorkflowResourceKind, input: unknow
   return RESOURCE_VALIDATORS[kind]?.(value) ?? value;
 }
 
-function resourceFromRow(row: any): WorkflowResourceVersion {
+function resourceFromRow(row: WorkflowResourceRow): WorkflowResourceVersion {
   const configuration = parseJson<Record<string, unknown>>(row.configuration_json, 'workflow resource configuration');
   if (sha256(configuration) !== row.configuration_sha256) throw new Error(`Workflow resource ${row.id} failed its integrity check.`);
   return {
@@ -408,7 +413,7 @@ function resourceFromRow(row: any): WorkflowResourceVersion {
   };
 }
 
-function pathFromRow(row: any): WorkflowExecutionPath {
+function pathFromRow(row: WorkflowPathRow): WorkflowExecutionPath {
   return {
     id: String(row.id), workflowRevisionId: String(row.workflow_revision_id), pathKey: String(row.path_key),
     channelId: String(row.channel_id), accountId: String(row.account_id),
@@ -497,9 +502,9 @@ function hydratedRouteGroups(
   }));
 }
 
-async function workflowRevisionFromRow(row: any): Promise<WorkflowRevision> {
+async function workflowRevisionFromRow(row: WorkflowRevisionRow): Promise<WorkflowRevision> {
   const graph = parseJson<WorkflowGraph>(row.graph_json, 'workflow graph');
-  const pathRows = await getDatabase().all<any[]>(
+  const pathRows = await getDatabase().all<WorkflowPathRow[]>(
     'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
     [row.id],
   );
@@ -528,14 +533,14 @@ async function workflowRevisionFromRow(row: any): Promise<WorkflowRevision> {
 }
 
 export async function getWorkflowRevisionById(id: string): Promise<WorkflowRevision | null> {
-  const row = await getDatabase().get<any>('SELECT * FROM workflow_revisions WHERE id = ?', [id]);
+  const row = await getDatabase().get<WorkflowRevisionRow>('SELECT * FROM workflow_revisions WHERE id = ?', [id]);
   return row ? workflowRevisionFromRow(row) : null;
 }
 
 export async function listWorkflowResources(kind?: WorkflowResourceKind): Promise<WorkflowResourceVersion[]> {
   const rows = kind
-    ? await getDatabase().all<any[]>('SELECT * FROM workflow_resource_versions WHERE kind = ? ORDER BY resource_id, version DESC', [kind])
-    : await getDatabase().all<any[]>('SELECT * FROM workflow_resource_versions ORDER BY kind, resource_id, version DESC');
+    ? await getDatabase().all<WorkflowResourceRow[]>('SELECT * FROM workflow_resource_versions WHERE kind = ? ORDER BY resource_id, version DESC', [kind])
+    : await getDatabase().all<WorkflowResourceRow[]>('SELECT * FROM workflow_resource_versions ORDER BY kind, resource_id, version DESC');
   return rows.map(resourceFromRow);
 }
 
@@ -578,7 +583,7 @@ export async function updateWorkflowResourceDraft(id: string, input: {
   configuration: unknown;
   baseEditRevision?: number;
 }): Promise<WorkflowResourceVersion> {
-  const existingRow = await getDatabase().get<any>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
+  const existingRow = await getDatabase().get<WorkflowResourceRow>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
   if (existingRow?.status !== 'draft') throw new Error('Only a workflow resource draft can be edited.');
   const name = stringValue(input.name, 'Workflow resource name', 80);
   const description = String(input.description ?? '').trim();
@@ -595,7 +600,7 @@ export async function updateWorkflowResourceDraft(id: string, input: {
 }
 
 export async function publishWorkflowResource(id: string, now = Date.now(), baseEditRevision?: number): Promise<WorkflowResourceVersion> {
-  const existing = await getDatabase().get<any>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
+  const existing = await getDatabase().get<WorkflowResourceRow>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
   if (existing?.status !== 'draft') throw new Error('Only a workflow resource draft can be published.');
   validateResourceConfiguration(existing.kind, parseJson(existing.configuration_json, 'workflow resource configuration'));
   if (baseEditRevision !== undefined && (!Number.isSafeInteger(baseEditRevision) || baseEditRevision < 0)) throw new Error('Invalid resource edit revision.');
@@ -630,7 +635,7 @@ export async function archiveWorkflowResourceFamily(
 ): Promise<WorkflowResourceVersion[]> {
   const logicalId = stringValue(resourceId, 'Workflow resource identifier', 128);
   return withDatabaseTransaction(async database => {
-    const rows = await database.all<any[]>(
+    const rows = await database.all<WorkflowResourceRow[]>(
       `SELECT * FROM workflow_resource_versions
        WHERE resource_id = ? AND status = 'published'
        ORDER BY version`,
@@ -651,7 +656,7 @@ export async function archiveWorkflowResourceFamily(
     if (Number(result.changes || 0) !== rows.length) {
       throw new Error('The workflow resource family changed while it was being archived.');
     }
-    const archived = (await database.all<any[]>(
+    const archived = (await database.all<WorkflowResourceRow[]>(
       'SELECT * FROM workflow_resource_versions WHERE resource_id = ? ORDER BY version',
       [logicalId],
     )).filter(row => publishedIds.has(String(row.id))).map(resourceFromRow);
@@ -700,7 +705,7 @@ export async function deleteWorkflowResourceFamily(resourceId: string): Promise<
   });
 }
 
-function workflowEdgeKind(edge: Record<string, any>, id: string, schemaVersion: WorkflowGraph['schemaVersion']): WorkflowEdge['kind'] {
+function workflowEdgeKind(edge: Record<string, unknown>, id: string, schemaVersion: WorkflowGraph['schemaVersion']): WorkflowEdge['kind'] {
   const kind = edge.kind === undefined && schemaVersion === 1 ? undefined : edge.kind;
   if ((schemaVersion === 2 || schemaVersion === 3) && kind !== 'flow' && kind !== 'account_fallback') {
     throw new Error(`Workflow edge ${id} must declare flow or account_fallback kind.`);
@@ -708,11 +713,12 @@ function workflowEdgeKind(edge: Record<string, any>, id: string, schemaVersion: 
   if (schemaVersion === 1 && kind !== undefined && kind !== 'flow') {
     throw new Error(`Workflow edge ${id} kind is unavailable in schema version 1.`);
   }
-  return kind;
+  if (kind === 'flow' || kind === 'account_fallback') return kind;
+  return undefined;
 }
 
 function workflowEdgeFallbackPolicy(
-  edge: Record<string, any>,
+  edge: Record<string, unknown>,
   id: string,
   kind: WorkflowEdge['kind'],
   schemaVersion: WorkflowGraph['schemaVersion'],
@@ -740,7 +746,7 @@ function workflowEdgeFallbackPolicy(
 }
 
 function workflowEdgeChannelScope(
-  edge: Record<string, any>,
+  edge: Record<string, unknown>,
   id: string,
   nodesById: Map<string, WorkflowNode>,
   kind: WorkflowEdge['kind'],
@@ -795,9 +801,14 @@ function normalizeWorkflowEdge(input: {
   };
 }
 
+function isWorkflowResourceKind(value: unknown): value is WorkflowResourceKind {
+  return WORKFLOW_RESOURCE_KINDS.some(kind => kind === value);
+}
+
 export function validateGraph(input: unknown): WorkflowGraph {
   const value = object(input, 'Workflow graph');
-  if (![1, 2, 3].includes(value.schemaVersion) || !Array.isArray(value.nodes) || !Array.isArray(value.edges)) {
+  const schemaVersion = value.schemaVersion;
+  if ((schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3) || !Array.isArray(value.nodes) || !Array.isArray(value.edges)) {
     throw new Error('Workflow graph contract is invalid.');
   }
   if (value.nodes.length > 1_000 || value.edges.length > 5_000) throw new Error('Workflow graph exceeds its size limit.');
@@ -807,7 +818,7 @@ export function validateGraph(input: unknown): WorkflowGraph {
     const id = stringValue(node.id, 'Workflow node identifier');
     if (!IDENTIFIER.test(id) || nodeIds.has(id)) throw new Error(`Workflow node identifier '${id}' is invalid or duplicated.`);
     nodeIds.add(id);
-    if (!RESOURCE_KINDS.has(node.kind)) throw new Error(`Workflow node ${id} has an unsupported kind.`);
+    if (!isWorkflowResourceKind(node.kind)) throw new Error(`Workflow node ${id} has an unsupported kind.`);
     const position = object(node.position, `Workflow node ${id} position`);
     if (![position.x, position.y].every(Number.isFinite)) throw new Error(`Workflow node ${id} position is invalid.`);
     return {
@@ -827,9 +838,9 @@ export function validateGraph(input: unknown): WorkflowGraph {
   const edgeIds = new Set<string>();
   const pairs = new Set<string>();
   const edges: WorkflowEdge[] = value.edges.map((candidate: unknown) => normalizeWorkflowEdge({
-    candidate, schemaVersion: value.schemaVersion, nodeIds, nodesById, edgeIds, pairs,
+    candidate, schemaVersion, nodeIds, nodesById, edgeIds, pairs,
   }));
-  return { schemaVersion: value.schemaVersion, nodes, edges };
+  return { schemaVersion, nodes, edges };
 }
 
 type CompiledDraftPath = Omit<WorkflowExecutionPath, 'workflowRevisionId' | 'createdAt'>;
@@ -911,7 +922,7 @@ function workflowImpact(
 }
 
 async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, WorkflowResourceVersion>> {
-  const resourceRows = graph.nodes.length < 1 ? [] : await getDatabase().all<any[]>(
+  const resourceRows = graph.nodes.length < 1 ? [] : await getDatabase().all<WorkflowResourceRow[]>(
     `SELECT * FROM workflow_resource_versions WHERE id IN (${graph.nodes.map(() => '?').join(',')})`,
     graph.nodes.map(node => node.resourceVersionId),
   );
@@ -942,6 +953,18 @@ async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, 
   return resources;
 }
 
+function requiredWorkflowNode(nodes: Map<string, WorkflowNode>, id: string): WorkflowNode {
+  const node = nodes.get(id);
+  if (!node) throw new Error('Workflow references a missing node.');
+  return node;
+}
+
+function requiredWorkflowResource(resources: Map<string, WorkflowResourceVersion>, id: string): WorkflowResourceVersion {
+  const resource = resources.get(id);
+  if (!resource) throw new Error('Workflow references a missing resource.');
+  return resource;
+}
+
 function buildWorkflowTopology(graph: WorkflowGraph): {
   nodes: Map<string, WorkflowNode>;
   adjacency: Map<string, WorkflowEdge[]>;
@@ -952,8 +975,8 @@ function buildWorkflowTopology(graph: WorkflowGraph): {
   const indegree = new Map(graph.nodes.map(node => [node.id, 0]));
   for (const edge of graph.edges) {
     if (edge.kind === 'account_fallback') continue;
-    const source = nodes.get(edge.source)!;
-    const target = nodes.get(edge.target)!;
+    const source = requiredWorkflowNode(nodes, edge.source);
+    const target = requiredWorkflowNode(nodes, edge.target);
     if (STAGE[source.kind] >= STAGE[target.kind]) {
       throw new Error(`Connection ${edge.id} must move from an earlier processing column to a later one.`);
     }
@@ -975,8 +998,7 @@ function ordinaryAccountNodesForChannel(
   const accounts = new Set<string>();
   const visited = new Set<string>();
   const pending = [channelNodeId];
-  while (pending.length > 0) {
-    const nodeId = pending.pop()!;
+  for (let nodeId = pending.pop(); nodeId !== undefined; nodeId = pending.pop()) {
     if (visited.has(nodeId)) continue;
     visited.add(nodeId);
     const node = nodes.get(nodeId);
@@ -1039,8 +1061,8 @@ function fallbackSuccessorsForChannel(
 function assertAcyclicWorkflow(nodeCount: number, adjacency: Map<string, WorkflowEdge[]>, indegree: Map<string, number>): void {
   const queue = [...indegree.entries()].filter(([, degree]) => degree === 0).map(([id]) => id);
   let visited = 0;
-  while (queue.length > 0) {
-    const id = queue.shift()!; visited += 1;
+  for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
+    visited += 1;
     for (const edge of adjacency.get(id) ?? []) {
       const target = edge.target;
       const next = (indegree.get(target) ?? 0) - 1;
@@ -1062,19 +1084,19 @@ interface WorkflowCompileContext {
 }
 
 async function loadCompiledPathDependencies(
-  configs: Record<string, any>,
+  configs: Record<string, Record<string, unknown>>,
   accountId: string,
   strategyVersionId: string,
-): Promise<{ account: any; baseStrategy: StrategyConfiguration }> {
+): Promise<{ account: Pick<AccountRow, 'id' | 'enabled' | 'status'>; baseStrategy: StrategyConfiguration }> {
   const schemaId = String(configs.schema.schemaId);
   const [account, strategy, schema, contract] = await Promise.all([
-    getDatabase().get<any>('SELECT id, enabled, status FROM trading_accounts WHERE id = ?', [accountId]),
-    getDatabase().get<any>('SELECT status, configuration_json FROM trading_strategy_versions WHERE id = ?', [strategyVersionId]),
-    getDatabase().get<any>(
+    getDatabase().get<Pick<AccountRow, 'id' | 'enabled' | 'status'>>('SELECT id, enabled, status FROM trading_accounts WHERE id = ?', [accountId]),
+    getDatabase().get<Pick<StrategyRow, 'status' | 'configuration_json'>>('SELECT status, configuration_json FROM trading_strategy_versions WHERE id = ?', [strategyVersionId]),
+    getDatabase().get<Pick<SignalSchemaRow, 'enabled' | 'definition_json'>>(
       'SELECT enabled, definition_json FROM trading_signal_schemas WHERE id = ?',
       [schemaId],
     ),
-    getDatabase().get<any>(
+    getDatabase().get<Pick<ContractVersionRow, 'status' | 'definition_json'>>(
       'SELECT status, definition_json FROM trading_signal_contract_versions WHERE id = ?',
       [configs.contract.contractVersionId],
     ),
@@ -1096,7 +1118,7 @@ async function loadCompiledPathDependencies(
 
 function compiledEffectiveConfiguration(
   baseStrategy: StrategyConfiguration,
-  configs: Record<string, any>,
+  configs: Record<string, Record<string, unknown>>,
 ): Record<string, unknown> {
   const normalizedSizing = validateSizingConfiguration(configs.sizing);
   const normalizedConfigs = { ...configs, sizing: normalizedSizing };
@@ -1130,32 +1152,31 @@ async function compileTerminalLineage(
   const fallbackPolicies: WorkflowFallbackReason[][] = [];
   const successors = context.fallbackByChannel.get(channelNodeId)
     ?? new Map<string, { target: string; fallbackOn: WorkflowFallbackReason[] }>();
-  while (successors.has(accountNodeIds.at(-1)!)) {
-    const successor = successors.get(accountNodeIds.at(-1)!)!;
+  for (let successor = successors.get(accountNodeId); successor; successor = successors.get(successor.target)) {
     fallbackPolicies.push([...successor.fallbackOn]);
     accountNodeIds.push(successor.target);
   }
   fallbackPolicies.push([]);
-  const primaryNodes = terminalLineage.map(id => context.nodes.get(id)!);
+  const primaryNodes = terminalLineage.map(id => requiredWorkflowNode(context.nodes, id));
   const present = new Set(primaryNodes.map(item => item.kind));
   const missing = [...REQUIRED_EXECUTION_KINDS].filter(kind => !present.has(kind));
   if (missing.length > 0) {
     context.warnings.push(`Path ending at ${accountNodeId} is inert; missing: ${missing.join(', ')}.`);
     return;
   }
-  const primaryConfigs = Object.fromEntries(primaryNodes
-    .map(item => [item.kind, context.resources.get(item.resourceVersionId)!.configuration]));
-  const channelId = String((primaryConfigs.channel as any).channelId);
-  const strategyVersionId = String((primaryConfigs.strategy as any).strategyVersionId);
+  const primaryConfigs = Object.fromEntries<Record<string, unknown>>(primaryNodes
+    .map(item => [item.kind, requiredWorkflowResource(context.resources, item.resourceVersionId).configuration]));
+  const channelId = String(primaryConfigs.channel.channelId);
+  const strategyVersionId = String(primaryConfigs.strategy.strategyVersionId);
   const routeGroupKey = sha256({ channelNodeId, terminalLineage, accountNodeIds, fallbackPolicies });
   const candidates: WorkflowRouteGroup['candidates'] = [];
   for (let rank = 0; rank < accountNodeIds.length; rank += 1) {
     const candidateNodeIds = [...prefix, ...accountNodeIds.slice(0, rank + 1), ...suffix];
-    const pathNodes = candidateNodeIds.map(id => context.nodes.get(id)!);
+    const pathNodes = candidateNodeIds.map(id => requiredWorkflowNode(context.nodes, id));
     const byKind = new Map(pathNodes.map(item => [item.kind, item]));
-    const configs = Object.fromEntries(pathNodes
-      .map(item => [item.kind, context.resources.get(item.resourceVersionId)!.configuration]));
-    const accountId = String((configs.account as any).accountId);
+    const configs = Object.fromEntries<Record<string, unknown>>(pathNodes
+      .map(item => [item.kind, requiredWorkflowResource(context.resources, item.resourceVersionId).configuration]));
+    const accountId = String(configs.account.accountId);
     const { account, baseStrategy } = await loadCompiledPathDependencies(configs, accountId, strategyVersionId);
     const effectiveConfiguration = compiledEffectiveConfiguration(baseStrategy, configs);
     const id = randomUUID();
@@ -1202,7 +1223,7 @@ async function walkWorkflowPaths(
   lineage: string[],
   channelNodeId: string,
 ): Promise<void> {
-  const node = context.nodes.get(nodeId)!;
+  const node = requiredWorkflowNode(context.nodes, nodeId);
   const nextLineage = [...lineage, nodeId];
   if (node.kind === 'account') {
     const outputTargets = (context.adjacency.get(node.id) ?? [])
@@ -1228,8 +1249,8 @@ async function walkWorkflowPaths(
 function assertConsistentTelegramOutputs(paths: CompiledDraftPath[]): void {
   const telegramOutputModes = new Map<string, Set<string>>();
   for (const path of paths) {
-    const resources = object(path.effectiveConfiguration.resources, 'Compiled workflow resources');
-    const mode = String((resources.output as any)?.mode ?? 'audit_only');
+    const resources = object(path.effectiveConfiguration.resources, 'Compiled workflow resources') as CompiledFilterResources;
+    const mode = String(resources.output?.mode ?? 'audit_only');
     if (mode !== 'telegram_xml' && mode !== 'telegram_original') continue;
     const modes = telegramOutputModes.get(path.channelId) ?? new Set<string>();
     modes.add(mode);
@@ -1281,7 +1302,7 @@ async function activeWorkflowState(): Promise<{
   );
   const activeId = active?.revision_id ?? null;
   const activePaths = activeId
-    ? (await getDatabase().all<any[]>(
+    ? (await getDatabase().all<WorkflowPathRow[]>(
         'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
         [activeId],
       )).map(pathFromRow)
@@ -1413,8 +1434,9 @@ export async function saveWorkflowRevision(input: {
     assertWorkflowConfirmation(impact, input.confirmation);
     const revision = await activateCompiledWorkflowRevision({ activeId, graph, compiled, actorId, now });
     if (mode === 'record') {
+      if (!history || label === null) throw new Error('Workflow history recording context is missing.');
       await writeWorkflowBuilderHistory({
-        undo: pushWorkflowHistoryEntry(history!.undo, { revisionId: activeId, label: label!, capturedAt: now }),
+        undo: pushWorkflowHistoryEntry(history.undo, { revisionId: activeId, label, capturedAt: now }),
         redo: [],
       }, now);
     } else if (mode === 'reset') {
@@ -1520,7 +1542,7 @@ export async function previewWorkflowImpact(input: {
   const activeId = active?.revision_id ?? null;
   if (activeId !== input.baseRevisionId) throw new Error('WORKFLOW_REVISION_CONFLICT');
   const activePaths = activeId
-    ? (await getDatabase().all<any[]>(
+    ? (await getDatabase().all<WorkflowPathRow[]>(
         'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
         [activeId],
       )).map(pathFromRow)
@@ -1536,7 +1558,7 @@ async function ensurePublishedWorkflowResource(input: {
   configuration: unknown;
 }): Promise<WorkflowResourceVersion> {
   const configuration = validateResourceConfiguration(input.kind, input.configuration);
-  const existing = await getDatabase().get<any>(
+  const existing = await getDatabase().get<WorkflowResourceRow>(
     `SELECT * FROM workflow_resource_versions
      WHERE resource_id = ? AND status = 'published'
      ORDER BY version DESC LIMIT 1`,
@@ -1561,8 +1583,8 @@ interface LegacyResourceDefinition {
 
 interface LegacySchemaRow { id: string; name: string; template_name: string; contract_version_id: string | null }
 
-async function loadLegacyWorkflowInputs(): Promise<{ routes: any[]; schemas: LegacySchemaRow[]; policies: Map<string, any> }> {
-  const routes = await getDatabase().all<any[]>(
+async function loadLegacyWorkflowInputs(): Promise<{ routes: LegacyWorkflowRouteRow[]; schemas: LegacySchemaRow[]; policies: Map<string, LegacyRiskPolicyRow> }> {
+  const routes = await getDatabase().all<LegacyWorkflowRouteRow[]>(
     `SELECT route.channel_id, route.strategy_version_id, route.account_id,
             strategy.name AS strategy_name, strategy.configuration_json,
             account.name AS account_name
@@ -1576,7 +1598,7 @@ async function loadLegacyWorkflowInputs(): Promise<{ routes: any[]; schemas: Leg
     `SELECT id, name, template_name, contract_version_id
      FROM trading_signal_schemas WHERE enabled = 1 ORDER BY id`,
   );
-  const policies = new Map((await getDatabase().all<any[]>(
+  const policies = new Map((await getDatabase().all<LegacyRiskPolicyRow[]>(
     'SELECT * FROM trading_channel_risk_policies ORDER BY channel_id',
   )).map(row => [String(row.channel_id), row]));
   return { routes, schemas, policies };
@@ -1589,7 +1611,7 @@ function selectLegacySchema(schemas: LegacySchemaRow[], templateName: string, st
     ?? null;
 }
 
-export function legacyAdaptiveRiskDefinition(alias: string, policy: any): LegacyResourceDefinition[] {
+export function legacyAdaptiveRiskDefinition(alias: string, policy: LegacyRiskPolicyRow | null | undefined): LegacyResourceDefinition[] {
   if (!policy) return [];
   return [{
     kind: 'adaptive_risk',
@@ -1618,14 +1640,14 @@ function legacyOutputMode(config: Config): 'telegram_xml' | 'telegram_original' 
 
 function legacyResourceDefinitions(input: {
   config: Config;
-  route: any;
+  route: LegacyWorkflowRouteRow;
   channelId: string;
   alias: string;
   strategy: StrategyConfiguration;
-  schema: any;
+  schema: LegacySchemaRow;
   templateName: string;
   prompt: string;
-  policy: any;
+  policy: LegacyRiskPolicyRow | undefined;
 }): LegacyResourceDefinition[] {
   const { config, route, channelId, alias, strategy, schema, templateName, prompt, policy } = input;
   const sourcePatterns = config.sourceFilters?.[channelId]?.regexPatterns;
@@ -1669,7 +1691,7 @@ function legacyResourceDefinitions(input: {
 
 async function materializeLegacyPath(
   definitions: LegacyResourceDefinition[],
-  route: any,
+  route: LegacyWorkflowRouteRow,
   channelId: string,
   pathIndex: number,
 ): Promise<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] }> {
@@ -1689,9 +1711,11 @@ async function materializeLegacyPath(
       position: { x: stageIndex * 280, y: pathIndex * 190 },
     });
   }
-  const edges = nodes.slice(1).map((node, index) => ({
-    id: randomUUID(), source: nodes[index]!.id, target: node.id,
-  }));
+  const edges: WorkflowEdge[] = [];
+  for (const [index, source] of nodes.entries()) {
+    const target = nodes[index + 1];
+    if (target) edges.push({ id: randomUUID(), source: source.id, target: target.id });
+  }
   return { nodes, edges };
 }
 
@@ -1739,7 +1763,7 @@ export async function migrateLegacyTradingRoutesToWorkflow(
 }
 
 export async function getActiveWorkflow(): Promise<WorkflowRevision | null> {
-  const row = await getDatabase().get<any>(
+  const row = await getDatabase().get<WorkflowRevisionRow>(
     `SELECT revision.* FROM workflow_revisions AS revision
      JOIN workflow_active_revision AS active ON active.revision_id = revision.id
      WHERE active.singleton_id = 1`,
@@ -1747,7 +1771,14 @@ export async function getActiveWorkflow(): Promise<WorkflowRevision | null> {
   return row ? workflowRevisionFromRow(row) : null;
 }
 
-function keywordFilterReason(keywords: any, text: string): string | null {
+interface CompiledFilterResources {
+  content_filter?: { allowedTypes: string[] };
+  keyword_filter?: { allowedKeywords?: string[]; blockedKeywords?: string[] };
+  regex?: { patterns?: string[]; mode?: 'all' | 'any' };
+  output?: { mode?: 'audit_only' | 'telegram_xml' | 'telegram_original' | 'none' };
+}
+
+function keywordFilterReason(keywords: CompiledFilterResources['keyword_filter'], text: string): string | null {
   const normalized = text.toLocaleLowerCase('und');
   if (keywords?.blockedKeywords?.some((word: string) => normalized.includes(word.toLocaleLowerCase('und')))) {
     return 'BLOCKED_KEYWORD';
@@ -1759,7 +1790,7 @@ function keywordFilterReason(keywords: any, text: string): string | null {
   return null;
 }
 
-function regexAllowsInput(regex: any, text: string): boolean {
+function regexAllowsInput(regex: CompiledFilterResources['regex'], text: string): boolean {
   if (!regex?.patterns?.length) return true;
   const boundedText = text.length > 8_000 ? text.slice(0, 8_000) : text;
   const matches = regex.patterns.map((pattern: string) => safeRegexTest(parseRegex(pattern), boundedText, 100));
@@ -1771,8 +1802,8 @@ function pathAllowsInput(
   text: string,
   contentType = 'text',
 ): { allowed: boolean; reason?: string } {
-  const resources = object(path.effectiveConfiguration.resources, 'Compiled workflow resources');
-  const content = resources.content_filter as any;
+  const resources = object(path.effectiveConfiguration.resources, 'Compiled workflow resources') as CompiledFilterResources;
+  const content = resources.content_filter;
   if (content && !content.allowedTypes.includes(contentType)) return { allowed: false, reason: 'CONTENT_TYPE_FILTERED' };
   const keywordReason = keywordFilterReason(resources.keyword_filter, text);
   if (keywordReason) return { allowed: false, reason: keywordReason };
@@ -1894,7 +1925,7 @@ export async function getWorkflowSignalPlans(input: {
   })).sort((left, right) => left.key.localeCompare(right.key));
 }
 
-function intentFromRow(row: any): TradingIntent {
+function intentFromRow(row: IntentRow): TradingIntent {
   return {
     id: String(row.id), sourceSignalId: String(row.source_signal_id), rootSourceSignalId: String(row.root_source_signal_id),
     signalRunId: row.signal_run_id || null, workflowRevisionId: row.workflow_revision_id || null,
@@ -1920,7 +1951,7 @@ type WorkflowIntentInput = {
 
 /** Business settings stay pinned; permission to execute is always checked against the current graph. */
 export async function isWorkflowExecutionAuthorized(executionPathId: string): Promise<boolean> {
-  const original = await getDatabase().get<any>('SELECT * FROM workflow_execution_paths WHERE id = ?', [executionPathId]);
+  const original = await getDatabase().get<WorkflowPathRow>('SELECT * FROM workflow_execution_paths WHERE id = ?', [executionPathId]);
   if (!original?.enabled) return false;
   const active = await getActiveWorkflow();
   if (!active) return false;
@@ -1931,7 +1962,7 @@ export async function isWorkflowExecutionAuthorized(executionPathId: string): Pr
     && candidate.nodeIds.every((id, index) => id === originalNodes[index]));
 }
 
-function workflowIntentBlockReason(path: WorkflowExecutionPath, account: any, runtime: any): string | null {
+function workflowIntentBlockReason(path: WorkflowExecutionPath, account: AccountRow | undefined, runtime: RuntimeRow | undefined): string | null {
   if (!path.enabled || account?.status !== 'ready' || Number(account.enabled) !== 1) return 'ACCOUNT_NOT_READY';
   if (Number(account.kill_switch_active) === 1) return 'ACCOUNT_KILL_SWITCH_ACTIVE';
   if (Number(runtime.kill_switch_active) === 1) return 'KILL_SWITCH_ACTIVE';
@@ -1945,18 +1976,18 @@ async function processWorkflowIntentPath(input: {
   workflow: WorkflowRevision;
   path: WorkflowExecutionPath;
   runId: string;
-  runtime: any;
+  runtime: RuntimeRow | undefined;
   now: number;
 }): Promise<{ intent?: TradingIntent; branch?: Record<string, unknown> }> {
   const { request, workflow, path, runId, runtime, now } = input;
   const filter = pathAllowsInput(path, request.sourceText, request.contentType);
   if (!filter.allowed) return { branch: { pathId: path.id, status: 'filtered', reason: filter.reason } };
-  const existing = await getDatabase().get<any>(
+  const existing = await getDatabase().get<IntentRow>(
     'SELECT * FROM trading_trade_intents WHERE root_source_signal_id = ? AND execution_path_id = ?',
     [request.sourceSignalId, path.id],
   );
   if (existing) return { intent: intentFromRow(existing) };
-  const account = await getDatabase().get<any>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
+  const account = await getDatabase().get<AccountRow>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
   const blockReason = await isWorkflowExecutionAuthorized(path.id)
     ? workflowIntentBlockReason(path, account, runtime) : 'WORKFLOW_EXECUTION_REVOKED';
   const status = blockReason ? 'blocked' : 'pending';
@@ -1980,7 +2011,7 @@ async function persistFallbackRouteGroup(input: {
   workflow: WorkflowRevision;
   group: WorkflowRouteGroup;
   runId: string;
-  runtime: any;
+  runtime: RuntimeRow | undefined;
   now: number;
 }): Promise<{ intents: TradingIntent[]; branches: Array<Record<string, unknown>> }> {
   const { request, workflow, group, runId, runtime, now } = input;
@@ -2015,7 +2046,7 @@ async function persistFallbackRouteGroup(input: {
       [fallbackRun.id, candidate.rank, path.id, path.accountId, normalizedJson(candidate.fallbackOn), now, now],
     );
   }
-  const existing = await getDatabase().all<any[]>(
+  const existing = await getDatabase().all<IntentRow[]>(
     `SELECT intent.* FROM trading_fallback_candidates AS candidate
      JOIN trading_trade_intents AS intent ON intent.id = candidate.intent_id
      WHERE candidate.fallback_run_id = ? ORDER BY candidate.rank`,
@@ -2112,11 +2143,12 @@ async function persistWorkflowTradingIntents(
     'SELECT id, created_at FROM workflow_signal_runs WHERE source_signal_id = ? AND workflow_revision_id = ?',
     [request.sourceSignalId, workflow.id],
   );
-  const runId = run!.id;
-  request = { ...request, receivedAt: Number(run!.created_at) };
+  if (!run) throw new Error('Created workflow signal run is missing.');
+  const runId = run.id;
+  request = { ...request, receivedAt: Number(run.created_at) };
   const results: TradingIntent[] = [];
   const branches: Array<Record<string, unknown>> = [];
-  const runtime = await getDatabase().get<any>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
+  const runtime = await getDatabase().get<RuntimeRow>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
   const pathsById = new Map(workflow.compiled.paths.map(path => [path.id, path]));
   for (const group of groups) {
     const primary = pathsById.get(group.primaryPathId);
@@ -2177,7 +2209,7 @@ export interface WorkflowFallbackAdvanceResult {
 }
 
 function fallbackAdvanceResult(
-  current: any,
+  current: FallbackCurrentRow,
   nextAccountId: unknown,
   reason: WorkflowFallbackReason,
   advanced: boolean,
@@ -2191,8 +2223,8 @@ function fallbackAdvanceResult(
   };
 }
 
-async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: any; next: any }> {
-  const current = await getDatabase().get<any>(
+async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: FallbackCurrentRow | null; next: FallbackNextRow | null | undefined }> {
+  const current = await getDatabase().get<FallbackCurrentRow>(
     `SELECT candidate.fallback_run_id, candidate.rank, run.status AS run_status,
             run.current_rank, run.created_at AS run_created_at,
             candidate.account_id, candidate.fallback_on_json
@@ -2202,7 +2234,7 @@ async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: any
     [intentId],
   );
   if (!current) return { current: null, next: null };
-  const next = await getDatabase().get<any>(
+  const next = await getDatabase().get<FallbackNextRow>(
     `SELECT candidate.rank, candidate.execution_path_id, candidate.account_id AS candidate_account_id,
             path.*, account.exchange, account.mode,
             account.status AS account_status, account.enabled AS account_enabled,
@@ -2218,7 +2250,7 @@ async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: any
 }
 
 async function exhaustFallbackRun(
-  current: any,
+  current: FallbackCurrentRow,
   intent: TradingIntent,
   reason: WorkflowFallbackReason,
   message: string,
@@ -2240,8 +2272,8 @@ async function exhaustFallbackRun(
 }
 
 async function stopDisallowedFallback(
-  current: any,
-  next: any,
+  current: FallbackCurrentRow,
+  next: FallbackNextRow,
   intent: TradingIntent,
   reason: WorkflowFallbackReason,
   message: string,
@@ -2270,14 +2302,14 @@ async function stopDisallowedFallback(
 }
 
 async function insertPromotedFallbackIntent(
-  current: any,
-  next: any,
+  current: FallbackCurrentRow,
+  next: FallbackNextRow,
   intent: TradingIntent,
   now: number,
 ): Promise<{ id: string; status: 'blocked' | 'pending'; blockReason: string | null }> {
-  const runtime = await getDatabase().get<any>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
+  const runtime = await getDatabase().get<RuntimeRow>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
   const path = pathFromRow(next);
-  const account = await getDatabase().get<any>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
+  const account = await getDatabase().get<AccountRow>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
   const blockReason = await isWorkflowExecutionAuthorized(path.id)
     ? workflowIntentBlockReason(path, account, runtime) : 'WORKFLOW_EXECUTION_REVOKED';
   const status = blockReason ? 'blocked' : 'pending';
@@ -2297,8 +2329,8 @@ async function insertPromotedFallbackIntent(
 }
 
 async function promoteFallbackCandidate(
-  current: any,
-  next: any,
+  current: FallbackCurrentRow,
+  next: FallbackNextRow,
   intent: TradingIntent,
   reason: WorkflowFallbackReason,
   message: string,
@@ -2377,7 +2409,7 @@ export async function advanceWorkflowFallbackOnEligibleFailure(
 
 export async function markWorkflowFallbackSelected(intentId: string, now = Date.now()): Promise<void> {
   await withDatabaseTransaction(async () => {
-    const candidate = await getDatabase().get<any>(
+    const candidate = await getDatabase().get<Pick<FallbackCurrentRow, 'fallback_run_id' | 'rank'>>(
       `SELECT candidate.fallback_run_id, candidate.rank
        FROM trading_fallback_candidates AS candidate
        JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
@@ -2407,7 +2439,7 @@ export async function markWorkflowFallbackSelected(intentId: string, now = Date.
 
 export async function stopWorkflowFallback(intentId: string, reason: string, now = Date.now()): Promise<void> {
   await withDatabaseTransaction(async () => {
-    const candidate = await getDatabase().get<any>(
+    const candidate = await getDatabase().get<Pick<FallbackCurrentRow, 'fallback_run_id' | 'rank'>>(
       `SELECT candidate.fallback_run_id, candidate.rank
        FROM trading_fallback_candidates AS candidate
        JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
@@ -2431,13 +2463,13 @@ export async function stopWorkflowFallback(intentId: string, reason: string, now
 
 export async function listWorkflowFallbackRuns(limit = 200): Promise<Array<Record<string, unknown>>> {
   const boundedLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(500, limit)) : 200;
-  const runs = await getDatabase().all<any[]>(
+  const runs = await getDatabase().all<FallbackRunRow[]>(
     `SELECT run.* FROM trading_fallback_runs AS run ORDER BY run.created_at DESC LIMIT ?`,
     [boundedLimit],
   );
   const result: Array<Record<string, unknown>> = [];
   for (const run of runs) {
-    const candidates = await getDatabase().all<any[]>(
+    const candidates = await getDatabase().all<FallbackCandidateViewRow[]>(
       `SELECT candidate.rank, candidate.execution_path_id, candidate.account_id, candidate.intent_id,
               candidate.status, candidate.error_code, candidate.details_json, candidate.fallback_on_json,
               account.name AS account_name, account.exchange, account.mode

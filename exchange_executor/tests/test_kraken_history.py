@@ -40,7 +40,8 @@ class KrakenRest:
         self.last_response_headers = {}
         self.uid = UID
 
-    def safe_market(self, _identifier):
+    @staticmethod
+    def safe_market(_identifier):
         return {"id": "PF_XBTUSD", "symbol": SYMBOL, "contract": True, "linear": True, "contractSize": 1, "base": "BTC"}
 
     def market(self, identifier):
@@ -77,7 +78,7 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
         for quantity in (None, "", "-1", True):
             rest = KrakenRest(1)
 
-            async def invalid(params):
+            async def invalid(params, *, quantity=quantity):
                 row = event(0, params["since"] + 1, "orders")
                 row["event"]["OrderPlaced"]["order"]["quantity"] = quantity
                 return {"accountUid": UID, "len": 1, "elements": [row]}
@@ -147,7 +148,7 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
             rest = KrakenRest(1)
             original = state()
 
-            async def invalid(params):
+            async def invalid(params, *, flaw=flaw, rest=rest):
                 row = event(0, params["since"] + 1, "executions")
                 response = {"accountUid": UID, "len": 1, "elements": [row]}
                 if flaw == "token":

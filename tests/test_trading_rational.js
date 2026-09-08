@@ -62,38 +62,38 @@ assert.throws(() => divideRational(ratio('1', '2'), ratio('0', '1')), /zero/i);
 for (const scale of [-1, 19, 0.5, Infinity, '18']) assert.throws(() => rationalDecimalBounds(ratio('1', '3'), scale));
 for (const step of ['0', '-1', '1e-3', ' 1']) assert.throws(() => quantizeRational(ratio('1', '3'), step, 'floor'));
 assert.throws(() => quantizeRational(ratio('1', '3'), '0.1', 'nearest'));
-assert.throws(() => rationalDecimalBounds(ratio('1' + '0'.repeat(36), '1')), /decimal/i);
+assert.throws(() => rationalDecimalBounds(ratio(`1${'0'.repeat(36)}`, '1')), /decimal/i);
 const huge = ratio('9'.repeat(200), '1');
 assert.throws(() => multiplyRational(huge, huge), /rational/i);
 // Cross-reduce before enforcing the result bound: a large reciprocal is exact one.
 assert.deepEqual(multiplyRational(huge, ratio('1', '9'.repeat(200))), ratio('1', '1'));
 
 function testFinalQuantizationDoesNotBoundIntermediateRatio() {
-  const numerator = '1' + '0'.repeat(255);
+  const numerator = `1${'0'.repeat(255)}`;
   const denominator = '9'.repeat(255);
   const nearOne = ratio(numerator, denominator);
-  const negativeNearOne = ratio('-' + numerator, denominator);
+  const negativeNearOne = ratio(`-${numerator}`, denominator);
   const tinyTick = '0.000000000000000001';
   assert.equal(quantizeRational(nearOne, tinyTick, 'floor'), '1');
   assert.equal(quantizeRational(nearOne, tinyTick, 'ceil'), '1.000000000000000001');
   assert.equal(quantizeRational(negativeNearOne, tinyTick, 'floor'), '-1.000000000000000001');
   assert.equal(quantizeRational(negativeNearOne, tinyTick, 'ceil'), '-1');
   // A wide tick temporarily expands the denominator, but the final amount still fits.
-  const wideTick = '1' + '0'.repeat(35);
+  const wideTick = `1${'0'.repeat(35)}`;
   assert.equal(quantizeRational(nearOne, wideTick, 'floor'), '0');
   assert.equal(quantizeRational(nearOne, wideTick, 'ceil'), wideTick);
-  assert.equal(quantizeRational(negativeNearOne, wideTick, 'floor'), '-' + wideTick);
+  assert.equal(quantizeRational(negativeNearOne, wideTick, 'floor'), `-${wideTick}`);
   assert.equal(quantizeRational(negativeNearOne, wideTick, 'ceil'), '0');
 }
 
 function testPublicIntegerBudgetRemainsBounded() {
   const largestInteger = '9'.repeat(256);
   assert.deepEqual(ratio(largestInteger, '1'), { numerator: largestInteger, denominator: '1' });
-  assert.deepEqual(addRational(ratio(largestInteger, '1'), ratio('-' + largestInteger, '1')), ratio('0', '1'));
+  assert.deepEqual(addRational(ratio(largestInteger, '1'), ratio(`-${largestInteger}`, '1')), ratio('0', '1'));
   assert.throws(() => addRational(ratio(largestInteger, '1'), ratio('1', '1')), /rational/i);
-  assert.throws(() => rational({ numerator: '1', denominator: '1' + '0'.repeat(256) }), /rational/i);
-  assert.throws(() => rational({ numerator: '-' + '1'.repeat(257), denominator: '1' }), /rational/i);
-  assert.throws(() => quantizeRational(ratio('1' + '0'.repeat(36), '1'), '1', 'floor'), /decimal/i);
+  assert.throws(() => rational({ numerator: '1', denominator: `1${'0'.repeat(256)}` }), /rational/i);
+  assert.throws(() => rational({ numerator: `-${'1'.repeat(257)}`, denominator: '1' }), /rational/i);
+  assert.throws(() => quantizeRational(ratio(`1${'0'.repeat(36)}`, '1'), '1', 'floor'), /decimal/i);
   const tiny = ratio('1', largestInteger);
   const negativeTiny = ratio('-1', largestInteger);
   assert.deepEqual(rationalDecimalBounds(tiny), { lower: '0', upper: '0.000000000000000001', exact: false });

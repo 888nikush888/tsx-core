@@ -17,16 +17,25 @@ export async function apiFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
 ): Promise<Response> {
-  const headers = new Headers(init.headers);
+  // Normalize once before adding credentials; fetch must consume this same destination.
+  const request = new Request(
+    typeof input === "string" ? new URL(input, document.baseURI).href : input,
+    init,
+  );
+  const target = new URL(request.url);
+  if (target.origin !== window.location.origin || target.username || target.password) {
+    throw new Error("API requests are restricted to this dashboard.");
+  }
+  const headers = new Headers(request.headers);
   const token = getDashboardToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const method = (init.method || "GET").toUpperCase();
+  const method = request.method.toUpperCase();
   if (method !== "GET" && method !== "HEAD") {
     headers.set("X-Requested-With", "forwarder-dashboard");
   }
 
-  const response = await fetch(input, { ...init, headers });
+  const response = await fetch(request, { headers, redirect: "error" });
   // An old in-flight read must not invalidate a newly rotated credential.
   if (response.status === 401 && token === getDashboardToken()) {
     window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT));

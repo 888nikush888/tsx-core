@@ -14,14 +14,14 @@ await initDb(path.join(directory, 'test.db'));
 const state = {
   config: {}, state: {}, startupAuthority: authority,
   getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 1, paused: true }),
-  startForwarding: async () => {}, stopForwarding: async () => {}, reloadConfig: () => {}, applyRuntimeConfig: () => {},
+  startForwarding: () => Promise.resolve(), stopForwarding: () => Promise.resolve(), reloadConfig: () => undefined, applyRuntimeConfig: () => undefined,
   authenticator: { mode: 'token', isConfigured: () => true,
-    authenticate: async () => ({ id: 'local-fake-admin', role: 'admin' }) },
+    authenticate: () => Promise.resolve(({ id: 'local-fake-admin', role: 'admin' })) },
   auditTrail: { record: async event => {
     if (event.phase === 'authorized' && revokeDuringAudit) authority.block('revoked during audit');
   } },
   secretStore: { status: () => ({}) },
-  runtimeSettings: { snapshot: () => ({}), set: async () => { changes += 1; return {}; } },
+  runtimeSettings: { snapshot: () => ({}), set: () => { changes += 1; return Promise.resolve({}); } },
 };
 const listener = startWebServer(0, state, '127.0.0.1');
 try {

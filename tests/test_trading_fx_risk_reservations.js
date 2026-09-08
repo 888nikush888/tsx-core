@@ -232,7 +232,7 @@ async function sizingBinding() {
 
 async function missingUnsupportedAndExpired() {
   const account = await accountFixture('fx-risk-unavailable'), remote = await pendingFixture(account, 'pending-unavailable');
-  const args = { account, remote, epoch: '0:0', readBalance: async () => snapshot(account), budgetForIntent: async () => '1' };
+  const args = { account, remote, epoch: '0:0', readBalance: () => Promise.resolve(snapshot(account)), budgetForIntent: () => Promise.resolve('1') };
   assert.equal(await refreshReconciledRisk(args), false);
   await assert.rejects(existingRiskCommitment(account, '', '0:0', 'USD'), /QUOTE_UNAVAILABLE/);
   await capture(account, '58800', '60000');
@@ -269,7 +269,7 @@ async function boundedHistoricalLoss() {
   assert.equal(ledger.valuationStatus, 'valued');
   assert.equal(ledger.value.precision, 'bounded'); assert.equal(ledger.value.decimal, null);
   assert.equal(ledger.value.upper, '0'); assert.notEqual(ledger.value.lower, '0');
-  const args = { account, remote, epoch: '0:0', readBalance: async () => snapshot(account), budgetForIntent: async () => '49' };
+  const args = { account, remote, epoch: '0:0', readBalance: () => Promise.resolve(snapshot(account)), budgetForIntent: () => Promise.resolve('49') };
   assert.equal(await refreshReconciledRisk(args), false, 'An outward loss upper bound is not a proved breach.');
   assert.equal((await getDatabase().get('SELECT balance_reason FROM trading_risk_current WHERE account_id=?', [account.id])).balance_reason,
     'RISK_PRECISION_UNCERTAIN');
@@ -299,10 +299,10 @@ async function stableUnitsAndReportingBinding() {
 async function lateFeeAndRefresh(exact) {
   const { account, remote } = exact;
   let reads = 0;
-  const args = { account, remote, epoch: '0:0', readBalance: async () => { reads++; return snapshot(account); }, budgetForIntent: async () => '49' };
+  const args = { account, remote, epoch: '0:0', readBalance: () => { reads++; return Promise.resolve(snapshot(account)); }, budgetForIntent: () => Promise.resolve('49') };
   assert.equal(await refreshReconciledRisk(args), false, 'Exactly on budget is allowed, not a breach.');
   assert.equal(reads, 1);
-  assert.equal(await refreshReconciledRisk({ ...args, budgetForIntent: async () => '48.999999999999999999' }), true);
+  assert.equal(await refreshReconciledRisk({ ...args, budgetForIntent: () => Promise.resolve('48.999999999999999999') }), true);
   const other = await accountFixture('fx-late-fee');
   await capture(other, '58800', '60000');
   const input = await candidateFixture(other, 'candidate-fee');
@@ -314,7 +314,7 @@ async function lateFeeAndRefresh(exact) {
   assert.equal(refreshed.candidateCommitment, '49');
   await assert.rejects(createRiskAdmission({ ...input, budget: '49.999999999999999999' }), error => error.code === 'MAX_DAILY_RISK');
   await capture(account, '58801', '60000');
-  assert.equal(await refreshReconciledRisk({ ...args, budgetForIntent: async () => '0' }), false,
+  assert.equal(await refreshReconciledRisk({ ...args, budgetForIntent: () => Promise.resolve('0') }), false,
     'Unknown FX is not evidence of a loss breach and cannot trigger a drain.');
   assert.match((await getDatabase().get('SELECT balance_reason FROM trading_risk_current WHERE account_id=?', [account.id])).balance_reason, /FX_QUOTE_CONFLICT/);
   assert.equal((await getDatabase().get("SELECT status FROM trading_orders WHERE id='pending-exact-stop_loss'")).status, 'open');

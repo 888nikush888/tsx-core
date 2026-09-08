@@ -75,11 +75,11 @@ async function fixture(file, blockRead, exchange = 'hyperliquid') {
         credentialGeneration: generation, ccxtVersion: '4.5.75', profileHash, source: 'hyperliquid_meta_asset_context_bound_scope_v1' });
       return market;
     },
-    entryConstraints: async () => {
+    entryConstraints: () => {
       state.reads += 1;
       state.finalEvidence = evidence(exchange);
       if (state.reads === blockRead) Object.assign(state.finalEvidence, { entryAllowed: false, reason: 'HEDGE_MODE_UNSUPPORTED', positionMode: 'hedged' });
-      return state.finalEvidence;
+      return Promise.resolve(state.finalEvidence);
     },
     submitProtectedEntry: (_account, entry, stop) => {
       state.submits += 1;

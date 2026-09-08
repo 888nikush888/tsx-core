@@ -15,7 +15,7 @@ async function tiedJobPagesSurviveReload() {
     Date.now = () => timestamp;
     for (const id of ['job-paging-tie-a1', 'job-paging-tie-z2', 'job-paging-tie-A3']) {
       await store.accept({ id, kind: 'backup-drill', actorId: 'test:admin', scope: {}, request: { id } });
-      await store.run(id, async () => ({ proof: 'local-fixture' }));
+      await store.run(id, () => Promise.resolve(({ proof: 'local-fixture' })));
     }
   } finally { Date.now = originalNow; }
   const reloaded = new UiOperationStore(tiedDirectory, 'tied-process-2');
@@ -34,8 +34,8 @@ async function tiedJobPagesSurviveReload() {
 async function failedJobReceiptsSurviveReload() {
   const failedDirectory = path.join(directory, 'failed-receipts');
   const store = new UiOperationStore(failedDirectory, 'failure-process-1');
-  let coercions = 0, commands = 0;
-  const opaqueFailure = { privateFixture: 'must-never-be-serialized', [Symbol.toPrimitive]() { coercions += 1; return 'unsafe'; } };
+  const counts = { coercions: 0, commands: 0 };
+  const opaqueFailure = { privateFixture: 'must-never-be-serialized', [Symbol.toPrimitive]() { counts.coercions += 1; return 'unsafe'; } };
   const cases = [
     ['operator-failure-error', new Error('Fixture backup could not be verified.'), 'Fixture backup could not be verified.'],
     ['operator-failure-object', opaqueFailure, 'A non-Error value was thrown; inspect the operation receipt for context.'],
@@ -43,7 +43,7 @@ async function failedJobReceiptsSurviveReload() {
   for (const [id, failure, expectedError] of cases) {
     const request = { id, kind: 'backup-drill', actorId: 'test:admin', scope: {}, request: { id } };
     assert.equal((await store.accept(request)).created, true);
-    await store.run(id, async () => { commands += 1; throw failure; });
+    await store.run(id, () => { counts.commands += 1; return Promise.reject(failure); });
     const reloaded = new UiOperationStore(failedDirectory, `reloaded-${id}`);
     const receipt = await reloaded.get(id);
     assert.equal(receipt.state, 'failed');
@@ -56,8 +56,8 @@ async function failedJobReceiptsSurviveReload() {
     assert.deepEqual(replay.job, receipt);
     await assert.rejects(reloaded.accept({ ...request, actorId: 'test:other' }), /another request/);
   }
-  assert.equal(coercions, 0, 'Persisting a failure never invokes arbitrary object conversion.');
-  assert.equal(commands, cases.length);
+  assert.equal(counts.coercions, 0, 'Persisting a failure never invokes arbitrary object conversion.');
+  assert.equal(counts.commands, cases.length);
 }
 try {
   await tiedJobPagesSurviveReload();
@@ -68,7 +68,7 @@ try {
   assert.equal(accepted.filter(result => result.created).length, 1, 'The same operator job key accepts one operation only.');
   await assert.rejects(store.accept({ ...request, request: { name: 'different' } }), /another request/);
   let commands = 0;
-  await store.run(request.id, async () => { commands += 1; return { runtimeDisabled: true, proof: 'fixture-only' }; });
+  await store.run(request.id, () => { commands += 1; return Promise.resolve({ runtimeDisabled: true, proof: 'fixture-only' }); });
   assert.equal(commands, 1);
   assert.equal((await store.get(request.id)).state, 'succeeded');
   assert.equal((await new UiOperationStore(directory, 'process-2').get(request.id)).state, 'succeeded', 'Completed job receipts survive a different process.');

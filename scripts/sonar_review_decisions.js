@@ -113,8 +113,8 @@ async function relatedMainDecision(root, manifest) {
   // The entire reviewed PR manifest is pinned: no additional ID, transition, scope, or source binding can be substituted.
   requireCondition(manifest.decisions.length === 1 && manifest.decisions[0].disposition === 'falsepositive'
     && manifest.pullRequest.key === '29' && manifest.pullRequest.branch === PR_BRANCH && manifest.pullRequest.base === 'main', 'MANIFEST');
-  const main = await loadReviewedDecisions(root);
-  const matches = main.manifest.decisions.filter(decision => digest(JSON.stringify(decision)) === manifest.mainDecisionSha256);
+  const mainReview = await loadReviewedDecisions(root);
+  const matches = mainReview.manifest.decisions.filter(decision => digest(JSON.stringify(decision)) === manifest.mainDecisionSha256);
   requireCondition(matches.length === 1, 'MANIFEST');
   const [mainDecision] = matches;
   requireCondition(digest(JSON.stringify({ ...manifest.decisions[0], issueKey: mainDecision.issueKey })) === manifest.mainDecisionSha256, 'MANIFEST');

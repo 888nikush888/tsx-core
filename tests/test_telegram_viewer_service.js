@@ -47,7 +47,7 @@ function fakeCore() {
   };
   return {
     calls,
-    config: async () => { calls.push('config'); return { settings: structuredClone(SETTINGS) }; },
+    config: () => { calls.push('config'); return Promise.resolve({ settings: structuredClone(SETTINGS) }); },
     get: async (resource, query = {}) => {
       calls.push(`${resource}:${Number(query.offset || 0)}`);
       if (resource === 'events') return { events: Number(query.afterSeq || 0) < 1 ? [event] : [], nextSeq: 1 };
@@ -72,17 +72,22 @@ function fakeCore() {
 function fakeBot() {
   return {
     updates: [], sent: [], answered: [], failNext: false,
-    async getUpdates() { const updates = this.updates; this.updates = []; return updates; },
+    getUpdates() { const updates = this.updates; this.updates = []; return Promise.resolve(updates); },
     async sendMessage(chatId, text, options) {
       if (this.failNext) { this.failNext = false; throw new Error('temporary telegram failure'); }
       this.sent.push({ chatId, text, options }); return { message_id: this.sent.length };
     },
-    async answerCallbackQuery(id, text) { this.answered.push({ id, text }); },
+    answerCallbackQuery(id, text) { this.answered.push({ id, text }); return Promise.resolve(); },
   };
 }
 
 function assertNoInlineMenu(message, label) {
   assert.strictEqual(message.options, undefined, label);
+}
+
+function assertTestDelivery(message) {
+  assertNoInlineMenu(message, 'Viewer test messages must not attach the full viewer menu.');
+  assert.strictEqual(message.text, 'TSX Core \u00b7 Test\nViewer test', 'Test delivery preserves the intended Unicode text.');
 }
 
 function assertUnknownResponse(message) {
@@ -171,12 +176,12 @@ async function verifyViewerModes(directory, state) {
   const mutedState = new TelegramViewerStateRepository(path.join(directory, 'muted-state.db'));
   await mutedState.initialize();
   const mutedCore = fakeCore();
-  mutedCore.config = async () => ({
+  mutedCore.config = () => Promise.resolve(({
     settings: {
       ...structuredClone(SETTINGS),
       notifications: { ...structuredClone(SETTINGS.notifications), positionOpened: false },
     },
-  });
+  }));
   const mutedBot = fakeBot();
   const muted = new TelegramViewerService({ core: mutedCore, bot: mutedBot, state: mutedState });
   await muted.refreshSettings();
@@ -184,7 +189,7 @@ async function verifyViewerModes(directory, state) {
   assert.strictEqual(mutedBot.sent.length, 0, 'A disabled notification type must not be delivered.');
   await mutedState.close();
   const disabledCore = fakeCore();
-  disabledCore.config = async () => ({ settings: { ...structuredClone(SETTINGS), enabled: false } });
+  disabledCore.config = () => Promise.resolve(({ settings: { ...structuredClone(SETTINGS), enabled: false } }));
   const disabledBot = fakeBot();
   const disabled = new TelegramViewerService({ core: disabledCore, bot: disabledBot, state, now: () => 1_700_000_030_000 });
   await disabled.refreshSettings();
@@ -284,7 +289,7 @@ async function run() {
     await service.pollTestEventsOnce();
     assert.strictEqual(service.status().lastTest.status, 'retrying');
     await service.deliverPendingOnce(1_700_000_012_000);
-    assertNoInlineMenu(bot.sent.at(-1), 'Viewer test messages must not attach the full viewer menu.');
+    assertTestDelivery(bot.sent.at(-1));
     assert.strictEqual(service.status().lastTestEventId, 1);
     assert.strictEqual((await state.lastTest()).status, 'delivered');
 

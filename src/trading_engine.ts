@@ -47,6 +47,7 @@ import { assertCandidateNeverSent } from './trading_entry_candidate.js';
 import { refreshReconciledRisk } from './trading_risk_reconciliation.js';
 import { TradingSymbolUnavailableError, TradingUnresolvedOrderError } from './trading_errors.js';
 import {
+  validateAdaptiveRiskConfiguration,
   advanceWorkflowFallbackOnEligibleFailure,
   isWorkflowExecutionAuthorized,
   markWorkflowFallbackSelected,
@@ -104,7 +105,7 @@ import { assertProtectionObservationFresh } from './trading_protection_projectio
 import { collectProtectionReceipt, ProtectionProofRejectedError } from './trading_protection_proof.js';
 import { protectionAccountSource, protectionSourceDigest } from './trading_protection_sources.js';
 import { correlateRemoteFills, correlateRemoteOrders, type LocalCorrelationOrder } from './exchange_order_correlation.js';
-import { loadTakeProfitAllocation, prepareTargetOrder, targetIndexFromOrderRow, targetOrderCoverage, type TakeProfitOrderRow } from './trading_take_profit.js';
+import { requireTakeProfitTargets, requireTakeProfitAllocation, type PlannedTakeProfitOrder, loadTakeProfitAllocation, prepareTargetOrder, targetIndexFromOrderRow, targetOrderCoverage, type TakeProfitOrderRow } from './trading_take_profit.js';
 
 type TradingLogger = (message: string) => void;
 type ReconciliationOptions = { force?: boolean; mutation?: TradingMutationContext };
@@ -183,6 +184,13 @@ class ReconciliationContinuationRequiredError extends Error {
   }
 }
 
+/** Position columns consumed by reconciliation, plus its pinned intent plan. */
+interface ReconciliationPositionRow {
+  id: string; account_id: string; intent_id: string; symbol: string; side: TradingIntent['side'];
+  quantity: string; stop_price: string | null; plan_json: string | null;
+  emergency_requested_at: number | null; emergency_reason: string | null;
+}
+
 interface PositionReconciliationFailure {
   positionId: string;
   intentId: string;
@@ -240,9 +248,27 @@ async function activateAccountKillSwitch(accountId: string, reason: string): Pro
   });
 }
 
+function requiredPlannedOrder(plan: TradingPlan, role: 'entry' | 'stop_loss'): PlannedOrder {
+  const order = plan.orders.find(candidate => candidate.role === role);
+  if (!order) throw new TradingRiskError('TRADE_PLAN_INVALID', 'Trade plan is missing a required entry or protective-stop order.');
+  return order;
+}
+
+function requiredTierProviderSymbol(market: TradingMarketSnapshot): string {
+  if (!market.leverageTiers) throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Tier provider-symbol binding is missing.');
+  return market.leverageTiers.providerSymbol;
+}
+
+function executionPathObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TradingRiskError('WORKFLOW_PATH_INVALID', 'Pinned workflow execution configuration must be an object.');
+  }
+  return value as Record<string, unknown>;
+}
+
 async function executionPathConfiguration(intent: TradingIntent): Promise<{
   strategy: StrategyConfiguration;
-  adaptiveRisk: null | 'legacy' | { resourceVersionId: string; configuration: any };
+  adaptiveRisk: null | 'legacy' | { resourceVersionId: string; configuration: ReturnType<typeof validateAdaptiveRiskConfiguration> };
 }> {
   const storedStrategy = await getTradingStrategyVersion(intent.strategyVersionId);
   assertPublishedStrategy(storedStrategy);
@@ -253,18 +279,21 @@ async function executionPathConfiguration(intent: TradingIntent): Promise<{
     [intent.executionPathId, intent.workflowRevisionId],
   );
   if (!path) throw new TradingRiskError('WORKFLOW_PATH_MISSING', 'Pinned workflow execution path is unavailable.');
-  let effective: any;
-  try { effective = JSON.parse(path.effective_configuration_json); } catch (error) {
+  let effective: Record<string, unknown>;
+  try { effective = executionPathObject(JSON.parse(path.effective_configuration_json)); } catch (error) {
     throw new TradingRiskError('WORKFLOW_PATH_INVALID', `Pinned workflow execution path is invalid: ${String(error)}`);
   }
+  const strategy = validateStrategyConfiguration(effective.strategyConfiguration);
+  if (!path.adaptive_risk_resource_version_id) return { strategy, adaptiveRisk: null };
+  const resources = executionPathObject(effective.resources);
+  const adaptive = executionPathObject(resources.adaptive_risk);
+  if (adaptive.enabled === false) return { strategy, adaptiveRisk: null };
+  const configuration = validateAdaptiveRiskConfiguration(adaptive);
   return {
-    strategy: validateStrategyConfiguration(effective.strategyConfiguration),
-    adaptiveRisk: path.adaptive_risk_resource_version_id && effective.resources?.adaptive_risk?.enabled !== false
-      ? {
-          resourceVersionId: path.adaptive_risk_resource_version_id,
-          configuration: effective.resources.adaptive_risk,
-        }
-      : null,
+    strategy,
+    adaptiveRisk: configuration.enabled ? {
+      resourceVersionId: path.adaptive_risk_resource_version_id, configuration,
+    } : null,
   };
 }
 
@@ -615,11 +644,11 @@ async function submitTrackedOrder(input: {
       send: () => { dispatched = true; return input.adapter.submitOrder(input.account, request); },
       persist: async result => { await storeOrderResult(input.intent.id, input.order.clientOrderId, result); return [result]; },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (dispatched) await getDatabase().run(
       `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
        WHERE intent_id = ? AND client_order_id = ? AND status IN ('submitting', 'unknown')`,
-      [error?.message || 'Order outcome is unknown.', Date.now(), input.intent.id, input.order.clientOrderId],
+      [error instanceof Error && error.message ? error.message : 'Order outcome is unknown.', Date.now(), input.intent.id, input.order.clientOrderId],
     );
     throw error;
   }
@@ -780,23 +809,29 @@ async function desiredProtectiveStop(input: {
     : decision;
 }
 
+type ActiveStop = ExchangeOpenState['orders'][number] & {
+  clientOrderId: string; filledQuantity: string; triggerPrice: string;
+};
+
 function matchingActiveStops(
   remote: ExchangeOpenState,
   intentOrderIds: Set<string>,
   local: { account_id: string; intent_id: string; symbol: string; side: 'LONG' | 'SHORT' },
 ) {
-  return remote.orders.filter(order =>
-    intentOrderIds.has(order.clientOrderId!)
+  return remote.orders.filter((order): order is ActiveStop =>
+    typeof order.clientOrderId === 'string'
+    && typeof order.filledQuantity === 'string'
+    && typeof order.triggerPrice === 'string'
+    && intentOrderIds.has(order.clientOrderId)
     && protectiveStopCoverage({ ...order, accountId: local.account_id, intentId: local.intent_id }, {
       accountId: local.account_id, intentId: local.intent_id, symbol: local.symbol, side: local.side,
       quantity: '0', minimumTrigger: null,
     }).protected);
 }
 
-type ActiveStop = ReturnType<typeof matchingActiveStops>[number];
 
 function replacementStopExecuted(existing: ActiveStop | undefined, accepted: ActiveStop): boolean {
-  return !existing && compareDecimal(accepted.filledQuantity!, '0') > 0;
+  return !existing && compareDecimal(accepted.filledQuantity, '0') > 0;
 }
 
 function safestActiveStop(activeStops: ActiveStop[], side: 'LONG' | 'SHORT'): ActiveStop | undefined {
@@ -854,7 +889,7 @@ export class TradingEngine {
         if (current.status !== 'pending' && !await recoverUndispatchedPlan(current)) return;
         await this.assertClockSafeForEntry();
         await this.executePendingIntent(current, context, epoch);
-      } catch (error: any) {
+      } catch (error: unknown) {
         await this.handleIntentFailure(current, error instanceof EntryAdmissionRevokedError
           ? new TradingRiskError(error.code, error.message) : error);
       }
@@ -886,7 +921,8 @@ export class TradingEngine {
       this.preparationRecoveryCursors.delete(accountId);
       return this.preparationRecoveryBatch(accountId);
     }
-    if (rows.length) this.preparationRecoveryCursors.set(accountId, rows.at(-1)!);
+    const last = rows.at(-1);
+    if (last) this.preparationRecoveryCursors.set(accountId, last);
     return rows;
   }
 
@@ -1021,11 +1057,11 @@ export class TradingEngine {
        ORDER BY orders.created_at`,
     );
     const expired = candidates.map(row => ({ ...row, expiryReason: entryExpirationReason(row, now) }))
-      .filter(row => row.expiryReason !== null);
+      .filter((row): row is typeof row & { expiryReason: NonNullable<typeof row.expiryReason> } => row.expiryReason !== null);
     const cancelled = await this.cancelEntryRows(expired);
     for (const row of expired) {
       await riskEvent({
-        severity: 'info', code: row.expiryReason!, accountId: row.account_id, intentId: row.intent_id,
+        severity: 'info', code: row.expiryReason, accountId: row.account_id, intentId: row.intent_id,
         details: { clientOrderId: row.client_order_id },
       });
     }
@@ -1037,8 +1073,9 @@ export class TradingEngine {
     const failures: unknown[] = [];
     const accounts = new Map<string, Set<string>>();
     for (const row of rows) {
-      if (!accounts.has(row.account_id)) accounts.set(row.account_id, new Set());
-      accounts.get(row.account_id)!.add(row.intent_id);
+      const intents = accounts.get(row.account_id) ?? new Set<string>();
+      intents.add(row.intent_id);
+      accounts.set(row.account_id, intents);
     }
     for (const [accountId, intents] of accounts) {
       try {
@@ -1061,11 +1098,11 @@ export class TradingEngine {
           throw new ReconciliationMismatchError(`Entry cancellation remains unresolved (${result.status}).`);
         }
         return 1;
-      } catch (error: any) {
+      } catch (error: unknown) {
         await getDatabase().run(
           `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
            WHERE account_id = ? AND client_order_id = ? AND status IN ('submitting', 'open', 'partially_filled', 'cancel_pending', 'unknown')`,
-          [error?.message || String(error), Date.now(), row.account_id, row.client_order_id],
+          [reconciliationErrorMessage(error), Date.now(), row.account_id, row.client_order_id],
         );
         await activateAccountKillSwitch(row.account_id, `Entry cancellation outcome unknown for account ${row.account_id}`);
         throw error;
@@ -1117,7 +1154,7 @@ export class TradingEngine {
     assertPublishedStrategy(strategy);
     if (intent.plan) {
       const original = intent.plan as TradingPlan;
-      assertEntryPriceBoundary(original, original.orders.find(order => order.role === 'entry')!);
+      assertEntryPriceBoundary(original, requiredPlannedOrder(original, 'entry'));
     }
     await assertExecutionAuthorization(intent);
     const strategyConfiguration = pathConfiguration.strategy;
@@ -1175,7 +1212,9 @@ export class TradingEngine {
     assertPlanTierDecision(account, plan, market);
     const currentCapacity = await loadCapacityState(intent);
     assertAccountSafetyState(currentCapacity);
-    const changedCapacity = candidateCapacitySkipReason(currentCapacity, (await getTradingAccount(account.id))!.maxConcurrentPositions);
+    const currentAccount = await getTradingAccount(account.id);
+    if (!currentAccount) throw new TradingRiskError('ACCOUNT_NOT_READY', 'Trading account is no longer available.');
+    const changedCapacity = candidateCapacitySkipReason(currentCapacity, currentAccount.maxConcurrentPositions);
     if (changedCapacity) throwCapacitySkip(changedCapacity);
     const riskProof = await createRiskAdmission({ account, intentId: intent.id, plan, market, snapshot: accountSnapshot,
       budget: resolveDailyLossLimit(strategyConfiguration.safety, accountSnapshot.equity), epoch, sizingFx });
@@ -1219,9 +1258,9 @@ export class TradingEngine {
 
   private async executePendingIntent(intent: TradingIntent, context: TradingMutationContext, epoch: string): Promise<void> {
     const { account, adapter, plan, effectiveRiskPercent, accounting, riskProof, observation, entrySafety } = await this.preparePendingIntent(intent, epoch);
+    const entry = requiredPlannedOrder(plan, 'entry');
+    const protectiveStop = requiredPlannedOrder(plan, 'stop_loss');
     await markWorkflowFallbackSelected(intent.id);
-    const entry = plan.orders.find(order => order.role === 'entry')!;
-    const protectiveStop = plan.orders.find(order => order.role === 'stop_loss')!;
     await setIntentState(intent.id, 'submitting', { plan });
     await recordTradingExecutionEvent({
       eventType: 'submit_started',
@@ -1343,9 +1382,10 @@ export class TradingEngine {
     await assertPersistedMoneyReady(account.id);
     const tierMarket = await this.adapter(account.exchange).marketSnapshot(account, intent.symbol);
     assertPlanTierDecision(account, plan, tierMarket);
-    await assertLocalTierScope(account.id, intent.id, intent.symbol, tierMarket.leverageTiers!.providerSymbol);
+    const tierProviderSymbol = requiredTierProviderSymbol(tierMarket);
+    await assertLocalTierScope(account.id, intent.id, intent.symbol, tierProviderSymbol);
     const entryMode = await readEntryModeEvidence(this.adapter(account.exchange), account, intent.symbol);
-    if (entryMode && entryMode.providerSymbol !== tierMarket.leverageTiers!.providerSymbol) {
+    if (entryMode && entryMode.providerSymbol !== tierProviderSymbol) {
       throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Mode and tier provider-symbol binding disagree.');
     }
     this.mutations.assertEntryEpoch(context, epoch);
@@ -1412,7 +1452,7 @@ export class TradingEngine {
     }
   }
 
-  private async handleIntentFailure(intent: TradingIntent, error: any): Promise<void> {
+  private async handleIntentFailure(intent: TradingIntent, error: unknown): Promise<void> {
     const unresolved = await getDatabase().get(
       `SELECT 1 FROM trading_operations WHERE intent_id = ? AND account_id = ?
        AND phase IN ('dispatching', 'unresolved') LIMIT 1`, [intent.id, intent.accountId]);
@@ -1486,19 +1526,19 @@ export class TradingEngine {
     plan: TradingPlan,
     remote: ExchangeOpenState,
   ): Promise<boolean> {
+    const plannedTargets = requireTakeProfitTargets(plan);
     await recoverPreparedExits(account, intent.id, 'take_profit');
     const allocation = await loadTakeProfitAllocation(intent.id, plan, remote);
     if (!allocation) return false;
-    const plannedTargets = plan.orders.filter(order => order.role === 'take_profit');
     if (allocation.rows.some(row => ['submitting', 'unknown'].includes(row.status))) {
       throw new ReconciliationMismatchError('Take-profit coverage contains an unresolved order outcome.');
     }
-    if (await resumeTakeProfitCancels(adapter, account, intent.id, allocation.rows, remote)) return true;
     const targets = plannedTargets.map((planned, index) => {
       const rows = allocation.rows.filter(row => targetIndexFromOrderRow(row) === index + 1);
-      const coverage = targetOrderCoverage(rows, planned.price!);
-      return { planned, rows, coverage, desired: allocation.totals[index]!, remaining: allocation.remaining[index]! };
+      const coverage = targetOrderCoverage(rows, planned.price);
+      return { planned, rows, coverage, ...requireTakeProfitAllocation(allocation.totals, allocation.remaining, index) };
     });
+    if (await resumeTakeProfitCancels(adapter, account, intent.id, allocation.rows, remote)) return true;
     try {
       const stale = targets.filter(target => !target.coverage.pricesMatch || compareDecimal(target.coverage.covered, target.desired) !== 0)
         .flatMap(target => target.coverage.active);
@@ -1509,24 +1549,24 @@ export class TradingEngine {
       // No replacement anywhere in this trade before a fresh account read proves post-cancel fills/ownership.
       if (stale.length > 0) return true;
       return await this.submitAllocatedTargets(adapter, account, intent, plan, targets);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof CancelBudgetExhaustedError) throw error;
       await riskEvent({
         severity: 'critical',
         code: 'TAKE_PROFIT_REBALANCE_UNRESOLVED',
         accountId: account.id,
         intentId: intent.id,
-        details: { message: error?.message || String(error) },
+        details: { message: reconciliationErrorMessage(error) },
       });
       await activateAccountKillSwitch(account.id, `Take-profit rebalance is unresolved for account ${account.id}`);
       if (error instanceof CancellationEvidenceError) throw error;
-      throw new ReconciliationMismatchError(error?.message || 'Take-profit rebalance is unresolved.');
+      throw new ReconciliationMismatchError(error instanceof Error && error.message ? error.message : 'Take-profit rebalance is unresolved.');
     }
   }
 
   private async submitAllocatedTargets(
     adapter: TradingExchangeAdapter, account: TradingAccount, intent: TradingIntent, plan: TradingPlan,
-    targets: Array<{ planned: PlannedOrder; rows: TakeProfitOrderRow[];
+    targets: Array<{ planned: PlannedTakeProfitOrder; rows: TakeProfitOrderRow[];
       coverage: ReturnType<typeof targetOrderCoverage>; desired: string; remaining: string }>,
   ): Promise<boolean> {
     const resized: Array<{ targetIndex: number; from: string; to: string }> = [];
@@ -1539,7 +1579,7 @@ export class TradingEngine {
       if (!['open', 'partially_filled', 'filled'].includes(result.status)) throw new Error(`Take-profit submission status is ${result.status}.`);
       changed = true;
       if (order.clientOrderId !== target.planned.clientOrderId) {
-        resized.push({ targetIndex: target.planned.targetIndex!, from: target.coverage.covered, to: target.desired });
+        resized.push({ targetIndex: target.planned.targetIndex, from: target.coverage.covered, to: target.desired });
       }
       if (compareDecimal(result.filledQuantity, '0') > 0) break;
     }
@@ -1584,11 +1624,11 @@ export class TradingEngine {
         severity: 'critical', code: 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION', accountId: account.id, intentId: intent.id,
         details: { cause, clientOrderId: order.clientOrderId },
       });
-    } catch (flattenError: any) {
+    } catch (flattenError: unknown) {
       await activateAccountKillSwitch(account.id, `Emergency flatten unresolved for intent ${intent.id}`);
       await riskEvent({
         severity: 'critical', code: 'EMERGENCY_FLATTEN_UNKNOWN', accountId: account.id, intentId: intent.id,
-        details: { error: flattenError?.message || String(flattenError) },
+        details: { error: reconciliationErrorMessage(flattenError) },
       });
       throw flattenError;
     }
@@ -1792,12 +1832,12 @@ export class TradingEngine {
     if (account.exchange === 'paper') return;
     const current = remote.accountFingerprint;
     if (typeof current !== 'string' || !/^[a-f0-9]{64}$/.test(current)) {
-      await this.failRemoteAccountIdentity(account, 'Exchange snapshot omitted a valid account fingerprint.');
+      return this.failRemoteAccountIdentity(account, 'Exchange snapshot omitted a valid account fingerprint.');
     }
     if (account.externalAccountId && account.externalAccountId !== current) {
       await this.failRemoteAccountIdentity(account, 'Exchange snapshot does not match the bound external account identity.', {
         boundPrefix: account.externalAccountId.slice(0, 12),
-        currentPrefix: current!.slice(0, 12),
+        currentPrefix: current.slice(0, 12),
       });
     }
     const previous = await getDatabase().get<{ remote_snapshot_json: string | null }>(
@@ -1817,7 +1857,7 @@ export class TradingEngine {
     if (!priorFingerprint || priorFingerprint === current) return;
     await this.failRemoteAccountIdentity(account, 'Exchange account fingerprint changed.', {
       previousPrefix: priorFingerprint.slice(0, 12),
-      currentPrefix: current!.slice(0, 12),
+      currentPrefix: current.slice(0, 12),
     });
   }
 
@@ -1976,7 +2016,7 @@ export class TradingEngine {
       allowIndependentRiskReduction?: boolean;
       riskReductionIntentId?: string;
     } = {},
-  ): Promise<{ localPositions: any[]; unrelatedUnmanagedExposure: boolean }> {
+  ): Promise<{ localPositions: ReconciliationPositionRow[]; unrelatedUnmanagedExposure: boolean }> {
     const localOrders = await getDatabase().all<LocalCorrelationOrder[]>(
       `SELECT orders.*, intent.symbol FROM trading_orders AS orders
        JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id WHERE orders.account_id = ?`, [account.id]);
@@ -1985,7 +2025,7 @@ export class TradingEngine {
     await this.persistRemoteExecutions(account, remote);
     await resolveObservedOperations(account, remote.orders);
     await resolveActiveCancelAttempts(account, remote);
-    const allLocalPositions = await getDatabase().all<any[]>(
+    const allLocalPositions = await getDatabase().all<ReconciliationPositionRow[]>(
       `SELECT position.*, intent.plan_json FROM trading_positions AS position
        JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
        WHERE position.account_id = ? AND position.status IN ('opening', 'open', 'closing', 'emergency')
@@ -2100,7 +2140,7 @@ export class TradingEngine {
     account: TradingAccount,
     adapter: TradingExchangeAdapter,
     remote: ExchangeOpenState,
-    local: any,
+    local: ReconciliationPositionRow,
   ): Promise<boolean> {
     const proof = await loadTradeLifecycle(local.intent_id, local.side);
     if (!proof.flat) throw new ReconciliationMismatchError('Missing remote position does not prove a zero owned quantity.');
@@ -2164,7 +2204,7 @@ export class TradingEngine {
   private async closeRemotelyAbsentPosition(
     account: TradingAccount,
     remote: ExchangeOpenState,
-    local: any,
+    local: ReconciliationPositionRow,
   ): Promise<void> {
     const proof = await loadTradeLifecycle(local.intent_id, local.side);
     if (!proof.flat || !proof.ordersTerminal || !proof.operationsResolved) {
@@ -2232,7 +2272,7 @@ export class TradingEngine {
     account: TradingAccount,
     adapter: TradingExchangeAdapter,
     remote: ExchangeOpenState,
-    local: any,
+    local: ReconciliationPositionRow,
     position: ExchangeOpenState['positions'][number],
   ): Promise<boolean> {
     await getDatabase().run(
@@ -2308,7 +2348,7 @@ export class TradingEngine {
   private async ensureProtectiveStop(
     account: TradingAccount,
     adapter: TradingExchangeAdapter,
-    local: any,
+    local: ReconciliationPositionRow,
     quantity: string,
     remote: ExchangeOpenState,
   ): Promise<boolean> {
@@ -2319,7 +2359,7 @@ export class TradingEngine {
     const strategy = await getTradingStrategyVersion(intent.strategyVersionId);
     if (!strategy) throw new Error('Open position strategy version is missing.');
     const intentOrders = await loadProtectionOrders(account.id, intent.id);
-    const intentOrderIds = new Set(intentOrders.map(order => order.clientOrderId!));
+    const intentOrderIds = new Set(intentOrders.map(order => order.clientOrderId).filter(id => id !== null));
     if (intentOrders.some(order => order.role === 'stop_loss' && order.status === 'filled')) {
       await requestEntryDrain(account.id, 'Filled protective stop cannot protect future entry fills.', intent.id);
     }
@@ -2327,7 +2367,7 @@ export class TradingEngine {
     const entryAveragePrice = filledTargets > 0 ? await provedEntryAverage(intent.id) : plan.entryPrice;
     const activeStops = matchingActiveStops(remote, intentOrderIds, local);
     const cancellingStops = await pendingCancelOrderIds(account.id, intent.id);
-    const durableStops = activeStops.filter(stop => !cancellingStops.has(stop.clientOrderId!));
+    const durableStops = activeStops.filter(stop => !cancellingStops.has(stop.clientOrderId));
     const activeStop = safestActiveStop(durableStops, local.side);
     const protectiveQuantity = requiredStopQuantity(quantity, intentOrders.filter(order => order.role === 'entry'));
     const currentTrigger = this.protectiveReferenceTrigger(activeStop, local);
@@ -2342,8 +2382,8 @@ export class TradingEngine {
       entryAveragePrice,
       currentTrigger,
     });
-    const exactStop = durableStops.find(stop => compareDecimal(subtractDecimal(stop.quantity, stop.filledQuantity!), protectiveQuantity) === 0
-      && compareDecimal(stop.triggerPrice!, decision.trigger) === 0);
+    const exactStop = durableStops.find(stop => compareDecimal(subtractDecimal(stop.quantity, stop.filledQuantity), protectiveQuantity) === 0
+      && compareDecimal(stop.triggerPrice, decision.trigger) === 0);
     const protectedStop = await this.activateProtectiveStop({
       adapter,
       account,
@@ -2446,7 +2486,7 @@ export class TradingEngine {
           throw new Error(`Stale protective stop cancellation status is ${cancelled.status}.`);
         }
         cancelledAny = true;
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error instanceof CancelBudgetExhaustedError) throw error;
         await riskEvent({
           severity: 'critical',
@@ -2456,7 +2496,7 @@ export class TradingEngine {
           details: {
             protectedStopId: protectedStop.clientOrderId,
             staleStopId: stale.clientOrderId,
-            message: error?.message || String(error),
+            message: reconciliationErrorMessage(error),
           },
         });
         await activateAccountKillSwitch(account.id, `Protective stop cancellation is unresolved for account ${account.id}`);
@@ -2479,7 +2519,8 @@ async function submitTrackedProtectedEntry(input: {
   beforeSend: (witness: TradingDispatchWitness) => Promise<void>;
   commitDispatch: () => void;
 }): Promise<{ entry: ExchangeOrderResult; protectiveStop: ExchangeOrderResult }> {
-  if (!input.adapter.submitProtectedEntry) {
+  const submitProtectedEntry = input.adapter.submitProtectedEntry;
+  if (!submitProtectedEntry) {
     throw new Error(`Exchange adapter ${input.account.exchange} lacks atomic protected-entry support.`);
   }
   let dispatched = false;
@@ -2516,7 +2557,7 @@ async function submitTrackedProtectedEntry(input: {
       },
       send: () => {
         dispatched = true;
-        return input.adapter.submitProtectedEntry!(input.account, entryRequest, stopRequest);
+        return submitProtectedEntry.call(input.adapter, input.account, entryRequest, stopRequest);
       },
       persist: async results => {
         await storeOrderResult(input.intent.id, input.stop.clientOrderId, results.protectiveStop);
@@ -2524,14 +2565,14 @@ async function submitTrackedProtectedEntry(input: {
         return [results.entry, results.protectiveStop];
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (!dispatched && error instanceof OrderIdentityBindingError) throw new TradingRiskError(error.code, error.message);
     if (dispatched) await getDatabase().run(
       `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
        WHERE intent_id = ? AND client_order_id IN (?, ?)
          AND status IN ('created', 'submitting', 'unknown')`,
       [
-        error?.message || 'Protected entry outcome is unknown.',
+        error instanceof Error && error.message ? error.message : 'Protected entry outcome is unknown.',
         Date.now(),
         input.intent.id,
         input.entry.clientOrderId,

@@ -55,18 +55,25 @@ class CurrentRead:
         self.sources[source] = {**source_evidence(source, now_ms(), "unknown", "current_state_pending"),
                                 "scopes": [{"scope": scope, "pages": 0, "complete": False} for scope in scopes]}
 
+    def _scope_evidence(self, source: str, scope: str) -> dict[str, Any]:
+        rows = self.sources.get(source, {}).get("scopes", [])
+        evidence = next((row for row in rows if row["scope"] == scope), None)
+        if evidence is None:
+            raise IncompleteCurrentStateError(source, "current_scope_unregistered")
+        return evidence
+
     async def call(self, source: str, scope: str, operation) -> Any:
         try:
             result = await self.budget.call(operation)
         except RecoveryBudgetExhausted as error:
             raise IncompleteCurrentStateError(source, "current_page_budget_exhausted") from error
-        evidence = next(row for row in self.sources[source]["scopes"] if row["scope"] == scope)
+        evidence = self._scope_evidence(source, scope)
         evidence["pages"] += 1
         return result
 
     def complete(self, source: str, scope: str) -> None:
         evidence = self.sources[source]
-        next(row for row in evidence["scopes"] if row["scope"] == scope)["complete"] = True
+        self._scope_evidence(source, scope)["complete"] = True
         if all(row["complete"] for row in evidence["scopes"]):
             evidence.update(completeness="complete", reason=None, completedAt=now_ms())
 

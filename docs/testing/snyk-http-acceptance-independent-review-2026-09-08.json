@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "reviewedRevision": "fba4f9ce793f5b457ba220ae331716b8540be72e",
+  "scope": "Independent review of explicitly owner-authorized four-listener HTTP risk capability in the short-lived CLI gate",
+  "sourceBindings": {
+    "scripts/check_snyk_code_review.js": "49327302f9a88b85589ad72adbc0ea5bd68f29a8a610be1fdec398ba9dd77cdc",
+    "scripts/check_risk_acceptances.js": "71aef4f8b6183179c6a71a97b7efc68d6b26bf651defea8701e802849da1f46b",
+    "tests/test_snyk_code_review.js": "f68f6def1bff396a0dc02127f43ee3f7d5d061198a45a5e95d283097a9f204bf",
+    "docs/risk-acceptances/RA-2026-09-08-internal-http.md": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff"
+  },
+  "decision": "no-blocking-finding-in-reviewed-scope",
+  "checks": [
+    "Exactly four immutable IDs map to the javascript/HttpToHttps rule and approved listener paths; all other findings remain blocked.",
+    "Full fingerprints, complete flow digest, primary source and every context hash remain mandatory after risk classification.",
+    "Acceptance record SHA-256 is pinned; unauthorized text changes or date extension fail before a capability is issued.",
+    "Existing record policy checks maximum 30-day lifetime and minimum 24-hour remaining validity; CLI reloads the record with current time on every invocation.",
+    "Module-private WeakSet rejects forged capability objects. Owner-accepted risks count separately from false positives; original independent open dispositions remain unchanged."
+  ],
+  "validation": {
+    "command": "node --test tests/test_snyk_code_review.js",
+    "runtime": "Node.js 22.23.2",
+    "passed": 19,
+    "failed": 0
+  },
+  "limitations": [
+    "No live deployment or TLS remediation was performed or certified.",
+    "The exported testable loader accepts an injected clock and capabilities are process-local; the reviewed production CLI creates and consumes them within one invocation. Test title reused after expiration covers reloading an expired record, not indefinite reuse in a persistent embedding."
+  ]
+}

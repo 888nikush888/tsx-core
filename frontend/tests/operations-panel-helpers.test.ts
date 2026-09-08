@@ -36,7 +36,7 @@ describe("buildEquityChartGroups", () => {
   });
   it("keeps original currencies and modes separate and retains exact tooltip amounts", () => {
     const known = { accountId: "account", observedAt: 1, equity: "0.000000000000000000123456789", reportingCurrency: "USD", accountingSource: "original", mode: "live" };
-    const groups = buildEquityChartGroups([known, { ...known, mode: "testnet" }, { ...known, reportingCurrency: null }, { ...known, equity: null }, { ...known, accountingSource: null }], [{ id: "account", capabilities: { reportingCurrency: "USDT" } }]);
+    const groups = buildEquityChartGroups([known, { ...known, mode: "testnet" }, { ...known, reportingCurrency: null }, { ...known, equity: null }, { ...known, accountingSource: null }, { ...known, mode: 1 }, { ...known, mode: { toString: () => "live" } }], [{ id: "account", capabilities: { reportingCurrency: "USDT" } }]);
     expect(groups.map(group => group.currency)).toEqual(["USD (live)", "USD (testnet)"]);
     expect(groups[0].points[0].account_0Exact).toBe(known.equity);
   });
@@ -108,13 +108,13 @@ describe("buildJournalQueryString", () => {
       symbol: "eth/usdt",
       status: "filled",
     });
-    const p = new URLSearchParams(qs);
-    expect(p.get("from")).toBeDefined();
-    expect(p.get("to")).toBeDefined();
-    expect(p.get("channelId")).toBe("c1");
-    expect(p.get("accountId")).toBe("a1");
-    expect(p.get("symbol")).toBe("ETHUSDT");
-    expect(p.get("status")).toBe("filled");
+    const parameters = new URLSearchParams(qs);
+    expect(parameters.get("from")).toBeDefined();
+    expect(parameters.get("to")).toBeDefined();
+    expect(parameters.get("channelId")).toBe("c1");
+    expect(parameters.get("accountId")).toBe("a1");
+    expect(parameters.get("symbol")).toBe("ETHUSDT");
+    expect(parameters.get("status")).toBe("filled");
   });
 });
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 import copy
 import re
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Literal, cast, overload
 
 from common import DECIMAL_PATTERN, SIGNED_DECIMAL_PATTERN, ExchangeContractError
 
@@ -30,6 +30,14 @@ def binding(value: Any, label: str) -> str:
     require(type(value) is str and _BINDING.fullmatch(value) is not None,
             f"KuCoin {label} must be a verified binding.")
     return value
+
+
+@overload
+def token(value: Any, label: str, *, nullable: Literal[False] = False) -> str: ...
+
+
+@overload
+def token(value: Any, label: str, *, nullable: bool) -> str | None: ...
 
 
 def token(value: Any, label: str, *, nullable: bool = False) -> str | None:
@@ -130,7 +138,7 @@ def market_for(rest: Any, symbol: str) -> dict[str, Any]:
     candidates = by_id.get(symbol) if type(by_id) is dict else None
     require(type(candidates) is list and len(candidates) == 1 and type(candidates[0]) is dict,
             "KuCoin market identity is missing or ambiguous.")
-    market = candidates[0]
+    market = cast(list[dict[str, Any]], candidates)[0]
     require(market.get("id") == symbol and market.get("type") == "swap"
             and market.get("swap") is True and market.get("contract") is True
             and market.get("linear") is True and market.get("inverse") is False

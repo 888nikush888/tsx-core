@@ -14,7 +14,7 @@ import { acquireProcessLock } from '../src/process_lock.js';
 import { STARTUP_GATES, StartupAuthority } from '../src/startup_authority.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 
-async function availablePort() {
+function availablePort() {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
     server.once('error', reject);
@@ -121,7 +121,7 @@ try {
         return { accountId: accountId || null, reconciled: true };
       },
     },
-    { record: async () => undefined },
+    { record: () => Promise.resolve() },
     () => undefined,
     50,
     startup,

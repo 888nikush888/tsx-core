@@ -72,7 +72,8 @@ def _contract_size(market: dict[str, Any]) -> Decimal:
 
 
 def _market_mark_price(ticker: dict[str, Any]) -> Decimal:
-    info = ticker.get("info") if isinstance(ticker.get("info"), dict) else {}
+    candidate_info = ticker.get("info")
+    info = candidate_info if isinstance(candidate_info, dict) else {}
     value = ticker.get("mark") or ticker.get("last") or info.get("markPrice") or info.get("mark_price")
     if value is None:
         bid, ask = ticker.get("bid"), ticker.get("ask")
@@ -125,7 +126,8 @@ def _trigger_price(order: dict[str, Any]) -> Any:
     for key in ("triggerPrice", "stopPrice", "stopLossPrice", "takeProfitPrice"):
         if order.get(key) is not None:
             return order[key]
-    info = order.get("info") if isinstance(order.get("info"), dict) else {}
+    candidate_info = order.get("info")
+    info = candidate_info if isinstance(candidate_info, dict) else {}
     for key in ("triggerPrice", "triggerPx", "stopPrice", "stopPx"):
         if info.get(key) not in (None, "", "0", 0):
             return info[key]
@@ -135,13 +137,15 @@ def _trigger_price(order: dict[str, Any]) -> Any:
 def _reduce_only(order: dict[str, Any]) -> bool:
     if order.get("reduceOnly") is not None:
         return order.get("reduceOnly") is True
-    info = order.get("info") if isinstance(order.get("info"), dict) else {}
+    candidate_info = order.get("info")
+    info = candidate_info if isinstance(candidate_info, dict) else {}
     value = info.get("reduceOnly")
     return value is True or str(value).lower() == "true"
 
 
 def _ledger_funding_amount(item: dict[str, Any]) -> Decimal | None:
-    info = item.get("info") if isinstance(item.get("info"), dict) else {}
+    candidate_info = item.get("info")
+    info = candidate_info if isinstance(candidate_info, dict) else {}
     amount = info.get("realized_funding")
     if amount is None:
         amount = info.get("realizedFunding")
@@ -286,6 +290,13 @@ def _normalized_position(rest: Any, position: dict[str, Any]) -> dict[str, Any] 
     }
 
 
+def _fill_timestamp(trade: dict[str, Any]) -> int:
+    filled_at = trade.get("timestamp")
+    if not isinstance(filled_at, int) or isinstance(filled_at, bool) or filled_at < 0:
+        raise ExchangeContractError('Fill omitted its provider timestamp.')
+    return filled_at
+
+
 def _normalized_fill(
     rest: Any, order_by_id: dict[tuple[str, str], dict[str, Any]], trade: dict[str, Any],
     exchange: str = "",
@@ -296,12 +307,11 @@ def _normalized_fill(
         raise ExchangeContractError("Recent Kraken fill identity is not a documented execution UID alias.")
     exchange_order_id = order_identifier(trade.get("order"), 'fill order')
     exchange_fill_id = order_identifier(trade.get("id"), 'fill')
-    filled_at = trade.get("timestamp")
-    if not isinstance(filled_at, int) or isinstance(filled_at, bool) or filled_at < 0:
-        raise ExchangeContractError('Fill omitted its provider timestamp.')
+    filled_at = _fill_timestamp(trade)
     order = order_by_id.get((str(trade.get("symbol") or ""), exchange_order_id))
     client_id = _client_order_id(order or {}) or None
-    fee = trade.get("fee") if isinstance(trade.get("fee"), dict) else {}
+    candidate_fee = trade.get("fee")
+    fee = candidate_fee if isinstance(candidate_fee, dict) else {}
     if fee.get("cost") is None:
         raise ExchangeContractError("Execution omitted its actual fee evidence.")
     market = rest.market(trade["symbol"])
@@ -451,8 +461,9 @@ class CcxtAdapter:
     @staticmethod
     def _balance_values(clients: AccountClients, balance: dict[str, Any]) -> tuple[str, str]:
         currencies = _clients_profile(clients).settlement_preference
-        total = balance.get("total") if isinstance(balance.get("total"), dict) else {}
-        free = balance.get("free") if isinstance(balance.get("free"), dict) else {}
+        candidate_total, candidate_free = balance.get("total"), balance.get("free")
+        total = candidate_total if isinstance(candidate_total, dict) else {}
+        free = candidate_free if isinstance(candidate_free, dict) else {}
         for currency in currencies:
             if total.get(currency) is not None:
                 return decimal_text(total[currency]), decimal_text(free.get(currency, total[currency]))
@@ -596,8 +607,8 @@ class CcxtAdapter:
             await _within(deadline, clients.rest.set_leverage(leverage, symbol))
         assert_entry_deadline(request)
 
+    @staticmethod
     async def _market_order_reference(
-        self,
         clients: AccountClients,
         symbol: str,
         side: Any,
@@ -606,7 +617,8 @@ class CcxtAdapter:
         if side not in {"buy", "sell"}:
             raise ExchangeContractError("Order side is invalid.")
         ticker = await _within(deadline, clients.rest.fetch_ticker(symbol))
-        info = ticker.get("info") if isinstance(ticker.get("info"), dict) else {}
+        candidate_info = ticker.get("info")
+        info = candidate_info if isinstance(candidate_info, dict) else {}
         directional = ticker.get("ask") if side == "buy" else ticker.get("bid")
         candidates = (
             directional,
@@ -673,8 +685,8 @@ class CcxtAdapter:
         if entry_quantity != stop_quantity:
             raise ExchangeContractError("Protective stop quantity must match the entry quantity.")
 
+    @staticmethod
     async def _assert_symbol_has_no_position(
-        self,
         clients: AccountClients,
         market: dict[str, Any],
         deadline: RequestDeadline,
@@ -850,8 +862,8 @@ class CcxtAdapter:
                 "Order cancellation is unresolved; authoritative REST evidence is required.", [], [client_order_id],
             ) from error
 
+    @staticmethod
     async def _recent_trades(
-        self,
         account: dict[str, str],
         clients: AccountClients,
         provider_symbols: list[str],

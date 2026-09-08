@@ -99,8 +99,7 @@ async function localDriftCannotRevive() {
 async function timeoutReopenAndCorruption() {
   const { account, paper, engine } = await setup('reopen');
   const read = paper.openState.bind(paper);
-  let entered;
-  const reading = new Promise(resolve => { entered = resolve; });
+  const { promise: reading, resolve: entered } = Promise.withResolvers();
   let rejectRead;
   paper.openState = async () => { entered(); return new Promise((_resolve, reject) => { rejectRead = reject; }); };
   const attempt = engine.reconcileAccount(account.id);

@@ -25,6 +25,10 @@ def write_order_identity(order: dict[str, Any], expected_client_id: str = "") ->
     return client_id, remote_id
 
 
+def _remote_client(order: dict[str, Any]) -> Any:
+    return order.get("clientOrderId") or order.get("client_order_id")
+
+
 def cancel_target(
     orders: list[dict[str, Any]], symbol: str, client_id: str, exchange_id: str | None,
 ) -> dict[str, Any]:
@@ -34,16 +38,16 @@ def cancel_target(
     scoped = [order for order in orders if order.get("symbol") == symbol]
     matches = [order for order in scoped if (
         order.get("id") == exchange_id if exchange_id is not None
-        else (order.get("clientOrderId") or order.get("client_order_id")) == client_id
+        else _remote_client(order) == client_id
     )]
     if len(matches) != 1:
         raise ExchangeContractError("CCXT cannot prove a unique cancellation target on the requested provider symbol.")
     match = matches[0]
     remote_id = order_identifier(match.get("id"), "exchange")
-    remote_client = match.get("clientOrderId") or match.get("client_order_id")
+    remote_client = _remote_client(match)
     if remote_client is not None and remote_client != client_id:
         raise ExchangeContractError("Cancellation target has a conflicting client identifier.")
-    if any((order.get("clientOrderId") or order.get("client_order_id")) == client_id
+    if any(_remote_client(order) == client_id
            and order.get("id") != remote_id for order in scoped):
         raise ExchangeContractError("Cancellation target has a conflicting exchange identifier.")
     # Only this already-proven remote ID may acquire the local client binding.

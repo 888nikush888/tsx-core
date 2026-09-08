@@ -1,3 +1,4 @@
+import { DEFAULT_TELEGRAM_VIEWER_SETTINGS } from '../src/telegram_viewer_settings.js';
 import assert from 'node:assert';
 import http from 'node:http';
 import { once } from 'node:events';
@@ -45,7 +46,7 @@ function createUpstream(requests, responseState) {
       assert.strictEqual(request.method, 'GET');
       assert.strictEqual(request.headers.authorization, `Bearer ${SERVICE_TOKEN}`);
       response.end(JSON.stringify(request.url.includes('/config')
-        ? { settings: { enabled: false } }
+        ? { settings: { ...DEFAULT_TELEGRAM_VIEWER_SETTINGS, enabled: false } }
         : { events: [], nextSeq: 0 }));
       return;
     }
@@ -80,12 +81,14 @@ async function verifyResilientLoop() {
     recordHealthyPoll() { loopState.healthy += 1; },
     recordFailure(error) { loopState.failures.push(error); },
   };
-  await resilientLoop(async () => undefined, () => 250, loopService, 1);
-  await resilientLoop(async () => undefined, () => 0, loopService, 2);
-  await resilientLoop(async () => { throw new Error('short failure'); }, () => 250, loopService, 1);
-  await resilientLoop(async () => { throw 'non-error failure'; }, () => 250, loopService, 1);
+  await resilientLoop(() => Promise.resolve(), () => 250, loopService, 1);
+  await resilientLoop(() => Promise.resolve(), () => 0, loopService, 2);
+  await resilientLoop(() => Promise.reject(new Error('short failure')), () => 250, loopService, 1);
+  await resilientLoop(() => Promise.reject('non-error failure'), () => 250, loopService, 1);
   assert.strictEqual(loopState.healthy, 3);
   assert.strictEqual(loopState.failures.length, 2);
+  assert.strictEqual(loopState.failures[0].message, 'short failure');
+  assert.strictEqual(loopState.failures[1], 'non-error failure', 'Non-Error rejections retain their original diagnostic value.');
 }
 
 function verifyTrustedInternalTransport() {
@@ -168,12 +171,13 @@ async function verifyApiClients(upstreamUrl, requests, responseState) {
 
 async function verifyHealthServer(requests, activeBotToken) {
   const health = startTelegramViewerHealthServer({
-    host: '127.0.0.1', port: 0, serviceToken: SERVICE_TOKEN,
+    port: 0, serviceToken: SERVICE_TOKEN,
     status: () => ({ healthy: true, ready: true, enabled: false, lastError: null }),
   });
   await once(health, 'listening');
   const address = health.address();
   assert.ok(address && typeof address === 'object');
+  assert.equal(address.address, '127.0.0.1', 'Health server defaults to a local-only listener.');
   const base = `http://127.0.0.1:${address.port}`;
   let response = await fetch(`${base}/healthz`);
   assert.strictEqual(response.status, 200);
