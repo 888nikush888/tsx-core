@@ -47,7 +47,7 @@ function fakeCore() {
   };
   return {
     calls,
-    config: async () => { calls.push('config'); return { settings: structuredClone(SETTINGS) }; },
+    config: () => { calls.push('config'); return Promise.resolve({ settings: structuredClone(SETTINGS) }); },
     get: async (resource, query = {}) => {
       calls.push(`${resource}:${Number(query.offset || 0)}`);
       if (resource === 'events') return { events: Number(query.afterSeq || 0) < 1 ? [event] : [], nextSeq: 1 };
@@ -171,12 +171,12 @@ async function verifyViewerModes(directory, state) {
   const mutedState = new TelegramViewerStateRepository(path.join(directory, 'muted-state.db'));
   await mutedState.initialize();
   const mutedCore = fakeCore();
-  mutedCore.config = async () => ({
+  mutedCore.config = () => Promise.resolve(({
     settings: {
       ...structuredClone(SETTINGS),
       notifications: { ...structuredClone(SETTINGS.notifications), positionOpened: false },
     },
-  });
+  }));
   const mutedBot = fakeBot();
   const muted = new TelegramViewerService({ core: mutedCore, bot: mutedBot, state: mutedState });
   await muted.refreshSettings();
@@ -184,7 +184,7 @@ async function verifyViewerModes(directory, state) {
   assert.strictEqual(mutedBot.sent.length, 0, 'A disabled notification type must not be delivered.');
   await mutedState.close();
   const disabledCore = fakeCore();
-  disabledCore.config = async () => ({ settings: { ...structuredClone(SETTINGS), enabled: false } });
+  disabledCore.config = () => Promise.resolve(({ settings: { ...structuredClone(SETTINGS), enabled: false } }));
   const disabledBot = fakeBot();
   const disabled = new TelegramViewerService({ core: disabledCore, bot: disabledBot, state, now: () => 1_700_000_030_000 });
   await disabled.refreshSettings();

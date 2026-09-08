@@ -306,15 +306,15 @@ const catalogClient = new ExchangeCatalogClient(
   {
     baseUrl: 'http://127.0.0.1:8090',
     cacheTtlMs: 1_000,
-    fetchImpl: async (url, init) => {
+    fetchImpl: (url, init) => {
       requests.push({ url, init });
-      return {
+      return Promise.resolve({
         ok: true,
         status: 200,
         json: async () => url.endsWith('/v1/exchange-probe')
           ? { ...candidateCatalogEntry, reason: 'Public market probe completed.' }
           : executorCatalogPayload(candidateCatalogEntry),
-      };
+      });
     },
   },
 );
@@ -350,7 +350,7 @@ const concurrentCatalogClient = new ExchangeCatalogClient(
     fetchImpl: async () => {
       concurrentCatalogRequests += 1;
       await catalogRequestReleased;
-      return { ok: true, status: 200, json: async () => executorCatalogPayload(candidateCatalogEntry) };
+      return { ok: true, status: 200, json: () => Promise.resolve(executorCatalogPayload(candidateCatalogEntry)) };
     },
   },
 );

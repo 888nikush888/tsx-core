@@ -552,7 +552,7 @@ async function testAdverseEntrySlippageFlattens(directory) {
     if (request.role === 'flatten') remote.positions = [];
     return result;
   });
-  adapter.openState = async () => completeSafetyState(structuredClone(remote));
+  adapter.openState = () => Promise.resolve(completeSafetyState(structuredClone(remote)));
   const engine = new TradingEngine([adapter]);
   await engine.processIntent(intent.id);
   const blocked = await getTradingIntent(intent.id);
@@ -677,7 +677,7 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
     cancelledStopIds.add(clientOrderId);
     return orderResult(cancelled, 'cancelled', '0');
   };
-  adapter.openState = async () => completeSafetyState({
+  adapter.openState = () => Promise.resolve(completeSafetyState({
     orders: terminal
       ? [
         { ...orderSnapshot(entryRequest, 'cancelled', '0.1', '3050'), providerSymbol: entryRequest.symbol },
@@ -697,7 +697,7 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
       price: '3050', quantity: '0.1', fee: '0', feeAsset: 'USDT', filledAt: entryFilledAt, raw: {},
     }] : [],
     observedAt: Date.now(),
-  });
+  }));
   const engine = new TradingEngine([adapter]);
   await engine.processIntent(intent.id);
   assert.equal(entryRequest.maxSlippagePercent, '0.5', 'Entry requests must carry the provider-side slippage budget.');
@@ -1127,7 +1127,7 @@ async function testUnmanagedHistoryWithMissingClientIdsIsSafelyIsolated(director
   let includeUnknownFill = false;
   const adapter = {
     exchange: 'paper',
-    openState: async () => ({
+    openState: () => Promise.resolve(({
       orders: [
         terminalOrder('remote-order-b', 'cancelled'),
         terminalOrder('remote-order-a', 'filled'),
@@ -1145,7 +1145,7 @@ async function testUnmanagedHistoryWithMissingClientIdsIsSafelyIsolated(director
         raw: {},
       }] : [],
       observedAt: Date.now(),
-    }),
+    })),
   };
 
   await assert.rejects(new TradingEngine([adapter]).reconcileAccount(account.id), /unresolved.*evidence/i);

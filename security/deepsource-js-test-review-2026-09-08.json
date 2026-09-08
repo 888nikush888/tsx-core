@@ -43,7 +43,8 @@
     "Soak refactor: 39 exact original/current protocol comparisons; Node22 pure validation and isolated real CLI/evidence regressions passed, whole changed files complexity<=5 ESLint and diff checks passed.",
     "Sonar scope refactor: 484 exact original/current cases and all five Node22 Sonar suites passed; whole script complexity<=5 ESLint and diff checks passed. No Cloud mutation or production pin changes.",
     "UI route AST collector: Node22 artifact --check and UI register contract suite, whole script complexity<=5 ESLint and diff checks passed. No generated artifact changed.",
-    "Remaining async batch 1: 85 mapped local-value/counter/native-Promise fixtures, all 28 Node22 suites passed; ESLint and diff checks passed. Native MCP availablePort helper retains executor rejection and close-before-resolve."
+    "Remaining async batch 1: 85 mapped local-value/counter/native-Promise fixtures, all 28 Node22 suites passed; ESLint and diff checks passed. Native MCP availablePort helper retains executor rejection and close-before-resolve.",
+    "Remaining async batch 2: 21 traced local fixture/helper-return contracts, all 10 affected Node22 suites passed; ESLint and diff checks passed. No assertion or deliberate rejection contract changed."
   ],
   "entries": [
     {
@@ -5750,6 +5751,195 @@
       "status": "source_change_pending_rescan",
       "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
       "evidenceOriginalFunctionSha256": "e6473f501238236fc6b66ea2d97fe90e8ba5101bb78af05fa63be62420e86138"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlueWU=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1612,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "c9941064089a5afed19187308501dd6d2d0fbe382230ed652d1e6644c2133541"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFkd3g=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 245,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "98a1a4101c857d7138fe7bbe55e08683144adaaeadf5aeaacecd0f3513426151"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93bHI=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_risk_reservations.js",
+      "originalLine": 302,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "9d47a50d65f906415a262d6f8db2ca4e81a84ad6867d3b82bb8a96149a5ddad5"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlrdmo=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_risk_reservations.js",
+      "originalLine": 272,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "e434ca9459c977476b4ff7ac437af56b33cc2ed99f81dc31ce4e44e4ff80a4de"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvYXA=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_risk_reservations.js",
+      "originalLine": 235,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "e434ca9459c977476b4ff7ac437af56b33cc2ed99f81dc31ce4e44e4ff80a4de"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllZGQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1131,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "242ae8b627dd4b5786156271d62e466a30afe3ae2a8fc2f409997502a0e18d2d"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12dnE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 681,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "b762eafaaec6e638ae0b9df29bbadf4b6d4df2f07923828cd782ac81d94378ae"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtua3E=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 556,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "bfd180722f2a51a574592772b8c8c98797564c16747ee50118c6f8a33f73e534"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZveWo=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_execution_mode_fence.js",
+      "originalLine": 78,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "53f23f877601bdfeb8bd37e83c57bed12278b558d5b84d22849a66ac32997a97"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpwcWw=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_execution_constraints.js",
+      "originalLine": 29,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "f5db0f0d950c6500a316f7e38303e12f1409731c60ea6e61982116141808d343"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhrcmo=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 245,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "f71b9efb00b9828cbe02b0b5acc211c2816f77e0ad20e7210f5639719f3031ea"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvd3E=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_service.js",
+      "originalLine": 187,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "d4a1a059f334268dace8d996421e11afab5ab0f57b29e404d73a175a6a27abde"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpwd3c=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_service.js",
+      "originalLine": 174,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "74272d0ece3003c1edd3491dacb88d8b6e4c3f093fa7c639892b0472e872b1a8"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllbHg=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_service.js",
+      "originalLine": 50,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "9bb76b0557397e65b8a2e9273e9b45ee7e90e42443b7cd25435320e18686cf7e"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5cHE=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 262,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "5ecf86a0aca29ca466e04b509847b46dd047dd191814843e9cbdf742e6f42de0"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5ZXk=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 123,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "c1c45bf436597ea952caa919a46226e68fef9bbf32fc50b65640876f1c384b53"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4cXk=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 122,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "8f4245c1935539e7c7e36fc1bcdeb27e2dd9cd92d2d88bbb5604c7658b4617e5"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxeGU=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 113,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "823a42cfad53aeb3ee01611df8556636d13e15aca2af3d3e57c14c5c05c38692"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2bG0=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 99,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "2d403fc1af0dff7071272187a62c0ea558511b569c46fb77458412ce14850aac"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxZXE=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 354,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "c22ab7f21076159181d8bdf7dce423652bf622ccceacab7864669623b358e91d"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5a20=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 309,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually traced fixture helper to concrete local data: returns an explicit resolved Promise after the same snapshot/clone/catalog/clock/Response construction. Helpers contain no assertions or intentional rejection; all delegated provider/database/guard wrappers remain async. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "f7f8b9ec6b501a50665838d1db0698286772ed6df35ef3249ab70ef69da5a1ed"
     }
   ]
 }

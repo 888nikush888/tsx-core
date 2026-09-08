@@ -242,7 +242,7 @@ try {
       implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
       exchanges: catalogEntries,
     })),
-    probe: async exchange => catalogEntries.find(entry => entry.id === exchange),
+    probe: exchange => Promise.resolve(catalogEntries.find(entry => entry.id === exchange)),
   };
   const control = new TradingWebControl(
     credentials, paper, [hyperliquid, bybit], engine, entryRuntime, catalog,

@@ -1609,7 +1609,7 @@ async function createAppState(testDir, controls) {
       return path.join(testDir, 'backups', 'backup-test');
     },
     listBackups: () => Promise.resolve(['backup-2026-test']),
-    verifyBackup: async () => fixtureBackupProof(),
+    verifyBackup: () => Promise.resolve(fixtureBackupProof()),
     recoverOffsiteBackup: () => {
       controls.offsiteRecoveryCalls += 1;
       return Promise.resolve('backup-2026-recovered');

@@ -242,7 +242,7 @@ try {
   const terminalOperation = await prepareTradingOperation({ account: await getTradingAccount(terminalUnknown.accountId),
     intentId: terminalUnknown.id, kind: 'cancel', clientOrderIds: [terminalUnknown.id], request: { clientOrderId: terminalUnknown.id } });
   await transitionTradingOperation(terminalOperation, 'prepared', 'dispatching');
-  adapter.openState = async () => completeSafetyState();
+  adapter.openState = () => Promise.resolve(completeSafetyState());
   await assert.rejects(engine.cancelOpenEntries(terminalUnknown.accountId), /unresolved/,
     'Even a terminal local row remains a commitment without fresh exact evidence resolving its write journal.');
   adapter.openState = syntheticTerminalHistory;
