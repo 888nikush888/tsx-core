@@ -7,8 +7,8 @@
   "count": 847,
   "uniqueCount": 847,
   "dispositions": {
-    "pending-review": 591,
-    "fixed-pending-rescan": 246,
+    "pending-review": 588,
+    "fixed-pending-rescan": 249,
     "proposed-false-positive": 10
   },
   "sourceBinding": "Each entry path binds to baselineSha256 and reviewedSha256 in files. Fixed means local implementation only, not a platform closure. Pending entries are not reviewed or accepted.",
@@ -75,7 +75,7 @@
     },
     "frontend/tests/operator-maintenance-safety.test.tsx": {
       "baselineSha256": "2a69b7ab7d8474b70a73ae0a83321367d7c6d17e85008ebe5ea94f2b8fd02ae1",
-      "reviewedSha256": "9a091fe6104f4f0fcda3391a65d33c913809a8956cbcccb8ff84e477ba4246c9"
+      "reviewedSha256": "dc48c527a1fd1933391216d7f28c87f0c3d2e8240df0ea5febb7ebe19e6f9029"
     },
     "frontend/tests/operator-directory-regressions.test.tsx": {
       "baselineSha256": "9a7afcda69263ef24296d824aee2587f4e01b2daf7abe4672c84139d06a2ab1e",
@@ -247,7 +247,7 @@
     },
     "frontend/src/features/operations/jobs-page.tsx": {
       "baselineSha256": "7d65d0b97c6b785161a993ca2cf62d15e6107eebf179070c6c78b444cf1cf170",
-      "reviewedSha256": "7d65d0b97c6b785161a993ca2cf62d15e6107eebf179070c6c78b444cf1cf170"
+      "reviewedSha256": "559f8ff150b5da24b526d82934186ed8a8e7d59969b16067018249e794a5689e"
     },
     "frontend/src/features/operations/deployment.tsx": {
       "baselineSha256": "632992dc480131becf1401da6291a3e8f2def4fecd7a22771183a0c524a86665",
@@ -442,7 +442,7 @@
       "reviewedSha256": "c94cc506813b9ccacf5307fbd13ba4f81f085aad89910748b003989f49337499"
     }
   },
-  "implementationHead": "14b5e0e8f574b8adc67004e3353e7dc8608daac3",
+  "implementationHead": "6e42ecd047aec6b074627686849d0ed548d1a4be",
   "entries": [
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGVscXA=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndrcmU=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
@@ -874,10 +874,10 @@
     {"id": "T2NjdXJyZW5jZTpveWFrZGthb2w=", "rule": "JS-R1005", "path": "frontend/src/features/operations/logs.tsx", "line": 25, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "usePoll(read, payload => {"},
     {"id": "T2NjdXJyZW5jZTp4cmd5bnlnb3E=", "rule": "JS-R1005", "path": "frontend/src/features/operations/logs.tsx", "line": 9, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function Logs() {"},
     {"id": "T2NjdXJyZW5jZTprdnlxZHF5cHc=", "rule": "JS-R1005", "path": "frontend/src/features/operations/log-search.worker.ts", "line": 8, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "workerScope.onmessage = (event: MessageEvent<SearchRequest>) => {"},
-    {"id": "T2NjdXJyZW5jZTplYXhteW14bnY=", "rule": "JS-0323", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 45, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "{current && !id && <><EvidenceTable caption={`Aufträge · Beobachtung ${new Date(current.statesObservedAt ?? current.observedAt).toLocaleString('de-DE')}`} rows={current.jobs.map((entry: any) => ({ ...entry, link: <JobLink id={entry.id} />, stateLabel: JOB_STATES[entry.state] ?? entry.state, time: new Date(entry.updatedAt).toLocaleString('de-DE') })"},
-    {"id": "T2NjdXJyZW5jZTpwcXd4bnh3dmE=", "rule": "JS-0323", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 27, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const [value, setValue] = useState<any>(null); const [error, setError] = useState('');"},
+    {"id": "T2NjdXJyZW5jZTplYXhteW14bnY=", "rule": "JS-0323", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 45, "status": "fixed-pending-rescan", "rationale": "6e42ecd: JobsObservation distinguishes paginated and individual job responses inspected in uiJobsHandler/UiOperationStore; known parser, drill and restore evidence fields replace any. Raw evidence display remains unchanged. Nullable next cursor guarded. Two new regressions preserve read-only pagination and original restore evidence with separately observed process; all 307 frontend tests passed.", "evidence": "{current && !id && <><EvidenceTable caption={`Aufträge · Beobachtung ${new Date(current.statesObservedAt ?? current.observedAt).toLocaleString('de-DE')}`} rows={current.jobs.map((entry: any) => ({ ...entry, link: <JobLink id={entry.id} />, stateLabel: JOB_STATES[entry.state] ?? entry.state, time: new Date(entry.updatedAt).toLocaleString('de-DE') })"},
+    {"id": "T2NjdXJyZW5jZTpwcXd4bnh3dmE=", "rule": "JS-0323", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 27, "status": "fixed-pending-rescan", "rationale": "6e42ecd: JobsObservation distinguishes paginated and individual job responses inspected in uiJobsHandler/UiOperationStore; known parser, drill and restore evidence fields replace any. Raw evidence display remains unchanged. Nullable next cursor guarded. Two new regressions preserve read-only pagination and original restore evidence with separately observed process; all 307 frontend tests passed.", "evidence": "const [value, setValue] = useState<any>(null); const [error, setError] = useState('');"},
     {"id": "T2NjdXJyZW5jZTp3bXJ5d3lyb24=", "rule": "JS-R1005", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 25, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function JobsPage({ id }: Readonly<{ id?: string }>) {"},
-    {"id": "T2NjdXJyZW5jZTpqd2dxZHFncmE=", "rule": "JS-0323", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 11, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "function JobResult({ job }: Readonly<{ job: any }>) {"},
+    {"id": "T2NjdXJyZW5jZTpqd2dxZHFncmE=", "rule": "JS-0323", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 11, "status": "fixed-pending-rescan", "rationale": "6e42ecd: JobsObservation distinguishes paginated and individual job responses inspected in uiJobsHandler/UiOperationStore; known parser, drill and restore evidence fields replace any. Raw evidence display remains unchanged. Nullable next cursor guarded. Two new regressions preserve read-only pagination and original restore evidence with separately observed process; all 307 frontend tests passed.", "evidence": "function JobResult({ job }: Readonly<{ job: any }>) {"},
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGV3eXc=", "rule": "JS-R1005", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 11, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "function JobResult({ job }: Readonly<{ job: any }>) {"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndhZG0=", "rule": "JS-0323", "path": "frontend/src/features/operations/deployment.tsx", "line": 7, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const [data, setData] = useState<any>(null); const [error, setError] = useState('');"},
     {"id": "T2NjdXJyZW5jZTpsbXFuZG5xeXg=", "rule": "JS-R1005", "path": "frontend/src/features/operations/deployment.tsx", "line": 6, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function DeploymentEvidence() {"},
