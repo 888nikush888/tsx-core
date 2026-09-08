@@ -54,6 +54,6 @@ export function startTelegramViewerHealthServer(options: {
   });
   server.requestTimeout = 5_000;
   server.headersTimeout = 5_000;
-  server.listen(options.port ?? 8081, options.host ?? '0.0.0.0');
+  server.listen(options.port ?? 8081, options.host ?? '127.0.0.1');
   return server;
 }

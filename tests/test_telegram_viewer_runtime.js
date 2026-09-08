@@ -168,12 +168,13 @@ async function verifyApiClients(upstreamUrl, requests, responseState) {
 
 async function verifyHealthServer(requests, activeBotToken) {
   const health = startTelegramViewerHealthServer({
-    host: '127.0.0.1', port: 0, serviceToken: SERVICE_TOKEN,
+    port: 0, serviceToken: SERVICE_TOKEN,
     status: () => ({ healthy: true, ready: true, enabled: false, lastError: null }),
   });
   await once(health, 'listening');
   const address = health.address();
   assert.ok(address && typeof address === 'object');
+  assert.equal(address.address, '127.0.0.1', 'Health server defaults to a local-only listener.');
   const base = `http://127.0.0.1:${address.port}`;
   let response = await fetch(`${base}/healthz`);
   assert.strictEqual(response.status, 200);
