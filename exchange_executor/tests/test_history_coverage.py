@@ -33,7 +33,8 @@ class RetainedHyperliquid:
         self.saturated = saturated
         self.calls = []
 
-    def handle_public_address(self, *_args):
+    @staticmethod
+    def handle_public_address(*_args):
         return 'fixture-wallet', {}
 
     async def publicPostInfo(self, params):
@@ -50,7 +51,8 @@ class RetainedHyperliquid:
         return {'id': 'retained', 'coin': 'BTC', 'tid': 1, 'time': self.earliest, 'oid': 2,
                 'px': '10', 'sz': '1', 'side': 'B'}
 
-    def parse_trade(self, row):
+    @staticmethod
+    def parse_trade(row):
         return {**row, 'timestamp': row['time']}
 
 
@@ -75,7 +77,7 @@ class HistoryCoverageTests(unittest.IsolatedAsyncioTestCase):
             else:
                 retention = RetainedHyperliquid(None)
 
-                async def info(params):
+                async def info(params, *, retention=retention):
                     if params['type'] == 'perpDexs':
                         return [None]
                     if params['type'] == 'clearinghouseState':
@@ -88,7 +90,7 @@ class HistoryCoverageTests(unittest.IsolatedAsyncioTestCase):
                 rest.handle_public_address = retention.handle_public_address
                 rest.parse_trade = retention.parse_trade
 
-            async def account(value):
+            async def account(value, *, rest=rest):
                 return SimpleNamespace(rest=rest, account=value, account_identity=value['id'])
 
             adapter = CcxtAdapter(SimpleNamespace(account=account))

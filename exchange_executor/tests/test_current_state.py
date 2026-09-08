@@ -11,7 +11,7 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ccxt_adapter import CcxtAdapter
 from common import ExchangeContractError, IncompleteCurrentStateError, RequestDeadline
-from current_state import read_current_state
+from current_state import CurrentRead, read_current_state
 from server import execute
 
 
@@ -40,14 +40,16 @@ class PagedBybit:
     def safe_market(self, identifier, *_args):
         return next(row for row in self.markets.values() if row["id"] == identifier)
 
-    def raw(self, source, index, settle):
+    @staticmethod
+    def raw(source, index, settle):
         detail = market(index, settle)
         return {"id": f"order-{settle}-{index}", "symbol": detail["id"], "positionIdx": 0, "size": "1",
                 "side": "buy" if source == "orders" else "long", "amount": "1", "filled": "0", "status": "open",
                 "type": "limit", "price": "100", "average": None, "reduceOnly": False,
                 "contracts": "1", "entryPrice": "100", "unrealizedPnl": "0"}
 
-    def parse_order(self, raw, detail=None):
+    @staticmethod
+    def parse_order(raw, detail=None):
         return {**raw, "symbol": detail["symbol"]}
 
     parse_position = parse_order
@@ -74,13 +76,16 @@ class PagedBybit:
     async def privateGetV5OrderRealtime(self, params):
         return await self.page("orders", params)
 
-    async def fetch_positions(self):
+    @staticmethod
+    async def fetch_positions():
         return []  # Old wrapper path cannot prove all pages or settlements.
 
-    async def fetch_open_orders(self, *_args):
+    @staticmethod
+    async def fetch_open_orders(*_args):
         return []
 
-    async def fetch_my_trades(self, *_args):
+    @staticmethod
+    async def fetch_my_trades(*_args):
         return []
 
 
@@ -89,13 +94,16 @@ class HyperRest:
         self.calls = []
         self.change = lambda response, _params: response
 
-    def handle_public_address(self, *_args):
+    @staticmethod
+    def handle_public_address(*_args):
         return "0x" + "1" * 40, {}
 
-    def parse_order(self, row):
+    @staticmethod
+    def parse_order(row):
         return {**row, "id": str(row["oid"]), "symbol": row["coin"], "side": "buy"}
 
-    def parse_position(self, row):
+    @staticmethod
+    def parse_position(row):
         return {"symbol": row["position"]["coin"], "side": "long", "contracts": "1"}
 
     async def publicPostInfo(self, params):
@@ -109,6 +117,19 @@ class HyperRest:
 
 
 class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
+    async def test_unregistered_scope_fails_with_explicit_incomplete_evidence(self):
+        read = CurrentRead(SimpleNamespace(call=lambda operation: operation()))
+        read.begin("orders", ["registered"])
+
+        async def operation():
+            return []
+
+        with self.assertRaisesRegex(IncompleteCurrentStateError, "current_scope_unregistered"):
+            await read.call("orders", "missing", operation)
+        with self.assertRaisesRegex(IncompleteCurrentStateError, "current_scope_unregistered"):
+            read.complete("orders", "missing")
+        self.assertFalse(read.sources["orders"]["scopes"][0]["complete"])
+
     async def test_adapter_reads_all_current_bybit_pages_and_settlements(self):
         rest = PagedBybit()
         request = {"id": "fixture", "exchange": "bybit", "mode": "testnet"}
@@ -153,7 +174,7 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
         for change_quantity in (False, True):
             rest = PagedBybit(1, 205)
 
-            def changed(response, source, params):
+            def changed(response, source, params, *, change_quantity=change_quantity):
                 rows = response["result"]["list"]
                 if source == "positions" and params.get("cursor") == "199" and rows:
                     rows[0]["unrealizedPnl"] = "123"
@@ -198,7 +219,7 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
         for category, source in (("inverse", "positions"), ("option", "positions"), ("spot", "orders")):
             rest = PagedBybit(1, 1)
 
-            def foreign(response, kind, params):
+            def foreign(response, kind, params, *, category=category, source=source):
                 if kind == source and params["category"] == category:
                     response["result"]["list"] = [{"symbol": "foreign", "size": "1"}]
                 return response
@@ -221,7 +242,7 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
         for wrong in ("envelope", "scope", "discovery", "duplicate"):
             rest = HyperRest()
 
-            def invalid(response, params):
+            def invalid(response, params, *, wrong=wrong):
                 if params["type"] == "perpDexs":
                     if wrong == "discovery":
                         return []

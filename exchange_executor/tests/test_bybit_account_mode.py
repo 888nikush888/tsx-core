@@ -26,7 +26,8 @@ def rest(mode=5):
 
 
 class BybitAccountModeTests(unittest.IsolatedAsyncioTestCase):
-    def budget(self, remaining=5, deadline=30_000):
+    @staticmethod
+    def budget(remaining=5, deadline=30_000):
         return RecoveryReadBudget(RequestDeadline(int(time.time() * 1000) + deadline), remaining=remaining)
 
     async def test_raw_bound_observation_preserves_uid_and_no_secret_or_birth_claim(self):
