@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "sourceSha256": "e9185c01c1ae1a405c46b8a3f7b2711ed615921ef7dfae874ccf95830993a554",
+  "scope": "Three explicit-any occurrences in bounded review navigation.",
+  "reason": "Unknown review values are narrowed to object containers before own-key access. Arrays remain containers. Scalar display, protected-key checks, cursor binding, page sizes and surrogate-safe text boundaries are unchanged.",
+  "verification": [
+    "Node22 typecheck and targeted ESLint passed.",
+    "Existing UI change review suite passed, including own-key/prototype rejection, secret redaction, cross-scope cursor rejection, bounded object paging and long-text reconstruction."
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlrbnc=",
+      "rule": "JS-0323",
+      "path": "src/ui_review_tree.ts",
+      "baselineLine": 14,
+      "baselineColumn": 40,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRxdmo=",
+      "rule": "JS-0323",
+      "path": "src/ui_review_tree.ts",
+      "baselineLine": 7,
+      "baselineColumn": 13,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlhZG0=",
+      "rule": "JS-0323",
+      "path": "src/ui_review_tree.ts",
+      "baselineLine": 5,
+      "baselineColumn": 60,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    }
+  ]
+}
