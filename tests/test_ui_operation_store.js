@@ -34,8 +34,8 @@ async function tiedJobPagesSurviveReload() {
 async function failedJobReceiptsSurviveReload() {
   const failedDirectory = path.join(directory, 'failed-receipts');
   const store = new UiOperationStore(failedDirectory, 'failure-process-1');
-  let coercions = 0, commands = 0;
-  const opaqueFailure = { privateFixture: 'must-never-be-serialized', [Symbol.toPrimitive]() { coercions += 1; return 'unsafe'; } };
+  const counts = { coercions: 0, commands: 0 };
+  const opaqueFailure = { privateFixture: 'must-never-be-serialized', [Symbol.toPrimitive]() { counts.coercions += 1; return 'unsafe'; } };
   const cases = [
     ['operator-failure-error', new Error('Fixture backup could not be verified.'), 'Fixture backup could not be verified.'],
     ['operator-failure-object', opaqueFailure, 'A non-Error value was thrown; inspect the operation receipt for context.'],
@@ -43,7 +43,7 @@ async function failedJobReceiptsSurviveReload() {
   for (const [id, failure, expectedError] of cases) {
     const request = { id, kind: 'backup-drill', actorId: 'test:admin', scope: {}, request: { id } };
     assert.equal((await store.accept(request)).created, true);
-    await store.run(id, async () => { commands += 1; throw failure; });
+    await store.run(id, () => { counts.commands += 1; return Promise.reject(failure); });
     const reloaded = new UiOperationStore(failedDirectory, `reloaded-${id}`);
     const receipt = await reloaded.get(id);
     assert.equal(receipt.state, 'failed');
@@ -56,8 +56,8 @@ async function failedJobReceiptsSurviveReload() {
     assert.deepEqual(replay.job, receipt);
     await assert.rejects(reloaded.accept({ ...request, actorId: 'test:other' }), /another request/);
   }
-  assert.equal(coercions, 0, 'Persisting a failure never invokes arbitrary object conversion.');
-  assert.equal(commands, cases.length);
+  assert.equal(counts.coercions, 0, 'Persisting a failure never invokes arbitrary object conversion.');
+  assert.equal(counts.commands, cases.length);
 }
 try {
   await tiedJobPagesSurviveReload();

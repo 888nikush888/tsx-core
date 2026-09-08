@@ -12,6 +12,7 @@ const hold = deferred();
 const entered = deferred();
 const order = [];
 let capturedContext;
+const epoch = coordinator.entryEpoch('a');
 const first = coordinator.run('a', async context => {
   capturedContext = context;
   order.push('a1');
@@ -20,7 +21,6 @@ const first = coordinator.run('a', async context => {
   await coordinator.run('a', async () => { order.push('nested'); }, context);
   assert.throws(() => coordinator.assertEntryEpoch(context, epoch), /fence/i);
 });
-const epoch = coordinator.entryEpoch('a');
 await entered.promise;
 const second = coordinator.run('a', async () => { order.push('a2'); });
 await coordinator.run('b', async () => { order.push('b'); });

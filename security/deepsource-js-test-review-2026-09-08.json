@@ -14,7 +14,8 @@
     "18 MCP control stubs now detect unexpected dispatch; targeted Node22 MCP control-plane suite and ESLint/diff checks passed.",
     "UI register/route generators: both Node22 --check modes verify unchanged artifacts, UI register contract suite and ESLint/diff checks passed.",
     "22 individual literal foreign-language interpolation findings: four Node22 regression suites passed; no source change or remote suppression is appropriate.",
-    "22 primitive string fixture compositions: all six Node22 money/rational/account-log tests, ESLint error checks and diff checks passed."
+    "22 primitive string fixture compositions: all six Node22 money/rational/account-log tests, ESLint error checks and diff checks passed.",
+    "Nine closure/ordering/rejection findings: four targeted Node22 suites, ESLint error checks and diff checks passed."
   ],
   "entries": [
     {
@@ -2132,6 +2133,78 @@
       "originalLine": 41,
       "status": "source_change_pending_rescan",
       "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d293eG8=",
+      "rule": "JS-0129",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 198,
+      "status": "source_change_pending_rescan",
+      "proof": "Seeding helper receives its already-created adapter explicitly instead of capturing a later declaration; same adapter and database assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJkbnE=",
+      "rule": "JS-0129",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 195,
+      "status": "source_change_pending_rescan",
+      "proof": "Seeding helper receives its already-created adapter explicitly instead of capturing a later declaration; same adapter and database assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlkeHA=",
+      "rule": "JS-0129",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 185,
+      "status": "source_change_pending_rescan",
+      "proof": "Seeding helper receives its already-created adapter explicitly instead of capturing a later declaration; same adapter and database assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V3b28=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_operation_store.js",
+      "originalLine": 46,
+      "status": "source_change_pending_rescan",
+      "proof": "An explicit const counter object records callback invocation across cases; Promise.reject preserves original failure identity and existing durable-receipt/coercion assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFud2w=",
+      "rule": "JS-0073",
+      "path": "tests/test_ui_operation_store.js",
+      "originalLine": 46,
+      "status": "source_change_pending_rescan",
+      "proof": "An explicit const counter object records callback invocation across cases; Promise.reject preserves original failure identity and existing durable-receipt/coercion assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRnb2c=",
+      "rule": "JS-0129",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 21,
+      "status": "source_change_pending_rescan",
+      "proof": "Initial epoch is captured before registering the callback; entryEpoch is a side-effect-free read and run does not change epochs, so the fence assertion is identical."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtrcm0=",
+      "rule": "JS-0116",
+      "path": "tests/test_ccxt_exchange.js",
+      "originalLine": 86,
+      "status": "source_change_pending_rescan",
+      "proof": "Explicit rejected Promise preserves non-Error transport failure identity and no-mutation-retry assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5bWs=",
+      "rule": "JS-0073",
+      "path": "tests/test_ccxt_exchange.js",
+      "originalLine": 81,
+      "status": "source_change_pending_rescan",
+      "proof": "An explicit const counter object records invocation across cases; rejected Promise preserves failure identity and exact retry-count/no-coercion assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29vZWo=",
+      "rule": "JS-0116",
+      "path": "tests/test_ccxt_exchange.js",
+      "originalLine": 81,
+      "status": "source_change_pending_rescan",
+      "proof": "An explicit const counter object records invocation across cases; rejected Promise preserves failure identity and exact retry-count/no-coercion assertions."
     }
   ]
 }

@@ -179,10 +179,10 @@ try {
     { accountId: thirdAccount.id, fallbackRank: 2, fallbackOn: [], routeGroupKey: fallbackGroup.key },
   ]);
 
-  async function seedActivePosition(account, symbol, suffix) {
+  async function seedActivePosition(adapter, account, symbol, suffix) {
     const sourceSignalId = `capacity-seed-${suffix}`;
     await saveSignal(sourceSignalId, '-100-fallback-a', 100 + suffix.length, '<signal/>', '<signal/>');
-    await paper.setMarket(account.id, {
+    await adapter.setMarket(account.id, {
       symbol, markPrice: '1', priceTick: '0.001', quantityStep: '0.001',
       minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
     });
@@ -192,10 +192,10 @@ try {
         targets: [{ min: '1.1', max: '1.1' }, { min: '1.2', max: '1.2' }], stopLoss: '0.5' },
     });
     assert.equal(intent.accountId, account.id);
-    await new TradingEngine([paper]).processIntent(intent.id);
+    await new TradingEngine([adapter]).processIntent(intent.id);
     const opened = await getTradingIntent(intent.id);
     assert.equal(opened.status, 'monitoring', JSON.stringify(opened));
-    assert.ok((await paper.openState(account)).positions.some(position => position.symbol === symbol));
+    assert.ok((await adapter.openState(account)).positions.some(position => position.symbol === symbol));
     return intent.id;
   }
 
@@ -444,7 +444,7 @@ try {
   )).count), 0, 'Risk and runtime gates must stop the route instead of activating fallback.');
   await updateTradingRuntimeState({ executionEnabled: true });
 
-  const capacitySeedIntentId = await seedActivePosition(primaryAccount, 'OTHERUSDT', 'full');
+  const capacitySeedIntentId = await seedActivePosition(paper, primaryAccount, 'OTHERUSDT', 'full');
   await getDatabase().run(
     'UPDATE trading_accounts SET max_concurrent_positions = 1 WHERE id = ?',
     [primaryAccount.id],
@@ -711,7 +711,7 @@ try {
   const releaseControl = new TradingWebControl(new TradingCredentialStore(directory), paper, [], engine);
   await releaseControl.releaseAccountKillSwitch({ id: primaryAccount.id, confirmation: 'RELEASE ACCOUNT KILL SWITCH' });
 
-  await seedActivePosition(primaryAccount, 'DOTUSDT', 'owned');
+  await seedActivePosition(paper, primaryAccount, 'DOTUSDT', 'owned');
   await paper.setMarket(fallbackAccount.id, {
     symbol: 'DOTUSDT', markPrice: '10', priceTick: '0.01', quantityStep: '0.01',
     minimumQuantity: '0.01', minimumNotional: '10', maxLeverage: 50,
