@@ -30,7 +30,7 @@ async function isExistingFile(candidate) {
 
 async function resolveLocalImport(importer, specifier) {
   const base = path.resolve(path.dirname(importer), specifier.replace(/\.js$/, ''));
-  const candidates = [`${base}.ts`, path.join(base, 'index.ts')];
+  const candidates = [`${base}.ts`, `${base}.d.ts`, path.join(base, 'index.ts'), path.join(base, 'index.d.ts')];
   for (const candidate of candidates) {
     if (await isExistingFile(candidate)) return candidate;
   }

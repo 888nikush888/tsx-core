@@ -26,6 +26,12 @@ assert.deepEqual(architectureLayerViolations(new Map([
 const { graph, violations } = await analyzeArchitecture();
 assert.ok(graph.has('forwarder.ts'));
 assert.ok(graph.has('db.ts'));
+assert.ok(graph.has('workflow_repository_rows.d.ts'), 'Declaration modules remain in the architecture graph.');
+assert.ok(graph.get('workflow_repository.ts').includes('workflow_repository_rows.d.ts'));
+assert.ok(graph.get('workflow_repository_rows.d.ts').includes('trading_types.ts'));
+assert.deepEqual(findCycle(new Map([
+  ['runtime.ts', ['contracts.d.ts']], ['contracts.d.ts', ['runtime.ts']],
+])), ['runtime.ts', 'contracts.d.ts', 'runtime.ts'], 'Declaration edges cannot hide cycles.');
 assert.deepEqual(violations, []);
 
 console.log('Architecture fitness tests passed.');
