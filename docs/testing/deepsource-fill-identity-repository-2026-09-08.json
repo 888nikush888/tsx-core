@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
   "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
-  "scope": "Explicit any and non-null occurrences; remaining complexity/style handled separately.",
+  "scope": "All 19 baseline occurrences in trading_fill_identity_repository.ts; source fixes pending cloud rescan.",
   "verification": [
     "Node22 tsc --noEmit",
     "Node22 tests/test_trading_fill_identity_backfill.js",
     "Node22 tests/test_trading_fill_identity.js",
-    "Node22 tests/test_fill_identity_contract_guards.js"
+    "Node22 tests/test_fill_identity_contract_guards.js",
+    "Node22 ESLint complete module with local complexity maximum 5; repository rules unchanged"
   ],
   "occurrences": [
     {
@@ -15,7 +16,7 @@
       "path": "src/trading_fill_identity_repository.ts",
       "baselineLine": 178,
       "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
-      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
       "disposition": "fixed",
       "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
     },
@@ -25,7 +26,7 @@
       "path": "src/trading_fill_identity_repository.ts",
       "baselineLine": 164,
       "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
-      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
       "disposition": "fixed",
       "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
     },
@@ -35,7 +36,7 @@
       "path": "src/trading_fill_identity_repository.ts",
       "baselineLine": 103,
       "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
-      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
       "disposition": "fixed",
       "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
     },
@@ -45,7 +46,7 @@
       "path": "src/trading_fill_identity_repository.ts",
       "baselineLine": 29,
       "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
-      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
       "disposition": "fixed",
       "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
     },
@@ -55,7 +56,7 @@
       "path": "src/trading_fill_identity_repository.ts",
       "baselineLine": 22,
       "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
-      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
       "disposition": "fixed",
       "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
     },
@@ -65,7 +66,7 @@
       "path": "src/trading_fill_identity_repository.ts",
       "baselineLine": 21,
       "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
-      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
       "disposition": "fixed",
       "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
     },
@@ -75,9 +76,141 @@
       "path": "src/trading_fill_identity_repository.ts",
       "baselineLine": 21,
       "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
-      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
       "disposition": "fixed",
       "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpyb3g=",
+      "rule": "JS-R1005",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 170,
+      "baselineColumn": 23,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Separates stored proof comparison and uncertainty handling; malformed original data remains unresolved and paper historical proof retains original fallback order."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnltZHE=",
+      "rule": "JS-W1042",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 162,
+      "baselineColumn": 92,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Optional cursor argument is omitted for the same wraparound initial page."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlhcmQ=",
+      "rule": "JS-R1005",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 157,
+      "baselineColumn": 33,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Database cursor collection and cursor advancement have separate helpers; original transaction, 500 attempts, keyset rotation, and restart behavior are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR4cGc=",
+      "rule": "JS-0116",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 148,
+      "baselineColumn": 1,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Explicit await preserves promise rejection and completion while making asynchronous database operation clear."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl2cnk=",
+      "rule": "JS-R1005",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 129,
+      "baselineColumn": 34,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Separates caught original-proof failures from additive binding transaction; duplicate remote keys and original raw/account fingerprint predicates still precede or fence every update."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VtcHY=",
+      "rule": "JS-0116",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 128,
+      "baselineColumn": 8,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Explicit await preserves promise rejection and completion while making asynchronous database operation clear."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFscXg=",
+      "rule": "JS-R1005",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 116,
+      "baselineColumn": 16,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Paper proof and original live-account journal proof have separate paths; current credentials never invent original fill identity."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9ycHI=",
+      "rule": "JS-R1005",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 86,
+      "baselineColumn": 10,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Separates acknowledgement envelope decoding from unique matching; direct original response remains eligible only when journal payload is null."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxwYWE=",
+      "rule": "JS-R1005",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 72,
+      "baselineColumn": 10,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Separates intact request hash/generation, original leg matching, unique expected IDs/logical key, and original acknowledgement proofs; every predicate remains required."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnltd2o=",
+      "rule": "JS-R1005",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 64,
+      "baselineColumn": 10,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Compares the fixed original leg scalar fields with strict equality in original order, then decimal quantity; no scalar coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhwb2Q=",
+      "rule": "JS-0066",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 56,
+      "baselineColumn": 10,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Regex result is compared explicitly with null before capture access; matching semantics unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFsd2o=",
+      "rule": "JS-R1005",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 34,
+      "baselineColumn": 10,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "6a41519e2e95f609a846c725c0aece51860e3e5ab63faed9f0e815b90ee05332",
+      "disposition": "fixed",
+      "reason": "Provider-specific original metadata validators are separated; Bybit linear namespace, Hyperliquid native coin/time and Kraken original execution provenance remain required."
     }
   ]
 }
