@@ -28,7 +28,7 @@ function ParameterEvidence({ entry }: Readonly<{ entry: any }>) {
     return 'Original, Deployment oder feste Sicherheitsgrenze';
   };
   return <EvidenceFields fields={[
-          ['Typ und Einheit', entry.type + (entry.unit ? ' · ' + entry.unit : '')], ['Grenzen', entry.constraints],
+          ['Typ und Einheit', `${entry.type}${entry.unit ? ` · ${entry.unit}` : ''}`], ['Grenzen', entry.constraints],
           ['Vorlage / Default', entry.defaultPresent ? show(entry.default) : 'Kein Wert vorgegeben; Pflichtfeld oder bedingter Validatorstandard.'],
           ['Leer / null / 0', entry.emptyMeaning], ['Quelle', entry.source], ['Scope', entry.scope], ['Wirkung', entry.effect],
     ['Bearbeitung', editingContract()],

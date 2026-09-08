@@ -23,10 +23,10 @@ function SourceEvidence({ id, channelId }: Readonly<{ id: string; channelId?: st
   if (channelId) { query.set('channelId', channelId); } if (cursor) { query.set('cursor', cursor); }
   const { data, error } = useAdaptive(query.toString());
   return <section className="space-y-3"><h3>Originale Datenbasis</h3>{error && <p role="alert">{error}</p>}
-    {data && <>{data.sourceAvailable ? <><p>Originalhash geprüft: {data.sourceHash}. Das prüft die gespeicherte Herkunft; nachträgliche Änderungen an Geldereignissen werden von der Engine gesondert geprüft.</p>
+    {data && (data.sourceAvailable ? <><p>Originalhash geprüft: {data.sourceHash}. Das prüft die gespeicherte Herkunft; nachträgliche Änderungen an Geldereignissen werden von der Engine gesondert geprüft.</p>
       <ChangeReview label="Kapitalbasis und Auswertungszeitraum" after={{ capital: data.capital, scope: data.scope }} />
       <EvidenceTable caption={`Ursprüngliche Positionsquellen (${data.sourceCount})`} columns={[['intentId', 'Trade'], ['closedAt', 'Abgeschlossen'], ['projectionHash', 'Abrechnungshash'], ['valuationHash', 'Bewertungshash']]} rows={data.entries.map((row: any) => ({ ...row, intentId: <Link to={`/trading/trades/${encodeURIComponent(row.intentId)}`}>{row.intentId}</Link>, closedAt: time(row.closedAt) }))} />
-      <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => setCursor('')}>Erste Quellen</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setCursor(data.nextCursor)}>Weitere Quellen</button></div></> : <p>{data.reason}</p>}</>}
+      <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => setCursor('')}>Erste Quellen</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setCursor(data.nextCursor)}>Weitere Quellen</button></div></> : <p>{data.reason}</p>)}
   </section>;
 }
 function ActivePolicyPaths({ stateKey }: Readonly<{ stateKey: string }>) {

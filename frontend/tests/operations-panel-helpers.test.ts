@@ -108,13 +108,13 @@ describe("buildJournalQueryString", () => {
       symbol: "eth/usdt",
       status: "filled",
     });
-    const p = new URLSearchParams(qs);
-    expect(p.get("from")).toBeDefined();
-    expect(p.get("to")).toBeDefined();
-    expect(p.get("channelId")).toBe("c1");
-    expect(p.get("accountId")).toBe("a1");
-    expect(p.get("symbol")).toBe("ETHUSDT");
-    expect(p.get("status")).toBe("filled");
+    const parameters = new URLSearchParams(qs);
+    expect(parameters.get("from")).toBeDefined();
+    expect(parameters.get("to")).toBeDefined();
+    expect(parameters.get("channelId")).toBe("c1");
+    expect(parameters.get("accountId")).toBe("a1");
+    expect(parameters.get("symbol")).toBe("ETHUSDT");
+    expect(parameters.get("status")).toBe("filled");
   });
 });
 

@@ -1968,8 +1968,7 @@ export function ResourceEditor({
             </div>
           )}
           {kind === "strategy" && (
-            <>
-              {strategyDraft ? (
+            strategyDraft ? (
                 <>
                   {strategyDraft.allowedSignalSchemas.length === 0 && (
                     <Alert variant="destructive">
@@ -1995,8 +1994,7 @@ export function ResourceEditor({
                     Die gewählte Strategieversion ist nicht verfügbar.
                   </AlertDescription>
                 </Alert>
-              )}
-            </>
+              )
           )}
           {kind === "sizing" && (
             <div className="builder-field-grid three">
