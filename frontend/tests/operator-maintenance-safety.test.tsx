@@ -1,3 +1,4 @@
+import { fixtureValue } from "./fixture-value";
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -26,8 +27,8 @@ async function refreshVisiblePage() {
 async function acceptRestore() {
   fireEvent.click(await screen.findByRole('button', { name: 'Wiederherstellen' }));
   const dialog = await screen.findByRole('dialog');
-  fireEvent.change(dialog.querySelector('input')!, { target: { value: 'RESTORE' } });
-  fireEvent.click(screen.getAllByRole('button', { name: 'Wiederherstellen' }).at(-1)!);
+  fireEvent.change(fixtureValue(dialog.querySelector('input'), 'restore confirmation input'), { target: { value: 'RESTORE' } });
+  fireEvent.click(fixtureValue(screen.getAllByRole('button', { name: 'Wiederherstellen' }).at(-1), 'restore confirmation button'));
 }
 
 describe('operator maintenance safety', () => {
@@ -69,7 +70,7 @@ describe('operator maintenance safety', () => {
   });
 
   it('retains the restore receipt address after a lost response and only repeats reads', async () => {
-    const read = api.jsonRequest.getMockImplementation()!;
+    const read = fixtureValue(api.jsonRequest.getMockImplementation(), 'default API implementation');
     api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
       if (init?.method === 'POST') throw new TypeError('Verbindung verloren');
       return read(url, init);
@@ -94,7 +95,7 @@ describe('operator maintenance safety', () => {
   });
 
   it('reports an accepted backup as a pending job without inventing a completed artifact', async () => {
-    const read = api.jsonRequest.getMockImplementation()!;
+    const read = fixtureValue(api.jsonRequest.getMockImplementation(), 'default API implementation');
     api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => init?.method === 'POST' ? { job: { state: 'accepted' } } : read(url, init));
     mount(<BackupsPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Jetzt sichern' }));
@@ -131,7 +132,7 @@ describe('operator maintenance safety', () => {
   });
 
   it('preserves a factory-reset job ID when acceptance is unknown, without replaying reset', async () => {
-    const read = api.jsonRequest.getMockImplementation()!;
+    const read = fixtureValue(api.jsonRequest.getMockImplementation(), 'default API implementation');
     api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
       if (url === '/api/factory-reset') throw new TypeError('Verbindung verloren');
       return read(url, init);

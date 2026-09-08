@@ -1,3 +1,4 @@
+import { fixtureValue } from "./fixture-value";
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -66,7 +67,7 @@ describe('operator shell permission and connection evidence', () => {
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Matching resource' } });
     expect(await screen.findByRole('link', { name: 'Matching resource' })).toBeVisible();
     expect(screen.getByText('Keine Treffer für diese Auswahl.')).toBeVisible();
-    const request = api.jsonRequest.mock.calls.find(([url]) => url.startsWith('/api/ui/search'))!;
+    const request = fixtureValue(api.jsonRequest.mock.calls.find(([url]) => url.startsWith('/api/ui/search')), 'search read request');
     expect(request[0]).not.toContain('Matching');
     expect(request[1].headers['X-UI-Search']).toBe('Matching%20resource');
     expect(window.location.search).toBe('');

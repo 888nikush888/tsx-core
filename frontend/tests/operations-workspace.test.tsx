@@ -1,3 +1,4 @@
+import { fixtureValue } from "./fixture-value";
 import "@testing-library/jest-dom/vitest"
 import { cleanup, fireEvent, render as baseRender, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -293,9 +294,9 @@ describe("operations workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sperre prüfen & lösen" }))
     await screen.findByRole("heading", { name: "Globale Sperre lösen" })
     const buttons = screen.getAllByRole("button", { name: "Sperre prüfen & lösen" })
-    const confirmation = buttons.find(button => button.hasAttribute("disabled"))!
+    const confirmation = fixtureValue(buttons.find(button => button.hasAttribute("disabled")), 'disabled confirmation button')
     expect(confirmation).toBeDisabled()
-    fireEvent.change(screen.getByLabelText(/Zur Bestätigung exakt „RELEASE GLOBAL KILL SWITCH“/), {
+    fireEvent.change(screen.getByLabelText(/Zur Bestätigung exakt „RELEASE GLOBAL KILL SWITCH“/u), {
       target: { value: "RELEASE GLOBAL KILL SWITCH" },
     })
     expect(confirmation).toBeEnabled()

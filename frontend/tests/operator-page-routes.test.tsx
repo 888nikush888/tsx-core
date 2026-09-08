@@ -1,3 +1,4 @@
+import { fixtureValue } from "./fixture-value";
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -75,7 +76,7 @@ describe('operator route selection', () => {
     ['/risk/adaptive', 'adaptive', {}],
   ] as const)('selects %s and preserves its object context', (path, page, props) => {
     const { container } = open(path);
-    expect(JSON.parse(container.textContent!)).toMatchObject({ page, ...props });
+    expect(JSON.parse(fixtureValue(container.textContent, 'rendered route text'))).toMatchObject({ page, ...props });
   });
 
   it.each([
@@ -84,7 +85,7 @@ describe('operator route selection', () => {
     ['/operations/logs', 'logs'], ['/operations/settings', 'system'],
   ])('keeps %s in its scoped operations workspace', (path, tab) => {
     const { container } = open(path);
-    expect(JSON.parse(container.textContent!)).toMatchObject({ page: 'workspace', initialTab: tab, availableTabs: [tab], filtersOpen: true });
+    expect(JSON.parse(fixtureValue(container.textContent, 'rendered route text'))).toMatchObject({ page: 'workspace', initialTab: tab, availableTabs: [tab], filtersOpen: true });
   });
 
   it('mounts account evidence alongside configuration with the same decoded identity', () => {
@@ -95,7 +96,7 @@ describe('operator route selection', () => {
 
   it('preserves admin access and lazy embedded builder mode', async () => {
     const { container, unmount } = open('/trading/trades/id', false);
-    expect(JSON.parse(container.textContent!)).toMatchObject({ page: 'trade', readOnly: false });
+    expect(JSON.parse(fixtureValue(container.textContent, 'rendered route text'))).toMatchObject({ page: 'trade', readOnly: false });
     unmount();
     open('/workflows/builder');
     expect(await screen.findByText('{"page":"builder","embedded":true}')).toBeVisible();

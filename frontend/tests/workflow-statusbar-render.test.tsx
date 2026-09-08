@@ -38,7 +38,7 @@ describe("WorkspaceStatusbar rendering", () => {
   it("renders analytics fallback and triggers refresh", async () => {
     const onRefresh = vi.fn(async () => undefined);
     const { container } = render(
-      <WorkspaceStatusbar workspace="analytics" onRefresh={onRefresh} trading={null} systemStatus={null} refreshing={true} lastUpdated={null} />,
+      <WorkspaceStatusbar workspace="analytics" onRefresh={onRefresh} trading={null} systemStatus={null} refreshing lastUpdated={null} />,
     );
     expect(container.textContent).toContain("Analytics");
     expect(container.textContent).toContain("noch nicht aktualisiert");
