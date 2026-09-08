@@ -27,7 +27,8 @@
     "Follow-up on Promise literal stubs: 21 optional undefined arguments omitted from Promise.resolve to avoid introducing JS-W1042; all six affected Node22 suites and ESLint/diff checks passed. Baseline IDs unchanged.",
     "Final two owned string concatenations and two Unicode flags: rational, full Node22/Python3.12 build bridge, operator and repository-governance tests passed; 11141120 Unicode comparisons and ESLint/diff checks passed.",
     "License gate: new registered malformed-input and production/build policy regressions pass; original null-match/null-metadata crashes reproduced; 68 valid before/after policy cases unchanged, current 1079-artifact inventory and supply-chain policy pass. Whole changed script/test complexity<=5 and ESLint/diff checks pass.",
-    "Three stateless adapter instance methods and one deferred parameter capture individually reviewed against interface and execution order; corresponding full trading-control/scheduler suites passed during the 36-suite rejection review."
+    "Three stateless adapter instance methods and one deferred parameter capture individually reviewed against interface and execution order; corresponding full trading-control/scheduler suites passed during the 36-suite rejection review.",
+    "Three parameter/literal-only response stubs: full Node22 web-server and dynamic-registry suites plus ESLint/diff checks passed."
   ],
   "entries": [
     {
@@ -4385,6 +4386,30 @@
       "proof": "The default runTest arrow captures error without reading it during parameter initialization. The closure runs only from the function body after all parameter bindings, including error, are initialized; the full scheduler error/failure contract suite passed.",
       "evidenceLineSha256": "4e67623f03fd95b5ee4e3db5203a8cbdd39b89edda7aabeead955d508d99b334",
       "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhueW0=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 309,
+      "status": "source_change_pending_rescan",
+      "proof": "Fresh literal response object contains only already-bound simple parameter values and literals; explicit Promise.resolve preserves fresh Promise/result identity without getters, calls, captured bindings or throwing parameter initializers."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlkZXk=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 185,
+      "status": "source_change_pending_rescan",
+      "proof": "Fresh literal response object contains only already-bound simple parameter values and literals; explicit Promise.resolve preserves fresh Promise/result identity without getters, calls, captured bindings or throwing parameter initializers."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5eG0=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 467,
+      "status": "source_change_pending_rescan",
+      "proof": "Fresh literal response object contains only already-bound simple parameter values and literals; explicit Promise.resolve preserves fresh Promise/result identity without getters, calls, captured bindings or throwing parameter initializers."
     }
   ]
 }

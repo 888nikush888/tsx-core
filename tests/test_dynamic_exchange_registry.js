@@ -463,7 +463,7 @@ try {
         },
       ],
     })),
-    probe: async exchange => ({ id: exchange, status: 'candidate' }),
+    probe: exchange => Promise.resolve({ id: exchange, status: 'candidate' }),
   };
   const control = new TradingWebControl(
     credentials,

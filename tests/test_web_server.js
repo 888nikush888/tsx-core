@@ -182,7 +182,7 @@ async function testOperatorReadContracts(baseUrl, appState) {
   ];
   appState.tradingControl = {
     snapshot: () => Promise.resolve(({ strategies: [], positions: [] })),
-    portfolioSnapshot: async refresh => ({ refresh, positions: [] }),
+    portfolioSnapshot: refresh => Promise.resolve({ refresh, positions: [] }),
   };
   try {
     response = await fetch(`${baseUrl}/api/trading`, { headers: headers(VIEWER_TOKEN) });
@@ -306,7 +306,7 @@ async function testExchangeCatalogApi(baseUrl, appState) {
         modes: id === 'paper' ? ['paper'] : ['testnet', 'live'], capabilities: {},
       })),
     }),
-    probeExchange: async exchange => ({ id: exchange, status: 'candidate' }),
+    probeExchange: exchange => Promise.resolve({ id: exchange, status: 'candidate' }),
   };
   try {
     response = await fetch(`${baseUrl}/api/exchanges/catalog`, { headers: headers(VIEWER_TOKEN) });
