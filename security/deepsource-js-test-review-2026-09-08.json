@@ -10,7 +10,8 @@
     "Node22: all 19 Promise literal/empty stub modified test files passed; ESLint error checks and git diff --check passed",
     "Five scoped immutability/import/Unicode changes: all five targeted Node22 tests, ESLint error checks and diff checks passed.",
     "Ten money-fixture/rejection findings: five targeted Node22 tests, ESLint error checks and diff checks passed.",
-    "62 explicit empty-hook return contracts: all 23 scoped Node22 test files passed, including Python FX bridge under exact-lock Python3.12; ESLint error checks and diff checks passed."
+    "62 explicit empty-hook return contracts: all 23 scoped Node22 test files passed, including Python FX bridge under exact-lock Python3.12; ESLint error checks and diff checks passed.",
+    "18 MCP control stubs now detect unexpected dispatch; targeted Node22 MCP control-plane suite and ESLint/diff checks passed."
   ],
   "entries": [
     {
@@ -1460,6 +1461,150 @@
       "originalLine": 99,
       "status": "source_change_pending_rescan",
       "proof": "AST-confirmed empty synchronous arrow now explicitly returns undefined; no shadowing binding exists, hook arguments and return contract are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxscmU=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 200,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5a24=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 199,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4a2s=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 198,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxb3E=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 194,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2b3k=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 193,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqcGE=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 192,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtrbnA=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 191,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5dm0=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 190,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29veGc=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 189,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJybng=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 188,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5eGo=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 187,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkZ3I=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 186,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5eWc=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 185,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VlZXI=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 180,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFhYWU=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 179,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tbW8=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 178,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vb2o=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 177,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxsbGU=",
+      "rule": "JS-0057",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 176,
+      "status": "source_change_pending_rescan",
+      "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
     }
   ]
 }

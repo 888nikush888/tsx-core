@@ -163,6 +163,7 @@ try {
      ) VALUES ('agent-contract:v1', 'agent-contract', 1, 'draft', '{}', ?, ?)`,
     ['a'.repeat(64), Date.now()],
   );
+  const unexpectedCalls = [];
   const fakeControl = {
     createSignalContract(payload) {
       calls.push(['create', payload]);
@@ -173,31 +174,31 @@ try {
       calls.push(['publish', versionId]);
       return { id: versionId, status: 'published' };
     },
-    archiveSignalContract() {},
-    removeSignalContractDraft() {},
-    removeSignalContractVersion() {},
-    createSignalContractVersion() {},
-    duplicateSignalContract() {},
+    archiveSignalContract() { unexpectedCalls.push('archiveSignalContract'); },
+    removeSignalContractDraft() { unexpectedCalls.push('removeSignalContractDraft'); },
+    removeSignalContractVersion() { unexpectedCalls.push('removeSignalContractVersion'); },
+    createSignalContractVersion() { unexpectedCalls.push('createSignalContractVersion'); },
+    duplicateSignalContract() { unexpectedCalls.push('duplicateSignalContract'); },
     createSignalSchema(payload) {
       calls.push(['schema', payload]);
       return { id: payload.id };
     },
-    updateSignalSchema() {},
-    removeSignalSchema() {},
-    createStrategy() {},
-    updateStrategy() {},
-    publishStrategy() {},
-    archiveStrategy() {},
-    removeStrategy() {},
-    setRoute() {},
-    removeRoute() {},
-    setChannelRiskPolicy() {},
+    updateSignalSchema() { unexpectedCalls.push('updateSignalSchema'); },
+    removeSignalSchema() { unexpectedCalls.push('removeSignalSchema'); },
+    createStrategy() { unexpectedCalls.push('createStrategy'); },
+    updateStrategy() { unexpectedCalls.push('updateStrategy'); },
+    publishStrategy() { unexpectedCalls.push('publishStrategy'); },
+    archiveStrategy() { unexpectedCalls.push('archiveStrategy'); },
+    removeStrategy() { unexpectedCalls.push('removeStrategy'); },
+    setRoute() { unexpectedCalls.push('setRoute'); },
+    removeRoute() { unexpectedCalls.push('removeRoute'); },
+    setChannelRiskPolicy() { unexpectedCalls.push('setChannelRiskPolicy'); },
     removeChannelRiskPolicy(channelId) {
       if (channelId === '-failing-risk') throw new Error('risk deletion rejected');
     },
-    reconcile() {},
-    cancelEntries() {},
-    setRuntime() {},
+    reconcile() { unexpectedCalls.push('reconcile'); },
+    cancelEntries() { unexpectedCalls.push('cancelEntries'); },
+    setRuntime() { unexpectedCalls.push('setRuntime'); },
     emergencyFlatten(payload) {
       calls.push(['flatten', payload]);
       return 2;
@@ -356,6 +357,7 @@ try {
   assert.match(failedProposalResult.error, /risk deletion rejected/);
   assert.ok(auditEvents.some(event => event.requestId === failedProposal.id && event.outcome === 'failed'));
   await bridge.stop();
+  assert.deepEqual(unexpectedCalls, [], 'Preflight and rejected proposals must not dispatch unrelated control mutations.');
 
   const pausedSession = await connectMcpSession({
     id: 'mcp-paused-session',
