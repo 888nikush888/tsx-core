@@ -397,7 +397,7 @@ function testContractPatternExecution() {
   ]) assert.doesNotThrow(() => check(pattern, value));
   assert.throws(() => check('^BUY$', 'SELL'), /required pattern/);
   definition.additionalFields = Array.from({ length: 30 }, (_, index) => ({
-    path: `note_${String.fromCodePoint(97 + Math.floor(index / 26), 97 + index % 26)}`,
+    path: `note_${index}`,
     type: 'text', required: true, allowedValues: [], pattern: '^a$',
   }));
   const multiXml = `<signal><action>LONG</action><pair>BTCUSD</pair>

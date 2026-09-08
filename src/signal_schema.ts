@@ -96,7 +96,7 @@ function appendTextToken(token: string, stack: XmlNode[]): void {
 }
 
 function createXmlNode(token: string): XmlNode {
-  const opening = /^<([a-z_]+)(?: id="([1-9]\d*)")?>$/.exec(token);
+  const opening = /^<([a-z_][a-z0-9_]*)(?: id="([1-9]\d*)")?>$/u.exec(token);
   if (!opening) throw new SignalValidationError(`Malformed or disallowed XML tag '${token}'.`);
   const node: XmlNode = {
     name: opening[1]!,
@@ -115,7 +115,7 @@ function assertAllowedIdAttributes(node: XmlNode, targetItemTag: string): void {
 }
 
 function consumeTagToken(token: string, stack: XmlNode[], root: XmlNode | null): XmlNode | null {
-  const closing = /^<\/([a-z_]+)>$/.exec(token);
+  const closing = /^<\/([a-z_][a-z0-9_]*)>$/u.exec(token);
   if (closing) {
     const node = stack.pop();
     if (node?.name !== closing[1]) {
