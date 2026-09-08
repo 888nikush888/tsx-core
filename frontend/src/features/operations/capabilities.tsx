@@ -1,4 +1,4 @@
-import type { UiParameter } from "../../../../src/ui_parameter_types";
+import type { UiParameter } from "../../../../src/ui_contracts";
 import { valueText } from "@/shared/value-text";
 import { useCallback, useState } from 'react';
 import { Link, useSearchParams } from '@/lib/navigation';

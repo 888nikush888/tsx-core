@@ -24,3 +24,60 @@ export const AI_LIMIT_LABELS: Record<keyof typeof AI_LIMIT_RANGES, [string, stri
   requestTimeoutMs: ['Globales Anfragezeitlimit', 'ms'],
   backoffMs: ['Pause zwischen Versuchen', 'ms; 0 ohne Pause'],
 };
+
+export interface UiParameter {
+  path: string; type: string; unit: string | null; constraints: string;
+  default: unknown; defaultPresent: boolean; nullable: boolean; emptyMeaning: string;
+  source: string; scope: string; effect: string; requiresRestart: boolean;
+  editable: boolean; secret: boolean; href: string; validator: string; consumer: string;
+}
+
+export const RESTORE_ELIGIBILITY_SCOPE = 'artifact-local-integrated-restore' as const;
+
+export interface RestoreEligibility {
+  status: 'eligible' | 'blocked' | 'unknown';
+  scope: typeof RESTORE_ELIGIBILITY_SCOPE;
+  checkedAt: number;
+  reasons: string[];
+}
+
+export interface BackupProof {
+  verifiedAt: number;
+  artifactSha256: string;
+  artifactCreatedAt: string;
+}
+
+export interface BackupOffsiteProof extends BackupProof {
+  objectName: string;
+  encryptedObjectSha256: string;
+}
+
+export interface BackupRestoreDrillProof {
+  performedAt: number;
+  artifactSha256: string;
+  artifactCreatedAt: string;
+  isolation: 'temporary-child-network-apis-disabled';
+  osSandbox: false;
+  runtimeDisabled: true;
+}
+
+/** Later receipts never rewrite the immutable artifact or its SHA identity. */
+export interface BackupCreationEvidence {
+  version: 1;
+  integrityVerified: { verifiedAt: number };
+  configurationCoherent: { verifiedAt: number } | null;
+  offsiteVerified: null;
+  restoreEligibility: RestoreEligibility;
+  restoreDrill: null;
+}
+
+export interface BackupVerificationEvidence {
+  artifactSha256: string;
+  artifactCreatedAt: string;
+  integrityVerified: BackupProof;
+  configurationCoherent: BackupProof | null;
+  configurationCoherenceReason: string | null;
+  offsiteVerified: BackupOffsiteProof | null;
+  restoreEligibility: RestoreEligibility & { artifactSha256: string };
+  restoreDrill: BackupRestoreDrillProof | null;
+}

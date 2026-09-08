@@ -1,7 +1,10 @@
 import type { Database } from 'sqlite';
 import { promises as fs } from 'node:fs';
 
-export const RESTORE_ELIGIBILITY_SCOPE = 'artifact-local-integrated-restore' as const;
+import { RESTORE_ELIGIBILITY_SCOPE } from './ui_contracts.js';
+import type { RestoreEligibility, BackupCreationEvidence } from './ui_contracts.js';
+export { RESTORE_ELIGIBILITY_SCOPE } from './ui_contracts.js';
+export type { RestoreEligibility, BackupProof, BackupOffsiteProof, BackupRestoreDrillProof, BackupCreationEvidence, BackupVerificationEvidence } from './ui_contracts.js';
 
 /** Read at most the manifest limit plus one byte, including a concurrent growth case. */
 export async function boundedBackupManifestBytes(destination: string): Promise<Buffer> {
@@ -21,54 +24,6 @@ export async function boundedBackupManifestBytes(destination: string): Promise<B
     if (length > maximum) throw new Error('Backup manifest exceeds 64 KiB.');
     return buffer.subarray(0, length);
   } finally { await handle.close(); }
-}
-
-export interface RestoreEligibility {
-  status: 'eligible' | 'blocked' | 'unknown';
-  scope: typeof RESTORE_ELIGIBILITY_SCOPE;
-  checkedAt: number;
-  reasons: string[];
-}
-
-export interface BackupProof {
-  verifiedAt: number;
-  artifactSha256: string;
-  artifactCreatedAt: string;
-}
-
-export interface BackupOffsiteProof extends BackupProof {
-  objectName: string;
-  encryptedObjectSha256: string;
-}
-
-export interface BackupRestoreDrillProof {
-  performedAt: number;
-  artifactSha256: string;
-  artifactCreatedAt: string;
-  isolation: 'temporary-child-network-apis-disabled';
-  osSandbox: false;
-  runtimeDisabled: true;
-}
-
-/** Later receipts never rewrite the immutable artifact or its SHA identity. */
-export interface BackupCreationEvidence {
-  version: 1;
-  integrityVerified: { verifiedAt: number };
-  configurationCoherent: { verifiedAt: number } | null;
-  offsiteVerified: null;
-  restoreEligibility: RestoreEligibility;
-  restoreDrill: null;
-}
-
-export interface BackupVerificationEvidence {
-  artifactSha256: string;
-  artifactCreatedAt: string;
-  integrityVerified: BackupProof;
-  configurationCoherent: BackupProof | null;
-  configurationCoherenceReason: string | null;
-  offsiteVerified: BackupOffsiteProof | null;
-  restoreEligibility: RestoreEligibility & { artifactSha256: string };
-  restoreDrill: BackupRestoreDrillProof | null;
 }
 
 const OBLIGATIONS = [

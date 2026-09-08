@@ -1,9 +1,6 @@
-export interface UiParameter {
-  path: string; type: string; unit: string | null; constraints: string;
-  default: unknown; defaultPresent: boolean; nullable: boolean; emptyMeaning: string;
-  source: string; scope: string; effect: string; requiresRestart: boolean;
-  editable: boolean; secret: boolean; href: string; validator: string; consumer: string;
-}
+import type { UiParameter } from './ui_contracts.js';
+export type { UiParameter } from './ui_contracts.js';
+
 export type FieldSpec = [path: string, type: string, constraints: string, unit?: string, emptyMeaning?: string];
 export interface ParameterFamily {
   prefix: string; source: string; scope: string; effect: string; href: string; validator: string; consumer: string;

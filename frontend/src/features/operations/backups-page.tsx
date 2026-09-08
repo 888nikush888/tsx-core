@@ -1,4 +1,4 @@
-import type { BackupVerificationEvidence } from "../../../../src/backup_evidence";
+import type { BackupVerificationEvidence } from "../../../../src/ui_contracts";
 import { useCallback, useState } from 'react';
 import { Link } from '@/lib/navigation';
 import { jsonRequest } from '@/lib/api';
