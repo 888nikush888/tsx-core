@@ -1,4 +1,5 @@
 import vm from 'node:vm';
+import { types } from 'node:util';
 import type { Config } from './config.js';
 import { unknownErrorMessage } from './contract_values.js';
 
@@ -16,6 +17,15 @@ export interface FilterMessage {
   };
 }
 
+function regexErrorMessage(error: unknown): string {
+  // VM timeout Errors belong to another realm and fail instanceof Error.
+  if (types.isNativeError(error)) {
+    const message = Object.getOwnPropertyDescriptor(error, 'message')?.value;
+    if (typeof message === 'string') return message;
+  }
+  return unknownErrorMessage(error);
+}
+
 /**
  * Safely tests a regular expression against text using Node.js vm module
  * with a strict CPU timeout (e.g. 100ms) to protect against ReDoS.
@@ -27,7 +37,7 @@ export function safeRegexTest(regex: RegExp, text: string, timeoutMs = 100): boo
     vm.runInContext('result = regex.test(text)', sandbox, { timeout: timeoutMs });
     return sandbox.result;
   } catch (err: unknown) {
-    throw new Error(`Regex timeout oder Ausführungsfehler bei der Musterprüfung: ${unknownErrorMessage(err)}`, { cause: err });
+    throw new Error(`Regex timeout oder Ausführungsfehler bei der Musterprüfung: ${regexErrorMessage(err)}`, { cause: err });
   }
 }
 

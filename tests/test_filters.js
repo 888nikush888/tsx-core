@@ -30,7 +30,12 @@ function testRegexParsing() {
   assert.throws(() => parseRegex("[a-z"), /Invalid regex pattern/);
   assert.throws(
     () => safeRegexTest(new RegExp(nestedPlusFixture), `${'a'.repeat(10_000)}!`, 10),
-    /Regex timeout oder Ausführungsfehler/
+    error => {
+      assert.strictEqual(error.message,
+        'Regex timeout oder Ausführungsfehler bei der Musterprüfung: Script execution timed out after 10ms');
+      assert.strictEqual(error.cause.code, 'ERR_SCRIPT_EXECUTION_TIMEOUT');
+      return true;
+    }
   );
 
   const globalRx = parseRegex("/BUY/g");
