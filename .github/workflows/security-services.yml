@@ -115,7 +115,7 @@ jobs:
           if [[ "$SCAN_SCOPE" == code && "$gate_exit" != 2 ]]; then
             review_exit=0
             node scripts/check_snyk_code_review.js "$prefix.sarif.json" "$scan_exit" \
-              docs/testing/snyk-code-independent-review-2026-09-08.json "$prefix.review.json" || review_exit=$?
+              docs/testing/snyk-code-independent-review-wave5-2026-09-08.json "$prefix.review.json" || review_exit=$?
             gate_exit="$review_exit"
             case "$review_exit" in
               0) disposition=reviewed-clean ;;
