@@ -1,3 +1,4 @@
+import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow } from './workflow_repository_rows.js';
 import { isStringMember, requireString } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
@@ -396,7 +397,7 @@ function validateResourceConfiguration(kind: WorkflowResourceKind, input: unknow
   return RESOURCE_VALIDATORS[kind]?.(value) ?? value;
 }
 
-function resourceFromRow(row: any): WorkflowResourceVersion {
+function resourceFromRow(row: WorkflowResourceRow): WorkflowResourceVersion {
   const configuration = parseJson<Record<string, unknown>>(row.configuration_json, 'workflow resource configuration');
   if (sha256(configuration) !== row.configuration_sha256) throw new Error(`Workflow resource ${row.id} failed its integrity check.`);
   return {
@@ -408,7 +409,7 @@ function resourceFromRow(row: any): WorkflowResourceVersion {
   };
 }
 
-function pathFromRow(row: any): WorkflowExecutionPath {
+function pathFromRow(row: WorkflowPathRow): WorkflowExecutionPath {
   return {
     id: String(row.id), workflowRevisionId: String(row.workflow_revision_id), pathKey: String(row.path_key),
     channelId: String(row.channel_id), accountId: String(row.account_id),
@@ -497,9 +498,9 @@ function hydratedRouteGroups(
   }));
 }
 
-async function workflowRevisionFromRow(row: any): Promise<WorkflowRevision> {
+async function workflowRevisionFromRow(row: WorkflowRevisionRow): Promise<WorkflowRevision> {
   const graph = parseJson<WorkflowGraph>(row.graph_json, 'workflow graph');
-  const pathRows = await getDatabase().all<any[]>(
+  const pathRows = await getDatabase().all<WorkflowPathRow[]>(
     'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
     [row.id],
   );
@@ -528,14 +529,14 @@ async function workflowRevisionFromRow(row: any): Promise<WorkflowRevision> {
 }
 
 export async function getWorkflowRevisionById(id: string): Promise<WorkflowRevision | null> {
-  const row = await getDatabase().get<any>('SELECT * FROM workflow_revisions WHERE id = ?', [id]);
+  const row = await getDatabase().get<WorkflowRevisionRow>('SELECT * FROM workflow_revisions WHERE id = ?', [id]);
   return row ? workflowRevisionFromRow(row) : null;
 }
 
 export async function listWorkflowResources(kind?: WorkflowResourceKind): Promise<WorkflowResourceVersion[]> {
   const rows = kind
-    ? await getDatabase().all<any[]>('SELECT * FROM workflow_resource_versions WHERE kind = ? ORDER BY resource_id, version DESC', [kind])
-    : await getDatabase().all<any[]>('SELECT * FROM workflow_resource_versions ORDER BY kind, resource_id, version DESC');
+    ? await getDatabase().all<WorkflowResourceRow[]>('SELECT * FROM workflow_resource_versions WHERE kind = ? ORDER BY resource_id, version DESC', [kind])
+    : await getDatabase().all<WorkflowResourceRow[]>('SELECT * FROM workflow_resource_versions ORDER BY kind, resource_id, version DESC');
   return rows.map(resourceFromRow);
 }
 
@@ -578,7 +579,7 @@ export async function updateWorkflowResourceDraft(id: string, input: {
   configuration: unknown;
   baseEditRevision?: number;
 }): Promise<WorkflowResourceVersion> {
-  const existingRow = await getDatabase().get<any>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
+  const existingRow = await getDatabase().get<WorkflowResourceRow>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
   if (existingRow?.status !== 'draft') throw new Error('Only a workflow resource draft can be edited.');
   const name = stringValue(input.name, 'Workflow resource name', 80);
   const description = String(input.description ?? '').trim();
@@ -595,7 +596,7 @@ export async function updateWorkflowResourceDraft(id: string, input: {
 }
 
 export async function publishWorkflowResource(id: string, now = Date.now(), baseEditRevision?: number): Promise<WorkflowResourceVersion> {
-  const existing = await getDatabase().get<any>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
+  const existing = await getDatabase().get<WorkflowResourceRow>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
   if (existing?.status !== 'draft') throw new Error('Only a workflow resource draft can be published.');
   validateResourceConfiguration(existing.kind, parseJson(existing.configuration_json, 'workflow resource configuration'));
   if (baseEditRevision !== undefined && (!Number.isSafeInteger(baseEditRevision) || baseEditRevision < 0)) throw new Error('Invalid resource edit revision.');
@@ -630,7 +631,7 @@ export async function archiveWorkflowResourceFamily(
 ): Promise<WorkflowResourceVersion[]> {
   const logicalId = stringValue(resourceId, 'Workflow resource identifier', 128);
   return withDatabaseTransaction(async database => {
-    const rows = await database.all<any[]>(
+    const rows = await database.all<WorkflowResourceRow[]>(
       `SELECT * FROM workflow_resource_versions
        WHERE resource_id = ? AND status = 'published'
        ORDER BY version`,
@@ -651,7 +652,7 @@ export async function archiveWorkflowResourceFamily(
     if (Number(result.changes || 0) !== rows.length) {
       throw new Error('The workflow resource family changed while it was being archived.');
     }
-    const archived = (await database.all<any[]>(
+    const archived = (await database.all<WorkflowResourceRow[]>(
       'SELECT * FROM workflow_resource_versions WHERE resource_id = ? ORDER BY version',
       [logicalId],
     )).filter(row => publishedIds.has(String(row.id))).map(resourceFromRow);
@@ -911,7 +912,7 @@ function workflowImpact(
 }
 
 async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, WorkflowResourceVersion>> {
-  const resourceRows = graph.nodes.length < 1 ? [] : await getDatabase().all<any[]>(
+  const resourceRows = graph.nodes.length < 1 ? [] : await getDatabase().all<WorkflowResourceRow[]>(
     `SELECT * FROM workflow_resource_versions WHERE id IN (${graph.nodes.map(() => '?').join(',')})`,
     graph.nodes.map(node => node.resourceVersionId),
   );
@@ -1281,7 +1282,7 @@ async function activeWorkflowState(): Promise<{
   );
   const activeId = active?.revision_id ?? null;
   const activePaths = activeId
-    ? (await getDatabase().all<any[]>(
+    ? (await getDatabase().all<WorkflowPathRow[]>(
         'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
         [activeId],
       )).map(pathFromRow)
@@ -1520,7 +1521,7 @@ export async function previewWorkflowImpact(input: {
   const activeId = active?.revision_id ?? null;
   if (activeId !== input.baseRevisionId) throw new Error('WORKFLOW_REVISION_CONFLICT');
   const activePaths = activeId
-    ? (await getDatabase().all<any[]>(
+    ? (await getDatabase().all<WorkflowPathRow[]>(
         'SELECT * FROM workflow_execution_paths WHERE workflow_revision_id = ? ORDER BY path_key',
         [activeId],
       )).map(pathFromRow)
@@ -1536,7 +1537,7 @@ async function ensurePublishedWorkflowResource(input: {
   configuration: unknown;
 }): Promise<WorkflowResourceVersion> {
   const configuration = validateResourceConfiguration(input.kind, input.configuration);
-  const existing = await getDatabase().get<any>(
+  const existing = await getDatabase().get<WorkflowResourceRow>(
     `SELECT * FROM workflow_resource_versions
      WHERE resource_id = ? AND status = 'published'
      ORDER BY version DESC LIMIT 1`,
@@ -1920,7 +1921,7 @@ type WorkflowIntentInput = {
 
 /** Business settings stay pinned; permission to execute is always checked against the current graph. */
 export async function isWorkflowExecutionAuthorized(executionPathId: string): Promise<boolean> {
-  const original = await getDatabase().get<any>('SELECT * FROM workflow_execution_paths WHERE id = ?', [executionPathId]);
+  const original = await getDatabase().get<WorkflowPathRow>('SELECT * FROM workflow_execution_paths WHERE id = ?', [executionPathId]);
   if (!original?.enabled) return false;
   const active = await getActiveWorkflow();
   if (!active) return false;

@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "First workflow batch: owned SQLite resource/revision/path rows only; remaining configuration and runtime findings are not claimed fixed.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 workflow builder, fallback and history suites",
+    "Targeted ESLint"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl4Z3k=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 1954,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V2eXg=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 1923,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmx2ZW0=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 1539,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlwcmQ=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 1523,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlubWs=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 1284,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlleGU=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 914,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl4eW4=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 654,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d295b3g=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 633,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V2ZW0=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 598,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1xbWU=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 581,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlwcHE=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 538,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh5eXE=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 537,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFra2E=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 531,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ5eXg=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 502,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpxcWs=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 500,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl4eG4=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 411,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJxcXI=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 399,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
+      "disposition": "fixed",
+      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
+    }
+  ]
+}
