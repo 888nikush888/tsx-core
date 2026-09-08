@@ -40,7 +40,7 @@ try {
     'A normal caller mutation after invocation cannot change the original account binding either.');
   await captureFxReceipts(account, receipts, read);
   assert.equal(await count('trading_fx_receipts'), 3);
-  const invalidPayload = '{}\u0000' + 'x'.repeat(131072);
+  const invalidPayload = `{}\u0000${'x'.repeat(131072)}`;
   await assert.rejects(getDatabase().run(`INSERT INTO trading_fx_receipts
     (id,account_id,account_fingerprint,credential_generation,mode,profile_hash,receipt_hash,leg_id,provider_response_at,
     acquisition_started_at,acquisition_completed_at,payload_json,recorded_at)

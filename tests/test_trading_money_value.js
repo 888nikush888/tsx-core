@@ -45,14 +45,14 @@ function testTinyRebatesAndExactCancellation() {
     decimal: null, precision: 'exact_rational', terms: 1,
   });
   assert.deepEqual(cost, {
-    lower: '-' + quantum, upper: '0', exact: fraction('-1', denominator),
+    lower: `-${quantum}`, upper: '0', exact: fraction('-1', denominator),
     decimal: null, precision: 'exact_rational', terms: 1,
   });
   assert.deepEqual(negateMoneyValue(rebate), cost);
   assert.deepEqual(negateMoneyValue(cost), rebate);
   assert.deepEqual(addMoneyValues(rebate, cost), zero(2));
   // A 36-decimal terminating fraction is retained, never rounded into an exact zero.
-  const tinyFinite = rationalValue('1', '1' + '0'.repeat(36));
+  const tinyFinite = rationalValue('1', `1${'0'.repeat(36)}`);
   assert.equal(tinyFinite.decimal, null);
   assert.equal(tinyFinite.precision, 'exact_rational');
   assert.deepEqual(addMoneyValues(tinyFinite, negateMoneyValue(tinyFinite)), zero(2));
@@ -63,7 +63,7 @@ function testTinyRebatesAndExactCancellation() {
 function overflowDenominatorPair() {
   // Coprime 10^200 - 1 and 10^200 produce a reduced 400-digit denominator.
   const left = rationalValue('1', '9'.repeat(200));
-  const right = rationalValue('1', '1' + '0'.repeat(200));
+  const right = rationalValue('1', `1${'0'.repeat(200)}`);
   assert.throws(() => addRational(left.exact, right.exact), /bounded rational/);
   return [left, right];
 }
@@ -204,21 +204,21 @@ function testInvalidStructureDoesNotRunAccessors() {
 }
 
 function testDecimalAndTermOverflowNeverDowngrade() {
-  const maximum = '9'.repeat(36) + '.' + '9'.repeat(18);
+  const maximum = `${'9'.repeat(36)}.${'9'.repeat(18)}`;
   const largest = moneyValueFromDecimal(maximum);
   assert.equal(largest.decimal, maximum);
   assert.throws(() => addMoneyValues(largest, moneyValueFromDecimal(quantum)), /decimal/i);
-  assert.throws(() => addMoneyValues(negateMoneyValue(largest), moneyValueFromDecimal('-' + quantum)), /decimal/i);
-  assert.throws(() => moneyValueFromRational(fraction('1' + '0'.repeat(36), '1')), /decimal/i);
+  assert.throws(() => addMoneyValues(negateMoneyValue(largest), moneyValueFromDecimal(`-${quantum}`)), /decimal/i);
+  assert.throws(() => moneyValueFromRational(fraction(`1${'0'.repeat(36)}`, '1')), /decimal/i);
   const bounded = addMoneyValues(...overflowDenominatorPair());
   assert.throws(() => addMoneyValues(largest, bounded), /decimal/i);
   assert.throws(() => addMoneyValues(negateMoneyValue(largest), negateMoneyValue(bounded)), /decimal/i);
   const exhausted = { ...zero(), terms: Number.MAX_SAFE_INTEGER };
   assert.throws(() => addMoneyValues(exhausted, zero()), /term/i);
   for (const value of ['1e-3', ' 1', '1 ', '- 1', '+1', '01', '-0.0000000000000000001',
-    '1' + '0'.repeat(36), '', null, NaN, 1]) assert.throws(() => moneyValueFromDecimal(value));
+    `1${'0'.repeat(36)}`, '', null, NaN, 1]) assert.throws(() => moneyValueFromDecimal(value));
   for (const value of [null, [], {}, fraction('1', '0'), fraction('1', '-1'), fraction('01', '2'),
-    fraction('1', '1' + '0'.repeat(256)), fraction('1'.repeat(257), '1'), fraction(1, '2')]) {
+    fraction('1', `1${'0'.repeat(256)}`), fraction('1'.repeat(257), '1'), fraction(1, '2')]) {
     assert.throws(() => moneyValueFromRational(value));
   }
   assert.deepEqual(moneyValueFromRational(rationalFromDecimal(maximum)), largest);

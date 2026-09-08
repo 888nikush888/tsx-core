@@ -13,7 +13,8 @@
     "62 explicit empty-hook return contracts: all 23 scoped Node22 test files passed, including Python FX bridge under exact-lock Python3.12; ESLint error checks and diff checks passed.",
     "18 MCP control stubs now detect unexpected dispatch; targeted Node22 MCP control-plane suite and ESLint/diff checks passed.",
     "UI register/route generators: both Node22 --check modes verify unchanged artifacts, UI register contract suite and ESLint/diff checks passed.",
-    "22 individual literal foreign-language interpolation findings: four Node22 regression suites passed; no source change or remote suppression is appropriate."
+    "22 individual literal foreign-language interpolation findings: four Node22 regression suites passed; no source change or remote suppression is appropriate.",
+    "22 primitive string fixture compositions: all six Node22 money/rational/account-log tests, ESLint error checks and diff checks passed."
   ],
   "entries": [
     {
@@ -1955,6 +1956,182 @@
       "proof": "Literal ${env.*} belongs to Sonar scanner property expansion after the action parses arguments. JavaScript interpolation would resolve the wrong language and break the no-ref-injection boundary; dedicated branch/PR scanner tests verify the exact returned strings.",
       "evidenceLineSha256": "a83e273c9009167ce1417c223a60babd08ce98ba8db9234bf16e1c71fe1fbdca",
       "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFkdmo=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_rational.js",
+      "originalLine": 96,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZuZXA=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_rational.js",
+      "originalLine": 95,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpkbG4=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_rational.js",
+      "originalLine": 94,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWt5bHg=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_rational.js",
+      "originalLine": 92,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnluYWc=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_rational.js",
+      "originalLine": 85,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d293bGE=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_rational.js",
+      "originalLine": 82,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlkcWQ=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_rational.js",
+      "originalLine": 72,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR2cmc=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_rational.js",
+      "originalLine": 65,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxybWE=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 221,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlrZWo=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 219,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhrcWQ=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 212,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFveGo=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 211,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvZ3A=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 207,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2d2c=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 66,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294cmE=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 55,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJuZ3c=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 48,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRnYWc=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_risk.js",
+      "originalLine": 164,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12eXA=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_risk.js",
+      "originalLine": 102,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93dnI=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_risk.js",
+      "originalLine": 91,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4dnY=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_fx_repository.js",
+      "originalLine": 43,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294bXI=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_fx_analytics.js",
+      "originalLine": 137,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhrb2o=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_account_log_audit.js",
+      "originalLine": 41,
+      "status": "source_change_pending_rescan",
+      "proof": "AST proves all concatenation operands are primitive strings (literals, fixed literal.repeat calls, or uniquely declared const string bindings); template preserves operand order and exact rational/fixture bytes."
     }
   ]
 }

@@ -38,7 +38,7 @@ try {
   checkpoint = await accountLogCheckpoint(account);
   const audit = { windowSince: requiredSince, windowUntil: requiredSince + 7 * day, cursor: null, completedAt: 0 };
   const oldTime = requiredSince + day;
-  const row = { type: 'funding', hash: '0x' + '0'.repeat(64), coin: 'BTC', time: String(oldTime), usdc: '-2' };
+  const row = { type: 'funding', hash: `0x${'0'.repeat(64)}`, coin: 'BTC', time: String(oldTime), usdc: '-2' };
   const page = logProgress({ ...checkpoint, audit }, [row], now, String(oldTime), 'audit');
   await persistAccountLogProgress(account, page);
   await closeDb(); await initDb(filename);
