@@ -14,6 +14,8 @@ import { groupExchangeCatalog } from "@/app/workflow/exchange-catalog";
 import { useDirtyGuard } from "@/shared/forms/use-dirty-guard";
 import { useOperatorReadOnly } from "@/shared/api/operator-session";
 
+export type AccountManagementSnapshot = Pick<TradingSnapshot, 'accounts' | 'accountIncidents'>;
+
 type AccountCreationDraft = {
   name: string;
   exchange: string;
@@ -28,7 +30,7 @@ export function Accounts({
   catalog,
   onRefresh,
 }: Readonly<{
-  trading: TradingSnapshot | null;
+  trading: AccountManagementSnapshot | null;
   catalog: ExchangeCatalog | null;
   onRefresh: () => Promise<void>;
 }>) {
