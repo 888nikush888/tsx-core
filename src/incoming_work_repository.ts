@@ -1,5 +1,5 @@
 import { assertIngressMessage, readIngressMessage } from './ingress_contracts.js';
-import type { IngressConfiguration, TelegramMessageIdentity } from './ingress_contracts.js';
+import type { DurableIngressSnapshot, IngressConfiguration, TelegramMessageIdentity } from './ingress_contracts.js';
 import type { WorkflowRevision } from './trading_types.js';
 import type { WorkflowSignalPlan } from './workflow_repository.js';
 import type { RouteRow } from './trading_repository_rows.js';
@@ -28,9 +28,14 @@ export function nonSecretConfigSnapshot(config: object): object {
   return JSON.parse(JSON.stringify(config, (key: string, value: unknown) => forbidden.test(key) ? undefined : value));
 }
 
-export function pinnedWorkflowParserSelection(config: IngressConfiguration, plan: WorkflowSignalPlan): ExecutableSignalSchemaSelection {
+function pinnedParserResources(config: IngressConfiguration) {
   const pinned = config.durableIngress;
   if (!pinned?.schemas || !pinned.contracts) throw new Error('Pinned parser resources are missing; review required.');
+  return { schemas: pinned.schemas, contracts: pinned.contracts, workflowRevisionId: pinned.workflowRevisionId };
+}
+
+export function pinnedWorkflowParserSelection(config: IngressConfiguration, plan: WorkflowSignalPlan): ExecutableSignalSchemaSelection {
+  const pinned = pinnedParserResources(config);
   const schema = pinned.schemas.find(candidate => candidate.id === plan.schemaId);
   const contract = pinned.contracts[plan.contractVersionId];
   if (!schema?.enabled || !contract || pinned.workflowRevisionId !== plan.workflowRevisionId) {
@@ -60,14 +65,8 @@ function resourceObject(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-async function pinParserResources(config: IngressConfiguration, workflow: WorkflowRevision | null): Promise<void> {
-  const ingress = config.durableIngress;
-  if (!ingress) throw new Error('Durable ingress identity is missing.');
-  const schemas = await listTradingSignalSchemas();
-  ingress.schemas = schemas;
-  ingress.prompts = {};
-  ingress.contracts = {};
-  for (const candidate of workflow?.compiled.paths ?? []) {
+async function pinWorkflowParserResources(ingress: DurableIngressSnapshot, workflow: WorkflowRevision): Promise<void> {
+  for (const candidate of workflow.compiled.paths) {
     const resources = resourceObject(candidate.effectiveConfiguration.resources);
     const parser = resourceObject(resources.parser);
     const contract = resourceObject(resources.contract);
@@ -77,34 +76,54 @@ async function pinParserResources(config: IngressConfiguration, workflow: Workfl
     if (!version) throw new Error('Workflow contract is missing; ingress cannot be pinned.');
     ingress.contracts[version.id] = version;
   }
-  if (!workflow && config.xmlParsing?.enabled) {
-    const template = config.xmlParsing.sourceTemplates?.[ingress.chatId];
-    ingress.legacySchema = await getTradingSignalSchemaForTemplate(template);
-    ingress.legacyPrompt = (await loadSignalPromptTemplate(template)).promptTemplate;
-    ingress.legacyRoute = await getDatabase().get<RouteRow>('SELECT * FROM trading_routes WHERE channel_id = ?', [ingress.chatId]) ?? null;
-  }
+}
+
+async function pinLegacyParserResources(ingress: DurableIngressSnapshot, xmlParsing: IngressConfiguration['xmlParsing']): Promise<void> {
+  const template = xmlParsing.sourceTemplates?.[ingress.chatId];
+  ingress.legacySchema = await getTradingSignalSchemaForTemplate(template);
+  ingress.legacyPrompt = (await loadSignalPromptTemplate(template)).promptTemplate;
+  ingress.legacyRoute = await getDatabase().get<RouteRow>('SELECT * FROM trading_routes WHERE channel_id = ?', [ingress.chatId]) ?? null;
+}
+
+async function pinParserResources(config: IngressConfiguration, workflow: WorkflowRevision | null): Promise<void> {
+  const ingress = config.durableIngress;
+  if (!ingress) throw new Error('Durable ingress identity is missing.');
+  ingress.schemas = await listTradingSignalSchemas();
+  ingress.prompts = {};
+  ingress.contracts = {};
+  if (workflow) await pinWorkflowParserResources(ingress, workflow);
+  else if (config.xmlParsing?.enabled) await pinLegacyParserResources(ingress, config.xmlParsing);
+}
+
+async function incomingSnapshot(config: IngressConfiguration, id: string, chatId: string, now: number, pinResources: boolean) {
+  const workflow = await getActiveWorkflow();
+  const workflowRevisionId = workflow?.id ?? null;
+  const snapshot = nonSecretConfigSnapshot(config);
+  snapshot.durableIngress = { id, chatId, receivedAt: now, workflowRevisionId,
+    targetChatId: config.resolvedTargetChatId ?? null, workflow };
+  if (pinResources) await pinParserResources(snapshot, workflow);
+  return { snapshot, workflowRevisionId };
+}
+
+async function saveSourceInbox(message: TelegramMessageIdentity, config: IngressConfiguration, chatId: string): Promise<void> {
+  const { text, type } = getMessageTextAndType(message);
+  await saveIncomingMessage(chatId, message.id, config.sourceAliases?.[chatId] || chatId, text || '', type, 'received');
 }
 
 /** The Telegram key, complete source payload, and workflow selection share one commit boundary. */
 export async function acceptIncomingMessage(message: TelegramMessageIdentity, config: IngressConfiguration, now = Date.now()): Promise<IncomingWork> {
   assertIngressMessage(message);
   const chatId = String(message.chat_id);
-  return withDatabaseTransaction(async database => {
+  return await withDatabaseTransaction(async database => {
     const existing = await database.get<IncomingWorkRow>('SELECT * FROM incoming_work WHERE chat_id = ? AND message_id = ?', [chatId, message.id]);
     if (existing) return { id: existing.id, status: existing.status, workflowRevisionId: existing.workflow_revision_id };
     const previousInbox = await database.get<{ chat_id: string; message_id: number }>('SELECT * FROM incoming_messages WHERE chat_id = ? AND message_id = ?', [chatId, message.id]);
     const id = workId(chatId, message.id);
-    const workflow = await getActiveWorkflow();
-    const workflowRevisionId = workflow?.id ?? null;
-    const snapshot = nonSecretConfigSnapshot(config);
-    snapshot.durableIngress = { id, chatId, receivedAt: now, workflowRevisionId,
-      targetChatId: config.resolvedTargetChatId ?? null, workflow };
-    if (!previousInbox) await pinParserResources(snapshot, workflow);
-    const { text, type } = getMessageTextAndType(message);
-    await saveIncomingMessage(chatId, message.id, config.sourceAliases?.[chatId] || chatId, text || '', type, 'received');
+    const { snapshot, workflowRevisionId } = await incomingSnapshot(config, id, chatId, now, !previousInbox);
+    await saveSourceInbox(message, config, chatId);
     const status = previousInbox ? 'needs_review' : 'pending';
     await database.run(
-      `INSERT INTO incoming_work VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      'INSERT INTO incoming_work VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [id, chatId, message.id, JSON.stringify(message), JSON.stringify(snapshot), workflowRevisionId, status,
         previousInbox ? 'Existing legacy inbox has no proven durable work; historical replay is blocked.' : null, now, now]
     );
@@ -151,26 +170,39 @@ async function routeWorkflowPlans(row: IncomingWorkRow, config: IngressConfigura
   await finishClassification(row, 'routed', 'Pinned workflow fanout durably enqueued.');
 }
 
-async function classifyIncomingRow(row: IncomingWorkRow): Promise<void> {
-  const message = readIngressMessage(row.message_json);
-  const config: IngressConfiguration = JSON.parse(row.config_json);
-  const { text, type } = getMessageTextAndType(message);
-  if (row.workflow_revision_id) return routeWorkflowPlans(row, config, text || '', type);
+async function acceptsLegacySource(row: IncomingWorkRow, message: TelegramMessageIdentity, config: IngressConfiguration): Promise<boolean> {
   if (!config.sourceChannels?.map(String).includes(row.chat_id)) {
     await finishClassification(row, 'filtered', 'Source is absent from the transactionally selected workflow and source configuration.');
-    return;
+    return false;
   }
   const reasons: string[] = [];
   if (!shouldForward(message, config.filters, reason => reasons.push(reason), row.chat_id, config)) {
     await finishClassification(row, 'filtered', reasons.join('; ') || 'Configured ingress filter.');
+    return false;
+  }
+  return true;
+}
+
+async function routeLegacyAlbum(row: IncomingWorkRow, message: TelegramMessageIdentity, config: IngressConfiguration): Promise<void> {
+  if (config.forwardOptions?.forwardToTarget === false) {
+    await finishClassification(row, 'filtered', 'Album forwarding is disabled.');
     return;
   }
+  await addAlbumPart(row, message, config);
+}
+
+async function classifyIncomingRow(row: IncomingWorkRow): Promise<void> {
+  const message = readIngressMessage(row.message_json);
+  const config: IngressConfiguration = JSON.parse(row.config_json);
+  const { text, type } = getMessageTextAndType(message);
+  if (row.workflow_revision_id) {
+    await routeWorkflowPlans(row, config, text || '', type);
+    return;
+  }
+  if (!await acceptsLegacySource(row, message, config)) return;
   if (message.media_group_id && message.media_group_id !== '0') {
-    if (config.forwardOptions?.forwardToTarget === false) {
-      await finishClassification(row, 'filtered', 'Album forwarding is disabled.');
-      return;
-    }
-    return addAlbumPart(row, message, config);
+    await routeLegacyAlbum(row, message, config);
+    return;
   }
   await enqueueOutboxTask({ id: `single_${row.chat_id}_${row.message_id}`, type: 'single', chatId: row.chat_id,
     messageId: row.message_id, addedAt: row.created_at, config, ingressWorkId: row.id, workflowRevisionId: null });

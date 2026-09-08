@@ -31,13 +31,17 @@ function messageContent(value: unknown): boolean {
     && formattedText(value.text) && formattedText(value.caption));
 }
 
+function messageEnvelope(value: Record<string, unknown>): boolean {
+  return (value.media_group_id === undefined || typeof value.media_group_id === 'string')
+    && (value.is_outgoing === undefined || typeof value.is_outgoing === 'boolean') && messageContent(value.content);
+}
+
 /** Check fields used by routing without rebuilding or truncating the full source payload. */
 export function assertIngressMessage(value: unknown): asserts value is TelegramMessageIdentity {
   if (!objectValue(value) || !Number.isSafeInteger(value.id) || !Number.isSafeInteger(value.chat_id)) {
     throw new Error('Incoming message requires safe Telegram message and chat IDs.');
   }
-  if ((value.media_group_id !== undefined && typeof value.media_group_id !== 'string')
-    || (value.is_outgoing !== undefined && typeof value.is_outgoing !== 'boolean') || !messageContent(value.content)) {
+  if (!messageEnvelope(value)) {
     throw new Error('Incoming message content or album identity is invalid.');
   }
 }
