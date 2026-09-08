@@ -60,8 +60,9 @@ function scanResults(sarif, scannerExit) {
     requireEvidence(Array.isArray(run.results), 'Missing SARIF results.');
     requireEvidence(run.invocations === undefined || Array.isArray(run.invocations), 'Invalid SARIF invocations.');
     for (const invocation of run.invocations ?? []) {
-      requireEvidence(invocation.executionSuccessful !== false, 'SARIF reports incomplete execution.');
+      requireEvidence(invocation.executionSuccessful === undefined || invocation.executionSuccessful === true, 'SARIF reports incomplete or invalid execution.');
       requireEvidence(invocation.exitCode === undefined || invocation.exitCode === 0 || invocation.exitCode === 1, 'SARIF reports a scanner error.');
+      requireEvidence(invocation.exitCode !== 1 || run.results.length > 0, 'SARIF findings exit has no finding evidence.');
       for (const key of ['toolExecutionNotifications', 'toolConfigurationNotifications']) {
         const notifications = invocation[key] ?? [];
         requireEvidence(Array.isArray(notifications) && notifications.every(note => note.level !== 'error'), 'SARIF reports an execution or configuration error.');

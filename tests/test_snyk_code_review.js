@@ -126,6 +126,16 @@ test('clean successful scans do not require false-positive decisions', async () 
   assert.equal((await evaluateSnykCode(input)).remaining, 0);
 });
 
+test('an empty scan cannot hide malformed execution flags or a findings exit', async () => {
+  for (const invocation of [{ executionSuccessful: 'false' }, { executionSuccessful: 1 }, { exitCode: 1 }]) {
+    const input = fixture();
+    input.scannerExit = 0;
+    input.sarif.runs[0].results = [];
+    input.sarif.runs[0].invocations = [invocation];
+    await assert.rejects(evaluateSnykCode(input));
+  }
+});
+
 test('review paths and dataflow paths cannot traverse or use encoded aliases', async () => {
   for (const file of ['../outside', '/absolute', 'src/../outside', 'C:/outside', 'src\\outside', 'src/%2e%2e/outside']) {
     const input = fixture();
