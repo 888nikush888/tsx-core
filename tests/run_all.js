@@ -178,6 +178,7 @@ const allTests = [
   'test_trading_accounting_gate.js',
   'test_trading_fee_rebate.js',
   'test_workflow_builder.js',
+  'test_workflow_input_types.js',
   'test_workflow_history.js',
   'test_workflow_history_barriers.js',
   'test_workflow_fallback.js',

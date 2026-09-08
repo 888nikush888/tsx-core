@@ -20,13 +20,29 @@ function sourcePath(value) {
 
 function physicalPaths(result) {
   requireEvidence(Array.isArray(result.locations) && result.locations.length > 0, 'Missing finding location.');
+  requireEvidence(result.relatedLocations === undefined || Array.isArray(result.relatedLocations), 'Invalid related locations.');
+  requireEvidence(result.codeFlows === undefined || (Array.isArray(result.codeFlows) && result.codeFlows.length > 0), 'Invalid code flows.');
   const locations = [...result.locations, ...(result.relatedLocations ?? [])];
   for (const flow of result.codeFlows ?? []) {
-    for (const thread of flow.threadFlows ?? []) {
-      for (const step of thread.locations ?? []) locations.push(step.location);
+    requireEvidence(Array.isArray(flow.threadFlows) && flow.threadFlows.length > 0, 'Missing thread flows.');
+    for (const thread of flow.threadFlows) {
+      requireEvidence(Array.isArray(thread.locations) && thread.locations.length > 0, 'Missing thread locations.');
+      for (const step of thread.locations) locations.push(step.location);
     }
   }
   return new Set(locations.map(location => sourcePath(location?.physicalLocation?.artifactLocation?.uri)));
+}
+
+function fingerprintCommitment(fingerprints) {
+  requireEvidence(fingerprints && !Array.isArray(fingerprints) && typeof fingerprints === 'object', 'Missing fingerprints.');
+  const keys = Object.keys(fingerprints).sort();
+  requireEvidence(keys.length > 0 && keys.every(key => typeof fingerprints[key] === 'string' && fingerprints[key].length > 0), 'Invalid fingerprints.');
+  return JSON.stringify(keys.map(key => [key, fingerprints[key]]));
+}
+
+export function evidenceDigest(result) {
+  return sha256(JSON.stringify({ locations: result.locations,
+    relatedLocations: result.relatedLocations ?? [], codeFlows: result.codeFlows ?? [] }));
 }
 
 function findingIdentity(result) {
@@ -42,13 +58,20 @@ function scanResults(sarif, scannerExit) {
   for (const run of sarif.runs) {
     requireEvidence(run.tool?.driver?.name === 'SnykCode' && run.tool.driver.version === version, 'Unexpected scanner identity.');
     requireEvidence(Array.isArray(run.results), 'Missing SARIF results.');
+    requireEvidence(run.invocations === undefined || Array.isArray(run.invocations), 'Invalid SARIF invocations.');
     for (const invocation of run.invocations ?? []) {
       requireEvidence(invocation.executionSuccessful !== false, 'SARIF reports incomplete execution.');
+      requireEvidence(invocation.exitCode === undefined || invocation.exitCode === 0 || invocation.exitCode === 1, 'SARIF reports a scanner error.');
+      for (const key of ['toolExecutionNotifications', 'toolConfigurationNotifications']) {
+        const notifications = invocation[key] ?? [];
+        requireEvidence(Array.isArray(notifications) && notifications.every(note => note.level !== 'error'), 'SARIF reports an execution or configuration error.');
+      }
     }
   }
   const results = sarif.runs.flatMap(run => run.results);
   requireEvidence(results.length > 0 || scannerExit === 0, 'Scanner findings exit has no findings evidence.');
   const identities = results.map(findingIdentity);
+  results.forEach(physicalPaths);
   requireEvidence(new Set(identities).size === identities.length, 'Duplicate finding identities.');
   return results;
 }
@@ -63,6 +86,8 @@ function reviewedEntries(review) {
     requireEvidence(typeof entry.rationale === 'string' && entry.rationale.trim().length >= 40, 'Missing individual review rationale.');
     sourcePath(entry.path);
     requireEvidence(hashPattern.test(entry.reviewedSourceSha256) && Array.isArray(entry.contextPaths), 'Missing source or context bindings.');
+    requireEvidence(hashPattern.test(entry.evidenceSha256), 'Missing reviewed flow evidence.');
+    fingerprintCommitment(entry.fingerprints);
     entries.set(entry.findingId, entry);
   }
   return entries;
@@ -84,6 +109,8 @@ async function checkReviewedFinding(result, entry, readSource) {
   if (entry.ruleId !== result.ruleId || entry.path !== sourcePath(result.locations[0].physicalLocation.artifactLocation.uri)) {
     return 'identity-changed';
   }
+  if (fingerprintCommitment(entry.fingerprints) !== fingerprintCommitment(result.fingerprints)
+    || entry.evidenceSha256 !== evidenceDigest(result)) return 'reviewed-flow-changed';
   const bindings = sourceBindings(entry);
   for (const file of physicalPaths(result)) {
     if (!bindings.has(file)) return 'unreviewed-dataflow-source';
@@ -111,6 +138,7 @@ export async function evaluateSnykCode({ sarif, scannerExit, review, readSource 
 async function runCli(args) {
   requireEvidence(args.length === 4, 'Expected SARIF, scanner exit, review and output paths.');
   const [sarifFile, exitText, reviewFile, outputFile] = args;
+  requireEvidence(/^[01]$/u.test(exitText), 'Invalid scanner exit evidence.');
   const root = await realpath(process.cwd());
   const sarif = JSON.parse(await readFile(sarifFile, 'utf8'));
   const review = JSON.parse(await readFile(reviewFile, 'utf8'));
