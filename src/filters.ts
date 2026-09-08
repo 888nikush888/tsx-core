@@ -1,8 +1,20 @@
 import vm from 'node:vm';
+import type { Config } from './config.js';
+import { unknownErrorMessage } from './contract_values.js';
 
 const regexCache = new Map<string, RegExp>();
 const MAX_REGEX_CACHE_SIZE = 100;
 type SourceChatId = string | number | null;
+type FilterSettings = Partial<Config['filters']>;
+type FilterConfiguration = Partial<Pick<Config, 'sourceFilters' | 'filters'>>;
+export interface FilterMessage {
+  id?: string | number;
+  content?: {
+    _?: string;
+    text?: { text?: string };
+    caption?: { text?: string };
+  };
+}
 
 /**
  * Safely tests a regular expression against text using Node.js vm module
@@ -14,8 +26,8 @@ export function safeRegexTest(regex: RegExp, text: string, timeoutMs = 100): boo
   try {
     vm.runInContext('result = regex.test(text)', sandbox, { timeout: timeoutMs });
     return sandbox.result;
-  } catch (err: any) {
-    throw new Error(`Regex timeout oder Ausführungsfehler bei der Musterprüfung: ${err.message}`, { cause: err });
+  } catch (err: unknown) {
+    throw new Error(`Regex timeout oder Ausführungsfehler bei der Musterprüfung: ${unknownErrorMessage(err)}`, { cause: err });
   }
 }
 
@@ -36,7 +48,7 @@ function closesNestedQuantifier(pattern: string, index: number, openGroups: Rege
   const group = openGroups.pop();
   if (!group?.hasQuantifier) return false;
   const nextChar = pattern[index + 1];
-  return nextChar === '+' || nextChar === '*' || nextChar === '?' || nextChar === '{';
+  return ['+', '*', '?', '{'].includes(nextChar);
 }
 
 class NestedQuantifierScanner {
@@ -45,24 +57,32 @@ class NestedQuantifierScanner {
 
   consume(pattern: string, index: number): boolean {
     const char = pattern[index];
-    if (char === '[' && !this.inCharacterClass) {
-      this.inCharacterClass = true;
-      return false;
-    }
-    if (char === ']' && this.inCharacterClass) {
-      this.inCharacterClass = false;
-      return false;
-    }
-    if (this.inCharacterClass) return false;
+    if (this.consumeCharacterClass(char)) return false;
     if (char === '(') {
       this.openGroups.push({ index, hasQuantifier: false, isSpecial: pattern[index + 1] === '?' });
       return false;
     }
     if (char === ')') return closesNestedQuantifier(pattern, index, this.openGroups);
-    if ((char === '+' || char === '*' || char === '{') && this.openGroups.length > 0) {
-      this.openGroups.at(-1)!.hasQuantifier = true;
-    }
+    this.markGroupQuantified(char);
     return false;
+  }
+
+  private consumeCharacterClass(char: string): boolean {
+    if (char === '[' && !this.inCharacterClass) {
+      this.inCharacterClass = true;
+      return true;
+    }
+    if (char === ']' && this.inCharacterClass) {
+      this.inCharacterClass = false;
+      return true;
+    }
+    return this.inCharacterClass;
+  }
+
+  private markGroupQuantified(char: string): void {
+    if (!['+', '*', '{'].includes(char)) return;
+    const group = this.openGroups.at(-1);
+    if (group) group.hasQuantifier = true;
   }
 }
 
@@ -104,14 +124,20 @@ export function parseRegex(patternStr: string): RegExp {
 
   const match = /^\/(.+)\/([dgimsuy]*)$/.exec(trimmed);
   if (match) {
-    pattern = match[1]!;
-    flags = match[2]!;
+    pattern = match[1];
+    flags = match[2];
   }
 
   // g/y make test() stateful via lastIndex; cached instances must stay stateless.
   flags = flags.replace(/[gy]/g, "");
 
-  // Reject dangerous patterns
+  validateRegexPattern(pattern, patternStr);
+  const regex = compileRegex(pattern, flags);
+  cacheRegex(trimmed, regex);
+  return regex;
+}
+
+function validateRegexPattern(pattern: string, patternStr: string): void {
   if (hasNestedQuantifiers(pattern)) {
     throw new Error(`ReDoS warning: Nested quantifiers or dangerous structures detected: "${patternStr}"`);
   }
@@ -121,18 +147,22 @@ export function parseRegex(patternStr: string): RegExp {
     throw new Error(`Regex pattern exceeds maximum length of 150 characters: "${patternStr}"`);
   }
 
+}
+
+function compileRegex(pattern: string, flags: string): RegExp {
   try {
-    const regex = new RegExp(pattern, flags);
-    // FIFO-Eviction statt Full-Clear: wiederholte Kompilierung vermeiden
-    if (regexCache.size >= MAX_REGEX_CACHE_SIZE) {
-      const oldest = regexCache.keys().next().value;
-      if (oldest !== undefined) regexCache.delete(oldest);
-    }
-    regexCache.set(trimmed, regex);
-    return regex;
-  } catch (err: any) {
-    throw new Error(`Invalid regex pattern: ${err.message}`, { cause: err });
+    return new RegExp(pattern, flags);
+  } catch (err: unknown) {
+    throw new Error(`Invalid regex pattern: ${unknownErrorMessage(err)}`, { cause: err });
   }
+}
+
+function cacheRegex(key: string, regex: RegExp): void {
+  if (regexCache.size >= MAX_REGEX_CACHE_SIZE) {
+    const oldest = regexCache.keys().next().value;
+    if (oldest !== undefined) regexCache.delete(oldest);
+  }
+  regexCache.set(key, regex);
 }
 
 interface MessageTextAndType {
@@ -140,31 +170,35 @@ interface MessageTextAndType {
   type: string;
 }
 
+function messageText(content: NonNullable<FilterMessage['content']>, field: 'text' | 'caption' | null): string {
+  return field ? (content[field]?.text || '') : '';
+}
+
+const MESSAGE_TYPES = new Map<string, { type: string; textField: 'text' | 'caption' | null }>([
+  ['messageText', { type: 'text', textField: 'text' }],
+  ['messagePhoto', { type: 'photo', textField: 'caption' }],
+  ['messageVideo', { type: 'video', textField: 'caption' }],
+  ['messageDocument', { type: 'document', textField: 'caption' }],
+  ['messageAudio', { type: 'audio', textField: 'caption' }],
+  ['messageVoiceNote', { type: 'voice', textField: 'caption' }],
+  ['messageVideoNote', { type: 'video_note', textField: null }],
+  ['messageAnimation', { type: 'animation', textField: 'caption' }],
+  ['messageSticker', { type: 'sticker', textField: null }],
+]);
+
 /**
  * Extracts message text and type from a TDLib message object.
  */
-export function getMessageTextAndType(message: any): MessageTextAndType {
+export function getMessageTextAndType(message: FilterMessage): MessageTextAndType {
   const content = message.content;
   if (!content) return { text: '', type: 'unknown' };
 
   const contentType = content._;
 
-  const typeMap: Record<string, { type: string; textField: string | null }> = {
-    messageText:      { type: 'text',      textField: 'text' },
-    messagePhoto:     { type: 'photo',     textField: 'caption' },
-    messageVideo:     { type: 'video',     textField: 'caption' },
-    messageDocument:  { type: 'document',  textField: 'caption' },
-    messageAudio:     { type: 'audio',     textField: 'caption' },
-    messageVoiceNote: { type: 'voice',     textField: 'caption' },
-    messageVideoNote: { type: 'video_note', textField: null },
-    messageAnimation: { type: 'animation', textField: 'caption' },
-    messageSticker:   { type: 'sticker',   textField: null }
-  };
-
-  const mapping = typeMap[contentType];
+  const mapping = MESSAGE_TYPES.get(contentType ?? '');
   if (!mapping) return { text: '', type: contentType || 'unknown' };
 
-  const text = mapping.textField ? (content[mapping.textField]?.text || '') : '';
+  const text = messageText(content, mapping.textField);
   return { text, type: mapping.type };
 }
 
@@ -173,15 +207,20 @@ export function getMessageTextAndType(message: any): MessageTextAndType {
  * Uses per-source patterns from config.sourceFilters if available,
  * otherwise falls back to global filters.regexPatterns.
  */
-export function getRegexPatternsForSource(config: any, sourceChatId: SourceChatId): string[] {
-  if (sourceChatId && config?.sourceFilters) {
-    const sourceId = String(sourceChatId);
-    const sourceFilter = config.sourceFilters[sourceId];
-    if (sourceFilter && Array.isArray(sourceFilter.regexPatterns)) {
-      return sourceFilter.regexPatterns;
-    }
+export function getRegexPatternsForSource(config: FilterConfiguration | null, sourceChatId: SourceChatId): string[] {
+  if (sourceChatId) {
+    const patterns = sourceRegexPatterns(config, sourceChatId);
+    if (patterns) return patterns;
   }
-  // Fallback to global regex patterns
+  return globalRegexPatterns(config);
+}
+
+function sourceRegexPatterns(config: FilterConfiguration | null, sourceChatId: SourceChatId): string[] | null {
+  const patterns = config?.sourceFilters?.[String(sourceChatId)]?.regexPatterns;
+  return Array.isArray(patterns) ? patterns : null;
+}
+
+function globalRegexPatterns(config: FilterConfiguration | null): string[] {
   return config?.filters?.regexPatterns || [];
 }
 
@@ -196,9 +235,9 @@ function allowsKeyword(text: string, keywords: string[] | undefined): boolean {
 }
 
 function resolveRegexPatterns(
-  filters: any,
+  filters: FilterSettings,
   sourceChatId: string | number | null,
-  config: any
+  config: FilterConfiguration | null
 ): string[] {
   return sourceChatId && config
     ? getRegexPatternsForSource(config, sourceChatId)
@@ -214,8 +253,8 @@ function matchesAllRegexPatterns(
   return patterns.every(pattern => {
     try {
       return safeRegexTest(parseRegex(pattern), safeMatchText, 100);
-    } catch (err: any) {
-      logCallback(`[Filter-FEHLER] Ungültiges Regex-Muster /${pattern}/: ${err.message}`);
+    } catch (err: unknown) {
+      logCallback(`[Filter-FEHLER] Ungültiges Regex-Muster /${pattern}/: ${unknownErrorMessage(err)}`);
       return false;
     }
   });
@@ -226,36 +265,41 @@ function matchesAllRegexPatterns(
  * Includes text length limiting to prevent long match ReDoS execution times.
  */
 export function shouldForward(
-  message: any,
-  filters: any,
-  logCallback: (msg: string) => void = () => {},
+  message: FilterMessage,
+  filters: FilterSettings | null,
+  logCallback: (msg: string) => void = (_message: string) => undefined,
   sourceChatId: string | number | null = null,
-  config: any = null
+  config: FilterConfiguration | null = null
 ): boolean {
   if (!filters) return true;
+  return logFilterDecision(filterRejection(message, filters, sourceChatId, config, logCallback), logCallback);
+}
 
+function allowsMediaType(type: string, filters: FilterSettings): boolean {
+  return !filters.allowedTypes?.length || filters.allowedTypes.includes(type);
+}
+
+function contentRejection(message: FilterMessage, filters: FilterSettings, text: string, type: string): string | null {
+  if (!allowsMediaType(type, filters)) return `[Filter] Paket ${message.id} ignoriert (Inhaltstyp '${type}' nicht im Filter-Schema).`;
+  if (containsKeyword(text, filters.blockedKeywords)) return `[Filter] Paket ${message.id} blockiert (enthält Blacklist-Signatur).`;
+  if (!allowsKeyword(text, filters.allowedKeywords)) return `[Filter] Paket ${message.id} verworfen (keine erlaubte Signatur enthalten).`;
+  return null;
+}
+
+function filterRejection(message: FilterMessage, filters: FilterSettings, sourceChatId: SourceChatId,
+  config: FilterConfiguration | null, logCallback: (msg: string) => void): string | null {
   const { text, type } = getMessageTextAndType(message);
-
-  if (filters.allowedTypes?.length && !filters.allowedTypes.includes(type)) {
-    logCallback(`[Filter] Paket ${message.id} ignoriert (Inhaltstyp '${type}' nicht im Filter-Schema).`);
-    return false;
-  }
-
-  if (containsKeyword(text, filters.blockedKeywords)) {
-    logCallback(`[Filter] Paket ${message.id} blockiert (enthält Blacklist-Signatur).`);
-    return false;
-  }
-
-  if (!allowsKeyword(text, filters.allowedKeywords)) {
-    logCallback(`[Filter] Paket ${message.id} verworfen (keine erlaubte Signatur enthalten).`);
-    return false;
-  }
-
+  const rejection = contentRejection(message, filters, text, type);
+  if (rejection) return rejection;
   const regexPatterns = resolveRegexPatterns(filters, sourceChatId, config);
   if (!matchesAllRegexPatterns(text, regexPatterns, logCallback)) {
-    logCallback(`[Filter] Paket ${message.id} verworfen (Regex-Kriterien nicht erfüllt).`);
-    return false;
+    return `[Filter] Paket ${message.id} verworfen (Regex-Kriterien nicht erfüllt).`;
   }
+  return null;
+}
 
-  return true;
+function logFilterDecision(rejection: string | null, logCallback: (msg: string) => void): boolean {
+  if (!rejection) return true;
+  logCallback(rejection);
+  return false;
 }

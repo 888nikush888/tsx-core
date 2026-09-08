@@ -76,6 +76,11 @@ async function runTests() {
   assert.deepStrictEqual(getMessageTextAndType({ content: { _: 'messageSticker' } }), { text: '', type: 'sticker' });
   assert.deepStrictEqual(getMessageTextAndType({ content: { _: 'messageUnknown' } }), { text: '', type: 'messageUnknown' });
   assert.deepStrictEqual(getMessageTextAndType({}), { text: '', type: 'unknown' });
+  for (const type of ['constructor', 'toString', '__proto__']) {
+    const message = { id: 3, content: { _: type } };
+    assert.deepStrictEqual(getMessageTextAndType(message), { text: '', type });
+    assert.strictEqual(shouldForward(message, { allowedTypes: ['text'] }), false);
+  }
   console.log("   -> OK");
 
   // 4. shouldForward
