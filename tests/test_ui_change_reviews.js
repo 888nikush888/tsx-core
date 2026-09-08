@@ -32,13 +32,18 @@ function testCanonicalReviewOrder() {
   assert.notEqual(reviewHash({ ...value, a: [{ z: 0, A: false }, null] }), expected);
 }
 function testReviewCredentialRedaction() {
-  for (const userinfo of ['user:pass', 'u:p:a', ':u:p', 'u:p:', ':::']) {
-    assert.equal(redactReview(`HTTPS://${userinfo}@example.invalid/x`, 0, false), 'HTTPS://[redigiert]@example.invalid/x');
+  // Empty usernames/passwords are still credentials and must never reach reviews.
+  for (const userinfo of ['user:pass', 'u:p:a', ':u:p', 'u:p:', ':::', ':pass', 'user:', '::', ':']) {
+    for (const personalData of [true, false]) {
+      assert.equal(redactReview(`HTTPS://${userinfo}@example.invalid/x`, 0, personalData), 'HTTPS://[redigiert]@example.invalid/x');
+    }
   }
-  for (const userinfo of ['user', ':pass', 'user:', '::']) {
+  for (const userinfo of ['user', 'user%3Aname']) {
     const source = `https://${userinfo}@example.invalid/x`;
     assert.equal(redactReview(source, 0, false), source);
   }
+  assert.deepEqual(redactReview({ links: ['http://:pass@example.invalid', 'https://user:@example.invalid'] }),
+    { links: ['http://[redigiert]@example.invalid', 'https://[redigiert]@example.invalid'] });
   for (const suffix of ['@example.invalid', '']) {
     const source = 'https://' + ':'.repeat(100000) + suffix;
     const expected = suffix ? 'https://[redigiert]@example.invalid' : source;

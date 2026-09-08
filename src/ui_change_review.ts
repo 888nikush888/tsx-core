@@ -27,7 +27,7 @@ export function redactReview(value: unknown, depth = 0, personalData = true): an
   if (typeof value === 'string') return (personalData ? maskPII(value) : value)
     .replace(/\bBearer\s+[a-z0-9._~+/=-]+/gi, 'Bearer [redigiert]')
     .replace(/(https?:\/\/)([^\s/@]+)@/gi, (match, scheme: string, userinfo: string) =>
-      userinfo.slice(1, -1).includes(':') ? `${scheme}[redigiert]@` : match);
+      userinfo.includes(':') ? `${scheme}[redigiert]@` : match);
   if (Array.isArray(value)) return value.map(item => redactReview(item, depth + 1, personalData));
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) =>
     [key, SECRET_PATTERNS.some(pattern => pattern.test(key)) ? '[redigiert]' : redactReview(item, depth + 1, personalData)]));

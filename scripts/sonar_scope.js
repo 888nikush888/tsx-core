@@ -1,6 +1,10 @@
 import { sonarGet } from './sonar_read.js';
 
 export function sonarScope(environment) {
+  // Refs are data: API requests encode them as query parameters, and scanner
+  // arguments use fixed ${env.*} placeholders (see sonar_scan_arguments.js).
+  // Shell punctuation is legal in Git refs and never evaluated as shell code.
+  // Reject scanner interpolation and property delimiters, not shell characters.
   const key = environment.SONAR_PULL_REQUEST?.trim();
   if (!key) {
     if (environment.SONAR_BRANCH && /[\x00-\x20\x7f]|\$\{/u.test(environment.SONAR_BRANCH)) {

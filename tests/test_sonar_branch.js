@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { exportFindings } from '../scripts/export_sonarcloud_findings.js';
 import { sonarScanArguments } from '../scripts/sonar_scan_arguments.js';
+import { sonarScope } from '../scripts/sonar_scope.js';
 import { verifySonarEvidence } from '../scripts/verify_sonar_evidence.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'sonar-branch-'));
@@ -52,7 +54,18 @@ try {
   assert.equal(sonarScanArguments(environment), args);
   for (const ref of ['codex/quote\'"', 'codex/$(touch-pwned);`id`', 'codex/a=b&c|d', 'codex/ä-ß']) {
     assert.equal(sonarScanArguments({ ...environment, SONAR_BRANCH: ref }), args);
+    assert.equal(sonarScope({ ...environment, SONAR_BRANCH: ref }).branch, ref);
   }
+  // Exercise the workflow's real output boundary: only fixed placeholders reach
+  // the action's argument parser, even when refs contain shell punctuation.
+  const outputPath = path.join(directory, 'github-output');
+  const prepared = spawnSync(process.execPath, ['scripts/sonar_scan_arguments.js'], {
+    cwd: new URL('..', import.meta.url), encoding: 'utf8',
+    env: { ...process.env, ...environment, SONAR_PULL_REQUEST: '',
+      SONAR_BRANCH: 'codex/$(id);`id`&x|y', GITHUB_OUTPUT: outputPath }
+  });
+  assert.equal(prepared.status, 0, prepared.stderr);
+  assert.equal(await readFile(outputPath, 'utf8'), `args=${args}\n`);
   for (const ref of ['codex/${env.SONAR_TOKEN}', 'codex/a\n-Dsonar.token=x', 'codex/a b', ' codex/a', 'codex/a\n']) {
     assert.throws(() => sonarScanArguments({ ...environment, SONAR_BRANCH: ref }), /refs contain/u);
   }
