@@ -44,6 +44,11 @@ function proposalPermission(action: McpAgentProposal['action']): McpPermission {
   return 'trading.kill_switch';
 }
 
+const CONTRACT_REMOVAL_ACTIONS: ReadonlySet<string> = new Set([
+  'contracts.archive',
+  'contracts.delete_draft',
+]);
+
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
@@ -323,16 +328,16 @@ export class McpControlBridge {
   private executeAuthorized(request: McpControlRequest): unknown {
     const payload = payloadObject(request);
     const action = request.action;
-    if (action.startsWith('contracts.')) return this.executeContractAction(action, payload);
+    if (action.startsWith('contracts.')) {
+      if (CONTRACT_REMOVAL_ACTIONS.has(action)) return this.executeContractRemoval(action, payload);
+      return this.executeContractWrite(action, payload);
+    }
     if (action.startsWith('risk.')) return this.executeRiskAction(action, payload);
     if (action.startsWith('trading.')) return this.executeTradingAction(action, payload);
     throw new Error(`MCP control action is not implemented: ${action}`);
   }
 
-  private executeContractAction(action: McpControlAction, payload: Record<string, any>): unknown {
-    if (action === 'contracts.archive' || action === 'contracts.delete_draft') {
-      return this.executeContractRemoval(action, payload);
-    }
+  private executeContractWrite(action: McpControlAction, payload: Record<string, unknown>): unknown {
     switch (action) {
       case 'contracts.create':
         return this.control.createSignalContract(payload);
@@ -345,7 +350,7 @@ export class McpControlBridge {
     }
   }
 
-  private executeContractRemoval(action: McpControlAction, payload: Record<string, any>): unknown {
+  private executeContractRemoval(action: McpControlAction, payload: Record<string, unknown>): unknown {
     switch (action) {
       case 'contracts.archive':
         return this.control.archiveSignalContract(payload.versionId);
@@ -356,7 +361,7 @@ export class McpControlBridge {
     }
   }
 
-  private executeRiskAction(action: McpControlAction, payload: Record<string, any>): unknown {
+  private executeRiskAction(action: McpControlAction, payload: Record<string, unknown>): unknown {
     switch (action) {
       case 'risk.update':
         return this.control.setChannelRiskPolicy(payload);
@@ -367,7 +372,7 @@ export class McpControlBridge {
     }
   }
 
-  private executeTradingAction(action: McpControlAction, payload: Record<string, any>): unknown {
+  private executeTradingAction(action: McpControlAction, payload: Record<string, unknown>): unknown {
     switch (action) {
       case 'trading.reconcile':
         return this.control.reconcile(payload.accountId);
