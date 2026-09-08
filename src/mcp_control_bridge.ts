@@ -352,6 +352,8 @@ export class McpControlBridge {
           accountId: payload.accountId,
           confirmation: 'FLATTEN MANAGED POSITIONS',
         });
+      default:
+        throw new Error(`MCP control action is not implemented: ${request.action}`);
     }
   }
 }
