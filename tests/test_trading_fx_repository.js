@@ -63,9 +63,8 @@ try {
     'Public quote originals may be observed by two accounts, but never share account authority.');
   // Even a complete, correctly hashed recipe must reference the actual retained originals.
   const { fxEvidenceDigest } = await import('../src/trading_fx_contract.ts');
-  const { evidenceHash: omitted, ...body } = proof.conversion;
-  void omitted;
-  const fakeBody = { ...body, rate: { numerator: '1', denominator: '1' } };
+  const fakeBody = { ...proof.conversion, rate: { numerator: '1', denominator: '1' } };
+  delete fakeBody.evidenceHash;
   const fake = { ...fakeBody, evidenceHash: fxEvidenceDigest('tsx-fx-conversion-v1', fakeBody) };
   const fakeId = fxEvidenceDigest('tsx-fx-account-conversion-v1', { accountId: account.id,
     accountFingerprint: account.externalAccountId, credentialGeneration: account.credentialGeneration, evidenceHash: fake.evidenceHash });

@@ -32,7 +32,8 @@
     "19 unchanged async assertion-contract functions individually read and exact-body matched; all 13 corresponding Node22 regression suites passed. No source changes or suppression.",
     "Dependency gate: registered malformed-metadata/exact-artifact/provenance/hash regression tests, actual gate and supply-chain suite passed. 308 valid/invalid policy results match original ordering; original null-metadata crash reproduced. Whole script/new test complexity<=5 and ESLint/diff checks passed.",
     "Sonar local-name and implementation-path Unicode fixes: historical Sonar decision and full implementation bridge suites, ESLint and diff checks passed.",
-    "Coverage gate: Node22 unit and isolated CLI regressions passed, 156 original/current policy comparisons passed, entire changed files ESLint complexity<=5 and diff checks passed."
+    "Coverage gate: Node22 unit and isolated CLI regressions passed, 156 original/current policy comparisons passed, entire changed files ESLint complexity<=5 and diff checks passed.",
+    "FX forged-evidence construction: full Node22 repository suite and ESLint/diff checks passed."
   ],
   "entries": [
     {
@@ -4766,6 +4767,14 @@
       "originalLine": 9,
       "status": "source_change_pending_rescan",
       "proof": "Extracted per-metric evaluation and coverage reporting; every function complexity<=5. Child failure sets exitCode and returns before reading stale reports. Isolated real CLI tests verify exit7 with invalid stale JSON, success0, coverage regression1; 156 original/current evaluation cases preserve messages and order. Baseline unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2cmc=",
+      "rule": "JS-0098",
+      "path": "tests/test_trading_fx_repository.js",
+      "originalLine": 67,
+      "status": "source_change_pending_rescan",
+      "proof": "Build forged evidence fixture as a fresh shallow copy then explicitly delete its existing evidenceHash before computing a replacement. Removes unused void expression; original proof remains untouched. Full immutable FX persistence/replay/restart/rollback suite passes."
     }
   ]
 }
