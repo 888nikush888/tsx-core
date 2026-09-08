@@ -60,7 +60,8 @@ export async function uiMcpProposalReview(id: string) {
   return {
     contractVersion: 1, observedAt: checkedAt,
     reviewHash: reviewHash({ proposalId: proposal.id, action, payload, before, activeRevisionId: active?.id ?? null }),
-    proposal: redactReview(proposal), before: redactReview(before), requested: redactReview(requested), freshPreflight,
+    proposal: redactReview(proposal), before: redactReview(before), requested: redactReview(requested),
+    freshPreflight: redactReview(freshPreflight),
     scope: { globalEntryEffects: action === 'trading.release_kill_switch', activeRevisionId: active?.id ?? null,
       accountIds: [...new Set([...affectedPaths.map(path => path.accountId), ...(typeof payload.accountId === 'string' ? [payload.accountId] : [])])],
       paths: affectedPaths.map(path => ({ id: path.id, accountId: path.accountId, channelId: path.channelId })) },

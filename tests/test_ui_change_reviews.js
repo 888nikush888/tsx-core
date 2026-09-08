@@ -114,6 +114,24 @@ try {
   const resource = await createWorkflowResourceDraft({ kind: 'channel', name: 'Initial', configuration: { channelId: 'review-channel' } });
   const proposal = await createMcpProposal({ agentId: agent.id, action: 'workflow.resource_update', payload: { id: resource.id, name: 'Requested', configuration: resource.configuration } });
   const initial = await uiMcpProposalReview(proposal.id);
+  const database = getDatabase();
+  const originalAll = database.all;
+  let resourceReads = 0;
+  try {
+    database.all = function (sql, ...parameters) {
+      if (String(sql).includes('SELECT * FROM workflow_resource_versions') && ++resourceReads === 2) {
+        throw new Error('Preflight connection failed: Bearer SYNTHETIC_REVIEW_TOKEN https://user:SYNTHETIC_PASSWORD@example.invalid');
+      }
+      return originalAll.call(this, sql, ...parameters);
+    };
+    const failedReview = await uiMcpProposalReview(proposal.id);
+    assert.equal(failedReview.freshPreflight.allowed, false);
+    assert.match(failedReview.freshPreflight.blockers[0], /Preflight connection failed/);
+    assert.doesNotMatch(JSON.stringify(failedReview), /SYNTHETIC_REVIEW_TOKEN|SYNTHETIC_PASSWORD/);
+    assert.equal(failedReview.reviewHash, initial.reviewHash, 'Display redaction must preserve approval identity.');
+  } finally {
+    database.all = originalAll;
+  }
   assert.equal(initial.before.name, 'Initial'); assert.equal(initial.requested.name, 'Requested');
   assert.equal(initial.reviewHash, (await uiMcpProposalReview(proposal.id)).reviewHash, 'Read clocks must not invalidate unchanged content.');
   await updateWorkflowResourceDraft(resource.id, { name: 'Concurrent', configuration: resource.configuration, baseEditRevision: 0 });
