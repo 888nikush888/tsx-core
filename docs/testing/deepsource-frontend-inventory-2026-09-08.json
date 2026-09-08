@@ -7,8 +7,8 @@
   "count": 847,
   "uniqueCount": 847,
   "dispositions": {
-    "pending-review": 588,
-    "fixed-pending-rescan": 249,
+    "pending-review": 586,
+    "fixed-pending-rescan": 251,
     "proposed-false-positive": 10
   },
   "sourceBinding": "Each entry path binds to baselineSha256 and reviewedSha256 in files. Fixed means local implementation only, not a platform closure. Pending entries are not reviewed or accepted.",
@@ -251,7 +251,7 @@
     },
     "frontend/src/features/operations/deployment.tsx": {
       "baselineSha256": "632992dc480131becf1401da6291a3e8f2def4fecd7a22771183a0c524a86665",
-      "reviewedSha256": "632992dc480131becf1401da6291a3e8f2def4fecd7a22771183a0c524a86665"
+      "reviewedSha256": "3cf426f057edb98c13764291026995fc6c18c5636c1f6c7ca7466c8a7a04d352"
     },
     "frontend/src/features/operations/capabilities.tsx": {
       "baselineSha256": "88916eac1372305ad8135f21d30198922bd04779a87013809ef52dc89330de64",
@@ -442,7 +442,7 @@
       "reviewedSha256": "c94cc506813b9ccacf5307fbd13ba4f81f085aad89910748b003989f49337499"
     }
   },
-  "implementationHead": "6e42ecd047aec6b074627686849d0ed548d1a4be",
+  "implementationHead": "389de821e1c99dedabf37ec5601763280e48658b",
   "entries": [
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGVscXA=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndrcmU=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
@@ -879,8 +879,8 @@
     {"id": "T2NjdXJyZW5jZTp3bXJ5d3lyb24=", "rule": "JS-R1005", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 25, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function JobsPage({ id }: Readonly<{ id?: string }>) {"},
     {"id": "T2NjdXJyZW5jZTpqd2dxZHFncmE=", "rule": "JS-0323", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 11, "status": "fixed-pending-rescan", "rationale": "6e42ecd: JobsObservation distinguishes paginated and individual job responses inspected in uiJobsHandler/UiOperationStore; known parser, drill and restore evidence fields replace any. Raw evidence display remains unchanged. Nullable next cursor guarded. Two new regressions preserve read-only pagination and original restore evidence with separately observed process; all 307 frontend tests passed.", "evidence": "function JobResult({ job }: Readonly<{ job: any }>) {"},
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGV3eXc=", "rule": "JS-R1005", "path": "frontend/src/features/operations/jobs-page.tsx", "line": 11, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "function JobResult({ job }: Readonly<{ job: any }>) {"},
-    {"id": "T2NjdXJyZW5jZTphbmF3dndhZG0=", "rule": "JS-0323", "path": "frontend/src/features/operations/deployment.tsx", "line": 7, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const [data, setData] = useState<any>(null); const [error, setError] = useState('');"},
-    {"id": "T2NjdXJyZW5jZTpsbXFuZG5xeXg=", "rule": "JS-R1005", "path": "frontend/src/features/operations/deployment.tsx", "line": 6, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function DeploymentEvidence() {"},
+    {"id": "T2NjdXJyZW5jZTphbmF3dndhZG0=", "rule": "JS-0323", "path": "frontend/src/features/operations/deployment.tsx", "line": 7, "status": "fixed-pending-rescan", "rationale": "389de82: DeploymentObservation follows inspected uiDeployment listener/process/cgroup/declaration contract. Separate server evidence presentation preserves markup, explicit zero, unknown null fields and exact RAM string. All functions satisfy local ESLint complexity <=5. Two new rendering regressions, 309 frontend tests, build, oxlint and reachability passed.", "evidence": "const [data, setData] = useState<any>(null); const [error, setError] = useState('');"},
+    {"id": "T2NjdXJyZW5jZTpsbXFuZG5xeXg=", "rule": "JS-R1005", "path": "frontend/src/features/operations/deployment.tsx", "line": 6, "status": "fixed-pending-rescan", "rationale": "389de82: DeploymentObservation follows inspected uiDeployment listener/process/cgroup/declaration contract. Separate server evidence presentation preserves markup, explicit zero, unknown null fields and exact RAM string. All functions satisfy local ESLint complexity <=5. Two new rendering regressions, 309 frontend tests, build, oxlint and reachability passed.", "evidence": "export function DeploymentEvidence() {"},
     {"id": "T2NjdXJyZW5jZTpkYWt2d3ZrZWE=", "rule": "JS-0323", "path": "frontend/src/features/operations/capabilities.tsx", "line": 64, "status": "fixed-pending-rescan", "rationale": "28f01e5: discriminated parameter/capability response and genuine UiParameter contract replace any; distinct cards preserve rendering. Frontend build, Oxlint and 305 tests passed.", "evidence": "{data.entries.map((entry: any) => <article className=\"operations-card\" key={parameters ? entry.path : entry.route}>"},
     {"id": "T2NjdXJyZW5jZTpxcGVvbm9lYW4=", "rule": "JS-R1005", "path": "frontend/src/features/operations/capabilities.tsx", "line": 64, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "{data.entries.map((entry: any) => <article className=\"operations-card\" key={parameters ? entry.path : entry.route}>"},
     {"id": "T2NjdXJyZW5jZTp5Z3lxbnF5bXY=", "rule": "JS-0415", "path": "frontend/src/features/operations/capabilities.tsx", "line": 52, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "return <section className=\"operations-stack\"><h1>Aktionen & Parameter</h1>"},
