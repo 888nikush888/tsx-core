@@ -7,8 +7,8 @@
   "count": 847,
   "uniqueCount": 847,
   "dispositions": {
-    "pending-review": 617,
-    "fixed-pending-rescan": 222,
+    "pending-review": 605,
+    "fixed-pending-rescan": 234,
     "proposed-false-positive": 8
   },
   "sourceBinding": "Each entry path binds to baselineSha256 and reviewedSha256 in files. Fixed means local implementation only, not a platform closure. Pending entries are not reviewed or accepted.",
@@ -135,7 +135,7 @@
     },
     "frontend/src/lib/navigation.tsx": {
       "baselineSha256": "e06fa40d7cbd4b0d6dc3568525329c5712e751b56fabece914d36df03a9d4ede",
-      "reviewedSha256": "d7905c94f1adf86540502063e8df982b40a2f75e8a5114423c1550567ab05c0d"
+      "reviewedSha256": "5773c8b7d605c9aa563cd036e162fc666995cb7d3084817d4639a46ce257a306"
     },
     "frontend/src/lib/api.ts": {
       "baselineSha256": "b75e79e9854097e28d84ccd0910200317e6229361557302d160e3eaa84b94b04",
@@ -311,47 +311,47 @@
     },
     "frontend/src/contexts/theme-context.ts": {
       "baselineSha256": "55329a3b65dd9b93e791f02ce4df566a2d4d342bab50afe5095eae124cc700b6",
-      "reviewedSha256": "55329a3b65dd9b93e791f02ce4df566a2d4d342bab50afe5095eae124cc700b6"
+      "reviewedSha256": "b9c520130bb5f1e092ae8b5ca224ac82269686e816e79853098f69cc5d30fb7a"
     },
     "frontend/src/components/ui/textarea.tsx": {
       "baselineSha256": "4c29ce0955b38930d5bdad9214ae82fb55f15cb640e31288534de6ac9415287c",
-      "reviewedSha256": "4c29ce0955b38930d5bdad9214ae82fb55f15cb640e31288534de6ac9415287c"
+      "reviewedSha256": "c0b49d5785cedbec68a64c67dd28f420faf01fcc493d6b59b0fa4853f84c9080"
     },
     "frontend/src/components/ui/native-select.tsx": {
       "baselineSha256": "b219ecfb4b0fba32db0e6d90d9cff92f2301c9f82d15c6ac3831e5e8129e31ac",
-      "reviewedSha256": "b219ecfb4b0fba32db0e6d90d9cff92f2301c9f82d15c6ac3831e5e8129e31ac"
+      "reviewedSha256": "9f26639f4de0ea722b8513489a0ff55b1867cc51b3a1148f924acb3f2a21fb62"
     },
     "frontend/src/components/ui/label.tsx": {
       "baselineSha256": "ea25dc27c48f7c1c7e2a696a7c66815d7d308c3e3b417a3a209ce0bfd1cff205",
-      "reviewedSha256": "ea25dc27c48f7c1c7e2a696a7c66815d7d308c3e3b417a3a209ce0bfd1cff205"
+      "reviewedSha256": "5c35b1fc946416ee05c159d7effbd28a47683b8d5a984caffd4104dedd10f0e0"
     },
     "frontend/src/components/ui/input.tsx": {
       "baselineSha256": "d9956c80a34dabdd4c1922476ca320f3268257c953dfedfc6cab6a81e936ffe8",
-      "reviewedSha256": "d9956c80a34dabdd4c1922476ca320f3268257c953dfedfc6cab6a81e936ffe8"
+      "reviewedSha256": "94df46359730f6c9d9e366cd7eac5918de4853ba1bebdd85656cc1e09b8831c7"
     },
     "frontend/src/components/ui/dialog.tsx": {
       "baselineSha256": "120fdb64ea911798974f604b8c19891ab47a6913e9698008dea2eaa7c2b4eb93",
-      "reviewedSha256": "120fdb64ea911798974f604b8c19891ab47a6913e9698008dea2eaa7c2b4eb93"
+      "reviewedSha256": "6e99c4591aeab61c8e82e5cc5bfc1cd5fc29fb731b484dc6769f0de1f86c6cca"
     },
     "frontend/src/components/ui/card.tsx": {
       "baselineSha256": "397f0479d14380055c8c4e14373d92802b3b46c8e9c102e48007184ba80c18ec",
-      "reviewedSha256": "397f0479d14380055c8c4e14373d92802b3b46c8e9c102e48007184ba80c18ec"
+      "reviewedSha256": "96716717e2ad04fd64310234e4dd104b9cf81ce326313e5b6c8fb4fb6f62d830"
     },
     "frontend/src/components/ui/alert.tsx": {
       "baselineSha256": "a0e0956832a7e35f7191d6051f166adfe93046b6ee4ee4aa094f59f1ec7ddebd",
-      "reviewedSha256": "a0e0956832a7e35f7191d6051f166adfe93046b6ee4ee4aa094f59f1ec7ddebd"
+      "reviewedSha256": "075a16e2e17f0f7850e6a6dc39d35766cb0346e7403b19231573d9154f11a5c9"
     },
     "frontend/src/components/theme-toggle.tsx": {
       "baselineSha256": "798da98274161269f242834e2a2d03dcbedc3e3aa50f4fa65561b3aa468498f5",
-      "reviewedSha256": "798da98274161269f242834e2a2d03dcbedc3e3aa50f4fa65561b3aa468498f5"
+      "reviewedSha256": "c561161389c8b0f13461a3c4e57c055f82896b14db66325fb62bd97f837f23ec"
     },
     "frontend/src/components/theme-provider.tsx": {
       "baselineSha256": "f238835213e11f35035033fcb87c1471cc2484412b55d85f912d74d791a71f1c",
-      "reviewedSha256": "f238835213e11f35035033fcb87c1471cc2484412b55d85f912d74d791a71f1c"
+      "reviewedSha256": "57b6bcaeaccc589df4a9fb585394d67b72d00525096fc1c149d8f1e7657703fc"
     },
     "frontend/src/components/logo.tsx": {
       "baselineSha256": "3bd3021e7bb31a5aea263d8e78e8fc428ab36561182661c5dd619158066f957c",
-      "reviewedSha256": "3bd3021e7bb31a5aea263d8e78e8fc428ab36561182661c5dd619158066f957c"
+      "reviewedSha256": "f56a5cc2ef2ab8d4bea2bf9bd48db1dd07481df3044cd6e885de9617aeec0d8f"
     },
     "frontend/src/components/dashboard-auth-gate.tsx": {
       "baselineSha256": "9502f31e14779915cd449cd03455df309d95200bd693771a93381c6a81d12b2d",
@@ -442,7 +442,7 @@
       "reviewedSha256": "c94cc506813b9ccacf5307fbd13ba4f81f085aad89910748b003989f49337499"
     }
   },
-  "implementationHead": "22e9ae47ed33c12aea931d3e6b4a528eb3d863ae",
+  "implementationHead": "5dba3c6c5b3862dd79981309548a2520de69274a",
   "entries": [
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGVscXA=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndrcmU=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
@@ -610,7 +610,7 @@
     {"id": "T2NjdXJyZW5jZTprdnlxZHFucXg=", "rule": "JS-0098", "path": "frontend/src/lib/navigation.tsx", "line": 80, "status": "fixed-pending-rescan", "rationale": "22e9ae4: standalone void calls become identical discarded call statements; confirmation test callbacks use statement bodies; test-lab final action remains implicitly undefined and selected-edge removal uses the same click-only conditional. Complete frontend AST confirms zero remaining void operators; 305 tests, build and Oxlint passed.", "evidence": "void confirm({ title: 'Ungespeicherte Änderungen verwerfen?', description: 'Die Ansicht enthält ungespeicherte Eingaben. Gespeicherte Teilvorgänge bleiben erhalten; ungespeicherte Änderungen gehen beim Verlassen verloren.',"},
     {"id": "T2NjdXJyZW5jZTplYXhteW1nbWo=", "rule": "JS-R1005", "path": "frontend/src/lib/navigation.tsx", "line": 37, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "function logicalLocation(basename: string): NavigationLocation {"},
     {"id": "T2NjdXJyZW5jZTpwcXd4bnhveHE=", "rule": "JS-R1005", "path": "frontend/src/lib/navigation.tsx", "line": 26, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "function normalizeBasename(value: string) {"},
-    {"id": "T2NjdXJyZW5jZTp3bXJ5d3lkeXc=", "rule": "JS-C1003", "path": "frontend/src/lib/navigation.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTp3bXJ5d3lkeXc=", "rule": "JS-C1003", "path": "frontend/src/lib/navigation.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
     {"id": "T2NjdXJyZW5jZTpqd2dxZHFhcW4=", "rule": "JS-R1005", "path": "frontend/src/lib/api.ts", "line": 16, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export async function apiFetch("},
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGVrZXk=", "rule": "JS-0098", "path": "frontend/src/features/workflows/workflow-library.tsx", "line": 208, "status": "fixed-pending-rescan", "rationale": "b8c70a5: exact baseline scanner column lies inside an arrow void-expression body; a statement body invokes the identical expression once and returns undefined, preserving Promise and exception behavior. AST-limited transformation; build, 305 tests, Oxlint and frontend reachability gate passed.", "evidence": "{kind === 'revisions' && <><ChangeReview after={data.revision.graph} showAll label=\"Originalgraph · unveränderlich\" /><button className=\"secondary-button\" disabled={readOnly || busy} onClick={() => void restoreDraft()}>Historischen Graph als Entwurf übernehmen</button><Link to=\"/workflows/builder\">Entwurf im Builder prüfen</Link></>}"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndvd3c=", "rule": "JS-0323", "path": "frontend/src/features/workflows/workflow-library.tsx", "line": 206, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "<EvidenceTable caption=\"Gepinnte Quellen\" rows={data.sources.map((source: any) => ({ node: source.nodeId, kind: source.resource?.kind, resource: source.resource ? <Link to={resourceUrl(source.resource)}>{source.resource.name} · v{source.resource.version}</Link> : 'Originalquelle nicht verfügbar' }))} columns={[[\"node\", \"Knoten\"], [\"kind\", \"Art\"], ["},
@@ -1016,17 +1016,17 @@
     {"id": "T2NjdXJyZW5jZTphbmF3dndhcm8=", "rule": "JS-R1005", "path": "frontend/src/features/accounts/account-detail.tsx", "line": 13, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const command = async (action: 'cancel-entries' | 'emergency-flatten') => {"},
     {"id": "T2NjdXJyZW5jZTpsbXFuZG5xd3E=", "rule": "JS-0323", "path": "frontend/src/features/accounts/account-detail.tsx", "line": 9, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const [value, setValue] = useState<any>(null); const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);"},
     {"id": "T2NjdXJyZW5jZTpkYWt2d3ZrcXk=", "rule": "JS-R1005", "path": "frontend/src/features/accounts/account-detail.tsx", "line": 8, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function AccountDetail({ id, readOnly }: Readonly<{ id: string; readOnly: boolean }>) {"},
-    {"id": "T2NjdXJyZW5jZTpxcGVvbm9lamc=", "rule": "JS-C1003", "path": "frontend/src/contexts/theme-context.ts", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTp5Z3lxbnF5d2c=", "rule": "JS-C1003", "path": "frontend/src/components/ui/textarea.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTpnZXZhZGF2bWQ=", "rule": "JS-C1003", "path": "frontend/src/components/ui/native-select.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTpyZWt2bnZrZHI=", "rule": "JS-C1003", "path": "frontend/src/components/ui/label.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTptcmRwbnBkZ3k=", "rule": "JS-C1003", "path": "frontend/src/components/ui/input.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTp2dm15bnltd3k=", "rule": "JS-C1003", "path": "frontend/src/components/ui/dialog.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTpveWFrZGthamU=", "rule": "JS-C1003", "path": "frontend/src/components/ui/card.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTp4cmd5bnlnZW0=", "rule": "JS-C1003", "path": "frontend/src/components/ui/alert.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTprdnlxZHF5bHI=", "rule": "JS-C1003", "path": "frontend/src/components/theme-toggle.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTplYXhteW14bGU=", "rule": "JS-C1003", "path": "frontend/src/components/theme-provider.tsx", "line": 3, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
-    {"id": "T2NjdXJyZW5jZTpwcXd4bnh3YWw=", "rule": "JS-C1003", "path": "frontend/src/components/logo.tsx", "line": 1, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTpxcGVvbm9lamc=", "rule": "JS-C1003", "path": "frontend/src/contexts/theme-context.ts", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTp5Z3lxbnF5d2c=", "rule": "JS-C1003", "path": "frontend/src/components/ui/textarea.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTpnZXZhZGF2bWQ=", "rule": "JS-C1003", "path": "frontend/src/components/ui/native-select.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTpyZWt2bnZrZHI=", "rule": "JS-C1003", "path": "frontend/src/components/ui/label.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTptcmRwbnBkZ3k=", "rule": "JS-C1003", "path": "frontend/src/components/ui/input.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTp2dm15bnltd3k=", "rule": "JS-C1003", "path": "frontend/src/components/ui/dialog.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTpveWFrZGthamU=", "rule": "JS-C1003", "path": "frontend/src/components/ui/card.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTp4cmd5bnlnZW0=", "rule": "JS-C1003", "path": "frontend/src/components/ui/alert.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTprdnlxZHF5bHI=", "rule": "JS-C1003", "path": "frontend/src/components/theme-toggle.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTplYXhteW14bGU=", "rule": "JS-C1003", "path": "frontend/src/components/theme-provider.tsx", "line": 3, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
+    {"id": "T2NjdXJyZW5jZTpwcXd4bnh3YWw=", "rule": "JS-C1003", "path": "frontend/src/components/logo.tsx", "line": 1, "status": "fixed-pending-rescan", "rationale": "5dba3c6: import only the actually referenced named React functions and type-only declarations; all namespace member uses replaced directly, preserving runtime functions and type contracts. Build, 305 tests, Oxlint and architecture gate passed.", "evidence": "import * as React from \"react\";"},
     {"id": "T2NjdXJyZW5jZTp3bXJ5d3lybHA=", "rule": "JS-0415", "path": "frontend/src/components/dashboard-auth-gate.tsx", "line": 308, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "<main className=\"min-h-screen grid place-items-center bg-background p-6\">"},
     {"id": "T2NjdXJyZW5jZTpqd2dxZHFnbGw=", "rule": "JS-0098", "path": "frontend/src/components/dashboard-auth-gate.tsx", "line": 294, "status": "fixed-pending-rescan", "rationale": "22e9ae4: standalone void calls become identical discarded call statements; confirmation test callbacks use statement bodies; test-lab final action remains implicitly undefined and selected-edge removal uses the same click-only conditional. Complete frontend AST confirms zero remaining void operators; 305 tests, build and Oxlint passed.", "evidence": "void validateStoredToken();"},
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGVtbGw=", "rule": "JS-0415", "path": "frontend/src/components/dashboard-auth-gate.tsx", "line": 264, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "<main className=\"min-h-screen grid place-items-center bg-background p-6\">"},
