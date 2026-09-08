@@ -47,6 +47,35 @@ try {
     assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM ' + table)).count, 0,
       'An invalid resumed plan must not create dispatch artifacts.');
   }
+  // Exercise the actual reconciliation method against a persisted damaged plan.
+  // All DB access after loading the plan is trapped: exit recovery requires DB reads/writes.
+  const db = getDatabase();
+  const originalAll = db.all, originalGet = db.get, originalRun = db.run;
+  for (const damage of [{ price: null }, { targetIndex: 2 }]) {
+    const damaged = { orders: [{ ...validTarget, ...damage }] };
+    await db.run('UPDATE trading_trade_intents SET plan_json = ? WHERE id = ?', [JSON.stringify(damaged), intent.id]);
+    const persisted = await db.get('SELECT plan_json FROM trading_trade_intents WHERE id = ?', [intent.id]);
+    let recoveryAccesses = 0, cancellations = 0, submissions = 0;
+    const guardedAdapter = new PaperExchangeAdapter();
+    guardedAdapter.cancelOrder = async () => { cancellations += 1; throw new Error('Unexpected exit cancellation.'); };
+    guardedAdapter.submitOrder = async () => { submissions += 1; throw new Error('Unexpected exit submission.'); };
+    const failDatabaseAccess = async () => { recoveryAccesses += 1; throw new Error('Unexpected exit recovery database access.'); };
+    try {
+      db.all = failDatabaseAccess;
+      db.get = failDatabaseAccess;
+      db.run = failDatabaseAccess;
+      await assert.rejects(engine.ensureTakeProfitCoverage(guardedAdapter, account, intent,
+        JSON.parse(persisted.plan_json), { orders: [], positions: [] }), /Take-profit plan has no valid target/);
+    } finally {
+      db.all = originalAll;
+      db.get = originalGet;
+      db.run = originalRun;
+    }
+    assert.equal(recoveryAccesses, 0, 'Malformed persisted TP contract must be rejected before exit recovery.');
+    assert.equal(cancellations, 0, 'Malformed persisted TP contract must not cancel exits.');
+    assert.equal(submissions, 0, 'Malformed persisted TP contract must not submit exits.');
+  }
+
 } finally {
   await closeDb();
   await rm(directory, { recursive: true, force: true });
