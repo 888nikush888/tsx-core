@@ -131,6 +131,7 @@ const allTests = [
   'test_runtime_settings.js',
   'test_telegram_login.js',
   'test_tdlib_retry.js',
+  'test_forwarder_error_types.js',
   'test_dupe_blocker.js',
   'test_outbox.js',
   'test_ingress_atomicity.js',
