@@ -20,7 +20,8 @@
     "Explicit retry/audit completion and named scheduler options: five Node22 suites including three Sonar export modes passed; ESLint and diff checks passed.",
     "Two placeholder-signature findings: Node22 transport fence and exact-lock Python3.12 19-case signed SDK bridge tests passed; ESLint/diff checks passed.",
     "Twelve individual control-character regex findings: exact source-predicate review confirms intentional rejection ranges; source is unchanged, no remote suppression applied.",
-    "Trailing undefined review: Node22 reproduces mandatory expected-argument behavior; each occurrence AST-mapped to its exact assertion or explicit undefined-input regression. No source changes or suppressions."
+    "Trailing undefined review: Node22 reproduces mandatory expected-argument behavior; each occurrence AST-mapped to its exact assertion or explicit undefined-input regression. No source changes or suppressions.",
+    "Risk-policy helper refactor: existing Node22 governance suite and 1728 original-versus-current cases passed; ESLint complexity<=5 for the whole file, ordinary ESLint and diff checks passed."
   ],
   "entries": [
     {
@@ -2977,6 +2978,22 @@
       "proof": "AST confirms undefined is the required second expected-value argument of Node assert, not an optional trailing parameter. Native Node22 reproduction proves omission throws ERR_MISSING_ARGS; preserving it retains the original absence/redaction assertion.",
       "evidenceCallSha256": "1fae1bf3a609a9fbc29ed06179f5f0ea2f15d94f73f4a8754dea2dffb51ea159",
       "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d3ZneGw=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_risk_acceptances.js",
+      "originalLine": 79,
+      "status": "source_change_pending_rescan",
+      "proof": "Validation is separated into ownership, individual section, date ordering and remaining-validity helpers; every function passes complexity<=5 and 1728 differential cases preserve exact prior error order and validity decisions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbm9rcmo=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_risk_acceptances.js",
+      "originalLine": 29,
+      "status": "source_change_pending_rescan",
+      "proof": "Validation is separated into ownership, individual section, date ordering and remaining-validity helpers; every function passes complexity<=5 and 1728 differential cases preserve exact prior error order and validity decisions."
     }
   ]
 }
