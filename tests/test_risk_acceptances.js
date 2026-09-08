@@ -78,8 +78,9 @@ assert.ok(
   'Large whitespace-only list sections must be rejected without regex backtracking.'
 );
 
-const repositoryRecords = await checkRiskAcceptances(new Date('2026-08-09T00:00:00Z'));
+// Repository evidence is time-limited; validate it at the actual gate time.
+const repositoryRecords = await checkRiskAcceptances();
 assert.deepEqual(repositoryRecords.violations, []);
-assert.deepEqual(repositoryRecords.files, []);
+assert.deepEqual(repositoryRecords.files, ['RA-2026-09-08-internal-http.md']);
 
 console.log('Risk-acceptance governance tests passed.');
