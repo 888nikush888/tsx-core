@@ -14,6 +14,15 @@ import { groupExchangeCatalog } from "@/app/workflow/exchange-catalog";
 import { useDirtyGuard } from "@/shared/forms/use-dirty-guard";
 import { useOperatorReadOnly } from "@/shared/api/operator-session";
 
+type AccountCreationDraft = {
+  name: string;
+  exchange: string;
+  mode: string;
+  initialBalance: string;
+  maxConcurrentPositions: number;
+  credentials: Record<string, string>;
+};
+
 export function Accounts({
   trading,
   catalog,
@@ -25,7 +34,7 @@ export function Accounts({
 }>) {
   const readOnly = useOperatorReadOnly();
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<Record<string, any>>({
+  const [form, setForm] = useState<AccountCreationDraft>({
     name: "",
     exchange: "paper",
     mode: "paper",
