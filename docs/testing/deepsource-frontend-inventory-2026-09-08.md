@@ -2,7 +2,7 @@
 
 Scope: frontend/src, frontend/tests and frontend/e2e. The complete export contains 4,459 occurrences; this ownership scope contains 847 unique occurrence IDs. Baseline commit: be8cf5af59f60d69ad946d778973add8161b7672. The accompanying JSON binds every occurrence to its original source SHA-256 and records the locally reviewed source SHA-256 by path. Original export and execution logs stay in ignored reports.
 
-This is an in-progress ledger, not a claim that the frontend scan is clean. At implementation commit bd10bb9, 239 occurrences have a local fix awaiting rescan, 10 have a concrete proposed false-positive rationale, and 598 remain open for review. No platform status, rule or quality threshold was changed. Hash binding identifies the reviewed text; it does not make a pending occurrence reviewed.
+This is an in-progress ledger, not a claim that the frontend scan is clean. At implementation commit 4328bf0, 245 occurrences have a local fix awaiting rescan, 10 have a concrete proposed false-positive rationale, and 592 remain open for review. No platform status, rule or quality threshold was changed. Hash binding identifies the reviewed text; it does not make a pending occurrence reviewed.
 
 ## Implemented changes
 
@@ -18,10 +18,12 @@ This is an in-progress ledger, not a claim that the frontend scan is clean. At i
 
 ## Verification
 
-Node 22.23.2 and the locked dependency tree were used. Frontend TypeScript/Vite build, oxlint and all305 unit tests pass after the implementation. Before the final equity extraction, Chromium passed all49 browser tests on an isolated local development server at port 4187. Firefox, WebKit and mobile Chromium each also pass all49 cases (147 additional passes;196 browser passes total). There were no live provider, exchange or deployment acceptance checks.
+Node 22.23.2 was used with the shared local dependency installation; this is not a claim of a fresh immutable dependency install. Frontend TypeScript/Vite build, oxlint and all305 unit tests pass after the implementation. Before the final equity extraction, Chromium passed all49 browser tests on an isolated local development server at port 4187. Firefox, WebKit and mobile Chromium each also pass all49 cases (147 additional passes;196 browser passes total). There were no live provider, exchange or deployment acceptance checks.
 
 Logs: reports/security-services/deepsource-frontend-*-build.log, *-tests.log, *-lint.log and *-e2e-chromium.log. The temporary browser configuration changes only the local server port, output path and worker count; it preserves the checked-in projects and test cases.
 
 ## Reviewed contract exceptions
 
-Explicit undefined is required for the React 19 useRef initial argument and React state dispatch calls. The Vitest matcher with undefined verifies exactly one argument; removing it changes what the test proves. The browser SilentResizeObserver is deliberately an inert deterministic geometry fixture. These eight findings remain proposed dispositions until the platform review is applied through the authorized review process.
+Explicit undefined is required for the React 19 useRef initial argument and React state dispatch calls. The Vitest matcher with undefined verifies exactly one argument; removing it changes what the test proves. The browser SilentResizeObserver is deliberately an inert deterministic geometry fixture. These findings remain proposed dispositions until the platform review is applied through the authorized review process.
+
+- eb52a03 / 528925f / 4328bf0: account detail and paginated account response types plus typed simulation results and presentation helpers. All 305 frontend unit tests, build, oxlint and frontend reachability checks passed after each source commit. Six additional exact baseline occurrences are fixed pending rescan.
