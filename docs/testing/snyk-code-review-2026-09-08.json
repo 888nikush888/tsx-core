@@ -6,8 +6,8 @@
   "reviewedCount": 86,
   "counts": {
     "proposed-false-positive": 81,
-    "credential-leak-fixed-generic-error-review-remains": 1,
-    "deployment-mitigation-requires-verification": 4
+    "fixed-public-preflight-boundary": 1,
+    "reviewed-internal-http-architecture": 4
   },
   "sourceEvidence": "SHA-256 hashes cover reviewed working-tree file bytes snapshotted from the integrating worktree, not a fabricated clean scan commit. SARIF does not supply full source blobs or an attested source revision. Reconcile scan revision and rerun after integration before resolving platform findings.",
   "hashDefinition": "reviewedSourceSha256 is exact snapshot file bytes; reviewedLineSha256 normalizes line separators to LF and omits final newline.",
@@ -317,9 +317,19 @@
       },
       "reviewedSourceSha256": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b",
       "reviewedLineSha256": "199a68d57000a8fc12b53c7df88f48d6702c8df2818f7c17e2d4f37ca33d8ba6",
-      "disposition": "credential-leak-fixed-generic-error-review-remains",
-      "rationale": "The trace is freshPreflight.blockers from boundedError(error), returned beside already-redacted proposal/before/requested data. A regression demonstrated Bearer and URL credentials escaping via fresh diagnostics. Commit e639fa0 applies redactReview to freshPreflight and preserves blockers/approval identity. Arbitrary unrecognized error text remains a review concern; this is not a claim of generic internal-error sanitization.",
-      "platformStatusChanged": false
+      "disposition": "fixed-public-preflight-boundary",
+      "rationale": "Confirmed freshPreflight credential disclosure was first redacted in e639fa0. Commit 38c2f24 then adds an explicit public preflight diagnostic mode: authored domain blockers are preserved, but caught exceptions have no public-message contract and receive a fixed helpful message. The UI uses that mode. Regression proves arbitrary internal paths/text and credential formats are absent, allowed remains false, reviewHash is unchanged and explicit missing-contract blockers remain actionable. The change is limited to the traced UI boundary, not a global error-message replacement.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "e639fa0",
+        "38c2f24"
+      ],
+      "resolutionSourceSha256": {
+        "src/mcp_repository.ts": "42e22124c18e97f9a8e799dc30c6f1f4088fe3ce45a7e0341373df2e03ca7636",
+        "src/ui_mcp_review.ts": "aef32a4bc8bf8ed104b0f402da0a3822fd35be9467e30528a3797b511198b84e",
+        "tests/test_ui_change_reviews.js": "ebec2a19f62ce75c5204fdb0e6e7e1a4276b784522185f8dc6de9dcf4cde6aa6",
+        "tests/test_mcp_control_plane.js": "5e62165d9a5325757bfe6fee2923afbe8d1ae97e4aaeadd5efaa3daba928517a"
+      }
     },
     {
       "findingId": "4763ab6d-7279-4288-a467-5dbccf673f01",
@@ -1549,9 +1559,17 @@
       },
       "reviewedSourceSha256": "b2ff94a4e793a1921bcaab704b4819293e57525b0605a13eaf9686a63ba64477",
       "reviewedLineSha256": "8f7d449b7e76b7b9eab358d3112663198c50bd977f4c9f168638adbcf17a4af6",
-      "disposition": "deployment-mitigation-requires-verification",
-      "rationale": "Plain HTTP is used for the internal Alertmanager-to-relay hop; monitoring/alertmanager.yml names the service. Authentication is checked and outbound webhook configuration is validated. Deployment must keep this hop on its protected container network; this is conditional deployment mitigation, not an HTTPS implementation.",
-      "platformStatusChanged": false
+      "disposition": "reviewed-internal-http-architecture",
+      "rationale": "The prior CLI wildcard default is fixed to loopback in 886d2b3; an actual-listener test verifies default127.0.0.1 and explicit0.0.0.0. Compose explicitly chooses the container bind and does not publish relay ports. Alertmanager consumes this authenticated internal service. No external TLS listener is replaced. This disposition is based on reviewed source/configuration and does not assert the state of any live deployment. See snyk-http-and-diagnostics-boundaries.md.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "886d2b3"
+      ],
+      "resolutionSourceSha256": {
+        "src/alert_relay.ts": "f312f3232cd9e3d95609a4e5bdea623403de46eaeed4acabeb72f41bad403cb0",
+        "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+        "docker-compose.monitoring.yml": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+      }
     },
     {
       "findingId": "d75bc03c-19a7-4475-809c-525e9240e836",
@@ -1571,9 +1589,17 @@
       },
       "reviewedSourceSha256": "e340e5305f86adf3db3ce54f3c359576e53252c1554641d93220313ea753c1df",
       "reviewedLineSha256": "a1b7b7b933f0246f9bcb980db5778c9e7b9a2da777718cc30989a3364a20fa6c",
-      "disposition": "deployment-mitigation-requires-verification",
-      "rationale": "The listener defaults to loopback; docker-compose publishes metrics only on 127.0.0.1. Plain HTTP is intentional inside that boundary; externally exposing METRICS_HOST/ports would require transport protection and must be independently reviewed.",
-      "platformStatusChanged": false
+      "disposition": "reviewed-internal-http-architecture",
+      "rationale": "Source default127.0.0.1 and Compose host mapping127.0.0.1 confine the HTTP listener to the local/service boundary. Prometheus and probes intentionally consume HTTP inside that boundary; arbitrary operator overrides are deployment changes, not attacker-controlled request flow. This disposition is based on reviewed source/configuration and does not assert the state of any live deployment. See snyk-http-and-diagnostics-boundaries.md.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "886d2b3"
+      ],
+      "resolutionSourceSha256": {
+        "src/metrics.ts": "e340e5305f86adf3db3ce54f3c359576e53252c1554641d93220313ea753c1df",
+        "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+        "docker-compose.monitoring.yml": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+      }
     },
     {
       "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
@@ -1593,9 +1619,17 @@
       },
       "reviewedSourceSha256": "27ec75fb34b57794f8ca6d3da66db7b3d0203be79b2f0bddee97af04d4cf2f64",
       "reviewedLineSha256": "287817fede6e127bf4eaa86ccd399cf89ca768d80bcb710976cc444c36ba3b02",
-      "disposition": "deployment-mitigation-requires-verification",
-      "rationale": "The Compose viewer exposes 8081 only to the internal service network. Health/readiness expose booleans; detailed status requires a constant-time checked service token. Plain HTTP remains dependent on internal-network isolation.",
-      "platformStatusChanged": false
+      "disposition": "reviewed-internal-http-architecture",
+      "rationale": "The prior wildcard default is fixed to127.0.0.1 in886d2b3 and verified using the actual listener. Compose explicitly sets the container host, exposes8081 only internally and publishes no viewer port. Detailed status remains token-protected; readiness/liveness responses are booleans. This disposition is based on reviewed source/configuration and does not assert the state of any live deployment. See snyk-http-and-diagnostics-boundaries.md.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "886d2b3"
+      ],
+      "resolutionSourceSha256": {
+        "src/telegram_viewer/health_server.ts": "fe1f5be04de6cf9b37a6a32f67d8d4092bed0da39b6845880eb1d029b20a08a4",
+        "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+        "docker-compose.monitoring.yml": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+      }
     },
     {
       "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
@@ -1615,9 +1649,17 @@
       },
       "reviewedSourceSha256": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b",
       "reviewedLineSha256": "e22a7070ea1320007b0648588ec9c16b2646b74b262c48c7412f3b343f2441a5",
-      "disposition": "deployment-mitigation-requires-verification",
-      "rationale": "The Compose dashboard is published only on host 127.0.0.1, with explicit Tailscale Serve reverse-proxy instructions and no Funnel. External transport protection belongs to that deployment boundary; the Node listener itself is HTTP.",
-      "platformStatusChanged": false
+      "disposition": "reviewed-internal-http-architecture",
+      "rationale": "Source default127.0.0.1 and Compose host mapping127.0.0.1 constrain the dashboard listener. The documented Tailscale Serve proxy owns remote TLS; request URL data does not select transport or bind address. Converting this internal listener to HTTPS would break its designed proxy/client contract. This disposition is based on reviewed source/configuration and does not assert the state of any live deployment. See snyk-http-and-diagnostics-boundaries.md.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "886d2b3"
+      ],
+      "resolutionSourceSha256": {
+        "src/web_server.ts": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b",
+        "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+        "docker-compose.monitoring.yml": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+      }
     },
     {
       "findingId": "bd4b655d-7094-41a4-8532-ca8faca295a0",

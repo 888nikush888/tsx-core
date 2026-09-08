@@ -10,9 +10,10 @@ Disposition counts:
 - 81 proposed false positives: synthetic test data, intentional local CLI
   capabilities, guarded path/regex execution, fixed predicate callbacks,
   same-origin navigation, or loopback-only test transports.
-- One confirmed credential-disclosure defect fixed; broader generic-error
-  disclosure review remains open.
-- Four production HTTP listeners require deployment-boundary verification.
+- One confirmed public-preflight disclosure boundary fixed, including arbitrary
+  caught exception text.
+- Four HTTP listeners have completed source/configuration architecture reviews;
+  two unsafe standalone wildcard defaults were corrected.
 
 No finding is suppressed or resolved in Snyk by this review. No new exclusions,
 ignore policies, fragmented secret strings or test deletions were introduced.
@@ -31,14 +32,13 @@ test now verifies sentinel absence while retaining the useful diagnostic prefix,
 `allowed: false`, and unchanged approval hash. The whole UI review suite,
 TypeScript typecheck and targeted ESLint passed on Node 22.23.2.
 
-This fixes the demonstrated credential formats. It does not prove that every
-possible arbitrary exception string is safe: `boundedError` still turns unknown
-internal errors into text. Replacing all such text with a generic error would
-also hide current useful domain-validation explanations. A complete policy needs
-an explicit distinction between approved user-facing validation errors and
-internal operational diagnostics. The ledger therefore keeps this remainder open.
+Follow-up commit `38c2f24` closes the arbitrary-exception remainder at the same
+UI boundary. Public preflight mode preserves authored domain blockers but replaces
+caught exceptions with a static helpful message. Tests cover internal paths,
+unrecognized diagnostic text, credentials and retained domain blockers. Internal
+callers retain their previous diagnostics.
 
-## Conditional HTTP dispositions
+## Reviewed HTTP architecture
 
 The dashboard and metrics Compose mappings bind host ports to 127.0.0.1.
 Dashboard deployment instructions use Tailscale Serve in front of that listener.
@@ -47,9 +47,12 @@ detailed status with a token. Alertmanager addresses its relay over the internal
 service network. These are source/deployment configuration observations, not
 verification of the currently running network, proxy or TLS configuration.
 
-The four listeners remain explicitly pending deployment verification. Enabling
-TLS directly inside them without coordinating clients and the proxy would alter
-the supported deployment and could break monitoring or the operator dashboard.
+Commit `886d2b3` changes standalone relay/viewer wildcard defaults to loopback
+and explicitly retains container binds in Compose. Actual listener tests and
+Compose validation passed. The four dispositions now refer to this reviewed
+internal-HTTP architecture, with no claims about live deployment state. Enabling
+TLS inside these listeners would change their proxy and monitoring contracts.
+See [completed boundary review](snyk-http-and-diagnostics-boundaries.md).
 
 ## Evidence limits and preservation of tests
 
