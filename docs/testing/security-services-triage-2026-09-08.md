@@ -81,3 +81,25 @@ in the fix branch; the remainder is stale-main, test-fixture, or stylistic
 scanner output where bulk edits would risk stability without safety gain.
 A platform rescan after merge is the correct closure mechanism, not further
 local churn.
+
+## Batch 2 dispositions (verified 2026-09-08, fix-branch HEAD `2ae2fc8`)
+
+Each finding below was re-checked against current branch source. None
+justified a code change.
+
+| Finding | Verdict | Evidence |
+| --- | --- | --- |
+| Codacy object-injection ×4 (`scripts/sonar_review_decisions.js:38,223,316,321`) | False positive | `MESSAGES[code]` uses internal constant codes; `ledger.entries[index]` iterates own array indices; `issue.textRange[key]` iterates own `Object.entries` keys. Read-only. |
+| Unsafe dynamic dispatch, `mcp_control_bridge.ts:242` | Already fail-closed | `proposalAction()` (`mcp_repository.ts:930`) throws on anything outside the 25-member `PROPOSAL_ACTIONS` allowlist; the handlers record covers all 25; `executeProposal` preflights before dispatch and failures land in the failure path. |
+| Unsafe dynamic dispatch, `web_server.ts:3113,3124` | False positive | Collection lookup guarded by `if (collectionLoader)` with 404 fallback; detail keys constrained by regex `^\/(accounts\|positions\|orders\|trades)\/`. |
+| Unsafe dynamic dispatch, `workflow_repository.ts:401` | Complete by construction | `RESOURCE_VALIDATORS` covers all 13 `WorkflowResourceKind` members; creation rejects unknown kinds (`RESOURCE_KINDS`, covered by `test_workflow_builder.js:140-143`). |
+| Unsafe dynamic dispatch, `workflow-builder.tsx:265` | Display-only fallback | `summaries[resource.kind]?.() \|\| resource.name`; unknown kinds render the name. |
+| Unsafe dynamic dispatch, `ui_adaptive_risk.ts:125` | Allowlisted | `selection()` rejects kinds outside `KINDS` before dispatch. |
+| Non-literal regexp, backend (`signal_schema.ts:558`, `filters.ts:125`, `signal_contract.ts:96`) | Mitigated | `safeRegexTest` runs inside `vm` with CPU timeout; `parseRegex` rejects nested quantifiers and over-long patterns; `safePattern` rejects high-risk constructs at contract admission. |
+| Non-literal regexp, scripts (`check_release_artifacts.js:14`, `check_risk_acceptances.js:60`) | Controlled input | Semver-validated version with escaped dots; section names from the `requiredSections` constant. |
+| Non-literal regexp, `log-search.worker.ts:12` | Self-DoS only, budgeted | Operator's own pattern; enforced budgets (200 chars, 5000 lines, 1M chars), 500 ms owner timeout (`use-log-search.ts:12`), invalid patterns posted as errors. |
+| GCM tag length | Already explicit | `authTagLength: TAG_BYTES` with `TAG_BYTES = 16` (`backup_replication.ts:14,248`). |
+| JS-0123 `main` shadow (`sonar_review_decisions.js:116`) | Style nit | `mainReview` local vs `main()` entry; no behavior effect. |
+| JS-0057 empty arrow (`run_staging_e2e.js:99`) | Intentional | Best-effort close already bounded by `withTimeout(..., 15_000)`; teardown must not fail the run. |
+| JS-W1038 `logCallback` (`filters.ts`) | Stale | Current signature `(msg: string) => void` matches all four call sites. |
+| JS-0004 control chars | Intentional sanitizers | Rejection regexes for control characters in IDs, branch names, rationale text. |
