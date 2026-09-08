@@ -29,8 +29,7 @@ const root = await mkdtemp(path.join(os.tmpdir(), 'tsx-test-scheduler-'));
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function deferred() {
-  let resolve, reject;
-  const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
+  const { promise, resolve, reject } = Promise.withResolvers();
   return { promise, resolve, reject };
 }
 

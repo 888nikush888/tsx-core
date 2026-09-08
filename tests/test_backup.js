@@ -494,8 +494,7 @@ async function assertBackupScheduler(root, databasePath) {
   assert.strictEqual(failedScheduler.getStatus().offsiteHealthy, false);
 
   let releaseReplication;
-  let markReplicationStarted;
-  const replicationStarted = new Promise(resolve => { markReplicationStarted = resolve; });
+  const { promise: replicationStarted, resolve: markReplicationStarted } = Promise.withResolvers();
   const drainingScheduler = new BackupScheduler(
     path.join(root, 'draining-offsite-scheduled'),
     () => ({ apiId: 123 }),

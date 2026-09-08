@@ -15,7 +15,8 @@
     "UI register/route generators: both Node22 --check modes verify unchanged artifacts, UI register contract suite and ESLint/diff checks passed.",
     "22 individual literal foreign-language interpolation findings: four Node22 regression suites passed; no source change or remote suppression is appropriate.",
     "22 primitive string fixture compositions: all six Node22 money/rational/account-log tests, ESLint error checks and diff checks passed.",
-    "Nine closure/ordering/rejection findings: four targeted Node22 suites, ESLint error checks and diff checks passed."
+    "Nine closure/ordering/rejection findings: four targeted Node22 suites, ESLint error checks and diff checks passed.",
+    "11 resolver-declaration findings: all ten scoped Node22 suites and ESLint/diff checks passed. Native Promise.withResolvers is available under package Node>=22<23; resolver result shapes and settlement scheduling preserved."
   ],
   "entries": [
     {
@@ -2205,6 +2206,105 @@
       "originalLine": 81,
       "status": "source_change_pending_rescan",
       "proof": "An explicit const counter object records invocation across cases; rejected Promise preserves failure identity and exact retry-count/no-coercion assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9kbXI=",
+      "rule": "JS-0119",
+      "path": "tests/test_trading_protection_receipt.js",
+      "originalLine": 102,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtdng=",
+      "rule": "JS-0119",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 5,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2Z2c=",
+      "rule": "JS-0119",
+      "path": "tests/test_trading_global_release.js",
+      "originalLine": 159,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtYWE=",
+      "rule": "JS-0119",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 413,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRneG0=",
+      "rule": "JS-0119",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 77,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294Z24=",
+      "rule": "JS-0119",
+      "path": "tests/test_trading_control_races.js",
+      "originalLine": 15,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhrZ2o=",
+      "rule": "JS-0119",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 32,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvZ2w=",
+      "rule": "JS-0119",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 32,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqYWE=",
+      "rule": "JS-0119",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 344,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtrZW0=",
+      "rule": "JS-0119",
+      "path": "tests/test_backup_generation_ownership.js",
+      "originalLine": 10,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5amw=",
+      "rule": "JS-0119",
+      "path": "tests/test_backup.js",
+      "originalLine": 497,
+      "status": "source_change_pending_rescan",
+      "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
+      "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
     }
   ]
 }

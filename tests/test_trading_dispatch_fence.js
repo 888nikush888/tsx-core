@@ -74,8 +74,7 @@ async function rejectedDispatchMutation(account, boundary, name, mutate) {
     assert.equal(JSON.parse(operation.expected_orders_json)[0].client_order_id, JSON.parse(original).id);
 }
 async function ownerIsolation() {
-  let releaseNetwork;
-  const network = new Promise(resolve => { releaseNetwork = resolve; });
+  const { promise: network, resolve: releaseNetwork } = Promise.withResolvers();
   let wrote = false;
   const { pending } = await withDatabaseDispatchFence(() => Promise.resolve(), async () => {
     await network;

@@ -410,8 +410,7 @@ async function testRuntimeStopWinsPendingIntentRace(directory) {
 async function testStopDuringPreparationRevokesDispatch(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'mid-prepare-stop.db'));
   let releaseSnapshot;
-  let enteredSnapshot;
-  const entered = new Promise(resolve => { enteredSnapshot = resolve; });
+  const { promise: entered, resolve: enteredSnapshot } = Promise.withResolvers();
   const hold = new Promise(resolve => { releaseSnapshot = resolve; });
   let submissions = 0;
   const adapter = wrappedAdapter(paper, async (...args) => {

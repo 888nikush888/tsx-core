@@ -341,8 +341,7 @@ await assert.rejects(
   /different exchange/i,
 );
 
-let releaseCatalogRequest;
-const catalogRequestReleased = new Promise(resolve => { releaseCatalogRequest = resolve; });
+const { promise: catalogRequestReleased, resolve: releaseCatalogRequest } = Promise.withResolvers();
 let concurrentCatalogRequests = 0;
 const concurrentCatalogClient = new ExchangeCatalogClient(
   { getOrCreateExecutorToken: async () => 'f'.repeat(64) },

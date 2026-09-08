@@ -12,8 +12,7 @@ import { getTradingAccount, getTradingRuntimeState, listTradingAccounts, listTra
 import { seedTradingFixtures } from './trading_fixtures.js';
 
 function deferred() {
-  let resolve;
-  const promise = new Promise(done => { resolve = done; });
+  const { promise, resolve } = Promise.withResolvers();
   return { promise, resolve };
 }
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-control-race-'));

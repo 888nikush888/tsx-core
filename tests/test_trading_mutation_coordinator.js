@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import { TradingMutationCoordinator } from '../src/trading_mutation_coordinator.js';
 
 function deferred() {
-  let resolve;
-  const promise = new Promise(done => { resolve = done; });
+  const { promise, resolve } = Promise.withResolvers();
   return { promise, resolve };
 }
 
