@@ -4,7 +4,20 @@ import path from 'node:path';
 import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
 import { workflowFixture } from './fixtures/ingress_workflow_fixture.js';
 import assert from 'node:assert/strict';
-import { createWorkflowResourceDraft, createWorkflowTradingIntents, validateGraph } from '../src/workflow_repository.js';
+import { createWorkflowResourceDraft, createWorkflowTradingIntents, validateGraph, validateAdaptiveRiskConfiguration } from '../src/workflow_repository.js';
+
+// The execution consumer reuses the publishing contract, including enum and scalar checks.
+for (const invalid of [null, [], "invalid", { mode: "outside" }, { weakChannelAction: "outside" },
+  { enabled: "false" }, { tiers: [] }, { startingTier: 99 }, { lookbackWeeks: 0 }]) {
+  assert.throws(() => validateAdaptiveRiskConfiguration(invalid));
+}
+const adaptive = validateAdaptiveRiskConfiguration({ mode: "shadow", tiers: [{ riskPercent: "1" }] });
+assert.equal(adaptive.mode, "shadow");
+assert.equal(adaptive.enabled, true);
+assert.equal(adaptive.startingTier, 0);
+assert.equal(adaptive.lockedTier, null);
+assert.deepEqual(validateAdaptiveRiskConfiguration(adaptive), adaptive,
+  "Published normalized risk configuration must retain its values during execution validation.");
 
 let coercions = 0;
 const numericObject = { trim() { coercions += 1; return '1'; } };

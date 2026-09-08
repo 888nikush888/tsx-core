@@ -1,3 +1,4 @@
+import type { ChannelRiskMode, WeakChannelAction } from './trading_types.js';
 import type { AccountRow, StrategyRow, SignalSchemaRow, ContractVersionRow, IntentRow, RuntimeRow } from './trading_repository_rows.js';
 import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow, LegacyWorkflowRouteRow, LegacyRiskPolicyRow, FallbackCurrentRow, FallbackNextRow, FallbackRunRow, FallbackCandidateViewRow } from './workflow_repository_rows.js';
 import { isStringMember, requireString } from './contract_values.js';
@@ -313,10 +314,10 @@ function optionalBoolean(value: unknown, label: string): void {
   if (value !== undefined && typeof value !== 'boolean') throw new Error(`${label} must be boolean.`);
 }
 
-function adaptiveRiskMode(value: unknown = 'automatic'): string {
+function adaptiveRiskMode(value: unknown = 'automatic'): ChannelRiskMode {
   if (value === null) return 'automatic';
   const mode = value;
-  if (!isStringMember(mode, ['fixed', 'shadow', 'automatic'])) throw new Error('Adaptive-risk mode is invalid.');
+  if (mode !== 'fixed' && mode !== 'shadow' && mode !== 'automatic') throw new Error('Adaptive-risk mode is invalid.');
   return mode;
 }
 
@@ -325,14 +326,15 @@ function optionalAdaptiveTier(value: unknown, tierCount: number): number | null 
   return boundedInteger(value, 'Adaptive-risk locked tier', 0, tierCount - 1);
 }
 
-function weakChannelAction(value: unknown = 'reduce'): string {
+function weakChannelAction(value: unknown = 'reduce'): WeakChannelAction {
   if (value === null) return 'reduce';
   const action = value;
-  if (!isStringMember(action, ['none', 'reduce', 'block'])) throw new Error('Adaptive-risk weak-channel action is invalid.');
+  if (action !== 'none' && action !== 'reduce' && action !== 'block') throw new Error('Adaptive-risk weak-channel action is invalid.');
   return action;
 }
 
-function validateAdaptiveRiskConfiguration(value: ResourceConfiguration): Record<string, unknown> {
+export function validateAdaptiveRiskConfiguration(input: unknown) {
+  const value = object(input, 'Adaptive-risk configuration');
   optionalBoolean(value.enabled, 'Adaptive-risk enabled state');
   optionalBoolean(value.manuallyBlocked, 'Adaptive-risk manual block');
   const mode = adaptiveRiskMode(value.mode);

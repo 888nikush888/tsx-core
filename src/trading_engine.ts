@@ -47,6 +47,7 @@ import { assertCandidateNeverSent } from './trading_entry_candidate.js';
 import { refreshReconciledRisk } from './trading_risk_reconciliation.js';
 import { TradingSymbolUnavailableError, TradingUnresolvedOrderError } from './trading_errors.js';
 import {
+  validateAdaptiveRiskConfiguration,
   advanceWorkflowFallbackOnEligibleFailure,
   isWorkflowExecutionAuthorized,
   markWorkflowFallbackSelected,
@@ -258,9 +259,16 @@ function requiredTierProviderSymbol(market: TradingMarketSnapshot): string {
   return market.leverageTiers.providerSymbol;
 }
 
+function executionPathObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TradingRiskError('WORKFLOW_PATH_INVALID', 'Pinned workflow execution configuration must be an object.');
+  }
+  return value as Record<string, unknown>;
+}
+
 async function executionPathConfiguration(intent: TradingIntent): Promise<{
   strategy: StrategyConfiguration;
-  adaptiveRisk: null | 'legacy' | { resourceVersionId: string; configuration: any };
+  adaptiveRisk: null | 'legacy' | { resourceVersionId: string; configuration: ReturnType<typeof validateAdaptiveRiskConfiguration> };
 }> {
   const storedStrategy = await getTradingStrategyVersion(intent.strategyVersionId);
   assertPublishedStrategy(storedStrategy);
@@ -271,18 +279,21 @@ async function executionPathConfiguration(intent: TradingIntent): Promise<{
     [intent.executionPathId, intent.workflowRevisionId],
   );
   if (!path) throw new TradingRiskError('WORKFLOW_PATH_MISSING', 'Pinned workflow execution path is unavailable.');
-  let effective: any;
-  try { effective = JSON.parse(path.effective_configuration_json); } catch (error) {
+  let effective: Record<string, unknown>;
+  try { effective = executionPathObject(JSON.parse(path.effective_configuration_json)); } catch (error) {
     throw new TradingRiskError('WORKFLOW_PATH_INVALID', `Pinned workflow execution path is invalid: ${String(error)}`);
   }
+  const strategy = validateStrategyConfiguration(effective.strategyConfiguration);
+  if (!path.adaptive_risk_resource_version_id) return { strategy, adaptiveRisk: null };
+  const resources = executionPathObject(effective.resources);
+  const adaptive = executionPathObject(resources.adaptive_risk);
+  if (adaptive.enabled === false) return { strategy, adaptiveRisk: null };
+  const configuration = validateAdaptiveRiskConfiguration(adaptive);
   return {
-    strategy: validateStrategyConfiguration(effective.strategyConfiguration),
-    adaptiveRisk: path.adaptive_risk_resource_version_id && effective.resources?.adaptive_risk?.enabled !== false
-      ? {
-          resourceVersionId: path.adaptive_risk_resource_version_id,
-          configuration: effective.resources.adaptive_risk,
-        }
-      : null,
+    strategy,
+    adaptiveRisk: configuration.enabled ? {
+      resourceVersionId: path.adaptive_risk_resource_version_id, configuration,
+    } : null,
   };
 }
 
