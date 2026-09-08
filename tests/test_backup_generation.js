@@ -9,9 +9,8 @@ import { DEFAULT_CONFIG, writeConfig, writeConfigSync } from '../src/config.js';
 import { DEFAULT_RUNTIME_SETTINGS, ManagedRuntimeSettingsStore } from '../src/runtime_settings.js';
 import { acquireProcessLock } from '../src/process_lock.js';
 import { backupDatabase, closeDb, getDatabase, initDb } from '../src/db.js';
-import { createBackupArtifact, verifyBackupArtifact } from '../src/backup.js';
+import { backupConfigurationSources, createBackupArtifact, verifyBackupArtifact } from '../src/backup.js';
 import { signalTemplatesDirectoryFromEnvironment } from '../src/configuration_paths.js';
-import { backupConfigurationSources } from '../src/backup.js';
 
 const root = await mkdtemp(path.join(os.tmpdir(), 'backup-generation-'));
 const previousConfigPath = process.env.CONFIG_PATH;

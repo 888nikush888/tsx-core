@@ -1630,7 +1630,7 @@ async function createAppState(testDir, controls) {
 }
 
 async function testBootstrap(baseUrl) {
-  let disabledLocal = await fetch(`${baseUrl}/api/local-session`, {
+  const disabledLocal = await fetch(`${baseUrl}/api/local-session`, {
     method: 'POST', headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
   });
   assert.strictEqual(disabledLocal.status, 409, 'Integrated startup must be explicitly enabled by the standalone runtime profile');

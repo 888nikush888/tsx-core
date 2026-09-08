@@ -7,7 +7,7 @@ const acceptanceDirectory = path.join(root, 'docs', 'risk-acceptances');
 const requiredFields = ['id', 'owner', 'approver', 'created', 'expires', 'scope', 'gate'];
 const requiredSections = ['Risk', 'Evidence', 'Compensating controls', 'Exit criteria'];
 const MINIMUM_REMAINING_VALIDITY_MS = 24 * 60 * 60 * 1000;
-const PLACEHOLDER_SECTION = /^(?:tbd|todo|n\/?a|none|pending|not decided|to be decided|placeholder|[-–—]|\[\s*\])\.?$/i;
+const PLACEHOLDER_SECTION = /^(?:tbd|todo|n\/?a|none|pending|not decided|to be decided|placeholder|[-–—]|\[\s*\])\.?$/iu;
 
 function parseFrontMatter(content) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);

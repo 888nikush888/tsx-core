@@ -7,7 +7,8 @@
   "verification": [
     "Node22: all seven modified test files passed",
     "ESLint error checks and git diff --check passed",
-    "Node22: all 19 Promise literal/empty stub modified test files passed; ESLint error checks and git diff --check passed"
+    "Node22: all 19 Promise literal/empty stub modified test files passed; ESLint error checks and git diff --check passed",
+    "Five scoped immutability/import/Unicode changes: all five targeted Node22 tests, ESLint error checks and diff checks passed."
   ],
   "entries": [
     {
@@ -841,6 +842,46 @@
       "originalLine": 367,
       "status": "source_change_pending_rescan",
       "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1udmw=",
+      "rule": "JS-0242",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1633,
+      "status": "source_change_pending_rescan",
+      "proof": "Response binding is assigned once; const preserves the request and every bootstrap assertion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxucGc=",
+      "rule": "JS-0117",
+      "path": "tests/test_ui_adaptive_risk.js",
+      "originalLine": 57,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal BMP error-message pattern has identical matches with Unicode mode enabled."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VuYW4=",
+      "rule": "JS-0242",
+      "path": "tests/test_trading_fill_accounting.js",
+      "originalLine": 34,
+      "status": "source_change_pending_rescan",
+      "proof": "Snapshot binding is assigned once; const preserves accounting computations and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5bGs=",
+      "rule": "JS-0232",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 14,
+      "status": "source_change_pending_rescan",
+      "proof": "Merged named imports from the identical ESM module; bindings and module evaluation stay identical."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbnFrbGs=",
+      "rule": "JS-0117",
+      "path": "scripts/check_risk_acceptances.js",
+      "originalLine": 10,
+      "status": "source_change_pending_rescan",
+      "proof": "Placeholder alternatives contain BMP literals and whitespace classes only; Unicode mode keeps accepted placeholder strings unchanged."
     }
   ]
 }
