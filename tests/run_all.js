@@ -195,6 +195,8 @@ const allTests = [
   'test_trading_engine.js',
   'test_trading_engine_type_guards.js',
   'test_channel_risk_type_guards.js',
+  'test_ingress_contract_guards.js',
+  'test_telegram_viewer_contracts.js',
   'test_trading_failures.js',
   'test_trading_credentials.js',
   'test_dynamic_exchange_registry.js',
