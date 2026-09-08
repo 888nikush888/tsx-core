@@ -57,7 +57,13 @@ function splitTarget(to: string): NavigationLocation {
 
 function browserUrl(location: NavigationLocation, basename: string) {
   const pathname = location.pathname === "/" ? "" : location.pathname;
-  return `${basename}${pathname || "/"}${location.search}`;
+  const target = new URL(window.location.origin);
+  target.pathname = `${basename}${pathname || "/"}`;
+  target.search = location.search;
+  // A pathname beginning with // must not become a protocol-relative href.
+  return target.pathname.startsWith("//")
+    ? target.href
+    : `${target.pathname}${target.search}`;
 }
 
 export function NavigationProvider({
