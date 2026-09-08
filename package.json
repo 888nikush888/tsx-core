@@ -10,7 +10,7 @@
   },
   "main": "dist/forwarder.js",
   "scripts": {
-    "build": "tsc && npm run build --prefix frontend",
+    "build": "tsc && node scripts/copy_declarations.js && npm run build --prefix frontend",
     "clean:artifacts": "node scripts/clean_artifacts.js",
     "start": "node dist/forwarder.js",
     "start:telegram-viewer": "node dist/telegram_viewer/runtime.js",
