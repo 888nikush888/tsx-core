@@ -1,0 +1,2737 @@
+{
+  "schemaVersion": 1,
+  "repository": "888nikush888/tsx-core",
+  "reviewDate": "2026-09-08",
+  "reviewer": "scanner_integration independent source review; not the original Codacy inventory triager",
+  "inventoryPath": "docs/testing/codacy-inventory-2026-09-08.json",
+  "inventorySha256": "1c398559a1efaffdf34ebac081c928c7d7a806262f35a9683ce40358fdd2bf47",
+  "scanRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+  "reviewedIssueCount": 50,
+  "scope": {
+    "initialTestProposals": 239,
+    "previouslyReviewed": 40,
+    "reviewedHere": 50,
+    "remainingNotReviewed": 149
+  },
+  "platformChangesApplied": false,
+  "sourceBindings": [
+    {
+      "path": "tests/test_web_server.js",
+      "originalRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+      "originalSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+      "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+      "reviewedSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9"
+    },
+    {
+      "path": "src/web_server.ts",
+      "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+      "reviewedSha256": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b"
+    }
+  ],
+  "method": [
+    "Read the complete eight helper clusters containing the 50 reported sinks, their fixture creation and direct/nested call sites at immutable revision 1556d2e.",
+    "Trace route arrays, query construction, response-derived encoded resource identifiers, synthetic credentials and locally replaced trading/config callbacks individually.",
+    "Check native listener setup and local database lifecycle. Search the server entry point for redirect/Location responses; these selected API contracts specify JSON/status responses and do not accept redirect targets.",
+    "Verify all original blob hashes and unchanged sink lines, current blob hashes, unique occurrence IDs and disjointness from the previous 40 reviews."
+  ],
+  "sharedEvidence": {
+    "fixtureAndStubs": [
+      {
+        "start": 1549,
+        "end": 1629,
+        "source": "async function createAppState(testDir, controls) {\n  const runtimeSettings = new ManagedRuntimeSettingsStore(path.join(testDir, 'runtime-settings.json'), process.env);\n  await runtimeSettings.initialize();\n  const appState = {\n    uiOperations: new UiOperationStore(path.join(testDir, 'operator-jobs')),\n    controls,\n    config: {\n      apiId: 123,\n      apiHash: 'must-never-be-returned',\n      sourceChannels: [],\n      targetChannel: '',\n      forwardOptions: {},\n      filters: {},\n      sourceFilters: {},\n      sourceAliases: {},\n      xmlParsing: {},\n      dupeBlocker: {},\n      nested: {\n        OPENROUTER_API_KEY: 'must-also-be-redacted',\n        AUDIT_WEBHOOK_TOKEN: 'must-also-be-redacted',\n        backupEncryptionKey: 'must-also-be-redacted'\n      }\n    },\n    state: {\n      isRunning: true,\n      connectionState: 'connected',\n      resolvedSourceChatIds: new Set(),\n      startupTime: Math.floor(Date.now() / 1000)\n    },\n    getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 2, paused: false }),\n    startForwarding: () => Promise.resolve(),\n    stopForwarding: () => { controls.stopCalls += 1; appState.state.isRunning = false; return Promise.resolve(); },\n    reloadConfig: () => undefined,\n    applyRuntimeConfig: () => undefined,\n    persistConfig: () => undefined,\n    getMetricsHistory: () => [],\n    getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],\n    retryOutboxTask: id => { controls.retryCalls += 1; return Promise.resolve(id === 'unknown-task'); },\n    acknowledgeOutboxTask: id => { controls.acknowledgeCalls += 1; return Promise.resolve(id === 'unknown-task'); },\n    getTelegramLoginState: () => ({\n      state: 'waiting',\n      prompt: { kind: 'authCode', label: 'Telegram verification code' }\n    }),\n    submitTelegramLogin: payload => {\n      assert.deepEqual(payload, { value: '12345' });\n      return { state: 'authenticating' };\n    },\n    auditTrail: {\n      record: async event => {\n        controls.auditEvents.push(event);\n        if (controls.auditShouldFail) throw new Error('audit unavailable');\n      },\n      snapshot: () => ({ healthy: true, remoteRequired: false, lastRemoteSuccessAt: null, recordCount: controls.auditEvents.length }),\n      replayRemote: () => { controls.auditReplayCalls += 1; return Promise.resolve(controls.auditEvents.length); }\n    },\n    secretStore: new ManagedSecretStore(path.join(testDir, 'secrets')),\n    getOperationsStatus: () => ({ backup: fixtureBackupProof(), audit: { healthy: true } }),\n    runBackupNow: async () => {\n      controls.backupCalls += 1;\n      if (controls.backupBarrier) await controls.backupBarrier;\n      return path.join(testDir, 'backups', 'backup-test');\n    },\n    listBackups: () => Promise.resolve(['backup-2026-test']),\n    verifyBackup: () => Promise.resolve(fixtureBackupProof()),\n    recoverOffsiteBackup: () => {\n      controls.offsiteRecoveryCalls += 1;\n      return Promise.resolve('backup-2026-recovered');\n    },\n    restoreBackup: () => {\n      controls.restoreCalls += 1;\n      return Promise.resolve({ previousDatabase: path.join(testDir, 'previous.db'), previousConfig: null });\n    },\n    performFactoryReset: async () => {\n      controls.factoryResetCalls += 1;\n      await appState.stopForwarding();\n    },\n    requestRestart: () => { controls.restartCalls += 1; },\n    runtimeSettings\n  };\n  await appState.secretStore.initialize();\n  return appState;"
+      }
+    ],
+    "listenerDatabaseAndCalls": [
+      {
+        "start": 1918,
+        "end": 1931,
+        "source": "  const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-web-test-'));\n  const staticDirectory = path.resolve('frontend/dist/.directory-response-test');\n  const staticAsset = path.resolve('frontend/dist/assets/.static-response-test.js');\n  let stopped = false;\n\n  try {\n    await initDb(path.join(testDir, 'forwarder.db'));\n    await mkdir(staticDirectory, { recursive: true });\n    await mkdir(path.dirname(staticAsset), { recursive: true });\n    await writeFile(staticAsset, `const staticResponseTest = ${JSON.stringify('x'.repeat(2048))};\\n`);\n    delete process.env.DASHBOARD_ADMIN_TOKEN;\n    delete process.env.DASHBOARD_VIEWER_TOKEN;\n    delete process.env.WEB_HOST;\n    process.env.DASHBOARD_AUTH_MODE = 'token';"
+      },
+      {
+        "start": 1947,
+        "end": 1963,
+        "source": "    const appState = await createAppState(testDir, controls);\n    await testLocalStartupFirstRun(testDir, appState);\n\n    const server = startWebServer(0, appState);\n    await once(server, 'listening');\n    const address = server.address();\n    assert.ok(address && typeof address === 'object');\n    assert.strictEqual(address.address, '127.0.0.1', 'Control plane must bind to loopback by default');\n    const baseUrl = `http://127.0.0.1:${address.port}`;\n\n    await testBootstrap(baseUrl);\n    await testAuthenticationAndReads(baseUrl);\n    delete appState.config.nested; // Deliberately malformed secret-redaction fixture is not a valid editable configuration.\n    await testConfigurationNormalization(baseUrl, appState);\n    await testOperatorReadContracts(baseUrl, appState);\n    await testTradingAnalyticsApi(baseUrl);\n    await testWorkflowControlPlane(baseUrl, appState);"
+      },
+      {
+        "start": 677,
+        "end": 682,
+        "source": "async function testWorkflowControlPlane(baseUrl, appState) {\n  await testExchangeCatalogApi(baseUrl, appState);\n  await testWorkflowResourceApi(baseUrl);\n  await testWorkflowResourceFamilyArchiveApi(baseUrl);\n  await testWorkflowRevisionApi(baseUrl, appState.controls);\n}"
+      },
+      {
+        "start": 361,
+        "end": 362,
+        "source": "  await testAdaptiveRiskContracts(baseUrl);\n  await testUiRegisterHttpContracts(baseUrl);"
+      }
+    ],
+    "cleanup": [
+      {
+        "start": 1984,
+        "end": 2007,
+        "source": "    await stopWebServer();\n    await testNonLoopbackCannotSpoofLocalTrust(testDir, appState);\n    await testRecoveryLocalStartup(testDir, appState);\n    stopped = true;\n    console.log('ALL WEB CONTROL SECURITY TESTS PASSED!');\n  } finally {\n    if (!stopped) await stopWebServer();\n    await closeDb();\n    await rm(testDir, { recursive: true, force: true });\n    await rm(staticDirectory, { recursive: true, force: true });\n    await rm(staticAsset, { force: true });\n    if (previousAdminToken === undefined) delete process.env.DASHBOARD_ADMIN_TOKEN;\n    else process.env.DASHBOARD_ADMIN_TOKEN = previousAdminToken;\n    if (previousViewerToken === undefined) delete process.env.DASHBOARD_VIEWER_TOKEN;\n    else process.env.DASHBOARD_VIEWER_TOKEN = previousViewerToken;\n    if (previousWebHost === undefined) delete process.env.WEB_HOST;\n    else process.env.WEB_HOST = previousWebHost;\n    if (previousAuthMode === undefined) delete process.env.DASHBOARD_AUTH_MODE;\n    else process.env.DASHBOARD_AUTH_MODE = previousAuthMode;\n    if (previousLocalTrust === undefined) delete process.env.DASHBOARD_LOCAL_TRUST;\n    else process.env.DASHBOARD_LOCAL_TRUST = previousLocalTrust;\n    if (previousBootstrapProof === undefined) delete process.env.DASHBOARD_BOOTSTRAP_PROOF;\n    else process.env.DASHBOARD_BOOTSTRAP_PROOF = previousBootstrapProof;\n  }"
+      }
+    ],
+    "variableTargetInputs": [
+      {
+        "start": 115,
+        "end": 118,
+        "source": "  for (const route of ['/api/logs', '/api/metrics-history', '/api/incoming-messages', '/api/processed-signals', '/api/dashboard-analytics']) {\n    response = await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) });\n    assert.strictEqual(response.status, 200, `${route} must satisfy its authenticated read contract`);\n  }"
+      },
+      {
+        "start": 140,
+        "end": 144,
+        "source": "  for (const route of ['/api/signals/messages', '/api/ui/deployment', '/api/ui/attention', '/api/trading/objects?kind=risk-events', '/api/signals/original?id=absent']) {\n    assert.equal((await fetch(`${baseUrl}${route}`)).status, 401);\n    assert.equal((await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) })).status, route.includes('/original') ? 404 : 200);\n  }\n  assert.equal((await fetch(`${baseUrl}/api/signals/original?id=1&kind=messages&field=invalid`, { headers: headers(VIEWER_TOKEN) })).status, 400);"
+      },
+      {
+        "start": 247,
+        "end": 255,
+        "source": "  const query = new URLSearchParams({\n    since: '1000',\n    until: String(until),\n    channelId: '-1001,-1002,-1001',\n    accountId: 'account-1, account-2',\n    exchange: 'paper,paper',\n    mode: 'paper',\n    status: 'completed, blocked,completed',\n  });"
+      },
+      {
+        "start": 274,
+        "end": 290,
+        "source": "  const invalidQueries = [\n    'status=open', 'status=filled',\n    'since=not-a-number',\n    'since=-1',\n    'since=2&until=1',\n    `until=${Date.now() + 120_000}`,\n    'exchange=Binance!',\n    'mode=production',\n    `channelId=${'x'.repeat(129)}`,\n    `status=${Array.from({ length: 101 }, (_, index) => `status-${index}`).join(',')}`,\n  ];\n  for (const invalidQuery of invalidQueries) {\n    response = await fetch(`${baseUrl}/api/trading/analytics?${invalidQuery}`, {\n      headers: headers(VIEWER_TOKEN),\n    });\n    assert.strictEqual(response.status, 400, `Invalid analytics query must fail closed: ${invalidQuery.slice(0, 40)}`);\n  }"
+      },
+      {
+        "start": 296,
+        "end": 329,
+        "source": "  appState.tradingControl = {\n    exchangeCatalog: () => Promise.resolve(({\n      implementation: {\n        library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',\n      },\n      exchanges: ['paper', 'hyperliquid', 'bybit', 'krakenfutures'].map(id => ({\n        id, name: id, status: 'certified', reason: null,\n        provider: id === 'paper' ? 'paper' : 'ccxt',\n        ccxt: id === 'paper' ? null : { rest: true, pro: true },\n        markets: { linearSwap: true }, credentialFields: [],\n        modes: id === 'paper' ? ['paper'] : ['testnet', 'live'], capabilities: {},\n      })),\n    })),\n    probeExchange: exchange => Promise.resolve({ id: exchange, status: 'candidate' }),\n  };\n  try {\n    response = await fetch(`${baseUrl}/api/exchanges/catalog`, { headers: headers(VIEWER_TOKEN) });\n    assert.strictEqual(response.status, 200);\n    const catalog = await response.json();\n    assert.deepStrictEqual(catalog.implementation, {\n      library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',\n    });\n    assert.deepStrictEqual(catalog.exchanges.map(exchange => exchange.id), [\n      'paper', 'hyperliquid', 'bybit', 'krakenfutures',\n    ]);\n    response = await fetch(`${baseUrl}/api/exchanges/probe`, {\n      method: 'POST',\n      headers: mutationHeaders({ 'Content-Type': 'application/json' }),\n      body: JSON.stringify({ exchange: 'okx' }),\n    });\n    assert.strictEqual(response.status, 200);\n    assert.strictEqual((await response.json()).result.status, 'candidate');\n  } finally {\n    appState.tradingControl = originalTradingControl;"
+      },
+      {
+        "start": 338,
+        "end": 357,
+        "source": "  response = await fetch(`${baseUrl}/api/workflow/resources`, {\n    method: 'POST',\n    headers: mutationHeaders({ 'Content-Type': 'application/json' }),\n    body: JSON.stringify({ kind: 'channel', name: 'Draft channel', configuration: { channelId: '-100-test' } }),\n  });\n  assert.strictEqual(response.status, 201);\n  const draft = (await response.json()).resource;\n  assert.strictEqual(draft.status, 'draft');\n  response = await fetch(`${baseUrl}/api/ui/search?kind=resources`, { headers: headers(VIEWER_TOKEN, { 'X-UI-Search': encodeURIComponent('Draft channel') }) });\n  assert.equal(response.status, 200); assert.equal((await response.json()).groups[0].entries[0].id, draft.id);\n  response = await fetch(`${baseUrl}/api/ui/search?kind=resources`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);\n  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=${encodeURIComponent(draft.id)}`, { headers: headers(VIEWER_TOKEN) });\n  assert.equal(response.status, 200); const resourceDetail = await response.json();\n  assert.equal(resourceDetail.resource.configuration.channelId, '-100-test'); assert.match(resourceDetail.publication.publicationHash, /^[a-f0-9]{64}$/);\n  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&resourceId=${encodeURIComponent(draft.resourceId)}&limit=1`, { headers: headers(VIEWER_TOKEN) });\n  assert.equal(response.status, 200); assert.equal((await response.json()).entries[0].id, draft.id);\n  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);\n  response = await fetch(`${baseUrl}/api/workflow/models?kind=schema`, { headers: headers(VIEWER_TOKEN) });\n  assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));\n  response = await fetch(`${baseUrl}/api/workflow/models?kind=strategy&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+      }
+    ]
+  },
+  "limitations": [
+    "Exactly these 50 original occurrence IDs are reviewed; this is not a file-level or rule-level exemption.",
+    "No source changes, test execution, fresh Codacy scan, platform ignores or remote closures are claimed.",
+    "The later non-loopback-interface regression at lines 1838-1909 is outside these 50 sinks; no claim is made that every request in the entire file uses loopback.",
+    "Static asset fixtures elsewhere in runTests use frontend/dist, whereas the database, settings, managed secrets and selected draft-resource persistence use the private mkdtemp root.",
+    "No untrusted redirect target was identified in the selected API flows; this does not introduce a general fetch redirect defense or claim production-wide SSRF immunity."
+  ],
+  "entries": [
+    {
+      "issueId": "c9b2131ad0e4c773d846e4c594177fce",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "workflow draft resources",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 348,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "5ed1b04d4ec8eed927d46292cd8e6c0e3e175efc40f0bb324c402776bc82a613"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 348,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "5ed1b04d4ec8eed927d46292cd8e6c0e3e175efc40f0bb324c402776bc82a613"
+      },
+      "rationale": "The search request intentionally lacks the required search header and verifies 400. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 333,
+          "text": "async function testWorkflowResourceApi(baseUrl) {"
+        },
+        {
+          "line": 348,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/search?kind=resources`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);"
+        },
+        {
+          "line": 349,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=${encodeURIComponent(draft.id)}`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 350,
+          "text": "  assert.equal(response.status, 200); const resourceDetail = await response.json();"
+        },
+        {
+          "line": 351,
+          "text": "  assert.equal(resourceDetail.resource.configuration.channelId, '-100-test'); assert.match(resourceDetail.publication.publicationHash, /^[a-f0-9]{64}$/);"
+        },
+        {
+          "line": 352,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&resourceId=${encodeURIComponent(draft.resourceId)}&limit=1`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 353,
+          "text": "  assert.equal(response.status, 200); assert.equal((await response.json()).entries[0].id, draft.id);"
+        },
+        {
+          "line": 679,
+          "text": "  await testWorkflowResourceApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "58d7b375ec7edf73fd83fb9ba364ffe4",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "operator reads",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 164,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "b95236de4c0dadabbb5d6048d57ff4bb209316254dcd9e26e5bb41539bc4ab54"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 164,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "b95236de4c0dadabbb5d6048d57ff4bb209316254dcd9e26e5bb41539bc4ab54"
+      },
+      "rationale": "The local access summary must report viewer bearer mode with no connected remote-access provider or origin. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 163,
+          "text": "async function testOperatorReadContracts(baseUrl, appState) {"
+        },
+        {
+          "line": 164,
+          "text": "  let response = await fetch(`${baseUrl}/api/access`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 165,
+          "text": "  assert.strictEqual(response.status, 200);"
+        },
+        {
+          "line": 166,
+          "text": "  const access = await response.json();"
+        },
+        {
+          "line": 167,
+          "text": "  assert.strictEqual(access.mode, 'bearer');"
+        },
+        {
+          "line": 168,
+          "text": "  assert.strictEqual(access.role, 'viewer');"
+        },
+        {
+          "line": 169,
+          "text": "  assert.deepStrictEqual(access.remoteAccess, { provider: null, connected: false, origin: null });"
+        },
+        {
+          "line": 1961,
+          "text": "    await testOperatorReadContracts(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "c0f393d1c1107f421cf3e09c8d830e43",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "authentication",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 104,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "3760255bb0637c9eea609d2f993c5124a9eacee98fa2c42ae7979e8b78d54669"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 104,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "3760255bb0637c9eea609d2f993c5124a9eacee98fa2c42ae7979e8b78d54669"
+      },
+      "rationale": "A fixed deliberately invalid bearer token verifies 401 at the fixed status endpoint. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 28,
+          "text": "async function testAuthenticationAndReads(baseUrl) {"
+        },
+        {
+          "line": 104,
+          "text": "  response = await fetch(`${baseUrl}/api/status`, { headers: headers('invalid-token-that-is-long-enough-000000') });"
+        },
+        {
+          "line": 105,
+          "text": "  assert.strictEqual(response.status, 401, 'Invalid bearer token must be rejected');"
+        },
+        {
+          "line": 106,
+          "text": "  response = await fetch(`${baseUrl}/api/config`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 107,
+          "text": "  assert.strictEqual(response.status, 200, 'Viewer must be able to read configuration');"
+        },
+        {
+          "line": 108,
+          "text": "  assert.strictEqual(response.headers.get('x-authenticated-role'), 'viewer');"
+        },
+        {
+          "line": 109,
+          "text": "  assert.match(response.headers.get('content-security-policy') || '', /frame-ancestors 'none'/);"
+        },
+        {
+          "line": 1958,
+          "text": "    await testAuthenticationAndReads(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "a6a5e006b988ba3e44635debc9352a8f",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "adaptive-risk",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 130,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "ac18b8236f15f69d1bd935aa0cb3303c03f8aa1167dfd80b0ed4e7948bdc5f22"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 130,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "ac18b8236f15f69d1bd935aa0cb3303c03f8aa1167dfd80b0ed4e7948bdc5f22"
+      },
+      "rationale": "The confirmed POST supplies only literal missing channel and stale copy hash, verifying conflict 409 without invoking a remote provider. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 123,
+          "text": "async function testAdaptiveRiskContracts(baseUrl) {"
+        },
+        {
+          "line": 130,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }), body: JSON.stringify({ channelId: 'missing', copyHash: 'stale' }) }); assert.equal(response.status, 409);"
+        },
+        {
+          "line": 131,
+          "text": "}"
+        },
+        {
+          "line": 361,
+          "text": "  await testAdaptiveRiskContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "431d0ff5917d56a0e8ae36c3e8198a14",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "configuration normalization",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 225,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "17ab2f2583f4a2b44dbad8bbfc7a79864f7fc9d798f54f07cf6896eb370dc452"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 225,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "17ab2f2583f4a2b44dbad8bbfc7a79864f7fc9d798f54f07cf6896eb370dc452"
+      },
+      "rationale": "The body consists of local normalization fixtures; persistence and runtime application are in-memory cloning stubs at lines 221-222, not live configuration writes. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 216,
+          "text": "async function testConfigurationNormalization(baseUrl, appState) {"
+        },
+        {
+          "line": 225,
+          "text": "    const response = await fetch(`${baseUrl}/api/config`, { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'If-Match': before.configRevision }), body: JSON.stringify({ xmlParsing: { enabled: true, aiLimits: { requestTimeoutMs: 250000 } }, forwardOptions: { queueTimeoutSeconds: 1 }, sourceFilters: { '-1001': null } }) });"
+        },
+        {
+          "line": 226,
+          "text": "    assert.equal(response.status, 200); const result = await response.json();"
+        },
+        {
+          "line": 227,
+          "text": "    assert.equal(result.configuration.forwardOptions.queueTimeoutSeconds, 255);"
+        },
+        {
+          "line": 228,
+          "text": "    assert.equal(persisted.forwardOptions.queueTimeoutSeconds, 255); assert.equal(applied.forwardOptions.queueTimeoutSeconds, 255);"
+        },
+        {
+          "line": 229,
+          "text": "    assert.equal(result.configuration.sourceFilters['-1001'], undefined); assert.deepEqual(result.configuration.sourceFilters['-1002'], { regexPatterns: ['untouched'] });"
+        },
+        {
+          "line": 230,
+          "text": "    assert.equal((await (await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) })).json()).configRevision, result.configRevision, 'Read, persistence and queue must share the normalized revision.');"
+        },
+        {
+          "line": 1960,
+          "text": "    await testConfigurationNormalization(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "2de1043b90cb4aa437ee808ea7399c76",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "workflow draft resources",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 355,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "85f1a7232a7a8e5866556e8069570397a125f279d3777662220ccab797a5aef7"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 355,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "85f1a7232a7a8e5866556e8069570397a125f279d3777662220ccab797a5aef7"
+      },
+      "rationale": "The literal schema selector reads local workflow-model metadata and checks an entries array. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 333,
+          "text": "async function testWorkflowResourceApi(baseUrl) {"
+        },
+        {
+          "line": 355,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=schema`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 356,
+          "text": "  assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));"
+        },
+        {
+          "line": 357,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=strategy&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 358,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=constructor`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);"
+        },
+        {
+          "line": 359,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models`, { method: 'POST', headers: headers(VIEWER_TOKEN), body: '{}' }); assert.equal(response.status, 403);"
+        },
+        {
+          "line": 360,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models`, { method: 'POST', headers: mutationHeaders(), body: '{}' }); assert.equal(response.status, 412);"
+        },
+        {
+          "line": 679,
+          "text": "  await testWorkflowResourceApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "1e0c32b410784a59521a3d43f2be299b",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "adaptive-risk",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 129,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "9f44dfe4e727289be950ae2d09157a3f1cd0bb77b9eb39f78650607419a8da86"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 129,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "9f44dfe4e727289be950ae2d09157a3f1cd0bb77b9eb39f78650607419a8da86"
+      },
+      "rationale": "The administrator POST without destructive confirmation verifies 412; its body is the fixed empty object. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 123,
+          "text": "async function testAdaptiveRiskContracts(baseUrl) {"
+        },
+        {
+          "line": 129,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders(), body: '{}' }); assert.equal(response.status, 412);"
+        },
+        {
+          "line": 130,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }), body: JSON.stringify({ channelId: 'missing', copyHash: 'stale' }) }); assert.equal(response.status, 409);"
+        },
+        {
+          "line": 131,
+          "text": "}"
+        },
+        {
+          "line": 361,
+          "text": "  await testAdaptiveRiskContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "f6a499522e981175d51b00dd612865f4",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "analytics",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 286,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "f2564cc51e2d924d53c8432033cd5097cf074197708ec9021e4d98f66ea0cec3"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 286,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "f2564cc51e2d924d53c8432033cd5097cf074197708ec9021e4d98f66ea0cec3"
+      },
+      "rationale": "invalidQuery is drawn only from the literal/generated bounded negative fixture array at lines 274-284; it follows a fixed path/question mark and every case must return 400. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 236,
+          "text": "async function testTradingAnalyticsApi(baseUrl) {"
+        },
+        {
+          "line": 286,
+          "text": "    response = await fetch(`${baseUrl}/api/trading/analytics?${invalidQuery}`, {"
+        },
+        {
+          "line": 287,
+          "text": "      headers: headers(VIEWER_TOKEN),"
+        },
+        {
+          "line": 288,
+          "text": "    });"
+        },
+        {
+          "line": 289,
+          "text": "    assert.strictEqual(response.status, 400, `Invalid analytics query must fail closed: ${invalidQuery.slice(0, 40)}`);"
+        },
+        {
+          "line": 290,
+          "text": "  }"
+        },
+        {
+          "line": 291,
+          "text": "}"
+        },
+        {
+          "line": 1962,
+          "text": "    await testTradingAnalyticsApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "925d2f6c4ca6cf1eb253c93e4ba7819",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "authentication",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 119,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "29f7e45575549add76047347c058b50d85e8a2faacf03445f29c0e653da85660"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 119,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "29f7e45575549add76047347c058b50d85e8a2faacf03445f29c0e653da85660"
+      },
+      "rationale": "The fixed removed template-management route must return 404. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 28,
+          "text": "async function testAuthenticationAndReads(baseUrl) {"
+        },
+        {
+          "line": 119,
+          "text": "  response = await fetch(`${baseUrl}/api/templates`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 120,
+          "text": "  assert.strictEqual(response.status, 404, 'Global prompt-template management must no longer be exposed.');"
+        },
+        {
+          "line": 121,
+          "text": "}"
+        },
+        {
+          "line": 1958,
+          "text": "    await testAuthenticationAndReads(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "b893784963367589ca1fe6e3e4a31d23",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "workflow draft resources",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 346,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "e79aa5e84f96e33dde9c42ccaf31ce6c1a35fca71dbe78140c618ee99c95c019"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 346,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "e79aa5e84f96e33dde9c42ccaf31ce6c1a35fca71dbe78140c618ee99c95c019"
+      },
+      "rationale": "The search text is the literal Draft channel in an encoded header; the URL path and origin stay fixed. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 333,
+          "text": "async function testWorkflowResourceApi(baseUrl) {"
+        },
+        {
+          "line": 346,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/search?kind=resources`, { headers: headers(VIEWER_TOKEN, { 'X-UI-Search': encodeURIComponent('Draft channel') }) });"
+        },
+        {
+          "line": 347,
+          "text": "  assert.equal(response.status, 200); assert.equal((await response.json()).groups[0].entries[0].id, draft.id);"
+        },
+        {
+          "line": 348,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/search?kind=resources`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);"
+        },
+        {
+          "line": 349,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=${encodeURIComponent(draft.id)}`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 350,
+          "text": "  assert.equal(response.status, 200); const resourceDetail = await response.json();"
+        },
+        {
+          "line": 351,
+          "text": "  assert.equal(resourceDetail.resource.configuration.channelId, '-100-test'); assert.match(resourceDetail.publication.publicationHash, /^[a-f0-9]{64}$/);"
+        },
+        {
+          "line": 679,
+          "text": "  await testWorkflowResourceApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "ae92b6b373adb5602928b62117d775ac",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "workflow draft resources",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 334,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "d6aef0fa54eaad3b705d8a8bedb81bb5eb0a7fd013864234a14c23850260e5fb"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 334,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "d6aef0fa54eaad3b705d8a8bedb81bb5eb0a7fd013864234a14c23850260e5fb"
+      },
+      "rationale": "The fixed workflow read checks the initially empty isolated database workflow. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 333,
+          "text": "async function testWorkflowResourceApi(baseUrl) {"
+        },
+        {
+          "line": 334,
+          "text": "  let response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 335,
+          "text": "  assert.strictEqual(response.status, 200);"
+        },
+        {
+          "line": 336,
+          "text": "  assert.strictEqual((await response.json()).workflow, null);"
+        },
+        {
+          "line": 337,
+          "text": ""
+        },
+        {
+          "line": 338,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/resources`, {"
+        },
+        {
+          "line": 339,
+          "text": "    method: 'POST',"
+        },
+        {
+          "line": 679,
+          "text": "  await testWorkflowResourceApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "8b3500e74b32ffce402a7316dede8bf3",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 159,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "132303ea49234a2f07baab94209f7842ea0154a6790e01617e76590512a662af"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 159,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "132303ea49234a2f07baab94209f7842ea0154a6790e01617e76590512a662af"
+      },
+      "rationale": "Literal constructor selector exercises ingress-relation validation, with 400 required. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 159,
+          "text": "  response = await fetch(`${baseUrl}/api/signals/ingress/relations?id=missing&kind=constructor`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 160,
+          "text": "  assert.equal(response.status, 400);"
+        },
+        {
+          "line": 161,
+          "text": "}"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "37004f6a922ddac8b69e020175c7a7a3",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "analytics",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 268,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "d7e888b43736253cdbf6d447a44ef79cb20f1d41efa427dc7aa2ca51f25b5a70"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 268,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "d7e888b43736253cdbf6d447a44ef79cb20f1d41efa427dc7aa2ca51f25b5a70"
+      },
+      "rationale": "The literal binance query is a historical analytics filter and is checked as returned metadata; this endpoint does not probe that exchange. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 236,
+          "text": "async function testTradingAnalyticsApi(baseUrl) {"
+        },
+        {
+          "line": 268,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/analytics?exchange=binance`, {"
+        },
+        {
+          "line": 269,
+          "text": "    headers: headers(VIEWER_TOKEN),"
+        },
+        {
+          "line": 270,
+          "text": "  });"
+        },
+        {
+          "line": 271,
+          "text": "  assert.strictEqual(response.status, 200, 'Historical analytics must accept a valid deprecated exchange identifier.');"
+        },
+        {
+          "line": 272,
+          "text": "  assert.deepStrictEqual((await response.json()).filters.exchanges, ['binance']);"
+        },
+        {
+          "line": 273,
+          "text": ""
+        },
+        {
+          "line": 1962,
+          "text": "    await testTradingAnalyticsApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "7119a8b04bad3fd4b4d7a0ba1399c9f2",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "exchange catalog stubs",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 312,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "e880fda89855d44b120d0378207bd810ef663058a9587932cb5855766b4cab44"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 312,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "e880fda89855d44b120d0378207bd810ef663058a9587932cb5855766b4cab44"
+      },
+      "rationale": "exchangeCatalog is replaced at lines 296-308 with a local fixed provider catalog. This request serializes the stub result rather than contacting exchanges. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 293,
+          "text": "async function testExchangeCatalogApi(baseUrl, appState) {"
+        },
+        {
+          "line": 312,
+          "text": "    response = await fetch(`${baseUrl}/api/exchanges/catalog`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 313,
+          "text": "    assert.strictEqual(response.status, 200);"
+        },
+        {
+          "line": 314,
+          "text": "    const catalog = await response.json();"
+        },
+        {
+          "line": 315,
+          "text": "    assert.deepStrictEqual(catalog.implementation, {"
+        },
+        {
+          "line": 316,
+          "text": "      library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',"
+        },
+        {
+          "line": 317,
+          "text": "    });"
+        },
+        {
+          "line": 678,
+          "text": "  await testExchangeCatalogApi(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "2139d283db38519d858a08a2399baeba",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "operator reads",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 171,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "f87758519f134330c98930aeffc8e7ca900213a8e2c3e16497418540bd038261"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 171,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "f87758519f134330c98930aeffc8e7ca900213a8e2c3e16497418540bd038261"
+      },
+      "rationale": "The fixed secret-inventory read verifies no-store metadata response; secret values do not enter the URL. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 163,
+          "text": "async function testOperatorReadContracts(baseUrl, appState) {"
+        },
+        {
+          "line": 171,
+          "text": "  response = await fetch(`${baseUrl}/api/secrets`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 172,
+          "text": "  assert.strictEqual(response.status, 200);"
+        },
+        {
+          "line": 173,
+          "text": "  assert.ok(response.headers.get('cache-control')?.includes('no-store'));"
+        },
+        {
+          "line": 174,
+          "text": "  assert.ok((await response.json()).secrets, 'Secret inventory must expose status metadata without secret values.');"
+        },
+        {
+          "line": 175,
+          "text": ""
+        },
+        {
+          "line": 176,
+          "text": "  const originalChannels = appState.config.sourceChannels;"
+        },
+        {
+          "line": 1961,
+          "text": "    await testOperatorReadContracts(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "ea25e3b80d5be3dde073fe638f359d65",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "adaptive-risk",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 127,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "a524e909aa0615447e4645319cb264a599eb1df097e48ae4a803e3825aa2eb58"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 127,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "a524e909aa0615447e4645319cb264a599eb1df097e48ae4a803e3825aa2eb58"
+      },
+      "rationale": "The literal missing source identifier exercises local not-found handling. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 123,
+          "text": "async function testAdaptiveRiskContracts(baseUrl) {"
+        },
+        {
+          "line": 127,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive?kind=sources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 128,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: headers(VIEWER_TOKEN), body: '{}' }); assert.equal(response.status, 403);"
+        },
+        {
+          "line": 129,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders(), body: '{}' }); assert.equal(response.status, 412);"
+        },
+        {
+          "line": 130,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }), body: JSON.stringify({ channelId: 'missing', copyHash: 'stale' }) }); assert.equal(response.status, 409);"
+        },
+        {
+          "line": 131,
+          "text": "}"
+        },
+        {
+          "line": 361,
+          "text": "  await testAdaptiveRiskContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "8c50aac0e1050bb5bc0365b4b9a2b80f",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "adaptive-risk",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 124,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "d40b752ab165c1904b9eaff20b182b352bc8888c0758c9a6aac93e560042fd58"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 124,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "d40b752ab165c1904b9eaff20b182b352bc8888c0758c9a6aac93e560042fd58"
+      },
+      "rationale": "The fixed adaptive-risk states selector requests the local database read model and asserts an entries array. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 123,
+          "text": "async function testAdaptiveRiskContracts(baseUrl) {"
+        },
+        {
+          "line": 124,
+          "text": "  let response = await fetch(`${baseUrl}/api/trading/risk/adaptive?kind=states`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 125,
+          "text": "  assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));"
+        },
+        {
+          "line": 126,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive?kind=constructor`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);"
+        },
+        {
+          "line": 127,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive?kind=sources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 128,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: headers(VIEWER_TOKEN), body: '{}' }); assert.equal(response.status, 403);"
+        },
+        {
+          "line": 129,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders(), body: '{}' }); assert.equal(response.status, 412);"
+        },
+        {
+          "line": 361,
+          "text": "  await testAdaptiveRiskContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "f429ebe3cbae3e4ab95fbf5d16740da2",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "operator reads",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 188,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "62b8d4b5622e698a91952db4a04f7b5f6ed137a0b4f427187481286fdb02b722"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 188,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "62b8d4b5622e698a91952db4a04f7b5f6ed137a0b4f427187481286fdb02b722"
+      },
+      "rationale": "Trading control is replaced at lines 183-186 by local Promise-returning snapshot stubs. The response checks normalization of literal channel fixtures. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 163,
+          "text": "async function testOperatorReadContracts(baseUrl, appState) {"
+        },
+        {
+          "line": 188,
+          "text": "    response = await fetch(`${baseUrl}/api/trading`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 189,
+          "text": "    assert.strictEqual(response.status, 200);"
+        },
+        {
+          "line": 190,
+          "text": "    const trading = await response.json();"
+        },
+        {
+          "line": 191,
+          "text": "    assert.deepStrictEqual(trading.configuredChannels, ["
+        },
+        {
+          "line": 192,
+          "text": "      { id: '-1001', name: 'Desk One' },"
+        },
+        {
+          "line": 193,
+          "text": "      { id: '-1002', name: 'Desk Two' },"
+        },
+        {
+          "line": 1961,
+          "text": "    await testOperatorReadContracts(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "f510808a202cee630d6998040d728c83",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 145,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "1a6ddc8681cccfb33010af1063577e054ca081e63ae8001e51d746d05639e710"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 145,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "1a6ddc8681cccfb33010af1063577e054ca081e63ae8001e51d746d05639e710"
+      },
+      "rationale": "Capabilities catalog is read from the local server and its pagination and administrator blockers are asserted. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 145,
+          "text": "  let response = await fetch(`${baseUrl}/api/ui/capabilities`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 146,
+          "text": "  assert.equal(response.status, 200);"
+        },
+        {
+          "line": 147,
+          "text": "  const catalog = await response.json();"
+        },
+        {
+          "line": 148,
+          "text": "  assert.ok(catalog.total >= 133 && catalog.entries.length <= 50 && catalog.hasMore);"
+        },
+        {
+          "line": 149,
+          "text": "  assert.ok(catalog.entries.find(entry => entry.route === 'POST /api/control').currentBlockers.some(value => value.includes('Administrator')));"
+        },
+        {
+          "line": 150,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/parameters?prefix=resource.adaptive_risk`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "ae9cbb489e055d11c0bff9fe63c9194f",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "configuration normalization",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 224,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "5afc4b12567391d28600cc84b7ad12c09272c34cda9b270cf6c1b4f3985f0e32"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 224,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "5afc4b12567391d28600cc84b7ad12c09272c34cda9b270cf6c1b4f3985f0e32"
+      },
+      "rationale": "The initial local configuration read supplies an If-Match revision for the subsequent POST; that revision is a header only. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 216,
+          "text": "async function testConfigurationNormalization(baseUrl, appState) {"
+        },
+        {
+          "line": 224,
+          "text": "    const before = await (await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) })).json();"
+        },
+        {
+          "line": 225,
+          "text": "    const response = await fetch(`${baseUrl}/api/config`, { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'If-Match': before.configRevision }), body: JSON.stringify({ xmlParsing: { enabled: true, aiLimits: { requestTimeoutMs: 250000 } }, forwardOptions: { queueTimeoutSeconds: 1 }, sourceFilters: { '-1001': null } }) });"
+        },
+        {
+          "line": 226,
+          "text": "    assert.equal(response.status, 200); const result = await response.json();"
+        },
+        {
+          "line": 227,
+          "text": "    assert.equal(result.configuration.forwardOptions.queueTimeoutSeconds, 255);"
+        },
+        {
+          "line": 228,
+          "text": "    assert.equal(persisted.forwardOptions.queueTimeoutSeconds, 255); assert.equal(applied.forwardOptions.queueTimeoutSeconds, 255);"
+        },
+        {
+          "line": 229,
+          "text": "    assert.equal(result.configuration.sourceFilters['-1001'], undefined); assert.deepEqual(result.configuration.sourceFilters['-1002'], { regexPatterns: ['untouched'] });"
+        },
+        {
+          "line": 1960,
+          "text": "    await testConfigurationNormalization(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "6853aba3ac3252d104c4d57649bb24f3",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "workflow draft resources",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 354,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "0b765aa235fd78c4dd210481d334b6edfaa934cd90e286884ea23c53287511c1"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 354,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "0b765aa235fd78c4dd210481d334b6edfaa934cd90e286884ea23c53287511c1"
+      },
+      "rationale": "The literal missing resource identifier must produce 404 from the local database read. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 333,
+          "text": "async function testWorkflowResourceApi(baseUrl) {"
+        },
+        {
+          "line": 354,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 355,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=schema`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 356,
+          "text": "  assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));"
+        },
+        {
+          "line": 357,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=strategy&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 358,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=constructor`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);"
+        },
+        {
+          "line": 359,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models`, { method: 'POST', headers: headers(VIEWER_TOKEN), body: '{}' }); assert.equal(response.status, 403);"
+        },
+        {
+          "line": 679,
+          "text": "  await testWorkflowResourceApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "121695db8d0c3d80ad80735cea051421",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "authentication",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 42,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "1f0c545dc1a8a6a298218b355e10fc4384d656a92a961402fdfdcfc14e79c2eb"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 42,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "1f0c545dc1a8a6a298218b355e10fc4384d656a92a961402fdfdcfc14e79c2eb"
+      },
+      "rationale": "Bootstrap status is rechecked after locally setting synthetic administrator/viewer tokens and the local-trust fixture flag. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 28,
+          "text": "async function testAuthenticationAndReads(baseUrl) {"
+        },
+        {
+          "line": 42,
+          "text": "  response = await fetch(`${baseUrl}/api/bootstrap/status`);"
+        },
+        {
+          "line": 43,
+          "text": "  assert.strictEqual(response.status, 200);"
+        },
+        {
+          "line": 44,
+          "text": "  assert.deepStrictEqual(await response.json(), {"
+        },
+        {
+          "line": 45,
+          "text": "    mode: 'token',"
+        },
+        {
+          "line": 46,
+          "text": "    required: false,"
+        },
+        {
+          "line": 47,
+          "text": "    available: false,"
+        },
+        {
+          "line": 1958,
+          "text": "    await testAuthenticationAndReads(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "92bee040f4a6511543373a76e225acf5",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "authentication",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 29,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "8a33f8ac8076d0c31f6473449f3b55a7bc5e295a647756b2abc88a6c40c1661e"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 29,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "8a33f8ac8076d0c31f6473449f3b55a7bc5e295a647756b2abc88a6c40c1661e"
+      },
+      "rationale": "Anonymous bootstrap status is expected to describe the locally initialized token mode before authentication. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 28,
+          "text": "async function testAuthenticationAndReads(baseUrl) {"
+        },
+        {
+          "line": 29,
+          "text": "  let response = await fetch(`${baseUrl}/api/bootstrap/status`);"
+        },
+        {
+          "line": 30,
+          "text": "  assert.strictEqual(response.status, 200, 'Bootstrap status must be available before authentication');"
+        },
+        {
+          "line": 31,
+          "text": "  assert.deepStrictEqual(await response.json(), {"
+        },
+        {
+          "line": 32,
+          "text": "    mode: 'token',"
+        },
+        {
+          "line": 33,
+          "text": "    required: true,"
+        },
+        {
+          "line": 34,
+          "text": "    available: true,"
+        },
+        {
+          "line": 1958,
+          "text": "    await testAuthenticationAndReads(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "c72ed470e5779db093f4699fb50a0b9c",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "authentication",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 37,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "c591bde00bbc8b6ee79af8eef6e9703b9d57ad5472221c550f38240adaf28a0e"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 37,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "c591bde00bbc8b6ee79af8eef6e9703b9d57ad5472221c550f38240adaf28a0e"
+      },
+      "rationale": "The missing-token status request verifies fail-closed 503 before the synthetic administrator token is installed. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 28,
+          "text": "async function testAuthenticationAndReads(baseUrl) {"
+        },
+        {
+          "line": 37,
+          "text": "  response = await fetch(`${baseUrl}/api/status`);"
+        },
+        {
+          "line": 38,
+          "text": "  assert.strictEqual(response.status, 503, 'Missing server token must fail closed');"
+        },
+        {
+          "line": 39,
+          "text": "  process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;"
+        },
+        {
+          "line": 40,
+          "text": "  process.env.DASHBOARD_VIEWER_TOKEN = VIEWER_TOKEN;"
+        },
+        {
+          "line": 41,
+          "text": "  process.env.DASHBOARD_LOCAL_TRUST = 'true';"
+        },
+        {
+          "line": 42,
+          "text": "  response = await fetch(`${baseUrl}/api/bootstrap/status`);"
+        },
+        {
+          "line": 1958,
+          "text": "    await testAuthenticationAndReads(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "902b85ddec089eaa754db0cd430f236c",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "operator reads",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 209,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "4174f41c9bc19516a66cb38bcc26dde679c4061ac2ef4463effd5988e0d8de91"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 209,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "4174f41c9bc19516a66cb38bcc26dde679c4061ac2ef4463effd5988e0d8de91"
+      },
+      "rationale": "getOutboxTasks is deliberately unset at line 207, and the request verifies explicit unavailable-capability 503; the original stub is restored. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 163,
+          "text": "async function testOperatorReadContracts(baseUrl, appState) {"
+        },
+        {
+          "line": 209,
+          "text": "    response = await fetch(`${baseUrl}/api/outbox`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 210,
+          "text": "    assert.strictEqual(response.status, 503, 'Unavailable outbox inspection must fail explicitly.');"
+        },
+        {
+          "line": 211,
+          "text": "  } finally {"
+        },
+        {
+          "line": 212,
+          "text": "    appState.getOutboxTasks = originalOutboxReader;"
+        },
+        {
+          "line": 213,
+          "text": "  }"
+        },
+        {
+          "line": 214,
+          "text": "}"
+        },
+        {
+          "line": 1961,
+          "text": "    await testOperatorReadContracts(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "a75fa16680330b10569a745067ee5efa",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "analytics",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 237,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "30a63746f3549c332a56af5d795d375dda5fb26a04261562b924a70951f1aead"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 237,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "30a63746f3549c332a56af5d795d375dda5fb26a04261562b924a70951f1aead"
+      },
+      "rationale": "Default trading analytics reads the isolated fixture database and verifies empty/default filters. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 236,
+          "text": "async function testTradingAnalyticsApi(baseUrl) {"
+        },
+        {
+          "line": 237,
+          "text": "  let response = await fetch(`${baseUrl}/api/trading/analytics`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 238,
+          "text": "  assert.strictEqual(response.status, 200, 'Trading analytics must support the documented default range.');"
+        },
+        {
+          "line": 239,
+          "text": "  let analytics = await response.json();"
+        },
+        {
+          "line": 240,
+          "text": "  assert.deepStrictEqual(analytics.filters.channelIds, []);"
+        },
+        {
+          "line": 241,
+          "text": "  assert.deepStrictEqual(analytics.filters.accountIds, []);"
+        },
+        {
+          "line": 242,
+          "text": "  assert.deepStrictEqual(analytics.filters.exchanges, []);"
+        },
+        {
+          "line": 1962,
+          "text": "    await testTradingAnalyticsApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "24ea2ebbde694186d637acce990df3f0",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 153,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "54482b79bd0fe5cdaac49d121f4bc61aabe63c59048a4a5ef5c78a61adb9f808"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 153,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "54482b79bd0fe5cdaac49d121f4bc61aabe63c59048a4a5ef5c78a61adb9f808"
+      },
+      "rationale": "The excessive literal limit 10000 exercises bounded parameter-list rejection. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 153,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/parameters?limit=10000`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 154,
+          "text": "  assert.equal(response.status, 400);"
+        },
+        {
+          "line": 155,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/capabilities`);"
+        },
+        {
+          "line": 156,
+          "text": "  assert.equal(response.status, 401);"
+        },
+        {
+          "line": 157,
+          "text": "  response = await fetch(`${baseUrl}/api/signals/ingress/relations?id=missing&kind=members`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 158,
+          "text": "  assert.equal(response.status, 404);"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "7c3156653a27d786b45e04481ada794a",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "operator reads",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 204,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "cc8a2b1bb42a155aa138b308da25a4288a5b5e490795cad3cea85c6dfb4224cf"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 204,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "cc8a2b1bb42a155aa138b308da25a4288a5b5e490795cad3cea85c6dfb4224cf"
+      },
+      "rationale": "A literal unsupported outbox status verifies 400 without selecting another network destination. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 163,
+          "text": "async function testOperatorReadContracts(baseUrl, appState) {"
+        },
+        {
+          "line": 204,
+          "text": "  response = await fetch(`${baseUrl}/api/outbox?status=not-a-status`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 205,
+          "text": "  assert.strictEqual(response.status, 400, 'Unknown outbox filters must be rejected.');"
+        },
+        {
+          "line": 206,
+          "text": "  const originalOutboxReader = appState.getOutboxTasks;"
+        },
+        {
+          "line": 207,
+          "text": "  appState.getOutboxTasks = undefined;"
+        },
+        {
+          "line": 208,
+          "text": "  try {"
+        },
+        {
+          "line": 209,
+          "text": "    response = await fetch(`${baseUrl}/api/outbox`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 1961,
+          "text": "    await testOperatorReadContracts(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "73db6f17c896399e7297127ab5f3659f",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 142,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "4273d38438335d01e54bde75c3a1dafea19c09818be7e00e9e3149007b0e6eea"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 142,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "4273d38438335d01e54bde75c3a1dafea19c09818be7e00e9e3149007b0e6eea"
+      },
+      "rationale": "The same finite route list at line 140 is requested with the synthetic viewer token, expecting 200 or local missing-original 404. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 142,
+          "text": "    assert.equal((await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) })).status, route.includes('/original') ? 404 : 200);"
+        },
+        {
+          "line": 143,
+          "text": "  }"
+        },
+        {
+          "line": 144,
+          "text": "  assert.equal((await fetch(`${baseUrl}/api/signals/original?id=1&kind=messages&field=invalid`, { headers: headers(VIEWER_TOKEN) })).status, 400);"
+        },
+        {
+          "line": 145,
+          "text": "  let response = await fetch(`${baseUrl}/api/ui/capabilities`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 146,
+          "text": "  assert.equal(response.status, 200);"
+        },
+        {
+          "line": 147,
+          "text": "  const catalog = await response.json();"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "ad700e5554f00061d144590ef4cee045",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "analytics",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 256,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "7b3e2914b7abbb0b25964abb5af2cb3cfb27fc4158cb20365b61b6f8db14906e"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 256,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "7b3e2914b7abbb0b25964abb5af2cb3cfb27fc4158cb20365b61b6f8db14906e"
+      },
+      "rationale": "query is URLSearchParams built at lines 247-255 from literal filters and Date.now. It is appended after a fixed path and question mark, so it cannot become an origin. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 236,
+          "text": "async function testTradingAnalyticsApi(baseUrl) {"
+        },
+        {
+          "line": 256,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/analytics?${query}`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 257,
+          "text": "  assert.strictEqual(response.status, 200);"
+        },
+        {
+          "line": 258,
+          "text": "  analytics = await response.json();"
+        },
+        {
+          "line": 259,
+          "text": "  assert.deepStrictEqual(analytics.filters, {"
+        },
+        {
+          "line": 260,
+          "text": "    since: 1_000,"
+        },
+        {
+          "line": 261,
+          "text": "    until,"
+        },
+        {
+          "line": 1962,
+          "text": "    await testTradingAnalyticsApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "5542a4847798eb80a5ba66b071dd05e3",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 157,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "4ef42099c41b377c56814f1fcbe4bc64aee964b5c4cb94911334deea319d1529"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 157,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "4ef42099c41b377c56814f1fcbe4bc64aee964b5c4cb94911334deea319d1529"
+      },
+      "rationale": "Literal missing identifier and members selector exercise local ingress-relation not-found handling. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 157,
+          "text": "  response = await fetch(`${baseUrl}/api/signals/ingress/relations?id=missing&kind=members`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 158,
+          "text": "  assert.equal(response.status, 404);"
+        },
+        {
+          "line": 159,
+          "text": "  response = await fetch(`${baseUrl}/api/signals/ingress/relations?id=missing&kind=constructor`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 160,
+          "text": "  assert.equal(response.status, 400);"
+        },
+        {
+          "line": 161,
+          "text": "}"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "c25bed7e483a6a2eb0f22a0679f0d83f",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 144,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "22569e86acb92a7e959771dd41fd9f2c01b4e3cf26748afc9b4806946ee2eaf8"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 144,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "22569e86acb92a7e959771dd41fd9f2c01b4e3cf26748afc9b4806946ee2eaf8"
+      },
+      "rationale": "Literal invalid original-message field selector exercises 400 validation at a fixed local endpoint. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 144,
+          "text": "  assert.equal((await fetch(`${baseUrl}/api/signals/original?id=1&kind=messages&field=invalid`, { headers: headers(VIEWER_TOKEN) })).status, 400);"
+        },
+        {
+          "line": 145,
+          "text": "  let response = await fetch(`${baseUrl}/api/ui/capabilities`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 146,
+          "text": "  assert.equal(response.status, 200);"
+        },
+        {
+          "line": 147,
+          "text": "  const catalog = await response.json();"
+        },
+        {
+          "line": 148,
+          "text": "  assert.ok(catalog.total >= 133 && catalog.entries.length <= 50 && catalog.hasMore);"
+        },
+        {
+          "line": 149,
+          "text": "  assert.ok(catalog.entries.find(entry => entry.route === 'POST /api/control').currentBlockers.some(value => value.includes('Administrator')));"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "8bd596f02013391f1b242585aaa1414",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "authentication",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 87,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "b6cbe5025fcc765bc8b93672d4d7546f1e0ce5e1172b5ef05acf1e9c4f4be124"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 87,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "b6cbe5025fcc765bc8b93672d4d7546f1e0ce5e1172b5ef05acf1e9c4f4be124"
+      },
+      "rationale": "The session token came from this server response at lines 69-77 and is used only as an Authorization header, never as a destination. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 28,
+          "text": "async function testAuthenticationAndReads(baseUrl) {"
+        },
+        {
+          "line": 87,
+          "text": "  response = await fetch(`${baseUrl}/api/status`, { headers: headers(localSession.token) });"
+        },
+        {
+          "line": 88,
+          "text": "  assert.strictEqual(response.status, 200, 'The ephemeral local session must authenticate immediately');"
+        },
+        {
+          "line": 89,
+          "text": "  const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;"
+        },
+        {
+          "line": 90,
+          "text": "  try {"
+        },
+        {
+          "line": 91,
+          "text": "    process.env.DASHBOARD_ALLOWED_ORIGIN = 'https://dashboard.example.test';"
+        },
+        {
+          "line": 92,
+          "text": "    response = await fetch(`${baseUrl}/api/local-session`, {"
+        },
+        {
+          "line": 1958,
+          "text": "    await testAuthenticationAndReads(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "25b44e54d187f5b505629e1ddb76b623",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "exchange catalog stubs",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 321,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "dcb6feea9f8b1f178128635c78514d7756cb6739cf24848d86bf9a35c5fe85ba"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 321,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "dcb6feea9f8b1f178128635c78514d7756cb6739cf24848d86bf9a35c5fe85ba"
+      },
+      "rationale": "The body contains literal okx, and probeExchange is replaced at line 309 by a local Promise returning candidate status. No SDK or remote exchange probe runs. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 293,
+          "text": "async function testExchangeCatalogApi(baseUrl, appState) {"
+        },
+        {
+          "line": 321,
+          "text": "    response = await fetch(`${baseUrl}/api/exchanges/probe`, {"
+        },
+        {
+          "line": 322,
+          "text": "      method: 'POST',"
+        },
+        {
+          "line": 323,
+          "text": "      headers: mutationHeaders({ 'Content-Type': 'application/json' }),"
+        },
+        {
+          "line": 324,
+          "text": "      body: JSON.stringify({ exchange: 'okx' }),"
+        },
+        {
+          "line": 325,
+          "text": "    });"
+        },
+        {
+          "line": 326,
+          "text": "    assert.strictEqual(response.status, 200);"
+        },
+        {
+          "line": 678,
+          "text": "  await testExchangeCatalogApi(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "8a959259a485b744f640a8475cea6bf7",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "configuration normalization",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 231,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "877ef99de2b11f80d88031cc0119257de271961c347c98a29b21253f0a9f6928"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 231,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "877ef99de2b11f80d88031cc0119257de271961c347c98a29b21253f0a9f6928"
+      },
+      "rationale": "The stale local If-Match revision and literal target channel must conflict with 409. apply/persist remain local capture stubs and are restored in finally. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 216,
+          "text": "async function testConfigurationNormalization(baseUrl, appState) {"
+        },
+        {
+          "line": 231,
+          "text": "    const stale = await fetch(`${baseUrl}/api/config`, { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'If-Match': before.configRevision }), body: JSON.stringify({ targetChannel: '@stale_target' }) });"
+        },
+        {
+          "line": 232,
+          "text": "    assert.equal(stale.status, 409); assert.equal(applied.targetChannel, '');"
+        },
+        {
+          "line": 233,
+          "text": "  } finally { appState.config = previous.config; appState.persistConfig = previous.persist; appState.applyRuntimeConfig = previous.apply; }"
+        },
+        {
+          "line": 234,
+          "text": "}"
+        },
+        {
+          "line": 1960,
+          "text": "    await testConfigurationNormalization(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "9e420dc80c3b0ac0990d7d73be730a2a",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "authentication",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 106,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "6a848728b193ccff206bffa0a11d98478dc052929ce0f871efa4be25b5c14572"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 106,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "6a848728b193ccff206bffa0a11d98478dc052929ce0f871efa4be25b5c14572"
+      },
+      "rationale": "Viewer configuration read verifies role attribution and redaction of the deliberately malformed nested secret fixture. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 28,
+          "text": "async function testAuthenticationAndReads(baseUrl) {"
+        },
+        {
+          "line": 106,
+          "text": "  response = await fetch(`${baseUrl}/api/config`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 107,
+          "text": "  assert.strictEqual(response.status, 200, 'Viewer must be able to read configuration');"
+        },
+        {
+          "line": 108,
+          "text": "  assert.strictEqual(response.headers.get('x-authenticated-role'), 'viewer');"
+        },
+        {
+          "line": 109,
+          "text": "  assert.match(response.headers.get('content-security-policy') || '', /frame-ancestors 'none'/);"
+        },
+        {
+          "line": 110,
+          "text": "  const publicConfig = await response.json();"
+        },
+        {
+          "line": 111,
+          "text": "  assert.strictEqual(publicConfig.apiHash, undefined, 'Telegram secret must be redacted');"
+        },
+        {
+          "line": 1958,
+          "text": "    await testAuthenticationAndReads(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "326f777d54ccf5860c786d2b75faf567",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 150,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "2b3d1cfd8f8df49f5841cc3338ea3ec2e195e4afdf0e7f2da4d3dd79fa1939fb"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 150,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "2b3d1cfd8f8df49f5841cc3338ea3ec2e195e4afdf0e7f2da4d3dd79fa1939fb"
+      },
+      "rationale": "A literal adaptive-risk parameter prefix selects local metadata; no part of the prefix controls the origin. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 150,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/parameters?prefix=resource.adaptive_risk`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 151,
+          "text": "  assert.equal(response.status, 200);"
+        },
+        {
+          "line": 152,
+          "text": "  assert.equal((await response.json()).entries.find(entry => entry.path.endsWith('.lockedTier')).nullable, true);"
+        },
+        {
+          "line": 153,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/parameters?limit=10000`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 154,
+          "text": "  assert.equal(response.status, 400);"
+        },
+        {
+          "line": 155,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/capabilities`);"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "a877cbeef7fa7ede340362dbba24b4c4",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 134,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "7486ad300ed1b945842c0d8d90e35c36531ac81419a8e9178e44d7103a79eefc"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 134,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "7486ad300ed1b945842c0d8d90e35c36531ac81419a8e9178e44d7103a79eefc"
+      },
+      "rationale": "Deployment metadata is checked against the actual local listener port and process version, with the readOnly flag asserted. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 134,
+          "text": "  const deploymentResponse = await fetch(`${baseUrl}/api/ui/deployment`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 135,
+          "text": "  assert.equal(deploymentResponse.status, 200);"
+        },
+        {
+          "line": 136,
+          "text": "  const deployment = await deploymentResponse.json();"
+        },
+        {
+          "line": 137,
+          "text": "  assert.equal(deployment.listener.port, Number(new URL(baseUrl).port));"
+        },
+        {
+          "line": 138,
+          "text": "  assert.equal(deployment.process.nodeVersion, process.version); assert.equal(deployment.readOnly, true);"
+        },
+        {
+          "line": 139,
+          "text": "  assert.deepEqual(deployment.declarations.map(entry => entry.name), ['HOST_WEB_PORT', 'HOST_METRICS_PORT', 'HOST_MCP_PORT', 'FORWARDER_MEMORY_LIMIT', 'FORWARDER_CPU_LIMIT', 'MCP_MEMORY_LIMIT', 'MCP_CPU_LIMIT']);"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "be113fabbc368e5b11d7c428ff95b1e9",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "authentication",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 116,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "ded5bf672b902d2b1cd2967e8c0df78c585fe774638cb5fdf158e1e27e753e94"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 116,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "ded5bf672b902d2b1cd2967e8c0df78c585fe774638cb5fdf158e1e27e753e94"
+      },
+      "rationale": "route comes only from the five literal local read routes at line 115; concatenation cannot substitute a scheme or host. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 28,
+          "text": "async function testAuthenticationAndReads(baseUrl) {"
+        },
+        {
+          "line": 116,
+          "text": "    response = await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 117,
+          "text": "    assert.strictEqual(response.status, 200, `${route} must satisfy its authenticated read contract`);"
+        },
+        {
+          "line": 118,
+          "text": "  }"
+        },
+        {
+          "line": 119,
+          "text": "  response = await fetch(`${baseUrl}/api/templates`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 120,
+          "text": "  assert.strictEqual(response.status, 404, 'Global prompt-template management must no longer be exposed.');"
+        },
+        {
+          "line": 121,
+          "text": "}"
+        },
+        {
+          "line": 1958,
+          "text": "    await testAuthenticationAndReads(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "50986d0ddb9ef7b4f2817ad4cb198847",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "operator reads",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 196,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "842ca6dfdff6545552ee36c762a1dd970c82be7712979adeed0777e23d1c7746"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 196,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "842ca6dfdff6545552ee36c762a1dd970c82be7712979adeed0777e23d1c7746"
+      },
+      "rationale": "The portfolio refresh endpoint calls the local portfolioSnapshot stub at line 185, which echoes the refresh flag and returns empty positions; it performs no exchange refresh. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 163,
+          "text": "async function testOperatorReadContracts(baseUrl, appState) {"
+        },
+        {
+          "line": 196,
+          "text": "    response = await fetch(`${baseUrl}/api/trading/portfolio?refresh=true`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 197,
+          "text": "    assert.strictEqual(response.status, 200);"
+        },
+        {
+          "line": 198,
+          "text": "    assert.strictEqual((await response.json()).refresh, true);"
+        },
+        {
+          "line": 199,
+          "text": "  } finally {"
+        },
+        {
+          "line": 200,
+          "text": "    appState.config.sourceChannels = originalChannels;"
+        },
+        {
+          "line": 201,
+          "text": "    appState.tradingControl = originalTradingControl;"
+        },
+        {
+          "line": 1961,
+          "text": "    await testOperatorReadContracts(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "f2c998e947ed9137c1e80314e6b4c21d",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "adaptive-risk",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 128,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "fdffa3d3e5ce8faf93332c71c1fe97cf2e995ddb9fadae5e0213cac168807ae2"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 128,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "fdffa3d3e5ce8faf93332c71c1fe97cf2e995ddb9fadae5e0213cac168807ae2"
+      },
+      "rationale": "The empty-body viewer POST verifies the local authorization gate returns 403 before mutation. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 123,
+          "text": "async function testAdaptiveRiskContracts(baseUrl) {"
+        },
+        {
+          "line": 128,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: headers(VIEWER_TOKEN), body: '{}' }); assert.equal(response.status, 403);"
+        },
+        {
+          "line": 129,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders(), body: '{}' }); assert.equal(response.status, 412);"
+        },
+        {
+          "line": 130,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }), body: JSON.stringify({ channelId: 'missing', copyHash: 'stale' }) }); assert.equal(response.status, 409);"
+        },
+        {
+          "line": 131,
+          "text": "}"
+        },
+        {
+          "line": 361,
+          "text": "  await testAdaptiveRiskContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "7d7c34417864d3061eacf205e792f0c1",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "workflow draft resources",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 349,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "e7798fc7b30bf6012bcfe1d9fe609a2b3bb63a0bb849bb54deb4e008e4d0832a"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 349,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "e7798fc7b30bf6012bcfe1d9fe609a2b3bb63a0bb849bb54deb4e008e4d0832a"
+      },
+      "rationale": "draft.id comes from this local draft-creation response at line 344 and is encodeURIComponent-escaped inside a query parameter after the fixed origin/path. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 333,
+          "text": "async function testWorkflowResourceApi(baseUrl) {"
+        },
+        {
+          "line": 349,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=${encodeURIComponent(draft.id)}`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 350,
+          "text": "  assert.equal(response.status, 200); const resourceDetail = await response.json();"
+        },
+        {
+          "line": 351,
+          "text": "  assert.equal(resourceDetail.resource.configuration.channelId, '-100-test'); assert.match(resourceDetail.publication.publicationHash, /^[a-f0-9]{64}$/);"
+        },
+        {
+          "line": 352,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&resourceId=${encodeURIComponent(draft.resourceId)}&limit=1`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 353,
+          "text": "  assert.equal(response.status, 200); assert.equal((await response.json()).entries[0].id, draft.id);"
+        },
+        {
+          "line": 354,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 679,
+          "text": "  await testWorkflowResourceApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "106a447ee9a4b522e8592c668a99ee90",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "authentication",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 50,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "7f865f55e18fabfc303619bf3c427ab21709c65c5d2c47f6eb7b9bee5dd2fc97"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 50,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "7f865f55e18fabfc303619bf3c427ab21709c65c5d2c47f6eb7b9bee5dd2fc97"
+      },
+      "rationale": "The POST has no trusted browser origin and must reject local-session creation with 403; no caller URL is submitted. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 28,
+          "text": "async function testAuthenticationAndReads(baseUrl) {"
+        },
+        {
+          "line": 50,
+          "text": "  response = await fetch(`${baseUrl}/api/local-session`, {"
+        },
+        {
+          "line": 51,
+          "text": "    method: 'POST', headers: { 'X-Requested-With': 'forwarder-dashboard' }"
+        },
+        {
+          "line": 52,
+          "text": "  });"
+        },
+        {
+          "line": 53,
+          "text": "  assert.strictEqual(response.status, 403, 'Integrated startup must reject requests without a trusted browser origin');"
+        },
+        {
+          "line": 54,
+          "text": "  response = await fetch(`${baseUrl}/api/local-session`, {"
+        },
+        {
+          "line": 55,
+          "text": "    method: 'POST',"
+        },
+        {
+          "line": 1958,
+          "text": "    await testAuthenticationAndReads(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "29f079cc0364c24f27d76251e098e70b",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 141,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "4631ce2e1a54fbe4c19d3ed69dd67e132aa21e4b355fe8c5caa49f8c860fff21"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 141,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "4631ce2e1a54fbe4c19d3ed69dd67e132aa21e4b355fe8c5caa49f8c860fff21"
+      },
+      "rationale": "route is restricted to the five literal paths at line 140; anonymous requests verify 401 for each local read route. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 141,
+          "text": "    assert.equal((await fetch(`${baseUrl}${route}`)).status, 401);"
+        },
+        {
+          "line": 142,
+          "text": "    assert.equal((await fetch(`${baseUrl}${route}`, { headers: headers(VIEWER_TOKEN) })).status, route.includes('/original') ? 404 : 200);"
+        },
+        {
+          "line": 143,
+          "text": "  }"
+        },
+        {
+          "line": 144,
+          "text": "  assert.equal((await fetch(`${baseUrl}/api/signals/original?id=1&kind=messages&field=invalid`, { headers: headers(VIEWER_TOKEN) })).status, 400);"
+        },
+        {
+          "line": 145,
+          "text": "  let response = await fetch(`${baseUrl}/api/ui/capabilities`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 146,
+          "text": "  assert.equal(response.status, 200);"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "45448f8b89488e3253bf81b0d81bb729",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "adaptive-risk",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 126,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "f785972a18b334b4694a8ae22b2c5d3358018927e64ed4ef839853841e03725c"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 126,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "f785972a18b334b4694a8ae22b2c5d3358018927e64ed4ef839853841e03725c"
+      },
+      "rationale": "The literal constructor selector exercises invalid-kind rejection, not an external destination. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 123,
+          "text": "async function testAdaptiveRiskContracts(baseUrl) {"
+        },
+        {
+          "line": 126,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive?kind=constructor`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);"
+        },
+        {
+          "line": 127,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive?kind=sources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 128,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: headers(VIEWER_TOKEN), body: '{}' }); assert.equal(response.status, 403);"
+        },
+        {
+          "line": 129,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders(), body: '{}' }); assert.equal(response.status, 412);"
+        },
+        {
+          "line": 130,
+          "text": "  response = await fetch(`${baseUrl}/api/trading/risk/adaptive/copy-legacy`, { method: 'POST', headers: mutationHeaders({ 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }), body: JSON.stringify({ channelId: 'missing', copyHash: 'stale' }) }); assert.equal(response.status, 409);"
+        },
+        {
+          "line": 131,
+          "text": "}"
+        },
+        {
+          "line": 361,
+          "text": "  await testAdaptiveRiskContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "767413e78075bd689e9015b5426e508e",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "configuration normalization",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 230,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "f9b4329285def60c3a2ebc3f15d98d2567ba165369a723721fa9f074e65fb11e"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 230,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "f9b4329285def60c3a2ebc3f15d98d2567ba165369a723721fa9f074e65fb11e"
+      },
+      "rationale": "This repeated fixed configuration read checks revision agreement with the prior local normalization response; the response cannot rewrite the request origin. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 216,
+          "text": "async function testConfigurationNormalization(baseUrl, appState) {"
+        },
+        {
+          "line": 230,
+          "text": "    assert.equal((await (await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) })).json()).configRevision, result.configRevision, 'Read, persistence and queue must share the normalized revision.');"
+        },
+        {
+          "line": 231,
+          "text": "    const stale = await fetch(`${baseUrl}/api/config`, { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'If-Match': before.configRevision }), body: JSON.stringify({ targetChannel: '@stale_target' }) });"
+        },
+        {
+          "line": 232,
+          "text": "    assert.equal(stale.status, 409); assert.equal(applied.targetChannel, '');"
+        },
+        {
+          "line": 233,
+          "text": "  } finally { appState.config = previous.config; appState.persistConfig = previous.persist; appState.applyRuntimeConfig = previous.apply; }"
+        },
+        {
+          "line": 234,
+          "text": "}"
+        },
+        {
+          "line": 1960,
+          "text": "    await testConfigurationNormalization(baseUrl, appState);"
+        }
+      ]
+    },
+    {
+      "issueId": "28c323f20f795437d96be87ea43349e3",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "workflow draft resources",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 357,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "d5cc95939c8864aa19d0c235013d6f9a3d33aa07ce7a9df1fb10e8288428c417"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 357,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "d5cc95939c8864aa19d0c235013d6f9a3d33aa07ce7a9df1fb10e8288428c417"
+      },
+      "rationale": "The literal strategy selector and missing identifier exercise local model not-found handling. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 333,
+          "text": "async function testWorkflowResourceApi(baseUrl) {"
+        },
+        {
+          "line": 357,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=strategy&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 358,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=constructor`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 400);"
+        },
+        {
+          "line": 359,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models`, { method: 'POST', headers: headers(VIEWER_TOKEN), body: '{}' }); assert.equal(response.status, 403);"
+        },
+        {
+          "line": 360,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models`, { method: 'POST', headers: mutationHeaders(), body: '{}' }); assert.equal(response.status, 412);"
+        },
+        {
+          "line": 361,
+          "text": "  await testAdaptiveRiskContracts(baseUrl);"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        },
+        {
+          "line": 679,
+          "text": "  await testWorkflowResourceApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "b87b90281a812398048a0cc5ba748f40",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "workflow draft resources",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 338,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "def091d01c539c7acfa559686f26b5151213369e831d75977763737a38456e55"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 338,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "def091d01c539c7acfa559686f26b5151213369e831d75977763737a38456e55"
+      },
+      "rationale": "The POST creates a draft channel with literal test channelId in the isolated fixture database. It does not publish or connect a Telegram channel. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 333,
+          "text": "async function testWorkflowResourceApi(baseUrl) {"
+        },
+        {
+          "line": 338,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/resources`, {"
+        },
+        {
+          "line": 339,
+          "text": "    method: 'POST',"
+        },
+        {
+          "line": 340,
+          "text": "    headers: mutationHeaders({ 'Content-Type': 'application/json' }),"
+        },
+        {
+          "line": 341,
+          "text": "    body: JSON.stringify({ kind: 'channel', name: 'Draft channel', configuration: { channelId: '-100-test' } }),"
+        },
+        {
+          "line": 342,
+          "text": "  });"
+        },
+        {
+          "line": 343,
+          "text": "  assert.strictEqual(response.status, 201);"
+        },
+        {
+          "line": 679,
+          "text": "  await testWorkflowResourceApi(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "1ad46e17a092315f7cb847f40b50ffe2",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "UI read registry",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 155,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "8c0770f4996eb2feb0cf86e4b35bdddc9f5d82febf99274314f811ee91e3fc04"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 155,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "8c0770f4996eb2feb0cf86e4b35bdddc9f5d82febf99274314f811ee91e3fc04"
+      },
+      "rationale": "An anonymous request to the fixed capabilities endpoint verifies 401. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 133,
+          "text": "async function testUiRegisterHttpContracts(baseUrl) {"
+        },
+        {
+          "line": 155,
+          "text": "  response = await fetch(`${baseUrl}/api/ui/capabilities`);"
+        },
+        {
+          "line": 156,
+          "text": "  assert.equal(response.status, 401);"
+        },
+        {
+          "line": 157,
+          "text": "  response = await fetch(`${baseUrl}/api/signals/ingress/relations?id=missing&kind=members`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 158,
+          "text": "  assert.equal(response.status, 404);"
+        },
+        {
+          "line": 159,
+          "text": "  response = await fetch(`${baseUrl}/api/signals/ingress/relations?id=missing&kind=constructor`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 160,
+          "text": "  assert.equal(response.status, 400);"
+        },
+        {
+          "line": 362,
+          "text": "  await testUiRegisterHttpContracts(baseUrl);"
+        }
+      ]
+    },
+    {
+      "issueId": "f672890101cd80b30328866df0512aba",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_web_server.js",
+      "decision": "reviewed-false-positive",
+      "cluster": "workflow draft resources",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 352,
+        "sourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+        "lineSha256": "66586dd2fa3fddafd82a7c576a41bbe63463090a76f8c68045bfc4714006e646"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 352,
+        "sourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+        "lineSha256": "66586dd2fa3fddafd82a7c576a41bbe63463090a76f8c68045bfc4714006e646"
+      },
+      "rationale": "draft.resourceId comes from the same local resource response and is encodeURIComponent-escaped in a query parameter with literal limit=1; it cannot supply a host or scheme. Its baseUrl originates solely from the native ephemeral server address and literal loopback origin at lines 1950-1955. Private helper calls preserve that value.",
+      "evidenceLines": [
+        {
+          "line": 333,
+          "text": "async function testWorkflowResourceApi(baseUrl) {"
+        },
+        {
+          "line": 352,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&resourceId=${encodeURIComponent(draft.resourceId)}&limit=1`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 353,
+          "text": "  assert.equal(response.status, 200); assert.equal((await response.json()).entries[0].id, draft.id);"
+        },
+        {
+          "line": 354,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 355,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=schema`, { headers: headers(VIEWER_TOKEN) });"
+        },
+        {
+          "line": 356,
+          "text": "  assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));"
+        },
+        {
+          "line": 357,
+          "text": "  response = await fetch(`${baseUrl}/api/workflow/models?kind=strategy&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);"
+        },
+        {
+          "line": 679,
+          "text": "  await testWorkflowResourceApi(baseUrl);"
+        }
+      ]
+    }
+  ]
+}
