@@ -36,7 +36,7 @@ describe("buildEquityChartGroups", () => {
   });
   it("keeps original currencies and modes separate and retains exact tooltip amounts", () => {
     const known = { accountId: "account", observedAt: 1, equity: "0.000000000000000000123456789", reportingCurrency: "USD", accountingSource: "original", mode: "live" };
-    const groups = buildEquityChartGroups([known, { ...known, mode: "testnet" }, { ...known, reportingCurrency: null }, { ...known, equity: null }, { ...known, accountingSource: null }], [{ id: "account", capabilities: { reportingCurrency: "USDT" } }]);
+    const groups = buildEquityChartGroups([known, { ...known, mode: "testnet" }, { ...known, reportingCurrency: null }, { ...known, equity: null }, { ...known, accountingSource: null }, { ...known, mode: 1 }, { ...known, mode: { toString: () => "live" } }], [{ id: "account", capabilities: { reportingCurrency: "USDT" } }]);
     expect(groups.map(group => group.currency)).toEqual(["USD (live)", "USD (testnet)"]);
     expect(groups[0].points[0].account_0Exact).toBe(known.equity);
   });

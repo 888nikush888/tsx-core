@@ -14,56 +14,91 @@ export type EquityChartGroup = {
   points: Array<Record<string, number | string>>;
 };
 
-function equityObservationGroup(point: Record<string, any>): string | null {
-  if (typeof point.reportingCurrency !== "string" || !/^[A-Z0-9]{2,12}$/.test(point.reportingCurrency)
-    || !point.accountingSource || !["paper", "testnet", "live"].includes(point.mode)) return null;
+interface EquityObservation {
+  reportingCurrency?: unknown;
+  accountingSource?: unknown;
+  mode?: unknown;
+  observedAt?: unknown;
+  equity?: unknown;
+  accountId?: unknown;
+  drawdownPercent?: unknown;
+}
+interface EquityAccount {
+  id?: unknown;
+  name?: unknown;
+}
+interface EquityPoint {
+  observedAt: number;
+  equity: number;
+  exact: string;
+}
+type AccountPoints = Map<string, EquityPoint[]>;
+
+function equityObservationGroup(point: EquityObservation): string | null {
+  if (typeof point.reportingCurrency !== "string" || !/^[A-Z0-9]{2,12}$/.test(point.reportingCurrency)) return null;
+  if (!point.accountingSource || !validMode(point.mode)) return null;
   return `${point.reportingCurrency} (${point.mode})`;
 }
+function validMode(mode: unknown): boolean {
+  return typeof mode === "string" && ["paper", "testnet", "live"].includes(mode);
+}
+function equityPoint(point: EquityObservation): EquityPoint | null {
+  const observedAt = Number(point.observedAt);
+  const equity = Number(point.equity);
+  if (!Number.isSafeInteger(observedAt) || observedAt <= 0) return null;
+  if (typeof point.equity !== "string" || !Number.isFinite(equity)) return null;
+  return { observedAt, equity, exact: point.equity };
+}
+function validatedObservation(point: EquityObservation): { accountId: string; currency: string; point: EquityPoint } | null {
+  const observation = equityPoint(point);
+  if (!observation) return null;
+  const accountId = point.accountId == null ? "aggregate" : String(point.accountId);
+  const currency = equityObservationGroup(point);
+  return currency ? { accountId, currency, point: observation } : null;
+}
+function groupSeries(byAccount: AccountPoints, accounts: Map<string, EquityAccount>): EquityChartSeries[] {
+  const accountIds = [...byAccount.keys()].sort((left, right) => {
+    const leftName = String(accounts.get(left)?.name ?? left);
+    const rightName = String(accounts.get(right)?.name ?? right);
+    return leftName.localeCompare(rightName, "de-DE");
+  });
+  return accountIds.map((accountId, index) => ({
+    accountId, dataKey: `account_${index}`,
+    name: String(accounts.get(accountId)?.name ?? (accountId === "aggregate" ? "Equity" : accountId)),
+  }));
+}
+function groupPoints(series: EquityChartSeries[], byAccount: AccountPoints): EquityChartGroup['points'] {
+  const rows = new Map<number, Record<string, number | string>>();
+  for (const item of series) {
+    for (const point of byAccount.get(item.accountId) ?? []) {
+      const row = rows.get(point.observedAt) ?? { observedAt: point.observedAt };
+      row[item.dataKey] = point.equity;
+      row[`${item.dataKey}Exact`] = point.exact;
+      rows.set(point.observedAt, row);
+    }
+  }
+  return [...rows.values()].sort((left, right) => Number(left.observedAt) - Number(right.observedAt));
+}
 
-export function buildEquityChartGroups(
-  inputPoints: Array<Record<string, any>>,
-  inputAccounts: Array<Record<string, any>>,
+export function buildEquityChartGroups<Point extends EquityObservation, Account extends EquityAccount>(
+  inputPoints: Point[],
+  inputAccounts: Account[],
 ): EquityChartGroup[] {
   const accounts = new Map(inputAccounts.map((account) => [String(account.id), account]));
-  const grouped = new Map<string, Map<string, Array<{ observedAt: number; equity: number; exact: string }>>>();
+  const grouped = new Map<string, AccountPoints>();
   for (const point of inputPoints) {
-    const observedAt = Number(point.observedAt);
-    const equity = Number(point.equity);
-    if (!Number.isSafeInteger(observedAt) || observedAt <= 0 || typeof point.equity !== "string" || !Number.isFinite(equity)) continue;
-    const accountId = point.accountId == null ? "aggregate" : String(point.accountId);
-    const currency = equityObservationGroup(point);
-    if (!currency) continue;
-    const byAccount = grouped.get(currency) ?? new Map();
-    byAccount.set(accountId, [...(byAccount.get(accountId) ?? []), { observedAt, equity, exact: point.equity }]);
+    const observation = validatedObservation(point);
+    if (!observation) continue;
+    const { currency, accountId } = observation;
+    const byAccount = grouped.get(currency) ?? new Map<string, EquityPoint[]>();
+    byAccount.set(accountId, [...(byAccount.get(accountId) ?? []), observation.point]);
     grouped.set(currency, byAccount);
   }
   return [...grouped.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([currency, byAccount]) => {
-      const accountIds = [...byAccount.keys()].sort((left, right) => {
-        const leftName = String(accounts.get(left)?.name ?? left);
-        const rightName = String(accounts.get(right)?.name ?? right);
-        return leftName.localeCompare(rightName, "de-DE");
-      });
-      const series = accountIds.map((accountId, index) => ({
-        accountId,
-        dataKey: `account_${index}`,
-        name: String(accounts.get(accountId)?.name ?? (accountId === "aggregate" ? "Equity" : accountId)),
-      }));
-      const rows = new Map<number, Record<string, number | string>>();
-      for (const item of series) {
-        for (const point of byAccount.get(item.accountId) ?? []) {
-          const row = rows.get(point.observedAt) ?? { observedAt: point.observedAt };
-          row[item.dataKey] = point.equity;
-          row[`${item.dataKey}Exact`] = point.exact;
-          rows.set(point.observedAt, row);
-        }
-      }
-      return {
-        currency,
-        series,
-        points: [...rows.values()].sort((left, right) => Number(left.observedAt) - Number(right.observedAt)),
-      };
+      const series = groupSeries(byAccount, accounts);
+      return { currency, series, points: groupPoints(series, byAccount) };
     });
 }
 
@@ -75,8 +110,8 @@ export function EquityChart({
   emptyText,
   metric = 'equity',
 }: Readonly<{
-  points: Array<Record<string, any>>;
-  accounts: Array<Record<string, any>>;
+  points: EquityObservation[];
+  accounts: EquityAccount[];
   emptyText: string;
   metric?: 'equity' | 'drawdown';
 }>) {
