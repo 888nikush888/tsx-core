@@ -7,8 +7,8 @@
   "count": 847,
   "uniqueCount": 847,
   "dispositions": {
-    "pending-review": 756,
-    "fixed-pending-rescan": 83,
+    "pending-review": 750,
+    "fixed-pending-rescan": 89,
     "proposed-false-positive": 8
   },
   "sourceBinding": "Each entry path binds to baselineSha256 and reviewedSha256 in files. Fixed means local implementation only, not a platform closure. Pending entries are not reviewed or accepted.",
@@ -87,7 +87,7 @@
     },
     "frontend/tests/operations-panel-helpers.test.ts": {
       "baselineSha256": "87571449dc0cb3f59e09e67af609eda4123ed184976fd46eb415f0e4266b9f25",
-      "reviewedSha256": "b0b7613b8253b5adc870e8cd620d71f5551152919f6dee384f3425e9ed7d3e0d"
+      "reviewedSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3"
     },
     "frontend/tests/exchange-catalog.test.ts": {
       "baselineSha256": "6d97a2bc4175e9daae214a00539062d0389abba26aa53e4dcd570ef08b513d41",
@@ -135,7 +135,7 @@
     },
     "frontend/src/lib/navigation.tsx": {
       "baselineSha256": "e06fa40d7cbd4b0d6dc3568525329c5712e751b56fabece914d36df03a9d4ede",
-      "reviewedSha256": "e06fa40d7cbd4b0d6dc3568525329c5712e751b56fabece914d36df03a9d4ede"
+      "reviewedSha256": "3263bd0d901845398a30c7357aaf20159cb13980aa7818e9d399fb2ca7e3c1d8"
     },
     "frontend/src/lib/api.ts": {
       "baselineSha256": "b75e79e9854097e28d84ccd0910200317e6229361557302d160e3eaa84b94b04",
@@ -203,7 +203,7 @@
     },
     "frontend/src/features/risk-analytics/equity-chart.tsx": {
       "baselineSha256": "adc9f8c2d4ffa48c6f75fb7950b20fefdd134913e467b1259654e2d35eeedcde",
-      "reviewedSha256": "adc9f8c2d4ffa48c6f75fb7950b20fefdd134913e467b1259654e2d35eeedcde"
+      "reviewedSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5"
     },
     "frontend/src/features/risk-analytics/analytics.tsx": {
       "baselineSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
@@ -442,7 +442,7 @@
       "reviewedSha256": "c94cc506813b9ccacf5307fbd13ba4f81f085aad89910748b003989f49337499"
     }
   },
-  "implementationHead": "44400e35f170df64e6eb6330c802b4e12757414c",
+  "implementationHead": "18a3c2999988921af8188f8c41b399729262069b",
   "entries": [
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGVscXA=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndrcmU=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
@@ -753,12 +753,12 @@
     {"id": "T2NjdXJyZW5jZTpnZXZhZGF2bnk=", "rule": "JS-0098", "path": "frontend/src/features/risk-analytics/risk-acknowledgment.tsx", "line": 17, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "return <div>{confirmationDialog}{acknowledgedAt ? <span>Quittiert · {new Date(acknowledgedAt).toLocaleString('de-DE')}</span> : <button className=\"secondary-button\" disabled={readOnly || busy || accepted} onClick={() => void acknowledge()}>Quittierung prüfen</button>}{message && <p><output>{message}</output></p>}</div>;"},
     {"id": "T2NjdXJyZW5jZTpyZWt2bnZrb3g=", "rule": "JS-R1005", "path": "frontend/src/features/risk-analytics/risk-acknowledgment.tsx", "line": 9, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const acknowledge = async () => {"},
     {"id": "T2NjdXJyZW5jZTptcmRwbnBkcW0=", "rule": "JS-R1005", "path": "frontend/src/features/risk-analytics/query.ts", "line": 2, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function analyticsQuery(filters: {"},
-    {"id": "T2NjdXJyZW5jZTp2dm15bnltbG8=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 79, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "accounts: Array<Record<string, any>>;"},
-    {"id": "T2NjdXJyZW5jZTpveWFrZGthbmc=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 78, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "points: Array<Record<string, any>>;"},
-    {"id": "T2NjdXJyZW5jZTp4cmd5bnlncGo=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 25, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "inputAccounts: Array<Record<string, any>>,"},
-    {"id": "T2NjdXJyZW5jZTprdnlxZHF5bWw=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 24, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "inputPoints: Array<Record<string, any>>,"},
-    {"id": "T2NjdXJyZW5jZTplYXhteW14Z3E=", "rule": "JS-R1005", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 23, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function buildEquityChartGroups("},
-    {"id": "T2NjdXJyZW5jZTpwcXd4bnh3b28=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 17, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "function equityObservationGroup(point: Record<string, any>): string | null {"},
+    {"id": "T2NjdXJyZW5jZTp2dm15bnltbG8=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 79, "status": "fixed-pending-rescan", "rationale": "fe26029/18a3c29: explicit unknown observation/account fields with runtime narrowing replace any; validation, account ordering and row assembly extracted to preserve exact amounts and currency/mode separation. Numeric/object modes excluded by negative tests. Build305unit tests and oxlint pass; scanner rescan pending.", "evidence": "accounts: Array<Record<string, any>>;"},
+    {"id": "T2NjdXJyZW5jZTpveWFrZGthbmc=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 78, "status": "fixed-pending-rescan", "rationale": "fe26029/18a3c29: explicit unknown observation/account fields with runtime narrowing replace any; validation, account ordering and row assembly extracted to preserve exact amounts and currency/mode separation. Numeric/object modes excluded by negative tests. Build305unit tests and oxlint pass; scanner rescan pending.", "evidence": "points: Array<Record<string, any>>;"},
+    {"id": "T2NjdXJyZW5jZTp4cmd5bnlncGo=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 25, "status": "fixed-pending-rescan", "rationale": "fe26029/18a3c29: explicit unknown observation/account fields with runtime narrowing replace any; validation, account ordering and row assembly extracted to preserve exact amounts and currency/mode separation. Numeric/object modes excluded by negative tests. Build305unit tests and oxlint pass; scanner rescan pending.", "evidence": "inputAccounts: Array<Record<string, any>>,"},
+    {"id": "T2NjdXJyZW5jZTprdnlxZHF5bWw=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 24, "status": "fixed-pending-rescan", "rationale": "fe26029/18a3c29: explicit unknown observation/account fields with runtime narrowing replace any; validation, account ordering and row assembly extracted to preserve exact amounts and currency/mode separation. Numeric/object modes excluded by negative tests. Build305unit tests and oxlint pass; scanner rescan pending.", "evidence": "inputPoints: Array<Record<string, any>>,"},
+    {"id": "T2NjdXJyZW5jZTplYXhteW14Z3E=", "rule": "JS-R1005", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 23, "status": "fixed-pending-rescan", "rationale": "fe26029/18a3c29: explicit unknown observation/account fields with runtime narrowing replace any; validation, account ordering and row assembly extracted to preserve exact amounts and currency/mode separation. Numeric/object modes excluded by negative tests. Build305unit tests and oxlint pass; scanner rescan pending.", "evidence": "export function buildEquityChartGroups("},
+    {"id": "T2NjdXJyZW5jZTpwcXd4bnh3b28=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/equity-chart.tsx", "line": 17, "status": "fixed-pending-rescan", "rationale": "fe26029/18a3c29: explicit unknown observation/account fields with runtime narrowing replace any; validation, account ordering and row assembly extracted to preserve exact amounts and currency/mode separation. Numeric/object modes excluded by negative tests. Build305unit tests and oxlint pass; scanner rescan pending.", "evidence": "function equityObservationGroup(point: Record<string, any>): string | null {"},
     {"id": "T2NjdXJyZW5jZTp3bXJ5d3lyZHI=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/analytics.tsx", "line": 327, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "{evaluations.filter((item: any) => (!channelId || item.channelId === channelId) && (!accountId || item.accountId === accountId)).slice(0, 30).map((item: any) => ("},
     {"id": "T2NjdXJyZW5jZTpqd2dxZHFnYWs=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/analytics.tsx", "line": 327, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "{evaluations.filter((item: any) => (!channelId || item.channelId === channelId) && (!accountId || item.accountId === accountId)).slice(0, 30).map((item: any) => ("},
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGV3a3Y=", "rule": "JS-0323", "path": "frontend/src/features/risk-analytics/analytics.tsx", "line": 302, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "{adaptiveStates.map((item: any) => ("},
