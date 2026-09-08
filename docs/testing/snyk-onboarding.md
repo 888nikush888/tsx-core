@@ -32,18 +32,29 @@ instead traverses the actually installed CCXT tree. CI scans the Linux tree;
 local Windows scans provide additional platform evidence. Neither scan alone is
 described as covering packages that only install on the other platform.
 
-No severity filter, fixability filter, or ignore policy is introduced. Dependency
+No severity or fixability filter is introduced. Dependency
 scans use `--ignore-policy`. Snyk Code instead supports `--include-ignores`; its
 SARIF is checked for every result, including suppressed results, since a zero
 CLI exit alone does not prove that no ignored findings exist. Existing server
 policies and scan coverage still require review during actual onboarding.
+
+Code results now also pass through `scripts/check_snyk_code_review.js`. Only
+independently confirmed, individual false positives can satisfy that check:
+the complete fingerprints, reported locations/dataflows, primary file hash and
+every reviewed context file must still match. Open findings, accepted risks,
+new identities, changed source, missing flow bindings and invalid scan evidence
+remain failures. The raw findings are retained; a passing reviewed scan is not
+reported as having zero scanner results. The original SARIF hash and reviewed
+Git revision in the ledger document the review's provenance; the checked source
+and exact per-finding evidence determine its applicability to the current scan.
 
 Each scan uploads its own SARIF, optional native JSON, and status JSON, including
 the Git revision, scanner version, original exit code, result count and disposition.
 Snyk may omit the native Code JSON on a clean scan; SARIF and status are mandatory
 for a successful gate. Scan errors (including invalid evidence) and findings have
 different dispositions and both fail the job. Artifacts remain available for
-14 days. Setup failures can occur before scan evidence exists and remain explicit
+14 days. Code additionally uploads the individual review outcomes. Setup failures
+can occur before scan evidence exists and remain explicit
 failed job steps; the artifact step does not manufacture findings evidence.
 
 ## Verification performed before authenticated onboarding
@@ -58,6 +69,16 @@ failed job steps; the artifact step does not manufacture findings evidence.
 These checks validate workflow mechanics, not live Snyk account access or results.
 An authenticated GitHub run remains required before claiming integration
 success or zero findings.
+
+The subsequent independent review of the source-bound Code checker reproduced
+and corrected six malformed-evidence cases. Sixteen regression tests pass. The
+85-result historical CI scan evaluates to 80 reviewed false positives and five
+open findings against its exact Git source. Later source changes require renewed
+review; those historical counts do not certify the current branch. The four
+dependency jobs have passed in authenticated GitHub runs; Code remains blocking.
+The updated shell step was also exercised with ten fixtures, including reviewed
+and unreviewed findings, suppressed results, source drift, malformed flows and
+scanner failures. Expected exit codes and recorded dispositions all matched.
 
 ## Official references
 
