@@ -121,7 +121,7 @@ try {
         return { accountId: accountId || null, reconciled: true };
       },
     },
-    { record: async () => undefined },
+    { record: () => Promise.resolve(undefined) },
     () => undefined,
     50,
     startup,

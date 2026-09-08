@@ -364,11 +364,11 @@ assert.deepEqual(await firstCatalogRequest, await sharedCatalogRequest);
 
 const dynamicAdapter = {
   exchange: 'okx',
-  accountSnapshot: async () => ({}),
-  marketSnapshot: async () => ({}),
-  submitOrder: async () => ({}),
-  cancelOrder: async () => ({}),
-  openState: async () => ({}),
+  accountSnapshot: () => Promise.resolve(({})),
+  marketSnapshot: () => Promise.resolve(({})),
+  submitOrder: () => Promise.resolve(({})),
+  cancelOrder: () => Promise.resolve(({})),
+  openState: () => Promise.resolve(({})),
 };
 const engine = new TradingEngine([]);
 engine.registerAdapter(dynamicAdapter);
@@ -438,14 +438,14 @@ try {
       credentialGeneration: 'c'.repeat(64),
       capabilities: { reportingCurrency: 'USDT' },
     }),
-    accountSnapshot: async () => ({}),
-    marketSnapshot: async () => ({}),
-    submitOrder: async () => ({}),
-    cancelOrder: async () => ({}),
+    accountSnapshot: () => Promise.resolve(({})),
+    marketSnapshot: () => Promise.resolve(({})),
+    submitOrder: () => Promise.resolve(({})),
+    cancelOrder: () => Promise.resolve(({})),
     openState: async () => ({ orders: [], positions: [], fills: [], observedAt: Date.now() }),
   };
   const controlCatalog = {
-    browserCatalog: async () => ({
+    browserCatalog: () => Promise.resolve(({
       implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
       exchanges: [
         {
@@ -463,7 +463,7 @@ try {
           credentialFields: [], modes: [], capabilities: {},
         },
       ],
-    }),
+    })),
     probe: async exchange => ({ id: exchange, status: 'candidate' }),
   };
   const control = new TradingWebControl(

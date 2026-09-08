@@ -6,7 +6,8 @@
   "remoteSuppressionsApplied": false,
   "verification": [
     "Node22: all seven modified test files passed",
-    "ESLint error checks and git diff --check passed"
+    "ESLint error checks and git diff --check passed",
+    "Node22: all 19 Promise literal/empty stub modified test files passed; ESLint error checks and git diff --check passed"
   ],
   "entries": [
     {
@@ -288,6 +289,558 @@
       "originalLine": 25,
       "status": "source_change_pending_rescan",
       "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhueG0=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1611,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR2d3c=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 184,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlkbmE=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_restart_recovery.js",
+      "originalLine": 191,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1ucGQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_operation_store.js",
+      "originalLine": 18,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpkd3g=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_risk_repository.js",
+      "originalLine": 63,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlubHE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_risk_repository.js",
+      "originalLine": 59,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12a3A=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_pending_fairness.js",
+      "originalLine": 57,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93bnI=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_pending_fairness.js",
+      "originalLine": 56,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxyb2E=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_pending_fairness.js",
+      "originalLine": 55,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2b2c=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 34,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294ZGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 32,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFteXg=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_risk_reservations.js",
+      "originalLine": 317,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12b3A=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_risk_reservations.js",
+      "originalLine": 305,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxycWE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_risk_reservations.js",
+      "originalLine": 302,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhrZWQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_risk_reservations.js",
+      "originalLine": 272,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvcmo=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_risk_reservations.js",
+      "originalLine": 235,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93ZXk=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1388,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxyZXg=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1387,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFveWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1334,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvcmo=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1333,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtueXE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1298,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2bm8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1297,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJuZGs=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1226,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4ZHY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1225,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRndm4=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1224,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12bnE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1026,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93ZHk=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1025,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlrbm0=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 999,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvZGc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 997,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvbmo=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 971,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpwZGw=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 970,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2dm8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 930,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294eHI=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 929,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4eHY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 902,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRnZ24=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 901,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VueGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 216,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlramE=",
+      "rule": "JS-0116",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 38,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93eG8=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "originalLine": 84,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxyZ3Y=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "originalLine": 83,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhrZGo=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalLine": 256,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhrd3k=",
+      "rule": "JS-0116",
+      "path": "tests/test_tdlib_retry.js",
+      "originalLine": 9,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvamU=",
+      "rule": "JS-0116",
+      "path": "tests/test_tdlib_retry.js",
+      "originalLine": 5,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFha2c=",
+      "rule": "JS-0116",
+      "path": "tests/test_startup_web.js",
+      "originalLine": 19,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtrcWU=",
+      "rule": "JS-0116",
+      "path": "tests/test_startup_authority.js",
+      "originalLine": 88,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5cGw=",
+      "rule": "JS-0116",
+      "path": "tests/test_startup_authority.js",
+      "originalLine": 79,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJyb2w=",
+      "rule": "JS-0116",
+      "path": "tests/test_startup_authority.js",
+      "originalLine": 57,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5bWw=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 534,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5b3E=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 512,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5dnk=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 411,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5Z2w=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 325,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29va3A=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 320,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJya2w=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 316,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtramU=",
+      "rule": "JS-0116",
+      "path": "tests/test_queue.js",
+      "originalLine": 251,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5cmw=",
+      "rule": "JS-0116",
+      "path": "tests/test_queue.js",
+      "originalLine": 249,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkanI=",
+      "rule": "JS-0116",
+      "path": "tests/test_queue.js",
+      "originalLine": 231,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tZ28=",
+      "rule": "JS-0116",
+      "path": "tests/test_queue.js",
+      "originalLine": 69,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqZGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 124,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5ZGo=",
+      "rule": "JS-0116",
+      "path": "tests/test_mcp_maintenance.js",
+      "originalLine": 213,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5ZWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_mcp_maintenance.js",
+      "originalLine": 204,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29veWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 448,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5ZWo=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 444,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkd3I=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 443,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5YWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 442,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VlZHI=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 441,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tcm8=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 371,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9veWo=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 370,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxsd2U=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 369,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5YW4=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 368,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4cms=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 367,
+      "status": "source_change_pending_rescan",
+      "proof": "Literal/empty async stub, simple parameters without defaults or destructuring. Promise.resolve preserves returned fulfilled Promise; no callback side effects, throwing expressions or assertions moved."
     }
   ]
 }

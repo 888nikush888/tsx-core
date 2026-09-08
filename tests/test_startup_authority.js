@@ -54,7 +54,7 @@ gateFailure.beginRecovery();
 await assert.rejects(runStartupGate(gateFailure, 'dashboard', async () => { throw new Error('EADDRINUSE fixture'); }), /EADDRINUSE/);
 assert.equal(gateFailure.snapshot().phase, 'blocked');
 assert.match(gateFailure.snapshot().reason, /dashboard.*EADDRINUSE/);
-await runStartupGate(gateFailure, 'backup', async () => undefined);
+await runStartupGate(gateFailure, 'backup', () => Promise.resolve(undefined));
 assert.equal(gateFailure.canMutate(), false, 'A later successful infrastructure operation must not unlock a failed startup.');
 const listener = createServer();
 listener.listen(0, '127.0.0.1');
@@ -76,7 +76,7 @@ try {
     action: 'contracts.create', payload: { name: 'Local fake only' } });
   let mutations = 0;
   const control = { createSignalContract: () => { mutations += 1; return { id: 'fixture' }; } };
-  bridge = new McpControlBridge(control, { record: async () => undefined }, () => undefined, 50, authority);
+  bridge = new McpControlBridge(control, { record: () => Promise.resolve(undefined) }, () => undefined, 50, authority);
   await bridge.start();
   await delay(130);
   assert.equal(mutations, 0, 'A persisted MCP request must not bypass a blocked startup.');
@@ -85,7 +85,7 @@ try {
 
   const nextStartup = new StartupAuthority();
   nextStartup.beginRecovery();
-  bridge = new McpControlBridge(control, { record: async () => undefined }, () => undefined, 50, nextStartup);
+  bridge = new McpControlBridge(control, { record: () => Promise.resolve(undefined) }, () => undefined, 50, nextStartup);
   await bridge.start();
   await delay(130);
   assert.equal(mutations, 0, 'Recovery-only cannot claim general MCP mutations.');

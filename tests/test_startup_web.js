@@ -16,7 +16,7 @@ const state = {
   getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 1, paused: true }),
   startForwarding: async () => {}, stopForwarding: async () => {}, reloadConfig: () => {}, applyRuntimeConfig: () => {},
   authenticator: { mode: 'token', isConfigured: () => true,
-    authenticate: async () => ({ id: 'local-fake-admin', role: 'admin' }) },
+    authenticate: () => Promise.resolve(({ id: 'local-fake-admin', role: 'admin' })) },
   auditTrail: { record: async event => {
     if (event.phase === 'authorized' && revokeDuringAudit) authority.block('revoked during audit');
   } },

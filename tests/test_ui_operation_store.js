@@ -15,7 +15,7 @@ async function tiedJobPagesSurviveReload() {
     Date.now = () => timestamp;
     for (const id of ['job-paging-tie-a1', 'job-paging-tie-z2', 'job-paging-tie-A3']) {
       await store.accept({ id, kind: 'backup-drill', actorId: 'test:admin', scope: {}, request: { id } });
-      await store.run(id, async () => ({ proof: 'local-fixture' }));
+      await store.run(id, () => Promise.resolve(({ proof: 'local-fixture' })));
     }
   } finally { Date.now = originalNow; }
   const reloaded = new UiOperationStore(tiedDirectory, 'tied-process-2');

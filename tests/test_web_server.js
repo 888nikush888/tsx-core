@@ -181,7 +181,7 @@ async function testOperatorReadContracts(baseUrl, appState) {
     '-1003',
   ];
   appState.tradingControl = {
-    snapshot: async () => ({ strategies: [], positions: [] }),
+    snapshot: () => Promise.resolve(({ strategies: [], positions: [] })),
     portfolioSnapshot: async refresh => ({ refresh, positions: [] }),
   };
   try {
@@ -1608,7 +1608,7 @@ async function createAppState(testDir, controls) {
       if (controls.backupBarrier) await controls.backupBarrier;
       return path.join(testDir, 'backups', 'backup-test');
     },
-    listBackups: async () => ['backup-2026-test'],
+    listBackups: () => Promise.resolve(['backup-2026-test']),
     verifyBackup: async () => fixtureBackupProof(),
     recoverOffsiteBackup: async () => {
       controls.offsiteRecoveryCalls += 1;

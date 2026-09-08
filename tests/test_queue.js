@@ -66,7 +66,7 @@ async function testErrorsAndTimeouts() {
   console.log("3. Testing queue handles throwing jobs correctly...");
   const errorQueue = new ConcurrencyQueue(2);
   
-  const successfulJob = async () => "success";
+  const successfulJob = () => Promise.resolve("success");
   const throwingJob = async () => {
     throw new Error("Job failed");
   };
@@ -228,7 +228,7 @@ async function testRuntimeSettingsAndDrain() {
     await new Promise(resolve => setTimeout(resolve, 80));
     return 'settled';
   });
-  const pending = drainQueue.add(async () => 'must-not-run');
+  const pending = drainQueue.add(() => Promise.resolve('must-not-run'));
   await new Promise(resolve => setTimeout(resolve, 10));
   drainQueue.pause();
   drainQueue.clear();
@@ -246,9 +246,9 @@ async function testRuntimeSettingsAndDrain() {
   const boundedQueue = new ConcurrencyQueue(1, 0, 1);
   let unblock;
   const running = boundedQueue.add(() => new Promise(resolve => { unblock = resolve; }));
-  const waiting = boundedQueue.add(async () => 'queued');
+  const waiting = boundedQueue.add(() => Promise.resolve('queued'));
   await assert.rejects(
-    boundedQueue.add(async () => 'must-not-enter-memory'),
+    boundedQueue.add(() => Promise.resolve('must-not-enter-memory')),
     error => error instanceof QueueCapacityError && /capacity of 1/.test(error.message)
   );
   assert.strictEqual(boundedQueue.availableCapacity, 0);

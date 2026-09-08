@@ -29,9 +29,9 @@ assert.deepEqual(order, ['a1', 'b']);
 hold.resolve();
 await Promise.all([first, second]);
 assert.deepEqual(order, ['a1', 'b', 'nested', 'a2']);
-await assert.rejects(coordinator.run('a', async () => undefined, capturedContext), /context/i);
+await assert.rejects(coordinator.run('a', () => Promise.resolve(undefined), capturedContext), /context/i);
 await coordinator.run('a', async context => {
-  await assert.rejects(coordinator.run('b', async () => undefined, context), /context/i);
+  await assert.rejects(coordinator.run('b', () => Promise.resolve(undefined), context), /context/i);
   const before = coordinator.entryEpoch('a');
   coordinator.fenceEntries();
   assert.throws(() => coordinator.assertEntryEpoch(context, before), /fence/i);

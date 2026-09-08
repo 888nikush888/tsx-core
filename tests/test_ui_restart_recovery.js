@@ -188,7 +188,7 @@ async function testWorkFailureAndFallback() {
 async function testCoordinatorEdges() {
   const current = await fixture(); const id = 'recovery-autonomous-intent';
   await current.store.accept({ id, kind: 'restart', actorId: 'fixture:admin', scope: {}, request: {} });
-  const job = await current.store.runRestart(id, async () => ({}));
+  const job = await current.store.runRestart(id, () => Promise.resolve(({})));
   let restarts = 0;
   const coordinator = new UiRestartCoordinator(current.store, () => { restarts++; });
   const response = new EventEmitter(); response.writableFinished = true;

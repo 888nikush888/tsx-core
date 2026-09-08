@@ -253,7 +253,7 @@ async function run() {
       }),
       auditTrail: {
         record: async event => { auditEvents.push(event); },
-        snapshot: () => ({ healthy: true }), replayRemote: async () => 0, flush: async () => {},
+        snapshot: () => ({ healthy: true }), replayRemote: () => Promise.resolve(0), flush: async () => {},
       },
     };
     const server = startWebServer(0, appState);

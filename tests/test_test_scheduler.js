@@ -35,7 +35,7 @@ function deferred() {
 }
 
 async function testFourSlotsWithQueuedWork() {
-  assert.equal(await runTestSchedule([], { concurrency: 4, runTest: async () => 0 }), 0);
+  assert.equal(await runTestSchedule([], { concurrency: 4, runTest: () => Promise.resolve(0) }), 0);
   const selected = [names[0], names[1], names[3], 'test_trading_control_races.js',
     'test_trading_order_repository.js', 'test_trading_order_identity_requests.js', names[2], 'test_trading_core.js'];
   const held = new Map(selected.map(name => [name, deferred()]));
@@ -213,7 +213,7 @@ async function testDeterministicBarriersAndFailure() {
     concurrency: 1, runTest: async () => { throw new Error('fixture rejection'); }, error: message => errors.push(message),
   }), 1);
   assert.match(errors[0], /fixture rejection/);
-  await assert.rejects(runTestSchedule(names, { concurrency: 3, runTest: async () => 0 }), /concurrency/i);
+  await assert.rejects(runTestSchedule(names, { concurrency: 3, runTest: () => Promise.resolve(0) }), /concurrency/i);
 }
 
 async function createFixture(label, selected = names) {

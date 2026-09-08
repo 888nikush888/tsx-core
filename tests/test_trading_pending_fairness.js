@@ -52,9 +52,9 @@ async function wake(runtime) {
 function schedulerEngine(attempt) {
   // Only scheduler tests use these explicit local lifecycle fakes. The first case uses the actual Engine and Paper.
   const engine = new TradingEngine([]);
-  engine.retireUnauthorizedPreparations = async () => 0;
-  engine.reconcileAccount = async () => undefined;
-  engine.cancelExpiredEntries = async () => undefined;
+  engine.retireUnauthorizedPreparations = () => Promise.resolve(0);
+  engine.reconcileAccount = () => Promise.resolve(undefined);
+  engine.cancelExpiredEntries = () => Promise.resolve(undefined);
   engine.processIntent = attempt;
   return engine;
 }
