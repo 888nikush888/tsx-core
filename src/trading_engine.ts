@@ -798,23 +798,29 @@ async function desiredProtectiveStop(input: {
     : decision;
 }
 
+type ActiveStop = ExchangeOpenState['orders'][number] & {
+  clientOrderId: string; filledQuantity: string; triggerPrice: string;
+};
+
 function matchingActiveStops(
   remote: ExchangeOpenState,
   intentOrderIds: Set<string>,
   local: { account_id: string; intent_id: string; symbol: string; side: 'LONG' | 'SHORT' },
 ) {
-  return remote.orders.filter(order =>
-    intentOrderIds.has(order.clientOrderId!)
+  return remote.orders.filter((order): order is ActiveStop =>
+    typeof order.clientOrderId === 'string'
+    && typeof order.filledQuantity === 'string'
+    && typeof order.triggerPrice === 'string'
+    && intentOrderIds.has(order.clientOrderId)
     && protectiveStopCoverage({ ...order, accountId: local.account_id, intentId: local.intent_id }, {
       accountId: local.account_id, intentId: local.intent_id, symbol: local.symbol, side: local.side,
       quantity: '0', minimumTrigger: null,
     }).protected);
 }
 
-type ActiveStop = ReturnType<typeof matchingActiveStops>[number];
 
 function replacementStopExecuted(existing: ActiveStop | undefined, accepted: ActiveStop): boolean {
-  return !existing && compareDecimal(accepted.filledQuantity!, '0') > 0;
+  return !existing && compareDecimal(accepted.filledQuantity, '0') > 0;
 }
 
 function safestActiveStop(activeStops: ActiveStop[], side: 'LONG' | 'SHORT'): ActiveStop | undefined {
@@ -2342,7 +2348,7 @@ export class TradingEngine {
     const strategy = await getTradingStrategyVersion(intent.strategyVersionId);
     if (!strategy) throw new Error('Open position strategy version is missing.');
     const intentOrders = await loadProtectionOrders(account.id, intent.id);
-    const intentOrderIds = new Set(intentOrders.map(order => order.clientOrderId!));
+    const intentOrderIds = new Set(intentOrders.map(order => order.clientOrderId).filter(id => id !== null));
     if (intentOrders.some(order => order.role === 'stop_loss' && order.status === 'filled')) {
       await requestEntryDrain(account.id, 'Filled protective stop cannot protect future entry fills.', intent.id);
     }
@@ -2350,7 +2356,7 @@ export class TradingEngine {
     const entryAveragePrice = filledTargets > 0 ? await provedEntryAverage(intent.id) : plan.entryPrice;
     const activeStops = matchingActiveStops(remote, intentOrderIds, local);
     const cancellingStops = await pendingCancelOrderIds(account.id, intent.id);
-    const durableStops = activeStops.filter(stop => !cancellingStops.has(stop.clientOrderId!));
+    const durableStops = activeStops.filter(stop => !cancellingStops.has(stop.clientOrderId));
     const activeStop = safestActiveStop(durableStops, local.side);
     const protectiveQuantity = requiredStopQuantity(quantity, intentOrders.filter(order => order.role === 'entry'));
     const currentTrigger = this.protectiveReferenceTrigger(activeStop, local);
@@ -2365,8 +2371,8 @@ export class TradingEngine {
       entryAveragePrice,
       currentTrigger,
     });
-    const exactStop = durableStops.find(stop => compareDecimal(subtractDecimal(stop.quantity, stop.filledQuantity!), protectiveQuantity) === 0
-      && compareDecimal(stop.triggerPrice!, decision.trigger) === 0);
+    const exactStop = durableStops.find(stop => compareDecimal(subtractDecimal(stop.quantity, stop.filledQuantity), protectiveQuantity) === 0
+      && compareDecimal(stop.triggerPrice, decision.trigger) === 0);
     const protectedStop = await this.activateProtectiveStop({
       adapter,
       account,
