@@ -370,7 +370,7 @@ try {
   await new TradingEngine([technicalAdapter]).processIntent(technicalPrimary.id);
   assert.equal((await getTradingIntent(technicalPrimary.id)).status, 'unknown');
   const technicalRun = await getDatabase().get(
-    `SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?`,
+    "SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?",
     ['fallback-technical-stop'],
   );
   assert.deepEqual(
@@ -383,7 +383,7 @@ try {
     [technicalRun.id],
   )).count), 0, 'Technical failures must never promote a fallback account.');
   await getDatabase().run(
-    `UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?`,
+    "UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?",
     [Date.now(), technicalPrimary.id],
   );
 
@@ -416,7 +416,7 @@ try {
     [accountFailureRun.id],
   )).count), 0);
   await getDatabase().run(
-    `UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?`,
+    "UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?",
     [Date.now(), accountFailurePrimary.id],
   );
 
@@ -492,7 +492,7 @@ try {
   assert.equal((await getTradingIntent(capacityPromoted.intentId)).blockReason, 'MAX_CONCURRENT_POSITIONS');
   assert.deepEqual(
     await getDatabase().get(
-      `SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-capacity'`,
+      "SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-capacity'",
     ),
     { status: 'stopped', stopReason: 'MAX_CONCURRENT_POSITIONS' },
     'The A→B full-capacity policy must not leak into the pair-only B→C edge.',
@@ -591,7 +591,7 @@ try {
     'An unresolved order must win over an otherwise eligible capacity fallback.');
   assert.deepEqual(
     await getDatabase().get(
-      `SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-hard-safety'`,
+      "SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-hard-safety'",
     ),
     { status: 'stopped', stopReason: 'UNRESOLVED_ORDER' },
   );
@@ -757,7 +757,7 @@ try {
   await engine.processIntent(expiredPrimary.id);
   assert.equal((await getTradingIntent(expiredPrimary.id)).blockReason, 'ENTRY_INTENT_EXPIRED');
   const expiredRun = await getDatabase().get(
-    `SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?`,
+    "SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?",
     ['fallback-expired'],
   );
   assert.deepEqual(

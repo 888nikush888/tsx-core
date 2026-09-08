@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "baselineRun": "663e59df-e8c7-453b-a00e-ac2818367c92",
+  "scope": "Assigned root/tests/scripts JavaScript only; entries are completed batches, not a claim that the remaining backlog is empty.",
+  "remoteSuppressionsApplied": false,
+  "verification": [
+    "Node22: all seven modified test files passed",
+    "ESLint error checks and git diff --check passed"
+  ],
+  "entries": [
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V3d3A=",
+      "rule": "JS-R1004",
+      "path": "tests/test_workflow_migration.js",
+      "originalLine": 40,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9kZG0=",
+      "rule": "JS-R1004",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 760,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxucm8=",
+      "rule": "JS-R1004",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 594,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlua2U=",
+      "rule": "JS-R1004",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 495,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhua20=",
+      "rule": "JS-R1004",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 419,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpkcHY=",
+      "rule": "JS-R1004",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 386,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWt5bnk=",
+      "rule": "JS-R1004",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 373,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9ka2c=",
+      "rule": "JS-R1004",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 247,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxueGc=",
+      "rule": "JS-R1004",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 246,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFkbHg=",
+      "rule": "JS-R1004",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 223,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZua2c=",
+      "rule": "JS-R1004",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 222,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d293ZXc=",
+      "rule": "JS-R1004",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 60,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJkdm4=",
+      "rule": "JS-R1004",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 56,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRnbm4=",
+      "rule": "JS-R1004",
+      "path": "tests/test_trading_fill_identity_migration.js",
+      "originalLine": 66,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2Vubm4=",
+      "rule": "JS-R1004",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 780,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvb2c=",
+      "rule": "JS-R1004",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 616,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvb2o=",
+      "rule": "JS-R1004",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 602,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJucms=",
+      "rule": "JS-R1004",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 519,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxybHg=",
+      "rule": "JS-R1004",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 368,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxydng=",
+      "rule": "JS-R1004",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 91,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvbGw=",
+      "rule": "JS-R1004",
+      "path": "tests/test_trading_core.js",
+      "originalLine": 1260,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZva3E=",
+      "rule": "JS-R1004",
+      "path": "tests/test_trading_core.js",
+      "originalLine": 901,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFhd2s=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 203,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tcGE=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 200,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9va3Y=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 191,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxseHE=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 187,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5eG8=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 176,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4anY=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 168,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxcGQ=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 159,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2bW8=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 149,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqZWo=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 140,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtrcG0=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 132,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5ZWs=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 123,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJycHY=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 81,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkZXk=",
+      "rule": "JS-R1004",
+      "path": "tests/test_dupe_blocker.js",
+      "originalLine": 25,
+      "status": "source_change_pending_rescan",
+      "proof": "AST-confirmed untagged template without substitutions; JSON string preserves the cooked runtime value."
+    }
+  ]
+}
