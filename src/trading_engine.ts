@@ -633,11 +633,11 @@ async function submitTrackedOrder(input: {
       send: () => { dispatched = true; return input.adapter.submitOrder(input.account, request); },
       persist: async result => { await storeOrderResult(input.intent.id, input.order.clientOrderId, result); return [result]; },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (dispatched) await getDatabase().run(
       `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
        WHERE intent_id = ? AND client_order_id = ? AND status IN ('submitting', 'unknown')`,
-      [error?.message || 'Order outcome is unknown.', Date.now(), input.intent.id, input.order.clientOrderId],
+      [error instanceof Error && error.message ? error.message : 'Order outcome is unknown.', Date.now(), input.intent.id, input.order.clientOrderId],
     );
     throw error;
   }
@@ -872,7 +872,7 @@ export class TradingEngine {
         if (current.status !== 'pending' && !await recoverUndispatchedPlan(current)) return;
         await this.assertClockSafeForEntry();
         await this.executePendingIntent(current, context, epoch);
-      } catch (error: any) {
+      } catch (error: unknown) {
         await this.handleIntentFailure(current, error instanceof EntryAdmissionRevokedError
           ? new TradingRiskError(error.code, error.message) : error);
       }
@@ -1080,11 +1080,11 @@ export class TradingEngine {
           throw new ReconciliationMismatchError(`Entry cancellation remains unresolved (${result.status}).`);
         }
         return 1;
-      } catch (error: any) {
+      } catch (error: unknown) {
         await getDatabase().run(
           `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
            WHERE account_id = ? AND client_order_id = ? AND status IN ('submitting', 'open', 'partially_filled', 'cancel_pending', 'unknown')`,
-          [error?.message || String(error), Date.now(), row.account_id, row.client_order_id],
+          [reconciliationErrorMessage(error), Date.now(), row.account_id, row.client_order_id],
         );
         await activateAccountKillSwitch(row.account_id, `Entry cancellation outcome unknown for account ${row.account_id}`);
         throw error;
@@ -1434,7 +1434,7 @@ export class TradingEngine {
     }
   }
 
-  private async handleIntentFailure(intent: TradingIntent, error: any): Promise<void> {
+  private async handleIntentFailure(intent: TradingIntent, error: unknown): Promise<void> {
     const unresolved = await getDatabase().get(
       `SELECT 1 FROM trading_operations WHERE intent_id = ? AND account_id = ?
        AND phase IN ('dispatching', 'unresolved') LIMIT 1`, [intent.id, intent.accountId]);
@@ -1531,18 +1531,18 @@ export class TradingEngine {
       // No replacement anywhere in this trade before a fresh account read proves post-cancel fills/ownership.
       if (stale.length > 0) return true;
       return await this.submitAllocatedTargets(adapter, account, intent, plan, targets);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof CancelBudgetExhaustedError) throw error;
       await riskEvent({
         severity: 'critical',
         code: 'TAKE_PROFIT_REBALANCE_UNRESOLVED',
         accountId: account.id,
         intentId: intent.id,
-        details: { message: error?.message || String(error) },
+        details: { message: reconciliationErrorMessage(error) },
       });
       await activateAccountKillSwitch(account.id, `Take-profit rebalance is unresolved for account ${account.id}`);
       if (error instanceof CancellationEvidenceError) throw error;
-      throw new ReconciliationMismatchError(error?.message || 'Take-profit rebalance is unresolved.');
+      throw new ReconciliationMismatchError(error instanceof Error && error.message ? error.message : 'Take-profit rebalance is unresolved.');
     }
   }
 
@@ -1606,11 +1606,11 @@ export class TradingEngine {
         severity: 'critical', code: 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION', accountId: account.id, intentId: intent.id,
         details: { cause, clientOrderId: order.clientOrderId },
       });
-    } catch (flattenError: any) {
+    } catch (flattenError: unknown) {
       await activateAccountKillSwitch(account.id, `Emergency flatten unresolved for intent ${intent.id}`);
       await riskEvent({
         severity: 'critical', code: 'EMERGENCY_FLATTEN_UNKNOWN', accountId: account.id, intentId: intent.id,
-        details: { error: flattenError?.message || String(flattenError) },
+        details: { error: reconciliationErrorMessage(flattenError) },
       });
       throw flattenError;
     }
@@ -2468,7 +2468,7 @@ export class TradingEngine {
           throw new Error(`Stale protective stop cancellation status is ${cancelled.status}.`);
         }
         cancelledAny = true;
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error instanceof CancelBudgetExhaustedError) throw error;
         await riskEvent({
           severity: 'critical',
@@ -2478,7 +2478,7 @@ export class TradingEngine {
           details: {
             protectedStopId: protectedStop.clientOrderId,
             staleStopId: stale.clientOrderId,
-            message: error?.message || String(error),
+            message: reconciliationErrorMessage(error),
           },
         });
         await activateAccountKillSwitch(account.id, `Protective stop cancellation is unresolved for account ${account.id}`);
@@ -2546,14 +2546,14 @@ async function submitTrackedProtectedEntry(input: {
         return [results.entry, results.protectiveStop];
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (!dispatched && error instanceof OrderIdentityBindingError) throw new TradingRiskError(error.code, error.message);
     if (dispatched) await getDatabase().run(
       `UPDATE trading_orders SET status = 'unknown', last_error = ?, updated_at = ?
        WHERE intent_id = ? AND client_order_id IN (?, ?)
          AND status IN ('created', 'submitting', 'unknown')`,
       [
-        error?.message || 'Protected entry outcome is unknown.',
+        error instanceof Error && error.message ? error.message : 'Protected entry outcome is unknown.',
         Date.now(),
         input.intent.id,
         input.entry.clientOrderId,
