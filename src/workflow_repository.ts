@@ -301,7 +301,8 @@ function adaptiveRiskTiers(value: ResourceConfiguration): Array<{ riskPercent: s
     return { riskPercent: decimal(requireString(candidate.riskPercent, 'Tier risk'), { positive: true, max: '10' }) };
   });
   tiers.forEach((tier, index) => {
-    if (index > 0 && Number(tier.riskPercent) <= Number(tiers[index - 1]!.riskPercent)) {
+    const previous = tiers[index - 1];
+    if (index > 0 && (!previous || Number(tier.riskPercent) <= Number(previous.riskPercent))) {
       throw new Error('Adaptive-risk tiers must increase strictly.');
     }
   });
@@ -1246,8 +1247,8 @@ async function walkWorkflowPaths(
 function assertConsistentTelegramOutputs(paths: CompiledDraftPath[]): void {
   const telegramOutputModes = new Map<string, Set<string>>();
   for (const path of paths) {
-    const resources = object(path.effectiveConfiguration.resources, 'Compiled workflow resources');
-    const mode = String((resources.output as any)?.mode ?? 'audit_only');
+    const resources = object(path.effectiveConfiguration.resources, 'Compiled workflow resources') as CompiledFilterResources;
+    const mode = String(resources.output?.mode ?? 'audit_only');
     if (mode !== 'telegram_xml' && mode !== 'telegram_original') continue;
     const modes = telegramOutputModes.get(path.channelId) ?? new Set<string>();
     modes.add(mode);
@@ -1431,8 +1432,9 @@ export async function saveWorkflowRevision(input: {
     assertWorkflowConfirmation(impact, input.confirmation);
     const revision = await activateCompiledWorkflowRevision({ activeId, graph, compiled, actorId, now });
     if (mode === 'record') {
+      if (!history || label === null) throw new Error('Workflow history recording context is missing.');
       await writeWorkflowBuilderHistory({
-        undo: pushWorkflowHistoryEntry(history!.undo, { revisionId: activeId, label: label!, capturedAt: now }),
+        undo: pushWorkflowHistoryEntry(history.undo, { revisionId: activeId, label, capturedAt: now }),
         redo: [],
       }, now);
     } else if (mode === 'reset') {
@@ -1707,9 +1709,11 @@ async function materializeLegacyPath(
       position: { x: stageIndex * 280, y: pathIndex * 190 },
     });
   }
-  const edges = nodes.slice(1).map((node, index) => ({
-    id: randomUUID(), source: nodes[index]!.id, target: node.id,
-  }));
+  const edges: WorkflowEdge[] = [];
+  for (const [index, source] of nodes.entries()) {
+    const target = nodes[index + 1];
+    if (target) edges.push({ id: randomUUID(), source: source.id, target: target.id });
+  }
   return { nodes, edges };
 }
 
@@ -1765,7 +1769,14 @@ export async function getActiveWorkflow(): Promise<WorkflowRevision | null> {
   return row ? workflowRevisionFromRow(row) : null;
 }
 
-function keywordFilterReason(keywords: any, text: string): string | null {
+interface CompiledFilterResources {
+  content_filter?: { allowedTypes: string[] };
+  keyword_filter?: { allowedKeywords?: string[]; blockedKeywords?: string[] };
+  regex?: { patterns?: string[]; mode?: 'all' | 'any' };
+  output?: { mode?: 'audit_only' | 'telegram_xml' | 'telegram_original' | 'none' };
+}
+
+function keywordFilterReason(keywords: CompiledFilterResources['keyword_filter'], text: string): string | null {
   const normalized = text.toLocaleLowerCase('und');
   if (keywords?.blockedKeywords?.some((word: string) => normalized.includes(word.toLocaleLowerCase('und')))) {
     return 'BLOCKED_KEYWORD';
@@ -1777,7 +1788,7 @@ function keywordFilterReason(keywords: any, text: string): string | null {
   return null;
 }
 
-function regexAllowsInput(regex: any, text: string): boolean {
+function regexAllowsInput(regex: CompiledFilterResources['regex'], text: string): boolean {
   if (!regex?.patterns?.length) return true;
   const boundedText = text.length > 8_000 ? text.slice(0, 8_000) : text;
   const matches = regex.patterns.map((pattern: string) => safeRegexTest(parseRegex(pattern), boundedText, 100));
@@ -1789,8 +1800,8 @@ function pathAllowsInput(
   text: string,
   contentType = 'text',
 ): { allowed: boolean; reason?: string } {
-  const resources = object(path.effectiveConfiguration.resources, 'Compiled workflow resources');
-  const content = resources.content_filter as any;
+  const resources = object(path.effectiveConfiguration.resources, 'Compiled workflow resources') as CompiledFilterResources;
+  const content = resources.content_filter;
   if (content && !content.allowedTypes.includes(contentType)) return { allowed: false, reason: 'CONTENT_TYPE_FILTERED' };
   const keywordReason = keywordFilterReason(resources.keyword_filter, text);
   if (keywordReason) return { allowed: false, reason: keywordReason };
@@ -2130,8 +2141,9 @@ async function persistWorkflowTradingIntents(
     'SELECT id, created_at FROM workflow_signal_runs WHERE source_signal_id = ? AND workflow_revision_id = ?',
     [request.sourceSignalId, workflow.id],
   );
-  const runId = run!.id;
-  request = { ...request, receivedAt: Number(run!.created_at) };
+  if (!run) throw new Error('Created workflow signal run is missing.');
+  const runId = run.id;
+  request = { ...request, receivedAt: Number(run.created_at) };
   const results: TradingIntent[] = [];
   const branches: Array<Record<string, unknown>> = [];
   const runtime = await getDatabase().get<RuntimeRow>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');

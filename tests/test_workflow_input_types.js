@@ -1,5 +1,10 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
+import { workflowFixture } from './fixtures/ingress_workflow_fixture.js';
 import assert from 'node:assert/strict';
-import { createWorkflowResourceDraft, validateGraph } from '../src/workflow_repository.js';
+import { createWorkflowResourceDraft, createWorkflowTradingIntents, validateGraph } from '../src/workflow_repository.js';
 
 let coercions = 0;
 const numericObject = { trim() { coercions += 1; return '1'; } };
@@ -24,4 +29,34 @@ for (const schemaVersion of ['1', {}, null, 4]) {
 for (const schemaVersion of [1, 2, 3]) {
   assert.deepEqual(validateGraph({ schemaVersion, nodes: [], edges: [] }), { schemaVersion, nodes: [], edges: [] });
 }
-console.log('Workflow input scalar and graph version checks passed.');
+const directory = await mkdtemp(path.join(os.tmpdir(), 'workflow-readback-'));
+try {
+  await initDb(path.join(directory, 'test.db'));
+  const { first } = await workflowFixture();
+  await saveSignal('missing-run', '-1001', 1, '<signal/>', '<signal/>');
+  const database = getDatabase();
+  const originalGet = database.get;
+  try {
+    database.get = function (sql, ...parameters) {
+      if (String(sql) === 'SELECT id, created_at FROM workflow_signal_runs WHERE source_signal_id = ? AND workflow_revision_id = ?') {
+        return Promise.resolve(undefined);
+      }
+      return originalGet.call(this, sql, ...parameters);
+    };
+    await assert.rejects(createWorkflowTradingIntents({
+      sourceSignalId: 'missing-run', channelId: '-1001', sourceText: 'BTCUSDT LONG', workflowRevisionId: first.id,
+      signal: { schema: 'standard', action: 'LONG', symbol: 'BTCUSDT', entry: { type: 'market' },
+        targets: [{ min: '110', max: '110' }], stopLoss: '90' },
+    }), /Created workflow signal run is missing/);
+  } finally {
+    database.get = originalGet;
+  }
+  assert.equal((await database.get('SELECT COUNT(*) AS count FROM workflow_signal_runs WHERE source_signal_id = ?', ['missing-run'])).count, 0,
+    'A missing post-write run must roll back the created row.');
+  assert.equal((await database.get('SELECT COUNT(*) AS count FROM trading_trade_intents WHERE source_signal_id = ?', ['missing-run'])).count, 0,
+    'No partial trade intent may escape the failed transaction.');
+} finally {
+  await closeDb();
+  await rm(directory, { recursive: true, force: true });
+}
+console.log('Workflow scalar, graph and transactional readback checks passed.');
