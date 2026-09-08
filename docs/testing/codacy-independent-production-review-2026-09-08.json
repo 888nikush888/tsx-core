@@ -1,0 +1,425 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-08T10:06:15.2351082Z",
+  "reviewer": "OpenAI Codex root, independent of initial Codacy triage",
+  "repository": "888nikush888/tsx-core",
+  "scanRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "reviewedRevision": "a9895dcbed22a0c6c1b463c0644dc80e5f10240d",
+  "scope": "First bounded production review; other Codacy proposals remain unconfirmed",
+  "method": "Read the actual current implementations, callers and protection helpers for each listed issue. Checked local configuration authority, path confinement, readonly object traversal, literal VM source with timeout, numeric exactness and caught async propagation. Source bindings below capture the reviewed files.",
+  "limitations": [
+    "No Codacy platform state was changed. These are reviewed classifications, not code fixes or a fresh scan.",
+    "Local operator-controlled configuration is trusted; this review does not claim protection against a compromised process or operating-system account.",
+    "Viewer bot API origin is operator configurable; the runtime trusted-host restriction applies to the Core API only. Neither URL is selected by chat contents.",
+    "The separate frontend API normalization review is still in progress and excluded."
+  ],
+  "reviewedIssueCount": 45,
+  "sourceBindings": [
+    {
+      "sha256": "6341c145dff448320dd71a51e2a5f66ce9bcd8f6ce7f11778fdd9a3e5ad7b31a",
+      "path": "src/env.ts"
+    },
+    {
+      "sha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "path": "src/telegram_viewer/clients.ts"
+    },
+    {
+      "sha256": "03c012efab18113430de1b1d19440086b969d7aa41725ad365a9afd1c198e66e",
+      "path": "src/ui_review_tree.ts"
+    },
+    {
+      "sha256": "1f4effc04c7b617d89652f42732cdd9dd4745b74198ee15cc2bdcfa49c07273f",
+      "path": "scripts/check_soak_window.js"
+    },
+    {
+      "sha256": "1ac3e3abb400265ccd4beaa3c17ae5193380db59cec60d08e1ede4099c72b2fb",
+      "path": "src/trading_protection_observation.ts"
+    },
+    {
+      "sha256": "f81b29600761e692eb5ffbc378527df65a7a9b67b4210bc51d3feefbb3406507",
+      "path": "src/filters.ts"
+    },
+    {
+      "sha256": "315854c58ee6e3aa1db0b35d138dd60990556b0d71f67743e87af14aa53f6159",
+      "path": "src/backup_generation.ts"
+    },
+    {
+      "sha256": "8565cc97a61a8a447be32252b5e01764448b36a8eae6aeb3c647cce554cb8010",
+      "path": "src/backup_replication.ts"
+    },
+    {
+      "sha256": "377a77ded2c2c195ab98d94a6aee6363af0f34db9bb489592a06a4dc4c38f266",
+      "path": "scripts/sonar_review_decisions.js"
+    },
+    {
+      "sha256": "da7bc6f41077fd89d4d825404ff809085bde70b08a660e0ec9ad71aa0c19be4c",
+      "path": "src/telegram_viewer/runtime.ts"
+    },
+    {
+      "sha256": "1bc06ad0c878010ab8597e5b39ec1466dbd2dee4b87e8c09596c362881a21d35",
+      "path": "src/telegram_viewer/internal_transport.ts"
+    }
+  ],
+  "decisions": [
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 78,
+      "rationale": "loadEnv uses the fixed module-relative ../.env. resolveSecretFiles accepts only operator process-environment *_FILE entries from FILE_BACKED_SECRETS, resolves them, requires a regular file <=16KiB and a single nonempty line. Remote request bodies cannot select the file.",
+      "path": "src/env.ts",
+      "issueId": "2b4d8ef4aab001cae700ca929e1eb2f5",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "scanLine": 34,
+      "rationale": "Core URL comes from TELEGRAM_VIEWER_CORE_URL through requireTrustedServiceUrl (HTTPS or trusted internal HTTP hosts). Resource is config or CORE_RESOURCES; query uses URL.searchParams. Telegram URL comes from operator env/default api.telegram.org, token grammar is checked, methods are a fixed three-item allowlist. User chat content stays in JSON body.",
+      "path": "src/telegram_viewer/clients.ts",
+      "issueId": "f480d000a08fe900e36a54bb2e1e32fa",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop",
+      "scanLine": 10,
+      "rationale": "reviewNode only READS a bounded path inside an authorized object. Each segment must be an own property and pass protectedKey redaction; node=node[key] never writes a prototype property.",
+      "path": "src/ui_review_tree.ts",
+      "issueId": "e88f716e4155d6157dcf6a0cd684c2c",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "PMD_category_ecmascript_errorprone_InnaccurateNumericLiteral",
+      "scanLine": 23,
+      "rationale": "Prometheus origin is operator PROMETHEUS_URL, validated HTTPS (HTTP only loopback) without credentials/fragment; query is added with URLSearchParams, redirect:error and 15s timeout. The 805306368 byte threshold is exactly representable as a JavaScript integer.",
+      "path": "scripts/check_soak_window.js",
+      "issueId": "909c77c5372b211c12406b5e75e21965",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_rules_lgpl_javascript_crypto_rule-node-timing-attack",
+      "scanLine": 36,
+      "rationale": "live.token !== token compares object IDENTITY of an in-process frozen observation capability, not secret strings. The in-process live registry and current epoch verify invalidation authority; constant-time string comparison would not preserve this semantic.",
+      "path": "src/trading_protection_observation.ts",
+      "issueId": "74086703316f388498893512aea37573",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_dos_rule-non-literal-regexp",
+      "scanLine": 125,
+      "rationale": "Compiled pattern is length-limited to150 and nested quantifiers are rejected. Actual filtering runs safeRegexTest in a VM with100ms CPU timeout on bounded text; compilation itself does not match hostile input. Static executable VM source never contains user text.",
+      "path": "src/filters.ts",
+      "issueId": "d070441bf618bfb2e26dcd4eea7e401b",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 128,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "9a41dac019d3169a11c45ccf87100727",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "scanLine": 66,
+      "rationale": "Core URL comes from TELEGRAM_VIEWER_CORE_URL through requireTrustedServiceUrl (HTTPS or trusted internal HTTP hosts). Resource is config or CORE_RESOURCES; query uses URL.searchParams. Telegram URL comes from operator env/default api.telegram.org, token grammar is checked, methods are a fixed three-item allowlist. User chat content stays in JSON body.",
+      "path": "src/telegram_viewer/clients.ts",
+      "issueId": "35d68586015cc6ce7ed4d8a6d16acbe3",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_no-control-regex",
+      "scanLine": 73,
+      "rationale": "Control-character regex is intentional: validRationale/GITHUB_REF reject NUL, newline and other control bytes in reviewed metadata. Removing the control range would weaken validation.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "dcd0d298a9d7c4b41d31f2d9ca2710fe",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 48,
+      "rationale": "loadEnv uses the fixed module-relative ../.env. resolveSecretFiles accepts only operator process-environment *_FILE entries from FILE_BACKED_SECRETS, resolves them, requires a regular file <=16KiB and a single nonempty line. Remote request bodies cannot select the file.",
+      "path": "src/env.ts",
+      "issueId": "3907f2a1f205eb0731d07bb65d647167",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 106,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "b3e70e8e5185b8acce7c00e19d5ca662",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 127,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "838ab27b48d383b929234087cb2b205e",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "scanLine": 88,
+      "rationale": "Prometheus origin is operator PROMETHEUS_URL, validated HTTPS (HTTP only loopback) without credentials/fragment; query is added with URLSearchParams, redirect:error and 15s timeout. The 805306368 byte threshold is exactly representable as a JavaScript integer.",
+      "path": "scripts/check_soak_window.js",
+      "issueId": "848a0f42edb056c58b07c37d5194fa64",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "scanLine": 387,
+      "rationale": "GITHUB_EVENT_PATH is a trusted Actions runner file. Ledger filenames are constants selected only by main/pr29 mode; output lives under fixed ROOT/reports and is atomically renamed. No issue response/body controls destination.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "d450cb64785439fb0bf44b9e4af2b704",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 142,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "84268b66c6ffcaa58d811cd041ddcac0",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "scanLine": 97,
+      "rationale": "boundFile accepts validated repository-relative source/test bindings; each path segment is lstat-checked against symlinks and realpath must remain below root. Manifest paths are fixed constants, review source SHA256 bindings are verified before use.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "53a8511d7023ae7ef657d824e4c48fa8",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-object-injection",
+      "scanLine": 38,
+      "rationale": "Object lookup is read-only: DecisionError code comes from local fixed call sites; issue.textRange keys come from pinned validated review location; ledger indices come from manifest.decisions.entries and matching entry construction. No user key writes a prototype.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "fa8afdec5a52c3e47413aea07216ca0f",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "scanLine": 385,
+      "rationale": "GITHUB_EVENT_PATH is a trusted Actions runner file. Ledger filenames are constants selected only by main/pr29 mode; output lives under fixed ROOT/reports and is atomically renamed. No issue response/body controls destination.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "c2df85f261f2a38eb9e35fe6109a9be2",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 98,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "9804b15e3f35722f6ad81c1719b9b519",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 104,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "107bafad2ffaf308063d58dbabb1d3a9",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 156,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "2847b50d6074669795d5723e3e68b000",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "scanLine": 452,
+      "rationale": "objectUrl uses operator-configured validated HTTPS URL template with exactly one artifact placeholder. validatedName is URI-encoded before substitution; response redirects are rejected and body/expanded sizes bounded. Restore request selects an allowed object name, not the HTTP origin.",
+      "path": "src/backup_replication.ts",
+      "issueId": "c0f35ca2b7e5559be68aacfaf25c677b",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 165,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "450ff787bb300125c264d1d3311436e6",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "scanLine": 95,
+      "rationale": "boundFile accepts validated repository-relative source/test bindings; each path segment is lstat-checked against symlinks and realpath must remain below root. Manifest paths are fixed constants, review source SHA256 bindings are verified before use.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "170e52e017ffe30c17ea5710980f77d9",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 44,
+      "rationale": "loadEnv uses the fixed module-relative ../.env. resolveSecretFiles accepts only operator process-environment *_FILE entries from FILE_BACKED_SECRETS, resolves them, requires a regular file <=16KiB and a single nonempty line. Remote request bodies cannot select the file.",
+      "path": "src/env.ts",
+      "issueId": "4f97cb77e0a9512f607a5d4efa997f21",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-object-injection",
+      "scanLine": 316,
+      "rationale": "Object lookup is read-only: DecisionError code comes from local fixed call sites; issue.textRange keys come from pinned validated review location; ledger indices come from manifest.decisions.entries and matching entry construction. No user key writes a prototype.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "356863b427fea15412d313cc9e39cc6d",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 79,
+      "rationale": "loadEnv uses the fixed module-relative ../.env. resolveSecretFiles accepts only operator process-environment *_FILE entries from FILE_BACKED_SECRETS, resolves them, requires a regular file <=16KiB and a single nonempty line. Remote request bodies cannot select the file.",
+      "path": "src/env.ts",
+      "issueId": "a99f8092169df5cbc4f79c5169c11a86",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-object-injection",
+      "scanLine": 321,
+      "rationale": "Object lookup is read-only: DecisionError code comes from local fixed call sites; issue.textRange keys come from pinned validated review location; ledger indices come from manifest.decisions.entries and matching entry construction. No user key writes a prototype.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "c897139073f3140b1e711d400179340a",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_no-control-regex",
+      "scanLine": 154,
+      "rationale": "Control-character regex is intentional: validRationale/GITHUB_REF reject NUL, newline and other control bytes in reviewed metadata. Removing the control range would weaken validation.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "494ce23f037c2445dc4a17ce589664b9",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 335,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "a1d4727069cf1f42bb336e2c8879cce8",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "scanLine": 386,
+      "rationale": "GITHUB_EVENT_PATH is a trusted Actions runner file. Ledger filenames are constants selected only by main/pr29 mode; output lives under fixed ROOT/reports and is atomically renamed. No issue response/body controls destination.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "5efd58b7247d222dd49d54d7c4988be4",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security-node_detect-unhandled-async-errors",
+      "scanLine": 300,
+      "rationale": "Both async helpers explicitly await in try/catch: persistLedger translates writer rejection to DecisionError; updateEntryState is awaited by applyLiveDecisions inside applyReviewedDecisions error handling. CLI main().catch reports failure safely. This is not an unhandled promise.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "9b5a3b91d63aad0483efd002b3076472",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 149,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "8da3ae933b0f3b3766e9b7330f987b26",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 146,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "8b3181a05cc802dd633e4df3c1e77b10",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 148,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "5db3b0a5d63dd2717ffe7478c81460c2",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 285,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "1fab2500fd6c6aa656c92adbfb31a13f",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security-node_detect-unhandled-async-errors",
+      "scanLine": 309,
+      "rationale": "Both async helpers explicitly await in try/catch: persistLedger translates writer rejection to DecisionError; updateEntryState is awaited by applyLiveDecisions inside applyReviewedDecisions error handling. CLI main().catch reports failure safely. This is not an unhandled promise.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "d22cc9aa7480a5339f13419f09a2c29e",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "scanLine": 128,
+      "rationale": "boundFile accepts validated repository-relative source/test bindings; each path segment is lstat-checked against symlinks and realpath must remain below root. Manifest paths are fixed constants, review source SHA256 bindings are verified before use.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "a156d5e9bf34908da58e362369bf038e",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 121,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "a8c2d77ad4d02f82c631c3855a8ad53a",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 161,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "6174fed812ba506f32f6631840b0a386",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "scanLine": 376,
+      "rationale": "GITHUB_EVENT_PATH is a trusted Actions runner file. Ledger filenames are constants selected only by main/pr29 mode; output lives under fixed ROOT/reports and is atomically renamed. No issue response/body controls destination.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "f7e7fc49fcd140068839a1470d701b41",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-object-injection",
+      "scanLine": 223,
+      "rationale": "Object lookup is read-only: DecisionError code comes from local fixed call sites; issue.textRange keys come from pinned validated review location; ledger indices come from manifest.decisions.entries and matching entry construction. No user key writes a prototype.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "aec4e7758b195814859f9ad1b4098023",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "scanLine": 99,
+      "rationale": "boundFile accepts validated repository-relative source/test bindings; each path segment is lstat-checked against symlinks and realpath must remain below root. Manifest paths are fixed constants, review source SHA256 bindings are verified before use.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "9d2ceadbb302b48e79bd9ba95e91f01f",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "scanLine": 201,
+      "rationale": "File operations use operator-owned configuration sources and private generation directories. realDirectory rejects symlinks; canonicalFile resolves the real parent; safeMember rejects dot/dotdot/invalid segments; regularBytes checks bounded regular files. Writes require process-lock ownership and generation barrier; exclusiveWrite uses wx/0600. Reported sink is part of this intended local persistence boundary, not a request-supplied filename.",
+      "path": "src/backup_generation.ts",
+      "issueId": "7c31e8c8822b9046b0304638241b339c",
+      "disposition": "independently-reviewed-false-positive"
+    },
+    {
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "scanLine": 98,
+      "rationale": "boundFile accepts validated repository-relative source/test bindings; each path segment is lstat-checked against symlinks and realpath must remain below root. Manifest paths are fixed constants, review source SHA256 bindings are verified before use.",
+      "path": "scripts/sonar_review_decisions.js",
+      "issueId": "22ed336356baf9d93b7a09483dc780c1",
+      "disposition": "independently-reviewed-false-positive"
+    }
+  ]
+}
