@@ -179,7 +179,7 @@ export class TelegramViewerService {
 
   private deliveryText(delivery: PendingViewerDelivery): string {
     if (delivery.kind === 'notification') return formatTelegramViewerEvent(viewerNotification(delivery.payload.event), this.settings);
-    return `TSX Core · Test\n${String(optionalViewerRecord(delivery.payload.test).message ?? 'Testnachricht')}`.slice(0, 4096);
+    return `TSX Core Â· Test\n${String(optionalViewerRecord(delivery.payload.test).message ?? 'Testnachricht')}`.slice(0, 4096);
   }
 
   private async recordTestSuccess(delivery: PendingViewerDelivery, now: number): Promise<void> {

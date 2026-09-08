@@ -285,6 +285,7 @@ async function run() {
     assert.strictEqual(service.status().lastTest.status, 'retrying');
     await service.deliverPendingOnce(1_700_000_012_000);
     assertNoInlineMenu(bot.sent.at(-1), 'Viewer test messages must not attach the full viewer menu.');
+    assert.strictEqual(bot.sent.at(-1).text, 'TSX Core \u00b7 Test\nViewer test', 'Test delivery preserves the intended Unicode text.');
     assert.strictEqual(service.status().lastTestEventId, 1);
     assert.strictEqual((await state.lastTest()).status, 'delivered');
 
