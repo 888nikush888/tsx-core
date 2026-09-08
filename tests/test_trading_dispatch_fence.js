@@ -18,7 +18,7 @@ async function fixture(account, id) {
     VALUES (?, 'fence-intent', ?, ?, 'entry', 'buy', 'limit', 'created', '1', '0', 0, '{}', 1, 1)`, [id, account.id, id]);
   const result = { clientOrderId: id, exchangeOrderId: `remote-${id}`, status: 'open', filledQuantity: '0', averagePrice: null, error: null, raw: {} };
   return { account, intentId: 'fence-intent', kind: 'submit', clientOrderIds: [id], request: { id }, beforeDispatch: () => Promise.resolve(),
-    beforeSend: () => Promise.resolve(), guard: () => undefined, send: async () => result, persist: async () => [result] };
+    beforeSend: () => Promise.resolve(), guard: () => undefined, send: () => Promise.resolve(result), persist: () => Promise.resolve([result]) };
 }
 const phase = async input => (await getDatabase().get('SELECT phase FROM trading_operations WHERE request_json = ?', [JSON.stringify(input.request)])).phase;
 async function failureMatrix(account) {
@@ -89,7 +89,7 @@ async function ownerIsolation() {
   await pending;
   assert.equal(wrote, true);
   let starts = 0;
-  await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(() => Promise.resolve(), async () => { starts += 1; })), /inherit/);
+  await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(() => Promise.resolve(), () => { starts += 1; return Promise.resolve(); })), /inherit/);
   assert.equal(starts, 0);
 }
 async function commitFailure(account) {

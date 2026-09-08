@@ -27,10 +27,10 @@ function mutationHeaders() {
 
 const authenticator = {
   isConfigured: () => true,
-  authenticate: async header => {
-    if (header === `Bearer ${ADMIN}`) return { id: 'operator:1', role: 'admin', mode: 'bearer' };
-    if (header === `Bearer ${DASHBOARD_VIEWER}`) return { id: 'viewer:1', role: 'viewer', mode: 'bearer' };
-    return null;
+  authenticate: header => {
+    if (header === `Bearer ${ADMIN}`) return Promise.resolve({ id: 'operator:1', role: 'admin', mode: 'bearer' });
+    if (header === `Bearer ${DASHBOARD_VIEWER}`) return Promise.resolve({ id: 'viewer:1', role: 'viewer', mode: 'bearer' });
+    return Promise.resolve(null);
   },
 };
 
@@ -247,12 +247,12 @@ async function run() {
       authenticator,
       telegramViewerSettings: settings,
       telegramViewerSecrets: secrets,
-      getTelegramViewerStatus: async () => ({
+      getTelegramViewerStatus: () => Promise.resolve(({
         healthy: true, ready: true, lastPollAt: now, lastTestEventId: 77,
         lastTest: { sourceSeq: 77, status: 'delivered', attemptedAt: now, deliveredAt: now, error: null },
-      }),
+      })),
       auditTrail: {
-        record: async event => { auditEvents.push(event); },
+        record: event => { auditEvents.push(event); return Promise.resolve(); },
         snapshot: () => ({ healthy: true }), replayRemote: () => Promise.resolve(0), flush: () => Promise.resolve(),
       },
     };

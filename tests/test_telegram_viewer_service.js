@@ -72,12 +72,12 @@ function fakeCore() {
 function fakeBot() {
   return {
     updates: [], sent: [], answered: [], failNext: false,
-    async getUpdates() { const updates = this.updates; this.updates = []; return updates; },
+    getUpdates() { const updates = this.updates; this.updates = []; return Promise.resolve(updates); },
     async sendMessage(chatId, text, options) {
       if (this.failNext) { this.failNext = false; throw new Error('temporary telegram failure'); }
       this.sent.push({ chatId, text, options }); return { message_id: this.sent.length };
     },
-    async answerCallbackQuery(id, text) { this.answered.push({ id, text }); },
+    answerCallbackQuery(id, text) { this.answered.push({ id, text }); return Promise.resolve(); },
   };
 }
 

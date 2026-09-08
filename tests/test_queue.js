@@ -111,12 +111,12 @@ async function testErrorsAndTimeouts() {
     return "done";
   };
 
-  const fastJob = async () => {
+  const fastJob = () => {
     fastJobStarted = true;
     activeTimedJobs++;
     maxActiveTimedJobs = Math.max(maxActiveTimedJobs, activeTimedJobs);
     activeTimedJobs--;
-    return "fast";
+    return Promise.resolve("fast");
   };
 
   const slowPromise = timeoutQueue.add(slowJob);
@@ -149,9 +149,9 @@ async function testPauseAndAbortPropagation() {
   pauseQueue.pause();
   
   let jobRunCount = 0;
-  const dummyJob = async () => {
+  const dummyJob = () => {
     jobRunCount++;
-    return "done";
+    return Promise.resolve("done");
   };
 
   const p1 = pauseQueue.add(dummyJob);

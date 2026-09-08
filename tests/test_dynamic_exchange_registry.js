@@ -253,10 +253,10 @@ const executorCatalogPayload = entry => ({
   exchanges: [entry],
 });
 const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://127.0.0.1:8090') => new ExchangeCatalogClient(
-  { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
+  { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
     baseUrl,
-    fetchImpl: async () => ({ ok: true, status: 200, json: async () => payload, ...response }),
+    fetchImpl: () => Promise.resolve(({ ok: true, status: 200, json: () => Promise.resolve(payload), ...response })),
   },
 );
 
@@ -302,7 +302,7 @@ for (const [payload, pattern] of invalidCatalogFixtures) {
 
 const requests = [];
 const catalogClient = new ExchangeCatalogClient(
-  { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
+  { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
     baseUrl: 'http://127.0.0.1:8090',
     cacheTtlMs: 1_000,
@@ -344,7 +344,7 @@ await assert.rejects(
 const { promise: catalogRequestReleased, resolve: releaseCatalogRequest } = Promise.withResolvers();
 let concurrentCatalogRequests = 0;
 const concurrentCatalogClient = new ExchangeCatalogClient(
-  { getOrCreateExecutorToken: async () => 'f'.repeat(64) },
+  { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
     baseUrl: 'http://127.0.0.1:8090',
     fetchImpl: async () => {
@@ -430,18 +430,18 @@ try {
   const registered = [];
   const gateioAdapter = {
     exchange: 'gateio',
-    verifyAccount: async () => ({
+    verifyAccount: () => Promise.resolve(({
       verified: true,
       equity: '1000',
       externalAccountId: '9'.repeat(64),
       credentialGeneration: 'c'.repeat(64),
       capabilities: { reportingCurrency: 'USDT' },
-    }),
+    })),
     accountSnapshot: () => Promise.resolve(({})),
     marketSnapshot: () => Promise.resolve(({})),
     submitOrder: () => Promise.resolve(({})),
     cancelOrder: () => Promise.resolve(({})),
-    openState: async () => ({ orders: [], positions: [], fills: [], observedAt: Date.now() }),
+    openState: () => Promise.resolve(({ orders: [], positions: [], fills: [], observedAt: Date.now() })),
   };
   const controlCatalog = {
     browserCatalog: () => Promise.resolve(({

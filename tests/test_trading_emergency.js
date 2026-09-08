@@ -135,7 +135,7 @@ async function provePositionFailureIsolation() {
   for (const failingIndex of [0, 1]) {
     const engine = new TradingEngine([adapter]);
     const calls = [];
-    engine.ingestOwnedState = async () => ({ localPositions: positions, unrelatedUnmanagedExposure: false });
+    engine.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
     engine.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
       calls.push(local.intent_id);
       if (local.intent_id === positions[failingIndex].intent_id) throw new Error(`position ${failingIndex} failed`);
@@ -149,7 +149,7 @@ async function provePositionFailureIsolation() {
 
   const multiple = new TradingEngine([adapter]);
   const multipleCalls = [];
-  multiple.ingestOwnedState = async () => ({ localPositions: positions, unrelatedUnmanagedExposure: false });
+  multiple.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
   multiple.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
     multipleCalls.push(local.intent_id);
     throw new Error(`failed ${local.intent_id}`);
@@ -159,7 +159,7 @@ async function provePositionFailureIsolation() {
 
   const budget = new TradingEngine([adapter]);
   const budgetCalls = [];
-  budget.ingestOwnedState = async () => ({ localPositions: positions, unrelatedUnmanagedExposure: false });
+  budget.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
   budget.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
     budgetCalls.push(local.intent_id);
     if (local.intent_id === positions[0].intent_id) throw new CancelBudgetExhaustedError();
@@ -170,7 +170,7 @@ async function provePositionFailureIsolation() {
 
   const global = new TradingEngine([adapter]);
   const globalCalls = [];
-  global.ingestOwnedState = async () => ({ localPositions: positions, unrelatedUnmanagedExposure: false });
+  global.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
   global.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
     globalCalls.push(local.intent_id);
     const error = new Error('database integrity failure');

@@ -186,7 +186,7 @@ async function testUnknownFillRemainsDurableAndBlocking(directory) {
     symbol: 'ETHUSDT', providerSymbol: 'ETH/USDT:USDT', price: '3000', quantity: '1', fee: '0.5', feeAsset: 'USDT',
     filledAt: Date.now(), raw: { apiKey: 'MUST_NOT_BE_SAVED', authorization: 'Bearer MUST_NOT_BE_SAVED' } };
   const adapter = wrappedAdapter(paper, (...args) => paper.submitOrder(...args));
-  adapter.openState = async () => ({ orders: [], positions: [], fills: [fill], observedAt: Date.now() });
+  adapter.openState = () => Promise.resolve(({ orders: [], positions: [], fills: [fill], observedAt: Date.now() }));
   const engine = new TradingEngine([adapter]);
   await assert.rejects(engine.reconcileAccount(account.id), /unresolved.*evidence/i);
   await assert.rejects(engine.reconcileAccount(account.id), /unresolved.*evidence/i);
@@ -196,7 +196,7 @@ async function testUnknownFillRemainsDurableAndBlocking(directory) {
   assert.equal(evidence[0].classification, 'unresolved');
   assert.doesNotMatch(evidence[0].payload_json, /MUST_NOT_BE_SAVED|authorization|apiKey/);
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_fills')).count, 0);
-  adapter.openState = async () => ({ orders: [], positions: [], fills: [], observedAt: Date.now() });
+  adapter.openState = () => Promise.resolve(({ orders: [], positions: [], fills: [], observedAt: Date.now() }));
   await assert.rejects(new TradingEngine([adapter]).reconcileAccount(account.id), /unresolved.*evidence/i,
     'A later empty history page or process restart cannot erase an unresolved fill.');
   assert.equal((await getTradingAccount(account.id)).killSwitchActive, true);
@@ -209,13 +209,13 @@ async function testHistoricalUnmappedOrderIsRetainedBeforeCursorAdvances(directo
   const order = { clientOrderId: null, exchangeOrderId: 'historical-order', symbol: 'BTCUSDT', providerSymbol: 'BTCUSDT',
     role: 'entry', side: 'buy', quantity: '1', filledQuantity: '0', status: 'cancelled', price: '60000', triggerPrice: null,
     reduceOnly: false, averagePrice: null, error: null, raw: { authorization: 'MUST_NOT_PERSIST' } };
-  adapter.openState = async () => ({ orders: [order], positions: [], fills: [], observedAt: Date.now() });
+  adapter.openState = () => Promise.resolve(({ orders: [order], positions: [], fills: [], observedAt: Date.now() }));
   await assert.rejects(new TradingEngine([adapter]).reconcileAccount(account.id), /unresolved.*evidence/i);
   const retained = await getDatabase().get("SELECT * FROM trading_remote_evidence WHERE provider_id = 'historical-order'");
   assert.equal(retained.classification, 'unresolved', 'Terminal does not prove an old order was external or irrelevant.');
   assert.equal(JSON.parse(retained.payload_json).status, 'cancelled');
   assert.doesNotMatch(retained.payload_json, /MUST_NOT_PERSIST|authorization/);
-  adapter.openState = async () => ({ orders: [], positions: [], fills: [], observedAt: Date.now() });
+  adapter.openState = () => Promise.resolve(({ orders: [], positions: [], fills: [], observedAt: Date.now() }));
   await assert.rejects(new TradingEngine([adapter]).reconcileAccount(account.id), /unresolved.*evidence/i);
   await closeDb();
 }
@@ -230,7 +230,7 @@ async function testSameSideRemoteQuantityIsNotAutomaticallyOwned(directory) {
   let mutations = 0;
   adapter.submitOrder = async () => { mutations += 1; throw new Error('No mutation authorized for foreign exposure.'); };
   adapter.cancelOrder = async () => { mutations += 1; throw new Error('No cancel authorized for foreign exposure.'); };
-  adapter.openState = async () => ({ ...snapshot, positions: snapshot.positions.map(position => ({ ...position, quantity: '1' })), observedAt: Date.now() });
+  adapter.openState = () => Promise.resolve(({ ...snapshot, positions: snapshot.positions.map(position => ({ ...position, quantity: '1' })), observedAt: Date.now() }));
   await assert.rejects(engine.reconcileAccount(account.id), /ownership|owned.*quantity/i);
   assert.equal(mutations, 0, 'Foreign same-side quantity must not enlarge the stop, cancel orders or be flattened.');
   assert.equal((await getDatabase().get('SELECT quantity FROM trading_positions WHERE intent_id = ?', [intent.id])).quantity, before.quantity);
@@ -248,9 +248,9 @@ async function testSameQuantityInAnotherSettlementIsNotOwned(directory) {
   let mutations = 0;
   adapter.submitOrder = async () => { mutations += 1; throw new Error('Foreign namespace mutation.'); };
   adapter.cancelOrder = async () => { mutations += 1; throw new Error('Foreign namespace cancel.'); };
-  adapter.openState = async () => ({ ...snapshot, positions: snapshot.positions.map(position => ({
+  adapter.openState = () => Promise.resolve(({ ...snapshot, positions: snapshot.positions.map(position => ({
     ...position, providerSymbol: 'ETH/USDC:USDC',
-  })), observedAt: Date.now() });
+  })), observedAt: Date.now() }));
   await assert.rejects(engine.reconcileAccount(account.id), /POSITION_NAMESPACE_MISMATCH/);
   assert.equal(mutations, 0, 'Equal base/side/quantity in another settlement is not TSX ownership.');
   assert.equal((await getTradingAccount(account.id)).killSwitchActive, true);
@@ -1085,9 +1085,9 @@ async function testRemoteAccountIdentityBinding(directory) {
   let observedIdentity = boundIdentity;
   const adapter = {
     exchange: 'bybit',
-    openState: async () => ({
+    openState: () => Promise.resolve(({
       orders: [], positions: [], fills: [], observedAt: Date.now(), accountFingerprint: observedIdentity,
-    }),
+    })),
   };
   const engine = new TradingEngine([adapter]);
   await engine.reconcileAccount(account.id);
@@ -1331,11 +1331,11 @@ async function testExchangeStreamAcceleratesAuthoritativeReconciliation(director
     reconcileAccount: async (accountId, options) => { reconciliations.push([accountId, options?.force]); },
     cancelExpiredEntries: () => Promise.resolve(0),
     processIntent: () => Promise.resolve(),
-    pollAccountStream: async () => {
-      if (emitted) return null;
+    pollAccountStream: () => {
+      if (emitted) return Promise.resolve(null);
       emitted = true;
       const now = Date.now();
-      return {
+      return Promise.resolve({
         account: { ...account, status: 'ready', enabled: true },
         batch: {
           events: [{
@@ -1352,7 +1352,7 @@ async function testExchangeStreamAcceleratesAuthoritativeReconciliation(director
           gap: false,
           health: { status: 'healthy', startedAt: now, lastEventAt: now, lastError: null },
         },
-      };
+      });
     },
   };
   const runtime = new TradingRuntime(engine, 60_000);
@@ -1407,14 +1407,14 @@ async function testStartupReconciliationFailureKeepsControlPlaneAvailable(direct
 async function testUnmanagedExposureAndOperatorFlatten(directory) {
   const unmanaged = await setup(path.join(directory, 'unmanaged-exposure.db'));
   const unmanagedAdapter = wrappedAdapter(unmanaged.paper, (...args) => unmanaged.paper.submitOrder(...args));
-  unmanagedAdapter.openState = async () => ({
+  unmanagedAdapter.openState = () => Promise.resolve(({
     orders: [{
       clientOrderId: `0x${'9'.repeat(32)}`, exchangeOrderId: 'external-1', status: 'open',
       filledQuantity: '0', averagePrice: null, error: null, raw: {}, symbol: 'ETHUSDT',
       role: 'entry', side: 'buy', quantity: '1', price: '3000', triggerPrice: null, reduceOnly: false,
     }],
     positions: [], fills: [], observedAt: Date.now(),
-  });
+  }));
   await assert.rejects(
     new TradingEngine([unmanagedAdapter]).reconcileAccount(unmanaged.account.id),
     /Unmanaged remote order or position/,
@@ -1427,7 +1427,7 @@ async function testUnmanagedExposureAndOperatorFlatten(directory) {
   const absentAdapter = wrappedAdapter(absent.paper, (...args) => absent.paper.submitOrder(...args));
   const absenceEngine = new TradingEngine([absentAdapter]);
   await absenceEngine.processIntent(absent.intent.id);
-  absentAdapter.openState = async () => ({ orders: [], positions: [], fills: [], observedAt: Date.now() });
+  absentAdapter.openState = () => Promise.resolve(({ orders: [], positions: [], fills: [], observedAt: Date.now() }));
   await assert.rejects(
     absenceEngine.reconcileAccount(absent.account.id),
     /absent without terminal fill proof|CUMULATIVE_EXECUTION_MISMATCH/,

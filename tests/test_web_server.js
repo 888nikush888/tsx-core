@@ -294,7 +294,7 @@ async function testExchangeCatalogApi(baseUrl, appState) {
   let response;
   const originalTradingControl = appState.tradingControl;
   appState.tradingControl = {
-    exchangeCatalog: async () => ({
+    exchangeCatalog: () => Promise.resolve(({
       implementation: {
         library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',
       },
@@ -305,7 +305,7 @@ async function testExchangeCatalogApi(baseUrl, appState) {
         markets: { linearSwap: true }, credentialFields: [],
         modes: id === 'paper' ? ['paper'] : ['testnet', 'live'], capabilities: {},
       })),
-    }),
+    })),
     probeExchange: exchange => Promise.resolve({ id: exchange, status: 'candidate' }),
   };
   try {
@@ -855,9 +855,9 @@ async function testTradingStrategyDeletion(baseUrl, appState) {
   const removed = [];
   const original = appState.tradingControl;
   appState.tradingControl = {
-    removeStrategy: async id => {
+    removeStrategy: id => {
       removed.push(id);
-      return true;
+      return Promise.resolve(true);
     }
   };
   try {
@@ -883,7 +883,7 @@ async function testTradingSignalSchemaControl(baseUrl, appState) {
   appState.tradingControl = {
     createSignalSchema: async payload => { calls.push(['create', payload.id]); return payload; },
     updateSignalSchema: async payload => { calls.push(['update', payload.id]); return payload; },
-    removeSignalSchema: async id => { calls.push(['delete', id]); return true; },
+    removeSignalSchema: id => { calls.push(['delete', id]); return Promise.resolve(true); },
   };
   try {
     let response = await fetch(`${baseUrl}/api/trading/signal-schemas`, {
@@ -919,9 +919,9 @@ async function testPublishedSignalContractDeletion(baseUrl, appState) {
   const removed = [];
   const original = appState.tradingControl;
   appState.tradingControl = {
-    removeSignalContractVersion: async versionId => {
+    removeSignalContractVersion: versionId => {
       removed.push(versionId);
-      return true;
+      return Promise.resolve(true);
     },
   };
   try {
@@ -1577,14 +1577,14 @@ async function createAppState(testDir, controls) {
     },
     getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 2, paused: false }),
     startForwarding: () => Promise.resolve(),
-    stopForwarding: async () => { controls.stopCalls += 1; appState.state.isRunning = false; },
+    stopForwarding: () => { controls.stopCalls += 1; appState.state.isRunning = false; return Promise.resolve(); },
     reloadConfig: () => undefined,
     applyRuntimeConfig: () => undefined,
     persistConfig: () => undefined,
     getMetricsHistory: () => [],
     getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
-    retryOutboxTask: async id => { controls.retryCalls += 1; return id === 'unknown-task'; },
-    acknowledgeOutboxTask: async id => { controls.acknowledgeCalls += 1; return id === 'unknown-task'; },
+    retryOutboxTask: id => { controls.retryCalls += 1; return Promise.resolve(id === 'unknown-task'); },
+    acknowledgeOutboxTask: id => { controls.acknowledgeCalls += 1; return Promise.resolve(id === 'unknown-task'); },
     getTelegramLoginState: () => ({
       state: 'waiting',
       prompt: { kind: 'authCode', label: 'Telegram verification code' }
@@ -1599,7 +1599,7 @@ async function createAppState(testDir, controls) {
         if (controls.auditShouldFail) throw new Error('audit unavailable');
       },
       snapshot: () => ({ healthy: true, remoteRequired: false, lastRemoteSuccessAt: null, recordCount: controls.auditEvents.length }),
-      replayRemote: async () => { controls.auditReplayCalls += 1; return controls.auditEvents.length; }
+      replayRemote: () => { controls.auditReplayCalls += 1; return Promise.resolve(controls.auditEvents.length); }
     },
     secretStore: new ManagedSecretStore(path.join(testDir, 'secrets')),
     getOperationsStatus: () => ({ backup: fixtureBackupProof(), audit: { healthy: true } }),
@@ -1610,13 +1610,13 @@ async function createAppState(testDir, controls) {
     },
     listBackups: () => Promise.resolve(['backup-2026-test']),
     verifyBackup: async () => fixtureBackupProof(),
-    recoverOffsiteBackup: async () => {
+    recoverOffsiteBackup: () => {
       controls.offsiteRecoveryCalls += 1;
-      return 'backup-2026-recovered';
+      return Promise.resolve('backup-2026-recovered');
     },
-    restoreBackup: async () => {
+    restoreBackup: () => {
       controls.restoreCalls += 1;
-      return { previousDatabase: path.join(testDir, 'previous.db'), previousConfig: null };
+      return Promise.resolve({ previousDatabase: path.join(testDir, 'previous.db'), previousConfig: null });
     },
     performFactoryReset: async () => {
       controls.factoryResetCalls += 1;

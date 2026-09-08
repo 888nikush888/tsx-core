@@ -17,12 +17,12 @@ const first = coordinator.run('a', async context => {
   order.push('a1');
   entered.resolve();
   await hold.promise;
-  await coordinator.run('a', async () => { order.push('nested'); }, context);
+  await coordinator.run('a', () => { order.push('nested'); return Promise.resolve(); }, context);
   assert.throws(() => coordinator.assertEntryEpoch(context, epoch), /fence/i);
 });
 await entered.promise;
-const second = coordinator.run('a', async () => { order.push('a2'); });
-await coordinator.run('b', async () => { order.push('b'); });
+const second = coordinator.run('a', () => { order.push('a2'); return Promise.resolve(); });
+await coordinator.run('b', () => { order.push('b'); return Promise.resolve(); });
 coordinator.fenceEntries('a');
 assert.deepEqual(order, ['a1', 'b']);
 hold.resolve();
@@ -36,7 +36,7 @@ await coordinator.run('a', async context => {
   assert.throws(() => coordinator.assertEntryEpoch(context, before), /fence/i);
 });
 await assert.rejects(coordinator.run('a', async () => { throw new Error('expected'); }), /expected/);
-await coordinator.run('a', async () => { order.push('after-error'); });
+await coordinator.run('a', () => { order.push('after-error'); return Promise.resolve(); });
 const firstHold = coordinator.holdEntries('a');
 const secondHold = coordinator.holdEntries('a');
 firstHold();

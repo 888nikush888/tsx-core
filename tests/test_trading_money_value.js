@@ -227,7 +227,7 @@ function testDecimalAndTermOverflowNeverDowngrade() {
 async function testMalformedMoneyKeepsPositionFailureScope() {
   const engine = new TradingEngine([]);
   const locals = [{ id: 'position-a', intent_id: 'intent-a', symbol: 'A' }, { id: 'position-b', intent_id: 'intent-b', symbol: 'B' }];
-  engine.ingestOwnedState = async () => ({ localPositions: locals, unrelatedUnmanagedExposure: false });
+  engine.ingestOwnedState = () => Promise.resolve(({ localPositions: locals, unrelatedUnmanagedExposure: false }));
   const visited = [];
   engine.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
     visited.push(local.id);

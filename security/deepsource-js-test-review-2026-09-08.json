@@ -42,7 +42,8 @@
     "Architecture refactor: 576 original/current decisions, extended Node22 suite, actual architecture gate, full changed files complexity<=5 ESLint and diff checks passed.",
     "Soak refactor: 39 exact original/current protocol comparisons; Node22 pure validation and isolated real CLI/evidence regressions passed, whole changed files complexity<=5 ESLint and diff checks passed.",
     "Sonar scope refactor: 484 exact original/current cases and all five Node22 Sonar suites passed; whole script complexity<=5 ESLint and diff checks passed. No Cloud mutation or production pin changes.",
-    "UI route AST collector: Node22 artifact --check and UI register contract suite, whole script complexity<=5 ESLint and diff checks passed. No generated artifact changed."
+    "UI route AST collector: Node22 artifact --check and UI register contract suite, whole script complexity<=5 ESLint and diff checks passed. No generated artifact changed.",
+    "Remaining async batch 1: 85 mapped local-value/counter/native-Promise fixtures, all 28 Node22 suites passed; ESLint and diff checks passed. Native MCP availablePort helper retains executor rejection and close-before-resolve."
   ],
   "entries": [
     {
@@ -4984,6 +4985,771 @@
       "originalLine": 11,
       "status": "source_change_pending_rescan",
       "proof": "Separated function and variable declaration extraction from recursive AST traversal. Whole script complexity<=5; --check confirms byte-identical route artifact for all 138 authenticated routes and 3 bootstrap/session boundaries; UI register contract suite passes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9kd20=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1617,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "bf1985bdc07a521b4a6d0e94abed12076d64308b3e9d5a1cfdce883152566732"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxubG8=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1613,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "8b3009a3bef1194f3efa8771bd7787f5cbc560da12d14d3857b62a31453f394c"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFkcXI=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1602,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "826e752d177cb1360711a3216d1c0ea3ce8e3ff90d830d420b9a22e8fd49446f"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpkanY=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1587,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "3a17458c60e8f38299781d965bcd9dc206d835c59b9cbfd8319614e326df5064"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWt5a3k=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1586,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "8f11a70d58a366812e51c7fca7596e259eb24fa7701b547dd953f8eae56a2175"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR2ZGU=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1580,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "32cc12a7184b1478b6bcda62eebe463c25dbcd1f1fe63ad722381f02bbbbb415"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFuYXI=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 922,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "12042050c10bac30ac5e6e47fd609317ee008f68b896ea094b79c597f1d34b86"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1ubWw=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 886,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "2ad698a514e1b408b7b9b3969e9e3ac9534412a7869b8a8f97ca4be747792047"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlucGU=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 858,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "378c4c4b3053ecddcc9ffed29677ce7e2daeb6eeec2c538a56ff703fbdb15262"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFka3I=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 297,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "4802a04aa64e56fab6cb3163a4482c1a506b1314eab781ac2a8dcc581ebdfb70"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxud2c=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 104,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "9c079768263567eea048c8cb488c04e08305f91f5f507fbf4bdbfa156f0bf128"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnluYWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 96,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "151c6587e33af798c1254307ef37269f75298443d49d5dc0e3dac98224fed1ed"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFkcHg=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 55,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "4d690dd84a598ab0fc9720397e3ca0ba902288da561410e57ab318c11ac63aaf"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZubWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 54,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "2247facbff061f8a8a418a29785a63e0112a8ecf3ec2f8028d25aa9d18dd5403"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpkZXg=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 53,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "6d0ec6caf0be4e0d03c3c0932305b32f7eed40cdaa0e1ebf3ebd8e084fc3cca3"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWt5cGo=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 52,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "860cbda48ce6548ae60aa147ecdd398d9386ef4ee41139efd3c87bcf7653fc0b"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlka2E=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_operation_store.js",
+      "originalLine": 71,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "c72533f21ec8d13a1b55fd273a1473f2e0fd9cd7722eda552873d8055822b7c2"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZucWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 241,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "bd4dc4e524158fd9bc75c8d05f972ad42c645ee666c51869133da29ece33b913"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR2cHc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 56,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "384889dfb17911085e75cd167d62bfb32e45ebf5512362609c8aae8846ce77ca"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V3cG8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 52,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "0781e3c484bb1886e7f1783bf58ecb29d2b56052a9f43c0efb267b385fbc190d"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhuZGQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_recovery.js",
+      "originalLine": 35,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "e3aaa5dcfcc86b53f3b79a6235d1119e60ff08827d7fa33532bad51d8fd93813"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRna2c=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_pending_fairness.js",
+      "originalLine": 116,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "4b0e0e7599b4adcd9be6eff6de169e70980c741c39ee6a57d9bad72f3a17a151"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllZ3k=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_pending_fairness.js",
+      "originalLine": 107,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "4b0e0e7599b4adcd9be6eff6de169e70980c741c39ee6a57d9bad72f3a17a151"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VuZ3Y=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_pending_fairness.js",
+      "originalLine": 97,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "4b0e0e7599b4adcd9be6eff6de169e70980c741c39ee6a57d9bad72f3a17a151"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpwbm4=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 40,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "5485a0cd9bd250585a69f867cc433c56e3d09f168dd2de1171ccba9fb9e221a4"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJuYXc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 26,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "18256b9ed05d95e14e207e97ff9d39b2e69ae3b01f2db541932446d3743028ad"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4a2Q=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 25,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "05e4efc3cebf9263d453eaf3920cfcb3803b568d54107d1a0bc560d2b26452f8"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllcHk=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 20,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "14907f2245952b985ec67398d7602787f62f61cb1362fff9d6904df60a50625b"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93cXI=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 230,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "9fba9c2b3879368d088ff4090dcfb11e59c17b60a3964aac0ee69012aa2359ac"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4bWQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_sizing_admission.js",
+      "originalLine": 93,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "8a04300363460bab71fc06dbad188c0a23f0236c4293842231add687606e41a0"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRnbWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_fx_sizing_admission.js",
+      "originalLine": 93,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "51601ff2ad2cf87b2b3667a17c13baa5bd6094255adceb6ed9fb10aa0ef46163"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtcGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1431,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "5da515794ac449fb852a7daf0cc102a063b210ec90eb4d09b1f3ff79f358114d"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12Z3E=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1411,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "1adf8f1c344427a7d092f3f538eecca1fd0c4133eb65f53a491f2e3f79f900ed"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhrdm8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1335,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "917c5d03f87407174b8a26ee9bc813f24db520b27bcb1be54e241beca4a4e45f"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2Vud24=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1089,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "cb34d32c5697ff0df7267c318dfd3cca3294d2867d8872506c6d9faa968db535"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpwamw=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 251,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "38970befcd84466fc131729a4dd8bf1592b031fab6b8b1b530dd58a52f472156"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294eXI=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 233,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "89b503f4e011c2396cf38a4e17369a2ecfa8bde50bce4c5de90509161dbfbeee"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRnd24=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 218,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "5da515794ac449fb852a7daf0cc102a063b210ec90eb4d09b1f3ff79f358114d"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllbmQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 212,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "4bfa8ef271d206705fed43c6144e986e507ae478f759dc01b350ad021b127ff7"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2Vudm4=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 199,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "5da515794ac449fb852a7daf0cc102a063b210ec90eb4d09b1f3ff79f358114d"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtb2E=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 189,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "a6edd02cf2a11cd1d97fee3dca57172ad1c4e85e4de9d49244f09da3bf7f2663"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvZWw=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 235,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "44ce277479e5ea87c78d7cead9415308ab90de503f5e9648a894a3f3b4a3bafe"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvZHE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 227,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "bb2ca71f07605e16f7d1fa74756caf0f1282e3ffadd5299b774d419a111bd661"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtuZHY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 188,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "41e33e040f51c0d1033f1a47cd4b0a37b2d9ccd4ecd1a7faf3bb23d3e4c73c44"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2a2E=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 176,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "a426ccdf579e8be8750a8723cb1e4f31c9301aabec6e3f2da32061a0c5c07208"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4b3c=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 129,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "e82948e5f43b88c574ea9f5f0d075a9c8afd8d2c69b99008a55bee30d0d3a3c6"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtd24=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_emergency.js",
+      "originalLine": 173,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "f1073eb1e7b2094ad0a147f33ff4a508bc128923a5ea81205fe00e87acd417d4"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93a28=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_emergency.js",
+      "originalLine": 162,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "f1073eb1e7b2094ad0a147f33ff4a508bc128923a5ea81205fe00e87acd417d4"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlreGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_emergency.js",
+      "originalLine": 152,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "f1073eb1e7b2094ad0a147f33ff4a508bc128923a5ea81205fe00e87acd417d4"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvcGw=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_emergency.js",
+      "originalLine": 138,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "f1073eb1e7b2094ad0a147f33ff4a508bc128923a5ea81205fe00e87acd417d4"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJudmE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 93,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "8c7f5a47ccc9c3f92ebc82d234ab2b4b0d6c4535d77da60f0eb0816060e226cf"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtbG4=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 21,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "e3aaa5dcfcc86b53f3b79a6235d1119e60ff08827d7fa33532bad51d8fd93813"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxycHY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 21,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "3f86f61ad560accd601d4aeac9bd683393288e3f3846058aa92a9e09f72544b1"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpwb3c=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_account_baseline.js",
+      "originalLine": 138,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "02f73347fc87d5f352ed0f7917e5566fdcd1d0f0ed7a10f99b576c0fbc66c618"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJueGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 340,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "d11cb8db9faee7758c599f41876934ab91b3034481e200dba0abd099d839611c"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12ZXY=",
+      "rule": "JS-0116",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 147,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "c1a847e5eee4ff6e148fd825686f67e95de0ac1264ae1d8e12be856bb65c6102"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2bGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_service.js",
+      "originalLine": 80,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "36a498a2fba7d435699106b532b4b5f6e77829f5c7fc3d23a596cc0b069853d4"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJubWE=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_service.js",
+      "originalLine": 75,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "a2de1a588eb17afd7f9a2d6cdd52a90c733acd972f1fc722b4402bd4fbdd884b"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvanE=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalLine": 255,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "49fd4ec43261a758a6630888f5b07727408aff095ad5c4c7f6a3ca0f12008439"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpwZ3c=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalLine": 250,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "fd3ecf9bec506f32a7b9654ab765174afbf8018b74cbfbf1c7e4450ce9321af0"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlld3E=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalLine": 30,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "4f188091ffb6dc46ac5db1e65db646b1457e4fb9196e7a7690911eab30c0e137"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5Z3E=",
+      "rule": "JS-0116",
+      "path": "tests/test_startup_web.js",
+      "originalLine": 24,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "133b354f803ab53c84f8c916c7e90cb9b89afabd2aafe5bdb3e554baa591ea1b"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl5b2w=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 54,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "0dda8338721c36a06517ee7147c4278f41aed418db1e494c5db3e4466b7a470b"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFheWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 472,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "db3ebeebed60f7f95ff604318d99e6570a47669b2a36ba33427f3b1e64cf7934"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxscXI=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 419,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "9312d4854565556bea0a168748e487ae47e7559cc7465a66defa57d9f76f2987"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2eG0=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 337,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "e3d479aebb14afa5a9f471adbd21334e2e0ec3382fba7bff1a13c0e5992c2f13"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5dmw=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 50,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "f390c0e5bbf6ed88718d18b8e7563140b443b0973f1b255261b2bf1f1a0cafc5"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkam8=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 46,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "12e794c0482b47af8da6973d6cdbf978978fab8f2c99c76e0bd416b641d66d38"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5bWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_queue.js",
+      "originalLine": 152,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "7fdd5a18ba4d1208a983a54d6f5bb5ffe4ce168911c5b739f6f086119026072d"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VlYXI=",
+      "rule": "JS-0116",
+      "path": "tests/test_queue.js",
+      "originalLine": 114,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "b9029da8fe69432518e5df565ed3b24f0b2578cbe09ec8ff052227fd45305438"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vZWo=",
+      "rule": "JS-0116",
+      "path": "tests/test_outbox_scheduler.js",
+      "originalLine": 57,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "feb6cb34eb0155f6682b8607bd7883392d5832abf7e77fecc1c6726aa3a913f8"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5cm4=",
+      "rule": "JS-0116",
+      "path": "tests/test_outbox_scheduler.js",
+      "originalLine": 28,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "f8107f21adc86e51f63eadb83aa3a9fa82249d8e3b2ef786589683d8be3338e2"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2Vld3I=",
+      "rule": "JS-0116",
+      "path": "tests/test_metrics.js",
+      "originalLine": 109,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "a65d845d68ba9b5b1d5817d5f2c0681bf6748f740a9ceb1c0dad83a8ba826062"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJyZHg=",
+      "rule": "JS-0116",
+      "path": "tests/test_mcp_server.js",
+      "originalLine": 17,
+      "status": "source_change_pending_rescan",
+      "proof": "The availablePort helper already places all bind/listen/close work inside a native Promise executor with error rejection. Return that Promise directly; port ownership is still released before success. Full MCP server suite passes.",
+      "evidenceOriginalFunctionSha256": "28be5d5101885f0ef467357f47af08b3847487b6a76975711329ca9f75b49ee9"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vd2o=",
+      "rule": "JS-0116",
+      "path": "tests/test_mcp_control_plane.js",
+      "originalLine": 213,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "49fd4ec43261a758a6630888f5b07727408aff095ad5c4c7f6a3ca0f12008439"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJycXg=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 445,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "5da515794ac449fb852a7daf0cc102a063b210ec90eb4d09b1f3ff79f358114d"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFheGU=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 434,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "37dbde84ddbb01cf27d34c256dc468583867d2384730519dd09309317d558789"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ2ZHk=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 348,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "7376b16a4a343e9ba92f9ad3b1dc5635ff377ebd36af177089dedbcd26028136"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5cHI=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 305,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "7376b16a4a343e9ba92f9ad3b1dc5635ff377ebd36af177089dedbcd26028136"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRkcXk=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 259,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "9f2c23acc6e72030f2cea569077c870021bfe2822ac186ce46729cc3ad6663ed"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5YWw=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 259,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "59f8bdbc98b80cd594f312224f1ccd9d4abf7804f8c53af573a5c31887b4cfa2"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VlZHE=",
+      "rule": "JS-0116",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "originalLine": 256,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "7376b16a4a343e9ba92f9ad3b1dc5635ff377ebd36af177089dedbcd26028136"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29vdmo=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup_evidence.js",
+      "originalLine": 45,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "06e8c125ecd85d69072e1fe348963d5072d38e270470ca382ae44d9fdc5934f3"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VlbHE=",
+      "rule": "JS-0116",
+      "path": "tests/test_ai_usage_reservations.js",
+      "originalLine": 40,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "71297316b3a390246170e3e05b08627e15e31cd4dc859061729e125b5de2f558"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFhams=",
+      "rule": "JS-0116",
+      "path": "tests/test_ai_usage_reservations.js",
+      "originalLine": 16,
+      "status": "source_change_pending_rescan",
+      "proof": "Individually reviewed local fixture return/state update: preserve the same immediate counter/recording work and same returned value, with explicit Promise.resolve on every existing return/fallthrough. No assertions, explicit throws, delegated operations or rejection injections changed. Targeted suite passes.",
+      "evidenceOriginalFunctionSha256": "e6473f501238236fc6b66ea2d97fe90e8ba5101bb78af05fa63be62420e86138"
     }
   ]
 }

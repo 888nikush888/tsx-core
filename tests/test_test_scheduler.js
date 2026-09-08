@@ -143,7 +143,7 @@ async function testFourWorkerFailureStopsQueuedWork() {
   for (const barrier of MODULE_COVERAGE_SERIAL_BARRIERS) {
     const starts = [];
     assert.equal(await runTestSchedule([...selected.slice(0, 4), barrier, selected[4]], {
-      concurrency: 4, runTest: async name => { starts.push(name); return name === barrier ? 9 : 0; },
+      concurrency: 4, runTest: name => { starts.push(name); return Promise.resolve(name === barrier ? 9 : 0); },
     }), 9);
     assert.deepEqual(starts, [...selected.slice(0, 4), barrier], 'A failed exclusive barrier prevents all successors.');
   }
@@ -336,7 +336,7 @@ async function testActualPreflightAndExit() {
   const fixture = await createFixture('preflight');
   const calls = [], errors = [], logs = [];
   const options = { registeredTests: names, testsDirectory: fixture.directory, environment: fixture.environment,
-    runTest: async name => { calls.push(name); return 0; }, log: value => logs.push(value), error: value => errors.push(value) };
+    runTest: name => { calls.push(name); return Promise.resolve(0); }, log: value => logs.push(value), error: value => errors.push(value) };
   await writeFile(path.join(fixture.directory, 'test_unregistered.js'), '// preflight fixture');
   assert.notEqual(await runRegisteredTests([], options), 0);
   assert.match(errors.pop(), /unregistered/i);

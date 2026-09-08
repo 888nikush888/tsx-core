@@ -126,9 +126,9 @@ try {
   }
   const uncertain = await fixture();
   const sends = [];
-  const adapter = { exchange: 'paper', openState: syntheticTerminalHistory, cancelOrder: async (_account, id) => {
+  const adapter = { exchange: 'paper', openState: syntheticTerminalHistory, cancelOrder: (_account, id) => {
     sends.push(id);
-    return { ...uncertain.result, status: 'open' };
+    return Promise.resolve({ ...uncertain.result, status: 'open' });
   } };
   let engine = new TradingEngine([adapter]);
   await assert.rejects(engine.cancelOpenEntries(uncertain.accountId), /drain|cancellation|unresolved/i,
@@ -173,7 +173,7 @@ try {
   assert.ok(sends.includes(zero.id), 'Emergency flatten must drain an entry even when local position quantity is zero.');
 
   const retry = await fixture('open', 'bounded-retry');
-  adapter.cancelOrder = async () => { sends.push(retry.id); return { ...retry.result, status: 'open' }; };
+  adapter.cancelOrder = () => { sends.push(retry.id); return Promise.resolve({ ...retry.result, status: 'open' }); };
   await assert.rejects(engine.cancelOpenEntries(retry.accountId), /unresolved/);
   await getDatabase().run("UPDATE trading_orders SET status = 'cancel_pending', entry_drain_attempted_at = 1 WHERE id = ?", [retry.id]);
   const retryAccount = await getTradingAccount(retry.accountId);
@@ -185,7 +185,7 @@ try {
   assert.equal(sends.filter(id => id === retry.id).length, 1, 'Old evidence must not authorize another cancel.');
   await resolveActiveEntryCancelAttempts(retryAccount, remote);
   await getDatabase().run('UPDATE trading_orders SET entry_drain_attempted_at = 1 WHERE id = ?', [retry.id]);
-  adapter.cancelOrder = async () => { sends.push(retry.id); return retry.result; };
+  adapter.cancelOrder = () => { sends.push(retry.id); return Promise.resolve(retry.result); };
   assert.equal(await engine.cancelOpenEntries(retry.accountId), 1);
   assert.equal(sends.filter(id => id === retry.id).length, 2, 'Only fresh, exact active evidence permits bounded retry of the same cancellation target.');
 
@@ -224,7 +224,7 @@ try {
       quantity: '1', price: '120', triggerPrice: null });
     return state;
   };
-  flatAdapter.cancelOrder = async () => exitResult;
+  flatAdapter.cancelOrder = () => Promise.resolve(exitResult);
   await assert.rejects(flatEngine.reconcileAccount(unfinishedExit.accountId), /sibling cancellation.*unresolved/);
   assert.notEqual((await getDatabase().get('SELECT status FROM trading_positions WHERE id = ?', [unfinishedExit.id])).status, 'closed',
     'An exit sibling with unresolved cancellation prevents clean closure.');
@@ -232,7 +232,7 @@ try {
   for (let index = 0; index < 6; index += 1) await fixture('unknown', 'fair-drain', `TEST${index}USDT`);
   const fair = await fixture('open', 'fair-drain');
   let fairCancelled = 0;
-  const fairEngine = new TradingEngine([{ exchange: 'paper', cancelOrder: async () => { fairCancelled += 1; return fair.result; } }]);
+  const fairEngine = new TradingEngine([{ exchange: 'paper', cancelOrder: () => { fairCancelled += 1; return Promise.resolve(fair.result); } }]);
   await assert.rejects(fairEngine.cancelOpenEntries(fair.accountId), /unresolved/);
   assert.equal(fairCancelled, 0, 'Only five commitments may be attempted in one drain pass.');
   await assert.rejects(fairEngine.cancelOpenEntries(fair.accountId), /unresolved/);

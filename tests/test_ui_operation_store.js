@@ -68,7 +68,7 @@ try {
   assert.equal(accepted.filter(result => result.created).length, 1, 'The same operator job key accepts one operation only.');
   await assert.rejects(store.accept({ ...request, request: { name: 'different' } }), /another request/);
   let commands = 0;
-  await store.run(request.id, async () => { commands += 1; return { runtimeDisabled: true, proof: 'fixture-only' }; });
+  await store.run(request.id, () => { commands += 1; return Promise.resolve({ runtimeDisabled: true, proof: 'fixture-only' }); });
   assert.equal(commands, 1);
   assert.equal((await store.get(request.id)).state, 'succeeded');
   assert.equal((await new UiOperationStore(directory, 'process-2').get(request.id)).state, 'succeeded', 'Completed job receipts survive a different process.');

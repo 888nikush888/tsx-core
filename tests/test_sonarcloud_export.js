@@ -51,7 +51,7 @@ function retryClock() {
   return {
     delays,
     monotonicNow: () => elapsed,
-    sleepImpl: async milliseconds => { delays.push(milliseconds); elapsed += milliseconds; },
+    sleepImpl: milliseconds => { delays.push(milliseconds); elapsed += milliseconds; return Promise.resolve(); },
     random: () => 0,
     advance: milliseconds => { elapsed += milliseconds; }
   };

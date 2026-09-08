@@ -211,7 +211,7 @@ try {
   startup.release();
   const bridge = new McpControlBridge(
     fakeControl,
-    { record: async event => { auditEvents.push(event); } },
+    { record: event => { auditEvents.push(event); return Promise.resolve(); } },
     () => undefined,
     50,
     startup,

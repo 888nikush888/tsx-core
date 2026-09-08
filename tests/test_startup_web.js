@@ -21,7 +21,7 @@ const state = {
     if (event.phase === 'authorized' && revokeDuringAudit) authority.block('revoked during audit');
   } },
   secretStore: { status: () => ({}) },
-  runtimeSettings: { snapshot: () => ({}), set: async () => { changes += 1; return {}; } },
+  runtimeSettings: { snapshot: () => ({}), set: () => { changes += 1; return Promise.resolve({}); } },
 };
 const listener = startWebServer(0, state, '127.0.0.1');
 try {

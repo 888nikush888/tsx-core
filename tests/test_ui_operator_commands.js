@@ -49,10 +49,10 @@ try {
   const store = new UiOperationStore(path.join(directory, 'jobs'));
   const app = { config, state: { isRunning: false }, getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 2, paused: false }),
     startForwarding: () => Promise.resolve(), stopForwarding: () => Promise.resolve(), reloadConfig: () => undefined, applyRuntimeConfig: () => undefined,
-    auditTrail: { record: async event => audits.push(event), snapshot: () => ({ healthy: true }) }, uiOperations: store,
-    runBackupNow: async () => { calls.backup++; return 'backup-2026-fixture'; },
-    runBackupDrill: async () => { calls.drill++; return { artifactSha256: 'fixture', runtimeDisabled: true, isolation: 'temporary-child-network-apis-disabled' }; },
-    restoreBackup: async () => { calls.restore++; return { previousDatabase: 'fixture-rollback', previousConfig: null }; }, requestRestart: () => { calls.restart++; },
+    auditTrail: { record: event => Promise.resolve(audits.push(event)), snapshot: () => ({ healthy: true }) }, uiOperations: store,
+    runBackupNow: () => { calls.backup++; return Promise.resolve('backup-2026-fixture'); },
+    runBackupDrill: () => { calls.drill++; return Promise.resolve({ artifactSha256: 'fixture', runtimeDisabled: true, isolation: 'temporary-child-network-apis-disabled' }); },
+    restoreBackup: () => { calls.restore++; return Promise.resolve({ previousDatabase: 'fixture-rollback', previousConfig: null }); }, requestRestart: () => { calls.restart++; },
   };
   server = startWebServer(0, app); await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -93,15 +93,15 @@ try {
   response = await post('/api/workflow/parser-test', { ...request, externalDataConsent: true }, 'run-parser-test'); assert.equal(response.status, 503);
   delete app.startupAuthority;
   const prepared = await prepareUiParserTest(config, { sourceText }); let providerCalls = 0;
-  const fixtureParser = (text, template, models, options) => parseSignalToXml(text, template, models, { ...options, requestCompletion: async () => {
+  const fixtureParser = (text, template, models, options) => parseSignalToXml(text, template, models, { ...options, requestCompletion: () => {
     providerCalls++;
-    return { model: 'fixture/model', choices: [{ finish_reason: 'stop', message: { content: '<signal><action>LONG</action><pair>BTCUSDT</pair><entry_range><min>60000</min><max>60000</max></entry_range><targets><target id="1">62000</target></targets><stoploss>59000</stoploss><leverage>3</leverage></signal>' } }], usage: { prompt_tokens: 80, completion_tokens: 20, total_tokens: 100 } };
+    return Promise.resolve({ model: 'fixture/model', choices: [{ finish_reason: 'stop', message: { content: '<signal><action>LONG</action><pair>BTCUSDT</pair><entry_range><min>60000</min><max>60000</max></entry_range><targets><target id="1">62000</target></targets><stoploss>59000</stoploss><leverage>3</leverage></signal>' } }], usage: { prompt_tokens: 80, completion_tokens: 20, total_tokens: 100 } });
   } });
   const result = await runUiParserTest(prepared, fixtureParser); assert.equal(result.tradeExecuted, false); assert.equal(result.deliveryCreated, false); assert.equal(providerCalls, 1);
   assert.equal((await getAiUsage(new Date().toISOString().slice(0, 10))).usedTokens, 100);
   await assert.rejects(runUiParserTest(prepared, fixtureParser), /budget_exhausted/); assert.equal(providerCalls, 1, 'Persistent global quota applies before the provider request.');
   const largeXml = '💶\\"\u0001'.repeat(24_000);
-  const bounded = await runUiParserTest(prepared, async () => ({ xml: largeXml, provenance: result.provenance }));
+  const bounded = await runUiParserTest(prepared, () => Promise.resolve(({ xml: largeXml, provenance: result.provenance })));
   assert.equal(bounded.xmlTruncated, true); assert.ok(Buffer.byteLength(JSON.stringify(bounded.xml)) <= 24_000);
   assert.ok(Buffer.byteLength(JSON.stringify(bounded)) < 60_000, 'Escaped multi-byte output leaves room in the 64 KiB durable receipt.');
   assert.ok(!/[\uD800-\uDBFF]$/u.test(bounded.xml), 'Truncation preserves Unicode character boundaries.');
