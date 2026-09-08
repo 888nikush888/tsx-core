@@ -211,7 +211,7 @@ function applyQueueSettings(config: Config) {
   forwardQueue.updateSettings(maxConcurrency, queueTimeoutSeconds * 1000);
 }
 
-function configSnapshot(config: any): any {
+function configSnapshot(config: Config): Config {
   return nonSecretConfigSnapshot(config);
 }
 
@@ -263,7 +263,7 @@ async function executePersistedOutboxTask(task: OutboxTask, config: any, context
 
 async function executeScheduledOutboxTask(
   taskId: string,
-  fallbackConfig: any,
+  fallbackConfig: Config | null,
   signal: AbortSignal
 ): Promise<void> {
   await (async () => {
@@ -322,12 +322,12 @@ async function executeScheduledOutboxTask(
   })();
 }
 
-let activeOutboxConfig: any = null;
+let activeOutboxConfig: Config | null = null;
 let ingressWakeup: ReturnType<typeof setTimeout> | null = null;
 
 async function scheduleRemainingIngress(): Promise<void> {
   if (ingressWakeup) return;
-  const remaining = await getDatabase().get<any>(
+  const remaining = await getDatabase().get<{ count: number }>(
     `SELECT (SELECT COUNT(*) FROM incoming_work WHERE status = 'pending')
        + (SELECT COUNT(*) FROM incoming_album_groups WHERE status = 'waiting') AS count`
   );
@@ -1296,7 +1296,7 @@ async function removeOwnedRoutingMarker(): Promise<void> {
 }
 
 async function connectAndActivateRouting(
-  config: any,
+  config: Config,
   apiId: number,
   apiHash: string,
   resetLogs: boolean,
@@ -1548,14 +1548,14 @@ process.on('SIGINT', () => { void shutdown(0).finally(() => process.exit(process
 process.on('SIGTERM', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
 
 interface RuntimeConfiguration {
-  config: any;
+  config: Config;
   configurationRecoveryReason?: string;
 }
 
 function loadRuntimeConfiguration(): RuntimeConfiguration {
   try {
     return { config: readConfigSync() };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       config: structuredClone(DEFAULT_CONFIG),
       configurationRecoveryReason: error instanceof Error ? error.message : 'Configuration could not be read.'
