@@ -72,12 +72,12 @@ function object(value: unknown, label: string): Record<string, any> {
 }
 
 function normalizedJson(value: unknown): string {
-  const visit = (candidate: any): any => {
+  const visit = (candidate: unknown): unknown => {
     if (Array.isArray(candidate)) return candidate.map(visit);
     if (!candidate || typeof candidate !== 'object') return candidate;
     return Object.fromEntries(Object.keys(candidate)
       .sort((left, right) => left.localeCompare(right))
-      .map(key => [key, visit(candidate[key])]));
+      .map(key => [key, visit((candidate as Record<string, unknown>)[key])]));
   };
   return JSON.stringify(visit(value));
 }
@@ -977,8 +977,7 @@ function ordinaryAccountNodesForChannel(
   const accounts = new Set<string>();
   const visited = new Set<string>();
   const pending = [channelNodeId];
-  while (pending.length > 0) {
-    const nodeId = pending.pop()!;
+  for (let nodeId = pending.pop(); nodeId !== undefined; nodeId = pending.pop()) {
     if (visited.has(nodeId)) continue;
     visited.add(nodeId);
     const node = nodes.get(nodeId);
@@ -1041,8 +1040,8 @@ function fallbackSuccessorsForChannel(
 function assertAcyclicWorkflow(nodeCount: number, adjacency: Map<string, WorkflowEdge[]>, indegree: Map<string, number>): void {
   const queue = [...indegree.entries()].filter(([, degree]) => degree === 0).map(([id]) => id);
   let visited = 0;
-  while (queue.length > 0) {
-    const id = queue.shift()!; visited += 1;
+  for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
+    visited += 1;
     for (const edge of adjacency.get(id) ?? []) {
       const target = edge.target;
       const next = (indegree.get(target) ?? 0) - 1;
