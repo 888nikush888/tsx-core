@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ThemeProviderContext,
   type ResolvedTheme,
@@ -8,7 +8,7 @@ import {
 } from "@/contexts/theme-context";
 
 type ThemeProviderProps = Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
   defaultTheme?: Theme;
   storageKey?: string;
 }>;
@@ -19,17 +19,17 @@ export function ThemeProvider({
   storageKey = "vite-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = React.useState<Theme>(
+  const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
   );
-  const [systemTheme, setSystemTheme] = React.useState<ResolvedTheme>(() =>
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() =>
     window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light",
   );
   const resolvedTheme = theme === "system" ? systemTheme : theme;
 
-  React.useEffect(() => {
+  useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const updateSystemTheme = () =>
       setSystemTheme(media.matches ? "dark" : "light");
@@ -38,7 +38,7 @@ export function ThemeProvider({
     return () => media.removeEventListener("change", updateSystemTheme);
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const root = window.document.documentElement;
 
     root.classList.remove("light", "dark");
@@ -46,7 +46,7 @@ export function ThemeProvider({
     root.style.colorScheme = resolvedTheme;
   }, [resolvedTheme]);
 
-  const updateTheme = React.useCallback(
+  const updateTheme = useCallback(
     (nextTheme: Theme) => {
       localStorage.setItem(storageKey, nextTheme);
       setTheme(nextTheme);
@@ -54,7 +54,7 @@ export function ThemeProvider({
     [storageKey],
   );
 
-  const value = React.useMemo(
+  const value = useMemo(
     () => ({
       theme,
       resolvedTheme,

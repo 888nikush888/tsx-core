@@ -1,4 +1,4 @@
-import * as React from "react";
+import { type AnchorHTMLAttributes, type MouseEvent, type ReactNode, createContext, forwardRef, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useConfirmationDialog } from '@/components/confirmation-dialog';
 
 interface NavigationLocation {
@@ -19,7 +19,7 @@ interface NavigateOptions {
 type SearchParamsUpdate =
   URLSearchParams | ((current: URLSearchParams) => URLSearchParams);
 
-const NavigationContext = React.createContext<NavigationContextValue | null>(
+const NavigationContext = createContext<NavigationContextValue | null>(
   null,
 );
 
@@ -69,17 +69,17 @@ function browserUrl(location: NavigationLocation, basename: string) {
 export function NavigationProvider({
   basename = "",
   children,
-}: Readonly<{ basename?: string; children: React.ReactNode }>) {
-  const normalizedBasename = React.useMemo(
+}: Readonly<{ basename?: string; children: ReactNode }>) {
+  const normalizedBasename = useMemo(
     () => normalizeBasename(basename),
     [basename],
   );
-  const [location, setLocation] = React.useState(() =>
+  const [location, setLocation] = useState(() =>
     logicalLocation(normalizedBasename),
   );
   const { confirm, confirmationDialog } = useConfirmationDialog();
-  const leaving = React.useRef(false);
-  const leave = React.useCallback((commit: () => void) => {
+  const leaving = useRef(false);
+  const leave = useCallback((commit: () => void) => {
     if (leaving.current) return;
     if (window.dispatchEvent(new Event('tsx:navigation-check', { cancelable: true }))) { commit(); return; }
     leaving.current = true;
@@ -89,7 +89,7 @@ export function NavigationProvider({
     });
   }, [confirm]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const updateLocation = () => {
       const next = logicalLocation(normalizedBasename);
       if (window.dispatchEvent(new Event('tsx:navigation-check', { cancelable: true }))) { setLocation(next); return; }
@@ -100,7 +100,7 @@ export function NavigationProvider({
     return () => window.removeEventListener("popstate", updateLocation);
   }, [normalizedBasename, location, leave]);
 
-  const navigate = React.useCallback(
+  const navigate = useCallback(
     (to: string, options: NavigateOptions = {}) => {
       const nextLocation = splitTarget(to);
       leave(() => {
@@ -116,7 +116,7 @@ export function NavigationProvider({
     [normalizedBasename, leave],
   );
 
-  const value = React.useMemo(
+  const value = useMemo(
     () => ({ basename: normalizedBasename, location, navigate }),
     [location, navigate, normalizedBasename],
   );
@@ -130,7 +130,7 @@ export function NavigationProvider({
 }
 
 function useNavigation() {
-  const navigation = React.useContext(NavigationContext);
+  const navigation = useContext(NavigationContext);
   if (!navigation)
     throw new Error("Navigation hooks require NavigationProvider.");
   return navigation;
@@ -149,11 +149,11 @@ export function useSearchParams(): [
   (next: SearchParamsUpdate, options?: NavigateOptions) => void,
 ] {
   const { location, navigate } = useNavigation();
-  const searchParams = React.useMemo(
+  const searchParams = useMemo(
     () => new URLSearchParams(location.search),
     [location.search],
   );
-  const setSearchParams = React.useCallback(
+  const setSearchParams = useCallback(
     (update: SearchParamsUpdate, options?: NavigateOptions) => {
       const current = new URLSearchParams(location.search);
       const next = typeof update === "function" ? update(current) : update;
@@ -166,15 +166,15 @@ export function useSearchParams(): [
   return [searchParams, setSearchParams];
 }
 
-export const Link = React.forwardRef<
+export const Link = forwardRef<
   HTMLAnchorElement,
-  Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & { to: string }
+  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & { to: string }
 >(({ to, onClick, target, ...props }, ref) => {
   const { basename, navigate } = useNavigation();
   const targetLocation = splitTarget(to);
   const href = browserUrl(targetLocation, basename);
 
-  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);
     const opensCurrentPage = !target || target === "_self";
     const plainPrimaryClick =
