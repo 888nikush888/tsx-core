@@ -1,3 +1,4 @@
+import { unknownErrorMessage } from './contract_values.js';
 type PaperConfigurationPayload = {
   accountId?: unknown; equity?: string; availableBalance?: string;
   market?: Omit<TradingMarketSnapshot, 'observedAt'>; baseMarketRevision?: string | null; baseBalanceRevision?: string | null;
@@ -350,7 +351,7 @@ export class TradingWebControl {
           observedAt: snapshotObservedAt,
           error: null,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         return {
           ...base,
           equity: null,
@@ -358,7 +359,7 @@ export class TradingWebControl {
           unrealizedPnl: null,
           marginUsed: null,
           observedAt: null,
-          error: error?.message || String(error),
+          error: unknownErrorMessage(error),
         };
       }
     }));
@@ -644,9 +645,9 @@ export class TradingWebControl {
         return updateTradingAccountConfiguration(verified.id, { capabilities: result.capabilities });
       }
       return verified;
-    } catch (error: any) {
+    } catch (error: unknown) {
       await updateTradingAccountState(account.id, {
-        status: 'error', enabled: false, error: error?.message || String(error), verifiedAt: null,
+        status: 'error', enabled: false, error: unknownErrorMessage(error), verifiedAt: null,
       });
       throw error;
     }
