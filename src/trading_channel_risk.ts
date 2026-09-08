@@ -1,4 +1,4 @@
-import type { ChannelRiskPolicyRow, ChannelRiskEvaluationRow, RiskEvaluationRow, WorkflowRiskEvaluationRow, WorkflowRiskStateAnalyticsRow, WorkflowRiskEvaluationAnalyticsRow } from './trading_channel_risk_rows.js';
+import type { ChannelRiskPolicyRow, ChannelRiskEvaluationRow, RiskEvaluationRow, WorkflowRiskEvaluationRow, WorkflowRiskStateRow, WorkflowRiskStateResult, WorkflowRiskStateAnalyticsRow, WorkflowRiskEvaluationAnalyticsRow } from './trading_channel_risk_rows.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { getDatabase, withDatabaseTransaction } from './db.js';
@@ -639,9 +639,9 @@ async function loadWorkflowRiskState(input: {
   stateKey: string;
   policyHash: string;
   now: number;
-}): Promise<any> {
+}): Promise<WorkflowRiskStateResult> {
   const { request, resourceId, stateKey, policyHash, now } = input;
-  let state = await getDatabase().get<any>(
+  let state = await getDatabase().get<WorkflowRiskStateRow>(
     'SELECT * FROM workflow_adaptive_risk_state WHERE state_key = ?', [stateKey],
   );
   if (!state) {
@@ -656,7 +656,7 @@ async function loadWorkflowRiskState(input: {
         request.configuration.manuallyBlocked ? 'Blocked by workflow policy.' : null,
         policyHash, now],
     );
-    state = await getDatabase().get<any>('SELECT * FROM workflow_adaptive_risk_state WHERE state_key = ?', [stateKey]);
+    state = await getDatabase().get<WorkflowRiskStateRow>('SELECT * FROM workflow_adaptive_risk_state WHERE state_key = ?', [stateKey]);
   } else if (state.policy_sha256 !== policyHash) {
     const nextTier = Math.min(Number(state.current_tier), request.configuration.tiers.length - 1);
     await getDatabase().run(
@@ -667,8 +667,9 @@ async function loadWorkflowRiskState(input: {
         request.configuration.manuallyBlocked ? 'Blocked by workflow policy.' : null,
         policyHash, now, stateKey],
     );
-    state = await getDatabase().get<any>('SELECT * FROM workflow_adaptive_risk_state WHERE state_key = ?', [stateKey]);
+    state = await getDatabase().get<WorkflowRiskStateRow>('SELECT * FROM workflow_adaptive_risk_state WHERE state_key = ?', [stateKey]);
   }
+  if (!state) return unresolvedRisk('workflow state is missing after persistence.');
   return state;
 }
 
@@ -754,11 +755,11 @@ async function persistWorkflowRiskEvaluation(input: {
 
 async function evaluateWorkflowRiskState(input: {
   request: WorkflowAdaptiveRiskInput;
-  state: any;
+  state: WorkflowRiskStateResult;
   stateKey: string;
   policyHash: string;
   now: number;
-}): Promise<any> {
+}): Promise<WorkflowRiskStateResult> {
   const { request, state, stateKey, policyHash, now } = input;
   if (request.configuration.mode === 'fixed' || request.configuration.lockedTier !== null || request.configuration.manuallyBlocked) return state;
   const currentTier = Math.min(Number(state.current_tier), request.configuration.tiers.length - 1);
@@ -794,7 +795,7 @@ async function evaluateWorkflowRiskState(input: {
   };
 }
 
-function resolvedWorkflowRisk(input: WorkflowAdaptiveRiskInput, state: any): {
+function resolvedWorkflowRisk(input: WorkflowAdaptiveRiskInput, state: WorkflowRiskStateResult): {
   riskPercent: string; blocked: boolean; reason: string;
 } {
   if (input.configuration.manuallyBlocked || Number(state.blocked) === 1) {
@@ -825,7 +826,7 @@ export async function resolveWorkflowAdaptiveRisk(input: WorkflowAdaptiveRiskInp
   const resourceId = await workflowAdaptiveResourceId(input.adaptiveResourceVersionId);
   const policyHash = workflowPolicyHash(input.configuration);
   const stateKey = createHash('sha256').update(`${input.channelId}\0${input.accountId}\0${resourceId}`).digest('hex');
-  const initialState = await loadWorkflowRiskState({ request: input, resourceId, stateKey, policyHash, now });
+  const initialState = await withDatabaseTransaction(() => loadWorkflowRiskState({ request: input, resourceId, stateKey, policyHash, now }));
   if (Number(initialState.blocked) === 1 && String(initialState.block_reason).startsWith('Adaptive risk is unresolved:')) {
     return resolvedWorkflowRisk(input, initialState);
   }
@@ -835,7 +836,7 @@ export async function resolveWorkflowAdaptiveRisk(input: WorkflowAdaptiveRiskInp
   return resolvedWorkflowRisk(input, state);
 }
 
-async function invalidateWorkflowEvaluation(request: WorkflowAdaptiveRiskInput, state: any, stateKey: string,
+async function invalidateWorkflowEvaluation(request: WorkflowAdaptiveRiskInput, state: WorkflowRiskStateResult, stateKey: string,
   policyHash: string, now: number, error: unknown) {
   const reason = failureReason(error), blocked = request.configuration.mode === 'automatic';
   await withDatabaseTransaction(async db => {
