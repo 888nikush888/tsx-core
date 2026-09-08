@@ -40,7 +40,8 @@
     "Sonar evidence helpers: 361 original/current decision comparisons and all five Node22 Sonar regression suites passed; entire script ESLint complexity<=5 and diff checks passed.",
     "Mutation runner: 48 exact before/after cases and Node22 regression suite passed; full script complexity<=5 ESLint and diff checks passed.",
     "Architecture refactor: 576 original/current decisions, extended Node22 suite, actual architecture gate, full changed files complexity<=5 ESLint and diff checks passed.",
-    "Soak refactor: 39 exact original/current protocol comparisons; Node22 pure validation and isolated real CLI/evidence regressions passed, whole changed files complexity<=5 ESLint and diff checks passed."
+    "Soak refactor: 39 exact original/current protocol comparisons; Node22 pure validation and isolated real CLI/evidence regressions passed, whole changed files complexity<=5 ESLint and diff checks passed.",
+    "Sonar scope refactor: 484 exact original/current cases and all five Node22 Sonar suites passed; whole script complexity<=5 ESLint and diff checks passed. No Cloud mutation or production pin changes."
   ],
   "entries": [
     {
@@ -4926,6 +4927,54 @@
       "originalLine": 75,
       "status": "source_change_pending_rescan",
       "proof": "Separated URL credential/protocol policy, singleton response/sample validation, configuration, query collection and evidence writing. Entire script complexity<=5; 39 exact before/after protocol decisions match. Permanent isolated CLI tests verify success0, unhealthy1 and HTTP503 failure1 with retained evidence; no actual monitoring requests, thresholds and evidence policy unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZG5nbnc=",
+      "rule": "JS-R1005",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 116,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated branch/PR selection, compute-task identity checks, long-branch dates, PR analysis identity, metric value/period/periods formats and hotspot count/percentage validity. Whole script complexity<=5. 484 original/current scope/metric/task decisions identical; all five Sonar regression suites passed. Scope isolation, exact failures and accepted review policy unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbm9reHY=",
+      "rule": "JS-R1005",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 98,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated branch/PR selection, compute-task identity checks, long-branch dates, PR analysis identity, metric value/period/periods formats and hotspot count/percentage validity. Whole script complexity<=5. 484 original/current scope/metric/task decisions identical; all five Sonar regression suites passed. Scope isolation, exact failures and accepted review policy unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbnFrcnk=",
+      "rule": "JS-R1005",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 85,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated branch/PR selection, compute-task identity checks, long-branch dates, PR analysis identity, metric value/period/periods formats and hotspot count/percentage validity. Whole script complexity<=5. 484 original/current scope/metric/task decisions identical; all five Sonar regression suites passed. Scope isolation, exact failures and accepted review policy unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZGFueWw=",
+      "rule": "JS-R1005",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 53,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated branch/PR selection, compute-task identity checks, long-branch dates, PR analysis identity, metric value/period/periods formats and hotspot count/percentage validity. Whole script complexity<=5. 484 original/current scope/metric/task decisions identical; all five Sonar regression suites passed. Scope isolation, exact failures and accepted review policy unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bnZvd3k=",
+      "rule": "JS-R1005",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 44,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated branch/PR selection, compute-task identity checks, long-branch dates, PR analysis identity, metric value/period/periods formats and hotspot count/percentage validity. Whole script complexity<=5. 484 original/current scope/metric/task decisions identical; all five Sonar regression suites passed. Scope isolation, exact failures and accepted review policy unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZHFtYXE=",
+      "rule": "JS-R1005",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 3,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated branch/PR selection, compute-task identity checks, long-branch dates, PR analysis identity, metric value/period/periods formats and hotspot count/percentage validity. Whole script complexity<=5. 484 original/current scope/metric/task decisions identical; all five Sonar regression suites passed. Scope isolation, exact failures and accepted review policy unchanged."
     }
   ]
 }
