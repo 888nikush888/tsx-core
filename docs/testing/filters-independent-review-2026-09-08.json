@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "reviewedRevision": "8aef22896e9ea08189bc5b265c2707d17bbeed83",
+  "baselineRevision": "7f6eb9a10f36af68572a3a4b2b456b2dbe3a2fbb",
+  "decision": "no-blocking-finding-after-correction",
+  "sourceBindings": {
+    "src/filters.ts": "f5edfd4deb01e971a8e061e627e2bc1292bff101bb11dc1abd9c579db2b89832",
+    "src/contract_values.ts": "17a8f1ded288270f63ac12778110fd76d60a8a62a88494909c41687d4c31063b",
+    "tests/test_filters.js": "c3f22af06ca67d1bc3acdc8b9531c2073e14296b5800e7e3df468fd02655d9a9"
+  },
+  "review": [
+    "Filter ordering stays allowed media, blocked keywords, allowed keywords, then every regex; the first rejection and ordered error/filter log messages are preserved.",
+    "An explicit empty per-source regex array remains an override; numeric zero and null source IDs still fall back, while string zero remains a channel ID.",
+    "TDLib text/caption/no-text mappings are unchanged for supported message types. The Map intentionally stops inherited Object.prototype names from becoming mappings.",
+    "Quantifier scanning, 150-character pattern limit, 8000-character match limit, 100ms production timeout, g/y removal and FIFO cache behavior remain unchanged.",
+    "Initial 413eed7 lost actual cross-realm VM timeout diagnostics through instanceof Error. Corrective 8aef228 recognizes native errors and reads the own message data descriptor; an actual timeout now retains the exact baseline message and cause code."
+  ],
+  "independentValidation": {
+    "runtime": "Node.js 22.23.2",
+    "forwardingAndOrderedLogComparisons": 192,
+    "channelOverrideComparisons": 12,
+    "tdlibMessageTypeComparisons": 10,
+    "actualRegexTimeoutMilliseconds": 1,
+    "exactTimeoutMessagePreserved": true,
+    "causeCode": "ERR_SCRIPT_EXECUTION_TIMEOUT",
+    "existingTestFiltersSuite": "passed"
+  },
+  "limitations": [
+    "This is a bounded independent source review and local regression check, not a production/deployment or live Telegram acceptance.",
+    "The parent separately ran larger differential inventories; those counts are not presented as independently executed here."
+  ]
+}
