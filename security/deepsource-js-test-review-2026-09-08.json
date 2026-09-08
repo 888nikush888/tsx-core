@@ -18,7 +18,8 @@
     "Nine closure/ordering/rejection findings: four targeted Node22 suites, ESLint error checks and diff checks passed.",
     "11 resolver-declaration findings: all ten scoped Node22 suites and ESLint/diff checks passed. Native Promise.withResolvers is available under package Node>=22<23; resolver result shapes and settlement scheduling preserved.",
     "Explicit retry/audit completion and named scheduler options: five Node22 suites including three Sonar export modes passed; ESLint and diff checks passed.",
-    "Two placeholder-signature findings: Node22 transport fence and exact-lock Python3.12 19-case signed SDK bridge tests passed; ESLint/diff checks passed."
+    "Two placeholder-signature findings: Node22 transport fence and exact-lock Python3.12 19-case signed SDK bridge tests passed; ESLint/diff checks passed.",
+    "Twelve individual control-character regex findings: exact source-predicate review confirms intentional rejection ranges; source is unchanged, no remote suppression applied."
   ],
   "entries": [
     {
@@ -2355,6 +2356,126 @@
       "originalLine": 29,
       "status": "source_change_pending_rescan",
       "proof": "Placeholder callback signatures explicitly accept the same request/decision arguments as real callbacks; ignored arguments are named, bodies and runtime behavior remain unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d3Zndmc=",
+      "rule": "JS-W1035",
+      "path": "scripts/verify_exchange_implementation.js",
+      "originalLine": 67,
+      "status": "reviewed_expected_behavior",
+      "proof": "The negated path predicate deliberately rejects C0/DEL control bytes, Windows separators/drive syntax, absolute paths and traversal. Removing the control-character alternatives would weaken artifact source-path validation.",
+      "evidenceLineSha256": "37dc1343e4be187e7bc77b476b84bf6c90b34997fce1e30e013b6c9febc1539f",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbm9rb3Y=",
+      "rule": "JS-0004",
+      "path": "scripts/verify_exchange_implementation.js",
+      "originalLine": 67,
+      "status": "reviewed_expected_behavior",
+      "proof": "The negated path predicate deliberately rejects C0/DEL control bytes, Windows separators/drive syntax, absolute paths and traversal. Removing the control-character alternatives would weaken artifact source-path validation.",
+      "evidenceLineSha256": "37dc1343e4be187e7bc77b476b84bf6c90b34997fce1e30e013b6c9febc1539f",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnBxYXI=",
+      "rule": "JS-W1035",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 19,
+      "status": "reviewed_expected_behavior",
+      "proof": "The PR source/base-ref predicate deliberately rejects C0 controls, spaces, DEL and scanner property syntax. PR regression tests exercise invalid newline/ref inputs.",
+      "evidenceLineSha256": "924b98d2a6f5100a30dbe0a23293c5eeee7d3bd2109baf4caa549930d7dab5f8",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnlscm4=",
+      "rule": "JS-0004",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 19,
+      "status": "reviewed_expected_behavior",
+      "proof": "The PR source/base-ref predicate deliberately rejects C0 controls, spaces, DEL and scanner property syntax. PR regression tests exercise invalid newline/ref inputs.",
+      "evidenceLineSha256": "924b98d2a6f5100a30dbe0a23293c5eeee7d3bd2109baf4caa549930d7dab5f8",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZGtuZW8=",
+      "rule": "JS-W1035",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 6,
+      "status": "reviewed_expected_behavior",
+      "proof": "The branch-ref predicate deliberately rejects C0 controls, spaces, DEL and scanner property syntax before constructing a scan scope. Branch regression tests exercise invalid newline/ref inputs.",
+      "evidenceLineSha256": "19560fec9c9c57e94edfd46c170ed6d6dcb8dd6ffc2eb8171de6f841958604d4",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnlwZHY=",
+      "rule": "JS-0004",
+      "path": "scripts/sonar_scope.js",
+      "originalLine": 6,
+      "status": "reviewed_expected_behavior",
+      "proof": "The branch-ref predicate deliberately rejects C0 controls, spaces, DEL and scanner property syntax before constructing a scan scope. Branch regression tests exercise invalid newline/ref inputs.",
+      "evidenceLineSha256": "19560fec9c9c57e94edfd46c170ed6d6dcb8dd6ffc2eb8171de6f841958604d4",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHFvcHA=",
+      "rule": "JS-W1035",
+      "path": "scripts/sonar_review_decisions.js",
+      "originalLine": 154,
+      "status": "reviewed_expected_behavior",
+      "proof": "The workflow authorization branch-ref whitelist explicitly excludes C0/DEL controls in addition to whitespace; removing them would weaken the ref identity boundary.",
+      "evidenceLineSha256": "6edf8c6b4fa66a1c35f27cd4224f82e50015fe239c003e0ff9ee364780dbb783",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZGVsb2E=",
+      "rule": "JS-0004",
+      "path": "scripts/sonar_review_decisions.js",
+      "originalLine": 154,
+      "status": "reviewed_expected_behavior",
+      "proof": "The workflow authorization branch-ref whitelist explicitly excludes C0/DEL controls in addition to whitespace; removing them would weaken the ref identity boundary.",
+      "evidenceLineSha256": "6edf8c6b4fa66a1c35f27cd4224f82e50015fe239c003e0ff9ee364780dbb783",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnBxbXY=",
+      "rule": "JS-W1035",
+      "path": "scripts/sonar_review_decisions.js",
+      "originalLine": 73,
+      "status": "reviewed_expected_behavior",
+      "proof": "Review rationale validation intentionally rejects C0/DEL controls to ensure a printable, bounded, unambiguous reviewed rationale. The pattern is a security/data-integrity predicate, not accidental invisible regex text.",
+      "evidenceLineSha256": "1b8536b6e9d92c9b7a786c1c228498da78f375b82f304ec4b14e9f8849529b54",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnlscGE=",
+      "rule": "JS-0004",
+      "path": "scripts/sonar_review_decisions.js",
+      "originalLine": 73,
+      "status": "reviewed_expected_behavior",
+      "proof": "Review rationale validation intentionally rejects C0/DEL controls to ensure a printable, bounded, unambiguous reviewed rationale. The pattern is a security/data-integrity predicate, not accidental invisible regex text.",
+      "evidenceLineSha256": "1b8536b6e9d92c9b7a786c1c228498da78f375b82f304ec4b14e9f8849529b54",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnhwbHg=",
+      "rule": "JS-W1035",
+      "path": "scripts/exchange_acceptance_contract.js",
+      "originalLine": 37,
+      "status": "reviewed_expected_behavior",
+      "proof": "Recursive evidence-key validation intentionally rejects C0/DEL controls before accepting own enumerable data fields. Removing the range would allow hidden/control-character keys into acceptance evidence.",
+      "evidenceLineSha256": "66ad961c31cf0e8abc959b1a5095df9612cc9f56b63fb8faf08cdfa1e5702ccf",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d3ludnE=",
+      "rule": "JS-0004",
+      "path": "scripts/exchange_acceptance_contract.js",
+      "originalLine": 37,
+      "status": "reviewed_expected_behavior",
+      "proof": "Recursive evidence-key validation intentionally rejects C0/DEL controls before accepting own enumerable data fields. Removing the range would allow hidden/control-character keys into acceptance evidence.",
+      "evidenceLineSha256": "66ad961c31cf0e8abc959b1a5095df9612cc9f56b63fb8faf08cdfa1e5702ccf",
+      "remoteSuppressionApplied": false
     }
   ]
 }
