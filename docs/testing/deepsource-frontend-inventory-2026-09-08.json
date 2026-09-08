@@ -7,8 +7,8 @@
   "count": 847,
   "uniqueCount": 847,
   "dispositions": {
-    "pending-review": 592,
-    "fixed-pending-rescan": 245,
+    "pending-review": 591,
+    "fixed-pending-rescan": 246,
     "proposed-false-positive": 10
   },
   "sourceBinding": "Each entry path binds to baselineSha256 and reviewedSha256 in files. Fixed means local implementation only, not a platform closure. Pending entries are not reviewed or accepted.",
@@ -187,7 +187,7 @@
     },
     "frontend/src/features/signals/signal-original.tsx": {
       "baselineSha256": "1eb067b07193bb0519df43cb0cf4a7552481867fbf022a709b1441ad324ea35c",
-      "reviewedSha256": "1cb842e1e6b716ec03bff6a6ad7d32a65b758fef804dde73896fda5563a52140"
+      "reviewedSha256": "5a457fab0915644d2cf065f61149d6c5e0aca3b8b66877bd96b803581fef964f"
     },
     "frontend/src/features/signals/ingress-relations.tsx": {
       "baselineSha256": "49b7af78d6d837b35ee9f31fcfa947a9f879e9c40b2a60ff55a22af863dec990",
@@ -442,7 +442,7 @@
       "reviewedSha256": "c94cc506813b9ccacf5307fbd13ba4f81f085aad89910748b003989f49337499"
     }
   },
-  "implementationHead": "4328bf0eeba70756fb401da0fefd965a8131ccd2",
+  "implementationHead": "14b5e0e8f574b8adc67004e3353e7dc8608daac3",
   "entries": [
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGVscXA=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndrcmU=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
@@ -741,7 +741,7 @@
     {"id": "T2NjdXJyZW5jZTp2dm15bnlxd2Q=", "rule": "JS-R1005", "path": "frontend/src/features/signals/signals-page.tsx", "line": 28, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const command = async (task: any, action: \"retry\" | \"acknowledge\") => {"},
     {"id": "T2NjdXJyZW5jZTpveWFrZGt4amo=", "rule": "JS-0323", "path": "frontend/src/features/signals/signals-page.tsx", "line": 17, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const [page, setPage] = useState<any>(null);"},
     {"id": "T2NjdXJyZW5jZTp4cmd5bnlncHA=", "rule": "JS-R1005", "path": "frontend/src/features/signals/signals-page.tsx", "line": 9, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function SignalsPage({ kind, readOnly = true }: Readonly<{ kind: \"ingress\" | \"processed\" | \"outbox\" | \"messages\"; readOnly?: boolean }>) {"},
-    {"id": "T2NjdXJyZW5jZTprdnlxZHF5bW4=", "rule": "JS-0323", "path": "frontend/src/features/signals/signal-original.tsx", "line": 33, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const [state, setState] = useState<any>(null); const [error, setError] = useState(''); const [deleted, setDeleted] = useState(false);"},
+    {"id": "T2NjdXJyZW5jZTprdnlxZHF5bW4=", "rule": "JS-0323", "path": "frontend/src/features/signals/signal-original.tsx", "line": 33, "status": "fixed-pending-rescan", "rationale": "14b5e0e: StoredSignalObservation binds query to the inspected stored-original endpoint DTO, with optional parser metadata and nullable text, character length and next cursor. No runtime validation claim; polling, deletion and cursor behavior remain unchanged. Build, 305 tests, oxlint and frontend reachability passed.", "evidence": "const [state, setState] = useState<any>(null); const [error, setError] = useState(''); const [deleted, setDeleted] = useState(false);"},
     {"id": "T2NjdXJyZW5jZTplYXhteW14cXg=", "rule": "JS-R1005", "path": "frontend/src/features/signals/signal-original.tsx", "line": 30, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function SignalOriginal({ id, kind }: Readonly<{ id: string; kind: 'messages' | 'processed' }>) {"},
     {"id": "T2NjdXJyZW5jZTpwcXd4bnh3cGc=", "rule": "JS-0098", "path": "frontend/src/features/signals/signal-original.tsx", "line": 26, "status": "fixed-pending-rescan", "rationale": "b8c70a5: exact baseline scanner column lies inside an arrow void-expression body; a statement body invokes the identical expression once and returns undefined, preserving Promise and exception behavior. AST-limited transformation; build, 305 tests, Oxlint and frontend reachability gate passed.", "evidence": "return <div>{confirmationDialog}<button className=\"danger-button\" disabled={readOnly || busy || deleted} onClick={() => void remove()}>Gespeichertes Original löschen</button>"},
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGV3bHY=", "rule": "JS-R1005", "path": "frontend/src/features/signals/signal-original.tsx", "line": 12, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const remove = async () => {"},
