@@ -197,6 +197,7 @@ const allTests = [
   'test_dynamic_exchange_registry.js',
   'test_ccxt_exchange.js',
   'test_trading_web_control.js',
+  'test_trading_control_error_types.js',
   'test_trading_analytics.js',
   'test_trade_journal_streams.js',
   'test_mcp_control_plane.js',
