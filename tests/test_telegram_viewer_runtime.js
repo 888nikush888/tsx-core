@@ -80,8 +80,8 @@ async function verifyResilientLoop() {
     recordHealthyPoll() { loopState.healthy += 1; },
     recordFailure(error) { loopState.failures.push(error); },
   };
-  await resilientLoop(() => Promise.resolve(undefined), () => 250, loopService, 1);
-  await resilientLoop(() => Promise.resolve(undefined), () => 0, loopService, 2);
+  await resilientLoop(() => Promise.resolve(), () => 250, loopService, 1);
+  await resilientLoop(() => Promise.resolve(), () => 0, loopService, 2);
   await resilientLoop(() => Promise.reject(new Error('short failure')), () => 250, loopService, 1);
   await resilientLoop(() => Promise.reject('non-error failure'), () => 250, loopService, 1);
   assert.strictEqual(loopState.healthy, 3);

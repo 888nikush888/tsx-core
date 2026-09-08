@@ -53,8 +53,8 @@ function schedulerEngine(attempt) {
   // Only scheduler tests use these explicit local lifecycle fakes. The first case uses the actual Engine and Paper.
   const engine = new TradingEngine([]);
   engine.retireUnauthorizedPreparations = () => Promise.resolve(0);
-  engine.reconcileAccount = () => Promise.resolve(undefined);
-  engine.cancelExpiredEntries = () => Promise.resolve(undefined);
+  engine.reconcileAccount = () => Promise.resolve();
+  engine.cancelExpiredEntries = () => Promise.resolve();
   engine.processIntent = attempt;
   return engine;
 }

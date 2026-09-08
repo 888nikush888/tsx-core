@@ -898,7 +898,7 @@ async function testPeriodicReconciliationFailureDoesNotActivateHardKillSwitch(di
     mutations: new TradingMutationCoordinator(),
     reconcileAccount: async () => { throw new Error('simulated periodic exchange outage'); },
     cancelExpiredEntries: () => Promise.resolve(0),
-    processIntent: () => Promise.resolve(undefined),
+    processIntent: () => Promise.resolve(),
   };
   const runtime = new TradingRuntime(engine);
   await runtime.runOnce(false);
@@ -926,7 +926,7 @@ async function testTransientReconciliationFailureKeepsRetryingWithoutHardIsolati
       if (fail) throw new Error('simulated transient OPEN_STATE_FAILED');
     },
     cancelExpiredEntries: () => Promise.resolve(0),
-    processIntent: () => Promise.resolve(undefined),
+    processIntent: () => Promise.resolve(),
   };
   const runtime = new TradingRuntime(engine, 60_000, message => logs.push(message));
   await runtime.start();
@@ -967,7 +967,7 @@ async function testRestoredAccountIdentityRequiresExplicitSafeRelease(directory)
     mutations: new TradingMutationCoordinator(),
     reconcileAccount: async (_accountId, options) => { forced.push(options?.force === true); },
     cancelExpiredEntries: () => Promise.resolve(0),
-    processIntent: () => Promise.resolve(undefined),
+    processIntent: () => Promise.resolve(),
   };
   const runtime = new TradingRuntime(engine, 60_000);
 
@@ -993,9 +993,9 @@ async function testEntryExpiryFailureActivatesKillSwitch(directory) {
   await updateTradingRuntimeState({ executionEnabled: true });
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: () => Promise.resolve(undefined),
+    reconcileAccount: () => Promise.resolve(),
     cancelExpiredEntries: async () => { throw new Error('simulated expiry cancellation outage'); },
-    processIntent: () => Promise.resolve(undefined),
+    processIntent: () => Promise.resolve(),
   };
   const runtime = new TradingRuntime(engine);
   await runtime.runOnce(false);
@@ -1022,7 +1022,7 @@ async function testRuntimeIsolatesAccountFailures(directory) {
       if (accountId === first.id) throw new Error('first account unavailable');
     },
     cancelExpiredEntries: () => Promise.resolve(0),
-    processIntent: () => Promise.resolve(undefined),
+    processIntent: () => Promise.resolve(),
   };
   const runtime = new TradingRuntime(engine);
   await runtime.runOnce(false);
@@ -1220,9 +1220,9 @@ async function testClockDriftBlocksEveryEntryPath(directory) {
   await updateTradingRuntimeState({ executionEnabled: true });
   const runtime = new TradingRuntime({
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: () => Promise.resolve(undefined),
+    reconcileAccount: () => Promise.resolve(),
     cancelExpiredEntries: () => Promise.resolve(0),
-    processIntent: () => Promise.resolve(undefined),
+    processIntent: () => Promise.resolve(),
   }, 60_000, () => undefined, unsafeClock);
   await runtime.startProtectionOnly();
   await assert.rejects(runtime.enableEntries(), /simulated unsafe clock drift/);
@@ -1294,7 +1294,7 @@ async function testRuntimeLifecycleAndDefaultFailureLogger(directory) {
       if (reconciliations === 2) throw new Error('scheduled failure handled by default logger');
     },
     cancelExpiredEntries: () => Promise.resolve(0),
-    processIntent: () => Promise.resolve(undefined),
+    processIntent: () => Promise.resolve(),
   };
   assert.throws(() => new TradingRuntime(engine, 249), /interval must be between 250 and 60000/);
   await assert.rejects(new TradingRuntime(engine).enableEntries(), /runtime is not running/);
@@ -1330,7 +1330,7 @@ async function testExchangeStreamAcceleratesAuthoritativeReconciliation(director
     mutations: new TradingMutationCoordinator(),
     reconcileAccount: async (accountId, options) => { reconciliations.push([accountId, options?.force]); },
     cancelExpiredEntries: () => Promise.resolve(0),
-    processIntent: () => Promise.resolve(undefined),
+    processIntent: () => Promise.resolve(),
     pollAccountStream: async () => {
       if (emitted) return null;
       emitted = true;
@@ -1384,7 +1384,7 @@ async function testStartupReconciliationFailureKeepsControlPlaneAvailable(direct
     mutations: new TradingMutationCoordinator(),
     reconcileAccount: async () => { throw new Error('simulated unmanaged startup exposure'); },
     cancelExpiredEntries: () => Promise.resolve(0),
-    processIntent: () => Promise.resolve(undefined),
+    processIntent: () => Promise.resolve(),
   };
   const runtime = new TradingRuntime(engine, 60_000, message => logs.push(message));
 

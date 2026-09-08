@@ -23,7 +23,8 @@
     "Trailing undefined review: Node22 reproduces mandatory expected-argument behavior; each occurrence AST-mapped to its exact assertion or explicit undefined-input regression. No source changes or suppressions.",
     "Risk-policy helper refactor: existing Node22 governance suite and 1728 original-versus-current cases passed; ESLint complexity<=5 for the whole file, ordinary ESLint and diff checks passed.",
     "84 unchanged async fault-injection functions individually read and exact-AST-body matched to baseline; all 36 affected Node22 regression suites passed. No async removal, wrapper or suppression.",
-    "15 UI fixture concatenations: four Node22 restart/register/operator suites and ESLint/diff checks passed."
+    "15 UI fixture concatenations: four Node22 restart/register/operator suites and ESLint/diff checks passed.",
+    "Follow-up on Promise literal stubs: 21 optional undefined arguments omitted from Promise.resolve to avoid introducing JS-W1042; all six affected Node22 suites and ESLint/diff checks passed. Baseline IDs unchanged."
   ],
   "entries": [
     {
