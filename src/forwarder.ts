@@ -1,3 +1,5 @@
+import { unknownErrorMessage } from './contract_values.js';
+import { forwarderErrorCode, isForwardRestrictedError } from './forwarder_errors.js';
 import type { WorkflowSignalPlan } from './workflow_repository.js';
 import type { TradingIntent, TradingSignalSchema, SignalContractVersion, WorkflowRevision } from './trading_types.js';
 import type { RouteRow } from './trading_repository_rows.js';
@@ -125,8 +127,8 @@ import {
   operationalDatabasePath,
 } from './mcp_maintenance.js';
 
-process.on('uncaughtException', (error: any) => {
-  const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error?.stack || error?.message || error}`;
+process.on('uncaughtException', (error: unknown) => {
+  const errMsg = `[FATAL ERROR] Unbehandelte Ausnahme: ${error instanceof Error ? error.stack || error.message : unknownErrorMessage(error)}`;
   console.error(errMsg);
   try {
     addLog(errMsg);
@@ -136,11 +138,11 @@ process.on('uncaughtException', (error: any) => {
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason: any) => {
-  if (reason?.message === 'Client was closed') {
+process.on('unhandledRejection', (reason: unknown) => {
+  if (reason instanceof Error && reason.message === 'Client was closed') {
     return; // Ignore expected connection close errors
   }
-  const errMsg = `[FATAL REJECTION] Unbehandelte Rejection: ${reason?.stack || reason?.message || reason}`;
+  const errMsg = `[FATAL REJECTION] Unbehandelte Rejection: ${reason instanceof Error ? reason.stack || reason.message : unknownErrorMessage(reason)}`;
   console.error(errMsg);
   try {
     addLog(errMsg);
@@ -162,7 +164,7 @@ async function checkCrashLoop() {
     if (!processLock) throw new Error('Crash check requires an acquired process owner.');
     await checkCrashLoopFiles(SESSION_DIRECTORY, processLock);
   } catch (err) {
-    console.error(`[FATAL] Crash-Loop-Schutz blockiert den Start: ${err.message}`);
+    console.error(`[FATAL] Crash-Loop-Schutz blockiert den Start: ${unknownErrorMessage(err)}`);
     throw err;
   }
 }
@@ -254,9 +256,9 @@ async function migrateLegacyPersistedTasks(config: Config): Promise<void> {
     }
     await fsPromises.unlink(LEGACY_PERSIST_FILE);
     addLog(`[INFO] ${tasks.length} legacy JSON outbox task(s) migrated to SQLite.`);
-  } catch (err: any) {
-    if (err.code === 'ENOENT') return;
-    throw new Error(`Legacy outbox migration failed: ${err.message}`, { cause: err });
+  } catch (err: unknown) {
+    if (forwarderErrorCode(err) === 'ENOENT') return;
+    throw new Error(`Legacy outbox migration failed: ${unknownErrorMessage(err)}`, { cause: err });
   }
 }
 
@@ -321,16 +323,16 @@ async function executeScheduledOutboxTask(
         latency_ms: Date.now() - startedAt
       });
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const finalStatus = await failOutboxTask(task.id, error);
       if (deliveryAttempted) deliverySlo.recordFailure(finalStatus === 'unknown' ? 'unknown' : 'failed');
-      addLog(`[ERROR] Outbox task ${task.id} failed with status ${finalStatus}: ${error.message}`, {
+      addLog(`[ERROR] Outbox task ${task.id} failed with status ${finalStatus}: ${unknownErrorMessage(error)}`, {
         correlation_id: task.id,
         event: 'outbox_failed',
         attempt: task.attempts,
         outcome: finalStatus,
         latency_ms: Date.now() - startedAt,
-        error_code: String(error?.code || error?.name || 'Error'),
+        error_code: String(forwarderErrorCode(error) || (error instanceof Error ? error.name : 'Error')),
         retryable: finalStatus === 'failed'
       });
       if (finalStatus === 'unknown') {
@@ -459,8 +461,8 @@ async function recordForwardedMessages(amount = 1) {
   state.lastSuccessfulForwardAt = forwardedAt;
   try {
     await incrementForwardedCount(amount, forwardedAt);
-  } catch (error: any) {
-    addLog(`[WARN] Weiterleitungszähler konnte nicht gespeichert werden: ${error.message}`);
+  } catch (error: unknown) {
+    addLog(`[WARN] Weiterleitungszähler konnte nicht gespeichert werden: ${unknownErrorMessage(error)}`);
   }
 }
 
@@ -741,11 +743,6 @@ async function resolveConfiguredSources(config) {
   }
 }
 
-function isForwardRestrictedError(error: any): boolean {
-  const message = String(error?.message || error || '');
-  return /CHAT_FORWARDS_RESTRICTED|MESSAGE_COPY_FORBIDDEN|CONTENT_RESTRICTED/i.test(message);
-}
-
 async function tryManualCopyFallback(message, context: OutboxExecutionContext) {
   const content = message.content;
   if (!content) throw new Error(`Message ${message.id} has no content for manual-copy fallback.`);
@@ -790,10 +787,10 @@ async function forwardRawMessage(message, config, context: OutboxExecutionContex
     addLog(`[SUCCESS] Paket ${message.id} erfolgreich übertragen und bestätigt.`);
     await recordForwardedMessages();
     updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
-      .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
+      .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${unknownErrorMessage(error)}`));
     return { mode: 'telegram-forward', ...confirmation };
-  } catch (error: any) {
-    addLog(`[ERROR] Übertragungsfehler bei Paket ${message.id}: ${error.message}`);
+  } catch (error: unknown) {
+    addLog(`[ERROR] Übertragungsfehler bei Paket ${message.id}: ${unknownErrorMessage(error)}`);
     updateIncomingMessageStatus(String(message.chat_id), message.id, 'failed')
       .catch(statusError => addLog(`[WARN] Inbox failure status update failed for ${message.id}: ${statusError.message}`));
     if (config.forwardOptions?.sendCopy && isForwardRestrictedError(error)) {
@@ -820,7 +817,7 @@ async function checkDuplicateAndSave(
     if (dupeResult.isDupe) {
       addLog(`[DUPE-BLOCKER] Paket ${message.id} blockiert: ${dupeResult.reason}`);
       updateIncomingMessageStatus(String(message.chat_id), message.id, 'duplicate')
-        .catch(error => addLog(`[WARN] Inbox duplicate status update failed for ${message.id}: ${error.message}`));
+        .catch(error => addLog(`[WARN] Inbox duplicate status update failed for ${message.id}: ${unknownErrorMessage(error)}`));
       return null;
     }
   }
@@ -1038,12 +1035,12 @@ async function finishLegacySignalOutput(input: {
   if (forwardXml) {
     const result = await sendXmlMessage(parsedXml, context);
     updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
-      .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
+      .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${unknownErrorMessage(error)}`));
     return { handled: true, result };
   }
   if (shouldForwardToTelegram) return { handled: false };
   updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
-    .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${error.message}`));
+    .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${unknownErrorMessage(error)}`));
   return { handled: true, result: { mode: 'local-signal-only' } };
 }
 
@@ -1082,8 +1079,8 @@ async function processXmlSignal(message, text, contentType, xmlParsing, dupeBloc
     if (!signalId) return { handled: true, result: { mode: 'duplicate-blocked' } };
     await createLegacyIntentForSignal(parsedSignal, signalId, sourceId, signalReceivedAt, context);
     return finishLegacySignalOutput({ message, parsedXml: parsedSignal.xml, forwardXml, shouldForwardToTelegram, context });
-  } catch (error: any) {
-    addLog(`[XML-Parser ERROR] Paket ${message.id}: ${error.message}`);
+  } catch (error: unknown) {
+    addLog(`[XML-Parser ERROR] Paket ${message.id}: ${unknownErrorMessage(error)}`);
     updateIncomingMessageStatus(String(message.chat_id), message.id, 'failed')
       .catch(statusError => addLog(`[WARN] Inbox failure status update failed for ${message.id}: ${statusError.message}`));
     throw error;
@@ -1143,9 +1140,9 @@ async function migrateLegacyMediaGroupBuffer(): Promise<void> {
     }
     await fsPromises.unlink(LEGACY_MEDIA_BUFFER_FILE);
     addLog(`[INFO] ${Object.keys(data).length} legacy media buffer group(s) migrated to SQLite.`);
-  } catch (err: any) {
-    if (err.code === 'ENOENT') return;
-    throw new Error(`Legacy media-buffer migration failed: ${err.message}`, { cause: err });
+  } catch (err: unknown) {
+    if (forwarderErrorCode(err) === 'ENOENT') return;
+    throw new Error(`Legacy media-buffer migration failed: ${unknownErrorMessage(err)}`, { cause: err });
   }
 }
 
@@ -1181,10 +1178,10 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
     await recordForwardedMessages(ids.length);
     for (const msg of g.messages) {
       updateIncomingMessageStatus(String(msg.chat_id), msg.id, 'processed')
-        .catch(error => addLog(`[WARN] Inbox status update failed for ${msg.id}: ${error.message}`));
+        .catch(error => addLog(`[WARN] Inbox status update failed for ${msg.id}: ${unknownErrorMessage(error)}`));
     }
     return { mode: 'telegram-album', ...confirmation };
-  } catch (error: any) {
+  } catch (error: unknown) {
     for (const msg of g.messages) {
       updateIncomingMessageStatus(String(msg.chat_id), msg.id, 'failed')
         .catch(statusError => addLog(`[WARN] Inbox failure status update failed for ${msg.id}: ${statusError.message}`));
@@ -1233,8 +1230,8 @@ async function stopForwarding() {
   if (client) {
     try {
       await client.close();
-    } catch (error: any) {
-      addLog(`[WARN] TDLib client close failed while stopping routing: ${error.message}`);
+    } catch (error: unknown) {
+      addLog(`[WARN] TDLib client close failed while stopping routing: ${unknownErrorMessage(error)}`);
     }
     client = null;
   }
@@ -1243,8 +1240,8 @@ async function stopForwarding() {
   }
   try {
     await removeOwnedRoutingMarker();
-  } catch (error: any) {
-    if (error.code !== 'ENOENT') throw error;
+  } catch (error: unknown) {
+    if (forwarderErrorCode(error) !== 'ENOENT') throw error;
   }
   addLog("[SUCCESS] Weiterleitung gestoppt!");
 }
@@ -1277,9 +1274,9 @@ async function preloadTelegramChats(): Promise<void> {
       for (let index = 0; index < 15; index++) {
         await client.invoke({ _: 'loadChats', chat_list: list, limit: 100 });
       }
-    } catch (error: any) {
-      if (error.message && !error.message.includes('CHAT_LIST_LOAD')) {
-        addLog(`[WARN] loadChats (${list._}): ${error.message}`);
+    } catch (error: unknown) {
+      if (unknownErrorMessage(error) && !unknownErrorMessage(error).includes('CHAT_LIST_LOAD')) {
+        addLog(`[WARN] loadChats (${list._}): ${unknownErrorMessage(error)}`);
       }
     }
   }
@@ -1288,7 +1285,7 @@ async function preloadTelegramChats(): Promise<void> {
 function attachTelegramUpdateHandler(config: Config): void {
   client.on('update', update => {
     void handleUpdate(update, config).catch(error => {
-      addLog(`[ERROR] Telegram update handling failed: ${error.message}`);
+      addLog(`[ERROR] Telegram update handling failed: ${unknownErrorMessage(error)}`);
     });
   });
 }
@@ -1299,8 +1296,8 @@ async function writeRoutingActiveMarker(): Promise<void> {
     await assertProcessLockOwner(processLock, SESSION_DIRECTORY);
     await fsPromises.writeFile(ROUTING_ACTIVE_MARKER, 'active', { encoding: 'utf-8', mode: 0o600 });
     routingMarkerOwned = true;
-  } catch (error: any) {
-    addLog(`[WARN] Konnte Lockfile nicht erstellen: ${error.message}`);
+  } catch (error: unknown) {
+    addLog(`[WARN] Konnte Lockfile nicht erstellen: ${unknownErrorMessage(error)}`);
     throw error;
   }
 }
@@ -1310,7 +1307,7 @@ async function removeOwnedRoutingMarker(): Promise<void> {
   if (!processLock) throw new Error('Routing marker removal requires process ownership.');
   await assertProcessLockOwner(processLock, SESSION_DIRECTORY);
   try { await fsPromises.unlink(ROUTING_ACTIVE_MARKER); }
-  catch (error: any) { if (error.code !== 'ENOENT') throw error; }
+  catch (error: unknown) { if (forwarderErrorCode(error) !== 'ENOENT') throw error; }
   routingMarkerOwned = false;
 }
 
@@ -1372,16 +1369,16 @@ async function cleanupFailedRoutingStart(reason: string): Promise<boolean> {
   if (client) {
     try {
       await client.close();
-    } catch (error: any) {
-      addLog(`[WARN] TDLib client close failed after startup error: ${error.message}`);
+    } catch (error: unknown) {
+      addLog(`[WARN] TDLib client close failed after startup error: ${unknownErrorMessage(error)}`);
     }
     client = null;
   }
   if (drained) {
     try {
       await removeOwnedRoutingMarker();
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') addLog(`[WARN] Routing lock cleanup failed after startup error: ${error.message}`);
+    } catch (error: unknown) {
+      if (forwarderErrorCode(error) !== 'ENOENT') addLog(`[WARN] Routing lock cleanup failed after startup error: ${unknownErrorMessage(error)}`);
     }
   }
   return drained;
@@ -1417,7 +1414,7 @@ async function startForwardingNonInteractive(config) {
       "[SUCCESS] Mainframe-Routing aktiv!",
       requiresTelegramTarget,
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (routingStopRequested) {
       await cleanupFailedRoutingStart('Routing start cancelled by operator.');
       state.connectionState = 'disconnected';
@@ -1425,7 +1422,7 @@ async function startForwardingNonInteractive(config) {
       return;
     }
     state.connectionState = 'error';
-    addLog(`[FATAL] Fehler beim Starten des Forwardings: ${error.message}`);
+    addLog(`[FATAL] Fehler beim Starten des Forwardings: ${unknownErrorMessage(error)}`);
     const drained = await cleanupFailedRoutingStart('Non-interactive startup failed.');
     if (!drained) addLog('[CRITICAL] Queue did not drain after non-interactive startup failure.');
     throw error;
@@ -1443,8 +1440,8 @@ async function stopScheduler(scheduler: { stop: () => Promise<void> } | null, la
   if (!scheduler) return;
   try {
     await scheduler.stop();
-  } catch (error: any) {
-    console.warn(`[WARN] ${label} konnte nicht sauber beendet werden: ${error.message}`);
+  } catch (error: unknown) {
+    console.warn(`[WARN] ${label} konnte nicht sauber beendet werden: ${unknownErrorMessage(error)}`);
   }
 }
 
@@ -1471,7 +1468,7 @@ async function stopSchedulerForMaintenance(
   if (!scheduler) return;
   try {
     await scheduler.stop();
-  } catch (error: any) {
+  } catch (error: unknown) {
     throw new Error(`${label} could not be drained for maintenance.`, { cause: error });
   }
 }
@@ -1507,8 +1504,8 @@ async function stopRuntimeServices(): Promise<void> {
   if (!client) return;
   try {
     await client.close();
-  } catch (error: any) {
-    console.warn(`[WARN] Fehler beim Schließen des TDLib Clients: ${error.message}`);
+  } catch (error: unknown) {
+    console.warn(`[WARN] Fehler beim Schließen des TDLib Clients: ${unknownErrorMessage(error)}`);
   }
   client = null;
 }
@@ -1518,8 +1515,8 @@ async function closeDatabaseAfterDrain(drained: boolean): Promise<boolean> {
   try {
     await closeDb();
     return true;
-  } catch (error: any) {
-    console.warn(`[WARN] Fehler beim Schließen der SQLite-Datenbank: ${error.message}`);
+  } catch (error: unknown) {
+    console.warn(`[WARN] Fehler beim Schließen der SQLite-Datenbank: ${unknownErrorMessage(error)}`);
     return false;
   }
 }
@@ -1529,8 +1526,8 @@ async function releaseProcessLock(label: string): Promise<void> {
   try {
     await processLock.release();
     processLock = null;
-  } catch (error: any) {
-    console.warn(`[WARN] ${label} konnte nicht entfernt werden: ${error.message}`);
+  } catch (error: unknown) {
+    console.warn(`[WARN] ${label} konnte nicht entfernt werden: ${unknownErrorMessage(error)}`);
   }
 }
 
@@ -1617,8 +1614,8 @@ async function initializeCoreRuntime(
       addLog(`[WORKFLOW] ${migration.paths} legacy trading route(s) migrated to the active visual workflow.`);
     }
     for (const skipped of migration.skipped) addLog(`[WARN] Legacy workflow migration skipped ${skipped}.`);
-  } catch (error: any) {
-    addLog(`[WARN] Legacy visual-workflow migration was not activated; existing routing remains intact: ${error.message}`);
+  } catch (error: unknown) {
+    addLog(`[WARN] Legacy visual-workflow migration was not activated; existing routing remains intact: ${unknownErrorMessage(error)}`);
   }
   const tradingEngine = await composeTradingControl(tradingCredentials, clockGuard);
   if (!tradingWebControl || !auditTrail) throw new Error('MCP control dependencies are unavailable.');
@@ -2093,11 +2090,11 @@ async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<boolean
   try {
     await startForwardingNonInteractive(runtime.config);
     return true;
-  } catch (error: any) {
-    if (error?.message === 'Non-interactive routing configuration is incomplete.') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Non-interactive routing configuration is incomplete.') {
       state.connectionState = 'configuration-required';
     }
-    addLog(`[ERROR] Automatic routing start failed; dashboard remains available: ${error.message}`);
+    addLog(`[ERROR] Automatic routing start failed; dashboard remains available: ${unknownErrorMessage(error)}`);
     return false;
   }
 }
@@ -2108,8 +2105,8 @@ async function enableConfiguredEntries(): Promise<void> {
   try {
     await tradingRuntime?.enableEntries();
     addLog('[TRADING] Entry processing enabled after all startup gates passed.');
-  } catch (error: any) {
-    addLog(`[CRITICAL] Trading entry latch remains disabled: ${error.message}`);
+  } catch (error: unknown) {
+    addLog(`[CRITICAL] Trading entry latch remains disabled: ${unknownErrorMessage(error)}`);
   }
 }
 
@@ -2117,13 +2114,13 @@ async function startInfrastructureGates(runtime: RuntimeConfiguration, databaseP
   minimumFreeBytes: number, clockGuard: ClockGuard): Promise<void> {
   try {
     await runStartupGate(startupAuthority, 'monitoring', () => startMonitoringRuntime(databasePath, minimumFreeBytes, clockGuard));
-  } catch (error: any) {
-    addLog(`[CRITICAL] Monitoring runtime failed to initialize; trading entries remain disabled: ${error.message}`);
+  } catch (error: unknown) {
+    addLog(`[CRITICAL] Monitoring runtime failed to initialize; trading entries remain disabled: ${unknownErrorMessage(error)}`);
   }
   try {
     await runStartupGate(startupAuthority, 'backup', () => startBackupRuntime(runtime));
-  } catch (error: any) {
-    addLog(`[CRITICAL] Backup runtime failed to initialize; trading entries remain disabled: ${error.message}`);
+  } catch (error: unknown) {
+    addLog(`[CRITICAL] Backup runtime failed to initialize; trading entries remain disabled: ${unknownErrorMessage(error)}`);
   }
   if (startupAuthority.snapshot().phase !== 'blocked') startupAuthority.release();
 }
@@ -2147,10 +2144,10 @@ async function run() {
     await telegramViewerSettings.initialize({ recoverInvalidFile: true });
     telegramViewerSecrets = telegramViewerSecretStoreFromEnvironment();
     await telegramViewerSecrets.initialize({ recoverInvalidBotToken: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     telegramViewerSettings = undefined;
     telegramViewerSecrets = undefined;
-    addLog(`[ERROR] Telegram viewer control could not initialize; core routing and trading remain unaffected: ${error.message}`);
+    addLog(`[ERROR] Telegram viewer control could not initialize; core routing and trading remain unaffected: ${unknownErrorMessage(error)}`);
   }
   const runtime = loadRuntimeConfiguration();
   if (!runtime.configurationRecoveryReason && !runtimeSettings.recoveryStatus().active) {
@@ -2158,8 +2155,8 @@ async function run() {
       const diskConfig = JSON.parse(await fsPromises.readFile(configurationPathFromEnvironment(), 'utf8'));
       if (backupConfigurationDigest(diskConfig) !== backupConfigurationDigest(runtime.config)) writeConfigSync(runtime.config);
       await initializeConfigurationGeneration(backupConfigurationSources(databasePath), requiredProcessOwner());
-    } catch (error: any) {
-      runtime.configurationRecoveryReason = `Configuration generation requires recovery: ${error.message}`;
+    } catch (error: unknown) {
+      runtime.configurationRecoveryReason = `Configuration generation requires recovery: ${unknownErrorMessage(error)}`;
     }
   }
   if (runtimeSettings.recoveryStatus().active || secretStore.recoveryStatus().length > 0 || runtime.configurationRecoveryReason) {
@@ -2172,8 +2169,8 @@ async function run() {
       tradingRuntime = new TradingRuntime(engine, 2_000, addLog, clockGuard, startupAuthority);
       tradingWebControl?.attachEntryRuntime(tradingRuntime);
       await tradingRuntime.startProtectionOnly();
-    } catch (error: any) {
-      addLog(`[CRITICAL] Trading safety state could not be loaded in recovery mode; factory reset remains blocked until database recovery: ${error.message}`);
+    } catch (error: unknown) {
+      addLog(`[CRITICAL] Trading safety state could not be loaded in recovery mode; factory reset remains blocked until database recovery: ${unknownErrorMessage(error)}`);
     }
     await startDashboardRuntime(
       runtime, secretStore, runtimeSettings, tradingCredentials, telegramViewerSettings, telegramViewerSecrets,
@@ -2190,8 +2187,8 @@ async function run() {
 }
 try {
   await run();
-} catch (err: any) {
-  console.error("Kritischer Fehler:", err.message);
+} catch (err: unknown) {
+  console.error("Kritischer Fehler:", unknownErrorMessage(err));
   await shutdown(1);
   process.exit(process.exitCode || 1);
 }
