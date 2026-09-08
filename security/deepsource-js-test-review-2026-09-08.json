@@ -36,7 +36,8 @@
     "FX forged-evidence construction: full Node22 repository suite and ESLint/diff checks passed.",
     "Registry and LCOV helpers: both Node22 regression suites, complete changed scripts ESLint complexity<=5 and diff checks passed.",
     "Complexity and release policies: 304 original/current differential cases, both extended Node22 regression suites, actual release gate, strict complexity<=5 ESLint and diff checks passed.",
-    "Sonar read retry helpers: all five Node22 Sonar suites passed; complete script ESLint complexity<=5 and diff checks passed. No live mutation or production pin change."
+    "Sonar read retry helpers: all five Node22 Sonar suites passed; complete script ESLint complexity<=5 and diff checks passed. No live mutation or production pin change.",
+    "Sonar evidence helpers: 361 original/current decision comparisons and all five Node22 Sonar regression suites passed; entire script ESLint complexity<=5 and diff checks passed."
   ],
   "entries": [
     {
@@ -4826,6 +4827,54 @@
       "originalLine": 69,
       "status": "source_change_pending_rescan",
       "proof": "Separated request URL construction, network-failure classification and retry preparation; whole script complexity<=5. Preserves retryable statuses, 3-attempt cap, response cancellation, remaining budget checks, delays, parsing and exact failure messages. Five Sonar export/branch/PR/evidence/decision suites passed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZGFub2w=",
+      "rule": "JS-R1005",
+      "path": "scripts/verify_sonar_evidence.js",
+      "originalLine": 88,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated summary header/revision/gate checks, PR identity/review completeness, long-branch date binding, artifact verification and finding counts. Partition validation preserves ordering and exact rejection text. Whole file complexity<=5; 361 original/current malformed and valid evidence decisions identical; all five Sonar suites pass. No pins, accepted policy or suppression changed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bnZvbHk=",
+      "rule": "JS-R1005",
+      "path": "scripts/verify_sonar_evidence.js",
+      "originalLine": 79,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated summary header/revision/gate checks, PR identity/review completeness, long-branch date binding, artifact verification and finding counts. Partition validation preserves ordering and exact rejection text. Whole file complexity<=5; 361 original/current malformed and valid evidence decisions identical; all five Sonar suites pass. No pins, accepted policy or suppression changed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnlseG4=",
+      "rule": "JS-R1005",
+      "path": "scripts/verify_sonar_evidence.js",
+      "originalLine": 46,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated summary header/revision/gate checks, PR identity/review completeness, long-branch date binding, artifact verification and finding counts. Partition validation preserves ordering and exact rejection text. Whole file complexity<=5; 361 original/current malformed and valid evidence decisions identical; all five Sonar suites pass. No pins, accepted policy or suppression changed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZGtucW8=",
+      "rule": "JS-R1005",
+      "path": "scripts/verify_sonar_evidence.js",
+      "originalLine": 38,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated summary header/revision/gate checks, PR identity/review completeness, long-branch date binding, artifact verification and finding counts. Partition validation preserves ordering and exact rejection text. Whole file complexity<=5; 361 original/current malformed and valid evidence decisions identical; all five Sonar suites pass. No pins, accepted policy or suppression changed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnlwdnY=",
+      "rule": "JS-R1005",
+      "path": "scripts/verify_sonar_evidence.js",
+      "originalLine": 25,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated summary header/revision/gate checks, PR identity/review completeness, long-branch date binding, artifact verification and finding counts. Partition validation preserves ordering and exact rejection text. Whole file complexity<=5; 361 original/current malformed and valid evidence decisions identical; all five Sonar suites pass. No pins, accepted policy or suppression changed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZHFtanE=",
+      "rule": "JS-R1005",
+      "path": "scripts/verify_sonar_evidence.js",
+      "originalLine": 19,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated summary header/revision/gate checks, PR identity/review completeness, long-branch date binding, artifact verification and finding counts. Partition validation preserves ordering and exact rejection text. Whole file complexity<=5; 361 original/current malformed and valid evidence decisions identical; all five Sonar suites pass. No pins, accepted policy or suppression changed."
     }
   ]
 }
