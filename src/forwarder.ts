@@ -1,8 +1,9 @@
+import type { RouteRow } from './trading_repository_rows.js';
+import type { IngressConfiguration, TelegramMessageIdentity } from './ingress_contracts.js';
 import { unknownErrorMessage } from './contract_values.js';
 import { forwarderErrorCode, isForwardRestrictedError } from './forwarder_errors.js';
 import type { WorkflowSignalPlan } from './workflow_repository.js';
-import type { TradingIntent, TradingSignalSchema, SignalContractVersion, WorkflowRevision } from './trading_types.js';
-import type { RouteRow } from './trading_repository_rows.js';
+import type { TradingIntent, TradingSignalSchema } from './trading_types.js';
 import type { Config } from './config.js';
 import * as tdl from 'tdl';
 import { getTdjson } from 'prebuilt-tdlib';
@@ -179,25 +180,7 @@ const forwardQueue = new ConcurrencyQueue(2, 60_000, OUTBOX_MAX_IN_MEMORY_TASKS)
 const LEGACY_PERSIST_FILE = './session_data/queue_persist.json';
 const LEGACY_MEDIA_BUFFER_FILE = './session_data/media_group_buffer.json';
 
-/** Identity fields consumed here; the durable inbox retains the complete Telegram message. */
-interface TelegramMessageIdentity {
-  id: number;
-  chat_id: number;
-  is_outgoing?: boolean;
-}
-
-interface DurableIngressSnapshot {
-  id: string; chatId: string; receivedAt: number; workflowRevisionId: string | null;
-  targetChatId: string | number | null; workflow?: WorkflowRevision | null;
-  deliveryMode?: 'telegram_xml' | 'telegram_original'; parsedXml?: string;
-  albumMessages?: TelegramMessageIdentity[]; planKey?: string;
-  schemas?: TradingSignalSchema[]; contracts?: Record<string, SignalContractVersion>; prompts?: Record<string, string>;
-  legacySchema?: TradingSignalSchema | null; legacyPrompt?: string; legacyRoute?: RouteRow | null;
-}
-
-interface ForwarderConfiguration extends Config {
-  durableIngress?: DurableIngressSnapshot;
-}
+type ForwarderConfiguration = IngressConfiguration;
 
 interface ForwarderResult {
   mode: string; destinationMessageIds?: string[]; createdIntents?: number; outputModes?: string[]; hasXml?: boolean;

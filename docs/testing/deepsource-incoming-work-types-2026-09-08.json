@@ -1,12 +1,16 @@
 {
   "schemaVersion": 1,
   "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
-  "scope": "Durable ingress SQL row projections; other findings remain open.",
+  "scope": "All 29 baseline JS-0323 occurrences in durable ingress; complexity/return findings handled separately.",
   "verification": [
     "Node22 tsc --noEmit",
     "Node22 tests/test_ingress_atomicity.js",
     "Node22 tests/test_ingress_workflow_pinning.js",
-    "Node22 tests/test_ingress_migration.js"
+    "Node22 tests/test_ingress_migration.js",
+    "Node22 tests/test_ingress_contract_guards.js: payload preservation, rejected malformed input, isolated malformed persisted work",
+    "Node22 tests/test_startup_trading.js",
+    "Targeted ESLint",
+    "Typechecked against parent FilterMessage export commit 413eed7"
   ],
   "occurrences": [
     {
@@ -16,7 +20,7 @@
       "baselineLine": 200,
       "baselineColumn": 39,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -27,7 +31,7 @@
       "baselineLine": 186,
       "baselineColumn": 35,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -38,7 +42,7 @@
       "baselineLine": 184,
       "baselineColumn": 34,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -49,7 +53,7 @@
       "baselineLine": 177,
       "baselineColumn": 40,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -60,7 +64,7 @@
       "baselineLine": 171,
       "baselineColumn": 40,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -71,7 +75,7 @@
       "baselineLine": 165,
       "baselineColumn": 40,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -82,7 +86,7 @@
       "baselineLine": 137,
       "baselineColumn": 41,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -93,7 +97,7 @@
       "baselineLine": 122,
       "baselineColumn": 40,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -104,7 +108,7 @@
       "baselineLine": 107,
       "baselineColumn": 36,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -115,7 +119,7 @@
       "baselineLine": 104,
       "baselineColumn": 34,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -126,7 +130,7 @@
       "baselineLine": 99,
       "baselineColumn": 42,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -137,7 +141,7 @@
       "baselineLine": 78,
       "baselineColumn": 46,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -148,7 +152,7 @@
       "baselineLine": 76,
       "baselineColumn": 41,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -159,7 +163,7 @@
       "baselineLine": 38,
       "baselineColumn": 43,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
     },
@@ -170,9 +174,163 @@
       "baselineLine": 36,
       "baselineColumn": 44,
       "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
-      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
       "disposition": "fixed",
       "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpncWs=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 206,
+      "baselineColumn": 84,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWt2bWE=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 206,
+      "baselineColumn": 71,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZqZGw=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 122,
+      "baselineColumn": 53,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlqa3I=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 104,
+      "baselineColumn": 61,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29wcW0=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 104,
+      "baselineColumn": 48,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1scng=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 72,
+      "baselineColumn": 67,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG94eXA=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 72,
+      "baselineColumn": 54,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlsYWw=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 48,
+      "baselineColumn": 58,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhkcnc=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 48,
+      "baselineColumn": 43,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWt2cHc=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 24,
+      "baselineColumn": 50,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlqZXI=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 22,
+      "baselineColumn": 66,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29wam0=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 22,
+      "baselineColumn": 55,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Shared ingress configuration/Telegram identity and existing workflow/schema contracts replace unbounded parameters. Telegram fields consumed by routing are validated at acceptance and persisted decoding without truncating the payload. Workflow parser resources are checked as objects and identifiers/prompts as strings before pinning."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJtcGQ=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 17,
+      "baselineColumn": 55,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Snapshot overloads distinguish the declared application configuration from arbitrary object snapshots; redaction traverses unknown JSON values without reading them as unrestricted objects. Existing recursive secret-redaction fixture remains passing."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlqb3g=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 17,
+      "baselineColumn": 49,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "a82540c84fa4b7f11891081d6939bec4331f51c22d1c5114ba921dfc12c98839",
+      "disposition": "fixed",
+      "reason": "Snapshot overloads distinguish the declared application configuration from arbitrary object snapshots; redaction traverses unknown JSON values without reading them as unrestricted objects. Existing recursive secret-redaction fixture remains passing."
     }
   ]
 }
