@@ -39,7 +39,8 @@
     "Sonar read retry helpers: all five Node22 Sonar suites passed; complete script ESLint complexity<=5 and diff checks passed. No live mutation or production pin change.",
     "Sonar evidence helpers: 361 original/current decision comparisons and all five Node22 Sonar regression suites passed; entire script ESLint complexity<=5 and diff checks passed.",
     "Mutation runner: 48 exact before/after cases and Node22 regression suite passed; full script complexity<=5 ESLint and diff checks passed.",
-    "Architecture refactor: 576 original/current decisions, extended Node22 suite, actual architecture gate, full changed files complexity<=5 ESLint and diff checks passed."
+    "Architecture refactor: 576 original/current decisions, extended Node22 suite, actual architecture gate, full changed files complexity<=5 ESLint and diff checks passed.",
+    "Soak refactor: 39 exact original/current protocol comparisons; Node22 pure validation and isolated real CLI/evidence regressions passed, whole changed files complexity<=5 ESLint and diff checks passed."
   ],
   "entries": [
     {
@@ -4901,6 +4902,30 @@
       "originalLine": 40,
       "status": "source_change_pending_rescan",
       "proof": "Separated recursive dependency traversal, per-import layer policy and missing-file handling; whole script complexity<=5. All 512 directed graphs on three nodes and 64 layer edges preserve exact original results. Permanent tests cover shared acyclic dependencies, self/nested cycles, absent graph entries, stacked violations and valid imports. Real repository architecture gate and suite pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZGVsbmE=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_soak_window.js",
+      "originalLine": 104,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated URL credential/protocol policy, singleton response/sample validation, configuration, query collection and evidence writing. Entire script complexity<=5; 39 exact before/after protocol decisions match. Permanent isolated CLI tests verify success0, unhealthy1 and HTTP503 failure1 with retained evidence; no actual monitoring requests, thresholds and evidence policy unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dndreXA=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_soak_window.js",
+      "originalLine": 85,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated URL credential/protocol policy, singleton response/sample validation, configuration, query collection and evidence writing. Entire script complexity<=5; 39 exact before/after protocol decisions match. Permanent isolated CLI tests verify success0, unhealthy1 and HTTP503 failure1 with retained evidence; no actual monitoring requests, thresholds and evidence policy unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZG5namo=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_soak_window.js",
+      "originalLine": 75,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated URL credential/protocol policy, singleton response/sample validation, configuration, query collection and evidence writing. Entire script complexity<=5; 39 exact before/after protocol decisions match. Permanent isolated CLI tests verify success0, unhealthy1 and HTTP503 failure1 with retained evidence; no actual monitoring requests, thresholds and evidence policy unchanged."
     }
   ]
 }
