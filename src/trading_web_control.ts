@@ -1,3 +1,7 @@
+type PaperConfigurationPayload = {
+  accountId?: unknown; equity?: string; availableBalance?: string;
+  market?: Omit<TradingMarketSnapshot, 'observedAt'>; baseMarketRevision?: string | null; baseBalanceRevision?: string | null;
+};
 /** Untrusted runtime fields are narrowed by the existing operation-specific validators. */
 type RuntimeControlPayload = { action?: unknown; active?: unknown; enabled?: unknown; confirmation?: unknown; reason?: unknown };
 type CredentialReplacementPayload = { id?: unknown; credentials?: unknown };
@@ -850,19 +854,19 @@ export class TradingWebControl {
       accountSnapshot: account => this.requiredAdapter(account.exchange).accountSnapshot(account) });
   }
 
-  async configurePaper(payload: any) {
+  async configurePaper(payload: PaperConfigurationPayload) {
     const accountId = identifier(payload.accountId, 'Account identifier', 64);
     return this.engine.mutations.run(accountId, () => this.configurePaperOwned(payload));
   }
 
-  private async configurePaperOwned(payload: any) {
+  private async configurePaperOwned(payload: PaperConfigurationPayload) {
     const account = await this.requiredAccount(payload.accountId);
     if (account.exchange !== 'paper' || account.mode !== 'paper') throw new Error('Paper configuration requires a paper account.');
     const result = await withDatabaseTransaction(async () => {
       await assertPaperConfigurationRevision(account.id, payload);
       if (payload.equity !== undefined) await this.paper.setBalance(account.id, payload.equity, payload.availableBalance ?? payload.equity);
       if (payload.market) {
-        const market = payload.market as Omit<TradingMarketSnapshot, 'observedAt'>;
+        const market = payload.market;
         await this.paper.setMarket(account.id, market);
       }
       return readPaperConfiguration(account.id, payload.market?.symbol);
