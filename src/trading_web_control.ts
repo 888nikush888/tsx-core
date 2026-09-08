@@ -486,8 +486,14 @@ export class TradingWebControl {
     return validated;
   }
 
-  setChannelRiskPolicy(payload: any) {
-    return upsertChannelRiskPolicy(payload);
+  setChannelRiskPolicy(payload: Partial<Parameters<typeof upsertChannelRiskPolicy>[0]>) {
+    return upsertChannelRiskPolicy({
+      channelId: payload.channelId, mode: payload.mode, tiers: payload.tiers, currentTier: payload.currentTier,
+      lookbackWeeks: payload.lookbackWeeks, minimumClosedTrades: payload.minimumClosedTrades,
+      lossThresholdPercent: payload.lossThresholdPercent, profitThresholdPercent: payload.profitThresholdPercent,
+      weakChannelAction: payload.weakChannelAction, weakWeeksBeforeBlock: payload.weakWeeksBeforeBlock,
+      manuallyBlocked: payload.manuallyBlocked, lockedTier: payload.lockedTier,
+    });
   }
 
   removeChannelRiskPolicy(channelId: unknown) {
@@ -900,12 +906,14 @@ export class TradingWebControl {
     return acknowledgeTradingRiskEvent(identifier(id, 'Risk event identifier', 64));
   }
 
-  createWorkflowResource(payload: any) {
-    return createWorkflowResourceDraft(payload);
+  createWorkflowResource(payload: Partial<Parameters<typeof createWorkflowResourceDraft>[0]>) {
+    if (payload.kind === undefined) throw new Error('Unsupported workflow resource kind.');
+    return createWorkflowResourceDraft({ ...payload, kind: payload.kind, name: payload.name ?? '', configuration: payload.configuration });
   }
 
-  updateWorkflowResource(payload: any) {
-    return updateWorkflowResourceDraft(identifier(payload.id, 'Workflow resource version identifier', 64), payload);
+  updateWorkflowResource(payload: Partial<Parameters<typeof updateWorkflowResourceDraft>[1]> & { id?: unknown }) {
+    return updateWorkflowResourceDraft(identifier(payload.id, 'Workflow resource version identifier', 64),
+      { ...payload, name: payload.name ?? '', configuration: payload.configuration });
   }
 
   publishWorkflowResource(id: unknown) {

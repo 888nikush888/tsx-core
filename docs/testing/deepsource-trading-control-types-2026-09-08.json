@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
-  "scope": "Operation-specific request payloads and query parameter guard; workflow/risk forwarding and error catches remain open.",
+  "scope": "All control request payloads and query parameter guard; two error catch annotations remain open.",
   "verification": [
     "Node22 tsc --noEmit",
     "Node22 trading_web_control and trading_credentials suites",
@@ -14,7 +14,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 980,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "Credentials enter as unknown, pass the existing non-array object guard, then expose unknown field values to the existing field-specific string and format validators."
     },
@@ -24,7 +24,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 913,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -34,7 +34,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 877,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -44,7 +44,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 830,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -54,7 +54,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 817,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -64,7 +64,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 793,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -74,7 +74,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 773,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -84,7 +84,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 760,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -94,7 +94,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 709,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -104,7 +104,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 699,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -114,7 +114,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 681,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -124,7 +124,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 671,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -134,7 +134,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 525,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -144,7 +144,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 519,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -154,7 +154,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 487,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -164,7 +164,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 465,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -174,7 +174,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 440,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -184,7 +184,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 429,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -194,7 +194,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 425,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -204,7 +204,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 416,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -214,7 +214,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 400,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -224,7 +224,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 387,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -234,7 +234,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 367,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -244,7 +244,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 358,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "This operation has an explicit payload field shape or derives its fields from the existing repository operation contract. Fields awaiting runtime validation remain unknown and optional where missing input is intentionally handled by existing validators. No new coercion, acceptance or trading side effect was introduced."
     },
@@ -254,7 +254,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 286,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "The account query parameter is read once and narrowed by the existing truthiness condition before use."
     },
@@ -264,7 +264,7 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 852,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "Paper settings now declare their existing string balance, market snapshot and optional optimistic-concurrency revision fields. Existing paper adapter validators remain unchanged; the unneeded market assertion is removed."
     },
@@ -274,9 +274,39 @@
       "path": "src/trading_web_control.ts",
       "baselineLine": 847,
       "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
-      "reviewedSourceSha256": "eb861d784b4da8fbaef61cb88afa921a93c7aae46241725a29e3abddfab8d577",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
       "disposition": "fixed",
       "reason": "Paper settings now declare their existing string balance, market snapshot and optional optimistic-concurrency revision fields. Existing paper adapter validators remain unchanged; the unneeded market assertion is removed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGphcm8=",
+      "rule": "JS-0323",
+      "path": "src/trading_web_control.ts",
+      "baselineLine": 897,
+      "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
+      "disposition": "fixed",
+      "reason": "Forwarded risk/workflow requests derive their field types from repository operation contracts. Required unknown risk fields are explicitly forwarded to existing validators; missing workflow kind is rejected with the existing error and missing name still fails existing name validation."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlrbWo=",
+      "rule": "JS-0323",
+      "path": "src/trading_web_control.ts",
+      "baselineLine": 893,
+      "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
+      "disposition": "fixed",
+      "reason": "Forwarded risk/workflow requests derive their field types from repository operation contracts. Required unknown risk fields are explicitly forwarded to existing validators; missing workflow kind is rejected with the existing error and missing name still fails existing name validation."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlrbGo=",
+      "rule": "JS-0323",
+      "path": "src/trading_web_control.ts",
+      "baselineLine": 479,
+      "baselineSourceSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f",
+      "reviewedSourceSha256": "4ae6066367d01aa83dc4633076bb9677e1e4282c13b98425f5b0a545f9076f3e",
+      "disposition": "fixed",
+      "reason": "Forwarded risk/workflow requests derive their field types from repository operation contracts. Required unknown risk fields are explicitly forwarded to existing validators; missing workflow kind is rejected with the existing error and missing name still fails existing name validation."
     }
   ]
 }
