@@ -1,5 +1,5 @@
 import type { WorkflowSignalPlan } from './workflow_repository.js';
-import type { TradingIntent, TradingSignalSchema } from './trading_types.js';
+import type { TradingIntent, TradingSignalSchema, SignalContractVersion, WorkflowRevision } from './trading_types.js';
 import type { RouteRow } from './trading_repository_rows.js';
 import type { Config } from './config.js';
 import * as tdl from 'tdl';
@@ -184,11 +184,30 @@ interface TelegramMessageIdentity {
   is_outgoing?: boolean;
 }
 
+interface DurableIngressSnapshot {
+  id: string; chatId: string; receivedAt: number; workflowRevisionId: string | null;
+  targetChatId: string | number | null; workflow?: WorkflowRevision | null;
+  deliveryMode?: 'telegram_xml' | 'telegram_original'; parsedXml?: string;
+  albumMessages?: TelegramMessageIdentity[]; planKey?: string;
+  schemas?: TradingSignalSchema[]; contracts?: Record<string, SignalContractVersion>; prompts?: Record<string, string>;
+  legacySchema?: TradingSignalSchema | null; legacyPrompt?: string; legacyRoute?: RouteRow | null;
+}
+
+interface ForwarderConfiguration extends Config {
+  durableIngress?: DurableIngressSnapshot;
+}
+
+interface ForwarderResult {
+  mode: string; destinationMessageIds?: string[]; createdIntents?: number; outputModes?: string[]; hasXml?: boolean;
+}
+
+type XmlProcessingResult = { handled: boolean; result?: ForwarderResult; workflowOriginal?: boolean };
+
 interface OutboxExecutionContext {
   signal: AbortSignal;
   markSending: () => Promise<void>;
   taskId: string;
-  config: any;
+  config: ForwarderConfiguration;
 }
 
 let deliveryTracker: TelegramDeliveryTracker | null = null;
@@ -241,7 +260,7 @@ async function migrateLegacyPersistedTasks(config: Config): Promise<void> {
   }
 }
 
-async function executePersistedOutboxTask(task: OutboxTask, config: any, context: OutboxExecutionContext): Promise<any> {
+async function executePersistedOutboxTask(task: OutboxTask, config: ForwarderConfiguration, context: OutboxExecutionContext): Promise<ForwarderResult> {
   if (!config.durableIngress) throw new Error('Legacy outbox has no proven immutable ingress; review required.');
   if (task.type === 'single') {
     const work = await getDatabase().get<{ message_json: string }>('SELECT message_json FROM incoming_work WHERE id = ?', [task.ingressWorkId]);
@@ -352,14 +371,14 @@ const outboxScheduler = new DurableOutboxScheduler({
   batchSize: 100
 });
 
-function scheduleOutboxTask(taskId: string, fallbackConfig: any): void {
+function scheduleOutboxTask(taskId: string, fallbackConfig: Config): void {
   activeOutboxConfig = fallbackConfig;
   if (outboxScheduler.schedule(taskId)) return;
   // SQLite retains the task; a later scheduler cycle reloads it safely.
   outboxScheduler.requestPump();
 }
 
-async function enqueueTask(taskData: any, config: any): Promise<void> {
+async function enqueueTask(taskData: Parameters<typeof enqueueOutboxTask>[0], config: ForwarderConfiguration): Promise<void> {
   const inserted = await enqueueOutboxTask({ ...taskData, config: configSnapshot(config), needsReview: !config.durableIngress });
   if (inserted && config.durableIngress) {
     deliverySlo.recordAccepted();
@@ -370,7 +389,7 @@ async function enqueueTask(taskData: any, config: any): Promise<void> {
 
 
 async function enqueueMediaGroup(gId, config, g) {
-  const task = {
+  const task: Parameters<typeof enqueueOutboxTask>[0] = {
     id: `group_${g.fromChatId}_${gId}`,
     type: 'mediaGroup',
     chatId: String(g.fromChatId),
@@ -1014,7 +1033,7 @@ async function finishLegacySignalOutput(input: {
   forwardXml: boolean;
   shouldForwardToTelegram: boolean;
   context: OutboxExecutionContext;
-}): Promise<{ handled: boolean; result?: any }> {
+}): Promise<XmlProcessingResult> {
   const { message, parsedXml, forwardXml, shouldForwardToTelegram, context } = input;
   if (forwardXml) {
     const result = await sendXmlMessage(parsedXml, context);
@@ -1080,7 +1099,7 @@ async function forwardSingleMessage(message, config, context: OutboxExecutionCon
   const dupeBlocker = config.dupeBlocker || {};
   const activeWorkflow = config.durableIngress.workflowRevisionId;
 
-  let xmlResult = { handled: false } as { handled: boolean; result?: any; workflowOriginal?: boolean };
+  let xmlResult: XmlProcessingResult = { handled: false };
   if ((activeWorkflow || xmlParsing.enabled) && text?.trim()) {
     if (!externalParsingAuthorized()) {
       throw new Error('AI parsing is blocked until the external data-processing policy is explicitly accepted in the Web UI.');

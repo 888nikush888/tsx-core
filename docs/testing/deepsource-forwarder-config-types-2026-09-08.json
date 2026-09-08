@@ -15,7 +15,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1575,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -25,7 +25,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1258,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -35,7 +35,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1222,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -45,7 +45,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1179,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -55,7 +55,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1167,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -65,7 +65,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1087,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -75,7 +75,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 986,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "The SQL result uses its selected column projection or concrete trading route row interface."
     },
@@ -85,7 +85,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 984,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "The SQL result uses its selected column projection or concrete trading route row interface."
     },
@@ -95,7 +95,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 804,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Created intents use the existing TradingIntent domain contract already returned by the repositories."
     },
@@ -105,7 +105,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 389,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -115,7 +115,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 373,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -125,7 +125,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 236,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "The SQL result uses its selected column projection or concrete trading route row interface."
     },
@@ -135,7 +135,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 207,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -145,7 +145,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 197,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -155,7 +155,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1167,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -165,7 +165,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1001,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -175,7 +175,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 971,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -185,7 +185,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 943,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -195,7 +195,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 940,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -205,7 +205,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 928,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -215,7 +215,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 928,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -225,7 +225,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 862,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -235,7 +235,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 859,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -245,7 +245,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 823,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -255,7 +255,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 821,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -265,7 +265,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 820,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -275,7 +275,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 648,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Parser catch accepts unknown; timeout/abort causes and original rethrow remain unchanged."
     },
@@ -285,7 +285,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1547,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -295,7 +295,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1540,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -305,7 +305,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1288,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -315,7 +315,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 319,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -325,7 +325,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 314,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -335,7 +335,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 255,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -345,7 +345,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 203,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -355,9 +355,89 @@
       "path": "src/forwarder.ts",
       "baselineLine": 203,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "84ee83c5c3cd54664d97ca4f4eef9ea97f1d205b66a0c6104d2e89fb4cb3f200",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG94eGs=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1072,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
+      "disposition": "fixed",
+      "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhkZGc=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1006,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
+      "disposition": "fixed",
+      "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh3bGc=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 351,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
+      "disposition": "fixed",
+      "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFqbnY=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 351,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
+      "disposition": "fixed",
+      "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZlcGU=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 344,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
+      "disposition": "fixed",
+      "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9tcWs=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 233,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
+      "disposition": "fixed",
+      "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxkbXA=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 233,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
+      "disposition": "fixed",
+      "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29scms=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 180,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "65cb626967ab0c24c2fdf0db91ea33772160eba493c15fafc6a041637cfea0b8",
+      "disposition": "fixed",
+      "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
     }
   ]
 }
