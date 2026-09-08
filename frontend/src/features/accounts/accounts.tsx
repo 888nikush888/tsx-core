@@ -104,7 +104,7 @@ export function Accounts({
     }
   };
 
-  const releaseKillSwitch = async (account: TradingAccount) => {
+  const releaseKillSwitch = (account: TradingAccount) => {
     setReleaseTarget(account);
     setReleaseConfirmation("");
   };
@@ -519,7 +519,7 @@ export function Accounts({
                   <span>{account.killSwitchReason || "Kontosperre aktiv"}</span>
                   <button
                     type="button"
-                    onClick={() => void releaseKillSwitch(account)}
+                    onClick={() => releaseKillSwitch(account)}
                   >
                     Prüfen & freigeben
                   </button>
