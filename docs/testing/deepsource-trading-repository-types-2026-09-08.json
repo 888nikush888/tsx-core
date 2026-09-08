@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "baselineInventory": "2026-09-08T08:55:26.334Z",
+  "scope": "Explicit any and non-null assertions in trading_repository.ts",
+  "verification": [
+    "Node 22 TypeScript typecheck",
+    "Node 22 tests/test_trading_core.js including four missing-readback fault injections",
+    "Node 22 tests/test_trading_analytics.js",
+    "Targeted ESLint"
+  ],
+  "limitations": [
+    "Static SQLite row interfaces describe the owned SQL schema; they do not replace runtime validation of stored JSON.",
+    "Update and publish methods historically perform writes outside a transaction; a failed readback does not roll back their successful write. Existing create and archive transactions do roll back."
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGplanE=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1596,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtwa2Q=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1544,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJwcnk=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1508,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlreXc=",
+      "rule": "JS-0339",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1495,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Post-write readback now explicitly rejects an absent row instead of asserting it exists. Fault-injection regression tests cover this readback and rollback for the already transactional create/archive operations. Update/publish retain their existing non-transactional write semantics."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmF3b3Y=",
+      "rule": "JS-0339",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1436,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Single-currency aggregation uses a nullable fallback for an absent first value; the existing one-key guard and unknown-currency exclusion remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1wcXk=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1401,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9rYWw=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1395,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmx4dnk=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1391,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl4cHI=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1385,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFwa28=",
+      "rule": "JS-0339",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1323,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Definition fallback now narrows the contract version with an explicit missing-version guard before reading definition_json; the existing validation error and fallback behavior are preserved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtwbWQ=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1223,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Mapper now accepts the explicit SQLite row interface, including nullable columns and serialized JSON fields. Existing conversion and validation behavior is retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlleGU=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1192,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Mapper now accepts the explicit SQLite row interface, including nullable columns and serialized JSON fields. Existing conversion and validation behavior is retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJwcXk=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1108,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlvZW4=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1105,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRld2w=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1101,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlrbnc=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1097,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VvZGc=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1088,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmF3eHY=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1083,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1wcnk=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1077,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmx4d3k=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1035,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhqcm4=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1015,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFwZW8=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 968,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29qcWU=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 879,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtwcGQ=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 645,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnllZWU=",
+      "rule": "JS-0339",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 641,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Post-write readback now explicitly rejects an absent row instead of asserting it exists. Fault-injection regression tests cover this readback and rollback for the already transactional create/archive operations. Update/publish retain their existing non-transactional write semantics."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29qamU=",
+      "rule": "JS-0339",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 628,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Post-write readback now explicitly rejects an absent row instead of asserting it exists. Fault-injection regression tests cover this readback and rollback for the already transactional create/archive operations. Update/publish retain their existing non-transactional write semantics."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRlZWw=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 578,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VvbWc=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 523,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmF3bHY=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 443,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1weHk=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 429,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZta3Y=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 263,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtwcmQ=",
+      "rule": "JS-0339",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 251,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Post-write readback now explicitly rejects an absent row instead of asserting it exists. Fault-injection regression tests cover this readback and rollback for the already transactional create/archive operations. Update/publish retain their existing non-transactional write semantics."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlvYWE=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 221,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRleHA=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 202,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlrdmo=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 201,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "SQL result now declares the concrete selected row shape or aggregate projection, checked against the query and database schema. Existing runtime conversion and validation remain in place."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1wZGs=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 134,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Mapper now accepts the explicit SQLite row interface, including nullable columns and serialized JSON fields. Existing conversion and validation behavior is retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmx4YWs=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 123,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Mapper now accepts the explicit SQLite row interface, including nullable columns and serialized JSON fields. Existing conversion and validation behavior is retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl4d3Y=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 112,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Mapper now accepts the explicit SQLite row interface, including nullable columns and serialized JSON fields. Existing conversion and validation behavior is retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhqb2E=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 84,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Mapper now accepts the explicit SQLite row interface, including nullable columns and serialized JSON fields. Existing conversion and validation behavior is retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZtcW4=",
+      "rule": "JS-0323",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 63,
+      "baselineSourceSha256": "5e8eef9548ec2ae4c373a9fdb72947aeab9deec4174e752bf6be5c07b1af5348",
+      "reviewedSourceSha256": "32630698ba0f1aceb23ba4dc404a5da99ebe3568961e82c6b691d9aabaec9f83",
+      "disposition": "fixed",
+      "reason": "Mapper now accepts the explicit SQLite row interface, including nullable columns and serialized JSON fields. Existing conversion and validation behavior is retained."
+    }
+  ]
+}

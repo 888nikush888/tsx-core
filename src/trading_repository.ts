@@ -38,6 +38,11 @@ import type {
 import { tradingExchangeId } from './trading_types.js';
 import { clearWorkflowBuilderHistory } from './workflow_repository.js';
 import { countUnprovedProtection } from './trading_protection_projection.js';
+import type {
+  AccountRow, ContractRow, ContractVersionRow, IntentRow, RouteRow, RuntimeRow, SignalSchemaRow, StrategyRow,
+  ActivityFillRow, ActivityOrderRow, ActivityPositionRow, ActivityReconciliationRow, ActivityRiskRow,
+  IntentRouteRow, PaperAccountRow, PaperMarketRow, PositionMoneyRow, WindowFillRow, WindowIntentCountRow, WindowRiskCountRow,
+} from './trading_repository_rows.js';
 
 function boolean(value: unknown): boolean {
   return Number(value) === 1;
@@ -60,7 +65,7 @@ function parseJson<T>(value: unknown, label: string): T {
   }
 }
 
-function strategyFromRow(row: any): TradingStrategyVersion {
+function strategyFromRow(row: StrategyRow): TradingStrategyVersion {
   const storedConfiguration = parseJson<StrategyConfiguration>(row.configuration_json, 'strategy configuration');
   const hash = strategyConfigurationSha256(storedConfiguration);
   if (!constantTimeStringEqual(hash, row.configuration_sha256)) {
@@ -81,7 +86,7 @@ function strategyFromRow(row: any): TradingStrategyVersion {
   };
 }
 
-function accountFromRow(row: any): TradingAccount {
+function accountFromRow(row: AccountRow): TradingAccount {
   const capabilities = row.capabilities_json
     ? parseJson<Record<string, unknown>>(row.capabilities_json, 'account capabilities')
     : null;
@@ -109,7 +114,7 @@ function accountFromRow(row: any): TradingAccount {
   };
 }
 
-function routeFromRow(row: any): TradingRoute {
+function routeFromRow(row: RouteRow): TradingRoute {
   return {
     channelId: String(row.channel_id),
     strategyVersionId: String(row.strategy_version_id),
@@ -120,7 +125,7 @@ function routeFromRow(row: any): TradingRoute {
   };
 }
 
-function runtimeFromRow(row: any): TradingRuntimeState {
+function runtimeFromRow(row: RuntimeRow | undefined): TradingRuntimeState {
   if (!row) throw new Error('Trading runtime state is missing.');
   return {
     executionEnabled: boolean(row.execution_enabled),
@@ -131,7 +136,7 @@ function runtimeFromRow(row: any): TradingRuntimeState {
   };
 }
 
-function intentFromRow(row: any): TradingIntent {
+function intentFromRow(row: IntentRow): TradingIntent {
   return {
     id: String(row.id),
     sourceSignalId: String(row.source_signal_id),
@@ -198,8 +203,8 @@ function contractVersionIdentifier(value: unknown, label = 'Signal contract vers
 
 export async function listSignalContracts(): Promise<SignalContract[]> {
   const [contracts, versions] = await Promise.all([
-    getDatabase().all<any[]>('SELECT * FROM trading_signal_contracts ORDER BY archived, name, id'),
-    getDatabase().all<any[]>('SELECT * FROM trading_signal_contract_versions ORDER BY contract_id, version DESC'),
+    getDatabase().all<ContractRow[]>('SELECT * FROM trading_signal_contracts ORDER BY archived, name, id'),
+    getDatabase().all<ContractVersionRow[]>('SELECT * FROM trading_signal_contract_versions ORDER BY contract_id, version DESC'),
   ]);
   const byContract = new Map<string, SignalContractVersion[]>();
   for (const row of versions) {
@@ -218,7 +223,7 @@ export async function listSignalContracts(): Promise<SignalContract[]> {
 }
 
 export async function getSignalContractVersion(id: string): Promise<SignalContractVersion | null> {
-  const row = await getDatabase().get<any>(
+  const row = await getDatabase().get<ContractVersionRow>(
     'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
     [contractVersionIdentifier(id)],
   );
@@ -248,7 +253,9 @@ export async function createSignalContract(input: {
        ) VALUES (?, ?, 1, 'draft', ?, ?, ?, NULL, NULL)`,
       [`${id}:v1`, id, JSON.stringify(definition), signalContractDefinitionSha256(definition), now],
     );
-    return (await listSignalContracts()).find(contract => contract.id === id)!;
+    const created = (await listSignalContracts()).find(contract => contract.id === id);
+    if (!created) throw new Error('Created signal contract is missing.');
+    return created;
   });
 }
 
@@ -260,7 +267,7 @@ export async function createSignalContractDraftVersion(
   const id = signalSchemaIdentifier(contractId, 'Signal contract identifier');
   const sourceId = contractVersionIdentifier(sourceVersionId);
   return transaction(async () => {
-    const sourceRow = await getDatabase().get<any>(
+    const sourceRow = await getDatabase().get<ContractVersionRow>(
       'SELECT * FROM trading_signal_contract_versions WHERE id = ? AND contract_id = ?',
       [sourceId, id],
     );
@@ -426,7 +433,7 @@ export async function duplicateSignalContract(input: {
   description?: unknown;
 }, now = Date.now()): Promise<SignalContract> {
   const sourceId = contractVersionIdentifier(input.sourceVersionId);
-  const source = await getDatabase().get<any>(
+  const source = await getDatabase().get<ContractVersionRow>(
     'SELECT * FROM trading_signal_contract_versions WHERE id = ?',
     [sourceId],
   );
@@ -440,7 +447,7 @@ export async function duplicateSignalContract(input: {
 }
 
 export async function listTradingSignalSchemas(): Promise<TradingSignalSchema[]> {
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<SignalSchemaRow[]>(
     `SELECT schema.*,
             version.definition_json AS contract_definition_json,
             version.definition_sha256 AS contract_definition_sha256
@@ -520,7 +527,7 @@ export async function updateTradingSignalSchema(id: string, input: {
   enabled: unknown;
 }, now = Date.now()): Promise<TradingSignalSchema> {
   const normalizedId = signalSchemaIdentifier(id);
-  const current = await getDatabase().get<any>(
+  const current = await getDatabase().get<Pick<SignalSchemaRow, 'parser_schema' | 'contract_version_id' | 'definition_json'>>(
     `SELECT parser_schema, contract_version_id, definition_json
      FROM trading_signal_schemas WHERE id = ?`,
     [normalizedId],
@@ -575,7 +582,7 @@ export async function deleteTradingSignalSchema(id: string): Promise<boolean> {
 }
 
 export async function listTradingStrategies(): Promise<TradingStrategyVersion[]> {
-  const rows = await getDatabase().all<any[]>('SELECT * FROM trading_strategy_versions ORDER BY name, version DESC');
+  const rows = await getDatabase().all<StrategyRow[]>('SELECT * FROM trading_strategy_versions ORDER BY name, version DESC');
   return rows.map(strategyFromRow);
 }
 
@@ -625,7 +632,9 @@ export async function updateTradingStrategyDraft(id: string, input: {
     [name, description, JSON.stringify(configuration), strategyConfigurationSha256(configuration), id],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Only an existing draft strategy version can be edited.');
-  return (await getTradingStrategyVersion(id))!;
+  const updated = await getTradingStrategyVersion(id);
+  if (!updated) throw new Error('Updated strategy version is missing.');
+  return updated;
 }
 
 export async function publishTradingStrategyVersion(id: string, now = Date.now()): Promise<TradingStrategyVersion> {
@@ -638,11 +647,13 @@ export async function publishTradingStrategyVersion(id: string, now = Date.now()
     [now, id],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Only an existing draft strategy version can be published.');
-  return (await getTradingStrategyVersion(id))!;
+  const published = await getTradingStrategyVersion(id);
+  if (!published) throw new Error('Published strategy version is missing.');
+  return published;
 }
 
 export async function listTradingAccounts(): Promise<TradingAccount[]> {
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<AccountRow[]>(
     'SELECT * FROM trading_accounts WHERE retired_at IS NULL ORDER BY name, created_at',
   );
   return rows.map(accountFromRow);
@@ -876,7 +887,7 @@ async function updateTradingAccountConfigurationOwned(
 }
 
 export async function listTradingRoutes(): Promise<TradingRoute[]> {
-  const rows = await getDatabase().all<any[]>('SELECT * FROM trading_routes ORDER BY channel_id');
+  const rows = await getDatabase().all<RouteRow[]>('SELECT * FROM trading_routes ORDER BY channel_id');
   return rows.map(routeFromRow);
 }
 
@@ -965,7 +976,7 @@ export async function createTradingIntent(input: {
   signal: ExecutableSignal;
 }): Promise<TradingIntent | null> {
   return transaction(async () => {
-    const route = await getDatabase().get<any>(
+    const route = await getDatabase().get<IntentRouteRow>(
       `SELECT route.*, strategy.status AS strategy_status,
               account.exchange, account.mode, account.status AS account_status, account.enabled AS account_enabled,
               runtime.execution_enabled, runtime.live_trading_enabled, runtime.kill_switch_active
@@ -1012,7 +1023,7 @@ export async function createTradingIntent(input: {
 
 export async function listTradingIntents(limit = 100): Promise<TradingIntent[]> {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000) throw new Error('Intent limit must be between 1 and 1000.');
-  const rows = await getDatabase().all<any[]>('SELECT * FROM trading_trade_intents ORDER BY created_at DESC LIMIT ?', [limit]);
+  const rows = await getDatabase().all<IntentRow[]>('SELECT * FROM trading_trade_intents ORDER BY created_at DESC LIMIT ?', [limit]);
   return rows.map(intentFromRow);
 }
 
@@ -1032,7 +1043,7 @@ export async function getTradingAccount(id: string): Promise<TradingAccount | nu
 export async function getTradingOverview(): Promise<TradingOverview> {
   const [runtime, counts, reconciliation] = await Promise.all([
     getTradingRuntimeState(),
-    getDatabase().get<any>(`SELECT
+    getDatabase().get<{ accounts: number; routes: number; positions: number; intents: number; unknown_orders: number }>(`SELECT
       (SELECT COUNT(*) FROM trading_accounts WHERE retired_at IS NULL) AS accounts,
       (CASE WHEN EXISTS (SELECT 1 FROM workflow_active_revision WHERE singleton_id = 1)
         THEN (SELECT COUNT(*) FROM workflow_execution_paths AS path
@@ -1074,18 +1085,18 @@ export async function listTradingActivity(limit = 200): Promise<{
   }
   const database = getDatabase();
   const [orders, fills, positions, riskEvents, reconciliations, paperAccounts, paperMarkets] = await Promise.all([
-    database.all<any[]>(
+    database.all<ActivityOrderRow[]>(
       `SELECT id, intent_id AS intentId, account_id AS accountId, client_order_id AS clientOrderId,
               exchange_order_id AS exchangeOrderId, role, side, order_type AS orderType, status,
               price, trigger_price AS triggerPrice, quantity, filled_quantity AS filledQuantity,
               reduce_only AS reduceOnly, last_error AS error, created_at AS createdAt, updated_at AS updatedAt
        FROM trading_orders ORDER BY updated_at DESC LIMIT ?`, [limit]),
-    database.all<any[]>(
+    database.all<ActivityFillRow[]>(
       `SELECT id, order_id AS orderId, account_id AS accountId, exchange_fill_id AS exchangeFillId,
               provider_symbol AS providerSymbol, remote_fill_key AS remoteFillKey, identity_status AS identityStatus,
               price, quantity, fee, fee_asset AS feeAsset, filled_at AS filledAt
        FROM trading_fills ORDER BY filled_at DESC LIMIT ?`, [limit]),
-    database.all<any[]>(
+    database.all<ActivityPositionRow[]>(
       `SELECT id, intent_id AS intentId, account_id AS accountId, strategy_version_id AS strategyVersionId,
               channel_id AS channelId, symbol, side, status, quantity,
               average_entry_price AS averageEntryPrice, stop_price AS stopPrice,
@@ -1094,18 +1105,18 @@ export async function listTradingActivity(limit = 200): Promise<{
                 THEN 'unresolved' ELSE accounting_status END AS accountingStatus, reporting_currency AS reportingCurrency,
               opened_at AS openedAt, closed_at AS closedAt, updated_at AS updatedAt
        FROM trading_positions ORDER BY updated_at DESC LIMIT ?`, [limit]),
-    database.all<any[]>(
+    database.all<ActivityRiskRow[]>(
       `SELECT id, severity, code, account_id AS accountId, intent_id AS intentId,
               details_json AS detailsJson, created_at AS createdAt, acknowledged_at AS acknowledgedAt
        FROM trading_risk_events ORDER BY created_at DESC LIMIT ?`, [limit]),
-    database.all<any[]>(
+    database.all<ActivityReconciliationRow[]>(
       `SELECT id, account_id AS accountId, status, last_error AS error,
               started_at AS startedAt, completed_at AS completedAt
        FROM trading_reconciliation_runs ORDER BY started_at DESC LIMIT ?`, [limit]),
-    database.all<any[]>(
+    database.all<PaperAccountRow[]>(
       `SELECT account_id AS accountId, equity, available_balance AS availableBalance,
               realized_pnl AS realizedPnl, updated_at AS updatedAt FROM trading_paper_accounts ORDER BY account_id`),
-    database.all<any[]>(
+    database.all<PaperMarketRow[]>(
       `SELECT account_id AS accountId, symbol, mark_price AS markPrice, price_tick AS priceTick,
               quantity_step AS quantityStep, minimum_quantity AS minimumQuantity,
               minimum_notional AS minimumNotional, max_leverage AS maxLeverage,
@@ -1189,7 +1200,7 @@ function emptyTradingWindow(): TradingWindowAnalytics {
   };
 }
 
-function signalSchemaFromRow(row: any): TradingSignalSchema {
+function signalSchemaFromRow(row: SignalSchemaRow): TradingSignalSchema {
   const definition = validateSignalContractDefinition(parseJson(row.definition_json, 'signal schema definition'));
   const definitionHash = signalContractDefinitionSha256(definition);
   if (!constantTimeStringEqual(definitionHash, String(row.definition_sha256))) {
@@ -1220,7 +1231,7 @@ function signalSchemaFromRow(row: any): TradingSignalSchema {
   };
 }
 
-function contractVersionFromRow(row: any): SignalContractVersion {
+function contractVersionFromRow(row: ContractVersionRow): SignalContractVersion {
   const definition = validateSignalContractDefinition(parseJson(row.definition_json, 'signal contract definition'));
   const hash = signalContractDefinitionSha256(definition);
   if (!constantTimeStringEqual(hash, String(row.definition_sha256))) {
@@ -1315,14 +1326,12 @@ async function signalSchemaInput(input: {
   const version = contractVersionId
     ? await publishedContractVersion(contractVersionId)
     : null;
-  if (input.definition === undefined && !version) {
-    throw new Error('Signal schema definition is required when no fallback contract is selected.');
+  let definitionInput = input.definition;
+  if (definitionInput === undefined) {
+    if (!version) throw new Error('Signal schema definition is required when no fallback contract is selected.');
+    definitionInput = parseJson(version.definition_json, 'fallback signal contract definition');
   }
-  const definition = validateSignalContractDefinition(
-    input.definition === undefined
-      ? parseJson(version!.definition_json, 'fallback signal contract definition')
-      : input.definition,
-  );
+  const definition = validateSignalContractDefinition(definitionInput);
   const definitionSha256 = signalContractDefinitionSha256(definition);
   if (version && input.definition === undefined
     && !constantTimeStringEqual(definitionSha256, version.definition_sha256)) {
@@ -1382,23 +1391,23 @@ async function tradingAnalyticsWindow(since: number | null, until: number): Prom
   const database = getDatabase();
   const parameters = [since ?? 0, until];
   const [positions, fills, intents, risks] = await Promise.all([
-    database.all<any[]>(
+    database.all<PositionMoneyRow[]>(
       `SELECT position.account_id AS accountId, ledger_realized_pnl AS realizedPnl, reporting_currency AS reportingCurrency,
          ledger_realized_value_json AS realizedPnlValueJson,
          CASE WHEN pending.intent_id IS NOT NULL THEN 'unresolved' ELSE accounting_status END AS accountingStatus
        FROM trading_positions position LEFT JOIN trading_accounting_pending pending ON pending.intent_id=position.intent_id
        WHERE status = 'closed' AND closed_at >= ? AND closed_at < ?`, parameters),
-    database.all<any[]>(
+    database.all<WindowFillRow[]>(
       `SELECT account_id AS accountId, fee_asset AS feeAsset, fee, price, quantity,
         json_extract(accounting_json, '$.settlementAsset') AS settlementAsset
        FROM trading_fills WHERE filled_at >= ? AND filled_at < ?`, parameters),
-    database.all<any[]>(
+    database.all<WindowIntentCountRow[]>(
       `SELECT account_id AS accountId, COUNT(*) AS intents,
               SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completedIntents,
               SUM(CASE WHEN status IN ('blocked', 'failed', 'unknown') THEN 1 ELSE 0 END) AS rejectedIntents
        FROM trading_trade_intents WHERE created_at >= ? AND created_at < ?
        GROUP BY account_id`, parameters),
-    database.all<any[]>(
+    database.all<WindowRiskCountRow[]>(
       `SELECT account_id AS accountId, COUNT(*) AS riskEvents,
               SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) AS criticalRiskEvents
        FROM trading_risk_events WHERE account_id IS NOT NULL AND created_at >= ? AND created_at < ?
@@ -1433,7 +1442,7 @@ async function tradingAnalyticsWindow(since: number | null, until: number): Prom
     current.fees[asset] = addSignedDecimal(current.fees[asset] ?? '0', row.fee);
   }
   for (const current of result.values()) current.volume = Object.keys(current.volumeByAsset).length === 1
-    && current.volumeByAsset.UNKNOWN === undefined ? Object.values(current.volumeByAsset)[0]! : null;
+    && current.volumeByAsset.UNKNOWN === undefined ? Object.values(current.volumeByAsset)[0] ?? null : null;
   for (const row of intents) Object.assign(metrics(row.accountId), {
     intents: numeric(row.intents), completedIntents: numeric(row.completedIntents),
     rejectedIntents: numeric(row.rejectedIntents),
@@ -1492,7 +1501,8 @@ export async function archiveTradingStrategyVersion(id: string): Promise<Trading
       "UPDATE trading_strategy_versions SET status = 'archived' WHERE id = ? AND status = 'published'", [id],
     );
     if (Number(result.changes || 0) !== 1) throw new Error('Only a published strategy version can be archived.');
-    const archived = (await getTradingStrategyVersion(id))!;
+    const archived = await getTradingStrategyVersion(id);
+    if (!archived) throw new Error('Archived strategy version is missing.');
     await clearWorkflowBuilderHistory('published trading strategy archived');
     return archived;
   });
@@ -1505,7 +1515,7 @@ export async function deleteTradingStrategyVersion(id: string): Promise<boolean>
     );
     if (!existing) return false;
 
-    const references = await getDatabase().get<any>(
+    const references = await getDatabase().get<{ routes: number; intents: number; positions: number }>(
       `SELECT
          (SELECT COUNT(*) FROM trading_routes WHERE strategy_version_id = ?) AS routes,
          (SELECT COUNT(*) FROM trading_trade_intents WHERE strategy_version_id = ?) AS intents,
@@ -1541,7 +1551,7 @@ export async function deleteTradingAccount(id: string): Promise<boolean> {
       [id],
     );
     if (!existing) return false;
-    const references = await getDatabase().get<any>(
+    const references = await getDatabase().get<{ routes: number; active_paths: number; active_intents: number; active_positions: number }>(
       `SELECT
          (SELECT COUNT(*) FROM trading_routes WHERE account_id = ?) AS routes,
          (SELECT COUNT(*) FROM workflow_execution_paths AS path
@@ -1593,7 +1603,10 @@ export async function getTradingOperationalSnapshot(): Promise<{
 }> {
   const [runtime, values] = await Promise.all([
     getTradingRuntimeState(),
-    getDatabase().get<any>(`SELECT
+    getDatabase().get<{
+      enabled_routes: number; open_positions: number; pending_intents: number; unknown_orders: number;
+      critical_risk: number; intent_count: number; fill_count: number; latest_reconciliation: number | null;
+    }>(`SELECT
       (CASE WHEN EXISTS (SELECT 1 FROM workflow_active_revision WHERE singleton_id = 1)
         THEN (SELECT COUNT(*) FROM workflow_execution_paths AS path
               JOIN workflow_active_revision AS active ON active.revision_id = path.workflow_revision_id
