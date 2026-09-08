@@ -10,6 +10,19 @@ function relativeSource(root, filename) {
   return relative.split(path.sep).join('/');
 }
 
+async function normalizeSource(line, root, sourceDirectory) {
+  const source = line.slice(3).replaceAll('\\', path.sep);
+  if (!source) throw new Error('LCOV source is empty.');
+  const resolved = path.resolve(sourceDirectory, source);
+  relativeSource(root, resolved);
+  // A report pointing at missing files or a symlink outside the repository is
+  // invalid evidence. Never silently drop records to remove scanner warnings.
+  const canonical = await realpath(resolved);
+  const relative = relativeSource(root, canonical);
+  if (!(await stat(canonical)).isFile()) throw new Error('LCOV source is not a file.');
+  return `SF:${relative}`;
+}
+
 export async function normalizeLcov(content, { repositoryRoot, sourceRoot = repositoryRoot }) {
   const root = await realpath(repositoryRoot);
   const sourceDirectory = await realpath(sourceRoot);
@@ -20,16 +33,7 @@ export async function normalizeLcov(content, { repositoryRoot, sourceRoot = repo
       normalized.push(line);
       continue;
     }
-    const source = line.slice(3).replaceAll('\\', path.sep);
-    if (!source) throw new Error('LCOV source is empty.');
-    const resolved = path.resolve(sourceDirectory, source);
-    relativeSource(root, resolved);
-    // A report pointing at missing files or a symlink outside the repository is
-    // invalid evidence. Never silently drop records to remove scanner warnings.
-    const canonical = await realpath(resolved);
-    const relative = relativeSource(root, canonical);
-    if (!(await stat(canonical)).isFile()) throw new Error('LCOV source is not a file.');
-    normalized.push(`SF:${relative}`);
+    normalized.push(await normalizeSource(line, root, sourceDirectory));
     sourceCount += 1;
   }
   if (sourceCount === 0) throw new Error('LCOV report contains no source records.');

@@ -33,7 +33,8 @@
     "Dependency gate: registered malformed-metadata/exact-artifact/provenance/hash regression tests, actual gate and supply-chain suite passed. 308 valid/invalid policy results match original ordering; original null-metadata crash reproduced. Whole script/new test complexity<=5 and ESLint/diff checks passed.",
     "Sonar local-name and implementation-path Unicode fixes: historical Sonar decision and full implementation bridge suites, ESLint and diff checks passed.",
     "Coverage gate: Node22 unit and isolated CLI regressions passed, 156 original/current policy comparisons passed, entire changed files ESLint complexity<=5 and diff checks passed.",
-    "FX forged-evidence construction: full Node22 repository suite and ESLint/diff checks passed."
+    "FX forged-evidence construction: full Node22 repository suite and ESLint/diff checks passed.",
+    "Registry and LCOV helpers: both Node22 regression suites, complete changed scripts ESLint complexity<=5 and diff checks passed."
   ],
   "entries": [
     {
@@ -4775,6 +4776,22 @@
       "originalLine": 67,
       "status": "source_change_pending_rescan",
       "proof": "Build forged evidence fixture as a fresh shallow copy then explicitly delete its existing evidenceHash before computing a replacement. Removes unused void expression; original proof remains untouched. Full immutable FX persistence/replay/restart/rollback suite passes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dndrd2w=",
+      "rule": "JS-R1005",
+      "path": "scripts/test_registry.js",
+      "originalLine": 6,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated registered-name validation, discovery and sorted registry differences. Validation order and exact diagnostic wording remain unchanged. Existing omissions/duplicates/missing/unsafe-entry suite passes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d3ZnbWw=",
+      "rule": "JS-R1005",
+      "path": "scripts/normalize_lcov_paths.js",
+      "originalLine": 13,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated single-source canonicalization and filesystem validation from sequential LCOV traversal. Lexical and canonical containment, missing files, non-files, empty sources and empty reports continue to fail closed. Existing LCOV path suite passes."
     }
   ]
 }
