@@ -193,6 +193,7 @@ const allTests = [
   'test_telegram_viewer_deployment.js',
   'test_setup_bundle.js',
   'test_trading_engine.js',
+  'test_trading_engine_type_guards.js',
   'test_trading_failures.js',
   'test_trading_credentials.js',
   'test_dynamic_exchange_registry.js',
