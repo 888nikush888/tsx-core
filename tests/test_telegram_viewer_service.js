@@ -85,6 +85,11 @@ function assertNoInlineMenu(message, label) {
   assert.strictEqual(message.options, undefined, label);
 }
 
+function assertTestDelivery(message) {
+  assertNoInlineMenu(message, 'Viewer test messages must not attach the full viewer menu.');
+  assert.strictEqual(message.text, 'TSX Core \u00b7 Test\nViewer test', 'Test delivery preserves the intended Unicode text.');
+}
+
 function assertUnknownResponse(message) {
   assert.match(message.text, /nur lesend|viewer/i, 'Unknown commands must receive a neutral viewer hint.');
   assertNoInlineMenu(message, 'Unknown-command hints must not attach the full viewer menu.');
@@ -284,8 +289,7 @@ async function run() {
     await service.pollTestEventsOnce();
     assert.strictEqual(service.status().lastTest.status, 'retrying');
     await service.deliverPendingOnce(1_700_000_012_000);
-    assertNoInlineMenu(bot.sent.at(-1), 'Viewer test messages must not attach the full viewer menu.');
-    assert.strictEqual(bot.sent.at(-1).text, 'TSX Core \u00b7 Test\nViewer test', 'Test delivery preserves the intended Unicode text.');
+    assertTestDelivery(bot.sent.at(-1));
     assert.strictEqual(service.status().lastTestEventId, 1);
     assert.strictEqual((await state.lastTest()).status, 'delivered');
 
