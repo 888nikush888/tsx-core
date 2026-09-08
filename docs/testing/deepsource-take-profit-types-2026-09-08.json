@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "All11baseline non-null findings in take-profit allocation; complexity/await pending separate batch.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 tests/test_trading_take_profit.js",
+    "Node22 tests/test_trading_engine.js",
+    "Node22 tests/test_take_profit_contract_guards.js",
+    "Targeted ESLint"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmx4a24=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 154,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Existing-row and recovered-basis branches assign concrete previous totals/completion evidence separately; recovery result is never asserted through a nullable conditional."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl4ZGs=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 153,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Existing-row and recovered-basis branches assign concrete previous totals/completion evidence separately; recovery result is never asserted through a nullable conditional."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhqbXg=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 148,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Each indexed target quantity/completion value is explicitly checked; sparse arrays are traversed by entries before mapping so holes cannot silently produce sparse financial results. Existing rounding, exhausted exposure, monotonic fill and consumed-target behavior is covered."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlld2Q=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 90,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Each indexed target quantity/completion value is explicitly checked; sparse arrays are traversed by entries before mapping so holes cannot silently produce sparse financial results. Existing rounding, exhausted exposure, monotonic fill and consumed-target behavior is covered."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29qcnY=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 88,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Each indexed target quantity/completion value is explicitly checked; sparse arrays are traversed by entries before mapping so holes cannot silently produce sparse financial results. Existing rounding, exhausted exposure, monotonic fill and consumed-target behavior is covered."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJwZ20=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 87,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Each indexed target quantity/completion value is explicitly checked; sparse arrays are traversed by entries before mapping so holes cannot silently produce sparse financial results. Existing rounding, exhausted exposure, monotonic fill and consumed-target behavior is covered."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlvd3E=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 75,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Each indexed target quantity/completion value is explicitly checked; sparse arrays are traversed by entries before mapping so holes cannot silently produce sparse financial results. Existing rounding, exhausted exposure, monotonic fill and consumed-target behavior is covered."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRlbWs=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 72,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Each indexed target quantity/completion value is explicitly checked; sparse arrays are traversed by entries before mapping so holes cannot silently produce sparse financial results. Existing rounding, exhausted exposure, monotonic fill and consumed-target behavior is covered."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlrb3A=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 70,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Each indexed target quantity/completion value is explicitly checked; sparse arrays are traversed by entries before mapping so holes cannot silently produce sparse financial results. Existing rounding, exhausted exposure, monotonic fill and consumed-target behavior is covered."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VveWs=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 70,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Each indexed target quantity/completion value is explicitly checked; sparse arrays are traversed by entries before mapping so holes cannot silently produce sparse financial results. Existing rounding, exhausted exposure, monotonic fill and consumed-target behavior is covered."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmF3eXk=",
+      "rule": "JS-0339",
+      "path": "src/trading_take_profit.ts",
+      "baselineLine": 56,
+      "baselineSourceSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8",
+      "reviewedSourceSha256": "b42f4a05e932bf6c19e2a6e396cfa3822534945bb873be85186f08648c7122bc",
+      "disposition": "fixed",
+      "reason": "Each indexed target quantity/completion value is explicitly checked; sparse arrays are traversed by entries before mapping so holes cannot silently produce sparse financial results. Existing rounding, exhausted exposure, monotonic fill and consumed-target behavior is covered."
+    }
+  ]
+}

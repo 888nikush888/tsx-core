@@ -73,11 +73,30 @@ export function targetOrderCoverage(rows: TakeProfitOrderRow[], price: string) {
     pricesMatch: active.every(row => row.price !== null && compareDecimal(row.price, price) === 0) };
 }
 
+function targetQuantity(values: string[], index: number): string {
+  const value = values[index];
+  if (typeof value !== 'string') throw new Error('TP allocation has a missing or invalid target quantity.');
+  return value;
+}
+
+function assertTargetQuantities(...collections: string[][]): void {
+  for (const values of collections) {
+    for (const [index] of values.entries()) decimal(targetQuantity(values, index));
+  }
+}
+
+function targetCompletion(values: boolean[], index: number): boolean {
+  const value = values[index];
+  if (typeof value !== 'boolean') throw new Error('TP allocation has missing or invalid completion evidence.');
+  return value;
+}
+
 /** Scale only unconsumed target budgets. Filled targets never get recreated on later resize. */
 export function resizeTargetTotals(previous: string[], filled: string[], netQuantity: string, step: string) {
   if (previous.length === 0 || previous.length !== filled.length) throw new Error('Invalid TP allocation dimensions.');
+  assertTargetQuantities(previous, filled);
   const weights = previous.map((value, index) => {
-    const executed = decimal(filled[index]!);
+    const executed = decimal(targetQuantity(filled, index));
     const total = decimal(value);
     return compareDecimal(total, executed) > 0 ? subtractDecimal(total, executed) : '0';
   });
@@ -91,12 +110,12 @@ export function resizeTargetTotals(previous: string[], filled: string[], netQuan
   for (let index = weights.length - 1; index >= 0 && remainder !== '0'; index -= 1) {
     if (weights[index] === '0') continue;
     const room = compareDecimal(available, weight) <= 0
-      ? quantizeDecimalDown(subtractDecimal(weights[index]!, remaining[index]!), step) : remainder;
+      ? quantizeDecimalDown(subtractDecimal(targetQuantity(weights, index), targetQuantity(remaining, index)), step) : remainder;
     const extra = minDecimal(room, remainder);
-    remaining[index] = addDecimal(remaining[index]!, extra);
+    remaining[index] = addDecimal(targetQuantity(remaining, index), extra);
     remainder = subtractDecimal(remainder, extra);
   }
-  return { totals: remaining.map((value, index) => addDecimal(value, filled[index]!)), remaining,
+  return { totals: remaining.map((value, index) => addDecimal(value, targetQuantity(filled, index))), remaining,
     unallocatedQuantity: subtractDecimal(netQuantity, sumDecimals(remaining)) };
 }
 
@@ -107,11 +126,12 @@ interface AllocationRow {
 
 export function completedTargetEvidence(totals: string[], previousFilled: string[], completed: boolean[], filled: string[]): boolean[] {
   if ([previousFilled, completed, filled].some(values => values.length !== totals.length)) throw new Error('Invalid target completion dimensions.');
+  assertTargetQuantities(totals, previousFilled, filled);
   return totals.map((total, index) => {
-    const before = previousFilled[index]!;
-    const current = filled[index]!;
+    const before = targetQuantity(previousFilled, index);
+    const current = targetQuantity(filled, index);
     if (compareDecimal(current, before) < 0) throw new Error('TP fill evidence regressed.');
-    return completed[index]! || (compareDecimal(total, before) > 0 && compareDecimal(current, before) > 0 && compareDecimal(current, total) >= 0);
+    return targetCompletion(completed, index) || (compareDecimal(total, before) > 0 && compareDecimal(current, before) > 0 && compareDecimal(current, total) >= 0);
   });
 }
 
@@ -169,13 +189,20 @@ export async function loadTakeProfitAllocation(intentId: string, plan: TradingPl
     for (const order of rows) {
       const index = targetIndexFromOrderRow(order);
       if (index === null || index > targets.length) throw new Error('Take-profit order has no valid target index.');
-      filled[index - 1] = addDecimal(filled[index - 1]!, order.filled_quantity);
+      filled[index - 1] = addDecimal(targetQuantity(filled, index - 1), order.filled_quantity);
     }
     const row = await getDatabase().get<AllocationRow>('SELECT * FROM trading_take_profit_allocations WHERE intent_id = ?', [intentId]);
     const hash = createHash('sha256').update(JSON.stringify(plan)).digest('hex');
-    const basis = row ? null : await recoverTakeProfitBasis(intentId, plan, rows, proof, remote);
-    const previous = row ? previousTotals(row, plan, hash) : basis!.totals;
-    const completed = row ? completionState(row, previous, filled) : basis!.completed;
+    let previous: string[];
+    let completed: boolean[];
+    if (row) {
+      previous = previousTotals(row, plan, hash);
+      completed = completionState(row, previous, filled);
+    } else {
+      const basis = await recoverTakeProfitBasis(intentId, plan, rows, proof, remote);
+      previous = basis.totals;
+      completed = basis.completed;
+    }
     const allocation = resizeTargetTotals(previous, filled, proof.netQuantity, plan.quantityStep);
     await persistAllocation(intentId, hash, row, allocation, filled, completed);
     return { ...allocation, filled, rows, completed: completed.filter(Boolean).length };
