@@ -216,7 +216,8 @@ async function mockDashboardApi(
         return;
       }
       pendingResource = { ...pendingResource, status: "published", publishedAt: Date.now() };
-      const index = workflowResources.findIndex(item => item.id === pendingResource!.id);
+      const publishedResourceId = pendingResource.id;
+      const index = workflowResources.findIndex(item => item.id === publishedResourceId);
       workflowResources[index] = pendingResource;
       await json(route, { resource: pendingResource });
       pendingResource = null;
@@ -821,9 +822,9 @@ test("ordered account fallback is one exclusive route with a dedicated arrow and
   await expect(page.locator(".workflow-fallback-edge-label")).toHaveText("Paar");
   await page.getByRole("dialog").getByRole("button", { name: "Dialog schließen" }).click();
   await page.getByRole("button", { name: "Gespeicherten Graph aktivieren" }).click();
-  await page.getByRole("button", { name: /„Graph aktiviert“ rückgängig machen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ rückgängig machen/u }).click();
   await expect(page.locator(".workflow-fallback-edge-label")).toHaveText("Paar · Voll · Belegt");
-  await page.getByRole("button", { name: /„Graph aktiviert“ wiederholen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ wiederholen/u }).click();
   await expect(page.locator(".workflow-fallback-edge-label")).toHaveText("Paar");
 });
 
@@ -894,11 +895,13 @@ test("a late-column block is brought into view and the canvas can always be refr
   await expect
     .poll(async () => {
       const box = await firstNode.boundingBox();
+      const viewportSize = page.viewportSize();
+      if (!viewportSize) throw new Error("Expected fixed test viewport.");
       return Boolean(
         box &&
-          box.x < page.viewportSize()!.width &&
+          box.x < viewportSize.width &&
           box.x + box.width > 0 &&
-          box.y < page.viewportSize()!.height &&
+          box.y < viewportSize.height &&
           box.y + box.height > 0,
       );
     })
@@ -942,12 +945,14 @@ test("a late-column block is brought into view and the canvas can always be refr
         firstNode.boundingBox(),
         lastNode.boundingBox(),
       ]);
+      const viewportSize = page.viewportSize();
+      if (!viewportSize) throw new Error("Expected fixed test viewport.");
       return boxes.every(
         (box) =>
           box &&
-          box.x < page.viewportSize()!.width &&
+          box.x < viewportSize.width &&
           box.x + box.width > 0 &&
-          box.y < page.viewportSize()!.height &&
+          box.y < viewportSize.height &&
           box.y + box.height > 0,
       );
     })
@@ -1039,10 +1044,10 @@ test("connections can be created from a clear block action and deleted from the 
   await connectionDialog.getByRole("button", { name: "Dialog schließen" }).click();
   await page.getByRole("button", { name: "Gespeicherten Graph aktivieren" }).click();
   await expect(page.locator(".builder-notice")).toContainText("Revision 2 ist aktiv");
-  await page.getByRole("button", { name: /„Graph aktiviert“ rückgängig machen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ rückgängig machen/u }).click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(0);
   await expect(page.locator(".builder-notice")).toContainText("Revision 3 aktiviert");
-  await page.getByRole("button", { name: /„Graph aktiviert“ wiederholen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ wiederholen/u }).click();
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
   await expect(page.locator(".builder-notice")).toContainText("Revision 4 aktiviert");
   await page.locator(".react-flow__edge").dispatchEvent("click");
@@ -1106,10 +1111,10 @@ test("sizing resource history restores exact default leverage versions", async (
   await page.getByRole("button", { name: "Versionen publizieren", exact: true }).click();
   await page.getByRole("button", { name: "Gespeicherten Graph aktivieren" }).click();
   await expect(page.locator(".builder-notice")).toContainText("Revision 2 ist aktiv");
-  await page.getByRole("button", { name: /„Graph aktiviert“ rückgängig machen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ rückgängig machen/u }).click();
   await expect(sizingNode).toContainText("Hebel 3×/50×");
   await expect(page.locator(".builder-notice")).toContainText("Revision 3 aktiviert");
-  await page.getByRole("button", { name: /„Graph aktiviert“ wiederholen/ }).click();
+  await page.getByRole("button", { name: /„Graph aktiviert“ wiederholen/u }).click();
   await expect(sizingNode).toContainText("Hebel 7×/50×");
   await expect(page.locator(".builder-notice")).toContainText("Revision 4 aktiviert");
 });
