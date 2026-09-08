@@ -1,4 +1,4 @@
-import type { WorkflowResourceVersion, WorkflowRevision } from './trading_types.js';
+import type { TradingAccount, WorkflowResourceVersion, WorkflowRevision } from './trading_types.js';
 
 /** Stored SQLite columns; JSON is decoded and checked by the repository. */
 export interface WorkflowResourceRow {
@@ -30,4 +30,14 @@ export interface LegacyRiskPolicyRow {
   locked_tier: number | null; lookback_weeks: number; minimum_closed_trades: number;
   loss_threshold_percent: string; profit_threshold_percent: string; weak_channel_action: 'none' | 'reduce' | 'block';
   weak_weeks_before_block: number; manually_blocked: number; blocked: number;
+}
+
+export interface FallbackCurrentRow {
+  fallback_run_id: string; rank: number; run_status: 'probing' | 'selected' | 'exhausted' | 'stopped'; current_rank: number; run_created_at: number;
+  account_id: string; fallback_on_json: string;
+}
+
+export interface FallbackNextRow extends WorkflowPathRow {
+  rank: number; execution_path_id: string; candidate_account_id: string;
+  exchange: TradingAccount['exchange']; mode: TradingAccount['mode']; account_status: TradingAccount['status']; account_enabled: number; account_kill_switch_active: number;
 }

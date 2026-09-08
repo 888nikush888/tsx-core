@@ -1,5 +1,5 @@
 import type { AccountRow, StrategyRow, SignalSchemaRow, ContractVersionRow, IntentRow } from './trading_repository_rows.js';
-import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow, LegacyWorkflowRouteRow, LegacyRiskPolicyRow } from './workflow_repository_rows.js';
+import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow, LegacyWorkflowRouteRow, LegacyRiskPolicyRow, FallbackCurrentRow, FallbackNextRow } from './workflow_repository_rows.js';
 import { isStringMember, requireString } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
@@ -2195,7 +2195,7 @@ export interface WorkflowFallbackAdvanceResult {
 }
 
 function fallbackAdvanceResult(
-  current: any,
+  current: FallbackCurrentRow,
   nextAccountId: unknown,
   reason: WorkflowFallbackReason,
   advanced: boolean,
@@ -2209,8 +2209,8 @@ function fallbackAdvanceResult(
   };
 }
 
-async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: any; next: any }> {
-  const current = await getDatabase().get<any>(
+async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: FallbackCurrentRow | null; next: FallbackNextRow | null | undefined }> {
+  const current = await getDatabase().get<FallbackCurrentRow>(
     `SELECT candidate.fallback_run_id, candidate.rank, run.status AS run_status,
             run.current_rank, run.created_at AS run_created_at,
             candidate.account_id, candidate.fallback_on_json
@@ -2220,7 +2220,7 @@ async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: any
     [intentId],
   );
   if (!current) return { current: null, next: null };
-  const next = await getDatabase().get<any>(
+  const next = await getDatabase().get<FallbackNextRow>(
     `SELECT candidate.rank, candidate.execution_path_id, candidate.account_id AS candidate_account_id,
             path.*, account.exchange, account.mode,
             account.status AS account_status, account.enabled AS account_enabled,
@@ -2236,7 +2236,7 @@ async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: any
 }
 
 async function exhaustFallbackRun(
-  current: any,
+  current: FallbackCurrentRow,
   intent: TradingIntent,
   reason: WorkflowFallbackReason,
   message: string,
@@ -2258,8 +2258,8 @@ async function exhaustFallbackRun(
 }
 
 async function stopDisallowedFallback(
-  current: any,
-  next: any,
+  current: FallbackCurrentRow,
+  next: FallbackNextRow,
   intent: TradingIntent,
   reason: WorkflowFallbackReason,
   message: string,
@@ -2288,8 +2288,8 @@ async function stopDisallowedFallback(
 }
 
 async function insertPromotedFallbackIntent(
-  current: any,
-  next: any,
+  current: FallbackCurrentRow,
+  next: FallbackNextRow,
   intent: TradingIntent,
   now: number,
 ): Promise<{ id: string; status: 'blocked' | 'pending'; blockReason: string | null }> {
@@ -2315,8 +2315,8 @@ async function insertPromotedFallbackIntent(
 }
 
 async function promoteFallbackCandidate(
-  current: any,
-  next: any,
+  current: FallbackCurrentRow,
+  next: FallbackNextRow,
   intent: TradingIntent,
   reason: WorkflowFallbackReason,
   message: string,
@@ -2395,7 +2395,7 @@ export async function advanceWorkflowFallbackOnEligibleFailure(
 
 export async function markWorkflowFallbackSelected(intentId: string, now = Date.now()): Promise<void> {
   await withDatabaseTransaction(async () => {
-    const candidate = await getDatabase().get<any>(
+    const candidate = await getDatabase().get<Pick<FallbackCurrentRow, 'fallback_run_id' | 'rank'>>(
       `SELECT candidate.fallback_run_id, candidate.rank
        FROM trading_fallback_candidates AS candidate
        JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
@@ -2425,7 +2425,7 @@ export async function markWorkflowFallbackSelected(intentId: string, now = Date.
 
 export async function stopWorkflowFallback(intentId: string, reason: string, now = Date.now()): Promise<void> {
   await withDatabaseTransaction(async () => {
-    const candidate = await getDatabase().get<any>(
+    const candidate = await getDatabase().get<Pick<FallbackCurrentRow, 'fallback_run_id' | 'rank'>>(
       `SELECT candidate.fallback_run_id, candidate.rank
        FROM trading_fallback_candidates AS candidate
        JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
