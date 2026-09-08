@@ -59,7 +59,7 @@ import {
   withDatabaseTransaction,
   updateIncomingMessageStatus
 } from './db.js';
-import type { OutboxTask, SignalProvenance } from './db.js';
+import type { OutboxTask, OutboxStatus, SignalProvenance } from './db.js';
 import { startMetricsServer, stopMetricsServer, type OperationalMetrics } from './metrics.js';
 import { startWebServer, stopWebServer } from './web_server.js';
 import { parseSignalToXml, type AiLimits, type ParsedSignal } from './signal_parser.js';
@@ -1132,11 +1132,11 @@ async function migrateLegacyMediaGroupBuffer(): Promise<void> {
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
       throw new Error('Legacy media buffer must contain an object.');
     }
-    for (const [groupId, group] of Object.entries<any>(data)) {
-      if (!group || !Array.isArray(group.messages) || group.messages.length === 0) {
+    for (const [groupId, group] of Object.entries<unknown>(data)) {
+      if (!group || typeof group !== 'object' || !('messages' in group) || !Array.isArray(group.messages) || group.messages.length === 0) {
         throw new Error(`Legacy media group ${groupId} is invalid.`);
       }
-      await saveMediaGroupBuffer(groupId, String(group.fromChatId), group.messages);
+      await saveMediaGroupBuffer(groupId, String('fromChatId' in group ? group.fromChatId : undefined), group.messages);
     }
     await fsPromises.unlink(LEGACY_MEDIA_BUFFER_FILE);
     addLog(`[INFO] ${Object.keys(data).length} legacy media buffer group(s) migrated to SQLite.`);
@@ -1203,7 +1203,7 @@ async function routeIncomingMessage(message: TelegramMessageIdentity, config: Co
   outboxScheduler.requestPump();
 }
 
-async function handleUpdate(update: any, config: Config): Promise<void> {
+async function handleUpdate(update: { _: string; state?: { _?: string }; message?: TelegramMessageIdentity }, config: Config): Promise<void> {
   deliveryTracker?.handleUpdate(update);
   if (update._ === 'updateConnectionState') {
     addLog(`[TDLib Status] Verbindungszustand geändert: ${update.state?._ || 'unknown'}`);
@@ -1255,7 +1255,7 @@ function routingCredentials(config: Config): { apiId: number; apiHash: string } 
 }
 
 function routingConfigurationIsComplete(
-  config: any,
+  config: Config,
   apiId: number,
   apiHash: string,
   requiresTelegramTarget = true,
@@ -1393,7 +1393,7 @@ async function startForwardingNonInteractive(config) {
     sourceChannels: [...new Set([...(config.sourceChannels || []), ...workflowSources])],
   };
   const requiresTelegramTarget = !activeWorkflow || activeWorkflow.compiled.paths.some(path => {
-    const resources = path.effectiveConfiguration?.resources as Record<string, any> | undefined;
+    const resources = path.effectiveConfiguration?.resources as { output?: { mode?: string } } | undefined;
     return ['telegram_xml', 'telegram_original'].includes(String(resources?.output?.mode || 'audit_only'));
   });
   applyQueueSettings(effectiveConfig);
@@ -1619,29 +1619,31 @@ async function initializeCoreRuntime(
   }
   const tradingEngine = await composeTradingControl(tradingCredentials, clockGuard);
   if (!tradingWebControl || !auditTrail) throw new Error('MCP control dependencies are unavailable.');
-  tradingRuntime = new TradingRuntime(
+  const protectionRuntime = new TradingRuntime(
     tradingEngine,
     2_000,
     addLog,
     clockGuard,
     startupAuthority,
   );
-  tradingWebControl.attachEntryRuntime(tradingRuntime);
+  tradingRuntime = protectionRuntime;
+  tradingWebControl.attachEntryRuntime(protectionRuntime);
   mcpControlBridge = new McpControlBridge(tradingWebControl, auditTrail, addLog, 200, startupAuthority);
   await mcpControlBridge.start();
   // Existing exposure is reconciled immediately, but pending entries remain
   // latched off until crash, retention, dashboard, monitoring and backup gates
   // have all completed below.
   await runStartupGate(startupAuthority, 'protection_scan', async () => {
-    await tradingRuntime!.startProtectionOnly();
-    if (!tradingRuntime!.isProtectionScanComplete()) throw new Error('Initial account protection scan did not complete.');
+    await protectionRuntime.startProtectionOnly();
+    if (!protectionRuntime.isProtectionScanComplete()) throw new Error('Initial account protection scan did not complete.');
   });
   state.totalForwardedCount = await getTotalForwardedCount();
   state.lastSuccessfulForwardAt = await getLastForwardedAt();
 
   const retentionPolicy = retentionPolicyFromEnvironment();
-  retentionScheduler = new OperationalDataRetention(retentionPolicy, addLog);
-  await runStartupGate(startupAuthority, 'retention', () => retentionScheduler!.start());
+  const configuredRetention = new OperationalDataRetention(retentionPolicy, addLog);
+  retentionScheduler = configuredRetention;
+  await runStartupGate(startupAuthority, 'retention', () => configuredRetention.start());
   return { databasePath, retentionPolicy };
 }
 
@@ -2007,7 +2009,7 @@ async function startDashboardRuntime(
         return metricsTracker ? metricsTracker.getHistory() : [];
       },
       getOutboxTasks: async (statuses) => {
-        return listOutboxTasks(statuses as any, 1000);
+        return listOutboxTasks(statuses as OutboxStatus[] | undefined, 1000);
       },
       retryOutboxTask: async (taskId) => {
         return retryPersistedTask(taskId, runtime.config);

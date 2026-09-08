@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
-  "scope": "First forwarding batch: standard Config parameters, SQL rows and created TradingIntent records only.",
+  "scope": "All baseline JS-0323 and JS-0339 occurrences in forwarder.ts.",
   "verification": [
     "Node22 tsc --noEmit",
     "Node22 durable outbox and startup trading suites",
@@ -16,7 +16,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1575,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -26,7 +26,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1258,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -36,7 +36,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1222,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -46,7 +46,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1179,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -56,7 +56,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1167,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -66,7 +66,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1087,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -76,7 +76,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 986,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "The SQL result uses its selected column projection or concrete trading route row interface."
     },
@@ -86,7 +86,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 984,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "The SQL result uses its selected column projection or concrete trading route row interface."
     },
@@ -96,7 +96,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 804,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Created intents use the existing TradingIntent domain contract already returned by the repositories."
     },
@@ -106,7 +106,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 389,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -116,7 +116,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 373,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -126,7 +126,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 236,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "The SQL result uses its selected column projection or concrete trading route row interface."
     },
@@ -136,7 +136,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 207,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -146,7 +146,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 197,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
@@ -156,7 +156,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1167,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -166,7 +166,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1001,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -176,7 +176,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 971,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -186,7 +186,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 943,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -196,7 +196,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 940,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -206,7 +206,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 928,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -216,7 +216,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 928,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -226,7 +226,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 862,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -236,7 +236,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 859,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -246,7 +246,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 823,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -256,7 +256,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 821,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -266,7 +266,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 820,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser/workflow helpers use the existing WorkflowSignalPlan, ParsedSignal, TradingSignalSchema and Config.xmlParsing contracts. Message parameters describe only consumed numeric identity fields while the durable inbox retains the complete native message; no payload is stripped or coerced."
     },
@@ -276,7 +276,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 648,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Parser catch accepts unknown; timeout/abort causes and original rethrow remain unchanged."
     },
@@ -286,7 +286,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1547,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -296,7 +296,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1540,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -306,7 +306,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1288,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -316,7 +316,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 319,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -326,7 +326,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 314,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -336,7 +336,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 255,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -346,7 +346,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 203,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -356,7 +356,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 203,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Ordinary startup/routing/fallback configuration uses Config, nullable where its lifecycle begins empty. Configuration snapshots retain the declared nonsecret Config fields; ingress extras remain separate unresolved typing work. Pending-work aggregate declares its count and config recovery catch uses its existing Error guard on unknown."
     },
@@ -366,7 +366,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1072,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
     },
@@ -376,7 +376,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1006,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
     },
@@ -386,7 +386,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 351,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
     },
@@ -396,7 +396,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 351,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
     },
@@ -406,7 +406,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 344,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
     },
@@ -416,7 +416,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 233,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
     },
@@ -426,7 +426,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 233,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
     },
@@ -436,7 +436,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 180,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Durable outbox context declares its captured workflow/schema/contract/timing/route fields, including optional legacy and delivery extensions. Enqueue requests derive their concrete task contract. Processing results declare mode, confirmation IDs and workflow result metrics. Existing missing-ingress guard and delivery behavior are unchanged."
     },
@@ -446,7 +446,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 2163,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -456,7 +456,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 2145,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -466,7 +466,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 2131,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -476,7 +476,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 2120,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -486,7 +486,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 2095,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -496,7 +496,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 2090,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -506,7 +506,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 2081,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -516,7 +516,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 2066,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -526,7 +526,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1590,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -536,7 +536,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1502,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -546,7 +546,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1491,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -556,7 +556,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1480,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -566,7 +566,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1444,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -576,7 +576,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1416,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -586,7 +586,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1390,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -596,7 +596,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1353,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -606,7 +606,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1345,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -616,7 +616,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1283,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -626,7 +626,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1272,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -636,7 +636,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1250,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -646,7 +646,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1216,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -656,7 +656,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1206,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -666,7 +666,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1157,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -676,7 +676,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1116,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -686,7 +686,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 1055,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -696,7 +696,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 765,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -706,7 +706,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 714,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -716,7 +716,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 432,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -726,7 +726,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 294,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -736,7 +736,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 227,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -746,7 +746,7 @@
       "path": "src/forwarder.ts",
       "baselineLine": 135,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
     },
@@ -756,9 +756,89 @@
       "path": "src/forwarder.ts",
       "baselineLine": 124,
       "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "f7737ea89e2fe8ef1f98b80c515c564d6a1b64d03becc5f239b5563f88d01c71",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
       "disposition": "fixed",
       "reason": "Failure input is unknown. Existing Error diagnostics are retained through unknownErrorMessage; original values still reach rethrow, causes and outbox failure handling. System/provider codes use guarded string/number fields. Native tdl TDLibError extends Error (verified locally); regression tests preserve all three restricted-forwarding classifications and ENOENT, while arbitrary objects cannot supply behavior through coercion. Expected-close/configuration branches now require actual Error instances."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJtdmQ=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1983,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
+      "disposition": "fixed",
+      "reason": "The outbox query uses the concrete OutboxStatus array contract: web_server.ts outboxHandler rejects statuses outside the same seven-state set before invoking this callback. The assertion now expresses that validated contract instead of arbitrary any."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG94cnA=",
+      "rule": "JS-0339",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1617,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
+      "disposition": "fixed",
+      "reason": "Startup callbacks capture the newly constructed protection runtime and retention scheduler directly, while preserving the shared lifecycle references. Startup gate suites verify protection and restricted authority behavior."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxncGo=",
+      "rule": "JS-0339",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1610,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
+      "disposition": "fixed",
+      "reason": "Startup callbacks capture the newly constructed protection runtime and retention scheduler directly, while preserving the shared lifecycle references. Startup gate suites verify protection and restricted authority behavior."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlsbWw=",
+      "rule": "JS-0339",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1609,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
+      "disposition": "fixed",
+      "reason": "Startup callbacks capture the newly constructed protection runtime and retention scheduler directly, while preserving the shared lifecycle references. Startup gate suites verify protection and restricted authority behavior."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlsd2w=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1369,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
+      "disposition": "fixed",
+      "reason": "The Telegram update identity, ordinary routing Config or compiled output-mode projection has an explicit field shape; complete native updates remain intact and existing event/target checks are preserved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFkcnc=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1231,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
+      "disposition": "fixed",
+      "reason": "The Telegram update identity, ordinary routing Config or compiled output-mode projection has an explicit field shape; complete native updates remain intact and existing event/target checks are preserved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHF2dm4=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1179,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
+      "disposition": "fixed",
+      "reason": "The Telegram update identity, ordinary routing Config or compiled output-mode projection has an explicit field shape; complete native updates remain intact and existing event/target checks are preserved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VsbGU=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1108,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "92a3f48931fb138fc41ec05922b16e6d301621f58d0b4490037c82ed147e555c",
+      "disposition": "fixed",
+      "reason": "Legacy media groups enter as unknown and pass explicit object/messages-array/nonempty checks before field access. Existing migration persistence and missing-source handling remain."
     }
   ]
 }
