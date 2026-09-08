@@ -1,3 +1,4 @@
+import type { BackupVerificationEvidence } from "../../../../src/backup_evidence";
 import { useCallback, useState } from 'react';
 import { Link } from '@/lib/navigation';
 import { jsonRequest } from '@/lib/api';
@@ -6,6 +7,11 @@ import { useOperatorReadOnly } from '@/shared/api/operator-session';
 import { useConfirmationDialog, type ConfirmationDialogOptions } from '@/components/confirmation-dialog';
 import { EvidenceFields, EvidenceTable } from '@/shared/components/evidence';
 import { JobLink } from './jobs-page';
+
+interface BackupResponse {
+  backups?: string[];
+  evidence?: BackupVerificationEvidence;
+}
 
 type BackupCommand = 'create' | 'drill' | 'restore' | 'recover';
 const BACKUP_COMMANDS = {
@@ -50,7 +56,7 @@ function backupRequest(kind: BackupCommand, id: string, name: string | undefined
 
 export function BackupsPage({ name }: Readonly<{ name?: string }>) {
   const readOnly = useOperatorReadOnly();
-  const [value, setValue] = useState<any>(null); const [error, setError] = useState('');
+  const [value, setValue] = useState<BackupResponse | null>(null); const [error, setError] = useState('');
   const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);
   const [jobId, setJobId] = useState(''); const [objectName, setObjectName] = useState('');
   const { confirm, confirmationDialog } = useConfirmationDialog();
