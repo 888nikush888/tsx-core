@@ -66,9 +66,9 @@ const EMPTY_WORKFLOW_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges
 const DEFAULT_WORKFLOW_HISTORY_LABEL = 'Workflow geändert';
 const WORKFLOW_HISTORY_ENTRY_KEYS = new Set(['revisionId', 'label', 'capturedAt']);
 
-function object(value: unknown, label: string): Record<string, any> {
+function object(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object.`);
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 
 function normalizedJson(value: unknown): string {
@@ -219,7 +219,7 @@ export async function clearWorkflowBuilderHistory(reason: unknown, now = Date.no
   await withDatabaseTransaction(() => writeWorkflowBuilderHistory({ undo: [], redo: [] }, now));
 }
 
-type ResourceConfiguration = Record<string, any>;
+type ResourceConfiguration = Record<string, unknown>;
 type ResourceValidator = (value: ResourceConfiguration) => Record<string, unknown>;
 
 function validateRegexConfiguration(value: ResourceConfiguration): Record<string, unknown> {
@@ -228,7 +228,7 @@ function validateRegexConfiguration(value: ResourceConfiguration): Record<string
     try { parseRegex(pattern); } catch (error) { throw new Error(`Invalid regex pattern: ${pattern}`, { cause: error }); }
   }
   const mode = value.mode ?? 'all';
-  if (!['all', 'any'].includes(mode)) throw new Error('Regex mode must be all or any.');
+  if (!isStringMember(mode, ['all', 'any'])) throw new Error('Regex mode must be all or any.');
   return { ...value, patterns, mode };
 }
 
@@ -247,7 +247,7 @@ function validateParserConfiguration(value: ResourceConfiguration): Record<strin
     templateName: stringValue(value.templateName ?? 'default', 'Parser template name', 128),
     ...(value.primaryModel ? { primaryModel: stringValue(value.primaryModel, 'Primary parser model', 128) } : {}),
     ...(value.fallbackModel ? { fallbackModel: stringValue(value.fallbackModel, 'Fallback parser model', 128) } : {}),
-    ...(value.prompt !== undefined ? { prompt: value.prompt.trim() } : {}),
+    ...(value.prompt !== undefined ? { prompt: requireString(value.prompt, 'Parser prompt').trim() } : {}),
     timeoutMs,
     saveToFile: false,
   };
@@ -255,11 +255,11 @@ function validateParserConfiguration(value: ResourceConfiguration): Record<strin
 
 function validateSizingConfiguration(value: ResourceConfiguration): Record<string, unknown> {
   const positionSizingMode = value.positionSizingMode ?? 'equity_percent_margin';
-  if (!['risk_percent', 'equity_percent_notional', 'equity_percent_margin'].includes(positionSizingMode)) {
+  if (!isStringMember(positionSizingMode, ['risk_percent', 'equity_percent_notional', 'equity_percent_margin'])) {
     throw new Error('Sizing mode is unsupported.');
   }
-  const baseline = decimal(value.riskPerTradePercent, { positive: true, max: '10' });
-  const maximum = decimal(value.maxAdaptiveRiskPercent ?? baseline, { positive: true, max: '10' });
+  const baseline = decimal(requireString(value.riskPerTradePercent, 'Risk per trade'), { positive: true, max: '10' });
+  const maximum = decimal(requireString(value.maxAdaptiveRiskPercent ?? baseline, 'Maximum adaptive risk'), { positive: true, max: '10' });
   if (Number(maximum) < Number(baseline)) {
     throw new Error('Maximum adaptive risk must not be below the baseline sizing percentage.');
   }
@@ -279,7 +279,7 @@ function validateSizingConfiguration(value: ResourceConfiguration): Record<strin
     positionSizingMode,
     riskPerTradePercent: baseline,
     maxAdaptiveRiskPercent: maximum,
-    maxPositionNotional: decimal(value.maxPositionNotional ?? '1000000000', { positive: true }),
+    maxPositionNotional: decimal(requireString(value.maxPositionNotional ?? '1000000000', 'Maximum position notional'), { positive: true }),
     defaultLeverage,
     maxLeverage,
   };
@@ -298,7 +298,7 @@ function adaptiveRiskTiers(value: ResourceConfiguration): Array<{ riskPercent: s
   }
   const tiers = rawTiers.map((tier, index) => {
     const candidate = object(tier, `Adaptive-risk tier ${index + 1}`);
-    return { riskPercent: decimal(candidate.riskPercent, { positive: true, max: '10' }) };
+    return { riskPercent: decimal(requireString(candidate.riskPercent, 'Tier risk'), { positive: true, max: '10' }) };
   });
   tiers.forEach((tier, index) => {
     if (index > 0 && Number(tier.riskPercent) <= Number(tiers[index - 1]!.riskPercent)) {
@@ -348,8 +348,8 @@ function validateAdaptiveRiskConfiguration(value: ResourceConfiguration): Record
     lockedTier,
     lookbackWeeks: boundedInteger(value.lookbackWeeks ?? 1, 'Adaptive-risk lookback weeks', 1, 12),
     minimumClosedTrades: boundedInteger(value.minimumClosedTrades ?? 5, 'Adaptive-risk minimum closed trades', 1, 1_000),
-    lossThresholdPercent: decimal(value.lossThresholdPercent ?? '2', { positive: true, max: '100' }),
-    profitThresholdPercent: decimal(value.profitThresholdPercent ?? '2', { positive: true, max: '100' }),
+    lossThresholdPercent: decimal(requireString(value.lossThresholdPercent ?? '2', 'Loss threshold'), { positive: true, max: '100' }),
+    profitThresholdPercent: decimal(requireString(value.profitThresholdPercent ?? '2', 'Profit threshold'), { positive: true, max: '100' }),
     weakChannelAction: action,
     weakWeeksBeforeBlock: boundedInteger(value.weakWeeksBeforeBlock ?? 3, 'Adaptive-risk weak weeks', 1, 52),
     manuallyBlocked: value.manuallyBlocked === true,
@@ -366,7 +366,7 @@ function validateDedupeConfiguration(value: ResourceConfiguration): Record<strin
 
 function validateOutputConfiguration(value: ResourceConfiguration): Record<string, unknown> {
   const mode = value.mode ?? 'audit_only';
-  if (!['audit_only', 'telegram_xml', 'telegram_original', 'none'].includes(mode)) {
+  if (!isStringMember(mode, ['audit_only', 'telegram_xml', 'telegram_original', 'none'])) {
     throw new Error('Workflow output mode is invalid.');
   }
   return { ...value, mode };
@@ -702,7 +702,7 @@ export async function deleteWorkflowResourceFamily(resourceId: string): Promise<
   });
 }
 
-function workflowEdgeKind(edge: Record<string, any>, id: string, schemaVersion: WorkflowGraph['schemaVersion']): WorkflowEdge['kind'] {
+function workflowEdgeKind(edge: Record<string, unknown>, id: string, schemaVersion: WorkflowGraph['schemaVersion']): WorkflowEdge['kind'] {
   const kind = edge.kind === undefined && schemaVersion === 1 ? undefined : edge.kind;
   if ((schemaVersion === 2 || schemaVersion === 3) && kind !== 'flow' && kind !== 'account_fallback') {
     throw new Error(`Workflow edge ${id} must declare flow or account_fallback kind.`);
@@ -710,11 +710,12 @@ function workflowEdgeKind(edge: Record<string, any>, id: string, schemaVersion: 
   if (schemaVersion === 1 && kind !== undefined && kind !== 'flow') {
     throw new Error(`Workflow edge ${id} kind is unavailable in schema version 1.`);
   }
-  return kind;
+  if (kind === 'flow' || kind === 'account_fallback') return kind;
+  return undefined;
 }
 
 function workflowEdgeFallbackPolicy(
-  edge: Record<string, any>,
+  edge: Record<string, unknown>,
   id: string,
   kind: WorkflowEdge['kind'],
   schemaVersion: WorkflowGraph['schemaVersion'],
@@ -742,7 +743,7 @@ function workflowEdgeFallbackPolicy(
 }
 
 function workflowEdgeChannelScope(
-  edge: Record<string, any>,
+  edge: Record<string, unknown>,
   id: string,
   nodesById: Map<string, WorkflowNode>,
   kind: WorkflowEdge['kind'],
@@ -797,9 +798,14 @@ function normalizeWorkflowEdge(input: {
   };
 }
 
+function isWorkflowResourceKind(value: unknown): value is WorkflowResourceKind {
+  return WORKFLOW_RESOURCE_KINDS.some(kind => kind === value);
+}
+
 export function validateGraph(input: unknown): WorkflowGraph {
   const value = object(input, 'Workflow graph');
-  if (![1, 2, 3].includes(value.schemaVersion) || !Array.isArray(value.nodes) || !Array.isArray(value.edges)) {
+  const schemaVersion = value.schemaVersion;
+  if ((schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3) || !Array.isArray(value.nodes) || !Array.isArray(value.edges)) {
     throw new Error('Workflow graph contract is invalid.');
   }
   if (value.nodes.length > 1_000 || value.edges.length > 5_000) throw new Error('Workflow graph exceeds its size limit.');
@@ -809,7 +815,7 @@ export function validateGraph(input: unknown): WorkflowGraph {
     const id = stringValue(node.id, 'Workflow node identifier');
     if (!IDENTIFIER.test(id) || nodeIds.has(id)) throw new Error(`Workflow node identifier '${id}' is invalid or duplicated.`);
     nodeIds.add(id);
-    if (!RESOURCE_KINDS.has(node.kind)) throw new Error(`Workflow node ${id} has an unsupported kind.`);
+    if (!isWorkflowResourceKind(node.kind)) throw new Error(`Workflow node ${id} has an unsupported kind.`);
     const position = object(node.position, `Workflow node ${id} position`);
     if (![position.x, position.y].every(Number.isFinite)) throw new Error(`Workflow node ${id} position is invalid.`);
     return {
@@ -829,9 +835,9 @@ export function validateGraph(input: unknown): WorkflowGraph {
   const edgeIds = new Set<string>();
   const pairs = new Set<string>();
   const edges: WorkflowEdge[] = value.edges.map((candidate: unknown) => normalizeWorkflowEdge({
-    candidate, schemaVersion: value.schemaVersion, nodeIds, nodesById, edgeIds, pairs,
+    candidate, schemaVersion, nodeIds, nodesById, edgeIds, pairs,
   }));
-  return { schemaVersion: value.schemaVersion, nodes, edges };
+  return { schemaVersion, nodes, edges };
 }
 
 type CompiledDraftPath = Omit<WorkflowExecutionPath, 'workflowRevisionId' | 'createdAt'>;
@@ -1063,7 +1069,7 @@ interface WorkflowCompileContext {
 }
 
 async function loadCompiledPathDependencies(
-  configs: Record<string, any>,
+  configs: Record<string, Record<string, unknown>>,
   accountId: string,
   strategyVersionId: string,
 ): Promise<{ account: Pick<AccountRow, 'id' | 'enabled' | 'status'>; baseStrategy: StrategyConfiguration }> {
@@ -1097,7 +1103,7 @@ async function loadCompiledPathDependencies(
 
 function compiledEffectiveConfiguration(
   baseStrategy: StrategyConfiguration,
-  configs: Record<string, any>,
+  configs: Record<string, Record<string, unknown>>,
 ): Record<string, unknown> {
   const normalizedSizing = validateSizingConfiguration(configs.sizing);
   const normalizedConfigs = { ...configs, sizing: normalizedSizing };

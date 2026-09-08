@@ -1,11 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
-  "scope": "Workflow row/projection and legacy migration types, canonical JSON traversal and queue narrowing; remaining configuration/runtime findings remain open.",
+  "scope": "Workflow row/projection and legacy migration types, JSON input validation/traversal, queue narrowing; remaining runtime/config field casts remain open.",
   "verification": [
     "Node22 tsc --noEmit",
     "Node22 workflow builder, fallback and history suites",
-    "Targeted ESLint"
+    "Targeted ESLint",
+    "Node22 tests/test_workflow_input_types.js: six decimal-object rejection paths and supported/unsupported graph versions"
   ],
   "occurrences": [
     {
@@ -14,7 +15,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1923,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -24,7 +25,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1539,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -34,7 +35,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1523,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -44,7 +45,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1284,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -54,7 +55,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 914,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -64,7 +65,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 654,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -74,7 +75,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 633,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -84,7 +85,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 598,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -94,7 +95,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 581,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -104,7 +105,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 538,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -114,7 +115,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 537,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -124,7 +125,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 531,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -134,7 +135,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 502,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -144,7 +145,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 500,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -154,7 +155,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 411,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -164,7 +165,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 399,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
     },
@@ -174,7 +175,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 2018,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "The compile dependency projection or trade-intent row now uses the corresponding concrete SQLite field shape. Existing published/enabled/missing-row checks and stored signal parsing are unchanged."
     },
@@ -184,7 +185,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1954,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "The compile dependency projection or trade-intent row now uses the corresponding concrete SQLite field shape. Existing published/enabled/missing-row checks and stored signal parsing are unchanged."
     },
@@ -194,7 +195,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1897,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "The compile dependency projection or trade-intent row now uses the corresponding concrete SQLite field shape. Existing published/enabled/missing-row checks and stored signal parsing are unchanged."
     },
@@ -204,7 +205,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1077,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "The compile dependency projection or trade-intent row now uses the corresponding concrete SQLite field shape. Existing published/enabled/missing-row checks and stored signal parsing are unchanged."
     },
@@ -214,7 +215,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1073,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "The compile dependency projection or trade-intent row now uses the corresponding concrete SQLite field shape. Existing published/enabled/missing-row checks and stored signal parsing are unchanged."
     },
@@ -224,7 +225,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1072,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "The compile dependency projection or trade-intent row now uses the corresponding concrete SQLite field shape. Existing published/enabled/missing-row checks and stored signal parsing are unchanged."
     },
@@ -234,7 +235,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1071,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "The compile dependency projection or trade-intent row now uses the corresponding concrete SQLite field shape. Existing published/enabled/missing-row checks and stored signal parsing are unchanged."
     },
@@ -244,7 +245,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1068,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "The compile dependency projection or trade-intent row now uses the corresponding concrete SQLite field shape. Existing published/enabled/missing-row checks and stored signal parsing are unchanged."
     },
@@ -254,7 +255,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1043,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Graph traversal consumes a string queue until pop/shift returns undefined, narrowing each item directly while preserving traversal order and cycle checks."
     },
@@ -264,7 +265,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 979,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Graph traversal consumes a string queue until pop/shift returns undefined, narrowing each item directly while preserving traversal order and cycle checks."
     },
@@ -274,7 +275,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 73,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Canonical JSON traversal accepts unknown values, narrowing arrays and non-null objects before recursive field access; it preserves key sorting and primitive values."
     },
@@ -284,7 +285,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 73,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Canonical JSON traversal accepts unknown values, narrowing arrays and non-null objects before recursive field access; it preserves key sorting and primitive values."
     },
@@ -294,7 +295,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1742,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "The active workflow join selects revision.* and now uses WorkflowRevisionRow before the existing compiled graph integrity validation."
     },
@@ -304,7 +305,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1672,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Legacy workflow migration uses concrete route join, risk policy and schema row fields, with explicit absence for an optional risk policy. SQL fields were checked against db.ts; enabled route selection, legacy conversion and validation behavior are unchanged."
     },
@@ -314,7 +315,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1628,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Legacy workflow migration uses concrete route join, risk policy and schema row fields, with explicit absence for an optional risk policy. SQL fields were checked against db.ts; enabled route selection, legacy conversion and validation behavior are unchanged."
     },
@@ -324,7 +325,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1625,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Legacy workflow migration uses concrete route join, risk policy and schema row fields, with explicit absence for an optional risk policy. SQL fields were checked against db.ts; enabled route selection, legacy conversion and validation behavior are unchanged."
     },
@@ -334,7 +335,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1621,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Legacy workflow migration uses concrete route join, risk policy and schema row fields, with explicit absence for an optional risk policy. SQL fields were checked against db.ts; enabled route selection, legacy conversion and validation behavior are unchanged."
     },
@@ -344,7 +345,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1592,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Legacy workflow migration uses concrete route join, risk policy and schema row fields, with explicit absence for an optional risk policy. SQL fields were checked against db.ts; enabled route selection, legacy conversion and validation behavior are unchanged."
     },
@@ -354,7 +355,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1579,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Legacy workflow migration uses concrete route join, risk policy and schema row fields, with explicit absence for an optional risk policy. SQL fields were checked against db.ts; enabled route selection, legacy conversion and validation behavior are unchanged."
     },
@@ -364,7 +365,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1565,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Legacy workflow migration uses concrete route join, risk policy and schema row fields, with explicit absence for an optional risk policy. SQL fields were checked against db.ts; enabled route selection, legacy conversion and validation behavior are unchanged."
     },
@@ -374,7 +375,7 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1564,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Legacy workflow migration uses concrete route join, risk policy and schema row fields, with explicit absence for an optional risk policy. SQL fields were checked against db.ts; enabled route selection, legacy conversion and validation behavior are unchanged."
     },
@@ -384,9 +385,89 @@
       "path": "src/workflow_repository.ts",
       "baselineLine": 1564,
       "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "13282e875bf76add12ad9e157fa7d7c9b6cb46177488e0c29552101ebe1e314c",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
       "disposition": "fixed",
       "reason": "Legacy workflow migration uses concrete route join, risk policy and schema row fields, with explicit absence for an optional risk policy. SQL fields were checked against db.ts; enabled route selection, legacy conversion and validation behavior are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR3dnE=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 1099,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
+      "disposition": "fixed",
+      "reason": "Untrusted JSON object fields remain unknown until operation-specific membership, string or object checks narrow them. Compiled configurations map resource names to the existing object-valued resource configuration contract. Decimal fields now explicitly reject object-provided trim methods, covered by regression tests; supported string values and graph versions remain accepted."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmx2bmQ=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 1065,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
+      "disposition": "fixed",
+      "reason": "Untrusted JSON object fields remain unknown until operation-specific membership, string or object checks narrow them. Compiled configurations map resource names to the existing object-valued resource configuration contract. Decimal fields now explicitly reject object-provided trim methods, covered by regression tests; supported string values and graph versions remain accepted."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1xdmU=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 743,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
+      "disposition": "fixed",
+      "reason": "Untrusted JSON object fields remain unknown until operation-specific membership, string or object checks narrow them. Compiled configurations map resource names to the existing object-valued resource configuration contract. Decimal fields now explicitly reject object-provided trim methods, covered by regression tests; supported string values and graph versions remain accepted."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmx2cmQ=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 715,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
+      "disposition": "fixed",
+      "reason": "Untrusted JSON object fields remain unknown until operation-specific membership, string or object checks narrow them. Compiled configurations map resource names to the existing object-valued resource configuration contract. Decimal fields now explicitly reject object-provided trim methods, covered by regression tests; supported string values and graph versions remain accepted."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh5eHE=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 703,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
+      "disposition": "fixed",
+      "reason": "Untrusted JSON object fields remain unknown until operation-specific membership, string or object checks narrow them. Compiled configurations map resource names to the existing object-valued resource configuration contract. Decimal fields now explicitly reject object-provided trim methods, covered by regression tests; supported string values and graph versions remain accepted."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFvb3E=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 220,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
+      "disposition": "fixed",
+      "reason": "Untrusted JSON object fields remain unknown until operation-specific membership, string or object checks narrow them. Compiled configurations map resource names to the existing object-valued resource configuration contract. Decimal fields now explicitly reject object-provided trim methods, covered by regression tests; supported string values and graph versions remain accepted."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpxYWs=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 69,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
+      "disposition": "fixed",
+      "reason": "Untrusted JSON object fields remain unknown until operation-specific membership, string or object checks narrow them. Compiled configurations map resource names to the existing object-valued resource configuration contract. Decimal fields now explicitly reject object-provided trim methods, covered by regression tests; supported string values and graph versions remain accepted."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWttZGE=",
+      "rule": "JS-0323",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 67,
+      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
+      "reviewedSourceSha256": "bf39dc0efa32c1abb2db6ef65d65e014b3a1ce6ccd9068e4fef8e05cae14396d",
+      "disposition": "fixed",
+      "reason": "Untrusted JSON object fields remain unknown until operation-specific membership, string or object checks narrow them. Compiled configurations map resource names to the existing object-valued resource configuration contract. Decimal fields now explicitly reject object-provided trim methods, covered by regression tests; supported string values and graph versions remain accepted."
     }
   ]
 }
