@@ -1,0 +1,122 @@
+name: Security services onboarding
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snyk:
+    name: Snyk / ${{ matrix.scope }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - scope: backend
+            file: package-lock.json
+            package-manager: npm
+          - scope: frontend
+            file: frontend/package-lock.json
+            package-manager: npm
+          - scope: python-runtime
+            file: exchange_executor/requirements.lock
+            package-manager: pip
+          - scope: python-development
+            file: exchange_executor/requirements-dev.lock
+            package-manager: pip
+          - scope: code
+            file: ''
+            package-manager: ''
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Require Snyk credentials
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [[ -z "$SNYK_TOKEN" ]]; then
+            echo '::error::Missing repository secret SNYK_TOKEN; onboarding scan cannot run.'
+            exit 2
+          fi
+      - name: Configure Node 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+      - name: Configure Python 3.12
+        if: matrix.package-manager == 'pip'
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
+        with:
+          python-version: '3.12'
+      - name: Install hashed Python scan dependencies
+        if: matrix.package-manager == 'pip'
+        run: >-
+          python -m pip install --require-hashes --only-binary=:all:
+          -r exchange_executor/requirements.lock
+          -r exchange_executor/requirements-dev.lock
+      - name: Install exact scanner version outside the project
+        run: npm install --global snyk@1.1307.1 --no-audit --no-fund
+      - name: Scan all severities and enforce complete evidence
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_ORG: ${{ vars.SNYK_ORG }}
+          SCAN_SCOPE: ${{ matrix.scope }}
+          SCAN_FILE: ${{ matrix.file }}
+          SCAN_PACKAGE_MANAGER: ${{ matrix.package-manager }}
+        shell: bash
+        run: |
+          mkdir -p reports/snyk
+          prefix="$PWD/reports/snyk/$SCAN_SCOPE"
+          args=()
+          if [[ -n "$SNYK_ORG" ]]; then args+=("--org=$SNYK_ORG"); fi
+          if [[ "$SCAN_SCOPE" == code ]]; then
+            command=(snyk code test --include-ignores)
+          else
+            command=(snyk test "--file=$SCAN_FILE" "--package-manager=$SCAN_PACKAGE_MANAGER" --ignore-policy)
+            if [[ "$SCAN_PACKAGE_MANAGER" == npm ]]; then command+=(--dev --strict-out-of-sync=true); fi
+            if [[ "$SCAN_PACKAGE_MANAGER" == pip ]]; then command+=(--command=python); fi
+          fi
+          scan_exit=0
+          "${command[@]}" "${args[@]}" --sarif "--json-file-output=$prefix.json" > "$prefix.sarif.json" || scan_exit=$?
+          disposition=scan-error
+          gate_exit=2
+          result_count=null
+          if [[ "$scan_exit" == 0 || "$scan_exit" == 1 ]]; then
+            # Count every result, including suppressed Code findings: its CLI can
+            # exit zero when organization policies have ignored all findings.
+            if result_count=$(jq -er '
+              if .version == "2.1.0" and (.runs | type == "array") and (.runs | length > 0)
+                and all(.runs[]; (.results | type == "array"))
+              then [.runs[].results[]] | length else error("Invalid SARIF evidence") end
+              ' "$prefix.sarif.json"); then
+              disposition=clean
+              gate_exit=0
+              if [[ "$scan_exit" == 1 || "$result_count" -gt 0 ]]; then
+                disposition=findings
+                gate_exit=1
+              fi
+            else
+              result_count=null
+              echo '::error::Completed scanner did not produce valid SARIF evidence.'
+            fi
+          fi
+          jq -n --arg scope "$SCAN_SCOPE" --arg revision "$GITHUB_SHA" \
+            --arg disposition "$disposition" --argjson scannerExit "$scan_exit" \
+            --argjson resultCount "$result_count" \
+            '{scope: $scope, revision: $revision, scannerVersion: "1.1307.1", disposition: $disposition, scannerExit: $scannerExit, resultCount: $resultCount}' \
+            > "$prefix.status.json"
+          echo "Snyk $SCAN_SCOPE: $disposition (scanner exit $scan_exit, result count $result_count)" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$gate_exit" != 0 ]]; then echo "::error::Snyk $SCAN_SCOPE: $disposition"; fi
+          exit "$gate_exit"
+      - name: Preserve per-scan evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: snyk-${{ matrix.scope }}-${{ github.sha }}
+          path: reports/snyk/
+          if-no-files-found: warn
+          retention-days: 14
