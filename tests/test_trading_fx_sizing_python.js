@@ -73,7 +73,7 @@ const threshold = rationalDecimalBounds(divideRational(original.leverageTierDeci
 assert.equal(threshold.exact, false, 'The adjacent 18-place prices straddle the genuine rational maximum.');
 
 const cases = [];
-function add(name, options = {}, change = () => undefined) {
+function add(name, options = {}, change = (_request, _decision) => undefined) {
   const request = structuredClone(options.request ?? original);
   change(request, request.leverageTierDecision);
   cases.push({ name, path: 'sdk', contract: 'unit', mark: '100', ...options, request });

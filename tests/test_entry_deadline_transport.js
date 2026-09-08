@@ -62,7 +62,7 @@ try {
   assert.equal(sent.length, 2, 'Independent protection is allowed after the entry deadline.');
 
   now = plan.entryExpiresAt - 100;
-  respond = () => {
+  respond = _requestBody => {
     now += 200;
     return new Response(JSON.stringify({ code: 'ORDER_OUTCOME_UNRESOLVED', sideEffects: true, details: { confirmedOrders: [] } }), { status: 409 });
   };
@@ -71,7 +71,7 @@ try {
   for (const code of ['ENTRY_INTENT_EXPIRED', 'ENTRY_DEADLINE_CHANGED', 'ENTRY_DEADLINE_UNPROVEN']) {
     now = plan.entryExpiresAt - 100;
     const before = sent.length;
-    respond = () => new Response(JSON.stringify({ error: 'Deadline rejected after an executor await.', code }), { status: 422 });
+    respond = _requestBody => new Response(JSON.stringify({ error: 'Deadline rejected after an executor await.', code }), { status: 422 });
     await assert.rejects(adapter.submitProtectedEntry(account, request(), stop), error => {
       assert.equal(error instanceof TradingRiskError, false, 'An HTTP error code alone cannot prove that an operation was never dispatched.');
       assert.notEqual(error.sideEffects, false);

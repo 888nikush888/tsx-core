@@ -17,7 +17,8 @@
     "22 primitive string fixture compositions: all six Node22 money/rational/account-log tests, ESLint error checks and diff checks passed.",
     "Nine closure/ordering/rejection findings: four targeted Node22 suites, ESLint error checks and diff checks passed.",
     "11 resolver-declaration findings: all ten scoped Node22 suites and ESLint/diff checks passed. Native Promise.withResolvers is available under package Node>=22<23; resolver result shapes and settlement scheduling preserved.",
-    "Explicit retry/audit completion and named scheduler options: five Node22 suites including three Sonar export modes passed; ESLint and diff checks passed."
+    "Explicit retry/audit completion and named scheduler options: five Node22 suites including three Sonar export modes passed; ESLint and diff checks passed.",
+    "Two placeholder-signature findings: Node22 transport fence and exact-lock Python3.12 19-case signed SDK bridge tests passed; ESLint/diff checks passed."
   ],
   "entries": [
     {
@@ -2338,6 +2339,22 @@
       "originalLine": 69,
       "status": "source_change_pending_rescan",
       "proof": "After the unchanged bounded retry loop, an explicit exhaustion error guarantees no implicit undefined return; regression verifies exactly three attempts and two retry delays."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294a2E=",
+      "rule": "JS-W1038",
+      "path": "tests/test_trading_fx_sizing_python.js",
+      "originalLine": 78,
+      "status": "source_change_pending_rescan",
+      "proof": "Placeholder callback signatures explicitly accept the same request/decision arguments as real callbacks; ignored arguments are named, bodies and runtime behavior remain unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4eWs=",
+      "rule": "JS-W1038",
+      "path": "tests/test_entry_deadline_transport.js",
+      "originalLine": 29,
+      "status": "source_change_pending_rescan",
+      "proof": "Placeholder callback signatures explicitly accept the same request/decision arguments as real callbacks; ignored arguments are named, bodies and runtime behavior remain unchanged."
     }
   ]
 }
