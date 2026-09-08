@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { confirmedOrderEvidence, validateAcquisitionEvidence, validateMarketSnapshot, validateOrderResult, validateOpenState } from '../src/exchange_contract_validation.js';
+import { isStringMember, requireString, unknownErrorMessage } from '../src/contract_values.js';
+import { fundingTotalValue } from '../src/trading_accounting_contract.js';
 
 const request = { clientOrderId: 'expected', quantity: '1' };
 const result = { clientOrderId: 'expected', exchangeOrderId: 'remote', status: 'filled', filledQuantity: '1', averagePrice: '100', error: null, raw: {} };
@@ -63,4 +65,46 @@ for (const change of [{ linear: false }, { quantityUnit: 'contracts' }, { settle
   assert.throws(() => validateOpenState({ ...state, fills: [{ ...fill, providerSymbol: accounting.providerSymbol, accounting: { ...accounting, ...change } }] }));
 }
 assert.throws(() => validateOpenState({ ...state, fills: [{ ...fill, quantity: '0' }] }));
+
+function testRawScalarContracts() {
+  let coercions = 0;
+  const object = { toString() { coercions++; return 'stop_loss'; }, credential: 'PRIVATE_TEST_VALUE' };
+  for (const value of [object, ['stop_loss'], 0, false, null, undefined]) {
+    assert.equal(isStringMember(value, ['stop_loss']), false);
+    assert.throws(() => requireString(value, 'Order role'), TypeError);
+    assert.throws(() => validateOpenState({ ...state, orders: [{ ...remoteOrder, role: value }] }), /semantics/);
+  }
+  for (const value of ['', 'stop_loss']) assert.equal(requireString(value, 'Order role'), value);
+  assert.equal(isStringMember('stop_loss', ['stop_loss']), true);
+  assert.equal(coercions, 0, 'Raw provider contracts must never invoke object stringification.');
+  assert.doesNotMatch(unknownErrorMessage(object), /PRIVATE_TEST_VALUE|\[object Object\]/);
+  for (const value of [0, false, '', null, undefined, 123n]) assert.equal(unknownErrorMessage(value), String(value));
+  assert.equal(unknownErrorMessage(new Error('bounded failure')), 'bounded failure');
+  assert.equal(coercions, 0, 'Diagnostics must not execute foreign coercion hooks.');
+}
+function testExplicitUnknownFunding() {
+  const evidence = { status: 'complete', events: [], observation: { status: 'observed', reportingCurrency: 'USD', amount: '0' } };
+  assert.equal(fundingTotalValue(evidence, 'USD').decimal, '0');
+  assert.equal(fundingTotalValue({ ...evidence, observation: { ...evidence.observation, value: null } }, 'USD'), null,
+    'An explicitly unknown valuation must not fall back to the nominal amount.');
+  assert.equal(fundingTotalValue(evidence, 'EUR'), null);
+}
+function testUnresolvedEventContracts() {
+  const event = { kind: 'fill', source: 'fetchMyTrades', reason: 'missing_order_identity', providerId: null, providerSymbol: null,
+    evidence: { quantity: '0.000000000000000001', timestamp: 0, reduceOnly: false, fee: null } };
+  for (const identity of [{}, { kind: 'order', source: 'fetchOrders', providerId: 'order-original', providerSymbol: 'BTC/USDT:USDT' }]) {
+    const original = { ...event, ...identity };
+    assert.deepEqual(validateOpenState({ ...state, unresolvedEvents: [original] }).unresolvedEvents, [original],
+      'Unresolved bounded original economics remain explicit rather than disappearing from the account observation.');
+  }
+  for (const change of [{ kind: ['fill'] }, { source: { toString: () => 'fetchMyTrades' } }, { reason: 'INVALID.reason' },
+    { providerId: '' }, { evidence: { nested: {} } }, { evidence: { invalid: NaN } }, { evidence: { invalid: Infinity } },
+    { evidence: Object.fromEntries(Array.from({ length: 41 }, (_, index) => [`field${index}`, 0])) },
+    { evidence: { oversized: 'x'.repeat(16_385) } }]) {
+    assert.throws(() => validateOpenState({ ...state, unresolvedEvents: [{ ...event, ...change }] }), /unresolved|evidence/i);
+  }
+}
+testRawScalarContracts();
+testExplicitUnknownFunding();
+testUnresolvedEventContracts();
 console.log('Exchange contract validation tests passed.');

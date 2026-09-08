@@ -25,10 +25,40 @@ import {
   updateWorkflowResourceDraft,
 } from '../src/workflow_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
+import { uiWorkflowDetail } from '../src/ui_workflow_reads.js';
 
 // These direct-call fixtures pin at creation; production pins when Telegram ingress is committed.
 async function createWorkflowTradingIntents(input, now) {
   return createPinnedWorkflowTradingIntents({ ...input, workflowRevisionId: (await getActiveWorkflow()).id }, now);
+}
+
+async function assertPinnedPathDetail(workflow, account, strategy, sizing) {
+  const executionPath = workflow.compiled.paths.find(candidate => candidate.accountId === account.id);
+  const detail = await uiWorkflowDetail('paths', executionPath.id);
+  assert.equal(detail.integrityVerified, true);
+  assert.equal(detail.revision.id, workflow.id);
+  assert.equal(detail.revision.definitionSha256, workflow.definitionSha256);
+  assert.equal(detail.path.accountId, account.id);
+  assert.equal(detail.path.strategyVersionId, strategy.id);
+  assert.deepEqual(detail.sources.map(source => source.nodeId).toSorted(), executionPath.nodeIds.toSorted());
+  assert.ok(detail.sources.some(source => source.resource.id === sizing.id));
+  const field = name => detail.parameterEffects.find(parameter => parameter.field === name);
+  const risk = field('sizing.riskPerTradePercent');
+  assert.equal(risk.value, sizing.configuration.riskPerTradePercent);
+  assert.equal(risk.strategyValue, strategy.configuration.sizing.riskPerTradePercent);
+  assert.equal(risk.strategyValuePresent, true);
+  assert.equal(risk.sourceVersionId, sizing.id);
+  assert.equal(risk.resourceId, sizing.resourceId);
+  assert.equal(risk.overridesStrategy, true);
+  assert.equal(risk.unit, '%');
+  assert.equal(field('sizing.defaultLeverage').value, sizing.configuration.defaultLeverage);
+  assert.equal(field('sizing.defaultLeverage').unit, '×');
+  assert.equal(field('sizing.maxPositionNotional').unit, 'Quote-Währung des Markts; Auflösung im Tradeplan');
+  assert.equal(field('safety.maxDailyLoss').value, strategy.configuration.safety.maxDailyLoss);
+  assert.equal(field('safety.maxDailyLoss').sourceVersionId, strategy.id);
+  assert.equal(field('safety.maxDailyLoss').overridesStrategy, false);
+  assert.ok(detail.parameterEffects.every(parameter => parameter.scope.includes(workflow.id) && parameter.scope.includes(account.id)));
+  return detail.parameterEffects;
 }
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-workflow-'));
@@ -535,6 +565,9 @@ try {
     baseRevisionId: null, graph, actorId: 'test:admin', confirmation: WORKFLOW_IMPACT_CONFIRMATION,
   });
   assert.equal(workflow.compiled.paths.length, 2);
+  const originalParameterEffects = await assertPinnedPathDetail(workflow, firstAccount, strategy, resources.sizingA);
+  await assertPinnedPathDetail(workflow, secondAccount, strategy, resources.sizingB);
+  assert.equal(await uiWorkflowDetail('paths', 'missing-execution-path'), null);
   const primarySizing = workflow.compiled.paths.find(path => path.accountId === firstAccount.id)
     .effectiveConfiguration.strategyConfiguration.sizing;
   assert.equal(primarySizing.defaultLeverage, 3);
@@ -671,6 +704,10 @@ try {
     confirmation: WORKFLOW_IMPACT_CONFIRMATION,
   });
   assert.equal(changedWorkflow.revision, 2);
+  await assertPinnedPathDetail(changedWorkflow, firstAccount, strategy, changedSizing);
+  assert.deepEqual(await assertPinnedPathDetail(workflow, firstAccount, strategy, resources.sizingA), originalParameterEffects,
+    'Reading an earlier path after activation keeps its original sizing, strategy and source versions.');
+  assert.equal((await getActiveWorkflow()).id, changedWorkflow.id, 'Path detail reads cannot reactivate a historical revision.');
   await assert.rejects(
     archiveWorkflowResource(resources.channel.id),
     /must stop referencing this resource/,

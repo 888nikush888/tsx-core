@@ -51,6 +51,18 @@ export function Logs() {
       setCopyMessage("Kopieren wurde vom Browser blockiert.");
     }
   };
+  const connectionStatus = () => {
+    if (paused) {
+      return 'Aktualisierung pausiert';
+    }
+    if (connectionError) {
+      return 'Verbindung gestört';
+    }
+    if (observedAt) {
+      return 'Verbunden';
+    }
+    return 'Verbindung wird geprüft';
+  };
   return (
     <div className="operations-stack">
       <div className="operations-section-heading">
@@ -72,11 +84,11 @@ export function Logs() {
         <Button type="button" variant="outline" size="sm" onClick={() => void copy(visibleEntries, "Sichtbare Treffer")}>Sichtbare kopieren</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => void copy(matches, "Alle Treffer")}>Alle Treffer kopieren</Button>
       </section>
-      <p role="status">{paused ? 'Aktualisierung pausiert' : connectionError ? 'Verbindung gestört' : observedAt ? 'Verbunden' : 'Verbindung wird geprüft'} · Letzte erfolgreiche Beobachtung: {observedAt ? new Date(observedAt).toLocaleString('de-DE') : 'unbekannt'}. Lokaler Puffer: höchstens 5.000 Zeilen; Anzeige: letzte 1.000 Treffer.</p>
+      <p><output>{connectionStatus()} · Letzte erfolgreiche Beobachtung: {observedAt ? new Date(observedAt).toLocaleString('de-DE') : 'unbekannt'}. Lokaler Puffer: höchstens 5.000 Zeilen; Anzeige: letzte 1.000 Treffer.</output></p>
       {connectionError && <p role="alert">{connectionError} Gespeicherte Zeilen bleiben lesbar.</p>}
       {gap && <p role="alert">Der Server meldet eine Cursorlücke. Die angezeigten Logs sind nicht vollständig.</p>}
       {regexMode && <p>Regex läuft in einem getrennten Suchprozess mit 500 ms Zeitlimit. Zu große oder zu langsame Suchen werden abgebrochen.</p>}
-      {searchError && <p role="alert">{searchError}</p>}{searching && <p role="status">Begrenzte Suche läuft …</p>}
+      {searchError && <p role="alert">{searchError}</p>}{searching && <p><output>Begrenzte Suche läuft …</output></p>}
       {copyMessage && <div className="builder-message">{copyMessage}</div>}
       <div className="compact-log" role="log" ref={logView}>
         {visibleEntries.map((entry) => (

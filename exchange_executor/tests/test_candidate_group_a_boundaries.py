@@ -231,8 +231,9 @@ class CandidateGroupABoundaries(unittest.IsolatedAsyncioTestCase):
         client = _client('deepcoin')
         try:
             self.assertIs(client.has['createOrders'], False)
+            prepared_copy = copy.deepcopy(_protected_pair())
             with self.assertRaisesRegex(ccxt.NotSupported, 'createOrders'):
-                await client.create_orders(copy.deepcopy(_protected_pair()))
+                await client.create_orders(prepared_copy)
             client.fetch.assert_not_called()
             client.request.assert_not_called()
         finally:

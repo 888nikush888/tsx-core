@@ -208,8 +208,8 @@ async function recordWriteFailure(id: string, phase: 'prepared' | 'dispatching',
   const current = await getDatabase().get<{ evidence_json: string | null; state_version: number }>(
     'SELECT evidence_json, state_version FROM trading_operations WHERE id = ?', [id]);
   const contradicted = !sent && (current?.evidence_json !== null || current?.state_version !== (phase === 'prepared' ? 0 : 1));
-  const message = contradicted ? 'NO_SEND_CONTRADICTED: journal contains acknowledgement or unexpected phase history.'
-    : error instanceof Error ? error.message.slice(0, 500) : 'Exchange operation failed.';
+  let message = 'NO_SEND_CONTRADICTED: journal contains acknowledgement or unexpected phase history.';
+  if (!contradicted) message = error instanceof Error ? error.message.slice(0, 500) : 'Exchange operation failed.';
   // Corrupt legacy preparation has no legal negative proof; preserve it for review instead of declaring it unsent.
   if (contradicted && phase === 'prepared') throw new TradingRecoveryRequiredError(message);
   await transitionTradingOperation(id, phase, sent || contradicted ? 'unresolved' : 'abandoned', null, message);
@@ -231,7 +231,8 @@ function observedOperationEvidence(
   for (const order of expected) {
     const matches = remote.filter(candidate => candidate.clientOrderId === order.client_order_id);
     const candidate = matches[0];
-    if (matches.length !== 1 || !candidate || candidate.filledQuantity === null || candidate.status === 'unknown') return null;
+    if (!candidate) return null;
+    if (matches.length !== 1 || candidate.filledQuantity === null || candidate.status === 'unknown') return null;
     if (order.exchange_order_id && order.exchange_order_id !== candidate.exchangeOrderId) return null;
     if (order.provider_symbol && order.provider_symbol !== candidate.providerSymbol) return null;
     if (kind === 'cancel' && !['cancelled', 'filled', 'rejected'].includes(candidate.status)) return null;
@@ -327,7 +328,7 @@ export async function hasUndispatchedPlanProof(intent: TradingIntent, allowAband
   const account = await getDatabase().get<OrderIdentityAccount & { mode: string }>(
     `SELECT id, exchange, mode, external_account_id AS externalAccountId, credential_generation AS credentialGeneration
      FROM trading_accounts WHERE id = ? AND retired_at IS NULL`, [intent.accountId]);
-  if (!account || account.exchange !== intent.exchange || account.mode !== intent.mode) return false;
+  if (account?.exchange !== intent.exchange || account.mode !== intent.mode) return false;
   const stored = await getDatabase().get<{ status: string; plan_json: string }>(
     'SELECT status, plan_json FROM trading_trade_intents WHERE id = ? AND account_id = ?', [intent.id, intent.accountId],
   );

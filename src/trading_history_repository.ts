@@ -36,10 +36,10 @@ async function alignEvidenceWindow(account: TradingAccount, previous: ExchangeHi
   // A restore/import can reveal an older obligation. Invalidate in-flight responses and re-read,
   // never pretend a cursor for a later time range also covered the earlier evidence.
   const restartSince = provenAdvance ? since : Math.min(since, previous.baselineSince);
+  const advanceReason = provenAdvance ? 'proven_baseline_window' : 'earlier_obligation_discovered';
   const reset: ExchangeHistoryCheckpoint = { ...previous, revision: previous.revision + 1, baselineSince: restartSince,
     windowSince: restartSince, windowUntil: null, cursor: null, scannedThrough: null, nextReadAt: 0, coverage: null, retention: null,
-    completeness: 'unknown', reason: legacyCoverage ? 'legacy_coverage_unproved'
-      : provenAdvance ? 'proven_baseline_window' : 'earlier_obligation_discovered' };
+    completeness: 'unknown', reason: legacyCoverage ? 'legacy_coverage_unproved' : advanceReason };
   const result = await getDatabase().run(
     `UPDATE trading_history_checkpoints SET revision = ?, checkpoint_json = ?, updated_at = ?
      WHERE account_id = ? AND account_fingerprint = ? AND source = ? AND provider_symbol = ? AND revision = ?`,

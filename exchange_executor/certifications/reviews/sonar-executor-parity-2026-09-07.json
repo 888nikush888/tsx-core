@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "reviewed_offline_executor_behavior_parity",
+  "reviewedAt": "2026-09-07T11:16:54Z",
+  "sourceRevision": "ed9a64d1ca7ad9c16762727ac8b22261d0de95de",
+  "baseRevision": "e03eacfa3ea482d3be56f731f970b58761dd2510",
+  "executorTreeHash": "f3d6d3e303461b159f0efa6a4b135b1a8de48636e3fa9961928ae98fdc4c295a",
+  "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+  "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7",
+  "priorParityEvidenceHash": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e",
+  "scope": "Independent review of the Sonar executor changes against the approved base, supported by actual offline regression and equivalence executions. This record adds delta evidence to the historical parity review; it is not a new live-provider certification.",
+  "reviewedBy": "root",
+  "implementationAuthors": [
+    "ci_governance_code"
+  ],
+  "review": "Reviewed the complete production diff. Numeric regexes retain ASCII-only full-match languages and bounds; redundant caught exceptions are only already-caught subclasses; dict.fromkeys stores the same immutable False values; loop capture is explicit; the internal synchronous static helper has no external SDK override; transport and async SDK boundaries remain unchanged. Independently reviewed all test-fixture rewrites, preserved assertions and actual dispatch refusal behavior.",
+  "checks": {
+    "offlinePython": {
+      "tests": 542,
+      "passed": 542,
+      "log": {
+        "sha256": "59b0ce97d84eafadeeb48f3186e97af3d51d5c4a2b1c0f5eb09597dfa4090c02",
+        "bytes": 113061
+      }
+    },
+    "numericEquivalence": {
+      "patterns": 15,
+      "samplesPerPattern": 14566,
+      "authorEvidence": {
+        "sha256": "ef68b2b927acffa42338d976cf726b31452e0a831ec81febbed5f8d4ab056084",
+        "bytes": 2745
+      },
+      "independentReview": "Python ASCII regex semantics and changed bounds reviewed; new numeric regressions included in the independent full suite."
+    },
+    "testFixtureReview": {
+      "files": 30,
+      "normalizedEquivalentMethods": 499,
+      "manuallyReviewedRemainingMethods": 5,
+      "independentAstEvidence": {
+        "sha256": "cb1a35bb167db0967c77aef2018cbdd64e79bafff47db20d892ff7ca5d7ba569",
+        "bytes": 1052
+      }
+    },
+    "candidateEvidence": {
+      "file": "exchange_executor/certifications/reviews/sonar-candidate-evidence-2026-09-07.json",
+      "sha256": "0d96f6fa901bf4bf2a4db702429a2fa21fd256285f5d3edc122d195bae8f5863",
+      "providerDeclarationsUnchanged": true,
+      "decisionsAndReasonsUnchanged": true
+    },
+    "requiredAsyncAndSnapshotContracts": "Actual regression tests verify SDK REST/Pro initialization remains awaitable and mutation-safe retry/socket iteration; counterexamples and the four individual false-positive rationales were independently reviewed."
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false
+}

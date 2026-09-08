@@ -11,12 +11,12 @@ import { Empty, time } from '@/shared/components/operator-primitives';
 export function Mcp() {
   const [params, setParams] = useSearchParams();
   const query = new URLSearchParams(params); query.set('view', 'operator'); const queryKey = query.toString();
-  const [snapshotState, setSnapshot] = useState<any>(null);
+  const [snapshotState, setSnapshotState] = useState<any>(null);
   const snapshot = snapshotState?.key === queryKey ? snapshotState.value : null;
   const [error, setError] = useState("");
   const [notice, setNotice] = useState('');
   const selectedId = params.get('agentId') || '';
-  const setSelectedId = (id: string) => setParams(previous => { if (id) previous.set('agentId', id); else previous.delete('agentId'); return previous; });
+  const setSelectedId = (id: string) => setParams(previous => { if (id) { previous.set('agentId', id); } else { previous.delete('agentId'); } return previous; });
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState("");
 
@@ -33,14 +33,14 @@ export function Mcp() {
   const { draft: form, setDraft: setForm } = draft;
   const load = useCallback(async () => {
     try {
-      setSnapshot({ key: queryKey, value: await jsonRequest(`/api/mcp?${queryKey}`) });
+      setSnapshotState({ key: queryKey, value: await jsonRequest(`/api/mcp?${queryKey}`) });
       setError("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
     }
   }, [queryKey]);
   const readMcp = useCallback(async (signal: AbortSignal) => ({ key: queryKey, value: await jsonRequest(`/api/mcp?${queryKey}`, { signal }) }), [queryKey]);
-  usePoll(readMcp, (value) => { setSnapshot(value); setError(""); }, (reason) => setError(reason.message), 3_000);
+  usePoll(readMcp, (value) => { setSnapshotState(value); setError(""); }, (reason) => setError(reason.message), 3_000);
   const call = async (
     key: string,
     url: string,
@@ -81,15 +81,20 @@ export function Mcp() {
       confirmLabel: "Modus ändern",
       destructive: mode === "disabled",
     })) return;
+    const runtimeConfirmation = () => {
+      if (mode === "active") {
+        return "set-mcp-runtime-active";
+      }
+      if (mode === "disabled") {
+        return "set-mcp-runtime-disabled";
+      }
+      return undefined;
+    };
     await call(
       `runtime-${mode}`,
       "/api/mcp/runtime",
       { mode },
-      mode === "active"
-        ? "set-mcp-runtime-active"
-        : mode === "disabled"
-          ? "set-mcp-runtime-disabled"
-          : undefined,
+      runtimeConfirmation(),
     );
   };
   const canLeaveDraft = async () => {
@@ -211,7 +216,7 @@ export function Mcp() {
         </button>
       </div>
       {error && <div className="builder-error">{error}</div>}
-      {notice && <p role="status">{notice}</p>}
+      {notice && <p><output>{notice}</output></p>}
       {snapshot?.interpretation && <p>{snapshot.interpretation}</p>}
       <section className="operations-card">
         <h3>Laufzeitmodus</h3>
@@ -266,7 +271,7 @@ export function Mcp() {
       {showEditor && (
         <section className="operations-card mcp-editor">
           <h3>{selected ? "Agent bearbeiten" : "Agent erstellen"}</h3>
-          {draft.dirty && <p role="status">Ungespeicherte Änderungen · automatische Aktualisierung erhält diesen Entwurf.</p>}
+          {draft.dirty && <p><output>Ungespeicherte Änderungen · automatische Aktualisierung erhält diesen Entwurf.</output></p>}
           {draft.conflict && <div role="alert" className="builder-error">
             <p>Der Serverstand wurde geändert. Speichern ist bis zum Vergleich gesperrt.</p>
             <dl><dt>Server</dt><dd>{serverForm?.name} · {serverForm?.enabled ? "aktiv" : "inaktiv"} · Rechte: {serverForm?.permissions.join(", ")} · Ereignisse: {serverForm?.eventSubscriptions.join(", ")}</dd>
@@ -275,7 +280,7 @@ export function Mcp() {
             <button type="button" className="secondary-button" onClick={draft.rebase}>Verglichen: Entwurf auf neuen Stand anwenden</button>
           </div>}
           <label>
-            Name
+            Name{" "}
             <input
               value={form.name}
               onChange={(event) =>
@@ -397,22 +402,33 @@ export function Mcp() {
         </div>
         {snapshot?.sessions?.map((session: any) => <p key={session.id}>{session.agentName || session.agentId} · {session.clientName} · {session.disconnectedAt == null ? 'verbunden' : 'getrennt'} · zuletzt {time(session.lastSeenAt)}</p>)}
         {pageControls('sessions', 'Sitzungen')}
-        {snapshot?.actions?.map((action: any) => (
-          <div className="mcp-action" key={action.id}>
-            <span
-              className={`state-badge ${action.outcome === "succeeded" ? "healthy" : action.outcome === "failed" ? "danger" : ""}`}
-            >
-              {action.outcome}
-            </span>
-            <div>
-              <strong>{action.toolName}</strong>
-              <small>
-                {action.agentName} · {action.durationMs} ms ·{" "}
-                {time(action.completedAt)}
-              </small>
+        {snapshot?.actions?.map((action: any) => {
+          const actionBadge = () => {
+            if (action.outcome === "succeeded") {
+              return "healthy";
+            }
+            if (action.outcome === "failed") {
+              return "danger";
+            }
+            return "";
+          };
+          return ((
+            <div className="mcp-action" key={action.id}>
+              <span
+                className={`state-badge ${actionBadge()}`}
+              >
+                {action.outcome}
+              </span>
+              <div>
+                <strong>{action.toolName}</strong>
+                <small>
+                  {action.agentName} · {action.durationMs} ms ·{" "}
+                  {time(action.completedAt)}
+                </small>
+              </div>
             </div>
-          </div>
-        ))}
+          ));
+        })}
         {pageControls('actions', 'Aktionen')}
       </section>
     </div>

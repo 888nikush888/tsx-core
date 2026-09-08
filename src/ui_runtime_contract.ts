@@ -12,8 +12,8 @@ export const RUNTIME_INTEGER_RANGES = {
 
 export function runtimeFieldGroup(key: string): string {
   if (/^(dashboard|tailscale|oidc|enterprise)/.test(key)) return 'Authentifizierung';
-  if (/^backup/.test(key)) return 'Backups / Offsite';
-  if (/^data/.test(key)) return 'Aufbewahrung';
+  if (key.startsWith('backup')) return 'Backups / Offsite';
+  if (key.startsWith('data')) return 'Aufbewahrung';
   if (/^(audit|alert)/.test(key)) return 'Audit / Benachrichtigungen';
   if (key === 'jsonLogging') return 'Beobachtbarkeit';
   return 'Laufzeit';

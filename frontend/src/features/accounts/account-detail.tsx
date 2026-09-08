@@ -5,7 +5,7 @@ import { usePoll } from '@/shared/api/use-poll';
 import { EvidenceFields, EvidenceTable } from '@/shared/components/evidence';
 import { useConfirmationDialog } from '@/components/confirmation-dialog';
 
-export function AccountDetail({ id, readOnly }: { id: string; readOnly: boolean }) {
+export function AccountDetail({ id, readOnly }: Readonly<{ id: string; readOnly: boolean }>) {
   const [value, setValue] = useState<any>(null); const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const read = useCallback((signal: AbortSignal) => jsonRequest(`/api/trading/accounts/detail?id=${encodeURIComponent(id)}`, { signal }), [id]);
@@ -24,10 +24,10 @@ export function AccountDetail({ id, readOnly }: { id: string; readOnly: boolean 
     } catch (reason) { setError(`${reason instanceof Error ? reason.message : String(reason)} Kein automatischer Wiederholungsversuch.`); }
     finally { setBusy(false); }
   };
-  if (!value) return <section><h1>Konto {id}</h1><p role={error ? 'alert' : 'status'}>{error || 'Kontobelege werden geladen …'}</p></section>;
+  if (!value) return <section><h1>Konto {id}</h1><p>{error ? <span role="alert">{error}</span> : <output>Kontobelege werden geladen …</output>}</p></section>;
   const account = value.account;
   return <div className="operations-stack">{confirmationDialog}<h1>{account.name} · {account.exchange}/{account.mode}</h1>
-    {error && <p role="alert">{error} Daten können veraltet sein.</p>}{message && <p role="status">{message}</p>}
+    {error && <p role="alert">{error} Daten können veraltet sein.</p>}{message && <p><output>{message}</output></p>}
     <section className="operations-card"><h2>Identität, Kapazität und Beobachtungen</h2><EvidenceFields fields={[
       ['Konto-ID', id], ['Kontomodus', account.mode], ['Aktiv', account.enabled], ['Status', account.status], ['Konto-Kill-Switch', account.killSwitchActive], ['Sperrgrund', account.killSwitchReason],
       ['Identitätsfingerprint (redigiert)', account.identityFingerprint], ['Credentialgeneration', account.credentialGeneration], ['Kontoversion', account.stateVersion],

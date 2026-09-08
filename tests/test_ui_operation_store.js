@@ -6,7 +6,62 @@ import { UiOperationStore } from '../src/ui_operation_store.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-ui-jobs-'));
 if (!path.resolve(directory).startsWith(path.resolve(os.tmpdir()) + path.sep) || !path.basename(directory).startsWith('tsx-ui-jobs-')) throw new Error('Unsafe cleanup path.');
+async function tiedJobPagesSurviveReload() {
+  const tiedDirectory = path.join(directory, 'tied-pages');
+  const store = new UiOperationStore(tiedDirectory, 'tied-process-1');
+  const timestamp = Date.now() - 1000;
+  const originalNow = Date.now;
+  try {
+    Date.now = () => timestamp;
+    for (const id of ['job-paging-tie-a1', 'job-paging-tie-z2', 'job-paging-tie-A3']) {
+      await store.accept({ id, kind: 'backup-drill', actorId: 'test:admin', scope: {}, request: { id } });
+      await store.run(id, async () => ({ proof: 'local-fixture' }));
+    }
+  } finally { Date.now = originalNow; }
+  const reloaded = new UiOperationStore(tiedDirectory, 'tied-process-2');
+  const first = await reloaded.page(new URLSearchParams({ limit: '2', state: 'succeeded' }));
+  assert.deepEqual(first.jobs.map(job => job.id), ['job-paging-tie-z2', 'job-paging-tie-a1']);
+  assert.ok(first.jobs.every(job => job.acceptedAt === timestamp));
+  assert.equal(first.hasMore, true);
+  const second = await reloaded.page(new URLSearchParams({ limit: '2', state: 'succeeded', cursor: first.nextCursor }));
+  assert.deepEqual(second.jobs.map(job => job.id), ['job-paging-tie-A3']);
+  assert.equal(second.observedAt, first.observedAt);
+  assert.equal(second.hasMore, false);
+  assert.equal(second.nextCursor, null);
+  assert.equal(new Set([...first.jobs, ...second.jobs].map(job => job.id)).size, 3,
+    'Equal timestamps must not skip or duplicate durable jobs across cursor pages and process reloads.');
+}
+async function failedJobReceiptsSurviveReload() {
+  const failedDirectory = path.join(directory, 'failed-receipts');
+  const store = new UiOperationStore(failedDirectory, 'failure-process-1');
+  let coercions = 0, commands = 0;
+  const opaqueFailure = { privateFixture: 'must-never-be-serialized', [Symbol.toPrimitive]() { coercions += 1; return 'unsafe'; } };
+  const cases = [
+    ['operator-failure-error', new Error('Fixture backup could not be verified.'), 'Fixture backup could not be verified.'],
+    ['operator-failure-object', opaqueFailure, 'A non-Error value was thrown; inspect the operation receipt for context.'],
+  ];
+  for (const [id, failure, expectedError] of cases) {
+    const request = { id, kind: 'backup-drill', actorId: 'test:admin', scope: {}, request: { id } };
+    assert.equal((await store.accept(request)).created, true);
+    await store.run(id, async () => { commands += 1; throw failure; });
+    const reloaded = new UiOperationStore(failedDirectory, `reloaded-${id}`);
+    const receipt = await reloaded.get(id);
+    assert.equal(receipt.state, 'failed');
+    assert.equal(receipt.error, expectedError);
+    assert.equal(receipt.result, null);
+    assert.match(receipt.stage, /partial effects must be reviewed/);
+    assert.equal(JSON.stringify(receipt).includes(opaqueFailure.privateFixture), false);
+    const replay = await reloaded.accept(request);
+    assert.equal(replay.created, false, 'A failed command remains bound to its original key after restart.');
+    assert.deepEqual(replay.job, receipt);
+    await assert.rejects(reloaded.accept({ ...request, actorId: 'test:other' }), /another request/);
+  }
+  assert.equal(coercions, 0, 'Persisting a failure never invokes arbitrary object conversion.');
+  assert.equal(commands, cases.length);
+}
 try {
+  await tiedJobPagesSurviveReload();
+  await failedJobReceiptsSurviveReload();
   const store = new UiOperationStore(directory, 'process-1');
   const request = { id: 'operator-job-test-1', kind: 'backup-drill', actorId: 'test:admin', scope: { artifactName: 'backup-2026-test' }, request: { name: 'backup-2026-test' } };
   const accepted = await Promise.all([store.accept(request), store.accept(request)]);

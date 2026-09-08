@@ -4,6 +4,8 @@ TypeScript-Control-Plane für Telegram-Signal-Automatisierung und Multi-Exchange
 
 **Dokumentation:** [Production Guide](docs/PRODUCTION_GUIDE.md) · [Trading Guide](docs/TRADING_GUIDE.md) · [MCP Guide](docs/MCP_GUIDE.md) · [Architecture](docs/ARCHITECTURE.md) · [Quality Gates](docs/QUALITY_OS.md) · [Operations Runbook](docs/runbooks/operations.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
+**Aktuelle Prüfungen:** [GitHub CI](https://github.com/888nikush888/tsx-core/actions/workflows/quality.yml) · [SonarQube Cloud](https://sonarcloud.io/project/overview?id=888nikush888_telegram-tdlib-forwarder-private) · [Repository-Pflege vom 07.09.2026](docs/testing/github-maintenance-2026-09-07.md). Ein erfolgreicher CI-Lauf belegt den geprüften Quellstand; den laufenden Serverstand zeigt die Betriebsansicht der jeweiligen Installation.
+
 Implementierungsprüfung, echte Providerabnahme und Releasefreigabe sind getrennte Nachweise. Lokale Fake-Tests oder die statische Exchange-Allowlist sind keine Testnet-/Livefreigabe. Der aktuelle Offline-Prüfrahmen, seine noch fehlende echte Provider-Ausführung und die Pflichtbelege stehen in [Provider- und Releaseabnahme](docs/testing/exchange-acceptance.md).
 
 ## Struktur
@@ -28,7 +30,7 @@ tests/                    Unit-, Integrations-, Contract- und Systemtests
 5. **Signalverträge**: versionierte SQLite-Datensätze, verwaltet im visuellen Builder
 6. **Workflow-Control-Plane**: Kanäle → Filter → Parser → Schema → Vertrag → Strategie → Sizing → Risiko → Konto → Ausgabe
 7. **MCP-Agenten**: separater Dienst, gehashte Tokens, Minimalrechte, auditierter Kontrollbrücken-Zugriff
-8. **Supply Chain**: Quelle nur auf `main`, CI baut und scannt jeden Stand
+8. **Supply Chain**: Geschütztes `main`, verpflichtende Reviews sowie CI-Builds und Sicherheitsprüfungen für Änderungsvorschläge
 
 ---
 
@@ -50,7 +52,7 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
 
 2. `http://127.0.0.1:8080` öffnen, den eben ausgegebenen Nachweis eingeben und **Create secure dashboard** wählen. Erst diese bewusste Erststartaktion erzeugt serverseitig einen starken dauerhaften Admin-Bearer-Token und zeigt ihn genau einmal zum Kopieren und sicheren Hinterlegen an. Der Bootstrap-Nachweis wird danach verbraucht. Vor diesem sichtbaren Schritt wird keine lokale Sitzung erzeugt; ein späterer Session-Token verlangt erneut den dauerhaften Admin-Bearer und wird nie allein aufgrund von Browser-Headern ausgegeben.
 3. Im Builder **Betrieb → System** öffnen, Telegram API ID und den 32-stelligen API Hash sowie bei KI-Nutzung den OpenRouter-Key write-only speichern. Dort auch das Routing starten. Telefon, Telegram-Code, E-Mail-Code und optionale 2FA werden ausschließlich im Web-Dialog abgefragt und nicht persistiert.
-4. Über **Baustein** einen Kanal, Filter, Parser, Schema, Vertrag, Strategie, Positionsgröße und Börsenkonto erstellen oder eine veröffentlichte Version wiederverwenden. Die Karten von links nach rechts verbinden. Erst vollständige Pfade sind ausführbar; ein Kanal darf in mehrere Kontopfade verzweigen. Alternativ lassen sich Kontobausteine als exklusive Reihenfolge verbinden: Das nächste Konto wird nur versucht, wenn das Handelspaar auf dem vorherigen Konto eindeutig nicht verfügbar ist.
+4. Über **Baustein** einen Kanal, Filter, Parser, Schema, Vertrag, Strategie, Positionsgröße und Börsenkonto erstellen oder eine veröffentlichte Version wiederverwenden. Die Karten von links nach rechts verbinden. Erst vollständige Pfade sind ausführbar; ein Kanal darf in mehrere Kontopfade verzweigen. Alternativ lassen sich Kontobausteine als exklusive Reihenfolge verbinden. Die Fallback-Verbindung legt fest, ob ein eindeutig nicht verfügbares Handelspaar, ein erreichtes Positionslimit oder ein bereits belegtes Symbol zum nächsten Konto führen darf. Bestehende Verbindungen ohne eigene Policy behalten „Nur Handelspaar“. Kill-Switch, kritische Risiken, technische Fehler und ungeklärte Orderausgänge bleiben gesperrt.
 5. Unter **Betrieb → Konten** Paper, Hyperliquid, Bybit oder Kraken Futures anlegen, das kontoweite Positionslimit setzen und das Konto prüfen. Danach unter **Betrieb → Live** reconciliieren und die Ausführung bewusst aktivieren.
 6. Betriebszustand prüfen:
 

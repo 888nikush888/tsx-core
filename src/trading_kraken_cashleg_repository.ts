@@ -54,7 +54,8 @@ async function originalFill(event: CashlegMoneyOriginal): Promise<CashlegFill> {
   const fill = await getDatabase().get<CashlegFill>(`SELECT fills.*,orders.exchange_order_id,orders.client_order_id,
     orders.role,orders.side,orders.intent_id FROM trading_fills fills JOIN trading_orders orders ON orders.id=fills.order_id
     WHERE fills.id=? AND fills.account_id=?`, [event.fillId, event.accountId]);
-  if (!fill || fill.account_fingerprint !== event.accountFingerprint || fill.intent_id !== event.intentId
+  if (!fill) throw new KrakenCashlegError('own_fill_not_proven');
+  if (fill.account_fingerprint !== event.accountFingerprint || fill.intent_id !== event.intentId
     || fill.filled_at !== event.occurredAt || fill.identity_status !== 'proven' || !fill.identity_json
     || fill.accounting_conflict || !fill.accounting_json) throw new KrakenCashlegError('own_fill_not_proven');
   if (signedDecimal(event.amount) !== negateSignedDecimal(fill.fee) || event.asset !== fill.fee_asset) throw new KrakenCashlegError('original_fee_conflict', true);
@@ -74,7 +75,8 @@ async function expectedEconomics(event: CashlegMoneyOriginal, binding: CashlegRe
     clientOrderId: fill.client_order_id, providerSymbol: fill.provider_symbol, price: fill.price, quantity: fill.quantity,
     fee: fill.fee, feeAsset: fill.fee_asset, filledAt: fill.filled_at, identity: JSON.parse(fill.identity_json!), raw };
   const identity = provenFillIdentity(account, source);
-  if (!identity || identity.key !== fill.remote_fill_key || !nativeEconomicsMatch(raw, fill)) {
+  if (!identity) throw new KrakenCashlegError('native_execution_original_mismatch', true);
+  if (identity.key !== fill.remote_fill_key || !nativeEconomicsMatch(raw, fill)) {
     throw new KrakenCashlegError('native_execution_original_mismatch', true);
   }
   // The native amount is contracts; TSX quantity is base units. Without a

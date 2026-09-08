@@ -66,7 +66,7 @@ export async function uiTradingPage(kind: UiTradingList, query: URLSearchParams)
   if (accountId) { where.push(`${definition.account} = ?`); values.push(accountId); }
   if (objectId) { where.push('id = ?'); values.push(objectId); }
   if (intentId) { where.push(`${definition.intent} = ?`); values.push(intentId); }
-  if (status) { where.push(`${kind === 'operations' ? 'phase' : kind === 'risk-events' ? "CASE WHEN acknowledged_at IS NULL THEN 'unacknowledged' ELSE 'acknowledged' END" : 'status'} = ?`); values.push(status); }
+  if (status) { where.push(`${statusColumn(kind)} = ?`); values.push(status); }
   if (cursor) { where.push(`((${definition.clock}) < ? OR ((${definition.clock}) = ? AND id < ?))`); values.push(cursor.createdAt, cursor.createdAt, cursor.id); }
   const rows = await getDatabase().all(`SELECT ${definition.fields}, (${definition.clock}) AS cursorTime FROM ${definition.table} WHERE ${where.join(' AND ')} ORDER BY cursorTime DESC, id DESC LIMIT ?`, [...values, limit + 1]);
   const entries = rows.slice(0, limit).map(({ cursorTime: _clock, ...row }) => ({ ...row, ...(row.reason ? { reason: maskPII(row.reason).slice(0, 2000) } : {}) }));
@@ -132,4 +132,9 @@ export async function uiAccountDetail(id: string) {
     reconciliation: reconciliation ? { ...reconciliation, reason: reconciliation.reason ? maskPII(reconciliation.reason) : null } : null,
     capacity, paths: paths.slice(0, 100), protection: protection.slice(0, 100).map(redactedProof),
     hasMore: { paths: paths.length > 100, protection: protection.length > 100 } };
+}
+
+function statusColumn(kind: string): string {
+  if (kind === 'operations') return 'phase';
+  return kind === 'risk-events' ? "CASE WHEN acknowledged_at IS NULL THEN 'unacknowledged' ELSE 'acknowledged' END" : 'status';
 }

@@ -1,5 +1,5 @@
 export function normalizeJournalSymbol(symbol: string): string {
-  return symbol.trim().toUpperCase().replace(/\//g, "");
+  return symbol.trim().toUpperCase().replaceAll("/", "");
 }
 export function buildJournalQueryString(filters: {
   from: string; to: string; channelId: string; accountId: string; symbol: string; status: string; reviewed?: string;

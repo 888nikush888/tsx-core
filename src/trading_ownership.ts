@@ -18,7 +18,8 @@ export interface OwnershipProof { entryQuantity: string; exitQuantity: string; n
 function assertOrderSemantics(order: OwnershipOrder, side: TradingSide): void {
   const entry = order.role === 'entry';
   const entrySide = side === 'LONG' ? 'buy' : 'sell';
-  const expectedSide = entry ? entrySide : entrySide === 'buy' ? 'sell' : 'buy';
+  const exitSide = entrySide === 'buy' ? 'sell' : 'buy';
+  const expectedSide = entry ? entrySide : exitSide;
   if (order.side !== expectedSide || Number(order.reduce_only) !== (entry ? 0 : 1)) {
     throw new TradingOwnershipError('ORDER_SEMANTICS', `Order ${order.id} cannot prove an owned ${side} execution.`);
   }

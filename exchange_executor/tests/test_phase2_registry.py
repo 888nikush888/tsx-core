@@ -290,8 +290,9 @@ class CredentialV2Tests(unittest.TestCase):
             value = json.loads(destination.read_text(encoding="utf-8"))
             value["credentials"]["customParams"] = "forbidden"
             destination.write_text(json.dumps(value), encoding="utf-8")
+            prepared_store = CredentialStore(directory)
             with self.assertRaisesRegex(CredentialError, "unsupported credential field"):
-                CredentialStore(directory).account(account_id, "bybit")
+                prepared_store.account(account_id, "bybit")
 
 
 if __name__ == "__main__":

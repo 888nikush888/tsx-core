@@ -98,7 +98,6 @@ export function OperationsWorkspace({
     return (
       <System
         catalog={catalog}
-        systemStatus={systemStatus}
         onRefresh={onRefresh}
       />
     );
@@ -140,7 +139,7 @@ export function OperationsWorkspace({
         </Tabs>
       )}
       <div className="operations-content">
-        {readOnly && <p role="status">Lesender Zugriff. Änderungen erfordern die Administratorrolle.</p>}
+        {readOnly && <p><output>Lesender Zugriff. Änderungen erfordern die Administratorrolle.</output></p>}
         {readOnly && !["journal", "analytics", "logs", "backups"].includes(tab) ? <fieldset disabled className="min-w-0 border-0 p-0">{content}</fieldset> : content}
       </div>
     </section>

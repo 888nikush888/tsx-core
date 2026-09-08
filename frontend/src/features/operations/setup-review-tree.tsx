@@ -3,7 +3,7 @@ import { jsonRequest } from '@/lib/api';
 import { usePoll } from '@/shared/api/use-poll';
 import { EvidenceTable } from '@/shared/components/evidence';
 
-export function SetupReviewTree({ previewKey }: { previewKey: string }) {
+export function SetupReviewTree({ previewKey }: Readonly<{ previewKey: string }>) {
   const [side, setSide] = useState('before'); const [path, setPath] = useState<string[]>([]); const [cursor, setCursor] = useState('');
   const query = new URLSearchParams({ key: previewKey, side, path: JSON.stringify(path), cursor }).toString();
   const [state, setState] = useState<any>(null); const [error, setError] = useState('');
@@ -19,6 +19,6 @@ export function SetupReviewTree({ previewKey }: { previewKey: string }) {
       open: entry.expandable ? <button className="secondary-button" onClick={() => open(entry.path)}>{entry.key} vollständig öffnen</button> : 'vollständig angezeigt' }))} />}
       {!data.entries.length && data.type !== 'string' && <p>Wert: {JSON.stringify(data.value ?? null)}</p>}
       <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => setCursor('')}>Erster Prüfabschnitt</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setCursor(data.nextCursor)}>Weitere Prüfwerte</button></div>
-    </> : !error && <p role="status">Prüfabschnitt wird gelesen …</p>}
+    </> : !error && <p><output>Prüfabschnitt wird gelesen …</output></p>}
   </section>;
 }

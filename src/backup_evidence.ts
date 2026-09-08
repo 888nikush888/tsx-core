@@ -90,8 +90,9 @@ export async function assessRestoreEligibility(database: Database, now = Date.no
       else if (result.count > 0) blocked.push(`${source}: ${result.count} unresolved local obligation(s)`);
     } catch { unknown.push(`${source}: required source could not be read`); }
   }
+  const unblockedStatus = unknown.length ? 'unknown' : 'eligible';
   return {
-    status: blocked.length ? 'blocked' : unknown.length ? 'unknown' : 'eligible',
+    status: blocked.length ? 'blocked' : unblockedStatus,
     scope: RESTORE_ELIGIBILITY_SCOPE,
     checkedAt: now,
     reasons: [...blocked, ...unknown],

@@ -49,10 +49,12 @@ class ProviderAcceptanceSafetyTests(unittest.TestCase):
         self.assertEqual(result["networkRequests"], 0)
 
     def test_execution_refuses_without_authorization_or_implemented_transport(self):
+        prepared_plan = plan()
         with self.assertRaisesRegex(AcceptanceRefused, "explicit authorization"):
-            run_acceptance(plan(), execute=True, expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)
+            run_acceptance(prepared_plan, execute=True, expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)
+        prepared_plan = plan()
         with self.assertRaisesRegex(AcceptanceRefused, "transport is not implemented"):
-            run_acceptance(plan(), execute=True, authorization="RUN APPROVED TESTNET ACCEPTANCE",
+            run_acceptance(prepared_plan, execute=True, authorization="RUN APPROVED TESTNET ACCEPTANCE",
                            expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)
 
     def test_preflight_rejects_missing_limits_mainnet_and_revision_drift(self):
@@ -76,8 +78,9 @@ class ProviderAcceptanceSafetyTests(unittest.TestCase):
         for exchange in HOSTS:
             clock = [100.0]
             guard = self.opened(plan(exchange), clock)
+            prepared_request = request()
             with self.assertRaisesRegex(AcceptanceRefused, "identity and mode"):
-                guard.reserve_order("own-1", "2", request())
+                guard.reserve_order("own-1", "2", prepared_request)
             for field, value in [("accountReferenceHash", "c" * 64), ("positionMode", "hedge"),
                                  ("marginMode", "isolated"), ("origin", "https://mainnet.invalid")]:
                 evidence = account_evidence(guard)
@@ -88,8 +91,9 @@ class ProviderAcceptanceSafetyTests(unittest.TestCase):
             guard.reserve_order("own-1", "2", request())
             guard.reserve_order("own-2", "2", request("own-2", side="sell"))
             self.assertEqual(guard.reservations, {"own-1": "2", "own-2": "2"})
+            prepared_request = request("own-3")
             with self.assertRaises(AcceptanceRefused):
-                guard.reserve_order("own-3", "1", request("own-3"))
+                guard.reserve_order("own-3", "1", prepared_request)
             with self.assertRaises(AcceptanceRefused):
                 guard.require_owned("foreign")
             guard.mark_dispatching("own-1")
@@ -115,15 +119,17 @@ class ProviderAcceptanceSafetyTests(unittest.TestCase):
         self.assertEqual(guard.plan["limits"]["maxOrderCount"], 2)
         guard.confirm_account(account_evidence(guard))
         with patch("acceptance_journal.os.fsync", side_effect=OSError("disk full")):
+            prepared_request = request("unsubmitted")
             with self.assertRaises(JournalRefused):
-                guard.reserve_order("unsubmitted", "2", request("unsubmitted"))
+                guard.reserve_order("unsubmitted", "2", prepared_request)
         self.assertEqual(guard.reservations, {})
         small = copy.deepcopy(plan())
         small["limits"]["maxNotionalUsd"] = "1"
         guard = self.opened(small, [100])
         guard.confirm_account(account_evidence(guard))
+        prepared_request = request("too-large")
         with self.assertRaisesRegex(AcceptanceRefused, "notional"):
-            guard.reserve_order("too-large", "2", request("too-large"))
+            guard.reserve_order("too-large", "2", prepared_request)
 
 
 if __name__ == "__main__":

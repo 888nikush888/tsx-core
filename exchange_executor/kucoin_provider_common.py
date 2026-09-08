@@ -51,7 +51,7 @@ def native_symbol(value: Any, label: str = "provider symbol") -> str:
 def exact_integer(value: Any, label: str, *, minimum: int = 0,
                   maximum: int = MAX_SAFE_INTEGER) -> int:
     if type(value) is str:
-        require(re.fullmatch(r"(?:0|[1-9][0-9]{0,18})", value) is not None,
+        require(re.fullmatch(r"(?a)(?:0|[1-9]\d{0,18})", value) is not None,
                 f"KuCoin {label} must be an exact integer.")
         value = int(value)
     if type(value) is Decimal:

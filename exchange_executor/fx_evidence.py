@@ -169,7 +169,7 @@ async def read_fx_evidence(rest: Any, mode: str, requested_leg_ids: Any,
         reason = 'transient'
     except (UnsupportedFxEvidence, NotImplementedError, NotSupported, BadRequest, InvalidOrder):
         reason = 'unsupported'
-    except (FxEvidenceError, ValueError, TypeError, OverflowError):
+    except (ValueError, TypeError, OverflowError):
         reason = 'invalid_evidence'
     return {'version': 1, 'calls': budget.calls - before, 'receipts': receipts,
             'reason': reason, 'nextReadAt': budget.resume_at}

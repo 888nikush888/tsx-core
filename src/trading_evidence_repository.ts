@@ -144,7 +144,8 @@ interface FillOrder {
 interface FillResult { order: FillOrder | null; inserted: boolean; fillId?: string; remoteFillKey?: string }
 
 function matchesOrder(order: FillOrder | undefined, fill: ExchangeFill): order is FillOrder {
-  return Boolean(order && order.exchange_order_id === fill.exchangeOrderId
+  if (!order) return false;
+  return Boolean(order.exchange_order_id === fill.exchangeOrderId
     && (!fill.symbol || fill.symbol === order.symbol)
     && (!order.provider_symbol || fill.providerSymbol === order.provider_symbol));
 }
@@ -159,7 +160,7 @@ function sameFill(row: any, order: FillOrder, fill: ExchangeFill): boolean {
 async function assertFillAccount(account: TradingAccount): Promise<void> {
   const current = await getDatabase().get<{ exchange: string; mode: string; external_account_id: string | null }>(
     'SELECT exchange,mode,external_account_id FROM trading_accounts WHERE id=?', [account.id]);
-  if (!current || current.exchange !== account.exchange || current.mode !== account.mode
+  if (current?.exchange !== account.exchange || current.mode !== account.mode
     || (account.exchange !== 'paper' && current.external_account_id !== account.externalAccountId)) throw new Error('FILL_ACCOUNT_IDENTITY_CHANGED');
 }
 

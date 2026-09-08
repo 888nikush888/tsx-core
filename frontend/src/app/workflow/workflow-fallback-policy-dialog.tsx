@@ -82,11 +82,11 @@ export function WorkflowFallbackPolicyDialog({
         <fieldset className="workflow-connection-modes">
           <legend>Voreinstellung</legend>
           <label><input type="radio" name="fallback-preset" checked={preset === "pair_only"}
-            onChange={() => choosePreset("pair_only")} /><span><strong>Nur Handelspaar</strong><small>Kompatibles Verhalten bestehender Ketten.</small></span></label>
+            onChange={() => choosePreset("pair_only")} /><span><strong>Nur Handelspaar</strong>{" "}<small>Kompatibles Verhalten bestehender Ketten.</small></span></label>
           <label><input type="radio" name="fallback-preset" checked={preset === "recommended"}
-            onChange={() => choosePreset("recommended")} /><span><strong>Empfohlen</strong><small>Paar, volles Konto und bereits belegtes Symbol.</small></span></label>
+            onChange={() => choosePreset("recommended")} /><span><strong>Empfohlen</strong>{" "}<small>Paar, volles Konto und bereits belegtes Symbol.</small></span></label>
           <label><input type="radio" name="fallback-preset" checked={preset === "custom"}
-            onChange={() => setPreset("custom")} /><span><strong>Benutzerdefiniert</strong><small>Wähle die erlaubten Gründe einzeln.</small></span></label>
+            onChange={() => setPreset("custom")} /><span><strong>Benutzerdefiniert</strong>{" "}<small>Wähle die erlaubten Gründe einzeln.</small></span></label>
         </fieldset>
 
         <fieldset className="workflow-connection-channels">
@@ -94,7 +94,7 @@ export function WorkflowFallbackPolicyDialog({
           {FALLBACK_REASON_ORDER.map((reason) => (
             <label key={reason}>
               <input type="checkbox" checked={selected.includes(reason)} onChange={() => toggleReason(reason)} />
-              <span><strong>{FALLBACK_REASON_PRESENTATION[reason].title}</strong><small>{FALLBACK_REASON_PRESENTATION[reason].description}</small></span>
+              <span><strong>{FALLBACK_REASON_PRESENTATION[reason].title}</strong>{" "}<small>{FALLBACK_REASON_PRESENTATION[reason].description}</small></span>
             </label>
           ))}
         </fieldset>

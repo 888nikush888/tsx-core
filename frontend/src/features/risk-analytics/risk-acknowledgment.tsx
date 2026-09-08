@@ -3,7 +3,7 @@ import { jsonRequest } from '@/lib/api';
 import { useOperatorReadOnly } from '@/shared/api/operator-session';
 import { useConfirmationDialog } from '@/components/confirmation-dialog';
 
-export function RiskAcknowledgment({ id, acknowledgedAt }: { id: string; acknowledgedAt: number | null }) {
+export function RiskAcknowledgment({ id, acknowledgedAt }: Readonly<{ id: string; acknowledgedAt: number | null }>) {
   const readOnly = useOperatorReadOnly(); const { confirm, confirmationDialog } = useConfirmationDialog();
   const [busy, setBusy] = useState(false); const [accepted, setAccepted] = useState(false); const [message, setMessage] = useState('');
   const acknowledge = async () => {
@@ -14,5 +14,5 @@ export function RiskAcknowledgment({ id, acknowledgedAt }: { id: string; acknowl
     catch (error) { setMessage(`Quittierung nicht bestätigt; keine automatische Wiederholung. ${error instanceof Error ? error.message : String(error)}`); }
     finally { setBusy(false); }
   };
-  return <div>{confirmationDialog}{acknowledgedAt ? <span>Quittiert · {new Date(acknowledgedAt).toLocaleString('de-DE')}</span> : <button className="secondary-button" disabled={readOnly || busy || accepted} onClick={() => void acknowledge()}>Quittierung prüfen</button>}{message && <p role="status">{message}</p>}</div>;
+  return <div>{confirmationDialog}{acknowledgedAt ? <span>Quittiert · {new Date(acknowledgedAt).toLocaleString('de-DE')}</span> : <button className="secondary-button" disabled={readOnly || busy || accepted} onClick={() => void acknowledge()}>Quittierung prüfen</button>}{message && <p><output>{message}</output></p>}</div>;
 }

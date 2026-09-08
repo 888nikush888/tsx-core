@@ -253,8 +253,9 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_targeted_sdk_cannot_start_an_unbudgeted_market_bootstrap(self):
         self.rest.markets = None
+        prepared_query = self.query(2)
         with self.assertRaisesRegex(ExchangeContractError, 'SDK markets'):
-            await self.read(self.query(2))
+            await self.read(prepared_query)
         self.assertEqual(self.http, [])
 
     async def test_all_zero_not_due_without_modeflag_does_not_enter_legacy_reads(self):
@@ -302,8 +303,9 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
             self.clients.credential_fingerprint = 'rotated-while-reading'
             return [], [], [source_evidence(name, now(), 'complete') for name in ('orders', 'positions')]
         self.current.side_effect = changed
+        prepared_query = self.query()
         with self.assertRaises(ExchangeContractError):
-            await self.read(self.query())
+            await self.read(prepared_query)
         self.assertEqual(self.http, [])
 
     async def test_binding_drift_between_fx_legs_stops_the_next_http_and_discards_response(self):
@@ -312,8 +314,9 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
                 self.clients.profile = replace(self.clients.profile, profile_version=2)
             return raw
         self.transform = changed
+        prepared_query = self.query()
         with self.assertRaises(ExchangeContractError):
-            await self.read(self.query())
+            await self.read(prepared_query)
         self.assertEqual(len(self.http), 1)
 
     async def test_current_positive_order_is_still_observed_without_spending_targeted_grant(self):

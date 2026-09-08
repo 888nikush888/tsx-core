@@ -1,4 +1,5 @@
 import { getDatabase } from './db.js';
+import { requireString } from './contract_values.js';
 import { compareDecimal, decimal, signedDecimal, sumDecimals } from './trading_decimal.js';
 import { validateFillAccounting } from './trading_accounting_contract.js';
 import { accountLogDigest } from './trading_account_log_contract.js';
@@ -38,12 +39,12 @@ function realExecution(fill: StoredExecution, order: ScopeOrder, account: Tradin
     if (['execQty', 'execPrice', 'execFee', 'execTime'].some(field => typeof info[field] !== 'string')) return null;
     const market = validateFillAccounting(JSON.parse(fill.accounting_json), order.provider_symbol);
     if (market.source !== 'ccxt-market-v1' || market.settlementAsset !== fill.fee_asset) return null;
-    const quantity = decimal(String(info.execQty), { positive: true }), price = decimal(String(info.execPrice), { positive: true });
-    const fee = signedDecimal(String(info.execFee));
+    const quantity = decimal(requireString(info.execQty, 'Execution quantity'), { positive: true }), price = decimal(requireString(info.execPrice, 'Execution price'), { positive: true });
+    const fee = signedDecimal(requireString(info.execFee, 'Execution fee'));
     if (compareDecimal(quantity, fill.quantity) !== 0 || compareDecimal(price, fill.price) !== 0 || fee !== signedDecimal(fill.fee)) return null;
-    if (!/^\d+$/.test(String(info.execTime)) || Number(info.execTime) !== fill.filled_at || raw.timestamp !== fill.filled_at) return null;
+    if (!/^\d+$/.test(requireString(info.execTime, 'Execution time')) || Number(info.execTime) !== fill.filled_at || raw.timestamp !== fill.filled_at) return null;
     if (info.feeCurrency && info.feeCurrency !== fill.fee_asset) return null;
-    return { executionId: fill.exchange_fill_id, quantity, price, fee, currency: fill.fee_asset, timestamp: fill.filled_at, symbol: String(info.symbol) };
+    return { executionId: fill.exchange_fill_id, quantity, price, fee, currency: fill.fee_asset, timestamp: fill.filled_at, symbol: requireString(info.symbol, 'Execution symbol') };
   } catch { return null; }
 }
 

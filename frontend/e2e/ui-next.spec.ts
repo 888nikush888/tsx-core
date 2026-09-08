@@ -252,7 +252,7 @@ test('adaptive evidence preserves original policy hashes, invalidation and one-b
   await expect(page.getByText('original-policy-hash', { exact: true })).toBeVisible();
   await expect(page.getByText('Stufe 2', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Originale Datenbasis öffnen' }).click();
-  await expect(page.getByRole('region', { name: 'Kapitalbasis und Auswertungszeitraum' })).toContainText('current_bound_input');
+  await expect(page.getByRole('region', { name: 'Kapitalbasis und Auswertungszeitraum', exact: true })).toContainText('current_bound_input');
   await page.getByRole('button', { name: 'Weitere Policyeinträge' }).click(); await page.reload();
   await expect(page.getByRole('heading', { name: 'Auswertung older-evaluation' })).toBeVisible();
   expect(requests.every(request => request.method === 'GET')).toBe(true);
@@ -271,7 +271,7 @@ test('Legacy risk migration preserves null and blockers in a reviewed draft and 
     }] } };
   });
   await page.goto('/risk/adaptive?kind=legacy');
-  await expect(page.getByRole('region', { name: 'Geprüfte Werte des neuen Workflowentwurfs' })).toContainText('0.125');
+  await expect(page.getByRole('region', { name: 'Geprüfte Werte des neuen Workflowentwurfs', exact: true })).toContainText('0.125');
   await page.getByRole('button', { name: 'Als Workflowentwurf übernehmen' }).click(); await page.keyboard.press('Escape'); expect(copied).toBe(false);
   await page.getByRole('button', { name: 'Als Workflowentwurf übernehmen' }).click();
   await page.getByRole('button', { name: 'Geprüften Entwurf anlegen' }).click();
@@ -296,7 +296,7 @@ test('standalone model recovery binds the accepted model and keeps the receipt w
     return { body: { kind: 'strategy', model: { id: 'orphan-model', name: 'Recovered model', status: 'draft', configuration: { riskPercent: '0.000000000000000012345', enabled: false } }, reviewHash: 'original-model-review', resources: [], resourceCount: 0, activeReferenceCount: 0, observedAt: Date.now(), effect: 'No graph activation' } };
   });
   await page.goto('/workflows/models/strategy'); await page.getByRole('link', { name: 'Recovered model' }).click();
-  await page.reload(); await expect(page.getByRole('region', { name: 'Gespeicherte Modelldefinition' })).toContainText('0.000000000000000012345');
+  await page.reload(); await expect(page.getByRole('region', { name: 'Gespeicherte Modelldefinition', exact: true })).toContainText('0.000000000000000012345');
   await page.getByRole('button', { name: 'Als Ressourcenentwurf übernehmen' }).click();
   await expect(page.getByRole('dialog')).toContainText('Keine Graphaktivierung');
   await page.getByRole('button', { name: 'Geprüfte Aktion ausführen' }).click();
@@ -306,7 +306,7 @@ test('standalone model recovery binds the accepted model and keeps the receipt w
   expect(requests.filter(request => request.method === 'POST')).toHaveLength(1);
 });
 
-test('mobile risk evidence separates live and testnet, stale observations and an unavailable money source', async ({ page }) => {
+test('mobile risk evidence separates live and testnet, stale observations and an unavailable money source', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 }); await page.emulateMedia({ reducedMotion: 'reduce' });
   const requests = await api(page, url => {
     if (url.pathname === '/api/recovery') return { body: { active: false, session: { role: 'viewer', actorId: 'viewer' }, serverInstanceId: 'instance-1' } };
@@ -325,13 +325,13 @@ test('mobile risk evidence separates live and testnet, stale observations and an
     await expect(page.getByRole('alert')).toContainText('Monetary projection temporarily unavailable');
     await expect(page.getByRole('heading', { name: 'Provider-Historienfortschritt' })).toBeVisible();
     await page.getByText('Stoprisiko, Quelle und FX', { exact: true }).click();
-    await expect(page.getByRole('region', { name: 'Risikobeträge aus der Originalbeobachtung' })).toContainText('FX originals unresolved');
+    await expect(page.getByRole('region', { name: 'Risikobeträge aus der Originalbeobachtung', exact: true })).toContainText('FX originals unresolved');
     await expect(page.getByText('60000.00000001', { exact: true })).toBeVisible();
     await expect(page.getByText(/Zeitgrenze abgelaufen oder ungültig/)).toBeVisible();
   }
   expect(requests.every(request => request.method === 'GET')).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-  await page.screenshot({ path: 'frontend/test-results/ui-next-risk-mobile.png', fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('ui-next-risk-mobile.png'), fullPage: true });
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });
 
@@ -380,7 +380,7 @@ test('setup content comparison preserves exact values and a stale preview never 
   await page.goto('/operations/settings');
   await expect(page.getByLabel('Bundle auswählen')).toBeEnabled();
   await page.getByLabel('Bundle auswählen').setInputFiles({ name: 'fixture.json', mimeType: 'application/json', buffer: Buffer.from('{}') });
-  const review = page.getByRole('region', { name: 'Setup-Inhalte vor und nach dem Import' });
+  const review = page.getByRole('region', { name: 'Setup-Inhalte vor und nach dem Import', exact: true });
   await expect(review).toContainText('0.000000000000000001'); await expect(review).toContainText('0.000000000000000002');
   await page.getByLabel('Zum Ersetzen exakt „REPLACE EXISTING SETUP“ eingeben').fill('REPLACE EXISTING SETUP');
   await page.getByRole('button', { name: 'Bestehendes Setup sicher ersetzen' }).click();
@@ -690,7 +690,7 @@ test('Telegram settings observe normalization, retain unrelated fields and prese
   await page.getByRole('combobox', { name: 'Konfigurierter Quellkanal', exact: true }).selectOption('-1001234567');
   await page.getByLabel('Globale Regex-Muster für diesen Kanal überschreiben', { exact: true }).uncheck();
   await page.getByRole('button', { name: 'Grundkonfiguration speichern', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Servernormalisierung nach dem Speichern' })).toContainText('255');
+  await expect(page.getByRole('region', { name: 'Servernormalisierung nach dem Speichern', exact: true })).toContainText('255');
   await expect(page.getByLabel('Queue · Zeitlimit (Sekunden)', { exact: true })).toHaveValue('255');
   const saved = requests.find(request => request.path === '/api/config' && request.method === 'POST')!.body;
   expect(saved.xmlParsing.aiLimits.requestTimeoutMs).toBe(250000); expect(saved.xmlParsing.signalsDir).toBe('./original-signals'); expect(saved.xmlParsing.saveToFile).toBe(true); expect(saved.forwardOptions.forwardToTarget).toBe(false); expect(saved.dupeBlocker.cooldownHours).toBe(0);

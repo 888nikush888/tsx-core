@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "kind": "sonar_backlog_implementation_review",
+  "reviewedAt": "2026-09-07T11:16:54Z",
+  "sourceRevision": "ed9a64d1ca7ad9c16762727ac8b22261d0de95de",
+  "baseRevision": "e03eacfa3ea482d3be56f731f970b58761dd2510",
+  "sourceTreeHash": "c141f586af371b8fd3e98d6d976d1d16096c2f540bbba14a008abbd8f03aa7bb",
+  "priorReceiptSha256": "385fd40c547bccf1ff2bfe09284065974f9f663ea48852523053d83563c6db09",
+  "priorExecutionReportHash": "984e1bd8e93e58feee65deffa9fc87b06d3af9816cb9cd285bf7fcdcef6e5df4",
+  "authorization": "User requested repository maintenance, resolution of all 672 Sonar issues, GitHub publication and CI/Sonar verification.",
+  "scope": "659 baseline findings have code fixes; 12 individually evidenced false positives and one explicitly accepted deprecated browser-compatibility use are pinned in the reviewed manifest. No source/rule exclusions or lowered quality thresholds are used.",
+  "validation": {
+    "node": "22.23.2",
+    "python": {
+      "tests": 542,
+      "passed": 542
+    },
+    "ccxt": "4.5.75",
+    "criticalCoverage": {
+      "testFiles": 210,
+      "status": "passed",
+      "metrics": {
+        "lines": {
+          "total": 3251,
+          "covered": 3162,
+          "skipped": 0,
+          "pct": 97.26
+        },
+        "statements": {
+          "total": 3251,
+          "covered": 3162,
+          "skipped": 0,
+          "pct": 97.26
+        },
+        "functions": {
+          "total": 220,
+          "covered": 220,
+          "skipped": 0,
+          "pct": 100
+        },
+        "branches": {
+          "total": 1350,
+          "covered": 1232,
+          "skipped": 0,
+          "pct": 91.25
+        },
+        "branchesTrue": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": "Unknown"
+        }
+      },
+      "scope": "Complete integration run before registration of the separately tested Sonar-decision suite; later backend test additions run in the complete module-coverage suite."
+    },
+    "moduleCoverage": {
+      "testFiles": 211,
+      "status": "passed",
+      "metrics": {
+        "lines": {
+          "total": 48059,
+          "covered": 46293,
+          "skipped": 0,
+          "pct": 96.32
+        },
+        "statements": {
+          "total": 48059,
+          "covered": 46293,
+          "skipped": 0,
+          "pct": 96.32
+        },
+        "functions": {
+          "total": 3139,
+          "covered": 3116,
+          "skipped": 0,
+          "pct": 99.26
+        },
+        "branches": {
+          "total": 17759,
+          "covered": 15416,
+          "skipped": 0,
+          "pct": 86.8
+        },
+        "branchesTrue": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 100
+        }
+      }
+    },
+    "intermediateFailures": [
+      "The first full module test run passed all 211 files but detected a function-coverage regression (99.10% versus the unchanged 99.19% floor). Four public-contract regression cases were added before the successful final run.",
+      "A subsequent Windows module attempt stopped on EPERM while atomically renaming an MCP participant file in an unchanged database-maintenance path. The unchanged targeted MCP suite immediately passed; the complete module suite was rerun. No test or assertion was skipped."
+    ],
+    "frontend": {
+      "testFiles": 29,
+      "tests": 232,
+      "passed": 232
+    },
+    "browsers": {
+      "cases": 196,
+      "passed": 196,
+      "projects": [
+        "Chromium",
+        "Firefox",
+        "WebKit",
+        "mobile Chromium"
+      ],
+      "fixes": "Six explicit region selectors replaced ambiguous substring selectors. Screenshot paths are unique per test/project. All final browser cases passed."
+    },
+    "lint": "Backend ESLint, frontend oxlint and Python Ruff passed.",
+    "typecheck": "passed",
+    "build": "TypeScript and production frontend passed.",
+    "architecture": "201 modules, 933 internal imports, zero cycles",
+    "complexity": "No warnings or violations; cyclomatic maximum 15",
+    "duplicateLinesPercent": 0.67,
+    "remainingStaticGates": "Frontend reachability, release artifacts, risk-acceptance registry, build-context allowlist, license and dependency policy passed.",
+    "containerMonitoring": "Not executable locally because Docker Desktop daemon was unavailable. Mandatory GitHub workflow check remains required; no local success is claimed."
+  },
+  "independentReviews": [
+    {
+      "reviewer": "root",
+      "scope": "Full integration, Python production changes, test AST comparison and backend error/domain semantics; all listed independent full-suite executions."
+    },
+    {
+      "reviewer": "ui_quality_fix",
+      "scope": "Complete backend patch including regex comparison, public declarations and final money-error behavior; all 13 pinned Sonar decisions and their source/test bindings.",
+      "result": "No unresolved review findings."
+    },
+    {
+      "reviewer": "ci_governance_code",
+      "scope": "Root full-long-branch Sonar scope, scanner identity and evidence gate changes; four Sonar suites and representative CI environment.",
+      "result": "No unresolved review findings."
+    },
+    {
+      "reviewer": "root",
+      "scope": "Owner-only reviewed-transition runner, exact manifest pins and issue identity, all-entry preflight, atomic comment/readback, no blind mutation retry, full fake-API regression suite.",
+      "result": "Passed."
+    }
+  ],
+  "logDigests": {
+    "critical": {
+      "sha256": "535fd5067ec4fbddadc406652c261a0cdadb056e9011395bc804dda6b618fee7",
+      "bytes": 64081
+    },
+    "modules": {
+      "sha256": "111bab3ec1146edc72077ca37ea21e56b5b96fbf9ad295c2b6259372b4eda196",
+      "bytes": 83987
+    },
+    "frontend": {
+      "sha256": "4c7226a756529c4db5648fe7f8456c1c794a158036ab93f5b7ab803924ef8525",
+      "bytes": 7499
+    },
+    "browser": {
+      "sha256": "9993e1da4cafb0abc8414c35e8a665ec3b9d59df3232aed9a6d9da577b2db3f7",
+      "bytes": 29486
+    },
+    "python": {
+      "sha256": "59b0ce97d84eafadeeb48f3186e97af3d51d5c4a2b1c0f5eb09597dfa4090c02",
+      "bytes": 113061
+    },
+    "supplemental": {
+      "sha256": "5a5ceb32b6583b14ffedfbba9263933687334e79ab553617fb4fd31add5a7d09",
+      "bytes": 13143
+    }
+  },
+  "providerParityEvidence": {
+    "file": "exchange_executor/certifications/reviews/sonar-executor-parity-2026-09-07.json",
+    "sha256": "ffd4e58768b88c2d3180cc379154256403fb9449fdeb7fda3610940b40bd2426",
+    "priorHash": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e"
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false,
+  "productionDeploymentPerformed": false,
+  "quarantinePreserved": [
+    "bybit",
+    "krakenfutures"
+  ],
+  "ciAndSonar": "Final published-revision CI and full LONG-branch Sonar analysis are pending. This local review does not claim remote checks or issue closure."
+}

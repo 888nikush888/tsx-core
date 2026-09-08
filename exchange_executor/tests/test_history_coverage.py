@@ -225,8 +225,10 @@ class HistoryCoverageTests(unittest.IsolatedAsyncioTestCase):
             return result
 
         rest.privateGetV5ExecutionList = foreign
+        prepared_rows = [state()]
+        prepared_budget = budget()
         with self.assertRaisesRegex(ExchangeContractError, 'Unmanaged Bybit spot'):
-            await read_history_pages(rest, 'bybit', [state()], budget())
+            await read_history_pages(rest, 'bybit', prepared_rows, prepared_budget)
 
     async def test_completed_coverage_is_refreshed_instead_of_reused_as_a_new_observation(self):
         rest = RetainedHyperliquid(None)

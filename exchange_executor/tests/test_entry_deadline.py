@@ -47,9 +47,12 @@ class EntryDeadlineTests(unittest.IsolatedAsyncioTestCase):
                 yield clients
 
         registry.mutation = delayed
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_bound_test_account = bound_test_account()
         with self.assertRaisesRegex(ExchangeContractError, 'ENTRY_INTENT_EXPIRED'):
-            await CcxtAdapter(registry).submit_protected_entry(bound_test_account(), entry, stop, deadline)
-        self.assertEqual((entry, stop), original)
+            await prepared_adapter.submit_protected_entry(prepared_bound_test_account, entry, stop, deadline)
+        actual_requests = (entry, stop)
+        self.assertEqual(actual_requests, original)
         rest.fetch_positions.assert_not_awaited()
         self.assertEqual((rest.created_batches, rest.leverage), ([], []))
 
@@ -72,8 +75,9 @@ class EntryDeadlineTests(unittest.IsolatedAsyncioTestCase):
                     return evidence
 
                 setattr(adapter, name, delayed)
+                prepared_bound_test_account = bound_test_account()
                 with self.assertRaisesRegex(ExchangeContractError, 'ENTRY_INTENT_EXPIRED'):
-                    await adapter.submit_protected_entry(bound_test_account(), entry, stop, deadline)
+                    await adapter.submit_protected_entry(prepared_bound_test_account, entry, stop, deadline)
                 self.assertEqual(rest.created_batches, [])
                 if phase.startswith('first'):
                     self.assertEqual(rest.leverage, [])
@@ -91,8 +95,10 @@ class EntryDeadlineTests(unittest.IsolatedAsyncioTestCase):
                 yield clients
 
         registry.mutation = changed
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_bound_test_account = bound_test_account()
         with self.assertRaisesRegex(ExchangeContractError, 'ENTRY_DEADLINE_CHANGED'):
-            await CcxtAdapter(registry).submit_protected_entry(bound_test_account(), entry, stop, deadline)
+            await prepared_adapter.submit_protected_entry(prepared_bound_test_account, entry, stop, deadline)
         self.assertEqual((rest.created_batches, rest.leverage), ([], []))
 
     async def test_missing_invalid_or_expired_original_never_acquires_client(self):
@@ -100,8 +106,11 @@ class EntryDeadlineTests(unittest.IsolatedAsyncioTestCase):
         for value in (None, True, '123', 1.5, 0, -1, 2**53, int(self.clock[0] * 1000)):
             registry = FakeRegistry(rest_fixture())
             registry.mutation = Mock(side_effect=AssertionError('Must reject before client acquisition.'))
-            with self.subTest(value=value), self.assertRaisesRegex(ExchangeContractError, 'ENTRY_(DEADLINE_UNPROVEN|INTENT_EXPIRED)'):
-                await CcxtAdapter(registry).submit_protected_entry(bound_test_account(), {**entry, 'entryExpiresAt': value}, stop, deadline)
+            with self.subTest(value=value):
+                prepared_adapter = CcxtAdapter(registry)
+                prepared_bound_test_account = bound_test_account()
+                with self.assertRaisesRegex(ExchangeContractError, 'ENTRY_(DEADLINE_UNPROVEN|INTENT_EXPIRED)'):
+                    await prepared_adapter.submit_protected_entry(prepared_bound_test_account, {**entry, 'entryExpiresAt': value}, stop, deadline)
             registry.mutation.assert_not_called()
 
     async def test_private_preparation_copy_cannot_replace_its_captured_deadline(self):
@@ -116,8 +125,9 @@ class EntryDeadlineTests(unittest.IsolatedAsyncioTestCase):
             return evidence
 
         adapter._entry_tier_fence = changed
+        prepared_bound_test_account = bound_test_account()
         with self.assertRaisesRegex(ExchangeContractError, 'ENTRY_DEADLINE_CHANGED'):
-            await adapter.submit_protected_entry(bound_test_account(), entry, stop, deadline)
+            await adapter.submit_protected_entry(prepared_bound_test_account, entry, stop, deadline)
         self.assertEqual((rest.created_batches, rest.leverage), ([], []))
 
     async def test_expired_http_payload_has_precise_code_without_fabricated_absence(self):
@@ -166,8 +176,10 @@ class EntryDeadlineTests(unittest.IsolatedAsyncioTestCase):
             raise TimeoutError('Response lost after possible provider send.')
 
         rest.create_orders = late_failure
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
         with self.assertRaises(UnresolvedOrderOutcome) as error:
-            await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(bound_test_account(), entry, stop, deadline)
+            await prepared_adapter.submit_protected_entry(prepared_bound_test_account, entry, stop, deadline)
         self.assertTrue(error.exception.side_effects)
         self.assertEqual(len(rest.created_batches), 1)
         self.assertEqual(rest.cleanup_orders, [])
@@ -177,8 +189,9 @@ class EntryDeadlineTests(unittest.IsolatedAsyncioTestCase):
         rest = FakeHyperliquidRest()
         adapter = CcxtAdapter(FakeRegistry(rest, 'hyperliquid'))
         self.clock[0] += 6
+        prepared_bound_test_account = bound_test_account('hyperliquid')
         with self.assertRaisesRegex(ExchangeContractError, 'ENTRY_INTENT_EXPIRED'):
-            await adapter.submit_order(bound_test_account('hyperliquid'), entry, deadline)
+            await adapter.submit_order(prepared_bound_test_account, entry, deadline)
         _, stop = bounded_orders(exchange='hyperliquid')
         await adapter.submit_order(bound_test_account('hyperliquid'), stop, deadline)
         self.assertEqual(len(rest.submitted), 1)

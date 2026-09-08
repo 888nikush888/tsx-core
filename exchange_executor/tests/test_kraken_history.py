@@ -84,8 +84,10 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
 
             rest.historyGetOrders = invalid
             original = state("orders")
-            with self.subTest(quantity=quantity), self.assertRaises(ExchangeContractError):
-                await read_history_pages(rest, "krakenfutures", [original], budget(1), [])
+            with self.subTest(quantity=quantity):
+                prepared_budget = budget(1)
+                with self.assertRaises(ExchangeContractError):
+                    await read_history_pages(rest, "krakenfutures", [original], prepared_budget, [])
             self.assertIsNone(original["cursor"])
 
     async def test_sources_cannot_report_different_accounts_in_one_snapshot(self):
@@ -98,8 +100,10 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
             return response
 
         rest.historyGetExecutions = foreign
+        prepared_rows = [state("orders"), state("fills")]
+        prepared_budget = budget()
         with self.assertRaisesRegex(ExchangeContractError, "provider account identity"):
-            await read_history_pages(rest, "krakenfutures", [state("orders"), state("fills")], budget(), [])
+            await read_history_pages(rest, "krakenfutures", prepared_rows, prepared_budget, [])
 
     async def test_paginated_execution_order_and_trigger_envelopes_preserve_all_evidence(self):
         rest = KrakenRest()
@@ -134,8 +138,9 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
         _, _, updates = await read_history_pages(rest, "krakenfutures", [state()], budget(1))
         saved = checkpoint(updates[0]["checkpoint"])
         rest.uid = "different-account"
+        prepared_budget = budget(1)
         with self.assertRaisesRegex(ExchangeContractError, "account identity"):
-            await read_history_pages(rest, "krakenfutures", [saved], budget(1))
+            await read_history_pages(rest, "krakenfutures", [saved], prepared_budget)
 
     async def test_conflicting_tokens_or_foreign_rows_do_not_advance(self):
         for flaw in ("token", "account", "count", "scope"):
@@ -157,8 +162,10 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
                 return response
 
             rest.historyGetExecutions = invalid
-            with self.subTest(flaw=flaw), self.assertRaises(ExchangeContractError):
-                await read_history_pages(rest, "krakenfutures", [original], budget(1))
+            with self.subTest(flaw=flaw):
+                prepared_budget = budget(1)
+                with self.assertRaises(ExchangeContractError):
+                    await read_history_pages(rest, "krakenfutures", [original], prepared_budget)
             self.assertIsNone(original["cursor"])
 
     async def test_fees_are_actual_not_sdk_estimates_and_missing_fees_remain_unresolved(self):
@@ -176,7 +183,7 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
             fills, unresolved = normalize_trades(rows, lambda trade: _normalized_fill(rest, {}, trade))
             if missing:
                 self.assertEqual(fills, [])
-                self.assertEqual(unresolved[0]["evidence"]["fee"], None)
+                self.assertIsNone(unresolved[0]["evidence"]["fee"])
             else:
                 self.assertEqual(fills[0]["fee"], "0.1")
                 self.assertIsNone(fills[0]["feeAsset"], "The history endpoint does not identify the fee currency.")
@@ -197,8 +204,9 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
         rest = KrakenRest(1)
         original = state("orders")
         original.update(cursor=json.dumps({"endpoint": "orders", "token": "after-empty"}), windowUntil=original["windowSince"] + 100_000)
+        prepared_budget = budget(1)
         with self.assertRaisesRegex(ExchangeContractError, "durable evidence consumer"):
-            await read_history_pages(rest, "krakenfutures", [original], budget(1))
+            await read_history_pages(rest, "krakenfutures", [original], prepared_budget)
 
 
 if __name__ == "__main__":

@@ -70,20 +70,23 @@ class BybitAccountModeTests(unittest.IsolatedAsyncioTestCase):
             client = rest()
             method = client.privateGetV5UserQueryApi if source == 'key' else client.privateGetV5AccountInfo
             method.return_value['result'].update(patch)
+            prepared_budget = self.budget()
             with self.assertRaises(ExchangeContractError, msg=str(patch)):
-                await read_bybit_account_mode(client, self.budget(), 'a' * 64, 'b' * 64)
+                await read_bybit_account_mode(client, prepared_budget, 'a' * 64, 'b' * 64)
 
     async def test_wrong_envelopes_and_future_provider_times_are_not_evidence(self):
         for response in ({}, {'retCode': '0', 'result': {}}, {'retCode': 1, 'result': {}},
                          {'retCode': 0, 'result': [], 'time': int(time.time() * 1000)}):
             client = rest()
             client.privateGetV5UserQueryApi.return_value = response
+            prepared_budget = self.budget()
             with self.assertRaises(ExchangeContractError):
-                await read_bybit_account_mode(client, self.budget(), 'a' * 64, 'b' * 64)
+                await read_bybit_account_mode(client, prepared_budget, 'a' * 64, 'b' * 64)
         client = rest()
         client.privateGetV5AccountInfo.return_value['time'] = int(time.time() * 1000) + 60_000
+        prepared_budget = self.budget()
         with self.assertRaises(ExchangeContractError):
-            await read_bybit_account_mode(client, self.budget(), 'a' * 64, 'b' * 64)
+            await read_bybit_account_mode(client, prepared_budget, 'a' * 64, 'b' * 64)
 
 
 if __name__ == '__main__':

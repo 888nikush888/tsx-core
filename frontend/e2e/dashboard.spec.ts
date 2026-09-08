@@ -339,7 +339,7 @@ async function openBuilderWorkspace(page: Page) {
   await page.locator(".workflow-canvas").scrollIntoViewIfNeeded();
 }
 
-test("local startup opens seven operator areas and the builder retains light/dark accessibility", async ({ page }) => {
+test("local startup opens seven operator areas and the builder retains light/dark accessibility", async ({ page }, testInfo) => {
   await mockDashboardApi(page); await page.goto("/");
   await expect(page).toHaveURL(/cockpit$/); await expect(page.getByLabel("Bearer token")).toHaveCount(0);
   const navigation = page.getByRole("navigation", { name: "Hauptbereiche" });
@@ -356,12 +356,12 @@ test("local startup opens seven operator areas and the builder retains light/dar
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()).violations).toEqual([]);
     await page.getByRole("banner").getByRole("button", { name: mode }).click();
   }
-  await page.screenshot({ path: 'frontend/test-results/ui-next-builder.png', fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('ui-next-builder.png'), fullPage: true });
   await page.getByRole("banner").getByRole("button", { name: "Hellen Modus aktivieren" }).click(); await page.reload();
   await expect(page.locator("html")).toHaveClass(/light/);
 });
 
-test("mobile operator navigation and account actions remain readable and fit the screen", async ({ page }) => {
+test("mobile operator navigation and account actions remain readable and fit the screen", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockDashboardApi(page, false, [], null, [{ id: "paper-mobile", name: "Paper Mobil", exchange: "paper", mode: "paper", status: "ready", enabled: true, maxConcurrentPositions: 8, killSwitchActive: false, lastReconciledAt: Date.now(), lastError: null }]);
   await page.goto("/");
@@ -379,7 +379,7 @@ test("mobile operator navigation and account actions remain readable and fit the
   const accountActions = operations.locator(".account-actions button"); expect(await accountActions.count()).toBeGreaterThan(0);
   expect(await accountActions.evaluateAll(buttons => buttons.every(button => button.getBoundingClientRect().height >= 40 && Number.parseFloat(getComputedStyle(button).fontSize) >= 11))).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-  await page.screenshot({ path: 'frontend/test-results/ui-next-accounts-mobile.png', fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('ui-next-accounts-mobile.png'), fullPage: true });
 });
 
 test("first local startup visibly generates and displays the administrator recovery token", async ({
@@ -641,7 +641,7 @@ test("shared processing and account branches are explicit in the route matrix an
   await page
     .getByRole("button", { name: "Hellen Modus aktivieren" })
     .click();
-  await page.waitForTimeout(250);
+  await expect(page.locator("html")).not.toHaveClass(/(?:^|\s)dark(?:\s|$)/);
   expect(
     (
       await new AxeBuilder({ page })
@@ -1216,4 +1216,40 @@ test("reduced motion and keyboard navigation remain usable across operator areas
   await expect(navigation.getByRole("link", { name: "Trading", exact: true })).toBeFocused(); await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/trading\/accounts$/);
   expect(await navigation.getByRole("link", { name: "Workflows", exact: true }).evaluate(element => getComputedStyle(element).transitionDuration)).toBe("0s");
+});
+
+
+test("evidence and change-review tables retain keyboard scrolling", async ({ page }) => {
+  await mockDashboardApi(page);
+  await page.route("**/api/workflow/objects?**", async route => {
+    const id = new URL(route.request().url()).searchParams.get("id");
+    if (id) {
+      await json(route, {
+        resource: { id, resourceId: "keyboard-resource", name: "Keyboard evidence", kind: "parser", version: 1, status: "published", configuration: { limit: 0, enabled: false } },
+        activePaths: [], observedAt: Date.now(), effect: "Read-only keyboard evidence fixture",
+      });
+      return;
+    }
+    await json(route, {
+      entries: [{ id: "keyboard-version", resourceId: "keyboard-resource", name: "Keyboard evidence", kind: "parser", version: 1, status: "published", createdAt: Date.now() }],
+      hasMore: false, observedAt: Date.now(),
+    });
+  });
+  for (const [path, label] of [
+    ["/workflows/resources", "Tabellenbereich: Ressourcenbibliothek"],
+    ["/workflows/resources/keyboard-resource/versions/keyboard-version", "Gespeicherte Parameter dieser Quelle: Tabelleninhalt"],
+  ]) {
+    await page.goto(path);
+    const region = page.getByRole("region", { name: label });
+    await expect(region).toBeVisible();
+    // Force a wide table in this fixture to exercise overflow even on desktop viewports.
+    await region.locator("table").evaluate(table => { table.style.minWidth = "2400px"; });
+    expect(await region.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+    await region.focus();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
+    await expect(region).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(() => region.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+  }
 });

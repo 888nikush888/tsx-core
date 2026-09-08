@@ -60,6 +60,38 @@ async function coveredReply(account, profile) {
   return response;
 }
 
+async function nonErrorTransportFailures(adapter, account, writeRequest) {
+  const originalFetch = globalThis.fetch;
+  let attempts = 0, coercions = 0;
+  const transientFailure = 'Fixture transport timed out';
+  try {
+    globalThis.fetch = async (...args) => {
+      attempts += 1;
+      if (attempts === 1) throw transientFailure;
+      return originalFetch(...args);
+    };
+    const readsBefore = requests.length;
+    assert.equal((await adapter.marketSnapshot(account, 'BTCUSDT')).symbol, 'BTCUSDT');
+    assert.equal(attempts, 2, 'A known transient string failure permits one read-only retry.');
+    assert.equal(requests.length - readsBefore, 1, 'The retry reaches the isolated HTTP executor.');
+    for (const failure of ['Fixture validation failed', {
+      [Symbol.toPrimitive]() { coercions += 1; return 'timed out'; },
+    }]) {
+      attempts = 0;
+      globalThis.fetch = async () => { attempts += 1; throw failure; };
+      await assert.rejects(adapter.marketSnapshot(account, 'BTCUSDT'), error => error === failure);
+      assert.equal(attempts, 1, 'Unknown transport diagnostics do not acquire retry authority.');
+    }
+    attempts = 0;
+    globalThis.fetch = async () => { attempts += 1; throw transientFailure; };
+    const mutationsBefore = requests.length;
+    await assert.rejects(adapter.submitOrder(account, writeRequest), error => error === transientFailure);
+    assert.equal(attempts, 1, 'A possibly submitted order is never replayed even for a known transient failure.');
+    assert.equal(requests.length, mutationsBefore);
+    assert.equal(coercions, 0, 'Retry classification never invokes object conversion.');
+  } finally { globalThis.fetch = originalFetch; }
+}
+
 const server = http.createServer((request, response) => {
   let body = '';
   request.setEncoding('utf8');
@@ -443,6 +475,7 @@ try {
     'Read-only executor requests must retry one bounded transport failure.',
   );
   assert.equal(requests.length - readsBeforeTransportRetry, 2);
+  await nonErrorTransportFailures(adapter, account, writeRequest);
 
   const readsBeforeSymbolMiss = requests.length;
   nextResponse = {

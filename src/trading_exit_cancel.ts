@@ -65,7 +65,7 @@ export async function assertExitCancellationSafe(account: TradingAccount, row: C
 async function assertCurrentAccount(account: TradingAccount): Promise<void> {
   const current = await getDatabase().get<{ exchange: string; mode: string; external_account_id: string | null; credential_generation: string | null }>(
     'SELECT exchange, mode, external_account_id, credential_generation FROM trading_accounts WHERE id = ?', [account.id]);
-  if (!current || current.exchange !== account.exchange || current.mode !== account.mode || current.external_account_id !== account.externalAccountId
+  if (current?.exchange !== account.exchange || current.mode !== account.mode || current.external_account_id !== account.externalAccountId
     || current.credential_generation !== account.credentialGeneration) throw new Error('Cancellation account binding changed before dispatch.');
 }
 

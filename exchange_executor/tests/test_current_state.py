@@ -145,8 +145,9 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
                 return response
 
             rest.change = stale
+            prepared_deadline = deadline()
             with self.assertRaisesRegex(IncompleteCurrentStateError, "provider_snapshot_not_fresh"):
-                await read_current_state(rest, exchange, deadline())
+                await read_current_state(rest, exchange, prepared_deadline)
 
     async def test_overlapping_position_pages_accept_market_moves_but_not_changed_exposure(self):
         for change_quantity in (False, True):
@@ -162,8 +163,9 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
 
             rest.change = changed
             if change_quantity:
+                prepared_deadline = deadline()
                 with self.assertRaisesRegex(IncompleteCurrentStateError, "position_changed"):
-                    await read_current_state(rest, "bybit", deadline())
+                    await read_current_state(rest, "bybit", prepared_deadline)
             else:
                 _, positions, _ = await read_current_state(rest, "bybit", deadline())
                 self.assertEqual(len(positions), 206)
@@ -188,8 +190,9 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
         for change in (missing_list, missing_cursor, cycle, wrong_category):
             rest = PagedBybit(1, 1)
             rest.change = change
+            prepared_deadline = deadline()
             with self.assertRaises(ExchangeContractError):
-                await read_current_state(rest, "bybit", deadline())
+                await read_current_state(rest, "bybit", prepared_deadline)
 
     async def test_bybit_does_not_drop_unsupported_positions_or_orders(self):
         for category, source in (("inverse", "positions"), ("option", "positions"), ("spot", "orders")):
@@ -201,8 +204,9 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
                 return response
 
             rest.change = foreign
+            prepared_deadline = deadline()
             with self.assertRaisesRegex(ExchangeContractError, "Unmanaged Bybit"):
-                await read_current_state(rest, "bybit", deadline())
+                await read_current_state(rest, "bybit", prepared_deadline)
 
     async def test_hyperliquid_reads_default_and_discovered_dex_without_colliding_ids(self):
         rest = HyperRest()
@@ -231,8 +235,9 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
                 return response
 
             rest.change = invalid
+            prepared_deadline = deadline()
             with self.assertRaises(ExchangeContractError, msg=wrong):
-                await read_current_state(rest, "hyperliquid", deadline())
+                await read_current_state(rest, "hyperliquid", prepared_deadline)
 
     async def test_incomplete_current_state_is_structured_503_not_contract_failure(self):
         async def handle(*_args):

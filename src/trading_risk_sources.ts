@@ -60,8 +60,8 @@ function entryRemainders(source: RiskIntentSource): RiskEntryRemainder[] {
 }
 
 function currentStop(source: RiskIntentSource, remote: ExchangeOpenState, accountId: string, quantity: string): string {
-  const local = source.positions.filter(position => position.status !== 'closed');
-  const minimum = local[0]?.stop_price ?? null;
+  const local = source.positions.find(position => position.status !== 'closed');
+  const minimum = local?.stop_price ?? null;
   const stopPrices: string[] = [];
   for (const order of source.orders.filter(row => row.role === 'stop_loss')) {
     const matches = remote.orders.filter(row => row.clientOrderId === order.client_order_id && row.exchangeOrderId === order.exchange_order_id
@@ -91,7 +91,7 @@ function marketMetadata(source: RiskIntentSource, account: TradingAccount, remot
 
 function assertRiskMarketBinding(source: RiskIntentSource, account: TradingAccount, metadata: ExchangeFillAccounting | null,
   position: ExchangeOpenState['positions'][number] | undefined): void {
-  if (!metadata || metadata.source !== (account.exchange === 'paper' ? 'paper-contract-v1' : 'ccxt-market-v1')
+  if (metadata?.source !== (account.exchange === 'paper' ? 'paper-contract-v1' : 'ccxt-market-v1')
     || (position && position.providerSymbol !== metadata.providerSymbol)
     || source.fills.some(fill => fill.account_fingerprint !== riskFingerprint(account))
     || source.orders.some(order => order.role === 'entry' && order.provider_symbol !== metadata.providerSymbol)) {

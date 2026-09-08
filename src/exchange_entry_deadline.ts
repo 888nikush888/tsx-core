@@ -1,7 +1,9 @@
 import { TradingRiskError } from './trading_risk.js';
 
 function entryRequest(endpoint: string, payload: Record<string, any>): Record<string, any> | null {
-  const request = endpoint === '/v1/submit-protected-entry' ? payload.entry : endpoint === '/v1/submit-order' ? payload.request : null;
+  let request = null;
+  if (endpoint === '/v1/submit-protected-entry') request = payload.entry;
+  else if (endpoint === '/v1/submit-order') request = payload.request;
   return request && request.reduceOnly !== true ? request : null;
 }
 

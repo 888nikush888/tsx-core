@@ -9,6 +9,9 @@ import { portfolioTotal } from '@/features/accounts/portfolio-total';
 import { runtimeInputError } from '@/features/operations/runtime-parameters';
 
 describe("UI Next correctness boundaries", () => {
+  beforeEach(() => { sessionStorage.clear(); vi.stubGlobal("fetch", vi.fn()); });
+  afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
   it('keeps portfolio decimals exact and separates live, testnet and missing account receipts', () => {
     const row = { observedAt: 1000, mode: 'paper', reportingCurrency: 'USDT', equity: '0.000000000000000001' };
     expect(portfolioTotal([row, row], 'equity')).toBe('0,000000000000000002 USDT (paper)');
@@ -23,8 +26,6 @@ describe("UI Next correctness boundaries", () => {
     expect(runtimeInputError({ shutdownGraceMs: 120001 }, [field])).toContain('ganze Zahl');
     expect(runtimeInputError({ shutdownGraceMs: {} }, [{ ...field, type: 'new-contract' }])).toContain('unbekannter');
   });
-  beforeEach(() => { sessionStorage.clear(); vi.stubGlobal("fetch", vi.fn()); });
-  afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
   it("adopts the one-time token before observing and retains success when observation fails", async () => {
     setDashboardToken("old");

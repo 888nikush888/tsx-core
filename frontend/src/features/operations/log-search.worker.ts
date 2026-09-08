@@ -11,6 +11,6 @@ workerScope.onmessage = (event: MessageEvent<SearchRequest>) => {
     if (pattern.length > 200 || entries.length > 5000 || entries.reduce((total, entry) => total + entry.line.length, 0) > 1_000_000) throw new Error('Regex-Suchbudget überschritten (200 Musterzeichen, 5.000 Zeilen, 1 Million Textzeichen). Auswahl vorher verkleinern.');
     const regex = new RegExp(pattern, 'i');
     workerScope.postMessage({ cursors: entries.filter(entry => regex.test(entry.line)).map(entry => entry.cursor) });
-  } catch (failure) { workerScope.postMessage({ error: failure instanceof Error ? failure.message : String(failure) }); }
+  } catch (error_) { workerScope.postMessage({ error: error_ instanceof Error ? error_.message : String(error_) }); }
 };
 export {};

@@ -43,7 +43,7 @@ export async function requireFxAccountContext(account: FxAccount): Promise<FxCon
   account = snapshotFxAccount(account);
   const current = await getDatabase().get<AccountRow>(`SELECT exchange,mode,external_account_id,credential_generation,
     last_verified_at,capabilities_json FROM trading_accounts WHERE id=?`, [account.id]);
-  if (!current || current.exchange !== 'bybit' || account.exchange !== current.exchange
+  if (current?.exchange !== 'bybit' || account.exchange !== current.exchange
     || !['live', 'testnet'].includes(current.mode) || account.mode !== current.mode
     || account.externalAccountId !== current.external_account_id || account.credentialGeneration !== current.credential_generation
     || !/^[a-f0-9]{64}$/.test(current.external_account_id) || !/^[a-f0-9]{64}$/.test(current.credential_generation)) invalidFx('ACCOUNT_BINDING_CHANGED');

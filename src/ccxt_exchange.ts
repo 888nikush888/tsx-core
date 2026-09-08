@@ -136,11 +136,9 @@ function retryableExecutorStatus(status: number): boolean {
 }
 
 function retryableTransportFailure(error: unknown): boolean {
-  const message = error instanceof Error
-    ? error.message
-    : typeof error === 'string'
-      ? error
-      : 'unknown transport failure';
+  let message = 'unknown transport failure';
+  if (error instanceof Error) message = error.message;
+  else if (typeof error === 'string') message = error;
   return /(?:timeout|timed out|abort(?:ed|error)?|fetch failed|econn(?:reset|refused)|temporarily unavailable)/i.test(message);
 }
 

@@ -17,14 +17,14 @@ const COLUMNS: Record<Kind, Array<[string, string]>> = {
 };
 const PAGE_LABELS = { orders: ['Orderseite', 'Orders'], fills: ['Fillseite', 'Fills'], money: ['Geldseite', 'Geldbelege'], events: ['Ereignisseite', 'Ereignisse'] };
 
-export function TradeRelations({ intentId, kind }: { intentId: string; kind: Kind }) {
+export function TradeRelations({ intentId, kind }: Readonly<{ intentId: string; kind: Kind }>) {
   const [params, setParams] = useSearchParams(); const cursorKey = `${kind}Cursor`; const cursor = params.get(cursorKey) ?? '';
   const query = new URLSearchParams({ intentId, kind, limit: '40', ...(cursor ? { cursor } : {}) }).toString();
   const [state, setState] = useState<any>(null); const [error, setError] = useState('');
   const read = useCallback(async (signal: AbortSignal) => ({ query, page: await jsonRequest(`/api/trading/intents/relations?${query}`, { signal }) }), [query]);
   usePoll(read, result => { setState(result); setError(''); }, reason => setError(reason.message), 10000);
   const page = state?.query === query ? state.page : null;
-  const changePage = (next: string | null) => setParams(previous => { if (next) previous.set(cursorKey, next); else previous.delete(cursorKey); return previous; });
+  const changePage = (next: string | null) => setParams(previous => { if (next) { previous.set(cursorKey, next); } else { previous.delete(cursorKey); } return previous; });
   const rows = (page?.entries ?? []).map((row: any) => ({ ...row, ...(row.filledAt !== undefined ? { filledAt: time(row.filledAt) } : {}), ...(row.occurredAt !== undefined ? { occurredAt: time(row.occurredAt) } : {}),
     reporting: <MoneyAmount value={row.reportingValue} amount={row.reportingAmount} currency={row.reportingCurrency} status={row.valuationStatus === 'valued' ? 'complete' : 'unresolved'} /> }));
   return <section aria-label={LABELS[kind]} className="space-y-3"><h3>{LABELS[kind]}</h3>
@@ -34,6 +34,6 @@ export function TradeRelations({ intentId, kind }: { intentId: string; kind: Kin
       {kind === 'money' && page.entries.map((row: any) => <details key={row.id}><summary>Geldherkunft und Bewertung · {row.id}</summary><p>{row.explanation}</p>{row.originalUnverified && <p role="alert">Originalintegrität ungeklärt. Die gespeicherten Skalare sind kein bestätigtes Rechnungsergebnis.</p>}{row.valuationReason && <p>{row.valuationReason}</p>}<ChangeReview after={{ source: row.source, basis: row.basis, fillId: row.fillId, providerEventId: row.providerEventId, amount: row.amount, asset: row.asset, reportingValue: row.reportingValue, conversion: row.conversion }} showAll label={`Bewertungsquelle ${row.id}`} /></details>)}
       {kind === 'events' && page.entries.filter((row: any) => row.details).map((row: any) => <details key={row.id}><summary>Ereignisbeleg · {row.eventType} · {row.id}</summary><ChangeReview after={row.details} showAll label={`Ereignisdetails ${row.id}`} /></details>)}
       <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => changePage(null)}>Erste {PAGE_LABELS[kind][0]}</button><button className="secondary-button" disabled={!page.hasMore} onClick={() => changePage(page.nextCursor)}>Weitere {PAGE_LABELS[kind][1]}</button></div>
-    </> : !error && <p role="status">Belege werden geladen …</p>}
+    </> : !error && <p><output>Belege werden geladen …</output></p>}
   </section>;
 }

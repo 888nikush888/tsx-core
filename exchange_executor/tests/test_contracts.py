@@ -290,8 +290,9 @@ class ContractTests(unittest.TestCase):
             decimal_string("1e3", "price")
         deadline = RequestDeadline.from_payload({"deadlineAt": int(time.time() * 1000) + 2_000})
         self.assertGreater(deadline.remaining_ms(), 0)
+        prepared_payload = {"deadlineAt": int(time.time() * 1000) + 60_000}
         with self.assertRaises(ExchangeContractError):
-            RequestDeadline.from_payload({"deadlineAt": int(time.time() * 1000) + 60_000})
+            RequestDeadline.from_payload(prepared_payload)
 
     def test_credential_contract_supports_kraken_futures(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -630,9 +631,12 @@ class HyperliquidOrderTests(unittest.IsolatedAsyncioTestCase):
                             return [{"id": "manual-entry", "symbol": "BTC/USDT:USDT", "status": "open"}]
                         rest.fetch_open_orders = external_orders
                     entry, stop = protected_requests()
+                    prepared_adapter = CcxtAdapter(FakeRegistry(rest, exchange))
+                    prepared_bound_test_account = bound_test_account(exchange)
+                    prepared_deadline = self.deadline()
                     with self.assertRaises(ExchangeContractError):
-                        await CcxtAdapter(FakeRegistry(rest, exchange)).submit_protected_entry(
-                            bound_test_account(exchange), entry, stop, self.deadline(),
+                        await prepared_adapter.submit_protected_entry(
+                            prepared_bound_test_account, entry, stop, prepared_deadline,
                         )
                     self.assertEqual(rest.created_batches, [], "Preflight must fail before any batch reaches the exchange.")
                     self.assertEqual(rest.leverage, [], "Preflight must precede leverage changes as well.")
@@ -674,9 +678,11 @@ class HyperliquidOrderTests(unittest.IsolatedAsyncioTestCase):
     async def test_market_reference_rejects_invalid_side_before_ticker_access(self) -> None:
         rest = FakeHyperliquidRest()
         registry = FakeRegistry(rest, "hyperliquid")
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_deadline = self.deadline()
         with self.assertRaisesRegex(ExchangeContractError, "Order side is invalid"):
-            await CcxtAdapter(registry)._market_order_reference(
-                registry.clients, rest.markets["BTC/USDC:USDC"], "hold", self.deadline(),
+            await prepared_adapter._market_order_reference(
+                registry.clients, rest.markets["BTC/USDC:USDC"], "hold", prepared_deadline,
             )
         self.assertEqual(rest.ticker_calls, 0)
 
@@ -701,9 +707,11 @@ class HyperliquidOrderTests(unittest.IsolatedAsyncioTestCase):
             "info": {"markPrice": None, "mark_price": "-1"},
         })
         registry = FakeRegistry(rest, "hyperliquid")
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_deadline = self.deadline()
         with self.assertRaisesRegex(ExchangeContractError, "omitted a usable"):
-            await CcxtAdapter(registry)._market_order_reference(
-                registry.clients, rest.markets["BTC/USDC:USDC"], "buy", self.deadline(),
+            await prepared_adapter._market_order_reference(
+                registry.clients, rest.markets["BTC/USDC:USDC"], "buy", prepared_deadline,
             )
 
 class StreamTests(unittest.IsolatedAsyncioTestCase):
@@ -764,18 +772,24 @@ class ProtectedEntryTests(unittest.IsolatedAsyncioTestCase):
         entry, stop = protected_requests()
         stop["side"] = "buy"
         registry = FakeRegistry(FakeProtectedRest([[]]))
+        prepared_adapter = CcxtAdapter(registry)
+        prepared_bound_test_account = bound_test_account()
+        prepared_deadline = self.deadline()
         with self.assertRaisesRegex(ExchangeContractError, "must oppose"):
-            await CcxtAdapter(registry).submit_protected_entry(
-                bound_test_account(), entry, stop, self.deadline(),
+            await prepared_adapter.submit_protected_entry(
+                prepared_bound_test_account, entry, stop, prepared_deadline,
             )
         self.assertEqual(registry.calls, 0)
 
     async def test_existing_remote_exposure_blocks_batch_before_order_submission(self) -> None:
         entry, stop = protected_requests()
         rest = FakeProtectedRest([[{"contracts": "1", "side": "long"}]])
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
+        prepared_deadline = self.deadline()
         with self.assertRaisesRegex(ExchangeContractError, "already reports exposure"):
-            await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(
-                bound_test_account(), entry, stop, self.deadline(),
+            await prepared_adapter.submit_protected_entry(
+                prepared_bound_test_account, entry, stop, prepared_deadline,
             )
         self.assertEqual(rest.created_batches, [])
         self.assertEqual(rest.leverage, [])
@@ -786,9 +800,12 @@ class ProtectedEntryTests(unittest.IsolatedAsyncioTestCase):
             [[], [{"contracts": "2", "side": "long"}]],
             failure=TimeoutError("provider response lost"),
         )
+        prepared_adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
+        prepared_deadline = self.deadline()
         with self.assertRaisesRegex(ExchangeContractError, "outcome is unknown"):
-            await CcxtAdapter(FakeRegistry(rest)).submit_protected_entry(
-                bound_test_account(), entry, stop, self.deadline(),
+            await prepared_adapter.submit_protected_entry(
+                prepared_bound_test_account, entry, stop, prepared_deadline,
             )
         self.assertEqual(len(rest.created_batches), 1)
         self.assertEqual(rest.cleanup_orders, [])

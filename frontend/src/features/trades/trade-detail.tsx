@@ -11,7 +11,7 @@ const emptyReview = { notes: "", tags: [] as string[], rating: null as number | 
 const reviewFields = (value: typeof emptyReview) => ({ notes: value.notes, tags: value.tags, rating: value.rating, reviewed: value.reviewed });
 const displayTime = (value: unknown) => typeof value === "number" ? new Date(value).toLocaleString("de-DE") : "nicht verfügbar";
 
-export function TradeDetail({ intentId, readOnly = true }: { intentId: string; readOnly?: boolean }) {
+export function TradeDetail({ intentId, readOnly = true }: Readonly<{ intentId: string; readOnly?: boolean }>) {
   const [entry, setEntry] = useState<any>(null);
   const [safety, setSafety] = useState<any>(null);
   const [error, setError] = useState("");
@@ -41,12 +41,12 @@ export function TradeDetail({ intentId, readOnly = true }: { intentId: string; r
     finally { setBusy(false); }
   };
   const current = entry?.intentId === intentId ? entry : null;
-  if (!current) return <div className="operations-stack"><h1>Trade {intentId}</h1><p role={error ? "alert" : "status"}>{error || "Trade wird geladen …"}</p><Link to="/trading/journal">Zum Journal</Link></div>;
+  if (!current) return <div className="operations-stack"><h1>Trade {intentId}</h1><p>{error ? <span role="alert">{error}</span> : <output>Trade wird geladen …</output>}</p><Link to="/trading/journal">Zum Journal</Link></div>;
   const plan = current.plan ?? {};
   const leverage = plan.leverageDecision ?? {};
   return <div className="operations-stack">
     <div><Link to="/trading/journal">Journal</Link><h1>{current.symbol} · {current.side}</h1><p>Intent {current.intentId} · {current.status} · {current.exchange}/{current.mode} · beobachtet {displayTime(observedAt)}</p></div>
-    {error && <p role="alert">{error} Anzeige möglicherweise veraltet.</p>}{message && <p role="status">{message}</p>}
+    {error && <p role="alert">{error} Anzeige möglicherweise veraltet.</p>}{message && <p><output>{message}</output></p>}
     <section className="operations-card"><h2>Originalquelle und Versionen</h2><EvidenceFields fields={[
       ["Konto", <Link key="account" to={`/trading/accounts/${encodeURIComponent(current.accountId)}`}>{current.accountName}</Link>], ["Kanal", current.channelId],
       ["Signal-ID", current.signal.id ? <Link key="signal" to={`/signals/processed?objectId=${encodeURIComponent(current.signal.id)}`}>{current.signal.id}</Link> : null], ["Telegram-Nachricht", current.signal.sourceMessageId], ["Quelle (redigiert)", current.signal.sourceExcerpt],
@@ -80,7 +80,7 @@ export function TradeDetail({ intentId, readOnly = true }: { intentId: string; r
       <EvidenceTable caption="Börsenoperationen dieses Trades (bis 100)" rows={safety?.operations?.entries ?? []} columns={[["id", "Operation"], ["kind", "Command"], ["generation", "Generation"], ["status", "Zustand"], ["requestHash", "Requesthash"], ["reason", "Grund"]]} /><Link to={`/trading/operations?intentId=${encodeURIComponent(intentId)}`}>Alle Operationsseiten öffnen</Link></section>
     <section className="operations-card"><h2>Lebenslauf</h2>{current.relatedRowsIncluded === false && <TradeRelations intentId={intentId} kind="events" />}<ol>{Object.entries(current.timeline).sort((a, b) => Number(a[1]) - Number(b[1])).map(([event, at]) => <li key={event}>{displayTime(at)} · {event}</li>)}</ol><p>Die Zeitleiste zeigt gespeicherte Ereigniszeitpunkte. Fehlende Schritte sind kein Erfolgsnachweis.</p></section>
     <section className="operations-card system-form"><h2>Review</h2>{readOnly && <p>Viewer: Ausführungsdaten und Review sind schreibgeschützt.</p>}
-      {form.dirty && <p role="status">Ungespeicherter Reviewentwurf</p>}
+      {form.dirty && <p><output>Ungespeicherter Reviewentwurf</output></p>}
       {form.conflict && <div role="alert"><p>Review wurde zwischenzeitlich geändert. Servernotiz: {review.notes || "leer"} · Tags: {review.tags.join(", ")} · Bewertung: {review.rating ?? "keine"} · {review.reviewed ? "geprüft" : "nicht geprüft"}</p><button onClick={form.acceptServer}>Serverstand übernehmen</button><button onClick={form.rebase}>Verglichen: Entwurf erneut anwenden</button></div>}
       <fieldset disabled={readOnly || busy}><label>Notizen<textarea maxLength={10000} value={form.draft.notes} onChange={(event) => form.setDraft({ ...form.draft, notes: event.target.value })} /></label>
         <label>Tags (ein Tag pro Zeile)<textarea value={form.draft.tags.join("\n")} onChange={(event) => form.setDraft({ ...form.draft, tags: event.target.value ? event.target.value.split("\n") : [] })} /></label>

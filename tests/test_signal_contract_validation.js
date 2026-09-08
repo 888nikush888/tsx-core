@@ -5,7 +5,7 @@ import {
   signalContractDefinitionSha256,
   validateSignalContractDefinition,
 } from '../src/signal_contract.js';
-import { validateSignalXml } from '../src/signal_schema.js';
+import { assertSignalGrounded, validateSignalXml } from '../src/signal_schema.js';
 
 const standard = () => structuredClone(
   BUILTIN_SIGNAL_CONTRACTS.find(contract => contract.id === 'standard').definition,
@@ -363,4 +363,21 @@ rejects(value => {
   value.additionalFields = [{ path: 'note', type: 'text', required: true, allowedValues: [], pattern: '[' }];
 }, /valid regular expression/);
 
+function testNumericGroundingBoundaries() {
+  const numberSignal = number => ({ groundingPolicy: { action: false, pair: false }, groundingNumbers: [number], groundingFields: [] });
+  for (const [value, source] of [['0', '0'], ['0.000000000000000001', 'x0.000000000000000001%'],
+    ['123456789012345678.123456789012345678', '123456789012345678.123456789012345678x'], ['10', 'x10']]) {
+    assert.doesNotThrow(() => assertSignalGrounded(numberSignal(value), source));
+  }
+  for (const source of ['01', 'word1', '1word', '1.0000000000000000001', '1.1', '01.0', 'а1', '_1', '1.']) {
+    if (source === '1.') assert.doesNotThrow(() => assertSignalGrounded(numberSignal('1'), source));
+    else assert.throws(() => assertSignalGrounded(numberSignal('1'), source), /not grounded/);
+  }
+  for (const number of ['0', '0.5', '10.25']) {
+    const signal = { ...numberSignal(number), groundingFields: [{ kind: 'risk', values: [number] }] };
+    assert.doesNotThrow(() => assertSignalGrounded(signal, `НА ${number}% ДЕПОЗИТА`));
+    assert.throws(() => assertSignalGrounded(signal, `НА ${number}% ДЕПОЗИТАХ`), /grounded/);
+  }
+}
+testNumericGroundingBoundaries();
 console.log('Signal contract definition and dynamic-field validation tests passed.');

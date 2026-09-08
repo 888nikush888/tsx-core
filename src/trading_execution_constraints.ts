@@ -75,8 +75,7 @@ export function assertAccountModeObservation(account: TradingAccount, result: Re
   const capabilities = result.capabilities as Record<string, unknown> | undefined;
   const observation = capabilities?.executionModeObservation as Record<string, unknown> | undefined;
   const profile = MODE_PROFILES[account.exchange];
-  if (!profile || result.entryAllowed !== false || result.reason !== null || !observation
-    || observation.verified !== true || observation.entryAllowed !== false || observation.requiresSymbolRead !== true
+  if (!profile || result.entryAllowed !== false || result.reason !== null || observation?.verified !== true || observation.entryAllowed !== false || observation.requiresSymbolRead !== true
     || observation.reason !== null || observation.scope !== 'account_observation' || observation.origin !== profile.origin) {
     modeFailure('account mode observation is missing or invalid.');
   }

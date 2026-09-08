@@ -85,7 +85,12 @@ export async function uiWorkflowDetail(kind: UiWorkflowList, objectId: string) {
   const path = kind === 'paths' ? revision.compiled.paths.find(path => path.id === objectId) : null;
   if (kind === 'paths' && !path) return null;
   const relevantNodes = path ? revision.graph.nodes.filter(node => path.nodeIds.includes(node.id)) : revision.graph.nodes;
-  const parameterEffects = path ? uiEffectiveParameters(path, await getTradingStrategyVersion(path.strategyVersionId), path.sizingResourceVersionId ? await getWorkflowResourceById(path.sizingResourceVersionId) : null) : [];
+  let parameterEffects: ReturnType<typeof uiEffectiveParameters> = [];
+  if (path) {
+    const strategy = await getTradingStrategyVersion(path.strategyVersionId);
+    const sizing = path.sizingResourceVersionId ? await getWorkflowResourceById(path.sizingResourceVersionId) : null;
+    parameterEffects = uiEffectiveParameters(path, strategy, sizing);
+  }
   const sources = await Promise.all(relevantNodes.map(async node => {
     const resource = await getWorkflowResourceById(node.resourceVersionId);
     return { nodeId: node.id, resource: resource ? { id: resource.id, resourceId: resource.resourceId, name: resource.name, version: resource.version,

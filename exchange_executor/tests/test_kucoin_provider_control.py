@@ -108,11 +108,12 @@ class KucoinControlTests(unittest.IsolatedAsyncioTestCase):
                     rest.futuresPrivateGetGetCrossUserLeverage.return_value["data"]["leverage"] = 20.0
                 else:
                     rest.privateGetUserApiKey.return_value["data"]["permission"] = "General"
+                prepared_budget = budget()
                 with self.assertRaises(ExchangeContractError):
                     await read_kucoin_classic_observation(
                         rest,
                         SYMBOL,
-                        budget(),
+                        prepared_budget,
                         account_fingerprint=FINGERPRINT,
                         credential_generation=GENERATION,
                         expected_provider_uid=expected_uid,
@@ -124,13 +125,17 @@ class KucoinControlTests(unittest.IsolatedAsyncioTestCase):
             {"account_fingerprint": FINGERPRINT, "credential_generation": "x"},
             {"account_fingerprint": FINGERPRINT, "credential_generation": GENERATION, "provider_symbol": "xbtusdtm"},
         ):
-            with self.subTest(arguments=arguments), self.assertRaises(ExchangeContractError):
-                await read_kucoin_classic_observation(
-                    Rest(),
-                    arguments.pop("provider_symbol", SYMBOL),
-                    budget(),
-                    **arguments,
-                )
+            with self.subTest(arguments=arguments):
+                prepared_rest = Rest()
+                prepared_provider_symbol = arguments.pop("provider_symbol", SYMBOL)
+                prepared_budget = budget()
+                with self.assertRaises(ExchangeContractError):
+                    await read_kucoin_classic_observation(
+                        prepared_rest,
+                        prepared_provider_symbol,
+                        prepared_budget,
+                        **arguments,
+                    )
 
     def test_batch_ack_classifies_both_legs_by_exact_original_identity(self):
         response = {
@@ -174,8 +179,10 @@ class KucoinControlTests(unittest.IsolatedAsyncioTestCase):
             ]},
         ]
         for response in cases:
-            with self.subTest(response=response), self.assertRaises(UnresolvedOrderOutcome) as captured:
-                classify_kucoin_batch_ack(response, expected_legs())
+            with self.subTest(response=response):
+                prepared_expected_legs = expected_legs()
+                with self.assertRaises(UnresolvedOrderOutcome) as captured:
+                    classify_kucoin_batch_ack(response, prepared_expected_legs)
             self.assertTrue(captured.exception.details["unresolvedClientOrderIds"])
 
     def test_batch_ack_rejects_float_bool_or_unexpected_leg_inputs(self):
@@ -186,8 +193,10 @@ class KucoinControlTests(unittest.IsolatedAsyncioTestCase):
         ]
         for row in bad_rows:
             response = {"code": "200000", "data": [row]}
-            with self.subTest(row=row), self.assertRaises(UnresolvedOrderOutcome):
-                classify_kucoin_batch_ack(response, expected_legs())
+            with self.subTest(row=row):
+                prepared_expected_legs = expected_legs()
+                with self.assertRaises(UnresolvedOrderOutcome):
+                    classify_kucoin_batch_ack(response, prepared_expected_legs)
 
     def test_batch_ack_unknown_or_transient_provider_code_is_unresolved(self):
         for code in ("300002", "429000", "500000", "new-code"):
@@ -195,8 +204,10 @@ class KucoinControlTests(unittest.IsolatedAsyncioTestCase):
                 {"orderId": None, "clientOid": "tsx-entry", "symbol": SYMBOL,
                  "code": code, "msg": "not a reviewed definite rejection"},
             ]}
-            with self.subTest(code=code), self.assertRaises(UnresolvedOrderOutcome):
-                classify_kucoin_batch_ack(response, expected_legs())
+            with self.subTest(code=code):
+                prepared_expected_legs = expected_legs()
+                with self.assertRaises(UnresolvedOrderOutcome):
+                    classify_kucoin_batch_ack(response, prepared_expected_legs)
 
 
 if __name__ == "__main__":

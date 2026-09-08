@@ -176,7 +176,7 @@ async def _order_scope(rest: Any, read: CurrentRead, scope: str, method: Any,
         params = {"currentPage": page_number, "pageSize": PAGE_SIZE}
         if not stop_scope:
             params["status"] = "active"
-        response = await read.call("orders", scope, lambda: method(dict(params)))
+        response = await read.call("orders", scope, lambda params=params: method(dict(params)))
         page_rows, total_pages, total = provider_page(response, scope, page_number, PAGE_SIZE)
         require(expected_total is None or total == expected_total,
                 "KuCoin current-order total changed during pagination.")

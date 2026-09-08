@@ -51,7 +51,7 @@ export class TelegramBotApiClient implements TelegramViewerBotClient {
   private readonly baseUrl: string;
 
   constructor(private readonly botToken: TokenProvider, apiBase = 'https://api.telegram.org/bot') {
-    if (typeof botToken === 'string' && !/^[1-9][0-9]{4,19}:[A-Za-z0-9_-]{20,128}$/.test(botToken)) {
+    if (typeof botToken === 'string' && !/^[1-9]\d{4,19}:[A-Za-z0-9_-]{20,128}$/.test(botToken)) {
       throw new Error('Telegram bot token is invalid.');
     }
     const parsed = new URL(apiBase);
@@ -62,7 +62,7 @@ export class TelegramBotApiClient implements TelegramViewerBotClient {
   private async call(method: string, body: Record<string, unknown>, timeoutMs = 10_000): Promise<any> {
     if (!/^(getUpdates|sendMessage|answerCallbackQuery)$/.test(method)) throw new Error('Telegram Bot API method is not allowed.');
     const botToken = await tokenValue(this.botToken);
-    if (!/^[1-9][0-9]{4,19}:[A-Za-z0-9_-]{20,128}$/.test(botToken)) throw new Error('Telegram bot token is invalid.');
+    if (!/^[1-9]\d{4,19}:[A-Za-z0-9_-]{20,128}$/.test(botToken)) throw new Error('Telegram bot token is invalid.');
     const response = await fetch(`${this.baseUrl}${botToken}/${method}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

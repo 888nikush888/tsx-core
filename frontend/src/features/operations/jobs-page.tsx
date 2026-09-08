@@ -6,9 +6,9 @@ import { EvidenceFields, EvidenceTable } from '@/shared/components/evidence';
 
 export const JOB_STATES: Record<string, string> = { accepted: 'Dauerhaft angenommen', running: 'In Arbeit', 'awaiting-restart': 'Warte auf neuen Prozess', succeeded: 'Abschluss belegt', failed: 'Fehlgeschlagen – Teilwirkungen prüfen', unknown: 'Ergebnis unbekannt – keine automatische Wiederholung' };
 export const jobPath = (id: string) => `/operations/jobs/${encodeURIComponent(id)}`;
-export function JobLink({ id }: { id: string }) { return <Link className="underline break-all" to={jobPath(id)}>Auftrag {id} prüfen</Link>; }
+export function JobLink({ id }: Readonly<{ id: string }>) { return <Link className="underline break-all" to={jobPath(id)}>Auftrag {id} prüfen</Link>; }
 
-function JobResult({ job }: { job: any }) {
+function JobResult({ job }: Readonly<{ job: any }>) {
   const result = job.result?.previous ?? job.result;
   if (!result) return null;
   if (job.kind === 'parser-test') return <section><h3>KI- und Validierungsnachweis</h3><EvidenceFields fields={[
@@ -22,14 +22,15 @@ function JobResult({ job }: { job: any }) {
   return null;
 }
 
-export function JobsPage({ id }: { id?: string }) {
+export function JobsPage({ id }: Readonly<{ id?: string }>) {
   const [params, setParams] = useSearchParams(); const query = params.toString();
   const [value, setValue] = useState<any>(null); const [error, setError] = useState('');
   const context = id ?? query;
-  const read = useCallback(async (signal: AbortSignal) => ({ context, payload: await jsonRequest(`/api/operations/jobs?${id ? `id=${encodeURIComponent(id)}` : query}`, { signal }) }), [id, query, context]);
+  const requestQuery = id ? `id=${encodeURIComponent(id)}` : query;
+  const read = useCallback(async (signal: AbortSignal) => ({ context, payload: await jsonRequest(`/api/operations/jobs?${requestQuery}`, { signal }) }), [requestQuery, context]);
   usePoll(read, data => { setValue(data); setError(''); }, reason => setError(reason.message), 3_000);
   const current = value?.context === context ? value.payload : null; const job = current?.job;
-  const filter = (key: string, item: string) => setParams(previous => { if (item) previous.set(key, item); else previous.delete(key); previous.delete('cursor'); return previous; }, { replace: true });
+  const filter = (key: string, item: string) => setParams(previous => { if (item) { previous.set(key, item); } else { previous.delete(key); } previous.delete('cursor'); return previous; }, { replace: true });
   return <div className="operations-stack"><h1>{id ? 'Wartungsauftrag' : 'Wartung & Aufträge'}</h1><p>Ein angenommener Auftrag ist noch kein Abschluss. Nach Verbindungsabbruch nur den Status lesen. Unbekannte Ergebnisse werden nicht automatisch erneut ausgeführt.</p>
     {id && <Link to="/operations/jobs">Alle Aufträge</Link>}{error && <p role="alert">{error} · Letzte Anzeige möglicherweise veraltet; kein Abschlussbeleg.</p>}
     {!id && <section className="operations-card system-form"><label>Zustand<select value={params.get('state') ?? ''} onChange={event => filter('state', event.target.value)}><option value="">Alle</option>{Object.entries(JOB_STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button onClick={() => setParams(new URLSearchParams())}>Filter zurücksetzen</button></section>}
@@ -43,6 +44,6 @@ export function JobsPage({ id }: { id?: string }) {
     </section>}
     {current && !id && <><EvidenceTable caption={`Aufträge · Beobachtung ${new Date(current.statesObservedAt ?? current.observedAt).toLocaleString('de-DE')}`} rows={current.jobs.map((entry: any) => ({ ...entry, link: <JobLink id={entry.id} />, stateLabel: JOB_STATES[entry.state] ?? entry.state, time: new Date(entry.updatedAt).toLocaleString('de-DE') }))} columns={[["link", "Auftrag"], ["kind", "Aktion"], ["stateLabel", "Zustand"], ["time", "Letzter Nachweis"]]} />
       <p>Aufbewahrung: maximal 200 Aufträge; aktive Aufträge bleiben erhalten. Der Zustandsfilter verwendet den aktuellen Nachweis jeder Seite.</p><div className="system-actions"><button disabled={!params.has('cursor')} onClick={() => filter('cursor', '')}>Erste Seite</button><button disabled={!current.hasMore} onClick={() => setParams(previous => { previous.set('cursor', current.nextCursor); return previous; })}>Nächste Seite</button></div></>}
-    {!current && <p role="status">Nachweis wird geladen …</p>}
+    {!current && <p><output>Nachweis wird geladen …</output></p>}
   </div>;
 }

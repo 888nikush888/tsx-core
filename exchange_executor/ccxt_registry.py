@@ -128,8 +128,8 @@ class CcxtExchangeRegistry:
             "credentialFields": _credential_fields([], profile),
             "modes": [],
             "capabilities": {
-                **{name: False for name in REST_CAPABILITIES},
-                **{name: False for name in PRO_CAPABILITIES},
+                **dict.fromkeys(REST_CAPABILITIES, False),
+                **dict.fromkeys(PRO_CAPABILITIES, False),
             },
             "profile": self._public_profile(profile),
         }

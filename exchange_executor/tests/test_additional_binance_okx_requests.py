@@ -78,7 +78,8 @@ class AdditionalBinanceOkxRequestsTests(unittest.IsolatedAsyncioTestCase):
         requests = []
 
         async def request(path, api, method, params, *args, **kwargs):
-            self.assertEqual((path, api, method), endpoint)
+            actual_endpoint = (path, api, method)
+            self.assertEqual(actual_endpoint, endpoint)
             requests.append(copy.deepcopy(params))
             return copy.deepcopy(response)
 

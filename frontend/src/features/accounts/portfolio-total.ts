@@ -12,5 +12,6 @@ export function portfolioTotal(accounts: any[] | undefined, key: string): string
     catch { unknown++; }
   }
   const known = [...totals].map(([currency, value]) => `${value.replace('.', ',')} ${currency}`).join(' · ');
-  return `${known || 'nicht verfügbar'}${unknown ? ` · ${unknown} Kontobeleg(e) ungeklärt; keine Gesamtsumme` : ''}`;
+  const unknownNotice = unknown ? ` · ${unknown} Kontobeleg(e) ungeklärt; keine Gesamtsumme` : '';
+  return `${known || 'nicht verfügbar'}${unknownNotice}`;
 }

@@ -1,3 +1,4 @@
+import { isStringMember } from './contract_values.js';
 import { randomUUID } from 'node:crypto';
 
 import { getDatabase } from './db.js';
@@ -105,8 +106,8 @@ export async function recordTradingNotificationEvent(input: {
   const channelId = channelIdentifier(input.channelId);
   const accountId = identifier(input.accountId, 'Notification account identifier', true);
   const exchange = input.exchange === null || input.exchange === undefined ? null : tradingExchangeId(input.exchange);
-  const mode = input.mode === null || input.mode === undefined ? null : String(input.mode);
-  if (mode !== null && !['paper', 'testnet', 'live'].includes(mode)) throw new Error('Notification account mode is invalid.');
+  const mode = input.mode ?? null;
+  if (mode !== null && !isStringMember(mode, ['paper', 'testnet', 'live'])) throw new Error('Notification account mode is invalid.');
   const occurredAt = timestamp(input.occurredAt, 'Notification event timestamp');
   const createdAt = input.now === undefined ? Date.now() : timestamp(input.now, 'Notification creation timestamp');
   const serializedDetails = detailsJson(input.details);

@@ -86,8 +86,9 @@ function projectScope(scope: { accountId: string; intentId: string }, receipt: P
   const proof = receipt?.proofs.find(item => item.intentId === scope.intentId) ?? null;
   const noDuty = receipt?.noDuty.find(item => item.intentId === scope.intentId) ?? null;
   const protectedPosition = proof?.safe === true || noDuty !== null;
+  const unprovedReason = protectedPosition ? null : 'PROTECTION_SCOPE_UNPROVED';
   return { ...scope, protected: protectedPosition,
-    reason: receipt ? proof?.reasons[0]?.code ?? (protectedPosition ? null : 'PROTECTION_SCOPE_UNPROVED') : 'PROTECTION_RECEIPT_NOT_CURRENT',
+    reason: receipt ? proof?.reasons[0]?.code ?? unprovedReason : 'PROTECTION_RECEIPT_NOT_CURRENT',
     proof, noDuty };
 }
 

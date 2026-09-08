@@ -11,7 +11,8 @@ export type StartupPhase = 'initial' | 'recovery-only' | 'ready' | 'blocked';
 export class StartupAuthorityError extends Error {
   readonly code = 'STARTUP_NOT_READY';
   constructor(phase: StartupPhase, reason: string | null) {
-    super(`Startup authority is ${phase}; mutations are blocked${reason ? `: ${reason}` : '.'}`);
+    const detail = reason ? `: ${reason}` : '.';
+    super(`Startup authority is ${phase}; mutations are blocked${detail}`);
     this.name = 'StartupAuthorityError';
   }
 }

@@ -1,9 +1,11 @@
 import { useLayoutEffect, useState } from "react";
 import { useDirtyGuard } from './use-dirty-guard';
 
-export function useVersionedDraft<T>(identity: string, server: T | null, revision: number | string | null, empty: T) {
+type DraftRevision = number | string | null;
+
+export function useVersionedDraft<T>(identity: string, server: T | null, revision: DraftRevision, empty: T) {
   const [draft, setDraft] = useState(empty);
-  const [base, setBase] = useState<{ identity: string; value: T; revision: number | string | null }>({ identity: "", value: empty, revision: null });
+  const [base, setBase] = useState<{ identity: string; value: T; revision: DraftRevision }>({ identity: "", value: empty, revision: null });
   const dirty = JSON.stringify(draft) !== JSON.stringify(base.value);
   useDirtyGuard(dirty);
   const conflict = Boolean(identity) && base.identity === identity && base.revision !== revision;
@@ -22,7 +24,7 @@ export function useVersionedDraft<T>(identity: string, server: T | null, revisio
   const rebase = () => {
     if (server) setBase({ identity, value: server, revision });
   };
-  const saved = (value: T, nextRevision: number | string | null) => {
+  const saved = (value: T, nextRevision: DraftRevision) => {
     setBase({ identity, value, revision: nextRevision });
     setDraft(value);
   };

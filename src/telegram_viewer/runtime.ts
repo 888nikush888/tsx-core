@@ -7,7 +7,7 @@ import { requireTrustedServiceUrl } from './internal_transport.js';
 import { TelegramViewerService } from './service.js';
 import { TelegramViewerStateRepository } from './state_repository.js';
 
-const BOT_TOKEN_PATTERN = /^[1-9][0-9]{4,19}:[A-Za-z0-9_-]{20,128}$/;
+const BOT_TOKEN_PATTERN = /^[1-9]\d{4,19}:[A-Za-z0-9_-]{20,128}$/;
 const SERVICE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 export async function readRuntimeSecret(directory: string, fileName: string, pattern: RegExp): Promise<string> {
@@ -86,9 +86,11 @@ export async function runTelegramViewer(): Promise<void> {
 const invokedAsScript = process.argv[1]
   && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
 if (invokedAsScript) {
-  runTelegramViewer().catch(error => {
+  try {
+    await runTelegramViewer();
+  } catch (error) {
     const message = error instanceof Error ? error.message : 'Telegram viewer startup failed.';
     console.error(`[TELEGRAM VIEWER] ${message.replace(/[A-Za-z0-9_-]{20,}/g, '[REDACTED]')}`);
     process.exitCode = 1;
-  });
+  }
 }

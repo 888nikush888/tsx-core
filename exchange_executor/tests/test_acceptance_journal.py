@@ -70,8 +70,9 @@ class AcceptanceJournalTests(unittest.TestCase):
             changed[field] = value
             with self.subTest(field=field), self.assertRaises((JournalRefused, AcceptanceRefused)):
                 self.opened(changed)
+        prepared_origins = {"bybit": plan()["host"]}
         with self.assertRaises(JournalRefused):
-            self.opened(origins={"bybit": plan()["host"]})
+            self.opened(origins=prepared_origins)
 
     def test_dispatch_unknown_no_replay_and_conflicts_survive_exception(self):
         journal, guard = self.verified()
@@ -85,13 +86,15 @@ class AcceptanceJournalTests(unittest.TestCase):
         self.assertEqual(guard.unresolved, ["own-1"])
         with self.assertRaises(AcceptanceRefused):
             guard.mark_dispatching("own-1")
+        prepared_request = request(price="1")
         with self.assertRaises(AcceptanceRefused):
-            guard.reserve_order("own-1", "2", request(price="1"))
+            guard.reserve_order("own-1", "2", prepared_request)
         journal.close()
         journal, guard = self.opened()
         self.assertIn("conflict", [row["kind"] for row in journal.records])
+        prepared_order_evidence = order_evidence(guard, request())
         with self.assertRaises(AcceptanceRefused):
-            guard.record_order("own-1", "remote-1", order_evidence(guard, request()))
+            guard.record_order("own-1", "remote-1", prepared_order_evidence)
 
     def test_real_fsync_failure_prevents_grant_and_poisons_owner(self):
         journal, guard = self.verified()
@@ -161,16 +164,18 @@ class AcceptanceJournalTests(unittest.TestCase):
         guard.reserve_order("own-1", "2", request())
         guard.mark_dispatching("own-1")
         with patch("acceptance_journal.os.fsync", side_effect=OSError("private-error")):
+            prepared_order_evidence = order_evidence(guard, request())
             with self.assertRaises(JournalRefused):
-                guard.record_order("own-1", "remote-1", order_evidence(guard, request()))
+                guard.record_order("own-1", "remote-1", prepared_order_evidence)
         journal.close()
         journal, guard = self.opened()
         # COMMIT happened before the injected fsync failure. Its exact ACK is replayed,
         # never interpreted as permission to repeat the economic write.
         self.assertEqual(guard.require_owned("remote-1"), "own-1")
         guard.record_order("own-1", "remote-1", order_evidence(guard, request()))
+        prepared_order_evidence = order_evidence(guard, request(), "remote-other")
         with self.assertRaises(AcceptanceRefused):
-            guard.record_order("own-1", "remote-other", order_evidence(guard, request(), "remote-other"))
+            guard.record_order("own-1", "remote-other", prepared_order_evidence)
         journal.close()
         _, guard = self.opened()
         with self.assertRaisesRegex(AcceptanceRefused, "conflicting"):
@@ -200,8 +205,9 @@ class AcceptanceJournalTests(unittest.TestCase):
 
     def test_caller_notional_cannot_understate_the_bound_request(self):
         _, guard = self.verified()
+        prepared_request = request()
         with self.assertRaisesRegex(AcceptanceRefused, "notional"):
-            guard.reserve_order("own-1", "1", request())
+            guard.reserve_order("own-1", "1", prepared_request)
         self.assertEqual(guard.reservations, {})
 
     def test_real_advancing_wall_clock_keeps_original_started_deadline(self):
@@ -241,8 +247,9 @@ class AcceptanceJournalTests(unittest.TestCase):
         journal, guard = self.verified()
         self.assertEqual(journal._connection.execute("PRAGMA synchronous").fetchone()[0], 2)
         journal._connection.execute("PRAGMA query_only=ON")
+        prepared_request = request()
         with self.assertRaises(JournalRefused):
-            guard.reserve_order("own-1", "2", request())
+            guard.reserve_order("own-1", "2", prepared_request)
         self.assertEqual(guard.reservations, {})
         journal.close()
         _, guard = self.opened()
@@ -257,14 +264,16 @@ class AcceptanceJournalTests(unittest.TestCase):
         with self.assertRaisesRegex(AcceptanceRefused, "freshly verified"):
             guard.mark_dispatching("own-1")
         self.now = 111
+        prepared_account_evidence = account_evidence(guard)
         with self.assertRaises(AcceptanceRefused):
-            guard.confirm_account(account_evidence(guard))
+            guard.confirm_account(prepared_account_evidence)
         guard.confirm_account(account_evidence(guard, 111))
         guard.mark_dispatching("own-1")
         guard.record_order("own-1", "remote-1", order_evidence(guard, request(), now=111, status="canceled"))
         guard.reserve_order("own-2", "2", request("own-2"))
+        prepared_request = request("own-3")
         with self.assertRaises(AcceptanceRefused):
-            guard.reserve_order("own-3", "2", request("own-3"))
+            guard.reserve_order("own-3", "2", prepared_request)
 
     def test_partial_fills_need_complete_originals_and_later_zero_position_read(self):
         _, guard = self.verified()
@@ -279,8 +288,9 @@ class AcceptanceJournalTests(unittest.TestCase):
                                         fills=[{"fillId": f"fill-{index}", "quantity": "0.25"}])
             terminal.append(evidence)
         self.now = 101
+        prepared_position_evidence = position_evidence(guard, 100)
         with self.assertRaises(AcceptanceRefused):
-            guard.cleanup_proof(terminal, position_evidence(guard, 100))
+            guard.cleanup_proof(terminal, prepared_position_evidence)
         self.assertEqual(guard.cleanup_proof(terminal, position_evidence(guard, 101))["residualExposure"], "0")
 
     def test_explicit_reviewed_extra_profile_and_not_a_new_three_profile_gate(self):
@@ -310,8 +320,9 @@ class AcceptanceJournalTests(unittest.TestCase):
                            creationflags=subprocess.CREATE_NO_WINDOW)
         else:
             alias_directory.symlink_to(target_directory, target_is_directory=True)
+        prepared_journal_binding = journal_binding(plan())
         with self.assertRaises(JournalRefused):
-            AcceptanceJournal(alias_directory / "alias.sqlite", journal_binding(plan()), clock=lambda: 100)
+            AcceptanceJournal(alias_directory / "alias.sqlite", prepared_journal_binding, clock=lambda: 100)
         self.assertFalse((target_directory / "alias.sqlite").exists())
 
     def test_live_owner_file_cannot_be_replaced_to_steal_a_permit(self):
@@ -324,8 +335,9 @@ class AcceptanceJournalTests(unittest.TestCase):
             # Windows denies replacement while the actual OS handle is held.
             self.assertTrue(owner.exists())
         else:
+            prepared_request = request()
             with self.assertRaises((JournalRefused, OSError)):
-                guard.reserve_order("own-1", "2", request())
+                guard.reserve_order("own-1", "2", prepared_request)
         journal.close()
 
     def test_no_plain_status_or_absence_cleanup_and_no_foreign_ownership(self):
@@ -346,8 +358,9 @@ class AcceptanceJournalTests(unittest.TestCase):
                     for index, original in enumerate(requests, 1)]
         missing_fills = copy.deepcopy(terminal)
         missing_fills[0]["original"]["fills"] = []
+        prepared_position_evidence = position_evidence(guard)
         with self.assertRaises(AcceptanceRefused):
-            guard.cleanup_proof(missing_fills, position_evidence(guard))
+            guard.cleanup_proof(missing_fills, prepared_position_evidence)
         proof = guard.cleanup_proof(terminal, position_evidence(guard))
         self.assertFalse(proof["providerAcceptanceVerified"])
         self.assertEqual(proof["terminalOrderIds"], ["remote-1", "remote-2"])

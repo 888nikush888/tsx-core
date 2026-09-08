@@ -202,8 +202,10 @@ class ExecutionConstraintTests(unittest.IsolatedAsyncioTestCase):
             return next(symbol_reads) if 'symbol' in params else await original_read(params)
         rest.privateGetV5PositionList = position_read
         adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(ValueError, 'MODE_NOT_PROVEN'):
-            await adapter.submit_protected_entry(bound_test_account(), entry, stop, deadline())
+            await adapter.submit_protected_entry(prepared_bound_test_account, entry, stop, prepared_deadline)
         self.assertEqual(rest.created_batches, [])
         self.assertEqual(rest.leverage, [])
         # A reduce-only spec must not depend on the now unavailable entry-mode readback.
@@ -263,8 +265,10 @@ class ExecutionConstraintTests(unittest.IsolatedAsyncioTestCase):
         rest.configured_leverage = 5
         rest.set_leverage = AsyncMock()  # Acknowledgement alone is not actual state.
         adapter = CcxtAdapter(FakeRegistry(rest))
+        prepared_bound_test_account = bound_test_account()
+        prepared_deadline = deadline()
         with self.assertRaisesRegex(ValueError, 'leverage readback'):
-            await adapter.submit_protected_entry(bound_test_account(), entry, stop, deadline())
+            await adapter.submit_protected_entry(prepared_bound_test_account, entry, stop, prepared_deadline)
         rest.set_leverage.assert_awaited_once()
         self.assertEqual(rest.created_batches, [])
 

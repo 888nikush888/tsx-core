@@ -1,3 +1,4 @@
+import { isStringMember, requireString } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import { decimal } from './trading_decimal.js';
@@ -114,7 +115,7 @@ interface WorkflowHistoryState {
 }
 
 function workflowHistoryLabel(value: unknown): string {
-  const label = value === undefined || value === null ? DEFAULT_WORKFLOW_HISTORY_LABEL : value;
+  const label = value ?? DEFAULT_WORKFLOW_HISTORY_LABEL;
   if (typeof label !== 'string' || !label.trim() || label.trim().length > 160
     || /[\u0000-\u001f\u007f]/.test(label)) {
     throw new Error('Workflow history label is invalid.');
@@ -150,9 +151,10 @@ function workflowHistoryStack(value: unknown, stack: string): WorkflowHistoryEnt
   return value.map((entry, index) => workflowHistoryEntry(entry, stack, index));
 }
 
-function workflowHistoryMode(value: unknown): WorkflowHistoryMode {
-  const mode = value ?? 'ignore';
-  if (!['record', 'undo', 'redo', 'ignore', 'reset'].includes(String(mode))) {
+function workflowHistoryMode(value: unknown = 'ignore'): WorkflowHistoryMode {
+  if (value === null) return 'ignore';
+  const mode = value;
+  if (!isStringMember(mode, ['record', 'undo', 'redo', 'ignore', 'reset'])) {
     throw new Error('Workflow history mode is invalid.');
   }
   return mode as WorkflowHistoryMode;
@@ -308,10 +310,11 @@ function optionalBoolean(value: unknown, label: string): void {
   if (value !== undefined && typeof value !== 'boolean') throw new Error(`${label} must be boolean.`);
 }
 
-function adaptiveRiskMode(value: unknown): string {
-  const mode = value ?? 'automatic';
-  if (!['fixed', 'shadow', 'automatic'].includes(String(mode))) throw new Error('Adaptive-risk mode is invalid.');
-  return String(mode);
+function adaptiveRiskMode(value: unknown = 'automatic'): string {
+  if (value === null) return 'automatic';
+  const mode = value;
+  if (!isStringMember(mode, ['fixed', 'shadow', 'automatic'])) throw new Error('Adaptive-risk mode is invalid.');
+  return mode;
 }
 
 function optionalAdaptiveTier(value: unknown, tierCount: number): number | null {
@@ -319,10 +322,11 @@ function optionalAdaptiveTier(value: unknown, tierCount: number): number | null 
   return boundedInteger(value, 'Adaptive-risk locked tier', 0, tierCount - 1);
 }
 
-function weakChannelAction(value: unknown): string {
-  const action = value ?? 'reduce';
-  if (!['none', 'reduce', 'block'].includes(String(action))) throw new Error('Adaptive-risk weak-channel action is invalid.');
-  return String(action);
+function weakChannelAction(value: unknown = 'reduce'): string {
+  if (value === null) return 'reduce';
+  const action = value;
+  if (!isStringMember(action, ['none', 'reduce', 'block'])) throw new Error('Adaptive-risk weak-channel action is invalid.');
+  return action;
 }
 
 function validateAdaptiveRiskConfiguration(value: ResourceConfiguration): Record<string, unknown> {
@@ -575,7 +579,7 @@ export async function updateWorkflowResourceDraft(id: string, input: {
   baseEditRevision?: number;
 }): Promise<WorkflowResourceVersion> {
   const existingRow = await getDatabase().get<any>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
-  if (!existingRow || existingRow.status !== 'draft') throw new Error('Only a workflow resource draft can be edited.');
+  if (existingRow?.status !== 'draft') throw new Error('Only a workflow resource draft can be edited.');
   const name = stringValue(input.name, 'Workflow resource name', 80);
   const description = String(input.description ?? '').trim();
   if (description.length > 500) throw new Error('Workflow resource description must not exceed 500 characters.');
@@ -592,7 +596,7 @@ export async function updateWorkflowResourceDraft(id: string, input: {
 
 export async function publishWorkflowResource(id: string, now = Date.now(), baseEditRevision?: number): Promise<WorkflowResourceVersion> {
   const existing = await getDatabase().get<any>('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]);
-  if (!existing || existing.status !== 'draft') throw new Error('Only a workflow resource draft can be published.');
+  if (existing?.status !== 'draft') throw new Error('Only a workflow resource draft can be published.');
   validateResourceConfiguration(existing.kind, parseJson(existing.configuration_json, 'workflow resource configuration'));
   if (baseEditRevision !== undefined && (!Number.isSafeInteger(baseEditRevision) || baseEditRevision < 0)) throw new Error('Invalid resource edit revision.');
   const changed = await getDatabase().run(
@@ -696,7 +700,7 @@ export async function deleteWorkflowResourceFamily(resourceId: string): Promise<
   });
 }
 
-function workflowEdgeKind(edge: Record<string, any>, id: string, schemaVersion: 1 | 2 | 3): WorkflowEdge['kind'] {
+function workflowEdgeKind(edge: Record<string, any>, id: string, schemaVersion: WorkflowGraph['schemaVersion']): WorkflowEdge['kind'] {
   const kind = edge.kind === undefined && schemaVersion === 1 ? undefined : edge.kind;
   if ((schemaVersion === 2 || schemaVersion === 3) && kind !== 'flow' && kind !== 'account_fallback') {
     throw new Error(`Workflow edge ${id} must declare flow or account_fallback kind.`);
@@ -711,7 +715,7 @@ function workflowEdgeFallbackPolicy(
   edge: Record<string, any>,
   id: string,
   kind: WorkflowEdge['kind'],
-  schemaVersion: 1 | 2 | 3,
+  schemaVersion: WorkflowGraph['schemaVersion'],
 ): WorkflowFallbackReason[] | undefined {
   if (kind !== 'account_fallback') {
     if (edge.fallbackOn !== undefined) throw new Error(`Workflow flow edge ${id} cannot declare a fallback policy.`);
@@ -759,7 +763,7 @@ function workflowEdgeChannelScope(
 
 function normalizeWorkflowEdge(input: {
   candidate: unknown;
-  schemaVersion: 1 | 2 | 3;
+  schemaVersion: WorkflowGraph['schemaVersion'];
   nodeIds: Set<string>;
   nodesById: Map<string, WorkflowNode>;
   edgeIds: Set<string>;
@@ -916,7 +920,7 @@ async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, 
   const placedBehaviors = new Map<string, { nodeId: string; name: string }>();
   for (const node of graph.nodes) {
     const resource = resources.get(node.resourceVersionId);
-    if (!resource || resource.status !== 'published') throw new Error(`Node ${node.id} must reference a published resource version.`);
+    if (resource?.status !== 'published') throw new Error(`Node ${node.id} must reference a published resource version.`);
     if (resource.kind !== node.kind) throw new Error(`Node ${node.id} kind does not match its resource.`);
     const existingNodeId = placedResourceIds.get(resource.resourceId);
     if (existingNodeId) {
@@ -1096,13 +1100,15 @@ function compiledEffectiveConfiguration(
 ): Record<string, unknown> {
   const normalizedSizing = validateSizingConfiguration(configs.sizing);
   const normalizedConfigs = { ...configs, sizing: normalizedSizing };
+  const safety = { ...baseStrategy.safety };
+  // Retired concurrency limits must not survive the sizing-resource migration.
+  Reflect.deleteProperty(safety, 'maxConcurrentPositions');
   const effectiveStrategy: StrategyConfiguration = {
     ...baseStrategy,
     schemaVersion: 4,
     sizing: { ...baseStrategy.sizing, ...normalizedSizing },
-    safety: { ...baseStrategy.safety, maxConcurrentPositions: undefined },
+    safety,
   };
-  delete effectiveStrategy.safety.maxConcurrentPositions;
   return { resources: normalizedConfigs, strategyConfiguration: validateStrategyConfiguration(effectiveStrategy) };
 }
 
@@ -1536,7 +1542,7 @@ async function ensurePublishedWorkflowResource(input: {
      ORDER BY version DESC LIMIT 1`,
     [input.resourceId],
   );
-  if (existing && existing.configuration_sha256 === sha256(configuration)) return resourceFromRow(existing);
+  if (existing?.configuration_sha256 === sha256(configuration)) return resourceFromRow(existing);
   const draft = await createWorkflowResourceDraft({
     resourceId: input.resourceId,
     kind: input.kind,
@@ -1553,7 +1559,9 @@ interface LegacyResourceDefinition {
   configuration: Record<string, unknown>;
 }
 
-async function loadLegacyWorkflowInputs(): Promise<{ routes: any[]; schemas: any[]; policies: Map<string, any> }> {
+interface LegacySchemaRow { id: string; name: string; template_name: string; contract_version_id: string | null }
+
+async function loadLegacyWorkflowInputs(): Promise<{ routes: any[]; schemas: LegacySchemaRow[]; policies: Map<string, any> }> {
   const routes = await getDatabase().all<any[]>(
     `SELECT route.channel_id, route.strategy_version_id, route.account_id,
             strategy.name AS strategy_name, strategy.configuration_json,
@@ -1564,7 +1572,7 @@ async function loadLegacyWorkflowInputs(): Promise<{ routes: any[]; schemas: any
      WHERE route.enabled = 1 AND strategy.status = 'published'
      ORDER BY route.channel_id, route.account_id`,
   );
-  const schemas = await getDatabase().all<any[]>(
+  const schemas = await getDatabase().all<LegacySchemaRow[]>(
     `SELECT id, name, template_name, contract_version_id
      FROM trading_signal_schemas WHERE enabled = 1 ORDER BY id`,
   );
@@ -1574,7 +1582,7 @@ async function loadLegacyWorkflowInputs(): Promise<{ routes: any[]; schemas: any
   return { routes, schemas, policies };
 }
 
-function selectLegacySchema(schemas: any[], templateName: string, strategy: StrategyConfiguration): any | null {
+function selectLegacySchema(schemas: LegacySchemaRow[], templateName: string, strategy: StrategyConfiguration): LegacySchemaRow | null {
   const allowedSchemas = new Set(strategy.allowedSignalSchemas);
   return schemas.find(candidate => candidate.template_name === templateName && allowedSchemas.has(candidate.id))
     ?? schemas.find(candidate => allowedSchemas.has(candidate.id))
@@ -1868,8 +1876,9 @@ export async function getWorkflowSignalPlans(input: {
   contentType: string;
   workflowRevisionId?: string | null;
 }): Promise<WorkflowSignalPlan[]> {
-  const workflow = input.workflowRevisionId === undefined ? await getActiveWorkflow()
-    : input.workflowRevisionId ? await getWorkflowRevisionById(input.workflowRevisionId) : null;
+  let workflow = null;
+  if (input.workflowRevisionId === undefined) workflow = await getActiveWorkflow();
+  else if (input.workflowRevisionId) workflow = await getWorkflowRevisionById(input.workflowRevisionId);
   if (input.workflowRevisionId && !workflow) throw new Error('Pinned workflow revision is missing; review required.');
   if (!workflow) return [];
   const groups = new Map<string, WorkflowSignalPlan>();
@@ -1912,7 +1921,7 @@ type WorkflowIntentInput = {
 /** Business settings stay pinned; permission to execute is always checked against the current graph. */
 export async function isWorkflowExecutionAuthorized(executionPathId: string): Promise<boolean> {
   const original = await getDatabase().get<any>('SELECT * FROM workflow_execution_paths WHERE id = ?', [executionPathId]);
-  if (!original || !original.enabled) return false;
+  if (!original?.enabled) return false;
   const active = await getActiveWorkflow();
   if (!active) return false;
   const originalNodes = parseJson<string[]>(original.node_ids_json, 'workflow path nodes');
@@ -1923,7 +1932,7 @@ export async function isWorkflowExecutionAuthorized(executionPathId: string): Pr
 }
 
 function workflowIntentBlockReason(path: WorkflowExecutionPath, account: any, runtime: any): string | null {
-  if (!path.enabled || !account || account.status !== 'ready' || Number(account.enabled) !== 1) return 'ACCOUNT_NOT_READY';
+  if (!path.enabled || account?.status !== 'ready' || Number(account.enabled) !== 1) return 'ACCOUNT_NOT_READY';
   if (Number(account.kill_switch_active) === 1) return 'ACCOUNT_KILL_SWITCH_ACTIVE';
   if (Number(runtime.kill_switch_active) === 1) return 'KILL_SWITCH_ACTIVE';
   if (Number(runtime.execution_enabled) !== 1) return 'EXECUTION_DISABLED';
@@ -2039,7 +2048,7 @@ async function persistFallbackRouteGroup(input: {
   return {
     intents: [result.intent],
     branches: [{
-      ...(result.branch ?? {}),
+      ...result.branch,
       routeGroupKey: group.key,
       candidateCount: ordered.length,
       mode: 'ordered_account_fallback',
@@ -2073,7 +2082,7 @@ async function refreshWorkflowSignalRunFromFallback(fallbackRunId: string, now: 
   const probing = runs.some(run => run.status === 'probing');
   const blocked = runs.some(run => ['exhausted', 'stopped'].includes(run.status));
   const selected = runs.some(run => run.status === 'selected');
-  const status = probing ? 'running' : blocked && selected ? 'partially_blocked' : blocked ? 'blocked' : 'completed';
+  const status = fallbackRunStatus(probing, blocked, selected);
   await getDatabase().run(
     `UPDATE workflow_signal_runs SET status = ?, result_json = ?, completed_at = ? WHERE id = ?`,
     [status, normalizedJson({ ...existing, fallbackRuns: runs.map(run => ({
@@ -2177,7 +2186,7 @@ function fallbackAdvanceResult(
     advanced,
     runId: String(current.fallback_run_id),
     fromAccountId: String(current.account_id),
-    toAccountId: nextAccountId === null ? null : String(nextAccountId),
+    toAccountId: nextAccountId === null ? null : requireString(nextAccountId, 'Fallback account identity'),
     reason,
   };
 }
@@ -2468,4 +2477,10 @@ export async function listWorkflowFallbackRuns(limit = 200): Promise<Array<Recor
     });
   }
   return result;
+}
+
+function fallbackRunStatus(probing: boolean, blocked: boolean, selected: boolean): string {
+  if (probing) return 'running';
+  if (blocked && selected) return 'partially_blocked';
+  return blocked ? 'blocked' : 'completed';
 }

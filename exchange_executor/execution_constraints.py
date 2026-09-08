@@ -48,7 +48,7 @@ def _list(value: Any) -> list[dict[str, Any]]:
 
 def _leverage(value: Any) -> int:
     _require(isinstance(value, (str, int)) and not isinstance(value, bool), "LEVERAGE_READBACK_MISSING")
-    _require(re.fullmatch(r"[1-9][0-9]{0,3}(?:\.0+)?", str(value)) is not None, "LEVERAGE_READBACK_INVALID")
+    _require(re.fullmatch(r"(?a)[1-9]\d{0,3}(?:\.0+)?", str(value)) is not None, "LEVERAGE_READBACK_INVALID")
     return int(Decimal(str(value)))
 
 

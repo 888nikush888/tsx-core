@@ -207,6 +207,8 @@ const allTests = [
   'test_sonarcloud_export.js',
   'test_sonar_evidence.js',
   'test_sonar_pull_request.js',
+  'test_sonar_branch.js',
+  'test_sonar_review_decisions.js',
   'test_lcov_paths.js',
   'test_exchange_acceptance.js',
   'test_coverage_perfektion.js',

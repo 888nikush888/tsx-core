@@ -5,6 +5,7 @@ import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import ccxt.pro as ccxt_pro
 from ccxt.async_support.base.ws.client import Client
@@ -115,6 +116,37 @@ class Harness:
 
 
 class StreamTransportTests(unittest.IsolatedAsyncioTestCase):
+    async def test_health_recovery_can_remove_multiple_retry_entries_in_one_poll(self):
+        harness = Harness('bybit')
+        try:
+            for channel in ('orders', 'positions', 'fills'):
+                harness.stream._record_channel_failure(channel, NetworkError('fixture disconnect'))
+            harness.stream._transport.recovered = Mock(return_value=True)
+            self.assertEqual(harness.status(), 'healthy')
+            self.assertEqual(harness.stream._network_retries, {})
+            self.assertEqual(harness.stream._channel_failures, {})
+            self.assertEqual(harness.stream._transport.recovered.call_count, 3)
+        finally:
+            await harness.close()
+
+    async def test_closed_socket_hooks_are_all_restored_before_a_new_socket_is_observed(self):
+        harness = Harness('bybit')
+        observer = harness.stream._transport
+        previous = [harness.socket, harness.new_socket()]
+        originals = [socket.send for socket in previous]
+        try:
+            for socket in previous:
+                observer._send_history(socket)
+            for socket in previous:
+                socket.connection.closed = True
+            current = harness.new_socket()
+            observer._send_history(current)
+            self.assertEqual(set(observer._send_hooks), {current})
+            for socket, original in zip(previous, originals):
+                self.assertIs(socket.send, original)
+        finally:
+            await harness.close()
+
     async def test_quiet_reconnect_recovers_without_an_order_for_every_profile(self):
         for exchange in PROFILES:
             for downtime in (1.0, 16.0):

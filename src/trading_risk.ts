@@ -202,13 +202,7 @@ export function resolveLeverageDecision(
   const effective = Math.min(requested, strategyMaximum, marketMaximum, 50);
   const strategyCaps = requested > strategyMaximum && strategyMaximum === effective;
   const marketCaps = requested > marketMaximum && marketMaximum === effective;
-  const cappedBy = strategyCaps && marketCaps
-    ? 'strategy_and_market'
-    : strategyCaps
-      ? 'strategy'
-      : marketCaps
-        ? 'market'
-        : null;
+  const cappedBy = leverageCapSource(strategyCaps, marketCaps);
   return { requested, requestedSource, strategyMaximum, marketMaximum, effective, cappedBy };
 }
 
@@ -497,8 +491,9 @@ function quantityForPlan(input: TradingPlanInput, entry: string, riskPercent: st
 
 function originalNotionalBudget(input: TradingPlanInput, capital: string, leverage: number): string {
   const mode = input.strategy.sizing.positionSizingMode;
-  const sized = mode === 'equity_percent_margin' ? multiplyDecimal(capital, String(leverage))
-    : mode === 'equity_percent_notional' ? capital : input.strategy.sizing.maxPositionNotional;
+  let sized = input.strategy.sizing.maxPositionNotional;
+  if (mode === 'equity_percent_margin') sized = multiplyDecimal(capital, String(leverage));
+  else if (mode === 'equity_percent_notional') sized = capital;
   return minDecimal(input.strategy.sizing.maxPositionNotional, multiplyDecimal(input.account.availableBalance, String(leverage)), sized);
 }
 
@@ -507,8 +502,8 @@ function solvePlanSizing(input: TradingPlanInput, price: string, distance: strin
   const configuredRisk = configuredPlanRisk(input);
   const leverageDecision = resolveLeverageDecision(input.signal, input.strategy, input.market);
   const configuredRiskAmount = divideDecimal(multiplyDecimal(input.account.equity, configuredRisk), '100');
-  const sizingPrice = input.market.leverageTiers
-    ? (compareDecimal(input.market.markPrice, limitPrice) > 0 ? input.market.markPrice : limitPrice) : price;
+  let sizingPrice = price;
+  if (input.market.leverageTiers) sizingPrice = compareDecimal(input.market.markPrice, limitPrice) > 0 ? input.market.markPrice : limitPrice;
   const quantityAtLeverage = (leverage: number) => quantityForPlan(input, sizingPrice, configuredRisk, distance, leverage);
   const solved = input.market.leverageTiers
     ? solveTierQuantity(input.market.leverageTiers, leverageDecision.effective, quantityAtLeverage)
@@ -557,4 +552,10 @@ export function createTradingPlan(input: TradingPlanInput): TradingPlan {
     orders: plannedOrders({ ...input, entry: price, stop, quantity, targetAllocations, entryPriceBoundary }),
     ...planEntryTiming(input),
   };
+}
+
+function leverageCapSource(strategyCaps: boolean, marketCaps: boolean): 'strategy_and_market' | 'strategy' | 'market' | null {
+  if (strategyCaps && marketCaps) return 'strategy_and_market';
+  if (strategyCaps) return 'strategy';
+  return marketCaps ? 'market' : null;
 }

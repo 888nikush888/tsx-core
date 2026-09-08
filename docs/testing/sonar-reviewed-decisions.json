@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "projectKey": "888nikush888_telegram-tdlib-forwarder-private",
+  "branch": "main",
+  "decisions": [
+    {
+      "issueKey": "AaBg00GbmkhvfbyxhJSt",
+      "rule": "python:S7504",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:exchange_executor/stream_hub.py",
+      "source": {
+        "path": "exchange_executor/stream_hub.py",
+        "sha256": "2d0f7708d13a0e74aafd98f1be32184c02efd65167ffa0d5b0ef956c94c6d6c0"
+      },
+      "tests": [
+        {
+          "path": "exchange_executor/tests/test_stream_health.py",
+          "sha256": "bfd348cab006ff584ff5c3c8e191ea953adc13aa70ba4849d92711bf29f074d9"
+        }
+      ],
+      "rationale": "The list snapshot in StreamHub._health is necessary: successful recovery calls _record_channel_success, which removes entries from _network_retries during this loop. test_health_recovery_can_remove_multiple_retry_entries_in_one_poll passes with the snapshot; the independently reproduced mutation that iterates the dictionary view directly raises RuntimeError: dictionary changed size during iteration. Removing list() changes required recovery behavior.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBg00CLmkhvfbyxhJSs",
+      "rule": "python:S7504",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:exchange_executor/stream_transport.py",
+      "source": {
+        "path": "exchange_executor/stream_transport.py",
+        "sha256": "e0237df57080adc10f81f04fd4b49682023470c293e22e0e0f5e2510095bd74e"
+      },
+      "tests": [
+        {
+          "path": "exchange_executor/tests/test_stream_health.py",
+          "sha256": "bfd348cab006ff584ff5c3c8e191ea953adc13aa70ba4849d92711bf29f074d9"
+        }
+      ],
+      "rationale": "The list snapshot in StreamTransport._send_history is necessary: restoring obsolete socket send hooks removes entries from _send_hooks while this loop runs. test_closed_socket_hooks_are_all_restored_before_a_new_socket_is_observed passes with the snapshot; the independently reproduced mutation that iterates the dictionary view directly raises RuntimeError: dictionary changed size during iteration. The snapshot preserves restoration of every closed socket.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBvNiazMwQY_bvuMM7P",
+      "rule": "python:S7503",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:exchange_executor/ccxt_sdk_policy.py",
+      "source": {
+        "path": "exchange_executor/ccxt_sdk_policy.py",
+        "sha256": "38e7b16c19f5df240f1696a51c1006cc3f9323e3516a37c05237ca3a8894267d"
+      },
+      "tests": [
+        {
+          "path": "exchange_executor/tests/test_sdk_async_contract.py",
+          "sha256": "1d5273b22a117dab842097fcfdfadbdb1cf35d10378fdbd81dcd1fa513317977"
+        }
+      ],
+      "rationale": "HyperliquidNoAutomaticSetup.handle_builder_fee_approval implements an async CCXT override that deliberately returns False without sending an automatic builder-fee approval. The pinned CCXT 4.5.75 initialize_client passes this result to asyncio.gather, so the coroutine contract is required. test_hyperliquid_setup_refusals_remain_awaitable_for_real_sdk_initialization exercises actual REST and Pro initialization without network I/O. Replacing either override with a synchronous False return fails the explicit coroutine-contract assertion in the regression; a no-op await would not improve the contract.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBvNiazMwQY_bvuMM7Q",
+      "rule": "python:S7503",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:exchange_executor/ccxt_sdk_policy.py",
+      "source": {
+        "path": "exchange_executor/ccxt_sdk_policy.py",
+        "sha256": "38e7b16c19f5df240f1696a51c1006cc3f9323e3516a37c05237ca3a8894267d"
+      },
+      "tests": [
+        {
+          "path": "exchange_executor/tests/test_sdk_async_contract.py",
+          "sha256": "1d5273b22a117dab842097fcfdfadbdb1cf35d10378fdbd81dcd1fa513317977"
+        }
+      ],
+      "rationale": "HyperliquidNoAutomaticSetup.set_ref implements an async CCXT override that deliberately returns False without sending an automatic referral change. The pinned CCXT 4.5.75 initialize_client passes this result to asyncio.gather, so the coroutine contract is required. test_hyperliquid_setup_refusals_remain_awaitable_for_real_sdk_initialization exercises actual REST and Pro initialization without network I/O. Replacing either override with a synchronous False return fails the explicit coroutine-contract assertion in the regression; a no-op await would not improve the contract.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaB4YAAPTr5_pJYwVjza",
+      "rule": "typescript:S6845",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/shared/components/change-review.tsx",
+      "source": {
+        "path": "frontend/src/shared/components/change-review.tsx",
+        "sha256": "cee03c45ab3ddd8665741bb7f8df652af85139bf326b4092a6d870d5bd155630"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/sonar-ui-semantics.test.tsx",
+          "sha256": "b032c62397c06b0e96d49670f7efd9a0578c329666abb356957f888ce1cca317"
+        },
+        {
+          "path": "frontend/e2e/dashboard.spec.ts",
+          "sha256": "c5c55ae89856755458379da77a278ffab2ea64336e1cbc9fa0c9379a83f92255"
+        }
+      ],
+      "rationale": "This named, horizontally scrollable section intentionally has tabIndex=0 so keyboard users can focus and pan evidence wider than the viewport. Removing the focus target makes the overflow inaccessible in browsers without automatic scroll-container focus. The component test proves the named focus target; the real Playwright test \"evidence and change-review tables retain keyboard scrolling\" tabs into each actual component and verifies ArrowRight changes scrollLeft in Chromium, Firefox, WebKit and mobile Chromium. This is required keyboard behavior, not an unintended interactive role.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaB4YAA7Tr5_pJYwVjzk",
+      "rule": "typescript:S6845",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/shared/components/evidence.tsx",
+      "source": {
+        "path": "frontend/src/shared/components/evidence.tsx",
+        "sha256": "3709a0bc7e0865fef7faa8dcd0ce12f70f9c1728d8c1a8a297303f5909383aa5"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/sonar-ui-semantics.test.tsx",
+          "sha256": "b032c62397c06b0e96d49670f7efd9a0578c329666abb356957f888ce1cca317"
+        },
+        {
+          "path": "frontend/e2e/dashboard.spec.ts",
+          "sha256": "c5c55ae89856755458379da77a278ffab2ea64336e1cbc9fa0c9379a83f92255"
+        }
+      ],
+      "rationale": "This named, horizontally scrollable section intentionally has tabIndex=0 so keyboard users can focus and pan evidence wider than the viewport. Removing the focus target makes the overflow inaccessible in browsers without automatic scroll-container focus. The component test proves the named focus target; the real Playwright test \"evidence and change-review tables retain keyboard scrolling\" tabs into each actual component and verifies ArrowRight changes scrollLeft in Chromium, Firefox, WebKit and mobile Chromium. This is required keyboard behavior, not an unintended interactive role.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBWfBeWwMhcxFe161AG",
+      "rule": "typescript:S6853",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/app/workflow/workflow-fallback-policy-dialog.tsx",
+      "source": {
+        "path": "frontend/src/app/workflow/workflow-fallback-policy-dialog.tsx",
+        "sha256": "370a0e4cfe72862112e85dcd15333e84701c40276129e1675dc84670a7ae9764"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/sonar-ui-semantics.test.tsx",
+          "sha256": "b032c62397c06b0e96d49670f7efd9a0578c329666abb356957f888ce1cca317"
+        }
+      ],
+      "rationale": "The native label wraps exactly one radio or checkbox input and its visible descriptive text. The text is inside ordinary span/strong/small descendants, with explicit whitespace separating title and description; native implicit label association remains valid. The regression test queries every affected control by the accessible name from the visible text and clicks each visible label to change the associated control. An additional htmlFor/id pair is not required for this valid implicit association.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBWfBeWwMhcxFe161AH",
+      "rule": "typescript:S6853",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/app/workflow/workflow-fallback-policy-dialog.tsx",
+      "source": {
+        "path": "frontend/src/app/workflow/workflow-fallback-policy-dialog.tsx",
+        "sha256": "370a0e4cfe72862112e85dcd15333e84701c40276129e1675dc84670a7ae9764"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/sonar-ui-semantics.test.tsx",
+          "sha256": "b032c62397c06b0e96d49670f7efd9a0578c329666abb356957f888ce1cca317"
+        }
+      ],
+      "rationale": "The native label wraps exactly one radio or checkbox input and its visible descriptive text. The text is inside ordinary span/strong/small descendants, with explicit whitespace separating title and description; native implicit label association remains valid. The regression test queries every affected control by the accessible name from the visible text and clicks each visible label to change the associated control. An additional htmlFor/id pair is not required for this valid implicit association.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBWfBeWwMhcxFe161AI",
+      "rule": "typescript:S6853",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/app/workflow/workflow-fallback-policy-dialog.tsx",
+      "source": {
+        "path": "frontend/src/app/workflow/workflow-fallback-policy-dialog.tsx",
+        "sha256": "370a0e4cfe72862112e85dcd15333e84701c40276129e1675dc84670a7ae9764"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/sonar-ui-semantics.test.tsx",
+          "sha256": "b032c62397c06b0e96d49670f7efd9a0578c329666abb356957f888ce1cca317"
+        }
+      ],
+      "rationale": "The native label wraps exactly one radio or checkbox input and its visible descriptive text. The text is inside ordinary span/strong/small descendants, with explicit whitespace separating title and description; native implicit label association remains valid. The regression test queries every affected control by the accessible name from the visible text and clicks each visible label to change the associated control. An additional htmlFor/id pair is not required for this valid implicit association.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaBWfBeWwMhcxFe161AJ",
+      "rule": "typescript:S6853",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/app/workflow/workflow-fallback-policy-dialog.tsx",
+      "source": {
+        "path": "frontend/src/app/workflow/workflow-fallback-policy-dialog.tsx",
+        "sha256": "370a0e4cfe72862112e85dcd15333e84701c40276129e1675dc84670a7ae9764"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/sonar-ui-semantics.test.tsx",
+          "sha256": "b032c62397c06b0e96d49670f7efd9a0578c329666abb356957f888ce1cca317"
+        }
+      ],
+      "rationale": "The native label wraps exactly one radio or checkbox input and its visible descriptive text. The text is inside ordinary span/strong/small descendants, with explicit whitespace separating title and description; native implicit label association remains valid. The regression test queries every affected control by the accessible name from the visible text and clicks each visible label to change the associated control. An additional htmlFor/id pair is not required for this valid implicit association.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaA4-AX5iNYzrpZFGss2",
+      "rule": "typescript:S6853",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/app/workflow/workflow-connection-dialog.tsx",
+      "source": {
+        "path": "frontend/src/app/workflow/workflow-connection-dialog.tsx",
+        "sha256": "704f99f2c80a2a888474ebd8a10a2b9898f7b5e5e50d881414c924327c0a529e"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/sonar-ui-semantics.test.tsx",
+          "sha256": "b032c62397c06b0e96d49670f7efd9a0578c329666abb356957f888ce1cca317"
+        }
+      ],
+      "rationale": "The native label wraps exactly one radio or checkbox input and its visible descriptive text. The text is inside ordinary span/strong/small descendants, with explicit whitespace separating title and description; native implicit label association remains valid. The regression test queries every affected control by the accessible name from the visible text and clicks each visible label to change the associated control. An additional htmlFor/id pair is not required for this valid implicit association.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaA4-AX5iNYzrpZFGss3",
+      "rule": "typescript:S6853",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/app/workflow/workflow-connection-dialog.tsx",
+      "source": {
+        "path": "frontend/src/app/workflow/workflow-connection-dialog.tsx",
+        "sha256": "704f99f2c80a2a888474ebd8a10a2b9898f7b5e5e50d881414c924327c0a529e"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/sonar-ui-semantics.test.tsx",
+          "sha256": "b032c62397c06b0e96d49670f7efd9a0578c329666abb356957f888ce1cca317"
+        }
+      ],
+      "rationale": "The native label wraps exactly one radio or checkbox input and its visible descriptive text. The text is inside ordinary span/strong/small descendants, with explicit whitespace separating title and description; native implicit label association remains valid. The regression test queries every affected control by the accessible name from the visible text and clicks each visible label to change the associated control. An additional htmlFor/id pair is not required for this valid implicit association.",
+      "disposition": "falsepositive"
+    },
+    {
+      "issueKey": "AaB4X__XTr5_pJYwVjzU",
+      "rule": "typescript:S1874",
+      "component": "888nikush888_telegram-tdlib-forwarder-private:frontend/src/shared/forms/use-dirty-guard.ts",
+      "source": {
+        "path": "frontend/src/shared/forms/use-dirty-guard.ts",
+        "sha256": "74340612fde51949bf0580924ac8f4be9bd1277b38a4369270f5f0aef075026f"
+      },
+      "tests": [
+        {
+          "path": "frontend/tests/use-dirty-guard.test.tsx",
+          "sha256": "516a65e3ef9a1c5c487c25977ab5c243603a5aa3144e17caf4fb9e541e164cee"
+        },
+        {
+          "path": "frontend/e2e/ui-next.spec.ts",
+          "sha256": "aaa73f385bcecee0ef5418ff89fa90564d921e056578cb557fe3159440521809"
+        }
+      ],
+      "rationale": "BeforeUnloadEvent.returnValue is genuinely deprecated. This hook also calls preventDefault and attaches the unload guard only while a draft is dirty, removing it on clean state or unmount. Lifecycle regression tests verify cancellation, the legacy assignment and listener cleanup; the browser suite verifies that cancelling navigation preserves the draft. The finding is therefore an explicit compatibility acceptance, not a false-positive claim.",
+      "disposition": "accept",
+      "acceptanceRationale": "Keep the existing empty-string returnValue assignment for Chrome versions before 119; the project has no documented minimum browser version excluding them. MDN browser-compat-data records that these versions activate the dialog even for an empty string: https://github.com/mdn/browser-compat-data/blob/main/api/BeforeUnloadEvent.json . Modern browsers use the accompanying preventDefault. MDN recommends retaining legacy returnValue handling alongside preventDefault: https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event . Revisit this one acceptance when a minimum supported browser policy permits removing the fallback. No security finding or general rule exclusion is accepted."
+    }
+  ]
+}

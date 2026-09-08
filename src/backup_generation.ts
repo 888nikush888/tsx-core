@@ -96,7 +96,8 @@ export function validateConfigurationGenerationEvidence(value: ConfigurationGene
 
 function exists(destination: string): boolean {
   try { fs.lstatSync(destination); return true; }
-  catch (error: any) { if (error?.code === 'ENOENT') return false; throw error; }
+  catch (error: any) { if (error?.code === 'ENOENT') return false;
+    throw error; }
 }
 
 function realDirectory(directory: string): string {

@@ -417,7 +417,7 @@
     {
       "route": "POST /api/runtime-settings",
       "handler": "postRuntimeSettingsHandler",
-      "handlerSha256": "50bb2629ba109e9367ecc49a5d468b2afa600f25e83b8fcb844dd9cfd6ce54a5",
+      "handlerSha256": "59f7b47f89dc4d6178591e9ad5960de1706b2108538430425e1626c72ba6f3cc",
       "role": "admin",
       "recoveryAllowed": true,
       "confirmationHeaders": [],
@@ -576,7 +576,7 @@
     {
       "route": "GET /api/trading/accounts/evidence",
       "handler": "uiAccountEvidenceHandler",
-      "handlerSha256": "1ea8779b880f2a8e9f846fd7b7163a720d4a37e6bc01876b04c5536ac9103026",
+      "handlerSha256": "9852d3f1cc48dffe811bccf5f2be930fd8a447ce9bb97e904920f5d85c6dbfcb",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -585,7 +585,7 @@
     {
       "route": "GET /api/trading/risk/adaptive",
       "handler": "uiAdaptiveRiskHandler",
-      "handlerSha256": "eb697c5ff8c9c1bbbe33d1d6b1b1aab2549dd9f536fd91a99fb6b634f9693433",
+      "handlerSha256": "1dd1c487ddb66d8367cc07dcc41f772823d0fe3cebddc3136f4e01a397390e9f",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -596,7 +596,7 @@
     {
       "route": "POST /api/trading/risk/adaptive/copy-legacy",
       "handler": "uiAdaptiveRiskHandler",
-      "handlerSha256": "eb697c5ff8c9c1bbbe33d1d6b1b1aab2549dd9f536fd91a99fb6b634f9693433",
+      "handlerSha256": "1dd1c487ddb66d8367cc07dcc41f772823d0fe3cebddc3136f4e01a397390e9f",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -1043,7 +1043,7 @@
     {
       "route": "GET /api/workflow/models",
       "handler": "uiWorkflowModelsHandler",
-      "handlerSha256": "430da5c5ee58293a62e3fd91cc6d9b02ce970def47f8b3163fd6c743bdc09783",
+      "handlerSha256": "45a29433b19a0fe24873af63d700ecc7f3e03fdc760aa7e720ba033bf556cbfa",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -1054,7 +1054,7 @@
     {
       "route": "POST /api/workflow/models",
       "handler": "uiWorkflowModelsHandler",
-      "handlerSha256": "430da5c5ee58293a62e3fd91cc6d9b02ce970def47f8b3163fd6c743bdc09783",
+      "handlerSha256": "45a29433b19a0fe24873af63d700ecc7f3e03fdc760aa7e720ba033bf556cbfa",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -1267,7 +1267,7 @@
     {
       "route": "POST /api/telegram-viewer/settings",
       "handler": "updateTelegramViewerSettingsHandler",
-      "handlerSha256": "c92e1077970867519259a17cfe24098d2c489cae04c4867ad3226577c76ccc04",
+      "handlerSha256": "2036eeb49c681722573d3d654f1cdc830e8a68f4d76b42351a5331cb14286510",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],

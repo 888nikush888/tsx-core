@@ -33,7 +33,8 @@ async function main() {
       env: { ...process.env, TSX_MODULE_COVERAGE_WORKERS: '4' },
       stdio: 'inherit',
       shell: false,
-      timeout: 300_000,
+      // Include coverage report generation after the complete test suite finishes.
+      timeout: 600_000,
     }
   );
   if (result.error) throw result.error;

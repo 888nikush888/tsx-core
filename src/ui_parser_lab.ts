@@ -8,7 +8,11 @@ import { AI_LIMIT_RANGES } from './ui_contracts.js';
 import type { ExecutableSignalSchemaSelection } from './signal_schema.js';
 
 const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const identifier = (value: unknown) => { if (value !== undefined && value !== '' && (typeof value !== 'string' || !/^[\w-]{1,64}$/.test(value))) throw new Error('Invalid parser path identifier.'); return String(value || ''); };
+function identifier(value: unknown): string {
+  if (value === undefined || value === '') return '';
+  if (typeof value !== 'string' || !/^[\w-]{1,64}$/.test(value)) throw new Error('Invalid parser path identifier.');
+  return value;
+}
 
 export async function uiParserMetadata(config: any, queue: unknown) {
   const workflow = await getActiveWorkflow(); const usageDay = new Date().toISOString().slice(0, 10);
@@ -47,7 +51,7 @@ async function selectedTestSchema(context: Awaited<ReturnType<typeof selectedTes
   const schema = selected ? (await listTradingSignalSchemas()).find(item => item.id === resources?.schema?.schemaId) : await getTradingSignalSchemaForTemplate(templateName);
   const contractId = selected ? resources?.contract?.contractVersionId : schema?.contractVersionId;
   const contract = contractId ? await getSignalContractVersion(contractId) : null;
-  if (selected && (!schema || !contract || contract.status !== 'published')) throw new Error('The selected path requires an available schema and published pinned contract.');
+  if (selected && (!schema || contract?.status !== 'published')) throw new Error('The selected path requires an available schema and published pinned contract.');
   return { schema, contract };
 }
 function testExecutableSchema({ schema, contract }: Awaited<ReturnType<typeof selectedTestSchema>>): ExecutableSignalSchemaSelection | null {

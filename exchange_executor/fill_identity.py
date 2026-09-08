@@ -27,7 +27,7 @@ def _timestamp(value: Any) -> bool:
 
 
 def _numeric_id(value: Any) -> str | None:
-    if type(value) in (str, int) and re.fullmatch(r"[0-9]{1,256}", str(value)):
+    if type(value) in (str, int) and re.fullmatch(r"(?a)\d{1,256}", str(value)):
         return str(value)
     return None
 

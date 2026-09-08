@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded_module_coverage_report_timeout_followup",
+  "reviewedAt": "2026-09-07T19:32:30Z",
+  "sourceRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "baseRevision": "23d41258a24f644901c9d1f635f8b79ece15ba2f",
+  "sourceTreeHash": "96e6e6769f6ba9c5f8598890fc648ee860bc5abcdf0251d3036cc177e89b1833",
+  "priorReceiptSha256": "8182984d67f5a19efe2372913acc8b1b8d5f1a23f7f000ae80132a64f61cbe28",
+  "priorExecutionReportHash": "363a58e0116add5855c9d742c7e1e9f757b6575a85699f5ac4480b05c1702d97",
+  "changedFiles": [
+    "scripts/check_module_coverage.js",
+    "tests/test_test_scheduler.js"
+  ],
+  "problem": "PR run 34124382818 attempt 2 completed all 211 test files at 14:04:31 UTC, then the parent killed c8 at its five-minute deadline at 14:04:36 UTC before the coverage report and ratchet could complete. The successful manual run on the same source also ran close to this deadline.",
+  "change": "Increase the finite timeout for the complete c8 test-and-report child from 300000 to 600000 milliseconds and update the existing scheduler assertion to retain the exact bounded-timeout contract. Keep four-worker scheduling, all tests, coverage scope, metric baselines, failure propagation and the workflow timeout unchanged.",
+  "validation": {
+    "reviewer": "root",
+    "completeDiffReviewed": true,
+    "localFullModuleRun": "All 211 test files, coverage report generation and the existing module coverage ratchet passed through the real production entry point.",
+    "localLog": {
+      "sha256": "bbf5526030d05041c8a318815a70ff6e9a68f63444d9af8a200ad5ed6e415451",
+      "bytes": 83988
+    },
+    "earlierLocalAttempt": {
+      "result": "FAILED",
+      "cause": "Windows EPERM while atomically replacing an isolated maintenance-test participant JSON file. The unchanged maintenance test passed on immediate isolated rerun; the full suite was then rerun without skips or application changes.",
+      "sha256": "fc9c3ffbe4b4c9ed87e4455c9d61ef02cd8eab856f04a3151bef4663b4d345fc",
+      "bytes": 51223,
+      "isolatedRerunSha256": "062cf0c85174d6b5178265707642c162d5e564d0c1e183334ca81eb780c27443"
+    },
+    "correctedLocalPreconditions": {
+      "result": "FAILED_THEN_CORRECTED",
+      "cause": "The existing scheduler assertion still expected the old timeout, and an agent-downloaded mutation report inside the ignored tmp directory contained deliberate mutation text rejected by the repository UTF-8 check. Updated the timeout assertion and preserved downloaded mutation artifacts in a sibling archive outside the source checkout. No UTF-8 checks were weakened.",
+      "failedLogSha256": "668be7b77381e303d904b849f01e386f29463da78f9d099d2f877a23dd330ea8",
+      "targetedRerunSha256": "be91c2d5a5da374d32c049b81f4eed8689707aa871c70ca88f739fff19f43652"
+    },
+    "failedGithubLog": {
+      "run": 34124382818,
+      "attempt": 2,
+      "job": 101764662645,
+      "sha256": "8019012eeb40338d071c11e978e03187c15d5715384ba1147dd6fc4292788fe1",
+      "bytes": 231276
+    },
+    "targetedChecks": "Existing scheduler, module coverage ratchet and repository governance suites, ESLint with zero warnings and git diff --check passed.",
+    "priorPublishedValidation": "Manual run 34124377996 passed the existing tests, coverage, browser, mutation, CodeQL, secret and container checks on the prior source. The single reviewed PR29 false positive was confirmed by the ledger and independent public API readback.",
+    "pending": "The new published revision requires the real existing PR CI and revision-bound Sonar export. Full main backlog confirmation still requires protected merge and a subsequent main analysis."
+  },
+  "executorAndSdkSourceChanged": false,
+  "runtimeFacts": {
+    "ccxtVersion": "4.5.75",
+    "executorTreeHash": "f3d6d3e303461b159f0efa6a4b135b1a8de48636e3fa9961928ae98fdc4c295a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "providerParityEvidence": {
+    "preservedHash": "ffd4e58768b88c2d3180cc379154256403fb9449fdeb7fda3610940b40bd2426"
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false,
+  "productionDeploymentPerformed": false,
+  "quarantinePreserved": [
+    "bybit",
+    "krakenfutures"
+  ]
+}

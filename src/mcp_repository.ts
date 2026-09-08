@@ -1165,8 +1165,8 @@ async function preflightWorkflowActivation(
   const preview = await previewWorkflowImpact({ baseRevisionId, graph: payload.graph });
   impact.push(
     `Activates one immutable workflow revision: ${preview.added.length} path(s) added, ${preview.changed.length} changed, ${preview.removed.length} removed.`,
+    ...preview.warnings.slice(0, 20),
   );
-  impact.push(...preview.warnings.slice(0, 20));
 }
 
 const WORKFLOW_RESOURCE_IMPACT: Partial<Record<McpProposalAction, string>> = {

@@ -1,3 +1,5 @@
+import { valueText } from "@/shared/value-text";
+import { listEntries } from "@/shared/list-entries";
 import { AccountPositionLimit } from '@/features/accounts/account-position-limit';
 import {
   Children,
@@ -442,12 +444,17 @@ async function prepareConfiguration(
   drafts: ConfigurationDrafts,
 ): Promise<Record<string, unknown>> {
   const configuration = structuredClone(drafts.configuration);
+  const sizingConfiguration = (): Record<string, unknown> | StrategyConfiguration["sizing"] | null => {
+    if (drafts.kind === "strategy") {
+      return drafts.strategyDraft?.sizing ?? null;
+    }
+    if (drafts.kind === "sizing") {
+      return configuration;
+    }
+    return null;
+  };
   const leverageSizing: Record<string, unknown> | StrategyConfiguration["sizing"] | null =
-    drafts.kind === "strategy"
-      ? drafts.strategyDraft?.sizing ?? null
-      : drafts.kind === "sizing"
-        ? configuration
-        : null;
+    sizingConfiguration();
   if (leverageSizing) {
     const maximum = Number(leverageSizing.maxLeverage);
     const fallback = Number(leverageSizing.defaultLeverage ?? maximum);
@@ -1753,7 +1760,7 @@ export function ResourceEditor({
         </DialogHeader>
         <fieldset disabled={readOnly} className="builder-modal-content" onChangeCapture={() => setTouched(true)}>
           {readOnly && <p>Viewer: Ressourcen sind schreibgeschützt.</p>}
-          {confirmedSteps.length > 0 && <section aria-label="Bestätigte Teilschritte"><p>Bereits bestätigt:</p><ul>{confirmedSteps.map((step, index) => <li key={index}>{step}</li>)}</ul>{partialFailure && <p>Ein Folgeschritt ist fehlgeschlagen. Die aufgeführten Objekte bleiben gespeichert. Dialog schließen und vorhandene Entwürfe prüfen, bevor eine weitere Änderung begonnen wird.</p>}</section>}
+          {confirmedSteps.length > 0 && <section aria-label="Bestätigte Teilschritte"><p>Bereits bestätigt:</p><ul>{listEntries(confirmedSteps, step => step).map(({ item: step, key }) => <li key={key}>{step}</li>)}</ul>{partialFailure && <p>Ein Folgeschritt ist fehlgeschlagen. Die aufgeführten Objekte bleiben gespeichert. Dialog schließen und vorhandene Entwürfe prüfen, bevor eine weitere Änderung begonnen wird.</p>}</section>}
           {error && (
             <Alert variant="destructive">
               <AlertTriangle />
@@ -1995,7 +2002,7 @@ export function ResourceEditor({
             <div className="builder-field-grid three">
               <Field label="Größenmodus">
                 <select
-                  value={String(
+                  value={valueText(
                     configuration.positionSizingMode || "equity_percent_margin",
                   )}
                   onChange={(event) =>
@@ -2068,7 +2075,7 @@ export function ResourceEditor({
               </Field>
               <Field label="Notional-Obergrenze">
                 <input
-                  value={String(
+                  value={valueText(
                     configuration.maxPositionNotional || "1000000000",
                   )}
                   onChange={(event) =>
@@ -2130,10 +2137,10 @@ export function ResourceEditor({
                   />
                 </Field>
                 <Field label="Stufe festhalten" hint="Gilt pro Kanal, Konto und Policy nach Publikation und Aktivierung. Bestehende Handelspläne bleiben unverändert.">
-                  <select value={configuration.lockedTier == null ? "auto" : String(configuration.lockedTier)}
+                  <select value={configuration.lockedTier == null ? "auto" : valueText(configuration.lockedTier)}
                     onChange={(event) => set("lockedTier", event.target.value === "auto" ? null : Number(event.target.value))}>
                     <option value="auto">Automatische Stufenauswahl zulassen</option>
-                    {(Array.isArray(configuration.tiers) ? configuration.tiers : []).map((tier: any, index: number) => <option key={index} value={String(index)}>Stufe {index + 1} · {tier.riskPercent}%</option>)}
+                    {listEntries(Array.isArray(configuration.tiers) ? configuration.tiers : [], tier => String(tier.riskPercent)).map(({ item: tier, key }, index) => <option key={key} value={String(index)}>Stufe {index + 1} · {tier.riskPercent}%</option>)}
                   </select>
                 </Field>
                 <Field label="Lookback in Wochen">

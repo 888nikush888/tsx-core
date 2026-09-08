@@ -28,7 +28,7 @@ def _token(value: Any, label: str, maximum: int = 256) -> str:
 
 
 def _provider_time(value: Any, source: str) -> None:
-    if isinstance(value, str) and re.fullmatch(r"[0-9]{1,16}", value):
+    if isinstance(value, str) and re.fullmatch(r"(?a)\d{1,16}", value):
         value = int(value)
     if type(value) is not int or value < 0:
         raise ExchangeContractError("Current-state response omitted its provider timestamp.")

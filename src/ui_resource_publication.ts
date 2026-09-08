@@ -1,3 +1,4 @@
+import { requireString } from './contract_values.js';
 import { withDatabaseTransaction } from './db.js';
 import { getWorkflowResourceById, publishWorkflowResource } from './workflow_repository.js';
 import { getSignalContractVersion, getTradingStrategyVersion, publishSignalContractVersion, publishTradingStrategyVersion } from './trading_repository.js';
@@ -5,8 +6,9 @@ import { reviewHash } from './ui_change_review.js';
 
 export async function uiResourcePublication(id: string) {
   const resource = await getWorkflowResourceById(id); if (!resource) throw new Error('Workflow resource not found.');
-  const dependency = resource.kind === 'strategy' ? await getTradingStrategyVersion(String(resource.configuration.strategyVersionId))
-    : resource.kind === 'contract' ? await getSignalContractVersion(String(resource.configuration.contractVersionId)) : null;
+  let dependency = null;
+  if (resource.kind === 'strategy') dependency = await getTradingStrategyVersion(requireString(resource.configuration.strategyVersionId, 'Workflow strategyVersionId'));
+  else if (resource.kind === 'contract') dependency = await getSignalContractVersion(requireString(resource.configuration.contractVersionId, 'Workflow contractVersionId'));
   return { dependency, dependencyKind: dependency ? resource.kind : null,
     dependencyRequired: resource.kind === 'strategy' || resource.kind === 'contract',
     publicationHash: reviewHash({ resource, dependency }) };

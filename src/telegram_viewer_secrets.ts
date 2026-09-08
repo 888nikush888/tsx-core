@@ -5,7 +5,7 @@ import path from 'node:path';
 const BOT_TOKEN_FILE = 'bot_token';
 const SERVICE_TOKEN_FILE = 'viewer_service_token';
 const SERVICE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
-const BOT_TOKEN_PATTERN = /^[1-9][0-9]{4,19}:[A-Za-z0-9_-]{20,128}$/;
+const BOT_TOKEN_PATTERN = /^[1-9]\d{4,19}:[A-Za-z0-9_-]{20,128}$/;
 
 async function syncDirectory(directory: string): Promise<void> {
   const handle = await fs.open(directory, 'r');

@@ -1,3 +1,4 @@
+import { isStringMember } from './contract_values.js';
 import { compareDecimal, decimal, signedDecimal } from './trading_decimal.js';
 import { validateHistoryProgress } from './exchange_history_contract.js';
 import { validateAccountModeProgress } from './trading_account_mode_contract.js';
@@ -12,7 +13,7 @@ import type {
   ExchangeOrderSnapshot, ExchangePositionSnapshot, ExchangeUnresolvedEvent, TradingAccountSnapshot, TradingMarketSnapshot,
 } from './trading_types.js';
 
-const REMOTE_STATUSES = ['open', 'partially_filled', 'filled', 'cancelled', 'rejected', 'unknown'];
+const REMOTE_STATUSES = new Set(['open', 'partially_filled', 'filled', 'cancelled', 'rejected', 'unknown']);
 const MAX_CLOCK_AHEAD_MS = 60_000;
 
 export function contractObject(value: unknown): Record<string, unknown> {
@@ -48,7 +49,7 @@ function timestamp(value: unknown, maximumAge?: number): void {
 }
 
 function status(value: unknown): void {
-  if (typeof value !== 'string' || !REMOTE_STATUSES.includes(value)) throw new Error('Invalid exchange order status.');
+  if (typeof value !== 'string' || !REMOTE_STATUSES.has(value)) throw new Error('Invalid exchange order status.');
 }
 
 function executionFields(result: Record<string, unknown>, quantity?: string, nullableFilled = false): void {
@@ -127,8 +128,8 @@ export function validateRemoteOrder(value: unknown): ExchangeOrderSnapshot {
   if (result.providerTimestamp !== undefined && result.providerTimestamp !== null) timestamp(result.providerTimestamp);
   const quantity = amount(result.quantity, true);
   executionFields(result, quantity, true);
-  if (!['entry', 'take_profit', 'stop_loss', 'flatten'].includes(String(result.role))
-    || !['buy', 'sell'].includes(String(result.side)) || typeof result.reduceOnly !== 'boolean') {
+  if (!isStringMember(result.role, ['entry', 'take_profit', 'stop_loss', 'flatten'])
+    || !isStringMember(result.side, ['buy', 'sell']) || typeof result.reduceOnly !== 'boolean') {
     throw new Error('Invalid remote order semantics.');
   }
   nullablePrice(result.price);
@@ -140,7 +141,7 @@ function validatePosition(value: unknown): ExchangePositionSnapshot {
   const result = contractObject(value);
   identifier(result.symbol, 'symbol');
   if (result.providerSymbol !== undefined) identifier(result.providerSymbol, 'position provider symbol');
-  if (!['LONG', 'SHORT'].includes(String(result.side))) throw new Error('Invalid exchange position side.');
+  if (!isStringMember(result.side, ['LONG', 'SHORT'])) throw new Error('Invalid exchange position side.');
   amount(result.quantity, true);
   amount(result.averageEntryPrice, true);
   if (result.unrealizedPnl !== null) amount(result.unrealizedPnl, false, true);
@@ -171,7 +172,7 @@ function validateFill(value: unknown): ExchangeFill {
 
 function validateUnresolvedEvent(value: unknown): ExchangeUnresolvedEvent {
   const result = contractObject(value);
-  if (!['fill', 'order'].includes(String(result.kind)) || !['fetchMyTrades', 'fetchOrders'].includes(String(result.source))
+  if (!isStringMember(result.kind, ['fill', 'order']) || !isStringMember(result.source, ['fetchMyTrades', 'fetchOrders'])
     || typeof result.reason !== 'string' || !/^[a-z_]{1,64}$/.test(result.reason)) {
     throw new Error('Invalid unresolved exchange event contract.');
   }
@@ -238,8 +239,8 @@ export function validateAcquisitionEvidence(value: unknown): NonNullable<Exchang
 
 function acquisitionSource(value: unknown, startedAt: number, completedAt: number): NonNullable<ExchangeOpenState['acquisition']>['sources'][number] {
   const row = contractObject(value);
-  if (!['positions', 'orders', 'targeted_orders', 'fills'].includes(String(row.source))
-    || !['complete', 'partial', 'unknown'].includes(String(row.completeness))) throw new Error('Invalid acquisition source.');
+  if (!isStringMember(row.source, ['positions', 'orders', 'targeted_orders', 'fills'])
+    || !isStringMember(row.completeness, ['complete', 'partial', 'unknown'])) throw new Error('Invalid acquisition source.');
   timestamp(row.startedAt, 60_000);
   timestamp(row.completedAt, 60_000);
   if (Number(row.startedAt) < startedAt || Number(row.completedAt) > completedAt || Number(row.startedAt) > Number(row.completedAt)) {
@@ -273,7 +274,7 @@ function acquisitionScope(value: unknown): { scope: string; pages: number; compl
 function acquisitionOrder(value: unknown): NonNullable<ExchangeOpenState['acquisition']>['checkedOrders'][number] {
   const row = contractObject(value);
   identifier(row.clientOrderId, 'acquisition client order');
-  if (!['observed', 'not_found', 'unsupported', 'budget_exhausted', 'transient'].includes(String(row.status))) {
+  if (!isStringMember(row.status, ['observed', 'not_found', 'unsupported', 'budget_exhausted', 'transient'])) {
     throw new Error('Invalid acquisition order result.');
   }
   return { clientOrderId: row.clientOrderId, status: row.status } as NonNullable<ExchangeOpenState['acquisition']>['checkedOrders'][number];

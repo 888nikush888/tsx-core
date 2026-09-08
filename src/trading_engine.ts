@@ -1,3 +1,4 @@
+import { unknownErrorMessage } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import { fillDigestIdentity } from './trading_fill_identity.js';
@@ -194,8 +195,9 @@ class PositionReconciliationAggregateError extends ReconciliationMismatchError {
   readonly proof: unknown;
 
   constructor(readonly failures: PositionReconciliationFailure[]) {
-    super(`Position reconciliation failed for ${failures.map(failure =>
-      `${failure.symbol}/${failure.intentId}: ${reconciliationErrorMessage(failure.error)}`).join('; ')}`);
+    const detail = failures.map(failure =>
+      `${failure.symbol}/${failure.intentId}: ${reconciliationErrorMessage(failure.error)}`).join('; ');
+    super(`Position reconciliation failed for ${detail}`);
     this.name = 'PositionReconciliationAggregateError';
     this.errors = failures.map(failure => failure.error);
     this.proof = failures.length === 1 && typeof failures[0]?.error === 'object' && failures[0].error !== null
@@ -207,8 +209,9 @@ function isAccountWidePositionFailure(error: unknown): boolean {
   if (error instanceof ReconciliationContinuationRequiredError || error instanceof EntryAdmissionRevokedError
     || error instanceof TypeError || error instanceof RangeError || error instanceof SyntaxError) return true;
   const code = typeof error === 'object' && error !== null && 'code' in error
-    ? String((error as { code?: unknown }).code ?? '') : '';
-  if (code.startsWith('SQLITE_')) return true;
+    ? error.code : undefined;
+  const errorCode = typeof code === 'string' ? code : '';
+  if (errorCode.startsWith('SQLITE_')) return true;
   if (!(error instanceof ReconciliationMismatchError)) return false;
   if (['remote_identity', 'unmanaged_remote', 'unresolved_fill'].includes(error.incidentCategory)) return true;
   return /(?:^(?:ACCOUNT_STATE_CHANGED|ACQUISITION_NOT_FRESH|PROTECTION_SOURCE_CHANGED))|(?:lifecycle safety account)/i.test(error.message);
@@ -216,7 +219,7 @@ function isAccountWidePositionFailure(error: unknown): boolean {
 
 function transientReconciliationFailure(error: unknown): boolean {
   if (error instanceof ReconciliationContinuationRequiredError) return true;
-  const message = error instanceof Error ? error.message : String(error);
+  const message = unknownErrorMessage(error);
   return /(?:\b50[234]\b|timeout|timed out|abort(?:ed|error)?|fetch failed|econn(?:reset|refused)|temporarily unavailable)/i.test(message);
 }
 
@@ -227,7 +230,7 @@ function reconciliationIncidentCategory(error: unknown): TradingIncidentCategory
 }
 
 function reconciliationErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return unknownErrorMessage(error);
 }
 
 async function activateAccountKillSwitch(accountId: string, reason: string): Promise<void> {
@@ -469,7 +472,7 @@ function classifyIntentFailure(error: unknown, unresolvedDispatch: boolean): Int
   // failure cannot prove that an already handed-off write never reached the venue.
   const knownRisk = knownCause && !unresolvedDispatch;
   const code = knownRisk ? error.code : 'ORDER_OUTCOME_UNKNOWN';
-  const message = error instanceof Error ? error.message : String(error);
+  const message = unknownErrorMessage(error);
   return {
     code,
     fallbackReason: isWorkflowFallbackReason(code) ? code : null,
@@ -883,7 +886,7 @@ export class TradingEngine {
       this.preparationRecoveryCursors.delete(accountId);
       return this.preparationRecoveryBatch(accountId);
     }
-    if (rows.length) this.preparationRecoveryCursors.set(accountId, rows[rows.length - 1]!);
+    if (rows.length) this.preparationRecoveryCursors.set(accountId, rows.at(-1)!);
     return rows;
   }
 
@@ -1556,7 +1559,7 @@ export class TradingEngine {
   ): Promise<void> {
     this.mutations.fenceEntries(account.id);
     await activateAccountKillSwitch(account.id, `Emergency exit requested for intent ${intent.id}`);
-    const message = cause instanceof Error ? cause.message : String(cause);
+    const message = unknownErrorMessage(cause);
     if (!await requestEmergencyExit(account.id, intent.id, message)) {
       throw new ReconciliationMismatchError('Emergency exit has no active recoverable managed position.');
     }
@@ -1675,7 +1678,7 @@ export class TradingEngine {
     account: TradingAccount, remote: ExchangeOpenState, purpose: SafetyPurpose, intentId?: string, accountVersion?: number,
   ): Promise<TradingSafetyProof> {
     const observation = this.safetyObservations.get(remote);
-    if (!observation || observation.accountId !== account.id) throw new ReconciliationMismatchError('Lifecycle safety requires a newly acquired account observation.');
+    if (observation?.accountId !== account.id) throw new ReconciliationMismatchError('Lifecycle safety requires a newly acquired account observation.');
     const current = await getTradingAccount(account.id);
     if (!current) throw new ReconciliationMismatchError('Lifecycle safety account no longer exists.');
     const evidence = await collectAccountSafetyEvidence({ current, epoch: observation.epoch, requestedAt: observation.requestedAt,
@@ -2048,13 +2051,7 @@ export class TradingEngine {
     if (!localOrder || !inserted) return;
     const intent = await getTradingIntent(localOrder.intent_id);
     if (!intent) return;
-    const notificationType = localOrder.role === 'entry'
-      ? 'partial_fill'
-      : localOrder.role === 'take_profit'
-        ? 'take_profit_filled'
-        : localOrder.role === 'stop_loss'
-          ? 'stop_loss_filled'
-          : null;
+    const notificationType = fillNotificationType(localOrder.role);
     if (notificationType) {
       await recordTradingNotificationBestEffort({
         dedupeKey: `fill:${account.id}:${fillId}`,
@@ -2557,4 +2554,10 @@ async function submitTrackedProtectedEntry(input: {
     }
     throw error;
   }
+}
+
+function fillNotificationType(role: string): 'partial_fill' | 'take_profit_filled' | 'stop_loss_filled' | null {
+  if (role === 'entry') return 'partial_fill';
+  if (role === 'take_profit') return 'take_profit_filled';
+  return role === 'stop_loss' ? 'stop_loss_filled' : null;
 }

@@ -3,7 +3,7 @@ import { jsonRequest } from '@/lib/api';
 import { usePoll } from '@/shared/api/use-poll';
 
 /** Keeps the selected original ID even when it is absent from the current metadata page. */
-export function AccountFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export function AccountFilter({ value, onChange }: Readonly<{ value: string; onChange: (value: string) => void }>) {
   const [cursor, setCursor] = useState(''); const [state, setState] = useState<any>(null); const [error, setError] = useState('');
   const read = useCallback(async (signal: AbortSignal) => ({ cursor, page: await jsonRequest(`/api/trading/objects?kind=accounts&limit=30&cursor=${encodeURIComponent(cursor)}`, { signal }) }), [cursor]);
   usePoll(read, result => { setState(result); setError(''); }, failure => setError(failure.message));

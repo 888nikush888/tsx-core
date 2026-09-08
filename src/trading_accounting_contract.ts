@@ -1,3 +1,4 @@
+import { isStringMember } from './contract_values.js';
 import { addSignedDecimal, signedDecimal } from './trading_decimal.js';
 import { isDeepStrictEqual } from 'node:util';
 import { moneyValueFromDecimal, validateMoneyValue, type MoneyValue } from './trading_money_value.js';
@@ -24,7 +25,7 @@ function timestamp(value: unknown): asserts value is number {
 export function validateFillAccounting(value: unknown, providerSymbol?: string): ExchangeFillAccounting {
   const row = object(value);
   if (row.version !== 1 || row.linear !== true || row.quantityUnit !== 'base'
-    || !['ccxt-market-v1', 'paper-contract-v1'].includes(String(row.source))) throw new Error('Unsupported fill accounting contract.');
+    || !isStringMember(row.source, ['ccxt-market-v1', 'paper-contract-v1'])) throw new Error('Unsupported fill accounting contract.');
   token(row.providerSymbol); asset(row.settlementAsset);
   if (providerSymbol !== undefined && row.providerSymbol !== providerSymbol) throw new Error('Fill accounting market differs from the provider market.');
   return { version: 1, source: row.source as ExchangeFillAccounting['source'], providerSymbol: row.providerSymbol,
@@ -42,7 +43,7 @@ function fundingEvent(value: unknown, since: number, until: number): TradingFund
 
 export function validateFundingEvidence(value: unknown): TradingFundingEvidence {
   const row = object(value);
-  if (!['complete', 'incomplete', 'unsupported'].includes(String(row.status))) throw new Error('Invalid funding completeness.');
+  if (!isStringMember(row.status, ['complete', 'incomplete', 'unsupported'])) throw new Error('Invalid funding completeness.');
   timestamp(row.since); timestamp(row.until); timestamp(row.nextReadAt);
   if (row.until < row.since || row.until - row.since > 86_400_000) throw new Error('Invalid bounded funding window.');
   token(row.source);
@@ -76,7 +77,8 @@ export function fundingTotalValue(evidence: TradingFundingEvidence, reportingCur
   if (evidence.observation) {
     const proof = evidence.observation;
     if (proof.status !== 'observed' || proof.reportingCurrency !== reportingCurrency) return null;
-    return proof.value === undefined ? decimalFundingValue(proof.amount) : proof.value;
+    if (proof.value === undefined) return decimalFundingValue(proof.amount);
+    return proof.value;
   }
   let total = '0';
   for (const event of evidence.events) {
@@ -116,7 +118,7 @@ function fundingObservation(value: unknown): FundingObservationProof {
     sourceScope: 'source_account', finality: 'provider_as_observed', delivery: 'may_be_delayed' };
 }
 function observationIdentity(row: Record<string, unknown>): void {
-  if (row.version !== 1 || !['observed', 'incomplete'].includes(String(row.status)) || row.sourceScope !== 'source_account'
+  if (row.version !== 1 || !isStringMember(row.status, ['observed', 'incomplete']) || row.sourceScope !== 'source_account'
     || row.finality !== 'provider_as_observed' || row.delivery !== 'may_be_delayed') throw new Error('Invalid observed funding proof.');
   token(row.namespace);
   for (const field of ['accountFingerprint', 'credentialGeneration', 'revisionHash']) {
@@ -130,7 +132,7 @@ export function validateAccountingEvidence(value: unknown, fundingPnlToday: stri
   if (!Array.isArray(row.settlementAssets) || row.settlementAssets.length > 1000) throw new Error('Invalid accounting settlement metadata.');
   row.settlementAssets.forEach(asset);
   if (new Set(row.settlementAssets).size !== row.settlementAssets.length) throw new Error('Duplicate accounting settlement asset.');
-  if (!['price_only', 'unverified'].includes(String(row.unrealizedPnlSemantics))) throw new Error('Missing unrealized PnL semantics.');
+  if (!isStringMember(row.unrealizedPnlSemantics, ['price_only', 'unverified'])) throw new Error('Missing unrealized PnL semantics.');
   const funding = validateFundingEvidence(row.funding);
   if (funding.observation && (funding.observation.accountFingerprint !== row.accountFingerprint
     || funding.observation.reportingCurrency !== row.reportingCurrency)) throw new Error('Funding observation accounting binding differs.');

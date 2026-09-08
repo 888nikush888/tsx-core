@@ -37,7 +37,7 @@ def certification_result(
                          Path(ccxt.__file__).resolve().parent)
     except ReceiptError as error:
         return CertificationResult(False, str(error))
-    except (OSError, ValueError, TypeError, KeyError, RecursionError, UnicodeError):
+    except (OSError, ValueError, TypeError, KeyError, RecursionError):
         # Never expose a file path, hostile JSON payload, or raw exception.
         return CertificationResult(False, 'Implementation evidence is missing or invalid.')
     return CertificationResult(True, None)

@@ -27,7 +27,15 @@ type RouteOverviewProps = {
   onFocusPath: (pathId: string | null) => void;
 };
 
-function RouteSequence({ route }: { route: WorkflowRoute }) {
+function fallbackSequenceLabel(route: WorkflowRoute): string {
+  const accounts = route.fallbackAccounts.map((candidate, index) => {
+    const policy = index < route.fallbackAccounts.length - 1 ? ` (${fallbackPolicyShortLabel(candidate.fallbackOn)})` : "";
+    return `${index + 1}. ${candidate.accountName}${policy}`;
+  });
+  return `Exklusive Reihenfolge: ${accounts.join(" · ")}`;
+}
+
+function RouteSequence({ route }: Readonly<{ route: WorkflowRoute }>) {
   const orderedAccounts = route.fallbackAccounts.map((candidate, index) =>
     index < route.fallbackAccounts.length - 1
       ? `${candidate.accountName} [${fallbackPolicyShortLabel(candidate.fallbackOn)}]`
@@ -49,7 +57,7 @@ export function RouteOverview({
   selectedPathId,
   onOpenChange,
   onFocusPath,
-}: RouteOverviewProps) {
+}: Readonly<RouteOverviewProps>) {
   const focus = (pathId: string | null) => {
     onFocusPath(pathId);
     onOpenChange(false);
@@ -140,6 +148,15 @@ export function RouteOverview({
                             const fallbackRank = route?.fallbackAccounts.find(
                               (candidate) => candidate.accountId === account.id,
                             )?.rank;
+                            const routeChoiceLabel = () => {
+                              if (fallbackRank === undefined || route.fallbackAccounts.length === 1) {
+                                if (entry.routes.length > 1) {
+                                  return `${entry.routes.length} Pfade`;
+                                }
+                                return "direkt";
+                              }
+                              return `${fallbackRank + 1}. Wahl`;
+                            };
                             return (
                               <td key={account.id}>
                                 {route ? (
@@ -156,9 +173,7 @@ export function RouteOverview({
                                     aria-label={`${channel.name} auf ${account.name} hervorheben`}
                                     onClick={() => focus(route.id)}
                                   >
-                                    {fallbackRank === undefined || route.fallbackAccounts.length === 1
-                                      ? entry.routes.length > 1 ? `${entry.routes.length} Pfade` : "direkt"
-                                      : `${fallbackRank + 1}. Wahl`}
+                                    {routeChoiceLabel()}
                                   </Button>
                                 ) : (
                                   <span aria-label="Keine Ausführung">—</span>
@@ -212,7 +227,7 @@ export function RouteOverview({
                     <span>Strategie: {route.strategyName}</span>
                     <span>
                       {route.fallbackAccounts.length > 1
-                        ? `Exklusive Reihenfolge: ${route.fallbackAccounts.map((candidate, candidateIndex) => `${candidateIndex + 1}. ${candidate.accountName}${candidateIndex < route.fallbackAccounts.length - 1 ? ` (${fallbackPolicyShortLabel(candidate.fallbackOn)})` : ""}`).join(" · ")}`
+                        ? fallbackSequenceLabel(route)
                         : route.accountDetail}
                     </span>
                   </div>

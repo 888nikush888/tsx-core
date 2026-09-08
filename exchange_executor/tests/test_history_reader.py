@@ -134,8 +134,10 @@ class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
             async def wrong(*args, **kwargs):
                 return {**await original(*args, **kwargs), **changed}
             rest.fetch_order = wrong
+            prepared_rows = [reference()]
+            prepared_recovery_read_budget = RecoveryReadBudget(self.deadline())
             with self.assertRaisesRegex(ExchangeContractError, "different identity"):
-                await recover_order_evidence(rest, "hyperliquid", [reference()], [], lambda _row: SYMBOL, RecoveryReadBudget(self.deadline()))
+                await recover_order_evidence(rest, "hyperliquid", prepared_rows, [], lambda _row: SYMBOL, prepared_recovery_read_budget)
 
     async def test_open_state_includes_old_local_order_and_kraken_symbol_despite_empty_remote_lists(self):
         rest = HistoryRest()

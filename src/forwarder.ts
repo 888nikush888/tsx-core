@@ -624,11 +624,9 @@ async function parseSignalNative(
   timeoutMs: number,
   templateName: string | null = null,
   models: { primaryModel?: string; fallbackModel?: string } = {},
-  signal: AbortSignal | null = null,
-  limits?: Partial<AiLimits>,
-  executableSchema?: ExecutableSignalSchemaSelection | null,
-  promptTemplate?: string,
+  options: { signal?: AbortSignal | null; limits?: Partial<AiLimits>; executableSchema?: ExecutableSignalSchemaSelection | null; promptTemplate?: string } = {},
 ): Promise<ParsedSignal> {
+  const { signal = null, limits, executableSchema, promptTemplate } = options;
   if (signal?.aborted) throw new Error('Task aborted');
   const effectiveTimeout = timeoutMs || DEFAULT_PARSER_TIMEOUT_MS;
   const controller = new AbortController();
@@ -839,10 +837,8 @@ async function parseWorkflowPlan(
       primaryModel: plan.primaryModel || xmlParsing.primaryModel,
       fallbackModel: plan.fallbackModel || xmlParsing.fallbackModel,
     },
-    context.signal,
-    xmlParsing.aiLimits,
-    schemaSelection,
-    plan.prompt || pinned.prompts[plan.templateName],
+    { signal: context.signal, limits: xmlParsing.aiLimits, executableSchema: schemaSelection,
+      promptTemplate: plan.prompt || pinned.prompts[plan.templateName] },
   );
   await recordTradingExecutionEvent({
     eventType: 'signal_validated',
@@ -947,7 +943,7 @@ async function parseLegacyXmlSignal(
   xmlParsing: any,
   context: OutboxExecutionContext,
 ) {
-  const templateName = (xmlParsing.sourceTemplates || {})[sourceId];
+  const templateName = xmlParsing.sourceTemplates?.[sourceId];
   const configuredSchema = context.config.durableIngress.legacySchema;
   const existing = await persistedParsedSignal(`signal_${message.chat_id}_${message.id}`, templateName, parserSchemaOverride(configuredSchema), null);
   if (existing) return existing;
@@ -956,10 +952,8 @@ async function parseLegacyXmlSignal(
     xmlParsing.timeout || DEFAULT_PARSER_TIMEOUT_MS,
     templateName,
     { primaryModel: xmlParsing.primaryModel, fallbackModel: xmlParsing.fallbackModel },
-    context.signal,
-    xmlParsing.aiLimits,
-    parserSchemaOverride(configuredSchema),
-    context.config.durableIngress.legacyPrompt,
+    { signal: context.signal, limits: xmlParsing.aiLimits, executableSchema: parserSchemaOverride(configuredSchema),
+      promptTemplate: context.config.durableIngress.legacyPrompt },
   );
   await recordTradingExecutionEvent({
     eventType: 'signal_validated',

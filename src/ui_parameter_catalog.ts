@@ -41,9 +41,7 @@ function runtimeParameters() {
   const fields: FieldSpec[] = Object.entries(DEFAULT_RUNTIME_SETTINGS).map(([key, value]) => {
     const range = RUNTIME_INTEGER_RANGES[key as keyof typeof RUNTIME_INTEGER_RANGES];
     const type = typeof value === 'number' ? 'integer' : typeof value;
-    const constraints = range ? range.join('..') : typeof value === 'boolean' ? 'true|false'
-      : key === 'dashboardAuthMode' ? 'token|oidc|tailscale; abhängige Profilfelder werden gemeinsam validiert'
-        : 'Getrimmter Text ohne CR/LF/NUL; URL-/Origin-/Profilregeln gemäß Runtimeformular';
+    const constraints = runtimeConstraints(key, value, range);
     return [key, type, constraints, runtimeFieldUnit(key) ?? undefined] as FieldSpec;
   });
   return parameterFields(family, fields, DEFAULT_RUNTIME_SETTINGS);
@@ -53,7 +51,7 @@ function viewerParameters() {
     timezone: 'Gültige IANA-Zeitzone; 1..100 Zeichen', locale: 'Gültiger Intl.Locale-Sprachcode; 2..35 Zeichen', eventPollingIntervalMs: '1000..60000',
     'display.detailLevel': 'compact|normal|detailed', 'display.pnlMode': 'absolute|absolute_and_percent', 'display.timeFormat': '24h (unveränderlich)' };
   const fields: FieldSpec[] = parameterLeaves(DEFAULT_TELEGRAM_VIEWER_SETTINGS).map(key => [
-    key, key === 'eventPollingIntervalMs' ? 'integer' : key === 'allowedUserIds' ? 'string[]' : key === 'enabled' || key.startsWith('notifications.') ? 'boolean' : 'string',
+    key, viewerFieldType(key),
     rules[key] ?? 'true|false', key.endsWith('Ms') ? 'ms' : undefined,
   ]);
   return parameterFields({ prefix: 'viewer', source: 'Separater Telegram-Viewer-Store', scope: 'Viewer-Service; getrennt vom Telegram-Benutzerlogin',
@@ -142,4 +140,16 @@ export function uiParameters(query: URLSearchParams) {
   return { contractVersion: 1, observedAt, total: entries.length, entries: entries.slice(offset, offset + limit), hasMore,
     nextCursor: hasMore ? encodeUiCursor({ version: 1, filter, observedAt, createdAt: 0, id: String(offset + limit) }) : null,
     interpretation: 'Versionierter Feldvertrag, keine aktuellen Objektwerte. Gespeicherte und wirksame Werte mit Herkunft stehen in der verlinkten Fachansicht. Secrets werden nie zurückgegeben.' };
+}
+
+function runtimeConstraints(key: string, value: unknown, range: readonly number[] | undefined): string {
+  if (range) return range.join('..');
+  if (typeof value === 'boolean') return 'true|false';
+  return key === 'dashboardAuthMode' ? 'token|oidc|tailscale; abhängige Profilfelder werden gemeinsam validiert'
+    : 'Getrimmter Text ohne CR/LF/NUL; URL-/Origin-/Profilregeln gemäß Runtimeformular';
+}
+function viewerFieldType(key: string): string {
+  if (key === 'eventPollingIntervalMs') return 'integer';
+  if (key === 'allowedUserIds') return 'string[]';
+  return key === 'enabled' || key.startsWith('notifications.') ? 'boolean' : 'string';
 }

@@ -4,8 +4,7 @@ import type {
   SignalContractAdditionalField,
   SignalContractDefinition,
 } from './trading_types.js';
-import { validateSignalContractDefinition } from './signal_contract.js';
-import { composeSignalSchemaContract } from './signal_contract.js';
+import { validateSignalContractDefinition, composeSignalSchemaContract } from './signal_contract.js';
 
 export interface ExecutableSignalSchemaSelection {
   id: string;
@@ -857,7 +856,8 @@ const GROUNDING_LABEL_PATTERNS = [
   /(?<![\p{L}\p{N}_])ЦЕЛИ(?![\p{L}\p{N}_])/giu,
   /\bLEVERAGE\b/giu,
   /(?<![\p{L}\p{N}_])\u041a\u0420\u041e\u0421\u0421[-\u2010-\u2015]?\u041f\u041b\u0415\u0427\u041e(?![\p{L}\p{N}_])/giu,
-  /(?<![\p{L}\p{N}_])\u041d\u0410(?=\s+(?:0|[1-9]\d{0,17})(?:\.\d{1,18})?%\s+\u0414\u0415\u041f\u041e\u0417\u0418\u0422\u0410(?![\p{L}\p{N}_]))/giu,
+  /(?<![\p{L}\p{N}_])\u041d\u0410(?=\s+0(?:\.\d{1,18})?%\s+\u0414\u0415\u041f\u041e\u0417\u0418\u0422\u0410(?![\p{L}\p{N}_]))/giu,
+  /(?<![\p{L}\p{N}_])\u041d\u0410(?=\s+[1-9]\d{0,17}(?:\.\d{1,18})?%\s+\u0414\u0415\u041f\u041e\u0417\u0418\u0422\u0410(?![\p{L}\p{N}_]))/giu,
   /\bRISK(?:\s*PERCENT)?\b/giu,
   /(?<![\p{L}\p{N}_])РИСК(?:\s+МЕНЕДЖМЕНТ)?(?![\p{L}\p{N}_])/giu,
 ] as const;
@@ -1045,10 +1045,11 @@ function assertActionGrounded(signal: ValidatedSignal, sourceText: string): void
 }
 
 function assertNumbersGrounded(signal: ValidatedSignal, sourceText: string): void {
-  const sourceNumbers = Array.from(
-    sourceText.matchAll(/(?<![\p{L}\p{N}_])(?<!\d\.)(?:[xX])?((?:0|[1-9]\d{0,17})(?:\.\d{1,18})?)(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu),
-    match => match[1]!
-  );
+  const patterns = [
+    /(?<![\p{L}\p{N}_])(?<!\d\.)(?:[xX])?(0(?:\.\d{1,18})?)(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu,
+    /(?<![\p{L}\p{N}_])(?<!\d\.)(?:[xX])?([1-9]\d{0,17}(?:\.\d{1,18})?)(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu,
+  ];
+  const sourceNumbers = patterns.flatMap(pattern => Array.from(sourceText.matchAll(pattern), match => match[1]!));
   for (const value of signal.groundingNumbers) {
     if (!sourceNumbers.some(sourceValue => compareDecimals(sourceValue, value) === 0)) {
       throw new SignalValidationError(`Output number '${value}' is not grounded in the source text.`);

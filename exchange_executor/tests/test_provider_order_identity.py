@@ -52,7 +52,8 @@ class ProviderBatchIdentityTests(unittest.TestCase):
         self.assertEqual(result[0]["identityEvidence"]["tag"], "own-entry")
         self.assertEqual(result[0]["raw"], entry)
         self.assertIsNone(result[0]["raw"]["clientOrderId"])
-        self.assertEqual([stop, entry], originals)
+        actual_orders = [stop, entry]
+        self.assertEqual(actual_orders, originals)
 
     def test_unjournaled_tags_foreign_profile_duplicate_and_conflicting_native_ids_are_unresolved(self):
         entry, stop = [batch_order(leg) for leg in ("own-entry", "own-stop")]
@@ -62,11 +63,15 @@ class ProviderBatchIdentityTests(unittest.TestCase):
                ({**stop, "info": {**stop["info"], "order_id": "different"}}),
                ({**stop, "id": entry["id"]})]
         for changed in bad:
-            with self.subTest(changed=changed), self.assertRaises(UnresolvedOrderOutcome):
-                _protected_order_results([entry, changed], MARKET, batch_specs(), "krakenfutures")
+            with self.subTest(changed=changed):
+                prepared_batch_specs = batch_specs()
+                with self.assertRaises(UnresolvedOrderOutcome):
+                    _protected_order_results([entry, changed], MARKET, prepared_batch_specs, "krakenfutures")
         for profile in ("bybit", "hyperliquid", ""):
-            with self.subTest(profile=profile), self.assertRaises(UnresolvedOrderOutcome):
-                _protected_order_results([entry, stop], MARKET, batch_specs(), profile)
+            with self.subTest(profile=profile):
+                prepared_batch_specs = batch_specs()
+                with self.assertRaises(UnresolvedOrderOutcome):
+                    _protected_order_results([entry, stop], MARKET, prepared_batch_specs, profile)
         tagless = tuple({"params": {"clientOrderId": leg}} for leg in ("own-entry", "own-stop"))
         with self.assertRaises(UnresolvedOrderOutcome):
             _protected_order_results([entry, stop], MARKET, tagless, "krakenfutures")
@@ -77,8 +82,10 @@ class ProviderBatchIdentityTests(unittest.TestCase):
         spec = _base_order_spec(SimpleNamespace(), request, SYMBOL, "1", "krakenfutures")
         self.assertEqual(spec["params"]["order_tag"], "own-entry")
         for profile, tag in (("bybit", request["providerBatchTag"]), ("krakenfutures", {"version": 1, "tag": "1"})):
-            with self.subTest(profile=profile, tag=tag), self.assertRaises(ExchangeContractError):
-                _base_order_spec(SimpleNamespace(), {**request, "providerBatchTag": tag}, SYMBOL, "1", profile)
+            with self.subTest(profile=profile, tag=tag):
+                prepared_context = SimpleNamespace()
+                with self.assertRaises(ExchangeContractError):
+                    _base_order_spec(prepared_context, {**request, "providerBatchTag": tag}, SYMBOL, "1", profile)
 
 
 class CloidIdentityTests(unittest.IsolatedAsyncioTestCase):

@@ -1,3 +1,4 @@
+import { requireString } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import {
@@ -38,7 +39,10 @@ import type {
 } from './trading_types.js';
 
 const SETUP_BUNDLE_VERSION = 3;
-const FORBIDDEN_KEY = /^(?:api(?:hash|key|secret)|password|passphrase|privatekey|walletprivatekey|bearertoken|accesstoken|refreshtoken|authorization|credential(?:s|ref)?|tailscaleidentity|tdlibsession|openrouterapikey|backupencryptionkey)$/i;
+const FORBIDDEN_KEYS = [
+  /^(?:api(?:hash|key|secret)|password|passphrase|privatekey|walletprivatekey|bearertoken|accesstoken)$/i,
+  /^(?:refreshtoken|authorization|credential(?:s|ref)?|tailscaleidentity|tdlibsession|openrouterapikey|backupencryptionkey)$/i,
+];
 const ROOT_KEYS = new Set([
   'schemaVersion', 'mode', 'exportedAt', 'applicationVersion', 'systemConfig',
   'workflow', 'models', 'accountReferences', 'checksum',
@@ -47,7 +51,13 @@ const WORKFLOW_KINDS = new Set<WorkflowResourceKind>([
   'channel', 'content_filter', 'keyword_filter', 'regex', 'parser', 'schema', 'contract',
   'dedupe', 'strategy', 'sizing', 'adaptive_risk', 'account', 'output',
 ]);
-const HIGH_CONFIDENCE_SECRET_VALUE = /(?:-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+/-]{20,}|\btskey-[A-Za-z0-9-]{16,}|\bsk-[A-Za-z0-9_-]{20,}|\b\d{8,10}:[A-Za-z0-9_-]{35}\b)/;
+const HIGH_CONFIDENCE_SECRET_VALUES = [
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+  /\bBearer\s+[A-Za-z0-9._~+/-]{20,}/,
+  /\btskey-[A-Za-z0-9-]{16,}/,
+  /\bsk-[A-Za-z0-9_-]{20,}/,
+  /\b\d{8,10}:[A-Za-z0-9_-]{35}\b/,
+];
 
 function canonicalJson(value: unknown): string {
   const visit = (candidate: any): any => {
@@ -70,7 +80,7 @@ function normalizedKey(value: string): string {
 
 export function assertSetupBundleContainsNoSecrets(value: unknown, path = '$', depth = 0): void {
   if (depth > 40) throw new Error('Setup bundle nesting exceeds the safety limit.');
-  if (typeof value === 'string' && HIGH_CONFIDENCE_SECRET_VALUE.test(value)) {
+  if (typeof value === 'string' && HIGH_CONFIDENCE_SECRET_VALUES.some(pattern => pattern.test(value))) {
     throw new Error(`Setup bundle contains a secret-like value at '${path}'.`);
   }
   if (Array.isArray(value)) {
@@ -79,7 +89,7 @@ export function assertSetupBundleContainsNoSecrets(value: unknown, path = '$', d
   }
   if (!value || typeof value !== 'object') return;
   for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-    if (FORBIDDEN_KEY.test(normalizedKey(key))) {
+    if (FORBIDDEN_KEYS.some(pattern => pattern.test(normalizedKey(key)))) {
       throw new Error(`Setup bundle contains forbidden secret field '${path}.${key}'.`);
     }
     assertSetupBundleContainsNoSecrets(nested, `${path}.${key}`, depth + 1);
@@ -150,7 +160,7 @@ export async function exportPortableSetupBundle(systemConfig: Record<string, unk
   const resources = allResources.filter(resource => referencedIds.has(resource.id));
   const strategyIds = new Set(resources
     .filter(resource => resource.kind === 'strategy')
-    .map(resource => String(resource.configuration.strategyVersionId)));
+    .map(resource => requireString(resource.configuration.strategyVersionId, 'Workflow strategyVersionId')));
   const strategies = (await listTradingStrategies())
     .filter(strategy => strategyIds.has(strategy.id))
     .map(strategy => ({
@@ -161,13 +171,13 @@ export async function exportPortableSetupBundle(systemConfig: Record<string, unk
     }));
   const schemaIds = new Set(resources
     .filter(resource => resource.kind === 'schema')
-    .map(resource => String(resource.configuration.schemaId)));
+    .map(resource => requireString(resource.configuration.schemaId, 'Workflow schemaId')));
   for (const strategy of strategies) {
     strategy.configuration.allowedSignalSchemas.forEach(schemaId => schemaIds.add(schemaId));
   }
   const explicitContractIds = new Set(resources
     .filter(resource => resource.kind === 'contract')
-    .map(resource => String(resource.configuration.contractVersionId)));
+    .map(resource => requireString(resource.configuration.contractVersionId, 'Workflow contractVersionId')));
   const schemas = (await listTradingSignalSchemas()).filter(schema => schemaIds.has(schema.id));
   const contractVersionIds = new Set([
     ...explicitContractIds,
@@ -184,10 +194,10 @@ export async function exportPortableSetupBundle(systemConfig: Record<string, unk
   const accounts = await listTradingAccounts();
   const accountIds = new Set(resources
     .filter(resource => resource.kind === 'account')
-    .map(resource => String(resource.configuration.accountId)));
+    .map(resource => requireString(resource.configuration.accountId, 'Workflow accountId')));
   const channelIds = new Set(resources
     .filter(resource => resource.kind === 'channel')
-    .map(resource => String(resource.configuration.channelId)));
+    .map(resource => requireString(resource.configuration.channelId, 'Workflow channelId')));
   const body: Omit<PortableSetupBundle, 'checksum'> = {
     schemaVersion: SETUP_BUNDLE_VERSION,
     mode: 'replace',
@@ -255,7 +265,7 @@ function validateGraphNode(nodeValue: unknown, nodeIds: Set<string>): void {
   boundedString(node.resourceVersionId, 'Setup bundle graph resource reference', 128);
   const position = object(node.position, 'Setup bundle graph node position');
   if (!Number.isFinite(position.x) || !Number.isFinite(position.y)) {
-    throw new Error('Setup bundle graph node position is invalid.');
+    throw new TypeError('Setup bundle graph node position is invalid.');
   }
 }
 
@@ -596,7 +606,8 @@ async function importStrategies(
 }
 
 function requiredMapping(mapping: Map<string, string>, source: unknown, label: string): string {
-  const result = mapping.get(String(source));
+  if (typeof source !== 'string') throw new Error(`${label} references a missing imported object.`);
+  const result = mapping.get(source);
   if (!result) throw new Error(`${label} references a missing imported object.`);
   return result;
 }

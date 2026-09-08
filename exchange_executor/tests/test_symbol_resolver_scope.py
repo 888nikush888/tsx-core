@@ -42,7 +42,8 @@ class SymbolScopeTests(unittest.TestCase):
         original = copy.deepcopy([usdt, usdc, usd])
         self.assertIs(resolve_symbol([usdt, usdc, usd], 'BTCUSDT', ('USDC', 'USDT')), usdc)
         self.assertIs(resolve_symbol([usdt, usdc, usd], 'BTCUSDT', ('USD',)), usd)
-        self.assertEqual([usdt, usdc, usd], original)
+        actual_markets = [usdt, usdc, usd]
+        self.assertEqual(actual_markets, original)
         self.reject([usdt], 'SYMBOL_UNAVAILABLE', ('USDC',))
         self.reject([market(settle='ALT', symbol='BTC/USDT:ALT')], 'SYMBOL_UNAVAILABLE')
         self.reject([market(quote='EUR', symbol='BTC/EUR:USDT')], 'SYMBOL_UNAVAILABLE')

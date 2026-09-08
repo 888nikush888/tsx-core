@@ -112,7 +112,7 @@ export async function scheduledRecoveryDeadline(account: FxAccount, query: Excha
   const expected = await accountBinding(account);
   validateRecoveryScheduleInputs(query, expected);
   const attempt = await getDatabase().get<Attempt>('SELECT * FROM trading_recovery_schedule_attempts WHERE id=?', [query.recoverySchedule.attemptId]);
-  if (!attempt || attempt.status !== 'reserved') return fail('ATTEMPT_NOT_OPEN');
+  if (attempt?.status !== 'reserved') return fail('ATTEMPT_NOT_OPEN');
   assertAttemptBinding(account, attempt);
   if (!isDeepStrictEqual(JSON.parse(attempt.request_json), query)) fail('REQUEST_CHANGED');
   if (Date.now() >= attempt.lease_until) fail('READ_LEASE_EXPIRED');
@@ -126,7 +126,7 @@ async function heldAcquisition(account: FxAccount, evidence: ExchangeAcquisition
   }
   const expected = await accountBinding(account);
   const attempt = await getDatabase().get<Attempt>('SELECT * FROM trading_recovery_schedule_attempts WHERE id=?', [clean.recoverySchedule.attemptId]);
-  if (!attempt || attempt.status !== 'reserved') return fail('ATTEMPT_NOT_OPEN');
+  if (attempt?.status !== 'reserved') return fail('ATTEMPT_NOT_OPEN');
   assertAttemptBinding(account, attempt);
   if (clean.startedAt < attempt.started_at || clean.completedAt > attempt.lease_until) fail('READ_LEASE_EXPIRED');
   const request = JSON.parse(attempt.request_json) as ScheduledRecoveryQuery;

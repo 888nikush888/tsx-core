@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { SubmitEvent, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -149,7 +149,7 @@ export function DashboardAuthGate({
     });
   }, []);
 
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     setSubmitting(true);
     setError("");

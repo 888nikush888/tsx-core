@@ -1456,7 +1456,8 @@ async function postRuntimeSettingsHandler(context: RequestContext): Promise<void
     addLog(`[SECURITY] request_id=${context.requestId} Managed runtime settings updated; restart required.`);
     sendJson(context.res, 200, { success: true, settings, ...context.appState.runtimeSettings.describe?.(), restartRequired: true, requestId: context.requestId });
   } catch (error) {
-    sendError(context, error instanceof HttpError ? error : new HttpError(errorMessage(error).includes('Runtime settings changed') ? 409 : 400, errorMessage(error)));
+    const statusCode = errorMessage(error).includes('Runtime settings changed') ? 409 : 400;
+    sendError(context, error instanceof HttpError ? error : new HttpError(statusCode, errorMessage(error)));
   }
 }
 
@@ -1860,7 +1861,10 @@ async function uiWorkflowModelsHandler(context: RequestContext): Promise<void> {
       if (!requireConfirmation(context, 'mutate-workflow-model', 'Explicit reviewed model action required.')) return;
       sendJson(context.res, 200, await mutateUiModel(await readJsonBody(context.req, 4096)));
     }
-  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(context.req.method === 'GET' ? 400 : 409, errorMessage(error))); }
+  } catch (error) {
+    const statusCode = context.req.method === 'GET' ? 400 : 409;
+    sendError(context, error instanceof HttpError ? error : new HttpError(statusCode, errorMessage(error)));
+  }
 }
 
 async function uiSearchHandler(context: RequestContext): Promise<void> {
@@ -2203,7 +2207,7 @@ async function uiAccountEvidenceHandler(context: RequestContext): Promise<void> 
   try {
     const query = context.parsedUrl.searchParams; const id = query.get('accountId') ?? ''; const kind = query.get('kind') || 'overview';
     if (!['overview', 'reservations', 'history'].includes(kind)) throw new HttpError(400, 'Invalid account evidence kind.');
-    const result = kind === 'reservations' ? await uiAccountReservations(id, query) : kind === 'history' ? await uiAccountHistory(id, query) : await uiAccountEvidence(id);
+    const result = await accountEvidenceResult(kind, id, query);
     if (!result) throw new HttpError(404, 'Account or requested observation not found.');
     sendJson(context.res, 200, result);
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
@@ -2219,7 +2223,10 @@ async function uiAdaptiveRiskHandler(context: RequestContext): Promise<void> {
       if (!result) throw new HttpError(404, 'Adaptive evidence not found.');
       sendJson(context.res, 200, result);
     }
-  } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(context.req.method === 'GET' ? 400 : 409, errorMessage(error))); }
+  } catch (error) {
+    const statusCode = context.req.method === 'GET' ? 400 : 409;
+    sendError(context, error instanceof HttpError ? error : new HttpError(statusCode, errorMessage(error)));
+  }
 }
 
 async function uiIngressRelationsHandler(context: RequestContext): Promise<void> {
@@ -2486,7 +2493,10 @@ async function updateTelegramViewerSettingsHandler(context: RequestContext): Pro
     const result = await settings.set(await readJsonBody(context.req, 64 * 1024), typeof expected === 'string' ? expected : undefined);
     sendJson(context.res, 200, { settings: result, settingsRevision: configurationRevision(result) });
   } catch (error) {
-    sendError(context, new HttpError(error instanceof HttpError ? error.statusCode : errorMessage(error).includes('settings changed') ? 409 : 400, errorMessage(error)));
+    let statusCode;
+    if (error instanceof HttpError) statusCode = error.statusCode;
+    else statusCode = errorMessage(error).includes('settings changed') ? 409 : 400;
+    sendError(context, new HttpError(statusCode, errorMessage(error)));
   }
 }
 
@@ -2814,7 +2824,7 @@ async function localSessionHandler(
     const tokenWasConfigured = authenticator.isConfigured();
     if (tokenWasConfigured) {
       const actor = await authenticator.authenticate(context.req.headers.authorization, context.req.headers);
-      if (!actor || actor.role !== 'admin' || !actor.id.startsWith('token:')) {
+      if (actor?.role !== 'admin' || !actor.id.startsWith('token:')) {
         throw new HttpError(401, 'A durable administrator bearer is required to create a local session.');
       }
       if (!authenticator.issueLocalAdminSession) {
@@ -3206,4 +3216,10 @@ export function stopWebServer(): Promise<void> {
     server.close((error) => (error ? reject(error) : resolve()));
     server = null;
   });
+}
+
+async function accountEvidenceResult(kind: string, id: string, query: URLSearchParams) {
+  if (kind === 'reservations') return uiAccountReservations(id, query);
+  if (kind === 'history') return uiAccountHistory(id, query);
+  return uiAccountEvidence(id);
 }

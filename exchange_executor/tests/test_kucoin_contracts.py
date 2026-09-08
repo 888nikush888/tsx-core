@@ -91,8 +91,10 @@ class KucoinContractTests(unittest.TestCase):
                    ('marketStage', 'PRE_MARKET'), ('marketStage', None), ('fairMethod', 'BasisRate'),
                    ('expireDate', 0), ('expireDate', 1), ('settleDate', 1), ('settlementSymbol', '.SETTLE')]
         for field, value in changes:
-            with self.subTest(field=field, value=value), self.assertRaises(KucoinContractError):
-                normalize_kucoin_contract(raw_contract(**{field: value}), expected_symbol=NATIVE_SYMBOL)
+            with self.subTest(field=field, value=value):
+                prepared_raw_contract = raw_contract(**{field: value})
+                with self.assertRaises(KucoinContractError):
+                    normalize_kucoin_contract(prepared_raw_contract, expected_symbol=NATIVE_SYMBOL)
         for value in (None, [], {'contract': True, 'swap': True, 'linear': True}, raw_contract(symbol='XBTUSDTM ')):
             with self.subTest(value=value), self.assertRaises(KucoinContractError):
                 normalize_kucoin_contract(value, expected_symbol=NATIVE_SYMBOL)
@@ -101,16 +103,22 @@ class KucoinContractTests(unittest.TestCase):
         for field in ('multiplier', 'tickSize', 'lotSize', 'maxOrderQty', 'marketMaxOrderQty'):
             for value in (None, True, False, 0, '-1', 1.0, float('nan'), 'NaN', 'Infinity', '1_0', ' 1',
                           Decimal('sNaN'), Decimal('1E-1000000000'), '1e1000000000', '1e' + '9' * 60, '9' * 1000):
-                with self.subTest(field=field, value=repr(value)), self.assertRaises(KucoinContractError):
-                    normalize_kucoin_contract(raw_contract(**{field: value}), expected_symbol=NATIVE_SYMBOL)
+                with self.subTest(field=field, value=repr(value)):
+                    prepared_raw_contract = raw_contract(**{field: value})
+                    with self.assertRaises(KucoinContractError):
+                        normalize_kucoin_contract(prepared_raw_contract, expected_symbol=NATIVE_SYMBOL)
         for field in ('lotSize', 'maxOrderQty', 'marketMaxOrderQty'):
             for value in ('0.5', '9007199254740992'):
-                with self.subTest(field=field, value=value), self.assertRaises(KucoinContractError):
-                    normalize_kucoin_contract(raw_contract(**{field: value}), expected_symbol=NATIVE_SYMBOL)
+                with self.subTest(field=field, value=value):
+                    prepared_raw_contract = raw_contract(**{field: value})
+                    with self.assertRaises(KucoinContractError):
+                        normalize_kucoin_contract(prepared_raw_contract, expected_symbol=NATIVE_SYMBOL)
         for field in ('fundingRateGranularity', 'nextFundingRateTime'):
             for value in (None, True, -1, 1.5, '1', 9_007_199_254_740_992):
-                with self.subTest(field=field, value=value), self.assertRaises(KucoinContractError):
-                    normalize_kucoin_contract(raw_contract(**{field: value}), expected_symbol=NATIVE_SYMBOL)
+                with self.subTest(field=field, value=value):
+                    prepared_raw_contract = raw_contract(**{field: value})
+                    with self.assertRaises(KucoinContractError):
+                        normalize_kucoin_contract(prepared_raw_contract, expected_symbol=NATIVE_SYMBOL)
         for raw in (raw_contract(lotSize=7), raw_contract(fundingRateGranularity=0)):
             with self.assertRaises(KucoinContractError):
                 normalize_kucoin_contract(raw, expected_symbol=NATIVE_SYMBOL)
@@ -163,8 +171,10 @@ class KucoinContractTests(unittest.TestCase):
         self.assertEqual(sdk_amount(tiny, '2', expected_contract_size='0.000000000000000001',
                                     base_quantity='0.000000000000000002'), 2)
         for value in (Decimal('1E-19'), Decimal('1E36')):
-            with self.subTest(value=value), self.assertRaises(KucoinContractError):
-                normalize_kucoin_contract(raw_contract(multiplier=value), expected_symbol=NATIVE_SYMBOL)
+            with self.subTest(value=value):
+                prepared_raw_contract = raw_contract(multiplier=value)
+                with self.assertRaises(KucoinContractError):
+                    normalize_kucoin_contract(prepared_raw_contract, expected_symbol=NATIVE_SYMBOL)
 
     def test_raw_decimal_spellings_preserve_values_and_do_not_create_scope_authority(self):
         raw = raw_contract(multiplier='1.000E-3', tickSize='0.10000', lotSize='2.000',
@@ -263,9 +273,13 @@ class KucoinContractSdkTests(unittest.IsolatedAsyncioTestCase):
         rest, calls = await self.sdk('kucoinfutures', raw_contract())
         for amount, quantity in (('2.5', '0.0025'), ('7', '0.007')):
             with self.subTest(amount=amount), self.assertRaises(KucoinContractError):
-                converted = sdk_amount(amount=amount, base_quantity=quantity, order_type='market')
-                await rest.create_orders([{'symbol': SYMBOL, 'type': 'market', 'side': 'sell', 'amount': converted}])
+                sdk_amount(amount=amount, base_quantity=quantity, order_type='market')
         self.assertEqual(len(calls), 1)
+        converted = sdk_amount(amount='2', base_quantity='0.002', order_type='market')
+        await rest.create_orders([{'symbol': SYMBOL, 'type': 'market', 'side': 'sell', 'amount': converted,
+                                  'params': {'clientOrderId': 'own-valid-after-rejections'}}])
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[-1][2][0]['size'], 2)
 
 
 if __name__ == '__main__':

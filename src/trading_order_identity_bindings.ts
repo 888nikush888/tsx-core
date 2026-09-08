@@ -83,7 +83,7 @@ export async function persistNativeOrderBinding(account: AccountIdentity, localO
   assertProvider(account, proof);
   const local = await getDatabase().get<Local>(`SELECT orders.*,intent.symbol FROM trading_orders orders
     JOIN trading_trade_intents intent ON intent.id=orders.intent_id WHERE orders.id=? AND orders.account_id=?`, [localOrderId, account.id]);
-  if (!local || local.client_order_id !== proof.clientOrderId) fail('Proof does not belong to this local order.');
+  if (local?.client_order_id !== proof.clientOrderId) fail('Proof does not belong to this local order.');
   const remoteKey = JSON.stringify(['v1', account.exchange, proof.providerSymbol, proof.exchangeOrderId]);
   const existing = await getDatabase().get<Binding>(
     'SELECT * FROM trading_order_identity_bindings WHERE order_id=?', [localOrderId]);
@@ -114,7 +114,8 @@ async function verifyExistingBinding(binding: Binding, account: AccountIdentity,
     || !isDeepStrictEqual(stableProof(stored.proof), stableProof(proof))) fail('Stored original identity witness changed.');
   const original = await getDatabase().get<Original>('SELECT * FROM trading_operations WHERE id=? AND account_id=? AND intent_id=?',
     [binding.operation_id, account.id, local.intent_id]);
-  if (!original || original.request_hash !== binding.request_hash || ['prepared', 'abandoned'].includes(original.phase)
+  if (!original) fail('Bound original operation changed.');
+  if (original.request_hash !== binding.request_hash || ['prepared', 'abandoned'].includes(original.phase)
     || stored.originalGeneration !== original.generation || stored.originalLogicalKey !== original.logical_key) fail('Bound original operation changed.');
   // Existing same-account bindings retain their historical generation across a verified credential rotation.
   assertOriginalLeg(original, local, stored.proof, { ...account, credentialGeneration: binding.credential_generation });

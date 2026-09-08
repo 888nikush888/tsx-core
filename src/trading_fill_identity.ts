@@ -12,7 +12,7 @@ function object(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
 }
 function identifier(value: unknown): asserts value is string {
-  if (typeof value !== 'string' || !value || value.trim() !== value || value.length > 256 || /[\x00-\x1f]/.test(value)) {
+  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.length > 256 || /[\x00-\x1f]/.test(value)) {
     throw new Error('FILL_IDENTITY_UNPROVEN: missing exact provider identifier.');
   }
 }

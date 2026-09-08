@@ -149,8 +149,9 @@ class CertificationEvidenceTests(unittest.TestCase):
                  'tests': {key: True for key in ('protectedEntry', 'cancel', 'reconciliation', 'stream',
                                                 'credentialRotation', 'accountIdentity', 'marketNormalization')}}
         path, digest = self.save(value)
+        prepared_read_receipt = evidence.read_receipt(path, (digest,))
         with self.assertRaisesRegex(evidence.ReceiptError, 'schema'):
-            self.check(evidence.read_receipt(path, (digest,)))
+            self.check(prepared_read_receipt)
         # Negative regression inputs must remain legacy even when real checkout
         # receipts are later independently reviewed and become valid.
         for exchange, profile in PROFILES.items():
@@ -167,8 +168,9 @@ class CertificationEvidenceTests(unittest.TestCase):
         for raw in (b'{"a":1,"a":2}', b'{"a":NaN}', b'{"a":Infinity}', b' ' * (64 * 1024 + 1)):
             path = self.receipts / 'bybit.json'
             path.write_bytes(raw)
+            prepared_values = (hashlib.sha256(raw).hexdigest(),)
             with self.assertRaises(evidence.ReceiptError):
-                evidence.read_receipt(path, (hashlib.sha256(raw).hexdigest(),))
+                evidence.read_receipt(path, prepared_values)
 
     def test_malformed_trusted_pin_container_cannot_match_a_substring(self):
         path, digest = self.save()

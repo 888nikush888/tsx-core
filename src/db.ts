@@ -58,7 +58,8 @@ export function mcpMaintenanceMarkerPath(databasePath = operationalDatabasePath(
 }
 
 async function exists(file: string): Promise<boolean> {
-  try { await lstat(file); return true; } catch (error: any) { if (error?.code === 'ENOENT') return false; throw error; }
+  try { await lstat(file); return true; } catch (error: any) { if (error?.code === 'ENOENT') return false;
+    throw error; }
 }
 
 export async function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
@@ -163,7 +164,7 @@ function validateParticipant(row: Record<string, unknown>): ParticipantRecord {
     || !natural(row.updatedAt) || typeof row.databasePath !== 'string' || !path.isAbsolute(row.databasePath)) {
     throw new Error('Invalid maintenance participant ownership.');
   }
-  if (!['opening', 'open', 'closing', 'closed', 'close_failed'].includes(String(row.state))
+  if (typeof row.state !== 'string' || !['opening', 'open', 'closing', 'closed', 'close_failed'].includes(row.state)
     || (row.databaseIdentity !== null && (typeof row.databaseIdentity !== 'string' || !/^\d+:\d+$/.test(row.databaseIdentity)))) {
     throw new Error('Invalid maintenance participant state.');
   }
@@ -2815,7 +2816,7 @@ function validateAppliedMigrations(applied: Array<{ version: number; name: strin
   for (let index = 0; index < applied.length; index += 1) {
     const record = applied[index];
     const migration = migrations[index];
-    if (!migration || record.version !== migration.version) {
+    if (record.version !== migration?.version) {
       throw new Error('Database migration history is non-contiguous or out of order.');
     }
     if (record.name !== migration.name || record.checksum !== migrationChecksum(migration)) {

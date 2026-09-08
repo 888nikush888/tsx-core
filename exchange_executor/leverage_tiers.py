@@ -19,7 +19,7 @@ def require_tier(condition: bool, reason: str) -> None:
 def number(value: Any, *, positive: bool = False) -> str:
     try:
         return decimal_string(str(value) if type(value) in (int, float) else value, 'tier value', positive=positive)
-    except (ExchangeContractError, ValueError, TypeError) as error:
+    except (ValueError, TypeError) as error:
         raise TierEvidenceError('Invalid tier decimal.') from error
 
 

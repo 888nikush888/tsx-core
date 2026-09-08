@@ -97,13 +97,13 @@ class _Capture:
             self.fail('transport text')
         try:
             parsed = urlsplit(url)
-        except (UnicodeError, ValueError):
+        except ValueError:
             self.fail('endpoint encoding')
         if parsed.fragment or parsed.scheme + '://' + parsed.netloc + parsed.path != self.root + 'v3/account-log':
             self.fail('endpoint scope')
         try:
             pairs = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True, errors='strict')
-        except (UnicodeError, ValueError):
+        except ValueError:
             self.fail('query encoding')
         if len(pairs) != len(self.query) or dict(pairs) != self.query:
             self.fail('query scope')

@@ -29,7 +29,13 @@ export function usePoll<T>(
       }
       running = false;
       if (!controller.signal.aborted) {
-        timer = setTimeout(poll, refreshRequested ? 0 : Math.min(60_000, intervalMs * 2 ** Math.min(failures, 4)) * (document.hidden ? 2 : 1));
+        const pollDelay = () => {
+          if (refreshRequested) {
+            return 0;
+          }
+          return Math.min(60_000, intervalMs * 2 ** Math.min(failures, 4)) * (document.hidden ? 2 : 1);
+        };
+        timer = setTimeout(poll, pollDelay());
         refreshRequested = false;
       }
     };

@@ -190,7 +190,7 @@ async def execute(request: web.Request) -> web.Response:
         return json_response({"error": str(error), "code": error.code}, error.http_status)
     except TierEvidenceError as error:
         return json_response({'error': str(error), 'code': error.code}, 422)
-    except (ExchangeContractError, ValueError) as error:
+    except ValueError as error:
         return json_response({"error": str(error)}, 400)
     except Exception as error:
         code = executor_error_code(request.path)

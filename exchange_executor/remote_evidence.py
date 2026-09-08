@@ -38,6 +38,6 @@ def normalize_trades(
     for trade in trades:
         try:
             fills.append(normalize(trade))
-        except (ExchangeContractError, KeyError, TypeError, ValueError, ArithmeticError):
+        except (KeyError, TypeError, ValueError, ArithmeticError):
             unresolved.append(unresolved_trade(trade))
     return fills, unresolved

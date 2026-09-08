@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { WorkflowGraph, WorkflowResource } from '@/app/workflow/types';
 
-export function GraphTable({ graph, resources, readOnly, edit, connect, remove }: { graph: WorkflowGraph; resources: WorkflowResource[]; readOnly: boolean;
-  edit: (id: string) => void; connect: (source: string, target: string) => void; remove: (id: string) => void }) {
+export function GraphTable({ graph, resources, readOnly, edit, connect, remove }: Readonly<{ graph: WorkflowGraph; resources: WorkflowResource[]; readOnly: boolean;
+  edit: (id: string) => void; connect: (source: string, target: string) => void; remove: (id: string) => void }>) {
   const [filter, setFilter] = useState(''); const [source, setSource] = useState(''); const [target, setTarget] = useState('');
   const byId = new Map(resources.map(resource => [resource.id, resource]));
   const currentSource = graph.nodes.some(node => node.id === source) ? source : '';

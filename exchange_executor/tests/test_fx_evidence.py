@@ -118,8 +118,10 @@ class FxEvidenceTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_unknown_duplicate_or_unbounded_leg_requests_are_rejected(self):
         for legs in (['BNB'], [BTC_USD, BTC_USD], [BTC_USD] * 4, 'USDT', [None]):
-            with self.subTest(legs=legs), self.assertRaises(ExchangeContractError):
-                await read_fx_evidence(self.rest, 'live', legs, self.budget())
+            with self.subTest(legs=legs):
+                prepared_budget = self.budget()
+                with self.assertRaises(ExchangeContractError):
+                    await read_fx_evidence(self.rest, 'live', legs, prepared_budget)
         self.assertEqual(self.calls, [])
 
     async def test_wrong_category_symbol_empty_or_numeric_index_never_falls_back_to_mark_last_or_parity(self):

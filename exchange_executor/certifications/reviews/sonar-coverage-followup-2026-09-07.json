@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "kind": "sonar_coverage_and_reviewed_pr_decision_followup",
+  "reviewedAt": "2026-09-07T12:49:31Z",
+  "sourceRevision": "4e4a1008097251b5946fe42add9641b10d0fa82f",
+  "baseRevision": "8992341c3b2de732eba66e21faea5713d602f251",
+  "sourceTreeHash": "d34c4f501f23d7daed53d0959d1b7c205e1426f2382a21ec256558db1de1a160",
+  "priorReceiptSha256": "f8093bad6f5e517e45431c15e76ec345576e93bfb8dc7a38ca9dfdc1c543a553",
+  "priorExecutionReportHash": "64b8be8faf1abd2acf9e3cab29b3a7d48f95008764a49643700b37b354d06f27",
+  "scope": "Test additions, an explicitly owner-started decision for one pinned PR29 keyboard-scroll false positive, exact public-ID secret-scan allowance, and restoration of the existing main/PR Sonar workflow scope. Application and exchange implementation source, dependencies, thresholds and baseline issue dispositions are unchanged.",
+  "authorization": "User requested repository maintenance, resolution of Sonar issues, publication and verification of the existing GitHub quality chain; Codacy and additional scanners are outside scope.",
+  "changedFiles": [
+    ".github/workflows/quality.yml",
+    ".gitleaks.toml",
+    "docs/testing/github-maintenance-2026-09-07.md",
+    "docs/testing/sonar-reviewed-pr29-decision.json",
+    "exchange_executor/tests/test_request_parse_boundaries.py",
+    "frontend/tests/operator-directory-regressions.test.tsx",
+    "frontend/tests/operator-repair-regressions.test.tsx",
+    "frontend/tests/operator-shell-regressions.test.tsx",
+    "frontend/tests/operator-state-regressions.test.tsx",
+    "frontend/tests/routing-risk-regressions.test.tsx",
+    "frontend/tests/runtime-evidence-regressions.test.tsx",
+    "frontend/tests/workflow-library-regressions.test.tsx",
+    "scripts/sonar_review_decisions.js",
+    "tests/test_ccxt_exchange.js",
+    "tests/test_sonar_review_decisions.js",
+    "tests/test_supply_chain.js",
+    "tests/test_trading_fx_channel_risk.js",
+    "tests/test_ui_operation_store.js",
+    "tests/test_workflow_builder.js"
+  ],
+  "observedPriorRevision": {
+    "revision": "8992341c3b2de732eba66e21faea5713d602f251",
+    "pullRequestRun": 34116910821,
+    "manualRun": 34116905331,
+    "successfulPrJobs": [
+      "Dependency review",
+      "Secret history scan",
+      "Lint, tests, coverage, build, supply chain",
+      "Browser and accessibility gate (chromium)",
+      "CodeQL SAST",
+      "Critical mutation gate (retry)",
+      "Critical mutation gate (queue)",
+      "Browser and accessibility gate (mobile-chromium)",
+      "Critical mutation gate (schema)",
+      "Browser and accessibility gate (firefox)",
+      "Critical mutation gate (trading-risk)",
+      "Browser and accessibility gate (webkit)",
+      "Container build, SBOM, vulnerability scan"
+    ],
+    "applicationChecks": "The prior published revision passed all 211 backend files in both coverage runs, 542 Python tests, browser/accessibility checks, four mutation shards, CodeQL, dependency and secret checks, reproducible builds and container/SBOM vulnerability checks.",
+    "sonarPrResult": "FAILED: new-code coverage was 74.4 percent against the unchanged 80 percent minimum; one known keyboard-scroll false positive remained open in the PR scope.",
+    "mainReviewedDispositions": {
+      "confirmed": 13,
+      "ledgerSha256": "3fbb339604d1beacbf9854d17070ad93e2c1549d8dc226dfca670e166cf16cf3"
+    },
+    "longBranchResult": "UNAVAILABLE: organization rejects access to non-main branch data with HTTP 403. No complete working-branch backlog result exists. The original main/PR job condition has been restored."
+  },
+  "independentValidation": {
+    "reviewer": "root",
+    "changedSourceAndTestsReviewed": true,
+    "backend": "Four changed backend suites passed through the official runner, exercising retry safety, durable operation receipts, adaptive risk persistence and pinned workflow parameter origins.",
+    "python": "All three new actual request-boundary regressions passed under Python 3.12.14 and ccxt 4.5.75 with mocked transport; implementation agent also ran the full 545-test Python suite.",
+    "frontend": "Full frontend coverage run passed 296 tests across 36 files; all 64 added behavior tests and their mocked transport boundaries were independently reviewed.",
+    "sonarAndSecrets": "All five Sonar suites plus the supply-chain suite passed. The actual pinned Gitleaks executable allowed 686 exact public-ID occurrences and detected all 19 negative credential/scope fixtures. Changed JavaScript passed ESLint with zero warnings.",
+    "evidence": [
+      {
+        "file": "tmp/sonar-coverage-followup-python-independent.log",
+        "sha256": "c3d07d47aa47377beb5da737638d5a1c9fdcce72548092c9152aebbc067731ed",
+        "bytes": 784
+      },
+      {
+        "file": "tmp/sonar-coverage-followup-backend-independent.log",
+        "sha256": "6dcc2013bc339bfbe49a87110663f5fbbd3b8071307d4af4eecb3606daff9c0f",
+        "bytes": 348
+      },
+      {
+        "file": "tmp/sonar-coverage-followup-frontend-independent.log",
+        "sha256": "8e278bc67fc9d4e167d57e7f7171bedbdd83cc8e65755424f75f344db20e1ce3",
+        "bytes": 8284
+      },
+      {
+        "file": "tmp/sonar-pr29-root-checks.log",
+        "sha256": "c0d7e7e1eb1d48bf11314701c16409c48685694853b60c5e648c30021bb19643",
+        "bytes": 510
+      },
+      {
+        "file": "tmp/sonar-pr29-root-lint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    ],
+    "coverageEstimate": {
+      "actualBaseline": "1413/1898 = 74.446786 percent",
+      "projected": "1941/2181 = 88.995873 percent",
+      "methodology": "Reconciled every new executable position in all 176 actual Sonar PR components against the prior scanner reports, then substituted the complete independent frontend LCOV. Backend and Python remain conservatively at the prior scanner values.",
+      "estimateSha256": "01331a819b9817edb739d7156be5b20b355c3979ca5d66dc21a9d13addebf5b5",
+      "liveSonarResult": false
+    },
+    "pending": "The new published revision still requires the real existing GitHub PR checks and strict revision-bound Sonar export. Only a subsequent protected-main merge and main scan can confirm the full 659 remaining baseline findings are closed."
+  },
+  "executorAndSdkSourceChanged": false,
+  "runtimeFacts": {
+    "ccxtVersion": "4.5.75",
+    "executorTreeHash": "f3d6d3e303461b159f0efa6a4b135b1a8de48636e3fa9961928ae98fdc4c295a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "providerParityEvidence": {
+    "preservedHash": "ffd4e58768b88c2d3180cc379154256403fb9449fdeb7fda3610940b40bd2426"
+  },
+  "providerAcceptanceVerified": false,
+  "realProviderActionsPerformed": false,
+  "productionDeploymentPerformed": false,
+  "quarantinePreserved": [
+    "bybit",
+    "krakenfutures"
+  ]
+}

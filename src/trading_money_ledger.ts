@@ -26,7 +26,7 @@ export interface EventTimeValuation {
 }
 
 function identifier(value: string): string {
-  if (typeof value !== 'string' || !value || value.trim() !== value || value.length > 256) throw new Error('Invalid monetary evidence identifier.');
+  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.length > 256) throw new Error('Invalid monetary evidence identifier.');
   return value;
 }
 
@@ -182,7 +182,8 @@ async function canonicalMoneyIdentity(clean: MoneyEventInput, payload: string): 
   const fill = await getDatabase().get<{ intent_id: string; filled_at: number }>(`SELECT orders.intent_id, fills.filled_at FROM trading_fills fills
     JOIN trading_orders orders ON orders.id=fills.order_id WHERE fills.id=? AND fills.account_id=? AND fills.account_fingerprint=?`,
   [clean.fillId, clean.accountId, clean.accountFingerprint]);
-  if (!fill || fill.filled_at !== clean.occurredAt || (clean.intentId && clean.intentId !== fill.intent_id)) {
+  if (!fill) throw new Error('Fill monetary evidence does not match its persisted account, intent and event time.');
+  if (fill.filled_at !== clean.occurredAt || (clean.intentId && clean.intentId !== fill.intent_id)) {
     throw new Error('Fill monetary evidence does not match its persisted account, intent and event time.');
   }
   const candidates = await getDatabase().all<Array<{ id: string }>>(`SELECT id FROM trading_money_events
@@ -262,7 +263,7 @@ export async function valueKrakenCashlegFee(request: KrakenCashlegRequest): Prom
     const event = await getMoneyEvent(identifier(request.eventId));
     if (!event) throw new KrakenCashlegError('missing_original_fee');
     const binding = await getReportingCurrencyBinding(event.accountId, event.accountFingerprint);
-    if (!binding || binding.profile !== 'krakenfutures') throw new KrakenCashlegError('reporting_binding_unproven');
+    if (binding?.profile !== 'krakenfutures') throw new KrakenCashlegError('reporting_binding_unproven');
     try {
       const proof = await readKrakenCashlegProof(request, event, binding);
       await persistKrakenCashlegProof(proof);

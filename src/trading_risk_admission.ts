@@ -27,7 +27,8 @@ async function assertStoredCandidate(proof: RiskAdmissionProof, plan: TradingPla
     "SELECT client_order_id, price, trigger_price, quantity, order_type, side, reduce_only, filled_quantity FROM trading_orders WHERE intent_id = ? AND role IN ('entry', 'stop_loss')", [proof.intentId]);
   for (const expected of plan.orders.filter(order => ['entry', 'stop_loss'].includes(order.role))) {
     const actual = orders.find(order => order.client_order_id === expected.clientOrderId);
-    if (!actual || actual.quantity !== expected.quantity || actual.price !== expected.price || actual.trigger_price !== expected.triggerPrice
+    if (!actual) unavailable('persisted candidate order economics changed.');
+    if (actual.quantity !== expected.quantity || actual.price !== expected.price || actual.trigger_price !== expected.triggerPrice
       || actual.order_type !== expected.orderType || actual.side !== expected.side || actual.reduce_only !== Number(expected.reduceOnly)
       || actual.filled_quantity !== '0') unavailable('persisted candidate order economics changed.');
   }
@@ -58,7 +59,7 @@ function assertDailyBudget(budget: string, ledgerPnl: MoneyValue, unrealizedPnl:
 
 async function candidateReservation(account: FxAccount, plan: TradingPlan, market: TradingMarketSnapshot, reportingCurrency: string) {
   const entry = plan.orders.find(order => order.role === 'entry');
-  if (!entry || entry.orderType !== 'limit') unavailable('entry has no bounded executable price.');
+  if (entry?.orderType !== 'limit') unavailable('entry has no bounded executable price.');
   return calculateFxRiskReservation(account, { side: plan.side, ownedQuantity: '0', averageEntryPrice: null, markPrice: null,
     stopPrice: plan.stopPrice, reportingCurrency, market: market.accounting ?? null,
     protectionProven: true, entries: [{ id: entry.clientOrderId, generation: 0, status: 'created', quantity: entry.quantity,
