@@ -21,7 +21,8 @@
     "Two placeholder-signature findings: Node22 transport fence and exact-lock Python3.12 19-case signed SDK bridge tests passed; ESLint/diff checks passed.",
     "Twelve individual control-character regex findings: exact source-predicate review confirms intentional rejection ranges; source is unchanged, no remote suppression applied.",
     "Trailing undefined review: Node22 reproduces mandatory expected-argument behavior; each occurrence AST-mapped to its exact assertion or explicit undefined-input regression. No source changes or suppressions.",
-    "Risk-policy helper refactor: existing Node22 governance suite and 1728 original-versus-current cases passed; ESLint complexity<=5 for the whole file, ordinary ESLint and diff checks passed."
+    "Risk-policy helper refactor: existing Node22 governance suite and 1728 original-versus-current cases passed; ESLint complexity<=5 for the whole file, ordinary ESLint and diff checks passed.",
+    "84 unchanged async fault-injection functions individually read and exact-AST-body matched to baseline; all 36 affected Node22 regression suites passed. No async removal, wrapper or suppression."
   ],
   "entries": [
     {
@@ -2994,6 +2995,1183 @@
       "originalLine": 29,
       "status": "source_change_pending_rescan",
       "proof": "Validation is separated into ownership, individual section, date ordering and remaining-validity helpers; every function passes complexity<=5 and 1728 differential cases preserve exact prior error order and validity decisions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFkb3I=",
+      "rule": "JS-0116",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 399,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "a72040b79415fd67c3b5427c755d506069fc46894da359cfb48b0f6cfed64fdd",
+      "evidenceThrowSha256": [
+        "9f403056e08f150f4df69ace069b3b19c18c75197b557fdba909782daff21585"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZub2E=",
+      "rule": "JS-0116",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 398,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "34a870f2c3fe36a225957f3fdd5483febc534671dda49f996d061fcfc07260d1",
+      "evidenceThrowSha256": [
+        "4c8154dd5c255f66df93b8987aacde2ca9bc02de0aef52fefaccfc6be6b34a1c"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnludnY=",
+      "rule": "JS-0116",
+      "path": "tests/test_workflow_fallback.js",
+      "originalLine": 364,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "fe623702cd60d1e37c31fd4a10674e439886944895373e4473fcd0795aefa214",
+      "evidenceThrowSha256": [
+        "af2cdd39dd4562aaa9a364dca672079fb70bf189d40b13acb64d5a361d34cf53"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZudmE=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "originalLine": 1597,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "6171e76af2b5f51b49278303abd9768a3238aa76d05a874fc012bbec0c454dee",
+      "evidenceThrowSha256": [
+        "523d2358d9e8f0289e73b633900a66d49f55c77170a6953ab3ecfc87b31e0018"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxudmc=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_restart_recovery.js",
+      "originalLine": 92,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "666ed620182d556d87f3ca2dfa767fce57c27fdee050386a46b931ef6636ab88",
+      "evidenceThrowSha256": [
+        "523d2358d9e8f0289e73b633900a66d49f55c77170a6953ab3ecfc87b31e0018"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR2eHc=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_next_reads.js",
+      "originalLine": 37,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "7e50a3f81c28f4f9c6dd7a854c906d044068e495e158a9ffc0624d92cd4cc2d2",
+      "evidenceThrowSha256": [
+        "16d34b5e7bcb341ee6cb3d16495d90e93fbe57c46d3827432613210a24ebca30"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlkdmE=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_evidence_failures.js",
+      "originalLine": 71,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "ebe8a9720a3f1252891258d97b49edd7fa3d153f30f6973cae95cb1cf7cf9ec9",
+      "evidenceThrowSha256": [
+        "16d34b5e7bcb341ee6cb3d16495d90e93fbe57c46d3827432613210a24ebca30"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V3bW8=",
+      "rule": "JS-0116",
+      "path": "tests/test_ui_evidence_failures.js",
+      "originalLine": 65,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "cdba48ae0181844f85980db32d73bf22d3e89c9f9f38c8740723b1793b12ed22",
+      "evidenceThrowSha256": [
+        "395a47f69300e0e3f793a1519d693e91d37649fbc63100c075c383cf2f0ec510"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpkb3g=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 203,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "474c1bf5624464aea493659f167b189e5ded44c072188d72190e3c1a2f652aef",
+      "evidenceThrowSha256": [
+        "d45a65bb14ac489a8eb20e32426f5d220dab7755b80bbfc0c1520604692552d6"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnluZHE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 60,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "f5caf8154ee5fce4313d8c8eaea2e3ce801ec81117907612e6b2c93dd780ae94",
+      "evidenceThrowSha256": [
+        "d82c2af593bcf715282e1adac4546afc63c34069727db3016fd8a8fdba619c68"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJkeW4=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 59,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "5e1b633f5af7af5ce62d738394b524c561c2840ff3350b702619ce134e792b54",
+      "evidenceThrowSha256": [
+        "d82c2af593bcf715282e1adac4546afc63c34069727db3016fd8a8fdba619c68"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFucWw=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 36,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "d6ddcf772f0b820e4b1694b0e78fe1f6d5033bca4b2ac87b735861028c2dcebb",
+      "evidenceThrowSha256": [
+        "4de33519d72fbcaa78a791013d91f11ea20590b80232b319af25f2f8679c27b8"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWt5b2o=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_risk_repository.js",
+      "originalLine": 63,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "c92e2eb92f861485a5b18dabba9ccb7439863c78461979c339deae2bb475c4fb",
+      "evidenceThrowSha256": [
+        "9a96d73f5c0e4bb311b951eae4dda74fcb6f83fcc3e1d48f6ccb0a4e4157920d"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d293dnc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_risk_repository.js",
+      "originalLine": 42,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "486911983d7112b9533716c4f4dd56d5dd189293628a10993055a6ad82b2334b",
+      "evidenceThrowSha256": [
+        "dba8d9c1b19e7553f88bdb234f4bbfb3595921227b3689b50d2c0740b38699fc"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1ubHA=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_recovery.js",
+      "originalLine": 56,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "7522304cd539cb31e93873cea45af6c73c875d27028a8b8f8b268a0264aad4a4",
+      "evidenceThrowSha256": [
+        "5bbdfdd9808e17139aad1b67bacc34c97c7324eab741c55b486c4e76f8419792"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9keHI=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_recovery.js",
+      "originalLine": 50,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "e1e82c64618b72b669e189b0431decd115f2b01522b51339c7e359bbee431823",
+      "evidenceThrowSha256": [
+        "434b8b86177ed26d75bc68495f5e67e2bdffa8c08d490c7255e657cb962810c1"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V3cXY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_protection_receipt.js",
+      "originalLine": 132,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "845157e44995a5c5b2c52f0688d5964333a11f16d663bbce44db93df16df7031",
+      "evidenceThrowSha256": [
+        "15635a0836f39151a2294ab52bbd8b4f50b04a3e0c09368f966fa36f745066a5"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2cGc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_pending_fairness.js",
+      "originalLine": 175,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "d830c433ebdd8e0b57e6a90e81367e24d3b716413c03f6354aa18f8cae1227da",
+      "evidenceThrowSha256": [
+        "c90a2c9ef4e78d656e09843a67c4ee4518c551d801b1d6759945314d4658bf2a"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtuZ3g=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_mutation_coordinator.js",
+      "originalLine": 39,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "b5975199cd7ca3e8b53ac8f5624b4e64c51a96ad560f9a1e927cb55c04056ba7",
+      "evidenceThrowSha256": [
+        "36c324bddb39f664c7972c96284bf9518f78da89d80562ee5b7949ae98c4b57f"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlrcm0=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1386,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "6caf1a5054776023f72e10fe32df326f02a3c5a957dfa2bd63c86e044364c5d0",
+      "evidenceThrowSha256": [
+        "7bd3bfce8ff331984252890efd8cadc5e1a9b4e91fd5b03e278efc5f0c785202"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294d3I=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1293,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "9fb898913841b56b4224a7c0617c693a85b80f58a080f9342d4b7ac616eeaa08",
+      "evidenceThrowSha256": [
+        "ca8e635b5e6c9b83b430e555cc7c44f76e59154b2995e6f15ce12ee884e3fc06"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtbmE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1043,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "c9cfdf3e9d7495831628d2486a43c962f805d5e39459bffb01c124c16459353d",
+      "evidenceThrowSha256": [
+        "de121981474b47078edb327fb1f653f8228402c1b21bdd95a73de1c367d99095"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxybng=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 1021,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "2831a40dc5b2744b1de04c189eec5e88d626b772eb6e2bf59c0792a4c23f4c4c",
+      "evidenceThrowSha256": [
+        "b44bc90b22e6652b23f060861645ad672017dd9bd6ab6e2e925653f098bdad2b"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhrbm8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 998,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "befc791bf93d461cbb66c4670c92928e2799344af38c0325bf074ed94b42bc60",
+      "evidenceThrowSha256": [
+        "d03e2ab95ff831dff06c920c6df6a87e7043879997cecfa7ab40c299046a8c4f"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJubms=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 925,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "68c29486f1c27eb2f7d97f848de9da49876a011b32963e7ff3f8777f8685ffdb",
+      "evidenceThrowSha256": [
+        "9dcbcea089b093ddfc08f2d31bf5428655202f4efe28af37c8d46730a565f862"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllZWQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 900,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "5a3b8aee1d3b2930199f7784f59cee951c7e2a85193936a69101b70b47696c8b",
+      "evidenceThrowSha256": [
+        "94012e73079774836bbb41d92180570364905f87008f416f18173b5b660a62c4"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtbWE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 757,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "9bccab73690f8af6ff32da83c1dc7cdda44ed1d20cf9791ab26ec7389515f8ff",
+      "evidenceThrowSha256": [
+        "7cf6d093a5a80cad9365f8c17bc564e72577a1714c544ad7a6e9786cf8f886b1"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxycng=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 657,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "937d16f87fe1f4cb465681a2f1bfde9ece12bfa46ef432473547bf669b66e37f",
+      "evidenceThrowSha256": [
+        "eeb636bd491b7eebcba47c1035d059f2e7ebf37406486f0a08170e7bb7b10fb7"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4eXY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 486,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "f06bcae73c48dfe2150cdb9db0a160a3c094a51733903fa248ca8babc28050fe",
+      "evidenceThrowSha256": [
+        "612cf48faf7d7b059c6a097fe5ec93b386cfaea1a8889887c9436258a41a16ff"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRnZG4=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 471,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "547fa034f3db3454b5826bf4cfc634f743e578f3c4e9901be7a46bc4d5b324af",
+      "evidenceThrowSha256": [
+        "867049416abf58c4730ad1c3ffa0ecf60b7e1f057d042124e9e8d0658cfd9991"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlreW0=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 337,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "7abfb8af2af629f140297e72bf50888928d8dcc1a611c6dc8e08362d5d72d393",
+      "evidenceThrowSha256": [
+        "355e0630bd6125a227d441f6cbfa15786304f703adc50a9dc5ef4518ab0b784f"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhreG8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 310,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "270eab86b4f879f5663d9f66664494c6bcddc1df8d49e8b1aa8037a978827916",
+      "evidenceThrowSha256": [
+        "ea29acab6e12f1b8c74e27a6aa1c83aec9343dbb839dc39ed3ddefcae5bb2495"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvcWc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 309,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "543e05e976283655a6c5321eb707ca649a2a32378782aeed29e8eef9e4a6be4d",
+      "evidenceThrowSha256": [
+        "86970df244c580a822bf231401daaab02e64404724c284ab0426f1a7cadf7956"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtubXE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 250,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "ad4ce8cbfe4f94ecbd782fc4bffcd9e8391d5a78ee4c55a827c47874c69edadb",
+      "evidenceThrowSha256": [
+        "f6524644070c9961cf1c62cb660208aa6a9751d23be966695a5c38398d636053"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2eG8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 249,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "ac421e80f4973917731def87b73eb3469694053f49569fca472c276b8d3a2960",
+      "evidenceThrowSha256": [
+        "75422a3b7d50ba252e8e7497a66b25cee08a54fd7462b4c678cc55958ac250ae"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJucWs=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 232,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "21929a92cbc45b8cca68642c9fbb56d7b2feb1eacba12570cf8cca25ea851097",
+      "evidenceThrowSha256": [
+        "a57454f5f78f710ab7fba11741c9f2ad1097385c0a91f6353e319e995422cbb3"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4ZXY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 231,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "040e7ac732f96783527c4de2a2eaad95ff5d92bac717416526de784168bec9f3",
+      "evidenceThrowSha256": [
+        "d5759135cec3d702174861968d1d36740e2de93ffdeb8395efedc3b52bb1f875"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlrcG0=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_failures.js",
+      "originalLine": 83,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "6e189c00258393ad19b8c72136118c1fcdc507fdbded8af976daa61de28c8bd1",
+      "evidenceThrowSha256": [
+        "9b8077a2566eaf489d042de3052ca23b00ab0bd1630789dce7432a4440b59d2d"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhreW8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_exit_cancel_engine.js",
+      "originalLine": 84,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "9b76064537580c40132c67ac51e62cfd29c718d4e567e574e3be96e34853b2d8",
+      "evidenceThrowSha256": [
+        "aa5bcc3c80bbf9cedf2c7ca5ea6d673dca584a6dd056b012f8a9fb687feb44b0"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFva2c=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_exit_cancel_engine.js",
+      "originalLine": 58,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "ea28a68ea7f673273ae9e2f7699817530d38fe404d14b17bcc05fdc8feef8298",
+      "evidenceThrowSha256": [
+        "5ebc354fe81a2d3d0f4a4948df5e3a843e9da39a27f3f0612f9ff9b8bd5685a9"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2a28=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_price_engine.js",
+      "originalLine": 83,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "93355174fbbfb7bfba39f99eefb60df3a10f44fea54b245cb0b8dae97593231c",
+      "evidenceThrowSha256": [
+        "23e097b8c656917a9e19c48bfeae2f46c82ff55ffe7f418a963438e4c4037309"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFteG4=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_expiry.js",
+      "originalLine": 196,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "98d8fe354d2270c4f0e7a9b54340b7cc4602240cc3990e5de5a2ac3349647239",
+      "evidenceThrowSha256": [
+        "bb32f4e94bda88da33e4812c0144a76821945902b67d3a651eac7ddba4be06b0"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12cnY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_expiry.js",
+      "originalLine": 115,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "1b131428a1546a3b801d69f761f25e94239331e5cdeb057b4f9b42fafe605bae",
+      "evidenceThrowSha256": [
+        "0ff2155db706e942ee77ffdcfda24e8b31decce6f3f465d7a5946adead6ac1a8"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93eW8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_expiry.js",
+      "originalLine": 101,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "443cda5b5c1b8915047529a8e56cb399bba17368d192b8e4504eb13ab6326b56",
+      "evidenceThrowSha256": [
+        "d6b5d2ac72e6c6ab2d429b7b3788c9685d1bb6682ebfd600c519171bd247ce1e"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlrYWE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 255,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "bb8b82d57197253f7d4e1b3766c6a47c41b968c61dbfa9395bbcd4582e86ad51",
+      "evidenceThrowSha256": [
+        "4724565b315aae6e653053e1bfe5875822751947a02227ade7905dde6ee475f6"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpwYXc=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 197,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "17957d133341817e620e299e7ab2bfdb370712e831eb97eef6122bb145e9c57e",
+      "evidenceThrowSha256": [
+        "41563e472944731a07a30fe5762377625aaf108c5f994f58562f3f3a895e7a65"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJucGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_entry_commitment.js",
+      "originalLine": 159,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "d011554d37d1e93894ed681489906e8bff96ef551eac70bacd467a8778226179",
+      "evidenceThrowSha256": [
+        "88acb1efa4a7f1659968b5174adc4e300ed44727c234733a0bbfcf9a964e6003"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2Vub2E=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_emergency.js",
+      "originalLine": 174,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "63e41f5db8ff464dcd260aaebc838e94df8c51eeb760ba2247a42eb9ff65d158",
+      "evidenceThrowSha256": [
+        "ca00fccfb408989eddc401062c4d1219a6aceb6b9b55412357f1790862e8f178"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12cHY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_emergency.js",
+      "originalLine": 163,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "56bc71685915294c5293e91a2d1c4708b8573d6972d154007ea7113d2716b7e8",
+      "evidenceThrowSha256": [
+        "ec91130c1a75c5f0ecefe55b06f830b9f24f2b9df0c3c81f30ae235708e3c3e9"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxyeHY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_emergency.js",
+      "originalLine": 153,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "48411304eaa53b270945b3d9075f0c315f1777255adae836c0716935ad865f29",
+      "evidenceThrowSha256": [
+        "752741132edd21c4523a1fdc6993e156abe28fff04f71fe288b139ccb26b246b"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhramo=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_emergency.js",
+      "originalLine": 139,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "1bacd0e3293e47bf7d0eea4de2ea410e81859fe89fa991f4f7cc6ad1ae51b14d",
+      "evidenceThrowSha256": [
+        "630d27ea05e9ed1a689af1b0488a33bb2b504bd85220b0f7b79b69cc7602b54f"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvbXE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 142,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "be8f681f890eb0f8b67066e38033de0c2275c219675605f03ee23fbb71db51d1",
+      "evidenceThrowSha256": [
+        "4b70184fce7ceb718f3f704a92c275dc22db1b136db37c11a3a9ba28830fac94"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtucHY=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 103,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "374c8400ccd2f2429822f9c7288a0ff3d229adaa9d05eef1d2e166b4f7dbff2a",
+      "evidenceThrowSha256": [
+        "d433d259db59d7a815fe2df16fd42869a604e9b0c488deda1cee92e29f6a829e"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlldng=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 29,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "e18ef66f00c4ff5699e94d3f9ec1527b1773f9c283c29b4b1aaea9327a71e3b1",
+      "evidenceThrowSha256": [
+        "2ab2bece355adea7143ecb0d542596d104ec0a408aa2c2a37de3412e38c6d799"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VubWE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originalLine": 26,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "e994cc42f1d1f6fc7aa65787a6adca84c8df99af5b7674321fffce7ad7337410",
+      "evidenceThrowSha256": [
+        "a6f67a1aa85bb2b810376c57b81997c521d1af3d0417a953a41a77d9b254790e"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFvd2w=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_account_baseline.js",
+      "originalLine": 140,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "337370fcb78d7f7648220c337495017a6e5bc9ad522cd24482cd01e86c53d613",
+      "evidenceThrowSha256": [
+        "17051525a1e5921661787fc074a721714d63023cbae86c1df65be02bddcecf1b"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZvcXE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_account_baseline.js",
+      "originalLine": 139,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "734e44a7709ad4d1ec4b80fa90841495d001d392371bf2483325c5ef0373f707",
+      "evidenceThrowSha256": [
+        "156cbaf37911c42625c0d0db612e7d1911f24fd6e32548504fd5677c053b5b3f"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnl2ZGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_account_baseline.js",
+      "originalLine": 77,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "e4e21128df82b3c6da82ccd6e44cb29ba8436a4718cfd6ac7ba8dcad13d637c6",
+      "evidenceThrowSha256": [
+        "0f82b8e36e3912a57050f019716e2f65c4c1fb9b2c5a184cf7e08aab37931802"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtcm4=",
+      "rule": "JS-0116",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 213,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "be04e89a9dd26cb013586777fbb7e80576e2f991e5860e58fe142e94aa049d20",
+      "evidenceThrowSha256": [
+        "895561b7c34a92f24248fab604b45eb2f4db507111c39cc638c7388cbb735867"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtub3Y=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_service.js",
+      "originalLine": 157,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "157ff76a342b7b48721298738176593e8720435533c5ec4186a4146bb09a432f",
+      "evidenceThrowSha256": [
+        "d07d5baca0225bb88371bb3b68064dd6418c1dfb7df3815d447a41ba32d8fd91"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d294cG4=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_service.js",
+      "originalLine": 76,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "2204ed5438a894d5b4fd78f216056b6519e94019e52cf8b03a24203fe0a282b8",
+      "evidenceThrowSha256": [
+        "deaca8ec2ec96c97f58076e6b033d02b3abe68718dc4952df86d258c7686f6e4"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VucXk=",
+      "rule": "JS-0116",
+      "path": "tests/test_tdlib_retry.js",
+      "originalLine": 64,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "5cb40043d3cb9f2be66e4f8c975175ed9c23d6df085bb6c0c2748a48ac55afd5",
+      "evidenceThrowSha256": [
+        "db967569de1b6a519190081015acedbad5e67ee1e0b8a7760cbb40e52a47c6d8"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtamc=",
+      "rule": "JS-0116",
+      "path": "tests/test_tdlib_retry.js",
+      "originalLine": 54,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "3d8c00266ddc0e1adee22a054e8697b2bbda61afbef7aaec726489299458b0c8",
+      "evidenceThrowSha256": [
+        "6d7437c1bcd146d55afe0fd77ea1e1bd4e82eaefa63f16f26f5fcecbff1855e7"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12d2c=",
+      "rule": "JS-0116",
+      "path": "tests/test_tdlib_retry.js",
+      "originalLine": 42,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "345bea763ec8254fba04e1db9dff7ea7269dde5af2841b62000c4e6bcf9e2764",
+      "evidenceThrowSha256": [
+        "0e6f6591aeda431b6f53e3730cd189c7a6c748f69f2c8c988a56738c62e3d6e1"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG93bWQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_tdlib_retry.js",
+      "originalLine": 29,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "6de487734bd35f69a9a861ac17c77a80f55b2dc384738f2265af86be0d80f0bf",
+      "evidenceThrowSha256": [
+        "db967569de1b6a519190081015acedbad5e67ee1e0b8a7760cbb40e52a47c6d8"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxyZHI=",
+      "rule": "JS-0116",
+      "path": "tests/test_tdlib_retry.js",
+      "originalLine": 22,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "de28a9a92e2776209a943e9e0441998f0f0ee45f48c28a115aa43718db048d7d",
+      "evidenceThrowSha256": [
+        "2499839f9f4697707da547c52cec215f04e6419dee600e648b15104a394c1490"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlrZ3k=",
+      "rule": "JS-0116",
+      "path": "tests/test_tdlib_retry.js",
+      "originalLine": 16,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "ad8fe96fab350cf877c2f32004d92c005f0453e92521754dd72025779937b7b7",
+      "evidenceThrowSha256": [
+        "9f403056e08f150f4df69ace069b3b19c18c75197b557fdba909782daff21585"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4bHk=",
+      "rule": "JS-0116",
+      "path": "tests/test_startup_trading.js",
+      "originalLine": 81,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "4a457eae81d57f12f60f90bc42fcfdcf11de03882a2d99944356dd3ce42e0674",
+      "evidenceThrowSha256": [
+        "a583970e448e9ff2a5220e9bdbc038aae2a890674c5481f60f6b479be805e58f"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5a2w=",
+      "rule": "JS-0116",
+      "path": "tests/test_startup_authority.js",
+      "originalLine": 54,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "747b1dba9aa2a6602cd6162ff02e411ed71c78d02e4f44c567ec3d9763be4374",
+      "evidenceThrowSha256": [
+        "3630dd9bdbbd67a00126b31b0d245402429a02ac4e3d5b82d1847948d448471b"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqbnI=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 81,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "55903d322a2823dadb18485076d7ee836320e307170f8e35d4090fbae2310135",
+      "evidenceThrowSha256": [
+        "00ea0570cfcdbd26635cdc7dcdc570f0323dcb99aa8eb9280e67650acd1df3c7"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtrZ2U=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonarcloud_export.js",
+      "originalLine": 66,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 2,
+      "evidenceFunctionSha256": "9ea93220037bd638e5a60e56b97c913772420377109e9ba51cc30bca6aad54b5",
+      "evidenceThrowSha256": [
+        "272e1423ee43d06eb08e85ddbece57bf3b35ed197c29faba352288f685bbf388",
+        "b15351a1133da4e48af29311799b0b1128a3ac527ad3d5063066641934fa48b2"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4bXk=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonar_pull_request.js",
+      "originalLine": 37,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "177a1ade887e7eb36cd192081d54f66cd3352a9514e4047db4418c8e539ac0e3",
+      "evidenceThrowSha256": [
+        "6acec022da113d62d3f925b2cbdacd2df7b8971277983a6175faa258ae487124"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpqeXI=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonar_evidence.js",
+      "originalLine": 32,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "4ff7fe1422d6642859ae8e49dd3ceb051d2012ec5c3526eab1ab3a691a33564c",
+      "evidenceThrowSha256": [
+        "b210400f2788a3767bbd9cd5264f2be555dfe830f30dcf325d86783dcaefc90e"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJyZ2w=",
+      "rule": "JS-0116",
+      "path": "tests/test_sonar_branch.js",
+      "originalLine": 24,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "a7e27b47c10b758a5efdc7a2bfeaea169b6f77259a07203eb9f8eb7e38c6061d",
+      "evidenceThrowSha256": [
+        "7736ea4b86088f163dc1c794a375a1a0fac45f9a9c9041309d5221a36b8c07e0"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VleXk=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 506,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "a294857f718b4b3897903ca132c969a4339c0a52f3369636b4af74c03aaf70e2",
+      "evidenceThrowSha256": [
+        "9f403056e08f150f4df69ace069b3b19c18c75197b557fdba909782daff21585"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tb2c=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 455,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "8ee8d3669722e65e87368690f458a0a9f180e1a2b3cc0d27203f25c245042827",
+      "evidenceThrowSha256": [
+        "9a6c8bb41fb6ac6276912379831ad77f155d9841cca7dafc065d5571f91b058c"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9vbGQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "originalLine": 434,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "804a43bd165aef1def486b179b01ca7dab108a7c73d6c90e222b0fcd0349c3e6",
+      "evidenceThrowSha256": [
+        "24824aa1cc74481ed4d2819aa23f541e5bcbc13cb2dab00276263544f602cb4e"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFhcGU=",
+      "rule": "JS-0116",
+      "path": "tests/test_queue.js",
+      "originalLine": 70,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "b3922d866c75b36e89563b8f169d6d4263cf561b11106bc7559becfd3fd922fe",
+      "evidenceThrowSha256": [
+        "97fff366cf29e82802c903b7077870ef0abc1c0f536a516428bb91cabf2f1baf"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5Z2o=",
+      "rule": "JS-0116",
+      "path": "tests/test_migration_recovery.js",
+      "originalLine": 67,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "407e86ff3ab5280faeb10cad8a121ee769eeccafe11a20d8881edf00e27f64c2",
+      "evidenceThrowSha256": [
+        "f4bea61be5d5f88e673aa0de68a3269e75fbc57c77b3a0d78cd87f2ee76eaa38"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh4eGs=",
+      "rule": "JS-0116",
+      "path": "tests/test_ingress_workflow_pinning.js",
+      "originalLine": 83,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "baf31184beccd9412bc4cd7838bc8752eb44e2ea4e4b110a8c8021e1d9787b3a",
+      "evidenceThrowSha256": [
+        "c672eb5d9fe4e7d10caf43cbd9448f1356ef88dc1de691b9bf05053f41d35541"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tZGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup_proofs.js",
+      "originalLine": 142,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "d5d0374974cc653c723fb2f8b5b1ecb937af8b4a3294d0b4c5d26ddeac6ddefa",
+      "evidenceThrowSha256": [
+        "9ad02041fad11be981d3910296306cac460e679114037ee6caa0705c5d7f80e7"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl5am8=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup_generation.js",
+      "originalLine": 74,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "0d460eedb6bc825e8a1fef06b336321506b6eacb3e2d6dc640ce6260e39391da",
+      "evidenceThrowSha256": [
+        "9f403056e08f150f4df69ace069b3b19c18c75197b557fdba909782daff21585"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1tbGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup.js",
+      "originalLine": 489,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "12f844004053f6453f510b7651f34228b0c13916d02ff009727e73b9a38d9a4e",
+      "evidenceThrowSha256": [
+        "4c77113c33ab5694e1e130aa2a8cf4c7aecb7c002a30bc7311a9a3834474c165"
+      ],
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5bGw=",
+      "rule": "JS-0116",
+      "path": "tests/test_ai_usage_reservations.js",
+      "originalLine": 44,
+      "status": "reviewed_expected_behavior",
+      "proof": "Individually reviewed fault-injection/adapter fixture contains explicit throw paths that must become Promise rejections. Async preserves the caller rejection contract, pre-rejection state/counters, conditional success results and assertion failures; removal would change synchronous exception behavior.",
+      "explicitThrowPaths": 1,
+      "evidenceFunctionSha256": "20f3ce2f9693fd6d5c55d97d47cc3637b7053dc9c77d7a4d5dd3101f1907d5ae",
+      "evidenceThrowSha256": [
+        "78b8fde606ad9930153a5772faf05c6afc50cdf88fb08d1ba22de85b86f21d73"
+      ],
+      "remoteSuppressionApplied": false
     }
   ]
 }
