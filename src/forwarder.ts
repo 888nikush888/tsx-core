@@ -1,3 +1,6 @@
+import type { TradingIntent } from './trading_types.js';
+import type { RouteRow } from './trading_repository_rows.js';
+import type { Config } from './config.js';
 import * as tdl from 'tdl';
 import { getTdjson } from 'prebuilt-tdlib';
 import { promises as fsPromises } from 'node:fs';
@@ -194,7 +197,7 @@ function requireDeliveryTracker(): TelegramDeliveryTracker {
   return deliveryTracker;
 }
 
-function applyQueueSettings(config: any) {
+function applyQueueSettings(config: Config) {
   const maxConcurrency = config?.forwardOptions?.maxConcurrency ?? 2;
   const queueTimeoutSeconds = config?.forwardOptions?.queueTimeoutSeconds ?? 60;
   forwardQueue.updateSettings(maxConcurrency, queueTimeoutSeconds * 1000);
@@ -204,7 +207,7 @@ function configSnapshot(config: any): any {
   return nonSecretConfigSnapshot(config);
 }
 
-async function migrateLegacyPersistedTasks(config: any): Promise<void> {
+async function migrateLegacyPersistedTasks(config: Config): Promise<void> {
   try {
     const data = await fsPromises.readFile(LEGACY_PERSIST_FILE, 'utf-8');
     const tasks = JSON.parse(data);
@@ -233,7 +236,7 @@ async function migrateLegacyPersistedTasks(config: any): Promise<void> {
 async function executePersistedOutboxTask(task: OutboxTask, config: any, context: OutboxExecutionContext): Promise<any> {
   if (!config.durableIngress) throw new Error('Legacy outbox has no proven immutable ingress; review required.');
   if (task.type === 'single') {
-    const work = await getDatabase().get<any>('SELECT message_json FROM incoming_work WHERE id = ?', [task.ingressWorkId]);
+    const work = await getDatabase().get<{ message_json: string }>('SELECT message_json FROM incoming_work WHERE id = ?', [task.ingressWorkId]);
     const message = work?.message_json ? JSON.parse(work.message_json) : null;
     if (!message || Number(message.id) !== Number(task.messageId)) {
       throw new Error(`Could not reload source message ${task.chatId}/${task.messageId}.`);
@@ -370,7 +373,7 @@ async function enqueueMediaGroup(gId, config, g) {
   await enqueueTask(task, config);
 }
 
-async function resumePersistedTasks(config: any): Promise<void> {
+async function resumePersistedTasks(config: Config): Promise<void> {
   await migrateLegacyPersistedTasks(config);
   const recovery = await recoverInterruptedOutboxTasks();
   if (recovery.requeued > 0) addLog(`[WARN] Safely requeued ${recovery.requeued} task(s) interrupted before provider send.`);
@@ -386,7 +389,7 @@ async function resumePersistedTasks(config: any): Promise<void> {
   await outboxScheduler.resume();
 }
 
-async function retryPersistedTask(taskId: string, config: any): Promise<boolean> {
+async function retryPersistedTask(taskId: string, config: Config): Promise<boolean> {
   if (!await requeueOutboxTask(taskId)) return false;
   activeOutboxConfig = config;
   scheduleOutboxTask(taskId, config);
@@ -801,7 +804,7 @@ async function checkDuplicateAndSave(
   return signalId;
 }
 
-async function recordCreatedIntents(intents: any[], sourceId: string, signalReceivedAt: number): Promise<void> {
+async function recordCreatedIntents(intents: TradingIntent[], sourceId: string, signalReceivedAt: number): Promise<void> {
   for (const intent of intents) {
     await recordTradingExecutionEvent({
       eventType: 'intent_created',
@@ -981,9 +984,9 @@ async function createLegacyIntentForSignal(
   const pinned = context.config.durableIngress.legacyRoute;
   if (!pinned?.enabled) return;
   const intent = await withDatabaseTransaction(async database => {
-    const existing = await database.get<any>('SELECT id FROM trading_trade_intents WHERE source_signal_id = ?', [signalId]);
+    const existing = await database.get<{ id: string }>('SELECT id FROM trading_trade_intents WHERE source_signal_id = ?', [signalId]);
     if (existing) return null;
-    const current = await database.get<any>('SELECT * FROM trading_routes WHERE channel_id = ?', [sourceId]);
+    const current = await database.get<RouteRow>('SELECT * FROM trading_routes WHERE channel_id = ?', [sourceId]);
     if (!current?.enabled || current.account_id !== pinned.account_id || current.strategy_version_id !== pinned.strategy_version_id) {
       throw new Error('Pinned legacy route is no longer authorized; review required.');
     }
@@ -1084,7 +1087,7 @@ async function forwardSingleMessage(message, config, context: OutboxExecutionCon
   throw new Error(`Message ${message.id} produced no configured side effect.`);
 }
 
-function telegramForwardingEnabled(config: any): boolean {
+function telegramForwardingEnabled(config: Config): boolean {
   return config.forwardOptions?.forwardToTarget ?? true;
 }
 
@@ -1164,7 +1167,7 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
 }
 
 
-async function routeIncomingMessage(message: any, config: any): Promise<void> {
+async function routeIncomingMessage(message: any, config: Config): Promise<void> {
   if (message.is_outgoing) return;
   const chatId = String(message.chat_id);
   const activeWorkflow = await getActiveWorkflow();
@@ -1176,7 +1179,7 @@ async function routeIncomingMessage(message: any, config: any): Promise<void> {
   outboxScheduler.requestPump();
 }
 
-async function handleUpdate(update: any, config: any): Promise<void> {
+async function handleUpdate(update: any, config: Config): Promise<void> {
   deliveryTracker?.handleUpdate(update);
   if (update._ === 'updateConnectionState') {
     addLog(`[TDLib Status] Verbindungszustand geändert: ${update.state?._ || 'unknown'}`);
@@ -1219,7 +1222,7 @@ async function stopForwarding() {
   addLog("[SUCCESS] Weiterleitung gestoppt!");
 }
 
-function routingCredentials(config: any): { apiId: number; apiHash: string } {
+function routingCredentials(config: Config): { apiId: number; apiHash: string } {
   const environmentApiId = Number(process.env.TELEGRAM_API_ID);
   const apiId = Number.isSafeInteger(environmentApiId) && environmentApiId > 0
     ? environmentApiId
@@ -1255,7 +1258,7 @@ async function preloadTelegramChats(): Promise<void> {
   }
 }
 
-function attachTelegramUpdateHandler(config: any): void {
+function attachTelegramUpdateHandler(config: Config): void {
   client.on('update', update => {
     void handleUpdate(update, config).catch(error => {
       addLog(`[ERROR] Telegram update handling failed: ${error.message}`);
@@ -1572,7 +1575,7 @@ function requiredProcessOwner(): ProcessLock {
 async function initializeCoreRuntime(
   tradingCredentials: TradingCredentialStore,
   clockGuard: ClockGuard,
-  runtimeConfig: any,
+  runtimeConfig: Config,
   databasePath: string,
 ) {
   initializeDeliveryTracker();

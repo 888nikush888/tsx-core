@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "First forwarding batch: standard Config parameters, SQL rows and created TradingIntent records only.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 durable outbox and startup trading suites",
+    "Targeted ESLint"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHF2d24=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1575,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRseWQ=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1258,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1sZXg=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1222,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhkZ3c=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1179,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHF2dm4=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1179,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZqamw=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1167,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpnZ3k=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1167,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1sbHI=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 1087,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZqamU=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 986,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "The SQL result uses its selected column projection or concrete trading route row interface."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpnbG0=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 984,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "The SQL result uses its selected column projection or concrete trading route row interface."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlsZ3c=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 804,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "Created intents use the existing TradingIntent domain contract already returned by the repositories."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9tbms=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 389,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxkb3A=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 373,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm13YXI=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 236,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "The SQL result uses its selected column projection or concrete trading route row interface."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFqeHY=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 207,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlhd3c=",
+      "rule": "JS-0323",
+      "path": "src/forwarder.ts",
+      "baselineLine": 197,
+      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
+      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
+      "disposition": "fixed",
+      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
+    }
+  ]
+}
