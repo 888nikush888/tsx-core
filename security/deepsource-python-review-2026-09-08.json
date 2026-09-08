@@ -16,7 +16,7 @@
   "verification": {
     "ruff": "passed",
     "mypy": "17 targeted source files passed with follow-imports=silent and ignore-missing-imports; dependency stubs not a whole-repository strict typing claim.",
-    "unittest": "Exact-lock Python 3.12 environment: 546 tests, 543 passed, 3 manifest/review commitment drift errors; no business-logic test failures. Final helper extractions additionally verified by 11 history, 16 entry-price, 3 order-evidence tests.",
+    "unittest": "Exact hash-locked Python 3.12.14 environment: all 546 tests passed after independent review and narrow renewal of candidate source/test commitments. Evidence: reports/security-services/python-exact-lock-wave4.log and exchange_executor/certifications/reviews/security-candidate-evidence-2026-09-08.json. This does not renew global implementation/release attestations.",
     "complexity": "AST decision-count calculation matched all 10 original reported complexity scores; all 10 changed functions now at most 15. Cloud rescan remains authoritative."
   },
   "entries": [

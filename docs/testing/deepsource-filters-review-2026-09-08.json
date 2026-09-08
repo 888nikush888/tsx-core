@@ -3,8 +3,8 @@
   "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
   "reviewedAt": "2026-09-08T10:28:42.7180519Z",
   "path": "src/filters.ts",
-  "sourceSha256": "7c27503b58caa99c50f8a43c67cb6a2d10ba4cf452c3b1d364ac2de2d1204d86",
-  "testSha256": "23f66279877934d0d1776186210a157ae1b18537180b82f98cfd89927a19f40e",
+  "sourceSha256": "f5edfd4deb01e971a8e061e627e2bc1292bff101bb11dc1abd9c579db2b89832",
+  "testSha256": "c3f22af06ca67d1bc3acdc8b9531c2073e14296b5800e7e3df468fd02655d9a9",
   "status": "fixed-locally-pending-cloud-rescan",
   "count": 23,
   "changes": [
@@ -190,5 +190,15 @@
       "beginColumn": 17,
       "beginLine": 17
     }
-  ]
+  ],
+  "independentReview": {
+    "forwardingAndLogCases": 192,
+    "localRegression": "Actual 10ms timeout diagnosis and cause asserted",
+    "outcome": "no remaining blocker after preserving native cross-realm VM timeout diagnostics",
+    "reviewedRevision": "8aef228",
+    "actualTimeout": "Exact 1ms diagnostic and original ERR_SCRIPT_EXECUTION_TIMEOUT cause match baseline",
+    "reviewer": "baseline_verification",
+    "messageTypeCases": 10,
+    "sourceOverrideCases": 12
+  }
 }
