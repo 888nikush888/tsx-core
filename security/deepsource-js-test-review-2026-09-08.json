@@ -34,7 +34,8 @@
     "Sonar local-name and implementation-path Unicode fixes: historical Sonar decision and full implementation bridge suites, ESLint and diff checks passed.",
     "Coverage gate: Node22 unit and isolated CLI regressions passed, 156 original/current policy comparisons passed, entire changed files ESLint complexity<=5 and diff checks passed.",
     "FX forged-evidence construction: full Node22 repository suite and ESLint/diff checks passed.",
-    "Registry and LCOV helpers: both Node22 regression suites, complete changed scripts ESLint complexity<=5 and diff checks passed."
+    "Registry and LCOV helpers: both Node22 regression suites, complete changed scripts ESLint complexity<=5 and diff checks passed.",
+    "Complexity and release policies: 304 original/current differential cases, both extended Node22 regression suites, actual release gate, strict complexity<=5 ESLint and diff checks passed."
   ],
   "entries": [
     {
@@ -4792,6 +4793,30 @@
       "originalLine": 13,
       "status": "source_change_pending_rescan",
       "proof": "Separated single-source canonicalization and filesystem validation from sequential LCOV traversal. Lexical and canonical containment, missing files, non-files, empty sources and empty reports continue to fail closed. Existing LCOV path suite passes."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZGFueHE=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_release_artifacts.js",
+      "originalLine": 22,
+      "status": "source_change_pending_rescan",
+      "proof": "Extracted repeated budget-difference comparison and separate license-text/lock-version validations. All changed functions complexity<=5. 304 original/current cases preserve exact diagnostics and ordering; targeted tests explicitly cover combined errors, lock root version mismatch, improvement ratchet and missing rule counts. No baselines changed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bnZvZ2s=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_release_artifacts.js",
+      "originalLine": 7,
+      "status": "source_change_pending_rescan",
+      "proof": "Extracted repeated budget-difference comparison and separate license-text/lock-version validations. All changed functions complexity<=5. 304 original/current cases preserve exact diagnostics and ordering; targeted tests explicitly cover combined errors, lock root version mismatch, improvement ratchet and missing rule counts. No baselines changed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dndrbHA=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_complexity_budget.js",
+      "originalLine": 8,
+      "status": "source_change_pending_rescan",
+      "proof": "Extracted repeated budget-difference comparison and separate license-text/lock-version validations. All changed functions complexity<=5. 304 original/current cases preserve exact diagnostics and ordering; targeted tests explicitly cover combined errors, lock root version mismatch, improvement ratchet and missing rule counts. No baselines changed."
     }
   ]
 }
