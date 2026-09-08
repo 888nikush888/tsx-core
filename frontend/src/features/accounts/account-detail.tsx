@@ -1,3 +1,4 @@
+import type { TradingAccount } from '@/app/workflow/types';
 import { useCallback, useState } from 'react';
 import { jsonRequest, mutateAndObserve } from '@/lib/api';
 import { Link } from '@/lib/navigation';
@@ -5,13 +6,38 @@ import { usePoll } from '@/shared/api/use-poll';
 import { EvidenceFields, EvidenceTable } from '@/shared/components/evidence';
 import { useConfirmationDialog } from '@/components/confirmation-dialog';
 
+type AccountIdentity = Pick<TradingAccount, 'name' | 'exchange' | 'mode' | 'enabled' | 'status' | 'killSwitchActive' | 'killSwitchReason' | 'maxConcurrentPositions'> & {
+  identityFingerprint: string | null;
+  credentialGeneration: number;
+  stateVersion: number;
+  lastVerifiedAt: number | null;
+  reason: string | null;
+};
+interface AccountProtection {
+  intentId: string;
+  protected: boolean;
+  reason?: string | null;
+  proof?: { purpose: string; evaluatedAt: number; evidenceHash: string } | null;
+  noDuty?: { noSendBasis: string; noSendEvidenceHash: string } | null;
+}
+interface AccountDetailResponse {
+  account: AccountIdentity;
+  observedAt: number;
+  capacity?: { openPositions: number } | null;
+  reconciliation?: { status: string; completedAt: number | null } | null;
+  stream?: { status: string; gapCount: number; lastEventAt: number | null } | null;
+  protection: AccountProtection[];
+  paths: Array<Record<string, unknown>>;
+  hasMore: { protection: boolean; paths: boolean };
+}
+
 export function AccountDetail({ id, readOnly }: Readonly<{ id: string; readOnly: boolean }>) {
-  const [value, setValue] = useState<any>(null); const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);
+  const [value, setValue] = useState<AccountDetailResponse | null>(null); const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const read = useCallback((signal: AbortSignal) => jsonRequest(`/api/trading/accounts/detail?id=${encodeURIComponent(id)}`, { signal }), [id]);
   usePoll(read, (data) => { setValue(data); setError(''); }, (reason) => setError(reason.message));
   const command = async (action: 'cancel-entries' | 'emergency-flatten') => {
-    if (readOnly || busy) return;
+    if (readOnly || busy || !value) return;
     const emergency = action === 'emergency-flatten';
     if (!await confirm({ title: emergency ? 'Verwaltete Positionen dieses Kontos schließen' : 'Offene Entries dieses Kontos stornieren',
       description: emergency ? `Konto ${value.account.name}: verwaltete Positionen werden geschlossen. Neue Entries werden GLOBAL deaktiviert und der globale Kill-Switch wird gesetzt. Unbewiesenes Eigentum blockiert die Ausführung. Abschluss und Restposition müssen anschließend geprüft werden.` : `Konto ${value.account.name}: nur offene Entry-Orders werden storniert. Bestehende Positionen und Schutzorders sind eigene Aufgaben. Ein unbekanntes Cancel-Ergebnis wird nicht als Abschluss angezeigt.`,
@@ -35,7 +61,7 @@ export function AccountDetail({ id, readOnly }: Readonly<{ id: string; readOnly:
       ['Letzte Verifizierung (UTC ms)', account.lastVerifiedAt], ['Letzter REST-Abgleich', value.reconciliation?.status], ['REST-Abschluss (UTC ms)', value.reconciliation?.completedAt],
       ['Streamzustand', value.stream?.status], ['Streamlücken', value.stream?.gapCount], ['Letztes Streamereignis (UTC ms)', value.stream?.lastEventAt], ['Fehler', account.reason],
     ]} /><p>Beobachtet {new Date(value.observedAt).toLocaleString('de-DE')}. Verifizierung, Streamgesundheit und Handelsschutz sind unterschiedliche Nachweise.</p></section>
-    <section className="operations-card"><h2>Aktueller Schutz</h2>{value.protection.length ? value.protection.map((item: any) => <div key={item.intentId}><Link to={`/trading/trades/${encodeURIComponent(item.intentId)}`}>{item.intentId}</Link><p>{item.protected ? 'Aktueller Serverbeleg vorhanden' : 'Schutz nicht aktuell bewiesen'} · {item.reason ?? item.proof?.purpose ?? item.noDuty?.noSendBasis}</p><p>Prüfzeit (UTC ms): {item.proof?.evaluatedAt ?? 'nicht verfügbar'} · Beleg: {item.proof?.evidenceHash ?? item.noDuty?.noSendEvidenceHash ?? 'nicht verfügbar'}</p></div>) : <p>Kein aktueller Schutzbeleg in dieser Projektion. Dies ist keine Freigabe.</p>}{value.hasMore.protection && <p>Weitere Schutzpflichten vorhanden. Über die paginierte Positions-/Intentliste zum einzelnen Beleg wechseln.</p>}</section>
+    <section className="operations-card"><h2>Aktueller Schutz</h2>{value.protection.length ? value.protection.map((item) => <div key={item.intentId}><Link to={`/trading/trades/${encodeURIComponent(item.intentId)}`}>{item.intentId}</Link><p>{item.protected ? 'Aktueller Serverbeleg vorhanden' : 'Schutz nicht aktuell bewiesen'} · {item.reason ?? item.proof?.purpose ?? item.noDuty?.noSendBasis}</p><p>Prüfzeit (UTC ms): {item.proof?.evaluatedAt ?? 'nicht verfügbar'} · Beleg: {item.proof?.evidenceHash ?? item.noDuty?.noSendEvidenceHash ?? 'nicht verfügbar'}</p></div>) : <p>Kein aktueller Schutzbeleg in dieser Projektion. Dies ist keine Freigabe.</p>}{value.hasMore.protection && <p>Weitere Schutzpflichten vorhanden. Über die paginierte Positions-/Intentliste zum einzelnen Beleg wechseln.</p>}</section>
     <section className="operations-card"><h2>Verbundene aktive Pfade</h2><EvidenceTable caption="Aktive Pfade (bis 100)" rows={value.paths} columns={[["id", "Pfad-ID"], ["channelId", "Kanal"], ["workflowRevisionId", "Originalrevision"], ["enabled", "Aktiv"]]} />{value.hasMore.paths && <p>Weitere Pfade vorhanden.</p>}</section>
     <nav aria-label="Kontoobjekte" className="flex flex-wrap gap-4"><Link to={`/risk/accounts/${encodeURIComponent(id)}`}>Risiko, Geld und Historienbelege</Link>{[['positions', 'Positionen'], ['orders', 'Orders'], ['operations', 'Börsenoperationen'], ['incidents', 'Vorfälle'], ['reconciliations', 'REST-Verlauf'], ['journal', 'Journal']].map(([path, label]) => <Link key={path} to={`/trading/${path}?accountId=${encodeURIComponent(id)}`}>{label}</Link>)}</nav>
     <section className="operations-card"><h2>Sichere Reduktion und Notausstieg</h2>{readOnly && <p>Viewer: Commands sind gesperrt.</p>}<button className="secondary-button" disabled={readOnly || busy} onClick={() => { command('cancel-entries'); }}>Entries dieses Kontos stornieren</button><button className="danger-button" disabled={readOnly || busy} onClick={() => { command('emergency-flatten'); }}>Konto-Notausstieg · globale Entry-Sperre</button></section>
