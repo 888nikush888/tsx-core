@@ -35,7 +35,8 @@
     "Coverage gate: Node22 unit and isolated CLI regressions passed, 156 original/current policy comparisons passed, entire changed files ESLint complexity<=5 and diff checks passed.",
     "FX forged-evidence construction: full Node22 repository suite and ESLint/diff checks passed.",
     "Registry and LCOV helpers: both Node22 regression suites, complete changed scripts ESLint complexity<=5 and diff checks passed.",
-    "Complexity and release policies: 304 original/current differential cases, both extended Node22 regression suites, actual release gate, strict complexity<=5 ESLint and diff checks passed."
+    "Complexity and release policies: 304 original/current differential cases, both extended Node22 regression suites, actual release gate, strict complexity<=5 ESLint and diff checks passed.",
+    "Sonar read retry helpers: all five Node22 Sonar suites passed; complete script ESLint complexity<=5 and diff checks passed. No live mutation or production pin change."
   ],
   "entries": [
     {
@@ -4817,6 +4818,14 @@
       "originalLine": 8,
       "status": "source_change_pending_rescan",
       "proof": "Extracted repeated budget-difference comparison and separate license-text/lock-version validations. All changed functions complexity<=5. 304 original/current cases preserve exact diagnostics and ordering; targeted tests explicitly cover combined errors, lock root version mismatch, improvement ratchet and missing rule counts. No baselines changed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZGtubHk=",
+      "rule": "JS-R1005",
+      "path": "scripts/sonar_read.js",
+      "originalLine": 69,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated request URL construction, network-failure classification and retry preparation; whole script complexity<=5. Preserves retryable statuses, 3-attempt cap, response cancellation, remaining budget checks, delays, parsing and exact failure messages. Five Sonar export/branch/PR/evidence/decision suites passed."
     }
   ]
 }
