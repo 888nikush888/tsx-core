@@ -104,26 +104,11 @@ export function buildEquityChartGroups<Point extends EquityObservation, Account 
 
 const EQUITY_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
-export function EquityChart({
-  points,
-  accounts,
-  emptyText,
-  metric = 'equity',
-}: Readonly<{
-  points: EquityObservation[];
-  accounts: EquityAccount[];
-  emptyText: string;
-  metric?: 'equity' | 'drawdown';
-}>) {
-  const groups = useMemo(() => buildEquityChartGroups(metric === 'equity' ? points : points.filter(point => point.drawdownPercent != null)
-    .map(point => ({ ...point, equity: String(point.drawdownPercent) })), accounts), [accounts, points, metric]);
-  const unknown = points.filter(point => !equityObservationGroup(point)).length;
-  if (groups.length === 0) return <Empty text={unknown ? `${unknown} Beobachtungen ohne Währungs-, Modus- oder Quellenbeleg; keine vergleichbare Kurve verfügbar.` : emptyText} />;
+type EquityMetric = 'equity' | 'drawdown';
+
+function EquityGroup({ group, metric }: Readonly<{ group: EquityChartGroup; metric: EquityMetric }>) {
   return (
-    <div className="equity-chart-groups">
-      <p>{metric === 'equity' ? 'Kurven zeigen näherungsweise einzelne Beobachtungen, keine lückenlose Überwachung. Tooltips zeigen den originalen Betrag.' : 'Drawdown vom beobachteten Höchststand innerhalb dieser Auswahl. Näherungsweise Prozentwerte je Konto, Originalwährung und Modus; kein belegter Allzeithöchststand.'} {unknown > 0 && `${unknown} Beobachtungen ohne Währungs-, Modus- oder Quellenbeleg sind ausgeschlossen.`}</p>
-      {groups.map((group) => (
-        <div className="equity-chart-group" key={group.currency}>
+        <div className="equity-chart-group">
           <div className="equity-chart-legend">
             <strong>{group.currency}</strong>
             {group.series.map((series, index) => (
@@ -154,7 +139,28 @@ export function EquityChart({
             </LineChart>
           </ResponsiveContainer>
         </div>
-      ))}
+  );
+}
+
+export function EquityChart({
+  points,
+  accounts,
+  emptyText,
+  metric = 'equity',
+}: Readonly<{
+  points: EquityObservation[];
+  accounts: EquityAccount[];
+  emptyText: string;
+  metric?: EquityMetric;
+}>) {
+  const groups = useMemo(() => buildEquityChartGroups(metric === 'equity' ? points : points.filter(point => point.drawdownPercent != null)
+    .map(point => ({ ...point, equity: String(point.drawdownPercent) })), accounts), [accounts, points, metric]);
+  const unknown = points.filter(point => !equityObservationGroup(point)).length;
+  if (groups.length === 0) return <Empty text={unknown ? `${unknown} Beobachtungen ohne Währungs-, Modus- oder Quellenbeleg; keine vergleichbare Kurve verfügbar.` : emptyText} />;
+  return (
+    <div className="equity-chart-groups">
+      <p>{metric === 'equity' ? 'Kurven zeigen näherungsweise einzelne Beobachtungen, keine lückenlose Überwachung. Tooltips zeigen den originalen Betrag.' : 'Drawdown vom beobachteten Höchststand innerhalb dieser Auswahl. Näherungsweise Prozentwerte je Konto, Originalwährung und Modus; kein belegter Allzeithöchststand.'} {unknown > 0 && `${unknown} Beobachtungen ohne Währungs-, Modus- oder Quellenbeleg sind ausgeschlossen.`}</p>
+      {groups.map(group => <EquityGroup key={group.currency} group={group} metric={metric} />)}
     </div>
   );
 }
