@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
   BUILTIN_SIGNAL_CONTRACTS,
   composeSignalSchemaContract,
@@ -380,4 +382,53 @@ function testNumericGroundingBoundaries() {
   }
 }
 testNumericGroundingBoundaries();
+function testContractPatternExecution() {
+  const definition = standard();
+  const check = (pattern, value) => {
+    definition.additionalFields = [{ path: 'note', type: 'text', required: true, allowedValues: [], pattern }];
+    return validateSignalXml(`<signal><action>LONG</action><pair>BTCUSD</pair>
+      <entry_range><min>100</min><max>101</max></entry_range>
+      <targets><target id="1">110</target></targets><stoploss>90</stoploss><note>${value}</note></signal>`,
+    undefined, { id: 'pattern-compatibility', parserSchema: 'standard', contractDefinition: definition });
+  };
+  for (const [pattern, value] of [
+    ['^(ab+)+$', 'ababb'], ['^(?:BUY|SELL)-[0-9]{1,4}$', 'BUY-123'],
+    [String.raw`^\p{L}+$`, 'ÄÖß'], [String.raw`^\(a\+\)\+$`, '(a+)+'],
+  ]) assert.doesNotThrow(() => check(pattern, value));
+  assert.throws(() => check('^BUY$', 'SELL'), /required pattern/);
+  definition.additionalFields = Array.from({ length: 30 }, (_, index) => ({
+    path: `note_${String.fromCodePoint(97 + Math.floor(index / 26), 97 + index % 26)}`,
+    type: 'text', required: true, allowedValues: [], pattern: '^a$',
+  }));
+  const multiXml = `<signal><action>LONG</action><pair>BTCUSD</pair>
+    <entry_range><min>100</min><max>101</max></entry_range>
+    <targets><target id="1">110</target></targets><stoploss>90</stoploss>
+    ${definition.additionalFields.map(field => `<${field.path}>a</${field.path}>`).join('')}</signal>`;
+  const checkMultiple = () => validateSignalXml(multiXml, undefined, {
+    id: 'shared-pattern-budget', parserSchema: 'standard', contractDefinition: definition,
+  });
+  assert.doesNotThrow(checkMultiple, 'All 30 ordinary field patterns must remain supported.');
+  const originalPerformance = globalThis.performance;
+  let elapsed = 0;
+  try {
+    // Advance time across individually cheap matches: the deadline must be
+    // shared, not replenished for every additional field.
+    globalThis.performance = { now: () => { elapsed += 4; return elapsed; } };
+    assert.throws(checkMultiple, /pattern.*budget/u);
+  } finally {
+    globalThis.performance = originalPerformance;
+  }
+
+  // The outer process owns the deadline even if the runtime guard regresses.
+  const fixture = fileURLToPath(new URL('./fixtures/signal_contract_regex_child.js', import.meta.url));
+  for (const pattern of ['^(a+)+$', '^(a|aa)+$', '^((a+))+$']) {
+    const result = spawnSync(process.execPath, ['--import', 'tsx', fixture, pattern], {
+      encoding: 'utf8', timeout: 5_000,
+    });
+    assert.equal(result.error, undefined, 'Untrusted pattern must not hang its subprocess.');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /bounded-pattern-rejected/u);
+  }
+}
+testContractPatternExecution();
 console.log('Signal contract definition and dynamic-field validation tests passed.');
