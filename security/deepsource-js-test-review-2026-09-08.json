@@ -26,7 +26,8 @@
     "15 UI fixture concatenations: four Node22 restart/register/operator suites and ESLint/diff checks passed.",
     "Follow-up on Promise literal stubs: 21 optional undefined arguments omitted from Promise.resolve to avoid introducing JS-W1042; all six affected Node22 suites and ESLint/diff checks passed. Baseline IDs unchanged.",
     "Final two owned string concatenations and two Unicode flags: rational, full Node22/Python3.12 build bridge, operator and repository-governance tests passed; 11141120 Unicode comparisons and ESLint/diff checks passed.",
-    "License gate: new registered malformed-input and production/build policy regressions pass; original null-match/null-metadata crashes reproduced; 68 valid before/after policy cases unchanged, current 1079-artifact inventory and supply-chain policy pass. Whole changed script/test complexity<=5 and ESLint/diff checks pass."
+    "License gate: new registered malformed-input and production/build policy regressions pass; original null-match/null-metadata crashes reproduced; 68 valid before/after policy cases unchanged, current 1079-artifact inventory and supply-chain policy pass. Whole changed script/test complexity<=5 and ESLint/diff checks pass.",
+    "Three stateless adapter instance methods and one deferred parameter capture individually reviewed against interface and execution order; corresponding full trading-control/scheduler suites passed during the 36-suite rejection review."
   ],
   "entries": [
     {
@@ -4344,6 +4345,46 @@
       "originalLine": 52,
       "status": "source_change_pending_rescan",
       "proof": "Separated package metadata, per-artifact license, direct requirement and lock-entry validation; every function passes complexity<=5. Added fail-closed malformed-map/metadata handling and null-match rejection, preserving all reviewed license policies and artifact inventories."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d293Z3c=",
+      "rule": "JS-0105",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 60,
+      "status": "reviewed_expected_behavior",
+      "proof": "The fake implements TradingExchangeAdapter instance methods marketSnapshot/submitOrder/cancelOrder (src/trading_types.ts). Static methods would remove the callable instance contract; stateless snapshot/rejection stubs intentionally need no this access. Full trading control regression suite passed.",
+      "evidenceLineSha256": "944aeb2307effc3610f8700ce7a451f33155f5e16a648a6fe8f85ff1a4cd0239",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlkcnk=",
+      "rule": "JS-0105",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 59,
+      "status": "reviewed_expected_behavior",
+      "proof": "The fake implements TradingExchangeAdapter instance methods marketSnapshot/submitOrder/cancelOrder (src/trading_types.ts). Static methods would remove the callable instance contract; stateless snapshot/rejection stubs intentionally need no this access. Full trading control regression suite passed.",
+      "evidenceLineSha256": "f5edddf3d1814b3898f35d98797556f05316bf74f454f1c8192d1fe9946a4c69",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlkcmE=",
+      "rule": "JS-0105",
+      "path": "tests/test_trading_web_control.js",
+      "originalLine": 56,
+      "status": "reviewed_expected_behavior",
+      "proof": "The fake implements TradingExchangeAdapter instance methods marketSnapshot/submitOrder/cancelOrder (src/trading_types.ts). Static methods would remove the callable instance contract; stateless snapshot/rejection stubs intentionally need no this access. Full trading control regression suite passed.",
+      "evidenceLineSha256": "129e6313cf728d98a1693de658620782962691ee56c7851a2e99ab06037fe601",
+      "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1td2E=",
+      "rule": "JS-0129",
+      "path": "tests/run_all.js",
+      "originalLine": 227,
+      "status": "reviewed_expected_behavior",
+      "proof": "The default runTest arrow captures error without reading it during parameter initialization. The closure runs only from the function body after all parameter bindings, including error, are initialized; the full scheduler error/failure contract suite passed.",
+      "evidenceLineSha256": "4e67623f03fd95b5ee4e3db5203a8cbdd39b89edda7aabeead955d508d99b334",
+      "remoteSuppressionApplied": false
     }
   ]
 }
