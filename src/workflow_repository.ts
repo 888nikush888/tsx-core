@@ -1,5 +1,5 @@
-import type { AccountRow, StrategyRow, SignalSchemaRow, ContractVersionRow, IntentRow } from './trading_repository_rows.js';
-import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow, LegacyWorkflowRouteRow, LegacyRiskPolicyRow, FallbackCurrentRow, FallbackNextRow } from './workflow_repository_rows.js';
+import type { AccountRow, StrategyRow, SignalSchemaRow, ContractVersionRow, IntentRow, RuntimeRow } from './trading_repository_rows.js';
+import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow, LegacyWorkflowRouteRow, LegacyRiskPolicyRow, FallbackCurrentRow, FallbackNextRow, FallbackRunRow, FallbackCandidateViewRow } from './workflow_repository_rows.js';
 import { isStringMember, requireString } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
@@ -1949,7 +1949,7 @@ export async function isWorkflowExecutionAuthorized(executionPathId: string): Pr
     && candidate.nodeIds.every((id, index) => id === originalNodes[index]));
 }
 
-function workflowIntentBlockReason(path: WorkflowExecutionPath, account: any, runtime: any): string | null {
+function workflowIntentBlockReason(path: WorkflowExecutionPath, account: AccountRow | undefined, runtime: RuntimeRow | undefined): string | null {
   if (!path.enabled || account?.status !== 'ready' || Number(account.enabled) !== 1) return 'ACCOUNT_NOT_READY';
   if (Number(account.kill_switch_active) === 1) return 'ACCOUNT_KILL_SWITCH_ACTIVE';
   if (Number(runtime.kill_switch_active) === 1) return 'KILL_SWITCH_ACTIVE';
@@ -1963,7 +1963,7 @@ async function processWorkflowIntentPath(input: {
   workflow: WorkflowRevision;
   path: WorkflowExecutionPath;
   runId: string;
-  runtime: any;
+  runtime: RuntimeRow | undefined;
   now: number;
 }): Promise<{ intent?: TradingIntent; branch?: Record<string, unknown> }> {
   const { request, workflow, path, runId, runtime, now } = input;
@@ -1974,7 +1974,7 @@ async function processWorkflowIntentPath(input: {
     [request.sourceSignalId, path.id],
   );
   if (existing) return { intent: intentFromRow(existing) };
-  const account = await getDatabase().get<any>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
+  const account = await getDatabase().get<AccountRow>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
   const blockReason = await isWorkflowExecutionAuthorized(path.id)
     ? workflowIntentBlockReason(path, account, runtime) : 'WORKFLOW_EXECUTION_REVOKED';
   const status = blockReason ? 'blocked' : 'pending';
@@ -1998,7 +1998,7 @@ async function persistFallbackRouteGroup(input: {
   workflow: WorkflowRevision;
   group: WorkflowRouteGroup;
   runId: string;
-  runtime: any;
+  runtime: RuntimeRow | undefined;
   now: number;
 }): Promise<{ intents: TradingIntent[]; branches: Array<Record<string, unknown>> }> {
   const { request, workflow, group, runId, runtime, now } = input;
@@ -2134,7 +2134,7 @@ async function persistWorkflowTradingIntents(
   request = { ...request, receivedAt: Number(run!.created_at) };
   const results: TradingIntent[] = [];
   const branches: Array<Record<string, unknown>> = [];
-  const runtime = await getDatabase().get<any>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
+  const runtime = await getDatabase().get<RuntimeRow>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
   const pathsById = new Map(workflow.compiled.paths.map(path => [path.id, path]));
   for (const group of groups) {
     const primary = pathsById.get(group.primaryPathId);
@@ -2293,9 +2293,9 @@ async function insertPromotedFallbackIntent(
   intent: TradingIntent,
   now: number,
 ): Promise<{ id: string; status: 'blocked' | 'pending'; blockReason: string | null }> {
-  const runtime = await getDatabase().get<any>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
+  const runtime = await getDatabase().get<RuntimeRow>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
   const path = pathFromRow(next);
-  const account = await getDatabase().get<any>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
+  const account = await getDatabase().get<AccountRow>('SELECT * FROM trading_accounts WHERE id = ?', [path.accountId]);
   const blockReason = await isWorkflowExecutionAuthorized(path.id)
     ? workflowIntentBlockReason(path, account, runtime) : 'WORKFLOW_EXECUTION_REVOKED';
   const status = blockReason ? 'blocked' : 'pending';
@@ -2449,13 +2449,13 @@ export async function stopWorkflowFallback(intentId: string, reason: string, now
 
 export async function listWorkflowFallbackRuns(limit = 200): Promise<Array<Record<string, unknown>>> {
   const boundedLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(500, limit)) : 200;
-  const runs = await getDatabase().all<any[]>(
+  const runs = await getDatabase().all<FallbackRunRow[]>(
     `SELECT run.* FROM trading_fallback_runs AS run ORDER BY run.created_at DESC LIMIT ?`,
     [boundedLimit],
   );
   const result: Array<Record<string, unknown>> = [];
   for (const run of runs) {
-    const candidates = await getDatabase().all<any[]>(
+    const candidates = await getDatabase().all<FallbackCandidateViewRow[]>(
       `SELECT candidate.rank, candidate.execution_path_id, candidate.account_id, candidate.intent_id,
               candidate.status, candidate.error_code, candidate.details_json, candidate.fallback_on_json,
               account.name AS account_name, account.exchange, account.mode

@@ -41,3 +41,16 @@ export interface FallbackNextRow extends WorkflowPathRow {
   rank: number; execution_path_id: string; candidate_account_id: string;
   exchange: TradingAccount['exchange']; mode: TradingAccount['mode']; account_status: TradingAccount['status']; account_enabled: number; account_kill_switch_active: number;
 }
+
+export interface FallbackRunRow {
+  id: string; source_signal_id: string; workflow_revision_id: string; signal_run_id: string;
+  route_group_key: string; channel_id: string; status: FallbackCurrentRow['run_status']; current_rank: number;
+  selected_intent_id: string | null; stop_reason: string | null; created_at: number; updated_at: number; completed_at: number | null;
+}
+
+export interface FallbackCandidateViewRow {
+  rank: number; execution_path_id: string; account_id: string; intent_id: string | null;
+  status: 'waiting' | 'pending' | 'unavailable' | 'selected' | 'stopped'; error_code: string | null;
+  details_json: string | null; fallback_on_json: string; account_name: string;
+  exchange: TradingAccount['exchange']; mode: TradingAccount['mode'];
+}
