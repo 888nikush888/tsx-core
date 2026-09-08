@@ -247,6 +247,17 @@ async function activateAccountKillSwitch(accountId: string, reason: string): Pro
   });
 }
 
+function requiredPlannedOrder(plan: TradingPlan, role: 'entry' | 'stop_loss'): PlannedOrder {
+  const order = plan.orders.find(candidate => candidate.role === role);
+  if (!order) throw new TradingRiskError('TRADE_PLAN_INVALID', 'Trade plan is missing a required entry or protective-stop order.');
+  return order;
+}
+
+function requiredTierProviderSymbol(market: TradingMarketSnapshot): string {
+  if (!market.leverageTiers) throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Tier provider-symbol binding is missing.');
+  return market.leverageTiers.providerSymbol;
+}
+
 async function executionPathConfiguration(intent: TradingIntent): Promise<{
   strategy: StrategyConfiguration;
   adaptiveRisk: null | 'legacy' | { resourceVersionId: string; configuration: any };
@@ -893,7 +904,8 @@ export class TradingEngine {
       this.preparationRecoveryCursors.delete(accountId);
       return this.preparationRecoveryBatch(accountId);
     }
-    if (rows.length) this.preparationRecoveryCursors.set(accountId, rows.at(-1)!);
+    const last = rows.at(-1);
+    if (last) this.preparationRecoveryCursors.set(accountId, last);
     return rows;
   }
 
@@ -1124,7 +1136,7 @@ export class TradingEngine {
     assertPublishedStrategy(strategy);
     if (intent.plan) {
       const original = intent.plan as TradingPlan;
-      assertEntryPriceBoundary(original, original.orders.find(order => order.role === 'entry')!);
+      assertEntryPriceBoundary(original, requiredPlannedOrder(original, 'entry'));
     }
     await assertExecutionAuthorization(intent);
     const strategyConfiguration = pathConfiguration.strategy;
@@ -1182,7 +1194,9 @@ export class TradingEngine {
     assertPlanTierDecision(account, plan, market);
     const currentCapacity = await loadCapacityState(intent);
     assertAccountSafetyState(currentCapacity);
-    const changedCapacity = candidateCapacitySkipReason(currentCapacity, (await getTradingAccount(account.id))!.maxConcurrentPositions);
+    const currentAccount = await getTradingAccount(account.id);
+    if (!currentAccount) throw new TradingRiskError('ACCOUNT_NOT_READY', 'Trading account is no longer available.');
+    const changedCapacity = candidateCapacitySkipReason(currentCapacity, currentAccount.maxConcurrentPositions);
     if (changedCapacity) throwCapacitySkip(changedCapacity);
     const riskProof = await createRiskAdmission({ account, intentId: intent.id, plan, market, snapshot: accountSnapshot,
       budget: resolveDailyLossLimit(strategyConfiguration.safety, accountSnapshot.equity), epoch, sizingFx });
@@ -1226,9 +1240,9 @@ export class TradingEngine {
 
   private async executePendingIntent(intent: TradingIntent, context: TradingMutationContext, epoch: string): Promise<void> {
     const { account, adapter, plan, effectiveRiskPercent, accounting, riskProof, observation, entrySafety } = await this.preparePendingIntent(intent, epoch);
+    const entry = requiredPlannedOrder(plan, 'entry');
+    const protectiveStop = requiredPlannedOrder(plan, 'stop_loss');
     await markWorkflowFallbackSelected(intent.id);
-    const entry = plan.orders.find(order => order.role === 'entry')!;
-    const protectiveStop = plan.orders.find(order => order.role === 'stop_loss')!;
     await setIntentState(intent.id, 'submitting', { plan });
     await recordTradingExecutionEvent({
       eventType: 'submit_started',
@@ -1350,9 +1364,10 @@ export class TradingEngine {
     await assertPersistedMoneyReady(account.id);
     const tierMarket = await this.adapter(account.exchange).marketSnapshot(account, intent.symbol);
     assertPlanTierDecision(account, plan, tierMarket);
-    await assertLocalTierScope(account.id, intent.id, intent.symbol, tierMarket.leverageTiers!.providerSymbol);
+    const tierProviderSymbol = requiredTierProviderSymbol(tierMarket);
+    await assertLocalTierScope(account.id, intent.id, intent.symbol, tierProviderSymbol);
     const entryMode = await readEntryModeEvidence(this.adapter(account.exchange), account, intent.symbol);
-    if (entryMode && entryMode.providerSymbol !== tierMarket.leverageTiers!.providerSymbol) {
+    if (entryMode && entryMode.providerSymbol !== tierProviderSymbol) {
       throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Mode and tier provider-symbol binding disagree.');
     }
     this.mutations.assertEntryEpoch(context, epoch);
