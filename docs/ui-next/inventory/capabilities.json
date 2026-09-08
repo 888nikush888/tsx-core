@@ -67,7 +67,7 @@
     {
       "route": "GET /api/status",
       "handler": "statusHandler",
-      "handlerSha256": "33bc9a16933643605f11012516004e4d67b42e2073a6b9b9506270b4879f19ce",
+      "handlerSha256": "f3d1a94c6d13402feb1160caab870a49db3cf16041762215c0f38ec39e486c8d",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -821,7 +821,7 @@
     {
       "route": "POST /api/setup-bundle/apply",
       "handler": "applySetupBundleHandler",
-      "handlerSha256": "fadd33b86e63eb8c3db9b845ce671a203aaf34756b88a0cadff96e390fcfd476",
+      "handlerSha256": "fa43716f754ec9b41b1d9177f892ff8ea4d02f2713d7b5f6caa51026ac72093b",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
