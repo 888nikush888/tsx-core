@@ -82,4 +82,64 @@ describe("api helpers", () => {
     const payload = await jsonRequest("/api/x");
     expect(payload).toEqual({});
   });
+
+  it.each(["https://outside.invalid/api", "//outside.invalid/api", "javascript:alert(1)", "data:text/plain,fixture"])(
+    "rejects a non-dashboard destination before sending any token: %s", async (destination) => {
+      setDashboardToken("dashboard-fixture-token");
+      await expect(apiFetch(destination)).rejects.toThrow("restricted to this dashboard");
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects external URL and Request objects and embedded credentials", async () => {
+    const credentials = new URL("/api/x", window.location.origin);
+    credentials.username = "fixture-user";
+    for (const input of [new URL("https://outside.invalid/api"), new Request("https://outside.invalid/api"), credentials]) {
+      await expect(apiFetch(input)).rejects.toThrow("restricted to this dashboard");
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("checks the browser's real document base before adding credentials", async () => {
+    const base = document.createElement("base");
+    base.href = "https://outside.invalid/";
+    document.head.prepend(base);
+    try {
+      await expect(apiFetch("/api/x")).rejects.toThrow("restricted to this dashboard");
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      base.remove();
+    }
+  });
+
+  it("preserves a same-origin Request body and headers and recognizes its write method", async () => {
+    setDashboardToken("dashboard-fixture-token");
+    const input = new Request(new URL("/api/x", window.location.origin), {
+      method: "POST", body: "payload", headers: { "Content-Type": "text/plain", "X-Fixture": "retained" },
+    });
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(new Response("{}"));
+    await apiFetch(input, { redirect: "follow" });
+    const [request, options] = fetchMock.mock.calls[0];
+    expect(request).toBe(input);
+    expect(await input.text()).toBe("payload");
+    const headers = new Headers(options?.headers);
+    expect(headers.get("X-Fixture")).toBe("retained");
+    expect(headers.get("Content-Type")).toBe("text/plain");
+    expect(headers.get("Authorization")).toBe("Bearer dashboard-fixture-token");
+    expect(headers.get("X-Requested-With")).toBe("forwarder-dashboard");
+    expect(options?.redirect).toBe("error");
+  });
+
+  it("keeps same-origin URL inputs and respects an explicit method override", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(new Response("{}"));
+    const url = new URL("/api/x?next=https://outside.invalid", window.location.origin);
+    await apiFetch(url);
+    expect(fetchMock.mock.calls[0][0]).toBe(url);
+    const request = new Request(url, { method: "POST" });
+    await apiFetch(request, { method: "GET" });
+    const headers = new Headers(fetchMock.mock.calls[1][1]?.headers);
+    expect(headers.get("X-Requested-With")).toBeNull();
+  });
 });
