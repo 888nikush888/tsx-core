@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { initDb, closeDb, getDatabase } from '../src/db.js';
 import { listTradingStrategies } from '../src/trading_repository.js';
-import { resolveWorkflowAdaptiveRisk } from '../src/trading_channel_risk.js';
+import { resolveWorkflowAdaptiveRisk, upsertChannelRiskPolicy, resolveEffectiveChannelRisk } from '../src/trading_channel_risk.js';
 import { validateAdaptiveRiskConfiguration } from '../src/workflow_repository.js';
 import { workflowFixture } from './fixtures/ingress_workflow_fixture.js';
 
@@ -14,6 +14,19 @@ try {
   const fixture = await workflowFixture();
   const resource = await fixture.resource('adaptive_risk', 'Readback policy', { mode: 'fixed' });
   const [strategy] = await listTradingStrategies();
+  const policy = { channelId: '-1001', mode: 'fixed', tiers: [{ riskPercent: '1' }], currentTier: 0,
+    lookbackWeeks: 1, minimumClosedTrades: 5, lossThresholdPercent: '2', profitThresholdPercent: '2',
+    weakChannelAction: 'reduce', weakWeeksBeforeBlock: 3 };
+  let coercions = 0;
+  await assert.rejects(upsertChannelRiskPolicy({ ...policy,
+    tiers: [{ riskPercent: { toString() { coercions += 1; return '1'; } } }] }), /must be a decimal number/);
+  assert.equal(coercions, 0, 'Tier input objects must never supply numeric values through coercion.');
+  const createdPolicy = await upsertChannelRiskPolicy({ ...policy, tiers: [{ riskPercent: 1 }, { riskPercent: '2' }] });
+  assert.deepEqual(createdPolicy.tiers, [{ riskPercent: '1' }, { riskPercent: '2' }]);
+  await getDatabase().run('UPDATE trading_channel_risk_policies SET tiers_json = ? WHERE channel_id = ?', ['[]', policy.channelId]);
+  await assert.rejects(resolveEffectiveChannelRisk({ channelId: policy.channelId,
+    strategy: strategy.configuration, currentEquity: '10000' }), /between one and twenty tiers/);
+
   const request = { channelId: '-1001', accountId: 'paper-default', adaptiveResourceVersionId: resource.id,
     configuration: validateAdaptiveRiskConfiguration({ mode: 'fixed' }), strategy: strategy.configuration,
     currentEquity: '10000' };

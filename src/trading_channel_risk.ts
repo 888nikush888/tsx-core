@@ -66,16 +66,23 @@ function validateTiers(value: unknown): ChannelRiskTier[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > 20) {
     throw new Error('Risk policy requires between one and twenty tiers.');
   }
-  const tiers = value.map((tier, index) => {
+  const tiers = value.map((tier: unknown, index) => {
     if (!tier || typeof tier !== 'object' || Array.isArray(tier)) throw new Error(`Risk tier ${index + 1} is invalid.`);
-    return { riskPercent: decimal(String((tier as any).riskPercent), { positive: true, max: '10' }) };
+    return { riskPercent: decimalInput('riskPercent' in tier ? tier.riskPercent : undefined, 'Risk tier percent', '10') };
   });
   tiers.forEach((tier, index) => {
-    if (index > 0 && compareDecimal(tier.riskPercent, tiers[index - 1]!.riskPercent) <= 0) {
+    const previous = tiers[index - 1];
+    if (previous && compareDecimal(tier.riskPercent, previous.riskPercent) <= 0) {
       throw new Error('Risk tiers must be strictly increasing.');
     }
   });
   return tiers;
+}
+
+function requiredRiskTier(tiers: ChannelRiskTier[], index: number): ChannelRiskTier {
+  const tier = tiers[index];
+  if (!tier) throw new Error('Risk tier is missing from its policy.');
+  return tier;
 }
 
 export function policyFromRow(row: ChannelRiskPolicyRow): ChannelRiskPolicy {
@@ -296,12 +303,12 @@ type CapitalRequest = { channelId: string; accountId?: string; reportingCurrency
 type CapitalProof = { accountId: string; fingerprint: string; generation: string | null; exchange: string;
   reportingCurrency: string; equity: string; basis: string; observedAt: number; snapshotId: string | null };
 type ChannelEvidence = { version: 1; scope: { channelId: string; accountId: string | null; since: number; until: number };
-  capital: CapitalProof; performance: Performance; positions: unknown[]; returnPercentReason: string | null };
+  capital: CapitalProof; performance: Performance & { realizedPnlValue: MoneyValue }; positions: unknown[]; returnPercentReason: string | null };
 const sourceHash = (value: string) => createHash('sha256').update(value).digest('hex');
 const unresolvedRisk = (reason: string): never => { throw new Error(`Adaptive risk is unresolved: ${reason}`); };
 
 async function performanceSources(request: CapitalRequest) {
-  const rows = await getDatabase().all<any[]>(`SELECT p.id,p.intent_id,p.account_id,p.closed_at,p.reporting_currency,
+  const rows = await getDatabase().all<Array<{ id: string; intent_id: string; account_id: string; closed_at: number; reporting_currency: string | null; accounting_status: string; ledger_realized_pnl: string | null; ledger_realized_value_json: string | null; evidence_hash: string | null }>>(`SELECT p.id,p.intent_id,p.account_id,p.closed_at,p.reporting_currency,
     p.accounting_status,p.ledger_realized_pnl,p.ledger_realized_value_json,projection.evidence_hash
     FROM trading_positions p LEFT JOIN trading_accounting_projections projection ON projection.intent_id=p.intent_id
     WHERE p.channel_id=? AND (? IS NULL OR p.account_id=?) AND p.status='closed' AND p.closed_at>=? AND p.closed_at<?
@@ -329,13 +336,16 @@ async function capitalAccount(request: CapitalRequest, positions: Array<{ accoun
     routes.forEach(row => ids.add(row.account_id));
   }
   if (ids.size !== 1) return unresolvedRisk('ambiguous account/equity context for channel history.');
-  const accountId = [...ids][0]!;
-  const row = await getDatabase().get<any>(`SELECT a.exchange,a.mode,a.external_account_id,a.credential_generation,b.reporting_currency
+  const accountId = ids.values().next().value;
+  if (accountId === undefined) return unresolvedRisk('account/equity context is missing.');
+  const row = await getDatabase().get<{ exchange: string; mode: string; external_account_id: string | null; credential_generation: string | null; reporting_currency: string }>(`SELECT a.exchange,a.mode,a.external_account_id,a.credential_generation,b.reporting_currency
     FROM trading_accounts a JOIN trading_money_bindings b ON b.account_id=a.id AND b.account_fingerprint=
     CASE WHEN a.exchange='paper' THEN 'paper:'||a.id ELSE a.external_account_id END WHERE a.id=?`, [accountId]);
   if (!row || (!request.reportingCurrency && (row.exchange !== 'paper' || row.reporting_currency !== 'USDT'))
     || (request.reportingCurrency && request.reportingCurrency !== row.reporting_currency)) return unresolvedRisk('reporting currency is not bound to the input capital.');
-  return { accountId, fingerprint: row.exchange === 'paper' ? `paper:${accountId}` : row.external_account_id,
+  const fingerprint = row.exchange === 'paper' ? `paper:${accountId}` : row.external_account_id;
+  if (!fingerprint) return unresolvedRisk('external account identity is missing.');
+  return { accountId, fingerprint,
     generation: row.credential_generation, exchange: row.exchange, reportingCurrency: row.reporting_currency };
 }
 
@@ -353,12 +363,12 @@ async function capitalEvidence(request: CapitalRequest, positions: Array<{ accou
 
 async function collectChannelEvidence(request: CapitalRequest, pinned?: CapitalProof) {
   const performance = await channelClosedMoneyValuePerformance(request.channelId, request.performanceAccountId, request.since, request.until);
-  if (performance.accountingStatus !== 'complete' || !performance.realizedPnlValue) unresolvedRisk('closed history is incomplete or mixes reporting currencies.');
+  if (performance.accountingStatus !== 'complete' || !performance.realizedPnlValue) return unresolvedRisk('closed history is incomplete or mixes reporting currencies.');
   const positions = await performanceSources(request), capital = await capitalEvidence(request, positions, pinned);
   if (performance.reportingCurrency !== null && performance.reportingCurrency !== capital.reportingCurrency) unresolvedRisk('performance and capital reporting currencies differ.');
-  const percent = channelReturnValue(performance.realizedPnlValue!, capital.equity);
+  const percent = channelReturnValue(performance.realizedPnlValue, capital.equity);
   const source: ChannelEvidence = { version: 1, scope: { channelId: request.channelId, accountId: request.performanceAccountId,
-    since: request.since, until: request.until }, capital, performance, positions, returnPercentReason: percent.reason };
+    since: request.since, until: request.until }, capital, performance: { ...performance, realizedPnlValue: performance.realizedPnlValue }, positions, returnPercentReason: percent.reason };
   const json = JSON.stringify(source);
   if (Buffer.byteLength(json) >= 262144) unresolvedRisk('original source byte budget exceeded; no source was omitted.');
   return { source, json, hash: sourceHash(json), percent };
@@ -445,7 +455,7 @@ async function evaluatePolicy(
   if (existing) { await assertCachedEvidence(existing, request); return evaluationFromRow(existing); }
   const evidence = await collectChannelEvidence(request);
   const { performance, capital } = evidence.source, equity = capital.equity;
-  let suggested = recommendation(policy, { closedTrades: performance.closedTrades, realizedPnlValue: performance.realizedPnlValue!, equity });
+  let suggested = recommendation(policy, { closedTrades: performance.closedTrades, realizedPnlValue: performance.realizedPnlValue, equity });
   if (await shouldBlockWeakChannel(policy, suggested.action)) {
     suggested = { ...suggested, action: 'block', reason: `${policy.weakWeeksBeforeBlock} consecutive weak evaluations.` };
   }
@@ -538,7 +548,7 @@ export async function resolveEffectiveChannelRisk(input: {
   let policy = policyFromRow(row);
   if (policy.blocked || policy.manuallyBlocked) {
     return {
-      riskPercent: policy.tiers[policy.currentTier]!.riskPercent,
+      riskPercent: requiredRiskTier(policy.tiers, policy.currentTier).riskPercent,
       blocked: true,
       reason: policy.blockReason || 'Channel is blocked by its risk policy.',
       policy,
@@ -554,7 +564,7 @@ export async function resolveEffectiveChannelRisk(input: {
   }
   if (policy.blocked || policy.manuallyBlocked) {
     return {
-      riskPercent: policy.tiers[policy.currentTier]!.riskPercent,
+      riskPercent: requiredRiskTier(policy.tiers, policy.currentTier).riskPercent,
       blocked: true,
       reason: policy.blockReason || 'Channel is blocked by its risk policy.',
       policy,
@@ -563,7 +573,7 @@ export async function resolveEffectiveChannelRisk(input: {
   const tier = policy.lockedTier ?? policy.currentTier;
   const riskPercent = policy.mode === 'shadow' || policy.mode === 'fixed'
     ? input.strategy.sizing.riskPerTradePercent
-    : policy.tiers[tier]!.riskPercent;
+    : requiredRiskTier(policy.tiers, tier).riskPercent;
   return { riskPercent, blocked: false, reason: warning ?? `Channel policy ${policy.mode} tier ${tier}.`, policy };
 }
 
@@ -778,7 +788,7 @@ async function evaluateWorkflowRiskState(input: {
   const evidence = await collectChannelEvidence(capitalRequest);
   const { performance, capital } = evidence.source;
   const policy = syntheticWorkflowPolicy(request, currentTier, now);
-  const initialSuggestion = recommendation(policy, { closedTrades: performance.closedTrades, realizedPnlValue: performance.realizedPnlValue!, equity: capital.equity });
+  const initialSuggestion = recommendation(policy, { closedTrades: performance.closedTrades, realizedPnlValue: performance.realizedPnlValue, equity: capital.equity });
   const suggested = await applyWorkflowWeakStreak(stateKey, request.configuration, initialSuggestion);
   const appliedTier = request.configuration.mode === 'automatic' ? suggested.tier : currentTier;
   const blocked = request.configuration.mode === 'automatic' && (suggested.action === 'block' || suggested.uncertain === true);
@@ -808,7 +818,7 @@ function resolvedWorkflowRisk(input: WorkflowAdaptiveRiskInput, state: WorkflowR
   const currentTier = Math.min(Number(state.current_tier), input.configuration.tiers.length - 1);
   const selectedTier = input.configuration.lockedTier ?? currentTier;
   const tierRisk = input.configuration.mode === 'automatic'
-    ? input.configuration.tiers[selectedTier]!.riskPercent
+    ? requiredRiskTier(input.configuration.tiers, selectedTier).riskPercent
     : input.strategy.sizing.riskPerTradePercent;
   const maximum = input.strategy.sizing.maxAdaptiveRiskPercent || input.strategy.sizing.riskPerTradePercent;
   const riskPercent = compareDecimal(tierRisk, maximum) > 0 ? maximum : tierRisk;
