@@ -713,7 +713,7 @@ export function WorkspaceStatusbar({
               : "noch nicht aktualisiert"}
           </span>
           <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Analytics</span>
-          <Button type="button" variant="outline" size="sm" onClick={() => void onRefresh()}>
+          <Button type="button" variant="outline" size="sm" onClick={() => { onRefresh(); }}>
             <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
           </Button>
         </div>
@@ -743,7 +743,7 @@ export function WorkspaceStatusbar({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => void onRefresh()}
+          onClick={() => { onRefresh(); }}
         >
           <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
         </Button>
@@ -1232,7 +1232,7 @@ function AnalyticsStatusbar({ lastUpdated, refreshing, onFilters, onRefresh }: R
       <Button type="button" variant="outline" size="sm" onClick={onFilters}>
         <Filter size={14} data-icon="inline-start" /> Filter
       </Button>
-      <Button type="button" variant="outline" size="sm" onClick={() => void onRefresh()}>
+      <Button type="button" variant="outline" size="sm" onClick={() => { onRefresh(); }}>
         <RefreshCw className={refreshing ? "spin" : ""} data-icon="inline-start" /> Aktualisieren
       </Button>
     </div>
@@ -2583,13 +2583,13 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         <p>Graphänderungen werden als Entwurf gespeichert. Ressourcenpublikation und Aktivierung sind separate Schritte. History betrifft ausschließlich Graphrevisionen, keine ausgeführten Trades.</p>
         {readOnly && <p>Viewer: Workflows sind schreibgeschützt.</p>}
         <div className="flex flex-wrap gap-3"><button className="secondary-button" onClick={() => setTableView(!tableView)}>{tableView ? 'Canvas anzeigen' : 'Tabellenansicht anzeigen'}</button>
-          <button className="secondary-button" disabled={saving || readOnly || !draftMeta} onClick={() => void activateGraph(graph, 'Graph')}>Graphentwurf speichern</button>
-          <button className="secondary-button" disabled={saving || readOnly} onClick={() => void publishGraphResources()}>Referenzierte Entwurfsversionen publizieren</button>
-          <button className="primary-button" disabled={saving || readOnly || draftUnsaved || !draftMeta?.version} onClick={() => void activateGraph(graph, 'Graph aktiviert', true)}>Gespeicherten Graph aktivieren</button>
-          <button className="secondary-button" disabled={saving} onClick={() => void (async () => {
+          <button className="secondary-button" disabled={saving || readOnly || !draftMeta} onClick={() => { activateGraph(graph, 'Graph'); }}>Graphentwurf speichern</button>
+          <button className="secondary-button" disabled={saving || readOnly} onClick={() => { publishGraphResources(); }}>Referenzierte Entwurfsversionen publizieren</button>
+          <button className="primary-button" disabled={saving || readOnly || draftUnsaved || !draftMeta?.version} onClick={() => { activateGraph(graph, 'Graph aktiviert', true); }}>Gespeicherten Graph aktivieren</button>
+          <button className="secondary-button" disabled={saving} onClick={() => { (async () => {
             try { const [draft, active] = await Promise.all([jsonRequest('/api/workflow/drafts?id=operator'), jsonRequest('/api/workflow')]); setServerDraftPreview({ draft: draft.draft, workflow: active.workflow }); }
             catch (error) { setNotice({ tone: 'error', text: `Vergleich nicht verfügbar: ${String(error)}` }); }
-          })()}>Serverstand vergleichen</button></div>
+          })(); }}>Serverstand vergleichen</button></div>
         {serverDraftPreview && <div><p>Serverentwurf {serverDraftPreview.draft?.version ?? 'keiner'} · Basis {serverDraftPreview.draft?.baseRevisionId ?? 'keine'} · aktive Revision {serverDraftPreview.workflow?.id ?? 'keine'}. {serverDraftPreview.draft?.expired && 'Der Entwurf ist abgelaufen und muss bewusst neu gespeichert werden.'}</p>
           <details><summary>Gespeicherten Graph mit eigenem Entwurf vergleichen</summary><p>Eigener Entwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(graph, null, 2)}</pre><p>Serverentwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(serverDraftPreview.draft?.graph ?? serverDraftPreview.workflow?.graph ?? EMPTY_GRAPH, null, 2)}</pre></details>
           <button className="secondary-button" onClick={() => { const meta = serverDraftPreview.draft ?? { id: 'operator', version: null, baseRevisionId: serverDraftPreview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setGraph(meta.graph ?? serverDraftPreview.workflow?.graph ?? EMPTY_GRAPH); setDraftUnsaved(false); setServerDraftPreview(null); }}>Serverentwurf übernehmen · eigene Änderungen verwerfen</button>
@@ -2604,7 +2604,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           selectedPathId={selectedPathId}
           routeCount={routeTopology.routes.length}
           history={history}
-          onHistory={(direction) => void navigateHistory(direction)}
+          onHistory={(direction) => { navigateHistory(direction); }}
           onSearch={setSearch}
           onRoutes={() => setRouteOverviewOpen(true)}
           onSimulation={() => setSimulationOpen(true)}
@@ -2634,11 +2634,11 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           <DuplicateResourceNotice
             removedNodeCount={duplicateSummary.removedNodeCount}
             saving={saving}
-            onConsolidate={() => void consolidateDuplicates()}
+            onConsolidate={() => { consolidateDuplicates(); }}
           />
           {embedded && tableView && <GraphTable graph={graph} resources={snapshot.resources} readOnly={readOnly || saving}
-            edit={setEditorNodeId} remove={edgeId => void removeEdge(edgeId)}
-            connect={(source, target) => void activateGraph({ ...graph, edges: [...graph.edges, { id: newId('edge'), source, target }] }, 'Verbindung')} />}
+            edit={setEditorNodeId} remove={edgeId => { removeEdge(edgeId); }}
+            connect={(source, target) => { activateGraph({ ...graph, edges: [...graph.edges, { id: newId('edge'), source, target }] }, 'Verbindung'); }} />}
           <div ref={canvasRef} id="workflow-canvas" className="workflow-canvas" style={embedded && tableView ? { display: 'none' } : undefined}>
         <ReactFlow
           nodes={displayNodes}
@@ -2846,7 +2846,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         saving={saving}
         onClose={() => setConnectionDraft(null)}
         onSave={(channelNodeIds) =>
-          void saveConnectionRouting(channelNodeIds)
+          { saveConnectionRouting(channelNodeIds); }
         }
       />
       <WorkflowFallbackPolicyDialog
@@ -2862,7 +2862,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           setConnectionDraft(null);
         }}
         onSave={(fallbackOn, applyToChain) =>
-          void saveFallbackPolicy(fallbackOn, applyToChain)
+          { saveFallbackPolicy(fallbackOn, applyToChain); }
         }
       />
       <Dialog
@@ -2947,7 +2947,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           setNewKind(kind);
           setLibraryKind(null);
         }}
-        onAdd={(resource) => void addExistingResource(resource)}
+        onAdd={(resource) => { addExistingResource(resource); }}
         onSelectArchive={(resource) => {
           setLibraryArchiveTarget(resource);
           if (resource) setLibraryDeleteTarget(null);
@@ -2957,20 +2957,20 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           if (resource) setLibraryArchiveTarget(null);
         }}
         onArchive={(resource) =>
-          void archiveResourceFamily(resource).catch((error) => {
+          { archiveResourceFamily(resource).catch((error) => {
             setNotice({
               tone: "error",
               text: error instanceof Error ? error.message : String(error),
             });
-          })
+          }); }
         }
         onDelete={(resource) =>
-          void deleteResourceFamily(resource).catch((error) => {
+          { deleteResourceFamily(resource).catch((error) => {
             setNotice({
               tone: "error",
               text: error instanceof Error ? error.message : String(error),
             });
-          })
+          }); }
         }
       />
       <Dialog

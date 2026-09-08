@@ -81,8 +81,8 @@ export function Logs() {
         <label><span>Textsuche</span><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Logs filtern" /></label>
         <label className="inline-check"><input type="checkbox" checked={regexMode} onChange={(event) => setRegexMode(event.target.checked)} /> Regex</label>
         <label className="inline-check"><input type="checkbox" checked={autoScroll} onChange={(event) => setAutoScroll(event.target.checked)} /> Autoscroll</label>
-        <Button type="button" variant="outline" size="sm" onClick={() => void copy(visibleEntries, "Sichtbare Treffer")}>Sichtbare kopieren</Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => void copy(matches, "Alle Treffer")}>Alle Treffer kopieren</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => { copy(visibleEntries, "Sichtbare Treffer"); }}>Sichtbare kopieren</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => { copy(matches, "Alle Treffer"); }}>Alle Treffer kopieren</Button>
       </section>
       <p><output>{connectionStatus()} · Letzte erfolgreiche Beobachtung: {observedAt ? new Date(observedAt).toLocaleString('de-DE') : 'unbekannt'}. Lokaler Puffer: höchstens 5.000 Zeilen; Anzeige: letzte 1.000 Treffer.</output></p>
       {connectionError && <p role="alert">{connectionError} Gespeicherte Zeilen bleiben lesbar.</p>}

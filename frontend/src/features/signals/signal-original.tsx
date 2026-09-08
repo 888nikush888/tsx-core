@@ -23,7 +23,7 @@ export function DeleteStoredSignal({ id, kind, onDeleted }: Readonly<{ id: strin
     } catch (error) { setMessage(`Löschung nicht bestätigt; keine automatische Wiederholung. ${error instanceof Error ? error.message : String(error)}`); }
     finally { setBusy(false); }
   };
-  return <div>{confirmationDialog}<button className="danger-button" disabled={readOnly || busy || deleted} onClick={() => void remove()}>Gespeichertes Original löschen</button>
+  return <div>{confirmationDialog}<button className="danger-button" disabled={readOnly || busy || deleted} onClick={() => { remove(); }}>Gespeichertes Original löschen</button>
     {readOnly && <p>Löschung erfordert die Administratorrolle.</p>}{message && <p><output>{message}</output></p>}</div>;
 }
 

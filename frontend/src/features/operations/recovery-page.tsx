@@ -103,18 +103,18 @@ export function RecoveryPage() {
       <label>Primärmodell<input value={config.xmlParsing?.primaryModel ?? ""} onChange={(event) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, primaryModel: event.target.value } })} /></label>
       <label>Fallbackmodell<input value={config.xmlParsing?.fallbackModel ?? ""} onChange={(event) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, fallbackModel: event.target.value } })} /></label>
       <AiLimitsForm value={config.xmlParsing?.aiLimits ?? {}} onChange={(aiLimits) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, aiLimits } })} />
-      <button className="primary-button" disabled={!can("config") || configForm.conflict} onClick={() => void save("config", { apiId: config.apiId, xmlParsing: config.xmlParsing })}>Grundkonfiguration speichern</button>
+      <button className="primary-button" disabled={!can("config") || configForm.conflict} onClick={() => { save("config", { apiId: config.apiId, xmlParsing: config.xmlParsing }); }}>Grundkonfiguration speichern</button>
     </fieldset></section>}
     {runtimePayload && <section className="operations-card system-form"><h2>Runtime reparieren</h2>
       <RuntimeParameters value={runtime} onChange={setRuntime} payload={runtimePayload} readOnly={!can('runtime-settings')} />
-      <button className="primary-button" disabled={!can("runtime-settings") || runtimeForm.conflict || !runtimePayload.parameters} onClick={() => void save("runtime-settings", runtime)}>Runtime speichern</button>
+      <button className="primary-button" disabled={!can("runtime-settings") || runtimeForm.conflict || !runtimePayload.parameters} onClick={() => { save("runtime-settings", runtime); }}>Runtime speichern</button>
     </section>}
     <section className="operations-card system-form"><h2>Secrets reparieren</h2><p>Write-only. Leeres Feld behält den Wert bei. Extern verwaltete Werte werden an ihrer Quelle geändert.</p>
       {Object.entries(secrets).filter(([name]) => !name.startsWith("dashboard")).map(([name, state]) => <label key={name}>{name} · {state.configured ? "konfiguriert" : "fehlt"} · {state.source}
         <input type="password" autoComplete="off" disabled={!can('secrets') || state.source === "external" || state.editable === false} value={secretInput[name] ?? ""} onChange={(event) => setSecretInput({ ...secretInput, [name]: event.target.value })} /></label>)}
-      <button className="primary-button" disabled={!can("secrets") || !Object.values(secretInput).some((value) => value.trim())} onClick={() => void save("secrets", Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim())))}>Secrets speichern</button>
+      <button className="primary-button" disabled={!can("secrets") || !Object.values(secretInput).some((value) => value.trim())} onClick={() => { save("secrets", Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim()))); }}>Secrets speichern</button>
     </section>
-    <button className="secondary-button" disabled={!can("restart") || Boolean(restartFrom && !restarted)} onClick={() => void restart()}>Kontrolliert neu starten</button>
+    <button className="secondary-button" disabled={!can("restart") || Boolean(restartFrom && !restarted)} onClick={() => { restart(); }}>Kontrolliert neu starten</button>
     {status?.session?.role === "viewer" && <p>Viewer dürfen den Zustand lesen. Reparaturen erfordern Administratorrechte.</p>}
   </main>;
 }

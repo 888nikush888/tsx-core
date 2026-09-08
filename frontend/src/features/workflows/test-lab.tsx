@@ -75,7 +75,7 @@ export function TestLab() {
       ...Object.entries(preview.limits ?? {}).map(([key, value]) => [`${AI_LIMIT_LABELS[key as keyof typeof AI_LIMIT_LABELS]?.[0] ?? key} (global)`, `${value} ${AI_LIMIT_LABELS[key as keyof typeof AI_LIMIT_LABELS]?.[1] ?? ''}`] as [string, string]),
     ]} /><p>{preview.scope}</p>{!preview.externalDataPolicyAccepted && <p role="alert">Globale Zustimmung zur externen Datenverarbeitung fehlt. In den KI-Einstellungen prüfen.</p>}{!preview.providerConfigured && <p role="alert">Provider-Zugang ist nicht konfiguriert.</p>}
       <label><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} />Ich stimme der Übermittlung dieses Quelltextes an OpenRouter und die genannten Modelle zu; der Test nutzt die globalen KI-Quoten.</label>
-      <button className="danger-button" disabled={busy || readOnly || !consent || !preview.externalDataPolicyAccepted || !preview.providerConfigured} onClick={() => void action('run')}>KI-Test einmal beauftragen</button>
+      <button className="danger-button" disabled={busy || readOnly || !consent || !preview.externalDataPolicyAccepted || !preview.providerConfigured} onClick={() => { action('run'); }}>KI-Test einmal beauftragen</button>
     </section>}
     {jobId && <JobLink id={jobId} />}{result && <section className="operations-card"><h2>{mode === 'ai' ? 'Auftragsannahme' : 'Lokales Prüfergebnis'}</h2><p>{mode === 'ai' ? result.message : 'Nur die oben beschriebene Teststufe wurde ausgeführt. Daraus folgt keine Handelsfreigabe.'}</p><pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(result, null, 2)}</pre></section>}
     {metadata && <section className="operations-card"><h2>KI-Verbrauch & Queue</h2><EvidenceFields fields={[

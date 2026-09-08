@@ -2296,7 +2296,7 @@ export function ResourceEditor({
                     type="button"
                     variant="destructive"
                     size="sm"
-                    onClick={() => void archiveResource()}
+                    onClick={() => { archiveResource(); }}
                   >
                     Ja, dauerhaft archivieren
                   </Button>
@@ -2328,7 +2328,7 @@ export function ResourceEditor({
                     type="button"
                     variant="destructive"
                     size="sm"
-                    onClick={() => void deleteResource()}
+                    onClick={() => { deleteResource(); }}
                   >
                     Ja, endgültig löschen
                   </Button>

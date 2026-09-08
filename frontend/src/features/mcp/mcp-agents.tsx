@@ -227,7 +227,7 @@ export function Mcp() {
               key={mode}
               disabled={Boolean(busy)}
               className={snapshot?.runtime?.mode === mode ? "active" : ""}
-              onClick={() => void runtime(mode)}
+              onClick={() => { runtime(mode); }}
             >
               {mode}
             </button>
@@ -334,7 +334,7 @@ export function Mcp() {
                 type="button"
                 className="danger-button"
                 disabled={Boolean(busy)}
-                onClick={() => void remove()}
+                onClick={() => { remove(); }}
               >
                 Löschen
               </button>
@@ -344,7 +344,7 @@ export function Mcp() {
                 type="button"
                 className="secondary-button"
                 disabled={Boolean(busy)}
-                onClick={() => void rotate()}
+                onClick={() => { rotate(); }}
               >
                 Token rotieren
               </button>
@@ -353,7 +353,7 @@ export function Mcp() {
               type="button"
               className="primary-button"
               disabled={Boolean(busy) || !form.name.trim() || draft.conflict}
-              onClick={() => void save()}
+              onClick={() => { save(); }}
             >
               Speichern
             </button>
@@ -382,7 +382,7 @@ export function Mcp() {
                 <button
                   type="button"
                   disabled={Boolean(busy) || proposal.status !== 'pending'}
-                  onClick={() => void decide(proposal, false)}
+                  onClick={() => { decide(proposal, false); }}
                 >
                   Ablehnen
                 </button>

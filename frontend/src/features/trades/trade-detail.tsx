@@ -86,7 +86,7 @@ export function TradeDetail({ intentId, readOnly = true }: Readonly<{ intentId: 
         <label>Tags (ein Tag pro Zeile)<textarea value={form.draft.tags.join("\n")} onChange={(event) => form.setDraft({ ...form.draft, tags: event.target.value ? event.target.value.split("\n") : [] })} /></label>
         <label>Bewertung<select value={form.draft.rating ?? ""} onChange={(event) => form.setDraft({ ...form.draft, rating: event.target.value === "" ? null : Number(event.target.value) })}><option value="">Keine Bewertung</option>{[1, 2, 3, 4, 5].map((rating) => <option key={rating} value={rating}>{rating}</option>)}</select></label>
         <label><input type="checkbox" checked={form.draft.reviewed} onChange={(event) => form.setDraft({ ...form.draft, reviewed: event.target.checked })} />Geprüft</label>
-        <button className="primary-button" disabled={form.conflict} onClick={() => void save()}>Review speichern</button></fieldset>
+        <button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>Review speichern</button></fieldset>
     </section>
     <details className="operations-card"><summary>Redigierter technischer Originalbeleg</summary><pre className="whitespace-pre-wrap break-all">{JSON.stringify({ signal: current.signal.executable, plan: current.plan }, null, 2)}</pre></details>
   </div>;

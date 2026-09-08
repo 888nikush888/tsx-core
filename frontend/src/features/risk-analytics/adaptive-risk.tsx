@@ -71,7 +71,7 @@ function LegacyCard({ entry }: Readonly<{ entry: any }>) {
     <EvidenceFields fields={[['Modus', policy.mode], ['Aktuelle Stufe', tier(policy.currentTier)], ['Feste Stufe', tier(policy.lockedTier)], ['Gesperrt', policy.blocked], ['Sperrgrund', policy.blockReason], ['Version', policy.policyVersion], ['Geändert', time(policy.updatedAt)]]} />
     <ChangeReview label="Geprüfte Werte des neuen Workflowentwurfs" after={configuration} />
     <Link to={href({ kind: 'legacy-evaluations', channelId: policy.channelId })}>Historische Legacy-Auswertungen</Link>
-    <div><button className="primary-button" disabled={readOnly || busy} onClick={() => void copy()}>Als Workflowentwurf übernehmen</button></div>
+    <div><button className="primary-button" disabled={readOnly || busy} onClick={() => { copy(); }}>Als Workflowentwurf übernehmen</button></div>
     {entry.copiedVersionId && <Link to={resourceUrl({ resourceId: entry.copiedResourceId, id: entry.copiedVersionId })}>Bereits gespeicherte Kopie prüfen</Link>}
     {receipt && <p><output>Entwurf {receipt.alreadyCopied ? 'bereits vorhanden' : 'gespeichert'}; nicht aktiviert. <Link to={resourceUrl(receipt.resource)}>Ressourcenentwurf öffnen</Link></output></p>}
     {error && <p role="alert">{error}</p>}

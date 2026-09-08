@@ -399,10 +399,10 @@ export function Overview({
             className="primary-button"
             disabled={Boolean(busy) || readOnly || !runtime}
             onClick={() =>
-              void mutate("execution", "/api/trading/runtime", {
+              { mutate("execution", "/api/trading/runtime", {
                 action: "execution",
                 enabled: runtime?.executionEnabled !== true,
-              })
+              }); }
             }
           >
             {runtime?.executionEnabled
@@ -413,7 +413,7 @@ export function Overview({
             type="button"
             className="secondary-button"
             disabled={Boolean(busy) || readOnly || !runtime}
-            onClick={() => void setLive()}
+            onClick={() => { setLive(); }}
           >
             {runtime?.liveTradingEnabled ? "Live sperren" : "Live freigeben"}
           </button>
@@ -421,7 +421,7 @@ export function Overview({
             type="button"
             className="secondary-button"
             disabled={Boolean(busy) || readOnly || !runtime}
-            onClick={() => void setKillSwitch()}
+            onClick={() => { setKillSwitch(); }}
           >
             {runtime?.killSwitchActive
               ? "Sperre prüfen & lösen"
@@ -432,7 +432,7 @@ export function Overview({
             className="secondary-button"
             disabled={Boolean(busy) || readOnly || !runtime}
             onClick={() =>
-              void mutate("reconcile", "/api/trading/reconcile", {})
+              { mutate("reconcile", "/api/trading/reconcile", {}); }
             }
           >
             Alle Konten abgleichen
@@ -442,7 +442,7 @@ export function Overview({
             className="secondary-button"
             disabled={Boolean(busy) || readOnly || !runtime}
             onClick={() =>
-              void mutate("cancel", "/api/trading/cancel-entries", {})
+              { mutate("cancel", "/api/trading/cancel-entries", {}); }
             }
           >
             Offene Entries stornieren
@@ -451,7 +451,7 @@ export function Overview({
             type="button"
             className="danger-button"
             disabled={Boolean(busy) || readOnly || !runtime}
-            onClick={() => void emergencyFlatten()}
+            onClick={() => { emergencyFlatten(); }}
           >
             Notfall: Positionen schließen
           </button>
