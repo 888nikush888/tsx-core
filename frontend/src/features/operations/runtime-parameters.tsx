@@ -11,14 +11,29 @@ function invalidRuntimeNumber(value: number, range: Parameter['range']) {
 function invalidRuntimeString(value: string, field: Parameter) {
   return value.length > field.maxLength || Boolean(field.values && !field.values.includes(value));
 }
+function runtimeNumberError(value: number, field: Parameter): string | null {
+  if (invalidRuntimeNumber(value, field.range)) return `${field.path}: ganze Zahl ${field.range?.join(' bis ') ?? ''} erforderlich.`;
+  return null;
+}
+function runtimeStringError(value: string, field: Parameter): string | null {
+  if (invalidRuntimeString(value, field)) return `${field.path}: nicht erlaubter Wert.`;
+  return null;
+}
+function runtimeValueError(value: unknown, field: Parameter): string | null {
+  if (!['string', 'number', 'boolean'].includes(field.type) || typeof value !== field.type) return `${field.path}: unbekannter oder falscher Feldtyp.`;
+  if (typeof value === 'number') return runtimeNumberError(value, field);
+  if (typeof value === 'string') return runtimeStringError(value, field);
+  return null;
+}
+function editableRuntimeError(value: Record<string, unknown>, field: Parameter): string | null {
+  if (!field.editable || field.secret) return null;
+  return runtimeValueError(value[field.path], field);
+}
 export function runtimeInputError(value: Record<string, unknown>, parameters: Parameter[] | undefined): string | null {
   if (!parameters) return 'Parametervertrag fehlt. Eine kompatible Server-/UI-Version ist erforderlich.';
   for (const field of parameters) {
-    if (!field.editable || field.secret) continue;
-    const current = value[field.path];
-    if (!['string', 'number', 'boolean'].includes(field.type) || typeof current !== field.type) return `${field.path}: unbekannter oder falscher Feldtyp.`;
-    if (typeof current === 'number' && invalidRuntimeNumber(current, field.range)) return `${field.path}: ganze Zahl ${field.range?.join(' bis ') ?? ''} erforderlich.`;
-    if (typeof current === 'string' && invalidRuntimeString(current, field)) return `${field.path}: nicht erlaubter Wert.`;
+    const error = editableRuntimeError(value, field);
+    if (error) return error;
   }
   return null;
 }
