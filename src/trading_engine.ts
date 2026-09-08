@@ -1040,11 +1040,11 @@ export class TradingEngine {
        ORDER BY orders.created_at`,
     );
     const expired = candidates.map(row => ({ ...row, expiryReason: entryExpirationReason(row, now) }))
-      .filter(row => row.expiryReason !== null);
+      .filter((row): row is typeof row & { expiryReason: NonNullable<typeof row.expiryReason> } => row.expiryReason !== null);
     const cancelled = await this.cancelEntryRows(expired);
     for (const row of expired) {
       await riskEvent({
-        severity: 'info', code: row.expiryReason!, accountId: row.account_id, intentId: row.intent_id,
+        severity: 'info', code: row.expiryReason, accountId: row.account_id, intentId: row.intent_id,
         details: { clientOrderId: row.client_order_id },
       });
     }
@@ -1056,8 +1056,9 @@ export class TradingEngine {
     const failures: unknown[] = [];
     const accounts = new Map<string, Set<string>>();
     for (const row of rows) {
-      if (!accounts.has(row.account_id)) accounts.set(row.account_id, new Set());
-      accounts.get(row.account_id)!.add(row.intent_id);
+      const intents = accounts.get(row.account_id) ?? new Set<string>();
+      intents.add(row.intent_id);
+      accounts.set(row.account_id, intents);
     }
     for (const [accountId, intents] of accounts) {
       try {
@@ -1814,12 +1815,12 @@ export class TradingEngine {
     if (account.exchange === 'paper') return;
     const current = remote.accountFingerprint;
     if (typeof current !== 'string' || !/^[a-f0-9]{64}$/.test(current)) {
-      await this.failRemoteAccountIdentity(account, 'Exchange snapshot omitted a valid account fingerprint.');
+      return this.failRemoteAccountIdentity(account, 'Exchange snapshot omitted a valid account fingerprint.');
     }
     if (account.externalAccountId && account.externalAccountId !== current) {
       await this.failRemoteAccountIdentity(account, 'Exchange snapshot does not match the bound external account identity.', {
         boundPrefix: account.externalAccountId.slice(0, 12),
-        currentPrefix: current!.slice(0, 12),
+        currentPrefix: current.slice(0, 12),
       });
     }
     const previous = await getDatabase().get<{ remote_snapshot_json: string | null }>(
@@ -1839,7 +1840,7 @@ export class TradingEngine {
     if (!priorFingerprint || priorFingerprint === current) return;
     await this.failRemoteAccountIdentity(account, 'Exchange account fingerprint changed.', {
       previousPrefix: priorFingerprint.slice(0, 12),
-      currentPrefix: current!.slice(0, 12),
+      currentPrefix: current.slice(0, 12),
     });
   }
 
