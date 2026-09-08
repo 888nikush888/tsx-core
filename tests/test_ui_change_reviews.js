@@ -120,14 +120,14 @@ try {
   try {
     database.all = function (sql, ...parameters) {
       if (String(sql).includes('SELECT * FROM workflow_resource_versions') && ++resourceReads === 2) {
-        throw new Error('Preflight connection failed: Bearer SYNTHETIC_REVIEW_TOKEN https://user:SYNTHETIC_PASSWORD@example.invalid');
+        throw new Error('Preflight connection failed: Bearer SYNTHETIC_REVIEW_TOKEN https://user:SYNTHETIC_PASSWORD@example.invalid /srv/internal/config PRIVATE_DIAGNOSTIC_VALUE');
       }
       return originalAll.call(this, sql, ...parameters);
     };
     const failedReview = await uiMcpProposalReview(proposal.id);
     assert.equal(failedReview.freshPreflight.allowed, false);
-    assert.match(failedReview.freshPreflight.blockers[0], /Preflight connection failed/);
-    assert.doesNotMatch(JSON.stringify(failedReview), /SYNTHETIC_REVIEW_TOKEN|SYNTHETIC_PASSWORD/);
+    assert.equal(failedReview.freshPreflight.blockers[0], 'Proposal validation could not complete. Check the proposal fields and retry.');
+    assert.doesNotMatch(JSON.stringify(failedReview), /SYNTHETIC_REVIEW_TOKEN|SYNTHETIC_PASSWORD|\/srv\/internal|PRIVATE_DIAGNOSTIC_VALUE/);
     assert.equal(failedReview.reviewHash, initial.reviewHash, 'Display redaction must preserve approval identity.');
   } finally {
     database.all = originalAll;

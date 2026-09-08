@@ -1220,6 +1220,7 @@ async function preflightWorkflowAction(
 export async function preflightMcpAction(
   actionValue: unknown,
   payloadValue: unknown,
+  diagnostics: 'internal' | 'public' = 'internal',
 ): Promise<McpPreflight> {
   const action = proposalAction(actionValue);
   const payload = proposalPayload(payloadValue);
@@ -1245,7 +1246,11 @@ export async function preflightMcpAction(
       impact.push('Requires successful exchange reconciliation before releasing the trading kill switch.');
     }
   } catch (error) {
-    blockers.push(boundedError(error) || 'Proposal payload is invalid.');
+    // Explicit domain blockers above remain useful to operators. An arbitrary
+    // exception has no approved public-message contract and may contain secrets.
+    blockers.push(diagnostics === 'public'
+      ? 'Proposal validation could not complete. Check the proposal fields and retry.'
+      : boundedError(error) || 'Proposal payload is invalid.');
   }
   return {
     action,

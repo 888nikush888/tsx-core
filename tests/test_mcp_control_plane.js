@@ -248,6 +248,8 @@ try {
 
   const blockedPreflight = await preflightMcpAction('contracts.publish', { versionId: 'missing:v1' });
   assert.equal(blockedPreflight.allowed, false);
+  const publicBlockedPreflight = await preflightMcpAction('contracts.publish', { versionId: 'missing:v1' }, 'public');
+  assert.deepEqual(publicBlockedPreflight.blockers, blockedPreflight.blockers, 'Public diagnostics preserve explicit actionable domain blockers.');
   const paperAccount = await getDatabase().get(
     "SELECT id FROM trading_accounts WHERE exchange = 'paper' LIMIT 1",
   );

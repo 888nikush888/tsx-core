@@ -56,7 +56,7 @@ export async function uiMcpProposalReview(id: string) {
   const affectedPaths = affectedProposalPaths(action, payload, before, active);
   const requested = requestedProjection(action, payload, before);
   const checkedAt = Date.now();
-  const freshPreflight = await preflightMcpAction(action, payload);
+  const freshPreflight = await preflightMcpAction(action, payload, 'public');
   return {
     contractVersion: 1, observedAt: checkedAt,
     reviewHash: reviewHash({ proposalId: proposal.id, action, payload, before, activeRevisionId: active?.id ?? null }),
