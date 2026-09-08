@@ -1,3 +1,4 @@
+import type { AccountRow, StrategyRow, SignalSchemaRow, ContractVersionRow, IntentRow } from './trading_repository_rows.js';
 import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow } from './workflow_repository_rows.js';
 import { isStringMember, requireString } from './contract_values.js';
 import { createHash, randomUUID } from 'node:crypto';
@@ -1066,16 +1067,16 @@ async function loadCompiledPathDependencies(
   configs: Record<string, any>,
   accountId: string,
   strategyVersionId: string,
-): Promise<{ account: any; baseStrategy: StrategyConfiguration }> {
+): Promise<{ account: Pick<AccountRow, 'id' | 'enabled' | 'status'>; baseStrategy: StrategyConfiguration }> {
   const schemaId = String(configs.schema.schemaId);
   const [account, strategy, schema, contract] = await Promise.all([
-    getDatabase().get<any>('SELECT id, enabled, status FROM trading_accounts WHERE id = ?', [accountId]),
-    getDatabase().get<any>('SELECT status, configuration_json FROM trading_strategy_versions WHERE id = ?', [strategyVersionId]),
-    getDatabase().get<any>(
+    getDatabase().get<Pick<AccountRow, 'id' | 'enabled' | 'status'>>('SELECT id, enabled, status FROM trading_accounts WHERE id = ?', [accountId]),
+    getDatabase().get<Pick<StrategyRow, 'status' | 'configuration_json'>>('SELECT status, configuration_json FROM trading_strategy_versions WHERE id = ?', [strategyVersionId]),
+    getDatabase().get<Pick<SignalSchemaRow, 'enabled' | 'definition_json'>>(
       'SELECT enabled, definition_json FROM trading_signal_schemas WHERE id = ?',
       [schemaId],
     ),
-    getDatabase().get<any>(
+    getDatabase().get<Pick<ContractVersionRow, 'status' | 'definition_json'>>(
       'SELECT status, definition_json FROM trading_signal_contract_versions WHERE id = ?',
       [configs.contract.contractVersionId],
     ),
@@ -1895,7 +1896,7 @@ export async function getWorkflowSignalPlans(input: {
   })).sort((left, right) => left.key.localeCompare(right.key));
 }
 
-function intentFromRow(row: any): TradingIntent {
+function intentFromRow(row: IntentRow): TradingIntent {
   return {
     id: String(row.id), sourceSignalId: String(row.source_signal_id), rootSourceSignalId: String(row.root_source_signal_id),
     signalRunId: row.signal_run_id || null, workflowRevisionId: row.workflow_revision_id || null,
@@ -1952,7 +1953,7 @@ async function processWorkflowIntentPath(input: {
   const { request, workflow, path, runId, runtime, now } = input;
   const filter = pathAllowsInput(path, request.sourceText, request.contentType);
   if (!filter.allowed) return { branch: { pathId: path.id, status: 'filtered', reason: filter.reason } };
-  const existing = await getDatabase().get<any>(
+  const existing = await getDatabase().get<IntentRow>(
     'SELECT * FROM trading_trade_intents WHERE root_source_signal_id = ? AND execution_path_id = ?',
     [request.sourceSignalId, path.id],
   );
@@ -2016,7 +2017,7 @@ async function persistFallbackRouteGroup(input: {
       [fallbackRun.id, candidate.rank, path.id, path.accountId, normalizedJson(candidate.fallbackOn), now, now],
     );
   }
-  const existing = await getDatabase().all<any[]>(
+  const existing = await getDatabase().all<IntentRow[]>(
     `SELECT intent.* FROM trading_fallback_candidates AS candidate
      JOIN trading_trade_intents AS intent ON intent.id = candidate.intent_id
      WHERE candidate.fallback_run_id = ? ORDER BY candidate.rank`,
