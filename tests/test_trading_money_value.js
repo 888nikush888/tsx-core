@@ -117,20 +117,20 @@ function testLongSequencesKeepExactnessUntilNecessary() {
 }
 
 function testReductionPrecedesTheResultBudget() {
-  const b = 10n ** 100n, d = b + 1n, k = 10n ** 50n + 1n;
-  const common = k * b + d;
-  const left = rationalValue('1', String(common * b));
-  const right = rationalValue(String(k), String(common * d));
+  const baseDenominator = 10n ** 100n, adjacentDenominator = baseDenominator + 1n, factor = 10n ** 50n + 1n;
+  const common = factor * baseDenominator + adjacentDenominator;
+  const left = rationalValue('1', String(common * baseDenominator));
+  const right = rationalValue(String(factor), String(common * adjacentDenominator));
   // The common-denominator intermediate has 351 digits; its reduced result has only 201.
-  assert.equal(String(common * b * d).length, 351);
-  assert.equal(String(b * d).length, 201);
+  assert.equal(String(common * baseDenominator * adjacentDenominator).length, 351);
+  assert.equal(String(baseDenominator * adjacentDenominator).length, 201);
   assert.deepEqual(addMoneyValues(left, right), {
-    ...rationalValue('1', String(b * d)), terms: 2,
+    ...rationalValue('1', String(baseDenominator * adjacentDenominator)), terms: 2,
   });
   assert.deepEqual(addMoneyValues(negateMoneyValue(left), negateMoneyValue(right)), {
-    ...rationalValue('-1', String(b * d)), terms: 2,
+    ...rationalValue('-1', String(baseDenominator * adjacentDenominator)), terms: 2,
   });
-  assert.deepEqual(addMoneyValues(addMoneyValues(left, right), rationalValue('-1', String(b * d))), zero(3));
+  assert.deepEqual(addMoneyValues(addMoneyValues(left, right), rationalValue('-1', String(baseDenominator * adjacentDenominator))), zero(3));
 }
 
 function testNormalizedNumeratorLimitAlsoUsesBounds() {

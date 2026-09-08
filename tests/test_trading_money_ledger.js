@@ -5,14 +5,14 @@ import path from 'node:path';
 import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { listTradingStrategies } from '../src/trading_repository.js';
-import * as decimals from '../src/trading_decimal.js';
+import { multiplySignedDecimal, negateSignedDecimal, subtractSignedDecimal } from '../src/trading_decimal.js';
 
-assert.equal(typeof decimals.negateSignedDecimal, 'function', 'A fee rebate needs signed negation, not a second minus prefix.');
-assert.equal(decimals.negateSignedDecimal('-0.002500'), '0.0025');
-assert.equal(decimals.negateSignedDecimal('0.002500'), '-0.0025');
-assert.equal(decimals.negateSignedDecimal('-0'), '0');
-assert.equal(decimals.subtractSignedDecimal('-2', '-3.000000000000000001'), '1.000000000000000001');
-assert.equal(decimals.multiplySignedDecimal('-2', '-0.123456789123456789'), '0.246913578246913578');
+assert.equal(typeof negateSignedDecimal, 'function', 'A fee rebate needs signed negation, not a second minus prefix.');
+assert.equal(negateSignedDecimal('-0.002500'), '0.0025');
+assert.equal(negateSignedDecimal('0.002500'), '-0.0025');
+assert.equal(negateSignedDecimal('-0'), '0');
+assert.equal(subtractSignedDecimal('-2', '-3.000000000000000001'), '1.000000000000000001');
+assert.equal(multiplySignedDecimal('-2', '-0.123456789123456789'), '0.246913578246913578');
 
 const ledger = await import('../src/trading_money_ledger.js');
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-money-ledger-'));

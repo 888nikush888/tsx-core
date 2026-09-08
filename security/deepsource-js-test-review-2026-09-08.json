@@ -8,7 +8,8 @@
     "Node22: all seven modified test files passed",
     "ESLint error checks and git diff --check passed",
     "Node22: all 19 Promise literal/empty stub modified test files passed; ESLint error checks and git diff --check passed",
-    "Five scoped immutability/import/Unicode changes: all five targeted Node22 tests, ESLint error checks and diff checks passed."
+    "Five scoped immutability/import/Unicode changes: all five targeted Node22 tests, ESLint error checks and diff checks passed.",
+    "Ten money-fixture/rejection findings: five targeted Node22 tests, ESLint error checks and diff checks passed."
   ],
   "entries": [
     {
@@ -882,6 +883,86 @@
       "originalLine": 10,
       "status": "source_change_pending_rescan",
       "proof": "Placeholder alternatives contain BMP literals and whitespace classes only; Unicode mode keeps accepted placeholder strings unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpweW4=",
+      "rule": "JS-C1002",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 120,
+      "status": "source_change_pending_rescan",
+      "proof": "Renamed arithmetic factors to baseDenominator, adjacentDenominator and factor; every expression and exact-money assertion is preserved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtueHg=",
+      "rule": "JS-C1002",
+      "path": "tests/test_trading_money_value.js",
+      "originalLine": 120,
+      "status": "source_change_pending_rescan",
+      "proof": "Renamed arithmetic factors to baseDenominator, adjacentDenominator and factor; every expression and exact-money assertion is preserved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHllcXk=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_money_risk.js",
+      "originalLine": 156,
+      "status": "source_change_pending_rescan",
+      "proof": "Named existing/candidate commitments explicitly; string-only denominator composition uses an equivalent template."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2Vua3Y=",
+      "rule": "JS-C1002",
+      "path": "tests/test_trading_money_risk.js",
+      "originalLine": 156,
+      "status": "source_change_pending_rescan",
+      "proof": "Named existing/candidate commitments explicitly; string-only denominator composition uses an equivalent template."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtZXg=",
+      "rule": "JS-C1002",
+      "path": "tests/test_trading_money_risk.js",
+      "originalLine": 155,
+      "status": "source_change_pending_rescan",
+      "proof": "Named existing/candidate commitments explicitly; rational inputs and overflow assertions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxya2E=",
+      "rule": "JS-C1003",
+      "path": "tests/test_trading_money_ledger.js",
+      "originalLine": 8,
+      "status": "source_change_pending_rescan",
+      "proof": "Named imports reference the same three ESM exports used by the original namespace."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRnam4=",
+      "rule": "JS-C1003",
+      "path": "tests/test_trading_fx_money_reporting.js",
+      "originalLine": 7,
+      "status": "source_change_pending_rescan",
+      "proof": "Named imports reference the same five ESM exports; reporting and database assertions are preserved."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VubGE=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "originalLine": 86,
+      "status": "source_change_pending_rescan",
+      "proof": "Explicit rejected Promise models the intentional non-Error rejection; stronger assertion verifies its exact value reaches recordFailure."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFtZG4=",
+      "rule": "JS-0091",
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "originalLine": 86,
+      "status": "source_change_pending_rescan",
+      "proof": "Explicit rejected Promise models the intentional non-Error rejection; stronger assertion verifies its exact value reaches recordFailure."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm12bHY=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "originalLine": 85,
+      "status": "source_change_pending_rescan",
+      "proof": "Explicit rejected Promise preserves async failure transport; new assertion confirms the original Error message reaches recordFailure."
     }
   ]
 }

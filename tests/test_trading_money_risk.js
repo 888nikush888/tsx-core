@@ -152,9 +152,9 @@ function testRationalBudgetAndFundingFlows() {
 }
 
 function testAggregationOverflowRetainsUncertainty() {
-  const a = ratio('1', '9'.repeat(200));
-  const b = ratio('1', '1' + '0'.repeat(200));
-  const result = daily({ budget: quantum, existingCommitment: a, candidateCommitment: b });
+  const existing = ratio('1', '9'.repeat(200));
+  const candidate = ratio('1', `1${'0'.repeat(200)}`);
+  const result = daily({ budget: quantum, existingCommitment: existing, candidateCommitment: candidate });
   assert.deepEqual(result.totalCommitment, interval('0', '0.000000000000000002', 4));
   assert.deepEqual(flags(result), { allowed: false, breached: false, lossLimitReached: false, precisionUncertain: true });
   const wide = '9007199254740993';
