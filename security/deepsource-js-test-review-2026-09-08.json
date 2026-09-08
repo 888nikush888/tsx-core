@@ -31,7 +31,8 @@
     "Three parameter/literal-only response stubs: full Node22 web-server and dynamic-registry suites plus ESLint/diff checks passed.",
     "19 unchanged async assertion-contract functions individually read and exact-body matched; all 13 corresponding Node22 regression suites passed. No source changes or suppression.",
     "Dependency gate: registered malformed-metadata/exact-artifact/provenance/hash regression tests, actual gate and supply-chain suite passed. 308 valid/invalid policy results match original ordering; original null-metadata crash reproduced. Whole script/new test complexity<=5 and ESLint/diff checks passed.",
-    "Sonar local-name and implementation-path Unicode fixes: historical Sonar decision and full implementation bridge suites, ESLint and diff checks passed."
+    "Sonar local-name and implementation-path Unicode fixes: historical Sonar decision and full implementation bridge suites, ESLint and diff checks passed.",
+    "Coverage gate: Node22 unit and isolated CLI regressions passed, 156 original/current policy comparisons passed, entire changed files ESLint complexity<=5 and diff checks passed."
   ],
   "entries": [
     {
@@ -4741,6 +4742,30 @@
       "originalLine": 67,
       "status": "source_change_pending_rescan",
       "proof": "Added Unicode mode to ASCII-only forbidden-path-character predicate. Full implementation bridge tests passed under Node22 and exact-lock Python3.12; control-character rejection remains intact."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnBxbHY=",
+      "rule": "JS-0263",
+      "path": "scripts/check_module_coverage.js",
+      "originalLine": 41,
+      "status": "source_change_pending_rescan",
+      "proof": "Extracted per-metric evaluation and coverage reporting; every function complexity<=5. Child failure sets exitCode and returns before reading stale reports. Isolated real CLI tests verify exit7 with invalid stale JSON, success0, coverage regression1; 156 original/current evaluation cases preserve messages and order. Baseline unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnlsZGE=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_module_coverage.js",
+      "originalLine": 26,
+      "status": "source_change_pending_rescan",
+      "proof": "Extracted per-metric evaluation and coverage reporting; every function complexity<=5. Child failure sets exitCode and returns before reading stale reports. Isolated real CLI tests verify exit7 with invalid stale JSON, success0, coverage regression1; 156 original/current evaluation cases preserve messages and order. Baseline unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZGtudnk=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_module_coverage.js",
+      "originalLine": 9,
+      "status": "source_change_pending_rescan",
+      "proof": "Extracted per-metric evaluation and coverage reporting; every function complexity<=5. Child failure sets exitCode and returns before reading stale reports. Isolated real CLI tests verify exit7 with invalid stale JSON, success0, coverage regression1; 156 original/current evaluation cases preserve messages and order. Baseline unchanged."
     }
   ]
 }
