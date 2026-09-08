@@ -358,9 +358,12 @@ function pinTestReceipts(receipts) {
     return { exchange: receipt.exchange, version: receipt.profileVersion, digest: hash(bytes) };
   });
   put('exchange_executor/ccxt_implementation_reviews.py',
-    '# TRUSTED SYNTHETIC TEST CONTEXT ONLY; no gate or provider acceptance.\nfrom types import MappingProxyType\n'
-    + 'APPROVED_IMPLEMENTATION_RECEIPTS = MappingProxyType({\n'
-    + pins.map(pin => `    (${JSON.stringify(pin.exchange)}, ${pin.version}): (${JSON.stringify(pin.digest)},),\n`).join('') + '})\n');
+    [
+      '# TRUSTED SYNTHETIC TEST CONTEXT ONLY; no gate or provider acceptance.\nfrom types import MappingProxyType\n',
+      'APPROVED_IMPLEMENTATION_RECEIPTS = MappingProxyType({\n',
+      pins.map(pin => `    (${JSON.stringify(pin.exchange)}, ${pin.version}): (${JSON.stringify(pin.digest)},),\n`).join(''),
+      '})\n',
+    ].join(''));
   return pins;
 }
 

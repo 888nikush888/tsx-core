@@ -72,7 +72,7 @@ function testFinalQuantizationDoesNotBoundIntermediateRatio() {
   const numerator = `1${'0'.repeat(255)}`;
   const denominator = '9'.repeat(255);
   const nearOne = ratio(numerator, denominator);
-  const negativeNearOne = ratio('-' + numerator, denominator);
+  const negativeNearOne = ratio(`-${numerator}`, denominator);
   const tinyTick = '0.000000000000000001';
   assert.equal(quantizeRational(nearOne, tinyTick, 'floor'), '1');
   assert.equal(quantizeRational(nearOne, tinyTick, 'ceil'), '1.000000000000000001');

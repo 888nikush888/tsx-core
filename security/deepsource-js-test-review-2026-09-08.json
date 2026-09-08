@@ -24,7 +24,8 @@
     "Risk-policy helper refactor: existing Node22 governance suite and 1728 original-versus-current cases passed; ESLint complexity<=5 for the whole file, ordinary ESLint and diff checks passed.",
     "84 unchanged async fault-injection functions individually read and exact-AST-body matched to baseline; all 36 affected Node22 regression suites passed. No async removal, wrapper or suppression.",
     "15 UI fixture concatenations: four Node22 restart/register/operator suites and ESLint/diff checks passed.",
-    "Follow-up on Promise literal stubs: 21 optional undefined arguments omitted from Promise.resolve to avoid introducing JS-W1042; all six affected Node22 suites and ESLint/diff checks passed. Baseline IDs unchanged."
+    "Follow-up on Promise literal stubs: 21 optional undefined arguments omitted from Promise.resolve to avoid introducing JS-W1042; all six affected Node22 suites and ESLint/diff checks passed. Baseline IDs unchanged.",
+    "Final two owned string concatenations and two Unicode flags: rational, full Node22/Python3.12 build bridge, operator and repository-governance tests passed; 11141120 Unicode comparisons and ESLint/diff checks passed."
   ],
   "entries": [
     {
@@ -4294,6 +4295,38 @@
       "originalLine": 90,
       "status": "source_change_pending_rescan",
       "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9keWc=",
+      "rule": "JS-0117",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 107,
+      "status": "source_change_pending_rescan",
+      "proof": "Unicode mode retains the boolean lone-high-surrogate boundary check; 11141120 combined comparisons cover every code point and newline/surrogate cases, plus the operator suite."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJkbHc=",
+      "rule": "JS-0246",
+      "path": "tests/test_trading_rational.js",
+      "originalLine": 75,
+      "status": "source_change_pending_rescan",
+      "proof": "The sign is prefixed to an explicitly initialized string numerator; exact rational/quantization regression tests preserve the value."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFxbWU=",
+      "rule": "JS-0117",
+      "path": "tests/test_repository_governance.js",
+      "originalLine": 38,
+      "status": "source_change_pending_rescan",
+      "proof": "Unicode mode retains the boolean mojibake detection predicate; 11141120 combined comparisons cover every code point and surrounding text, plus repository governance tests."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl5bmc=",
+      "rule": "JS-0246",
+      "path": "tests/test_exchange_implementation_bridge.js",
+      "originalLine": 361,
+      "status": "source_change_pending_rescan",
+      "proof": "Synthetic Python fixture sections use a joined string array with the same bytes and order; full Node22/Python3.12 build bridge verifies pins, input drift, filesystem and CLI boundaries."
     }
   ]
 }

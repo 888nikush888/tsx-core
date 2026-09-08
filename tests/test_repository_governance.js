@@ -35,7 +35,7 @@ async function assertUtf8Tree(directory) {
     const content = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     assert.doesNotMatch(
       content,
-      /\uFFFD|\u00C3.|\u00E2\u20AC|\u00C2.|\u00F0\u0178/,
+      /\uFFFD|\u00C3.|\u00E2\u20AC|\u00C2.|\u00F0\u0178/u,
       `${filePath} contains damaged Unicode text.`
     );
   }

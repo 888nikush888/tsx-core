@@ -104,7 +104,7 @@ try {
   const bounded = await runUiParserTest(prepared, async () => ({ xml: largeXml, provenance: result.provenance }));
   assert.equal(bounded.xmlTruncated, true); assert.ok(Buffer.byteLength(JSON.stringify(bounded.xml)) <= 24_000);
   assert.ok(Buffer.byteLength(JSON.stringify(bounded)) < 60_000, 'Escaped multi-byte output leaves room in the 64 KiB durable receipt.');
-  assert.ok(!/[\uD800-\uDBFF]$/.test(bounded.xml), 'Truncation preserves Unicode character boundaries.');
+  assert.ok(!/[\uD800-\uDBFF]$/u.test(bounded.xml), 'Truncation preserves Unicode character boundaries.');
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_trade_intents')).count, 0);
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM pending_tasks')).count, 0);
   await accountEvidenceHttpReads(base);
