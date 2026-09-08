@@ -1,3 +1,4 @@
+import type { ManagedSecretStatuses, RecoveryObservation } from "./operation-status-types";
 import { listEntries } from "@/shared/list-entries";
 import { useCallback, useState } from "react";
 import { jsonRequest, mutateAndObserve } from "@/lib/api";
@@ -10,14 +11,14 @@ import { useDirtyGuard } from '@/shared/forms/use-dirty-guard';
 import { DraftState } from '@/shared/forms/draft-state';
 
 export function RecoveryPage() {
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<RecoveryObservation | null>(null);
   const [serverConfig, setServerConfig] = useState<any>(null);
   const [runtimePayload, setRuntimePayload] = useState<any>(null);
   const configForm = useVersionedDraft<any>('recovery-config', serverConfig, serverConfig?.configRevision ?? null, {});
   const runtimeForm = useVersionedDraft<any>('recovery-runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
   const { draft: config, setDraft: setConfig } = configForm;
   const { draft: runtime, setDraft: setRuntime } = runtimeForm;
-  const [secrets, setSecrets] = useState<Record<string, any>>({});
+  const [secrets, setSecrets] = useState<ManagedSecretStatuses>({});
   const [secretInput, setSecretInput] = useState<Record<string, string>>({});
   useDirtyGuard(Object.values(secretInput).some(Boolean));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -92,7 +93,7 @@ export function RecoveryPage() {
     <p>Authentifizierung: {status?.session?.role ?? "unbekannt"} · Betriebsbereitschaft: {recoveryStatus()}</p>
     <p>Dieser Einstieg benötigt nur Recovery, Konfiguration, Runtime-Einstellungen und Secretstatus. Alle Reparaturen durchlaufen die bestehenden Serverprüfungen.</p>
     {Object.entries(errors).filter(([, error]) => error).map(([name, error]) => <p role="alert" key={name}>{name}: {error}</p>)}
-    {listEntries<any>(status?.issues ?? [], issue => JSON.stringify([issue.component, issue.name, issue.reason])).map(({ item: issue, key }) => <p role="alert" key={key}>{issue.component} {issue.name}: {issue.reason}</p>)}
+    {listEntries(status?.issues ?? [], issue => JSON.stringify([issue.component, issue.name, issue.reason])).map(({ item: issue, key }) => <p role="alert" key={key}>{issue.component} {issue.name}: {issue.reason}</p>)}
     {message && <p><output>{message}</output></p>}
     <DraftState label="Recovery-Konfiguration" form={configForm} server={serverConfig} />
     <DraftState label="Recovery-Runtime" form={runtimeForm} server={runtimePayload?.settings} />

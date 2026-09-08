@@ -1,3 +1,4 @@
+import type { AccessObservation, ManagedSecretStatuses, OperationsObservation, RecoveryObservation } from "./operation-status-types";
 import { TelegramSettings } from "@/features/signals/telegram-settings";
 import { SetupReviewTree } from './setup-review-tree';
 import { Metric, time } from "@/shared/components/operator-primitives";
@@ -40,10 +41,10 @@ export function System({
   const [runtimePayload, setRuntimePayload] = useState<any>(null);
   const runtimeForm = useVersionedDraft<any>('runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
   const { draft: runtime, setDraft: setRuntime } = runtimeForm;
-  const [secrets, setSecrets] = useState<any>(null);
-  const [recovery, setRecovery] = useState<any>(null);
-  const [operations, setOperations] = useState<any>(null);
-  const [access, setAccess] = useState<any>(null);
+  const [secrets, setSecrets] = useState<ManagedSecretStatuses | null>(null);
+  const [recovery, setRecovery] = useState<RecoveryObservation | null>(null);
+  const [operations, setOperations] = useState<OperationsObservation | null>(null);
+  const [access, setAccess] = useState<AccessObservation | null>(null);
   const [setupPreview, setSetupPreview] = useState<any>(null);
   const [setupMappings, setSetupMappings] = useState<Record<string, string>>({});
   const [setupConfirmation, setSetupConfirmation] = useState("");
@@ -312,7 +313,7 @@ export function System({
         <div className="builder-error">
           <AlertTriangle size={15} />
           Recovery-Modus:{" "}
-          {(recovery.issues || []).map((item: any) => item.reason).join(" · ")}
+          {(recovery.issues || []).map(item => item.reason).join(" · ")}
         </div>
       )}
       <TelegramSettings />
@@ -453,7 +454,7 @@ export function System({
         <h3>Audit und Diagnose</h3>
         <div className="system-line"><span>Audit-Zustand</span><strong>{auditStatus()}</strong></div>
         <div className="system-line"><span>Letzte Integritätsprüfung</span><strong>{time(operations?.backup?.integrityVerified?.verifiedAt)}</strong></div>
-        <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt))}</strong></div>
+        <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt ?? ""))}</strong></div>
         <div className="system-line"><span>Gemeinsame Konfiguration geprüft</span><strong>{time(operations?.backup?.configurationCoherent?.verifiedAt)}</strong></div>
         <div className="system-line"><span>Offsite zurückgelesen und geprüft</span><strong>{time(operations?.backup?.offsiteVerified?.verifiedAt)}</strong></div>
         <div className="system-line"><span>Letzte artefaktlokale Restore-Prüfung</span><strong>{operations?.backup?.restoreEligibility?.status || "unknown"} · {time(operations?.backup?.restoreEligibility?.checkedAt)}</strong></div>
