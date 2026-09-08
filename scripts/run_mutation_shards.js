@@ -15,6 +15,11 @@ function selectedShards(argumentsList) {
   return requestedShards.length > 0 ? requestedShards : supportedShards;
 }
 
+function shardBudgetMs(shard) {
+  // The schema command runs both full suites for every mutant; see docs/quality/schema-mutation-budget.md.
+  return (shard === 'schema' ? 40 : 20) * 60_000;
+}
+
 function runShard(shard, force, strykerBinary, { spawnImpl, log, error, environment }) {
   log(`=== Mutation shard: ${shard} ===`);
   const result = spawnImpl(
@@ -26,7 +31,7 @@ function runShard(shard, force, strykerBinary, { spawnImpl, log, error, environm
       stdio: 'inherit',
       shell: false,
       windowsHide: true,
-      timeout: 20 * 60_000,
+      timeout: shardBudgetMs(shard),
     }
   );
   if (result.error) {
