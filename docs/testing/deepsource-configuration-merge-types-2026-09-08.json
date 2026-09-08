@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "sourceSha256": "6cb6f4a9e4a65a772e6272a3b1d16000c19985cea315b29b6ffbc5865bebdcbb",
+  "scope": "Three explicit-any findings in configuration patch merge; unknown output still passes the existing validateConfig boundary.",
+  "verification": [
+    "Typecheck and targeted ESLint passed.",
+    "588 before/after merge and rejection comparisons: scalars, nested objects, array replacement, forbidden prototype keys and nesting limits.",
+    "Complete real HTTP web-control/security suite passed."
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VkZHc=",
+      "rule": "JS-0323",
+      "path": "src/ui_configuration.ts",
+      "baselineLine": 8,
+      "baselineColumn": 54,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmF4eG0=",
+      "rule": "JS-0323",
+      "path": "src/ui_configuration.ts",
+      "baselineLine": 8,
+      "baselineColumn": 42,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG95eWE=",
+      "rule": "JS-0323",
+      "path": "src/ui_configuration.ts",
+      "baselineLine": 8,
+      "baselineColumn": 71,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    }
+  ]
+}
