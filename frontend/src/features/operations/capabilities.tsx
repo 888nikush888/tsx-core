@@ -40,9 +40,10 @@ export function CapabilitiesPage() {
   const [query, setQuery] = useSearchParams(); const parameters = query.get('view') === 'parameters';
   const [response, setResponse] = useState<any>(null); const [error, setError] = useState('');
   const apiQuery = new URLSearchParams({ limit: '30' });
-  if (query.get('cursor')) apiQuery.set('cursor', query.get('cursor')!);
-  const filter = parameters ? 'prefix' : 'area'; if (query.get(filter)) apiQuery.set(filter, query.get(filter)!);
-  const address = '/api/ui/' + (parameters ? 'parameters' : 'capabilities') + '?' + apiQuery;
+  const cursor = query.get('cursor'); if (cursor) apiQuery.set('cursor', cursor);
+  const filter = parameters ? 'prefix' : 'area'; const filterValue = query.get(filter);
+  if (filterValue) apiQuery.set(filter, filterValue);
+  const address = `/api/ui/${parameters ? 'parameters' : 'capabilities'}?${apiQuery}`;
   const data = response?.address === address ? response.value : null;
   const read = useCallback((signal: AbortSignal) => jsonRequest(address, { signal }), [address]);
   usePoll(read, value => { setResponse({ address, value }); setError(''); }, reason => setError(reason.message));

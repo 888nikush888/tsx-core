@@ -40,8 +40,8 @@ const locale = (value: string) => value.replace(".", ",");
 function unit(currency: unknown): string {
   return typeof currency === "string" && /^[A-Z0-9]{2,12}$/.test(currency) ? ` ${currency}` : "";
 }
-function approximation(value: DisplayMoneyValue): string {
-  const numerator = BigInt(value.exact!.numerator), denominator = BigInt(value.exact!.denominator);
+function approximation(exact: NonNullable<DisplayMoneyValue['exact']>): string {
+  const numerator = BigInt(exact.numerator), denominator = BigInt(exact.denominator);
   const magnitude = numerator < 0n ? -numerator : numerator;
   const units = magnitude * 1_000_000n / denominator;
   if (units === 0n && numerator !== 0n) return `${numerator < 0n ? "negativ" : "positiv"} (< 0,000001)`;
@@ -64,8 +64,8 @@ export function moneyDisplay(input: DisplayMoney): { label: string; detail: stri
     return { label: `[${locale(value.lower)}; ${locale(value.upper)}]${suffix} (Grenzen)`,
       detail: "Konservative Unter- und Obergrenze; kein exakter Einzelbetrag.", uncertain: true };
   }
-  if (value) return { label: `${value.decimal === null ? approximation(value) : locale(value.decimal)}${suffix}`,
-    detail: `Exakt: ${value.exact!.numerator}/${value.exact!.denominator}${suffix}`, uncertain: false };
+  if (value?.exact) return { label: `${value.decimal === null ? approximation(value.exact) : locale(value.decimal)}${suffix}`,
+    detail: `Exakt: ${value.exact.numerator}/${value.exact.denominator}${suffix}`, uncertain: false };
   if (decimalText(input.amount)) return { label: `${locale(input.amount)}${suffix}`, detail: `Exakt: ${input.amount}${suffix}`, uncertain: false };
   // Compatibility with older display-only analytics responses; never feeds a risk calculation.
   if (typeof input.amount === "number" && Number.isFinite(input.amount)) return {
@@ -75,10 +75,15 @@ export function moneyDisplay(input: DisplayMoney): { label: string; detail: stri
 }
 
 /** Recharts uses floating-point display coordinates, never monetary sums or ranking decisions. */
-export function moneyChartGroups(rows: Array<Record<string, any>>): Array<{ currency: string; points: Array<Record<string, any>> }> {
-  const groups = new Map<string, Array<Record<string, any>>>();
+interface MoneyChartRow {
+  reportingCurrency?: unknown;
+  accountingStatus?: unknown;
+  realizedPnlValue?: unknown;
+}
+export function moneyChartGroups<Row extends MoneyChartRow>(rows: Row[]): Array<{ currency: string; points: Array<Row & { chartPnl: number }> }> {
+  const groups = new Map<string, Array<Row & { chartPnl: number }>>();
   for (const row of rows) {
-    if (!unit(row.reportingCurrency) || row.accountingStatus !== "complete") continue;
+    if (typeof row.reportingCurrency !== 'string' || !unit(row.reportingCurrency) || row.accountingStatus !== "complete") continue;
     const value = displayValue(row.realizedPnlValue);
     if (!value?.exact) continue; // No synthetic zero for unresolved/bounded or old unproved graph points.
     const chartPnl = Number(value.exact.numerator) / Number(value.exact.denominator);

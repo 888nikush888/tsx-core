@@ -19,12 +19,14 @@ describe("Google Tag Manager initialization", () => {
   it("loads the fixed Google endpoint and preserves existing data-layer events without inline code", async () => {
     window.dataLayer.push({ event: "existing" });
     await initialize("GTM-ABC1234");
-    const script = document.head.querySelector("script")!;
+    const script = document.head.querySelector("script");
+    if (!script) throw new Error("Expected the configured GTM script.");
     expect(script.src).toBe("https://www.googletagmanager.com/gtm.js?id=GTM-ABC1234");
     expect(script.async).toBe(true);
     expect(script.textContent).toBe("");
     expect(window.dataLayer).toEqual([{ event: "existing" }, { event: "gtm.js", "gtm.start": expect.any(Number) }]);
-    const iframe = document.body.querySelector("noscript iframe")!;
+    const iframe = document.body.querySelector("noscript iframe");
+    if (!iframe) throw new Error("Expected the GTM fallback frame.");
     expect(iframe.getAttribute("src")).toBe("https://www.googletagmanager.com/ns.html?id=GTM-ABC1234");
   });
 

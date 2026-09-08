@@ -91,7 +91,7 @@ export function AdaptiveRiskPage() {
           return <LegacyCard key={row.policy.channelId} entry={row} />;
         }
         if (kind.includes('evaluations')) {
-          return <EvaluationCard key={row.id} row={row} legacyChannel={kind === 'legacy-evaluations' ? params.get('channelId')! : undefined} />;
+          return <EvaluationCard key={row.id} row={row} legacyChannel={kind === 'legacy-evaluations' ? params.get('channelId') ?? undefined : undefined} />;
         }
         return <article key={row.stateKey} className="operations-card space-y-4"><h2>{row.accountName} · {row.mode} · {row.channelId}</h2>
           <EvidenceFields fields={[['Ressource', row.resourceId], ['Aktuelle Stufe', tier(row.currentTier)], ['Feste Stufe', tier(row.lockedTier)], ['Gesperrt', row.blocked], ['Sperrgrund', row.blockReason], ['Policyhash des Zustands', row.policySha256], ['Aktualisiert', time(row.updatedAt)]]} />

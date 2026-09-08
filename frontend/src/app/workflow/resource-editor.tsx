@@ -249,9 +249,9 @@ async function publishContractDraft(
   const source = parent?.versions.find(
     (version) => version.id === configuration.contractVersionId,
   );
-  if (metadata.deferPublication && source?.status === 'draft') {
+  if (metadata.deferPublication && parent && source?.status === 'draft') {
     if (!metadata.baseDefinitionSha256) throw new Error('Der Versionsbeleg des Vertragsentwurfs fehlt. Neu laden und vergleichen.');
-    await jsonRequest('/api/trading/signal-contracts/update', { method: 'POST', body: JSON.stringify({ contractId: parent!.id, versionId: source.id,
+    await jsonRequest('/api/trading/signal-contracts/update', { method: 'POST', body: JSON.stringify({ contractId: parent.id, versionId: source.id,
       name: metadata.name, description: metadata.description, definition: contractDraft, baseDefinitionSha256: metadata.baseDefinitionSha256 }) });
     configuration.contractVersionId = source.id; metadata.accepted?.(`Vertragsdefinition ${source.id} gespeichert`); return;
   }

@@ -125,8 +125,8 @@ export function Overview({
   }, []);
   usePoll(readDashboard, results => { for (const result of results) {
     setSourceErrors(previous => ({ ...previous, [result.source]: result.error }));
-    if (result.error) continue;
-    setObservations(previous => ({ ...previous, [result.source]: result.observedAt! }));
+    if (result.error || result.observedAt === null) continue;
+    setObservations(previous => ({ ...previous, [result.source]: result.observedAt }));
     if (result.source === '/api/trading/portfolio') setPortfolio(result.value);
     if (result.source === '/api/processed-signals') setSignals(result.value.signals ?? []);
     if (result.source === '/api/access') setAccess(result.value);

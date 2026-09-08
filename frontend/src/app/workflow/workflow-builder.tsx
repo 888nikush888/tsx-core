@@ -2275,7 +2275,8 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     const candidate = structuredClone(graphRef.current);
     let addedNode: WorkflowGraph["nodes"][number] | null = null;
     if (selectedNode) {
-      const node = candidate.nodes.find((item) => item.id === selectedNode.id)!;
+      const node = candidate.nodes.find((item) => item.id === selectedNode.id);
+      if (!node) throw new Error('Der bearbeitete Knoten ist nicht mehr im aktuellen Entwurf. Graph neu laden und vergleichen.');
       node.resourceVersionId = resource.id;
     } else {
       const sameColumn = candidate.nodes.filter(
