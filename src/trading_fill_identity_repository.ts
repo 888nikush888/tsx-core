@@ -18,15 +18,16 @@ const SELECT_FILLS = `SELECT fills.*,orders.client_order_id,orders.exchange_orde
   orders.order_type,orders.reduce_only,orders.price AS order_price,orders.trigger_price
   FROM trading_fills fills JOIN trading_orders orders ON orders.id=fills.order_id
   JOIN trading_trade_intents intent ON intent.id=orders.intent_id`;
-function object(value: unknown): Record<string, any> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {}; }
-function parse(value: string | null): Record<string, any> { return value === null ? {} : object(JSON.parse(value)); }
+function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
+function parse(value: string | null): Record<string, unknown> { return value === null ? {} : object(JSON.parse(value)); }
 function codePointOrder(left: string, right: string): number {
   if (left < right) return -1;
   if (left > right) return 1;
   return 0;
 }
 function snapshot(row: FillRow, identity?: ExchangeFillIdentity): ExchangeFill {
-  return { exchangeFillId: row.exchange_fill_id, exchangeOrderId: row.exchange_order_id!, clientOrderId: row.client_order_id,
+  if (!row.exchange_order_id) throw new Error('Fill has no original exchange order identity.');
+  return { exchangeFillId: row.exchange_fill_id, exchangeOrderId: row.exchange_order_id, clientOrderId: row.client_order_id,
     symbol: row.symbol, providerSymbol: row.order_provider_symbol ?? undefined, price: row.price, quantity: row.quantity,
     fee: row.fee, feeAsset: row.fee_asset, filledAt: row.filled_at, raw: JSON.parse(row.raw_json), identity };
 }
@@ -36,14 +37,18 @@ function legacyIdentity(account: TradingAccount, row: FillRow): ExchangeFillIden
   if (!row.order_provider_symbol || raw.symbol !== row.order_provider_symbol) return null;
   const base = { version: 1 as const, providerSymbol: row.order_provider_symbol, providerFillId: row.exchange_fill_id, scopeTimestamp: null };
   if (account.exchange === 'bybit') {
+    if (typeof info.symbol !== 'string') return null;
     const metadata = parse(row.accounting_json);
     if (metadata.source !== 'ccxt-market-v1' || metadata.linear !== true || metadata.quantityUnit !== 'base'
       || metadata.providerSymbol !== row.order_provider_symbol || !bybitPerpetualSymbol(row.order_provider_symbol, metadata.settlementAsset)) return null;
     return { ...base, profile: 'bybit_execution_v1', marketNamespace: 'linear', providerMarketId: info.symbol };
   }
-  if (account.exchange === 'hyperliquid') return { ...base, profile: 'hyperliquid_user_fill_v1', marketNamespace: 'perpetual',
-    providerMarketId: info.coin, scopeTimestamp: info.time };
+  if (account.exchange === 'hyperliquid') {
+    if (typeof info.coin !== 'string' || typeof info.time !== 'number') return null;
+    return { ...base, profile: 'hyperliquid_user_fill_v1', marketNamespace: 'perpetual', providerMarketId: info.coin, scopeTimestamp: info.time };
+  }
   if (account.exchange === 'krakenfutures' && info.identitySource === 'kraken_history_execution_v3') {
+    if (typeof info.tradeable !== 'string') return null;
     return { ...base, profile: 'kraken_history_execution_v3', marketNamespace: 'futures', providerMarketId: info.tradeable };
   }
   return null;
@@ -63,6 +68,7 @@ function ackMatches(value: unknown, row: FillRow): boolean {
 }
 function legMatches(value: unknown, row: FillRow): boolean {
   const leg = object(value);
+  if (typeof leg.quantity !== 'string') return false;
   return leg.accountId === row.account_id && leg.clientOrderId === row.client_order_id && leg.symbol === row.symbol
     && leg.role === row.role && leg.side === row.side && leg.orderType === row.order_type && leg.reduceOnly === (row.reduce_only === 1)
     && leg.price === row.order_price && leg.triggerPrice === row.trigger_price && compareDecimal(leg.quantity, row.order_quantity) === 0;
@@ -97,10 +103,11 @@ async function originalJournalProves(account: TradingAccount, row: FillRow): Pro
     AND account_fingerprint=? AND phase IN ('dispatching','acknowledged','unresolved','resolved') AND kind IN ('submit','protected_entry')
     AND EXISTS(SELECT 1 FROM json_each(expected_orders_json) leg WHERE json_extract(leg.value,'$.client_order_id')=?)`,
   [account.id, row.intent_id, row.account_fingerprint, row.client_order_id]);
-  if (operations.length !== 1) return false;
+  const operation = operations[0];
+  if (operations.length !== 1 || !operation) return false;
   const response = parse(row.response_json);
   const direct = response.id === row.exchange_order_id && response.clientOrderId === row.client_order_id && response.symbol === row.order_provider_symbol;
-  return operationProves(operations[0]!, row, direct);
+  return operationProves(operation, row, direct);
 }
 
 async function originalPaperProves(row: FillRow): Promise<boolean> {
@@ -161,7 +168,8 @@ export async function backfillAccountFillIdentities(account: TradingAccount): Pr
     let rows = await nextBackfillRows(account.id, cursors.get(account.id));
     if (!rows.length && cursors.has(account.id)) rows = await nextBackfillRows(account.id, undefined);
     for (const row of rows) await bindLegacyFillIdentity(account, row.id);
-    if (rows.length === BACKFILL_ATTEMPTS) cursors.set(account.id, rows.at(-1)!);
+    const last = rows.at(-1);
+    if (rows.length === BACKFILL_ATTEMPTS && last) cursors.set(account.id, last);
     else cursors.delete(account.id);
   });
 }
@@ -172,10 +180,11 @@ export async function unresolvedFillIdentityCount(account: TradingAccount): Prom
   let unresolved = 0;
   for (const row of rows) {
     try {
-      const proof = row.identity_json ? provenFillIdentity(account, snapshot(row, JSON.parse(row.identity_json))) : null;
+      const identity: ExchangeFillIdentity | null = row.identity_json ? JSON.parse(row.identity_json) : null;
+      const proof = identity ? provenFillIdentity(account, snapshot(row, identity)) : null;
       const bound = account.exchange === 'paper' || row.account_fingerprint === fillAccountFingerprint(account);
       if (row.identity_status === 'proven' && bound && proof?.key === row.remote_fill_key
-        && isDeepStrictEqual(JSON.parse(row.identity_json!), proof.identity)) continue;
+        && isDeepStrictEqual(identity, proof.identity)) continue;
       if (row.identity_status === 'legacy_unresolved' && account.exchange === 'paper' && await originalPaperProves(row)) continue;
     } catch { /* Malformed original identity is uncertainty, never absence. */ }
     unresolved += 1;

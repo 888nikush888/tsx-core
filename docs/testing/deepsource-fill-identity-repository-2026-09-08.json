@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "Explicit any and non-null occurrences; remaining complexity/style handled separately.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 tests/test_trading_fill_identity_backfill.js",
+    "Node22 tests/test_trading_fill_identity.js",
+    "Node22 tests/test_fill_identity_contract_guards.js"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZrcWc=",
+      "rule": "JS-0339",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 178,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "disposition": "fixed",
+      "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtyZWo=",
+      "rule": "JS-0339",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 164,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "disposition": "fixed",
+      "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm14ZHA=",
+      "rule": "JS-0339",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 103,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "disposition": "fixed",
+      "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZrd3A=",
+      "rule": "JS-0339",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 29,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "disposition": "fixed",
+      "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpyd24=",
+      "rule": "JS-0323",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 22,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "disposition": "fixed",
+      "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtyb3g=",
+      "rule": "JS-0323",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 21,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "disposition": "fixed",
+      "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnltbGc=",
+      "rule": "JS-0323",
+      "path": "src/trading_fill_identity_repository.ts",
+      "baselineLine": 21,
+      "baselineSourceSha256": "b908cc68da140431ecb1e23e803a468e750eb4be11765a1c932c6441f673776c",
+      "reviewedSourceSha256": "c88f7e2a089f9034ef29f7edaae571cb7193dec7c3030f16a42db24ddd0cc7d9",
+      "disposition": "fixed",
+      "reason": "Raw provider objects are unknown until scalar metadata is narrowed; missing original exchange-order identity remains uncertainty. Unique operation/backfill rows are captured after guards; parsed identity is reused without assertions. Three real SQLite legacy-provider fixtures reject malformed metadata/missing order IDs without writes, then bind only restored original evidence."
+    }
+  ]
+}
