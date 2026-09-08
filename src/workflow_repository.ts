@@ -950,6 +950,18 @@ async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, 
   return resources;
 }
 
+function requiredWorkflowNode(nodes: Map<string, WorkflowNode>, id: string): WorkflowNode {
+  const node = nodes.get(id);
+  if (!node) throw new Error('Workflow references a missing node.');
+  return node;
+}
+
+function requiredWorkflowResource(resources: Map<string, WorkflowResourceVersion>, id: string): WorkflowResourceVersion {
+  const resource = resources.get(id);
+  if (!resource) throw new Error('Workflow references a missing resource.');
+  return resource;
+}
+
 function buildWorkflowTopology(graph: WorkflowGraph): {
   nodes: Map<string, WorkflowNode>;
   adjacency: Map<string, WorkflowEdge[]>;
@@ -960,8 +972,8 @@ function buildWorkflowTopology(graph: WorkflowGraph): {
   const indegree = new Map(graph.nodes.map(node => [node.id, 0]));
   for (const edge of graph.edges) {
     if (edge.kind === 'account_fallback') continue;
-    const source = nodes.get(edge.source)!;
-    const target = nodes.get(edge.target)!;
+    const source = requiredWorkflowNode(nodes, edge.source);
+    const target = requiredWorkflowNode(nodes, edge.target);
     if (STAGE[source.kind] >= STAGE[target.kind]) {
       throw new Error(`Connection ${edge.id} must move from an earlier processing column to a later one.`);
     }
@@ -1137,32 +1149,31 @@ async function compileTerminalLineage(
   const fallbackPolicies: WorkflowFallbackReason[][] = [];
   const successors = context.fallbackByChannel.get(channelNodeId)
     ?? new Map<string, { target: string; fallbackOn: WorkflowFallbackReason[] }>();
-  while (successors.has(accountNodeIds.at(-1)!)) {
-    const successor = successors.get(accountNodeIds.at(-1)!)!;
+  for (let successor = successors.get(accountNodeId); successor; successor = successors.get(successor.target)) {
     fallbackPolicies.push([...successor.fallbackOn]);
     accountNodeIds.push(successor.target);
   }
   fallbackPolicies.push([]);
-  const primaryNodes = terminalLineage.map(id => context.nodes.get(id)!);
+  const primaryNodes = terminalLineage.map(id => requiredWorkflowNode(context.nodes, id));
   const present = new Set(primaryNodes.map(item => item.kind));
   const missing = [...REQUIRED_EXECUTION_KINDS].filter(kind => !present.has(kind));
   if (missing.length > 0) {
     context.warnings.push(`Path ending at ${accountNodeId} is inert; missing: ${missing.join(', ')}.`);
     return;
   }
-  const primaryConfigs = Object.fromEntries(primaryNodes
-    .map(item => [item.kind, context.resources.get(item.resourceVersionId)!.configuration]));
-  const channelId = String((primaryConfigs.channel as any).channelId);
-  const strategyVersionId = String((primaryConfigs.strategy as any).strategyVersionId);
+  const primaryConfigs = Object.fromEntries<Record<string, unknown>>(primaryNodes
+    .map(item => [item.kind, requiredWorkflowResource(context.resources, item.resourceVersionId).configuration]));
+  const channelId = String(primaryConfigs.channel.channelId);
+  const strategyVersionId = String(primaryConfigs.strategy.strategyVersionId);
   const routeGroupKey = sha256({ channelNodeId, terminalLineage, accountNodeIds, fallbackPolicies });
   const candidates: WorkflowRouteGroup['candidates'] = [];
   for (let rank = 0; rank < accountNodeIds.length; rank += 1) {
     const candidateNodeIds = [...prefix, ...accountNodeIds.slice(0, rank + 1), ...suffix];
-    const pathNodes = candidateNodeIds.map(id => context.nodes.get(id)!);
+    const pathNodes = candidateNodeIds.map(id => requiredWorkflowNode(context.nodes, id));
     const byKind = new Map(pathNodes.map(item => [item.kind, item]));
-    const configs = Object.fromEntries(pathNodes
-      .map(item => [item.kind, context.resources.get(item.resourceVersionId)!.configuration]));
-    const accountId = String((configs.account as any).accountId);
+    const configs = Object.fromEntries<Record<string, unknown>>(pathNodes
+      .map(item => [item.kind, requiredWorkflowResource(context.resources, item.resourceVersionId).configuration]));
+    const accountId = String(configs.account.accountId);
     const { account, baseStrategy } = await loadCompiledPathDependencies(configs, accountId, strategyVersionId);
     const effectiveConfiguration = compiledEffectiveConfiguration(baseStrategy, configs);
     const id = randomUUID();
@@ -1209,7 +1220,7 @@ async function walkWorkflowPaths(
   lineage: string[],
   channelNodeId: string,
 ): Promise<void> {
-  const node = context.nodes.get(nodeId)!;
+  const node = requiredWorkflowNode(context.nodes, nodeId);
   const nextLineage = [...lineage, nodeId];
   if (node.kind === 'account') {
     const outputTargets = (context.adjacency.get(node.id) ?? [])
