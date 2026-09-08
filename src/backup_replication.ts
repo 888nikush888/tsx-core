@@ -245,7 +245,7 @@ async function decryptArtifact(bundlePath: string, destination: string, key: Buf
   if (!header.subarray(0, ENCRYPTED_MAGIC.length).equals(ENCRYPTED_MAGIC)) {
     throw new Error('Encrypted backup object has an invalid header.');
   }
-  const decipher = createDecipheriv('aes-256-gcm', key, header.subarray(ENCRYPTED_MAGIC.length));
+  const decipher = createDecipheriv('aes-256-gcm', key, header.subarray(ENCRYPTED_MAGIC.length), { authTagLength: TAG_BYTES });
   decipher.setAAD(header);
   decipher.setAuthTag(tag);
   const archivePath = `${destination}.archive`;
