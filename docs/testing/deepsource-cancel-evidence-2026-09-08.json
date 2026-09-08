@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 tests/test_trading_cancel_evidence.js",
+    "Node22 tests/test_trading_exit_cancel_recovery.js",
+    "Node22 tests/test_trading_exit_cancel_engine.js",
+    "Node22 tests/test_trading_cancel_budget.js",
+    "Node22 tests/test_cancel_evidence_contract_guards.js",
+    "Temporary local ESLint complexity cap5; repository thresholds unchanged"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRwcG0=",
+      "rule": "JS-0339",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 73,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Source/order candidates and acquisition are locally captured and explicitly checked before dereference. Complete source timing now requires safe integer clocks; malformed fractional/coerced timestamps cannot authorize cancellation. Existing unique identity, progress, active-order and ten-second retry fences remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlycng=",
+      "rule": "JS-R1005",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 62,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Split acquisition clock/window, unique complete source, account binding and nonregressing order progress into explicit predicates. All functions pass stricter temporary local complexity cap5; exact DeepSource recount awaits scan."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VwcGE=",
+      "rule": "JS-R1005",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 50,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Split acquisition clock/window, unique complete source, account binding and nonregressing order progress into explicit predicates. All functions pass stricter temporary local complexity cap5; exact DeepSource recount awaits scan."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFxcW4=",
+      "rule": "JS-0339",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 43,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Source/order candidates and acquisition are locally captured and explicitly checked before dereference. Complete source timing now requires safe integer clocks; malformed fractional/coerced timestamps cannot authorize cancellation. Existing unique identity, progress, active-order and ten-second retry fences remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1kZHY=",
+      "rule": "JS-0339",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 25,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Source/order candidates and acquisition are locally captured and explicitly checked before dereference. Complete source timing now requires safe integer clocks; malformed fractional/coerced timestamps cannot authorize cancellation. Existing unique identity, progress, active-order and ten-second retry fences remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9wcG8=",
+      "rule": "JS-0339",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 24,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Source/order candidates and acquisition are locally captured and explicitly checked before dereference. Complete source timing now requires safe integer clocks; malformed fractional/coerced timestamps cannot authorize cancellation. Existing unique identity, progress, active-order and ten-second retry fences remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxhYXY=",
+      "rule": "JS-0339",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 24,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Source/order candidates and acquisition are locally captured and explicitly checked before dereference. Complete source timing now requires safe integer clocks; malformed fractional/coerced timestamps cannot authorize cancellation. Existing unique identity, progress, active-order and ten-second retry fences remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl3d2E=",
+      "rule": "JS-0339",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 24,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Source/order candidates and acquisition are locally captured and explicitly checked before dereference. Complete source timing now requires safe integer clocks; malformed fractional/coerced timestamps cannot authorize cancellation. Existing unique identity, progress, active-order and ten-second retry fences remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhvb2o=",
+      "rule": "JS-0339",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 23,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Source/order candidates and acquisition are locally captured and explicitly checked before dereference. Complete source timing now requires safe integer clocks; malformed fractional/coerced timestamps cannot authorize cancellation. Existing unique identity, progress, active-order and ten-second retry fences remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHF3d2w=",
+      "rule": "JS-0339",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 23,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Source/order candidates and acquisition are locally captured and explicitly checked before dereference. Complete source timing now requires safe integer clocks; malformed fractional/coerced timestamps cannot authorize cancellation. Existing unique identity, progress, active-order and ten-second retry fences remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZxcXE=",
+      "rule": "JS-R1005",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 21,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Split acquisition clock/window, unique complete source, account binding and nonregressing order progress into explicit predicates. All functions pass stricter temporary local complexity cap5; exact DeepSource recount awaits scan."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpvb3c=",
+      "rule": "JS-R1005",
+      "path": "src/trading_cancel_evidence.ts",
+      "baselineLine": 15,
+      "baselineSourceSha256": "f7e5e28542682f04e744451db48919a31671d7c208adb25cae34557ca06a507f",
+      "reviewedSourceSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+      "disposition": "fixed",
+      "reason": "Split acquisition clock/window, unique complete source, account binding and nonregressing order progress into explicit predicates. All functions pass stricter temporary local complexity cap5; exact DeepSource recount awaits scan."
+    }
+  ]
+}
