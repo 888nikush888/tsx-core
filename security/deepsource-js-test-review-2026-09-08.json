@@ -11,7 +11,8 @@
     "Five scoped immutability/import/Unicode changes: all five targeted Node22 tests, ESLint error checks and diff checks passed.",
     "Ten money-fixture/rejection findings: five targeted Node22 tests, ESLint error checks and diff checks passed.",
     "62 explicit empty-hook return contracts: all 23 scoped Node22 test files passed, including Python FX bridge under exact-lock Python3.12; ESLint error checks and diff checks passed.",
-    "18 MCP control stubs now detect unexpected dispatch; targeted Node22 MCP control-plane suite and ESLint/diff checks passed."
+    "18 MCP control stubs now detect unexpected dispatch; targeted Node22 MCP control-plane suite and ESLint/diff checks passed.",
+    "UI register/route generators: both Node22 --check modes verify unchanged artifacts, UI register contract suite and ESLint/diff checks passed."
   ],
   "entries": [
     {
@@ -1605,6 +1606,134 @@
       "originalLine": 176,
       "status": "source_change_pending_rescan",
       "proof": "Previously empty control stub now records an unexpected mutation; the final empty-call assertion proves preflight/rejected proposals do not dispatch unrelated actions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbnFrZGs=",
+      "rule": "JS-0246",
+      "path": "scripts/export_ui_register.js",
+      "originalLine": 39,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZGFucHE=",
+      "rule": "JS-0246",
+      "path": "scripts/export_ui_register.js",
+      "originalLine": 36,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bnZvYWs=",
+      "rule": "JS-0246",
+      "path": "scripts/export_ui_register.js",
+      "originalLine": 30,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnBxd3Y=",
+      "rule": "JS-0246",
+      "path": "scripts/export_ui_register.js",
+      "originalLine": 29,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnlsb2E=",
+      "rule": "JS-0246",
+      "path": "scripts/export_ui_register.js",
+      "originalLine": 27,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZGtud3k=",
+      "rule": "JS-0246",
+      "path": "scripts/export_ui_register.js",
+      "originalLine": 27,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnlwcW4=",
+      "rule": "JS-0246",
+      "path": "scripts/export_ui_register.js",
+      "originalLine": 22,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZHFtb3A=",
+      "rule": "JS-0246",
+      "path": "scripts/export_ui_register.js",
+      "originalLine": 22,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteW1xZWs=",
+      "rule": "JS-0246",
+      "path": "scripts/export_ui_register.js",
+      "originalLine": 15,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbm9rZGo=",
+      "rule": "JS-0246",
+      "path": "scripts/build_ui_route_inventory.js",
+      "originalLine": 72,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbnFrd2s=",
+      "rule": "JS-0246",
+      "path": "scripts/build_ui_route_inventory.js",
+      "originalLine": 69,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZGFubXE=",
+      "rule": "JS-0246",
+      "path": "scripts/build_ui_route_inventory.js",
+      "originalLine": 65,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bnZvZGs=",
+      "rule": "JS-0246",
+      "path": "scripts/build_ui_route_inventory.js",
+      "originalLine": 64,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnBxZ3Y=",
+      "rule": "JS-0246",
+      "path": "scripts/build_ui_route_inventory.js",
+      "originalLine": 63,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnlsd2E=",
+      "rule": "JS-0246",
+      "path": "scripts/build_ui_route_inventory.js",
+      "originalLine": 50,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZGtuank=",
+      "rule": "JS-0246",
+      "path": "scripts/build_ui_route_inventory.js",
+      "originalLine": 46,
+      "status": "source_change_pending_rescan",
+      "proof": "Replaced primitive-string concatenations with explicit templates/section assembly; both generator --check modes confirm byte-identical checked-in artifacts and UI register contracts pass."
     }
   ]
 }
