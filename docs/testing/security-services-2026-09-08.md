@@ -17,7 +17,7 @@ are not part of this baseline. No production deployment is included.
 | DeepSource | Authenticated complete export: 6,620 occurrences, 6,620 unique IDs, stable baseline revision | Correct scanner configuration, remediate and repeat the complete scan/export. SCA is inactive and separate from this static-analysis inventory. |
 | Codacy | Repository connected; dashboard reports 358 current issues and zero ignored issues | Export all occurrences and establish scan revision; PR review comments are a separate inventory. |
 | Snyk | Existing target retains the previous repository name; backend shows four high and two medium issues; frontend and Dockerfile show zero | Verify target identity/revision, update the import and scan both npm trees, Python runtime/development dependencies and source code. |
-| Aikido | Repository `2654548` is connected; eight groups, last scan reported two days ago | Current full scan and all subissues required. Free plan hides three groups and does not allow manual rescanning. |
+| Aikido | Existing connection observed, but explicitly excluded by the repository owner during this task | No further Aikido work or verification is included. |
 
 DeepSource static export includes JavaScript 6,341; Python 241; Secrets 36;
 Docker 2. Categories: anti-pattern 5,812; bug risk 662; performance 55;

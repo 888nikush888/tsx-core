@@ -1,9 +1,10 @@
 # Snyk onboarding
 
-`.github/workflows/security-services.yml` is initially manual (`workflow_dispatch`).
+`.github/workflows/security-services.yml` runs for trusted pull requests, main
+pushes, a weekly schedule, and manual dispatch.
 It does not modify existing Quality OS gates or install scanner dependencies
-into application manifests. After authenticated onboarding and evidence review,
-automatic triggers can be introduced deliberately.
+into application manifests. Fork pull requests cannot read repository secrets;
+their skipped credential-dependent job is not a clean scan.
 
 Configure the GitHub repository secret `SNYK_TOKEN`; optionally configure repository
 variable `SNYK_ORG` with the organization ID. Snyk Code must be enabled for that
@@ -14,7 +15,8 @@ The workflow installs exactly Snyk CLI `1.1307.1` and runs five independent scan
 
 - Backend `package-lock.json`, including development dependencies.
 - Frontend `frontend/package-lock.json`, including development dependencies.
-- Python `exchange_executor/requirements.lock` with the explicit pip parser.
+- Python `exchange_executor/requirements.in` with the explicit pip parser,
+  resolving the installed dependency tree from the verified runtime lock.
 - Python `exchange_executor/requirements-dev.lock` with the explicit pip parser.
 - Repository Snyk Code analysis.
 
@@ -22,6 +24,13 @@ Python dependencies are installed using both hash-locked requirements files,
 Python 3.12 and binary wheels only. No application build or native Node rebuild is
 needed for these scans. Node 22 runs the CLI. The five jobs do not cancel each
 other when one finds a problem.
+
+The universal runtime lock includes mutually exclusive Windows/Linux packages.
+Snyk's direct lock parsing reported missing platform packages on Windows despite
+a complete hash-verified installation. Scanning the declared root requirements
+instead traverses the actually installed CCXT tree. CI scans the Linux tree;
+local Windows scans provide additional platform evidence. Neither scan alone is
+described as covering packages that only install on the other platform.
 
 No severity filter, fixability filter, or ignore policy is introduced. Dependency
 scans use `--ignore-policy`. Snyk Code instead supports `--include-ignores`; its
@@ -47,7 +56,7 @@ failed job steps; the artifact step does not manufacture findings evidence.
 - `git diff --check` passed.
 
 These checks validate workflow mechanics, not live Snyk account access or results.
-An authenticated manual GitHub run remains required before claiming integration
+An authenticated GitHub run remains required before claiming integration
 success or zero findings.
 
 ## Official references
