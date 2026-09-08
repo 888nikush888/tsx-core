@@ -29,7 +29,8 @@
     "License gate: new registered malformed-input and production/build policy regressions pass; original null-match/null-metadata crashes reproduced; 68 valid before/after policy cases unchanged, current 1079-artifact inventory and supply-chain policy pass. Whole changed script/test complexity<=5 and ESLint/diff checks pass.",
     "Three stateless adapter instance methods and one deferred parameter capture individually reviewed against interface and execution order; corresponding full trading-control/scheduler suites passed during the 36-suite rejection review.",
     "Three parameter/literal-only response stubs: full Node22 web-server and dynamic-registry suites plus ESLint/diff checks passed.",
-    "19 unchanged async assertion-contract functions individually read and exact-body matched; all 13 corresponding Node22 regression suites passed. No source changes or suppression."
+    "19 unchanged async assertion-contract functions individually read and exact-body matched; all 13 corresponding Node22 regression suites passed. No source changes or suppression.",
+    "Dependency gate: registered malformed-metadata/exact-artifact/provenance/hash regression tests, actual gate and supply-chain suite passed. 308 valid/invalid policy results match original ordering; original null-metadata crash reproduced. Whole script/new test complexity<=5 and ESLint/diff checks passed."
   ],
   "entries": [
     {
@@ -4707,6 +4708,22 @@
         "8e37671890c23bd834901ab9b0dfd82973641520620d8ceef59db733d682e151"
       ],
       "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHFvbXA=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_dependency_policy.js",
+      "originalLine": 45,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated generation provenance, direct pin matching, per-artifact hashes, version matching and registry-origin checks; all functions complexity<=5, 308 before/after policy results unchanged. Null artifact metadata now yields blocking diagnostics rather than dereference failure."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZGVsamE=",
+      "rule": "JS-R1005",
+      "path": "scripts/check_dependency_policy.js",
+      "originalLine": 20,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated generation provenance, direct pin matching, per-artifact hashes, version matching and registry-origin checks; all functions complexity<=5, 308 before/after policy results unchanged. Null artifact metadata now yields blocking diagnostics rather than dereference failure."
     }
   ]
 }
