@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "Durable ingress SQL row projections; other findings remain open.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 tests/test_ingress_atomicity.js",
+    "Node22 tests/test_ingress_workflow_pinning.js",
+    "Node22 tests/test_ingress_migration.js"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlqeG4=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 200,
+      "baselineColumn": 39,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlqZXg=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 186,
+      "baselineColumn": 35,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRsd2Q=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 184,
+      "baselineColumn": 34,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlsbm4=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 177,
+      "baselineColumn": 40,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VsdmQ=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 171,
+      "baselineColumn": 40,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFkb3c=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 165,
+      "baselineColumn": 40,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlscGw=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 137,
+      "baselineColumn": 41,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpnYXk=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 122,
+      "baselineColumn": 40,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWt2ZHc=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 107,
+      "baselineColumn": 36,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJtamQ=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 104,
+      "baselineColumn": 34,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlqcHg=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 99,
+      "baselineColumn": 42,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlsYW4=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 78,
+      "baselineColumn": 46,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VsZGQ=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 76,
+      "baselineColumn": 41,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZqbWw=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 38,
+      "baselineColumn": 43,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpnZXk=",
+      "rule": "JS-0323",
+      "path": "src/incoming_work_repository.ts",
+      "baselineLine": 36,
+      "baselineColumn": 44,
+      "baselineSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedSourceSha256": "b2f35f5dac9b63b74f6e2621ca56056810b59cba7fda5a5557ff687f27dc1558",
+      "disposition": "fixed",
+      "reason": "Exact durable-work/album rows and narrow signal/provenance/inbox projections replace unbounded SQL row types. Classification error recovery handles a disappeared candidate explicitly rather than dereferencing a missing row; atomic routing, crash recovery, album dedupe and historical replay protections are retained."
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import type { IncomingWorkRow, IncomingAlbumRow } from './incoming_work_rows.js';
 import { createHash } from 'node:crypto';
 import {
   enqueueOutboxTask, getDatabase, saveIncomingMessage, updateIncomingMessageStatus, withDatabaseTransaction,
@@ -33,9 +34,9 @@ export function pinnedWorkflowParserSelection(config: any, plan: any): Executabl
 export async function persistedParsedSignal(
   signalId: string, templateName: string | undefined, schema: ExecutableSignalSchemaSelection | null, workflowRevisionId: string | null,
 ) {
-  const existing = await getDatabase().get<any>('SELECT * FROM signals WHERE id = ?', [signalId]);
+  const existing = await getDatabase().get<{ xml_content: string; workflow_revision_id: string | null }>('SELECT * FROM signals WHERE id = ?', [signalId]);
   if (!existing) return null;
-  const attempt = await getDatabase().get<any>('SELECT provenance_json FROM signal_parser_attempts WHERE signal_id = ? ORDER BY created_at LIMIT 1', [signalId]);
+  const attempt = await getDatabase().get<{ provenance_json: string }>('SELECT provenance_json FROM signal_parser_attempts WHERE signal_id = ? ORDER BY created_at LIMIT 1', [signalId]);
   if (existing.workflow_revision_id !== workflowRevisionId || !attempt) throw new Error('Signal provenance conflict; review required.');
   return { xml: existing.xml_content, signal: validateSignalXml(existing.xml_content, templateName, schema),
     provenance: JSON.parse(attempt.provenance_json) };
@@ -73,9 +74,9 @@ export async function acceptIncomingMessage(message: any, config: any, now = Dat
   const chatId = String(message.chat_id);
   if (!Number.isSafeInteger(message.id)) throw new Error('Incoming message requires a safe Telegram message ID.');
   return withDatabaseTransaction(async database => {
-    const existing = await database.get<any>('SELECT * FROM incoming_work WHERE chat_id = ? AND message_id = ?', [chatId, message.id]);
+    const existing = await database.get<IncomingWorkRow>('SELECT * FROM incoming_work WHERE chat_id = ? AND message_id = ?', [chatId, message.id]);
     if (existing) return { id: existing.id, status: existing.status, workflowRevisionId: existing.workflow_revision_id };
-    const previousInbox = await database.get<any>('SELECT * FROM incoming_messages WHERE chat_id = ? AND message_id = ?', [chatId, message.id]);
+    const previousInbox = await database.get<{ chat_id: string; message_id: number }>('SELECT * FROM incoming_messages WHERE chat_id = ? AND message_id = ?', [chatId, message.id]);
     const id = workId(chatId, message.id);
     const workflow = await getActiveWorkflow();
     const workflowRevisionId = workflow?.id ?? null;
@@ -96,15 +97,15 @@ export async function acceptIncomingMessage(message: any, config: any, now = Dat
   });
 }
 
-async function finishClassification(row: any, status: string, reason: string): Promise<void> {
+async function finishClassification(row: IncomingWorkRow, status: string, reason: string): Promise<void> {
   await getDatabase().run('UPDATE incoming_work SET status = ?, reason = ?, updated_at = ? WHERE id = ?', [status, reason, Date.now(), row.id]);
   await updateIncomingMessageStatus(row.chat_id, row.message_id, status);
 }
 
-async function addAlbumPart(row: any, message: any, config: any): Promise<void> {
+async function addAlbumPart(row: IncomingWorkRow, message: any, config: any): Promise<void> {
   const database = getDatabase();
   const id = `album_${row.chat_id}_${message.media_group_id}`;
-  const group = await database.get<any>('SELECT * FROM incoming_album_groups WHERE id = ?', [id]);
+  const group = await database.get<IncomingAlbumRow>('SELECT * FROM incoming_album_groups WHERE id = ?', [id]);
   if (group && group.status !== 'waiting') {
     await finishClassification(row, 'needs_review', 'Album already closed; late part requires explicit review.');
     return;
@@ -119,7 +120,7 @@ async function addAlbumPart(row: any, message: any, config: any): Promise<void> 
   await finishClassification(row, 'album_waiting', 'Waiting for durable album closure.');
 }
 
-async function routeWorkflowPlans(row: any, config: any, text: string, contentType: string): Promise<void> {
+async function routeWorkflowPlans(row: IncomingWorkRow, config: any, text: string, contentType: string): Promise<void> {
   const plans = await getWorkflowSignalPlans({ channelId: row.chat_id, text, contentType, workflowRevisionId: row.workflow_revision_id });
   if (plans.length === 0) {
     await finishClassification(row, 'filtered', 'Pinned workflow has no eligible path for this content.');
@@ -134,7 +135,7 @@ async function routeWorkflowPlans(row: any, config: any, text: string, contentTy
   await finishClassification(row, 'routed', 'Pinned workflow fanout durably enqueued.');
 }
 
-async function classifyIncomingRow(row: any): Promise<void> {
+async function classifyIncomingRow(row: IncomingWorkRow): Promise<void> {
   const message = JSON.parse(row.message_json);
   const config = JSON.parse(row.config_json);
   const { text, type } = getMessageTextAndType(message);
@@ -162,28 +163,28 @@ async function classifyIncomingRow(row: any): Promise<void> {
 
 /** No provider calls inside this transaction; restart simply scans remaining pending rows. */
 export async function processIncomingWork(limit = 100): Promise<void> {
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<Array<Pick<IncomingWorkRow, 'id'>>>(
     "SELECT id FROM incoming_work WHERE status = 'pending' ORDER BY created_at, id LIMIT ?", [limit]
   );
   for (const candidate of rows) {
     try {
       await withDatabaseTransaction(async database => {
-        const row = await database.get<any>("SELECT * FROM incoming_work WHERE id = ? AND status = 'pending'", [candidate.id]);
+        const row = await database.get<IncomingWorkRow>("SELECT * FROM incoming_work WHERE id = ? AND status = 'pending'", [candidate.id]);
         if (row) await classifyIncomingRow(row);
       });
     } catch (error) {
       // Invalid resources remain visible; an unrelated message must continue being classified.
       await withDatabaseTransaction(async database => {
-        const row = await database.get<any>('SELECT * FROM incoming_work WHERE id = ?', [candidate.id]);
-        await finishClassification(row, 'needs_review', error instanceof Error ? error.message : 'Classification failed.');
+        const row = await database.get<IncomingWorkRow>('SELECT * FROM incoming_work WHERE id = ?', [candidate.id]);
+        if (row) await finishClassification(row, 'needs_review', error instanceof Error ? error.message : 'Classification failed.');
       });
     }
   }
 }
 
-async function closeAlbum(group: any): Promise<void> {
+async function closeAlbum(group: IncomingAlbumRow): Promise<void> {
   const database = getDatabase();
-  const rows = await database.all<any[]>(
+  const rows = await database.all<IncomingWorkRow[]>(
     'SELECT * FROM incoming_work WHERE id IN (SELECT value FROM json_each(?)) ORDER BY message_id', [group.work_ids_json]
   );
   const config = JSON.parse(group.config_json);
@@ -197,7 +198,7 @@ async function closeAlbum(group: any): Promise<void> {
 
 export async function flushIncomingAlbums(now = Date.now()): Promise<void> {
   await withDatabaseTransaction(async database => {
-    const groups = await database.all<any[]>("SELECT * FROM incoming_album_groups WHERE status = 'waiting' AND ready_at <= ?", [now]);
+    const groups = await database.all<IncomingAlbumRow[]>("SELECT * FROM incoming_album_groups WHERE status = 'waiting' AND ready_at <= ?", [now]);
     for (const group of groups) await closeAlbum(group);
   });
 }
