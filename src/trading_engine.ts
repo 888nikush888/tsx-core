@@ -183,6 +183,13 @@ class ReconciliationContinuationRequiredError extends Error {
   }
 }
 
+/** Position columns consumed by reconciliation, plus its pinned intent plan. */
+interface ReconciliationPositionRow {
+  id: string; account_id: string; intent_id: string; symbol: string; side: TradingIntent['side'];
+  quantity: string; stop_price: string | null; plan_json: string | null;
+  emergency_requested_at: number | null; emergency_reason: string | null;
+}
+
 interface PositionReconciliationFailure {
   positionId: string;
   intentId: string;
@@ -1976,7 +1983,7 @@ export class TradingEngine {
       allowIndependentRiskReduction?: boolean;
       riskReductionIntentId?: string;
     } = {},
-  ): Promise<{ localPositions: any[]; unrelatedUnmanagedExposure: boolean }> {
+  ): Promise<{ localPositions: ReconciliationPositionRow[]; unrelatedUnmanagedExposure: boolean }> {
     const localOrders = await getDatabase().all<LocalCorrelationOrder[]>(
       `SELECT orders.*, intent.symbol FROM trading_orders AS orders
        JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id WHERE orders.account_id = ?`, [account.id]);
@@ -1985,7 +1992,7 @@ export class TradingEngine {
     await this.persistRemoteExecutions(account, remote);
     await resolveObservedOperations(account, remote.orders);
     await resolveActiveCancelAttempts(account, remote);
-    const allLocalPositions = await getDatabase().all<any[]>(
+    const allLocalPositions = await getDatabase().all<ReconciliationPositionRow[]>(
       `SELECT position.*, intent.plan_json FROM trading_positions AS position
        JOIN trading_trade_intents AS intent ON intent.id = position.intent_id
        WHERE position.account_id = ? AND position.status IN ('opening', 'open', 'closing', 'emergency')
@@ -2100,7 +2107,7 @@ export class TradingEngine {
     account: TradingAccount,
     adapter: TradingExchangeAdapter,
     remote: ExchangeOpenState,
-    local: any,
+    local: ReconciliationPositionRow,
   ): Promise<boolean> {
     const proof = await loadTradeLifecycle(local.intent_id, local.side);
     if (!proof.flat) throw new ReconciliationMismatchError('Missing remote position does not prove a zero owned quantity.');
@@ -2164,7 +2171,7 @@ export class TradingEngine {
   private async closeRemotelyAbsentPosition(
     account: TradingAccount,
     remote: ExchangeOpenState,
-    local: any,
+    local: ReconciliationPositionRow,
   ): Promise<void> {
     const proof = await loadTradeLifecycle(local.intent_id, local.side);
     if (!proof.flat || !proof.ordersTerminal || !proof.operationsResolved) {
@@ -2232,7 +2239,7 @@ export class TradingEngine {
     account: TradingAccount,
     adapter: TradingExchangeAdapter,
     remote: ExchangeOpenState,
-    local: any,
+    local: ReconciliationPositionRow,
     position: ExchangeOpenState['positions'][number],
   ): Promise<boolean> {
     await getDatabase().run(
@@ -2308,7 +2315,7 @@ export class TradingEngine {
   private async ensureProtectiveStop(
     account: TradingAccount,
     adapter: TradingExchangeAdapter,
-    local: any,
+    local: ReconciliationPositionRow,
     quantity: string,
     remote: ExchangeOpenState,
   ): Promise<boolean> {

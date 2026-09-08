@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "First engine batch: reconciliation position row projection only; remaining findings are not claimed fixed.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 tests/test_trading_engine.js: engine and reconciliation scenarios",
+    "Targeted ESLint"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlkd2c=",
+      "rule": "JS-0323",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 2311,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "551a70a4a40123889912b70438c9b56f81109795b0f0e79b6e2a44bdebd7aa6b",
+      "disposition": "fixed",
+      "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFxZWE=",
+      "rule": "JS-0323",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 2235,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "551a70a4a40123889912b70438c9b56f81109795b0f0e79b6e2a44bdebd7aa6b",
+      "disposition": "fixed",
+      "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9wdnk=",
+      "rule": "JS-0323",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 2167,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "551a70a4a40123889912b70438c9b56f81109795b0f0e79b6e2a44bdebd7aa6b",
+      "disposition": "fixed",
+      "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZxZ2o=",
+      "rule": "JS-0323",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 2103,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "551a70a4a40123889912b70438c9b56f81109795b0f0e79b6e2a44bdebd7aa6b",
+      "disposition": "fixed",
+      "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJ5a2s=",
+      "rule": "JS-0323",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1988,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "551a70a4a40123889912b70438c9b56f81109795b0f0e79b6e2a44bdebd7aa6b",
+      "disposition": "fixed",
+      "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlybXY=",
+      "rule": "JS-0323",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1979,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "551a70a4a40123889912b70438c9b56f81109795b0f0e79b6e2a44bdebd7aa6b",
+      "disposition": "fixed",
+      "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
+    }
+  ]
+}
