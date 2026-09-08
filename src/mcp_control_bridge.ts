@@ -320,7 +320,7 @@ export class McpControlBridge {
     }
   }
 
-  private async executeAuthorized(request: McpControlRequest): Promise<unknown> {
+  private executeAuthorized(request: McpControlRequest): unknown {
     const payload = payloadObject(request);
     switch (request.action) {
       case 'contracts.create':
