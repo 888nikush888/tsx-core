@@ -322,38 +322,30 @@ export class McpControlBridge {
 
   private executeAuthorized(request: McpControlRequest): unknown {
     const payload = payloadObject(request);
-    switch (request.action) {
-      case 'contracts.create':
-        return this.control.createSignalContract(payload);
-      case 'contracts.update':
-        return this.control.updateSignalContract(payload);
-      case 'contracts.publish':
-        return this.control.publishSignalContract(payload.versionId);
-      case 'contracts.archive':
-        return this.control.archiveSignalContract(payload.versionId);
-      case 'contracts.delete_draft':
-        return this.control.removeSignalContractDraft(payload.versionId);
-      case 'risk.update':
-        return this.control.setChannelRiskPolicy(payload);
-      case 'risk.delete':
-        return this.control.removeChannelRiskPolicy(payload.channelId);
-      case 'trading.reconcile':
-        return this.control.reconcile(payload.accountId);
-      case 'trading.cancel_entries':
-        return this.control.cancelEntries(payload.accountId);
-      case 'trading.kill_switch':
-        return this.control.setRuntime({
-          action: 'kill-switch',
-          active: payload.active,
-          reason: payload.reason,
-        });
-      case 'trading.flatten':
-        return this.control.emergencyFlatten({
-          accountId: payload.accountId,
-          confirmation: 'FLATTEN MANAGED POSITIONS',
-        });
-      default:
-        throw new Error(`MCP control action is not implemented: ${request.action}`);
+    const handlers: Record<McpControlAction, () => unknown> = {
+      'contracts.create': () => this.control.createSignalContract(payload),
+      'contracts.update': () => this.control.updateSignalContract(payload),
+      'contracts.publish': () => this.control.publishSignalContract(payload.versionId),
+      'contracts.archive': () => this.control.archiveSignalContract(payload.versionId),
+      'contracts.delete_draft': () => this.control.removeSignalContractDraft(payload.versionId),
+      'risk.update': () => this.control.setChannelRiskPolicy(payload),
+      'risk.delete': () => this.control.removeChannelRiskPolicy(payload.channelId),
+      'trading.reconcile': () => this.control.reconcile(payload.accountId),
+      'trading.cancel_entries': () => this.control.cancelEntries(payload.accountId),
+      'trading.kill_switch': () => this.control.setRuntime({
+        action: 'kill-switch',
+        active: payload.active,
+        reason: payload.reason,
+      }),
+      'trading.flatten': () => this.control.emergencyFlatten({
+        accountId: payload.accountId,
+        confirmation: 'FLATTEN MANAGED POSITIONS',
+      }),
+    };
+    const handler = handlers[request.action];
+    if (!handler) {
+      throw new Error(`MCP control action is not implemented: ${request.action}`);
     }
+    return handler();
   }
 }
