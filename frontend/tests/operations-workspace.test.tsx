@@ -192,7 +192,7 @@ function workspace(tab: OperationTab, snapshot = trading) {
       trading={snapshot}
       catalog={catalog}
       systemStatus={{ connectionState: "connected", isRunning: true, resolvedSources: ["VIP"], queue: { running: 1, queued: 0 }, telegramLogin: { state: "idle" } }}
-      onRefresh={vi.fn(async () => undefined)}
+      onRefresh={vi.fn(() => Promise.resolve())}
       initialTab={tab}
       availableTabs={[tab]}
       title="V3.1 Betrieb"
@@ -205,7 +205,7 @@ describe("operations workspace", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     api.apiFetch.mockImplementation((url: string) => json(bodyFor(url)))
-    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn(async () => undefined) } })
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn(() => Promise.resolve()) } })
   })
 
   afterEach(() => cleanup())
@@ -340,7 +340,7 @@ describe("operations workspace", () => {
         trading={trading}
         catalog={catalog}
         systemStatus={{ connectionState: "connected" }}
-        onRefresh={vi.fn(async () => undefined)}
+        onRefresh={vi.fn(() => Promise.resolve())}
         initialTab="overview"
         availableTabs={["overview"]}
         onOpenIncidents={onOpenIncidents}
@@ -403,7 +403,7 @@ describe("operations workspace", () => {
         trading={trading}
         catalog={catalog}
         systemStatus={{ connectionState: "connected", isRunning: true, resolvedSources: ["VIP"], queue: { running: 1, queued: 0 }, telegramLogin: { state: "idle" } }}
-        onRefresh={vi.fn(async () => undefined)}
+        onRefresh={vi.fn(() => Promise.resolve())}
         initialTab="overview"
         availableTabs={["overview", "accounts", "journal"]}
         title="Custom Titel"
@@ -424,7 +424,7 @@ describe("operations workspace", () => {
         trading={trading}
         catalog={catalog}
         systemStatus={{ connectionState: "connected", isRunning: true, resolvedSources: ["VIP"], queue: { running: 1, queued: 0 }, telegramLogin: { state: "idle" } }}
-        onRefresh={vi.fn(async () => undefined)}
+        onRefresh={vi.fn(() => Promise.resolve())}
       />,
     )
     expect(screen.getByRole("heading", { name: "Entscheidende Live-Gates" })).toBeInTheDocument()
@@ -469,7 +469,7 @@ describe("operations workspace", () => {
         trading={trading}
         catalog={degradedCatalog}
         systemStatus={{ connectionState: "offline", isRunning: false, resolvedSources: [], queue: { running: 0, queued: 5 }, telegramLogin: { state: "idle" } }}
-        onRefresh={vi.fn(async () => undefined)}
+        onRefresh={vi.fn(() => Promise.resolve())}
         initialTab="system"
         availableTabs={["system"]}
       />,

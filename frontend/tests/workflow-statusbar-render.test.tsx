@@ -19,7 +19,7 @@ const baseSystem: any = {
 describe("WorkspaceStatusbar rendering", () => {
   it("renders dashboard cockpit", () => {
     render(
-      <WorkspaceStatusbar workspace="dashboard" onRefresh={vi.fn(async () => undefined)} trading={baseTrading} systemStatus={baseSystem} refreshing={false} lastUpdated={Date.now()} />,
+      <WorkspaceStatusbar workspace="dashboard" onRefresh={vi.fn(() => Promise.resolve())} trading={baseTrading} systemStatus={baseSystem} refreshing={false} lastUpdated={Date.now()} />,
     );
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Telegram")).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe("WorkspaceStatusbar rendering", () => {
 
   it("renders operations cockpit", () => {
     render(
-      <WorkspaceStatusbar workspace="operations" onRefresh={vi.fn(async () => undefined)} trading={baseTrading} systemStatus={baseSystem} refreshing={false} lastUpdated={null} />,
+      <WorkspaceStatusbar workspace="operations" onRefresh={vi.fn(() => Promise.resolve())} trading={baseTrading} systemStatus={baseSystem} refreshing={false} lastUpdated={null} />,
     );
     expect(screen.getByText("Betrieb")).toBeInTheDocument();
     expect(screen.getByText("System")).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe("WorkspaceStatusbar rendering", () => {
   });
 
   it("renders analytics fallback and triggers refresh", async () => {
-    const onRefresh = vi.fn(async () => undefined);
+    const onRefresh = vi.fn(() => Promise.resolve());
     const { container } = render(
       <WorkspaceStatusbar workspace="analytics" onRefresh={onRefresh} trading={null} systemStatus={null} refreshing lastUpdated={null} />,
     );
@@ -49,7 +49,7 @@ describe("WorkspaceStatusbar rendering", () => {
   it("shows lastUpdated timestamp", () => {
     const ts = Date.now() - 1000;
     const { container } = render(
-      <WorkspaceStatusbar workspace="dashboard" onRefresh={vi.fn(async () => undefined)} trading={baseTrading} systemStatus={baseSystem} refreshing={false} lastUpdated={ts} />,
+      <WorkspaceStatusbar workspace="dashboard" onRefresh={vi.fn(() => Promise.resolve())} trading={baseTrading} systemStatus={baseSystem} refreshing={false} lastUpdated={ts} />,
     );
     expect(container.textContent).toMatch(/zuletzt aktualisiert/);
   });
@@ -66,13 +66,13 @@ describe("WorkspaceStatusbar rendering", () => {
       mcp: { mode: "inactive" },
     };
     const { container } = render(
-      <WorkspaceStatusbar workspace="dashboard" onRefresh={vi.fn(async () => undefined)} trading={degradedTrading} systemStatus={degradedSystem} refreshing={false} lastUpdated={null} />,
+      <WorkspaceStatusbar workspace="dashboard" onRefresh={vi.fn(() => Promise.resolve())} trading={degradedTrading} systemStatus={degradedSystem} refreshing={false} lastUpdated={null} />,
     );
     expect(container.textContent).toContain("offline");
     expect(container.textContent).toContain("pausiert");
     expect(container.textContent).toContain("test");
     const { container: c2 } = render(
-      <WorkspaceStatusbar workspace="operations" onRefresh={vi.fn(async () => undefined)} trading={degradedTrading} systemStatus={degradedSystem} refreshing={false} lastUpdated={null} />,
+      <WorkspaceStatusbar workspace="operations" onRefresh={vi.fn(() => Promise.resolve())} trading={degradedTrading} systemStatus={degradedSystem} refreshing={false} lastUpdated={null} />,
     );
     expect(c2.textContent).toContain("erreichbar");
     expect(c2.textContent).toContain("Status in Backups");

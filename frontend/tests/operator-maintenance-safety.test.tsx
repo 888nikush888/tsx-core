@@ -137,7 +137,7 @@ describe('operator maintenance safety', () => {
       if (url === '/api/factory-reset') throw new TypeError('Verbindung verloren');
       return read(url, init);
     });
-    const refresh = vi.fn(async () => undefined);
+    const refresh = vi.fn(() => Promise.resolve());
     mount(<System catalog={null} onRefresh={refresh} />);
     await screen.findByText(/lokal wiederherstellbar/);
     fireEvent.change(screen.getByPlaceholderText('DATENBANK LEEREN oder FACTORY RESET'), { target: { value: 'FACTORY RESET' } });

@@ -28,7 +28,7 @@ vi.mock('@/features/operations/capabilities', () => ({ CapabilitiesPage: stubs.p
 vi.mock('@/features/operations/deployment', () => ({ DeploymentEvidence: stubs.page('deployment') }));
 
 function open(pathname: string, readOnly = true) {
-  return render(<NavigationProvider><OperatorPage pathname={pathname} readOnly={readOnly} trading={null} catalog={null} status={null} onRefresh={async () => undefined} /></NavigationProvider>);
+  return render(<NavigationProvider><OperatorPage pathname={pathname} readOnly={readOnly} trading={null} catalog={null} status={null} onRefresh={() => Promise.resolve()} /></NavigationProvider>);
 }
 
 describe('operator route selection', () => {
