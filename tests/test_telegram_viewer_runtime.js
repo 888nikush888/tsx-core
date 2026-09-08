@@ -1,3 +1,4 @@
+import { DEFAULT_TELEGRAM_VIEWER_SETTINGS } from '../src/telegram_viewer_settings.js';
 import assert from 'node:assert';
 import http from 'node:http';
 import { once } from 'node:events';
@@ -45,7 +46,7 @@ function createUpstream(requests, responseState) {
       assert.strictEqual(request.method, 'GET');
       assert.strictEqual(request.headers.authorization, `Bearer ${SERVICE_TOKEN}`);
       response.end(JSON.stringify(request.url.includes('/config')
-        ? { settings: { enabled: false } }
+        ? { settings: { ...DEFAULT_TELEGRAM_VIEWER_SETTINGS, enabled: false } }
         : { events: [], nextSeq: 0 }));
       return;
     }

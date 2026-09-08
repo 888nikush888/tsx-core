@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "Viewer client/service explicit any findings; complexity/async-await reviewed separately.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 tests/test_telegram_viewer_contracts.js",
+    "Node22 tests/test_telegram_viewer_runtime.js",
+    "Node22 tests/test_telegram_viewer_service.js",
+    "Targeted ESLint",
+    "Existing internal HTTP transport and timeouts/retries unchanged"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR5bnI=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/clients.ts",
+      "baselineLine": 77,
+      "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlqZGc=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/clients.ts",
+      "baselineLine": 62,
+      "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V4d3I=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/clients.ts",
+      "baselineLine": 44,
+      "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1lbm8=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/clients.ts",
+      "baselineLine": 42,
+      "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxqbmU=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/clients.ts",
+      "baselineLine": 31,
+      "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlqbm4=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/clients.ts",
+      "baselineLine": 16,
+      "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhnbms=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/clients.ts",
+      "baselineLine": 14,
+      "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGp3eGE=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 182,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlubWo=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 107,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlqeGc=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 92,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFyZ2U=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 75,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1lam8=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 75,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9namo=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 18,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxqeWU=",
+      "rule": "JS-0323",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 14,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "disposition": "fixed",
+      "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    }
+  ]
+}

@@ -1,3 +1,6 @@
+import { viewerRecord, viewerUpdates, type TelegramViewerUpdate } from './contracts.js';
+import { validateTelegramViewerSettings } from '../telegram_viewer_settings.js';
+import type { TelegramViewerSettings } from '../viewer_types.js';
 import type { TelegramViewerBotClient, TelegramViewerCoreClient } from './service.js';
 
 const CORE_RESOURCES = new Set([
@@ -11,9 +14,9 @@ async function tokenValue(provider: TokenProvider): Promise<string> {
   return value;
 }
 
-async function responseJson(response: Response, label: string): Promise<any> {
+async function responseJson(response: Response, label: string): Promise<unknown> {
   const text = await response.text();
-  let payload: any;
+  let payload: unknown;
   try { payload = JSON.parse(text); } catch { throw new Error(`${label} returned malformed JSON.`); }
   if (!response.ok) throw new Error(`${label} request failed with status ${response.status}.`);
   return payload;
@@ -28,7 +31,7 @@ export class TelegramViewerCoreApiClient implements TelegramViewerCoreClient {
     this.baseUrl = parsed.toString().replace(/\/$/, '');
   }
 
-  private async request(resource: string, query: Record<string, string | number> = {}): Promise<Record<string, any>> {
+  private async request(resource: string, query: Record<string, string | number> = {}): Promise<Record<string, unknown>> {
     const endpoint = new URL(`${this.baseUrl}/internal/viewer/v1/${resource}`);
     for (const [key, value] of Object.entries(query)) endpoint.searchParams.set(key, String(value));
     const response = await fetch(endpoint, {
@@ -36,12 +39,15 @@ export class TelegramViewerCoreApiClient implements TelegramViewerCoreClient {
       headers: { Authorization: `Bearer ${await tokenValue(this.serviceToken)}`, Accept: 'application/json' },
       signal: AbortSignal.timeout(10_000),
     });
-    return responseJson(response, 'TSX Core viewer API');
+    return viewerRecord(await responseJson(response, 'TSX Core viewer API'));
   }
 
-  async config(): Promise<any> { return this.request('config'); }
+  async config(): Promise<{ settings: TelegramViewerSettings }> {
+    const response = await this.request('config');
+    return { settings: validateTelegramViewerSettings(response.settings) };
+  }
 
-  async get(resource: string, query: Record<string, string | number> = {}): Promise<Record<string, any>> {
+  async get(resource: string, query: Record<string, string | number> = {}): Promise<Record<string, unknown>> {
     if (!CORE_RESOURCES.has(resource)) throw new Error('Viewer core resource is not allowed.');
     return this.request(resource, query);
   }
@@ -59,7 +65,7 @@ export class TelegramBotApiClient implements TelegramViewerBotClient {
     this.baseUrl = parsed.toString().replace(/\/$/, '');
   }
 
-  private async call(method: string, body: Record<string, unknown>, timeoutMs = 10_000): Promise<any> {
+  private async call(method: string, body: Record<string, unknown>, timeoutMs = 10_000): Promise<unknown> {
     if (!/^(getUpdates|sendMessage|answerCallbackQuery)$/.test(method)) throw new Error('Telegram Bot API method is not allowed.');
     const botToken = await tokenValue(this.botToken);
     if (!/^[1-9]\d{4,19}:[A-Za-z0-9_-]{20,128}$/.test(botToken)) throw new Error('Telegram bot token is invalid.');
@@ -69,16 +75,16 @@ export class TelegramBotApiClient implements TelegramViewerBotClient {
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    const payload = await responseJson(response, 'Telegram Bot API');
+    const payload = viewerRecord(await responseJson(response, 'Telegram Bot API'));
     if (payload?.ok !== true) throw new Error('Telegram Bot API rejected the request.');
     return payload.result;
   }
 
-  async getUpdates(offset: number): Promise<any[]> {
+  async getUpdates(offset: number): Promise<TelegramViewerUpdate[]> {
     const result = await this.call('getUpdates', {
       offset, timeout: 25, limit: 100, allowed_updates: ['message', 'callback_query'],
     }, 35_000);
-    return Array.isArray(result) ? result : [];
+    return viewerUpdates(result);
   }
 
   sendMessage(chatId: string | number, text: string, options: Record<string, unknown> = {}): Promise<unknown> {
