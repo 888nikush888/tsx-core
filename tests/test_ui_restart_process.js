@@ -87,9 +87,9 @@ async function testRealRestart(command, mode, index) {
     assert.equal(response.status, command.status); await response.json();
   }
   assert.equal((await bounded(initial.exited)).code, 0, initial.output());
-  assert.equal(await readFile(path.join(directory, 'shutdown.log'), 'utf8'), ready.instanceId + '\n', 'The production shutdown coordinator runs once before real process exit.');
+  assert.equal(await readFile(path.join(directory, 'shutdown.log'), 'utf8'), `${ready.instanceId}\n`, 'The production shutdown coordinator runs once before real process exit.');
   const effects = await readFile(path.join(directory, 'effects.log'), 'utf8');
-  assert.equal(effects, command.kind + '\n');
+  assert.equal(effects, `${command.kind}\n`);
   const expected = mode === 'reset' ? 'first-run' : mode === 'restore' ? 'restored' : 'preserved';
   assert.equal(await readFile(path.join(directory, 'state.txt'), 'utf8'), expected);
   await verifyReplacement(directory, command, id, ready.instanceId, 'succeeded', effects);
@@ -113,7 +113,7 @@ async function testShutdownFailure() {
   const child = launch(directory, 'shutdown-failure'); const ready = await readiness(child);
   child.child.send({ type: 'stop' }); child.child.send({ type: 'stop' });
   assert.equal((await bounded(child.exited)).code, 1);
-  assert.equal(await readFile(path.join(directory, 'shutdown.log'), 'utf8'), ready.instanceId + '\n');
+  assert.equal(await readFile(path.join(directory, 'shutdown.log'), 'utf8'), `${ready.instanceId}\n`);
 }
 
 async function testShutdownDeadline(mode, expectedCode = 1) {
@@ -122,15 +122,15 @@ async function testShutdownDeadline(mode, expectedCode = 1) {
   const command = COMMANDS[1]; const id = `process-${mode}`;
   const pending = fetch(`http://127.0.0.1:${ready.port}${command.route}`, commandRequest(command, id)).catch(() => null);
   await initial.wait('shutdown-started');
-  const receipt = JSON.parse(await readFile(path.join(directory, 'jobs', id + '.json'), 'utf8'));
+  const receipt = JSON.parse(await readFile(path.join(directory, 'jobs', `${id}.json`), 'utf8'));
   assert.equal(receipt.state, 'awaiting-restart', 'Work is durably confirmed before the bounded shutdown starts.');
   assert.equal((await bounded(initial.exited)).code, expectedCode, initial.output());
   await pending;
   assert.match(initial.output(), /forcing non-graceful exit/);
   await assert.rejects(readFile(path.join(directory, 'shutdown-finished')), { code: 'ENOENT' });
-  assert.equal(await readFile(path.join(directory, 'shutdown.log'), 'utf8'), ready.instanceId + '\n');
+  assert.equal(await readFile(path.join(directory, 'shutdown.log'), 'utf8'), `${ready.instanceId}\n`);
   const effects = await readFile(path.join(directory, 'effects.log'), 'utf8');
-  assert.equal(effects, command.kind + '\n');
+  assert.equal(effects, `${command.kind}\n`);
   await verifyReplacement(directory, command, id, ready.instanceId, 'succeeded', effects);
 }
 

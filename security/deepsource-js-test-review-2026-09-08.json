@@ -22,7 +22,8 @@
     "Twelve individual control-character regex findings: exact source-predicate review confirms intentional rejection ranges; source is unchanged, no remote suppression applied.",
     "Trailing undefined review: Node22 reproduces mandatory expected-argument behavior; each occurrence AST-mapped to its exact assertion or explicit undefined-input regression. No source changes or suppressions.",
     "Risk-policy helper refactor: existing Node22 governance suite and 1728 original-versus-current cases passed; ESLint complexity<=5 for the whole file, ordinary ESLint and diff checks passed.",
-    "84 unchanged async fault-injection functions individually read and exact-AST-body matched to baseline; all 36 affected Node22 regression suites passed. No async removal, wrapper or suppression."
+    "84 unchanged async fault-injection functions individually read and exact-AST-body matched to baseline; all 36 affected Node22 regression suites passed. No async removal, wrapper or suppression.",
+    "15 UI fixture concatenations: four Node22 restart/register/operator suites and ESLint/diff checks passed."
   ],
   "entries": [
     {
@@ -4172,6 +4173,126 @@
         "78b8fde606ad9930153a5772faf05c6afc50cdf88fb08d1ba22de85b86f21d73"
       ],
       "remoteSuppressionApplied": false
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V3dm8=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_recovery.js",
+      "originalLine": 154,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFub2w=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_recovery.js",
+      "originalLine": 146,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1ucWQ=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_recovery.js",
+      "originalLine": 121,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9kYWc=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_recovery.js",
+      "originalLine": 101,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlucGc=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_recovery.js",
+      "originalLine": 53,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZuZGc=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_process.js",
+      "originalLine": 133,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpkYXg=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_process.js",
+      "originalLine": 131,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWt5ZGo=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_process.js",
+      "originalLine": 125,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlua3E=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_process.js",
+      "originalLine": 116,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d293cXc=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_process.js",
+      "originalLine": 92,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJkam4=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_restart_process.js",
+      "originalLine": 90,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR2cXc=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_register.js",
+      "originalLine": 63,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlkYWE=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_register.js",
+      "originalLine": 62,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1ucmQ=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_register.js",
+      "originalLine": 20,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhuamw=",
+      "rule": "JS-0246",
+      "path": "tests/test_ui_operator_commands.js",
+      "originalLine": 90,
+      "status": "source_change_pending_rescan",
+      "proof": "Templates compose known fixture strings (job IDs, ready instance IDs, command kinds, field keys and source text); all four UI restart/register/operator suites preserve exact receipt paths and assertions."
     }
   ]
 }

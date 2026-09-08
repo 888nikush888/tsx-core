@@ -87,7 +87,7 @@ try {
   assert.equal(JSON.stringify(audits).includes(sourceText), false, 'Operator test source text must not leak into request audit.');
   const request = { sourceText, jobId: 'parser-fixture-job-1', previewHash: preview.previewHash, previewObservedAt: preview.observedAt };
   response = await post('/api/workflow/parser-test', request, 'run-parser-test'); assert.equal(response.status, 412, 'Per-test consent is mandatory.');
-  response = await post('/api/workflow/parser-test', { ...request, externalDataConsent: true, sourceText: sourceText + ' changed' }, 'run-parser-test'); assert.equal(response.status, 409);
+  response = await post('/api/workflow/parser-test', { ...request, externalDataConsent: true, sourceText: `${sourceText} changed` }, 'run-parser-test'); assert.equal(response.status, 409);
   response = await post('/api/workflow/parser-test', { ...request, externalDataConsent: true }, 'run-parser-test', viewer); assert.equal(response.status, 403);
   app.startupAuthority = { canMutate: () => false, snapshot: () => ({ phase: 'blocked', reason: 'fixture', mutationHolds: [], pendingGates: [] }) };
   response = await post('/api/workflow/parser-test', { ...request, externalDataConsent: true }, 'run-parser-test'); assert.equal(response.status, 503);
