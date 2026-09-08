@@ -291,7 +291,7 @@ export function DashboardAuthGate({
               <Button
                 onClick={() => {
                   setRecoveryToken("");
-                  void validateStoredToken();
+                  validateStoredToken();
                 }}
               >
                 I saved it — continue

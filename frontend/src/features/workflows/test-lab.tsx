@@ -67,7 +67,7 @@ export function TestLab() {
           }
           return 'filter';
         };
-        return (void action(testAction()));
+        action(testAction());
       }}>{mode === 'ai' ? 'Provideraufruf vorbereiten' : 'Lokalen Test ausführen'}</button>
     </section>
     {mode === 'ai' && preview && <section className="operations-card system-form"><h2>Provideraufruf prüfen</h2><EvidenceFields fields={[

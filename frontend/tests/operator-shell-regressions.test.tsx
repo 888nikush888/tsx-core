@@ -9,7 +9,7 @@ const api = vi.hoisted(() => ({ jsonRequest: vi.fn() }));
 vi.mock('@/lib/api', async original => ({ ...await original<typeof import('@/lib/api')>(), ...api }));
 // Route views have separate suites. This seam exposes the shell's permission contract and refresh callback.
 vi.mock('@/app/operator-page', () => ({ OperatorPage: ({ readOnly, onRefresh }: Readonly<{ readOnly: boolean; onRefresh: () => Promise<void> }>) =>
-  <button disabled={readOnly} onClick={() => void onRefresh()}>Edit routed view</button> }));
+  <button disabled={readOnly} onClick={() => { onRefresh(); }}>Edit routed view</button> }));
 
 beforeEach(() => { vi.clearAllMocks(); window.history.replaceState(null, '', '/operations/jobs'); Object.defineProperty(document, 'hidden', { configurable: true, value: false }); });
 afterEach(cleanup);

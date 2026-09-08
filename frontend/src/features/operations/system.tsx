@@ -75,7 +75,7 @@ export function System({
     if (Object.keys(failures).length) throw new Error(Object.entries(failures).map(([name, error]) => `${name}: ${error}`).join(' · '));
   }, []);
   useEffect(() => {
-    void load().catch((reason) => setMessage(reason.message));
+    load().catch((reason) => setMessage(reason.message));
   }, [load]);
   const observeRestart = useCallback(async (signal: AbortSignal) => restartInstance ? jsonRequest('/api/recovery', { signal }) : null, [restartInstance]);
   usePoll(observeRestart, (value) => {
@@ -414,7 +414,7 @@ export function System({
           <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => { exportSetup(); }}>Setup exportieren</Button>
           <label className="secondary-button setup-file-button">
             {busy === "setup-preview" ? "Prüfe Bundle…" : "Bundle auswählen"}
-            <input type="file" accept="application/json,.json" disabled={Boolean(busy)} onChange={(event) => { void previewSetup(event.target.files?.[0] || null); event.currentTarget.value = ""; }} />
+            <input type="file" accept="application/json,.json" disabled={Boolean(busy)} onChange={(event) => { previewSetup(event.target.files?.[0] || null); event.currentTarget.value = ""; }} />
           </label>
         </div>
         {setupPreview && (

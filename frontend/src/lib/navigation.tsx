@@ -83,7 +83,7 @@ export function NavigationProvider({
     if (leaving.current) return;
     if (window.dispatchEvent(new Event('tsx:navigation-check', { cancelable: true }))) { commit(); return; }
     leaving.current = true;
-    void confirm({ title: 'Ungespeicherte Änderungen verwerfen?', description: 'Die Ansicht enthält ungespeicherte Eingaben. Gespeicherte Teilvorgänge bleiben erhalten; ungespeicherte Änderungen gehen beim Verlassen verloren.',
+    confirm({ title: 'Ungespeicherte Änderungen verwerfen?', description: 'Die Ansicht enthält ungespeicherte Eingaben. Gespeicherte Teilvorgänge bleiben erhalten; ungespeicherte Änderungen gehen beim Verlassen verloren.',
       confirmLabel: 'Verwerfen und verlassen', cancelLabel: 'Weiter bearbeiten', destructive: true }).then(accepted => {
       leaving.current = false; if (accepted) commit();
     });

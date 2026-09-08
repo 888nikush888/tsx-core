@@ -1359,7 +1359,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
 
   const revealNode = useCallback((node: WorkflowGraph["nodes"][number]) => {
     window.requestAnimationFrame(() => {
-      void reactFlowRef.current?.setCenter(
+      reactFlowRef.current?.setCenter(
         KIND_META[node.kind].order * COLUMN_GAP +
           WORKFLOW_NODE_DIMENSIONS.width / 2,
         node.position.y + WORKFLOW_NODE_DIMENSIONS.height / 2,
@@ -1395,7 +1395,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           0.88,
           0.12,
         );
-        void instance.setViewport(viewport, {
+        instance.setViewport(viewport, {
           duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches
             ? 0
             : 160,
@@ -1469,19 +1469,19 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       setRefreshing(false);
       if (operationalRefreshQueuedRef.current) {
         operationalRefreshQueuedRef.current = false;
-        void refreshOperationalState();
+        refreshOperationalState();
       }
     }
   }, [activeWorkspace]);
 
   useEffect(() => {
     if (activeWorkspace !== "builder") {
-      void refreshOperationalState().catch(() => undefined);
+      refreshOperationalState().catch(() => undefined);
     }
   }, [activeWorkspace, refreshOperationalState]);
 
   useEffect(() => {
-    void load().catch((error) => {
+    load().catch((error) => {
       setLoading(false);
       setNotice({ tone: "error", text: error.message });
     });
@@ -1490,7 +1490,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (activeWorkspace !== "builder") {
-        void refreshOperationalState().catch(() => undefined);
+        refreshOperationalState().catch(() => undefined);
       }
     }, activeWorkspace === "operations" ? 3000 : 5000);
     return () => window.clearInterval(timer);
@@ -1727,7 +1727,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       const direction = historyDirection();
       if (!direction) return;
       event.preventDefault();
-      void navigateHistory(direction);
+      navigateHistory(direction);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -1873,7 +1873,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
 
   const completeConnection = useCallback(
     (targetId: string) => {
-      if (connectionSourceId) void connectNodes(connectionSourceId, targetId);
+      if (connectionSourceId) connectNodes(connectionSourceId, targetId);
     },
     [connectNodes, connectionSourceId],
   );
@@ -1941,7 +1941,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         return;
       }
       setGraph(candidate);
-      void activateGraph(
+      activateGraph(
         candidate,
         direction === "up"
           ? "Baustein nach oben verschoben"
@@ -2179,7 +2179,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
   const onConnect = useCallback(
     (connection: Connection) => {
       if (connection.source && connection.target)
-        void connectNodes(connection.source, connection.target);
+        connectNodes(connection.source, connection.target);
     },
     [connectNodes],
   );
@@ -2196,7 +2196,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       candidate.edges = candidate.edges.filter(
         (edge) => !removedIds.has(edge.id),
       );
-      void activateGraph(
+      activateGraph(
         candidate,
         removedIds.size === 1
           ? "Verbindung entfernt"
@@ -2907,9 +2907,9 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
             <Button
               type="button"
               variant="destructive"
-              onClick={() =>
-                selectedConnection && void removeEdge(selectedConnection.edge.id)
-              }
+              onClick={() => {
+                if (selectedConnection) removeEdge(selectedConnection.edge.id);
+              }}
             >
               <Trash2 data-icon="inline-start" /> Verbindung löschen
             </Button>
