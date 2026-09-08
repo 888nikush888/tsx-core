@@ -197,6 +197,7 @@ const allTests = [
   'test_channel_risk_type_guards.js',
   'test_take_profit_contract_guards.js',
   'test_cancel_evidence_contract_guards.js',
+  'test_fill_identity_contract_guards.js',
   'test_declaration_artifacts.js',
   'test_ingress_contract_guards.js',
   'test_telegram_viewer_contracts.js',
