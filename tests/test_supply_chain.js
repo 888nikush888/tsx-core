@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateDeploymentImages } from '../scripts/verify_deployment_images.js';
+import { runMutationShards } from '../scripts/run_mutation_shards.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const workflow = await readFile(path.join(root, '.github', 'workflows', 'quality.yml'), 'utf8');
@@ -32,8 +33,6 @@ const ccxtCertificationEvidence = await readFile(path.join(root, 'exchange_execu
 const ccxtAdapter = await readFile(path.join(root, 'exchange_executor', 'ccxt_adapter.py'), 'utf8');
 const streamHub = await readFile(path.join(root, 'exchange_executor', 'stream_hub.py'), 'utf8');
 const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf8');
-const strykerConfig = await readFile(path.join(root, 'stryker.config.mjs'), 'utf8');
-const mutationRunner = await readFile(path.join(root, 'scripts', 'run_mutation_shards.js'), 'utf8');
 const gitleaksConfig = await readFile(path.join(root, '.gitleaks.toml'), 'utf8');
 const gitAttributes = await readFile(path.join(root, '.gitattributes'), 'utf8');
 
@@ -213,10 +212,31 @@ assert.match(stagingWorkflow, /run:\s*npm run test:ai-eval/);
 
 assert.match(workflow, /shard:\s*\[queue, retry, schema, trading-risk\]/);
 assert.match(workflow, /npm run test:mutation -- \$\{\{ matrix\.shard \}\}/);
-assert.match(strykerConfig, /process\.env\.STRYKER_SHARD/);
-assert.match(strykerConfig, /cleanTempDir:\s*'always'/);
-assert.match(strykerConfig, /concurrency:\s*1/);
-assert.match(mutationRunner, /timeout:\s*20 \* 60_000/);
+const mutationBudgets = [
+  ['queue', 1, 20], ['retry', 1, 20], ['schema', 2, 40], ['trading-risk', 1, 20],
+];
+for (const [shard, concurrency, minutes] of mutationBudgets) {
+  const configUrl = new URL('../stryker.config.mjs', import.meta.url);
+  const loaded = spawnSync(process.execPath, ['--input-type=module', '-e',
+    `import config from ${JSON.stringify(configUrl.href)}; console.log(JSON.stringify(config));`, '--', '--force'], {
+    env: { ...process.env, STRYKER_SHARD: shard }, encoding: 'utf8', windowsHide: true, shell: false, timeout: 10_000,
+  });
+  assert.equal(loaded.status, 0, loaded.stderr);
+  const config = JSON.parse(loaded.stdout);
+  assert.equal(config.concurrency, concurrency, shard);
+  assert.equal(config.cleanTempDir, 'always');
+  assert.equal(config.incremental, false);
+  assert.equal(config.timeoutMS, 10_000);
+  assert.deepEqual(config.thresholds, { high: 80, low: 70, break: 70 });
+  const calls = [];
+  assert.equal(runMutationShards([shard, '--force'], {
+    spawnImpl: (...args) => { calls.push(args); return { status: 0 }; }, log: () => {},
+  }), 0);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][2].timeout, minutes * 60_000, shard);
+  assert.equal(calls[0][2].env.STRYKER_SHARD, shard);
+  assert.ok(calls[0][1].includes('--force'));
+}
 assert.match(workflow, /cron:\s*'17 3 \* \* 1'/);
 assert.match(
   workflow,
