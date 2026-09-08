@@ -102,7 +102,7 @@ import { WorkflowEdge, type WorkflowEdgeData } from "./workflow-edge";
 import { WorkflowConnectionDialog } from "./workflow-connection-dialog";
 import { WorkflowFallbackPolicyDialog } from "./workflow-fallback-policy-dialog";
 import { formatAccountCapacitySummary } from "./account-capacity";
-import { WorkflowSimulationResult } from "./workflow-simulation-result";
+import { WorkflowSimulationResult, type WorkflowSimulationEvidence } from "./workflow-simulation-result";
 import {
   applyWorkflowFallbackPolicy,
   fallbackPolicyShortLabel,
@@ -1313,7 +1313,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     contentType: "text",
     text: "",
   });
-  const [simulationResult, setSimulationResult] = useState<any>(null);
+  const [simulationResult, setSimulationResult] = useState<WorkflowSimulationEvidence | null>(null);
   const [search, setSearch] = useState("");
   const [connectionSourceId, setConnectionSourceId] = useState<string | null>(
     null,
