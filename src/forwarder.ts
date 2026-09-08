@@ -1,4 +1,5 @@
-import type { TradingIntent } from './trading_types.js';
+import type { WorkflowSignalPlan } from './workflow_repository.js';
+import type { TradingIntent, TradingSignalSchema } from './trading_types.js';
 import type { RouteRow } from './trading_repository_rows.js';
 import type { Config } from './config.js';
 import * as tdl from 'tdl';
@@ -175,6 +176,13 @@ const OUTBOX_MAX_IN_MEMORY_TASKS = 200;
 const forwardQueue = new ConcurrencyQueue(2, 60_000, OUTBOX_MAX_IN_MEMORY_TASKS);
 const LEGACY_PERSIST_FILE = './session_data/queue_persist.json';
 const LEGACY_MEDIA_BUFFER_FILE = './session_data/media_group_buffer.json';
+
+/** Identity fields consumed here; the durable inbox retains the complete Telegram message. */
+interface TelegramMessageIdentity {
+  id: number;
+  chat_id: number;
+  is_outgoing?: boolean;
+}
 
 interface OutboxExecutionContext {
   signal: AbortSignal;
@@ -648,7 +656,7 @@ async function parseSignalNative(
       executableSchema,
       promptTemplate,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (timedOut) throw new Error(`Parser Timeout (${effectiveTimeout}ms)`, { cause: error });
     if (signal?.aborted) throw new Error('Task aborted', { cause: error });
     throw error;
@@ -820,10 +828,10 @@ async function recordCreatedIntents(intents: TradingIntent[], sourceId: string, 
 }
 
 async function parseWorkflowPlan(
-  plan: any,
-  message: any,
+  plan: WorkflowSignalPlan,
+  message: TelegramMessageIdentity,
   text: string,
-  xmlParsing: any,
+  xmlParsing: Config['xmlParsing'],
   context: OutboxExecutionContext,
   sourceId: string,
 ) {
@@ -859,10 +867,10 @@ async function parseWorkflowPlan(
 
 
 async function processWorkflowSignal(
-  message: any,
+  message: TelegramMessageIdentity,
   text: string,
   contentType: string,
-  xmlParsing: any,
+  xmlParsing: Config['xmlParsing'],
   context: OutboxExecutionContext,
   signalReceivedAt: number,
 ) {
@@ -928,7 +936,7 @@ async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {
   return { mode: 'xml-forward', ...confirmation };
 }
 
-function parserSchemaOverride(configuredSchema: any): any {
+function parserSchemaOverride(configuredSchema: TradingSignalSchema | null | undefined): ExecutableSignalSchemaSelection | null {
   if (!configuredSchema) return null;
   return {
     id: configuredSchema.id,
@@ -940,10 +948,10 @@ function parserSchemaOverride(configuredSchema: any): any {
 }
 
 async function parseLegacyXmlSignal(
-  message: any,
+  message: TelegramMessageIdentity,
   text: string,
   sourceId: string,
-  xmlParsing: any,
+  xmlParsing: Config['xmlParsing'],
   context: OutboxExecutionContext,
 ) {
   const templateName = xmlParsing.sourceTemplates?.[sourceId];
@@ -971,7 +979,7 @@ async function parseLegacyXmlSignal(
 }
 
 async function createLegacyIntentForSignal(
-  parsedSignal: any,
+  parsedSignal: ParsedSignal,
   signalId: string,
   sourceId: string,
   signalReceivedAt: number,
@@ -1001,7 +1009,7 @@ async function createLegacyIntentForSignal(
 }
 
 async function finishLegacySignalOutput(input: {
-  message: any;
+  message: TelegramMessageIdentity;
   parsedXml: string;
   forwardXml: boolean;
   shouldForwardToTelegram: boolean;
@@ -1167,7 +1175,7 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
 }
 
 
-async function routeIncomingMessage(message: any, config: Config): Promise<void> {
+async function routeIncomingMessage(message: TelegramMessageIdentity, config: Config): Promise<void> {
   if (message.is_outgoing) return;
   const chatId = String(message.chat_id);
   const activeWorkflow = await getActiveWorkflow();
