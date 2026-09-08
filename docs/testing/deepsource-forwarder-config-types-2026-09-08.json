@@ -49,27 +49,7 @@
       "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
     },
     {
-      "id": "T2NjdXJyZW5jZTpveWFrZHF2dm4=",
-      "rule": "JS-0323",
-      "path": "src/forwarder.ts",
-      "baselineLine": 1179,
-      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
-      "disposition": "fixed",
-      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
-    },
-    {
       "id": "T2NjdXJyZW5jZTp4cmd5bnZqamw=",
-      "rule": "JS-0323",
-      "path": "src/forwarder.ts",
-      "baselineLine": 1167,
-      "baselineSourceSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2",
-      "reviewedSourceSha256": "099b2ed39c64789f18a5d0d09b16a1e4c0c6d10371864056e8d946360c99df84",
-      "disposition": "fixed",
-      "reason": "This ordinary runtime configuration parameter now uses Config, the existing type produced by readConfigSync/defaults. Pinned ingress extensions and external messages are separate remaining work; no assertions hide those shapes."
-    },
-    {
-      "id": "T2NjdXJyZW5jZTprdnlxZGpnZ3k=",
       "rule": "JS-0323",
       "path": "src/forwarder.ts",
       "baselineLine": 1167,

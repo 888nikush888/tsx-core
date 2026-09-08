@@ -9,16 +9,6 @@
   ],
   "occurrences": [
     {
-      "id": "T2NjdXJyZW5jZTpwcXd4bnl4Z3k=",
-      "rule": "JS-0323",
-      "path": "src/workflow_repository.ts",
-      "baselineLine": 1954,
-      "baselineSourceSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd",
-      "reviewedSourceSha256": "18d2dcf3f436c46cdc7c0a0e19c286266eec09c2647da49426320f42b87d4b5c",
-      "disposition": "fixed",
-      "reason": "This workflow mapper or full-row query now uses the concrete resource, revision or execution-path SQLite row interface. Column types and nullability were checked against db.ts schema/migrations; stored JSON remains serialized until the existing parsing and integrity checks run."
-    },
-    {
       "id": "T2NjdXJyZW5jZTpkYWt2d2V2eXg=",
       "rule": "JS-0323",
       "path": "src/workflow_repository.ts",
