@@ -7,8 +7,8 @@
   "count": 847,
   "uniqueCount": 847,
   "dispositions": {
-    "pending-review": 742,
-    "fixed-pending-rescan": 97,
+    "pending-review": 737,
+    "fixed-pending-rescan": 102,
     "proposed-false-positive": 8
   },
   "sourceBinding": "Each entry path binds to baselineSha256 and reviewedSha256 in files. Fixed means local implementation only, not a platform closure. Pending entries are not reviewed or accepted.",
@@ -227,11 +227,11 @@
     },
     "frontend/src/features/operations/setup-review-tree.tsx": {
       "baselineSha256": "6f96e06e0c5167eac4704b35a56c24613b649bb054981e12c1a7592085135e19",
-      "reviewedSha256": "6f96e06e0c5167eac4704b35a56c24613b649bb054981e12c1a7592085135e19"
+      "reviewedSha256": "bdab196e83eca8418529c2d4ff12ba785cb426487b8a1f2f137b2d04b759743d"
     },
     "frontend/src/features/operations/runtime-parameters.tsx": {
       "baselineSha256": "2fb541dc0cfca35f810c9f6595a11d0eb39a66d8bb72f1e1f35eaca164b6e6f9",
-      "reviewedSha256": "2fb541dc0cfca35f810c9f6595a11d0eb39a66d8bb72f1e1f35eaca164b6e6f9"
+      "reviewedSha256": "eb134c167ec3e37ef9d1c8ca5db619905fbf9192a8b75be39d8685a588b3c18e"
     },
     "frontend/src/features/operations/recovery-page.tsx": {
       "baselineSha256": "ccbeb47d97cd97ff3fa48e75468db4d995043e5eaa2699cf0fe3733255709a6c",
@@ -255,11 +255,11 @@
     },
     "frontend/src/features/operations/capabilities.tsx": {
       "baselineSha256": "88916eac1372305ad8135f21d30198922bd04779a87013809ef52dc89330de64",
-      "reviewedSha256": "9d908ac79597652ce98ed5f0c88589c7d98de6069bedd262965ec61078617997"
+      "reviewedSha256": "4a8d6883136c1fba6f2ef05328f7fa32fd73a5ce24ff29b79df40d616064ff84"
     },
     "frontend/src/features/operations/backups-page.tsx": {
       "baselineSha256": "bfbc6ee7eb4ec7ba80a16b11b6395f30731bb7de3e4cb4aa7c11e649084a250e",
-      "reviewedSha256": "a4de89853efda4922ecc690a05d7b05603aafd544d580e778c957539fa62445e"
+      "reviewedSha256": "6baee284b4b15efd4b68e5ce7a87e9118b6b71acdf7e7c8887fdef0a1fd798f3"
     },
     "frontend/src/features/mcp/proposal-detail.tsx": {
       "baselineSha256": "90ad765777776ead322faaf6f7e5f82fa5700e0076603342b2ceb808133dd42b",
@@ -291,7 +291,7 @@
     },
     "frontend/src/features/accounts/accounts.tsx": {
       "baselineSha256": "88732c76eb59fc6d92caad48463d5079e1f9b7c8b0dc194c9f8d018790410c29",
-      "reviewedSha256": "a344dce385ae60fb3a65406804bdfe1f488471e16a76b9c5dc02e9e18ae493ba"
+      "reviewedSha256": "0bf8fa5b1984606f34907ac9334682a4afe0b2d3e6265226ff122dca4e8a0bdd"
     },
     "frontend/src/features/accounts/accounts-page.tsx": {
       "baselineSha256": "55beb30a6aa732a5de8fba7383dc979c78aecfaa3564a6f17d051a6dbd46f735",
@@ -442,7 +442,7 @@
       "reviewedSha256": "c94cc506813b9ccacf5307fbd13ba4f81f085aad89910748b003989f49337499"
     }
   },
-  "implementationHead": "34e894979bb4db09ed6073d9e9cf3d68d5cedea7",
+  "implementationHead": "d10ad71d827d6386306d428b16f59db95bb05def",
   "entries": [
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGVscXA=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndrcmU=", "rule": "JS-0323", "path": "frontend/tests/workflow-statusbar.test.ts", "line": 85, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "expect(selectCockpitItems(\"builder\", dash as any, ops as any)).toEqual([]);"},
@@ -841,8 +841,8 @@
     {"id": "T2NjdXJyZW5jZTp2dm15bnltdm8=", "rule": "JS-R1005", "path": "frontend/src/features/operations/system.tsx", "line": 33, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function System({"},
     {"id": "T2NjdXJyZW5jZTpveWFrZGtheWc=", "rule": "JS-0415", "path": "frontend/src/features/operations/system.tsx", "line": 30, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "return <details><summary>Gespeicherte und aktive Werte · Quelle und Wirkung</summary><p>{payload.precedence ?? 'Quellenvertrag nicht verfügbar.'}</p><p>Quelle: {payload.source ?? 'unbekannt'} · Neustart erforderlich: {restartRequirement()}</p><div className=\"overflow-x-auto\"><table><thead><tr><th>Parameter</th><th>Gespeichert</th><th>Beim Start ang"},
     {"id": "T2NjdXJyZW5jZTp4cmd5bnlncmo=", "rule": "JS-0323", "path": "frontend/src/features/operations/system.tsx", "line": 20, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "function RuntimeEvidence({ payload }: Readonly<{ payload: any }>) {"},
-    {"id": "T2NjdXJyZW5jZTprdnlxZHF5dmw=", "rule": "JS-0323", "path": "frontend/src/features/operations/setup-review-tree.tsx", "line": 18, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "{data ? <>{data.type === 'string' ? <pre className=\"whitespace-pre-wrap break-all border p-3 max-h-96 overflow-auto\">{data.text}</pre> : <EvidenceTable caption=\"Originalwerte dieser Ebene\" columns={[[\"key\", \"Feld / Objekt\"], [\"type\", \"Datentyp\"], [\"value\", \"Gespeicherter Wert / Anfang\"], [\"childCount\", \"Unterwerte\"], [\"open\", \"Inhalt öffnen\"]]} row"},
-    {"id": "T2NjdXJyZW5jZTplYXhteW14eXE=", "rule": "JS-0323", "path": "frontend/src/features/operations/setup-review-tree.tsx", "line": 9, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const [state, setState] = useState<any>(null); const [error, setError] = useState('');"},
+    {"id": "T2NjdXJyZW5jZTprdnlxZHF5dmw=", "rule": "JS-0323", "path": "frontend/src/features/operations/setup-review-tree.tsx", "line": 18, "status": "fixed-pending-rescan", "rationale": "1679165: ReviewObservation/ReviewPage/ReviewEntry model the paginated server tree, preserving unknown scalar evidence and guarding optional redacted paths and nullable cursors. Frontend build and 305 tests passed.", "evidence": "{data ? <>{data.type === 'string' ? <pre className=\"whitespace-pre-wrap break-all border p-3 max-h-96 overflow-auto\">{data.text}</pre> : <EvidenceTable caption=\"Originalwerte dieser Ebene\" columns={[[\"key\", \"Feld / Objekt\"], [\"type\", \"Datentyp\"], [\"value\", \"Gespeicherter Wert / Anfang\"], [\"childCount\", \"Unterwerte\"], [\"open\", \"Inhalt öffnen\"]]} row"},
+    {"id": "T2NjdXJyZW5jZTplYXhteW14eXE=", "rule": "JS-0323", "path": "frontend/src/features/operations/setup-review-tree.tsx", "line": 9, "status": "fixed-pending-rescan", "rationale": "1679165: ReviewObservation/ReviewPage/ReviewEntry model the paginated server tree, preserving unknown scalar evidence and guarding optional redacted paths and nullable cursors. Frontend build and 305 tests passed.", "evidence": "const [state, setState] = useState<any>(null); const [error, setError] = useState('');"},
     {"id": "T2NjdXJyZW5jZTpwcXd4bnh3bm8=", "rule": "JS-R1005", "path": "frontend/src/features/operations/setup-review-tree.tsx", "line": 6, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function SetupReviewTree({ previewKey }: Readonly<{ previewKey: string }>) {"},
     {"id": "T2NjdXJyZW5jZTpuZ3dlZGV3ZHc=", "rule": "JS-R1005", "path": "frontend/src/features/operations/runtime-parameters.tsx", "line": 55, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const parameterControl = () => {"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndhdm0=", "rule": "JS-R1005", "path": "frontend/src/features/operations/runtime-parameters.tsx", "line": 53, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "{groups.map(group => <fieldset key={group} className=\"system-form\"><legend>{group}</legend><div className=\"builder-field-grid\">{parameters.filter(item => item.group === group).map(field => {"},
@@ -851,7 +851,7 @@
     {"id": "T2NjdXJyZW5jZTpxcGVvbm9lbm4=", "rule": "JS-0323", "path": "frontend/src/features/operations/runtime-parameters.tsx", "line": 28, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function RuntimeParameters({ value, onChange, payload, readOnly = false }: Readonly<{ value: Record<string, any>; onChange: (value: Record<string, any>) => void; payload: any; readOnly?: boolean }>) {"},
     {"id": "T2NjdXJyZW5jZTp5Z3lxbnF5bnY=", "rule": "JS-0323", "path": "frontend/src/features/operations/runtime-parameters.tsx", "line": 28, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function RuntimeParameters({ value, onChange, payload, readOnly = false }: Readonly<{ value: Record<string, any>; onChange: (value: Record<string, any>) => void; payload: any; readOnly?: boolean }>) {"},
     {"id": "T2NjdXJyZW5jZTpnZXZhZGF2ZG8=", "rule": "JS-0323", "path": "frontend/src/features/operations/runtime-parameters.tsx", "line": 19, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "function runtimeFieldValue(field: Parameter, value: any) {"},
-    {"id": "T2NjdXJyZW5jZTpyZWt2bnZrbnY=", "rule": "JS-0323", "path": "frontend/src/features/operations/runtime-parameters.tsx", "line": 7, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function runtimeInputError(value: Record<string, any>, parameters: Parameter[] | undefined): string | null {"},
+    {"id": "T2NjdXJyZW5jZTpyZWt2bnZrbnY=", "rule": "JS-0323", "path": "frontend/src/features/operations/runtime-parameters.tsx", "line": 7, "status": "fixed-pending-rescan", "rationale": "a525cbc: unknown runtime values narrow through the existing type check before numeric/string constraints; extracted validators preserve null/absent bounds and all error messages. Frontend build and 305 tests passed.", "evidence": "export function runtimeInputError(value: Record<string, any>, parameters: Parameter[] | undefined): string | null {"},
     {"id": "T2NjdXJyZW5jZTptcmRwbnBkbmE=", "rule": "JS-R1005", "path": "frontend/src/features/operations/runtime-parameters.tsx", "line": 7, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function runtimeInputError(value: Record<string, any>, parameters: Parameter[] | undefined): string | null {"},
     {"id": "T2NjdXJyZW5jZTp2dm15bnltbmo=", "rule": "JS-0098", "path": "frontend/src/features/operations/recovery-page.tsx", "line": 117, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "<button className=\"secondary-button\" disabled={!can(\"restart\") || Boolean(restartFrom && !restarted)} onClick={() => void restart()}>Kontrolliert neu starten</button>"},
     {"id": "T2NjdXJyZW5jZTpveWFrZGthZGw=", "rule": "JS-0098", "path": "frontend/src/features/operations/recovery-page.tsx", "line": 115, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "<button className=\"primary-button\" disabled={!can(\"secrets\") || !Object.values(secretInput).some((value) => value.trim())} onClick={() => void save(\"secrets\", Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim())))}>Secrets speichern</button>"},
@@ -988,14 +988,14 @@
     {"id": "T2NjdXJyZW5jZTpyZWt2bnZranI=", "rule": "JS-0098", "path": "frontend/src/features/accounts/accounts.tsx", "line": 559, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "onClick={() => void accountAction(account, \"toggle\")}"},
     {"id": "T2NjdXJyZW5jZTptcmRwbnBkank=", "rule": "JS-0098", "path": "frontend/src/features/accounts/accounts.tsx", "line": 551, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "onClick={() => void accountAction(account, \"verify\")}"},
     {"id": "T2NjdXJyZW5jZTp2dm15bnltZ3k=", "rule": "JS-0098", "path": "frontend/src/features/accounts/accounts.tsx", "line": 543, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "onClick={() => void accountAction(account, \"reconcile\")}"},
-    {"id": "T2NjdXJyZW5jZTpveWFrZGthZ2U=", "rule": "JS-0098", "path": "frontend/src/features/accounts/accounts.tsx", "line": 513, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "onClick={() => void releaseKillSwitch(account)}"},
+    {"id": "T2NjdXJyZW5jZTpveWFrZGthZ2U=", "rule": "JS-0098", "path": "frontend/src/features/accounts/accounts.tsx", "line": 513, "status": "fixed-pending-rescan", "rationale": "820dd1e: dialog opener only sets two React states; its sole click caller needs no Promise, while the separate confirmed release command remains asynchronous. Frontend build and 305 tests passed.", "evidence": "onClick={() => void releaseKillSwitch(account)}"},
     {"id": "T2NjdXJyZW5jZTp4cmd5bnlnd20=", "rule": "JS-0415", "path": "frontend/src/features/accounts/accounts.tsx", "line": 480, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "<section className=\"operations-card account-card\" key={account.id}>"},
     {"id": "T2NjdXJyZW5jZTprdnlxZHF5d3I=", "rule": "JS-R1005", "path": "frontend/src/features/accounts/accounts.tsx", "line": 469, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "{trading?.accounts.map((account) => {"},
     {"id": "T2NjdXJyZW5jZTplYXhteW14b2U=", "rule": "JS-0098", "path": "frontend/src/features/accounts/accounts.tsx", "line": 336, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "<Button type=\"button\" variant=\"outline\" size=\"sm\" disabled={busy === account.id} onClick={() => void accountAction(account, \"reconcile\")}>"},
     {"id": "T2NjdXJyZW5jZTpwcXd4bnh3bGw=", "rule": "JS-0098", "path": "frontend/src/features/accounts/accounts.tsx", "line": 285, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "onClick={() => void probeCandidate(item.id)}"},
     {"id": "T2NjdXJyZW5jZTp3bXJ5d3lydnA=", "rule": "JS-0415", "path": "frontend/src/features/accounts/accounts.tsx", "line": 239, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "<>"},
     {"id": "T2NjdXJyZW5jZTpqd2dxZHFneGw=", "rule": "JS-R1005", "path": "frontend/src/features/accounts/accounts.tsx", "line": 126, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const accountAction = async ("},
-    {"id": "T2NjdXJyZW5jZTpuZ3dlZGV3amw=", "rule": "JS-0116", "path": "frontend/src/features/accounts/accounts.tsx", "line": 98, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "const releaseKillSwitch = async (account: TradingAccount) => {"},
+    {"id": "T2NjdXJyZW5jZTpuZ3dlZGV3amw=", "rule": "JS-0116", "path": "frontend/src/features/accounts/accounts.tsx", "line": 98, "status": "fixed-pending-rescan", "rationale": "820dd1e: dialog opener only sets two React states; its sole click caller needs no Promise, while the separate confirmed release command remains asynchronous. Frontend build and 305 tests passed.", "evidence": "const releaseKillSwitch = async (account: TradingAccount) => {"},
     {"id": "T2NjdXJyZW5jZTphbmF3dndhbG8=", "rule": "JS-0045", "path": "frontend/src/features/accounts/accounts.tsx", "line": 90, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "return result;"},
     {"id": "T2NjdXJyZW5jZTpsbXFuZG5xbHE=", "rule": "JS-0323", "path": "frontend/src/features/accounts/accounts.tsx", "line": 28, "status": "fixed-pending-rescan", "rationale": "34e8949: AccountCreationDraft models string fields, numeric position limit and string credentials without changing form events or submission. Frontend build, Oxlint and 305 tests passed.", "evidence": "const [form, setForm] = useState<Record<string, any>>({"},
     {"id": "T2NjdXJyZW5jZTpkYWt2d3ZrbHk=", "rule": "JS-R1005", "path": "frontend/src/features/accounts/accounts.tsx", "line": 17, "status": "pending-review", "rationale": "Open: requires individual source review and behavior-preserving implementation or documented disposition.", "evidence": "export function Accounts({"},

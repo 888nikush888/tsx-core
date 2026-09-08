@@ -2,7 +2,7 @@
 
 Scope: frontend/src, frontend/tests and frontend/e2e. The complete export contains 4,459 occurrences; this ownership scope contains 847 unique occurrence IDs. Baseline commit: be8cf5af59f60d69ad946d778973add8161b7672. The accompanying JSON binds every occurrence to its original source SHA-256 and records the locally reviewed source SHA-256 by path. Original export and execution logs stay in ignored reports.
 
-This is an in-progress ledger, not a claim that the frontend scan is clean. At implementation commit 34e8949, 97 occurrences have a local fix awaiting rescan, 8 have a concrete proposed false-positive rationale, and 742 remain open for review. No platform status, rule or quality threshold was changed. Hash binding identifies the reviewed text; it does not make a pending occurrence reviewed.
+This is an in-progress ledger, not a claim that the frontend scan is clean. At implementation commit d10ad71, 102 occurrences have a local fix awaiting rescan, 8 have a concrete proposed false-positive rationale, and 737 remain open for review. No platform status, rule or quality threshold was changed. Hash binding identifies the reviewed text; it does not make a pending occurrence reviewed.
 
 ## Implemented changes
 
