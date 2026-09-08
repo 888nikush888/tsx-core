@@ -4,14 +4,21 @@ import { useSettingFocus } from '@/shared/forms/use-setting-focus';
 
 type Parameter = { path: string; group: string; type: string; unit: string | null; default: unknown; range: [number, number] | null; values: string[] | null; maxLength: number; nullable: boolean; editable: boolean; secret: boolean; environmentName: string; source: string; requiresRestart: boolean };
 const labels: Record<string, string> = { dashboardAuthMode: 'Authentifizierung', dashboardLocalTrust: 'Lokale Vertrauenssitzung', dashboardAllowedOrigin: 'Erlaubter Browser-Ursprung', tailscaleServeTrustedProxy: 'Tailscale-Serve-Proxy vertrauen', tailscaleAdminUsers: 'Tailscale Admin-Logins', tailscaleViewerUsers: 'Tailscale Viewer-Logins', enterpriseMode: 'Enterprise-Modus' };
-export function runtimeInputError(value: Record<string, any>, parameters: Parameter[] | undefined): string | null {
+function invalidRuntimeNumber(value: number, range: Parameter['range']) {
+  if (!Number.isSafeInteger(value)) return true;
+  return Boolean(range && (value < range[0] || value > range[1]));
+}
+function invalidRuntimeString(value: string, field: Parameter) {
+  return value.length > field.maxLength || Boolean(field.values && !field.values.includes(value));
+}
+export function runtimeInputError(value: Record<string, unknown>, parameters: Parameter[] | undefined): string | null {
   if (!parameters) return 'Parametervertrag fehlt. Eine kompatible Server-/UI-Version ist erforderlich.';
   for (const field of parameters) {
     if (!field.editable || field.secret) continue;
     const current = value[field.path];
     if (!['string', 'number', 'boolean'].includes(field.type) || typeof current !== field.type) return `${field.path}: unbekannter oder falscher Feldtyp.`;
-    if (field.type === 'number' && (!Number.isSafeInteger(current) || field.range && (current < field.range[0] || current > field.range[1]))) return `${field.path}: ganze Zahl ${field.range?.join(' bis ') ?? ''} erforderlich.`;
-    if (field.type === 'string' && (current.length > field.maxLength || field.values && !field.values.includes(current))) return `${field.path}: nicht erlaubter Wert.`;
+    if (typeof current === 'number' && invalidRuntimeNumber(current, field.range)) return `${field.path}: ganze Zahl ${field.range?.join(' bis ') ?? ''} erforderlich.`;
+    if (typeof current === 'string' && invalidRuntimeString(current, field)) return `${field.path}: nicht erlaubter Wert.`;
   }
   return null;
 }
