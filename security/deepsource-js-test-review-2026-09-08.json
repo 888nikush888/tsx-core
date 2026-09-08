@@ -37,7 +37,8 @@
     "Registry and LCOV helpers: both Node22 regression suites, complete changed scripts ESLint complexity<=5 and diff checks passed.",
     "Complexity and release policies: 304 original/current differential cases, both extended Node22 regression suites, actual release gate, strict complexity<=5 ESLint and diff checks passed.",
     "Sonar read retry helpers: all five Node22 Sonar suites passed; complete script ESLint complexity<=5 and diff checks passed. No live mutation or production pin change.",
-    "Sonar evidence helpers: 361 original/current decision comparisons and all five Node22 Sonar regression suites passed; entire script ESLint complexity<=5 and diff checks passed."
+    "Sonar evidence helpers: 361 original/current decision comparisons and all five Node22 Sonar regression suites passed; entire script ESLint complexity<=5 and diff checks passed.",
+    "Mutation runner: 48 exact before/after cases and Node22 regression suite passed; full script complexity<=5 ESLint and diff checks passed."
   ],
   "entries": [
     {
@@ -4875,6 +4876,14 @@
       "originalLine": 19,
       "status": "source_change_pending_rescan",
       "proof": "Separated summary header/revision/gate checks, PR identity/review completeness, long-branch date binding, artifact verification and finding counts. Partition validation preserves ordering and exact rejection text. Whole file complexity<=5; 361 original/current malformed and valid evidence decisions identical; all five Sonar suites pass. No pins, accepted policy or suppression changed."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZG5ndmo=",
+      "rule": "JS-R1005",
+      "path": "scripts/run_mutation_shards.js",
+      "originalLine": 7,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated dependency defaults, shard selection and one-shard execution. Entire file complexity<=5; 48 before/after scenarios have identical spawn arguments, logs, errors and exit statuses. Existing fresh-evidence/force/budget/fail-fast/real CLI regression suite passes. No actual mutation campaigns started."
     }
   ]
 }

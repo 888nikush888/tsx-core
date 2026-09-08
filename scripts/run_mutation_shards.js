@@ -4,45 +4,60 @@ import { fileURLToPath } from 'node:url';
 
 const supportedShards = ['queue', 'retry', 'schema', 'trading-risk'];
 
-export function runMutationShards(argumentsList, {
+function runnerOptions({
   spawnImpl = spawnSync, log = console.log, error = console.error, environment = process.env,
-} = {}) {
-  const force = argumentsList.includes('--force');
+}) {
+  return { spawnImpl, log, error, environment };
+}
+
+function selectedShards(argumentsList) {
   const requestedShards = argumentsList.filter(argument => argument !== '--force');
-  const shards = requestedShards.length > 0 ? requestedShards : supportedShards;
+  return requestedShards.length > 0 ? requestedShards : supportedShards;
+}
+
+function runShard(shard, force, strykerBinary, { spawnImpl, log, error, environment }) {
+  log(`=== Mutation shard: ${shard} ===`);
+  const result = spawnImpl(
+    process.execPath,
+    [strykerBinary, 'run', ...(force ? ['--force'] : [])],
+    {
+      cwd: process.cwd(),
+      env: { ...environment, STRYKER_SHARD: shard },
+      stdio: 'inherit',
+      shell: false,
+      windowsHide: true,
+      timeout: 20 * 60_000,
+    }
+  );
+  if (result.error) {
+    error(`Mutation shard ${shard} failed to execute: ${result.error.message}`);
+    return 1;
+  }
+  if (result.status !== 0) {
+    error(`Mutation shard ${shard} failed with exit code ${result.status}.`);
+    return result.status || 1;
+  }
+  return 0;
+}
+
+export function runMutationShards(argumentsList, dependencies = {}) {
+  const options = runnerOptions(dependencies);
+  const force = argumentsList.includes('--force');
+  const shards = selectedShards(argumentsList);
   const unknown = shards.filter(shard => !supportedShards.includes(shard));
 
   if (unknown.length > 0) {
-    error(`Unknown mutation shard(s): ${unknown.join(', ')}`);
+    options.error(`Unknown mutation shard(s): ${unknown.join(', ')}`);
     return 2;
   }
 
   const strykerBinary = path.resolve('node_modules/@stryker-mutator/core/bin/stryker.js');
   for (const shard of shards) {
-    log(`=== Mutation shard: ${shard} ===`);
-    const result = spawnImpl(
-      process.execPath,
-      [strykerBinary, 'run', ...(force ? ['--force'] : [])],
-      {
-        cwd: process.cwd(),
-        env: { ...environment, STRYKER_SHARD: shard },
-        stdio: 'inherit',
-        shell: false,
-        windowsHide: true,
-        timeout: 20 * 60_000,
-      }
-    );
-    if (result.error) {
-      error(`Mutation shard ${shard} failed to execute: ${result.error.message}`);
-      return 1;
-    }
-    if (result.status !== 0) {
-      error(`Mutation shard ${shard} failed with exit code ${result.status}.`);
-      return result.status || 1;
-    }
+    const status = runShard(shard, force, strykerBinary, options);
+    if (status !== 0) return status;
   }
 
-  log(`ALL ${shards.length} MUTATION SHARDS PASSED!`);
+  options.log(`ALL ${shards.length} MUTATION SHARDS PASSED!`);
   return 0;
 }
 
