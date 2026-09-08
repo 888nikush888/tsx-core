@@ -41,7 +41,8 @@
     "Mutation runner: 48 exact before/after cases and Node22 regression suite passed; full script complexity<=5 ESLint and diff checks passed.",
     "Architecture refactor: 576 original/current decisions, extended Node22 suite, actual architecture gate, full changed files complexity<=5 ESLint and diff checks passed.",
     "Soak refactor: 39 exact original/current protocol comparisons; Node22 pure validation and isolated real CLI/evidence regressions passed, whole changed files complexity<=5 ESLint and diff checks passed.",
-    "Sonar scope refactor: 484 exact original/current cases and all five Node22 Sonar suites passed; whole script complexity<=5 ESLint and diff checks passed. No Cloud mutation or production pin changes."
+    "Sonar scope refactor: 484 exact original/current cases and all five Node22 Sonar suites passed; whole script complexity<=5 ESLint and diff checks passed. No Cloud mutation or production pin changes.",
+    "UI route AST collector: Node22 artifact --check and UI register contract suite, whole script complexity<=5 ESLint and diff checks passed. No generated artifact changed."
   ],
   "entries": [
     {
@@ -4975,6 +4976,14 @@
       "originalLine": 3,
       "status": "source_change_pending_rescan",
       "proof": "Separated branch/PR selection, compute-task identity checks, long-branch dates, PR analysis identity, metric value/period/periods formats and hotspot count/percentage validity. Whole script complexity<=5. 484 original/current scope/metric/task decisions identical; all five Sonar regression suites passed. Scope isolation, exact failures and accepted review policy unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnlwZW4=",
+      "rule": "JS-R1005",
+      "path": "scripts/build_ui_route_inventory.js",
+      "originalLine": 11,
+      "status": "source_change_pending_rescan",
+      "proof": "Separated function and variable declaration extraction from recursive AST traversal. Whole script complexity<=5; --check confirms byte-identical route artifact for all 138 authenticated routes and 3 bootstrap/session boundaries; UI register contract suite passes."
     }
   ]
 }

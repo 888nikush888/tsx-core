@@ -8,9 +8,17 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = await readFile(path.join(root, 'src/web_server.ts'), 'utf8');
 const tree = ts.createSourceFile('web_server.ts', source, ts.ScriptTarget.Latest, true);
 const definitions = new Map();
+function collectFunction(node) {
+  if (node.name) definitions.set(node.name.text, node.getText(tree));
+}
+
+function collectVariable(node) {
+  if (ts.isIdentifier(node.name)) definitions.set(node.name.text, node.initializer?.getText(tree) ?? '');
+}
+
 function visit(node) {
-  if (ts.isFunctionDeclaration(node) && node.name) definitions.set(node.name.text, node.getText(tree));
-  if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) definitions.set(node.name.text, node.initializer?.getText(tree) ?? '');
+  if (ts.isFunctionDeclaration(node)) collectFunction(node);
+  if (ts.isVariableDeclaration(node)) collectVariable(node);
   ts.forEachChild(node, visit);
 }
 visit(tree);
