@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "sourceSha256": "08a0473d93f11582f6238bfc4a0b6fd5e71c6a630703ca7dacf10fb94deb95f6",
+  "scope": "Three explicit-any findings and one non-null assertion in parameter observations.",
+  "verification": [
+    "160 complete before/after output comparisons passed for unknown or absent sizing, inherited keys, zero and false values, arrays, large decimal strings and absent resource/strategy bindings.",
+    "Typecheck, targeted ESLint, UI change reviews and workflow builder tests passed."
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtkbWw=",
+      "rule": "JS-0323",
+      "path": "src/ui_effective_parameters.ts",
+      "baselineLine": 31,
+      "baselineColumn": 70,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlra3A=",
+      "rule": "JS-0339",
+      "path": "src/ui_effective_parameters.ts",
+      "baselineLine": 25,
+      "baselineColumn": 66,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29xcWQ=",
+      "rule": "JS-0323",
+      "path": "src/ui_effective_parameters.ts",
+      "baselineLine": 20,
+      "baselineColumn": 59,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRxcWo=",
+      "rule": "JS-0323",
+      "path": "src/ui_effective_parameters.ts",
+      "baselineLine": 10,
+      "baselineColumn": 33,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    }
+  ]
+}

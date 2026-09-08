@@ -7,7 +7,10 @@ function leaves(value: unknown, prefix = '', result: Array<[string, unknown]> = 
   return result;
 }
 function at(value: unknown, path: string): unknown {
-  return path.split('.').reduce<any>((item, key) => item != null && typeof item === 'object' ? item[key] : undefined, value);
+  return path.split('.').reduce<unknown>((item, key) => isParameterContainer(item) ? item[key] : undefined, value);
+}
+function isParameterContainer(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
 }
 function unit(path: string): string | null {
   if (path.endsWith('Percent')) return '%';
@@ -17,18 +20,17 @@ function unit(path: string): string | null {
   if (path.endsWith('maxDailyLoss')) return 'abhängig von safety.maxDailyLossMode';
   return null;
 }
-function parameterOrigin(field: string, normalizedSizing: any, sizing: WorkflowResourceVersion | null, strategy: TradingStrategyVersion | null) {
+function parameterOrigin(field: string, normalizedSizing: unknown, sizing: WorkflowResourceVersion | null, strategy: TradingStrategyVersion | null) {
   if (field === 'schemaVersion') return { source: 'Workflowcompiler', sourceVersionId: null, resourceId: null, overridesStrategy: false };
   const key = field.startsWith('sizing.') ? field.slice('sizing.'.length) : null;
-  const override = key !== null && normalizedSizing != null && Object.hasOwn(normalizedSizing, key);
-  if (!override) return { source: 'Gepinnte Strategie; bei Kompilierung validiert', sourceVersionId: strategy?.id ?? null, resourceId: null, overridesStrategy: false };
-  return { source: sizing && Object.hasOwn(sizing.configuration, key!) ? 'Positionsgrößen-Baustein' : 'Standard der Positionsgrößen-Validierung',
+  if (key === null || normalizedSizing == null || !Object.hasOwn(Object(normalizedSizing), key)) return { source: 'Gepinnte Strategie; bei Kompilierung validiert', sourceVersionId: strategy?.id ?? null, resourceId: null, overridesStrategy: false };
+  return { source: sizing && Object.hasOwn(sizing.configuration, key) ? 'Positionsgrößen-Baustein' : 'Standard der Positionsgrößen-Validierung',
     sourceVersionId: sizing?.id ?? null, resourceId: sizing?.resourceId ?? null, overridesStrategy: true };
 }
 /** Explains the existing compiler's sizing override; never recalculates or authorizes a trade. */
 export function uiEffectiveParameters(path: WorkflowExecutionPath, strategy: TradingStrategyVersion | null, sizing: WorkflowResourceVersion | null) {
   const effective = path.effectiveConfiguration.strategyConfiguration;
-  const normalizedSizing = (path.effectiveConfiguration.resources as any)?.sizing;
+  const normalizedSizing = at(path.effectiveConfiguration.resources, 'sizing');
   return leaves(effective).map(([field, value]) => {
     return { field, value, unit: unit(field), strategyValue: at(strategy?.configuration, field) ?? null,
       strategyValuePresent: at(strategy?.configuration, field) !== undefined,
