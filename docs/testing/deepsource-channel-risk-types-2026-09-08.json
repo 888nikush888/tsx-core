@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "Channel risk SQL policy/evaluation rows and analytics projections; remaining findings not claimed fixed.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 tests/test_trading_fx_channel_risk.js",
+    "Node22 tests/test_trading_analytics.js",
+    "Node22 tests/test_ui_adaptive_risk.js",
+    "Targeted ESLint"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHF3a2w=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 906,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZxeXE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 895,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpvcXc=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 876,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtlbXY=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 866,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlyYXg=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 774,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VwZGE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 774,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJ5cGE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 525,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlya3g=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 439,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1kcHY=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 377,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxheHY=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 366,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJ5dmE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 213,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlyYXc=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 164,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlydng=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 154,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VwbWE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 146,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFxbG4=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 135,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9wcm8=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 107,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxhcHY=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 80,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "8df390a7370c3ce2c8b429465c9adeba891fad2466101f8da8dd16fcb4403c61",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import type { ChannelRiskPolicyRow, ChannelRiskEvaluationRow, RiskEvaluationRow, WorkflowRiskEvaluationRow, WorkflowRiskStateAnalyticsRow, WorkflowRiskEvaluationAnalyticsRow } from './trading_channel_risk_rows.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { getDatabase, withDatabaseTransaction } from './db.js';
@@ -77,7 +78,7 @@ function validateTiers(value: unknown): ChannelRiskTier[] {
   return tiers;
 }
 
-export function policyFromRow(row: any): ChannelRiskPolicy {
+export function policyFromRow(row: ChannelRiskPolicyRow): ChannelRiskPolicy {
   const tiers = validateTiers(JSON.parse(row.tiers_json));
   const currentTier = integer(Number(row.current_tier), 'Stored current risk tier', 0, tiers.length - 1);
   const lockedTier = row.locked_tier === null
@@ -104,7 +105,7 @@ export function policyFromRow(row: any): ChannelRiskPolicy {
   };
 }
 
-export function evaluationFromRow(row: any): ChannelRiskEvaluation {
+export function evaluationFromRow(row: ChannelRiskEvaluationRow): ChannelRiskEvaluation {
   return {
     id: String(row.id),
     channelId: String(row.channel_id),
@@ -132,7 +133,7 @@ function storedMoneyValue(encoded: string | null, scalar: string | null): MoneyV
   return value;
 }
 
-function evaluationMoneyFields(row: any) {
+function evaluationMoneyFields(row: RiskEvaluationRow) {
   const realizedPnl = row.realized_pnl === null ? null : signedDecimal(String(row.realized_pnl));
   const returnPercent = row.return_percent === null ? null : signedDecimal(String(row.return_percent));
   const source = row.source_json ? JSON.parse(row.source_json) : null;
@@ -143,7 +144,7 @@ function evaluationMoneyFields(row: any) {
 }
 
 export async function listChannelRiskPolicies(): Promise<ChannelRiskPolicy[]> {
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<ChannelRiskPolicyRow[]>(
     'SELECT * FROM trading_channel_risk_policies ORDER BY channel_id',
   );
   return rows.map(policyFromRow);
@@ -151,7 +152,7 @@ export async function listChannelRiskPolicies(): Promise<ChannelRiskPolicy[]> {
 
 export async function listChannelRiskEvaluations(limit = 500): Promise<ChannelRiskEvaluation[]> {
   const safeLimit = integer(limit, 'Risk evaluation limit', 1, 5_000);
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<ChannelRiskEvaluationRow[]>(
     `SELECT * FROM trading_channel_risk_evaluations
      ORDER BY week_ended_at DESC, channel_id LIMIT ?`,
     [safeLimit],
@@ -161,7 +162,7 @@ export async function listChannelRiskEvaluations(limit = 500): Promise<ChannelRi
 
 function normalizedRiskPolicy(
   input: ChannelRiskPolicyInput,
-  existing: any,
+  existing: ChannelRiskPolicyRow | undefined,
   now: number,
 ) {
   const channelId = identifier(input.channelId);
@@ -210,7 +211,7 @@ export async function upsertChannelRiskPolicy(
   now = Date.now(),
 ): Promise<ChannelRiskPolicy> {
   const requestedChannelId = identifier(input.channelId);
-  const existing = await getDatabase().get<any>(
+  const existing = await getDatabase().get<ChannelRiskPolicyRow>(
     'SELECT * FROM trading_channel_risk_policies WHERE channel_id = ?',
     [requestedChannelId],
   );
@@ -363,7 +364,7 @@ async function collectChannelEvidence(request: CapitalRequest, pinned?: CapitalP
   return { source, json, hash: sourceHash(json), percent };
 }
 
-async function assertCachedEvidence(row: any, request: CapitalRequest): Promise<void> {
+async function assertCachedEvidence(row: RiskEvaluationRow, request: CapitalRequest): Promise<void> {
   if (row.invalidated_at !== null && row.invalidated_at !== undefined) unresolvedRisk(row.invalidation_reason ?? 'previous evaluation is invalidated.');
   if (!row.source_json || !row.source_hash || Buffer.byteLength(row.source_json) >= 262144
     || row.source_json.includes('\0') || sourceHash(row.source_json) !== row.source_hash) unresolvedRisk('original evaluation provenance is missing or invalid.');
@@ -374,7 +375,7 @@ async function assertCachedEvidence(row: any, request: CapitalRequest): Promise<
   assertOriginalEvaluationAmounts(row, current);
 }
 
-function assertOriginalEvaluationAmounts(row: any, evidence: Awaited<ReturnType<typeof collectChannelEvidence>>): void {
+function assertOriginalEvaluationAmounts(row: RiskEvaluationRow, evidence: Awaited<ReturnType<typeof collectChannelEvidence>>): void {
   const { performance, capital } = evidence.source;
   if (row.starting_equity !== capital.equity || row.reporting_currency !== capital.reportingCurrency
     || row.realized_pnl !== performance.realizedPnl || row.return_percent !== (evidence.percent.value?.decimal ?? null)
@@ -436,7 +437,7 @@ async function evaluatePolicy(
 ): Promise<ChannelRiskEvaluation> {
   const now = request.now, weekEndedAt = request.until;
   const weekStartedAt = weekEndedAt - policy.lookbackWeeks * WEEK_MS;
-  const existing = await getDatabase().get<any>(
+  const existing = await getDatabase().get<ChannelRiskEvaluationRow>(
     `SELECT * FROM trading_channel_risk_evaluations
      WHERE channel_id = ? AND policy_version = ? AND week_started_at = ?`,
     [policy.channelId, policy.policyVersion, weekStartedAt],
@@ -522,7 +523,7 @@ export async function resolveEffectiveChannelRisk(input: {
   reportingCurrency?: string;
   now?: number;
 }): Promise<{ riskPercent: string; blocked: boolean; reason: string; policy: ChannelRiskPolicy | null }> {
-  const row = await getDatabase().get<any>(
+  const row = await getDatabase().get<ChannelRiskPolicyRow>(
     'SELECT * FROM trading_channel_risk_policies WHERE channel_id = ?',
     [identifier(input.channelId)],
   );
@@ -763,7 +764,7 @@ async function evaluateWorkflowRiskState(input: {
   const currentTier = Math.min(Number(state.current_tier), request.configuration.tiers.length - 1);
   const weekEndedAt = currentWeekStart(now);
   const weekStartedAt = weekEndedAt - request.configuration.lookbackWeeks * WEEK_MS;
-  const existing = await getDatabase().get(
+  const existing = await getDatabase().get<WorkflowRiskEvaluationRow>(
     `SELECT * FROM workflow_adaptive_risk_evaluations
      WHERE state_key = ? AND policy_sha256 = ? AND week_started_at = ?`,
     [stateKey, policyHash, weekStartedAt],
@@ -771,7 +772,7 @@ async function evaluateWorkflowRiskState(input: {
   const capitalRequest = { ...request, now, since: weekStartedAt, until: weekEndedAt, performanceAccountId: request.accountId };
   if (existing) {
     await assertCachedEvidence(existing, capitalRequest);
-    return { ...state, warning: String((existing as any).reason).includes('RISK_PRECISION_UNCERTAIN') ? (existing as any).reason : undefined };
+    return { ...state, warning: String(existing.reason).includes('RISK_PRECISION_UNCERTAIN') ? existing.reason : undefined };
   }
   const evidence = await collectChannelEvidence(capitalRequest);
   const { performance, capital } = evidence.source;
@@ -863,7 +864,7 @@ interface WorkflowRiskEvaluationAnalytics {
   recommendedTier: number; appliedTier: number; action: string; reason: string; createdAt: number;
 }
 
-export function workflowRiskStateAnalytics(row: any): WorkflowRiskStateAnalytics {
+export function workflowRiskStateAnalytics(row: WorkflowRiskStateAnalyticsRow): WorkflowRiskStateAnalytics {
   return {
     stateKey: String(row.state_key), channelId: String(row.channel_id), accountId: String(row.account_id),
     resourceId: String(row.resource_id), resourceName: String(row.resource_name), currentTier: Number(row.current_tier),
@@ -873,7 +874,7 @@ export function workflowRiskStateAnalytics(row: any): WorkflowRiskStateAnalytics
   };
 }
 
-export function workflowRiskEvaluationAnalytics(row: any): WorkflowRiskEvaluationAnalytics {
+export function workflowRiskEvaluationAnalytics(row: WorkflowRiskEvaluationAnalyticsRow): WorkflowRiskEvaluationAnalytics {
   return {
     id: String(row.id), stateKey: String(row.state_key), channelId: String(row.channel_id),
     accountId: String(row.account_id), resourceId: String(row.resource_id), resourceName: String(row.resource_name),
@@ -892,7 +893,7 @@ export async function getWorkflowAdaptiveRiskAnalytics(limit = 200): Promise<{
     throw new Error('Workflow adaptive-risk analytics limit must be between 1 and 1000.');
   }
   const [stateRows, evaluationRows] = await Promise.all([
-    getDatabase().all<any[]>(
+    getDatabase().all<WorkflowRiskStateAnalyticsRow[]>(
       `SELECT state.*,
               COALESCE((
                 SELECT resource.name FROM workflow_resource_versions AS resource
@@ -903,7 +904,7 @@ export async function getWorkflowAdaptiveRiskAnalytics(limit = 200): Promise<{
        ORDER BY state.updated_at DESC LIMIT ?`,
       [limit],
     ),
-    getDatabase().all<any[]>(
+    getDatabase().all<WorkflowRiskEvaluationAnalyticsRow[]>(
       `SELECT evaluation.*, state.channel_id, state.account_id, state.resource_id,
               COALESCE((
                 SELECT resource.name FROM workflow_resource_versions AS resource
