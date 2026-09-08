@@ -1,4 +1,4 @@
-import { optionalViewerRecord, viewerPagination, viewerEventRecords, viewerNotification, viewerEventCursor, type TelegramViewerUpdate } from './contracts.js';
+import { privateViewerUser, viewerCommand, viewerCallbackRoute, optionalViewerRecord, viewerPagination, viewerEventRecords, viewerNotification, viewerEventCursor, type TelegramViewerUpdate } from './contracts.js';
 import type { TelegramViewerSettings, TradingNotificationEvent } from '../viewer_types.js';
 import {
   formatTelegramViewerEvent,
@@ -8,7 +8,7 @@ import {
   telegramViewerMenu,
   validTelegramViewerCallback,
 } from './formatters.js';
-import type { TelegramViewerStateRepository } from './state_repository.js';
+import type { PendingViewerDelivery, TelegramViewerStateRepository } from './state_repository.js';
 
 export interface TelegramViewerCoreClient {
   config(): Promise<{ settings: TelegramViewerSettings }>;
@@ -74,11 +74,8 @@ export class TelegramViewerService {
   }
 
   private authorized(chat: unknown, from: unknown): chat is { id: string | number; type: 'private' } {
-    const target = optionalViewerRecord(chat), sender = optionalViewerRecord(from);
-    return Boolean(this.settings?.enabled && target.type === 'private'
-      && (typeof target.id === 'number' || typeof target.id === 'string')
-      && (typeof sender.id === 'number' || typeof sender.id === 'string')
-      && String(target.id) === String(sender.id) && this.settings.allowedUserIds.includes(String(sender.id)));
+    const userId = privateViewerUser(chat, from);
+    return Boolean(this.settings?.enabled && userId !== null && this.settings.allowedUserIds.includes(userId));
   }
 
   private async sendProjection(chatId: string | number, resource: string, page = 0): Promise<void> {
@@ -92,7 +89,7 @@ export class TelegramViewerService {
     const message = optionalViewerRecord(input);
     const chat = message.chat;
     if (!this.authorized(chat, message.from)) return;
-    const command = typeof message.text === 'string' ? message.text.trim().split(/\s/, 1)[0].toLowerCase() : '';
+    const command = viewerCommand(message.text);
     if (command === '/start' || command === '/help') {
       await this.dependencies.bot.sendMessage(chat.id, TELEGRAM_VIEWER_HELP, { reply_markup: telegramViewerMenu() });
       return;
@@ -109,10 +106,9 @@ export class TelegramViewerService {
     const callback = optionalViewerRecord(input);
     const chat = optionalViewerRecord(callback.message).chat;
     if (!this.authorized(chat, callback.from) || !validTelegramViewerCallback(callback.data) || typeof callback.id !== 'string') return;
-    const [, requestedResource, page] = callback.data.split(':');
-    const resource = requestedResource === 'refresh' ? 'summary' : requestedResource;
+    const { resource, page } = viewerCallbackRoute(callback.data);
     try {
-      await this.sendProjection(chat.id, resource, page ? Number(page) : 0);
+      await this.sendProjection(chat.id, resource, page);
       await this.dependencies.bot.answerCallbackQuery(String(callback.id));
     } catch (error) {
       await this.dependencies.bot.answerCallbackQuery(String(callback.id), 'Daten konnten nicht geladen werden.');
@@ -126,18 +122,27 @@ export class TelegramViewerService {
     const updates = await this.dependencies.bot.getUpdates(offset);
     const orderedUpdates = [...updates];
     orderedUpdates.sort((left, right) => Number(left.update_id) - Number(right.update_id));
-    for (const update of orderedUpdates) {
-      try {
-        if (update.message) await this.processMessage(update.message);
-        else if (update.callback_query) await this.processCallback(update.callback_query);
-      } finally {
-        const updateId = Number(update.update_id);
-        if (Number.isSafeInteger(updateId) && updateId >= offset) {
-          await this.dependencies.state.setTelegramOffset(updateId + 1);
-        }
-      }
-    }
+    for (const update of orderedUpdates) await this.processTelegramUpdate(update, offset);
     this.recordHealthyPoll();
+  }
+
+  private async processTelegramUpdate(update: TelegramViewerUpdate, offset: number): Promise<void> {
+    try { await this.dispatchTelegramUpdate(update); }
+    finally {
+      const updateId = Number(update.update_id);
+      if (Number.isSafeInteger(updateId) && updateId >= offset) await this.dependencies.state.setTelegramOffset(updateId + 1);
+    }
+  }
+
+  private async dispatchTelegramUpdate(update: TelegramViewerUpdate): Promise<void> {
+    if (update.message) await this.processMessage(update.message);
+    else if (update.callback_query) await this.processCallback(update.callback_query);
+  }
+
+  private async queueNotification(event: TradingNotificationEvent): Promise<void> {
+    if (!this.notificationEnabled(event)) return;
+    await this.dependencies.state.queueDeliveries({ kind: 'notification', sourceSeq: event.seq, sourceId: event.id,
+      userIds: this.settings.allowedUserIds, payload: { event }, now: this.now() });
   }
 
   private notificationEnabled(event: TradingNotificationEvent): boolean {
@@ -151,14 +156,7 @@ export class TelegramViewerService {
     const response = await this.dependencies.core.get('events', { afterSeq, limit: 100 });
     const events = viewerEventRecords(response.events).map(viewerNotification);
     const nextSeq = viewerEventCursor(response.nextSeq, afterSeq);
-    for (const event of events) {
-      if (this.notificationEnabled(event)) {
-        await this.dependencies.state.queueDeliveries({
-          kind: 'notification', sourceSeq: event.seq, sourceId: event.id,
-          userIds: this.settings.allowedUserIds, payload: { event }, now: this.now(),
-        });
-      }
-    }
+    for (const event of events) await this.queueNotification(event);
     await this.dependencies.state.setEventCursor(nextSeq);
     await this.deliverPendingOnce(this.now());
   }
@@ -179,42 +177,49 @@ export class TelegramViewerService {
     await this.deliverPendingOnce(this.now());
   }
 
-  async deliverPendingOnce(now = this.now()): Promise<void> {
-    if (!this.settings?.enabled) return;
-    for (const delivery of await this.dependencies.state.pendingDeliveries(now)) {
-      try {
-        const text = delivery.kind === 'notification'
-          ? formatTelegramViewerEvent(viewerNotification(delivery.payload.event), this.settings)
-          : `TSX Core Â· Test\n${String(optionalViewerRecord(delivery.payload.test).message ?? 'Testnachricht')}`.slice(0, 4096);
-        await this.dependencies.bot.sendMessage(delivery.userId, text);
-        await this.dependencies.state.markDelivered(delivery.id, now);
-        if (delivery.kind === 'test') {
-          this.lastTest = { sourceSeq: delivery.sourceSeq, status: 'delivered', attemptedAt: now, deliveredAt: now, error: null };
-          await this.dependencies.state.setLastTest(this.lastTest as {
-            sourceSeq: number; status: string; attemptedAt: number; deliveredAt: number;
-          });
-        }
-      } catch (error) {
-        await this.dependencies.state.markFailed(delivery.id, delivery.attempts, error, now);
-        if (delivery.kind === 'test') {
-          this.lastTest = {
-            sourceSeq: delivery.sourceSeq, status: 'retrying', attemptedAt: now,
-            error: error instanceof Error ? error.message : 'Telegram delivery failed.',
-          };
-          await this.dependencies.state.setLastTest(this.lastTest as {
-            sourceSeq: number; status: string; attemptedAt: number; error: string;
-          });
-        }
-      }
+  private deliveryText(delivery: PendingViewerDelivery): string {
+    if (delivery.kind === 'notification') return formatTelegramViewerEvent(viewerNotification(delivery.payload.event), this.settings);
+    return `TSX Core · Test\n${String(optionalViewerRecord(delivery.payload.test).message ?? 'Testnachricht')}`.slice(0, 4096);
+  }
+
+  private async recordTestSuccess(delivery: PendingViewerDelivery, now: number): Promise<void> {
+    if (delivery.kind !== 'test') return;
+    const result = { sourceSeq: delivery.sourceSeq, status: 'delivered', attemptedAt: now, deliveredAt: now, error: null };
+    this.lastTest = result;
+    await this.dependencies.state.setLastTest(result);
+  }
+
+  private async recordTestFailure(delivery: PendingViewerDelivery, now: number, error: unknown): Promise<void> {
+    if (delivery.kind !== 'test') return;
+    const result = { sourceSeq: delivery.sourceSeq, status: 'retrying', attemptedAt: now,
+      error: error instanceof Error ? error.message : 'Telegram delivery failed.' };
+    this.lastTest = result;
+    await this.dependencies.state.setLastTest(result);
+  }
+
+  private async deliverPending(delivery: PendingViewerDelivery, now: number): Promise<void> {
+    try {
+      await this.dependencies.bot.sendMessage(delivery.userId, this.deliveryText(delivery));
+      await this.dependencies.state.markDelivered(delivery.id, now);
+      await this.recordTestSuccess(delivery, now);
+    } catch (error) {
+      await this.dependencies.state.markFailed(delivery.id, delivery.attempts, error, now);
+      await this.recordTestFailure(delivery, now, error);
     }
   }
 
+  async deliverPendingOnce(now = this.now()): Promise<void> {
+    if (!this.settings?.enabled) return;
+    for (const delivery of await this.dependencies.state.pendingDeliveries(now)) await this.deliverPending(delivery, now);
+  }
+
   status(): Record<string, unknown> {
+    const permissions = this.settings ? { enabled: this.settings.enabled, allowedUsers: this.settings.allowedUserIds.length }
+      : { enabled: false, allowedUsers: 0 };
     return {
       healthy: this.lastError === null,
       ready: this.settings !== null,
-      enabled: Boolean(this.settings?.enabled),
-      allowedUsers: this.settings?.allowedUserIds.length ?? 0,
+      ...permissions,
       initializedAt: this.initializedAt,
       lastPollAt: this.lastPollAt,
       lastError: this.lastError,

@@ -49,7 +49,7 @@ export class TelegramViewerCoreApiClient implements TelegramViewerCoreClient {
 
   async get(resource: string, query: Record<string, string | number> = {}): Promise<Record<string, unknown>> {
     if (!CORE_RESOURCES.has(resource)) throw new Error('Viewer core resource is not allowed.');
-    return this.request(resource, query);
+    return await this.request(resource, query);
   }
 }
 
@@ -76,7 +76,7 @@ export class TelegramBotApiClient implements TelegramViewerBotClient {
       signal: AbortSignal.timeout(timeoutMs),
     });
     const payload = viewerRecord(await responseJson(response, 'Telegram Bot API'));
-    if (payload?.ok !== true) throw new Error('Telegram Bot API rejected the request.');
+    if (payload.ok !== true) throw new Error('Telegram Bot API rejected the request.');
     return payload.result;
   }
 

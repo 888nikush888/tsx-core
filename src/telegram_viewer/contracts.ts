@@ -21,15 +21,14 @@ export function viewerUpdates(value: unknown): TelegramViewerUpdate[] {
 export function viewerPagination(value: unknown): { offset: number; limit: number; hasMore: boolean } | undefined {
   if (value === undefined) return undefined;
   const page = viewerRecord(value);
-  if (typeof page.offset !== 'number' || !Number.isSafeInteger(page.offset) || page.offset < 0
-    || typeof page.limit !== 'number' || !Number.isSafeInteger(page.limit) || page.limit <= 0 || typeof page.hasMore !== 'boolean') {
+  if (!viewerInteger(page.offset) || !viewerInteger(page.limit, 1) || typeof page.hasMore !== 'boolean') {
     throw new Error('Viewer API returned invalid pagination.');
   }
   return { offset: page.offset, limit: page.limit, hasMore: page.hasMore };
 }
 export function viewerEventCursor(value: unknown, fallback: number): number {
   if (value === undefined || value === null) return fallback;
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < fallback) throw new Error('Viewer API returned an invalid event cursor.');
+  if (!viewerInteger(value, fallback)) throw new Error('Viewer API returned an invalid event cursor.');
   return value;
 }
 export function viewerEventRecords(value: unknown): Array<Record<string, unknown> & { seq: number; id: string }> {
@@ -37,7 +36,7 @@ export function viewerEventRecords(value: unknown): Array<Record<string, unknown
   if (!Array.isArray(value)) throw new Error('Viewer API returned invalid events.');
   return value.map((input: unknown) => {
     const event = viewerRecord(input);
-    if (typeof event.seq !== 'number' || !Number.isSafeInteger(event.seq) || event.seq < 0 || typeof event.id !== 'string' || !event.id) {
+    if (!viewerInteger(event.seq) || typeof event.id !== 'string' || !event.id) {
       throw new Error('Viewer API returned invalid event identity.');
     }
     return { ...event, seq: event.seq, id: event.id };
@@ -65,4 +64,23 @@ export function viewerNotification(value: unknown): TradingNotificationEvent {
     intentId: nullableContext(event.intentId), channelId: nullableContext(event.channelId),
     accountId: nullableContext(event.accountId), exchange: nullableContext(event.exchange), mode: notificationMode(event.mode),
     details: viewerRecord(event.details) };
+}
+
+export function viewerInteger(value: unknown, minimum = 0): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= minimum;
+}
+function viewerIdentity(value: unknown): string | null {
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : null;
+}
+export function privateViewerUser(chat: unknown, from: unknown): string | null {
+  const target = optionalViewerRecord(chat), sender = optionalViewerRecord(from);
+  const targetId = viewerIdentity(target.id), userId = viewerIdentity(sender.id);
+  return target.type === 'private' && userId !== null && targetId === userId ? userId : null;
+}
+export function viewerCommand(text: unknown): string {
+  return typeof text === 'string' ? text.trim().split(/\s/, 1)[0].toLowerCase() : '';
+}
+export function viewerCallbackRoute(data: string): { resource: string; page: number } {
+  const [, requestedResource, page] = data.split(':');
+  return { resource: requestedResource === 'refresh' ? 'summary' : requestedResource, page: page ? Number(page) : 0 };
 }

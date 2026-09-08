@@ -1,14 +1,16 @@
 {
   "schemaVersion": 1,
   "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
-  "scope": "Viewer client/service explicit any findings; complexity/async-await reviewed separately.",
+  "scope": "All 22 baseline findings across viewer clients and service:14 explicit any,6 complexity,2 async-await.",
   "verification": [
     "Node22 tsc --noEmit",
     "Node22 tests/test_telegram_viewer_contracts.js",
     "Node22 tests/test_telegram_viewer_runtime.js",
     "Node22 tests/test_telegram_viewer_service.js",
     "Targeted ESLint",
-    "Existing internal HTTP transport and timeouts/retries unchanged"
+    "Existing internal HTTP transport and timeouts/retries unchanged",
+    "Node22 tests/test_telegram_viewer_api.js",
+    "Targeted ESLint with stricter temporary complexity cap5 across clients/service/contracts; repository thresholds unchanged"
   ],
   "occurrences": [
     {
@@ -17,7 +19,7 @@
       "path": "src/telegram_viewer/clients.ts",
       "baselineLine": 77,
       "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
-      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "reviewedSourceSha256": "0201d30e04196cf9e2f3c76e30a7fe74aa5eb65c3486b108948e9a34e4416fea",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -27,7 +29,7 @@
       "path": "src/telegram_viewer/clients.ts",
       "baselineLine": 62,
       "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
-      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "reviewedSourceSha256": "0201d30e04196cf9e2f3c76e30a7fe74aa5eb65c3486b108948e9a34e4416fea",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -37,7 +39,7 @@
       "path": "src/telegram_viewer/clients.ts",
       "baselineLine": 44,
       "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
-      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "reviewedSourceSha256": "0201d30e04196cf9e2f3c76e30a7fe74aa5eb65c3486b108948e9a34e4416fea",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -47,7 +49,7 @@
       "path": "src/telegram_viewer/clients.ts",
       "baselineLine": 42,
       "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
-      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "reviewedSourceSha256": "0201d30e04196cf9e2f3c76e30a7fe74aa5eb65c3486b108948e9a34e4416fea",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -57,7 +59,7 @@
       "path": "src/telegram_viewer/clients.ts",
       "baselineLine": 31,
       "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
-      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "reviewedSourceSha256": "0201d30e04196cf9e2f3c76e30a7fe74aa5eb65c3486b108948e9a34e4416fea",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -67,7 +69,7 @@
       "path": "src/telegram_viewer/clients.ts",
       "baselineLine": 16,
       "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
-      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "reviewedSourceSha256": "0201d30e04196cf9e2f3c76e30a7fe74aa5eb65c3486b108948e9a34e4416fea",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -77,7 +79,7 @@
       "path": "src/telegram_viewer/clients.ts",
       "baselineLine": 14,
       "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
-      "reviewedSourceSha256": "737e9a444b519eb2a9491615ce3f54a40f42b996680eb34445fc884477f6ec9a",
+      "reviewedSourceSha256": "0201d30e04196cf9e2f3c76e30a7fe74aa5eb65c3486b108948e9a34e4416fea",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -87,7 +89,7 @@
       "path": "src/telegram_viewer/service.ts",
       "baselineLine": 182,
       "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
-      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -97,7 +99,7 @@
       "path": "src/telegram_viewer/service.ts",
       "baselineLine": 107,
       "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
-      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -107,7 +109,7 @@
       "path": "src/telegram_viewer/service.ts",
       "baselineLine": 92,
       "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
-      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -117,7 +119,7 @@
       "path": "src/telegram_viewer/service.ts",
       "baselineLine": 75,
       "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
-      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -127,7 +129,7 @@
       "path": "src/telegram_viewer/service.ts",
       "baselineLine": 75,
       "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
-      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -137,7 +139,7 @@
       "path": "src/telegram_viewer/service.ts",
       "baselineLine": 18,
       "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
-      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
     },
@@ -147,9 +149,89 @@
       "path": "src/telegram_viewer/service.ts",
       "baselineLine": 14,
       "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
-      "reviewedSourceSha256": "fb3cd29a25c796cfaab93b9d06845bd023653649daa6cef0ffe527246e7e553c",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
       "disposition": "fixed",
       "reason": "Untrusted API JSON is unknown until validated. Core settings reuse the existing complete settings contract; projections are records, Bot update identities are safe integers, notification fields and event cursors are proved before delivery/cursor advancement. Service authorization accepts scalar user/chat identities only; malformed objects cannot authorize through coercion."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFybmU=",
+      "rule": "JS-0116",
+      "path": "src/telegram_viewer/clients.ts",
+      "baselineLine": 44,
+      "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "reviewedSourceSha256": "0201d30e04196cf9e2f3c76e30a7fe74aa5eb65c3486b108948e9a34e4416fea",
+      "disposition": "fixed",
+      "reason": "Async API method now explicitly awaits its request, preserving rejection and request semantics."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9nZGo=",
+      "rule": "JS-0116",
+      "path": "src/telegram_viewer/clients.ts",
+      "baselineLine": 42,
+      "baselineSourceSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab",
+      "reviewedSourceSha256": "0201d30e04196cf9e2f3c76e30a7fe74aa5eb65c3486b108948e9a34e4416fea",
+      "disposition": "fixed",
+      "reason": "Async API method now explicitly awaits its request, preserving rejection and request semantics."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtvd3A=",
+      "rule": "JS-R1005",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 176,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
+      "disposition": "fixed",
+      "reason": "Split command/callback interpretation, single-update dispatch/final cursor acknowledgement, notification queueing and delivery-result recording by existing responsibilities. Success/failure/finally ordering and retry cadence remain unchanged. All three viewer modules pass stricter local ESLint complexity cap5; exact DeepSource recount awaits scan."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlsZ20=",
+      "rule": "JS-R1005",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 162,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
+      "disposition": "fixed",
+      "reason": "Split command/callback interpretation, single-update dispatch/final cursor acknowledgement, notification queueing and delivery-result recording by existing responsibilities. Success/failure/finally ordering and retry cadence remain unchanged. All three viewer modules pass stricter local ESLint complexity cap5; exact DeepSource recount awaits scan."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d292a2c=",
+      "rule": "JS-R1005",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 146,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
+      "disposition": "fixed",
+      "reason": "Split command/callback interpretation, single-update dispatch/final cursor acknowledgement, notification queueing and delivery-result recording by existing responsibilities. Success/failure/finally ordering and retry cadence remain unchanged. All three viewer modules pass stricter local ESLint complexity cap5; exact DeepSource recount awaits scan."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJ4a3g=",
+      "rule": "JS-R1005",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 121,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
+      "disposition": "fixed",
+      "reason": "Split command/callback interpretation, single-update dispatch/final cursor acknowledgement, notification queueing and delivery-result recording by existing responsibilities. Success/failure/finally ordering and retry cadence remain unchanged. All three viewer modules pass stricter local ESLint complexity cap5; exact DeepSource recount awaits scan."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR5bXI=",
+      "rule": "JS-R1005",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 107,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
+      "disposition": "fixed",
+      "reason": "Split command/callback interpretation, single-update dispatch/final cursor acknowledgement, notification queueing and delivery-result recording by existing responsibilities. Success/failure/finally ordering and retry cadence remain unchanged. All three viewer modules pass stricter local ESLint complexity cap5; exact DeepSource recount awaits scan."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V4anI=",
+      "rule": "JS-R1005",
+      "path": "src/telegram_viewer/service.ts",
+      "baselineLine": 92,
+      "baselineSourceSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6",
+      "reviewedSourceSha256": "9d83892489599f33116286965c9b2a45255fc130d2f6fe3ace3eef8081f9c58f",
+      "disposition": "fixed",
+      "reason": "Split command/callback interpretation, single-update dispatch/final cursor acknowledgement, notification queueing and delivery-result recording by existing responsibilities. Success/failure/finally ordering and retry cadence remain unchanged. All three viewer modules pass stricter local ESLint complexity cap5; exact DeepSource recount awaits scan."
     }
   ]
 }
