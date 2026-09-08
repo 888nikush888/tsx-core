@@ -8,6 +8,30 @@ import { createGeneratedTradingOrder } from './trading_order_repository.js';
 import { recoverTakeProfitBasis, type RecoverableTargetRow } from './trading_take_profit_recovery.js';
 import type { ExchangeOpenState, PlannedOrder, TradingIntent, TradingPlan, TradingSide } from './trading_types.js';
 
+export type PlannedTakeProfitOrder = PlannedOrder & { price: string; targetIndex: number };
+
+/** Verify every pinned target before recovering, cancelling, or submitting exit orders. */
+export function requireTakeProfitTargets(plan: TradingPlan): PlannedTakeProfitOrder[] {
+  return plan.orders.filter(order => order.role === 'take_profit').map((order, index) => {
+    if (typeof order.price !== 'string' || order.targetIndex !== index + 1) {
+      throw new Error('Take-profit plan has no valid target price or ordered index.');
+    }
+    decimal(order.price, { positive: true });
+    return { ...order, price: order.price, targetIndex: order.targetIndex };
+  });
+}
+
+export function requireTakeProfitAllocation(totals: string[], remaining: string[], index: number) {
+  const desired = totals[index];
+  const outstanding = remaining[index];
+  if (typeof desired !== 'string' || typeof outstanding !== 'string') {
+    throw new Error('Take-profit allocation has no quantity for a planned target.');
+  }
+  decimal(desired);
+  decimal(outstanding);
+  return { desired, remaining: outstanding };
+}
+
 export type TakeProfitOrderRow = RecoverableTargetRow;
 
 export function targetIndexFromOrderRow(row: TakeProfitOrderRow): number | null {

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { requireTakeProfitTargets, requireTakeProfitAllocation } from '../src/trading_take_profit.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,6 +8,17 @@ import { createTradingIntent, getTradingIntent, listTradingAccounts, listTrading
 import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { TradingEngine } from '../src/trading_engine.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
+
+const validTarget = { role: 'take_profit', price: '110', targetIndex: 1 };
+assert.deepEqual(requireTakeProfitTargets({ orders: [validTarget] }), [validTarget]);
+for (const target of [{ ...validTarget, price: null }, { ...validTarget, price: '-1' },
+  { ...validTarget, targetIndex: null }, { ...validTarget, targetIndex: 2 }]) {
+  assert.throws(() => requireTakeProfitTargets({ orders: [target] }));
+}
+assert.deepEqual(requireTakeProfitAllocation(['1'], ['0'], 0), { desired: '1', remaining: '0' });
+for (const [totals, remaining] of [[[], ['0']], [['1'], []], [['-1'], ['0']], [['1'], ['bad']]]) {
+  assert.throws(() => requireTakeProfitAllocation(totals, remaining, 0));
+}
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'engine-plan-guard-'));
 try {

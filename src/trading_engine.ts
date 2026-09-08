@@ -105,7 +105,7 @@ import { assertProtectionObservationFresh } from './trading_protection_projectio
 import { collectProtectionReceipt, ProtectionProofRejectedError } from './trading_protection_proof.js';
 import { protectionAccountSource, protectionSourceDigest } from './trading_protection_sources.js';
 import { correlateRemoteFills, correlateRemoteOrders, type LocalCorrelationOrder } from './exchange_order_correlation.js';
-import { loadTakeProfitAllocation, prepareTargetOrder, targetIndexFromOrderRow, targetOrderCoverage, type TakeProfitOrderRow } from './trading_take_profit.js';
+import { requireTakeProfitTargets, requireTakeProfitAllocation, type PlannedTakeProfitOrder, loadTakeProfitAllocation, prepareTargetOrder, targetIndexFromOrderRow, targetOrderCoverage, type TakeProfitOrderRow } from './trading_take_profit.js';
 
 type TradingLogger = (message: string) => void;
 type ReconciliationOptions = { force?: boolean; mutation?: TradingMutationContext };
@@ -1526,19 +1526,19 @@ export class TradingEngine {
     plan: TradingPlan,
     remote: ExchangeOpenState,
   ): Promise<boolean> {
+    const plannedTargets = requireTakeProfitTargets(plan);
     await recoverPreparedExits(account, intent.id, 'take_profit');
     const allocation = await loadTakeProfitAllocation(intent.id, plan, remote);
     if (!allocation) return false;
-    const plannedTargets = plan.orders.filter(order => order.role === 'take_profit');
     if (allocation.rows.some(row => ['submitting', 'unknown'].includes(row.status))) {
       throw new ReconciliationMismatchError('Take-profit coverage contains an unresolved order outcome.');
     }
-    if (await resumeTakeProfitCancels(adapter, account, intent.id, allocation.rows, remote)) return true;
     const targets = plannedTargets.map((planned, index) => {
       const rows = allocation.rows.filter(row => targetIndexFromOrderRow(row) === index + 1);
-      const coverage = targetOrderCoverage(rows, planned.price!);
-      return { planned, rows, coverage, desired: allocation.totals[index]!, remaining: allocation.remaining[index]! };
+      const coverage = targetOrderCoverage(rows, planned.price);
+      return { planned, rows, coverage, ...requireTakeProfitAllocation(allocation.totals, allocation.remaining, index) };
     });
+    if (await resumeTakeProfitCancels(adapter, account, intent.id, allocation.rows, remote)) return true;
     try {
       const stale = targets.filter(target => !target.coverage.pricesMatch || compareDecimal(target.coverage.covered, target.desired) !== 0)
         .flatMap(target => target.coverage.active);
@@ -1566,7 +1566,7 @@ export class TradingEngine {
 
   private async submitAllocatedTargets(
     adapter: TradingExchangeAdapter, account: TradingAccount, intent: TradingIntent, plan: TradingPlan,
-    targets: Array<{ planned: PlannedOrder; rows: TakeProfitOrderRow[];
+    targets: Array<{ planned: PlannedTakeProfitOrder; rows: TakeProfitOrderRow[];
       coverage: ReturnType<typeof targetOrderCoverage>; desired: string; remaining: string }>,
   ): Promise<boolean> {
     const resized: Array<{ targetIndex: number; from: string; to: string }> = [];
@@ -1579,7 +1579,7 @@ export class TradingEngine {
       if (!['open', 'partially_filled', 'filled'].includes(result.status)) throw new Error(`Take-profit submission status is ${result.status}.`);
       changed = true;
       if (order.clientOrderId !== target.planned.clientOrderId) {
-        resized.push({ targetIndex: target.planned.targetIndex!, from: target.coverage.covered, to: target.desired });
+        resized.push({ targetIndex: target.planned.targetIndex, from: target.coverage.covered, to: target.desired });
       }
       if (compareDecimal(result.filledQuantity, '0') > 0) break;
     }
@@ -2519,7 +2519,8 @@ async function submitTrackedProtectedEntry(input: {
   beforeSend: (witness: TradingDispatchWitness) => Promise<void>;
   commitDispatch: () => void;
 }): Promise<{ entry: ExchangeOrderResult; protectiveStop: ExchangeOrderResult }> {
-  if (!input.adapter.submitProtectedEntry) {
+  const submitProtectedEntry = input.adapter.submitProtectedEntry;
+  if (!submitProtectedEntry) {
     throw new Error(`Exchange adapter ${input.account.exchange} lacks atomic protected-entry support.`);
   }
   let dispatched = false;
@@ -2556,7 +2557,7 @@ async function submitTrackedProtectedEntry(input: {
       },
       send: () => {
         dispatched = true;
-        return input.adapter.submitProtectedEntry!(input.account, entryRequest, stopRequest);
+        return submitProtectedEntry.call(input.adapter, input.account, entryRequest, stopRequest);
       },
       persist: async results => {
         await storeOrderResult(input.intent.id, input.stop.clientOrderId, results.protectiveStop);

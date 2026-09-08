@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
   "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
-  "scope": "Engine reconciliation row projections, required plan/account/tier guards, and caught error boundaries; remaining findings are not claimed fixed.",
+  "scope": "All 38 baseline JS-0323 and JS-0339 occurrences in src/trading_engine.ts.",
   "verification": [
     "Node22 tsc --noEmit",
     "Node22 tests/test_trading_engine.js: engine and reconciliation scenarios",
     "Targeted ESLint",
-    "Node22 tests/test_trading_engine_type_guards.js: invalid persisted plan blocked before provider or order/operation creation"
+    "Node22 tests/test_trading_engine_type_guards.js: invalid persisted plan blocked before provider or order/operation creation",
+    "Node22 tests/test_trading_take_profit.js; negative target-price/index/allocation cases in engine type guards"
   ],
   "occurrences": [
     {
@@ -15,7 +16,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2311,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
     },
@@ -25,7 +26,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2235,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
     },
@@ -35,7 +36,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2167,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
     },
@@ -45,7 +46,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2103,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
     },
@@ -55,7 +56,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1988,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
     },
@@ -65,7 +66,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1979,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Position reconciliation uses a concrete projection of persisted position identity, side, quantity, protection/emergency fields and pinned plan JSON. SQL schema/nullability and all local-field consumers were checked; ownership proofs, closure and protective-stop behavior remain unchanged."
     },
@@ -75,7 +76,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1348,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "After the existing full tier-decision validation, provider-symbol access uses an explicit missing-evidence guard with existing LEVERAGE_TIERS_UNPROVEN domain code."
     },
@@ -85,7 +86,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1346,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "After the existing full tier-decision validation, provider-symbol access uses an explicit missing-evidence guard with existing LEVERAGE_TIERS_UNPROVEN domain code."
     },
@@ -95,7 +96,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1224,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Required entry/protective-stop orders are explicitly checked before fallback selection or submission. A malformed persisted plan is blocked with TRADE_PLAN_INVALID; actual processIntent regression verifies zero provider calls and zero order/operation artifacts."
     },
@@ -105,7 +106,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1223,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Required entry/protective-stop orders are explicitly checked before fallback selection or submission. A malformed persisted plan is blocked with TRADE_PLAN_INVALID; actual processIntent regression verifies zero provider calls and zero order/operation artifacts."
     },
@@ -115,7 +116,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1178,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "The account capacity readback is checked and uses existing ACCOUNT_NOT_READY code if missing, before risk admission or dispatch."
     },
@@ -125,7 +126,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1120,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Required entry/protective-stop orders are explicitly checked before fallback selection or submission. A malformed persisted plan is blocked with TRADE_PLAN_INVALID; actual processIntent regression verifies zero provider calls and zero order/operation artifacts."
     },
@@ -135,7 +136,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 889,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Preparation-recovery cursor uses the checked last row directly, preserving empty-batch restart behavior without an assertion."
     },
@@ -145,7 +146,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2527,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Caught and propagated provider/runtime failures are unknown until checked. Existing domain error classes and original rethrows are retained; normal Error diagnostics remain available while arbitrary thrown objects cannot expose unchecked message properties. Missing Error messages retain the existing unresolved-order/reconciliation fallback."
     },
@@ -155,7 +156,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2449,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Caught and propagated provider/runtime failures are unknown until checked. Existing domain error classes and original rethrows are retained; normal Error diagnostics remain available while arbitrary thrown objects cannot expose unchecked message properties. Missing Error messages retain the existing unresolved-order/reconciliation fallback."
     },
@@ -165,7 +166,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1587,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Caught and propagated provider/runtime failures are unknown until checked. Existing domain error classes and original rethrows are retained; normal Error diagnostics remain available while arbitrary thrown objects cannot expose unchecked message properties. Missing Error messages retain the existing unresolved-order/reconciliation fallback."
     },
@@ -175,7 +176,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1512,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Caught and propagated provider/runtime failures are unknown until checked. Existing domain error classes and original rethrows are retained; normal Error diagnostics remain available while arbitrary thrown objects cannot expose unchecked message properties. Missing Error messages retain the existing unresolved-order/reconciliation fallback."
     },
@@ -185,7 +186,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1415,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Caught and propagated provider/runtime failures are unknown until checked. Existing domain error classes and original rethrows are retained; normal Error diagnostics remain available while arbitrary thrown objects cannot expose unchecked message properties. Missing Error messages retain the existing unresolved-order/reconciliation fallback."
     },
@@ -195,7 +196,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1064,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Caught and propagated provider/runtime failures are unknown until checked. Existing domain error classes and original rethrows are retained; normal Error diagnostics remain available while arbitrary thrown objects cannot expose unchecked message properties. Missing Error messages retain the existing unresolved-order/reconciliation fallback."
     },
@@ -205,7 +206,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 857,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Caught and propagated provider/runtime failures are unknown until checked. Existing domain error classes and original rethrows are retained; normal Error diagnostics remain available while arbitrary thrown objects cannot expose unchecked message properties. Missing Error messages retain the existing unresolved-order/reconciliation fallback."
     },
@@ -215,7 +216,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 618,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Caught and propagated provider/runtime failures are unknown until checked. Existing domain error classes and original rethrows are retained; normal Error diagnostics remain available while arbitrary thrown objects cannot expose unchecked message properties. Missing Error messages retain the existing unresolved-order/reconciliation fallback."
     },
@@ -225,7 +226,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1820,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Invalid account fingerprint returns the existing never-returning failure promise explicitly, making the existing fail-closed branch visible to type narrowing. Same domain error and kill-switch semantics remain."
     },
@@ -235,7 +236,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1800,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Invalid account fingerprint returns the existing never-returning failure promise explicitly, making the existing fail-closed branch visible to type narrowing. Same domain error and kill-switch semantics remain."
     },
@@ -245,7 +246,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1041,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Local Set capture handles absent/present account groups before insertion, avoiding a separate map read assertion with unchanged grouping."
     },
@@ -255,7 +256,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 1028,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Filter expresses its existing non-null expiration-reason guarantee as a concrete type predicate, preserving cancellation and risk-event behavior."
     },
@@ -265,7 +266,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2346,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Active protective-stop predicate now exposes required client identity, filled quantity and trigger strings as a concrete narrowed order type. Existing protectiveStopCoverage already rejects absent identity/amount/trigger evidence; downstream replacement and exact-coverage calculations consume this proven type. Intent identity Set omits null SQL identities, which cannot prove ownership."
     },
@@ -275,7 +276,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2345,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Active protective-stop predicate now exposes required client identity, filled quantity and trigger strings as a concrete narrowed order type. Existing protectiveStopCoverage already rejects absent identity/amount/trigger evidence; downstream replacement and exact-coverage calculations consume this proven type. Intent identity Set omits null SQL identities, which cannot prove ownership."
     },
@@ -285,7 +286,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2330,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Active protective-stop predicate now exposes required client identity, filled quantity and trigger strings as a concrete narrowed order type. Existing protectiveStopCoverage already rejects absent identity/amount/trigger evidence; downstream replacement and exact-coverage calculations consume this proven type. Intent identity Set omits null SQL identities, which cannot prove ownership."
     },
@@ -295,7 +296,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 2322,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Active protective-stop predicate now exposes required client identity, filled quantity and trigger strings as a concrete narrowed order type. Existing protectiveStopCoverage already rejects absent identity/amount/trigger evidence; downstream replacement and exact-coverage calculations consume this proven type. Intent identity Set omits null SQL identities, which cannot prove ownership."
     },
@@ -305,7 +306,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 799,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Active protective-stop predicate now exposes required client identity, filled quantity and trigger strings as a concrete narrowed order type. Existing protectiveStopCoverage already rejects absent identity/amount/trigger evidence; downstream replacement and exact-coverage calculations consume this proven type. Intent identity Set omits null SQL identities, which cannot prove ownership."
     },
@@ -315,7 +316,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 789,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Active protective-stop predicate now exposes required client identity, filled quantity and trigger strings as a concrete narrowed order type. Existing protectiveStopCoverage already rejects absent identity/amount/trigger evidence; downstream replacement and exact-coverage calculations consume this proven type. Intent identity Set omits null SQL identities, which cannot prove ownership."
     },
@@ -325,7 +326,7 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 256,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Pinned JSON is checked as an object and active adaptive-risk configuration reuses the existing publishing validator with a concrete inferred contract. Enum types are exact; disabled adaptive risk remains disabled. Negative shape/enum/scalar tests and normalized-configuration roundtrip cover the shared boundary."
     },
@@ -335,9 +336,59 @@
       "path": "src/trading_engine.ts",
       "baselineLine": 245,
       "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
-      "reviewedSourceSha256": "8e0a55fd947ae0106b15ef6d55c230ca09b9c011683c530e561327b525a1b862",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
       "disposition": "fixed",
       "reason": "Pinned JSON is checked as an object and active adaptive-risk configuration reuses the existing publishing validator with a concrete inferred contract. Enum types are exact; disabled adaptive risk remains disabled. Negative shape/enum/scalar tests and normalized-configuration roundtrip cover the shared boundary."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VwcnY=",
+      "rule": "JS-0339",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 2519,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
+      "disposition": "fixed",
+      "reason": "Optional atomic protected-entry method is captured locally before its existing capability guard, then invoked with the original adapter receiver. The asynchronous send closure uses the verified capability."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2Vwam4=",
+      "rule": "JS-0339",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1542,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
+      "disposition": "fixed",
+      "reason": "All pinned take-profit targets now prove a positive price and sequential index before recovery/cancellation; allocation quantities must exist and validate before resumed cancellations. Concrete target and allocation return types remove downstream assertions. Negative price/index/quantity and existing durable TP and engine tests cover the contract."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxheXg=",
+      "rule": "JS-0339",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1500,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
+      "disposition": "fixed",
+      "reason": "All pinned take-profit targets now prove a positive price and sequential index before recovery/cancellation; allocation quantities must exist and validate before resumed cancellations. Concrete target and allocation return types remove downstream assertions. Negative price/index/quantity and existing durable TP and engine tests cover the contract."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl3b20=",
+      "rule": "JS-0339",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1500,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
+      "disposition": "fixed",
+      "reason": "All pinned take-profit targets now prove a positive price and sequential index before recovery/cancellation; allocation quantities must exist and validate before resumed cancellations. Concrete target and allocation return types remove downstream assertions. Negative price/index/quantity and existing durable TP and engine tests cover the contract."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhvYW8=",
+      "rule": "JS-0339",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1499,
+      "baselineSourceSha256": "ef4f9ed13cbafd6d4d9997c1573bb3af371959fbbcf2728c9b83e8fc79c68c52",
+      "reviewedSourceSha256": "2b288d4f5398bcde5e9fd56e660580081023dc29a939b305c8420f02a06192a5",
+      "disposition": "fixed",
+      "reason": "All pinned take-profit targets now prove a positive price and sequential index before recovery/cancellation; allocation quantities must exist and validate before resumed cancellations. Concrete target and allocation return types remove downstream assertions. Negative price/index/quantity and existing durable TP and engine tests cover the contract."
     }
   ]
 }
