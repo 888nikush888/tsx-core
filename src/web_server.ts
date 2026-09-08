@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { hasCurrentRestorableBackup } from './backup_evidence.js';
-import { validateConfig, writeConfigSync } from './config.js';
+import { validateConfig, writeConfigSync, type Config } from './config.js';
+import type { MetricPoint } from './metrics_tracker.js';
+import type { OutboxTask } from './db.js';
 import { configurationRevision, mergeConfiguration } from './ui_configuration.js';
 import { addLog, getLogEntries } from './logger.js';
 import {
@@ -171,21 +173,28 @@ const MIME_TYPES: Record<string, string> = {
 
 interface WebServerState {
   startupAuthority?: Pick<import('./startup_authority.js').StartupAuthority, 'canMutate' | 'snapshot'>;
-  config: any;
-  state: any;
+  config: Config;
+  state: {
+    isRunning: boolean;
+    connectionState?: string;
+    totalForwardedCount?: number;
+    processedSinceRestart?: number;
+    startupTime?: number | null;
+    resolvedSourceChatIds?: Iterable<unknown>;
+  };
   getQueueState: () => {
     running: number;
     queued: number;
     maxConcurrency: number;
     paused: boolean;
   };
-  startForwarding: (config: any) => Promise<void>;
-  stopForwarding: () => Promise<any>;
+  startForwarding: (config: Config) => Promise<void>;
+  stopForwarding: () => Promise<void>;
   reloadConfig: () => void;
-  applyRuntimeConfig: (config: any) => void;
-  persistConfig?: (config: any) => void;
-  getMetricsHistory?: () => any[];
-  getOutboxTasks?: (statuses?: string[]) => Promise<any[]>;
+  applyRuntimeConfig: (config: Config) => void;
+  persistConfig?: (config: Config) => void;
+  getMetricsHistory?: () => MetricPoint[];
+  getOutboxTasks?: (statuses?: string[]) => Promise<OutboxTask[]>;
   retryOutboxTask?: (id: string) => Promise<boolean>;
   acknowledgeOutboxTask?: (id: string, reason: string) => Promise<boolean>;
   auditTrail?: Pick<EnterpriseAuditTrail, 'record' | 'snapshot' | 'replayRemote' | 'flush'>;
@@ -378,7 +387,7 @@ async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): P
   }
 }
 
-function publicConfig(config: any): any {
+function publicConfig(config: Config): Record<string, unknown> {
   return JSON.parse(
     JSON.stringify(config || {}, (key, value) => (SECRET_CONFIG_KEYS.has(key) ? undefined : value))
   );
@@ -545,7 +554,7 @@ function installMutationAuditBarrier(context: RequestContext): void {
   };
 }
 
-function containsSecretConfig(input: any): boolean {
+function containsSecretConfig(input: unknown): boolean {
   if (!input || typeof input !== 'object') return false;
   return Object.entries(input).some(
     ([key, value]) => SECRET_CONFIG_KEYS.has(key) || containsSecretConfig(value)
@@ -652,7 +661,7 @@ function firstConfigured(...values: Array<string | undefined>): string {
 }
 
 async function statusHandler({ res, appState }: RequestContext): Promise<void> {
-  const xmlConfig = appState.config.xmlParsing ?? {};
+  const xmlConfig: Partial<Config['xmlParsing']> = appState.config.xmlParsing ?? {};
   const apiKey = process.env.OPENROUTER_API_KEY;
   sendJson(res, 200, {
     startup: appState.startupAuthority?.snapshot(),
@@ -1043,7 +1052,7 @@ function getConfigHandler({ res, appState }: RequestContext): void {
   sendJson(res, 200, { ...configuration, configRevision: configurationRevision(configuration) });
 }
 
-function applyConfiguration(context: RequestContext, update: any, logMessage: string): void {
+function applyConfiguration(context: RequestContext, update: unknown, logMessage: string): void {
   const candidateConfig = validateConfig(mergeConfiguration(context.appState.config, update));
   (context.appState.persistConfig ?? writeConfigSync)(candidateConfig);
   Object.assign(context.appState.config, candidateConfig);
@@ -1223,20 +1232,20 @@ function setupBundleAccountMappings(payload: any, preview: SetupBundlePreview): 
   return accountMappings;
 }
 
-function activateSetupConfiguration(context: RequestContext, replacement: any): void {
+function activateSetupConfiguration(context: RequestContext, replacement: Config): void {
   for (const key of Object.keys(context.appState.config)) delete context.appState.config[key];
   Object.assign(context.appState.config, replacement);
   context.appState.reloadConfig();
   context.appState.applyRuntimeConfig(context.appState.config);
 }
 
-function restoreSetupConfiguration(context: RequestContext, previousConfig: any): void {
+function restoreSetupConfiguration(context: RequestContext, previousConfig: Config): void {
   (context.appState.persistConfig ?? writeConfigSync)(previousConfig);
   activateSetupConfiguration(context, previousConfig);
 }
 
 async function applySetupBundleHandler(context: RequestContext): Promise<void> {
-  let previousConfig: any = null;
+  let previousConfig: Config | null = null;
   let configPersisted = false;
   try {
     pruneSetupBundlePreviews();
@@ -1252,15 +1261,16 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
     if (!context.appState.runBackupNow) throw new HttpError(503, 'A verified backup is required before setup replacement.');
     const backupArtifact = await context.appState.runBackupNow();
     previousConfig = structuredClone(context.appState.config);
-    const replacementConfig = structuredClone(preview.bundle.systemConfig);
-    if (containsSecretConfig(replacementConfig)) throw new HttpError(400, 'Setup replacement contains forbidden secret configuration.');
+    const replacementInput = structuredClone(preview.bundle.systemConfig);
+    if (containsSecretConfig(replacementInput)) throw new HttpError(400, 'Setup replacement contains forbidden secret configuration.');
+    const replacementConfig = validateConfig(replacementInput);
     const result = await applyPortableSetupBundle({
       bundle: preview.bundle,
       accountMappings,
       actorId: context.actor!.id,
       beforeImport: assertPreviewCurrent,
       beforeCommit: () => {
-        (context.appState.persistConfig ?? writeConfigSync)(replacementConfig as any);
+        (context.appState.persistConfig ?? writeConfigSync)(replacementConfig);
         configPersisted = true;
         activateSetupConfiguration(context, replacementConfig);
       },
@@ -1286,7 +1296,7 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
 }
 
 function requireCurrentVerifiedBackup(context: RequestContext): void {
-  const operations = context.appState.getOperationsStatus?.() as any;
+  const operations = context.appState.getOperationsStatus?.();
   const backup = operations?.backup;
   if (!hasCurrentRestorableBackup(backup)) {
     throw new HttpError(409, 'A healthy, integrity-verified, configuration-coherent and artifact-local restore-eligible backup with matching SHA proofs no older than 30 minutes is required for this destructive action.');

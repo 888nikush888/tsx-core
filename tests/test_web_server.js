@@ -10,6 +10,8 @@ import { ManagedSecretStore } from '../src/secret_store.js';
 import { ManagedRuntimeSettingsStore } from '../src/runtime_settings.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 import { UiOperationStore } from '../src/ui_operation_store.js';
+import { exportPortableSetupBundle } from '../src/setup_bundle.js';
+import { getActiveWorkflow } from '../src/workflow_repository.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
 const VIEWER_TOKEN = 'viewer-token-0123456789abcdef0123456789abcdef';
@@ -691,8 +693,8 @@ async function testSetupReviewPage(baseUrl, preview) {
   assert.equal((await fetch(`${baseUrl}/api/setup-bundle/review?key=missing`, { headers: headers(ADMIN_TOKEN) })).status, 409);
 }
 
-async function testSetupBundleApi(baseUrl, controls, appState) {
-  let response = await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) });
+async function exportSetupTestConfiguration(baseUrl, appState) {
+  const response = await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200, 'Authenticated viewers may export the redacted portable setup.');
   assert.match(response.headers.get('content-disposition') || '', /tsx-core-setup-/);
   const bundle = await response.json();
@@ -701,10 +703,47 @@ async function testSetupBundleApi(baseUrl, controls, appState) {
   assert.equal(bundle.mode, 'replace');
   assert.match(bundle.checksum, /^[a-f0-9]{64}$/);
   assert.doesNotMatch(JSON.stringify(bundle), /must-never-be-returned|must-also-be-redacted/);
+  // The nested object above intentionally tests redaction of foreign fields.
+  // Real persisted configurations reject that unknown root key.
+  delete appState.config.nested;
+  return (await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) })).json();
+}
+
+async function testInvalidSetupConfiguration(baseUrl, appState) {
+  const bundle = await exportPortableSetupBundle({ ...structuredClone(DEFAULT_CONFIG), sourceChannels: 'invalid' });
+  const previewResponse = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ bundle }),
+  });
+  assert.equal(previewResponse.status, 200, 'Portable object validation alone does not validate runtime configuration.');
+  const preview = await previewResponse.json();
+  const before = { config: structuredClone(appState.config), workflow: await getActiveWorkflow() };
+  const original = { persist: appState.persistConfig, apply: appState.applyRuntimeConfig };
+  let writes = 0;
+  appState.persistConfig = () => { writes += 1; };
+  appState.applyRuntimeConfig = () => { writes += 1; };
+  try {
+    const response = await fetch(`${baseUrl}/api/setup-bundle/apply`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ previewKey: preview.previewKey, confirmation: preview.confirmation, accountMappings: {} }),
+    });
+    assert.equal(response.status, 409);
+    assert.match((await response.json()).error, /sourceChannels/);
+    assert.equal(writes, 0, 'Malformed configuration must stop before persistence or runtime activation.');
+    assert.deepEqual(appState.config, before.config);
+    assert.deepEqual(await getActiveWorkflow(), before.workflow);
+  } finally {
+    appState.persistConfig = original.persist;
+    appState.applyRuntimeConfig = original.apply;
+  }
+}
+
+async function testSetupBundleApi(baseUrl, controls, appState) {
+  const bundle = await exportSetupTestConfiguration(baseUrl, appState);
+  await testInvalidSetupConfiguration(baseUrl, appState);
 
   const tampered = structuredClone(bundle);
   tampered.systemConfig.targetChannel = 'tampered';
-  response = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
+  let response = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ bundle: tampered }),

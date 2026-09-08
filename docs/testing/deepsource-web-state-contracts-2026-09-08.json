@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "baselineSourceSha256": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b",
+  "reviewedSourceSha256": "a11f557e0f2d11b52fedaa0b128721c15d95dd2e97015805d3d3c964361fc78b",
+  "testSourceSha256": "011d84e3258d91b20c0f8b2f1b06aa2b129710f37e55f95faed68dd1653da541",
+  "scope": "17 of 27 explicit-any findings in web_server.ts; other findings remain open.",
+  "changes": [
+    "Dashboard state now models the actual composition-root configuration, forwarding state, metrics samples and durable outbox tasks. No import from the composition root is introduced.",
+    "Configuration patches and secret traversal remain unknown until existing validators or runtime type guards inspect them.",
+    "Setup apply now validates the copied runtime configuration before persistence, library import and runtime activation, including when a caller supplies a custom persistence callback. Secret rejection remains before the normalizer can remove forbidden fields.",
+    "Redaction tests retain intentionally foreign nested secrets; deployable setup fixture removes its deliberately unsupported root field before valid import."
+  ],
+  "verification": [
+    "Node22 typecheck, root/frontend build and targeted ESLint passed.",
+    "All real HTTP web control/security tests passed, including invalid signed setup input: zero persistence/runtime callbacks, unchanged configuration and active workflow.",
+    "Same new invalid-setup regression executed against original 6085aef web_server.ts fails because the original handler accepts malformed sourceChannels with status200; corrected source returns409.",
+    "Existing portable setup bundle and startup trading gates passed."
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHluam4=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 1289,
+      "baselineColumn": 66,
+      "baselineSourceLine": "  const operations = context.appState.getOperationsStatus?.() as any;",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V2eGQ=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 1263,
+      "baselineColumn": 82,
+      "baselineSourceLine": "        (context.appState.persistConfig ?? writeConfigSync)(replacementConfig as any);",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9hZ3A=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 1239,
+      "baselineColumn": 23,
+      "baselineSourceLine": "  let previousConfig: any = null;",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlwamw=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 1233,
+      "baselineColumn": 77,
+      "baselineSourceLine": "function restoreSetupConfiguration(context: RequestContext, previousConfig: any): void {",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFrdm4=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 1226,
+      "baselineColumn": 75,
+      "baselineSourceLine": "function activateSetupConfiguration(context: RequestContext, replacement: any): void {",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V2bGQ=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 1046,
+      "baselineColumn": 62,
+      "baselineSourceLine": "function applyConfiguration(context: RequestContext, update: any, logMessage: string): void {",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJxbGQ=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 548,
+      "baselineColumn": 38,
+      "baselineSourceLine": "function containsSecretConfig(input: any): boolean {",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnh5d3c=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 381,
+      "baselineColumn": 37,
+      "baselineSourceLine": "function publicConfig(config: any): any {",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFlbm4=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 381,
+      "baselineColumn": 31,
+      "baselineSourceLine": "function publicConfig(config: any): any {",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlrcHI=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 188,
+      "baselineColumn": 53,
+      "baselineSourceLine": "  getOutboxTasks?: (statuses?: string[]) => Promise<any[]>;",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlwbGc=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 187,
+      "baselineColumn": 29,
+      "baselineSourceLine": "  getMetricsHistory?: () => any[];",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRxa3Y=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 186,
+      "baselineColumn": 28,
+      "baselineSourceLine": "  persistConfig?: (config: any) => void;",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlhZ2U=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 185,
+      "baselineColumn": 32,
+      "baselineSourceLine": "  applyRuntimeConfig: (config: any) => void;",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VkZ2U=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 183,
+      "baselineColumn": 33,
+      "baselineSourceLine": "  stopForwarding: () => Promise<any>;",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmF4a28=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 182,
+      "baselineColumn": 29,
+      "baselineSourceLine": "  startForwarding: (config: any) => Promise<void>;",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1ya3I=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 175,
+      "baselineColumn": 10,
+      "baselineSourceLine": "  state: any;",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG95bms=",
+      "rule": "JS-0323",
+      "path": "src/web_server.ts",
+      "baselineLine": 174,
+      "baselineColumn": 11,
+      "baselineSourceLine": "  config: any;",
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    }
+  ]
+}
