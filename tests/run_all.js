@@ -205,6 +205,7 @@ const allTests = [
   'test_test_registry.js',
   'test_test_scheduler.js',
   'test_sonarcloud_export.js',
+  'test_deepsource_export.js',
   'test_sonar_evidence.js',
   'test_sonar_pull_request.js',
   'test_sonar_branch.js',
