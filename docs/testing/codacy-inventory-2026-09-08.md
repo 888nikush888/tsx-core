@@ -22,8 +22,8 @@ normalized per file and referenced by each issue; no occurrence was omitted.
 | GTM HTML/JavaScript construction | 4 | DOM-only construction and identifier validation implemented; rescan pending |
 | AES-GCM tag length | 1 | Existing 16-byte format made explicit; rescan pending |
 | Production-guide anchor | 1 | Fix owned separately by the main task |
-| Contract regular expressions | 2 | Potential synchronous ReDoS reported to the main task; not dismissed |
-| Other production/tooling findings | 77 | Still need individual review; no closure asserted |
+| Contract regular expressions | 2 | Fixed separately by the main task in c67c310; rescan pending |
+| Other production/tooling findings | 77 | Individually reviewed: 76 proposed false positives and one intentional authenticated container listener; no platform closure asserted |
 
 The test findings include loopback-only fixture HTTP calls, temporary-directory
 paths, finite assertion patterns, public commit/action SHA pins, exact safe
