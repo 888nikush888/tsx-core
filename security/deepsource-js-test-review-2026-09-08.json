@@ -16,7 +16,8 @@
     "22 individual literal foreign-language interpolation findings: four Node22 regression suites passed; no source change or remote suppression is appropriate.",
     "22 primitive string fixture compositions: all six Node22 money/rational/account-log tests, ESLint error checks and diff checks passed.",
     "Nine closure/ordering/rejection findings: four targeted Node22 suites, ESLint error checks and diff checks passed.",
-    "11 resolver-declaration findings: all ten scoped Node22 suites and ESLint/diff checks passed. Native Promise.withResolvers is available under package Node>=22<23; resolver result shapes and settlement scheduling preserved."
+    "11 resolver-declaration findings: all ten scoped Node22 suites and ESLint/diff checks passed. Native Promise.withResolvers is available under package Node>=22<23; resolver result shapes and settlement scheduling preserved.",
+    "Explicit retry/audit completion and named scheduler options: five Node22 suites including three Sonar export modes passed; ESLint and diff checks passed."
   ],
   "entries": [
     {
@@ -2305,6 +2306,38 @@
       "status": "source_change_pending_rescan",
       "proof": "Native Node22 Promise.withResolvers replaces a pure resolver-assignment executor; promise/resolver names and later settlement are preserved, and no subsequent resolver reassignment exists.",
       "reference": "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise.withresolvers"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl4bnc=",
+      "rule": "JS-0106",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 299,
+      "status": "source_change_pending_rescan",
+      "proof": "Named options replace positional optional arguments; same seven worker/focus/selection fixture combinations and all scheduling assertions remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRneW0=",
+      "rule": "JS-0106",
+      "path": "tests/test_test_scheduler.js",
+      "originalLine": 299,
+      "status": "source_change_pending_rescan",
+      "proof": "Named options replace positional optional arguments; same seven worker/focus/selection fixture combinations and all scheduling assertions remain."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHl5anI=",
+      "rule": "JS-0098",
+      "path": "tests/test_audit_trail.js",
+      "originalLine": 54,
+      "status": "source_change_pending_rescan",
+      "proof": "Retained the pending audit write, flushed first as before, then awaited its result so rejection is observed before reset assertions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnlwa24=",
+      "rule": "JS-0045",
+      "path": "scripts/sonar_read.js",
+      "originalLine": 69,
+      "status": "source_change_pending_rescan",
+      "proof": "After the unchanged bounded retry loop, an explicit exhaustion error guarantees no implicit undefined return; regression verifies exactly three attempts and two retry delays."
     }
   ]
 }

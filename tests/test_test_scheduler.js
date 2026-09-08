@@ -295,7 +295,7 @@ function fourWorkerFixtureNames() {
     ...MODULE_COVERAGE_SERIAL_BARRIERS, 'test_trading_core.js'];
 }
 
-async function runActualFixture(label, workers = 1, focused = false, selection) {
+async function runActualFixture(label, { workers = 1, focused = false, selection } = {}) {
   const registeredTests = selection ?? (workers === 4 ? fourWorkerFixtureNames() : names);
   const fixture = await createFixture(label, registeredTests);
   if (workers > 1) fixture.environment.TSX_MODULE_COVERAGE_WORKERS = String(workers);
@@ -404,15 +404,15 @@ try {
   await testFourWorkerFailureStopsQueuedWork();
   await testDeterministicBarriersAndFailure();
   await runActualFixture('default');
-  await runActualFixture('parallel-two', 2);
-  await runActualFixture('parallel-four', 4);
-  await runActualFixture('reviewed-fx-four', 4, false, [
+  await runActualFixture('parallel-two', { workers: 2 });
+  await runActualFixture('parallel-four', { workers: 4 });
+  await runActualFixture('reviewed-fx-four', { workers: 4, selection: [
     'test_trading_fx_sizing_python.js', 'test_trading_recovery_schedule_transport.js',
     'test_trading_adaptive_money_migration.js', 'test_trading_money_risk.js',
     ...MODULE_COVERAGE_SERIAL_BARRIERS, 'test_trading_fx_future.js', 'test_trading_fx_repository.js',
-  ]);
-  await runActualFixture('focused-two', 2, true);
-  await runActualFixture('focused-four', 4, true);
+  ] });
+  await runActualFixture('focused-two', { workers: 2, focused: true });
+  await runActualFixture('focused-four', { workers: 4, focused: true });
   await testActualFourWorkerFailure();
   await testActualPreflightAndExit();
   await testProcessFailureContracts();

@@ -77,9 +77,10 @@ export async function sonarGet(endpoint, parameters, options) {
       throw new Error(`SonarCloud read failed with HTTP ${status}.`);
     }
     await result.response?.body?.cancel();
-    if (attempt === MAX_ATTEMPTS) throw new Error('SonarCloud read failed after 3 attempts.');
+    if (attempt === MAX_ATTEMPTS) break;
     const delay = retryDelay(result.response, attempt, options);
     if (delay >= remainingBudget(options)) throw new Error('SonarCloud retry would exceed the 60-second read budget.');
     await options.sleepImpl(delay);
   }
+  throw new Error('SonarCloud read failed after 3 attempts.');
 }
