@@ -96,19 +96,8 @@ export class ClockGuard implements ClockHealthMonitor {
 
   sample(): ClockHealthSnapshot {
     const wall = this.wallClock();
-    const monotonic = this.monotonicClock();
-    const outcome = this.sampleDrift(wall, monotonic);
-    let { driftMilliseconds, reason } = outcome;
-
-    if (reason && !this.latchedReason) {
-      this.latchedReason = reason;
-      this.latchedDriftMilliseconds = driftMilliseconds;
-    }
-    if (this.latchedReason) {
-      reason = this.latchedReason;
-      driftMilliseconds = this.latchedDriftMilliseconds;
-    }
-
+    const outcome = this.sampleDrift(wall, this.monotonicClock());
+    const { driftMilliseconds, reason } = this.latchedOutcome(outcome);
     return {
       healthy: reason === null,
       driftMilliseconds: Number.isFinite(driftMilliseconds) ? driftMilliseconds : this.maxDriftMilliseconds + 1,
@@ -116,6 +105,17 @@ export class ClockGuard implements ClockHealthMonitor {
       checkedAt: Number.isFinite(wall) ? wall : this.baselineWallMilliseconds,
       reason,
     };
+  }
+
+  private latchedOutcome(outcome: { driftMilliseconds: number; reason: string | null }): { driftMilliseconds: number; reason: string | null } {
+    if (outcome.reason && !this.latchedReason) {
+      this.latchedReason = outcome.reason;
+      this.latchedDriftMilliseconds = outcome.driftMilliseconds;
+    }
+    if (this.latchedReason) {
+      return { driftMilliseconds: this.latchedDriftMilliseconds, reason: this.latchedReason };
+    }
+    return outcome;
   }
 
   assertHealthy(): ClockHealthSnapshot {
