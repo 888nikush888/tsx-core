@@ -59,11 +59,10 @@ async function assertCanonicalMaterialized(root: string, applicationRoot: string
   }
   const canonical = await fs.realpath(root);
   verifyNoSymlinkTraversal(canonical, root);
-  if (boundary.kind === 'application') {
-    const canonicalApplicationRoot = await fs.realpath(applicationRoot);
-    if (!isStrictDescendant(canonical, canonicalApplicationRoot)) {
-      throw new Error(`Factory reset resolved outside the application root: ${root}`);
-    }
+  if (boundary.kind !== 'application') return canonical;
+  const canonicalApplicationRoot = await fs.realpath(applicationRoot);
+  if (!isStrictDescendant(canonical, canonicalApplicationRoot)) {
+    throw new Error(`Factory reset resolved outside the application root: ${root}`);
   }
   return canonical;
 }
