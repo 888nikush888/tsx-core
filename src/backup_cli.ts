@@ -69,14 +69,7 @@ async function createBackup(databasePath: string, argument: string | undefined):
   }
 }
 
-async function run(): Promise<void> {
-  const [command, argument] = process.argv.slice(2);
-  if (command === 'verify' || command === 'drill') {
-    await verifyDrillBackup(command, argument);
-    return;
-  }
-  loadEnv();
-  const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
+async function runDatabaseCommand(command: string | undefined, argument: string | undefined, databasePath: string): Promise<void> {
   if (command === 'create') {
     await createBackup(databasePath, argument);
     return;
@@ -87,6 +80,17 @@ async function run(): Promise<void> {
     return;
   }
   usage();
+}
+
+async function run(): Promise<void> {
+  const [command, argument] = process.argv.slice(2);
+  if (command === 'verify' || command === 'drill') {
+    await verifyDrillBackup(command, argument);
+    return;
+  }
+  loadEnv();
+  const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
+  await runDatabaseCommand(command, argument, databasePath);
 }
 
 try {
