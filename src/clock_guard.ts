@@ -65,6 +65,14 @@ function measuredDrift(wall: number, monotonic: number, guard: ClockBaselines): 
   return Math.abs((wall - guard.baselineWallMilliseconds) - (monotonic - guard.baselineMonotonicMilliseconds));
 }
 
+function measuredDriftOutcome(
+  wall: number, monotonic: number, guard: ClockBaselines & { maxDriftMilliseconds: number },
+): { driftMilliseconds: number; reason: string | null } {
+  const driftMilliseconds = measuredDrift(wall, monotonic, guard);
+  if (driftMilliseconds <= guard.maxDriftMilliseconds) return { driftMilliseconds, reason: null };
+  return { driftMilliseconds, reason: `System clock changed by ${Math.ceil(driftMilliseconds)}ms relative to the monotonic clock; limit is ${guard.maxDriftMilliseconds}ms.` };
+}
+
 export class ClockGuard implements ClockHealthMonitor {
   readonly baselineWallMilliseconds: number;
   readonly baselineMonotonicMilliseconds: number;
@@ -81,17 +89,16 @@ export class ClockGuard implements ClockHealthMonitor {
     this.baselineMonotonicMilliseconds = validatedClockBaseline(this.monotonicClock());
   }
 
+  sampleDrift(wall: number, monotonic: number): { driftMilliseconds: number; reason: string | null } {
+    const reason = sourceDriftError(wall, monotonic, this);
+    return reason === null ? measuredDriftOutcome(wall, monotonic, this) : { driftMilliseconds: Number.POSITIVE_INFINITY, reason };
+  }
+
   sample(): ClockHealthSnapshot {
     const wall = this.wallClock();
     const monotonic = this.monotonicClock();
-    let driftMilliseconds = Number.POSITIVE_INFINITY;
-    let reason: string | null = sourceDriftError(wall, monotonic, this);
-    if (reason === null) {
-      driftMilliseconds = measuredDrift(wall, monotonic, this);
-      if (driftMilliseconds > this.maxDriftMilliseconds) {
-        reason = `System clock changed by ${Math.ceil(driftMilliseconds)}ms relative to the monotonic clock; limit is ${this.maxDriftMilliseconds}ms.`;
-      }
-    }
+    const outcome = this.sampleDrift(wall, monotonic);
+    let { driftMilliseconds, reason } = outcome;
 
     if (reason && !this.latchedReason) {
       this.latchedReason = reason;
