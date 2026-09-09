@@ -413,7 +413,7 @@ async function testStopDuringPreparationRevokesDispatch(directory) {
   const { promise: entered, resolve: enteredSnapshot } = Promise.withResolvers();
   const hold = new Promise(resolve => { releaseSnapshot = resolve; });
   let submissions = 0;
-  const adapter = wrappedAdapter(paper, async (...args) => {
+  const adapter = wrappedAdapter(paper, (...args) => {
     submissions += 1;
     return paper.submitOrder(...args);
   });
@@ -657,7 +657,7 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
   let cancelledStops = 0;
   const submittedTakeProfits = [];
   const entryFilledAt = Date.now();
-  const adapter = wrappedAdapter(paper, async (_targetAccount, request) => {
+  const adapter = wrappedAdapter(paper, (_targetAccount, request) => {
     if (request.role === 'entry') {
       entryRequest = request;
       return orderResult(request, 'partially_filled', '0.1', '3050');
@@ -671,7 +671,7 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
       submittedTakeProfits.push(request);
       return orderResult(request, 'open', '0');
     }
-    throw new Error(`Unexpected ${request.role} submission.`);
+    return Promise.reject(new Error(`Unexpected ${request.role} submission.`));
   });
   adapter.cancelOrder = async (_targetAccount, clientOrderId) => {
     const cancelled = submittedStops.get(clientOrderId);
