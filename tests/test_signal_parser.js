@@ -329,7 +329,7 @@ async function testAiInputRejections() {
 
 async function testAiSuccessfulResult() {
   const budget = memoryBudget();
-  let capturedRequest;
+  let capturedRequest = null;
   let capturedOptions;
   const parsed = await parseSignalToXml('LONG ETHUSDT entry 3400.50 stop 3300.00 targets 3500.00, 3600.00 leverage 15x', undefined, {
     primaryModel: 'test/primary', fallbackModel: 'test/fallback'

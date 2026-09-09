@@ -11,7 +11,7 @@ import { seedTradingFixtures } from './trading_fixtures.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-dispatch-fence-'));
 const filename = path.join(directory, 'test.db');
-let reader;
+let reader = null;
 async function fixture(account, id) {
   await getDatabase().run(`INSERT INTO trading_orders (id, intent_id, account_id, client_order_id, role, side, order_type, status,
     quantity, filled_quantity, reduce_only, request_json, created_at, updated_at)

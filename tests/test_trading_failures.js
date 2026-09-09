@@ -99,7 +99,7 @@ async function testUnknownEntry(directory) {
 
 async function testIncompleteProtectedEvidence(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'incomplete-protected.db'));
-  let known;
+  let known = null;
   const adapter = wrappedAdapter(paper, (...args) => paper.submitOrder(...args), async (current, entry) => {
     known = await paper.submitOrder(current, entry);
     throw new TradingUnresolvedOrderError('Stop acknowledgement was lost.', [known]);
@@ -409,7 +409,7 @@ async function testRuntimeStopWinsPendingIntentRace(directory) {
 
 async function testStopDuringPreparationRevokesDispatch(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'mid-prepare-stop.db'));
-  let releaseSnapshot;
+  let releaseSnapshot = null;
   const { promise: entered, resolve: enteredSnapshot } = Promise.withResolvers();
   const hold = new Promise(resolve => { releaseSnapshot = resolve; });
   let submissions = 0;
@@ -646,7 +646,7 @@ function orderSnapshot(request, status, filledQuantity, averagePrice = null) {
 async function testPartialEntryProtectionAndTerminalResizing(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'partial-entry.db'));
   let entryRequest;
-  let activeStop;
+  let activeStop = null;
   const submittedStops = new Map();
   const cancelledStopIds = new Set();
   let terminal = false;

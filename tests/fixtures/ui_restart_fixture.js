@@ -12,7 +12,7 @@ export const COMMANDS = [
 ];
 
 export function deferred() {
-  let resolve;
+  let resolve = null;
   const promise = new Promise(done => { resolve = done; });
   return { promise, resolve };
 }

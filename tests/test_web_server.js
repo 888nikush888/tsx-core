@@ -291,7 +291,7 @@ async function testTradingAnalyticsApi(baseUrl) {
 }
 
 async function testExchangeCatalogApi(baseUrl, appState) {
-  let response;
+  let response = null;
   const originalTradingControl = appState.tradingControl;
   appState.tradingControl = {
     exchangeCatalog: () => Promise.resolve(({
@@ -1362,7 +1362,7 @@ async function testOperationsControl(baseUrl, controls) {
 }
 
 async function testMutationSerialization(baseUrl, controls) {
-  let releaseBackup;
+  let releaseBackup = null;
   controls.backupBarrier = new Promise(resolve => { releaseBackup = resolve; });
   const backupRequest = fetch(`${baseUrl}/api/operations/backup`, { method: 'POST', headers: mutationHeaders() });
   const deadline = Date.now() + 1000;
@@ -1774,7 +1774,7 @@ async function testRecoveryLocalStartup(testDir, appState) {
   const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
   const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;
   const secretStore = new ManagedSecretStore(path.join(testDir, 'recovery-secrets'));
-  let recoveryServer;
+  let recoveryServer = null;
   try {
     delete process.env.DASHBOARD_ADMIN_TOKEN;
     delete process.env.DASHBOARD_VIEWER_TOKEN;

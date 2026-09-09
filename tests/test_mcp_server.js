@@ -55,9 +55,9 @@ async function waitForRuntimeMode(url, child, expectedMode) {
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-mcp-server-'));
 const databasePath = path.join(directory, 'forwarder.db');
 const port = await availablePort();
-let child;
-let client;
-let bridge;
+let child = null;
+let client = null;
+let bridge = null;
 let serverOutput = '';
 const processOwner = await acquireProcessLock(path.join(directory, '.process_active'));
 try {

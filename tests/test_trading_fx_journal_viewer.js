@@ -23,7 +23,7 @@ const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-fx-journal-viewer-')
 const filename = path.join(directory, 'journal.db');
 const at = Date.now() - 2000;
 const providerSymbol = 'BTC/USDT:USDT';
-let strategyId;
+let strategyId = null;
 
 async function accountFixture(id = 'fx-journal') {
   await getDatabase().run(`INSERT INTO trading_accounts(id,name,exchange,mode,status,enabled,credential_ref,

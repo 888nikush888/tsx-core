@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { BUILD_INPUT_POLICY, collectBuildInputs, compareBuildReceipt } from '../scripts/verify_exchange_implementation.js';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-let revision;
+let revision = null;
 const root = mkdtempSync(path.join(os.tmpdir(), 'tsx-implementation-build-'));
 const script = fileURLToPath(new URL('../scripts/verify_exchange_implementation.js', import.meta.url));
 

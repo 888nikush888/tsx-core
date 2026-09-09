@@ -34,7 +34,7 @@ import {
 
 async function leasedRestore(artifact, databasePath, configPath, stateDirectory, options = {}) {
   const owner = await acquireProcessLock(path.join(stateDirectory, '.process_active'));
-  let maintenanceLease;
+  let maintenanceLease = null;
   try {
     maintenanceLease = await beginMcpSharedMaintenance('isolated restore fixture', databasePath, owner);
     await maintenanceLease.waitForQuiescence();
@@ -493,7 +493,7 @@ async function assertBackupScheduler(root, databasePath) {
   assert.match(failedScheduler.getStatus().lastError || '', /replication unavailable/);
   assert.strictEqual(failedScheduler.getStatus().offsiteHealthy, false);
 
-  let releaseReplication;
+  let releaseReplication = null;
   const { promise: replicationStarted, resolve: markReplicationStarted } = Promise.withResolvers();
   const drainingScheduler = new BackupScheduler(
     path.join(root, 'draining-offsite-scheduled'),

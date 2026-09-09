@@ -27,8 +27,8 @@ const reached = deferred();
 const continueRead = deferred();
 const originalRead = fs.promises.readFile;
 let owner;
-let enrollment;
-let release;
+let enrollment = null;
+let release = null;
 try {
   await mkdir(sources.templatesDirectory);
   await writeFile(path.join(sources.templatesDirectory, 'default.xml'), '<signal>owner-race-fixture</signal>');

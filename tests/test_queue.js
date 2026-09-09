@@ -244,7 +244,7 @@ async function testRuntimeSettingsAndDrain() {
   // 9. A bounded queue rejects only transient in-memory work; durable callers can retry later.
   console.log("9. Testing bounded pending queue capacity...");
   const boundedQueue = new ConcurrencyQueue(1, 0, 1);
-  let unblock;
+  let unblock = null;
   const running = boundedQueue.add(() => new Promise(resolve => { unblock = resolve; }));
   const waiting = boundedQueue.add(() => Promise.resolve('queued'));
   await assert.rejects(

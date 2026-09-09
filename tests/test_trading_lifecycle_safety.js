@@ -22,7 +22,7 @@ async function undispatchedExitCases() {
     const clientOrderId = `${fixture.id}-stop`;
     assert.equal(await retireUndispatchedExit(fixture.id, clientOrderId), false, 'An exchange-known exit must never be locally retired.');
     await database.run("UPDATE trading_orders SET status='created',exchange_order_id=NULL WHERE client_order_id=?", [clientOrderId]);
-    let operationId;
+    let operationId = null;
     if (kind !== 'no-operation') {
       operationId = await prepareTradingOperation({ account: fixture.account, intentId: fixture.id,
         kind: kind === 'multi-order' ? 'protected_entry' : 'submit',

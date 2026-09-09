@@ -15,7 +15,7 @@ if (path.dirname(root) !== path.resolve(os.tmpdir()) || !path.basename(root).sta
 const oldEnvironment = { ...process.env };
 const originalRename = fs.rename;
 const bounded = promise => Promise.race([promise, delay(5_000, null, { ref: false }).then(() => { throw new Error('Restart fixture timed out.'); })]);
-let server;
+let server = null;
 let fixtureIndex = 0;
 
 async function fixture() {

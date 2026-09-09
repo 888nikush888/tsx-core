@@ -100,7 +100,7 @@ async function testHardCrashes(stateDir) {
 
 async function runTests() {
   const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));
-  let owner;
+  let owner = null;
   try {
     await assert.rejects(checkCrashLoopFiles(stateDir), /ownership capability/i,
       'Missing process ownership must not create/reset crash files.');

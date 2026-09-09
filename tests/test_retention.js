@@ -26,8 +26,8 @@ const OLD = NOW - 91 * DAY_MS;
 const RECENT = NOW - DAY_MS;
 
 async function assertSerializedTransactionOwnership() {
-  let markTransactionStarted;
-  let releaseTransaction;
+  let markTransactionStarted = null;
+  let releaseTransaction = null;
   const transactionStarted = new Promise(resolve => { markTransactionStarted = resolve; });
   const transactionBarrier = new Promise(resolve => { releaseTransaction = resolve; });
   const rolledBack = withDatabaseTransaction(async database => {
