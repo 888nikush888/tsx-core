@@ -502,11 +502,11 @@ async function assertBackupScheduler(root, databasePath) {
     2,
     () => undefined,
     {
-      replicate: async artifact => {
+      replicate: artifact => {
         markReplicationStarted();
         return new Promise(resolve => { releaseReplication = () => resolve(verifiedReplication('backup-2026-draining.tgfb', artifact)); });
       },
-      recover: async () => { throw new Error('not used'); }
+      recover: () => { throw new Error('not used'); }
     }
   );
   const activeRun = drainingScheduler.runNow();

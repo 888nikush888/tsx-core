@@ -447,7 +447,7 @@ async function testStalePendingIntentNeverSubmits(directory) {
     [Date.now() - 901_000, Date.now() - 901_000, intent.id],
   );
   let submissions = 0;
-  const adapter = wrappedAdapter(paper, async (...args) => {
+  const adapter = wrappedAdapter(paper, (...args) => {
     submissions += 1;
     return paper.submitOrder(...args);
   });
@@ -467,7 +467,7 @@ async function testUnavailableMarketFailureIsolation(directory) {
   const strict = await setup(path.join(directory, 'unavailable-market-strict.db'));
   const strictAdapter = {
     ...wrappedAdapter(strict.paper, (...args) => strict.paper.submitOrder(...args)),
-    marketSnapshot: async () => {
+    marketSnapshot: () => {
       throw new Error('Exchange executor request failed (400): Hyperliquid symbol ETH is unavailable.');
     },
   };
@@ -482,7 +482,7 @@ async function testUnavailableMarketFailureIsolation(directory) {
   const isolated = await setup(path.join(directory, 'unavailable-market-isolated.db'));
   const isolatedAdapter = {
     ...wrappedAdapter(isolated.paper, (...args) => isolated.paper.submitOrder(...args)),
-    marketSnapshot: async () => {
+    marketSnapshot: () => {
       throw new TradingSymbolUnavailableError(
         'Hyperliquid symbol ETH is unavailable.',
         { exchange: 'hyperliquid', accountId: isolated.account.id, symbol: 'ETHUSDT' },
@@ -526,11 +526,21 @@ async function testEntryTtlCancelsAndClosesEmptyPosition(directory) {
   await closeDb();
 }
 
+function recordSlippageRemoteOutcome(remote, request, result, executed) {
+  remote.orders.push({ ...request, ...result, symbol: 'ETHUSDT' });
+  if (executed) remote.fills.push({ clientOrderId: result.clientOrderId, exchangeOrderId: result.exchangeOrderId,
+    exchangeFillId: `fill-${request.role}`, symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', price: result.averagePrice,
+    quantity: request.quantity, fee: '0', feeAsset: 'USDT', filledAt: Date.now(), raw: {} });
+  if (request.role === 'entry') remote.positions = [{ symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', side: 'LONG',
+    quantity: request.quantity, averageEntryPrice: '3100', unrealizedPnl: '0' }];
+  if (request.role === 'flatten') remote.positions = [];
+}
+
 async function testAdverseEntrySlippageFlattens(directory) {
   const { paper, intent } = await setup(path.join(directory, 'entry-slippage.db'));
   const roles = [];
   const remote = { orders: [], fills: [], positions: [], observedAt: Date.now() };
-  const adapter = wrappedAdapter(paper, async (_account, request) => {
+  const adapter = wrappedAdapter(paper, (_account, request) => {
     roles.push(request.role);
     const executed = request.role !== 'stop_loss';
     const result = {
@@ -543,13 +553,7 @@ async function testAdverseEntrySlippageFlattens(directory) {
       error: null,
       raw: {},
     };
-    remote.orders.push({ ...request, ...result, symbol: 'ETHUSDT' });
-    if (executed) remote.fills.push({ clientOrderId: result.clientOrderId, exchangeOrderId: result.exchangeOrderId,
-      exchangeFillId: `fill-${request.role}`, symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', price: result.averagePrice,
-      quantity: request.quantity, fee: '0', feeAsset: 'USDT', filledAt: Date.now(), raw: {} });
-    if (request.role === 'entry') remote.positions = [{ symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', side: 'LONG',
-      quantity: request.quantity, averageEntryPrice: '3100', unrealizedPnl: '0' }];
-    if (request.role === 'flatten') remote.positions = [];
+    recordSlippageRemoteOutcome(remote, request, result, executed);
     return result;
   });
   adapter.openState = () => Promise.resolve(completeSafetyState(structuredClone(remote)));
@@ -569,7 +573,7 @@ async function testEmergencyFlattenRetryIsIdempotent(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'flatten-retry.db'));
   let flattenSubmissions = 0;
   const flattenIds = [];
-  const adapter = wrappedAdapter(paper, async (targetAccount, request) => {
+  const adapter = wrappedAdapter(paper, (targetAccount, request) => {
     if (request.role !== 'flatten') return paper.submitOrder(targetAccount, request);
     flattenSubmissions += 1;
     flattenIds.push(request.clientOrderId);
@@ -645,7 +649,7 @@ function orderSnapshot(request, status, filledQuantity, averagePrice = null) {
 
 async function testPartialEntryProtectionAndTerminalResizing(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'partial-entry.db'));
-  let entryRequest;
+  let entryRequest = null;
   let activeStop = null;
   const submittedStops = new Map();
   const cancelledStopIds = new Set();
@@ -753,7 +757,7 @@ async function testTransientExecutorIncidentBlocksOnlyNewEntriesUntilReconciled(
   const { paper, account, intent } = await setup(path.join(directory, 'transient-executor-incident.db'));
   const adapter = wrappedAdapter(paper, (...args) => paper.submitOrder(...args));
   let unavailable = true;
-  adapter.openState = async (...args) => {
+  adapter.openState = (...args) => {
     if (unavailable) throw new Error('Exchange executor request failed (503): temporarily unavailable');
     return paper.openState(...args);
   };
@@ -896,7 +900,7 @@ async function testPeriodicReconciliationFailureDoesNotActivateHardKillSwitch(di
   await updateTradingRuntimeState({ executionEnabled: true });
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: async () => { throw new Error('simulated periodic exchange outage'); },
+    reconcileAccount: () => { throw new Error('simulated periodic exchange outage'); },
     cancelExpiredEntries: () => Promise.resolve(0),
     processIntent: () => Promise.resolve(),
   };
@@ -921,7 +925,7 @@ async function testTransientReconciliationFailureKeepsRetryingWithoutHardIsolati
   const logs = [];
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: async (_accountId, options) => {
+    reconcileAccount: (_accountId, options) => {
       forced.push(options?.force === true);
       if (fail) throw new Error('simulated transient OPEN_STATE_FAILED');
     },
@@ -965,7 +969,7 @@ async function testRestoredAccountIdentityRequiresExplicitSafeRelease(directory)
   const forced = [];
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: async (_accountId, options) => { forced.push(options?.force === true); },
+    reconcileAccount: (_accountId, options) => { forced.push(options?.force === true); },
     cancelExpiredEntries: () => Promise.resolve(0),
     processIntent: () => Promise.resolve(),
   };
@@ -994,7 +998,7 @@ async function testEntryExpiryFailureActivatesKillSwitch(directory) {
   const engine = {
     mutations: new TradingMutationCoordinator(),
     reconcileAccount: () => Promise.resolve(),
-    cancelExpiredEntries: async () => { throw new Error('simulated expiry cancellation outage'); },
+    cancelExpiredEntries: () => { throw new Error('simulated expiry cancellation outage'); },
     processIntent: () => Promise.resolve(),
   };
   const runtime = new TradingRuntime(engine);
@@ -1017,7 +1021,7 @@ async function testRuntimeIsolatesAccountFailures(directory) {
   const calls = [];
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: async accountId => {
+    reconcileAccount: accountId => {
       calls.push(accountId);
       if (accountId === first.id) throw new Error('first account unavailable');
     },
@@ -1039,7 +1043,7 @@ async function testStopReplacementCancellationFailsClosed(directory) {
   const engine = new TradingEngine([adapter]);
   await engine.processIntent(intent.id);
   assert.equal((await getTradingIntent(intent.id)).status, 'monitoring');
-  adapter.cancelOrder = async () => { throw new Error('simulated stale-stop cancellation timeout'); };
+  adapter.cancelOrder = () => { throw new Error('simulated stale-stop cancellation timeout'); };
   await paper.setMarket(account.id, {
     symbol: 'ETHUSDT', markPrice: '3150', priceTick: '0.1', quantityStep: '0.001',
     minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 25,
@@ -1289,7 +1293,7 @@ async function testRuntimeLifecycleAndDefaultFailureLogger(directory) {
   let reconciliations = 0;
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: async () => {
+    reconcileAccount: () => {
       reconciliations += 1;
       if (reconciliations === 2) throw new Error('scheduled failure handled by default logger');
     },
@@ -1328,7 +1332,7 @@ async function testExchangeStreamAcceleratesAuthoritativeReconciliation(director
   let emitted = false;
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: async (accountId, options) => { reconciliations.push([accountId, options?.force]); },
+    reconcileAccount: (accountId, options) => { reconciliations.push([accountId, options?.force]); },
     cancelExpiredEntries: () => Promise.resolve(0),
     processIntent: () => Promise.resolve(),
     pollAccountStream: () => {
@@ -1382,7 +1386,7 @@ async function testStartupReconciliationFailureKeepsControlPlaneAvailable(direct
   const logs = [];
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: async () => { throw new Error('simulated unmanaged startup exposure'); },
+    reconcileAccount: () => { throw new Error('simulated unmanaged startup exposure'); },
     cancelExpiredEntries: () => Promise.resolve(0),
     processIntent: () => Promise.resolve(),
   };

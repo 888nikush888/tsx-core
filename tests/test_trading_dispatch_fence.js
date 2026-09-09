@@ -97,9 +97,9 @@ async function commitFailure(account) {
   const db = getDatabase();
   const original = db.exec;
   let started = false;
-  let rejected;
+  let rejected = null;
   input.send = () => { started = true; return new Promise((_resolve, reject) => { rejected = reject; }); };
-  db.exec = async sql => {
+  db.exec = sql => {
     if (sql === 'COMMIT' && started) { started = false; throw new Error('fixture read-fence commit failure'); }
     return original(sql);
   };
@@ -118,7 +118,7 @@ try {
     VALUES ('fence-intent', 'fence-signal', 'fence-signal', '-fence', ?, ?, 'paper', 'paper', 'BTCUSDT', 'LONG', 'submitting', '{}', 1, 1)`, [strategy.id, account.id]);
   reader = await open({ filename, driver: sqlite3.Database });
   const normal = await fixture(account, 'durable');
-  let capturedWitness;
+  let capturedWitness = null;
   normal.beforeSend = async witness => {
     capturedWitness = witness;
     const row = await reader.get('SELECT id, phase, request_hash FROM trading_operations WHERE request_json = ?', [JSON.stringify(normal.request)]);
@@ -138,7 +138,7 @@ try {
   await runJournaledExchangeWrite(normal);
   assert.equal(currentDispatchIdentity(capturedWitness), null);
   const rejected = await fixture(account, 'witness-revoked-on-rejection');
-  rejected.beforeSend = async witness => { capturedWitness = witness; throw new Error('reject before send'); };
+  rejected.beforeSend = witness => { capturedWitness = witness; throw new Error('reject before send'); };
   await assert.rejects(runJournaledExchangeWrite(rejected), /reject before send/);
   assert.equal(currentDispatchIdentity(capturedWitness), null, 'Failed verification also revokes its capability.');
   await failureMatrix(account);
