@@ -129,10 +129,20 @@ export function uiParameterCatalog(): UiParameter[] {
   return [...runtimeParameters(), ...parameterFields(configFamily, CONFIG_PARAMETER_FIELDS, DEFAULT_CONFIG), ...viewerParameters(),
     ...uiModelParameters(), ...objectParameters(), ...paperParameters(), ...boundaryParameters()];
 }
+function selectedParameterPrefix(query: URLSearchParams): string {
+  const prefix = query.get('prefix') ?? '';
+  if (!/^[a-zA-Z0-9._-]{0,80}$/.test(prefix)) throw new Error('Invalid parameter filters.');
+  return prefix;
+}
+
+function selectedParameterLimit(query: URLSearchParams): number {
+  const limit = Number(query.get('limit') ?? 30);
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new Error('Invalid parameter filters.');
+  return limit;
+}
+
 function parameterSelection(query: URLSearchParams): { prefix: string; limit: number } {
-  const prefix = query.get('prefix') ?? ''; const limit = Number(query.get('limit') ?? 30);
-  if (!/^[a-zA-Z0-9._-]{0,80}$/.test(prefix) || !Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new Error('Invalid parameter filters.');
-  return { prefix, limit };
+  return { prefix: selectedParameterPrefix(query), limit: selectedParameterLimit(query) };
 }
 
 function parameterCursorOffset(entries: { path: string }[], cursor: { id: string } | null): number {
