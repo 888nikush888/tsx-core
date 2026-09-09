@@ -15,6 +15,19 @@ export class ProtectionProofRejectedError extends Error {
   }
 }
 
+async function collectIntentNoDuty(
+  receipt: ProtectionReceipt, evidence: Awaited<ReturnType<typeof collectAccountSafetyEvidence>>,
+  current: NonNullable<Awaited<ReturnType<typeof getTradingAccount>>>, intentId: string,
+): Promise<void> {
+  const intent = await getTradingIntent(intentId);
+  try {
+    // This shared durable proof rejects ACK-bearing preparations and every old/in-flight dispatch. No witness here.
+    receipt.noDuty.push(await assertCandidateNeverSent(current, intentId, (intent?.plan as TradingPlan | null) ?? null));
+  } catch {
+    receipt.proofs.push(evaluateTradingSafety(evidence, 'positionProtected', intentId));
+  }
+}
+
 /** Called only after independent risk-reducing actions and a stable fresh observation, inside the commit transaction. */
 export async function collectProtectionReceipt(
   reconciled: ReconciledAccountEvidence, observation: ProtectionObservation,
@@ -26,13 +39,7 @@ export async function collectProtectionReceipt(
     requestedAt: observation.requestedAt, runtimeCurrent: true });
   const receipt: ProtectionReceipt = { version: 1, observation, sourceDigest: '', proofs: [], noDuty: [], commit: null };
   for (const { intentId } of await protectionScopes(current.id)) {
-    const intent = await getTradingIntent(intentId);
-    try {
-      // This shared durable proof rejects ACK-bearing preparations and every old/in-flight dispatch. No witness here.
-      receipt.noDuty.push(await assertCandidateNeverSent(current, intentId, (intent?.plan as TradingPlan | null) ?? null));
-    } catch {
-      receipt.proofs.push(evaluateTradingSafety(evidence, 'positionProtected', intentId));
-    }
+    await collectIntentNoDuty(receipt, evidence, current, intentId);
   }
   receipt.sourceDigest = await protectionSourceDigest(current.id);
   if (receipt.proofs.some(proof => !proof.safe)) throw new ProtectionProofRejectedError(receipt);
