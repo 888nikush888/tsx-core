@@ -3,19 +3,38 @@ import { maskPII } from './logger.js';
 import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
 import { uiObjectId } from './ui_trading_reads.js';
 
+const ORIGINAL_COLUMNS: Record<string, Record<string, string>> = {
+  messages: { text: 'text' },
+  processed: { xml: 'xml_content', normalized: 'normalized_content' },
+};
+
 function originalColumn(kind: string, field: string, id: string) {
-  const columns: Record<string, string> = kind === 'messages' ? { text: 'text' } : { xml: 'xml_content', normalized: 'normalized_content' };
-  if (!Object.hasOwn(columns, field) || (kind === 'messages' && !/^[1-9]\d{0,14}$/.test(id))) throw new Error('Invalid original field or message ID.');
-  return columns[field];
+  if (kind === 'messages' && !/^[1-9]\d{0,14}$/.test(id)) throw new Error('Invalid original field or message ID.');
+  const column = ORIGINAL_COLUMNS[kind]?.[field];
+  if (!column) throw new Error('Invalid original field or message ID.');
+  return column;
 }
-function originalSelection(query: URLSearchParams) {
-  const id = query.get('id') || ''; uiObjectId(id, 256);
-  const kind = query.get('kind') || 'processed'; const field = query.get('field') || (kind === 'messages' ? 'text' : 'xml');
+
+function originalRequestedKind(query: URLSearchParams): string {
+  const kind = query.get('kind') || 'processed';
   if (!['messages', 'processed'].includes(kind)) throw new Error('Unsupported original kind.');
-  const column = originalColumn(kind, field, id);
-  const filter = filterFingerprint({ kind, id, field }); const cursor = decodeUiCursor(query.get('cursor'), filter);
+  return kind;
+}
+
+function originalCursorOffset(query: URLSearchParams, filter: string): { cursor: ReturnType<typeof decodeUiCursor>; offset: number } {
+  const cursor = decodeUiCursor(query.get('cursor'), filter);
   const offset = cursor ? Number(cursor.id) : 0;
   if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('Invalid text cursor.');
+  return { cursor, offset };
+}
+
+function originalSelection(query: URLSearchParams) {
+  const id = query.get('id') || ''; uiObjectId(id, 256);
+  const kind = originalRequestedKind(query);
+  const field = query.get('field') || (kind === 'messages' ? 'text' : 'xml');
+  const column = originalColumn(kind, field, id);
+  const filter = filterFingerprint({ kind, id, field });
+  const { cursor, offset } = originalCursorOffset(query, filter);
   return { id, kind, field, column, filter, cursor, offset };
 }
 
