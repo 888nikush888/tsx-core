@@ -7,16 +7,19 @@ import type { TradingAccount } from './trading_types.js';
 
 /** Existing own execution first. A ledger occurrence never creates a fill or an order identity. */
 export async function projectKrakenCashleg(account: TradingAccount, row: AccountLogRecord): Promise<void> {
-  const related = await relatedKrakenOccurrences(account.id, account.externalAccountId!, [row]);
-  const executions = [...new Set(related.map(item => item.record.execution).filter((value): value is string => !!value))];
+  const fingerprint = account.externalAccountId;
+  if (!fingerprint) throw new KrakenCashlegError('account_binding_unproven');
+  const related = await relatedKrakenOccurrences(account.id, fingerprint, [row]);
+  const executions = [...new Set(related.map(item => item.record.execution).filter((value): value is string => Boolean(value)))];
   if (!executions.length || executions.length > 1000) throw new KrakenCashlegError('missing_execution');
   const events = await getDatabase().all<Array<{ id: string; execution: string }>>(`SELECT event.id,fills.exchange_fill_id AS execution
     FROM trading_money_events event JOIN trading_fills fills ON fills.id=event.fill_id
     WHERE event.account_id=? AND event.account_fingerprint=? AND event.kind='fee' AND event.basis='fill'
-      AND fills.exchange_fill_id IN (${executions.map(() => '?').join(',')}) LIMIT 2`, [account.id, account.externalAccountId, ...executions]);
+      AND fills.exchange_fill_id IN (${executions.map(() => '?').join(',')}) LIMIT 2`, [account.id, fingerprint, ...executions]);
   if (events.length !== 1) throw new KrakenCashlegError('own_execution_fee_unproven');
-  const event = events[0]!;
-  const originals = await relatedKrakenOccurrences(account.id, account.externalAccountId!, [{ execution: event.execution }, row]);
+  const event = events[0];
+  if (!event) throw new KrakenCashlegError('own_execution_fee_unproven');
+  const originals = await relatedKrakenOccurrences(account.id, fingerprint, [{ execution: event.execution }, row]);
   const { cash, position } = candidatePair(originals, event.execution);
   await valueKrakenCashlegFee({ eventId: event.id, cashOccurrence: { receiptId: cash.receiptId, ordinal: cash.ordinal },
     positionOccurrence: { receiptId: position.receiptId, ordinal: position.ordinal } });
