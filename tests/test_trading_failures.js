@@ -673,14 +673,14 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
     }
     return Promise.reject(new Error(`Unexpected ${request.role} submission.`));
   });
-  adapter.cancelOrder = async (_targetAccount, clientOrderId) => {
+  adapter.cancelOrder = (_targetAccount, clientOrderId) => Promise.resolve().then(() => {
     const cancelled = submittedStops.get(clientOrderId);
     assert.ok(cancelled, 'Only a previously confirmed stop may be cancelled.');
     assert.notEqual(clientOrderId, activeStop.clientOrderId, 'Replacement must be active before the stale stop is cancelled.');
     cancelledStops += 1;
     cancelledStopIds.add(clientOrderId);
     return orderResult(cancelled, 'cancelled', '0');
-  };
+  });
   adapter.openState = () => Promise.resolve(completeSafetyState({
     orders: terminal
       ? [
