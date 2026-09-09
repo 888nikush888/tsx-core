@@ -58,7 +58,7 @@ async function request(url, options) {
 }
 
 function parseObject(body) {
-  let parsed = undefined;
+  let parsed = null;
   try {
     parsed = JSON.parse(body);
   } catch {

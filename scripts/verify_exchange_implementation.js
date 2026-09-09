@@ -83,7 +83,7 @@ function stableBytes(file, limit = BUILD_INPUT_POLICY.maxFileBytes) {
   const before = ordinaryFile(file);
   requireBuild(before.size >= 0n && before.size <= BigInt(limit), 'source file exceeds byte budget');
   const handle = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-  let bytes = undefined;
+  let bytes = null;
   try {
     const opened = fstatSync(handle, { bigint: true });
     requireBuild(opened.isFile() && opened.nlink === 1n && sameFile(before, opened), 'source changed before opening');

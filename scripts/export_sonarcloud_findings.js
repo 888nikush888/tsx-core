@@ -32,7 +32,7 @@ function validatedPage(response, collectionName, page, total) {
 
 async function fetchPages(endpoint, parameters, collectionName, options) {
   const records = new Map();
-  let total = undefined;
+  let total;
   for (let page = 1; ; page += 1) {
     const response = await sonarGet(endpoint, { ...parameters, p: page, ps: PAGE_SIZE }, options);
     const pageRecords = validatedPage(response, collectionName, page, total);
@@ -130,7 +130,7 @@ function validatedComputeTaskUrl(properties, configuration) {
 }
 
 async function readComputeTask(configuration, options) {
-  let reportTask = undefined;
+  let reportTask = null;
   try {
     reportTask = await readFile(configuration.reportTaskFile, 'utf8');
   } catch (error) {

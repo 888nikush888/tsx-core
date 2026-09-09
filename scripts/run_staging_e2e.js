@@ -28,7 +28,7 @@ function boundedInteger(value, fallback, minimum, maximum, name) {
 }
 
 async function withTimeout(operation, timeoutMs, label) {
-  let timer = undefined;
+  let timer = null;
   try {
     return await Promise.race([
       operation,
@@ -130,7 +130,7 @@ async function run() {
   const messageText = configuration.fixture.replaceAll('{correlation_id}', correlationId).trim();
   const startedAt = Date.now();
   const notBeforeSeconds = Math.floor(startedAt / 1000) - 30;
-  let client = undefined;
+  let client = null;
   try {
     tdl.configure({ tdjson: getTdjson() });
     client = tdl.createClient({
