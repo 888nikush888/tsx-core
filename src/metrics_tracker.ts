@@ -15,6 +15,16 @@ export interface MetricsTrackerConfig {
   maxPoints?: number;
 }
 
+function validatedMetricsInterval(intervalMs: number): number {
+  if (!Number.isSafeInteger(intervalMs) || intervalMs < 10) throw new Error('Metrics interval must be at least 10ms.');
+  return intervalMs;
+}
+
+function validatedMetricsMaxPoints(maxPoints: number): number {
+  if (!Number.isSafeInteger(maxPoints) || maxPoints < 1 || maxPoints > 10_000) throw new Error('Metrics maxPoints must be between 1 and 10000.');
+  return maxPoints;
+}
+
 export class MetricsTracker {
   private readonly history: MetricPoint[] = [];
   private intervalId: NodeJS.Timeout | null = null;
@@ -29,10 +39,8 @@ export class MetricsTracker {
   constructor(config: MetricsTrackerConfig) {
     this.totalForwardedCountCallback = config.totalForwardedCountCallback;
     this.getQueueStateCallback = config.getQueueStateCallback;
-    this.intervalMs = config.intervalMs ?? 5_000;
-    this.maxPoints = config.maxPoints ?? 120;
-    if (!Number.isSafeInteger(this.intervalMs) || this.intervalMs < 10) throw new Error('Metrics interval must be at least 10ms.');
-    if (!Number.isSafeInteger(this.maxPoints) || this.maxPoints < 1 || this.maxPoints > 10_000) throw new Error('Metrics maxPoints must be between 1 and 10000.');
+    this.intervalMs = validatedMetricsInterval(config.intervalMs ?? 5_000);
+    this.maxPoints = validatedMetricsMaxPoints(config.maxPoints ?? 120);
     this.lastTotalForwarded = this.totalForwardedCountCallback();
   }
 
