@@ -21,21 +21,27 @@ function pageStatusFilter(kind: Kind, query: URLSearchParams): string | null {
   if (status && !['all', 'pending', 'approved', 'rejected', 'executing', 'completed', 'failed', 'expired'].includes(status)) throw new Error('Unsupported proposal status.');
   return status;
 }
-function pageTimeScope(definition: (typeof LISTS)[Kind], cursor: { createdAt: number; id: string } | null, values: unknown[]): { clause: string; params: unknown[] } {
+function pageStatusWhere(status: string | null, now: number): { clause: string; params: unknown[]; expression: string } {
+  const expression = `CASE WHEN p.status='pending' AND p.expires_at<=${now} THEN 'expired' ELSE p.status END`;
+  if (!status || status === 'all') return { clause: '', params: [], expression };
+  return { clause: ` AND (${expression})=?`, params: [status], expression };
+}
+
+function pageTimeScope(definition: (typeof LISTS)[Kind], cursor: { createdAt: number; id: string } | null): { clause: string; params: unknown[] } {
   if (!cursor) return { clause: '', params: [] };
   return { clause: ` AND (${definition.time} < ? OR (${definition.time}=? AND ${definition.id}<?))`, params: [cursor.createdAt, cursor.createdAt, cursor.id] };
 }
+
 async function page(kind: Kind, query: URLSearchParams, now: number) {
   const definition = LISTS[kind]; const limit = 30; const status = pageStatusFilter(kind, query);
   const filter = filterFingerprint({ kind, limit, status, view: 'mcp-operator-v1' });
   const cursor = decodeUiCursor(query.get(`${kind}Cursor`), filter); const observedAt = cursor?.observedAt ?? now;
-  const statusExpression = `CASE WHEN p.status='pending' AND p.expires_at<=${now} THEN 'expired' ELSE p.status END`;
-  const statusWhere = status && status !== 'all' ? ` AND (${statusExpression})=?` : '';
-  const values = statusWhere ? [observedAt, status] : [observedAt];
-  const after = pageTimeScope(definition, cursor, values);
-  const fields = kind === 'proposals' ? definition.fields.replace('p.status', `${statusExpression} AS status`) : definition.fields;
+  const scope = pageStatusWhere(status, now);
+  const values = scope.params.length > 0 ? [observedAt, ...scope.params] : [observedAt];
+  const after = pageTimeScope(definition, cursor);
+  const fields = kind === 'proposals' ? definition.fields.replace('p.status', `${scope.expression} AS status`) : definition.fields;
   const rows = await getDatabase().all(`SELECT ${fields},${definition.time} AS cursorTime FROM ${definition.from}
-    WHERE ${definition.where} AND ${definition.time}<=?${statusWhere}${after.clause} ORDER BY ${definition.time} DESC,${definition.id} DESC LIMIT ?`,
+    WHERE ${definition.where} AND ${definition.time}<=?${scope.clause}${after.clause} ORDER BY ${definition.time} DESC,${definition.id} DESC LIMIT ?`,
   [...values, ...after.params, limit + 1]);
   const last = rows[Math.min(rows.length, limit) - 1]; const hasMore = rows.length > limit;
   return { entries: rows.slice(0, limit).map(({ cursorTime: _time, ...row }) => kind === 'agents' ? mappedAgent(row) : row), observedAt, hasMore,
