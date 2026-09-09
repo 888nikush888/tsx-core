@@ -12,22 +12,31 @@ const LISTS = {
   actions: { from: 'mcp_agent_actions x JOIN mcp_agents a ON a.id=x.agent_id', id: 'x.id', time: 'x.completed_at', where: '1=1', fields: 'x.id,x.agent_id AS agentId,a.name AS agentName,x.tool_name AS toolName,x.permission,x.outcome,x.started_at AS startedAt,x.completed_at AS completedAt,x.duration_ms AS durationMs' },
 } as const;
 type Kind = keyof typeof LISTS;
-function mappedAgent({ permissionsJson, subscriptionsJson, ...row }: any) {
+type AgentRow = Record<string, unknown> & { enabled: number | boolean; permissionsJson: string; subscriptionsJson: string };
+function mappedAgent({ permissionsJson, subscriptionsJson, ...row }: AgentRow) {
   return { ...row, enabled: row.enabled === 1, permissions: JSON.parse(permissionsJson), eventSubscriptions: JSON.parse(subscriptionsJson) };
 }
-async function page(kind: Kind, query: URLSearchParams, now: number) {
-  const definition = LISTS[kind]; const limit = 30; const status = kind === 'proposals' ? query.get('proposalsStatus') || 'pending' : null;
+function pageStatusFilter(kind: Kind, query: URLSearchParams): string | null {
+  const status = kind === 'proposals' ? query.get('proposalsStatus') || 'pending' : null;
   if (status && !['all', 'pending', 'approved', 'rejected', 'executing', 'completed', 'failed', 'expired'].includes(status)) throw new Error('Unsupported proposal status.');
+  return status;
+}
+function pageTimeScope(definition: (typeof LISTS)[Kind], cursor: { createdAt: number; id: string } | null, values: unknown[]): { clause: string; params: unknown[] } {
+  if (!cursor) return { clause: '', params: [] };
+  return { clause: ` AND (${definition.time} < ? OR (${definition.time}=? AND ${definition.id}<?))`, params: [cursor.createdAt, cursor.createdAt, cursor.id] };
+}
+async function page(kind: Kind, query: URLSearchParams, now: number) {
+  const definition = LISTS[kind]; const limit = 30; const status = pageStatusFilter(kind, query);
   const filter = filterFingerprint({ kind, limit, status, view: 'mcp-operator-v1' });
   const cursor = decodeUiCursor(query.get(`${kind}Cursor`), filter); const observedAt = cursor?.observedAt ?? now;
   const statusExpression = `CASE WHEN p.status='pending' AND p.expires_at<=${now} THEN 'expired' ELSE p.status END`;
   const statusWhere = status && status !== 'all' ? ` AND (${statusExpression})=?` : '';
   const values = statusWhere ? [observedAt, status] : [observedAt];
-  const after = cursor ? ` AND (${definition.time} < ? OR (${definition.time}=? AND ${definition.id}<?))` : '';
+  const after = pageTimeScope(definition, cursor, values);
   const fields = kind === 'proposals' ? definition.fields.replace('p.status', `${statusExpression} AS status`) : definition.fields;
   const rows = await getDatabase().all(`SELECT ${fields},${definition.time} AS cursorTime FROM ${definition.from}
-    WHERE ${definition.where} AND ${definition.time}<=?${statusWhere}${after} ORDER BY ${definition.time} DESC,${definition.id} DESC LIMIT ?`,
-  [...values, ...(cursor ? [cursor.createdAt, cursor.createdAt, cursor.id] : []), limit + 1]);
+    WHERE ${definition.where} AND ${definition.time}<=?${statusWhere}${after.clause} ORDER BY ${definition.time} DESC,${definition.id} DESC LIMIT ?`,
+  [...values, ...after.params, limit + 1]);
   const last = rows[Math.min(rows.length, limit) - 1]; const hasMore = rows.length > limit;
   return { entries: rows.slice(0, limit).map(({ cursorTime: _time, ...row }) => kind === 'agents' ? mappedAgent(row) : row), observedAt, hasMore,
     nextCursor: hasMore ? encodeUiCursor({ version: 1, filter, observedAt, createdAt: last.cursorTime, id: last.id }) : null };
