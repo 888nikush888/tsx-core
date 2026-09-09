@@ -123,8 +123,8 @@ async function relatedMainDecision(root, manifest) {
 
 export async function loadReviewedDecisions(root = ROOT, mode = 'main') {
   const configuration = reviewMode(mode);
-  let bytes;
-  let manifest;
+  let bytes = undefined;
+  let manifest = undefined;
   const resolvedRoot = await realpath(root);
   try {
     bytes = await boundFile(resolvedRoot, configuration.manifest);
@@ -174,8 +174,8 @@ function reviewComment(decision) {
 }
 
 async function requestJson(url, { fetchImpl, token }) {
-  let response;
-  let body;
+  let response = undefined;
+  let body = undefined;
   try {
     response = await fetchImpl(url, { method: 'GET', redirect: 'error', headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
       signal: AbortSignal.timeout(15_000) });
@@ -280,7 +280,7 @@ function decisionState(issue, decision) {
 }
 
 async function transitionOnce(decision, { fetchImpl, token }) {
-  let response;
+  let response = undefined;
   try {
     response = await fetchImpl(new URL('/api/issues/do_transition', ORIGIN), { method: 'POST', redirect: 'error',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
@@ -368,9 +368,9 @@ async function main() {
   const mode = args[0] === '--reviewed-pr29' ? 'pr29' : 'main';
   const configuration = reviewMode(mode);
   const dryRun = args.includes('--dry-run');
-  let event;
-  let revision;
-  let clean;
+  let event = undefined;
+  let revision = undefined;
+  let clean = undefined;
   if (!dryRun) {
     try {
       event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8'));

@@ -87,7 +87,7 @@ function validateSummary(summary, options) {
 }
 
 async function verifiedArtifact(directory, summary, name) {
-  let bytes;
+  let bytes = undefined;
   try {
     bytes = await readFile(path.join(directory, name));
   } catch (error) {
