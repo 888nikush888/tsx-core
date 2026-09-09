@@ -5,14 +5,35 @@ import { provenFillIdentity } from './trading_fill_identity.js';
 import { compareDecimal } from './trading_decimal.js';
 import type { ExchangeAcquisitionEvidence, ExchangeFill, TradingAccount } from './trading_types.js';
 
-async function assertBinding(account: TradingAccount): Promise<void> {
-  const current = await getDatabase().get<{ exchange: string; mode: string; external_account_id: string; credential_generation: string }>(
-    'SELECT exchange,mode,external_account_id,credential_generation FROM trading_accounts WHERE id=?', [account.id]);
-  if (current?.exchange !== 'krakenfutures' || current.exchange !== account.exchange || current.mode !== account.mode
-    || current.external_account_id !== account.externalAccountId || current.credential_generation !== account.credentialGeneration
-    || !/^[a-f0-9]{64}$/.test(current.external_account_id) || !/^[a-f0-9]{64}$/.test(current.credential_generation)) {
+interface FillAccountBinding {
+  exchange: string; mode: string; external_account_id: string; credential_generation: string;
+}
+
+function assertBindingIdentity(
+  current: FillAccountBinding | undefined, account: TradingAccount,
+): void {
+  if (current?.exchange !== 'krakenfutures' || current?.exchange !== account.exchange
+    || current?.mode !== account.mode) {
     throw new Error('FILL_QUANTITY_ACCOUNT_BINDING_CHANGED');
   }
+}
+
+function assertBindingFingerprints(
+  current: FillAccountBinding | undefined, account: TradingAccount,
+): void {
+  if (current?.external_account_id !== account.externalAccountId
+    || current?.credential_generation !== account.credentialGeneration
+    || !/^[a-f0-9]{64}$/.test(current?.external_account_id ?? '')
+    || !/^[a-f0-9]{64}$/.test(current?.credential_generation ?? '')) {
+    throw new Error('FILL_QUANTITY_ACCOUNT_BINDING_CHANGED');
+  }
+}
+
+async function assertBinding(account: TradingAccount): Promise<void> {
+  const current = await getDatabase().get<FillAccountBinding>(
+    'SELECT exchange,mode,external_account_id,credential_generation FROM trading_accounts WHERE id=?', [account.id]);
+  assertBindingIdentity(current, account);
+  assertBindingFingerprints(current, account);
 }
 function readBinding(read: ExchangeAcquisitionEvidence | undefined, normalizedAt: number): ExchangeAcquisitionEvidence {
   if (!read) throw new Error('FILL_QUANTITY_READ_MISSING');
@@ -20,6 +41,34 @@ function readBinding(read: ExchangeAcquisitionEvidence | undefined, normalizedAt
   if (normalizedAt < clean.startedAt || normalizedAt > clean.completedAt) throw new Error('FILL_QUANTITY_READ_WINDOW_MISMATCH');
   return clean;
 }
+interface StoredFillJournal {
+  account_fingerprint: string; remote_fill_key: string; raw_json: string;
+  identity_status: string; quantity: string;
+}
+
+function assertStoredJournalMatches(
+  account: TradingAccount, fill: ExchangeFill, proof: { key: string },
+  stored: StoredFillJournal, normalization: { originalExecutionHash: string },
+): string {
+  if (stored.account_fingerprint !== account.externalAccountId || stored.remote_fill_key !== proof.key
+    || stored.identity_status !== 'proven' || compareDecimal(stored.quantity, fill.quantity) !== 0) {
+    throw new Error('FILL_QUANTITY_ORIGINAL_BINDING_MISMATCH');
+  }
+  const originalHash = fillQuantityDigest('kraken-normalization-original-v1', JSON.parse(stored.raw_json));
+  if (normalization.originalExecutionHash !== originalHash) throw new Error('FILL_QUANTITY_ORIGINAL_HASH_MISMATCH');
+  return originalHash;
+}
+
+function assertAcquisitionProviderBinding(
+  acquisition: { history?: Array<{ checkpoint: { source: string; providerAccountUid?: unknown } }> },
+  providerUid: string,
+): void {
+  if (acquisition.history?.some(item => item.checkpoint.source === 'fills' && item.checkpoint.providerAccountUid != null
+    && item.checkpoint.providerAccountUid !== providerUid)) {
+    throw new Error('FILL_QUANTITY_READ_PROVIDER_BINDING_MISMATCH');
+  }
+}
+
 /** In the existing fill transaction only: preserves a calculation, never values a fee or proves historical units. */
 export async function captureFillQuantityEvidence(account: TradingAccount, fill: ExchangeFill, fillId: string,
   initial: boolean, read?: ExchangeAcquisitionEvidence): Promise<void> {
@@ -28,16 +77,12 @@ export async function captureFillQuantityEvidence(account: TradingAccount, fill:
   const acquisition = readBinding(read, normalization.normalizedAt);
   await assertBinding(account);
   const proof = provenFillIdentity(account, fill);
-  const stored = await getDatabase().get<{ account_fingerprint: string; remote_fill_key: string; raw_json: string; identity_status: string; quantity: string }>(
+  const stored = await getDatabase().get<StoredFillJournal>(
     'SELECT account_fingerprint,remote_fill_key,raw_json,identity_status,quantity FROM trading_fills WHERE account_id=? AND id=?', [account.id, fillId]);
   if (!proof || !stored) throw new Error('FILL_QUANTITY_ORIGINAL_BINDING_MISMATCH');
-  if (stored.account_fingerprint !== account.externalAccountId || stored.remote_fill_key !== proof.key
-    || stored.identity_status !== 'proven' || compareDecimal(stored.quantity, fill.quantity) !== 0) throw new Error('FILL_QUANTITY_ORIGINAL_BINDING_MISMATCH');
-  const originalHash = fillQuantityDigest('kraken-normalization-original-v1', JSON.parse(stored.raw_json));
-  if (normalization.originalExecutionHash !== originalHash) throw new Error('FILL_QUANTITY_ORIGINAL_HASH_MISMATCH');
+  const originalHash = assertStoredJournalMatches(account, fill, proof, stored, normalization);
   const providerUid = (fill.raw as { info: { accountUid: string } }).info.accountUid;
-  if (acquisition.history?.some(item => item.checkpoint.source === 'fills' && item.checkpoint.providerAccountUid != null
-    && item.checkpoint.providerAccountUid !== providerUid)) throw new Error('FILL_QUANTITY_READ_PROVIDER_BINDING_MISMATCH');
+  assertAcquisitionProviderBinding(acquisition, providerUid);
   // Re-reading an identical calculation is not a new economic event or an unlimited poll log.
   // A changed actual recipe/generation has its own immutable observation; none replaces the first.
   const { normalizedAt: _time, ...recipe } = normalization;
