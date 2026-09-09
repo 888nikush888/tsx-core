@@ -8,6 +8,23 @@ import type { TradingDispatchWitness } from './trading_recovery.js';
 
 export type EntrySafetyObservation = Omit<ReleaseEvidenceRequest, 'current' | 'runtimeCurrent'>;
 
+type CollectedSafetyEvidence = Awaited<ReturnType<typeof collectAccountReleaseEvidence>>;
+type KnownTradingAccount = NonNullable<Awaited<ReturnType<typeof getTradingAccount>>>;
+
+function verifiedEntryIdentity(
+  evidence: CollectedSafetyEvidence, current: KnownTradingAccount, observation: EntrySafetyObservation,
+): void {
+  evidence.identityVerified = evidence.identityVerified && current.credentialRef === observation.verificationAccount.credentialRef
+    && current.capabilities?.executionProfileHash === observation.verificationAccount.capabilities?.executionProfileHash;
+}
+
+function entryAdmissionAllowed(
+  evidence: CollectedSafetyEvidence, current: KnownTradingAccount, runtime: { executionEnabled: boolean; killSwitchActive: boolean; liveTradingEnabled: boolean },
+): void {
+  evidence.entryAllowed = runtime.executionEnabled && !runtime.killSwitchActive && !current.killSwitchActive
+    && (current.mode !== 'live' || runtime.liveTradingEnabled);
+}
+
 /** Account-wide admission. Exempting the current never-sent candidate must not narrow proof of other trades. */
 export async function proveEntrySafety(
   observation: EntrySafetyObservation, intentId: string, plan: TradingPlan | null, witness?: TradingDispatchWitness,
@@ -16,11 +33,9 @@ export async function proveEntrySafety(
   if (!current) throw new TradingRiskError('ENTRY_SAFETY_UNPROVEN', 'ACCOUNT_MISSING');
   const candidateExemption = await assertCandidateNeverSent(current, intentId, plan, witness);
   const evidence = await collectAccountReleaseEvidence({ ...observation, current });
-  evidence.identityVerified = evidence.identityVerified && current.credentialRef === observation.verificationAccount.credentialRef
-    && current.capabilities?.executionProfileHash === observation.verificationAccount.capabilities?.executionProfileHash;
+  verifiedEntryIdentity(evidence, current, observation);
   const runtime = await getTradingRuntimeState();
-  evidence.entryAllowed = runtime.executionEnabled && !runtime.killSwitchActive && !current.killSwitchActive
-    && (current.mode !== 'live' || runtime.liveTradingEnabled);
+  entryAdmissionAllowed(evidence, current, runtime);
   evidence.orders = evidence.orders.filter(order => order.intentId !== intentId);
   evidence.positions = evidence.positions.filter(position => position.need.intentId !== intentId);
   evidence.operations = evidence.operations.filter(operation => operation.intentId !== intentId);
@@ -35,12 +50,16 @@ export async function proveEntrySafety(
   return proof;
 }
 
+function entryAcquisitionWindowValid(proof: TradingSafetyProof, now: number): boolean {
+  return proof.acquisitionStartedAt !== null && proof.acquisitionCompletedAt !== null
+    && proof.evaluatedAt <= now && proof.acquisitionCompletedAt <= now
+    && now - proof.acquisitionStartedAt <= 30_000;
+}
+
 /** Repeated synchronously immediately before send, after the final DB read fence. */
 export function assertEntrySafetyFresh(proof: TradingSafetyProof): void {
   const now = Date.now();
-  if (!proof.safe || proof.purpose !== 'entryAdmission' || proof.acquisitionStartedAt === null
-    || proof.acquisitionCompletedAt === null || proof.evaluatedAt > now || proof.acquisitionCompletedAt > now
-    || now - proof.acquisitionStartedAt > 30_000) {
+  if (!proof.safe || proof.purpose !== 'entryAdmission' || !entryAcquisitionWindowValid(proof, now)) {
     throw new TradingRiskError('ENTRY_SAFETY_UNPROVEN', 'ACQUISITION_NOT_FRESH: admission evidence expired before dispatch.');
   }
 }
