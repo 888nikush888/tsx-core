@@ -20,11 +20,22 @@ const ACTIONS: Record<string, { label: string; path: string; query: string }> = 
   outbox: { label: 'Versandbelege und Abgleich prüfen', path: '/signals/outbox', query: 'objectId' },
   ingress: { label: 'Originaleingang und Verarbeitungsspur prüfen', path: '/signals/messages', query: 'objectId' },
 };
-export async function uiAttention(query: URLSearchParams) {
+function attentionPageLimit(query: URLSearchParams): number {
   const limit = Number(query.get('limit') || 20);
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new Error('Attention page size must be 1–50.');
-  const filter = filterFingerprint({ kind: 'operator-attention', limit }); const cursor = decodeUiCursor(query.get('cursor'), filter);
+  return limit;
+}
+
+function attentionSelection(query: URLSearchParams) {
+  const limit = attentionPageLimit(query);
+  const filter = filterFingerprint({ kind: 'operator-attention', limit });
+  const cursor = decodeUiCursor(query.get('cursor'), filter);
   const observedAt = cursor?.observedAt ?? Date.now();
+  return { limit, filter, cursor, observedAt };
+}
+
+export async function uiAttention(query: URLSearchParams) {
+  const { limit, filter, cursor, observedAt } = attentionSelection(query);
   const [rows, counts] = await Promise.all([
     getDatabase().all(`${SOURCES} SELECT * FROM selected WHERE sortKey>? ORDER BY sortKey LIMIT ?`, [observedAt, cursor?.id ?? '', limit + 1]),
     getDatabase().get(`${SOURCES} SELECT COUNT(*) AS total FROM selected`, [observedAt]),
