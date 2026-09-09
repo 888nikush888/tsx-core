@@ -64,12 +64,22 @@ function mergedIncomingStatus(current: LocalOrderStatus, incoming: LocalOrderSta
   return heldOrPartialStatus(current, incoming, filled);
 }
 
-function heldOrPartialStatus(current: LocalOrderStatus, incoming: LocalOrderStatus, filled: string): LocalOrderStatus {
-  if (current === 'cancel_pending') return current;
-  if (incoming === 'unknown' || incoming === 'cancel_pending') return incoming;
+function heldTerminalStatus(current: LocalOrderStatus): LocalOrderStatus | null {
+  return current === 'cancel_pending' ? current : null;
+}
+
+function incomingTerminalStatus(incoming: LocalOrderStatus): LocalOrderStatus | null {
+  return incoming === 'unknown' || incoming === 'cancel_pending' ? incoming : null;
+}
+
+function partialOrOpenFallback(current: LocalOrderStatus, incoming: LocalOrderStatus, filled: string): LocalOrderStatus {
   if (compareDecimal(filled, '0') > 0) return 'partially_filled';
   if (['created', 'submitting'].includes(incoming) && current !== 'created') return current;
   return incoming;
+}
+
+function heldOrPartialStatus(current: LocalOrderStatus, incoming: LocalOrderStatus, filled: string): LocalOrderStatus {
+  return heldTerminalStatus(current) ?? incomingTerminalStatus(incoming) ?? partialOrOpenFallback(current, incoming, filled);
 }
 
 function selectedFilledQuantity(previous: string, reported: string): string {
@@ -80,6 +90,19 @@ function incomingAverageWins(incomingFilledQuantity: string | null, reported: st
   return incomingFilledQuantity !== null && compareDecimal(reported, previous) >= 0;
 }
 
+function selectedAverages(
+  current: LocalOrderEvidence, incoming: OrderEvidence,
+): { previous: string; reported: string; oldAverage: string | null; newAverage: string | null } {
+  const previous = decimal(current.filledQuantity);
+  const reported = incoming.filledQuantity === null ? previous : decimal(incoming.filledQuantity);
+  return {
+    previous,
+    reported,
+    oldAverage: current.averagePrice == null ? null : decimal(current.averagePrice, { positive: true }),
+    newAverage: incoming.averagePrice == null ? null : decimal(incoming.averagePrice, { positive: true }),
+  };
+}
+
 /** Lifecycle and cumulative execution are independent: cancelled orders can acquire late fills. */
 export function mergeOrderEvidence(current: LocalOrderEvidence, incoming: OrderEvidence): {
   status: LocalOrderStatus; filledQuantity: string; averagePrice: string | null;
@@ -87,12 +110,9 @@ export function mergeOrderEvidence(current: LocalOrderEvidence, incoming: OrderE
   validStatus(current.status);
   validStatus(incoming.status);
   const quantity = decimal(current.quantity, { positive: true });
-  const previous = decimal(current.filledQuantity);
-  const reported = incoming.filledQuantity === null ? previous : decimal(incoming.filledQuantity);
+  const { previous, reported, oldAverage, newAverage } = selectedAverages(current, incoming);
   const filledQuantity = selectedFilledQuantity(previous, reported);
   if (compareDecimal(filledQuantity, quantity) > 0) throw new Error('Executed quantity exceeds order quantity.');
-  const oldAverage = current.averagePrice == null ? null : decimal(current.averagePrice, { positive: true });
-  const newAverage = incoming.averagePrice == null ? null : decimal(incoming.averagePrice, { positive: true });
   return {
     status: mergedStatus(current.status, incoming.status, filledQuantity, quantity),
     filledQuantity,
