@@ -18,12 +18,24 @@ function mergedBase(base: unknown): ConfigurationObject {
 
 /** Object patches retain unedited siblings. Arrays are explicit replacements. */
 export function mergeConfiguration(base: unknown, patch: unknown, depth = 0): unknown {
-  if (depth > 16) throw new Error('Configuration exceeds the nesting limit.');
-  if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) return structuredClone(patch);
+  assertMergeDepth(depth);
+  if (isAtomicPatch(patch)) return structuredClone(patch);
   const merged = mergedBase(base);
+  applyPatchEntries(merged, patch as ConfigurationObject, depth);
+  return merged;
+}
+
+function assertMergeDepth(depth: number): void {
+  if (depth > 16) throw new Error('Configuration exceeds the nesting limit.');
+}
+
+function isAtomicPatch(patch: unknown): boolean {
+  return patch === null || typeof patch !== 'object' || Array.isArray(patch);
+}
+
+function applyPatchEntries(merged: ConfigurationObject, patch: ConfigurationObject, depth: number): void {
   for (const [key, value] of Object.entries(patch)) {
     assertMergeableKey(key);
     merged[key] = mergeConfiguration(merged[key], value, depth + 1);
   }
-  return merged;
 }
