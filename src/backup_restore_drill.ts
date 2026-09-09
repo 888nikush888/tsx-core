@@ -34,7 +34,7 @@ function workerArguments(artifact: string, root: string, nonce: string, expected
   return [...loader, worker, artifact, root, nonce, expected];
 }
 
-async function runWorker(artifact: string, root: string, nonce: string, expected: string): Promise<unknown> {
+function runWorker(artifact: string, root: string, nonce: string, expected: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, workerArguments(artifact, root, nonce, expected), {
       cwd: root, env: isolatedEnvironment(root), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
@@ -61,15 +61,39 @@ async function runWorker(artifact: string, root: string, nonce: string, expected
   });
 }
 
-function receipt(value: any, nonce: string, hash: string, started: number): BackupRestoreDrillProof {
-  const proof = value?.proof;
-  if (value?.nonce !== nonce || proof?.artifactSha256 !== hash || proof?.runtimeDisabled !== true
-    || typeof proof.artifactCreatedAt !== 'string' || !Number.isFinite(Date.parse(proof.artifactCreatedAt))
-    || proof.isolation !== 'temporary-child-network-apis-disabled' || proof.osSandbox !== false
-    || !Number.isSafeInteger(proof.performedAt) || proof.performedAt < started || proof.performedAt > Date.now()) {
-    throw new Error('Restore drill receipt does not match the performed isolated operation.');
-  }
-  return proof;
+function proofIdentityMatches(proof: BackupRestoreDrillProof, hash: string): boolean {
+  return proof.artifactSha256 === hash && proof.runtimeDisabled === true
+    && proof.isolation === 'temporary-child-network-apis-disabled' && proof.osSandbox === false;
+}
+
+function proofTimeMatches(proof: BackupRestoreDrillProof, started: number): boolean {
+  if (typeof proof.artifactCreatedAt !== 'string') return false;
+  if (!Number.isFinite(Date.parse(proof.artifactCreatedAt))) return false;
+  if (!Number.isSafeInteger(proof.performedAt)) return false;
+  return proof.performedAt >= started && proof.performedAt <= Date.now();
+}
+
+function receiptContainer(value: unknown): { nonce: unknown; proof: unknown } {
+  if (typeof value !== 'object' || value === null) throw new Error('Restore drill receipt does not match the performed isolated operation.');
+  return value as { nonce: unknown; proof: unknown };
+}
+
+function assertReceiptNonce(container: { nonce: unknown }, nonce: string): void {
+  if (container.nonce !== nonce) throw new Error('Restore drill receipt does not match the performed isolated operation.');
+}
+
+function assertReceiptProof(proof: unknown, hash: string, started: number): BackupRestoreDrillProof {
+  if (typeof proof !== 'object' || proof === null) throw new Error('Restore drill receipt does not match the performed isolated operation.');
+  const candidate = proof as BackupRestoreDrillProof;
+  if (!proofIdentityMatches(candidate, hash)) throw new Error('Restore drill receipt does not match the performed isolated operation.');
+  if (!proofTimeMatches(candidate, started)) throw new Error('Restore drill receipt does not match the performed isolated operation.');
+  return candidate;
+}
+
+function receipt(value: unknown, nonce: string, hash: string, started: number): BackupRestoreDrillProof {
+  const container = receiptContainer(value);
+  assertReceiptNonce(container, nonce);
+  return assertReceiptProof(container.proof, hash, started);
 }
 
 async function removeDrillDirectory(root: string, temporary: string): Promise<void> {
