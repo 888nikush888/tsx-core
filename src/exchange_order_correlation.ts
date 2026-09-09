@@ -21,32 +21,52 @@ function namespaceMatches(local: LocalCorrelationOrder, remote: RemoteIdentity):
   return remote.symbol === local.symbol;
 }
 
-function exactIdentity(localOrders: LocalCorrelationOrder[], remote: RemoteIdentity): LocalCorrelationOrder | undefined {
+function clientIdentityConflicts(byClient: LocalCorrelationOrder, remote: RemoteIdentity): boolean {
+  return Boolean((byClient.exchange_order_id && byClient.exchange_order_id !== remote.exchangeOrderId)
+    || (remote.symbol !== undefined && remote.symbol !== byClient.symbol)
+    || (byClient.provider_symbol && remote.providerSymbol !== undefined && byClient.provider_symbol !== remote.providerSymbol));
+}
+
+function clientIdentityMatch(localOrders: LocalCorrelationOrder[], remote: RemoteIdentity): LocalCorrelationOrder | undefined {
   const byClient = localOrders.find(local => local.client_order_id === remote.clientOrderId);
-  if (byClient) {
-    if ((byClient.exchange_order_id && byClient.exchange_order_id !== remote.exchangeOrderId)
-      || (remote.symbol !== undefined && remote.symbol !== byClient.symbol)
-      || (byClient.provider_symbol && remote.providerSymbol !== undefined && byClient.provider_symbol !== remote.providerSymbol)) {
-      throw new Error('Remote order client identity conflicts with its exchange identity or symbol namespace.');
-    }
-    return byClient;
+  if (!byClient) return undefined;
+  if (clientIdentityConflicts(byClient, remote)) {
+    throw new Error('Remote order client identity conflicts with its exchange identity or symbol namespace.');
   }
+  return byClient;
+}
+
+function exchangeIdentityMatch(localOrders: LocalCorrelationOrder[], remote: RemoteIdentity): LocalCorrelationOrder | undefined {
   const byExchange = localOrders.filter(local => local.exchange_order_id === remote.exchangeOrderId && namespaceMatches(local, remote));
   if (byExchange.length > 1) throw new Error('Remote exchange identity maps to multiple local orders.');
-  const match = byExchange[0];
+  return byExchange[0];
+}
+
+function exactIdentity(localOrders: LocalCorrelationOrder[], remote: RemoteIdentity): LocalCorrelationOrder | undefined {
+  const byClient = clientIdentityMatch(localOrders, remote);
+  if (byClient) return byClient;
+  const match = exchangeIdentityMatch(localOrders, remote);
   if (match && remote.clientOrderId !== null && remote.clientOrderId !== match.client_order_id) {
     throw new Error('Remote exchange identity has a conflicting provider client identifier.');
   }
   return match;
 }
 
+function ownedOrderSemanticsMatch(local: LocalCorrelationOrder, remote: ExchangeOrderSnapshot): boolean {
+  return remote.side === local.side && remote.reduceOnly === (local.reduce_only === 1)
+    && compareDecimal(remote.quantity, local.quantity) === 0;
+}
+
+function ownedStopTriggerMatches(local: LocalCorrelationOrder, remote: ExchangeOrderSnapshot): boolean {
+  return local.role !== 'stop_loss' || (remote.triggerPrice !== null && local.trigger_price !== null
+    && compareDecimal(remote.triggerPrice, local.trigger_price) === 0);
+}
+
 function validateOwnedOrder(local: LocalCorrelationOrder, remote: ExchangeOrderSnapshot): void {
-  if (remote.side !== local.side || remote.reduceOnly !== (local.reduce_only === 1)
-    || compareDecimal(remote.quantity, local.quantity) !== 0) {
+  if (!ownedOrderSemanticsMatch(local, remote)) {
     throw new Error('Remote order semantics conflict with the managed order.');
   }
-  if (local.role === 'stop_loss' && (remote.triggerPrice === null || local.trigger_price === null
-    || compareDecimal(remote.triggerPrice, local.trigger_price) !== 0)) {
+  if (!ownedStopTriggerMatches(local, remote)) {
     throw new Error('Remote protective trigger conflicts with the managed stop.');
   }
 }
