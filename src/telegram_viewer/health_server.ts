@@ -15,6 +15,22 @@ async function expectedToken(provider: TokenProvider): Promise<string> {
   return typeof provider === 'function' ? await provider() : provider;
 }
 
+async function serveViewerStatus(
+  response: http.ServerResponse,
+  status: Record<string, unknown>,
+  serviceToken: TokenProvider,
+  authorization: unknown,
+): Promise<void> {
+  const match = /^Bearer ([A-Za-z0-9_-]{20,256})$/.exec(String(authorization || ''));
+  const expected = await expectedToken(serviceToken);
+  if (!constantTimeStringEqual(expected, match?.[1])) {
+    response.setHeader('WWW-Authenticate', 'Bearer realm="tsx-telegram-viewer"');
+    send(response, 401, { error: 'Authentication required.' });
+    return;
+  }
+  send(response, 200, status);
+}
+
 export function startTelegramViewerHealthServer(options: {
   host?: string;
   port?: number;
@@ -22,7 +38,7 @@ export function startTelegramViewerHealthServer(options: {
   status: () => Record<string, unknown>;
 }): http.Server {
   const server = http.createServer((request, response) => {
-    void (async () => {
+    (async () => {
       if (request.method !== 'GET') {
         response.setHeader('Allow', 'GET');
         send(response, 405, { error: 'Method not allowed.' });
@@ -39,14 +55,7 @@ export function startTelegramViewerHealthServer(options: {
         return;
       }
       if (pathname === '/status') {
-        const match = /^Bearer ([A-Za-z0-9_-]{20,256})$/.exec(String(request.headers.authorization || ''));
-        const expected = await expectedToken(options.serviceToken);
-        if (!constantTimeStringEqual(expected, match?.[1])) {
-          response.setHeader('WWW-Authenticate', 'Bearer realm="tsx-telegram-viewer"');
-          send(response, 401, { error: 'Authentication required.' });
-          return;
-        }
-        send(response, 200, status);
+        await serveViewerStatus(response, status, options.serviceToken, request.headers.authorization);
         return;
       }
       send(response, 404, { error: 'Not found.' });
