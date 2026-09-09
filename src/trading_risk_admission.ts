@@ -57,7 +57,7 @@ function assertDailyBudget(budget: string, ledgerPnl: MoneyValue, unrealizedPnl:
     'Account current loss plus proved current commitments exceeds the daily-loss budget.');
 }
 
-async function candidateReservation(account: FxAccount, plan: TradingPlan, market: TradingMarketSnapshot, reportingCurrency: string) {
+function candidateReservation(account: FxAccount, plan: TradingPlan, market: TradingMarketSnapshot, reportingCurrency: string) {
   const entry = plan.orders.find(order => order.role === 'entry');
   if (entry?.orderType !== 'limit') unavailable('entry has no bounded executable price.');
   return calculateFxRiskReservation(account, { side: plan.side, ownedQuantity: '0', averageEntryPrice: null, markPrice: null,
