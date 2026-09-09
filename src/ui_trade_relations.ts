@@ -53,11 +53,11 @@ async function moneyRelationEvidence(row: Record<string, unknown>): Promise<unkn
   catch (error) { return { ...row, valuationStatus: 'unresolved', valuationReason: String(error).slice(0, 2000), originalUnverified: true }; }
 }
 
-async function relationEvidence(kind: UiTradeRelation, row: Record<string, unknown>): Promise<unknown> {
+function relationEvidence(kind: UiTradeRelation, row: Record<string, unknown>): Promise<unknown> {
   if (kind === 'money') return moneyRelationEvidence(row);
-  if (kind === 'events') return eventEvidence(row);
-  if (kind === 'orders') return orderEvidence(row);
-  return redactReview({ ...row });
+  if (kind === 'events') return Promise.resolve(eventEvidence(row));
+  if (kind === 'orders') return Promise.resolve(orderEvidence(row));
+  return Promise.resolve(redactReview({ ...row }));
 }
 
 /** Relations are independently pageable; no raw account fingerprints, provider payloads or floating-point money. */
