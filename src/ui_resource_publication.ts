@@ -7,10 +7,10 @@ import { reviewHash } from './ui_change_review.js';
 
 type PublicationDependency = SignalContractVersion | TradingStrategyVersion | null;
 
-async function publicationDependency(resource: WorkflowResourceVersion): Promise<PublicationDependency> {
+function publicationDependency(resource: WorkflowResourceVersion): Promise<PublicationDependency> {
   if (resource.kind === 'strategy') return getTradingStrategyVersion(requireString(resource.configuration.strategyVersionId, 'Workflow strategyVersionId'));
   if (resource.kind === 'contract') return getSignalContractVersion(requireString(resource.configuration.contractVersionId, 'Workflow contractVersionId'));
-  return null;
+  return Promise.resolve(null);
 }
 
 function assertPublicationHashMatches(publication: { publicationHash: string }, expectedHash: unknown): void {
@@ -21,10 +21,10 @@ function assertDependencyAvailable(dependencyRequired: boolean, dependency: Publ
   if (dependencyRequired && !dependency) throw new Error('Referenced model is unavailable.');
 }
 
-async function publishableDependency(dependency: PublicationDependency, dependencyKind: string | null): Promise<PublicationDependency> {
-  if (!dependency) return dependency;
+function publishableDependency(dependency: PublicationDependency, dependencyKind: string | null): Promise<PublicationDependency> {
+  if (!dependency) return Promise.resolve(dependency);
   if (dependency.status === 'archived') throw new Error('Archived model cannot be published or reactivated.');
-  if (dependency.status !== 'draft') return dependency;
+  if (dependency.status !== 'draft') return Promise.resolve(dependency);
   return dependencyKind === 'strategy'
     ? publishTradingStrategyVersion(dependency.id) : publishSignalContractVersion(dependency.id);
 }
