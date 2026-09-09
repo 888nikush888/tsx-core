@@ -46,15 +46,19 @@ function assertManagedSecretBoundary(root: string, applicationRoot: string, conf
   assertSafeExactLeaf(root, applicationRoot);
 }
 
+function verifyNoSymlinkTraversal(canonical: string, root: string): void {
+  if (comparable(canonical) !== comparable(root)) {
+    throw new Error(`Factory reset path must not traverse a symbolic link or junction: ${root}`);
+  }
+}
+
 async function assertCanonicalMaterialized(root: string, applicationRoot: string, boundary: FactoryResetBoundary): Promise<string> {
   const stats = await fs.lstat(root);
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
     throw new Error(`Factory reset path must be a real directory: ${root}`);
   }
   const canonical = await fs.realpath(root);
-  if (comparable(canonical) !== comparable(root)) {
-    throw new Error(`Factory reset path must not traverse a symbolic link or junction: ${root}`);
-  }
+  verifyNoSymlinkTraversal(canonical, root);
   if (boundary.kind === 'application') {
     const canonicalApplicationRoot = await fs.realpath(applicationRoot);
     if (!isStrictDescendant(canonical, canonicalApplicationRoot)) {
