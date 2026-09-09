@@ -49,17 +49,27 @@ function recoveredEvidenceReset(
     completeness: 'unknown', reason: legacyCoverage ? 'legacy_coverage_unproved' : advanceReason };
 }
 
-async function alignEvidenceWindow(account: TradingAccount, previous: ExchangeHistoryCheckpoint, since: number, boundary?: number): Promise<ExchangeHistoryCheckpoint> {
-  const provenAdvance = evidenceWindowProvenAdvance(previous, since, boundary);
-  const legacyCoverage = evidenceWindowLegacyCoverage(previous);
-  if (since >= previous.baselineSince && !provenAdvance && !legacyCoverage) return previous;
-  const reset = recoveredEvidenceReset(previous, since, provenAdvance, legacyCoverage);
+function evidenceWindowCurrent(previous: ExchangeHistoryCheckpoint, since: number, provenAdvance: boolean, legacyCoverage: boolean): boolean {
+  return since >= previous.baselineSince && !provenAdvance && !legacyCoverage;
+}
+
+async function commitEvidenceReset(
+  account: TradingAccount, previous: ExchangeHistoryCheckpoint, reset: ExchangeHistoryCheckpoint,
+): Promise<void> {
   const result = await getDatabase().run(
     `UPDATE trading_history_checkpoints SET revision = ?, checkpoint_json = ?, updated_at = ?
      WHERE account_id = ? AND account_fingerprint = ? AND source = ? AND provider_symbol = ? AND revision = ?`,
     [reset.revision, JSON.stringify(reset), Date.now(), account.id, account.externalAccountId, previous.source, previous.providerSymbol ?? '', previous.revision],
   );
   if (result.changes !== 1) throw new Error('History checkpoint changed during earlier-obligation recovery.');
+}
+
+async function alignEvidenceWindow(account: TradingAccount, previous: ExchangeHistoryCheckpoint, since: number, boundary?: number): Promise<ExchangeHistoryCheckpoint> {
+  const provenAdvance = evidenceWindowProvenAdvance(previous, since, boundary);
+  const legacyCoverage = evidenceWindowLegacyCoverage(previous);
+  if (evidenceWindowCurrent(previous, since, provenAdvance, legacyCoverage)) return previous;
+  const reset = recoveredEvidenceReset(previous, since, provenAdvance, legacyCoverage);
+  await commitEvidenceReset(account, previous, reset);
   return reset;
 }
 
