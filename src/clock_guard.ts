@@ -39,30 +39,35 @@ function validatedClockLimit(maxDriftMilliseconds: number): number {
   return maxDriftMilliseconds;
 }
 
-function validatedClockBaseline(value: number, label: string): number {
+function validatedClockBaseline(value: number): number {
   if (!Number.isFinite(value)) {
     throw new TypeError('Clock sources must return finite millisecond values.');
   }
   return value;
 }
 
-function sourceDriftError(wall: number, monotonic: number, baselineMonotonic: number): string | null {
+interface ClockBaselines {
+  baselineWallMilliseconds: number;
+  baselineMonotonicMilliseconds: number;
+}
+
+function sourceDriftError(wall: number, monotonic: number, guard: ClockBaselines): string | null {
   if (!Number.isFinite(wall) || !Number.isFinite(monotonic)) {
     return 'A system clock source returned a non-finite value.';
   }
-  if (monotonic < baselineMonotonic) {
+  if (monotonic < guard.baselineMonotonicMilliseconds) {
     return 'The monotonic clock moved backwards.';
   }
   return null;
 }
 
-function measuredDrift(wall: number, monotonic: number, baselineWall: number, baselineMonotonic: number): number {
-  return Math.abs((wall - baselineWall) - (monotonic - baselineMonotonic));
+function measuredDrift(wall: number, monotonic: number, guard: ClockBaselines): number {
+  return Math.abs((wall - guard.baselineWallMilliseconds) - (monotonic - guard.baselineMonotonicMilliseconds));
 }
 
 export class ClockGuard implements ClockHealthMonitor {
-  private readonly baselineWallMilliseconds: number;
-  private readonly baselineMonotonicMilliseconds: number;
+  readonly baselineWallMilliseconds: number;
+  readonly baselineMonotonicMilliseconds: number;
   private latchedReason: string | null = null;
   private latchedDriftMilliseconds = 0;
 
@@ -72,18 +77,17 @@ export class ClockGuard implements ClockHealthMonitor {
     private readonly monotonicClock: () => number = () => performance.now(),
   ) {
     validatedClockLimit(maxDriftMilliseconds);
-    this.baselineWallMilliseconds = validatedClockBaseline(this.wallClock(), 'wall');
-    this.baselineMonotonicMilliseconds = validatedClockBaseline(this.monotonicClock(), 'monotonic');
+    this.baselineWallMilliseconds = validatedClockBaseline(this.wallClock());
+    this.baselineMonotonicMilliseconds = validatedClockBaseline(this.monotonicClock());
   }
 
   sample(): ClockHealthSnapshot {
     const wall = this.wallClock();
     const monotonic = this.monotonicClock();
     let driftMilliseconds = Number.POSITIVE_INFINITY;
-    let reason: string | null = sourceDriftError(wall, monotonic, this.baselineMonotonicMilliseconds);
-
-    if (!reason) {
-      driftMilliseconds = measuredDrift(wall, monotonic, this.baselineWallMilliseconds, this.baselineMonotonicMilliseconds);
+    let reason: string | null = sourceDriftError(wall, monotonic, this);
+    if (reason === null) {
+      driftMilliseconds = measuredDrift(wall, monotonic, this);
       if (driftMilliseconds > this.maxDriftMilliseconds) {
         reason = `System clock changed by ${Math.ceil(driftMilliseconds)}ms relative to the monotonic clock; limit is ${this.maxDriftMilliseconds}ms.`;
       }
