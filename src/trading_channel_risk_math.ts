@@ -4,6 +4,18 @@ import { compareRational, divideRational, multiplyRational, rationalFromDecimal 
 
 export type ChannelThreshold = 'reached' | 'not_reached' | 'uncertain';
 
+function gainReturnThreshold(lower: number, upper: number): ChannelThreshold {
+  if (lower >= 0) return 'reached';
+  if (upper < 0) return 'not_reached';
+  return 'uncertain';
+}
+
+function lossReturnThreshold(lower: number, upper: number): ChannelThreshold {
+  if (upper <= 0) return 'reached';
+  if (lower > 0) return 'not_reached';
+  return 'uncertain';
+}
+
 /** Compare actual PnL units; never truncate the percentage or reinterpret a loss's rounded sign. */
 export function channelReturnThreshold(value: MoneyValue, equity: string, threshold: string, loss = false): ChannelThreshold {
   const pnl = validateMoneyValue(value);
@@ -12,9 +24,8 @@ export function channelReturnThreshold(value: MoneyValue, equity: string, thresh
   if (loss) boundary.numerator = String(-BigInt(boundary.numerator));
   const lower = compareRational(pnl.exact ?? rationalFromDecimal(pnl.lower), boundary);
   const upper = compareRational(pnl.exact ?? rationalFromDecimal(pnl.upper), boundary);
-  if (loss ? upper <= 0 : lower >= 0) return 'reached';
-  if (loss ? lower > 0 : upper < 0) return 'not_reached';
-  return 'uncertain';
+  if (loss) return lossReturnThreshold(lower, upper);
+  return gainReturnThreshold(lower, upper);
 }
 
 /** Percentage is a derived presentation value; a failed representation never drives the decision. */
