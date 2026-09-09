@@ -1,15 +1,20 @@
 import { auditTrailFromEnvironment } from './audit_trail.js';
 import { loadEnv } from './env.js';
 
-async function main(): Promise<void> {
-  loadEnv();
-  const [command, confirmation] = process.argv.slice(2);
-  if (!['verify', 'replay'].includes(command || '')) {
+function parseAuditCommand(args: string[]): { command: 'verify' | 'replay'; confirmation: string | undefined } {
+  const [command, confirmation] = args;
+  if (command !== 'verify' && command !== 'replay') {
     throw new Error('Usage: npm run audit:verify OR npm run audit:replay -- --confirm-audit-replay');
   }
   if (command === 'replay' && confirmation !== '--confirm-audit-replay') {
     throw new Error('Audit replay requires --confirm-audit-replay.');
   }
+  return { command, confirmation };
+}
+
+async function main(): Promise<void> {
+  loadEnv();
+  const { command } = parseAuditCommand(process.argv.slice(2));
   const auditTrail = auditTrailFromEnvironment();
   await auditTrail.initialize();
   if (command === 'verify') {
@@ -22,7 +27,7 @@ async function main(): Promise<void> {
 
 try {
   await main();
-} catch (error: any) {
-  console.error(error.message);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 }
