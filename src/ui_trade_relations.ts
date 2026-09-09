@@ -67,7 +67,9 @@ export async function uiTradeRelationPage(intentId: string, kind: UiTradeRelatio
   const limit = Number(query.get('limit') || 40);
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error('Invalid trade relation page size.');
   const definition = RELATIONS[kind]; const filter = filterFingerprint({ intentId, kind, limit });
-  const cursor = decodeUiCursor(query.get('cursor'), filter);   const observedAt = cursor?.observedAt ?? Date.now();
+  const cursor = decodeUiCursor(query.get('cursor'), filter);
+  const observedAt = cursor?.observedAt ?? Date.now();
+  await Promise.resolve();
   return withDatabaseTransaction(database => relationPage(database, intentId, kind, definition, filter, observedAt, cursor, limit));
 }
 
