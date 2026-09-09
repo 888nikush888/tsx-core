@@ -21,10 +21,17 @@ function namespaceMatches(local: LocalCorrelationOrder, remote: RemoteIdentity):
   return remote.symbol === local.symbol;
 }
 
-function clientIdentityConflicts(byClient: LocalCorrelationOrder, remote: RemoteIdentity): boolean {
-  return Boolean((byClient.exchange_order_id && byClient.exchange_order_id !== remote.exchangeOrderId)
-    || (remote.symbol !== undefined && remote.symbol !== byClient.symbol)
+function exchangeIdentityConflicts(byClient: LocalCorrelationOrder, remote: RemoteIdentity): boolean {
+  return Boolean(byClient.exchange_order_id && byClient.exchange_order_id !== remote.exchangeOrderId);
+}
+
+function symbolNamespaceConflicts(byClient: LocalCorrelationOrder, remote: RemoteIdentity): boolean {
+  return Boolean((remote.symbol !== undefined && remote.symbol !== byClient.symbol)
     || (byClient.provider_symbol && remote.providerSymbol !== undefined && byClient.provider_symbol !== remote.providerSymbol));
+}
+
+function clientIdentityConflicts(byClient: LocalCorrelationOrder, remote: RemoteIdentity): boolean {
+  return exchangeIdentityConflicts(byClient, remote) || symbolNamespaceConflicts(byClient, remote);
 }
 
 function clientIdentityMatch(localOrders: LocalCorrelationOrder[], remote: RemoteIdentity): LocalCorrelationOrder | undefined {
