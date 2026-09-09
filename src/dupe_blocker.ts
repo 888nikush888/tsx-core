@@ -21,6 +21,23 @@ export function normalizeSignalXml(xmlString: string): string {
   return normalized;
 }
 
+type DuplicateMatch = NonNullable<Awaited<ReturnType<typeof findDuplicateSignal>>>;
+
+function duplicateMatchResult(match: DuplicateMatch, cooldownHours: number): { isDupe: boolean; reason: string; matchFile?: string } {
+  if (cooldownHours === 0) {
+    return {
+      isDupe: true,
+      reason: `Identisches Signal gefunden: ${match.matchFile} (Cooldown: permanent)`,
+      matchFile: match.matchFile
+    };
+  }
+  return {
+    isDupe: true,
+    reason: `Identisches Signal gefunden: ${match.matchFile} (vor ${match.ageHours}h, Cooldown: ${cooldownHours}h)`,
+    matchFile: match.matchFile
+  };
+}
+
 /**
  * Checks whether a signal is a duplicate of any existing signal in the database.
  */
@@ -41,20 +58,7 @@ export async function isDuplicateSignal(
   }
 
   const match = await findDuplicateSignal(normalizedNew, cooldownHours, currentSignalId, dedupeScope);
-  if (match?.isDupe) {
-    if (cooldownHours === 0) {
-      return {
-        isDupe: true,
-        reason: `Identisches Signal gefunden: ${match.matchFile} (Cooldown: permanent)`,
-        matchFile: match.matchFile
-      };
-    }
-    return {
-      isDupe: true,
-      reason: `Identisches Signal gefunden: ${match.matchFile} (vor ${match.ageHours}h, Cooldown: ${cooldownHours}h)`,
-      matchFile: match.matchFile
-    };
-  }
+  if (match?.isDupe) return duplicateMatchResult(match, cooldownHours);
 
   return { isDupe: false, reason: 'Kein Duplikat gefunden' };
 }
