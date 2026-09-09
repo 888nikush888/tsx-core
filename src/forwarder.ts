@@ -625,7 +625,7 @@ async function collectOperationalMetrics(
   };
 }
 
-async function invokeWithRetry(tdClient, query, signal: AbortSignal | null = null, maxAttempts = 3) {
+function invokeWithRetry(tdClient, query, signal: AbortSignal | null = null, maxAttempts = 3) {
   return invokeWithFloodWaitRetry(tdClient, query, {
     signal,
     maxAttempts,
