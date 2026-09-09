@@ -22,13 +22,17 @@ function isHex64(value: string): boolean {
   return /^[a-f0-9]{64}$/.test(value);
 }
 
+function bindingFingerprintsAreHex(current: FillAccountBinding): boolean {
+  return isHex64(current.external_account_id) && isHex64(current.credential_generation);
+}
+
 function assertBindingFingerprints(
   current: FillAccountBinding | undefined, account: TradingAccount,
 ): void {
   if (!current) throw new Error('FILL_QUANTITY_ACCOUNT_BINDING_CHANGED');
   if (current.external_account_id !== account.externalAccountId
     || current.credential_generation !== account.credentialGeneration
-    || !isHex64(current.external_account_id) || !isHex64(current.credential_generation)) {
+    || !bindingFingerprintsAreHex(current)) {
     throw new Error('FILL_QUANTITY_ACCOUNT_BINDING_CHANGED');
   }
 }
@@ -50,6 +54,10 @@ interface StoredFillJournal {
   identity_status: string; quantity: string;
 }
 
+function storedJournalStateMatches(stored: StoredFillJournal, fill: ExchangeFill): boolean {
+  return stored.identity_status === 'proven' && compareDecimal(stored.quantity, fill.quantity) === 0;
+}
+
 function assertStoredJournalMatches(
   account: TradingAccount, fill: ExchangeFill, proof: { key: string },
   stored: StoredFillJournal, normalization: { originalExecutionHash: string },
@@ -57,7 +65,7 @@ function assertStoredJournalMatches(
   if (stored.account_fingerprint !== account.externalAccountId || stored.remote_fill_key !== proof.key) {
     throw new Error('FILL_QUANTITY_ORIGINAL_BINDING_MISMATCH');
   }
-  if (stored.identity_status !== 'proven' || compareDecimal(stored.quantity, fill.quantity) !== 0) {
+  if (!storedJournalStateMatches(stored, fill)) {
     throw new Error('FILL_QUANTITY_ORIGINAL_BINDING_MISMATCH');
   }
   const originalHash = fillQuantityDigest('kraken-normalization-original-v1', JSON.parse(stored.raw_json));
