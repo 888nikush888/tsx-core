@@ -115,5 +115,28 @@ are closed here as documentation, not code churn.
 | DeepSource TYP-* / TYPECHECK (41) | Not a CI gate; no change | `.github/workflows/quality.yml` contains no mypy/bandit gate match; Python was verified locally via `ruff` plus `pytest` (550 passed, 994 subtests). Strict-typing notes alone do not prove a runtime fault. |
 | JS-0045 async-return notes | Interface-driven; no change | `tsc --noEmit` is clean and backend suites are green; async shapes are required by repository interfaces. No missing-`await` runtime fault was verified. |
 | JS-0357 used-before-defined | Hoisting-safe; no change | Sampled closures (e.g. `src/ui_restart_coordinator.ts:58`) only run after the later binding is assigned. |
-| Style bulk (JS-0323 `any`, JS-0339 non-null, JS-0116 async-without-await, JS-R1005 complexity) | Explicitly out of scope | Bulk rewrites would risk stability without a verified defect; local gates (`tsc`, `eslint --quiet`, tests) are green. |
+| Style bulk (JS-0323 `any`, JS-0339 non-null, JS-0116 async-without-await, JS-R1005 complexity) | Explicitly out of scope on 2026-09-08; see Batch 3 below | Bulk rewrites would risk stability without a verified defect; local gates (`tsc`, `eslint --quiet`, tests) are green. |
 | Trivy Go CVEs on `go 1.26.0` | Stale | Cloud revision predates the fix branch; the branch pins `go 1.26.6` (`monitoring/govulncheck/go.mod`). Closure belongs to a platform rescan after merge. |
+
+## Batch 3 — systematic cleanup (2026-09-09, 43 commits on PR #31)
+
+Scope change: fix platform-reported findings file-by-file instead of
+triaging only. Each fix below was verified with `tsc --noEmit`,
+`eslint --quiet`, the full backend suite (225 test files green) and the
+platform checks (DeepSource ×4, Codacy, Snyk) before pushing.
+
+| Batch | Commits | What changed |
+| --- | --- | --- |
+| MCP dispatch (`src/mcp_control_bridge.ts`) | `2ae2fc8`, `e4bad02`, `932cfd1`, `c87ab40`, `87f5be6` | Fail-closed `default` for unknown control actions; redundant `async` removed; switch → guarded table → prefix-routed small handlers (satisfies Codacy unsafe-dynamic-method AND DeepSource complexity). One new finding surfaced per push; each was fixed in the next commit. |
+| Scripts JS-0119/JS-0126 (10 files) | `70effca`, `cc5f9fc` | Uninitialized `let` first set to `= undefined` (DeepSource countered with JS-0126), then to `= null` after verifying no `!== undefined` semantics at each site (one site, `total` in `export_sonarcloud_findings.js`, kept bare `let` because the code distinguishes `undefined`). 8 findings resolved. |
+| Tests JS-0116/JS-0119 (32 files + suites) | `d1dc03f`, `b1b266e`, `f07dd68`, `8ea7749` | Null-initialization; de-async of awaited callbacks after verifying each call site awaits; one complexity-8 helper split. Two submitOrder doubles stay `async` (engine batches without intermediate await — sync throws would skip siblings; verified by test failure), one cancel double uses `Promise.resolve().then()`. |
+| Trading/runtime de-async | `cefc9f1`, `49d545d`, `a74842e` | Redundant `async` removed from sync-delegating helpers. `trading_web_control.ts` reverted: touching that 42-finding file attributes the whole file to the PR (file-level granularity). |
+| Scripts (`send_synthetic_alert.js`, `ui_model_parameters.ts`) | `747ebca` | `process.exit` → exitCode gate; string concat → template literal. |
+| Complexity-6 splits | `0edf542`, `e1217fd`, `caf1680`, `cb59048`, `3ca15de`, `dfb870a`, `09a5f69`, `87e2de0`, `2d6959d`, `b0c4d3b`, `27cd199`, `2f80f5b`, `8e8da47`, `1b7932b`, `a7eb0b4`, `73be2e8`, `df5cf96`, `83060ec`, `9b91be5`, `839427c`, `a7288be`, `ca46c52`, `413e13f`, `822054e`, `5b75a74` | One finding class per file, each verified green before the next push. New helper-level findings that surfaced mid-batch were fixed in follow-up commits on the same file. |
+| Non-null assertions | `eb63a6a` | `fallbackRank()` helper with explicit throw instead of `!`; hash helper hoisted. |
+| Missing-guard de-async | `bfe1167` | Owner-walk de-asynced after verifying `mutations.run` awaits; `!` replaced with explicit missing guards. |
+| Scope guardrails learned | `79d2b98` (`forwarder.ts`), `a74842e` (`trading_web_control.ts`) | High-load files (>40 findings) are reverted on touch and handled only as whole-file projects, never for single micro-fixes. |
+
+Batch-3 close-out state: PR #31 fully green on HEAD (DeepSource ×4,
+Codacy, Snyk); branch-local `tsc`, `eslint --quiet`, full suite
+(225 files), `git diff --check` all clean; working tree clean.
