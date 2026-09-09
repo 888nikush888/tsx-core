@@ -9,11 +9,15 @@ function incomplete(reason: string): never {
   throw new TradingRiskError('ACCOUNTING_INCOMPLETE', `Account accounting is incomplete: ${reason}`);
 }
 
+function assertFundingWindowFresh(evidence: TradingAccountingEvidence, since: number, now: number): void {
+  if (evidence.funding.since !== since || evidence.funding.until > evidence.observedAt
+    || now - evidence.funding.until > 60_000) incomplete('stale or wrong UTC funding window.');
+}
+
 export function assertAccountingFresh(evidence: TradingAccountingEvidence, now = Date.now()): void {
   const since = new Date(now).setUTCHours(0, 0, 0, 0);
-  if (evidence.observedAt > now + 1000 || now - evidence.observedAt > 60_000
-    || evidence.funding.since !== since || evidence.funding.until > evidence.observedAt
-    || now - evidence.funding.until > 60_000) incomplete('stale or wrong UTC funding window.');
+  if (evidence.observedAt > now + 1000 || now - evidence.observedAt > 60_000) incomplete('stale or wrong UTC funding window.');
+  assertFundingWindowFresh(evidence, since, now);
 }
 
 export async function assertPersistedMoneyReady(accountId: string): Promise<void> {
@@ -22,13 +26,7 @@ export async function assertPersistedMoneyReady(accountId: string): Promise<void
   if (ledger.valuationStatus !== 'valued') incomplete('unvalued or conflicting persisted monetary events.');
 }
 
-/** Monetary readiness. Protection/exit never depend on success; reconciliation may capture failure as unresolved risk. */
-export async function assertEntryAccountingReady(account: TradingAccount, snapshot: TradingAccountSnapshot): Promise<TradingAccountingEvidence> {
-  if (!snapshot.accounting) incomplete('missing reporting and funding evidence.');
-  let evidence: TradingAccountingEvidence;
-  try { evidence = validateAccountingEvidence(snapshot.accounting, snapshot.fundingPnlToday, snapshot.fundingPnlTodayValue); }
-  catch { incomplete('invalid reporting or funding contract.'); }
-  assertAccountingFresh(evidence);
+async function bindAccountFundingEvidence(account: TradingAccount, evidence: TradingAccountingEvidence): Promise<void> {
   try {
     await bindAccountReportingCurrency({ accountId: account.id, accountFingerprint: evidence.accountFingerprint,
       profile: account.exchange, reportingCurrency: evidence.reportingCurrency, settlementAssets: evidence.settlementAssets,
@@ -40,11 +38,25 @@ export async function assertEntryAccountingReady(account: TradingAccount, snapsh
       amount: event.amount, asset: event.asset,
     });
   } catch { incomplete('currency binding or event conflict.'); }
-  if (evidence.unrealizedPnlSemantics !== 'price_only') incomplete('provider unrealized PnL semantics remain unverified.');
+}
+
+async function assertPersistedFundingObservation(account: TradingAccount, evidence: TradingAccountingEvidence): Promise<void> {
   if (evidence.funding.observation) {
     try { await assertFundingObservationCurrent(account, evidence.funding.observation); }
     catch { incomplete('persisted funding observation is stale or unresolved.'); }
   }
+}
+
+/** Monetary readiness. Protection/exit never depend on success; reconciliation may capture failure as unresolved risk. */
+export async function assertEntryAccountingReady(account: TradingAccount, snapshot: TradingAccountSnapshot): Promise<TradingAccountingEvidence> {
+  if (!snapshot.accounting) incomplete('missing reporting and funding evidence.');
+  let evidence: TradingAccountingEvidence;
+  try { evidence = validateAccountingEvidence(snapshot.accounting, snapshot.fundingPnlToday, snapshot.fundingPnlTodayValue); }
+  catch { incomplete('invalid reporting or funding contract.'); }
+  assertAccountingFresh(evidence);
+  await bindAccountFundingEvidence(account, evidence);
+  if (evidence.unrealizedPnlSemantics !== 'price_only') incomplete('provider unrealized PnL semantics remain unverified.');
+  await assertPersistedFundingObservation(account, evidence);
   if (fundingTotalValue(evidence.funding, evidence.reportingCurrency) === null) incomplete('funding window or event-time valuation is unresolved.');
   await assertPersistedMoneyReady(account.id);
   return evidence;
