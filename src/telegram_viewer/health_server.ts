@@ -26,6 +26,10 @@ function serveReadinessProbe(response: http.ServerResponse, status: Record<strin
   send(response, status.ready === true ? 200 : 503, { ready: status.ready === true });
 }
 
+function viewerRequestPathname(request: http.IncomingMessage): string {
+  return new URL(request.url || '/', 'https://viewer.local').pathname;
+}
+
 async function serveViewerStatus(
   response: http.ServerResponse,
   status: Record<string, unknown>,
@@ -55,7 +59,7 @@ export function startTelegramViewerHealthServer(options: {
         send(response, 405, { error: 'Method not allowed.' });
         return;
       }
-      const pathname = new URL(request.url || '/', 'https://viewer.local').pathname;
+      const pathname = viewerRequestPathname(request);
       const status = options.status();
       if (HEALTH_PATHS.has(pathname)) {
         serveHealthProbe(response, status);
