@@ -36,6 +36,10 @@ function operationRequestHashMatches(operation: OriginalPlanOperation): boolean 
   return hash(operation.request_json) === operation.request_hash;
 }
 
+function operationJournalMatches(operation: OriginalPlanOperation, account: OrderIdentityAccount): boolean {
+  return operationJournalIdentityMatches(operation, account) && operationRequestHashMatches(operation);
+}
+
 function operationExpectedOrdersMatch(
   expected: unknown, ids: string[],
   requests: Awaited<ReturnType<typeof prepareProtectedOrderIdentityRequests>>, original: unknown,
@@ -50,8 +54,7 @@ async function operationMatchesPlan(operation: OriginalPlanOperation, account: O
   const entry = plan.orders.find(order => order.role === 'entry');
   const stop = plan.orders.find(order => order.role === 'stop_loss');
   if (!entry || !stop) return false;
-  if (!operationJournalIdentityMatches(operation, account)) return false;
-  if (!operationRequestHashMatches(operation)) return false;
+  if (!operationJournalMatches(operation, account)) return false;
   const ids = [entry.clientOrderId, stop.clientOrderId].sort(codePointOrder);
   if (operation.logical_key !== hash(JSON.stringify(['protected_entry', intentId, ids]))) return false;
   const expected = JSON.parse(operation.expected_orders_json);
