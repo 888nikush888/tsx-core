@@ -15,6 +15,17 @@ async function expectedToken(provider: TokenProvider): Promise<string> {
   return typeof provider === 'function' ? await provider() : provider;
 }
 
+const HEALTH_PATHS: ReadonlySet<string> = new Set(['/healthz', '/health']);
+const READINESS_PATHS: ReadonlySet<string> = new Set(['/readyz', '/ready']);
+
+function serveHealthProbe(response: http.ServerResponse, status: Record<string, unknown>): void {
+  send(response, status.healthy === false ? 503 : 200, { healthy: status.healthy !== false });
+}
+
+function serveReadinessProbe(response: http.ServerResponse, status: Record<string, unknown>): void {
+  send(response, status.ready === true ? 200 : 503, { ready: status.ready === true });
+}
+
 async function serveViewerStatus(
   response: http.ServerResponse,
   status: Record<string, unknown>,
@@ -46,12 +57,12 @@ export function startTelegramViewerHealthServer(options: {
       }
       const pathname = new URL(request.url || '/', 'https://viewer.local').pathname;
       const status = options.status();
-      if (pathname === '/healthz' || pathname === '/health') {
-        send(response, status.healthy === false ? 503 : 200, { healthy: status.healthy !== false });
+      if (HEALTH_PATHS.has(pathname)) {
+        serveHealthProbe(response, status);
         return;
       }
-      if (pathname === '/readyz' || pathname === '/ready') {
-        send(response, status.ready === true ? 200 : 503, { ready: status.ready === true });
+      if (READINESS_PATHS.has(pathname)) {
+        serveReadinessProbe(response, status);
         return;
       }
       if (pathname === '/status') {
