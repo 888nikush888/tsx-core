@@ -184,7 +184,7 @@ async function writeWorkflowBuilderHistory(history: WorkflowHistoryState, now: n
   const undo = workflowHistoryStack(history.undo, 'undo');
   const redo = workflowHistoryStack(history.redo, 'redo');
   const result = await getDatabase().run(
-    `UPDATE workflow_builder_history SET undo_json = ?, redo_json = ?, updated_at = ? WHERE singleton_id = 1`,
+    'UPDATE workflow_builder_history SET undo_json = ?, redo_json = ?, updated_at = ? WHERE singleton_id = 1',
     [normalizedJson(undo), normalizedJson(redo), now],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Workflow builder history state is missing.');
@@ -605,7 +605,7 @@ export async function publishWorkflowResource(id: string, now = Date.now(), base
   validateResourceConfiguration(existing.kind, parseJson(existing.configuration_json, 'workflow resource configuration'));
   if (baseEditRevision !== undefined && (!Number.isSafeInteger(baseEditRevision) || baseEditRevision < 0)) throw new Error('Invalid resource edit revision.');
   const changed = await getDatabase().run(
-    `UPDATE workflow_resource_versions SET status = 'published', published_at = ? WHERE id = ? AND status = 'draft' AND (? IS NULL OR edit_revision = ?)`,
+    'UPDATE workflow_resource_versions SET status = \'published\', published_at = ? WHERE id = ? AND status = \'draft\' AND (? IS NULL OR edit_revision = ?)',
     [now, id, baseEditRevision ?? null, baseEditRevision ?? null],
   );
   if (changed.changes !== 1) throw new Error('Resource draft changed. Reload and compare before publication.');
@@ -619,7 +619,7 @@ export function archiveWorkflowResource(id: string, now = Date.now()): Promise<W
       throw new Error('The active workflow must stop referencing this resource before it can be archived.');
     }
     const result = await getDatabase().run(
-      `UPDATE workflow_resource_versions SET status = 'archived', archived_at = ? WHERE id = ? AND status = 'published'`,
+      'UPDATE workflow_resource_versions SET status = \'archived\', archived_at = ? WHERE id = ? AND status = \'published\'',
       [now, id],
     );
     if (Number(result.changes || 0) !== 1) throw new Error('Only a published workflow resource can be archived.');
@@ -667,7 +667,7 @@ export function archiveWorkflowResourceFamily(
 
 export async function deleteWorkflowResourceDraft(id: string): Promise<boolean> {
   const result = await getDatabase().run(
-    `DELETE FROM workflow_resource_versions WHERE id = ? AND status = 'draft'`, [id],
+    'DELETE FROM workflow_resource_versions WHERE id = ? AND status = \'draft\'', [id],
   );
   return Number(result.changes || 0) === 1;
 }
@@ -1331,7 +1331,7 @@ async function activateCompiledWorkflowRevision(input: {
   const definitionSha256 = sha256({ graph: input.graph, compiled: compiledPayload });
   if (input.activeId) {
     const archived = await getDatabase().run(
-      `UPDATE workflow_revisions SET status = 'archived', archived_at = ? WHERE id = ? AND status = 'active'`,
+      'UPDATE workflow_revisions SET status = \'archived\', archived_at = ? WHERE id = ? AND status = \'active\'',
       [input.now, input.activeId],
     );
     if (Number(archived.changes || 0) !== 1) throw new Error('WORKFLOW_REVISION_CONFLICT');
@@ -2115,7 +2115,7 @@ async function refreshWorkflowSignalRunFromFallback(fallbackRunId: string, now: 
   const selected = runs.some(run => run.status === 'selected');
   const status = fallbackRunStatus(probing, blocked, selected);
   await getDatabase().run(
-    `UPDATE workflow_signal_runs SET status = ?, result_json = ?, completed_at = ? WHERE id = ?`,
+    'UPDATE workflow_signal_runs SET status = ?, result_json = ?, completed_at = ? WHERE id = ?',
     [status, normalizedJson({ ...existing, fallbackRuns: runs.map(run => ({
       routeGroupKey: run.route_group_key,
       status: run.status,
@@ -2352,7 +2352,7 @@ async function promoteFallbackCandidate(
   );
   if (promoted.status === 'pending') {
     await getDatabase().run(
-      `UPDATE trading_fallback_runs SET current_rank = ?, updated_at = ? WHERE id = ?`,
+      'UPDATE trading_fallback_runs SET current_rank = ?, updated_at = ? WHERE id = ?',
       [next.rank, now, current.fallback_run_id],
     );
     await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);

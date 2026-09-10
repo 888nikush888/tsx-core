@@ -3801,7 +3801,7 @@ export async function saveMediaGroupBuffer(groupId: string, fromChatId: string, 
 
 export async function removeMediaGroupBuffer(groupId: string): Promise<void> {
   const database = getDb();
-  await database.run(`DELETE FROM media_group_buffer WHERE group_id = ?`, [groupId]);
+  await database.run('DELETE FROM media_group_buffer WHERE group_id = ?', [groupId]);
 }
 
 export async function getMediaGroupBuffers(): Promise<Record<string, any>> {
@@ -3951,7 +3951,7 @@ export function clearDb(): Promise<DatabaseClearResult> {
 
 export async function deleteIncomingMessage(id: number): Promise<void> {
   const database = getDb();
-  await database.run(`DELETE FROM incoming_messages WHERE id = ?`, [id]);
+  await database.run('DELETE FROM incoming_messages WHERE id = ?', [id]);
 }
 
 export class SignalReferencedError extends Error {
@@ -3971,7 +3971,7 @@ export function isForeignKeyConstraint(error: unknown): boolean {
 export async function deleteProcessedSignal(id: string): Promise<void> {
   const database = getDb();
   try {
-    await database.run(`DELETE FROM signals WHERE id = ?`, [id]);
+    await database.run('DELETE FROM signals WHERE id = ?', [id]);
   } catch (error) {
     if (isForeignKeyConstraint(error)) throw new SignalReferencedError();
     throw error;

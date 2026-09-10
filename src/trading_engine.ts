@@ -2166,7 +2166,7 @@ export class TradingEngine {
       await transaction(async () => {
         const safety = await this.collectLifecycleProof(account, remote, 'tradeClosed', local.intent_id);
         await getDatabase().run(
-          `UPDATE trading_positions SET status = 'closed', quantity = '0', closed_at = ?, updated_at = ? WHERE id = ?`,
+          'UPDATE trading_positions SET status = \'closed\', quantity = \'0\', closed_at = ?, updated_at = ? WHERE id = ?',
           [remote.observedAt, remote.observedAt, local.id]);
         const intent = await getTradingIntent(local.intent_id);
         if (intent && !['completed', 'blocked', 'failed'].includes(intent.status)) {
