@@ -66,7 +66,7 @@ function candidateReservation(account: FxAccount, plan: TradingPlan, market: Tra
       filledQuantity: '0', price: entry.price, operationUnresolved: false }] }, market.observedAt);
 }
 
-export async function createRiskAdmission(input: { account: TradingAccount; intentId: string; plan: TradingPlan;
+export function createRiskAdmission(input: { account: TradingAccount; intentId: string; plan: TradingPlan;
   market: TradingMarketSnapshot; snapshot: TradingAccountSnapshot; budget: string; epoch: string;
   sizingFx?: StoredFxConversion }): Promise<RiskAdmissionProof> {
   const fxAccount = snapshotFxAccount(input.account);

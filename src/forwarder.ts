@@ -625,7 +625,7 @@ async function collectOperationalMetrics(
   };
 }
 
-async function invokeWithRetry(tdClient, query, signal: AbortSignal | null = null, maxAttempts = 3) {
+function invokeWithRetry(tdClient, query, signal: AbortSignal | null = null, maxAttempts = 3) {
   return invokeWithFloodWaitRetry(tdClient, query, {
     signal,
     maxAttempts,
@@ -764,7 +764,7 @@ async function forwardRawMessage(message, config, context: OutboxExecutionContex
     const response = await invokeWithRetry(client, {
       _: 'forwardMessages', chat_id: pinnedTargetChatId(context), from_chat_id: message.chat_id, message_ids: [message.id],
       options: { _: 'sendMessageOptions' }, as_album: false,
-      send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
+      send_copy: Boolean(config.forwardOptions?.sendCopy), remove_caption: Boolean(config.forwardOptions?.removeCaption)
     }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
     addLog(`[SUCCESS] Paket ${message.id} erfolgreich übertragen und bestätigt.`);
@@ -1154,7 +1154,7 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
     const response = await invokeWithRetry(client, {
       _: 'forwardMessages', chat_id: pinnedTargetChatId(context), from_chat_id: g.fromChatId, message_ids: ids,
       options: { _: 'sendMessageOptions' }, as_album: true,
-      send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
+      send_copy: Boolean(config.forwardOptions?.sendCopy), remove_caption: Boolean(config.forwardOptions?.removeCaption)
     }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
     addLog(`[SUCCESS] Album-Paketgruppe ${gId} erfolgreich übertragen und bestätigt.`);
@@ -1267,7 +1267,7 @@ async function preloadTelegramChats(): Promise<void> {
 
 function attachTelegramUpdateHandler(config: Config): void {
   client.on('update', update => {
-    void handleUpdate(update, config).catch(error => {
+    handleUpdate(update, config).catch(error => {
       addLog(`[ERROR] Telegram update handling failed: ${unknownErrorMessage(error)}`);
     });
   });
@@ -1991,13 +1991,13 @@ async function startDashboardRuntime(
       getMetricsHistory: () => {
         return metricsTracker ? metricsTracker.getHistory() : [];
       },
-      getOutboxTasks: async (statuses) => {
+      getOutboxTasks: (statuses) => {
         return listOutboxTasks(statuses as OutboxStatus[] | undefined, 1000);
       },
-      retryOutboxTask: async (taskId) => {
+      retryOutboxTask: (taskId) => {
         return retryPersistedTask(taskId, runtime.config);
       },
-      acknowledgeOutboxTask: async (taskId, reason) => {
+      acknowledgeOutboxTask: (taskId, reason) => {
         return acknowledgeOutboxTask(taskId, reason);
       },
       getTelegramLoginState: () => telegramLogin.snapshot(),
@@ -2018,13 +2018,13 @@ async function startDashboardRuntime(
         retention: retentionScheduler?.getStatus() ?? null,
         audit: auditTrail?.snapshot() ?? null,
       }),
-      runBackupNow: async () => {
+      runBackupNow: () => {
         if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
         return backupScheduler.runNow();
       },
       listBackups: listAvailableBackups,
       verifyBackup: (artifactName) => inspectBackupArtifact(resolvedBackupArtifact(artifactName)),
-      runBackupDrill: async (artifactName) => {
+      runBackupDrill: (artifactName) => {
         if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
         return backupScheduler.runRestoreDrill(resolvedBackupArtifact(artifactName));
       },

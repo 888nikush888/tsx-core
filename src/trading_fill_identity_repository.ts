@@ -53,7 +53,7 @@ function bybitPerpetualSymbol(symbol: string, settlementAsset: unknown): boolean
   // Pinned CCXT4.5.75: spot has no ':'; futures/options always append an expiry suffix.
   // This classifies the exact ORIGINAL unified symbol. It never manufactures the native market ID.
   const match = /^([A-Z0-9]+)\/(USDT|USDC):(USDT|USDC)$/.exec(symbol);
-  return !!match && match[2] === match[3] && match[3] === settlementAsset;
+  return Boolean(match) && match[2] === match[3] && match[3] === settlementAsset;
 }
 
 function ackMatches(value: unknown, row: FillRow): boolean {
@@ -125,7 +125,7 @@ async function legacyProof(account: TradingAccount, row: FillRow): Promise<Retur
 }
 
 /** Additive metadata only. Invalid originals are not repaired using current credentials or an incoming candidate. */
-export async function bindLegacyFillIdentity(account: TradingAccount, fillId: string): Promise<boolean> {
+export function bindLegacyFillIdentity(account: TradingAccount, fillId: string): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     const row = await getDatabase().get<FillRow>(`${SELECT_FILLS} WHERE fills.id=? AND fills.account_id=?`, [fillId, account.id]);
     if (row?.identity_status !== 'legacy_unresolved' || row.remote_fill_key !== null) return false;
@@ -145,7 +145,7 @@ interface BackfillCursor { id: string; filled_at: number }
 const backfillCursors = new WeakMap<object, Map<string, BackfillCursor>>();
 const BACKFILL_ATTEMPTS = 500;
 
-async function nextBackfillRows(accountId: string, cursor: BackfillCursor | undefined): Promise<BackfillCursor[]> {
+function nextBackfillRows(accountId: string, cursor: BackfillCursor | undefined): Promise<BackfillCursor[]> {
   const condition = cursor ? ' AND (filled_at>? OR (filled_at=? AND id>?))' : '';
   const parameters = cursor ? [accountId, cursor.filled_at, cursor.filled_at, cursor.id] : [accountId];
   return getDatabase().all<BackfillCursor[]>(`SELECT id,filled_at FROM trading_fills

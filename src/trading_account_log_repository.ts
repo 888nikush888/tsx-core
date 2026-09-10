@@ -27,9 +27,9 @@ export async function storedAccountLogCheckpoint(account: TradingAccount): Promi
   await assertBinding(account, checkpoint);
   return checkpoint;
 }
-export async function accountLogCheckpoint(account: TradingAccount): Promise<AccountLogCheckpoint | null> {
+export function accountLogCheckpoint(account: TradingAccount): Promise<AccountLogCheckpoint | null> {
   const source = accountLogSource(account.exchange);
-  if (!source || !account.externalAccountId || !account.credentialGeneration) return null;
+  if (!source || !account.externalAccountId || !account.credentialGeneration) return Promise.resolve(null);
   return withDatabaseTransaction(async () => {
     const now = Date.now(), today = new Date(now).setUTCHours(0, 0, 0, 0);
     const since = await requiredSince(account.id, today);

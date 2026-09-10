@@ -111,7 +111,7 @@ async function assertNoContradictedOriginal(account: FxAccount, context: FxConte
     if (compareDecimal(decodeReceipt(account, row, context).value, receipt.value) !== 0) invalidFx('QUOTE_CONFLICT');
   }
 }
-export async function persistFxConversion(account: FxAccount, baseAsset: string, quoteAsset: string, at: number): Promise<StoredFxConversion> {
+export function persistFxConversion(account: FxAccount, baseAsset: string, quoteAsset: string, at: number): Promise<StoredFxConversion> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async () => {
     const context = await requireFxAccountContext(account), rows = await asOfReceipts(account, context, at);
@@ -129,7 +129,7 @@ export async function persistFxConversion(account: FxAccount, baseAsset: string,
   });
 }
 /** Recomputes the pinned recipe from retained originals; a self-consistent public hash is not authorization. */
-export async function readFxConversion(account: FxAccount, id: string): Promise<StoredFxConversion> {
+export function readFxConversion(account: FxAccount, id: string): Promise<StoredFxConversion> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async () => {
     const context = await requireFxAccountContext(account);

@@ -91,7 +91,7 @@ async function expectedOrders(input: TradingOperationInput): Promise<OperationOr
 }
 
 /** Prepared is a durable promise of no dispatch yet; dispatching is conservatively in-flight. */
-export async function prepareTradingOperation(input: TradingOperationInput): Promise<string> {
+export function prepareTradingOperation(input: TradingOperationInput): Promise<string> {
   return withDatabaseTransaction(async () => {
     const orders = await expectedOrders(input);
     const logicalKey = hash(JSON.stringify([input.kind, input.intentId, orders.map(order => order.client_order_id)]));
@@ -367,7 +367,7 @@ function undispatchedPlanShape(intent: TradingIntent): TradingPlan | null {
 }
 
 /** Resume only a provably unsubmitted persisted plan, never a negative remote lookup. */
-export async function recoverUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
+export function recoverUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     if (!await hasUndispatchedPlanProof(intent, false)) return false;
     await getDatabase().run(
@@ -378,7 +378,7 @@ export async function recoverUndispatchedPlan(intent: TradingIntent): Promise<bo
 }
 
 /** No remote cancellation: only positive local no-dispatch evidence can release the reservation. */
-export async function abandonUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
+export function abandonUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     if (!await hasUndispatchedPlanProof(intent, true)) return false;
     const now = Date.now();

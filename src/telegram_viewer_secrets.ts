@@ -121,8 +121,8 @@ export class TelegramViewerSecretStore {
     };
   }
 
-  async readBotToken(): Promise<string | null> {
-    return this.botTokenValue;
+  readBotToken(): Promise<string | null> {
+    return Promise.resolve(this.botTokenValue);
   }
 
   async setBotToken(value: unknown): Promise<void> {
@@ -141,8 +141,8 @@ export class TelegramViewerSecretStore {
     this.botTokenUpdatedAt = null;
   }
 
-  async serviceToken(): Promise<string> {
-    return this.serviceTokenValue;
+  serviceToken(): Promise<string> {
+    return Promise.resolve(this.serviceTokenValue);
   }
 
   async rotateServiceToken(): Promise<string> {
@@ -169,4 +169,3 @@ export function telegramViewerSecretStoreFromEnvironment(
     env.TELEGRAM_VIEWER_SECRET_DIR || path.join(process.cwd(), 'telegram_viewer_secrets'),
   );
 }
-

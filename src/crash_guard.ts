@@ -111,7 +111,7 @@ async function checkCrashLoopState(
   return counter;
 }
 
-export async function checkCrashLoopFiles(
+export function checkCrashLoopFiles(
   stateDirectory: string,
   owner: ProcessLock,
   now = Date.now(),

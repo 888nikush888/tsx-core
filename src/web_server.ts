@@ -508,7 +508,7 @@ function installMutationAuditBarrier(context: RequestContext): void {
     let outcome: 'succeeded' | 'rejected' | 'failed' = 'failed';
     if (originalStatus < 400) outcome = 'succeeded';
     else if (originalStatus < 500) outcome = 'rejected';
-    void trail.record({
+    trail.record({
       phase: 'completed',
       action: audit.action,
       requestId: context.requestId,
@@ -991,7 +991,7 @@ async function controlHandler(context: RequestContext): Promise<void> {
       ) {
         throw new HttpError(409, 'Routing is already active.');
       }
-      void context.appState.startForwarding(context.appState.config).catch((error) => {
+      context.appState.startForwarding(context.appState.config).catch((error) => {
         addLog(`[ERROR] request_id=${context.requestId} Web start failed: ${error.message}`);
       });
       sendJson(context.res, 202, {
@@ -1224,7 +1224,7 @@ function setupBundleAccountMappings(payload: any, preview: SetupBundlePreview): 
 }
 
 function activateSetupConfiguration(context: RequestContext, replacement: any): void {
-  for (const key of Object.keys(context.appState.config)) delete context.appState.config[key];
+  for (const key of Object.keys(context.appState.config)) Reflect.deleteProperty(context.appState.config, key);
   Object.assign(context.appState.config, replacement);
   context.appState.reloadConfig();
   context.appState.applyRuntimeConfig(context.appState.config);
@@ -1381,7 +1381,7 @@ async function runBackupHandler(context: RequestContext): Promise<void> {
       if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
       const accepted = await store.accept({ id: jobId, kind: 'backup-create', actorId: context.actor!.id, scope: { database: 'current', configuration: 'current' }, request: { action: 'backup-create' } });
       sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-      if (accepted.created) void store.run(jobId, async () => ({ artifactName: path.basename(await context.appState.runBackupNow!()) })).catch(error => addLog(`[ERROR] Backup job persistence failed: ${errorMessage(error)}`));
+      if (accepted.created) store.run(jobId, async () => ({ artifactName: path.basename(await context.appState.runBackupNow!()) })).catch(error => addLog(`[ERROR] Backup job persistence failed: ${errorMessage(error)}`));
       return;
     }
     const artifact = await context.appState.runBackupNow();
@@ -1573,7 +1573,7 @@ async function recoverOffsiteBackupHandler(context: RequestContext): Promise<voi
       if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
       const accepted = await store.accept({ id: payload.jobId, kind: 'backup-recover', actorId: context.actor!.id, scope: { objectName }, request: { objectName } });
       sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-      if (accepted.created) void store.run(accepted.job.id, async () => ({ artifactName: await context.appState.recoverOffsiteBackup!(objectName) })).catch(error => addLog(`[ERROR] Offsite recovery job persistence failed: ${errorMessage(error)}`));
+      if (accepted.created) store.run(accepted.job.id, async () => ({ artifactName: await context.appState.recoverOffsiteBackup!(objectName) })).catch(error => addLog(`[ERROR] Offsite recovery job persistence failed: ${errorMessage(error)}`));
       return;
     }
     const artifactName = await context.appState.recoverOffsiteBackup(objectName);
@@ -2283,7 +2283,7 @@ async function uiParserLabHandler(context: RequestContext): Promise<void> {
     const accepted = await store.accept({ id: payload.jobId, kind: 'parser-test', actorId: context.actor!.id,
       scope: { pathId: prepared.preview.pathId, sourceSha256: prepared.preview.sourceSha256, sourceChars: prepared.preview.sourceChars, previewHash: prepared.preview.previewHash }, request: { previewHash: payload.previewHash } });
     sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-    if (accepted.created) void store.run(accepted.job.id, () => runUiParserTest(prepared)).catch(() => addLog('[ERROR] Parser test result could not be persisted. Inspect the job; do not repeat automatically.'));
+    if (accepted.created) store.run(accepted.job.id, () => runUiParserTest(prepared)).catch(() => addLog('[ERROR] Parser test result could not be persisted. Inspect the job; do not repeat automatically.'));
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
 }
 
@@ -2296,7 +2296,7 @@ async function uiBackupDrillHandler(context: RequestContext): Promise<void> {
     const name = backupArtifactName(payload.name);
     const accepted = await store.accept({ id: payload.jobId, kind: 'backup-drill', actorId: context.actor!.id, scope: { artifactName: name }, request: { name } });
     sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-    if (accepted.created) void store.run(accepted.job.id, () => context.appState.runBackupDrill!(name)).catch(error => addLog(`[ERROR] Operator drill result persistence failed: ${errorMessage(error)}`));
+    if (accepted.created) store.run(accepted.job.id, () => context.appState.runBackupDrill!(name)).catch(error => addLog(`[ERROR] Operator drill result persistence failed: ${errorMessage(error)}`));
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
 }
 
@@ -2811,8 +2811,7 @@ async function authorizeLocalSessionInitialization(
     });
     return true;
   }
-  if (!(await authorizeMutationAudit(context, actor, 'POST', '/api/local-session'))) return false;
-  return true;
+  return authorizeMutationAudit(context, actor, 'POST', '/api/local-session');
 }
 
 async function localSessionHandler(
@@ -3185,7 +3184,7 @@ export function startWebServer(
 ): http.Server {
   const authenticator = appState.authenticator ?? dashboardAuthenticatorFromEnvironment();
   server = http.createServer((req, res) => {
-    void handleRequest(req, res, appState, authenticator).catch((error) => {
+    handleRequest(req, res, appState, authenticator).catch((error) => {
       addLog(`[ERROR] Unhandled dashboard request error: ${errorMessage(error)}`);
       if (!res.headersSent) sendJson(res, 500, { error: 'Unexpected server error.' });
       else res.destroy();
@@ -3199,7 +3198,7 @@ export function startWebServer(
     const listeningPort = typeof address === 'object' && address ? address.port : port;
     console.log(`[INFO] Web Control Dashboard listening on http://${host}:${listeningPort}`);
     if (appState.uiOperations && appState.requestRestart) {
-      void restartCoordinator(appState).reconcile().catch(error => {
+      restartCoordinator(appState).reconcile().catch(error => {
         addLog(`[CRITICAL] Durable restart reconciliation failed: ${errorMessage(error)}`);
       });
     }
@@ -3218,7 +3217,7 @@ export function stopWebServer(): Promise<void> {
   });
 }
 
-async function accountEvidenceResult(kind: string, id: string, query: URLSearchParams) {
+function accountEvidenceResult(kind: string, id: string, query: URLSearchParams) {
   if (kind === 'reservations') return uiAccountReservations(id, query);
   if (kind === 'history') return uiAccountHistory(id, query);
   return uiAccountEvidence(id);

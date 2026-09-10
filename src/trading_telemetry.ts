@@ -342,7 +342,7 @@ function executionFilterSql(filters: TradingAnalyticsFilters) {
     if (!allowed.length) continue;
     clauses.push(`${column} IN (${allowed.map(() => '?').join(',')})`); values.push(...allowed);
   }
-  return { sql: clauses.length ? ' AND ' + clauses.join(' AND ') : '', values };
+  return { sql: clauses.length ? ` AND ${clauses.join(' AND ')}` : '', values };
 }
 
 async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Promise<{
@@ -590,9 +590,9 @@ function presentedAggregate(value: PerformanceAggregate): Record<string, unknown
 function compareAnalyticsPnl(left: Record<string, unknown>, right: Record<string, unknown>): number {
   const currency = dimensionValue(left.reportingCurrency).localeCompare(dimensionValue(right.reportingCurrency));
   if (currency) return currency;
-  const a = left.realizedPnlValue as MoneyValue | null, b = right.realizedPnlValue as MoneyValue | null;
-  if (a?.exact && b?.exact) return -compareRational(a.exact, b.exact) || dimensionValue(left.id).localeCompare(dimensionValue(right.id));
-  if (Boolean(a?.exact) !== Boolean(b?.exact)) return a?.exact ? -1 : 1;
+  const leftPnl = left.realizedPnlValue as MoneyValue | null, rightPnl = right.realizedPnlValue as MoneyValue | null;
+  if (leftPnl?.exact && rightPnl?.exact) return -compareRational(leftPnl.exact, rightPnl.exact) || dimensionValue(left.id).localeCompare(dimensionValue(right.id));
+  if (Boolean(leftPnl?.exact) !== Boolean(rightPnl?.exact)) return leftPnl?.exact ? -1 : 1;
   return dimensionValue(left.id).localeCompare(dimensionValue(right.id));
 }
 
@@ -610,7 +610,7 @@ function equityPerformance(points: TradingEquityPoint[]): Array<Record<string, u
   });
 }
 
-async function performanceRows(since: number): Promise<[any[], any[], any[], TradingEquityPoint[]]> {
+function performanceRows(since: number): Promise<[any[], any[], any[], TradingEquityPoint[]]> {
   return Promise.all([
     getDatabase().all<any[]>(
       `SELECT position.channel_id AS channelId, position.account_id AS accountId,

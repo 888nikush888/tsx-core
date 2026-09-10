@@ -124,7 +124,7 @@ export async function uiAdaptiveRisk(query: URLSearchParams) {
   const handlers = { states, evaluations, paths: activePaths, sources: evaluationSources, legacy, 'legacy-evaluations': legacyEvaluations };
   return handlers[page.kind](page);
 }
-export async function copyLegacyRiskPolicy(input: { channelId: unknown; copyHash: unknown }) {
+export function copyLegacyRiskPolicy(input: { channelId: unknown; copyHash: unknown }) {
   const channelId = uiObjectId(input.channelId, 128);
   return withDatabaseTransaction(async db => {
     const row = await db.get('SELECT * FROM trading_channel_risk_policies WHERE channel_id=?', [channelId]);

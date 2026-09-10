@@ -186,7 +186,7 @@ function evidenceMatchesProvenFill(evidence: any, fill: ExchangeFill): boolean {
 }
 
 /** A reused provider fill ID with changed economics is a conflict, never INSERT OR IGNORE. */
-export async function persistCorrelatedFill(account: TradingAccount, fill: ExchangeFill, read?: ExchangeAcquisitionEvidence): Promise<FillResult> {
+export function persistCorrelatedFill(account: TradingAccount, fill: ExchangeFill, read?: ExchangeAcquisitionEvidence): Promise<FillResult> {
   const proof = provenFillIdentity(account, fill);
   if (proof) fill = { ...fill, identity: proof.identity };
   return withDatabaseTransaction(async () => {

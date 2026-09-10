@@ -392,7 +392,7 @@ function createCompletionClient(apiKey: string, limits: AiLimits): RequestComple
       'X-Title': 'TSX Core',
     },
   });
-  return async (request, requestOptions) =>
+  return (request, requestOptions) =>
     client.chat.completions.create(
       request as any,
       requestOptions as any

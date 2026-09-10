@@ -161,7 +161,7 @@ function intentFromRow(row: IntentRow): TradingIntent {
   };
 }
 
-async function transaction<T>(operation: () => Promise<T>): Promise<T> {
+function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(() => operation());
 }
 
@@ -230,7 +230,7 @@ export async function getSignalContractVersion(id: string): Promise<SignalContra
   return row ? contractVersionFromRow(row) : null;
 }
 
-export async function createSignalContract(input: {
+export function createSignalContract(input: {
   id: unknown;
   name: unknown;
   description?: unknown;
@@ -259,7 +259,7 @@ export async function createSignalContract(input: {
   });
 }
 
-export async function createSignalContractDraftVersion(
+export function createSignalContractDraftVersion(
   contractId: unknown,
   sourceVersionId: unknown,
   now = Date.now(),
@@ -298,7 +298,7 @@ export async function createSignalContractDraftVersion(
   });
 }
 
-export async function updateSignalContractDraft(input: {
+export function updateSignalContractDraft(input: {
   contractId: unknown;
   versionId: unknown;
   name: unknown;
@@ -347,7 +347,7 @@ export async function publishSignalContractVersion(versionId: unknown, now = Dat
   ));
 }
 
-export async function archiveSignalContractVersion(versionId: unknown, now = Date.now()): Promise<SignalContractVersion> {
+export function archiveSignalContractVersion(versionId: unknown, now = Date.now()): Promise<SignalContractVersion> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
     const used = await getDatabase().get<{ count: number }>(
@@ -394,7 +394,7 @@ async function removeSignalContractVersionRecord(id: string, contractId: string)
   }
 }
 
-export async function deleteSignalContractDraft(versionId: unknown): Promise<boolean> {
+export function deleteSignalContractDraft(versionId: unknown): Promise<boolean> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
     const row = await signalContractVersionDeletionTarget(id);
@@ -405,7 +405,7 @@ export async function deleteSignalContractDraft(versionId: unknown): Promise<boo
   });
 }
 
-export async function deleteSignalContractVersion(versionId: unknown): Promise<boolean> {
+export function deleteSignalContractVersion(versionId: unknown): Promise<boolean> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
     const row = await signalContractVersionDeletionTarget(id);
@@ -570,7 +570,7 @@ export async function updateTradingSignalSchema(id: string, input: {
   });
 }
 
-export async function deleteTradingSignalSchema(id: string): Promise<boolean> {
+export function deleteTradingSignalSchema(id: string): Promise<boolean> {
   const normalizedId = signalSchemaIdentifier(id);
   return transaction(async () => {
     await assertSignalSchemaNotActivelyRouted(normalizedId);
@@ -591,7 +591,7 @@ export async function getTradingStrategyVersion(id: string): Promise<TradingStra
   return row ? strategyFromRow(row) : null;
 }
 
-export async function createTradingStrategyDraft(input: {
+export function createTradingStrategyDraft(input: {
   strategyId?: string;
   name: string;
   description?: string;
@@ -764,7 +764,7 @@ function validateAccountStateUpdate(state: TradingAccountStateUpdate): void {
   }
 }
 
-export async function updateTradingAccountState(id: string, state: TradingAccountStateUpdate): Promise<TradingAccount> {
+export function updateTradingAccountState(id: string, state: TradingAccountStateUpdate): Promise<TradingAccount> {
   validateAccountStateUpdate(state);
   return withDatabaseTransaction(() => updateTradingAccountStateOwned(id, state));
 }
@@ -843,7 +843,7 @@ function accountReconciledAt(value: number | null | undefined, current: TradingA
   return timestamp;
 }
 
-export async function updateTradingAccountConfiguration(
+export function updateTradingAccountConfiguration(
   id: string,
   input: TradingAccountConfigurationUpdate,
 ): Promise<TradingAccount> {
@@ -970,7 +970,7 @@ export async function updateTradingRuntimeState(input: Partial<Pick<TradingRunti
   return getTradingRuntimeState();
 }
 
-export async function createTradingIntent(input: {
+export function createTradingIntent(input: {
   sourceSignalId: string;
   channelId: string;
   signal: ExecutableSignal;
@@ -1491,7 +1491,7 @@ export async function acknowledgeTradingRiskEvent(id: string, now = Date.now()):
   return Number(result.changes || 0) === 1;
 }
 
-export async function archiveTradingStrategyVersion(id: string): Promise<TradingStrategyVersion> {
+export function archiveTradingStrategyVersion(id: string): Promise<TradingStrategyVersion> {
   return transaction(async () => {
     const activeRoute = await getDatabase().get<{ count: number }>(
       'SELECT COUNT(*) AS count FROM trading_routes WHERE strategy_version_id = ? AND enabled = 1', [id],
@@ -1508,7 +1508,7 @@ export async function archiveTradingStrategyVersion(id: string): Promise<Trading
   });
 }
 
-export async function deleteTradingStrategyVersion(id: string): Promise<boolean> {
+export function deleteTradingStrategyVersion(id: string): Promise<boolean> {
   return transaction(async () => {
     const existing = await getDatabase().get<{ id: string }>(
       'SELECT id FROM trading_strategy_versions WHERE id = ?', [id],
@@ -1544,7 +1544,7 @@ function assertTradingAccountRemovalSafe(references: Record<string, unknown>): v
   }
 }
 
-export async function deleteTradingAccount(id: string): Promise<boolean> {
+export function deleteTradingAccount(id: string): Promise<boolean> {
   return transaction(async () => {
     const existing = await getDatabase().get<{ id: string }>(
       'SELECT id FROM trading_accounts WHERE id = ? AND retired_at IS NULL',

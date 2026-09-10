@@ -92,7 +92,7 @@ export class OperationalDataRetention {
     if (this.timer) throw new Error('Operational data retention is already running.');
     await this.runNow();
     this.timer = setInterval(() => {
-      void this.runNow().catch(error => {
+      this.runNow().catch(error => {
         this.logger(`[ERROR] Operational data retention failed: ${error.message}`);
       });
     }, this.policy.intervalMs);

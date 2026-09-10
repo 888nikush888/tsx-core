@@ -410,7 +410,7 @@ export class ManagedRuntimeSettingsStore {
     return { active: this.recoveryReason !== null, reason: this.recoveryReason };
   }
 
-  async set(input: unknown, baseRevision?: string): Promise<RuntimeSettings> {
+  set(input: unknown, baseRevision?: string): Promise<RuntimeSettings> {
     const pending = this.updates.then(async () => {
       if (baseRevision !== undefined && baseRevision !== configurationRevision(this.settings)) {
         throw new Error('Runtime settings changed. Reload and compare before saving.');
@@ -451,7 +451,7 @@ export class ManagedRuntimeSettingsStore {
   applyToEnvironment(): void {
     for (const [key, environmentName] of Object.entries(ENVIRONMENT_MAPPING) as Array<[keyof RuntimeSettings, string]>) {
       const value = this.settings[key];
-      if (value === '') delete this.env[environmentName];
+      if (value === '') Reflect.deleteProperty(this.env, environmentName);
       else this.env[environmentName] = String(value);
     }
     this.active = this.snapshot();

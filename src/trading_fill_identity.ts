@@ -12,7 +12,7 @@ function object(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
 }
 function identifier(value: unknown): asserts value is string {
-  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.length > 256 || /[\x00-\x1f]/.test(value)) {
+  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.length > 256 || /[\x00-\x1f]/u.test(value)) {
     throw new Error('FILL_IDENTITY_UNPROVEN: missing exact provider identifier.');
   }
 }
@@ -51,7 +51,7 @@ function matchesHyperliquid(info: Record<string, any>, fill: ExchangeFill, ident
 function matchesKraken(info: Record<string, any>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
   return info.identitySource === 'kraken_history_execution_v3' && info.executionUid === fill.exchangeFillId
     && info.orderUid === fill.exchangeOrderId && info.tradeable === identity.providerMarketId
-    && typeof info.accountUid === 'string' && !!info.accountUid && info.executionTimestamp === fill.filledAt;
+    && typeof info.accountUid === 'string' && Boolean(info.accountUid) && info.executionTimestamp === fill.filledAt;
 }
 
 export function fillAccountFingerprint(account: Pick<TradingAccount, 'exchange' | 'mode' | 'id' | 'externalAccountId'>): string | null {

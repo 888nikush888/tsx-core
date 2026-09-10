@@ -24,7 +24,7 @@ function nodeEntry(key: string, value: any, path: string[]) {
 }
 function textSection(node: string, offset: number) {
   let end = Math.min(node.length, offset + 10000);
-  if (end < node.length && /[\uD800-\uDBFF]/.test(node[end - 1])) end--;
+  if (end < node.length && /[\uD800-\uDBFF]/u.test(node[end - 1])) end--;
   return { end, text: redactReview(node.slice(offset, end)) };
 }
 /** Bounded content navigation; path selects only keys inside an already authorized review object. */

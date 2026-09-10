@@ -63,5 +63,5 @@ export async function assertCandidateNeverSent(account: TradingAccount, intentId
     if (!await hasUndispatchedPlanProof(intent, false, witness)) reject();
     const operations = await candidateJournal(account, intentId, plan, witness);
     return exemptionEvidence(intentId, plan, operations, witness);
-  } catch { reject(); }
+  } catch { return reject(); }
 }

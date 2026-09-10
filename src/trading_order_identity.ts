@@ -23,7 +23,7 @@ function codePointOrder(left: string, right: string): number {
   return 0;
 }
 function storedClientOrderId(value: unknown): string {
-  if (typeof value !== 'string' || !value || value.length > 256 || /[\x00-\x20]/.test(value)) {
+  if (typeof value !== 'string' || !value || value.length > 256 || /[\x00-\x20]/u.test(value)) {
     reject('Original journal contains an invalid client identifier.');
   }
   return value;
@@ -77,7 +77,7 @@ function originalRequests(row: OriginalOperation, account: OrderIdentityAccount,
 
 async function assertLocalLegs(account: OrderIdentityAccount, intentId: string, requests: ProtectedRequests): Promise<void> {
   const ids = [requests.entry.clientOrderId, requests.protectiveStop.clientOrderId];
-  if (ids[0] === ids[1] || ids.some(id => typeof id !== 'string' || !id || id.length > 256 || /[\x00-\x20]/.test(id))) {
+  if (ids[0] === ids[1] || ids.some(id => typeof id !== 'string' || !id || id.length > 256 || /[\x00-\x20]/u.test(id))) {
     reject('Protected request lacks distinct exact client identifiers.');
   }
   if ([requests.entry, requests.protectiveStop].some(leg => leg.accountId !== account.id)) reject('Protected request account changed.');
@@ -104,6 +104,6 @@ export async function prepareProtectedOrderIdentityRequests(
     return originals[0]!;
   } catch (error) {
     if (error instanceof OrderIdentityBindingError) throw error;
-    reject('Original protected request cannot be validated.');
+    return reject('Original protected request cannot be validated.');
   }
 }

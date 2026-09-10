@@ -323,7 +323,7 @@ async function assertRuntimeActiveFrom(database: any): Promise<void> {
   }
 }
 
-export async function getMcpRuntimeState(): Promise<McpRuntimeState> {
+export function getMcpRuntimeState(): Promise<McpRuntimeState> {
   return runtimeStateFrom(getDatabase());
 }
 
@@ -331,7 +331,7 @@ export async function assertMcpRuntimeActive(): Promise<void> {
   await assertRuntimeActiveFrom(getDatabase());
 }
 
-export async function setMcpRuntimeMode(
+export function setMcpRuntimeMode(
   modeValue: unknown,
   actorValue: unknown,
 ): Promise<McpRuntimeTransition> {
@@ -595,7 +595,7 @@ export async function rotateMcpAgentToken(idValue: unknown): Promise<{ agent: Mc
   return { agent: agents.find(agent => agent.id === id)!, token };
 }
 
-export async function deleteMcpAgent(idValue: unknown): Promise<boolean> {
+export function deleteMcpAgent(idValue: unknown): Promise<boolean> {
   const id = identifier(idValue, 'MCP agent identifier', 64);
   const now = Date.now();
   const revokedToken = generatedToken();
@@ -871,7 +871,7 @@ export async function waitForMcpControlRequest(
   throw new Error('TSX Core did not complete the MCP control request before the timeout.');
 }
 
-export async function claimNextMcpControlRequest(): Promise<McpControlRequest | null> {
+export function claimNextMcpControlRequest(): Promise<McpControlRequest | null> {
   return withDatabaseTransaction(async database => {
     const row = await database.get<any>(
       `SELECT id, agent_id AS agentId, session_id AS sessionId, action,
@@ -1140,7 +1140,7 @@ async function preflightRouteAction(
   impact.push('Changes the strategy/account destination for future signals from this channel.');
 }
 
-async function preflightConfigurationAction(
+function preflightConfigurationAction(
   action: McpProposalAction,
   payload: Record<string, unknown>,
   blockers: string[],
@@ -1203,7 +1203,7 @@ async function preflightWorkflowResourceLifecycle(
   impact.push(WORKFLOW_RESOURCE_IMPACT[action] ?? 'Changes the selected workflow resource.');
 }
 
-async function preflightWorkflowAction(
+function preflightWorkflowAction(
   action: McpProposalAction,
   payload: Record<string, unknown>,
   blockers: string[],
@@ -1212,7 +1212,7 @@ async function preflightWorkflowAction(
   if (action === 'workflow.activate') return preflightWorkflowActivation(payload, blockers, impact);
   if (action === 'workflow.resource_create') {
     impact.push('Creates a new versioned workflow-resource draft without activating it.');
-    return;
+    return Promise.resolve();
   }
   return preflightWorkflowResourceLifecycle(action, payload, blockers, impact);
 }

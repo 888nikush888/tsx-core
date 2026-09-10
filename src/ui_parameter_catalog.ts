@@ -29,7 +29,7 @@ export const CONFIG_PARAMETER_FIELDS: FieldSpec[] = [
   ['xmlParsing.primaryModel', 'string', '1..128 Zeichen: Buchstaben, Ziffern, . _ : / -; ungültig normalisiert auf Default'],
   ['xmlParsing.fallbackModel', 'string', '1..128 Zeichen: Buchstaben, Ziffern, . _ : / -; ungültig normalisiert auf Default'],
   ['xmlParsing.timeout', 'integer', 'Legacy-Parser-Gesamtzeitlimit; globale Requestgrenze und Workflowtimeout gelten separat', 'ms', '0/fehlend verwendet den bisherigen Parserstandard.'],
-  ...Object.entries(AI_LIMIT_RANGES).map(([key, range]) => [`xmlParsing.aiLimits.${key}`, 'integer', range.join('..') + '; ungültig normalisiert auf Default',
+  ...Object.entries(AI_LIMIT_RANGES).map(([key, range]) => [`xmlParsing.aiLimits.${key}`, 'integer', `${range.join('..')}; ungültig normalisiert auf Default`,
     AI_LIMIT_LABELS[key as keyof typeof AI_LIMIT_LABELS][1]] as FieldSpec),
   ['dupeBlocker.enabled', 'boolean', 'true|false'],
   ['dupeBlocker.cooldownHours', 'number', 'Legacy-Cooldown, nichtnegativ; Workflowvariante separat begrenzt', 'h', '0 sperrt identische Signale dauerhaft.'],

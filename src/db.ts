@@ -62,7 +62,7 @@ async function exists(file: string): Promise<boolean> {
     throw error; }
 }
 
-export async function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
+export function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
   // Any existing artifact blocks entry, including malformed, directory or symlink markers.
   return exists(mcpMaintenanceMarkerPath(databasePath));
 }
@@ -283,7 +283,7 @@ class SerializedDatabaseAccess {
 
   withoutOwnership<T>(operation: () => T): T { return this.owner.exit(operation); }
 
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
+  execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.isOwnedByCurrentOperation()) return operation();
     const operationOwner = Symbol('database-operation');
     const result = this.tail.then(() => this.owner.run(operationOwner, operation));
@@ -292,7 +292,7 @@ class SerializedDatabaseAccess {
   }
 
   async drain(): Promise<void> {
-    await this.execute(async () => undefined);
+    await this.execute(() => Promise.resolve());
   }
 }
 
@@ -3028,7 +3028,7 @@ function rawDatabase(): Database {
 }
 
 /** Runs a complete unit of work under the single SQLite transaction owner. */
-export async function withDatabaseTransaction<T>(
+export function withDatabaseTransaction<T>(
   operation: (database: Database) => Promise<T>
 ): Promise<T> {
   if (serializedDatabaseAccess.isOwnedByCurrentOperation()) return operation(getDatabase());
@@ -3048,13 +3048,13 @@ export async function withDatabaseTransaction<T>(
 }
 
 /** Durable dispatching must already be committed. No adapter continuation inherits the DB owner. */
-export async function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start: () => Promise<T>): Promise<{ pending: Promise<T> }> {
+export function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start: () => Promise<T>): Promise<{ pending: Promise<T> }> {
   if (serializedDatabaseAccess.isOwnedByCurrentOperation()) throw new Error('Exchange dispatch cannot inherit a database transaction.');
   return withDatabaseTransaction(async () => {
     await verify();
     const pending = serializedDatabaseAccess.withoutOwnership(start);
     // A promptly rejected provider promise is handled even while the short read fence commits.
-    void pending.catch(() => undefined);
+    pending.catch(() => undefined);
     return { pending };
   });
 }
@@ -3112,7 +3112,7 @@ export class SignalConflictError extends Error {
   }
 }
 
-export async function saveSignal(
+export function saveSignal(
   id: string,
   chatId: string,
   messageId: number,
@@ -3156,7 +3156,7 @@ export interface AiUsageReservation {
   status: 'reserved';
 }
 
-export async function reserveAiUsage(
+export function reserveAiUsage(
   usageDay: string, tokenAllowance: number, dailyRequestLimit: number, dailyTokenLimit: number,
 ): Promise<AiUsageReservation | false> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(usageDay)) throw new Error('usageDay must use YYYY-MM-DD.');
@@ -3922,7 +3922,7 @@ export interface DatabaseClearResult {
   deletedMediaGroups: number;
 }
 
-export async function clearDb(): Promise<DatabaseClearResult> {
+export function clearDb(): Promise<DatabaseClearResult> {
   return withDatabaseTransaction(async database => {
     const pendingTasks = await database.run('DELETE FROM pending_tasks');
     const mediaGroups = await database.run('DELETE FROM media_group_buffer');

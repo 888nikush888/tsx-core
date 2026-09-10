@@ -46,7 +46,7 @@ type IdentifiedOrderEvidence = Omit<ExchangeOrderResult, 'filledQuantity'> & { f
 
 function providerOrderKey(local: LocalOrderRow, result: IdentifiedOrderEvidence): { symbol: string | null; key: string | null } {
   const symbol = result.providerSymbol ?? local.provider_symbol ?? (local.exchange === 'paper' ? local.symbol : null);
-  if (symbol !== null && (!symbol.trim() || symbol.length > 256 || /[\x00-\x1f]/.test(symbol))) {
+  if (symbol !== null && (!symbol.trim() || symbol.length > 256 || /[\x00-\x1f]/u.test(symbol))) {
     throw new Error('Invalid provider symbol for remote order identity.');
   }
   if (local.provider_symbol && symbol !== local.provider_symbol) throw new Error('Remote order namespace changed.');
@@ -54,14 +54,14 @@ function providerOrderKey(local: LocalOrderRow, result: IdentifiedOrderEvidence)
 }
 
 /** A write acknowledgement must address exactly the order that was submitted/cancelled. */
-export async function persistTradingOrderResult(
+export function persistTradingOrderResult(
   intentId: string, expectedClientOrderId: string, result: ExchangeOrderResult, observedAt = Date.now(),
 ): Promise<void> {
   validateOrderResult(result, { clientOrderId: expectedClientOrderId });
   return persistOrderEvidence(intentId, expectedClientOrderId, result, observedAt);
 }
 
-export async function persistTradingRemoteOrder(
+export function persistTradingRemoteOrder(
   intentId: string, expectedClientOrderId: string, result: ExchangeOrderSnapshot, observedAt: number,
 ): Promise<void> {
   validateRemoteOrder(result);
@@ -117,7 +117,7 @@ function samePlannedReplacement(left: PlannedOrder, right: PlannedOrder): boolea
 }
 
 /** Persist a replacement generation with its row, so a crash cannot manufacture a second replacement. */
-export async function createGeneratedTradingOrder(intent: Pick<TradingIntent, 'id' | 'accountId'>, template: PlannedOrder): Promise<PlannedOrder> {
+export function createGeneratedTradingOrder(intent: Pick<TradingIntent, 'id' | 'accountId'>, template: PlannedOrder): Promise<PlannedOrder> {
   return withDatabaseTransaction(async () => {
     const slot = replacementSlot(template);
     const previous = await getDatabase().get<{ generation: number; client_order_id: string }>(

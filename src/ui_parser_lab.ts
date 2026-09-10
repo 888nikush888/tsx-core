@@ -109,6 +109,6 @@ function boundedXml(xml: string): string {
     else high = middle - 1;
   }
   // Do not return an isolated high surrogate when the boundary splits a Unicode character.
-  if (low && /[\uD800-\uDBFF]/.test(xml[low - 1]!)) low--;
+  if (low && /[\uD800-\uDBFF]/u.test(xml[low - 1]!)) low--;
   return xml.slice(0, low);
 }

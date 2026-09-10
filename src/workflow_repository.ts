@@ -120,7 +120,7 @@ interface WorkflowHistoryState {
 function workflowHistoryLabel(value: unknown): string {
   const label = value ?? DEFAULT_WORKFLOW_HISTORY_LABEL;
   if (typeof label !== 'string' || !label.trim() || label.trim().length > 160
-    || /[\u0000-\u001f\u007f]/.test(label)) {
+    || /[\u0000-\u001f\u007f]/u.test(label)) {
     throw new Error('Workflow history label is invalid.');
   }
   return label.trim();
@@ -612,7 +612,7 @@ export async function publishWorkflowResource(id: string, now = Date.now(), base
   return resourceFromRow(await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]));
 }
 
-export async function archiveWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
+export function archiveWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
   return withDatabaseTransaction(async () => {
     const active = await getActiveWorkflow();
     if (active?.graph.nodes.some(node => node.resourceVersionId === id)) {
@@ -629,7 +629,7 @@ export async function archiveWorkflowResource(id: string, now = Date.now()): Pro
   });
 }
 
-export async function archiveWorkflowResourceFamily(
+export function archiveWorkflowResourceFamily(
   resourceId: string,
   now = Date.now(),
 ): Promise<WorkflowResourceVersion[]> {
@@ -672,7 +672,7 @@ export async function deleteWorkflowResourceDraft(id: string): Promise<boolean> 
   return Number(result.changes || 0) === 1;
 }
 
-export async function deleteWorkflowResourceFamily(resourceId: string): Promise<number> {
+export function deleteWorkflowResourceFamily(resourceId: string): Promise<number> {
   const logicalId = stringValue(resourceId, 'Workflow resource identifier', 128);
   return withDatabaseTransaction(async database => {
     const rows = await database.all<Array<{ id: string }>>(
@@ -1410,7 +1410,7 @@ async function workflowHistoryTarget(entry: WorkflowHistoryEntry): Promise<{
   }
 }
 
-export async function saveWorkflowRevision(input: {
+export function saveWorkflowRevision(input: {
   baseRevisionId: string | null;
   graph: unknown;
   actorId: string;
@@ -1446,7 +1446,7 @@ export async function saveWorkflowRevision(input: {
   });
 }
 
-export async function previewWorkflowBuilderHistoryImpact(input: {
+export function previewWorkflowBuilderHistoryImpact(input: {
   direction: WorkflowHistoryDirection;
   baseRevisionId: string | null;
 }): Promise<WorkflowImpact> {
@@ -1462,7 +1462,7 @@ export async function previewWorkflowBuilderHistoryImpact(input: {
   });
 }
 
-export async function applyWorkflowBuilderHistory(input: {
+export function applyWorkflowBuilderHistory(input: {
   direction: WorkflowHistoryDirection;
   baseRevisionId: string | null;
   actorId: string;
@@ -2398,7 +2398,7 @@ async function advanceWorkflowFallbackTransaction(
     : stopDisallowedFallback(current, next, intent, reason, message, policy, now);
 }
 
-export async function advanceWorkflowFallbackOnEligibleFailure(
+export function advanceWorkflowFallbackOnEligibleFailure(
   intent: TradingIntent,
   reason: WorkflowFallbackReason,
   message: string,

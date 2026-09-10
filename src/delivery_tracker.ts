@@ -59,7 +59,7 @@ export class TelegramDeliveryTracker {
       throw new Error('Telegram send returned no destination messages to confirm.');
     }
 
-    const destinationMessageIds = await Promise.all(messages.map(async (message: any) => {
+    const destinationMessageIds = await Promise.all(messages.map((message: any) => {
       if (message?.id === undefined || message?.id === null) {
         throw new Error('Telegram send returned a message without an id.');
       }

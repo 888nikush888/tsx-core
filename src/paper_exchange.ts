@@ -102,7 +102,7 @@ function orderCanFill(row: any, markPrice: string): boolean {
     : compareDecimal(markPrice, row.price) >= 0;
 }
 
-async function transaction<T>(operation: () => Promise<T>): Promise<T> {
+function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(() => operation());
 }
 
@@ -313,7 +313,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     });
   }
 
-  async accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
+  accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
     return withDatabaseTransaction(() => this.readAccountSnapshot(account));
   }
 
@@ -376,7 +376,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       tiers: [{ lowerBound: '0', upperBound: null, maxLeverage: Math.min(50, Number(market.max_leverage)) }] };
   }
 
-  async submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult> {
+  submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult> {
     assertPaperAccount(account);
     if (request.timeInForce !== undefined || request.entryPriceBoundary) {
       assertEntryPriceBoundary({ side: request.side === 'buy' ? 'LONG' : 'SHORT',
@@ -415,7 +415,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     });
   }
 
-  async submitProtectedEntry(
+  submitProtectedEntry(
     account: TradingAccount,
     entry: ExchangeOrderRequest,
     protectiveStop: ExchangeOrderRequest,
@@ -449,7 +449,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     return orderResult(row);
   }
 
-  async openState(account: TradingAccount): Promise<ExchangeOpenState> {
+  openState(account: TradingAccount): Promise<ExchangeOpenState> {
     assertPaperAccount(account);
     return withDatabaseTransaction(() => this.readOpenState(account));
   }

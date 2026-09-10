@@ -228,7 +228,7 @@ export async function markExchangeStreamsStopped(): Promise<void> {
   );
 }
 
-export async function listExchangeStreamStates(): Promise<Array<Record<string, unknown>>> {
+export function listExchangeStreamStates(): Promise<Array<Record<string, unknown>>> {
   return getDatabase().all<Array<Record<string, unknown>>>(
     `SELECT state.account_id AS accountId, account.name AS accountName,
             account.exchange, account.mode, state.status, state.cursor,

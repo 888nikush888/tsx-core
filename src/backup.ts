@@ -145,7 +145,7 @@ async function sha256File(filePath: string): Promise<BackupFileMetadata> {
   };
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
+function fileExists(filePath: string): Promise<boolean> {
   return fs.stat(filePath).then(() => true).catch((error: any) => {
     if (error.code === 'ENOENT') return false;
     throw error;
@@ -166,7 +166,7 @@ function isSafeTemplatePathSegment(segment: string): boolean {
     && segment !== '.'
     && segment !== '..'
     && segment === segment.trim()
-    && !/[\\/<>:"|?*\x00-\x1f]/.test(segment);
+    && !/[\\/<>:"|?*\x00-\x1f]/u.test(segment);
 }
 
 function artifactPath(artifactRoot: string, fileName: string): string {
@@ -900,7 +900,7 @@ export class BackupScheduler {
     if (this.interval) return;
     await this.runNow();
     this.interval = setInterval(() => {
-      void this.runNow().catch(error => this.logger(`[ERROR] Scheduled backup failed: ${error.message}`));
+      this.runNow().catch(error => this.logger(`[ERROR] Scheduled backup failed: ${error.message}`));
     }, this.intervalMs);
     this.interval.unref();
   }
@@ -915,10 +915,10 @@ export class BackupScheduler {
     const status = structuredClone(this.status);
     const offsiteHealthy = !this.replicator && !this.offsiteRequired
       ? true
-      : !!status.lastOffsiteSuccessAt && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
+      : Boolean(status.lastOffsiteSuccessAt) && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
     return {
       ...status,
-      healthy: !!status.lastSuccessAt && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy,
+      healthy: Boolean(status.lastSuccessAt) && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy,
       offsiteHealthy,
       offsiteRequired: this.offsiteRequired
     };
@@ -975,7 +975,7 @@ export class BackupScheduler {
       }
     })();
     this.activeRun = operation;
-    void operation.finally(() => {
+    operation.finally(() => {
       if (this.activeRun === operation) this.activeRun = null;
     }).catch(() => {});
     return operation;
