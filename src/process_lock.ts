@@ -135,8 +135,8 @@ async function createProcessLock(lockPath: string, payload: LockPayload): Promis
   const owner: ProcessLock = Object.freeze({
     path: lockPath,
     release: async () => {
-      const ownership = issuedOwnership.get(owner)!;
-      if (ownership.released) return;
+      const ownership = issuedOwnership.get(owner);
+      if (!ownership || ownership.released) return;
       await ownershipTurn(owner, async () => {
         if (ownership.released) return;
         await assertProcessLockOwner(owner);

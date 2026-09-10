@@ -50,7 +50,10 @@ export async function requireFxAccountContext(account: FxAccount): Promise<FxCon
   return profileContext(account, current);
 }
 function binding(account: FxAccount): Record<string, string> {
-  return { accountId: account.id, accountFingerprint: account.externalAccountId!, credentialGeneration: account.credentialGeneration! };
+  const fingerprint = account.externalAccountId;
+  const generation = account.credentialGeneration;
+  if (!fingerprint || !generation) return invalidFx('ACCOUNT_BINDING_CHANGED');
+  return { accountId: account.id, accountFingerprint: fingerprint, credentialGeneration: generation };
 }
 function receiptId(account: FxAccount, receiptHash: string): string {
   return fxEvidenceDigest('tsx-fx-observation-v1', { ...binding(account), receiptHash });

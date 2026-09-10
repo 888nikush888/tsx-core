@@ -465,6 +465,8 @@ function journalTimeline(events: JournalRow[]): Record<string, number> {
 
 function mapJournalRow(row: JournalRow, relations: JournalRelations): TradeJournalEntry {
   const intentId = String(row.id);
+  const money = relations.moneyByIntent.get(intentId);
+  if (!money) throw new Error('Trade journal money relation is missing.');
   const rowOrders = (relations.ordersByIntent.get(intentId) || [])
     .map(order => ({ ...order, reduceOnly: Boolean(order.reduceOnly) }));
   const rowFills = relations.fillsByIntent.get(intentId) || [];
@@ -501,7 +503,7 @@ function mapJournalRow(row: JournalRow, relations: JournalRelations): TradeJourn
     orders: rowOrders,
     fills: rowFills,
     fees: feeTotals(rowFills),
-    money: relations.moneyByIntent.get(intentId)!,
+    money,
     timeline: journalTimeline(relations.timelineByIntent.get(intentId) || []),
     review: {
       notes: nullableString(row.notes) || '',

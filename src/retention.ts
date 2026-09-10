@@ -157,7 +157,7 @@ export class OperationalDataRetention {
         ...storage
       };
       this.logger(`[INFO] Operational retention deleted ${resultCount(total)} row(s); database=${storage.allocatedBytes} bytes, reusable=${storage.reusableBytes} bytes.`);
-      if (backlog) throw new Error(this.status.lastError!);
+      if (backlog) throw new Error('Retention backlog exceeds the bounded per-run cleanup limit.');
     } catch (error: any) {
       this.status = { ...this.status, healthy: false, lastError: error.message };
       throw error;

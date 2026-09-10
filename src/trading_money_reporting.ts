@@ -46,8 +46,9 @@ function groupMoneyRows(rows: ClosedMoneyRow[]): MoneyRows {
 
 function presentSummary(group: MoneyRows, allowEmpty: boolean): MoneySummary {
   const keys = [...group.currencies.keys()];
+  const first = keys[0];
   const known = !group.unresolved && (keys.length === 1 || (allowEmpty && keys.length === 0));
-  const value = known ? group.currencies.get(keys[0]!) ?? zero() : null;
+  const value = known && first !== undefined ? group.currencies.get(first) ?? zero() : null;
   return { realizedPnl: value?.decimal ?? null, realizedPnlValue: value,
     reportingCurrency: known ? keys[0] ?? null : null, accountingStatus: known ? 'complete' : 'unresolved',
     valuedSubtotalByCurrency: Object.fromEntries([...group.currencies].map(([currency, amount]) => [currency, amount.decimal])),

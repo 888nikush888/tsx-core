@@ -1503,7 +1503,8 @@ async function runRestartCommand(context: RequestContext, command: {
   operation: () => Promise<Record<string, unknown>>;
 }): Promise<void> {
   const coordinator = restartCoordinator(context.appState);
-  const store = context.appState.uiOperations!;
+  const store = context.appState.uiOperations;
+  if (!store) throw new HttpError(503, 'Operator store is unavailable.');
   const id = command.id ?? randomUUID();
   if (typeof id !== 'string') throw new HttpError(400, 'Invalid operator job ID.');
   // Lookup may cross a maintenance hold, but creating/executing a new destructive
@@ -1850,7 +1851,8 @@ async function uiWorkflowObjectsHandler(context: RequestContext): Promise<void> 
   try {
     const query = context.parsedUrl.searchParams; const kind = query.get('kind') as UiWorkflowList;
     if (!['resources', 'paths', 'revisions'].includes(kind)) throw new HttpError(400, 'Invalid workflow object kind.');
-    const result = query.has('id') ? await uiWorkflowDetail(kind, query.get('id')!) : await uiWorkflowPage(kind, query);
+    const idParam = query.get('id');
+    const result = query.has('id') && idParam ? await uiWorkflowDetail(kind, idParam) : await uiWorkflowPage(kind, query);
     if (!result) throw new HttpError(404, 'Workflow object not found.');
     sendJson(context.res, 200, result);
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
@@ -2324,7 +2326,9 @@ async function mcpSnapshotHandler(context: RequestContext): Promise<void> {
 async function mcpProposalDetailHandler(context: RequestContext): Promise<void> {
   if (context.actor?.role !== 'admin') { sendError(context, new HttpError(403, 'Administrator role required.')); return; }
   try {
-    const id = new URL(context.req.url!, 'http://localhost').searchParams.get('id');
+    const rawUrl = context.req.url;
+    if (!rawUrl) throw new HttpError(400, 'Invalid proposal identifier.');
+    const id = new URL(rawUrl, 'http://localhost').searchParams.get('id');
     if (!id || !/^[a-zA-Z0-9_-]{1,64}$/.test(id)) throw new HttpError(400, 'Invalid proposal identifier.');
     const review = await uiMcpProposalReview(id);
     if (!review) throw new HttpError(404, 'Proposal not found.');

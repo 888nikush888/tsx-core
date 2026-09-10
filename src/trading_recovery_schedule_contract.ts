@@ -107,7 +107,9 @@ function fxRequest(value: unknown, maximum: number): FxEvidenceRequest {
   return structuredClone(row) as FxEvidenceRequest;
 }
 function laneGrant(request: RecoveryScheduleRequest, lane: RecoveryLane): number {
-  return request.grants.find(row => row.lane === lane)!.maxCalls;
+  const grant = request.grants.find(row => row.lane === lane);
+  if (!grant) invalid();
+  return grant.maxCalls;
 }
 function requestedSourcePresence(recovery: Record<string, any>, request: RecoveryScheduleRequest, expected: RecoveryScheduleBinding): void {
   if (recovery.readAccountMode !== undefined && typeof recovery.readAccountMode !== 'boolean') invalid();

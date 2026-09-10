@@ -504,7 +504,8 @@ export async function suggestPortableAccountMappings(bundle: PortableSetupBundle
       && account.exchange === reference.exchange && account.mode === reference.mode);
     const matching = exactId.length === 1 ? exactId : candidates.filter(account =>
       account.name === reference.name && account.exchange === reference.exchange && account.mode === reference.mode);
-    if (matching.length === 1) automatic[reference.sourceAccountId] = matching[0]!.id;
+    const match = matching[0];
+    if (matching.length === 1 && match) automatic[reference.sourceAccountId] = match.id;
     else unresolved.push(reference.sourceAccountId);
   }
   return { automatic, unresolved, candidates };

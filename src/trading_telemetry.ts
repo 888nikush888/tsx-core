@@ -40,7 +40,8 @@ export async function recordTradingEquitySnapshot(
   snapshot: TradingAccountSnapshot,
   observedAt = Date.now(),
 ): Promise<void> {
-  const id = identifier(accountId, 'Trading account identifier', 64)!;
+  const id = identifier(accountId, 'Trading account identifier', 64);
+  if (!id) throw new Error('Trading account identifier is invalid.');
   if (!Number.isSafeInteger(observedAt) || observedAt <= 0) throw new Error('Equity observation timestamp is invalid.');
   const bucketMinute = Math.floor(observedAt / 60_000);
   const accountMode = (await getDatabase().get('SELECT mode FROM trading_accounts WHERE id = ?', [id]))?.mode ?? null;
