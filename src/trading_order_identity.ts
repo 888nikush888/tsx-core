@@ -59,9 +59,9 @@ function originalRequests(row: OriginalOperation, account: OrderIdentityAccount,
   const entry = object(original.entry) as unknown as ExchangeOrderRequest;
   const protectiveStop = object(original.protectiveStop) as unknown as ExchangeOrderRequest;
   for (const [stored, expected] of [[entry, requested.entry], [protectiveStop, requested.protectiveStop]]) {
-    checkedTag(stored!);
-    if (!isDeepStrictEqual(withoutTag(stored!), withoutTag(expected!))) reject('Original protected leg differs from the expected request.');
-    if (expected!.providerBatchTag !== undefined && !isDeepStrictEqual(expected!.providerBatchTag, stored!.providerBatchTag)) {
+    checkedTag(stored);
+    if (!isDeepStrictEqual(withoutTag(stored), withoutTag(expected))) reject('Original protected leg differs from the expected request.');
+    if (expected.providerBatchTag !== undefined && !isDeepStrictEqual(expected.providerBatchTag, stored.providerBatchTag)) {
       reject('An existing tagless request cannot acquire a new tag.');
     }
   }
@@ -100,8 +100,10 @@ export async function prepareProtectedOrderIdentityRequests(
       "SELECT * FROM trading_operations WHERE intent_id=? AND kind='protected_entry' ORDER BY generation", [intentId]);
     if (rows.length === 0) return { entry: tagged(entry), protectiveStop: tagged(protectiveStop) };
     const originals = rows.map(row => originalRequests(row, account, requested));
-    if (originals.some(original => !isDeepStrictEqual(original, originals[0]))) reject('Protected operation generations have different originals.');
-    return originals[0]!;
+    const first = originals[0];
+    if (!first || originals.some(original => !isDeepStrictEqual(original, first))) reject('Protected operation generations have different originals.');
+    if (!first) reject('Protected operation generations have different originals.');
+    return first;
   } catch (error) {
     if (error instanceof OrderIdentityBindingError) throw error;
     return reject('Original protected request cannot be validated.');
