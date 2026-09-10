@@ -977,7 +977,7 @@ export class BackupScheduler {
     this.activeRun = operation;
     operation.finally(() => {
       if (this.activeRun === operation) this.activeRun = null;
-    }).catch(() => {});
+    }).catch(() => undefined);
     return operation;
   }
 }

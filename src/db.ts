@@ -2840,7 +2840,7 @@ async function applyPendingMigration(database: Database, migration: SchemaMigrat
     );
     await database.exec('COMMIT;');
   } catch (error) {
-    await database.exec('ROLLBACK;').catch(() => {});
+    await database.exec('ROLLBACK;').catch(() => undefined);
     throw new Error(`Database migration ${migration.version} (${migration.name}) failed.`, { cause: error });
   } finally {
     if (migration.foreignKeysOff) await database.exec('PRAGMA foreign_keys = ON;');
