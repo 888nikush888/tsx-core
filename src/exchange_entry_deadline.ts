@@ -1,11 +1,15 @@
 import { TradingRiskError } from './trading_risk.js';
 
+function candidateRequest(endpoint: string, payload: Record<string, unknown>): unknown {
+  if (endpoint === '/v1/submit-protected-entry') return payload.entry;
+  if (endpoint === '/v1/submit-order') return payload.request;
+  return null;
+}
+
 function entryRequest(endpoint: string, payload: Record<string, unknown>): Record<string, unknown> | null {
-  let request: unknown = null;
-  if (endpoint === '/v1/submit-protected-entry') request = payload.entry;
-  else if (endpoint === '/v1/submit-order') request = payload.request;
-  if (typeof request !== 'object' || request === null) return null;
-  return (request as Record<string, unknown>).reduceOnly !== true ? (request as Record<string, unknown>) : null;
+  const candidate = candidateRequest(endpoint, payload);
+  if (typeof candidate !== 'object' || candidate === null) return null;
+  return (candidate as Record<string, unknown>).reduceOnly !== true ? (candidate as Record<string, unknown>) : null;
 }
 
 /** Capture before any await. A changed caller object cannot extend the journaled deadline. */
