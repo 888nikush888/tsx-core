@@ -96,14 +96,37 @@ export function validateAccountModeObservation(value: unknown): BybitAccountMode
   observationInterval(row);
   return structuredClone(row) as unknown as BybitAccountModeObservation;
 }
+function progressFieldCount(row: Record<string, unknown>): void {
+  if (Object.keys(row).length !== 3) throw new Error('Invalid account-mode read progress.');
+}
+
+function progressCalls(row: Record<string, unknown>): void {
+  if (!Number.isInteger(row.calls) || Number(row.calls) < 0 || Number(row.calls) > 2) throw new Error('Invalid account-mode read progress.');
+}
+
+function progressReason(row: Record<string, unknown>): void {
+  if (![null, 'budget_exhausted', 'transient', 'unsupported'].includes(row.reason as AccountModeProgress['reason'])) throw new Error('Invalid account-mode read progress.');
+}
+
 function progressShape(row: Record<string, unknown>): void {
-  if (Object.keys(row).length !== 3 || !Number.isInteger(row.calls) || Number(row.calls) < 0 || Number(row.calls) > 2
-    || ![null, 'budget_exhausted', 'transient', 'unsupported'].includes(row.reason as AccountModeProgress['reason'])) throw new Error('Invalid account-mode read progress.');
+  progressFieldCount(row);
+  progressCalls(row);
+  progressReason(row);
+}
+
+function observedEvidence(row: Record<string, unknown>, observation: BybitAccountModeObservation, acquisition: { startedAt: number; completedAt: number }): void {
+  if (row.calls !== 2 || row.reason !== null) throw new Error('Account-mode progress has no bound read evidence.');
+  if (observation.startedAt < acquisition.startedAt) throw new Error('Account-mode progress has no bound read evidence.');
+  if (observation.completedAt > acquisition.completedAt) throw new Error('Account-mode progress has no bound read evidence.');
+}
+
+function unobservedEvidence(row: Record<string, unknown>): void {
+  if (row.reason === null) throw new Error('Account-mode progress has no bound read evidence.');
 }
 
 function progressEvidence(row: Record<string, unknown>, observation: BybitAccountModeObservation | null, acquisition: { startedAt: number; completedAt: number }): void {
-  if (observation ? row.calls !== 2 || row.reason !== null || observation.startedAt < acquisition.startedAt
-    || observation.completedAt > acquisition.completedAt : row.reason === null) throw new Error('Account-mode progress has no bound read evidence.');
+  if (observation) observedEvidence(row, observation, acquisition);
+  else unobservedEvidence(row);
 }
 export function validateAccountModeProgress(value: unknown, acquisition: { startedAt: number; completedAt: number }): AccountModeProgress {
   const row = object(value);
