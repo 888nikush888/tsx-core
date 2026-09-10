@@ -1,16 +1,17 @@
 import { TradingRiskError } from './trading_risk.js';
 
-function entryRequest(endpoint: string, payload: Record<string, any>): Record<string, any> | null {
-  let request = null;
+function entryRequest(endpoint: string, payload: Record<string, unknown>): Record<string, unknown> | null {
+  let request: unknown = null;
   if (endpoint === '/v1/submit-protected-entry') request = payload.entry;
   else if (endpoint === '/v1/submit-order') request = payload.request;
-  return request && request.reduceOnly !== true ? request : null;
+  if (typeof request !== 'object' || request === null) return null;
+  return (request as Record<string, unknown>).reduceOnly !== true ? (request as Record<string, unknown>) : null;
 }
 
 /** Capture before any await. A changed caller object cannot extend the journaled deadline. */
-export function captureEntryDeadline(endpoint: string, payload: Record<string, any>): { expiresAt: number | null; assertCurrent(): void } {
+export function captureEntryDeadline(endpoint: string, payload: Record<string, unknown>): { expiresAt: number | null; assertCurrent(): void } {
   const original = entryRequest(endpoint, payload);
-  if (!original) return { expiresAt: null, assertCurrent() {} };
+  if (!original) return { expiresAt: null, assertCurrent() { return; } };
   const expiresAt: unknown = original.entryExpiresAt;
   if (typeof expiresAt !== 'number' || !Number.isSafeInteger(expiresAt) || expiresAt <= 0) {
     throw new TradingRiskError('ENTRY_DEADLINE_UNPROVEN', 'ENTRY_DEADLINE_UNPROVEN: original entry deadline is required.');
