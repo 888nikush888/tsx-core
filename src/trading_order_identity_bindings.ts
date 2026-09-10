@@ -72,8 +72,10 @@ async function originalFor(account: AccountIdentity, local: Local, proof: Exchan
     AND EXISTS(SELECT 1 FROM json_each(expected_orders_json) leg WHERE json_extract(leg.value,'$.client_order_id')=?)`,
   [account.id, local.intent_id, local.client_order_id]);
   if (rows.length !== 1) fail('No unique possibly dispatched original journal.');
-  assertOriginalLeg(rows[0]!, local, proof, account);
-  return rows[0]!;
+  const original = rows[0];
+  if (!original) fail('No unique possibly dispatched original journal.');
+  assertOriginalLeg(original, local, proof, account);
+  return original;
 }
 
 /** Called inside the same transaction as the order ID CAS. No upsert or original rewrite. */
@@ -146,12 +148,13 @@ async function bindObservedOrder(account: TradingAccount, remote: ExchangeOrderS
   [account.id, proof.clientOrderId]);
   if (!local) fail('Lookup is not backed by an existing local order.');
   const [correlated] = correlateRemoteOrders([local], [{ ...remote, clientOrderId: proof.clientOrderId }]);
-  await persistNativeOrderBinding(account, local.id, correlated!);
+  if (!correlated) fail('Remote order correlation failed.');
+  await persistNativeOrderBinding(account, local.id, correlated);
   if (!local.exchange_order_id) {
     const updated = await getDatabase().run(`UPDATE trading_orders SET exchange_order_id=?,provider_symbol=?,remote_order_key=?,
       state_version=state_version+1 WHERE id=? AND state_version=? AND exchange_order_id IS NULL`,
     [remote.exchangeOrderId, remote.providerSymbol, JSON.stringify(['v1', account.exchange, remote.providerSymbol, remote.exchangeOrderId]), local.id, local.state_version]);
     if (updated.changes !== 1) fail('Order changed before its native identity could commit.');
   }
-  return correlated!;
+  return correlated;
 }

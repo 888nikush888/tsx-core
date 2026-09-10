@@ -98,9 +98,11 @@ async function originalJournalProves(account: TradingAccount, row: FillRow): Pro
     AND EXISTS(SELECT 1 FROM json_each(expected_orders_json) leg WHERE json_extract(leg.value,'$.client_order_id')=?)`,
   [account.id, row.intent_id, row.account_fingerprint, row.client_order_id]);
   if (operations.length !== 1) return false;
+  const operation = operations[0];
+  if (!operation) return false;
   const response = parse(row.response_json);
   const direct = response.id === row.exchange_order_id && response.clientOrderId === row.client_order_id && response.symbol === row.order_provider_symbol;
-  return operationProves(operations[0]!, row, direct);
+  return operationProves(operation, row, direct);
 }
 
 async function originalPaperProves(row: FillRow): Promise<boolean> {
@@ -161,7 +163,8 @@ export async function backfillAccountFillIdentities(account: TradingAccount): Pr
     let rows = await nextBackfillRows(account.id, cursors.get(account.id));
     if (!rows.length && cursors.has(account.id)) rows = await nextBackfillRows(account.id, undefined);
     for (const row of rows) await bindLegacyFillIdentity(account, row.id);
-    if (rows.length === BACKFILL_ATTEMPTS) cursors.set(account.id, rows.at(-1)!);
+    const last = rows.at(-1);
+    if (rows.length === BACKFILL_ATTEMPTS && last) cursors.set(account.id, last);
     else cursors.delete(account.id);
   });
 }
@@ -174,8 +177,8 @@ export async function unresolvedFillIdentityCount(account: TradingAccount): Prom
     try {
       const proof = row.identity_json ? provenFillIdentity(account, snapshot(row, JSON.parse(row.identity_json))) : null;
       const bound = account.exchange === 'paper' || row.account_fingerprint === fillAccountFingerprint(account);
-      if (row.identity_status === 'proven' && bound && proof?.key === row.remote_fill_key
-        && isDeepStrictEqual(JSON.parse(row.identity_json!), proof.identity)) continue;
+      if (row.identity_status === 'proven' && bound && row.identity_json && proof?.key === row.remote_fill_key
+        && isDeepStrictEqual(JSON.parse(row.identity_json), proof.identity)) continue;
       if (row.identity_status === 'legacy_unresolved' && account.exchange === 'paper' && await originalPaperProves(row)) continue;
     } catch { /* Malformed original identity is uncertainty, never absence. */ }
     unresolved += 1;
