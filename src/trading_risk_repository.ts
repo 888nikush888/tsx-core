@@ -35,7 +35,7 @@ export async function bindRiskContract(account: TradingAccount, intentId: string
 }
 
 /** Called only after ownership/protection reconciliation. Amounts are derived, original orders/plans stay untouched. */
-export async function observeRiskReservations(account: TradingAccount, remote: ExchangeOpenState, epoch: string): Promise<string> {
+export function observeRiskReservations(account: TradingAccount, remote: ExchangeOpenState, epoch: string): Promise<string> {
   return withDatabaseTransaction(async db => {
     const binding = await db.get<{ reporting_currency: string }>(
       'SELECT reporting_currency FROM trading_money_bindings WHERE account_id = ? AND account_fingerprint = ?', [account.id, riskFingerprint(account)]);
@@ -69,7 +69,7 @@ export async function recordRiskBalance(accountId: string, observationId: string
     [snapshot === null ? null : JSON.stringify(snapshot), reason, accountId, observationId]);
 }
 
-export async function existingRiskCommitment(account: TradingAccount, excludedIntent: string, epoch: string, currency: string): Promise<ExistingRiskProof> {
+export function existingRiskCommitment(account: TradingAccount, excludedIntent: string, epoch: string, currency: string): Promise<ExistingRiskProof> {
   return withDatabaseTransaction(async db => {
     const source = await loadRiskSources(account.id, excludedIntent);
     const sourceHash = riskHash(source);
