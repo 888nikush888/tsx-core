@@ -294,7 +294,9 @@ export function startMetricsServer(
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) throw new Error('Metrics port must be between 0 and 65535.');
 
   server = http.createServer((req, res) => {
-    void handleMetricsRequest(req, res, state);
+    handleMetricsRequest(req, res, state).catch(() => {
+      res.destroy();
+    });
   });
 
   server.requestTimeout = 10_000;
