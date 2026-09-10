@@ -101,18 +101,25 @@ export function createRiskAdmission(input: { account: TradingAccount; intentId: 
 export function assertRiskAdmissionFresh(proof: RiskAdmissionProof): void {
   try {
     const now = Date.now();
-    assertAccountingFresh(proof.accountSnapshot.accounting!);
+    const accounting = proof.accountSnapshot.accounting;
+    if (!accounting) unavailable('stale account, market, funding or UTC evidence.');
+    assertAccountingFresh(accounting);
     assertRiskFxFresh(proof.fxConversions, now);
     assertRiskFresh(proof.existing, now);
-    for (const observedAt of [proof.marketObservedAt, proof.accountSnapshot.accounting!.observedAt]) assertRiskFresh({ observedAt,
+    for (const observedAt of [proof.marketObservedAt, accounting.observedAt]) assertRiskFresh({ observedAt,
       expiresAt: observedAt + RISK_EVIDENCE_TTL_MS, utcDay: proof.existing.utcDay }, now);
   } catch { unavailable('stale account, market, funding or UTC evidence.'); }
 }
 
 function assertSizingDependency(proof: RiskAdmissionProof, plan: TradingPlan): void {
-  try { assertRiskSizingBinding(plan.fxSizing, plan.fxSizing
-    ? proof.fxConversions.find(fx => fx.id === plan.fxSizing!.conversionId) ?? null : null,
-  proof.accountSnapshot.accounting!.reportingCurrency, plan.fxSizing?.notionalCurrency); }
+  try {
+    const accounting = proof.accountSnapshot.accounting;
+    if (!accounting) unavailable('Sizing evidence unresolved.');
+    const conversion = plan.fxSizing
+      ? proof.fxConversions.find(fx => fx.id === plan.fxSizing?.conversionId) ?? null : null;
+    assertRiskSizingBinding(plan.fxSizing, conversion,
+      accounting.reportingCurrency, plan.fxSizing?.notionalCurrency);
+  }
   catch (error) { unavailable(error instanceof Error ? error.message : 'Sizing evidence unresolved.'); }
 }
 
@@ -131,7 +138,8 @@ export async function verifyRiskAdmission(proof: RiskAdmissionProof, plan: Tradi
   const source = await loadRiskSources(proof.accountId, proof.intentId);
   if (riskHash(source) !== proof.existing.sourceHash) unavailable('order, fill, stop or operation sources changed.');
   const ledger = await dailyLedger(proof.accountId);
-  if (ledger.reportingCurrency !== proof.accountSnapshot.accounting!.reportingCurrency) unavailable('reporting currency differs from the bound ledger.');
+  const accounting = proof.accountSnapshot.accounting;
+  if (!accounting || ledger.reportingCurrency !== accounting.reportingCurrency) unavailable('reporting currency differs from the bound ledger.');
   if (ledger.hash !== proof.ledgerHash) unavailable('monetary evidence changed.');
   assertDailyBudget(proof.budget, ledger.value, proof.accountSnapshot.unrealizedPnl, proof.existing.value, proof.candidateValue);
   assertRiskAdmissionFresh(proof);

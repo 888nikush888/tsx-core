@@ -573,7 +573,9 @@ export async function updateMcpAgent(input: {
     );
   }
   const agents = await listMcpAgents();
-  return agents.find(agent => agent.id === id)!;
+  const agent = agents.find(candidate => candidate.id === id);
+  if (!agent) throw new Error('MCP agent does not exist.');
+  return agent;
 }
 
 export async function rotateMcpAgentToken(idValue: unknown): Promise<{ agent: McpAgent; token: string }> {
@@ -592,7 +594,9 @@ export async function rotateMcpAgentToken(idValue: unknown): Promise<{ agent: Mc
     [now, id],
   );
   const agents = await listMcpAgents();
-  return { agent: agents.find(agent => agent.id === id)!, token };
+  const agent = agents.find(candidate => candidate.id === id);
+  if (!agent) throw new Error('MCP agent does not exist.');
+  return { agent, token };
 }
 
 export function deleteMcpAgent(idValue: unknown): Promise<boolean> {
@@ -1029,7 +1033,7 @@ async function preflightContractVersion(
       [version.contract_id],
     );
     if (draft) blockers.push('Contract already has an editable draft.');
-    impact.push(CONTRACT_IMPACT[action]!);
+    impact.push(CONTRACT_IMPACT[action] ?? 'Changes the selected contract version.');
     return;
   }
   const statusBlocker = contractStatusBlocker(action, version.status);
@@ -1088,7 +1092,7 @@ async function preflightStrategyAction(
   impact: string[],
 ): Promise<void> {
   if (action === 'strategies.create') {
-    impact.push(STRATEGY_IMPACT[action]!);
+    impact.push(STRATEGY_IMPACT[action] ?? 'Changes the selected strategy version.');
     return;
   }
   const id = identifier(payload.id, 'Strategy version identifier', 64);
@@ -1386,7 +1390,9 @@ export async function approveMcpProposal(idValue: unknown, actorValue: unknown):
     [json(preflight, 'MCP proposal preflight'), now, actor, id, now],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('MCP proposal approval lost a concurrent decision race.');
-  return (await getMcpProposal(id))!;
+  const approved = await getMcpProposal(id);
+  if (!approved) throw new Error('MCP proposal does not exist.');
+  return approved;
 }
 
 export async function rejectMcpProposal(
@@ -1407,7 +1413,9 @@ export async function rejectMcpProposal(
     [now, actor, reason, id],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Only a pending MCP proposal can be rejected.');
-  return (await getMcpProposal(id))!;
+  const rejected = await getMcpProposal(id);
+  if (!rejected) throw new Error('MCP proposal does not exist.');
+  return rejected;
 }
 
 export async function claimNextApprovedMcpProposal(): Promise<McpAgentProposal | null> {
