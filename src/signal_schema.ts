@@ -911,11 +911,16 @@ function groundingLabels(value: string): GroundingLabelMatch[] {
 
 function groundingKind(label: string): GroundingFieldKind {
   const normalized = label.replace(/\s+/g, ' ').trim().toUpperCase();
-  if (normalized.startsWith('ENTRY') || normalized === 'ВХОД') return 'entry';
-  if (normalized.startsWith('AVERAGING') || normalized === 'УСРЕДНЕНИЕ') return 'averaging';
-  if (normalized.startsWith('STOP') || normalized === 'SL' || normalized === 'СТОП') return 'stop';
-  if (normalized.startsWith('TARGET') || normalized.startsWith('TP') || normalized.startsWith('TAKE PROFIT') || normalized === 'ЦЕЛИ') return 'target';
-  if (normalized.startsWith('LEVERAGE') || normalized.startsWith('\u041a\u0420\u041e\u0421\u0421')) return 'leverage';
+  const kinds: Array<{ kind: GroundingFieldKind; prefixes: string[]; exact: string[] }> = [
+    { kind: 'entry', prefixes: ['ENTRY'], exact: ['ВХОД'] },
+    { kind: 'averaging', prefixes: ['AVERAGING'], exact: ['УСРЕДНЕНИЕ'] },
+    { kind: 'stop', prefixes: ['STOP'], exact: ['SL', 'СТОП'] },
+    { kind: 'target', prefixes: ['TARGET', 'TP', 'TAKE PROFIT'], exact: ['ЦЕЛИ'] },
+    { kind: 'leverage', prefixes: ['LEVERAGE', 'КРОСС'], exact: [] },
+  ];
+  for (const entry of kinds) {
+    if (entry.prefixes.some(prefix => normalized.startsWith(prefix)) || entry.exact.includes(normalized)) return entry.kind;
+  }
   return 'risk';
 }
 
