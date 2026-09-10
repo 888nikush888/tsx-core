@@ -88,11 +88,14 @@ function scheduleDeferredReason(state: RecoveryScheduleState, now: number, busy:
   if (state.cooldown_until > now) return 'cooldown';
   return busy || state.next_due_at > now ? 'not_due' : null;
 }
+function logsDeferredReason(query: ExchangeRecoveryQuery, now: number): RecoveryScheduleRequest['grants'][number]['deferredReason'] {
+  const nextReadAt = query.accountLogs?.nextReadAt;
+  if (nextReadAt === undefined) return 'not_needed';
+  return nextReadAt > now ? 'not_due' : null;
+}
 function laneDeferredReason(lane: RecoveryLane, cap: number, needed: boolean, query: ExchangeRecoveryQuery, now: number): RecoveryScheduleRequest['grants'][number]['deferredReason'] {
   if (cap === 0) return 'phase_deferred';
   if (!needed) return 'not_needed';
   if (lane !== 'logs') return null;
-  const nextReadAt = query.accountLogs?.nextReadAt;
-  if (nextReadAt === undefined) return 'not_needed';
-  return nextReadAt > now ? 'not_due' : null;
+  return logsDeferredReason(query, now);
 }
