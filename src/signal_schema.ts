@@ -633,8 +633,9 @@ function targetItemRange(item: XmlNode, definition: SignalContractDefinition): {
     const value = decimal(item, 'target');
     return { min: value, max: value };
   }
-  const minimum = contractDecimal(item, definition.targets.minimumPath, true)!;
-  const maximum = contractDecimal(item, definition.targets.maximumPath, true)!;
+  const minimum = contractDecimal(item, definition.targets.minimumPath, true);
+  const maximum = contractDecimal(item, definition.targets.maximumPath, true);
+  if (minimum === undefined || maximum === undefined) throw new SignalValidationError('Target range minimum and maximum are required.');
   if (compareDecimals(minimum, maximum) > 0) {
     throw new SignalValidationError('Target range minimum must not exceed maximum.');
   }
@@ -642,7 +643,8 @@ function targetItemRange(item: XmlNode, definition: SignalContractDefinition): {
 }
 
 function contractTargets(root: XmlNode, definition: SignalContractDefinition): Array<{ min: string; max: string }> {
-  const container = pathNode(root, definition.targets.containerPath, true)!;
+  const container = pathNode(root, definition.targets.containerPath, true);
+  if (!container) throw new SignalValidationError('Targets container is missing.');
   const items = children(container, definition.targets.itemTag);
   if (items.length < definition.targets.minimumItems || items.length > definition.targets.maximumItems) {
     throw new SignalValidationError(
@@ -689,7 +691,8 @@ function assertContractGeometry(
       }
     }
     if (!definition.geometry.orderedTargets || index === 0) return;
-    const previous = targets[index - 1]!;
+    const previous = targets[index - 1];
+    if (!previous) throw new SignalValidationError('Target ordering cannot be verified.');
     if (action === 'LONG' && compareDecimals(target.min, previous.max) <= 0) {
       throw new SignalValidationError('LONG targets must be strictly ordered away from entry.');
     }
@@ -779,11 +782,13 @@ function validateDynamicContract(
   const definition = validateSignalContractDefinition(input);
   assertDeclaredNode(root, '', declaredStructure(definition));
   const action = dynamicAction(root, definition);
-  const pairNode = pathNode(root, definition.pairPath, true)!;
+  const pairNode = pathNode(root, definition.pairPath, true);
+  if (!pairNode) throw new SignalValidationError('Required contract path is missing.');
   const pair = pairValue({ ...root, children: [{ ...pairNode, name: 'pair' }] }, true);
   const entry = contractEntry(root, definition);
   const targets = contractTargets(root, definition);
-  const stopLoss = contractDecimal(root, definition.stopLossPath, true)!;
+  const stopLoss = contractDecimal(root, definition.stopLossPath, true);
+  if (stopLoss === undefined) throw new SignalValidationError('Required contract path is missing.');
   const optional = dynamicOptionalValues(root, definition);
   // One deadline for all fields prevents multiplying the CPU budget by 30.
   const patternDeadline = performance.now() + 100;
@@ -898,7 +903,8 @@ function groundingLabels(value: string): GroundingLabelMatch[] {
   ).sort((left, right) => left.index - right.index || right.label.length - left.label.length);
   return labels.filter((label, index) => {
     if (index === 0) return true;
-    const previous = labels[index - 1]!;
+    const previous = labels[index - 1];
+    if (!previous) return true;
     return label.index >= previous.index + previous.label.length;
   });
 }
@@ -1074,7 +1080,7 @@ function assertNumbersGrounded(signal: ValidatedSignal, sourceText: string): voi
     /(?<![\p{L}\p{N}_])(?<!\d\.)(?:[xX])?(0(?:\.\d{1,18})?)(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu,
     /(?<![\p{L}\p{N}_])(?<!\d\.)(?:[xX])?([1-9]\d{0,17}(?:\.\d{1,18})?)(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu,
   ];
-  const sourceNumbers = patterns.flatMap(pattern => Array.from(sourceText.matchAll(pattern), match => match[1]!));
+  const sourceNumbers = patterns.flatMap(pattern => Array.from(sourceText.matchAll(pattern), match => match[1]).filter((value): value is string => value !== undefined));
   for (const value of signal.groundingNumbers) {
     if (!sourceNumbers.some(sourceValue => compareDecimals(sourceValue, value) === 0)) {
       throw new SignalValidationError(`Output number '${value}' is not grounded in the source text.`);
