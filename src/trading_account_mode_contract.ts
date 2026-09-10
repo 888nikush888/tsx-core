@@ -21,37 +21,68 @@ function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid account-mode observation.');
   return value as Record<string, unknown>;
 }
-function identity(row: Record<string, unknown>): void {
+function identityBinding(row: Record<string, unknown>): void {
   for (const key of ['accountFingerprint', 'credentialGeneration', 'evidenceHash']) {
-    if (typeof row[key] !== 'string' || !/^[a-f0-9]{64}$/.test(row[key])) throw new Error('Invalid account-mode binding/hash.');
+    if (typeof row[key] !== 'string' || !/^[a-f0-9]{64}$/.test(row[key] as string)) throw new Error('Invalid account-mode binding/hash.');
   }
+}
+
+function identityUid(row: Record<string, unknown>): void {
   for (const key of ['providerAccountUid', 'parentAccountUid']) {
-    if (typeof row[key] !== 'string' || !/^(0|[1-9]\d{0,31})$/.test(row[key])) throw new Error('Invalid authenticated account UID.');
+    if (typeof row[key] !== 'string' || !/^(0|[1-9]\d{0,31})$/.test(row[key] as string)) throw new Error('Invalid authenticated account UID.');
   }
+}
+
+function identityRole(row: Record<string, unknown>): void {
   if (row.providerAccountUid === '0' || row.parentAccountUid === row.providerAccountUid
     || typeof row.isMaster !== 'boolean' || row.isMaster !== (row.parentAccountUid === '0')) throw new Error('Account UID role mismatch.');
 }
-export function validateAccountModeObservation(value: unknown): BybitAccountModeObservation {
-  const row = object(value);
+
+function identity(row: Record<string, unknown>): void {
+  identityBinding(row);
+  identityUid(row);
+  identityRole(row);
+}
+
+function observationSchema(row: Record<string, unknown>): void {
   if (Object.keys(row).length !== FIELDS.length || FIELDS.some(field => !(field in row))
     || row.version !== 1 || row.profile !== 'bybit_uta_v1' || ![1, 3, 4, 5, 6].includes(Number(row.unifiedMarginStatus))
     || typeof row.unifiedMarginStatus !== 'number') throw new Error('Invalid account-mode profile/schema.');
-  identity(row);
+}
+
+function observationTimes(row: Record<string, unknown>): void {
   for (const key of ['accountUpdatedAt', 'startedAt', 'completedAt']) {
     if (!Number.isSafeInteger(row[key]) || Number(row[key]) < 0) throw new Error('Invalid account-mode time.');
   }
+}
+
+function observationInterval(row: Record<string, unknown>): void {
   if (Number(row.startedAt) > Number(row.completedAt) || Number(row.completedAt) - Number(row.startedAt) > 30_000
     || Number(row.completedAt) > Date.now() + 1000 || Number(row.accountUpdatedAt) > Number(row.completedAt) + 30_000
     || accountModeDigest(row) !== row.evidenceHash) throw new Error('Invalid account-mode interval/digest.');
+}
+export function validateAccountModeObservation(value: unknown): BybitAccountModeObservation {
+  const row = object(value);
+  observationSchema(row);
+  identity(row);
+  observationTimes(row);
+  observationInterval(row);
   return structuredClone(row) as unknown as BybitAccountModeObservation;
+}
+function progressShape(row: Record<string, unknown>): void {
+  if (Object.keys(row).length !== 3 || !Number.isInteger(row.calls) || Number(row.calls) < 0 || Number(row.calls) > 2
+    || ![null, 'budget_exhausted', 'transient', 'unsupported'].includes(row.reason as AccountModeProgress['reason'])) throw new Error('Invalid account-mode read progress.');
+}
+
+function progressEvidence(row: Record<string, unknown>, observation: BybitAccountModeObservation | null, acquisition: { startedAt: number; completedAt: number }): void {
+  if (observation ? row.calls !== 2 || row.reason !== null || observation.startedAt < acquisition.startedAt
+    || observation.completedAt > acquisition.completedAt : row.reason === null) throw new Error('Account-mode progress has no bound read evidence.');
 }
 export function validateAccountModeProgress(value: unknown, acquisition: { startedAt: number; completedAt: number }): AccountModeProgress {
   const row = object(value);
-  if (Object.keys(row).length !== 3 || !Number.isInteger(row.calls) || Number(row.calls) < 0 || Number(row.calls) > 2
-    || ![null, 'budget_exhausted', 'transient', 'unsupported'].includes(row.reason as AccountModeProgress['reason'])) throw new Error('Invalid account-mode read progress.');
+  progressShape(row);
   const observation = row.observation === null ? null : validateAccountModeObservation(row.observation);
-  if (observation ? row.calls !== 2 || row.reason !== null || observation.startedAt < acquisition.startedAt
-    || observation.completedAt > acquisition.completedAt : row.reason === null) throw new Error('Account-mode progress has no bound read evidence.');
+  progressEvidence(row, observation, acquisition);
   return { calls: Number(row.calls), observation, reason: row.reason as AccountModeProgress['reason'] };
 }
 
