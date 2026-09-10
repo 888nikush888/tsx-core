@@ -14,14 +14,21 @@ export async function getUiWorkflowDraft(id: string) {
     createdBy: row.created_by, updatedBy: row.updated_by, createdAt: row.created_at, updatedAt: row.updated_at, expiresAt: row.expires_at, expired: row.expires_at <= Date.now() } : null;
 }
 
-export async function saveUiWorkflowDraft(input: { id: string; baseVersion: number | null; baseRevisionId: string | null; graph: unknown }, actorId: string) {
+function assertSaveDraftInput(input: { id: string; baseVersion: number | null; baseRevisionId: string | null; graph: unknown }, actorId: string): void {
   identifier(input.id);
   if (input.baseVersion !== null && (!Number.isSafeInteger(input.baseVersion) || input.baseVersion < 1)) throw new Error('A graph draft base version is required.');
   if (!actorId || actorId.length > 128 || /[\r\n\0]/.test(actorId)) throw new Error('Invalid draft actor.');
   if (input.baseRevisionId !== null && typeof input.baseRevisionId !== 'string') throw new Error('A graph base revision is required.');
-  const graph = validateGraph(input.graph);
-  const serialized = JSON.stringify(graph);
+}
+
+function serializeDraftGraph(graph: unknown): string {
+  const serialized = JSON.stringify(validateGraph(graph));
   if (Buffer.byteLength(serialized) > 1_048_576) throw new Error('Graph draft exceeds 1 MiB.');
+  return serialized;
+}
+export function saveUiWorkflowDraft(input: { id: string; baseVersion: number | null; baseRevisionId: string | null; graph: unknown }, actorId: string) {
+  assertSaveDraftInput(input, actorId);
+  const serialized = serializeDraftGraph(input.graph);
   return withDatabaseTransaction(async () => {
     const current = await getUiWorkflowDraft(input.id);
     if ((current?.version ?? null) !== input.baseVersion) throw new Error('GRAPH_DRAFT_VERSION_CONFLICT');
@@ -43,12 +50,20 @@ export async function deleteUiWorkflowDraft(id: string, baseVersion: unknown) {
   return { id, deleted: true };
 }
 
+function assertDraftBinding(
+  current: Awaited<ReturnType<typeof getUiWorkflowDraft>>,
+  binding: { id: string; version: number },
+  input: Parameters<typeof saveWorkflowRevision>[0],
+): asserts current is NonNullable<Awaited<ReturnType<typeof getUiWorkflowDraft>>> {
+  if (!current || current.expired || current.version !== binding.version || current.baseRevisionId !== input.baseRevisionId
+    || reviewHash(current.graph) !== reviewHash(validateGraph(input.graph))) throw new Error('GRAPH_DRAFT_VERSION_CONFLICT');
+}
+
 /** Draft identity, graph, active revision and the new draft base commit under the same database owner. */
-export async function activateUiWorkflowDraft(input: Parameters<typeof saveWorkflowRevision>[0], binding: { id: string; version: number }) {
+export function activateUiWorkflowDraft(input: Parameters<typeof saveWorkflowRevision>[0], binding: { id: string; version: number }) {
   return withDatabaseTransaction(async () => {
     const current = await getUiWorkflowDraft(binding.id);
-    if (!current || current.expired || current.version !== binding.version || current.baseRevisionId !== input.baseRevisionId
-      || reviewHash(current.graph) !== reviewHash(validateGraph(input.graph))) throw new Error('GRAPH_DRAFT_VERSION_CONFLICT');
+    assertDraftBinding(current, binding, input);
     const workflow = await saveWorkflowRevision(input);
     const draft = await saveUiWorkflowDraft({ id: current.id, baseVersion: current.version, baseRevisionId: workflow.id, graph: workflow.graph }, input.actorId);
     return { workflow, draft };
