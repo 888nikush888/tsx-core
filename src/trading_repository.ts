@@ -273,7 +273,7 @@ export function createSignalContractDraftVersion(
     );
     if (!sourceRow) throw new Error('Source signal contract version does not exist.');
     const existingDraft = await getDatabase().get(
-      `SELECT id FROM trading_signal_contract_versions WHERE contract_id = ? AND status = 'draft'`,
+      'SELECT id FROM trading_signal_contract_versions WHERE contract_id = ? AND status = \'draft\'',
       [id],
     );
     if (existingDraft) throw new Error('Signal contract already has an editable draft version.');
@@ -1055,7 +1055,7 @@ export async function getTradingOverview(): Promise<TradingOverview> {
       (SELECT COUNT(*) FROM trading_trade_intents WHERE status IN ('pending', 'planned', 'submitting', 'monitoring')) AS intents,
       (SELECT COUNT(*) FROM trading_orders WHERE status = 'unknown') AS unknown_orders`),
     getDatabase().get<{ latest: number | null }>(
-      `SELECT MAX(completed_at) AS latest FROM trading_reconciliation_runs WHERE status = 'succeeded'`,
+      'SELECT MAX(completed_at) AS latest FROM trading_reconciliation_runs WHERE status = \'succeeded\'',
     ),
   ]);
   return {

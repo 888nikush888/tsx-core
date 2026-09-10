@@ -99,6 +99,6 @@ export function assertPositionNamespace(position: ExchangePositionSnapshot, exec
 
 export async function assertOwnedPositionNamespace(intentId: string, position: ExchangePositionSnapshot): Promise<void> {
   const entries = await getDatabase().all<Array<{ provider_symbol: string | null; filled_quantity: string }>>(
-    `SELECT provider_symbol, filled_quantity FROM trading_orders WHERE intent_id = ? AND role = 'entry'`, [intentId]);
+    'SELECT provider_symbol, filled_quantity FROM trading_orders WHERE intent_id = ? AND role = \'entry\'', [intentId]);
   assertPositionNamespace(position, entries.filter(entry => compareDecimal(entry.filled_quantity, '0') > 0).map(entry => entry.provider_symbol));
 }

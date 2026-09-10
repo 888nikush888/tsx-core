@@ -2173,7 +2173,7 @@ async function persistWorkflowTradingIntents(
     [workflowRunStatus(results, branches), normalizedJson({ branches }), now, runId],
   );
   const probingFallback = await getDatabase().get<{ id: string }>(
-    `SELECT id FROM trading_fallback_runs WHERE signal_run_id = ? AND status = 'probing' LIMIT 1`,
+    'SELECT id FROM trading_fallback_runs WHERE signal_run_id = ? AND status = \'probing\' LIMIT 1',
     [runId],
   );
   if (probingFallback) await refreshWorkflowSignalRunFromFallback(probingFallback.id, now);
@@ -2464,7 +2464,7 @@ export async function stopWorkflowFallback(intentId: string, reason: string, now
 export async function listWorkflowFallbackRuns(limit = 200): Promise<Array<Record<string, unknown>>> {
   const boundedLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(500, limit)) : 200;
   const runs = await getDatabase().all<FallbackRunRow[]>(
-    `SELECT run.* FROM trading_fallback_runs AS run ORDER BY run.created_at DESC LIMIT ?`,
+    'SELECT run.* FROM trading_fallback_runs AS run ORDER BY run.created_at DESC LIMIT ?',
     [boundedLimit],
   );
   const result: Array<Record<string, unknown>> = [];

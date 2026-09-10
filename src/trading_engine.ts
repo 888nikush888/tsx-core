@@ -468,7 +468,7 @@ async function assertExecutionAuthorization(intent: TradingIntent): Promise<void
         [intent.executionPathId, intent.workflowRevisionId, intent.channelId, intent.accountId, intent.strategyVersionId],
       )
     : await database.get(
-        `SELECT channel_id FROM trading_routes WHERE channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1`,
+        'SELECT channel_id FROM trading_routes WHERE channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1',
         [intent.channelId, intent.accountId, intent.strategyVersionId],
       );
   if (!authorized) throw new TradingRiskError('ROUTE_NO_LONGER_AUTHORIZED', 'The execution route was removed, changed or disabled.');
@@ -1494,7 +1494,7 @@ export class TradingEngine {
 
   private async isolateUnresolvedDispatch(intent: TradingIntent): Promise<void> {
     const unresolved = await getDatabase().get(
-      `SELECT 1 FROM trading_orders WHERE intent_id = ? AND status IN ('submitting', 'unknown', 'cancel_pending') LIMIT 1`,
+      'SELECT 1 FROM trading_orders WHERE intent_id = ? AND status IN (\'submitting\', \'unknown\', \'cancel_pending\') LIMIT 1',
       [intent.id],
     );
     if (!unresolved) return;

@@ -683,7 +683,7 @@ export async function connectMcpSession(input: {
        ) VALUES (?, ?, ?, ?, ?, ?)`,
       [id, agentId, clientName, clientVersion, now, now],
     );
-    await database.run(`UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?`, [now, agentId]);
+    await database.run('UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?', [now, agentId]);
   });
   return { id, agentId, clientName, clientVersion, connectedAt: now, lastSeenAt: now, disconnectedAt: null };
 }
@@ -699,7 +699,7 @@ export async function touchMcpSession(idValue: unknown, agentIdValue: unknown): 
     [now, id, agentId],
   );
   if (Number(result.changes || 0) === 1) {
-    await getDatabase().run(`UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?`, [now, agentId]);
+    await getDatabase().run('UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?', [now, agentId]);
     return true;
   }
   return false;

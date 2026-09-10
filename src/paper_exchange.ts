@@ -146,7 +146,7 @@ async function updateOpeningPosition(row: any, fillQuantity: string, fillPrice: 
     );
   }
   await database.run(
-    `UPDATE trading_paper_accounts SET available_balance = ?, updated_at = ? WHERE account_id = ?`,
+    'UPDATE trading_paper_accounts SET available_balance = ?, updated_at = ? WHERE account_id = ?',
     [subtractDecimal(account.available_balance, margin), now, row.account_id],
   );
 }
@@ -283,7 +283,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     const normalizedAvailable = decimal(availableBalance);
     if (compareDecimal(normalizedAvailable, normalizedEquity) > 0) throw new Error('Available paper balance cannot exceed equity.');
     await getDatabase().run(
-      `UPDATE trading_paper_accounts SET equity = ?, available_balance = ?, updated_at = ? WHERE account_id = ?`,
+      'UPDATE trading_paper_accounts SET equity = ?, available_balance = ?, updated_at = ? WHERE account_id = ?',
       [normalizedEquity, normalizedAvailable, now, accountId],
     );
   }

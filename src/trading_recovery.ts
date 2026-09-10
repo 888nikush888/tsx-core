@@ -350,7 +350,7 @@ export async function hasUndispatchedPlanProof(intent: TradingIntent, allowAband
   if (orders.length !== plan.orders.length) return false;
   const covered = new Set(operations.flatMap(operation => (JSON.parse(operation.expected_orders_json) as OperationOrder[]).map(order => order.client_order_id)));
   const filled = await getDatabase().get(
-    `SELECT fills.id FROM trading_fills AS fills JOIN trading_orders AS orders ON orders.id = fills.order_id WHERE orders.intent_id = ? LIMIT 1`, [intent.id],
+    'SELECT fills.id FROM trading_fills AS fills JOIN trading_orders AS orders ON orders.id = fills.order_id WHERE orders.intent_id = ? LIMIT 1', [intent.id],
   );
   return !filled && orders.every(order => unsubmittedOrderMatchesPlan(order, plan, covered));
 }
