@@ -14,12 +14,17 @@ export const MAX_ENTRY_DRAIN_ATTEMPTS = MAX_CANCEL_ATTEMPTS;
 export const TERMINAL_ORDER_STATES = ['filled', 'cancelled', 'rejected'] as const;
 
 /** Zero position quantity is deliberately not an input to this proof. */
-export function entryCommitmentReason(status: string, unresolvedOperation: boolean): string | null {
-  if (unresolvedOperation) return 'ENTRY_OPERATION_UNRESOLVED';
-  if ((TERMINAL_ORDER_STATES as readonly string[]).includes(status)) return null;
+function nonTerminalEntryReason(status: string): string | null {
   if (status === 'created') return 'ENTRY_DISPATCH_INTENT';
   if (status === 'open' || status === 'partially_filled') return 'ENTRY_CAN_FILL';
   return 'ENTRY_OUTCOME_UNRESOLVED';
+}
+
+/** Zero position quantity is deliberately not an input to this proof. */
+export function entryCommitmentReason(status: string, unresolvedOperation: boolean): string | null {
+  if (unresolvedOperation) return 'ENTRY_OPERATION_UNRESOLVED';
+  if ((TERMINAL_ORDER_STATES as readonly string[]).includes(status)) return null;
+  return nonTerminalEntryReason(status);
 }
 
 /** Caller owns the account mutation coordinator. This intent survives timeouts and restarts. */
@@ -37,7 +42,7 @@ export async function requestEntryDrain(accountId: string, reason: string, inten
     [Date.now(), reason.slice(0, 300), accountId, intentId ?? null, intentId ?? null]);
 }
 
-export async function requestedEntryDrains(accountId: string, now = Date.now()): Promise<EntryCommitment[]> {
+export function requestedEntryDrains(accountId: string, now = Date.now()): Promise<EntryCommitment[]> {
   return getDatabase().all<EntryCommitment[]>(
     `SELECT intent_id, account_id, client_order_id, status, exchange_order_id, provider_symbol, entry_drain_attempted_at
      FROM trading_orders WHERE account_id = ? AND role = 'entry' AND entry_drain_requested_at IS NOT NULL
@@ -69,10 +74,10 @@ export async function markEntryDrainAttempt(accountId: string, clientOrderId: st
  * The old cancellation outcome is recorded as still-active, not as entries-drained.
  * Concurrent completion of an older cancel cannot make an exact duplicate cancel add exposure.
  */
-export async function resolveActiveEntryCancelAttempts(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
+export function resolveActiveEntryCancelAttempts(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
   return resolveActiveCancelAttempts(account, remote, true);
 }
 
-export async function entryCancelRetryAuthorized(accountId: string, clientOrderId: string): Promise<boolean> {
+export function entryCancelRetryAuthorized(accountId: string, clientOrderId: string): Promise<boolean> {
   return cancelRetryAuthorized(accountId, clientOrderId);
 }
