@@ -20,37 +20,64 @@ const FILE_BACKED_SECRETS = [
 ] as const;
 const MAX_SECRET_BYTES = 16 * 1024;
 
+function parsedEnvEntry(trimmed: string): { key: string; value: string } | null {
+  if (!trimmed || trimmed.startsWith('#')) return null;
+  const separator = trimmed.indexOf('=');
+  if (separator <= 0) return null;
+  const key = trimmed.slice(0, separator).trim();
+  if (!/^[A-Z_][A-Z0-9_]*$/.test(key)) return null;
+  const value = trimmed.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '');
+  return { key, value };
+}
+
 export function applyEnvContent(content: string, env: NodeJS.ProcessEnv = process.env): void {
   for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const separator = trimmed.indexOf('=');
-    if (separator <= 0) continue;
-    const key = trimmed.slice(0, separator).trim();
-    if (!/^[A-Z_][A-Z0-9_]*$/.test(key) || env[key] !== undefined) continue;
-    env[key] = trimmed.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '');
+    const entry = parsedEnvEntry(line.trim());
+    if (!entry || env[entry.key] !== undefined) continue;
+    env[entry.key] = entry.value;
   }
+}
+
+function secretFileReference(env: NodeJS.ProcessEnv, fileVariable: string): string | null {
+  const fileReference = env[fileVariable]?.trim();
+  return fileReference ? fileReference : null;
+}
+
+function assertSecretNotDoubled(env: NodeJS.ProcessEnv, secretName: string, fileVariable: string): void {
+  if (env[secretName]?.trim()) {
+    throw new Error(`${secretName} and ${fileVariable} cannot both be configured.`);
+  }
+}
+
+function assertSecretFileSize(secretPath: string, fileVariable: string): void {
+  const stats = fs.statSync(secretPath);
+  if (!stats.isFile() || stats.size < 1 || stats.size > MAX_SECRET_BYTES) {
+    throw new Error(`${fileVariable} must reference a non-empty regular file of at most ${MAX_SECRET_BYTES} bytes.`);
+  }
+}
+
+function readSecretLine(secretPath: string, fileVariable: string): string {
+  const value = fs.readFileSync(secretPath, 'utf8').replace(/\r?\n$/, '');
+  if (!value || value.includes('\0') || /[\r\n]/.test(value)) {
+    throw new Error(`${fileVariable} must contain exactly one non-empty secret line.`);
+  }
+  return value;
+}
+
+function resolveSecretFile(env: NodeJS.ProcessEnv, secretName: string): void {
+  const fileVariable = `${secretName}_FILE`;
+  const fileReference = secretFileReference(env, fileVariable);
+  if (!fileReference) return;
+  assertSecretNotDoubled(env, secretName, fileVariable);
+  const secretPath = path.resolve(fileReference);
+  assertSecretFileSize(secretPath, fileVariable);
+  env[secretName] = readSecretLine(secretPath, fileVariable);
+  Reflect.deleteProperty(env, fileVariable);
 }
 
 export function resolveSecretFiles(env: NodeJS.ProcessEnv = process.env): void {
   for (const secretName of FILE_BACKED_SECRETS) {
-    const fileVariable = `${secretName}_FILE`;
-    const fileReference = env[fileVariable]?.trim();
-    if (!fileReference) continue;
-    if (env[secretName]?.trim()) {
-      throw new Error(`${secretName} and ${fileVariable} cannot both be configured.`);
-    }
-    const secretPath = path.resolve(fileReference);
-    const stats = fs.statSync(secretPath);
-    if (!stats.isFile() || stats.size < 1 || stats.size > MAX_SECRET_BYTES) {
-      throw new Error(`${fileVariable} must reference a non-empty regular file of at most ${MAX_SECRET_BYTES} bytes.`);
-    }
-    const value = fs.readFileSync(secretPath, 'utf8').replace(/\r?\n$/, '');
-    if (!value || value.includes('\0') || /[\r\n]/.test(value)) {
-      throw new Error(`${fileVariable} must contain exactly one non-empty secret line.`);
-    }
-    env[secretName] = value;
-    delete env[fileVariable];
+    resolveSecretFile(env, secretName);
   }
 }
 
