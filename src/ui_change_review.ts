@@ -28,6 +28,10 @@ const SECRET_PATTERNS = [
 /** Review-only copy: never passed back into a command or used as an authoritative configuration. */
 export function redactReview<T>(value: T, depth = 0, personalData = true): T {
   if (depth > 45) return '[Tiefe überschritten]' as T;
+  return redactReviewContent(value, depth, personalData);
+}
+
+function redactReviewContent<T>(value: T, depth: number, personalData: boolean): T {
   if (typeof value === 'string') return redactReviewString(value, personalData) as T;
   if (Array.isArray(value)) return redactReviewArray(value as unknown[], depth, personalData) as T;
   if (value && typeof value === 'object') return redactReviewObject(value as Record<string, unknown>, depth, personalData) as T;
