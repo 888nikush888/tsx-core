@@ -28,7 +28,7 @@ function boundedInteger(value, fallback, minimum, maximum, name) {
 }
 
 async function withTimeout(operation, timeoutMs, label) {
-  let timer = null;
+  let timer = undefined;
   try {
     return await Promise.race([
       operation,

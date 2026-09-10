@@ -123,16 +123,16 @@ async function relatedMainDecision(root, manifest) {
 
 export async function loadReviewedDecisions(root = ROOT, mode = 'main') {
   const configuration = reviewMode(mode);
-  let bytes = null;
+  let manifestBytes = null;
   let manifest = null;
   const resolvedRoot = await realpath(root);
   try {
-    bytes = await boundFile(resolvedRoot, configuration.manifest);
-    manifest = JSON.parse(bytes.toString('utf8'));
+    manifestBytes = await boundFile(resolvedRoot, configuration.manifest);
+    manifest = JSON.parse(manifestBytes.toString('utf8'));
   } catch {
     throw new DecisionError('MANIFEST');
   }
-  validateManifest(manifest, bytes, mode);
+  validateManifest(manifest, manifestBytes, mode);
   try {
     for (const decision of manifest.decisions) {
       for (const binding of [decision.source, ...decision.tests]) {
@@ -143,7 +143,7 @@ export async function loadReviewedDecisions(root = ROOT, mode = 'main') {
     throw new DecisionError('SOURCE');
   }
   const mainDecision = mode === 'pr29' ? await relatedMainDecision(root, manifest) : undefined;
-  return { manifest, manifestSha256: digest(bytes), mainDecision };
+  return { manifest, manifestSha256: digest(manifestBytes), mainDecision };
 }
 
 function authorizeRunner(environment, mode) {
@@ -174,18 +174,18 @@ function reviewComment(decision) {
 }
 
 async function requestJson(url, { fetchImpl, token }) {
-  let response = null;
-  let body = null;
+  let fetchResponse = null;
+  let payload = null;
   try {
-    response = await fetchImpl(url, { method: 'GET', redirect: 'error', headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
+    fetchResponse = await fetchImpl(url, { method: 'GET', redirect: 'error', headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
       signal: AbortSignal.timeout(15_000) });
-    requireCondition(![401, 403].includes(response.status), 'PERMISSION');
-    requireCondition(response.ok, 'READ');
-    body = await response.json();
+    requireCondition(![401, 403].includes(fetchResponse.status), 'PERMISSION');
+    requireCondition(fetchResponse.ok, 'READ');
+    payload = await fetchResponse.json();
   } catch (error) {
     throw error instanceof DecisionError ? error : new DecisionError('READ');
   }
-  return body;
+  return payload;
 }
 
 async function requestIssue(decision, dependencies, pullRequest) {
@@ -280,20 +280,19 @@ function decisionState(issue, decision) {
 }
 
 async function transitionOnce(decision, { fetchImpl, token }) {
-  let response = null;
+  let transitionResponse = null;
   try {
-    response = await fetchImpl(new URL('/api/issues/do_transition', ORIGIN), { method: 'POST', redirect: 'error',
+    transitionResponse = await fetchImpl(new URL('/api/issues/do_transition', ORIGIN), { method: 'POST', redirect: 'error',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
       body: new URLSearchParams({ issue: decision.issueKey, transition: decision.disposition, comment: reviewComment(decision) }),
       signal: AbortSignal.timeout(15_000) });
   } catch {
     return 'uncertain';
   }
-  // Never print, persist or use an untrusted response body to decide whether to retry a mutation.
-  await response.body?.cancel().catch(() => undefined);
-  requireCondition(![401, 403].includes(response.status), 'PERMISSION');
-  if (response.status >= 400 && response.status < 500) throw new DecisionError('REJECTED');
-  return response.ok ? 'responded' : 'uncertain';
+  await transitionResponse.body?.cancel().catch(() => undefined);
+  requireCondition(![401, 403].includes(transitionResponse.status), 'PERMISSION');
+  if (transitionResponse.status >= 400 && transitionResponse.status < 500) throw new DecisionError('REJECTED');
+  return transitionResponse.ok ? 'responded' : 'uncertain';
 }
 
 async function persistLedger(ledger, writeLedger) {
@@ -368,19 +367,19 @@ async function main() {
   const mode = args[0] === '--reviewed-pr29' ? 'pr29' : 'main';
   const configuration = reviewMode(mode);
   const dryRun = args.includes('--dry-run');
-  let event = null;
-  let revision = null;
-  let clean = null;
+  let githubEvent = null;
+  let headRevision = null;
+  let worktreeClean = null;
   if (!dryRun) {
     try {
-      event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8'));
-      revision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-      clean = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim() === '';
+      githubEvent = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8'));
+      headRevision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+      worktreeClean = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim() === '';
     } catch {
       throw new DecisionError('AUTHORIZATION');
     }
   }
-  const ledger = await applyReviewedDecisions({ event, revision, clean, dryRun, mode, writeLedger: async value => {
+  const ledger = await applyReviewedDecisions({ event: githubEvent, revision: headRevision, clean: worktreeClean, dryRun, mode, writeLedger: async value => {
     const filename = path.join(ROOT, configuration.ledger);
     await mkdir(path.dirname(filename), { recursive: true });
     await writeFile(`${filename}.tmp`, `${JSON.stringify(value, null, 2)}\n`);

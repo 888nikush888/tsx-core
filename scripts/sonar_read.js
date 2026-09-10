@@ -58,16 +58,16 @@ async function request(url, options) {
 }
 
 function parseObject(body) {
-  let parsed = null;
+  let parsedBody = null;
   try {
-    parsed = JSON.parse(body);
+    parsedBody = JSON.parse(body);
   } catch {
     throw new Error('SonarCloud returned invalid JSON.');
   }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+  if (!parsedBody || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
     throw new Error('SonarCloud returned an invalid JSON object.');
   }
-  return parsed;
+  return parsedBody;
 }
 
 function requestUrl(endpoint, parameters, hostUrl) {
