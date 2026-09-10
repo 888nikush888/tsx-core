@@ -14,7 +14,10 @@ function fail(reason: string): never { throw new Error(`RECOVERY_SCHEDULE_${reas
 function instant(now: number): void { if (!Number.isSafeInteger(now) || now < 0 || now > Date.now() + 1000) fail('INVALID_TIME'); }
 async function accountBinding(account: FxAccount): Promise<RecoveryScheduleBinding> {
   const context = await requireFxAccountContext(account);
-  return { accountId: account.id, accountFingerprint: account.externalAccountId!, credentialGeneration: account.credentialGeneration!,
+  const fingerprint = account.externalAccountId;
+  const generation = account.credentialGeneration;
+  if (!fingerprint || !generation) fail('ACCOUNT_BINDING_MISSING');
+  return { accountId: account.id, accountFingerprint: fingerprint, credentialGeneration: generation,
     mode: context.mode, executionProfileHash: context.profileHash };
 }
 function scheduleId(binding: RecoveryScheduleBinding): string {
@@ -34,7 +37,7 @@ async function schedule(binding: RecoveryScheduleBinding, now: number): Promise<
   const id = scheduleId(binding);
   await getDatabase().run(`INSERT INTO trading_recovery_schedules(id,account_id,binding_json,updated_at)
     VALUES (?,?,?,?) ON CONFLICT(id) DO NOTHING`, [id, binding.accountId, JSON.stringify(binding), now]);
-  return (await getDatabase().get<RecoveryScheduleState>('SELECT * FROM trading_recovery_schedules WHERE id=?', [id]))!;
+  return (await getDatabase().get<RecoveryScheduleState>('SELECT * FROM trading_recovery_schedules WHERE id=?', [id])) ?? fail('SCHEDULE_MISSING');
 }
 /** Used within the existing account coordinator, never a new timer or source of trade authority. */
 export async function scheduledRecoveryDue(account: FxAccount, now = Date.now()): Promise<boolean> {
