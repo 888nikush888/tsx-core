@@ -358,7 +358,7 @@ export class McpControlBridge {
       case 'contracts.delete_draft':
         return this.control.removeSignalContractDraft(payload.versionId);
       default:
-        throw new Error(`MCP control action is not implemented: ${action}`);
+        throw new Error(`MCP control removal action is not implemented: ${action}`);
     }
   }
 
@@ -369,7 +369,7 @@ export class McpControlBridge {
       case 'risk.delete':
         return this.control.removeChannelRiskPolicy(payload.channelId);
       default:
-        throw new Error(`MCP control action is not implemented: ${action}`);
+        throw new Error(`MCP control risk action is not implemented: ${action}`);
     }
   }
 
@@ -391,7 +391,7 @@ export class McpControlBridge {
           confirmation: 'FLATTEN MANAGED POSITIONS',
         });
       default:
-        throw new Error(`MCP control action is not implemented: ${action}`);
+        throw new Error(`MCP control trading action is not implemented: ${action}`);
     }
   }
 }
