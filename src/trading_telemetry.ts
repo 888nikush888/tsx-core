@@ -159,7 +159,9 @@ function percentile(values: number[], quantile: number): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((left, right) => left - right);
   const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * quantile) - 1));
-  return sorted[index]!;
+  const value = sorted[index];
+  if (value === undefined) return null;
+  return value;
 }
 
 type ExecutionEventRow = {
@@ -396,8 +398,11 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
     candidates.some(candidate => candidate.candidateStatus === 'selected'));
   const exhausted = [...runs.values()].filter(candidates => candidates[0]?.fallbackStatus === 'exhausted').length;
   const stopped = [...runs.values()].filter(candidates => candidates[0]?.fallbackStatus === 'stopped').length;
-  const selectedRanks = selectedRuns.map(candidates =>
-    Number(candidates.find(candidate => candidate.candidateStatus === 'selected')!.rank));
+  const selectedRanks = selectedRuns.map(candidates => {
+    const selected = candidates.find(candidate => candidate.candidateStatus === 'selected');
+    if (!selected) throw new Error('Selected fallback candidate is missing.');
+    return Number(selected.rank);
+  });
   const runCount = runs.size;
   const skippedByReason = Object.fromEntries([
     'SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED',

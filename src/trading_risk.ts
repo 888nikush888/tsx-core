@@ -433,12 +433,15 @@ function plannedOrders(input: {
     postOnly: false,
     targetIndex: null,
   };
-  const takeProfits = input.signal.targets.map((target, index): PlannedOrder => ({
+  const takeProfits = input.signal.targets.map((target, index): PlannedOrder => {
+    const quantity = targets[index];
+    if (quantity === undefined) throw new Error('Target allocation is missing.');
+    return {
     clientOrderId: clientOrderId(input.intentId, 'take_profit', index + 1),
     role: 'take_profit',
     side: closingSide,
     orderType: 'limit',
-    quantity: targets[index]!,
+    quantity,
     price: input.signal.action === 'LONG'
       ? quantizeDecimalDown(midpointDecimal(target), input.market.priceTick)
       : quantizeDecimalUp(midpointDecimal(target), input.market.priceTick),
@@ -446,7 +449,8 @@ function plannedOrders(input: {
     reduceOnly: true,
     postOnly: false,
     targetIndex: index + 1,
-  }));
+    };
+  });
   return [entry, stop, ...takeProfits];
 }
 
