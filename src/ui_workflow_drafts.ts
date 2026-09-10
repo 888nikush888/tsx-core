@@ -14,11 +14,27 @@ export async function getUiWorkflowDraft(id: string) {
     createdBy: row.created_by, updatedBy: row.updated_by, createdAt: row.created_at, updatedAt: row.updated_at, expiresAt: row.expires_at, expired: row.expires_at <= Date.now() } : null;
 }
 
-function assertSaveDraftInput(input: { id: string; baseVersion: number | null; baseRevisionId: string | null; graph: unknown }, actorId: string): void {
-  identifier(input.id);
-  if (input.baseVersion !== null && (!Number.isSafeInteger(input.baseVersion) || input.baseVersion < 1)) throw new Error('A graph draft base version is required.');
+function assertDraftIdentity(id: string): void {
+  identifier(id);
+}
+
+function assertDraftBaseVersion(baseVersion: number | null): void {
+  if (baseVersion !== null && (!Number.isSafeInteger(baseVersion) || baseVersion < 1)) throw new Error('A graph draft base version is required.');
+}
+
+function assertDraftActor(actorId: string): void {
   if (!actorId || actorId.length > 128 || /[\r\n\0]/.test(actorId)) throw new Error('Invalid draft actor.');
-  if (input.baseRevisionId !== null && typeof input.baseRevisionId !== 'string') throw new Error('A graph base revision is required.');
+}
+
+function assertDraftBaseRevision(baseRevisionId: string | null): void {
+  if (baseRevisionId !== null && typeof baseRevisionId !== 'string') throw new Error('A graph base revision is required.');
+}
+
+function assertSaveDraftInput(input: { id: string; baseVersion: number | null; baseRevisionId: string | null; graph: unknown }, actorId: string): void {
+  assertDraftIdentity(input.id);
+  assertDraftBaseVersion(input.baseVersion);
+  assertDraftActor(actorId);
+  assertDraftBaseRevision(input.baseRevisionId);
 }
 
 function serializeDraftGraph(graph: unknown): string {
@@ -50,13 +66,42 @@ export async function deleteUiWorkflowDraft(id: string, baseVersion: unknown) {
   return { id, deleted: true };
 }
 
+function assertDraftAlive(
+  current: Awaited<ReturnType<typeof getUiWorkflowDraft>>,
+): asserts current is NonNullable<Awaited<ReturnType<typeof getUiWorkflowDraft>>> {
+  if (!current || current.expired) throw new Error('GRAPH_DRAFT_VERSION_CONFLICT');
+}
+
+function assertDraftVersion(
+  current: NonNullable<Awaited<ReturnType<typeof getUiWorkflowDraft>>>,
+  binding: { id: string; version: number },
+): void {
+  if (current.version !== binding.version) throw new Error('GRAPH_DRAFT_VERSION_CONFLICT');
+}
+
+function assertDraftBase(
+  current: NonNullable<Awaited<ReturnType<typeof getUiWorkflowDraft>>>,
+  input: Parameters<typeof saveWorkflowRevision>[0],
+): void {
+  if (current.baseRevisionId !== input.baseRevisionId) throw new Error('GRAPH_DRAFT_VERSION_CONFLICT');
+}
+
+function assertDraftGraph(
+  current: NonNullable<Awaited<ReturnType<typeof getUiWorkflowDraft>>>,
+  input: Parameters<typeof saveWorkflowRevision>[0],
+): void {
+  if (reviewHash(current.graph) !== reviewHash(validateGraph(input.graph))) throw new Error('GRAPH_DRAFT_VERSION_CONFLICT');
+}
+
 function assertDraftBinding(
   current: Awaited<ReturnType<typeof getUiWorkflowDraft>>,
   binding: { id: string; version: number },
   input: Parameters<typeof saveWorkflowRevision>[0],
 ): asserts current is NonNullable<Awaited<ReturnType<typeof getUiWorkflowDraft>>> {
-  if (!current || current.expired || current.version !== binding.version || current.baseRevisionId !== input.baseRevisionId
-    || reviewHash(current.graph) !== reviewHash(validateGraph(input.graph))) throw new Error('GRAPH_DRAFT_VERSION_CONFLICT');
+  assertDraftAlive(current);
+  assertDraftVersion(current, binding);
+  assertDraftBase(current, input);
+  assertDraftGraph(current, input);
 }
 
 /** Draft identity, graph, active revision and the new draft base commit under the same database owner. */
