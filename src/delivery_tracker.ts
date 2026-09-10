@@ -90,7 +90,8 @@ export class TelegramDeliveryTracker {
     if (waiter) {
       this.cleanupWaiter(oldMessageId, waiter);
       if (outcome.error) waiter.reject(outcome.error);
-      else waiter.resolve(outcome.destinationMessageId!);
+      else if (outcome.destinationMessageId) waiter.resolve(outcome.destinationMessageId);
+      else waiter.reject(new Error('Delivery confirmation is missing.'));
       return;
     }
 
@@ -107,7 +108,9 @@ export class TelegramDeliveryTracker {
     const cached = this.recentOutcomes.get(oldMessageId);
     if (cached) {
       this.recentOutcomes.delete(oldMessageId);
-      return cached.error ? Promise.reject(cached.error) : Promise.resolve(cached.destinationMessageId!);
+      if (cached.error) return Promise.reject(cached.error);
+      if (cached.destinationMessageId) return Promise.resolve(cached.destinationMessageId);
+      return Promise.reject(new Error('Delivery confirmation is missing.'));
     }
     if (signal?.aborted) return Promise.reject(new Error('Delivery confirmation aborted.'));
     if (this.waiters.has(oldMessageId)) {

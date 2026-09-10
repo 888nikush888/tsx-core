@@ -63,7 +63,10 @@ function retentionAnchor(value: unknown): ExchangeHistoryRetention['anchor'] {
   if (Object.keys(row).length !== 4 || !['coin', 'tid', 'time', 'payloadHash'].every(field => field in row)
     || typeof row.payloadHash !== 'string' || !/^[a-f0-9]{64}$/.test(row.payloadHash)
     || row.coin === null || row.tid === null) throw new Error('Invalid Hyperliquid retention anchor.');
-  return { coin: token(row.coin, 256)!, tid: token(row.tid, 256)!, time: integer(row.time), payloadHash: row.payloadHash };
+  const coin = token(row.coin, 256);
+  const tid = token(row.tid, 256);
+  if (coin === null || tid === null) throw new Error('Invalid Hyperliquid retention anchor.');
+  return { coin, tid, time: integer(row.time), payloadHash: row.payloadHash };
 }
 
 function validateRetentionWindow(probe: ExchangeHistoryRetention, state: ExchangeHistoryCheckpoint): void {
