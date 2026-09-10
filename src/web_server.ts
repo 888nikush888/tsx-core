@@ -769,8 +769,14 @@ function sendDownload(
   res.end(content);
 }
 
+function requireActor(context: RequestContext): AuthenticatedActor {
+  const actor = context.actor;
+  if (!actor) throw new HttpError(401, 'Valid dashboard bearer token required.');
+  return actor;
+}
+
 function accessStatusHandler(context: RequestContext): void {
-  const actor = context.actor!;
+  const actor = requireActor(context);
   sendJson(context.res, 200, {
     mode: actor.identity?.provider ?? 'bearer',
     role: actor.role,
@@ -1139,7 +1145,7 @@ async function previewSetupBundleHandler(context: RequestContext): Promise<void>
     const current = await withDatabaseTransaction(() => uiSetupCurrentState(publicConfig(context.appState.config)));
     const baseHash = reviewHash(current);
     setupBundlePreviews.set(key, {
-      actorId: context.actor!.id,
+      actorId: requireActor(context).id,
       bundle,
       bundleHash: bundle.checksum,
       baseHash,
@@ -1241,7 +1247,7 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
   try {
     pruneSetupBundlePreviews();
     const payload = await readJsonBody(context.req, 256 * 1024);
-    const preview = consumeSetupBundlePreview(payload, context.actor!.id);
+    const preview = consumeSetupBundlePreview(payload, requireActor(context).id);
     const accountMappings = setupBundleAccountMappings(payload, preview);
     const assertPreviewCurrent = async () => {
       if (reviewHash(await uiSetupCurrentState(publicConfig(context.appState.config))) !== preview.baseHash) {
@@ -1257,7 +1263,7 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
     const result = await applyPortableSetupBundle({
       bundle: preview.bundle,
       accountMappings,
-      actorId: context.actor!.id,
+      actorId: requireActor(context).id,
       beforeImport: assertPreviewCurrent,
       beforeCommit: () => {
         (context.appState.persistConfig ?? writeConfigSync)(replacementConfig as any);
@@ -1379,7 +1385,7 @@ async function runBackupHandler(context: RequestContext): Promise<void> {
     if (typeof jobId === 'string') {
       const store = context.appState.uiOperations;
       if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-      const accepted = await store.accept({ id: jobId, kind: 'backup-create', actorId: context.actor!.id, scope: { database: 'current', configuration: 'current' }, request: { action: 'backup-create' } });
+      const accepted = await store.accept({ id: jobId, kind: 'backup-create', actorId: requireActor(context).id, scope: { database: 'current', configuration: 'current' }, request: { action: 'backup-create' } });
       sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
       if (accepted.created) store.run(jobId, async () => ({ artifactName: path.basename(await context.appState.runBackupNow!()) })).catch(error => addLog(`[ERROR] Backup job persistence failed: ${errorMessage(error)}`));
       return;
@@ -1503,7 +1509,7 @@ async function runRestartCommand(context: RequestContext, command: {
   // Lookup may cross a maintenance hold, but creating/executing a new destructive
   // command still requires the original startup gate. accept verifies the actor and payload.
   if (!(await store.get(id))) assertStartupMutationAllowed(context, 'POST');
-  const accepted = await store.accept({ id, kind: command.kind, actorId: context.actor!.id, scope: command.scope, request: command.request });
+  const accepted = await store.accept({ id, kind: command.kind, actorId: requireActor(context).id, scope: command.scope, request: command.request });
   const job = accepted.created ? await store.runRestart(id, command.operation) : accepted.job;
   coordinator.schedule(job, context.res);
   const restartScheduled = job.restart?.sourceInstanceId === store.processInstanceId;
@@ -1571,7 +1577,7 @@ async function recoverOffsiteBackupHandler(context: RequestContext): Promise<voi
     if (payload.jobId !== undefined) {
       const store = context.appState.uiOperations;
       if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-      const accepted = await store.accept({ id: payload.jobId, kind: 'backup-recover', actorId: context.actor!.id, scope: { objectName }, request: { objectName } });
+      const accepted = await store.accept({ id: payload.jobId, kind: 'backup-recover', actorId: requireActor(context).id, scope: { objectName }, request: { objectName } });
       sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
       if (accepted.created) store.run(accepted.job.id, async () => ({ artifactName: await context.appState.recoverOffsiteBackup!(objectName) })).catch(error => addLog(`[ERROR] Offsite recovery job persistence failed: ${errorMessage(error)}`));
       return;
@@ -2247,7 +2253,7 @@ async function uiWorkflowDraftHandler(context: RequestContext): Promise<void> {
       if (context.req.method === 'DELETE') {
         if (!requireConfirmation(context, 'delete-workflow-draft', 'Explicit graph draft deletion confirmation required.')) return;
         sendJson(context.res, 200, { result: await deleteUiWorkflowDraft(payload.id, payload.baseVersion) });
-      } else sendJson(context.res, 200, { draft: await saveUiWorkflowDraft(payload, context.actor!.id) });
+      } else sendJson(context.res, 200, { draft: await saveUiWorkflowDraft(payload, requireActor(context).id) });
     }
   } catch (error) { sendError(context, new HttpError(409, errorMessage(error))); }
 }
@@ -2280,7 +2286,7 @@ async function uiParserLabHandler(context: RequestContext): Promise<void> {
       || payload.previewObservedAt > Date.now() || Date.now() - payload.previewObservedAt > 300_000) throw new HttpError(409, 'Parser preview is stale or does not match this source and configuration. Preview again.');
     const store = context.appState.uiOperations;
     if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-    const accepted = await store.accept({ id: payload.jobId, kind: 'parser-test', actorId: context.actor!.id,
+    const accepted = await store.accept({ id: payload.jobId, kind: 'parser-test', actorId: requireActor(context).id,
       scope: { pathId: prepared.preview.pathId, sourceSha256: prepared.preview.sourceSha256, sourceChars: prepared.preview.sourceChars, previewHash: prepared.preview.previewHash }, request: { previewHash: payload.previewHash } });
     sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
     if (accepted.created) store.run(accepted.job.id, () => runUiParserTest(prepared)).catch(() => addLog('[ERROR] Parser test result could not be persisted. Inspect the job; do not repeat automatically.'));
@@ -2294,7 +2300,7 @@ async function uiBackupDrillHandler(context: RequestContext): Promise<void> {
     if (!store || !context.appState.runBackupDrill) throw new HttpError(503, 'Isolated restore drills are unavailable.');
     const payload = await readJsonBody(context.req, 4096);
     const name = backupArtifactName(payload.name);
-    const accepted = await store.accept({ id: payload.jobId, kind: 'backup-drill', actorId: context.actor!.id, scope: { artifactName: name }, request: { name } });
+    const accepted = await store.accept({ id: payload.jobId, kind: 'backup-drill', actorId: requireActor(context).id, scope: { artifactName: name }, request: { name } });
     sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
     if (accepted.created) store.run(accepted.job.id, () => context.appState.runBackupDrill!(name)).catch(error => addLog(`[ERROR] Operator drill result persistence failed: ${errorMessage(error)}`));
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
