@@ -2273,6 +2273,13 @@ async function uiJobsHandler(context: RequestContext): Promise<void> {
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
 }
 
+function requireParserConsent(payload: Record<string, unknown>, prepared: Awaited<ReturnType<typeof prepareUiParserTest>>): void {
+  if (payload.externalDataConsent !== true || !prepared.preview.externalDataPolicyAccepted) throw new HttpError(412, 'Global external data policy and explicit test consent are required.');
+  if (!prepared.preview.providerConfigured) throw new HttpError(503, 'AI provider credential is not configured.');
+  if (payload.previewHash !== prepared.preview.previewHash || !Number.isSafeInteger(payload.previewObservedAt)
+    || (payload.previewObservedAt as number) > Date.now() || Date.now() - (payload.previewObservedAt as number) > 300_000) throw new HttpError(409, 'Parser preview is stale or does not match this source and configuration. Preview again.');
+}
+
 async function uiParserLabHandler(context: RequestContext): Promise<void> {
   try {
     if (context.req.method === 'GET') {
@@ -2282,10 +2289,7 @@ async function uiParserLabHandler(context: RequestContext): Promise<void> {
     const prepared = await prepareUiParserTest(context.appState.config, payload);
     if (context.parsedUrl.pathname.endsWith('/preview')) { sendJson(context.res, 200, prepared.preview); return; }
     if (!requireConfirmation(context, 'run-parser-test', 'Explicit external AI parser test confirmation required.')) return;
-    if (payload.externalDataConsent !== true || !prepared.preview.externalDataPolicyAccepted) throw new HttpError(412, 'Global external data policy and explicit test consent are required.');
-    if (!prepared.preview.providerConfigured) throw new HttpError(503, 'AI provider credential is not configured.');
-    if (payload.previewHash !== prepared.preview.previewHash || !Number.isSafeInteger(payload.previewObservedAt)
-      || payload.previewObservedAt > Date.now() || Date.now() - payload.previewObservedAt > 300_000) throw new HttpError(409, 'Parser preview is stale or does not match this source and configuration. Preview again.');
+    requireParserConsent(payload, prepared);
     const store = context.appState.uiOperations;
     if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
     const accepted = await store.accept({ id: payload.jobId, kind: 'parser-test', actorId: requireActor(context).id,
@@ -2733,30 +2737,46 @@ function bootstrapStatusHandler(
   });
 }
 
+function bootstrapTokenState(authenticator: DashboardAuthenticator): void {
+  if (authenticator.mode !== 'token') {
+    throw new HttpError(409, 'Token bootstrap is unavailable in OIDC mode.');
+  }
+  if (authenticator.isConfigured()) {
+    throw new HttpError(409, 'Dashboard authentication is already configured.');
+  }
+}
+
+function requireBootstrapSecretStore(context: RequestContext): NonNullable<WebServerState['secretStore']> {
+  if (!context.appState.secretStore) {
+    throw new HttpError(503, 'Managed secret storage is unavailable.');
+  }
+  return context.appState.secretStore;
+}
+
+async function requireBootstrapProof(context: RequestContext): Promise<void> {
+  if (isDirectLoopbackRequest(context.req)) return;
+  const payload = await readJsonBody(context.req, 4 * 1024);
+  if (!validBootstrapProof(payload.bootstrapProof)) {
+    throw new HttpError(403, 'Dashboard bootstrap requires the one-time container bootstrap proof.');
+  }
+}
+
+function requireBootstrapOrigin(context: RequestContext): void {
+  const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
+  if (!origin || !isAllowedOrigin(origin)) {
+    throw new HttpError(403, 'Dashboard bootstrap requires an allowed browser origin.');
+  }
+}
+
 async function bootstrapHandler(
   context: RequestContext,
   authenticator: DashboardAuthenticator
 ): Promise<void> {
   try {
-    if (authenticator.mode !== 'token') {
-      throw new HttpError(409, 'Token bootstrap is unavailable in OIDC mode.');
-    }
-    if (authenticator.isConfigured()) {
-      throw new HttpError(409, 'Dashboard authentication is already configured.');
-    }
-    if (!context.appState.secretStore) {
-      throw new HttpError(503, 'Managed secret storage is unavailable.');
-    }
-    if (!isDirectLoopbackRequest(context.req)) {
-      const payload = await readJsonBody(context.req, 4 * 1024);
-      if (!validBootstrapProof(payload.bootstrapProof)) {
-        throw new HttpError(403, 'Dashboard bootstrap requires the one-time container bootstrap proof.');
-      }
-    }
-    const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
-    if (!origin || !isAllowedOrigin(origin)) {
-      throw new HttpError(403, 'Dashboard bootstrap requires an allowed browser origin.');
-    }
+    bootstrapTokenState(authenticator);
+    const secretStore = requireBootstrapSecretStore(context);
+    await requireBootstrapProof(context);
+    requireBootstrapOrigin(context);
     const actor: AuthenticatedActor = { role: 'admin', id: 'bootstrap:proved-operator' };
     if (context.appState.recovery?.active && context.appState.recovery.allowLoopbackLocalSession) {
       addLog(`[CRITICAL] request_id=${context.requestId} Recovery-mode proved bootstrap initialized without an audit trail.`, {
@@ -2934,36 +2954,49 @@ function staticResponseBody(
   return { body: gzipSync(content, { level: 6 }), encoding: 'gzip' };
 }
 
-async function serveStatic(context: RequestContext, url: string): Promise<void> {
+function staticFilePath(url: string): string | null {
   let decodedPath: string;
   try {
     decodedPath = decodeURIComponent(url === '/' ? 'index.html' : url.replace(/^\/+/, ''));
   } catch {
-    sendJson(context.res, 400, { error: 'Invalid URL encoding.', requestId: context.requestId });
-    return;
+    return null;
   }
   const absolutePath = path.resolve(STATIC_ROOT, decodedPath);
-  if (absolutePath !== STATIC_ROOT && !absolutePath.startsWith(`${STATIC_ROOT}${path.sep}`)) {
-    sendJson(context.res, 403, { error: 'Invalid static file path.', requestId: context.requestId });
+  if (absolutePath !== STATIC_ROOT && !absolutePath.startsWith(`${STATIC_ROOT}${path.sep}`)) return null;
+  return absolutePath;
+}
+
+function staticResponseHeaders(mimeType: string, body: Buffer, versioned: boolean, encoding?: string): Record<string, string> {
+  return {
+    'Content-Type': mimeType,
+    'Content-Length': String(body.length),
+    'Cache-Control': versioned ? 'public, max-age=31536000, immutable' : 'no-cache',
+    ...(encoding ? { 'Content-Encoding': encoding, Vary: 'Accept-Encoding' } : {}),
+  };
+}
+
+async function serveStaticFile(res: http.ServerResponse, absolutePath: string, decodedPath: string): Promise<void> {
+  const stats = await fsPromises.stat(absolutePath);
+  if (!stats.isFile()) {
+    await serveSpaFallback(res);
+    return;
+  }
+  const mimeType = MIME_TYPES[path.extname(absolutePath).toLowerCase()] ?? 'application/octet-stream';
+  const content = await fsPromises.readFile(absolutePath);
+  const response = staticResponseBody(content, mimeType, undefined);
+  const isVersionedAsset = decodedPath.startsWith(`assets${path.sep}`) || decodedPath.startsWith('assets/');
+  res.writeHead(200, staticResponseHeaders(mimeType, response.body, isVersionedAsset, response.encoding));
+  res.end(response.body);
+}
+
+async function serveStatic(context: RequestContext, url: string): Promise<void> {
+  const absolutePath = staticFilePath(url);
+  if (!absolutePath) {
+    sendJson(context.res, url.includes('%') ? 400 : 403, { error: 'Invalid static file path.', requestId: context.requestId });
     return;
   }
   try {
-    const stats = await fsPromises.stat(absolutePath);
-    if (!stats.isFile()) {
-      await serveSpaFallback(context.res);
-      return;
-    }
-    const mimeType = MIME_TYPES[path.extname(absolutePath).toLowerCase()] ?? 'application/octet-stream';
-    const content = await fsPromises.readFile(absolutePath);
-    const response = staticResponseBody(content, mimeType, context.req.headers['accept-encoding']);
-    const isVersionedAsset = decodedPath.startsWith(`assets${path.sep}`) || decodedPath.startsWith('assets/');
-    context.res.writeHead(200, {
-      'Content-Type': mimeType,
-      'Content-Length': String(response.body.length),
-      'Cache-Control': isVersionedAsset ? 'public, max-age=31536000, immutable' : 'no-cache',
-      ...(response.encoding ? { 'Content-Encoding': response.encoding, Vary: 'Accept-Encoding' } : {}),
-    });
-    context.res.end(response.body);
+    await serveStaticFile(context.res, absolutePath, decodeURIComponent(url === '/' ? 'index.html' : url.replace(/^\/+/, '')));
   } catch {
     await serveSpaFallback(context.res);
   }
