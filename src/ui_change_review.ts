@@ -2,12 +2,16 @@ import { createHash } from 'node:crypto';
 import { maskPII } from './logger.js';
 
 export function reviewHash(value: unknown): string {
-  const canonical = (item: any): any => {
-    if (Array.isArray(item)) return item.map(canonical);
-    if (item && typeof item === 'object') return Object.fromEntries(Object.keys(item).sort(compareReviewKeys).map(key => [key, canonical(item[key])]));
-    return item;
-  };
-  return createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
+  return createHash('sha256').update(JSON.stringify(canonicalReviewValue(value))).digest('hex');
+}
+
+function canonicalReviewValue(item: unknown): unknown {
+  if (Array.isArray(item)) return item.map(canonicalReviewValue);
+  if (item && typeof item === 'object') {
+    const record = item as Record<string, unknown>;
+    return Object.fromEntries(Object.keys(record).sort(compareReviewKeys).map(key => [key, canonicalReviewValue(record[key])]));
+  }
+  return item;
 }
 
 /** Match the original UTF-16 key order exactly; hashes must never depend on host locale. */
@@ -22,14 +26,30 @@ const SECRET_PATTERNS = [
   /api[_-]?key|api[_-]?hash|sourceText|raw(Response|Request|Payload)/i,
 ];
 /** Review-only copy: never passed back into a command or used as an authoritative configuration. */
-export function redactReview(value: unknown, depth = 0, personalData = true): any {
-  if (depth > 45) return '[Tiefe überschritten]';
-  if (typeof value === 'string') return (personalData ? maskPII(value) : value)
+export function redactReview<T>(value: T, depth = 0, personalData = true): T {
+  if (depth > 45) return '[Tiefe überschritten]' as T;
+  if (typeof value === 'string') return redactReviewString(value, personalData) as T;
+  if (Array.isArray(value)) return redactReviewArray(value as unknown[], depth, personalData) as T;
+  if (value && typeof value === 'object') return redactReviewObject(value as Record<string, unknown>, depth, personalData) as T;
+  return value;
+}
+
+function redactReviewString(value: string, personalData: boolean): string {
+  return (personalData ? maskPII(value) : value)
     .replace(/\bBearer\s+[a-z0-9._~+/=-]+/gi, 'Bearer [redigiert]')
     .replace(/(https?:\/\/)([^\s/@]+)@/gi, (match, scheme: string, userinfo: string) =>
       userinfo.includes(':') ? `${scheme}[redigiert]@` : match);
-  if (Array.isArray(value)) return value.map(item => redactReview(item, depth + 1, personalData));
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) =>
-    [key, SECRET_PATTERNS.some(pattern => pattern.test(key)) ? '[redigiert]' : redactReview(item, depth + 1, personalData)]));
-  return value;
+}
+
+function redactReviewArray(items: unknown[], depth: number, personalData: boolean): unknown[] {
+  return items.map(item => redactReview(item, depth + 1, personalData));
+}
+
+function isSecretKey(key: string): boolean {
+  return SECRET_PATTERNS.some(pattern => pattern.test(key));
+}
+
+function redactReviewObject(record: Record<string, unknown>, depth: number, personalData: boolean): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(record).map(([key, item]) =>
+    [key, isSecretKey(key) ? '[redigiert]' : redactReview(item, depth + 1, personalData)]));
 }
