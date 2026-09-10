@@ -15,7 +15,7 @@ function entryRequest(endpoint: string, payload: Record<string, unknown>): Recor
 /** Capture before any await. A changed caller object cannot extend the journaled deadline. */
 export function captureEntryDeadline(endpoint: string, payload: Record<string, unknown>): { expiresAt: number | null; assertCurrent(): void } {
   const original = entryRequest(endpoint, payload);
-  if (!original) return { expiresAt: null, assertCurrent() { return; } };
+  if (!original) return { expiresAt: null, assertCurrent() { return undefined; } };
   const expiresAt: unknown = original.entryExpiresAt;
   if (typeof expiresAt !== 'number' || !Number.isSafeInteger(expiresAt) || expiresAt <= 0) {
     throw new TradingRiskError('ENTRY_DEADLINE_UNPROVEN', 'ENTRY_DEADLINE_UNPROVEN: original entry deadline is required.');

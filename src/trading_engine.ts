@@ -640,7 +640,7 @@ async function submitTrackedOrder(input: {
     return await runJournaledExchangeWrite({
       account: input.account, intentId: input.intent.id, kind: 'submit', clientOrderIds: [input.order.clientOrderId], request,
       beforeDispatch: () => markOrderSubmitting(input.intent.id, input.order.clientOrderId),
-      guard: () => {},
+      guard: () => undefined,
       send: () => { dispatched = true; return input.adapter.submitOrder(input.account, request); },
       persist: async result => { await storeOrderResult(input.intent.id, input.order.clientOrderId, result); return [result]; },
     });
