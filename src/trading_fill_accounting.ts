@@ -42,10 +42,11 @@ export async function captureFillAccounting(account: TradingAccount, fill: Excha
     || (row.accounting_json !== null && accounting !== null && row.accounting_json !== accounting);
   if (conflict) {
     const order = await getDatabase().get<{ intent_id: string }>('SELECT intent_id FROM trading_orders WHERE id = ?', [row.order_id]);
+    if (!order) throw new Error('Fill accounting order is missing.');
     const received = JSON.stringify({ fillId: row.id, accountFingerprint: identity, accounting });
     await getDatabase().run(`INSERT OR IGNORE INTO trading_accounting_projection_evidence
       (id, intent_id, account_id, evidence_json, status, reason, created_at) VALUES (?, ?, ?, ?, 'unresolved', 'fill_accounting_conflict', ?)`,
-    [hash(received), order!.intent_id, account.id, received, Date.now()]);
+    [hash(received), order.intent_id, account.id, received, Date.now()]);
     await getDatabase().run('UPDATE trading_fills SET accounting_conflict = 1 WHERE id = ?', [row.id]);
     return;
   }
@@ -142,6 +143,8 @@ async function postPricePnl(source: Awaited<ReturnType<typeof readSource>>): Pro
   if (markets.some(market => market.settlementAsset !== markets[0]?.settlementAsset || market.providerSymbol !== markets[0]?.providerSymbol)) {
     throw new Error('fill_settlement_or_market_conflict');
   }
+  const settlement = markets[0]?.settlementAsset;
+  if (!settlement) throw new Error('fill_settlement_or_market_conflict');
   let quantity = '0';
   let cost = '0';
   let basis = 'moving-average-exact-v1';
@@ -155,7 +158,7 @@ async function postPricePnl(source: Awaited<ReturnType<typeof readSource>>): Pro
     await recordMoneyEvent({ accountId: intent.account_id, accountFingerprint: identity, providerEventId: fill.exchange_fill_id,
       kind: 'realized_price_pnl', source: `${intent.exchange}:own-fill-v1`, basis: 'fill', occurredAt: fill.filled_at,
       amount: intent.side === 'LONG' ? signedDifference(notional, allocatedCost) : signedDifference(allocatedCost, notional),
-      asset: markets[0]!.settlementAsset, intentId: intent.id, fillId: fill.id,
+      asset: settlement, intentId: intent.id, fillId: fill.id,
       derivation: hash({ method: 'moving-average-exact-v1', priorBasis, quantity, cost, allocatedCost }) });
     quantity = subtractDecimal(quantity, fill.quantity);
     cost = subtractDecimal(cost, allocatedCost);
@@ -245,7 +248,8 @@ export async function projectAccountFillAccounting(accountId: string, limit = 10
     'SELECT intent_id FROM trading_accounting_pending WHERE account_id = ? ORDER BY intent_id LIMIT ?', [accountId, limit]);
   for (const row of rows) await projectIntent(row.intent_id);
   const pending = await getDatabase().get<{ n: number }>('SELECT COUNT(*) AS n FROM trading_accounting_pending WHERE account_id = ?', [accountId]);
-  return { processed: rows.length, pending: pending!.n };
+  if (!pending) throw new Error('Accounting projection count is missing.');
+  return { processed: rows.length, pending: pending.n };
 }
 
 export async function projectAllFillAccounting(): Promise<void> {

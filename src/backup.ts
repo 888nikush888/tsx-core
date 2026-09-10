@@ -466,7 +466,9 @@ async function snapshotPinnedDatabase(destination: string, config: unknown): Pro
   const source = databases.find(database => database.name === 'main')?.file;
   if (!source || !path.isAbsolute(source)) throw new Error('Backup requires a proven operational database file.');
   return withPinnedConfigurationGeneration(configurationPathFromEnvironment(), source, async generation => {
-    const pinnedConfig = JSON.parse(generation.files.get(CONFIG_FILE)!.toString('utf8'));
+    const pinnedBytes = generation.files.get(CONFIG_FILE);
+    if (!pinnedBytes) throw new Error('Pinned configuration generation is missing.');
+    const pinnedConfig = JSON.parse(pinnedBytes.toString('utf8'));
     if (backupConfigurationDigest(pinnedConfig) !== backupConfigurationDigest(config || {})) {
       throw new Error('Backup configuration provider does not match the committed generation.');
     }
@@ -720,12 +722,14 @@ async function verifyStagedMember(destination: string, expected: BackupFileMetad
 }
 
 async function stageTemplates(plan: RestorePlan): Promise<void> {
-  await fs.mkdir(plan.templates!.temporary, { mode: 0o700 });
+  const temporary = plan.templates?.temporary;
+  if (!temporary) throw new Error('Restore plan templates are missing.');
+  await fs.mkdir(temporary, { mode: 0o700 });
   for (const [member, expected] of Object.entries(plan.files)) {
     if (!member.startsWith(`${TEMPLATES_DIRECTORY}/`)) continue;
     const source = artifactPath(plan.artifact, member);
     await assertArtifactParents(plan.artifact, source);
-    const destination = path.join(plan.templates!.temporary, member.slice(TEMPLATES_DIRECTORY.length + 1));
+    const destination = path.join(temporary, member.slice(TEMPLATES_DIRECTORY.length + 1));
     await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
     await fs.copyFile(source, destination, fs.constants.COPYFILE_EXCL);
     await verifyStagedMember(destination, expected);
