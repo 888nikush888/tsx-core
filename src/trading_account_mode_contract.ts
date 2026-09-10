@@ -44,10 +44,23 @@ function identity(row: Record<string, unknown>): void {
   identityRole(row);
 }
 
+function observationFieldSet(row: Record<string, unknown>): void {
+  if (Object.keys(row).length !== FIELDS.length || FIELDS.some(field => !(field in row))) throw new Error('Invalid account-mode profile/schema.');
+}
+
+function observationProfile(row: Record<string, unknown>): void {
+  if (row.version !== 1 || row.profile !== 'bybit_uta_v1') throw new Error('Invalid account-mode profile/schema.');
+}
+
+function observationMargin(row: Record<string, unknown>): void {
+  if (typeof row.unifiedMarginStatus !== 'number') throw new Error('Invalid account-mode profile/schema.');
+  if (![1, 3, 4, 5, 6].includes(Number(row.unifiedMarginStatus))) throw new Error('Invalid account-mode profile/schema.');
+}
+
 function observationSchema(row: Record<string, unknown>): void {
-  if (Object.keys(row).length !== FIELDS.length || FIELDS.some(field => !(field in row))
-    || row.version !== 1 || row.profile !== 'bybit_uta_v1' || ![1, 3, 4, 5, 6].includes(Number(row.unifiedMarginStatus))
-    || typeof row.unifiedMarginStatus !== 'number') throw new Error('Invalid account-mode profile/schema.');
+  observationFieldSet(row);
+  observationProfile(row);
+  observationMargin(row);
 }
 
 function observationTimes(row: Record<string, unknown>): void {
@@ -56,10 +69,24 @@ function observationTimes(row: Record<string, unknown>): void {
   }
 }
 
+function observationWindow(row: Record<string, unknown>): void {
+  if (Number(row.startedAt) > Number(row.completedAt)
+    || Number(row.completedAt) - Number(row.startedAt) > 30_000) throw new Error('Invalid account-mode interval/digest.');
+}
+
+function observationFreshness(row: Record<string, unknown>): void {
+  if (Number(row.completedAt) > Date.now() + 1000
+    || Number(row.accountUpdatedAt) > Number(row.completedAt) + 30_000) throw new Error('Invalid account-mode interval/digest.');
+}
+
+function observationDigest(row: Record<string, unknown>): void {
+  if (accountModeDigest(row) !== row.evidenceHash) throw new Error('Invalid account-mode interval/digest.');
+}
+
 function observationInterval(row: Record<string, unknown>): void {
-  if (Number(row.startedAt) > Number(row.completedAt) || Number(row.completedAt) - Number(row.startedAt) > 30_000
-    || Number(row.completedAt) > Date.now() + 1000 || Number(row.accountUpdatedAt) > Number(row.completedAt) + 30_000
-    || accountModeDigest(row) !== row.evidenceHash) throw new Error('Invalid account-mode interval/digest.');
+  observationWindow(row);
+  observationFreshness(row);
+  observationDigest(row);
 }
 export function validateAccountModeObservation(value: unknown): BybitAccountModeObservation {
   const row = object(value);
