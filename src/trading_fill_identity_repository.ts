@@ -26,7 +26,8 @@ function codePointOrder(left: string, right: string): number {
   return 0;
 }
 function snapshot(row: FillRow, identity?: ExchangeFillIdentity): ExchangeFill {
-  return { exchangeFillId: row.exchange_fill_id, exchangeOrderId: row.exchange_order_id!, clientOrderId: row.client_order_id,
+  if (!row.exchange_order_id) throw new Error('Fill order binding is missing.');
+  return { exchangeFillId: row.exchange_fill_id, exchangeOrderId: row.exchange_order_id, clientOrderId: row.client_order_id,
     symbol: row.symbol, providerSymbol: row.order_provider_symbol ?? undefined, price: row.price, quantity: row.quantity,
     fee: row.fee, feeAsset: row.fee_asset, filledAt: row.filled_at, raw: JSON.parse(row.raw_json), identity };
 }
