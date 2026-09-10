@@ -12,21 +12,41 @@ function codeUnitOrder(left: string, right: string): number {
   return 0;
 }
 
+function rationalKeysValid(value: ExactRational): boolean {
+  return Object.keys(value).sort(codeUnitOrder).join(',') === 'denominator,numerator';
+}
+
+function rationalNumeratorValid(value: ExactRational): boolean {
+  return typeof value.numerator === 'string' && INTEGER.test(value.numerator);
+}
+
+function rationalDenominatorValid(value: ExactRational): boolean {
+  return typeof value.denominator === 'string' && POSITIVE_INTEGER.test(value.denominator);
+}
+
+function isRationalCandidate(value: ExactRational): boolean {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function assertRationalStructure(value: ExactRational): void {
+  if (!isRationalCandidate(value) || !rationalKeysValid(value)) {
+    throw new Error('Invalid bounded rational value.');
+  }
+}
+
 function integers(value: ExactRational): [bigint, bigint] {
-  if (!value || typeof value !== 'object' || Array.isArray(value)
-    || Object.keys(value).sort(codeUnitOrder).join(',') !== 'denominator,numerator'
-    || typeof value.numerator !== 'string' || !INTEGER.test(value.numerator)
-    || typeof value.denominator !== 'string' || !POSITIVE_INTEGER.test(value.denominator)) {
+  assertRationalStructure(value);
+  if (!rationalNumeratorValid(value) || !rationalDenominatorValid(value)) {
     throw new Error('Invalid bounded rational value.');
   }
   return [BigInt(value.numerator), BigInt(value.denominator)];
 }
 
 function gcd(left: bigint, right: bigint): bigint {
-  let a = left < 0n ? -left : left;
-  let b = right < 0n ? -right : right;
-  while (b !== 0n) [a, b] = [b, a % b];
-  return a;
+  let dividend = left < 0n ? -left : left;
+  let divisor = right < 0n ? -right : right;
+  while (divisor !== 0n) [dividend, divisor] = [divisor, dividend % divisor];
+  return dividend;
 }
 
 function fraction(numerator: bigint, denominator: bigint): ExactRational {
