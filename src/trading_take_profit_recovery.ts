@@ -32,7 +32,8 @@ function exactCurrentTarget(row: RecoverableTargetRow, target: PlannedOrder, rem
   const matches = remote.orders.filter(order => order.clientOrderId === row.client_order_id && order.exchangeOrderId === row.exchange_order_id
     && order.providerSymbol === row.provider_symbol);
   if (matches.length !== 1) return false;
-  const order = matches[0]!;
+  const order = matches[0];
+  if (!order) return false;
   return order.symbol === symbol
     && order.side === target.side && order.reduceOnly && order.status === row.status && order.quantity === row.quantity
     && order.filledQuantity === row.filled_quantity && order.price === target.price;
@@ -46,10 +47,12 @@ function proveTargetBasis(rows: RecoverableTargetRow[], target: PlannedOrder, re
   const active = rows.filter(row => ['open', 'partially_filled'].includes(row.status));
   const finished = rows.filter(row => row.status === 'filled' && compareDecimal(row.quantity, row.filled_quantity) === 0);
   const filled = sumDecimals(rows.map(row => row.filled_quantity));
-  if (active.length === 1 && finished.length === 0 && exactCurrentTarget(active[0]!, target, remote, symbol)) {
-    return { total: addDecimal(filled, subtractDecimal(active[0]!.quantity, active[0]!.filled_quantity)), completed: false };
+  const activeRow = active[0];
+  const finishedRow = finished[0];
+  if (active.length === 1 && finished.length === 0 && activeRow && exactCurrentTarget(activeRow, target, remote, symbol)) {
+    return { total: addDecimal(filled, subtractDecimal(activeRow.quantity, activeRow.filled_quantity)), completed: false };
   }
-  if (active.length === 0 && finished.length === 1 && rows.every(row => row === finished[0] || row.created_at < finished[0]!.created_at)) {
+  if (active.length === 0 && finished.length === 1 && finishedRow && rows.every(row => row === finishedRow || row.created_at < finishedRow.created_at)) {
     return { total: filled, completed: true };
   }
   throw new TakeProfitReviewRequiredError('Target completion or remaining budget is ambiguous');
