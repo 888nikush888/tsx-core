@@ -34,18 +34,40 @@ function finalObservationReason(
   return scopeReason ?? observationReason(input);
 }
 
+function proofIdentity(
+  account: TradingAccount,
+  input: Awaited<ReturnType<typeof observationInputs>>,
+): Pick<FundingObservationProof, 'accountFingerprint' | 'credentialGeneration' | 'since' | 'through' | 'reportingCurrency'> {
+  return { accountFingerprint: account.externalAccountId ?? '', credentialGeneration: account.credentialGeneration ?? '',
+    since: input.since, through: input.through, reportingCurrency: input.ledger.reportingCurrency };
+}
+
+function proofAmounts(
+  input: Awaited<ReturnType<typeof observationInputs>>,
+  reason: string | null,
+): Pick<FundingObservationProof, 'amount' | 'value'> {
+  return reason === null
+    ? { amount: input.ledger.funding, value: input.ledger.fundingValue }
+    : { amount: null, value: null };
+}
+
+function proofNamespace(
+  account: TradingAccount,
+  reason: string | null,
+): Pick<FundingObservationProof, 'status' | 'namespace'> {
+  const source = accountLogSource(account.exchange);
+  return { status: reason === null ? 'observed' : 'incomplete', namespace: source?.namespace ?? 'unsupported' };
+}
+
 function buildFundingProof(
   account: TradingAccount,
   input: Awaited<ReturnType<typeof observationInputs>>,
   origin: Awaited<ReturnType<typeof accountOriginScope>> | null,
   reason: string | null,
 ): FundingObservationProof {
-  const { since, checkpoint, rows, ledger, through } = input;
-  const source = accountLogSource(account.exchange);
-  return { version: 1, status: reason === null ? 'observed' : 'incomplete', namespace: source?.namespace ?? 'unsupported',
-    accountFingerprint: account.externalAccountId ?? '', credentialGeneration: account.credentialGeneration ?? '',
-    since, through, revisionHash: accountLogDigest([checkpoint, rows, ledger, origin]), reportingCurrency: ledger.reportingCurrency,
-    amount: reason === null ? ledger.funding : null, value: reason === null ? ledger.fundingValue : null,
+  const { checkpoint, rows, ledger } = input;
+  return { version: 1, ...proofNamespace(account, reason), ...proofIdentity(account, input),
+    revisionHash: accountLogDigest([checkpoint, rows, ledger, origin]), ...proofAmounts(input, reason),
     sourceScope: 'source_account', finality: 'provider_as_observed',
     delivery: 'may_be_delayed', reason };
 }
