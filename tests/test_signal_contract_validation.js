@@ -256,7 +256,7 @@ assert.deepEqual(marketSignal.groundingFields, [
 ]);
 
 const withoutLeverageXml = marketXml.replace('<leverage>5</leverage>', '');
-assert.equal(validateSignalXml(withoutLeverageXml, undefined, typedSelection).execution.suggestedLeverage, undefined);
+assert.equal(validateSignalXml(withoutLeverageXml, undefined, typedSelection).execution.suggestedLeverage);
 for (const leverage of ['1', '125']) {
   const accepted = marketXml.replace('<leverage>5</leverage>', `<leverage>${leverage}</leverage>`);
   assert.equal(validateSignalXml(accepted, undefined, typedSelection).execution.suggestedLeverage, Number(leverage));

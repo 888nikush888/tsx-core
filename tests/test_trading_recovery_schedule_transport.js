@@ -172,7 +172,7 @@ async function testNotDueAndPositivePhases(account, adapter, control) {
   const originalLogs = (await sources(account.id)).logs;
   await getDatabase().run('UPDATE trading_recovery_schedules SET next_due_at=? WHERE account_id=?', [Date.now() + 10000, account.id]);
   const before = await schedule(account.id), notDue = await adapter.openState(account);
-  assert.deepEqual(notDue.positions, [position]); assert.equal(notDue.acquisition.fxEvidence, undefined);
+  assert.deepEqual(notDue.positions, [position]); assert.equal(notDue.acquisition.fxEvidence);
   assert.ok(lastRequest(account.id).payload.recovery.recoverySchedule.grants.every(grant => grant.maxCalls === 0 && grant.deferredReason === 'not_due'));
   await recordAcquisitionEvidence(account, notDue.acquisition);
   assert.equal((await schedule(account.id)).revision, before.revision);
@@ -200,7 +200,7 @@ async function assertFailedRead(fixture, expectedError) {
   await assert.rejects(adapter.openState(account), expectedError);
   assert.equal(requests.length - beforeRequests, 1, 'A scheduled read has exactly one HTTP attempt, even without accountLogs.');
   const sent = lastRequest(account.id).payload.recovery;
-  assert.equal(sent.accountLogs, undefined);
+  assert.equal(sent.accountLogs);
   const failed = await attempt(sent.recoverySchedule.attemptId);
   assert.equal(failed.status, 'failed'); assert.equal(failed.calls, null, 'An invalid or lost response never proves zero provider calls.');
   assert.equal(failed.response_json, null);
@@ -263,8 +263,8 @@ async function testLegacyAndDatabaseAuthority() {
   ]) {
     const { account, adapter } = await setup(id, options);
     const state = await adapter.openState(account);
-    assert.equal(lastRequest(account.id).payload.recovery.recoverySchedule, undefined);
-    assert.equal(state.acquisition.recoverySchedule, undefined); assert.equal(state.acquisition.fxEvidence, undefined);
+    assert.equal(lastRequest(account.id).payload.recovery.recoverySchedule);
+    assert.equal(state.acquisition.recoverySchedule); assert.equal(state.acquisition.fxEvidence);
     assert.equal(await count('trading_recovery_schedule_attempts', account.id), 0);
   }
   for (const [id, change] of [

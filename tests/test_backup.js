@@ -99,9 +99,9 @@ async function createVerifiedArtifact(root, databasePath, backupRoot) {
   assert.deepStrictEqual(manifest.recovery?.includedState, ['runtime-settings.json', 'templates/default - alt.txt', 'templates/default.xml', 'templates/nested/source.xml']);
   assert.deepStrictEqual(manifest.recovery?.excludedState, ['managed-secrets', 'tdlib-session-data', 'tdlib-session-files']);
   const backedUpConfig = JSON.parse(await readFile(path.join(artifact, 'config.json'), 'utf8'));
-  assert.strictEqual(backedUpConfig.apiHash, undefined);
-  assert.strictEqual(backedUpConfig.nested.DASHBOARD_ADMIN_TOKEN, undefined);
-  assert.strictEqual(backedUpConfig.list[0].password, undefined);
+  assert.strictEqual(backedUpConfig.apiHash);
+  assert.strictEqual(backedUpConfig.nested.DASHBOARD_ADMIN_TOKEN);
+  assert.strictEqual(backedUpConfig.list[0].password);
   assert.strictEqual(backedUpConfig.list[1].value, 'retained');
   assert.strictEqual(backedUpConfig.xmlParsing.aiLimits.dailyTokenLimit, 5000, 'Non-secret token limits must be retained');
   return { artifact, manifest };
@@ -144,7 +144,7 @@ async function assertRestoredState(root, artifact, databasePath, configPath, sta
   await closeDb();
   const restoredConfig = JSON.parse(await readFile(configPath, 'utf8'));
   assert.strictEqual(restoredConfig.apiId, 123);
-  assert.strictEqual(restoredConfig.apiHash, undefined);
+  assert.strictEqual(restoredConfig.apiHash);
   assert.ok(restored.previousRuntimeSettings);
   assert.ok(restored.previousTemplates);
   assert.equal(JSON.parse(await readFile(path.join(recoveryRoot, 'runtime-settings.json'), 'utf8')).shutdownGraceMs, 120_000);
@@ -473,7 +473,7 @@ async function assertBackupScheduler(root, databasePath) {
     60_000,
     2,
     message => offsiteMessages.push(message),
-    { replicate: async artifact => verifiedReplication('backup-2026-offsite.tgfb', artifact), recover: async () => { throw new Error('not used'); } },
+    { replicate: async artifact => verifiedReplication('backup-2026-offsite.tgfb', artifact), recover: () => { throw new Error('not used'); } },
     true
   );
   await offsiteScheduler.runNow();
@@ -486,7 +486,7 @@ async function assertBackupScheduler(root, databasePath) {
     60_000,
     2,
     () => undefined,
-    { replicate: async () => { throw new Error('replication unavailable'); }, recover: async () => { throw new Error('not used'); } },
+    { replicate: () => { throw new Error('replication unavailable'); }, recover: () => { throw new Error('not used'); } },
     true
   );
   await assert.rejects(failedScheduler.runNow(), /replication unavailable/);

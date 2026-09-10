@@ -406,8 +406,8 @@ for (const exchange of ['hyperliquid', 'bybit', 'krakenfutures']) {
   } else {
     // Historical shape is permitted on disk, but runtime approval is tested
     // separately against the fixed review pin and the actual source trees.
-    assert.equal(evidence.schemaVersion, undefined);
-    assert.equal(evidence.implementationVerified, undefined);
+    assert.equal(evidence.schemaVersion);
+    assert.equal(evidence.implementationVerified);
   }
 }
 assert.match(ccxtAdapter, /clients\.rest\.create_orders/);

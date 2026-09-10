@@ -39,16 +39,16 @@ for (const side of ['LONG', 'SHORT']) {
   assert.deepEqual(revalidated.orders, plan.orders);
   const stop = plan.orders.find(order => order.role === 'stop_loss');
   assert.equal(stop.orderType, 'stop_market');
-  assert.equal(stop.timeInForce, undefined);
+  assert.equal(stop.timeInForce);
   assert.equal(stop.price, null);
 }
 const regular = planInput('LONG', 'range');
 regular.strategy.entry.postOnly = true;
 const regularPlan = createTradingPlan(regular);
-assert.equal(regularPlan.entryPriceBoundary, undefined);
+assert.equal(regularPlan.entryPriceBoundary);
 assert.equal(regularPlan.orders[0].price, '100');
 assert.equal(regularPlan.orders[0].postOnly, true);
-assert.equal(regularPlan.orders[0].timeInForce, undefined);
+assert.equal(regularPlan.orders[0].timeInForce);
 assertEntryPriceBoundary(regularPlan, regularPlan.orders[0]);
 const boundedPlan = createTradingPlan(planInput());
 for (const exchange of ['bybit', 'hyperliquid']) {

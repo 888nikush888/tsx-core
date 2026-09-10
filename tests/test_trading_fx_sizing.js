@@ -51,7 +51,7 @@ assert.throws(() => createTradingPlan({ ...input, fxConversion: { ...fx, convers
 assert.throws(() => createTradingPlan({ ...input, account: { ...input.account, accounting: { reportingCurrency: 'USDT' } }, fxConversion: fx }), /FX/);
 const native = createTradingPlan({ ...input, account: { ...input.account, accounting: { reportingCurrency: 'USDT' } } });
 assert.equal(native.quantity, '2');
-assert.equal(native.fxSizing, undefined);
+assert.equal(native.fxSizing);
 const tierMarket = { ...input.market, maxLeverage: 2, leverageTiers: { version: 1, exchange: 'bybit', symbol: 'BTCUSDT',
   providerSymbol: 'BTC/USDT:USDT', accountFingerprint: 'a'.repeat(64), credentialGeneration: 'b'.repeat(64),
   ccxtVersion: '4.5.75', profileHash: FX_CONTEXT.profileHash, source: 'bybit_v5_risk_limit_mark_authenticated_scope_v1',

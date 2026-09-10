@@ -205,7 +205,7 @@ function testDecimalAndStrategyContracts() {
 
 function testSignalLeverageContracts() {
   const withoutLeverage = STANDARD_SIGNAL.replace('<leverage>3</leverage>\n', '');
-  assert.equal(validateSignalXml(withoutLeverage, 'default').execution.suggestedLeverage, undefined);
+  assert.equal(validateSignalXml(withoutLeverage, 'default').execution.suggestedLeverage);
   for (const leverage of [1, 125]) {
     const xml = STANDARD_SIGNAL.replace('<leverage>3</leverage>', `<leverage>${leverage}</leverage>`);
     assert.equal(validateSignalXml(xml, 'default').execution.suggestedLeverage, leverage);
@@ -1392,7 +1392,7 @@ async function testRepositoryReadbackGuards() {
     // Obtain the known fixture definition directly because the collection read
     // is deliberately unavailable during this test.
     const stored = await database.get('SELECT definition_json FROM trading_signal_contract_versions WHERE id = ?', ['standard:v1']);
-    assert.equal(standard, undefined);
+    assert.equal(standard);
     await assert.rejects(createSignalContract({ id: 'readback-contract', name: 'Readback', definition: JSON.parse(stored.definition_json) }), /Created signal contract is missing/);
     assert.equal(await database.get('SELECT id FROM trading_signal_contracts WHERE id = ?', ['readback-contract']), undefined,
       'Failed create readback must roll back its transaction.');

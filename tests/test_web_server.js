@@ -226,7 +226,7 @@ async function testConfigurationNormalization(baseUrl, appState) {
     assert.equal(response.status, 200); const result = await response.json();
     assert.equal(result.configuration.forwardOptions.queueTimeoutSeconds, 255);
     assert.equal(persisted.forwardOptions.queueTimeoutSeconds, 255); assert.equal(applied.forwardOptions.queueTimeoutSeconds, 255);
-    assert.equal(result.configuration.sourceFilters['-1001'], undefined); assert.deepEqual(result.configuration.sourceFilters['-1002'], { regexPatterns: ['untouched'] });
+    assert.equal(result.configuration.sourceFilters['-1001']); assert.deepEqual(result.configuration.sourceFilters['-1002'], { regexPatterns: ['untouched'] });
     assert.equal((await (await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) })).json()).configRevision, result.configRevision, 'Read, persistence and queue must share the normalized revision.');
     const stale = await fetch(`${baseUrl}/api/config`, { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'If-Match': before.configRevision }), body: JSON.stringify({ targetChannel: '@stale_target' }) });
     assert.equal(stale.status, 409); assert.equal(applied.targetChannel, '');

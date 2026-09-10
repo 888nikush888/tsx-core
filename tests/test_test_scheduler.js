@@ -209,7 +209,7 @@ async function testDeterministicBarriersAndFailure() {
   assert.equal(await failed, 7);
   const errors = [];
   assert.equal(await runTestSchedule([names[0], names[1]], {
-    concurrency: 1, runTest: async () => { throw new Error('fixture rejection'); }, error: message => errors.push(message),
+    concurrency: 1, runTest: () => { throw new Error('fixture rejection'); }, error: message => errors.push(message),
   }), 1);
   assert.match(errors[0], /fixture rejection/);
   await assert.rejects(runTestSchedule(names, { concurrency: 3, runTest: () => Promise.resolve(0) }), /concurrency/i);
@@ -295,7 +295,8 @@ function fourWorkerFixtureNames() {
     ...MODULE_COVERAGE_SERIAL_BARRIERS, 'test_trading_core.js'];
 }
 
-async function runActualFixture(label, { workers = 1, focused = false, selection } = {}) {
+async function runActualFixture(label, options = {}) {
+  const { workers = 1, focused = false, selection } = options;
   const registeredTests = selection ?? (workers === 4 ? fourWorkerFixtureNames() : names);
   const fixture = await createFixture(label, registeredTests);
   if (workers > 1) fixture.environment.TSX_MODULE_COVERAGE_WORKERS = String(workers);

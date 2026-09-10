@@ -70,7 +70,7 @@ async function externalChanges() {
   await writeFile(template, original);
   await pin(() => Promise.resolve());
   const foreign = path.join(root, 'different-runtime.json');
-  await assert.rejects(withManagedConfigurationWrite(sources.configurationPath, foreign, '{}', async () => { throw new Error('must not run'); }), /different.*scope/);
+  await assert.rejects(withManagedConfigurationWrite(sources.configurationPath, foreign, '{}', () => { throw new Error('must not run'); }), /different.*scope/);
   const originalConfig = await readFile(sources.configurationPath);
   await assert.rejects(withManagedConfigurationWrite(sources.configurationPath, sources.configurationPath, JSON.stringify({ ...config, apiId: 19 }), async () => {
     await writeFile(sources.configurationPath, JSON.stringify({ ...config, apiId: 19 }));

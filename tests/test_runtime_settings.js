@@ -20,7 +20,7 @@ try {
   store.applyToEnvironment();
   assert.equal(env.ENTERPRISE_MODE, 'false');
   assert.equal(env.DASHBOARD_LOCAL_TRUST, 'true');
-  assert.equal(env.DASHBOARD_ALLOWED_ORIGIN, undefined);
+  assert.equal(env.DASHBOARD_ALLOWED_ORIGIN);
   assert.equal(env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES, 'false');
 
   const standalone = { ...store.snapshot(), shutdownGraceMs: 45_000, backupIntervalMs: 60_000 };

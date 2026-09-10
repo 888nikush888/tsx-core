@@ -35,7 +35,7 @@ await coordinator.run('a', async context => {
   coordinator.fenceEntries();
   assert.throws(() => coordinator.assertEntryEpoch(context, before), /fence/i);
 });
-await assert.rejects(coordinator.run('a', async () => { throw new Error('expected'); }), /expected/);
+await assert.rejects(coordinator.run('a', () => { throw new Error('expected'); }), /expected/);
 await coordinator.run('a', () => { order.push('after-error'); return Promise.resolve(); });
 const firstHold = coordinator.holdEntries('a');
 const secondHold = coordinator.holdEntries('a');

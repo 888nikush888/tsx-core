@@ -78,7 +78,8 @@ async function nonErrorTransportFailures(adapter, account, writeRequest) {
       [Symbol.toPrimitive]() { counts.coercions += 1; return 'timed out'; },
     }]) {
       counts.attempts = 0;
-      globalThis.fetch = () => { counts.attempts += 1; return Promise.reject(failure); };
+      const attempt = failure;
+      globalThis.fetch = () => { counts.attempts += 1; return Promise.reject(attempt); };
       await assert.rejects(adapter.marketSnapshot(account, 'BTCUSDT'), error => error === failure);
       assert.equal(counts.attempts, 1, 'Unknown transport diagnostics do not acquire retry authority.');
     }

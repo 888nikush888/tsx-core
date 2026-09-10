@@ -183,7 +183,7 @@ async function testAuxiliaryPersistence() {
     const buffers = await getMediaGroupBuffers();
     assert.deepStrictEqual(buffers['group-1'].messages.map(message => message.id), [21, 22]);
     await removeMediaGroupBuffer('group-1');
-    assert.strictEqual((await getMediaGroupBuffers())['group-1'], undefined);
+    assert.strictEqual((await getMediaGroupBuffers())['group-1']);
 
     const usageDay = '2030-01-02';
     const firstReservation = await reserveAiUsage(usageDay, 600, 2, 1000);

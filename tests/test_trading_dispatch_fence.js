@@ -23,10 +23,10 @@ async function fixture(account, id) {
 const phase = async input => (await getDatabase().get('SELECT phase FROM trading_operations WHERE request_json = ?', [JSON.stringify(input.request)])).phase;
 async function failureMatrix(account) {
   for (const [id, expectedPhase, patch] of [
-    ['source-changed', 'abandoned', { beforeSend: async () => { throw new Error('sources changed'); } }],
+    ['source-changed', 'abandoned', { beforeSend: () => { throw new Error('sources changed'); } }],
     ['sync-fence', 'abandoned', { guard: () => { throw new Error('epoch changed'); } }],
     ['sync-send', 'unresolved', { send: () => { throw new Error('synchronous adapter failure'); } }],
-    ['reject-send', 'unresolved', { send: async () => { throw new Error('asynchronous adapter failure'); } }],
+    ['reject-send', 'unresolved', { send: () => { throw new Error('asynchronous adapter failure'); } }],
   ]) {
     const input = { ...await fixture(account, id), ...patch };
     await assert.rejects(runJournaledExchangeWrite(input));

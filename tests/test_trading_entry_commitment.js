@@ -194,7 +194,7 @@ try {
   await crashDuringCancel(crashed.accountId);
   await initDb(databasePath);
   assert.equal((await getDatabase().get('SELECT phase FROM trading_operations WHERE account_id = ?', [crashed.accountId])).phase, 'dispatching');
-  const restarted = new TradingEngine([{ exchange: 'paper', cancelOrder: async () => { throw new Error('No blind cancel after hard crash'); } }]);
+  const restarted = new TradingEngine([{ exchange: 'paper', cancelOrder: () => { throw new Error('No blind cancel after hard crash'); } }]);
   await assert.rejects(restarted.cancelOpenEntries(crashed.accountId), /unresolved/);
   assert.equal((await getDatabase().get('SELECT status FROM trading_orders WHERE id = ?', [crashed.id])).status, 'cancel_pending');
 

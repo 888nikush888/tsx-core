@@ -536,8 +536,8 @@ try {
   assert.equal((await control.probeExchange('okx')).status, 'candidate');
 
   const unavailableCatalog = {
-    browserCatalog: async () => { throw new Error('catalog offline'); },
-    probe: async () => { throw new Error('catalog offline'); },
+    browserCatalog: () => { throw new Error('catalog offline'); },
+    probe: () => { throw new Error('catalog offline'); },
   };
   const existingAccountControl = new TradingWebControl(
     credentials, paper, [gateioAdapter], dynamicEngine, null, unavailableCatalog,
