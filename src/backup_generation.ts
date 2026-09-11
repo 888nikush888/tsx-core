@@ -171,7 +171,7 @@ function safeMember(name: string): boolean {
   if (['config.json', 'runtime-settings.json'].includes(name)) return true;
   if (!name.startsWith('templates/') || name.length > 250) return false;
   return name.slice(10).split('/').every(segment => segment.length > 0 && segment.length <= 128
-    && segment === segment.trim() && segment !== '.' && segment !== '..' && !/[\\/<>:"|?*\x00-\x1f]/.test(segment));
+    && segment === segment.trim() && segment !== '.' && segment !== '..' && !/[\\/<>:"|?*\u0000-\u001F]/.test(segment));
 }
 
 function configurationResources(sources: ConfigurationSources): { resources: Record<string, Resource>; contents: Map<string, Buffer> } {

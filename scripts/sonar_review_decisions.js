@@ -70,7 +70,7 @@ function validBinding(binding) {
 
 function validRationale(value) {
   return typeof value === 'string' && value.trim() === value && value.length >= 80 && value.length <= 4000
-    && !/[\x00-\x1f\x7f]/u.test(value);
+    && !/[\u0000-\u001F\u007F]/u.test(value);
 }
 
 function validateDecision(decision) {
@@ -151,7 +151,7 @@ function authorizeRunner(environment, mode) {
   requireCondition(environment.GITHUB_ACTIONS === 'true' && environment.GITHUB_EVENT_NAME === 'workflow_dispatch'
     && environment.GITHUB_REPOSITORY === REPOSITORY && environment.GITHUB_ACTOR === OWNER
     && environment.GITHUB_TRIGGERING_ACTOR === OWNER && environment[configuration.flag] === 'true', 'AUTHORIZATION');
-  requireCondition(environment.GITHUB_REF_TYPE === 'branch' && /^refs\/heads\/[^\s\x00-\x1f\x7f]+$/u.test(environment.GITHUB_REF ?? '')
+  requireCondition(environment.GITHUB_REF_TYPE === 'branch' && /^refs\/heads\/[^^\s\u0000-\u001F\u007F]+$/u.test(environment.GITHUB_REF ?? '')
     && environment.GITHUB_WORKFLOW_REF === `${REPOSITORY}/.github/workflows/quality.yml@${environment.GITHUB_REF}`, 'AUTHORIZATION');
   if (mode === 'pr29') requireCondition(environment.GITHUB_REF === `refs/heads/${PR_BRANCH}`, 'AUTHORIZATION');
 }
