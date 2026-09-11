@@ -23,7 +23,7 @@ type LogContextValue = string | number | boolean | null | undefined;
 export type LogContext = Record<string, LogContextValue>;
 
 function stripAnsi(value: string): string {
-  return value.replace(/\x1b\[[0-9;]*m/g, '');
+  return value.replace(/\u001B\[[0-9;]*m/g, '');
 }
 
 function currentLogFilePath(now = new Date()): string {

@@ -20,7 +20,7 @@ function shape(value: unknown, keys: string): Record<string, any> {
 }
 function token(value: unknown): asserts value is string {
   if (typeof value !== 'string' || value.length === 0 || value.length > 256 || value.trim() !== value
-    || /[\x00-\x1f\x7f]/.test(value) || /[\uD800-\uDFFF]/u.test(value)) invalid();
+    || /[\u0000-\u001f\u007f]/.test(value) || /[\uD800-\uDFFF]/u.test(value)) invalid();
 }
 function positive(value: unknown): string {
   if (typeof value !== 'string' || value.trim() !== value) return invalid();

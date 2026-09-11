@@ -166,7 +166,7 @@ function isSafeTemplatePathSegment(segment: string): boolean {
     && segment !== '.'
     && segment !== '..'
     && segment === segment.trim()
-    && !/[\\/<>:"|?*\x00-\x1f]/.test(segment);
+    && !/[\/<>:"|?*\u0000-\u001F]/.test(segment);
 }
 
 function artifactPath(artifactRoot: string, fileName: string): string {
