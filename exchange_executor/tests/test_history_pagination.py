@@ -155,7 +155,7 @@ class PaginationTests(unittest.IsolatedAsyncioTestCase):
         for malformed in ({"list": [], "category": "linear"}, {"list": [], "category": "linear", "nextPageCursor": "same"}):
             rest = PagedBybit()
 
-            async def page(_params):
+            async def page(_params, malformed=malformed):
                 return {"retCode": 0, "result": malformed}
             rest.privateGetV5ExecutionList = page
             original = state()
