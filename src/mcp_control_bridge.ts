@@ -211,41 +211,39 @@ export class McpControlBridge {
   }
 
   private executeAuthorizedProposal(proposal: McpAgentProposal): unknown {
-    const payload = proposal.payload as Record<string, any>;
-    const handlers: Record<McpAgentProposal['action'], () => unknown> = {
-      'contracts.create_version': () => this.control.createSignalContractVersion(payload),
-      'contracts.duplicate': () => this.control.duplicateSignalContract(payload),
-      'contracts.publish': () => this.control.publishSignalContract(payload.versionId),
-      'contracts.archive': () => this.control.archiveSignalContract(payload.versionId),
-      'contracts.delete_draft': () => this.control.removeSignalContractDraft(payload.versionId),
-      'contracts.delete_version': () => this.control.removeSignalContractVersion(payload.versionId),
-      'schemas.create': () => this.control.createSignalSchema(payload),
-      'schemas.update': () => this.control.updateSignalSchema(payload),
-      'schemas.delete': () => this.control.removeSignalSchema(payload.id),
-      'strategies.create': () => this.control.createStrategy(payload),
-      'strategies.update': () => this.control.updateStrategy(payload),
-      'strategies.publish': () => this.control.publishStrategy(payload.id),
-      'strategies.archive': () => this.control.archiveStrategy(payload.id),
-      'strategies.delete': () => this.control.removeStrategy(payload.id),
-      'routes.set': () => this.control.setRoute(payload),
-      'routes.delete': () => this.control.removeRoute(payload.channelId),
-      'risk.update': () => this.control.setChannelRiskPolicy(payload),
-      'risk.delete': () => this.control.removeChannelRiskPolicy(payload.channelId),
-      'workflow.resource_create': () => this.control.createWorkflowResource(payload),
-      'workflow.resource_update': () => this.control.updateWorkflowResource(payload),
-      'workflow.resource_publish': () => this.control.publishWorkflowResource(payload.id),
-      'workflow.resource_archive': () => this.control.archiveWorkflowResource(payload.id),
-      'workflow.resource_delete_draft': () => this.control.deleteWorkflowResourceDraft(payload.id),
-      'workflow.activate': () => this.control.activateWorkflow(
+    const payload = proposal.payload as Record<string, unknown>;
+    switch (proposal.action) {
+      case 'contracts.create_version': return this.control.createSignalContractVersion(payload);
+      case 'contracts.duplicate': return this.control.duplicateSignalContract(payload);
+      case 'contracts.publish': return this.control.publishSignalContract(payload.versionId);
+      case 'contracts.archive': return this.control.archiveSignalContract(payload.versionId);
+      case 'contracts.delete_draft': return this.control.removeSignalContractDraft(payload.versionId);
+      case 'contracts.delete_version': return this.control.removeSignalContractVersion(payload.versionId);
+      case 'schemas.create': return this.control.createSignalSchema(payload);
+      case 'schemas.update': return this.control.updateSignalSchema(payload);
+      case 'schemas.delete': return this.control.removeSignalSchema(payload.id);
+      case 'strategies.create': return this.control.createStrategy(payload);
+      case 'strategies.update': return this.control.updateStrategy(payload);
+      case 'strategies.publish': return this.control.publishStrategy(payload.id);
+      case 'strategies.archive': return this.control.archiveStrategy(payload.id);
+      case 'strategies.delete': return this.control.removeStrategy(payload.id);
+      case 'routes.set': return this.control.setRoute(payload);
+      case 'routes.delete': return this.control.removeRoute(payload.channelId);
+      case 'risk.update': return this.control.setChannelRiskPolicy(payload);
+      case 'risk.delete': return this.control.removeChannelRiskPolicy(payload.channelId);
+      case 'workflow.resource_create': return this.control.createWorkflowResource(payload);
+      case 'workflow.resource_update': return this.control.updateWorkflowResource(payload);
+      case 'workflow.resource_publish': return this.control.publishWorkflowResource(payload.id);
+      case 'workflow.resource_archive': return this.control.archiveWorkflowResource(payload.id);
+      case 'workflow.resource_delete_draft': return this.control.deleteWorkflowResourceDraft(payload.id);
+      case 'workflow.activate': return this.control.activateWorkflow(
         { ...payload, confirmation: 'ACTIVATE WORKFLOW IMPACT' },
         `mcp:${proposal.agentId}`,
-      ),
-      // This path executes an operator-approved proposal, not an unapproved agent request.
-      'trading.release_kill_switch': () => this.control.setRuntime({
+      );
+      case 'trading.release_kill_switch': return this.control.setRuntime({
         action: 'kill-switch', active: false, confirmation: 'RELEASE GLOBAL KILL SWITCH',
-      }),
-    };
-    return handlers[proposal.action]();
+      });
+    }
   }
 
   private async execute(request: McpControlRequest): Promise<void> {

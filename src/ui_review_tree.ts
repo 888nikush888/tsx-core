@@ -2,12 +2,12 @@ import { redactReview } from './ui_change_review.js';
 import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
 
 function protectedKey(key: string) { return redactReview({ [key]: null })[key] !== null; }
-function reviewNode(root: unknown, path: unknown): { node: any; path: string[] } {
+function reviewNode(root: unknown, path: unknown): { node: unknown; path: string[] } {
   if (!Array.isArray(path) || path.length > 40 || path.some(key => typeof key !== 'string' || key.length > 256)) throw new Error('Invalid review path.');
-  let node: any = root;
+  let node: unknown = root;
   for (const key of path) {
     if (protectedKey(key) || !node || typeof node !== 'object' || !Object.hasOwn(node, key)) throw new Error('Review path is unavailable.');
-    node = node[key];
+    node = (node as Record<string, unknown>)[key];
   }
   return { node, path };
 }

@@ -3156,15 +3156,19 @@ async function internalViewerPayload(context: RequestContext, relativePath: stri
   if (collectionLoader) return collectionLoader();
   const detail = /^\/(accounts|positions|orders|trades)\/([^/]+)$/.exec(relativePath);
   if (detail) {
-    const id = decodedViewerId(detail[2]);
+    const kind = detail[1];
+    const rawId = detail[2];
+    if (kind !== 'accounts' && kind !== 'positions' && kind !== 'orders' && kind !== 'trades') throw new HttpError(404, 'Internal viewer endpoint not found.');
+    if (rawId === undefined) throw new HttpError(404, 'Viewer resource not found.');
+    const id = decodedViewerId(rawId);
     const detailLoaders = {
       accounts: viewerAccounts,
       positions: viewerPositions,
       orders: viewerOrders,
       trades: viewerTrades,
     };
-    const payload = await detailLoaders[detail[1] as keyof typeof detailLoaders]({ id });
-    const value = (payload as Record<string, unknown>)[detail[1].slice(0, -1)];
+    const payload = await detailLoaders[kind]({ id });
+    const value = (payload as Record<string, unknown>)[kind.slice(0, -1)];
     if (!value) throw new HttpError(404, 'Viewer resource not found.');
     return payload;
   }

@@ -123,8 +123,14 @@ async function legacyEvaluations(page: Selection) {
 }
 export async function uiAdaptiveRisk(query: URLSearchParams) {
   const page = await selection(query);
-  const handlers = { states, evaluations, paths: activePaths, sources: evaluationSources, legacy, 'legacy-evaluations': legacyEvaluations };
-  return handlers[page.kind](page);
+  switch (page.kind) {
+    case 'states': return states(page);
+    case 'evaluations': return evaluations(page);
+    case 'paths': return activePaths(page);
+    case 'sources': return evaluationSources(page);
+    case 'legacy': return legacy(page);
+    case 'legacy-evaluations': return legacyEvaluations(page);
+  }
 }
 export function copyLegacyRiskPolicy(input: { channelId: unknown; copyHash: unknown }) {
   const channelId = uiObjectId(input.channelId, 128);
