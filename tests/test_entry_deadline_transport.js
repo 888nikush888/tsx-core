@@ -26,7 +26,7 @@ try {
   globalThis.fetch = async (_url, options) => {
     const body = JSON.parse(options.body);
     sent.push(body);
-    return respond(body);
+    return respond();
   };
   assert.equal(request().entryExpiresAt, plan.entryExpiresAt, 'The original plan deadline must enter the original journal request.');
   const stop = requestFromOrder(account, plan, { ...leg, clientOrderId: 'ttl-stop', role: 'stop_loss', reduceOnly: true });

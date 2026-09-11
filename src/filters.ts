@@ -237,23 +237,23 @@ export function shouldForward(
   const { text, type } = getMessageTextAndType(message);
 
   if (filters.allowedTypes?.length && !filters.allowedTypes.includes(type)) {
-    logCallback(`[Filter] Paket ${message.id} ignoriert (Inhaltstyp '${type}' nicht im Filter-Schema).`);
+    logCallback();
     return false;
   }
 
   if (containsKeyword(text, filters.blockedKeywords)) {
-    logCallback(`[Filter] Paket ${message.id} blockiert (enthält Blacklist-Signatur).`);
+    logCallback();
     return false;
   }
 
   if (!allowsKeyword(text, filters.allowedKeywords)) {
-    logCallback(`[Filter] Paket ${message.id} verworfen (keine erlaubte Signatur enthalten).`);
+    logCallback();
     return false;
   }
 
   const regexPatterns = resolveRegexPatterns(filters, sourceChatId, config);
   if (!matchesAllRegexPatterns(text, regexPatterns, logCallback)) {
-    logCallback(`[Filter] Paket ${message.id} verworfen (Regex-Kriterien nicht erfüllt).`);
+    logCallback();
     return false;
   }
 
