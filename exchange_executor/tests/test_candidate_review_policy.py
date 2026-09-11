@@ -45,17 +45,15 @@ class CandidateReviewPolicyTests(unittest.TestCase):
                 reviews.trusted_completion_verifier(changed, CompletionVerdict)
 
     def test_evidence_drift_and_invalid_existing_receipt_remain_no_go(self) -> None:
-        with patch.object(reviews, "file_bytes", return_value=b"changed"):
-            with self.assertRaises(reviews.CandidateReviewError):
-                reviews.trusted_completion_verifier(self.document, CompletionVerdict)
+        with patch.object(reviews, "file_bytes", return_value=b"changed"), self.assertRaises(reviews.CandidateReviewError):
+            reviews.trusted_completion_verifier(self.document, CompletionVerdict)
         verifier = reviews.trusted_completion_verifier(self.document, CompletionVerdict)
         with patch.object(
             reviews,
             "certification_result",
             return_value=CertificationResult(False, "invalid"),
-        ):
-            with self.assertRaises(reviews.CandidateReviewError):
-                validate_complete(self.document, completion_verifier=verifier)
+        ), self.assertRaises(reviews.CandidateReviewError):
+            validate_complete(self.document, completion_verifier=verifier)
 
 
 if __name__ == "__main__":

@@ -39,9 +39,8 @@ class CandidateBoundaryTests(unittest.IsolatedAsyncioTestCase):
             return real_import(name, *args, **kwargs)
 
         try:
-            with patch('builtins.__import__', side_effect=without_external_sdk):
-                with self.assertRaisesRegex(Exception, 'zklink_sdk is not installed'):
-                    client.get_zk_contract_signature_obj('00' * 32)
+            with patch('builtins.__import__', side_effect=without_external_sdk), self.assertRaisesRegex(Exception, 'zklink_sdk is not installed'):
+                client.get_zk_contract_signature_obj('00' * 32)
         finally:
             client.fetch.assert_not_called()
             client.request.assert_not_called()

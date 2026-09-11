@@ -150,9 +150,9 @@ class MutationIdentityTests(unittest.IsolatedAsyncioTestCase):
         })
         registry = CcxtClientRegistry(credentials, catalog)
         with patch.object(ccxt_client.ccxt_async, "hyperliquid", ForbiddenClient), \
-             patch.object(ccxt_client.ccxt_pro, "hyperliquid", ForbiddenClient):
-            with self.assertRaisesRegex(ExchangeContractError, "master wallet"):
-                await registry.account({"id": "foreign", "exchange": "hyperliquid", "mode": "testnet"})
+             patch.object(ccxt_client.ccxt_pro, "hyperliquid", ForbiddenClient), \
+             self.assertRaisesRegex(ExchangeContractError, "master wallet"):
+            await registry.account({"id": "foreign", "exchange": "hyperliquid", "mode": "testnet"})
         self.assertEqual(constructed, 0)
 
     def test_hyperliquid_master_key_binding_accepts_exact_address_case_insensitively(self):
