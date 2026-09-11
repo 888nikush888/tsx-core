@@ -30,7 +30,7 @@ export class TelegramDeliveryTracker {
     }
   }
 
-  public handleUpdate(update: any): boolean {
+  public handleUpdate(update: Record<string, any>): boolean {
     if (update?._ === 'updateMessageSendSucceeded') {
       const oldMessageId = String(update.old_message_id);
       const destinationMessageId = String(update.message?.id ?? update.old_message_id);
@@ -51,15 +51,15 @@ export class TelegramDeliveryTracker {
     return false;
   }
 
-  public async waitForResult(result: any, signal?: AbortSignal): Promise<ConfirmedDelivery> {
-    let messages: any[] = [];
+  public async waitForResult(result: Record<string, any>, signal?: AbortSignal): Promise<ConfirmedDelivery> {
+    let messages: Array<Record<string, any>> = [];
     if (Array.isArray(result?.messages)) messages = result.messages;
     else if (result?.id !== undefined) messages = [result];
     if (messages.length === 0) {
       throw new Error('Telegram send returned no destination messages to confirm.');
     }
 
-    const destinationMessageIds = await Promise.all(messages.map((message: any) => {
+    const destinationMessageIds = await Promise.all(messages.map((message: Record<string, any>) => {
       if (message?.id === undefined || message?.id === null) {
         throw new Error('Telegram send returned a message without an id.');
       }
@@ -68,7 +68,7 @@ export class TelegramDeliveryTracker {
       if (!sendingState) return String(message.id);
       if (sendingState._ === 'messageSendingStateFailed') {
         const detail = sendingState.error?.message || 'Telegram reported a failed sending state.';
-        throw new Error(detail);
+        throw new Error(String(detail));
       }
       return this.waitForMessage(String(message.id), signal);
     }));

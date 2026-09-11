@@ -150,7 +150,12 @@ function matchesOrder(order: FillOrder | undefined, fill: ExchangeFill): order i
     && (!order.provider_symbol || fill.providerSymbol === order.provider_symbol));
 }
 
-function sameFill(row: any, order: FillOrder, fill: ExchangeFill): boolean {
+interface StoredFill {
+  id: string; order_id: string; price: string; quantity: string; fee: string; fee_asset: string | null;
+  filled_at: number; provider_symbol: string | null; remote_fill_key: string | null; identity_json: string | null;
+}
+
+function sameFill(row: StoredFill, order: FillOrder, fill: ExchangeFill): boolean {
   return row.order_id === order.id && compareDecimal(row.price, fill.price) === 0
     && compareDecimal(row.quantity, fill.quantity) === 0 && signedDecimal(row.fee) === signedDecimal(fill.fee)
     && row.fee_asset === fill.feeAsset && Number(row.filled_at) === fill.filledAt
@@ -179,7 +184,7 @@ async function markProvenFill(account: TradingAccount, fill: ExchangeFill): Prom
   }
 }
 
-function evidenceMatchesProvenFill(evidence: any, fill: ExchangeFill): boolean {
+function evidenceMatchesProvenFill(evidence: Record<string, unknown>, fill: ExchangeFill): boolean {
   const fields: Array<keyof ExchangeFill> = ['exchangeFillId', 'exchangeOrderId', 'price', 'quantity', 'fee', 'feeAsset', 'filledAt'];
   return fields.every(field => evidence[field] === fill[field])
     && (evidence.clientOrderId === null || evidence.clientOrderId === fill.clientOrderId);
@@ -204,7 +209,7 @@ export function persistCorrelatedFill(account: TradingAccount, fill: ExchangeFil
       await recordRemoteEvidence(account, fillEvidence(fill, 'fill_identity_unproven'));
       return { order: null, inserted: false };
     }
-    let existing = await database.get<any>('SELECT * FROM trading_fills WHERE account_id = ? AND remote_fill_key = ?', [account.id, proof.key]);
+    let existing = await database.get<StoredFill>('SELECT * FROM trading_fills WHERE account_id = ? AND remote_fill_key = ?', [account.id, proof.key]);
     if (!existing) {
       const legacy = await resolveLegacyFill(account, order, fill, proof);
       if (legacy.blocked) return { order: null, inserted: false };
@@ -230,8 +235,8 @@ export function persistCorrelatedFill(account: TradingAccount, fill: ExchangeFil
 }
 
 async function resolveLegacyFill(account: TradingAccount, order: FillOrder, fill: ExchangeFill,
-  proof: NonNullable<ReturnType<typeof provenFillIdentity>>): Promise<{ blocked: boolean; existing?: any }> {
-  const candidates = await getDatabase().all<any[]>(`SELECT * FROM trading_fills WHERE account_id=? AND remote_fill_key IS NULL
+  proof: NonNullable<ReturnType<typeof provenFillIdentity>>): Promise<{ blocked: boolean; existing?: StoredFill }> {
+  const candidates = await getDatabase().all<StoredFill[]>(`SELECT * FROM trading_fills WHERE account_id=? AND remote_fill_key IS NULL
     AND (exchange_fill_id=? OR (?='krakenfutures' AND order_id=?))`, [account.id, fill.exchangeFillId, account.exchange, order.id]);
   if (!candidates.length) return { blocked: false };
   if (account.exchange !== 'paper') {
@@ -255,8 +260,8 @@ async function resolveLegacyFill(account: TradingAccount, order: FillOrder, fill
   return { blocked: true };
 }
 
-async function recordFillConflict(account: TradingAccount, existing: any, incoming: ExchangeFill): Promise<void> {
-  const original = await getDatabase().get<any>(
+async function recordFillConflict(account: TradingAccount, existing: StoredFill, incoming: ExchangeFill): Promise<void> {
+  const original = await getDatabase().get<{ client_order_id: string; exchange_order_id: string | null; provider_symbol: string | null; symbol: string }>(
     `SELECT orders.client_order_id, orders.exchange_order_id, orders.provider_symbol, intent.symbol
      FROM trading_orders AS orders JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id WHERE orders.id = ?`, [existing.order_id],
   );

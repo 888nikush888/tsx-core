@@ -86,17 +86,21 @@ function parseAlertPayload(body: Buffer): unknown {
   }
 }
 
-function validAlertEnvelope(payload: any): payload is { status: 'firing' | 'resolved'; alerts: unknown[] } {
-  return Boolean(payload)
-    && (payload.status === 'firing' || payload.status === 'resolved')
-    && Array.isArray(payload.alerts)
-    && payload.alerts.length <= 100;
+function validAlertEnvelope(payload: unknown): payload is { status: 'firing' | 'resolved'; alerts: unknown[] } {
+  if (!payload || typeof payload !== 'object') return false;
+  const envelope = payload as { status?: unknown; alerts?: unknown };
+  return (envelope.status === 'firing' || envelope.status === 'resolved')
+    && Array.isArray(envelope.alerts)
+    && envelope.alerts.length <= 100;
 }
 
-function validAlertLabels(alert: any): boolean {
-  return Boolean(alert?.labels)
-    && typeof alert.labels.alertname === 'string'
-    && typeof alert.labels.severity === 'string';
+function validAlertLabels(alert: unknown): boolean {
+  if (!alert || typeof alert !== 'object') return false;
+  const labels = (alert as { labels?: unknown }).labels;
+  if (!labels || typeof labels !== 'object') return false;
+  const names = labels as { alertname?: unknown; severity?: unknown };
+  return typeof names.alertname === 'string'
+    && typeof names.severity === 'string';
 }
 
 function validateAlertPayload(body: Buffer): AlertSummary {
