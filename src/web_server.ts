@@ -888,7 +888,7 @@ function requireConfirmation(context: RequestContext, expected: string, message:
   return false;
 }
 
-function requireTaskId(payload: any): string {
+function requireTaskId(payload: Record<string, unknown>): string {
   if (typeof payload.id !== 'string' || payload.id.length < 1 || payload.id.length > 256) {
     throw new HttpError(400, 'A valid outbox task id is required.');
   }
