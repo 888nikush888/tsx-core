@@ -98,7 +98,7 @@ class CurrentProfileTests(unittest.IsolatedAsyncioTestCase):
             for missing in ("collection", "time", "result"):
                 rest, _ = self.kraken()
 
-                async def response(kind):
+                async def response(kind, missing=missing, rest=rest, source=source):
                     result = {"result": "success", "serverTime": rest.iso8601(int(time.time() * 1000)),
                               "openOrders" if kind == "orders" else "openPositions": []}
                     if source == kind:
@@ -106,11 +106,11 @@ class CurrentProfileTests(unittest.IsolatedAsyncioTestCase):
                         result.pop(key)
                     return result
 
-                async def orders(_params):
+                async def orders(_params, response=response):
                     return await response("orders")
 
-                async def positions(_params):
-                    return await response("positions")
+                async def positions(_params, resource="positions"):
+                    return await response(resource)
 
                 rest.privateGetOpenorders = orders
                 rest.privateGetOpenpositions = positions

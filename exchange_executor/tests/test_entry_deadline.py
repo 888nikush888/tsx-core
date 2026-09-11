@@ -67,7 +67,7 @@ class EntryDeadlineTests(unittest.IsolatedAsyncioTestCase):
                 read = getattr(adapter, name)
                 count = [0]
 
-                async def delayed(*args):
+                async def delayed(*args, read=read, count=count, phase=phase):
                     evidence = await read(*args)
                     count[0] += 1
                     if count[0] == (1 if phase.startswith('first') else 2):
