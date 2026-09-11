@@ -37,7 +37,7 @@ try {
   config.xmlParsing.aiLimits.requestTimeoutMs = 120_000;
 
   await getDatabase().run(
-    `UPDATE workflow_builder_history SET undo_json = ?, redo_json = ?, updated_at = ? WHERE singleton_id = 1`,
+    'UPDATE workflow_builder_history SET undo_json = ?, redo_json = ?, updated_at = ? WHERE singleton_id = 1',
     [JSON.stringify([{ revisionId: null, label: 'Vor Legacy-Migration', capturedAt: Date.now() }]), '[]', Date.now()],
   );
   assert.equal((await getWorkflowBuilderHistoryStatus()).undoCount, 1);

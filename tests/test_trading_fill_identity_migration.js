@@ -63,7 +63,7 @@ async function fixture(filename, duplicate) {
     for (const trigger of triggers) await database.exec(trigger.sql);
     const event = { accountId: 'paper-default', accountFingerprint: 'paper:paper-default', providerEventId: 'original-provider-fill',
       kind: 'fee', source: 'paper:own-fill-v1', basis: 'fill', occurredAt: 123, amount: '-0.1', asset: 'USDT', intentId: 'intent', fillId: 'original-fill' };
-    for (const suffix of duplicate ? ['', '-ambiguous'] : ['']) await database.run(`INSERT INTO trading_money_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    for (const suffix of duplicate ? ['', '-ambiguous'] : ['']) await database.run('INSERT INTO trading_money_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
       [`original-money${suffix}`, event.accountId, event.accountFingerprint, `${event.providerEventId}${suffix}`, event.kind, event.source,
         event.basis, event.occurredAt, event.amount, event.asset, event.intentId, event.fillId, JSON.stringify({ ...event, providerEventId: `${event.providerEventId}${suffix}` }), 456]);
     await database.run("INSERT INTO trading_money_valuations VALUES('original-money','USDT','-0.1','1','native-asset',123,'original-value','{\"original\":true}',456)");
@@ -76,7 +76,7 @@ try {
   const { before, event } = await fixture(valid, false);
   await initDb(valid);
   assert.deepEqual(await originals(getDatabase()), before, 'Migration40 preserves every local ID, original byte string, valuation, conflict and pending revision.');
-  assert.equal((await getDatabase().get("SELECT identity_status FROM trading_fills WHERE id='original-fill'")).identity_status, 'legacy_unresolved');
+  assert.equal((await getDatabase().get("SELECT identity_status FROM trading_fills WHERE id='original-fill'\")).identity_status, 'legacy_unresolved');
   assert.equal((await recordMoneyEvent({ ...event, source: 'new-transport', providerEventId: 'new-transport-label' })).id, 'original-money');
   assert.deepEqual((await originals(getDatabase())).money, before.money, 'Canonical fill replay preserves the legacy money original and ID.');
   await closeDb(); await initDb(valid);

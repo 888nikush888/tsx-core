@@ -434,12 +434,11 @@ async function assertExecutionAuthorization(intent: TradingIntent): Promise<void
   // it for the newest path. Explicitly disabled/missing authorization is fatal.
   const authorized = intent.executionPathId
     ? await database.get(
-        `SELECT id FROM workflow_execution_paths WHERE id = ? AND workflow_revision_id = ?
-         AND channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1`,
+        "SELECT id FROM workflow_execution_paths WHERE id = ? AND workflow_revision_id = ? AND channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1",
         [intent.executionPathId, intent.workflowRevisionId, intent.channelId, intent.accountId, intent.strategyVersionId],
       )
     : await database.get(
-        `SELECT channel_id FROM trading_routes WHERE channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1`,
+        "SELECT channel_id FROM trading_routes WHERE channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1",
         [intent.channelId, intent.accountId, intent.strategyVersionId],
       );
   if (!authorized) throw new TradingRiskError('ROUTE_NO_LONGER_AUTHORIZED', 'The execution route was removed, changed or disabled.');
@@ -1454,7 +1453,7 @@ export class TradingEngine {
 
   private async isolateUnresolvedDispatch(intent: TradingIntent): Promise<void> {
     const unresolved = await getDatabase().get(
-      `SELECT 1 FROM trading_orders WHERE intent_id = ? AND status IN ('submitting', 'unknown', 'cancel_pending') LIMIT 1`,
+      "SELECT 1 FROM trading_orders WHERE intent_id = ? AND status IN ('submitting', 'unknown', 'cancel_pending') LIMIT 1",
       [intent.id],
     );
     if (!unresolved) return;
@@ -2126,7 +2125,7 @@ export class TradingEngine {
       await transaction(async () => {
         const safety = await this.collectLifecycleProof(account, remote, 'tradeClosed', local.intent_id);
         await getDatabase().run(
-          `UPDATE trading_positions SET status = 'closed', quantity = '0', closed_at = ?, updated_at = ? WHERE id = ?`,
+          "UPDATE trading_positions SET status = 'closed', quantity = '0', closed_at = ?, updated_at = ? WHERE id = ?",
           [remote.observedAt, remote.observedAt, local.id]);
         const intent = await getTradingIntent(local.intent_id);
         if (intent && !['completed', 'blocked', 'failed'].includes(intent.status)) {

@@ -257,7 +257,7 @@ async function verifyCoreDatabaseSchema(database: Database): Promise<void> {
   if (integrity?.integrity_check !== 'ok') {
     throw new Error(`SQLite integrity_check failed: ${integrity?.integrity_check || 'no result'}`);
   }
-  const rows = await database.all<Array<{ name: string }>>(`SELECT name FROM sqlite_master WHERE type = 'table'`);
+  const rows = await database.all<Array<{ name: string }>>("SELECT name FROM sqlite_master WHERE type = 'table'");
   const tables = new Set(rows.map(row => row.name));
   const missing = REQUIRED_DATABASE_TABLES.filter(table => !tables.has(table));
   if (missing.length > 0) throw new Error(`Backup is missing required tables: ${missing.join(', ')}`);
@@ -277,17 +277,17 @@ async function verifyTradingDatabaseSchema(database: Database): Promise<void> {
     throw new Error('Backup trading account schema is missing external account identity binding.');
   }
   const runtimeState = await database.get<{ count: number; minimum: number; maximum: number }>(
-    `SELECT COUNT(*) AS count, MIN(singleton_id) AS minimum, MAX(singleton_id) AS maximum FROM trading_runtime_state`
+    'SELECT COUNT(*) AS count, MIN(singleton_id) AS minimum, MAX(singleton_id) AS maximum FROM trading_runtime_state'
   );
   if (Number(runtimeState?.count) !== 1 || Number(runtimeState?.minimum) !== 1 || Number(runtimeState?.maximum) !== 1) {
     throw new Error('Backup trading runtime singleton is missing or malformed.');
   }
   const immutableTrigger = await database.get<{ name: string }>(
-    `SELECT name FROM sqlite_master WHERE type = 'trigger' AND name = 'trg_trading_strategy_immutable'`
+    "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name = 'trg_trading_strategy_immutable'"
   );
   if (!immutableTrigger) throw new Error('Backup is missing the published-strategy immutability trigger.');
   const identityIndex = await database.get<{ name: string }>(
-    `SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'uq_trading_external_account_identity'`
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'uq_trading_external_account_identity'"
   );
   if (!identityIndex) throw new Error('Backup is missing the external account identity uniqueness constraint.');
 }

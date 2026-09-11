@@ -88,7 +88,7 @@ async function testUnknownEntry(directory) {
   await engine.processIntent(intent.id);
   assert.equal((await getTradingIntent(intent.id)).status, 'unknown');
   assert.equal((await getDatabase().get(
-    `SELECT status FROM trading_orders WHERE intent_id = ? AND role = 'entry'`,
+    "SELECT status FROM trading_orders WHERE intent_id = ? AND role = 'entry'",
     [intent.id],
   )).status, 'unknown');
   await engine.processIntent(intent.id);
@@ -365,7 +365,7 @@ async function testProtectiveStopFailure(directory) {
   assert.notEqual(position.quantity, '0');
   assert.equal((await getTradingIntent(intent.id)).status, 'unknown');
   const event = await getDatabase().get(
-    `SELECT code FROM trading_risk_events WHERE intent_id = ? AND code = 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION'`,
+    "SELECT code FROM trading_risk_events WHERE intent_id = ? AND code = 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION'",
     [intent.id],
   );
   assert.equal(event.code, 'EMERGENCY_FLATTEN_PENDING_RECONCILIATION');
@@ -516,7 +516,7 @@ async function testEntryTtlCancelsAndClosesEmptyPosition(directory) {
   const engine = new TradingEngine([paper]);
   await engine.processIntent(intent.id);
   assert.equal((await getDatabase().get(
-    `SELECT status FROM trading_orders WHERE intent_id = ? AND role = 'entry'`, [intent.id],
+    "SELECT status FROM trading_orders WHERE intent_id = ? AND role = 'entry'", [intent.id],
   )).status, 'open');
   await engine.cancelExpiredEntries(Date.now() + 901_000);
   await engine.reconcileAccount(account.id);
@@ -599,7 +599,7 @@ async function testEmergencyFlattenRetryIsIdempotent(directory) {
   assert.equal(flattenSubmissions, 2, 'A proved terminal rejection may be retried as a new durable order generation.');
   assert.notEqual(flattenIds[0], flattenIds[1], 'A rejected order identity must never be reopened for another submit.');
   const flattenRow = await getDatabase().get(
-    `SELECT id FROM trading_orders WHERE intent_id = ? AND client_order_id = ?`,
+    "SELECT id FROM trading_orders WHERE intent_id = ? AND client_order_id = ?",
     [intent.id, flattenIds[1]],
   );
   assert.ok(flattenRow?.id);
@@ -613,7 +613,7 @@ async function testEmergencyFlattenRetryIsIdempotent(directory) {
   await assert.rejects(engine.emergencyFlatten(adapter, account, managed, managed.plan, new Error('already filled')), /terminal evidence/);
   assert.equal(flattenSubmissions, 2, 'A filled flag without the corresponding executed quantity must not authorize another generation.');
   assert.equal((await getDatabase().get(
-    `SELECT COUNT(*) AS count FROM trading_orders WHERE intent_id = ? AND role = 'flatten'`,
+    "SELECT COUNT(*) AS count FROM trading_orders WHERE intent_id = ? AND role = 'flatten'",
     [intent.id],
   )).count, 2, 'Retain both terminal-rejection evidence and the subsequent durable attempt.');
   await closeDb();
@@ -763,8 +763,7 @@ async function testTransientExecutorIncidentBlocksOnlyNewEntriesUntilReconciled(
   await assert.rejects(engine.reconcileAccount(account.id), /503/);
   assert.equal((await getTradingAccount(account.id)).killSwitchActive, false);
   const openIncident = await getDatabase().get(
-    `SELECT category, status FROM trading_account_incidents
-     WHERE account_id = ? AND status = 'open'`,
+    "SELECT category, status FROM trading_account_incidents\nWHERE account_id = ? AND status = 'open'",
     [account.id],
   );
   assert.deepEqual(openIncident, { category: 'reconciliation_transient', status: 'open' });
@@ -777,7 +776,7 @@ async function testTransientExecutorIncidentBlocksOnlyNewEntriesUntilReconciled(
   unavailable = false;
   await engine.reconcileAccount(account.id);
   const resolvedIncident = await getDatabase().get(
-    `SELECT status FROM trading_account_incidents WHERE account_id = ?`,
+    'SELECT status FROM trading_account_incidents WHERE account_id = ?',
     [account.id],
   );
   assert.equal(resolvedIncident.status, 'resolved');

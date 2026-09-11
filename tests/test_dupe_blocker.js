@@ -7,36 +7,11 @@ import path from 'path';
 import os from 'os';
 import { mkdtemp, rm } from 'fs/promises';
 
-const SAMPLE_SIGNAL_1 = `<signal>
-    <action>SHORT</action>
-    <pair>BTCUSDT</pair>
-    <entry_range>
-        <min>65700.00000000</min>
-        <max>66710.87500000</max>
-    </entry_range>
-    <targets>
-        <target id="1">64739.12500000</target>
-        <target id="2">63753.25000000</target>
-    </targets>
-    <stoploss>67411.20656250</stoploss>
-    <leverage>15</leverage>
-</signal>`;
+const SAMPLE_SIGNAL_1 = '<signal>\n    <action>SHORT</action>\n    <pair>BTCUSDT</pair>\n    <entry_range>\n        <min>65700.00000000</min>\n        <max>66710.87500000</max>\n    </entry_range>\n    <targets>\n        <target id="1">64739.12500000</target>\n        <target id="2">63753.25000000</target>\n    </targets>\n    <stoploss>67411.20656250</stoploss>\n    <leverage>15</leverage>\n</signal>';
 
-const SAMPLE_SIGNAL_1_DIFFERENT_WHITESPACE = `<signal><action>SHORT</action><pair>BTCUSDT</pair><entry_range><min>65700.00000000</min><max>66710.87500000</max></entry_range><targets><target id="1">64739.12500000</target><target id="2">63753.25000000</target></targets><stoploss>67411.20656250</stoploss><leverage>15</leverage></signal>`;
+const SAMPLE_SIGNAL_1_DIFFERENT_WHITESPACE = '<signal><action>SHORT</action><pair>BTCUSDT</pair><entry_range><min>65700.00000000</min><max>66710.87500000</max></entry_range><targets><target id="1">64739.12500000</target><target id="2">63753.25000000</target></targets><stoploss>67411.20656250</stoploss><leverage>15</leverage></signal>';
 
-const SAMPLE_SIGNAL_2 = `<signal>
-    <action>LONG</action>
-    <pair>ETHUSDT</pair>
-    <entry_range>
-        <min>3500.00000000</min>
-        <max>3600.00000000</max>
-    </entry_range>
-    <targets>
-        <target id="1">3700.00000000</target>
-    </targets>
-    <stoploss>3400.00000000</stoploss>
-    <leverage>10</leverage>
-</signal>`;
+const SAMPLE_SIGNAL_2 = '<signal>\n    <action>LONG</action>\n    <pair>ETHUSDT</pair>\n    <entry_range>\n        <min>3500.00000000</min>\n        <max>3600.00000000</max>\n    </entry_range>\n    <targets>\n        <target id="1">3700.00000000</target>\n    </targets>\n    <stoploss>3400.00000000</stoploss>\n    <leverage>10</leverage>\n</signal>';
 
 const SAMPLE_SIGNAL_WITH_XML_DECL = `<?xml version="1.0" encoding="UTF-8"?>
 <signal>
@@ -47,7 +22,7 @@ const SAMPLE_SIGNAL_WITH_XML_DECL = `<?xml version="1.0" encoding="UTF-8"?>
         <max>66710.87500000</max>
     </entry_range>
     <targets>
-        <target id="1">64739.12500000</target>
+        <target id="1">64739.12500000</target>`
         <target id="2">63753.25000000</target>
     </targets>
     <stoploss>67411.20656250</stoploss>
@@ -78,7 +53,7 @@ function runNormalizationTests(testPass, testFail) {
 
 async function runWorkflowScopeTest(db, testPass, testFail) {
   try {
-    await db.exec(`DELETE FROM signals`);
+    await db.exec('DELETE FROM signals');
     const firstScope = 'a'.repeat(64);
     const secondScope = 'b'.repeat(64);
     await saveSignal(
@@ -120,7 +95,7 @@ async function runTests() {
   await initDb(dbPath);
 
   const db = await open({ filename: dbPath, driver: sqlite3.Database });
-  await db.exec(`DELETE FROM signals`);
+  await db.exec('DELETE FROM signals');
 
   runNormalizationTests(testPass, testFail);
 
@@ -129,7 +104,7 @@ async function runTests() {
 
   // Test: Leerer Signal-Ordner (Datenbank leer)
   try {
-    await db.exec(`DELETE FROM signals`);
+    await db.exec('DELETE FROM signals');
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, false, 'Empty DB should not find duplicates');
     testPass('Leere Datenbank: Kein Duplikat');
@@ -137,7 +112,7 @@ async function runTests() {
 
   // Test: Kein Duplikat (verschiedenes Signal vorhanden)
   try {
-    await db.exec(`DELETE FROM signals`);
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_2', 'channel1', 2, SAMPLE_SIGNAL_2, normalizeSignalXml(SAMPLE_SIGNAL_2));
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, false, 'Different signal should not be a duplicate');
@@ -146,7 +121,7 @@ async function runTests() {
 
   // Test: Duplikat innerhalb des Cooldowns (gerade erstellt)
   try {
-    await db.exec(`DELETE FROM signals`);
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_1, normalizeSignalXml(SAMPLE_SIGNAL_1));
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, true, 'Recent identical signal should be a duplicate');
@@ -156,7 +131,7 @@ async function runTests() {
 
   // Test: Duplikat mit verschiedenem Whitespace wird erkannt
   try {
-    await db.exec(`DELETE FROM signals`);
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_1_DIFFERENT_WHITESPACE, normalizeSignalXml(SAMPLE_SIGNAL_1_DIFFERENT_WHITESPACE));
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, true, 'Same signal with different whitespace should be detected');
@@ -165,7 +140,7 @@ async function runTests() {
 
   // Test: Duplikat mit XML-Declaration wird erkannt
   try {
-    await db.exec(`DELETE FROM signals`);
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_WITH_XML_DECL, normalizeSignalXml(SAMPLE_SIGNAL_WITH_XML_DECL));
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, true, 'Signal with XML declaration should match same signal without it');
@@ -173,7 +148,7 @@ async function runTests() {
   } catch (e) { testFail('XML-Declaration-Toleranz', e); }
 
   try {
-    await db.exec(`DELETE FROM signals`);
+    await db.exec('DELETE FROM signals');
     await saveSignal('signal_channel1_1', 'channel1', 1, SAMPLE_SIGNAL_1, normalizeSignalXml(SAMPLE_SIGNAL_1));
     const retryResult = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24, 'signal_channel1_1');
     assert.strictEqual(retryResult.isDupe, false, 'A retry must not be blocked by its own previously persisted signal');
@@ -184,11 +159,11 @@ async function runTests() {
 
   // Test: Cooldown abgelaufen — Signal wird erlaubt
   try {
-    await db.exec(`DELETE FROM signals`);
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_1, normalizeSignalXml(SAMPLE_SIGNAL_1));
     // Simulate signal was created 25 hours ago
     const pastTime = Date.now() - 25 * 60 * 60 * 1000;
-    await db.run(`UPDATE signals SET created_at = ? WHERE id = ?`, [pastTime, 'sig_1']);
+    await db.run('UPDATE signals SET created_at = ? WHERE id = ?', [pastTime, 'sig_1']);
     
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, false, 'Signal outside cooldown should be allowed');
@@ -197,10 +172,10 @@ async function runTests() {
 
   // Test: Cooldown 0 = immer blockieren
   try {
-    await db.exec(`DELETE FROM signals`);
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_1, normalizeSignalXml(SAMPLE_SIGNAL_1));
     const pastTime = Date.now() - 100 * 60 * 60 * 1000;
-    await db.run(`UPDATE signals SET created_at = ? WHERE id = ?`, [pastTime, 'sig_1']);
+    await db.run('UPDATE signals SET created_at = ? WHERE id = ?', [pastTime, 'sig_1']);
     
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 0);
     assert.strictEqual(result.isDupe, true, 'Cooldown 0 should always block duplicates');
@@ -226,4 +201,5 @@ async function runTests() {
 await runTests().catch(err => {
   console.error('Test-Fehler:', err);
   process.exit(1);
+}
 });

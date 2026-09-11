@@ -112,18 +112,15 @@ export async function uiTradeSafety(intentId: string, accountId: string) {
 export async function uiAccountDetail(id: string) {
   uiObjectId(id);
   const database = getDatabase();
-  const account = await database.get(`SELECT id, name, exchange, mode, status, enabled, max_concurrent_positions AS maxConcurrentPositions,
-    kill_switch_active AS killSwitchActive, kill_switch_reason AS killSwitchReason, credential_generation AS credentialGeneration,
-    external_account_id AS externalAccountId, state_version AS stateVersion, last_verified_at AS lastVerifiedAt, last_error AS reason, created_at AS createdAt, updated_at AS updatedAt
-    FROM trading_accounts WHERE id = ?`, [id]);
+  const account = await database.get('SELECT id, name, exchange, mode, status, enabled, max_concurrent_positions AS maxConcurrentPositions, kill_switch_active AS killSwitchActive, kill_switch_reason AS killSwitchReason, credential_generation AS credentialGeneration, external_account_id AS externalAccountId, state_version AS stateVersion, last_verified_at AS lastVerifiedAt, last_error AS reason, created_at AS createdAt, updated_at AS updatedAt FROM trading_accounts WHERE id = ?', [id]);
   if (!account) return null;
   const identityHash = account.externalAccountId ? createHash('sha256').update(account.externalAccountId).digest('hex').slice(0, 16) : null;
   delete account.externalAccountId;
   const [stream, reconciliation, capacity, paths, protection] = await Promise.all([
-    database.get(`SELECT status, cursor, gap_count AS gapCount, last_event_at AS lastEventAt, last_poll_at AS lastPollAt, last_error AS reason, updated_at AS updatedAt FROM trading_exchange_stream_state WHERE account_id = ?`, [id]),
-    database.get(`SELECT id, status, started_at AS startedAt, completed_at AS completedAt, last_error AS reason FROM trading_reconciliation_runs WHERE account_id = ? ORDER BY started_at DESC, id DESC LIMIT 1`, [id]),
-    database.get(`SELECT COUNT(*) AS openPositions FROM trading_positions WHERE account_id = ? AND status <> 'closed'`, [id]),
-    database.all(`SELECT path.id, path.channel_id AS channelId, path.workflow_revision_id AS workflowRevisionId, path.enabled FROM workflow_execution_paths AS path JOIN workflow_revisions AS revision ON revision.id = path.workflow_revision_id WHERE path.account_id = ? AND revision.status = 'active' ORDER BY path.id LIMIT 101`, [id]),
+    database.get('SELECT status, cursor, gap_count AS gapCount, last_event_at AS lastEventAt, last_poll_at AS lastPollAt, last_error AS reason, updated_at AS updatedAt FROM trading_exchange_stream_state WHERE account_id = ?', [id]),
+    database.get('SELECT id, status, started_at AS startedAt, completed_at AS completedAt, last_error AS reason FROM trading_reconciliation_runs WHERE account_id = ? ORDER BY started_at DESC, id DESC LIMIT 1', [id]),
+    database.get("SELECT COUNT(*) AS openPositions FROM trading_positions WHERE account_id = ? AND status <> 'closed'", [id]),
+    database.all("SELECT path.id, path.channel_id AS channelId, path.workflow_revision_id AS workflowRevisionId, path.enabled FROM workflow_execution_paths AS path JOIN workflow_revisions AS revision ON revision.id = path.workflow_revision_id WHERE path.account_id = ? AND revision.status = 'active' ORDER BY path.id LIMIT 101", [id]),
     readProtectionProjection({ accountId: id }),
   ]);
   return { contractVersion: 1, observedAt: Date.now(), redacted: true,

@@ -127,7 +127,7 @@ function entryTargetObservation(evidence: StillActiveEvidence | null): ExchangeO
 
 export async function cancelRetryAuthorized(accountId: string, clientOrderId: string): Promise<boolean> {
   const account = await getDatabase().get<{ externalAccountId: string | null; credentialGeneration: string | null; exchange: TradingAccount['exchange'] }>(
-    `SELECT external_account_id AS externalAccountId, credential_generation AS credentialGeneration, exchange FROM trading_accounts WHERE id = ?`, [accountId]);
+    'SELECT external_account_id AS externalAccountId, credential_generation AS credentialGeneration, exchange FROM trading_accounts WHERE id = ?', [accountId]);
   if (!account) return false;
   try {
     const row = await loadCancelOrder(accountId, clientOrderId);

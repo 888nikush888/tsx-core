@@ -728,7 +728,7 @@ async function tryManualCopyFallback(message, context: OutboxExecutionContext) {
   }
   
   if (formattedText?.text?.trim()) {
-    addLog(`[Forward Fallback] Kanal geschützt. Versuche Text manuell zu kopieren und zu senden...`);
+    addLog('[Forward Fallback] Kanal geschützt. Versuche Text manuell zu kopieren und zu senden...');
     if (context.signal.aborted) throw new Error('Task aborted before manual-copy fallback.');
     const response = await invokeWithRetry(client, {
       _: 'sendMessage', chat_id: pinnedTargetChatId(context),
@@ -913,7 +913,7 @@ async function processWorkflowSignal(
 }
 
 async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {
-  addLog(`[Forward] Sende extrahiertes XML...`);
+  addLog('[Forward] Sende extrahiertes XML...');
   if (context.signal.aborted) throw new Error('Task aborted before XML send.');
   await context.markSending();
   const response = await invokeWithRetry(client, {
