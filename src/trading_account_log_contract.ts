@@ -55,7 +55,7 @@ function integer(value: unknown): number {
 }
 function token(value: unknown, nullable = false, maximum = 4096): string | null {
   if (nullable && value === null) return null;
-  if (typeof value !== 'string' || !value || value.length > maximum || /[\x00-\x1f]/.test(value)) throw new Error('Invalid account-log token.');
+  if (typeof value !== 'string' || !value || value.length > maximum || /\p{Cc}/u.test(value)) throw new Error('Invalid account-log token.');
   return value;
 }
 function binding(row: Record<string, any>) {
@@ -99,7 +99,7 @@ function record(value: unknown, namespace: string): AccountLogRecord {
   const result: AccountLogRecord = {};
   for (const [field, item] of Object.entries(row)) {
     if (!allowed.has(field)) throw new Error('Unallowlisted account-log economic field.');
-    if (item !== null && (typeof item !== 'string' || item.length > 256 || /[\x00-\x1f]/.test(item))) throw new Error('Invalid account-log economics.');
+    if (item !== null && (typeof item !== 'string' || item.length > 256 || /\p{Cc}/u.test(item))) throw new Error('Invalid account-log economics.');
     result[field] = item as string | null;
   }
   return result;

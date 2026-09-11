@@ -23,7 +23,8 @@ type LogContextValue = string | number | boolean | null | undefined;
 export type LogContext = Record<string, LogContextValue>;
 
 function stripAnsi(value: string): string {
-  return value.replace(/\x1b\[[0-9;]*m/g, '');
+  // Matches ANSI escape sequences using the Unicode escape for the ESC character
+  return value.replace(/\u001b\[[0-9;]*m/g, '');
 }
 
 function currentLogFilePath(now = new Date()): string {

@@ -166,7 +166,8 @@ function isSafeTemplatePathSegment(segment: string): boolean {
     && segment !== '.'
     && segment !== '..'
     && segment === segment.trim()
-    && !/[\\/<>:"|?*\x00-\x1f]/.test(segment);
+    // Disallow all control characters (Unicode category Cc) and reserved path characters
+    && !/[\\/<>:"|?*\p{Cc}]/u.test(segment);
 }
 
 function artifactPath(artifactRoot: string, fileName: string): string {

@@ -745,7 +745,8 @@ function validateAccountStateUpdate(state: TradingAccountStateUpdate): void {
   if (!['unverified', 'ready', 'disabled', 'error', 'degraded'].includes(state.status)) throw new Error('Unsupported account status.');
   if (state.enabled && state.status !== 'ready') throw new Error('Only a verified ready account can be enabled.');
   const externalAccountId = state.externalAccountId?.trim() || null;
-  if (externalAccountId && (externalAccountId.length > 256 || /[\x00-\x1f\x7f]/.test(externalAccountId))) {
+  // Use Unicode property escape to detect control characters
+  if (externalAccountId && (externalAccountId.length > 256 || /\p{Cc}/u.test(externalAccountId))) {
     throw new Error('External account identity must contain at most 256 printable characters.');
   }
   if (state.credentialGeneration != null && !/^[a-f0-9]{64}$/.test(state.credentialGeneration)) {
