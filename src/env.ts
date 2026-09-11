@@ -50,8 +50,9 @@ function assertSecretNotDoubled(env: NodeJS.ProcessEnv, secretName: string, file
 }
 
 function assertSecretFileSize(secretPath: string, fileVariable: string): void {
-  const stats = fs.statSync(secretPath);
-  if (!stats.isFile() || stats.size < 1 || stats.size > MAX_SECRET_BYTES) {
+  const resolved = path.resolve(secretPath);
+  const stats = fs.statSync(resolved);
+  if (!stats.isFile() || stats.isSymbolicLink() || stats.size < 1 || stats.size > MAX_SECRET_BYTES) {
     throw new Error(`${fileVariable} must reference a non-empty regular file of at most ${MAX_SECRET_BYTES} bytes.`);
   }
 }

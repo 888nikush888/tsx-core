@@ -10,7 +10,7 @@ try {
   applyEnvContent('EXISTING=file-value\nNEW_VALUE="value=with=equals"\ninvalid-key=x\n', env);
   assert.equal(env.EXISTING, 'orchestrator-value', 'Process environment must override .env');
   assert.equal(env.NEW_VALUE, 'value=with=equals');
-  assert.equal(env['invalid-key']);
+  assert.equal(env['invalid-key'], undefined);
 
   const secretPath = path.join(root, 'admin-token');
   await writeFile(secretPath, `${'a'.repeat(64)}\n`, { encoding: 'utf8', mode: 0o600 });
@@ -45,7 +45,7 @@ try {
   try {
     process.env.TELEGRAM_API_ID = '-1';
     validateTelegramApiId();
-    assert.equal(process.env.TELEGRAM_API_ID);
+    assert.equal(process.env.TELEGRAM_API_ID, undefined);
     process.env.TELEGRAM_API_ID = ' 42 ';
     validateTelegramApiId();
     assert.equal(process.env.TELEGRAM_API_ID, '42');
