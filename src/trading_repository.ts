@@ -1296,6 +1296,21 @@ function executableParserContract(contractId: string): ExecutableSignalSchemaCon
   return 'standard';
 }
 
+async function schemaContractVersion(input: {
+  contractVersionId?: unknown;
+  definition?: unknown;
+  parserSchema?: unknown;
+}): Promise<{ contractVersionId: string | null; version: Awaited<ReturnType<typeof publishedContractVersion>> | null; schema: ExecutableSignalSchemaContract | null }> {
+  const requestedParserSchema = requestedParserContract(input.parserSchema);
+  let contractVersionId = null;
+  if (input.contractVersionId) contractVersionId = contractVersionIdentifier(input.contractVersionId);
+  else if (input.definition === undefined && requestedParserSchema) contractVersionId = `${requestedParserSchema}:v1`;
+  const version = contractVersionId
+    ? await publishedContractVersion(contractVersionId)
+    : null;
+  return { contractVersionId, version, schema: requestedParserSchema };
+}
+
 async function signalSchemaInput(input: {
   id?: unknown;
   name?: unknown;
@@ -1318,14 +1333,8 @@ async function signalSchemaInput(input: {
 }> {
   const id = requireId ? signalSchemaIdentifier(input.id) : undefined;
   const { name, description, templateName } = signalSchemaText(input);
-  const requestedParserSchema = requestedParserContract(input.parserSchema);
   if (typeof input.enabled !== 'boolean') throw new Error('Signal schema enabled state must be boolean.');
-  let contractVersionId = null;
-  if (input.contractVersionId) contractVersionId = contractVersionIdentifier(input.contractVersionId);
-  else if (input.definition === undefined && requestedParserSchema) contractVersionId = `${requestedParserSchema}:v1`;
-  const version = contractVersionId
-    ? await publishedContractVersion(contractVersionId)
-    : null;
+  const { contractVersionId, version, schema } = await schemaContractVersion(input);
   let definitionInput = input.definition;
   if (definitionInput === undefined) {
     if (!version) throw new Error('Signal schema definition is required when no fallback contract is selected.');
@@ -1341,7 +1350,7 @@ async function signalSchemaInput(input: {
     id,
     name,
     description,
-    parserSchema: requestedParserSchema ?? (version ? executableParserContract(version.contract_id) : 'standard'),
+    parserSchema: schema ?? (version ? executableParserContract(version.contract_id) : 'standard'),
     contractVersionId,
     definition,
     definitionSha256,
@@ -1385,6 +1394,20 @@ function windowLedgerFields(ledger: Awaited<ReturnType<typeof moneyLedgerSnapsho
     pricePnlValue: ledger.pricePnlValue, signedFeesValue: ledger.feesValue, fundingValue: ledger.fundingValue,
     valuedSubtotalByCurrency: currency ? { [currency]: ledger.valuedSubtotal } : {},
     valuedSubtotalValuesByCurrency: currency ? { [currency]: ledger.valuedSubtotalValue } : {} };
+}
+
+function applyFillRow(result: Map<string, TradingWindowAnalytics>, row: WindowFillRow, metrics: (accountId: unknown) => TradingWindowAnalytics): void {
+  const current = metrics(row.accountId);
+  current.fills += 1;
+  const settlement = String(row.settlementAsset ?? 'UNKNOWN');
+  current.volumeByAsset[settlement] = addDecimal(current.volumeByAsset[settlement] ?? '0', multiplyExactSignedDecimal(row.price, row.quantity));
+  const asset = String(row.feeAsset || 'UNKNOWN').toUpperCase();
+  current.fees[asset] = addSignedDecimal(current.fees[asset] ?? '0', row.fee);
+}
+
+function finalizeVolumes(result: Map<string, TradingWindowAnalytics>): void {
+  for (const current of result.values()) current.volume = Object.keys(current.volumeByAsset).length === 1
+    && current.volumeByAsset.UNKNOWN === undefined ? Object.values(current.volumeByAsset)[0] ?? null : null;
 }
 
 async function tradingAnalyticsWindow(since: number | null, until: number): Promise<Map<string, TradingWindowAnalytics>> {
@@ -1433,16 +1456,8 @@ async function tradingAnalyticsWindow(since: number | null, until: number): Prom
       ...windowLedgerFields(ledger),
     });
   }
-  for (const row of fills) {
-    const current = metrics(row.accountId);
-    current.fills += 1;
-    const settlement = String(row.settlementAsset ?? 'UNKNOWN');
-    current.volumeByAsset[settlement] = addDecimal(current.volumeByAsset[settlement] ?? '0', multiplyExactSignedDecimal(row.price, row.quantity));
-    const asset = String(row.feeAsset || 'UNKNOWN').toUpperCase();
-    current.fees[asset] = addSignedDecimal(current.fees[asset] ?? '0', row.fee);
-  }
-  for (const current of result.values()) current.volume = Object.keys(current.volumeByAsset).length === 1
-    && current.volumeByAsset.UNKNOWN === undefined ? Object.values(current.volumeByAsset)[0] ?? null : null;
+  for (const row of fills) applyFillRow(result, row, metrics);
+  finalizeVolumes(result);
   for (const row of intents) Object.assign(metrics(row.accountId), {
     intents: numeric(row.intents), completedIntents: numeric(row.completedIntents),
     rejectedIntents: numeric(row.rejectedIntents),
