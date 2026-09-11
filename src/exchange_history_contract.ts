@@ -14,7 +14,8 @@ function integer(value: unknown): number {
 
 function token(value: unknown, maximum: number): string | null {
   if (value === null) return null;
-  if (typeof value !== 'string' || !value || value.length > maximum || /[\x00-\x1f]/.test(value)) throw new Error('Invalid history checkpoint token.');
+  // Prevent control characters (Unicode Cc) in token to avoid non-printables
+  if (typeof value !== 'string' || !value || value.length > maximum || /\p{Cc}/u.test(value)) throw new Error('Invalid history checkpoint token.');
   return value;
 }
 

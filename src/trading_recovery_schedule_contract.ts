@@ -68,7 +68,7 @@ function array(value: unknown, maximum: number): any[] {
 function binding(value: unknown, expected: RecoveryScheduleBinding): void {
   const row = object(value, BINDING_KEYS), context = object(expected, BINDING_KEYS);
   if (typeof row.accountId !== 'string' || [...row.accountId].length > 256 || row.accountId.length === 0
-    || row.accountId.trim() !== row.accountId || /[\x00-\x1f\x7f-\x9f\uD800-\uDFFF]/u.test(row.accountId)) invalid();
+    || row.accountId.trim() !== row.accountId || /[\p{Cc}\p{Cs}]/u.test(row.accountId)) invalid();
   for (const field of ['accountFingerprint', 'credentialGeneration', 'executionProfileHash']) {
     if (typeof row[field] !== 'string' || !/^[a-f0-9]{64}$/.test(row[field])) invalid();
   }
