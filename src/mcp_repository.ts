@@ -549,6 +549,14 @@ export async function updateMcpAgent(input: {
     throw new Error('MCP base revision must be an integer.');
   }
   const now = Date.now();
+  const changed = await persistMcpAgentUpdate(id, name, grantedPermissions, eventSubscriptions, input.enabled, now, input.baseUpdatedAt);
+  if (changed !== 1) throw new Error('MCP agent does not exist or changed. Reload and compare before saving.');
+  if (!input.enabled) await disconnectMcpAgentSessions(id, now);
+  return requireMcpAgent(id);
+}
+
+async function persistMcpAgentUpdate(id: string, name: string, grantedPermissions: unknown, eventSubscriptions: unknown,
+  enabled: boolean, now: number, baseUpdatedAt: unknown): Promise<number> {
   const result = await getDatabase().run(
     `UPDATE mcp_agents SET name = ?, permissions_json = ?, event_subscriptions_json = ?,
        enabled = ?, updated_at = MAX(updated_at + 1, ?) WHERE id = ? AND deleted_at IS NULL
@@ -557,21 +565,25 @@ export async function updateMcpAgent(input: {
       name,
       json(grantedPermissions, 'MCP permissions'),
       json(eventSubscriptions, 'MCP event subscriptions'),
-      input.enabled ? 1 : 0,
+      enabled ? 1 : 0,
       now,
       id,
-      input.baseUpdatedAt ?? null,
-      input.baseUpdatedAt ?? null,
+      baseUpdatedAt ?? null,
+      baseUpdatedAt ?? null,
     ],
   );
-  if (Number(result.changes || 0) !== 1) throw new Error('MCP agent does not exist or changed. Reload and compare before saving.');
-  if (!input.enabled) {
-    await getDatabase().run(
-      `UPDATE mcp_agent_sessions SET disconnected_at = COALESCE(disconnected_at, ?)
-       WHERE agent_id = ? AND disconnected_at IS NULL`,
-      [now, id],
-    );
-  }
+  return Number(result.changes || 0);
+}
+
+async function disconnectMcpAgentSessions(id: string, now: number): Promise<void> {
+  await getDatabase().run(
+    `UPDATE mcp_agent_sessions SET disconnected_at = COALESCE(disconnected_at, ?)
+     WHERE agent_id = ? AND disconnected_at IS NULL`,
+    [now, id],
+  );
+}
+
+async function requireMcpAgent(id: string): Promise<McpAgent> {
   const agents = await listMcpAgents();
   const agent = agents.find(candidate => candidate.id === id);
   if (!agent) throw new Error('MCP agent does not exist.');
@@ -588,14 +600,8 @@ export async function rotateMcpAgentToken(idValue: unknown): Promise<{ agent: Mc
     [tokenDigest(token), token.slice(0, 16), now, id],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('MCP agent does not exist.');
-  await getDatabase().run(
-    `UPDATE mcp_agent_sessions SET disconnected_at = COALESCE(disconnected_at, ?)
-     WHERE agent_id = ? AND disconnected_at IS NULL`,
-    [now, id],
-  );
-  const agents = await listMcpAgents();
-  const agent = agents.find(candidate => candidate.id === id);
-  if (!agent) throw new Error('MCP agent does not exist.');
+  await disconnectMcpAgentSessions(id, now);
+  const agent = await requireMcpAgent(id);
   return { agent, token };
 }
 
