@@ -74,7 +74,8 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
         self.current_patch.stop()
         await self.rest.close()
 
-    def envelope(self, path, params):
+    @staticmethod
+    def envelope(path, params):
         result = {'category': params.get('category', 'linear'), 'list': [], 'nextPageCursor': ''}
         if path == '/v5/market/tickers':
             field = 'usdIndexPrice' if params['symbol'] == 'USDCUSDT' else 'indexPrice'

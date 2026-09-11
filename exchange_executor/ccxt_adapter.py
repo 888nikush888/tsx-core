@@ -596,8 +596,8 @@ class CcxtAdapter:
             await _within(deadline, clients.rest.set_leverage(leverage, symbol))
         assert_entry_deadline(request)
 
+    @staticmethod
     async def _market_order_reference(
-        self,
         clients: AccountClients,
         symbol: str,
         side: Any,
@@ -673,8 +673,8 @@ class CcxtAdapter:
         if entry_quantity != stop_quantity:
             raise ExchangeContractError("Protective stop quantity must match the entry quantity.")
 
+    @staticmethod
     async def _assert_symbol_has_no_position(
-        self,
         clients: AccountClients,
         market: dict[str, Any],
         deadline: RequestDeadline,
@@ -850,8 +850,8 @@ class CcxtAdapter:
                 "Order cancellation is unresolved; authoritative REST evidence is required.", [], [client_order_id],
             ) from error
 
+    @staticmethod
     async def _recent_trades(
-        self,
         account: dict[str, str],
         clients: AccountClients,
         provider_symbols: list[str],

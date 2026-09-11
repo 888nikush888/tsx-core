@@ -28,7 +28,8 @@ def state(exchange='bybit', since=None, until=None):
 
 
 class AccountLogReaderTests(unittest.IsolatedAsyncioTestCase):
-    def budget(self, remaining=5):
+    @staticmethod
+    def budget(remaining=5):
         return RecoveryReadBudget(RequestDeadline(int(time.time() * 1000) + 30000), remaining=remaining)
 
     async def test_bybit_unfiltered_resume_empty_page_and_raw_occurrences(self):

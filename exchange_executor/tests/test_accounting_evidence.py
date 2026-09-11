@@ -17,7 +17,8 @@ from common import RequestDeadline
 
 
 class AccountingEvidenceTests(unittest.IsolatedAsyncioTestCase):
-    def deadline(self):
+    @staticmethod
+    def deadline():
         return RequestDeadline(int(time.time() * 1000) + 30_000)
 
     def test_bybit_reporting_uses_documented_usd_totals_not_first_stablecoin(self):
