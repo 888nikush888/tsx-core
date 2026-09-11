@@ -9,6 +9,7 @@ export interface ParameterFamily {
 function defaultAt(value: unknown, key: string): { value: unknown; present: boolean } {
   let current: unknown = value;
   for (const part of key.split('.')) {
+    if (part === '__proto__' || part === 'constructor' || part === 'prototype') return { value: null, present: false };
     if (typeof current !== 'object' || current === null || !Object.hasOwn(current, part)) return { value: null, present: false };
     current = (current as Record<string, unknown>)[part];
   }

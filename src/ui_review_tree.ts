@@ -6,6 +6,7 @@ function reviewNode(root: unknown, path: unknown): { node: unknown; path: string
   if (!Array.isArray(path) || path.length > 40 || path.some(key => typeof key !== 'string' || key.length > 256)) throw new Error('Invalid review path.');
   let node: unknown = root;
   for (const key of path) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') throw new Error('Review path is unavailable.');
     if (protectedKey(key) || !node || typeof node !== 'object' || !Object.hasOwn(node, key)) throw new Error('Review path is unavailable.');
     node = (node as Record<string, unknown>)[key];
   }
