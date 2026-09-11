@@ -116,9 +116,9 @@ class AccountStream:
                 attempt = 0
                 self._record_channel_success(channel)
                 self._ingest(channel, value)
-            except asyncio.CancelledError:
-                raise
             except Exception as error:
+                if isinstance(error, asyncio.CancelledError):
+                    raise
                 attempt = min(attempt + 1, 16)
                 self._record_channel_failure(channel, error)
                 await self._retry_sleep(min(STREAM_RETRY_MAX_SECONDS, 2 ** (attempt - 1)))
