@@ -105,9 +105,8 @@ class AcceptanceJournalTests(unittest.TestCase):
             descriptors.append(os.fstat(fd).st_size)
             raise OSError("secret-must-never-appear")
 
-        with patch("acceptance_journal.os.fsync", side_effect=disk_error):
-            with self.assertRaisesRegex(JournalRefused, "durability") as error:
-                guard.mark_dispatching("own-1")
+        with patch("acceptance_journal.os.fsync", side_effect=disk_error), self.assertRaisesRegex(JournalRefused, "durability") as error:
+            guard.mark_dispatching("own-1")
         self.assertNotIn("secret-must-never-appear", str(error.exception))
         self.assertTrue(descriptors and min(descriptors) > 0)
         with self.assertRaises(JournalRefused):
@@ -152,9 +151,8 @@ class AcceptanceJournalTests(unittest.TestCase):
             original_sync(fd)
             self.now = 130
 
-        with patch("acceptance_journal.os.fsync", side_effect=delayed_sync):
-            with self.assertRaisesRegex(JournalRefused, "time budget"):
-                guard.mark_dispatching("own-1")
+        with patch("acceptance_journal.os.fsync", side_effect=delayed_sync), self.assertRaisesRegex(JournalRefused, "time budget"):
+            guard.mark_dispatching("own-1")
         journal.close()
         _, replay = self.opened()
         self.assertEqual(replay.unresolved, ["own-1"])
