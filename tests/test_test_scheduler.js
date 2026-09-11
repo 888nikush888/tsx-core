@@ -309,7 +309,7 @@ async function runActualFixture(label, options = {}) {
   });
   assert.equal(status, 0, errors.join('\n'));
   assert.deepEqual(errors, []);
-  assert.match(logs.at(-1), new RegExp(`ALL ${selected.length} TEST FILES PASSED`));
+  assert.match(logs.at(-1), new RegExp(`^ALL ${selected.length} TEST FILES PASSED`));
   const events = await fixtureEvents(fixture);
   assertChildEvidence(events, fixture, selected);
   assertFixtureTiming(events, selected, peers);
