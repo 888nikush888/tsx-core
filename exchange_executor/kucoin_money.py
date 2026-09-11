@@ -25,7 +25,7 @@ LEDGER_PAGE_SIZE = 50
 
 
 def _uid(value: Any) -> str:
-    return token(value, "money account uid")
+    return require(token(value, "money account uid"))
 
 
 def _window(state: Any, *, maximum_width: int) -> tuple[int, int, str | None]:

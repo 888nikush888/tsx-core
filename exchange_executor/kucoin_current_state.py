@@ -89,6 +89,7 @@ def _status(raw: dict[str, Any]) -> str:
         "rejected": "rejected",
     }.get(value.lower())
     require(mapped is not None, "KuCoin order status is outside the reviewed vocabulary.")
+    assert mapped is not None
     is_active = raw.get("isActive")
     cancel_exists = raw.get("cancelExist")
     require(type(is_active) is bool and type(cancel_exists) is bool,

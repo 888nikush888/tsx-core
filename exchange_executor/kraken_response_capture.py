@@ -44,10 +44,11 @@ def _client_binding(rest: Any) -> tuple[str, tuple[str, str]]:
     root = api.get('history') if isinstance(api, dict) else None
     if not isinstance(root, str) or root not in HISTORY_ROOTS:
         raise _error('history origin')
-    values = (getattr(rest, 'apiKey', None), getattr(rest, 'secret', None))
-    if any(not isinstance(value, str) or not value for value in values):
+    api_key = getattr(rest, 'apiKey', None)
+    secret = getattr(rest, 'secret', None)
+    if not isinstance(api_key, str) or not api_key or not isinstance(secret, str) or not secret:
         raise _error('credentials')
-    return root, values
+    return root, (api_key, secret)
 
 
 def _request_params(params: Any) -> dict[str, Any]:
@@ -231,6 +232,7 @@ async def read_exact_kraken_account_log(rest: Any, params: dict[str, Any]) -> di
         scope.assert_owner(rest)
         if not isinstance(result, dict) or not scope.sent or not scope.response_seen or scope.exact is None:
             scope.fail('missing exact response capture')
+        assert scope.exact is not None
         return scope.exact
     finally:
         scope.active = False
