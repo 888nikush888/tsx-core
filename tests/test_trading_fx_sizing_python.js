@@ -75,7 +75,7 @@ assert.equal(threshold.exact, false, 'The adjacent 18-place prices straddle the 
 const cases = [];
 function add(name, options = {}, change = () => {}) {
   const request = structuredClone(options.request ?? original);
-  change(request, request.leverageTierDecision);
+  change();
   cases.push({ name, path: 'sdk', contract: 'unit', mark: '100', ...options, request });
 }
 add('fractional-v2');
