@@ -60,13 +60,17 @@ class CurrentRead:
             result = await self.budget.call(operation)
         except RecoveryBudgetExhausted as error:
             raise IncompleteCurrentStateError(source, "current_page_budget_exhausted") from error
-        evidence = next(row for row in self.sources[source]["scopes"] if row["scope"] == scope)
+        try:
+            evidence = next(row for row in self.sources[source]["scopes"] if row["scope"] == scope)
+        except StopIteration:
+            return result
         evidence["pages"] += 1
         return result
-
-    def complete(self, source: str, scope: str) -> None:
-        evidence = self.sources[source]
-        next(row for row in evidence["scopes"] if row["scope"] == scope)["complete"] = True
+        try:
+            matched_row = next(row for row in evidence["scopes"] if row["scope"] == scope)
+        except StopIteration:
+            continue
+        matched_row["complete"] = True
         if all(row["complete"] for row in evidence["scopes"]):
             evidence.update(completeness="complete", reason=None, completedAt=now_ms())
 

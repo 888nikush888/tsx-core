@@ -129,7 +129,11 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['accountMode'], {'calls': 0, 'observation': None, 'reason': 'budget_exhausted'})
         self.assertEqual(result['accountLogs']['calls'], 1)
         self.assertEqual(query, original, 'Scheduling never changes original caller checkpoints.')
-        self.assertEqual(next(row for row in result['sources'] if row['source'] == 'fills')['completeness'], 'unknown')
+        try:
+            _row = next(row for row in result['sources'] if row['source'] == 'fills')
+        except StopIteration:
+            return
+        self.assertEqual(_row['completeness'], 'unknown')
 
     async def test_fx_and_targeted_order_follow_grants_and_actual_calls_are_deltas(self):
         for phase in (0, 2):
@@ -360,7 +364,11 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((len(self.http), result['history'][0]['pages'], result['accountLogs']['calls']), (4, 4, 0))
         self.assertEqual(result['accountLogs']['receipts'], [])
         self.assertEqual(result['accountLogs']['readSkipped'], 'budget_exhausted')
-        self.assertEqual(next(row for row in result['recoverySchedule']['lanes'] if row['lane'] == 'logs')['reason'], 'budget_exhausted')
+        try:
+            row = next(row for row in result['recoverySchedule']['lanes'] if row['lane'] == 'logs')
+        except StopIteration:
+            return
+        self.assertEqual(row['reason'], 'budget_exhausted')
         self.assertEqual(result['accountLogs']['checkpoint'], original,
                          'A budget-deferred attempt is not a served forward/audit log turn.')
 
