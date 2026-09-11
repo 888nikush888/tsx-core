@@ -3533,35 +3533,35 @@ export async function findDuplicateSignal(
   const scopeSuffix = dedupeScope ? `_${dedupeScope}` : null;
   const scopeSql = scopeSuffix ? ' AND substr(id, -?) = ?' : '';
   const scopeParameters = scopeSuffix ? [scopeSuffix.length, scopeSuffix] : [];
-  
-  if (cooldownHours > 0) {
-    const minTime = now - cooldownMs;
-    const match = await database.get(
-      `SELECT id, created_at FROM signals 
-       WHERE normalized_content = ? AND created_at >= ? AND (? IS NULL OR id <> ?)
-       ${scopeSql}
-       ORDER BY created_at DESC LIMIT 1`,
-      [normalizedContent, minTime, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
-    );
-    if (match) {
-      const ageMs = now - (match.created_at as number);
-      const ageHours = Number((ageMs / (60 * 60 * 1000)).toFixed(1));
-      return { isDupe: true, matchFile: match.id, ageHours };
-    }
-  } else {
-    // cooldownHours === 0 means "always block" (infinite cooldown)
-    const match = await database.get(
-      `SELECT id FROM signals 
-       WHERE normalized_content = ? AND (? IS NULL OR id <> ?)
-       ${scopeSql}
-       ORDER BY created_at DESC LIMIT 1`,
-      [normalizedContent, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
-    );
-    if (match) {
-      return { isDupe: true, matchFile: match.id };
-    }
-  }
-  return null;
+  if (cooldownHours > 0) return findCooldownDuplicate(database, normalizedContent, now - cooldownMs, now, excludeSignalId, scopeSql, scopeParameters);
+  return findPermanentDuplicate(database, normalizedContent, excludeSignalId, scopeSql, scopeParameters);
+}
+
+async function findCooldownDuplicate(database: Awaited<ReturnType<typeof getDatabase>>, normalizedContent: string, minTime: number, now: number,
+  excludeSignalId: string | undefined, scopeSql: string, scopeParameters: unknown[]): Promise<{ isDupe: boolean; matchFile?: string; ageHours?: number } | null> {
+  const match = await database.get(
+    `SELECT id, created_at FROM signals
+     WHERE normalized_content = ? AND created_at >= ? AND (? IS NULL OR id <> ?)
+     ${scopeSql}
+     ORDER BY created_at DESC LIMIT 1`,
+    [normalizedContent, minTime, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
+  );
+  if (!match) return null;
+  const ageMs = now - (match.created_at as number);
+  return { isDupe: true, matchFile: match.id, ageHours: Number((ageMs / (60 * 60 * 1000)).toFixed(1)) };
+}
+
+async function findPermanentDuplicate(database: Awaited<ReturnType<typeof getDatabase>>, normalizedContent: string,
+  excludeSignalId: string | undefined, scopeSql: string, scopeParameters: unknown[]): Promise<{ isDupe: boolean; matchFile?: string } | null> {
+  const match = await database.get(
+    `SELECT id FROM signals
+     WHERE normalized_content = ? AND (? IS NULL OR id <> ?)
+     ${scopeSql}
+     ORDER BY created_at DESC LIMIT 1`,
+    [normalizedContent, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
+  );
+  if (!match) return null;
+  return { isDupe: true, matchFile: match.id };
 }
 
 function parseJsonField(value: unknown, field: string, taskId: string): any {
