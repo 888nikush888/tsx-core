@@ -87,7 +87,7 @@ def _safe_time(value: Any) -> bool:
 def _validate_times(raw: dict[str, Any], started: int, completed: int) -> None:
     _require(_safe_time(started) and _safe_time(completed) and 0 <= completed - started <= 10_000)
     stamp = raw.get('time')
-    _require(_safe_time(stamp) and started - 1_000 <= stamp <= completed + 1_000)
+    _require(_safe_time(stamp) and isinstance(stamp, int) and started - 1_000 <= stamp <= completed + 1_000)
     _require(completed <= now_ms() + 1_000)
 
 

@@ -69,9 +69,13 @@ def _lower_bound_tiers(rows: Any, leverage) -> list[dict[str, Any]]:
 
 
 def normalize_hyperliquid_tiers(asset: dict[str, Any], tables: Any) -> list[dict[str, Any]]:
-    identifier = asset.get('marginTableId')
-    require_tier(type(identifier) is int and identifier > 0, 'Hyperliquid margin-table identity is missing.')
-    if identifier < 50:
+    identifier_raw = asset.get('marginTableId')
+    try:
+        identifier = int(identifier_raw)
+    except (TypeError, ValueError):
+        identifier = None
+    require_tier(isinstance(identifier, int) and identifier > 0, 'Hyperliquid margin-table identity is missing.')
+    if isinstance(identifier, int) and identifier < 50:
         require_tier(_maximum(asset.get('maxLeverage')) == identifier, 'Hyperliquid implicit tier conflicts with its market.')
         return [{'lowerBound': '0', 'upperBound': None, 'maxLeverage': identifier}]
     require_tier(isinstance(tables, list) and len(tables) <= 500, 'Hyperliquid margin tables are missing.')

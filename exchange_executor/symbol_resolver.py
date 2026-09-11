@@ -72,6 +72,11 @@ def _positive_multiplier(value: Any) -> bool:
     if not number.is_finite() or number <= 0:
         return False
     _sign, digits, exponent = number.as_tuple()
+    try:
+        exponent = int(exponent)
+        digits = [int(d) for d in digits]
+    except (ValueError, TypeError):
+        return False
     # Do not normalize using the ambient Decimal context (it can round).
     length = len(digits)
     while length > 1 and digits[length - 1] == 0:
