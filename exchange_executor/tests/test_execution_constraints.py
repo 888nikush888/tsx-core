@@ -64,13 +64,13 @@ class ExecutionConstraintTests(unittest.IsolatedAsyncioTestCase):
             fixture = client.rest
             rest = getattr(ccxt_async, exchange)()
             rest.walletAddress = fixture.walletAddress
-            async def response(path, _scope, _method, params, **_kwargs):
+            async def response(path, _scope, _method, params, _fixture=fixture, **_kwargs):
                 if path == 'info':
                     if params['type'] == 'userAbstraction':
-                        return fixture.abstraction
-                    return fixture.clearinghouse_state if params['type'] == 'clearinghouseState' else fixture.publicPostInfo.return_value
-                method = {'v5/account/info': fixture.privateGetV5AccountInfo, 'v5/position/list': fixture.privateGetV5PositionList,
-                          'leveragepreferences': fixture.privateGetLeveragepreferences, 'openpositions': fixture.privateGetOpenpositions}[path]
+                        return _fixture.abstraction
+                    return _fixture.clearinghouse_state if params['type'] == 'clearinghouseState' else _fixture.publicPostInfo.return_value
+                method = {'v5/account/info': _fixture.privateGetV5AccountInfo, 'v5/position/list': _fixture.privateGetV5PositionList,
+                          'leveragepreferences': _fixture.privateGetLeveragepreferences, 'openpositions': _fixture.privateGetOpenpositions}[path]
                 return method.return_value
             rest.request = AsyncMock(side_effect=response)
             rest.fetch = AsyncMock(side_effect=AssertionError('Provider transport must never run in this fixture.'))

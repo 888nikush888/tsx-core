@@ -153,7 +153,7 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
         for change_quantity in (False, True):
             rest = PagedBybit(1, 205)
 
-            def changed(response, source, params):
+            def changed(response, source, params, change_quantity=change_quantity):
                 rows = response["result"]["list"]
                 if source == "positions" and params.get("cursor") == "199" and rows:
                     rows[0]["unrealizedPnl"] = "123"
@@ -198,7 +198,7 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
         for category, source in (("inverse", "positions"), ("option", "positions"), ("spot", "orders")):
             rest = PagedBybit(1, 1)
 
-            def foreign(response, kind, params):
+            def foreign(response, kind, params, source=source, category=category):
                 if kind == source and params["category"] == category:
                     response["result"]["list"] = [{"symbol": "foreign", "size": "1"}]
                 return response
@@ -221,7 +221,7 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
         for wrong in ("envelope", "scope", "discovery", "duplicate"):
             rest = HyperRest()
 
-            def invalid(response, params):
+            def invalid(response, params, wrong=wrong):
                 if params["type"] == "perpDexs":
                     if wrong == "discovery":
                         return []

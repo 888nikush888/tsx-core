@@ -70,23 +70,23 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
         for case in cases:
             rest, session = self.client()
             sign = rest.sign
-            def changed(*args, **kwargs):
-                result = sign(*args, **kwargs)
-                if case == 'host':
+            def changed(*args, _sign=sign, _case=case, **kwargs):
+                result = _sign(*args, **kwargs)
+                if _case == 'host':
                     result['url'] = result['url'].replace('futures.kraken.com', 'example.invalid')
-                elif case == 'path':
+                elif _case == 'path':
                     result['url'] = result['url'].replace('account-log', 'executions')
-                elif case == 'version':
+                elif _case == 'version':
                     result['url'] = result['url'].replace('/v3/', '/v2/')
-                elif case == 'method':
+                elif _case == 'method':
                     result['method'] = 'POST'
-                elif case == 'body':
+                elif _case == 'body':
                     result['body'] = '{}'
-                elif case == 'query':
+                elif _case == 'query':
                     result['url'] += '&asset=usd'
-                elif case == 'duplicate_query':
+                elif _case == 'duplicate_query':
                     result['url'] += '&sort=asc'
-                elif case == 'fragment':
+                elif _case == 'fragment':
                     result['url'] += '#elsewhere'
                 else:
                     result['headers']['APIKey'] = 'another-fixture-key'
@@ -114,7 +114,7 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
     async def test_client_identity_and_origin_changes_in_flight_are_rejected(self):
         for changed in ('apiKey', 'secret', 'root'):
             rest, session = self.client()
-            async def mutate():
+            async def mutate(changed=changed, rest=rest):
                 if changed == 'root':
                     rest.urls['api']['history'] = 'https://demo-futures.kraken.com/api/history/'
                 else:
@@ -190,7 +190,7 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
     async def test_nested_capture_and_second_transport_are_forbidden(self):
         for nested in (True, False):
             rest, session = self.client()
-            async def repeated():
+            async def repeated(nested=nested, rest=rest):
                 if nested:
                     await read_exact_kraken_account_log(rest, params())
                 else:
@@ -308,7 +308,7 @@ class KrakenCaptureBoundaryTests(unittest.IsolatedAsyncioTestCase):
         for changed in invalid:
             rest, session = self.client()
             sign = rest.sign
-            rest.sign = lambda *args, **kwargs: {**sign(*args, **kwargs), **changed}
+            rest.sign = lambda *args, _changed=changed, **kwargs: {**sign(*args, **kwargs), **_changed}
             with self.subTest(changed=changed):
                 prepared_checkpoint = checkpoint()
                 prepared_read_budget = read_budget()

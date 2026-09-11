@@ -126,7 +126,7 @@ class FxEvidenceTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_wrong_category_symbol_empty_or_numeric_index_never_falls_back_to_mark_last_or_parity(self):
         for mutation in ('category', 'symbol', 'empty', 'numeric', 'missing', 'zero', 'negative', 'exponent', 'long'):
-            def alter(_leg, raw):
+            def alter(_leg, raw, mutation=mutation):
                 row = raw['result']['list'][0]
                 if mutation == 'category':
                     raw['result']['category'] = 'linear'
@@ -145,20 +145,20 @@ class FxEvidenceTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_missing_stale_future_and_boolean_provider_time_are_not_local_receipt_time(self):
         for stamp in (None, True, str(self.clock), self.clock - 10_001, self.clock + 30_000):
-            self.transform = lambda _leg, raw: {**raw, 'time': stamp}
+            self.transform = lambda _leg, raw, stamp=stamp: {**raw, 'time': stamp}
             with self.subTest(stamp=stamp):
                 result = await self.read((USDC_USD,))
                 self.assertEqual((result['receipts'], result['reason']), ([], 'invalid_evidence'))
 
     async def test_exact_snapshot_clock_and_read_span_boundaries_are_not_widened(self):
         for offset, valid in ((-1000, True), (-1001, False), (1010, True), (1011, False)):
-            self.transform = lambda _leg, raw: {**raw, 'time': self.clock + offset}
+            self.transform = lambda _leg, raw, _offset=offset: {**raw, 'time': self.clock + _offset}
             with self.subTest(offset=offset):
                 result = await self.read((USDC_USD,))
                 self.assertEqual(len(result['receipts']), int(valid))
         for duration, valid in ((10000, True), (10001, False), (-1, False)):
-            def alter_clock(_leg, raw):
-                self.clock += duration - 10  # The fake itself completes 10 ms later.
+            def alter_clock(_leg, raw, _duration=duration):
+                self.clock += _duration - 10  # The fake itself completes 10 ms later.
                 return raw
             self.transform = alter_clock
             with self.subTest(duration=duration):
@@ -167,7 +167,7 @@ class FxEvidenceTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_incomplete_duplicate_error_or_oversized_envelopes_are_not_valid_receipts(self):
         for mutation in ('duplicate', 'empty', 'missing', 'error', 'oversized', 'unsafe_number', 'surrogate'):
-            def alter(_leg, raw):
+            def alter(_leg, raw, mutation=mutation):
                 if mutation == 'duplicate':
                     raw['result']['list'] *= 2
                 elif mutation == 'empty':
@@ -189,7 +189,7 @@ class FxEvidenceTests(unittest.IsolatedAsyncioTestCase):
         for _ in range(13):
             nested = [nested]
         for extra in (nested, [None] * 300, '😀' * 8192):
-            self.transform = lambda _leg, raw: {**raw, 'retExtInfo': {'extra': extra}}
+            self.transform = lambda _leg, raw, _extra=extra: {**raw, 'retExtInfo': {'extra': _extra}}
             with self.subTest(extra_type=type(extra).__name__):
                 self.assertEqual((await self.read((USDC_USD,)))['reason'], 'invalid_evidence')
 

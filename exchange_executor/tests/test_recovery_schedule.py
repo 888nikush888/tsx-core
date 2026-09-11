@@ -219,7 +219,7 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(endpoint=endpoint):
                 self.http.clear()
                 self.rest.options[endpoint[1:]] = {'defaultMaxRetriesOnFailure': 2}
-                def failure(path, _params, raw):
+                def failure(path, _params, raw, endpoint=endpoint):
                     if path == endpoint:
                         raise RequestTimeout('Local method-specific retry fixture')
                     return raw
@@ -378,7 +378,7 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
             query['accountLogs'] = log
             http, before = self.http, len(self.http)
             class AfterHistoryDeadline(RequestDeadline):
-                def remaining_ms(self):
+                def remaining_ms(self, before=before, http=http):
                     return 1000 if len(http) - before >= 4 else super().remaining_ms()
             unpaid = (await self.read(query, AfterHistoryDeadline(now() + 30000)))['acquisition']['accountLogs']
             self.assertEqual(unpaid['checkpoint'], log)

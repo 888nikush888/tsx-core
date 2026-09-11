@@ -734,7 +734,7 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
                 stream = AccountStream(
                     {"id": f"stream-{exchange}", "exchange": exchange, "mode": "testnet"},
                     clients,
-                    monotonic=lambda: now[0],
+                    monotonic=lambda now=now: now[0],
                 )
                 stream._status = "healthy"
                 stream._record_channel_failure("orders", TimeoutError("idle timeout"))

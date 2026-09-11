@@ -88,7 +88,7 @@ class HistoryCoverageTests(unittest.IsolatedAsyncioTestCase):
                 rest.handle_public_address = retention.handle_public_address
                 rest.parse_trade = retention.parse_trade
 
-            async def account(value):
+            async def account(value, rest=rest):
                 return SimpleNamespace(rest=rest, account=value, account_identity=value['id'])
 
             adapter = CcxtAdapter(SimpleNamespace(account=account))

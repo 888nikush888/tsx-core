@@ -131,8 +131,8 @@ class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
             rest = HistoryRest()
             original = rest.fetch_order
 
-            async def wrong(*args, **kwargs):
-                return {**await original(*args, **kwargs), **changed}
+            async def wrong(*args, _changed=changed, **kwargs):
+                return {**await original(*args, **kwargs), **_changed}
             rest.fetch_order = wrong
             prepared_rows = [reference()]
             prepared_recovery_read_budget = RecoveryReadBudget(self.deadline())
@@ -189,7 +189,7 @@ class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
                 rest = HistoryRest()
                 request = {"id": exchange, "exchange": exchange, "mode": "testnet"}
 
-                async def account(value):
+                async def account(value, rest=rest):
                     return SimpleNamespace(rest=rest, account=value, account_identity=value["id"])
 
                 state = await CcxtAdapter(SimpleNamespace(account=account)).open_state(request, self.deadline(), {"since": old, "orders": []})
